@@ -1,0 +1,7 @@
+﻿1) Engine and content should be seperate
+2) Engine should be develop for FPS game
+3) A map editor should be developed too.
+4) SDL2, Opengl4+GLEW and GLM would be used.
+5) language choice is C++11
+6) Build system choice is Cmake
+5) Model format should be Collada or MD5, tbd.
