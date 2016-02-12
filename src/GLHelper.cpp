@@ -126,23 +126,41 @@ GLHelper::GLHelper() {
 
     // A single triangle
     static const GLfloat vertex_positions[] = {
-            -1.0f, -1.0f,  0.0f, 1.0f,
-            1.0f, -1.0f,  0.0f, 1.0f,
-            -1.0f,  1.0f,  0.0f, 1.0f,
-            1.0f, 1.0f,  0.0f, 1.0f,
+            +0.5f, +0.5f,  0.5f, 1.0f,
+            -0.5f, -0.5f,  0.5f, 1.0f,
+            -0.5f, +0.5f, -0.5f, 1.0f,
+            +0.5f, -0.5f, -0.5f, 1.0f,
+
+            -0.5f, -0.5f, -0.5f, 1.0f,
+            +0.5f, +0.5f, -0.5f, 1.0f,
+            +0.5f, -0.5f,  0.5f, 1.0f,
+            -0.5f, +0.5f,  0.5f, 1.0f,
     };
 
     // Color for each vertex
     static const GLfloat vertex_colors[] = {
-            1.0f, 1.0f, 1.0f, 1.0f,
+            0.0f, 1.0f, 0.0f, 1.0f,
+            0.0f, 0.0f, 1.0f, 1.0f,
+            1.0f, 0.0f, 0.0f, 1.0f,
             1.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, 0.0f, 1.0f, 1.0f,
-            0.0f, 1.0f, 1.0f, 1.0f
+
+            0.0f, 1.0f, 0.0f, 1.0f,
+            0.0f, 0.0f, 1.0f, 1.0f,
+            1.0f, 0.0f, 0.0f, 1.0f,
+            1.0f, 1.0f, 0.0f, 1.0f,
     };
 
     // Indices for the triangle strips
     static const GLushort vertex_indices[] = {
-            0, 1, 2, 3 , 2 , 1
+            1, 0, 2,
+            0, 1, 3,
+            3, 2, 0,
+            2, 3, 1,
+
+            4, 5, 6,
+            5, 4, 7,
+            6, 7, 4,
+            7, 6, 5,
     };
 
     // Set up the element array buffer
@@ -166,14 +184,20 @@ GLHelper::GLHelper() {
     glEnableVertexAttribArray(1);
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    // Setup
+    //glDisable(GL_CULL_FACE);
+
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CCW);
+    glCullFace(GL_BACK);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glDepthMask(GL_TRUE);
+    glDepthRange(0.0f, 1.0f);
 }
 
 
 void GLHelper::render() {
-    // Setup
-    glEnable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Activate simple shading program
@@ -181,15 +205,15 @@ void GLHelper::render() {
 
     // Set up the model and projection matrix
     glm::mat4 projection_matrix(glm::frustum(-1.0f, 1.0f, -aspect, aspect, 1.0f, 500.0f));
-    (projectionMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection_matrix));
+    glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection_matrix));
 
     // Set up for a glDrawElements call
     glBindVertexArray(vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
-    model_matrix = glm::translate(glm::mat4(1.0f),glm::vec3(0.0f, 0.0f, -5.0f));
+    model_matrix = glm::translate(glm::mat4(1.0f),glm::vec3(0.5f, 0.3f, -3.0f));
     glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(model_matrix));
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, NULL);
+    glDrawElements(GL_TRIANGLES, 24, GL_UNSIGNED_SHORT, NULL);
 
     // DrawArraysInstanced
     //glDrawArraysInstanced(GL_TRIANGLES, 0, 3, 1);
