@@ -129,7 +129,7 @@ GLHelper::GLHelper() {
             -1.0f, -1.0f,  0.0f, 1.0f,
             1.0f, -1.0f,  0.0f, 1.0f,
             -1.0f,  1.0f,  0.0f, 1.0f,
-            -1.0f, -1.0f,  0.0f, 1.0f,
+            1.0f, 1.0f,  0.0f, 1.0f,
     };
 
     // Color for each vertex
@@ -142,7 +142,7 @@ GLHelper::GLHelper() {
 
     // Indices for the triangle strips
     static const GLushort vertex_indices[] = {
-            0, 1, 2
+            0, 1, 2, 3 , 2 , 1
     };
 
     // Set up the element array buffer
@@ -181,31 +181,20 @@ void GLHelper::render() {
 
     // Set up the model and projection matrix
     glm::mat4 projection_matrix(glm::frustum(-1.0f, 1.0f, -aspect, aspect, 1.0f, 500.0f));
-    glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection_matrix));
+    (projectionMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection_matrix));
 
     // Set up for a glDrawElements call
     glBindVertexArray(vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
-    // Draw Arrays...
-    model_matrix = glm::translate(glm::mat4(1.0f),glm::vec3(-3.0f, 0.0f, -5.0f));
+    model_matrix = glm::translate(glm::mat4(1.0f),glm::vec3(0.0f, 0.0f, -5.0f));
     glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(model_matrix));
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-
-    // DrawElements
-    model_matrix = glm::translate(glm::mat4(1.0f),glm::vec3(-1.0f, 0.0f, -5.0f));
-    glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(model_matrix));
-    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, NULL);
-
-    // DrawElementsBaseVertex
-    model_matrix = glm::translate(glm::mat4(1.0f),glm::vec3(1.0f, 0.0f, -5.0f));
-    glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(model_matrix));
-    glDrawElementsBaseVertex(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, NULL, 1);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, NULL);
 
     // DrawArraysInstanced
-    model_matrix = glm::translate(glm::mat4(1.0f),glm::vec3(3.0f, 0.0f, -5.0f));
-    glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(model_matrix));
-    glDrawArraysInstanced(GL_TRIANGLES, 0, 3, 1);
+    //glDrawArraysInstanced(GL_TRIANGLES, 0, 3, 1);
+    // DrawElementsBaseVertex
+    //glDrawElementsBaseVertex(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, NULL, 1);
 }
 
 GLHelper::~GLHelper() {
