@@ -6,6 +6,7 @@
 
 #include "GLHelper.h"
 #include "SDL2Helper.h"
+#include "Model.h"
 
 #define PROGRAM_NAME "UberGame"
 
@@ -19,8 +20,12 @@ int main(int argc, char *argv[]){
     GLHelper glHelper;
     glHelper.reshape(height,width);
 
+    Model star(&glHelper);
+
     while(!quit){
-        glHelper.render();
+        glHelper.clearFrame();
+        //glHelper.render();
+        star.render();
         sdlHelper.swap();
         quit = sdlHelper.isQuit();
     }

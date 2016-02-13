@@ -3,7 +3,7 @@ project(UberGame)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(SOURCE_FILES src/main.cpp src/SDL2Helper.cpp src/SDL2Helper.h src/GLHelper.cpp src/GLHelper.h)
+set(SOURCE_FILES src/main.cpp src/SDL2Helper.cpp src/SDL2Helper.h src/GLHelper.cpp src/GLHelper.h src/Model.cpp src/Model.h)
 add_executable(UberGame ${SOURCE_FILES})
 set(SDL2_FOUND 1)
 find_package(SDL2 REQUIRED)

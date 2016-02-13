@@ -124,49 +124,6 @@ GLHelper::GLHelper() {
     modelMatrixLocation = glGetUniformLocation(gpuProgram, "model_matrix");
     projectionMatrixLocation = glGetUniformLocation(gpuProgram, "projection_matrix");
 
-    // A single triangle
-    static const GLfloat vertex_positions[] = {
-            +0.5f, +0.5f,  0.5f, 1.0f,
-            -0.5f, -0.5f,  0.5f, 1.0f,
-            -0.5f, +0.5f, -0.5f, 1.0f,
-            +0.5f, -0.5f, -0.5f, 1.0f,
-
-            -0.5f, -0.5f, -0.5f, 1.0f,
-            +0.5f, +0.5f, -0.5f, 1.0f,
-            +0.5f, -0.5f,  0.5f, 1.0f,
-            -0.5f, +0.5f,  0.5f, 1.0f,
-    };
-
-    // Color for each vertex
-    static const GLfloat vertex_colors[] = {
-            0.0f, 1.0f, 0.0f, 1.0f,
-            0.0f, 0.0f, 1.0f, 1.0f,
-            1.0f, 0.0f, 0.0f, 1.0f,
-            1.0f, 1.0f, 0.0f, 1.0f,
-
-            0.0f, 1.0f, 0.0f, 1.0f,
-            0.0f, 0.0f, 1.0f, 1.0f,
-            1.0f, 0.0f, 0.0f, 1.0f,
-            1.0f, 1.0f, 0.0f, 1.0f,
-    };
-
-    // Indices for the triangle strips
-    static const GLuint vertex_indices[] = {
-            1, 0, 2,
-            0, 1, 3,
-            3, 2, 0,
-            2, 3, 1,
-
-            4, 5, 6,
-            5, 4, 7,
-            6, 7, 4,
-            7, 6, 5,
-    };
-
-    bufferVertexData(vertex_positions, vertex_colors, sizeof(vertex_positions),
-                     vertex_indices, sizeof(vertex_indices),
-    vao, vbo, ebo);
-
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     // Setup
     //glDisable(GL_CULL_FACE);
@@ -206,9 +163,7 @@ void GLHelper::bufferVertexData(const GLfloat* vertexData, const GLfloat* colorD
 }
 
 
-void GLHelper::render() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+void GLHelper::render(const GLuint vao, const GLuint ebo, const glm::mat4& modelMatrix) {
     // Activate simple shading program
     glUseProgram(gpuProgram);
 
@@ -220,8 +175,8 @@ void GLHelper::render() {
     glBindVertexArray(vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
-    model_matrix = glm::translate(glm::mat4(1.0f),glm::vec3(0.5f, 0.3f, -3.0f));
-    glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(model_matrix));
+
+    glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix));
     glDrawElements(GL_TRIANGLES, 24, GL_UNSIGNED_INT, NULL);
 
     // DrawArraysInstanced

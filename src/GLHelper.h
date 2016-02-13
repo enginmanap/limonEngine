@@ -44,8 +44,10 @@ public:
                           const GLuint* elementData, const GLuint elementSize,
                           GLuint& vao, GLuint& vbo, GLuint& ebo);
 
-
-    void render();
+    void clearFrame(){
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+;    }
+    void render(const GLuint, const GLuint, const glm::mat4&);
     void reshape(int width, int height);
 };
 
