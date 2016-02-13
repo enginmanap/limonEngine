@@ -12,15 +12,21 @@
 #include <GL/gl.h>
 
 class Model {
-    GLHelper* glHelper;
-
     GLuint vao, vbo, ebo;
-
     glm::mat4 worldTransform;
-public:
-    Model(GLHelper*);
 
-    void render();
+
+public:
+    const glm::mat4 &getWorldTransform() const {
+        return worldTransform;
+    }
+
+    void setWorldTransform(const glm::mat4 &worldTransform) {
+        this->worldTransform = worldTransform;
+    }
+
+    Model(GLHelper*);
+    void render(GLHelper*);
 
 };
 #endif //UBERGAME_MODEL_H

@@ -5,11 +5,7 @@
 #include "Model.h"
 
 
-Model::Model(GLHelper* glHelper):
-        glHelper(glHelper)
-{
-
-    // A single triangle
+Model::Model(GLHelper* glHelper) {
     static const GLfloat vertex_positions[] = {
             +0.5f, +0.5f,  0.5f, 1.0f,
             -0.5f, -0.5f,  0.5f, 1.0f,
@@ -22,7 +18,6 @@ Model::Model(GLHelper* glHelper):
             -0.5f, +0.5f,  0.5f, 1.0f,
     };
 
-    // Color for each vertex
     static const GLfloat vertex_colors[] = {
             0.0f, 1.0f, 0.0f, 1.0f,
             0.0f, 0.0f, 1.0f, 1.0f,
@@ -35,7 +30,6 @@ Model::Model(GLHelper* glHelper):
             1.0f, 1.0f, 0.0f, 1.0f,
     };
 
-    // Indices for the triangle strips
     static const GLuint vertex_indices[] = {
             1, 0, 2,
             0, 1, 3,
@@ -51,10 +45,9 @@ Model::Model(GLHelper* glHelper):
     glHelper->bufferVertexData(vertex_positions, vertex_colors, sizeof(vertex_positions),
                      vertex_indices, sizeof(vertex_indices),
                      vao, vbo, ebo);
-    worldTransform = glm::translate(glm::mat4(1.0f),glm::vec3(0.5f, 0.3f, -3.0f));
+    worldTransform = glm::mat4(1.0f);
 }
 
-void Model::render() {
-
+void Model::render(GLHelper* glHelper) {
     glHelper->render(vao, ebo, worldTransform);
 }
