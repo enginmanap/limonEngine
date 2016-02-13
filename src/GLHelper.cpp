@@ -151,7 +151,7 @@ GLHelper::GLHelper() {
     };
 
     // Indices for the triangle strips
-    static const GLushort vertex_indices[] = {
+    static const GLuint vertex_indices[] = {
             1, 0, 2,
             0, 1, 3,
             3, 2, 0,
@@ -163,25 +163,9 @@ GLHelper::GLHelper() {
             7, 6, 5,
     };
 
-    // Set up the element array buffer
-    glGenBuffers(1, &ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(vertex_indices), vertex_indices, GL_STATIC_DRAW);
-
-    // Set up the vertex attributes
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_positions) + sizeof(vertex_colors), NULL, GL_STATIC_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex_positions), vertex_positions);
-    glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertex_positions), sizeof(vertex_colors), vertex_colors);
-
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, NULL);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (const GLvoid *)sizeof(vertex_positions));
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
+    bufferVertexData(vertex_positions, vertex_colors, sizeof(vertex_positions),
+                     vertex_indices, sizeof(vertex_indices),
+    vao, vbo, ebo);
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     // Setup
@@ -194,6 +178,31 @@ GLHelper::GLHelper() {
     glDepthFunc(GL_LEQUAL);
     glDepthMask(GL_TRUE);
     glDepthRange(0.0f, 1.0f);
+}
+
+void GLHelper::bufferVertexData(const GLfloat* vertexData, const GLfloat* colorData, const GLuint vertexSize,
+                      const GLuint* elementData, const GLuint elementSize,
+                      GLuint& vao, GLuint& vbo, GLuint& ebo){
+
+    // Set up the element array buffer
+    glGenBuffers(1, &ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, elementSize, elementData, GL_STATIC_DRAW);
+
+    // Set up the vertex attributes
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertexSize * 2, NULL, GL_STATIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize, vertexData);
+    glBufferSubData(GL_ARRAY_BUFFER, vertexSize, vertexSize, colorData);
+
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, NULL);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (const GLvoid *)vertexSize);
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
 }
 
 
@@ -213,7 +222,7 @@ void GLHelper::render() {
 
     model_matrix = glm::translate(glm::mat4(1.0f),glm::vec3(0.5f, 0.3f, -3.0f));
     glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(model_matrix));
-    glDrawElements(GL_TRIANGLES, 24, GL_UNSIGNED_SHORT, NULL);
+    glDrawElements(GL_TRIANGLES, 24, GL_UNSIGNED_INT, NULL);
 
     // DrawArraysInstanced
     //glDrawArraysInstanced(GL_TRIANGLES, 0, 3, 1);

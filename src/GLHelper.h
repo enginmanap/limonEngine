@@ -40,6 +40,11 @@ public:
     GLuint createProgram(const std::vector<GLuint> &);
     GLuint initializeProgram();
 
+    void bufferVertexData(const GLfloat* vertexData, const GLfloat* colorData, const GLuint vertexSize,
+                          const GLuint* elementData, const GLuint elementSize,
+                          GLuint& vao, GLuint& vbo, GLuint& ebo);
+
+
     void render();
     void reshape(int width, int height);
 };
