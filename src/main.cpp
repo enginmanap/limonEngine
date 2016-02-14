@@ -7,6 +7,7 @@
 #include "GLHelper.h"
 #include "SDL2Helper.h"
 #include "World.h"
+#include "InputHandler.h"
 
 #define PROGRAM_NAME "UberGame"
 
@@ -19,17 +20,18 @@ int main(int argc, char *argv[]){
 
     GLHelper glHelper;
     glHelper.reshape(height,width);
+    InputHandler inputHandler;
 
     World world(&glHelper);
 
     Uint32 ticks;
-    while(!sdlHelper.getInputState("quit")){
+    while(!inputHandler.getInputState("quit")){
         glHelper.clearFrame();
         ticks = SDL_GetTicks();
         world.play(ticks);
         world.render();
         sdlHelper.swap();
-        sdlHelper.mapInput();
+        inputHandler.mapInput();
     }
     return 0;
 }
