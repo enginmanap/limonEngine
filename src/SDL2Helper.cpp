@@ -40,6 +40,23 @@ SDL2Helper::SDL2Helper(const char* title, int height, int width) {
 
 }
 
+void SDL2Helper::mapInput() {
+    while (SDL_PollEvent(&event)) {
+        switch(event.type) {
+            case SDL_QUIT:
+                inputStates["quit"] = true;
+                break;
+            case SDL_KEYDOWN:
+                switch (event.key.keysym.sym) {
+                    case SDLK_ESCAPE:
+                        inputStates["quit"] = true;
+                        break;
+                }
+                break;
+        }
+    }
+}
+
 SDL2Helper::~SDL2Helper() {
     /* Delete our opengl context, destroy our window, and shutdown SDL */
     SDL_GL_DeleteContext(context);

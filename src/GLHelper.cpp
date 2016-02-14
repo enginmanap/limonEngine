@@ -169,6 +169,10 @@ void GLHelper::render(const GLuint vao, const GLuint ebo, const glm::mat4& model
 
     // Set up the model and projection matrix
     glm::mat4 projection_matrix(glm::frustum(-1.0f, 1.0f, -aspect, aspect, 1.0f, 500.0f));
+
+
+    projection_matrix *=glm::lookAt(glm::vec3(0.0f,0.0f,2.0f), glm::vec3(0.0f,1.0f,-1.0f), glm::vec3(0.0f,1.0f,0.0f));
+
     glUniformMatrix4fv(cameraMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection_matrix));
 
     // Set up for a glDrawElements call

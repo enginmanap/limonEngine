@@ -23,13 +23,13 @@ int main(int argc, char *argv[]){
     World world(&glHelper);
 
     Uint32 ticks;
-    while(!quit){
+    while(!sdlHelper.getInputState("quit")){
         glHelper.clearFrame();
         ticks = SDL_GetTicks();
         world.play(ticks);
         world.render();
         sdlHelper.swap();
-        quit = sdlHelper.isQuit();
+        sdlHelper.mapInput();
     }
     return 0;
 }
