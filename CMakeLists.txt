@@ -19,6 +19,8 @@ if(NOT OPENGL_FOUND)
     message(ERROR " OPENGL not found!")
 endif(NOT OPENGL_FOUND)
 
+STRING(REGEX REPLACE "  -mwindows" "" SDL2_LIBRARIES ${SDL2_LIBRARIES})
+
 TARGET_LINK_LIBRARIES(UberGame ${SDL2_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES})
 
 configure_file(bin/fragment.shader fragment.shader COPYONLY)
