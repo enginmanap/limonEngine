@@ -26,8 +26,8 @@ class GLHelper {
     GLuint vbo;
     GLuint ebo;
 
-    GLint modelMatrixLocation;
-    GLint projectionMatrixLocation;
+    GLint transformMatrixLocation;
+    GLint cameraMatrixLocation;
 
     float aspect;
 

@@ -121,8 +121,8 @@ GLHelper::GLHelper() {
     gpuProgram = initializeProgram();
     glUseProgram(gpuProgram);
 
-    modelMatrixLocation = glGetUniformLocation(gpuProgram, "model_matrix");
-    projectionMatrixLocation = glGetUniformLocation(gpuProgram, "projection_matrix");
+    transformMatrixLocation = glGetUniformLocation(gpuProgram, "worldTransformMatrix");
+    cameraMatrixLocation = glGetUniformLocation(gpuProgram, "cameraTransformMatrix");
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     // Setup
@@ -169,14 +169,14 @@ void GLHelper::render(const GLuint vao, const GLuint ebo, const glm::mat4& model
 
     // Set up the model and projection matrix
     glm::mat4 projection_matrix(glm::frustum(-1.0f, 1.0f, -aspect, aspect, 1.0f, 500.0f));
-    glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection_matrix));
+    glUniformMatrix4fv(cameraMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection_matrix));
 
     // Set up for a glDrawElements call
     glBindVertexArray(vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
 
-    glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix));
+    glUniformMatrix4fv(transformMatrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix));
     glDrawElements(GL_TRIANGLES, 24, GL_UNSIGNED_INT, NULL);
 
     // DrawArraysInstanced
