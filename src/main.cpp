@@ -12,7 +12,7 @@
 #define PROGRAM_NAME "UberGame"
 
 int main(int argc, char *argv[]){
-    int height=1024, width=768;
+    int height=768, width=1024;
 
     bool quit=false;
 

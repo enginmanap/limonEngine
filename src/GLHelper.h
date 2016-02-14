@@ -48,7 +48,7 @@ public:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 ;    }
     void render(const GLuint, const GLuint, const glm::mat4&);
-    void reshape(int width, int height);
+    void reshape(int height, int width);
 };
 
 #endif //UBERGAME_GLHELPER_H

@@ -196,7 +196,7 @@ GLHelper::~GLHelper() {
     glDeleteBuffers(1, &vbo);
 }
 
-void GLHelper::reshape(int width, int height) {
+void GLHelper::reshape(int height, int width) {
     glViewport(0, 0 , width, height);
     aspect = float(height) / float(width);
 }

@@ -25,7 +25,7 @@ SDL2Helper::SDL2Helper(const char* title, int height, int width) {
 
     /* Create our window centered at 512x512 resolution */
     window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                  height, width, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+                                  width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
     if (!window){ /* Die if creation failed */
         std::cout << "SDL Error: " << SDL_GetError() << std::endl;
         SDL_Quit();
