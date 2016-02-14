@@ -20,15 +20,15 @@ int main(int argc, char *argv[]){
 
     GLHelper glHelper;
     glHelper.reshape(height,width);
-    InputHandler inputHandler;
+    InputHandler inputHandler(height,width);
 
     World world(&glHelper);
 
     Uint32 ticks;
-    while(!inputHandler.getInputState("quit")){
+    while(!inputHandler.getInputStatus(inputHandler.QUIT)){
         glHelper.clearFrame();
         ticks = SDL_GetTicks();
-        world.play(ticks);
+        world.play(ticks, inputHandler);
         world.render();
         sdlHelper.swap();
         inputHandler.mapInput();

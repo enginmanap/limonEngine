@@ -31,7 +31,10 @@ class GLHelper {
 
     float aspect;
 
-    glm::mat4 model_matrix;
+    glm::mat4 model_matrix;//FIXME this is a left over?
+
+    glm::mat4 cameraTransform;
+
 public:
     GLHelper();
     ~GLHelper();
@@ -43,6 +46,8 @@ public:
     void bufferVertexData(const GLfloat* vertexData, const GLfloat* colorData, const GLuint vertexSize,
                           const GLuint* elementData, const GLuint elementSize,
                           GLuint& vao, GLuint& vbo, GLuint& ebo);
+
+    void setCamera(const glm::vec3&, const glm::vec3&, const glm::vec3&);
 
     void clearFrame(){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

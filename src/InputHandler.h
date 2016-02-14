@@ -6,23 +6,29 @@
 #define UBERGAME_INPUTHANDLER_H
 
 #include <map>
-#include <string>
 #include <SDL2/SDL.h>
 
 
 class InputHandler {
-
-    SDL_Event event;
-    std::map<std::string,bool> inputStates;
-
 public:
+    //FIXME access modifiers should not be like this
+    enum states {QUIT, MOUSE_MOVE};
+private:
+    int height, width;
+    SDL_Event event;
+    std::map<states,bool> inputStatus;
+    Sint16 xRel, yRel;
+    float xPos, yPos;
+public:
+    InputHandler(int, int);
+
     void mapInput();
 
-    bool getInputState(std::string input){
-        if(inputStates.find(input) == inputStates.end())
-            return false;
-        return inputStates[input];
+    bool getInputStatus(states input){
+        return inputStatus[input];
     }
+
+    void getMousePosition(float&, float&);
 
 };
 

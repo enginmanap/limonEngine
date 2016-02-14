@@ -25,7 +25,7 @@ World::World(GLHelper* glHelper){
     objects.push_back(star);
 }
 
-void World::play(Uint32 ticks){
+void World::play(Uint32 ticks, InputHandler inputHandler){
     float rotation = ticks / 5000.0f * 3.14f * 2;
     glm::mat4 transform;
     transform = glm::translate(glm::mat4(1.0f),glm::vec3(1.0f, 1.0f, -3.0f));
@@ -47,6 +47,12 @@ void World::play(Uint32 ticks){
     transform = glm::translate(glm::mat4(1.0f),glm::vec3(-1.0f, 1.0f, -3.0f));
     transform *= glm::scale(glm::mat4(1.0f),glm::vec3(cosTic, cosTic, cosTic));
     objects[3]->setWorldTransform(transform);
+
+    float xLook,yLook;
+    inputHandler.getMousePosition(xLook, yLook);
+    float zLook = sqrt(1 - (xLook * xLook + yLook * yLook));
+    glHelper->setCamera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(xLook, yLook, -1 * zLook), glm::vec3(0.0f, 1.0f, 0.0f));
+
 }
 
 void World::render(){

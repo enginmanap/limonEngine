@@ -10,6 +10,7 @@
 #include "GLHelper.h"
 #include <SDL2/SDL_stdinc.h>
 #include "glm/glm.hpp"
+#include "InputHandler.h"
 
 class World {
     std::vector<Model*> objects;
@@ -18,7 +19,7 @@ public:
     World(GLHelper*);
 
     void render();
-    void play(Uint32);
+    void play(Uint32, InputHandler);
 
 };
 
