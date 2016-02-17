@@ -51,11 +51,11 @@ void World::play(Uint32 ticks, InputHandler inputHandler){
     float xLook,yLook;
     inputHandler.getMousePosition(xLook, yLook);
     float zLook = sqrt(1 - (xLook * xLook + yLook * yLook));
-    glHelper->setCamera(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(xLook, yLook, -1 * zLook), glm::vec3(0.0f, 1.0f, 0.0f));
-
+    camera.setCenter(glm::vec3(xLook, yLook, -1 * zLook));
 }
 
 void World::render(){
+    glHelper->setCamera(camera.getCameraMatrix());
     for(std::vector<Model*>::iterator it = objects.begin(); it != objects.end(); ++it){
         (*it)->render(glHelper);
     }

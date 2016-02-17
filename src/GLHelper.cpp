@@ -164,8 +164,8 @@ void GLHelper::bufferVertexData(const GLfloat* vertexData, const GLfloat* colorD
     glEnableVertexAttribArray(1);
 }
 
-void GLHelper::setCamera(const glm::vec3& position, const glm::vec3& center, const glm::vec3& up){
-    cameraTransform = glm::lookAt(position, center, up);
+void GLHelper::setCamera(const glm::mat4& cameraTransform){
+    this->cameraTransform = cameraTransform;
 }
 
 

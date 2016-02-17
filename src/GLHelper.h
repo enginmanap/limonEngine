@@ -47,7 +47,7 @@ public:
                           const GLuint* elementData, const GLuint elementSize,
                           GLuint& vao, GLuint& vbo, GLuint& ebo);
 
-    void setCamera(const glm::vec3&, const glm::vec3&, const glm::vec3&);
+    void setCamera(const glm::mat4&);
 
     void clearFrame(){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

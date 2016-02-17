@@ -11,10 +11,12 @@
 #include <SDL2/SDL_stdinc.h>
 #include "glm/glm.hpp"
 #include "InputHandler.h"
+#include "Camera.h"
 
 class World {
     std::vector<Model*> objects;
     GLHelper *glHelper;
+    Camera camera;
 public:
     World(GLHelper*);
 
