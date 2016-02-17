@@ -112,7 +112,7 @@ GLHelper::GLHelper() {
     rev = glewInit();
 
     if (GLEW_OK != rev){
-        std::cout << "Error: " << glewGetErrorString(rev) << std::endl;
+        std::cout << "GLEW init Error: " << glewGetErrorString(rev) << std::endl;
         exit(1);
     } else {
         std::cout << "GLEW Init: Success!" << std::endl;

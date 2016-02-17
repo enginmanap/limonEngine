@@ -16,7 +16,7 @@ SDL2Helper::SDL2Helper(const char* title, int height, int width) {
     /* Request opengl 4.4 context. */
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 
     /* Turn on double buffering with a 24bit Z buffer.
      * You may need to change this to 16 or 32 for your system */
@@ -35,9 +35,15 @@ SDL2Helper::SDL2Helper(const char* title, int height, int width) {
     /* Create our opengl context and attach it to our window */
     context = SDL_GL_CreateContext(window);
 
+    if(context == NULL){
+        std::cout << "SDL2: OpenGL context creation failed."  << std::endl;
+        exit(1);
+
+    }
+
     /* This makes our buffer swap syncronized with the monitor's vertical refresh */
     SDL_GL_SetSwapInterval(1);
-
+    std::cout << "SDL started."  << std::endl;
 }
 
 SDL2Helper::~SDL2Helper() {
