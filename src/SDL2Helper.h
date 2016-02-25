@@ -22,5 +22,6 @@ public:
         SDL_GL_SwapWindow(window);
     };
 
+    SDL_Window* getWindow();
 };
 #endif //UBERGAME_SDL2HELPER_CPP_H

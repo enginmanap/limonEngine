@@ -5,14 +5,16 @@
 #include <iostream>
 #include "InputHandler.h"
 
-InputHandler::InputHandler(int height, int width):
-height(height), width(width){
+InputHandler::InputHandler(SDL_Window* window, int height, int width):
+window(window), height(height), width(width){
+    SDL_SetWindowGrab(window, SDL_TRUE);
     inputStatus[QUIT] = false;
     inputStatus[MOUSE_MOVE] = false;
     inputStatus[MOVE_FORWARD] = false;
     inputStatus[MOVE_BACKWARD] = false;
     inputStatus[MOVE_LEFT] = false;
     inputStatus[MOVE_RIGHT] = false;
+
 }
 
 void InputHandler::mapInput() {
@@ -28,7 +30,7 @@ void InputHandler::mapInput() {
                 yPos = (event.motion.y - (height / 2.0f)) / (height/2);
                 yChange = (event.motion.yrel) / (height/2.0f);
                 //fixme this is wrong, we need window position to fix it.
-                SDL_WarpMouseGlobal(width/2, height/2);
+                SDL_WarpMouseInWindow(window, width/2, height/2);
                 break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.sym) {

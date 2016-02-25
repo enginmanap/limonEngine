@@ -52,3 +52,7 @@ SDL2Helper::~SDL2Helper() {
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
+
+SDL_Window* SDL2Helper::getWindow() {
+    return window;
+}
