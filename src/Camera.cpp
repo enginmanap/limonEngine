@@ -42,13 +42,31 @@ void Camera::move(moveDirections direction) {
     }
 }
 
-void Camera::rotate(float xChange, float yChange){
-    viewChange = glm::quat(cos(xChange*lookAroundSpeed/2),0,1*sin(xChange*lookAroundSpeed/2),0);
+void Camera::rotate(float xChange, float yChange) {
+    viewChange = glm::quat(cos(yChange * lookAroundSpeed / 2),
+                           right.x * sin(yChange * lookAroundSpeed / 2),
+                           right.y * sin(yChange * lookAroundSpeed / 2),
+                           right.z * sin(yChange * lookAroundSpeed / 2));
     view = viewChange * view;
     view = glm::normalize(view);
+
+    viewChange = glm::quat(cos(xChange * lookAroundSpeed / 2),
+                           up.x * sin(xChange * lookAroundSpeed / 2),
+                           up.y * sin(xChange * lookAroundSpeed / 2),
+                           up.z * sin(xChange * lookAroundSpeed / 2));
+    view = viewChange * view;
+    view = glm::normalize(view);
+
     center.x = view.x;
-    center.y = view.y;
+    if (view.y > 1.0f) {
+        center.y = 0.9999f;
+    } else if (view.y < -1.0f) {
+        center.y = -0.9999f;
+    } else {
+        center.y = view.y;
+    }
     center.z = view.z;
-    right = glm::cross(center, up);
+    center = glm::normalize(center);
+    right = glm::normalize(glm::cross(center, up));
     this->dirty=true;
 }

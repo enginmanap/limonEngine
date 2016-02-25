@@ -38,7 +38,7 @@ public:
         glm::vec3 normalizeCenter = glm::normalize(center);
         if(this->center != normalizeCenter ) {
             this->center = normalizeCenter;
-            this->right = glm::cross(normalizeCenter, up);
+            this->right = glm::normalize(glm::cross(normalizeCenter, up));
             this->dirty = true;
         }
     }
