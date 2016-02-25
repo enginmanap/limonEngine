@@ -2,6 +2,7 @@
 // Created by Engin Manap on 17.02.2016.
 //
 
+#include <c++/5.3.0/iostream>
 #include "Camera.h"
 
 void Camera::move(moveDirections direction) {
@@ -11,33 +12,43 @@ void Camera::move(moveDirections direction) {
     dirty=true;
     switch (direction) {
         case LEFT_BACKWARD:
-            position.x -= moveSpeed;
-            position.z -= moveSpeed;
+            position -= moveSpeed * center;
+            position -= moveSpeed * right;
             break;
         case LEFT_FORWARD:
-            position.x -= moveSpeed;
-            position.z += moveSpeed;
+            position += moveSpeed * center;
+            position -= moveSpeed * right;
             break;
         case LEFT:
-            position.x -= moveSpeed;
+            position -= moveSpeed * right;
             break;
         case RIGHT_BACKWARD:
-            position.x += moveSpeed;
-            position.z -= moveSpeed;
+            position -= moveSpeed * center;
+            position += moveSpeed * right;
             break;
         case RIGHT_FORWARD:
-            position.x += moveSpeed;
-            position.z += moveSpeed;
+            position += moveSpeed * center;
+            position += moveSpeed * right;
             break;
         case RIGHT:
-            position.x += moveSpeed;
+            position += moveSpeed * right;
             break;
         case BACKWARD:
-            position.z -= moveSpeed;
+            position -= moveSpeed * center;
             break;
         case FORWARD:
-            position.z += moveSpeed;
+            position += moveSpeed * center;
             break;
     }
+}
 
+void Camera::rotate(float xChange, float yChange){
+    viewChange = glm::quat(cos(xChange*lookAroundSpeed/2),0,1*sin(xChange*lookAroundSpeed/2),0);
+    view = viewChange * view;
+    view = glm::normalize(view);
+    center.x = view.x;
+    center.y = view.y;
+    center.z = view.z;
+    right = glm::cross(center, up);
+    this->dirty=true;
 }

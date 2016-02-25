@@ -49,7 +49,9 @@ void World::play(Uint32 ticks, InputHandler& inputHandler) {
     objects[3]->setWorldTransform(transform);
 
     float xLook, yLook;
-    inputHandler.getMousePosition(xLook, yLook);
+    if(inputHandler.getMouseChange(xLook, yLook)){
+        camera.rotate(xLook,yLook);
+    }
     Camera::moveDirections direction = Camera::moveDirections::NONE;
     //ignore if both are pressed.
     if (inputHandler.getInputStatus(inputHandler.MOVE_FORWARD) !=  inputHandler.getInputStatus(inputHandler.MOVE_BACKWARD)) {
@@ -81,8 +83,6 @@ void World::play(Uint32 ticks, InputHandler& inputHandler) {
         camera.move(direction);
     }
 
-    float zLook = sqrt(1 - (xLook * xLook + yLook * yLook));
-    camera.setCenter(glm::vec3(xLook, yLook, -1 * zLook));
 }
 
 void World::render() {

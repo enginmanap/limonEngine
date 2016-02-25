@@ -17,8 +17,7 @@ private:
     int height, width;
     SDL_Event event;
     std::map<states,bool> inputStatus;
-    Sint16 xRel, yRel;
-    float xPos, yPos;
+    float xPos, yPos, xChange, yChange;
 public:
     InputHandler(int, int);
 
@@ -28,7 +27,8 @@ public:
         return inputStatus.at(input);
     }
 
-    void getMousePosition(float&, float&);
+    void getMousePosition(float&, float&) const;
+    bool getMouseChange(float &xChange, float &yChange);
 
 };
 
