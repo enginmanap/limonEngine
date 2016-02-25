@@ -21,7 +21,7 @@ public:
     World(GLHelper*);
 
     void render();
-    void play(Uint32, InputHandler);
+    void play(Uint32, InputHandler&);
 
 };
 
