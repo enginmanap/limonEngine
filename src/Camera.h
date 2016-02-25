@@ -9,11 +9,12 @@
 #include "glm/gtc/matrix_transform.hpp"
 
 class Camera {
+    float moveSpeed = 0.1;
     bool dirty;
     glm::vec3 position, center, up;
     glm::mat4 cameraTransformMatrix;
 public:
-
+    enum moveDirections{NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD};
     Camera():
             dirty(false),
             position(glm::vec3(0,0,0)),
@@ -35,9 +36,13 @@ public:
         }
     }
 
+    void move(moveDirections);
+
+
     glm::mat4 getCameraMatrix(){
         if(this->dirty){
-            this->cameraTransformMatrix = glm::lookAt(position, center, up);
+            this->cameraTransformMatrix = glm::lookAt(position, center+position, up);
+            this->dirty = false;
         }
         return cameraTransformMatrix;
     }

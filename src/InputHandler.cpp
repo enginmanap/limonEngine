@@ -23,6 +23,34 @@ void InputHandler::mapInput() {
                     case SDLK_ESCAPE:
                         inputStatus[QUIT] = true;
                         break;
+                    case SDLK_w:
+                        inputStatus[MOVE_FORWARD] = true;
+                        break;
+                    case SDLK_a:
+                        inputStatus[MOVE_LEFT] = true;
+                        break;
+                    case SDLK_s:
+                        inputStatus[MOVE_BACKWARD] = true;
+                        break;
+                    case SDLK_d:
+                        inputStatus[MOVE_RIGHT] = true;
+                        break;
+                }
+                break;
+            case SDL_KEYUP:
+                switch (event.key.keysym.sym) {
+                    case SDLK_w:
+                        inputStatus[MOVE_FORWARD] = false;
+                        break;
+                    case SDLK_a:
+                        inputStatus[MOVE_LEFT] = false;
+                        break;
+                    case SDLK_s:
+                        inputStatus[MOVE_BACKWARD] = false;
+                        break;
+                    case SDLK_d:
+                        inputStatus[MOVE_RIGHT] = false;
+                        break;
                 }
                 break;
             case SDL_MOUSEMOTION:
