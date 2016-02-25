@@ -24,8 +24,8 @@ public:
 
     void mapInput();
 
-    bool getInputStatus(states input){
-        return inputStatus[input];
+    bool getInputStatus(const states input) const {
+        return inputStatus.at(input);
     }
 
     void getMousePosition(float&, float&);
