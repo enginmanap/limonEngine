@@ -126,9 +126,9 @@ GLHelper::GLHelper() {
 
     cameraTransform = glm::lookAt(glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,0.0f,-1.0f), glm::vec3(0.0f,1.0f,0.0f));
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     // Setup
-    //glDisable(GL_CULL_FACE);
+    glDisable(GL_CULL_FACE);
 
     glEnable(GL_CULL_FACE);
     glFrontFace(GL_CCW);
@@ -139,9 +139,9 @@ GLHelper::GLHelper() {
     glDepthRange(0.0f, 1.0f);
 }
 
-void GLHelper::bufferVertexData(const GLfloat* vertexData, const GLfloat* colorData, const GLuint vertexSize,
+void GLHelper::bufferVertexData(const GLfloat* vertexData, const GLuint vertexSize,
                       const GLuint* elementData, const GLuint elementSize,
-                      GLuint& vao, GLuint& vbo, GLuint& ebo){
+                      GLuint& vao, GLuint& vbo, const GLuint attachPointer, GLuint& ebo){
 
     // Set up the element array buffer
     glGenBuffers(1, &ebo);
@@ -154,14 +154,37 @@ void GLHelper::bufferVertexData(const GLfloat* vertexData, const GLfloat* colorD
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertexSize * 2, NULL, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertexSize, vertexData, GL_STATIC_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize, vertexData);
-    glBufferSubData(GL_ARRAY_BUFFER, vertexSize, vertexSize, colorData);
+    glVertexAttribPointer(attachPointer, 4, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(attachPointer);
+    glBindBuffer(GL_ARRAY_BUFFER,0);
+    glBindVertexArray(0);
+}
 
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, NULL);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (const GLvoid *)vertexSize);
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
+void GLHelper::bufferVertexColor(const GLfloat* colorData, const GLuint ColorSize,
+                       GLuint& vao, GLuint& vbo, const GLuint attachPointer){
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, ColorSize, colorData, GL_STATIC_DRAW);
+
+    glBindVertexArray(vao);
+    glVertexAttribPointer(attachPointer, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(attachPointer);
+    glBindVertexArray(0);
+}
+
+void GLHelper::bufferVertexTextureCoordinates(const GLfloat *coordinateData, const GLuint coordinateDataSize,
+                                              GLuint &vao, GLuint &vbo, const GLuint attachPointer, GLuint &ebo) {
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, coordinateDataSize, coordinateData, GL_STATIC_DRAW);
+
+    glBindVertexArray(vao);
+    glVertexAttribPointer(attachPointer, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(attachPointer);
+    glBindVertexArray(0);
+
 }
 
 void GLHelper::setCamera(const glm::mat4& cameraTransform){
@@ -187,7 +210,7 @@ void GLHelper::render(const GLuint vao, const GLuint ebo, const glm::mat4& model
 
 
     glUniformMatrix4fv(transformMatrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix));
-    glDrawElements(GL_TRIANGLES, 24, GL_UNSIGNED_INT, NULL);
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, NULL);
 
     // DrawArraysInstanced
     //glDrawArraysInstanced(GL_TRIANGLES, 0, 3, 1);
@@ -205,4 +228,31 @@ GLHelper::~GLHelper() {
 void GLHelper::reshape(int height, int width) {
     glViewport(0, 0 , width, height);
     aspect = float(height) / float(width);
+}
+
+GLuint GLHelper::loadTexture(int height, int width, bool alpha, void *data) {
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    if(alpha){
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    } else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    }
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    return texture;
+}
+
+void GLHelper::attachTexture(GLuint textureID){
+    glBindTexture(GL_TEXTURE_2D, textureID);
+}
+
+bool GLHelper::deleteTexture(GLuint textureID) {
+    if(glIsTexture(textureID)) {
+        glDeleteTextures(1, &textureID);
+        return true;
+    } else {
+        return false;
+    }
 }

@@ -5,7 +5,8 @@
 #include "Model.h"
 
 
-Model::Model(GLHelper* glHelper) {
+Model::Model(GLHelper* glHelper):
+    glHelper(glHelper){
     static const GLfloat vertex_positions[] = {
             +0.5f, +0.5f,  0.5f, 1.0f,
             -0.5f, -0.5f,  0.5f, 1.0f,
@@ -42,9 +43,10 @@ Model::Model(GLHelper* glHelper) {
             7, 6, 5,
     };
 
-    glHelper->bufferVertexData(vertex_positions, vertex_colors, sizeof(vertex_positions),
-                     vertex_indices, sizeof(vertex_indices),
-                     vao, vbo, ebo);
+    glHelper->bufferVertexData(vertex_positions, sizeof(vertex_positions), vertex_indices, sizeof(vertex_indices),
+    vao,vbo,0,ebo);
+
+    glHelper->bufferVertexColor(vertex_colors, sizeof(vertex_colors),vao,vbo,1);
     worldTransform = glm::mat4(1.0f);
 }
 

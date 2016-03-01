@@ -43,9 +43,13 @@ public:
     GLuint createProgram(const std::vector<GLuint> &);
     GLuint initializeProgram();
 
-    void bufferVertexData(const GLfloat* vertexData, const GLfloat* colorData, const GLuint vertexSize,
+    void bufferVertexData(const GLfloat* vertexData, const GLuint vertexSize,
                           const GLuint* elementData, const GLuint elementSize,
-                          GLuint& vao, GLuint& vbo, GLuint& ebo);
+                          GLuint& vao, GLuint& vbo, const GLuint attachPointer, GLuint& ebo);
+    void bufferVertexColor(const GLfloat* colorData, const GLuint ColorSize,
+                           GLuint& vao, GLuint& vbo, const GLuint attachPointer);
+    void bufferVertexTextureCoordinates(const GLfloat* coordinateData, const GLuint coordinateDataSize,
+                          GLuint& vao, GLuint& vbo, const GLuint attachPointer, GLuint& ebo);
 
     void setCamera(const glm::mat4&);
 
@@ -54,6 +58,11 @@ public:
 ;    }
     void render(const GLuint, const GLuint, const glm::mat4&);
     void reshape(int height, int width);
+
+    GLuint loadTexture(int height, int width, bool alpha, void *data);
+    void attachTexture(GLuint textureID);
+
+    bool deleteTexture(GLuint textureID);
 };
 
 #endif //UBERGAME_GLHELPER_H
