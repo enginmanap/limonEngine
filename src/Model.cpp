@@ -44,12 +44,12 @@ Model::Model(GLHelper* glHelper):
     };
 
     glHelper->bufferVertexData(vertex_positions, sizeof(vertex_positions), vertex_indices, sizeof(vertex_indices),
-    vao,vbo,0,ebo);
+    vao,vbo,2,ebo);
 
-    glHelper->bufferVertexColor(vertex_colors, sizeof(vertex_colors),vao,vbo,1);
+    glHelper->bufferVertexColor(vertex_colors, sizeof(vertex_colors),vao,vbo,3);
     worldTransform = glm::mat4(1.0f);
 }
 
 void Model::render(GLHelper* glHelper) {
-    glHelper->render(vao, ebo, worldTransform);
+    glHelper->render(0, vao, ebo, worldTransform, 24);
 }

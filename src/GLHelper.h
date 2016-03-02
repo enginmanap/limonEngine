@@ -22,6 +22,7 @@
 
 class GLHelper {
     GLuint gpuProgram;
+
     GLuint vao;
     GLuint vbo;
     GLuint ebo;
@@ -41,7 +42,7 @@ public:
 
     GLuint createShader(GLenum, const std::string &);
     GLuint createProgram(const std::vector<GLuint> &);
-    GLuint initializeProgram();
+    GLuint initializeProgram(std::string vertexShaderFile, std::string fragmentShaderFile);
 
     void bufferVertexData(const GLfloat* vertexData, const GLuint vertexSize,
                           const GLuint* elementData, const GLuint elementSize,
@@ -56,11 +57,13 @@ public:
     void clearFrame(){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 ;    }
-    void render(const GLuint, const GLuint, const glm::mat4&);
+    void render(const GLuint, const GLuint, const GLuint, const glm::mat4&, const GLuint);
     void reshape(int height, int width);
 
     GLuint loadTexture(int height, int width, bool alpha, void *data);
+    GLuint loadCubeMap(int height, int width, void* right, void* left, void* top, void* bottom, void* back, void* front);
     void attachTexture(GLuint textureID);
+    void attachCubeMap(GLuint cubeMapID);
 
     bool deleteTexture(GLuint textureID);
 };

@@ -12,9 +12,11 @@
 #include "glm/glm.hpp"
 #include "InputHandler.h"
 #include "Camera.h"
+#include "SkyBox.h"
 
 class World {
     std::vector<Model*> objects;
+    SkyBox* sky;
     GLHelper *glHelper;
     Camera camera;
 public:

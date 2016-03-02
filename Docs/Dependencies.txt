@@ -1,0 +1,4 @@
+1)SDL
+2)GLEW 3
+3)SDL_Image
+4)Cmake

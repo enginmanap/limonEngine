@@ -47,14 +47,15 @@ void Camera::rotate(float xChange, float yChange) {
                            right.x * sin(yChange * lookAroundSpeed / 2),
                            right.y * sin(yChange * lookAroundSpeed / 2),
                            right.z * sin(yChange * lookAroundSpeed / 2));
-    view = viewChange * view;
+
+    view = viewChange * view * glm::conjugate(viewChange);
     view = glm::normalize(view);
 
     viewChange = glm::quat(cos(xChange * lookAroundSpeed / 2),
                            up.x * sin(xChange * lookAroundSpeed / 2),
                            up.y * sin(xChange * lookAroundSpeed / 2),
                            up.z * sin(xChange * lookAroundSpeed / 2));
-    view = viewChange * view;
+    view = viewChange * view * glm::conjugate(viewChange);
     view = glm::normalize(view);
 
     center.x = view.x;

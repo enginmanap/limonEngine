@@ -18,7 +18,7 @@ GLuint GLHelper::createShader(GLenum eShaderType, const std::string &strShaderFi
 
         shaderStream.close();
     } else {
-        std::cerr << strShaderFile.c_str() << " dosyasi acilamadi. Uygulamanizi bu dosyanin oldugu dizinde calistirdiginizdan emin olunuz." << std::endl;
+        std::cerr << strShaderFile.c_str() << " could not be read. Please ensure run directory if you used relative paths." << std::endl;
         getchar();
         return 0;
     }
@@ -55,7 +55,7 @@ GLuint GLHelper::createShader(GLenum eShaderType, const std::string &strShaderFi
                 break;
         }
 
-        std::cerr << strShaderType << " tipi shader dosyasi derlenemedi. Detaylar:\n" << strInfoLog << std::endl;
+        std::cerr << strShaderType << " type shader " << strShaderFile.c_str() <<" could not be compiled:\n" << strInfoLog << std::endl;
         delete[] strInfoLog;
 
     }
@@ -81,8 +81,10 @@ GLuint GLHelper::createProgram(const std::vector<GLuint> &shaderList) {
 
         GLchar *strInfoLog = new GLchar[infoLogLength + 1];
         glGetProgramInfoLog(program, infoLogLength, NULL, strInfoLog);
-        std::cerr << "Linkleme sorunu: \n" << strInfoLog << std::endl;
+        std::cerr << "Linking failed: \n" << strInfoLog << std::endl;
         delete[] strInfoLog;
+    } else {
+        std::cout << "Program compiled successfully" << std::endl;
     }
 
     for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
@@ -92,12 +94,12 @@ GLuint GLHelper::createProgram(const std::vector<GLuint> &shaderList) {
 }
 
 
-GLuint GLHelper::initializeProgram() {
+GLuint GLHelper::initializeProgram(std::string vertexShaderFile, std::string fragmentShaderFile) {
     GLuint program;
     std::vector<GLuint> shaderList;
 
-    shaderList.push_back(createShader(GL_VERTEX_SHADER, "./vertex.shader"));
-    shaderList.push_back(createShader(GL_FRAGMENT_SHADER, "./fragment.shader"));
+    shaderList.push_back(createShader(GL_VERTEX_SHADER, vertexShaderFile));
+    shaderList.push_back(createShader(GL_FRAGMENT_SHADER, fragmentShaderFile));
 
 
     program = createProgram(shaderList);
@@ -118,12 +120,12 @@ GLHelper::GLHelper() {
         std::cout << "GLEW Init: Success!" << std::endl;
     }
 
-    gpuProgram = initializeProgram();
+    gpuProgram = initializeProgram("./Data/Shaders/Star/vertex.shader","./Data/Shaders/Star/fragment.shader");
     glUseProgram(gpuProgram);
 
     transformMatrixLocation = glGetUniformLocation(gpuProgram, "worldTransformMatrix");
     cameraMatrixLocation = glGetUniformLocation(gpuProgram, "cameraTransformMatrix");
-
+    glUseProgram(0);
     cameraTransform = glm::lookAt(glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,0.0f,-1.0f), glm::vec3(0.0f,1.0f,0.0f));
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
@@ -192,15 +194,23 @@ void GLHelper::setCamera(const glm::mat4& cameraTransform){
 }
 
 
-void GLHelper::render(const GLuint vao, const GLuint ebo, const glm::mat4& modelMatrix) {
-    // Activate simple shading program
-    glUseProgram(gpuProgram);
+void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, const glm::mat4& modelMatrix, const GLuint elementCount) {
+    if(program == 0) {
+        //we don't allow no program rendering, I am not sure if it is possible either
+        glUseProgram(gpuProgram);
+    } else {
+        glUseProgram(program);
+        glUniform3f(3, cameraTransform[0][0], cameraTransform[0][1], cameraTransform[0][2] );
+    }
 
     // Set up the model and projection matrix
     glm::mat4 projection_matrix(glm::frustum(-1.0f, 1.0f, -aspect, aspect, 1.0f, 500.0f));
 
-
-    projection_matrix *=cameraTransform;
+    if(program == 0) {
+        projection_matrix *= cameraTransform;
+    } else {
+        projection_matrix *=  glm::mat4(glm::mat3(cameraTransform));
+    }
 
     glUniformMatrix4fv(cameraMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection_matrix));
 
@@ -208,10 +218,11 @@ void GLHelper::render(const GLuint vao, const GLuint ebo, const glm::mat4& model
     glBindVertexArray(vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
-
     glUniformMatrix4fv(transformMatrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix));
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, NULL);
 
+    glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, NULL);
+
+    glUseProgram(0);
     // DrawArraysInstanced
     //glDrawArraysInstanced(GL_TRIANGLES, 0, 3, 1);
     // DrawElementsBaseVertex
@@ -248,6 +259,10 @@ void GLHelper::attachTexture(GLuint textureID){
     glBindTexture(GL_TEXTURE_2D, textureID);
 }
 
+void GLHelper::attachCubeMap(GLuint cubeMapID){
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapID);
+}
+
 bool GLHelper::deleteTexture(GLuint textureID) {
     if(glIsTexture(textureID)) {
         glDeleteTextures(1, &textureID);
@@ -255,4 +270,26 @@ bool GLHelper::deleteTexture(GLuint textureID) {
     } else {
         return false;
     }
+}
+
+GLuint GLHelper::loadCubeMap(int height, int width, void *right, void *left, void *top, void *bottom, void *back,
+                             void *front) {
+    GLuint cubeMap;
+    glGenTextures(1, &cubeMap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMap);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, right);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, left);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, top);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, bottom);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, back);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, front);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+    return cubeMap;
 }

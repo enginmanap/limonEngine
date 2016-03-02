@@ -4,6 +4,7 @@
 
 
 #include "World.h"
+#include "SkyBox.h"
 
 World::World(GLHelper *glHelper) {
     this->glHelper = glHelper;
@@ -23,6 +24,16 @@ World::World(GLHelper *glHelper) {
     star = new Model(glHelper);
     star->setWorldTransform(glm::translate(glm::mat4(1.0f), glm::vec3(-1.0f, 1.0f, -3.0f)));
     objects.push_back(star);
+
+    sky= new SkyBox(glHelper,
+                            std::string("D:user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterUp2048.png"),
+                            std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterDown2048.png"),
+                            std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterRight2048.png"),
+                            std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterLeft2048.png"),
+                            std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterBack2048.png"),
+                            std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterFront2048.png")
+    );
+
 }
 
 void World::play(Uint32 ticks, InputHandler& inputHandler) {
@@ -90,4 +101,6 @@ void World::render() {
     for (std::vector<Model *>::iterator it = objects.begin(); it != objects.end(); ++it) {
         (*it)->render(glHelper);
     }
+    sky->render();
+
 }

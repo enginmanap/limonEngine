@@ -12,6 +12,7 @@
 #include <GL/gl.h>
 
 class Model {
+protected:
     GLHelper* glHelper;
     GLuint vao, vbo, ebo;
     glm::mat4 worldTransform;
