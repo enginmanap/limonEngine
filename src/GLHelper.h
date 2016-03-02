@@ -32,8 +32,6 @@ class GLHelper {
 
     float aspect;
 
-    glm::mat4 model_matrix;//FIXME this is a left over?
-
     glm::mat4 cameraTransform;
 
 public:
