@@ -14,7 +14,7 @@
 class SkyBox : public Model {
 
     CubeMap* cubeMap;
-    GLuint renderProgram;
+
 public:
     SkyBox(GLHelper* glHelper, std::string right, std::string left,
            std::string top, std::string down,

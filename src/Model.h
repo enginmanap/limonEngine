@@ -15,9 +15,9 @@ class Model {
 protected:
     GLHelper* glHelper;
     GLuint vao, vbo, ebo;
+    GLuint renderProgram;
+
     glm::mat4 worldTransform;
-
-
 public:
     const glm::mat4 &getWorldTransform() const {
         return worldTransform;
