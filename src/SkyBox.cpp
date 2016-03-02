@@ -75,8 +75,6 @@ SkyBox::SkyBox(GLHelper* glHelper, std::string right, std::string left, std::str
 }
 
 void SkyBox::render(){
-    //TODO this transfrom should be removed
-    glm::mat4 skyTransform = glm::mat4(1.0f);
     glHelper->attachCubeMap(cubeMap->getID());
-    glHelper->render(renderProgram, vao,ebo,skyTransform, 36);
+    glHelper->render(renderProgram, vao,ebo,worldTransform, 36);
 }
