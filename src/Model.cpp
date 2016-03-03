@@ -17,17 +17,16 @@ Model::Model(GLHelper* glHelper):
     vertices.push_back(glm::vec3(-0.5f, +0.5f,  0.5f));
 
 
-    static const GLfloat vertex_colors[] = {
-            0.0f, 1.0f, 0.0f, 1.0f,
-            0.0f, 0.0f, 1.0f, 1.0f,
-            1.0f, 0.0f, 0.0f, 1.0f,
-            1.0f, 1.0f, 0.0f, 1.0f,
 
-            0.0f, 1.0f, 0.0f, 1.0f,
-            0.0f, 0.0f, 1.0f, 1.0f,
-            1.0f, 0.0f, 0.0f, 1.0f,
-            1.0f, 1.0f, 0.0f, 1.0f,
-    };
+    colors.push_back(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+    colors.push_back(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+    colors.push_back(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+    colors.push_back(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
+    colors.push_back(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+    colors.push_back(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+    colors.push_back(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+    colors.push_back(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
+
 
 
     faces.push_back(glm::mediump_uvec3(1, 0, 2));
@@ -43,7 +42,7 @@ Model::Model(GLHelper* glHelper):
 
     glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
 
-    glHelper->bufferVertexColor(vertex_colors, sizeof(vertex_colors),vao,vbo,3);
+    glHelper->bufferVertexColor(colors,vao,vbo,3);
     worldTransform = glm::mat4(1.0f);
 
     uniforms.push_back("cameraTransformMatrix");

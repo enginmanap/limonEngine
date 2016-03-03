@@ -39,9 +39,9 @@ public:
     void bufferVertexData(const std::vector<glm::vec3>& vertices,
                           const std::vector<glm::mediump_uvec3>& faces,
                           GLuint& vao, GLuint& vbo, const GLuint attachPointer, GLuint& ebo);
-    void bufferVertexColor(const GLfloat* colorData, const GLuint ColorSize,
+    void bufferVertexColor(const std::vector<glm::vec4>& colors,
                            GLuint& vao, GLuint& vbo, const GLuint attachPointer);
-    void bufferVertexTextureCoordinates(const GLfloat* coordinateData, const GLuint coordinateDataSize,
+    void bufferVertexTextureCoordinates(const std::vector<glm::vec2> textureCoordinates,
                           GLuint& vao, GLuint& vbo, const GLuint attachPointer, GLuint& ebo);
 
     void setCamera(const glm::mat4&);
