@@ -5,17 +5,23 @@
 #ifndef UBERGAME_MODEL_H
 #define UBERGAME_MODEL_H
 
+
+#include <vector>
+
 //TODO maybe we should not have direct dependency to glm and gl
 #include "glm/glm.hpp"
 #include "GLHelper.h"
+#include "GLSLProgram.h"
 
-#include <GL/gl.h>
+
+
 
 class Model {
 protected:
     GLHelper* glHelper;
     GLuint vao, vbo, ebo;
-    GLuint renderProgram;
+    GLSLProgram* renderProgram;
+    std::vector<std::string> uniforms;
 
     glm::mat4 worldTransform;
 public:

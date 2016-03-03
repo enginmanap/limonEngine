@@ -21,19 +21,13 @@
 #include <iostream>
 
 class GLHelper {
-    GLuint gpuProgram;
-
-    GLuint vao;
-    GLuint vbo;
-    GLuint ebo;
-
-    GLint transformMatrixLocation;
-    GLint cameraMatrixLocation;
+    GLenum error;
 
     float aspect;
 
-    glm::mat4 cameraTransform;
-
+    glm::mat4 cameraMatrix;
+    glm::mat4 projectionMatrix;
+    bool checkErrors(std::string callerFunc);
 public:
     GLHelper();
     ~GLHelper();
@@ -55,7 +49,7 @@ public:
     void clearFrame(){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 ;    }
-    void render(const GLuint, const GLuint, const GLuint, const glm::mat4&, const GLuint);
+    void render(const GLuint, const GLuint, const GLuint, const GLuint);
     void reshape(int height, int width);
 
     GLuint loadTexture(int height, int width, bool alpha, void *data);
@@ -64,6 +58,14 @@ public:
     void attachCubeMap(GLuint cubeMapID);
 
     bool deleteTexture(GLuint textureID);
+
+    bool getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location);
+
+    //maybe this should be used by GLSLProgram, instead of model.
+    bool setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 matrix);
+
+    glm::mat4 getCameraMatrix() const {return cameraMatrix;};
+    glm::mat4 getProjectionMatrix() const {return projectionMatrix;};
 };
 
 #endif //UBERGAME_GLHELPER_H

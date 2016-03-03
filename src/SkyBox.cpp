@@ -69,12 +69,16 @@ SkyBox::SkyBox(GLHelper* glHelper, std::string right, std::string left, std::str
                                vao, vbo, 2, ebo);
 //    glHelper->bufferVertexTextureCoordinates(vertex_texture_coords, sizeof(vertex_texture_coords),
 //                                vao, vbo, 2, ebo);
-
-    renderProgram =glHelper->initializeProgram("./Data/Shaders/SkyCube/vertex.shader",
-                                               "./Data/Shaders/SkyCube/fragment.shader");
+    uniforms.push_back("cameraTransformMatrix");
+    renderProgram = new GLSLProgram(glHelper,"./Data/Shaders/SkyCube/vertex.shader","./Data/Shaders/SkyCube/fragment.shader",uniforms);
 }
 
 void SkyBox::render(){
     glHelper->attachCubeMap(cubeMap->getID());
-    glHelper->render(renderProgram, vao,ebo,worldTransform, 36);
+    glm::mat4 viewMatrix = glHelper->getProjectionMatrix() * glm::mat4(glm::mat3(glHelper->getCameraMatrix()));
+    GLuint location;
+    if(renderProgram->getUniformLocation("cameraTransformMatrix", location)) {
+        glHelper->setUniform(renderProgram->getID(), location, viewMatrix);
+        glHelper->render(renderProgram->getID(), vao, ebo, 36);
+    }
 }

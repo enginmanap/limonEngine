@@ -59,7 +59,7 @@ GLuint GLHelper::createShader(GLenum eShaderType, const std::string &strShaderFi
         delete[] strInfoLog;
 
     }
-
+    checkErrors("createShader");
     return shader;
 }
 
@@ -67,10 +67,12 @@ GLuint GLHelper::createShader(GLenum eShaderType, const std::string &strShaderFi
 GLuint GLHelper::createProgram(const std::vector<GLuint> &shaderList) {
     GLuint program = glCreateProgram();
 
-    for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
+    for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++) {
         glAttachShader(program, shaderList[iLoop]);
+    }
 
     glLinkProgram(program);
+
     GLint status;
     glGetProgramiv (program, GL_LINK_STATUS, &status);
 
@@ -87,9 +89,11 @@ GLuint GLHelper::createProgram(const std::vector<GLuint> &shaderList) {
         std::cout << "Program compiled successfully" << std::endl;
     }
 
-    for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
+    for(size_t iLoop = 0; iLoop < shaderList.size(); iLoop++) {
         glDetachShader(program, shaderList[iLoop]);
+    }
 
+    checkErrors("createProgram");
     return program;
 }
 
@@ -97,19 +101,21 @@ GLuint GLHelper::createProgram(const std::vector<GLuint> &shaderList) {
 GLuint GLHelper::initializeProgram(std::string vertexShaderFile, std::string fragmentShaderFile) {
     GLuint program;
     std::vector<GLuint> shaderList;
-
+    checkErrors("before create shaders");
     shaderList.push_back(createShader(GL_VERTEX_SHADER, vertexShaderFile));
     shaderList.push_back(createShader(GL_FRAGMENT_SHADER, fragmentShaderFile));
 
 
     program = createProgram(shaderList);
     std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
+    checkErrors("initializeProgram");
     return program;
 }
 
 
 GLHelper::GLHelper() {
     GLenum rev;
+    error = GL_NO_ERROR;
     glewExperimental = GL_TRUE;
     rev = glewInit();
 
@@ -119,14 +125,9 @@ GLHelper::GLHelper() {
     } else {
         std::cout << "GLEW Init: Success!" << std::endl;
     }
+    checkErrors("after Context creation");
 
-    gpuProgram = initializeProgram("./Data/Shaders/Star/vertex.shader","./Data/Shaders/Star/fragment.shader");
-    glUseProgram(gpuProgram);
-
-    transformMatrixLocation = glGetUniformLocation(gpuProgram, "worldTransformMatrix");
-    cameraMatrixLocation = glGetUniformLocation(gpuProgram, "cameraTransformMatrix");
-    glUseProgram(0);
-    cameraTransform = glm::lookAt(glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,0.0f,-1.0f), glm::vec3(0.0f,1.0f,0.0f));
+    cameraMatrix = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     // Setup
@@ -139,6 +140,7 @@ GLHelper::GLHelper() {
     glDepthFunc(GL_LEQUAL);
     glDepthMask(GL_TRUE);
     glDepthRange(0.0f, 1.0f);
+    checkErrors("Constructor");
 }
 
 void GLHelper::bufferVertexData(const GLfloat* vertexData, const GLuint vertexSize,
@@ -162,6 +164,7 @@ void GLHelper::bufferVertexData(const GLfloat* vertexData, const GLuint vertexSi
     glEnableVertexAttribArray(attachPointer);
     glBindBuffer(GL_ARRAY_BUFFER,0);
     glBindVertexArray(0);
+    checkErrors("bufferVertexData");
 }
 
 void GLHelper::bufferVertexColor(const GLfloat* colorData, const GLuint ColorSize,
@@ -174,6 +177,7 @@ void GLHelper::bufferVertexColor(const GLfloat* colorData, const GLuint ColorSiz
     glVertexAttribPointer(attachPointer, 4, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(attachPointer);
     glBindVertexArray(0);
+    checkErrors("bufferVertexColor");
 }
 
 void GLHelper::bufferVertexTextureCoordinates(const GLfloat *coordinateData, const GLuint coordinateDataSize,
@@ -186,59 +190,71 @@ void GLHelper::bufferVertexTextureCoordinates(const GLfloat *coordinateData, con
     glVertexAttribPointer(attachPointer, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(attachPointer);
     glBindVertexArray(0);
-
+    checkErrors("bufferVertexTextureCoordinates");
 }
 
 void GLHelper::setCamera(const glm::mat4& cameraTransform){
-    this->cameraTransform = cameraTransform;
+    this->cameraMatrix = cameraTransform;
 }
 
 
-void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, const glm::mat4& modelMatrix, const GLuint elementCount) {
-    if(program == 0) {
-        //we don't allow no program rendering, I am not sure if it is possible either
-        glUseProgram(gpuProgram);
-    } else {
-        glUseProgram(program);
-        glUniform3f(3, cameraTransform[0][0], cameraTransform[0][1], cameraTransform[0][2] );
+void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount) {
+    if(program == 0){
+        std::cerr << "No program render requested." << std::endl;
+        return;
     }
+     glUseProgram(program);
 
-    // Set up the model and projection matrix
-    glm::mat4 projection_matrix(glm::frustum(-1.0f, 1.0f, -aspect, aspect, 1.0f, 500.0f));
-
-    if(program == 0) {
-        projection_matrix *= cameraTransform;
-    } else {
-        projection_matrix *=  glm::mat4(glm::mat3(cameraTransform));
-    }
-
-    glUniformMatrix4fv(cameraMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection_matrix));
 
     // Set up for a glDrawElements call
     glBindVertexArray(vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
-    glUniformMatrix4fv(transformMatrixLocation, 1, GL_FALSE, glm::value_ptr(modelMatrix));
-
     glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, NULL);
 
     glUseProgram(0);
+
+    checkErrors("render");
     // DrawArraysInstanced
     //glDrawArraysInstanced(GL_TRIANGLES, 0, 3, 1);
     // DrawElementsBaseVertex
     //glDrawElementsBaseVertex(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, NULL, 1);
 }
 
+
+bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 matrix){
+    if(!glIsProgram(programID)){
+        std::cerr << "invalid program for setting uniform." << std::endl;
+        return false;
+    } else {
+        glUseProgram(programID);
+        glUniformMatrix4fv(uniformID, 1, GL_FALSE, glm::value_ptr(matrix));
+        glUseProgram(0);
+        checkErrors("setUniform");
+        return true;
+    }
+
+}
+
+bool GLHelper::checkErrors(std::string callerFunc){
+    bool hasError = false;
+    while((error = glGetError()) != GL_NO_ERROR){
+            std::cerr << "error found on GL context while " << callerFunc <<":" << error << std::endl;
+            hasError = true;
+        }
+    return hasError;
+}
+
+
 GLHelper::~GLHelper() {
     glUseProgram(0);
-    glDeleteProgram(gpuProgram);
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &vbo);
 }
 
 void GLHelper::reshape(int height, int width) {
     glViewport(0, 0 , width, height);
     aspect = float(height) / float(width);
+    projectionMatrix = glm::frustum(-1.0f, 1.0f, -aspect, aspect, 1.0f, 500.0f);
+    checkErrors("reshape");
 }
 
 GLuint GLHelper::loadTexture(int height, int width, bool alpha, void *data) {
@@ -252,22 +268,27 @@ GLuint GLHelper::loadTexture(int height, int width, bool alpha, void *data) {
     }
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
+    checkErrors("loadTexture");
     return texture;
 }
 
 void GLHelper::attachTexture(GLuint textureID){
     glBindTexture(GL_TEXTURE_2D, textureID);
+    checkErrors("attachTexture");
 }
 
 void GLHelper::attachCubeMap(GLuint cubeMapID){
     glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapID);
+    checkErrors("attachCubeMap");
 }
 
 bool GLHelper::deleteTexture(GLuint textureID) {
     if(glIsTexture(textureID)) {
         glDeleteTextures(1, &textureID);
+        checkErrors("deleteTexture");
         return true;
     } else {
+        checkErrors("deleteTexture");
         return false;
     }
 }
@@ -290,6 +311,20 @@ GLuint GLHelper::loadCubeMap(int height, int width, void *right, void *left, voi
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
     glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-
+    checkErrors("loadCubeMap");
     return cubeMap;
+}
+
+bool GLHelper::getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location) {
+    GLint rawLocation = glGetUniformLocation(programID, uniformName.c_str());
+    if(!checkErrors("getUniformLocation")) {
+        if (rawLocation >= 0) {
+            location = rawLocation;
+            return true;
+        } else {
+            std::cerr << "No error found, but uniform[" << uniformName << "] can not be located " << std::endl;
+
+        }
+    }
+    return false;
 }

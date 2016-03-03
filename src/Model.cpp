@@ -48,8 +48,24 @@ Model::Model(GLHelper* glHelper):
 
     glHelper->bufferVertexColor(vertex_colors, sizeof(vertex_colors),vao,vbo,3);
     worldTransform = glm::mat4(1.0f);
+
+    uniforms.push_back("cameraTransformMatrix");
+    uniforms.push_back("worldTransformMatrix");
+
+    renderProgram = new GLSLProgram(glHelper,"./Data/Shaders/Star/vertex.shader","./Data/Shaders/Star/fragment.shader",uniforms);
 }
 
 void Model::render(GLHelper* glHelper) {
-    glHelper->render(0, vao, ebo, worldTransform, 24);
+
+    glm::mat4 viewMatrix = glHelper->getProjectionMatrix() * glHelper->getCameraMatrix();
+    GLuint location;
+    if(renderProgram->getUniformLocation("cameraTransformMatrix", location)) {
+        glHelper->setUniform(renderProgram->getID(), location, viewMatrix);
+        if(renderProgram->getUniformLocation("worldTransformMatrix", location)) {
+            glHelper->setUniform(renderProgram->getID(), location, worldTransform);
+            glHelper->render(renderProgram->getID(), vao, ebo, 24);
+        }
+    }
+
+    //glHelper->render(0, vao, ebo, worldTransform, 24);
 }
