@@ -13,17 +13,17 @@ SkyBox::SkyBox(GLHelper* glHelper, std::string right, std::string left, std::str
                           "top.jpg", "bottom.jpg",
                           "back.jpg", "front.jpg");
 
-    static const GLfloat vertex_positions[] = {
-            -1.0f, -1.0f, -1.0f, 1.0f,
-             1.0f, -1.0f, -1.0f, 1.0f,
-             1.0f,  1.0f, -1.0f, 1.0f,
-            -1.0f,  1.0f, -1.0f, 1.0f,
 
-            -1.0f, -1.0f, 1.0f, 1.0f,
-             1.0f, -1.0f, 1.0f, 1.0f,
-             1.0f,  1.0f, 1.0f, 1.0f,
-            -1.0f,  1.0f, 1.0f, 1.0f,
-    };
+    vertices.push_back(glm::vec3(-1.0f, -1.0f, -1.0f));
+    vertices.push_back(glm::vec3( 1.0f, -1.0f, -1.0f));
+    vertices.push_back(glm::vec3( 1.0f,  1.0f, -1.0f));
+    vertices.push_back(glm::vec3(-1.0f,  1.0f, -1.0f));
+
+    vertices.push_back(glm::vec3(-1.0f, -1.0f, 1.0f));
+    vertices.push_back(glm::vec3( 1.0f, -1.0f, 1.0f));
+    vertices.push_back(glm::vec3( 1.0f,  1.0f, 1.0f));
+    vertices.push_back(glm::vec3(-1.0f,  1.0f, 1.0f));
+
 
     static const GLfloat vertex_texture_coords[] = {
             0.0f, 0.0f,
@@ -64,7 +64,7 @@ SkyBox::SkyBox(GLHelper* glHelper, std::string right, std::string left, std::str
     };
 
 
-    glHelper->bufferVertexData(vertex_positions, sizeof(vertex_positions),
+    glHelper->bufferVertexData(vertices,
                                vertex_indices, sizeof(vertex_indices),
                                vao, vbo, 2, ebo);
 //    glHelper->bufferVertexTextureCoordinates(vertex_texture_coords, sizeof(vertex_texture_coords),

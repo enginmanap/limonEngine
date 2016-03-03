@@ -7,17 +7,15 @@
 
 Model::Model(GLHelper* glHelper):
     Renderable(glHelper){
-    static const GLfloat vertex_positions[] = {
-            +0.5f, +0.5f,  0.5f, 1.0f,
-            -0.5f, -0.5f,  0.5f, 1.0f,
-            -0.5f, +0.5f, -0.5f, 1.0f,
-            +0.5f, -0.5f, -0.5f, 1.0f,
+    vertices.push_back(glm::vec3(+0.5f, +0.5f,  0.5f));
+    vertices.push_back(glm::vec3(-0.5f, -0.5f,  0.5f));
+    vertices.push_back(glm::vec3(-0.5f, +0.5f, -0.5f));
+    vertices.push_back(glm::vec3(+0.5f, -0.5f, -0.5f));
+    vertices.push_back(glm::vec3(-0.5f, -0.5f, -0.5f));
+    vertices.push_back(glm::vec3(+0.5f, +0.5f, -0.5f));
+    vertices.push_back(glm::vec3(+0.5f, -0.5f,  0.5f));
+    vertices.push_back(glm::vec3(-0.5f, +0.5f,  0.5f));
 
-            -0.5f, -0.5f, -0.5f, 1.0f,
-            +0.5f, +0.5f, -0.5f, 1.0f,
-            +0.5f, -0.5f,  0.5f, 1.0f,
-            -0.5f, +0.5f,  0.5f, 1.0f,
-    };
 
     static const GLfloat vertex_colors[] = {
             0.0f, 1.0f, 0.0f, 1.0f,
@@ -43,7 +41,7 @@ Model::Model(GLHelper* glHelper):
             7, 6, 5,
     };
 
-    glHelper->bufferVertexData(vertex_positions, sizeof(vertex_positions), vertex_indices, sizeof(vertex_indices),
+    glHelper->bufferVertexData(vertices, vertex_indices, sizeof(vertex_indices),
     vao,vbo,2,ebo);
 
     glHelper->bufferVertexColor(vertex_colors, sizeof(vertex_colors),vao,vbo,3);

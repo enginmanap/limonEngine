@@ -16,6 +16,8 @@
 
 
 class Model :public Renderable {
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::vec4> colors;
 public:
     Model(GLHelper*);
     void render();

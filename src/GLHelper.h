@@ -36,7 +36,7 @@ public:
     GLuint createProgram(const std::vector<GLuint> &);
     GLuint initializeProgram(std::string vertexShaderFile, std::string fragmentShaderFile);
 
-    void bufferVertexData(const GLfloat* vertexData, const GLuint vertexSize,
+    void bufferVertexData(const std::vector<glm::vec3>& vertices,
                           const GLuint* elementData, const GLuint elementSize,
                           GLuint& vao, GLuint& vbo, const GLuint attachPointer, GLuint& ebo);
     void bufferVertexColor(const GLfloat* colorData, const GLuint ColorSize,

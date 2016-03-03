@@ -143,7 +143,7 @@ GLHelper::GLHelper() {
     checkErrors("Constructor");
 }
 
-void GLHelper::bufferVertexData(const GLfloat* vertexData, const GLuint vertexSize,
+void GLHelper::bufferVertexData(const std::vector<glm::vec3>& vertices,
                       const GLuint* elementData, const GLuint elementSize,
                       GLuint& vao, GLuint& vbo, const GLuint attachPointer, GLuint& ebo){
 
@@ -158,9 +158,9 @@ void GLHelper::bufferVertexData(const GLfloat* vertexData, const GLuint vertexSi
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertexSize, vertexData, GL_STATIC_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize, vertexData);
-    glVertexAttribPointer(attachPointer, 4, GL_FLOAT, GL_FALSE, 0, NULL);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
+    //glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize, vertexData);
+    glVertexAttribPointer(attachPointer, 3, GL_FLOAT, GL_FALSE, 0, NULL);
     glEnableVertexAttribArray(attachPointer);
     glBindBuffer(GL_ARRAY_BUFFER,0);
     glBindVertexArray(0);
