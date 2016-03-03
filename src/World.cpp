@@ -98,8 +98,8 @@ void World::play(Uint32 ticks, InputHandler& inputHandler) {
 
 void World::render() {
     glHelper->setCamera(camera.getCameraMatrix());
-    for (std::vector<Model *>::iterator it = objects.begin(); it != objects.end(); ++it) {
-        (*it)->render(glHelper);
+    for (std::vector<Renderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
+        (*it)->render();
     }
     sky->render();
 

@@ -6,16 +6,17 @@
 #define UBERGAME_WORLD_H
 
 #include <vector>
-#include "Model.h"
+#include "Renderable.h"
 #include "GLHelper.h"
 #include <SDL2/SDL_stdinc.h>
 #include "glm/glm.hpp"
 #include "InputHandler.h"
 #include "Camera.h"
+#include "Model.h"
 #include "SkyBox.h"
 
 class World {
-    std::vector<Model*> objects;
+    std::vector<Renderable*> objects;
     SkyBox* sky;
     GLHelper *glHelper;
     Camera camera;

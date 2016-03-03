@@ -10,31 +10,15 @@
 
 //TODO maybe we should not have direct dependency to glm and gl
 #include "glm/glm.hpp"
-#include "GLHelper.h"
-#include "GLSLProgram.h"
+#include "Renderable.h"
 
 
 
 
-class Model {
-protected:
-    GLHelper* glHelper;
-    GLuint vao, vbo, ebo;
-    GLSLProgram* renderProgram;
-    std::vector<std::string> uniforms;
-
-    glm::mat4 worldTransform;
+class Model :public Renderable {
 public:
-    const glm::mat4 &getWorldTransform() const {
-        return worldTransform;
-    }
-
-    void setWorldTransform(const glm::mat4 &worldTransform) {
-        this->worldTransform = worldTransform;
-    }
-
     Model(GLHelper*);
-    void render(GLHelper*);
+    void render();
 
 };
 #endif //UBERGAME_MODEL_H

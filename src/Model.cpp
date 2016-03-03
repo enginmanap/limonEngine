@@ -6,7 +6,7 @@
 
 
 Model::Model(GLHelper* glHelper):
-    glHelper(glHelper){
+    Renderable(glHelper){
     static const GLfloat vertex_positions[] = {
             +0.5f, +0.5f,  0.5f, 1.0f,
             -0.5f, -0.5f,  0.5f, 1.0f,
@@ -55,7 +55,7 @@ Model::Model(GLHelper* glHelper):
     renderProgram = new GLSLProgram(glHelper,"./Data/Shaders/Star/vertex.shader","./Data/Shaders/Star/fragment.shader",uniforms);
 }
 
-void Model::render(GLHelper* glHelper) {
+void Model::render() {
 
     glm::mat4 viewMatrix = glHelper->getProjectionMatrix() * glHelper->getCameraMatrix();
     GLuint location;

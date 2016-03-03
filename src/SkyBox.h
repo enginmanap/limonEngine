@@ -7,11 +7,11 @@
 
 #include <string>
 
-#include "Model.h"
+#include "Renderable.h"
 #include "CubeMap.h"
 
 //FIXME model constructor has a model in it. They should have a common parent.
-class SkyBox : public Model {
+class SkyBox : public Renderable {
 
     CubeMap* cubeMap;
 
