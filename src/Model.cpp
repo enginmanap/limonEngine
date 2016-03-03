@@ -29,20 +29,19 @@ Model::Model(GLHelper* glHelper):
             1.0f, 1.0f, 0.0f, 1.0f,
     };
 
-    static const GLuint vertex_indices[] = {
-            1, 0, 2,
-            0, 1, 3,
-            3, 2, 0,
-            2, 3, 1,
 
-            4, 5, 6,
-            5, 4, 7,
-            6, 7, 4,
-            7, 6, 5,
-    };
+    faces.push_back(glm::mediump_uvec3(1, 0, 2));
+    faces.push_back(glm::mediump_uvec3(0, 1, 3));
+    faces.push_back(glm::mediump_uvec3(3, 2, 0));
+    faces.push_back(glm::mediump_uvec3(2, 3, 1));
 
-    glHelper->bufferVertexData(vertices, vertex_indices, sizeof(vertex_indices),
-    vao,vbo,2,ebo);
+    faces.push_back(glm::mediump_uvec3(4, 5, 6));
+    faces.push_back(glm::mediump_uvec3(5, 4, 7));
+    faces.push_back(glm::mediump_uvec3(6, 7, 4));
+    faces.push_back(glm::mediump_uvec3(7, 6, 5));
+
+
+    glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
 
     glHelper->bufferVertexColor(vertex_colors, sizeof(vertex_colors),vao,vbo,3);
     worldTransform = glm::mat4(1.0f);

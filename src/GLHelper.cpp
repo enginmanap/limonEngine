@@ -144,13 +144,13 @@ GLHelper::GLHelper() {
 }
 
 void GLHelper::bufferVertexData(const std::vector<glm::vec3>& vertices,
-                      const GLuint* elementData, const GLuint elementSize,
+                                const std::vector<glm::mediump_uvec3>& faces,
                       GLuint& vao, GLuint& vbo, const GLuint attachPointer, GLuint& ebo){
 
     // Set up the element array buffer
     glGenBuffers(1, &ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, elementSize, elementData, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::mediump_uvec3), faces.data(), GL_STATIC_DRAW);
 
     // Set up the vertex attributes
     glGenVertexArrays(1, &vao);

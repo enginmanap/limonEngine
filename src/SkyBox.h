@@ -13,6 +13,8 @@
 //FIXME model constructor has a model in it. They should have a common parent.
 class SkyBox : public Renderable {
     std::vector<glm::vec3> vertices;
+    std::vector<glm::mediump_uvec3> faces;
+
     CubeMap* cubeMap;
 
 public:
