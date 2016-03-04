@@ -131,7 +131,7 @@ GLHelper::GLHelper() {
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     // Setup
-    glDisable(GL_CULL_FACE);
+    //glDisable(GL_CULL_FACE);
 
     glEnable(GL_CULL_FACE);
     glFrontFace(GL_CCW);
