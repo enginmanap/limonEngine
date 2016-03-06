@@ -5,3 +5,9 @@
 5) language choice is C++11
 6) Build system choice is Cmake
 5) Model format should be Collada or MD5, tbd.
+
+TODO
+1) Input should use callback functions when possible
+2) Switch to fixed timestep
+3) vbo should not be exposed
+4) Uniform atama glsl program tarafından yapılmalı

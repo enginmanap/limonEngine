@@ -247,6 +247,7 @@ bool GLHelper::checkErrors(std::string callerFunc){
 
 
 GLHelper::~GLHelper() {
+    //FIXME: Free all buffers
     glUseProgram(0);
 }
 

@@ -26,5 +26,7 @@ public:
     Model(GLHelper*);
     void render();
 
+    //TODO we need to free the texture. Destructor needed.
+
 };
 #endif //UBERGAME_MODEL_H

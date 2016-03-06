@@ -24,6 +24,7 @@ public:
     World(GLHelper*);
 
     void render();
+    //TODO we need to clear the objects etc. Destructor needed.
     void play(Uint32, InputHandler&);
 
 };

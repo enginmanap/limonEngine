@@ -24,6 +24,8 @@ public:
 
 
     void render();
+
+    //FIME destructor needed.
 };
 
 #endif //UBERGAME_SKYBOX_H

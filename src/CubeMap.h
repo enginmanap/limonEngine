@@ -30,6 +30,8 @@ public:
     GLuint getID() const {
         return cubeMapBufferID;
     }
+
+    //FIXME destructor needed.
 };
 
 #endif //UBERGAME_CUBEMAP_H
