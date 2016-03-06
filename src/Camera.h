@@ -20,7 +20,7 @@ public:
     enum moveDirections{NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD};
     Camera():
         dirty(false),
-        position(glm::vec3(0,0,0)),
+        position(glm::vec3(0,10,15)),
         center(glm::vec3(0,0,-1)),
         up(glm::vec3(0,1,0)),
         right(glm::vec3(-1,0,0)),

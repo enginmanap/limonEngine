@@ -23,10 +23,18 @@ class Model :public Renderable {
 
     std::vector<glm::vec4> colors;
 public:
-    Model(GLHelper*);
+    Model(GLHelper* glHelper) : Model(glHelper,0) {};
+    Model(GLHelper*, float mass);
     void render();
 
     //TODO we need to free the texture. Destructor needed.
+    ~Model() {
+        delete texture;
 
+        delete rigidBody->getMotionState();
+        delete rigidBody->getCollisionShape();
+        delete rigidBody;
+
+    }
 };
 #endif //UBERGAME_MODEL_H

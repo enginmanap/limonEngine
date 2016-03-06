@@ -14,19 +14,30 @@
 #include "Camera.h"
 #include "Model.h"
 #include "SkyBox.h"
+#include <btBulletDynamicsCommon.h>
 
 class World {
     std::vector<Renderable*> objects;
     SkyBox* sky;
     GLHelper *glHelper;
     Camera camera;
+
+    btDiscreteDynamicsWorld* dynamicsWorld;
+    std::vector<btRigidBody*> rigidBodies;
+
+
+    btBroadphaseInterface* broadphase;
+    btDefaultCollisionConfiguration* collisionConfiguration;
+    btCollisionDispatcher* dispatcher;
+    btSequentialImpulseConstraintSolver* solver;
+
 public:
     World(GLHelper*);
+    ~World();
 
-    void render();
-    //TODO we need to clear the objects etc. Destructor needed.
+
     void play(Uint32, InputHandler&);
-
+    void render();
 };
 
 #endif //UBERGAME_WORLD_H

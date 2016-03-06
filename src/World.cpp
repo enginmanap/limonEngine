@@ -7,33 +7,59 @@
 #include "SkyBox.h"
 
 World::World(GLHelper *glHelper) {
+
+    // physics init
+    broadphase = new btDbvtBroadphase();
+
+    collisionConfiguration = new btDefaultCollisionConfiguration();
+    dispatcher = new btCollisionDispatcher(collisionConfiguration);
+
+    solver = new btSequentialImpulseConstraintSolver;
+
+    dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
+    dynamicsWorld->setGravity(btVector3(0, -10, 0));
+    // end of physics init
+
+
     this->glHelper = glHelper;
 
     Model *crate = new Model(glHelper);
-    //crate->setWorldTransform(glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, -3.0f)));
-    crate->addTranslate(glm::vec3(2.0f, 2.0f, -3.0f));
+    crate->addScale(glm::vec3(250.0f,1.0f,250.0f));
+    crate->addTranslate(glm::vec3(-125.0f, 0.0f, 125.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
+    rigidBodies.push_back(crate->getRigidBody());
+    dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    crate = new Model(glHelper);
-    //crate->setWorldTransform(glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, -2.0f, -3.0f)));
-    crate->addTranslate(glm::vec3(-2.0f, -2.0f, -3.0f));
+    crate = new Model(glHelper,1);
+    crate->addTranslate(glm::vec3(2.0f, 25.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
+    rigidBodies.push_back(crate->getRigidBody());
+    dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    crate = new Model(glHelper);
-    //crate->setWorldTransform(glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, -2.0f, -3.0f)));
-    crate->addTranslate(glm::vec3(2.0f, -2.0f, -3.0f));
+    crate = new Model(glHelper,1);
+    crate->addTranslate(glm::vec3(-2.0f, 23.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
+    rigidBodies.push_back(crate->getRigidBody());
+    dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    crate = new Model(glHelper);
-    //crate->setWorldTransform(glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, 2.0f, -3.0f)));
-    crate->addTranslate(glm::vec3(-2.0f, 2.0f, -3.0f));
+    crate = new Model(glHelper,1);
+    crate->addTranslate(glm::vec3(2.0f, 23.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
+    rigidBodies.push_back(crate->getRigidBody());
+    dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    sky= new SkyBox(glHelper,
+    crate = new Model(glHelper,1);
+    crate->addTranslate(glm::vec3(3.25f, 2.0f, -3.0f));
+    crate->getWorldTransform();
+    objects.push_back(crate);
+    rigidBodies.push_back(crate->getRigidBody());
+    dynamicsWorld->addRigidBody(crate->getRigidBody());
+
+    sky = new SkyBox(glHelper,
                             std::string("D:user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterUp2048.png"),
                             std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterDown2048.png"),
                             std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterRight2048.png"),
@@ -41,21 +67,17 @@ World::World(GLHelper *glHelper) {
                             std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterBack2048.png"),
                             std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterFront2048.png")
     );
-
 }
 
 void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
-    float rotationAngle = (simulationTimeFrame / 1000.0f) * (3.14 / 10);
-    glm::quat rotationQuat(cos(rotationAngle/2), 0.0f, sin(rotationAngle/2), 0.0f);
-    objects[0]->addOrientation(rotationQuat);
-
-    objects[1]->addOrientation(glm::conjugate(rotationQuat));
-
-    float sinTic = fabs(sin(simulationTimeFrame / 1000.0f * 3.14)) + 1.0f;
-    objects[2]->addScale(glm::vec3(sinTic, sinTic, sinTic));
-
-    float cosTic = fabs(cos(simulationTimeFrame / 1000.0f * 3.14)) + 1.0f;
-    objects[3]->addScale(glm::vec3(cosTic, cosTic, cosTic));
+    // Step simulation
+    dynamicsWorld->stepSimulation(1 / 60.f, 10);
+    objects[0]->updateTransformFromPhysics();
+    objects[1]->updateTransformFromPhysics();
+    objects[2]->updateTransformFromPhysics();
+    objects[3]->updateTransformFromPhysics();
+    objects[4]->updateTransformFromPhysics();
+    //end of physics step
 
     float xLook, yLook;
     if(inputHandler.getMouseChange(xLook, yLook)){
@@ -100,5 +122,22 @@ void World::render() {
         (*it)->render();
     }
     sky->render();
+
+}
+
+World::~World() {
+    for (std::vector<Renderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
+        delete (*it);
+    }
+    delete sky;
+    for(std::vector<btRigidBody*>::iterator it = rigidBodies.begin(); it!= rigidBodies.end(); ++it){
+        dynamicsWorld->removeRigidBody((*it));
+    }
+
+    delete dynamicsWorld;
+    delete solver;
+    delete collisionConfiguration;
+    delete dispatcher;
+    delete broadphase;
 
 }

@@ -6,7 +6,7 @@
 
 
 
-Model::Model(GLHelper* glHelper):
+Model::Model(GLHelper* glHelper, float mass):
     Renderable(glHelper){
 
     /*
@@ -129,10 +129,21 @@ Model::Model(GLHelper* glHelper):
     //glHelper->bufferVertexColor(colors,vao,vbo,3);
     worldTransform = glm::mat4(1.0f);
 
+    //set up the program to render object
     uniforms.push_back("cameraTransformMatrix");
     uniforms.push_back("worldTransformMatrix");
-
     renderProgram = new GLSLProgram(glHelper,"./Data/Shaders/Box/vertex.shader","./Data/Shaders/Box/fragment.shader",uniforms);
+
+    //set up the rigit body
+
+    btCollisionShape* boxShape = new btBoxShape(btVector3(1, 1, 1));
+    btDefaultMotionState *boxMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, 25, 0)));
+    btVector3 fallInertia(0, 0, 0);
+    boxShape->calculateLocalInertia(mass, fallInertia);
+    btRigidBody::btRigidBodyConstructionInfo
+            boxRigidBodyCI(mass, boxMotionState, boxShape, fallInertia);
+    rigidBody = new btRigidBody(boxRigidBodyCI);
+
 }
 
 void Model::render() {
