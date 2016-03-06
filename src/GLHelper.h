@@ -28,12 +28,12 @@ class GLHelper {
     glm::mat4 cameraMatrix;
     glm::mat4 projectionMatrix;
     bool checkErrors(std::string callerFunc);
+    GLuint createShader(GLenum, const std::string &);
+    GLuint createProgram(const std::vector<GLuint> &);
 public:
     GLHelper();
     ~GLHelper();
 
-    GLuint createShader(GLenum, const std::string &);
-    GLuint createProgram(const std::vector<GLuint> &);
     GLuint initializeProgram(std::string vertexShaderFile, std::string fragmentShaderFile);
 
     void bufferVertexData(const std::vector<glm::vec3>& vertices,
