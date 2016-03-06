@@ -10,19 +10,27 @@ World::World(GLHelper *glHelper) {
     this->glHelper = glHelper;
 
     Model *crate = new Model(glHelper);
-    crate->setWorldTransform(glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, -3.0f)));
+    //crate->setWorldTransform(glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, -3.0f)));
+    crate->addTranslate(glm::vec3(2.0f, 2.0f, -3.0f));
+    crate->getWorldTransform();
     objects.push_back(crate);
 
     crate = new Model(glHelper);
-    crate->setWorldTransform(glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, -2.0f, -3.0f)));
+    //crate->setWorldTransform(glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, -2.0f, -3.0f)));
+    crate->addTranslate(glm::vec3(-2.0f, -2.0f, -3.0f));
+    crate->getWorldTransform();
     objects.push_back(crate);
 
     crate = new Model(glHelper);
-    crate->setWorldTransform(glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, -2.0f, -3.0f)));
+    //crate->setWorldTransform(glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, -2.0f, -3.0f)));
+    crate->addTranslate(glm::vec3(2.0f, -2.0f, -3.0f));
+    crate->getWorldTransform();
     objects.push_back(crate);
 
     crate = new Model(glHelper);
-    crate->setWorldTransform(glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, 2.0f, -3.0f)));
+    //crate->setWorldTransform(glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, 2.0f, -3.0f)));
+    crate->addTranslate(glm::vec3(-2.0f, 2.0f, -3.0f));
+    crate->getWorldTransform();
     objects.push_back(crate);
 
     sky= new SkyBox(glHelper,
@@ -36,28 +44,18 @@ World::World(GLHelper *glHelper) {
 
 }
 
-void World::play(Uint32 ticks, InputHandler& inputHandler) {
-    float rotation = ticks / 5000.0f * 3.14f * 2;
-    glm::mat4 transform;
-    transform = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 2.0f, -3.0f));
-    transform *= glm::rotate(glm::mat4(1.0f), rotation, glm::vec3(0.0f, 1.0f, 0.0f));
-    objects[0]->setWorldTransform(transform);
+void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
+    float rotationAngle = (simulationTimeFrame / 1000.0f) * (3.14 / 10);
+    glm::quat rotationQuat(cos(rotationAngle/2), 0.0f, sin(rotationAngle/2), 0.0f);
+    objects[0]->addOrientation(rotationQuat);
 
-    transform = glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, -2.0f, -3.0f));
-    transform *= glm::rotate(glm::mat4(1.0f), rotation, glm::vec3(0.0f, -1.0f, 0.0f));
-    objects[1]->setWorldTransform(transform);
+    objects[1]->addOrientation(glm::conjugate(rotationQuat));
 
-    float sinTic = fabs(sin(ticks / 1000.0f * 3.14));
+    float sinTic = fabs(sin(simulationTimeFrame / 1000.0f * 3.14)) + 1.0f;
+    objects[2]->addScale(glm::vec3(sinTic, sinTic, sinTic));
 
-    transform = glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, -2.0f, -3.0f));
-    transform *= glm::scale(glm::mat4(1.0f), glm::vec3(sinTic, sinTic, sinTic));
-    objects[2]->setWorldTransform(transform);
-
-    float cosTic = fabs(cos(ticks / 1000.0f * 3.14));
-
-    transform = glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, 2.0f, -3.0f));
-    transform *= glm::scale(glm::mat4(1.0f), glm::vec3(cosTic, cosTic, cosTic));
-    objects[3]->setWorldTransform(transform);
+    float cosTic = fabs(cos(simulationTimeFrame / 1000.0f * 3.14)) + 1.0f;
+    objects[3]->addScale(glm::vec3(cosTic, cosTic, cosTic));
 
     float xLook, yLook;
     if(inputHandler.getMouseChange(xLook, yLook)){

@@ -15,17 +15,34 @@ protected:
     GLuint vao, vbo, ebo;
     GLSLProgram* renderProgram;
     std::vector<std::string> uniforms;
-    glm::mat4 worldTransform;
+    glm::mat4 worldTransform, oldWorldTransform;
+    glm::vec3 scale, translate;
+    glm::quat orientation;
+    bool isDirty;
 
+    void generateWorldTransform() ;
 
 
     Renderable(GLHelper* glHelper);
 public:
-    void setWorldTransform(const glm::mat4 &worldTransform) {
-        this->worldTransform = worldTransform;
+    void addScale(const glm::vec3& scale){
+        this->scale *= scale;
+        isDirty=true;
+    }
+    void addTranslate(const glm::vec3& translate){
+        this->translate += translate;
+        isDirty=true;
+    }
+    void addOrientation(const glm::quat& orientation){
+        this->orientation *= orientation;
+        this->orientation = glm::normalize(this->orientation);
+        isDirty=true;
     }
 
-    const glm::mat4 &getWorldTransform() const {
+    const glm::mat4 &getWorldTransform() {
+        if(isDirty) {
+            generateWorldTransform();
+        }
         return worldTransform;
     }
 

@@ -142,7 +142,7 @@ void Model::render() {
     if(renderProgram->getUniformLocation("cameraTransformMatrix", location)) {
         glHelper->setUniform(renderProgram->getID(), location, viewMatrix);
         if(renderProgram->getUniformLocation("worldTransformMatrix", location)) {
-            glHelper->setUniform(renderProgram->getID(), location, worldTransform);
+            glHelper->setUniform(renderProgram->getID(), location, getWorldTransform());
             glHelper->attachTexture(texture->getID());
             glHelper->render(renderProgram->getID(), vao, ebo, faces.size()*3);
         }

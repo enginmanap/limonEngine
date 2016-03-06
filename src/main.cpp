@@ -13,6 +13,7 @@
 
 int main(int argc, char *argv[]){
     int height=768, width=1024;
+    Uint32 worldUpdateTime = 100;//This value is used to update world on a locked Timestep
 
     bool quit=false;
 
@@ -24,14 +25,23 @@ int main(int argc, char *argv[]){
 
     World world(&glHelper);
 
-    Uint32 ticks;
+    Uint32 previousTime= SDL_GetTicks();
+    Uint32 currentTime, frameTime, accumulatedTime=0;
     while(!inputHandler.getInputStatus(inputHandler.QUIT)){
         glHelper.clearFrame();
-        ticks = SDL_GetTicks();
-        world.play(ticks, inputHandler);
+        currentTime = SDL_GetTicks();
+        frameTime = currentTime - previousTime;
+        accumulatedTime += frameTime;
+        if(accumulatedTime >= worldUpdateTime) {
+            //we don't need to check for input, if we won't update world state
+            inputHandler.mapInput();
+
+            //FIXME this does not account for long operations/low framerate
+            world.play(worldUpdateTime,inputHandler);
+            accumulatedTime -= worldUpdateTime;
+        }
         world.render();
         sdlHelper.swap();
-        inputHandler.mapInput();
     }
     return 0;
 }
