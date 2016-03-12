@@ -18,6 +18,9 @@ World::World(GLHelper *glHelper) {
 
     dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
     dynamicsWorld->setGravity(btVector3(0, -10, 0));
+    debugDrawer = new BulletDebugDrawer(glHelper);
+    dynamicsWorld->setDebugDrawer(debugDrawer);
+
     // end of physics init
 
 
@@ -68,7 +71,7 @@ World::World(GLHelper *glHelper) {
                             std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterFront2048.png")
     );
 
-    debugDrawer = new BulletDebugDrawer(glHelper);
+
 }
 
 void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
@@ -123,8 +126,9 @@ void World::render() {
     for (std::vector<Renderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
         (*it)->render();
     }
+    dynamicsWorld->debugDrawWorld();
     sky->render();
-    debugDrawer->drawLine(btVector3(0,0,-3),btVector3(0,250,-3),btVector3(1,1,1));
+    //debugDrawer->drawLine(btVector3(0,0,-3),btVector3(0,250,-3),btVector3(1,1,1));
 }
 
 World::~World() {

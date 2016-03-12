@@ -28,7 +28,7 @@ public:
     void reportErrorWarning(const char* warningString){};
     void draw3dText(const btVector3& location,const char* textString){};
     void setDebugMode(int debugMode){};
-    int getDebugMode() const {return 0;}
+    int getDebugMode() const {return 1;}
 };
 
 
