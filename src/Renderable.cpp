@@ -27,5 +27,7 @@ void Renderable::updateTransformFromPhysics(){
                                                     trans.getRotation().getAxis().getX() * sin(trans.getRotation().getAngle()/2),
                                                     trans.getRotation().getAxis().getY() * sin(trans.getRotation().getAngle()/2),
                                                     trans.getRotation().getAxis().getZ() * sin(trans.getRotation().getAngle()/2));
+
+    //std::cout << "the objects last position is" << this->translate.x <<","<< this->translate.y <<","<<this->translate.z << std::endl;
     isDirty = true;
 }

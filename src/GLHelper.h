@@ -66,6 +66,9 @@ public:
 
     glm::mat4 getCameraMatrix() const {return cameraMatrix;};
     glm::mat4 getProjectionMatrix() const {return projectionMatrix;};
+
+    void drawLine(GLuint program, GLuint &vao, GLuint &vbo, GLuint &ebo, const glm::vec3 &from, const glm::vec3 &to,
+                  const glm::vec3 &fromColor, const glm::vec3 &toColor);
 };
 
 #endif //UBERGAME_GLHELPER_H

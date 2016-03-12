@@ -1,8 +1,7 @@
 #version 400
-#extension GL_ARB_explicit_uniform_location : enable
 
-layout (location = 0) uniform mat4 worldTransformMatrix;
-layout (location = 1) uniform mat4 cameraTransformMatrix;
+uniform mat4 worldTransformMatrix;
+uniform mat4 cameraTransformMatrix;
 
 layout (location = 2) in vec4 position;
 layout (location = 3) in vec4 color;

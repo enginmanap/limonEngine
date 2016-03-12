@@ -67,11 +67,13 @@ World::World(GLHelper *glHelper) {
                             std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterBack2048.png"),
                             std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterFront2048.png")
     );
+
+    debugDrawer = new BulletDebugDrawer(glHelper);
 }
 
 void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
     // Step simulation
-    dynamicsWorld->stepSimulation(1 / 60.f, 10);
+    dynamicsWorld->stepSimulation(simulationTimeFrame/1000.0f);
     objects[0]->updateTransformFromPhysics();
     objects[1]->updateTransformFromPhysics();
     objects[2]->updateTransformFromPhysics();
@@ -122,7 +124,7 @@ void World::render() {
         (*it)->render();
     }
     sky->render();
-
+    debugDrawer->drawLine(btVector3(0,0,-3),btVector3(0,250,-3),btVector3(1,1,1));
 }
 
 World::~World() {

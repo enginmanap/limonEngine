@@ -14,6 +14,7 @@
 #include "Camera.h"
 #include "Model.h"
 #include "SkyBox.h"
+#include "BulletDebugDrawer.h"
 #include <btBulletDynamicsCommon.h>
 
 class World {
@@ -21,6 +22,7 @@ class World {
     SkyBox* sky;
     GLHelper *glHelper;
     Camera camera;
+    BulletDebugDrawer* debugDrawer;
 
     btDiscreteDynamicsWorld* dynamicsWorld;
     std::vector<btRigidBody*> rigidBodies;

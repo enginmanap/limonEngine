@@ -3,6 +3,7 @@
 //
 
 #include "GLHelper.h"
+#include "GLSLProgram.h"
 
 
 GLuint GLHelper::createShader(GLenum eShaderType, const std::string &strShaderFile) {
@@ -211,7 +212,7 @@ void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
     glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, NULL);
-
+    glBindVertexArray(0);
     glUseProgram(0);
 
     checkErrors("render");
@@ -329,3 +330,45 @@ bool GLHelper::getUniformLocation(const GLuint programID, const std::string &uni
     }
     return false;
 }
+
+void GLHelper::drawLine(GLuint program, GLuint &vao, GLuint &vbo, GLuint &ebo, const glm::vec3 &from, const glm::vec3 &to,
+                        const glm::vec3 &fromColor, const glm::vec3 &toColor) {
+    glUseProgram(program);
+
+    if(vbo == 0){
+        //this means the vbo is not assigned yet.
+        glGenBuffers(1,&vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        // constant 4 because 2 vertex and 2 color is used
+        glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
+    }
+
+    glBufferSubData(GL_ARRAY_BUFFER,0                    ,sizeof(glm::vec3),&from);
+    glBufferSubData(GL_ARRAY_BUFFER,    sizeof(glm::vec3),sizeof(glm::vec3),&fromColor);
+    glBufferSubData(GL_ARRAY_BUFFER,2 * sizeof(glm::vec3),sizeof(glm::vec3),&to);
+    glBufferSubData(GL_ARRAY_BUFFER,3 * sizeof(glm::vec3),sizeof(glm::vec3),&toColor);
+
+    if(vao == 0){
+        //this means the vao is not created yet.
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+
+        glEnableVertexAttribArray(0);
+        //stride means the space between start of 2 elements. 0 is special, means the space is equal to size.
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), 0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), (const GLvoid*)sizeof(glm::vec3));
+    }
+
+    glBindVertexArray(vao);
+
+    glDrawArrays(GL_LINES,0,2);
+    //std::cout << "glDrawLines call" << std::endl;
+
+    glUseProgram(0);
+    glBindVertexArray(0);
+    checkErrors("drawLine");
+
+}
+
+
