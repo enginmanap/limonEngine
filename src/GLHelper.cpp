@@ -255,7 +255,7 @@ GLHelper::~GLHelper() {
 void GLHelper::reshape(int height, int width) {
     glViewport(0, 0 , width, height);
     aspect = float(height) / float(width);
-    projectionMatrix = glm::frustum(-1.0f, 1.0f, -aspect, aspect, 1.0f, 500.0f);
+    projectionMatrix = glm::frustum(-1.0f, 1.0f, -aspect, aspect, 0.5f, 500.0f);
     checkErrors("reshape");
 }
 

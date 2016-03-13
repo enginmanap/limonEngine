@@ -13,6 +13,9 @@ public:
     static glm::vec3 BltToGLM(const btVector3 &vector) {
         return glm::vec3(vector.getX(), vector.getY(), vector.getZ());
     }
+    static btVector3 GLMToBlt(const glm::vec3 &vector) {
+        return btVector3(vector.x, vector.y, vector.z);
+    }
 };
 
 

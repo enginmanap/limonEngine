@@ -5,34 +5,26 @@
 #ifndef UBERGAME_CAMERA_H
 #define UBERGAME_CAMERA_H
 
+
+#include <btBulletDynamicsCommon.h>
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/quaternion.hpp"
 
+#include "Utils/BulletGLMConverter.h"
+
 class Camera {
-    float moveSpeed = 0.1;
+    glm::vec3 moveSpeed = glm::vec3(3,0,3);
     float lookAroundSpeed = 1.0f;
     bool dirty;
     glm::vec3 position, center, up, right;
     glm::quat view, viewChange;
     glm::mat4 cameraTransformMatrix;
+    btRigidBody* player;
 public:
     enum moveDirections{NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD};
-    Camera():
-        dirty(false),
-        position(glm::vec3(0,10,15)),
-        center(glm::vec3(0,0,-1)),
-        up(glm::vec3(0,1,0)),
-        right(glm::vec3(-1,0,0)),
-        view(glm::quat(0,0,0,-1)){
-            cameraTransformMatrix = glm::lookAt(position, center, up);
-    }
-    void setPosition(const glm::vec3& position){
-        if(this->position != position) {
-            this->position = position;
-            this->dirty = true;
-        }
-    }
+    Camera();
+    void updateTransfromFromPhysics();
 
     void setCenter(const glm::vec3& center){
         glm::vec3 normalizeCenter = glm::normalize(center);
@@ -53,6 +45,10 @@ public:
             this->dirty = false;
         }
         return cameraTransformMatrix;
+    }
+
+    btRigidBody *getRigidBody() {
+        return player;
     }
 };
 

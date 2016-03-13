@@ -27,6 +27,9 @@ World::World(GLHelper *glHelper) {
 
     this->glHelper = glHelper;
 
+    rigidBodies.push_back(camera.getRigidBody());
+    dynamicsWorld->addRigidBody(camera.getRigidBody());
+
     Model *crate = new Model(glHelper);
     crate->addScale(glm::vec3(250.0f,1.0f,250.0f));
     crate->addTranslate(glm::vec3(-125.0f, 0.0f, 125.0f));
@@ -78,6 +81,7 @@ World::World(GLHelper *glHelper) {
 void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
     // Step simulation
     dynamicsWorld->stepSimulation(simulationTimeFrame/1000.0f);
+    camera.updateTransfromFromPhysics();
     objects[0]->updateTransformFromPhysics();
     objects[1]->updateTransformFromPhysics();
     objects[2]->updateTransformFromPhysics();
