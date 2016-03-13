@@ -5,7 +5,7 @@
 #include "BulletDebugDrawer.h"
 
 
-void BulletDebugDrawer::drawLine(const btVector3& from, const btVector3& to, const btVector3& color){
+void BulletDebugDrawer::drawLine(const btVector3& from, const btVector3& to, const btVector3& fromColor, const btVector3& toColor){
 
     glm::mat4 viewMatrix = glHelper->getProjectionMatrix() * glHelper->getCameraMatrix();
     GLuint viewTransformLocation;
@@ -14,6 +14,6 @@ void BulletDebugDrawer::drawLine(const btVector3& from, const btVector3& to, con
     glHelper->drawLine(renderProgram->getID(), vao, vbo, ebo,
                        BulletGLMConverter::BltToGLM(from),
                        BulletGLMConverter::BltToGLM(to),
-                       BulletGLMConverter::BltToGLM(color),
-                       BulletGLMConverter::BltToGLM(color));
+                       BulletGLMConverter::BltToGLM(fromColor),
+                       BulletGLMConverter::BltToGLM(toColor));
 }

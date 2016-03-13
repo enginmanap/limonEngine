@@ -361,7 +361,6 @@ void GLHelper::drawLine(GLuint program, GLuint &vao, GLuint &vbo, GLuint &ebo, c
     }
 
     glBindVertexArray(vao);
-
     glDrawArrays(GL_LINES,0,2);
     //std::cout << "glDrawLines call" << std::endl;
 

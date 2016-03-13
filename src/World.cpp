@@ -20,6 +20,7 @@ World::World(GLHelper *glHelper) {
     dynamicsWorld->setGravity(btVector3(0, -10, 0));
     debugDrawer = new BulletDebugDrawer(glHelper);
     dynamicsWorld->setDebugDrawer(debugDrawer);
+    dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
 
     // end of physics init
 
