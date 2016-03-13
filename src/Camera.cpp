@@ -8,14 +8,18 @@
 
 Camera::Camera():
         dirty(false),
-        position(glm::vec3(0,10,15)),
+        position(startPosition),
         center(glm::vec3(0,0,-1)),
         up(glm::vec3(0,1,0)),
         right(glm::vec3(-1,0,0)),
-        view(glm::quat(0,0,0,-1)){
+        view(glm::quat(0,0,0,-1)),
+        rayCallback(btCollisionWorld::ClosestRayResultCallback(BulletGLMConverter::GLMToBlt(startPosition + glm::vec3(0,-1.01f,0)),
+                                                               BulletGLMConverter::GLMToBlt(startPosition + glm::vec3(0,-2.01f,0)))),
+        onAir(true){
     cameraTransformMatrix = glm::lookAt(position, center, up);
     btCollisionShape* capsuleShape = new btCapsuleShape(1,2);
-    btDefaultMotionState *boxMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0,10,15)));
+    btDefaultMotionState *boxMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1),
+                                                                                BulletGLMConverter::GLMToBlt(startPosition)));
     btVector3 fallInertia(0, 0, 0);
     capsuleShape->calculateLocalInertia(1, fallInertia);
     btRigidBody::btRigidBodyConstructionInfo
@@ -23,10 +27,14 @@ Camera::Camera():
     player = new btRigidBody(boxRigidBodyCI);
     player->setAngularFactor(0);
     player->setFriction(1);
+
 }
 
 void Camera::move(moveDirections direction) {
     if(direction == NONE) {
+        return;
+    }
+    if(onAir){
         return;
     }
     dirty=true;
@@ -102,14 +110,40 @@ void Camera::rotate(float xChange, float yChange) {
     this->dirty=true;
 }
 
-void Camera::updateTransfromFromPhysics(){
-    btTransform trans;
-    player->getMotionState()->getWorldTransform(trans);
+void Camera::updateTransfromFromPhysics(const btDynamicsWorld* world){
 
-    this->position.x = trans.getOrigin().getX();
-    this->position.y = trans.getOrigin().getY() + 1.0f;//since camera is not in the center of capsule, but higher
-    this->position.z = trans.getOrigin().getZ();
+    world->rayTest(rayCallback.m_rayFromWorld, rayCallback.m_rayToWorld, rayCallback);
 
+    if(rayCallback.hasHit()) {
+        /*
+        End = RayCallback.m_hitPointWorld;
+        Normal = RayCallback.m_hitNormalWorld;
+        */
+        // Do some clever stuff here
+        //std::cout << "Player is close to land" << std::endl;
+        onAir = false;
+    } else {
+        //std::cout << "Player is on air" << std::endl;
+        onAir = true;
+    }
+
+
+
+    player->getMotionState()->getWorldTransform(worldTransformHolder);
+
+    position = BulletGLMConverter::BltToGLM(worldTransformHolder.getOrigin());
+    position.y +=1;
+
+    rayCallback.m_rayFromWorld = worldTransformHolder.getOrigin() +btVector3(0,-1.01f,0);//the second vector is preventing hitting player capsule
+    rayCallback.m_rayToWorld = rayCallback.m_rayFromWorld + btVector3(0,-1,0);
+/*
+    std::cout << "ray details: (" << rayCallback.m_rayFromWorld.getX() << ","
+                                << rayCallback.m_rayFromWorld.getY() << ","
+                                << rayCallback.m_rayFromWorld.getZ() << ")->("
+                                << rayCallback.m_rayToWorld.getX() << ","
+                                << rayCallback.m_rayToWorld.getY() << ","
+                                << rayCallback.m_rayToWorld.getZ() << ")" << std::endl;
+                                */
     //std::cout << "the objects last position is" << this->translate.x <<","<< this->translate.y <<","<<this->translate.z << std::endl;
     dirty = true;
 }

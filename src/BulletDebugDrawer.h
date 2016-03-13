@@ -1,5 +1,5 @@
 //
-// Created by engin-evam on 9.03.2016.
+// Created by Engin Manap on 9.03.2016.
 //
 
 #ifndef UBERGAME_BULLETDEBUGDRAWER_H

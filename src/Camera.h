@@ -14,6 +14,7 @@
 #include "Utils/BulletGLMConverter.h"
 
 class Camera {
+    const glm::vec3 startPosition = glm::vec3(0,10,15);
     glm::vec3 moveSpeed = glm::vec3(3,0,3);
     float lookAroundSpeed = 1.0f;
     bool dirty;
@@ -21,10 +22,13 @@ class Camera {
     glm::quat view, viewChange;
     glm::mat4 cameraTransformMatrix;
     btRigidBody* player;
+    btCollisionWorld::ClosestRayResultCallback rayCallback;
+    btTransform worldTransformHolder;
+    bool onAir;
 public:
     enum moveDirections{NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD};
     Camera();
-    void updateTransfromFromPhysics();
+    void updateTransfromFromPhysics(const btDynamicsWorld* world);
 
     void setCenter(const glm::vec3& center){
         glm::vec3 normalizeCenter = glm::normalize(center);

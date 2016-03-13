@@ -21,6 +21,7 @@ World::World(GLHelper *glHelper) {
     debugDrawer = new BulletDebugDrawer(glHelper);
     dynamicsWorld->setDebugDrawer(debugDrawer);
     dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
+    //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
 
     // end of physics init
 
@@ -81,13 +82,26 @@ World::World(GLHelper *glHelper) {
 void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
     // Step simulation
     dynamicsWorld->stepSimulation(simulationTimeFrame/1000.0f);
-    camera.updateTransfromFromPhysics();
+    camera.updateTransfromFromPhysics(dynamicsWorld);
     objects[0]->updateTransformFromPhysics();
     objects[1]->updateTransformFromPhysics();
     objects[2]->updateTransformFromPhysics();
     objects[3]->updateTransformFromPhysics();
     objects[4]->updateTransformFromPhysics();
     //end of physics step
+
+    btCollisionWorld::ClosestRayResultCallback RayCallback(btVector3(0,0,0), btVector3(0,25,-3));
+
+// Perform raycast
+    dynamicsWorld->rayTest(btVector3(0,20,0), btVector3(0,0,-3), RayCallback);
+
+    if(RayCallback.hasHit()) {
+        /*
+        End = RayCallback.m_hitPointWorld;
+        Normal = RayCallback.m_hitNormalWorld;
+*/
+        // Do some clever stuff here
+    }
 
     float xLook, yLook;
     if(inputHandler.getMouseChange(xLook, yLook)){
