@@ -2,7 +2,6 @@
 // Created by Engin Manap on 17.02.2016.
 //
 
-#include <c++/5.3.0/iostream>
 #include "Camera.h"
 
 

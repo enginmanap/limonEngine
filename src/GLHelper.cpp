@@ -142,6 +142,11 @@ GLHelper::GLHelper() {
     glDepthMask(GL_TRUE);
     glDepthRange(0.0f, 1.0f);
     checkErrors("Constructor");
+
+    std::printf("%s\n%s\n",
+                glGetString(GL_RENDERER),  // e.g. Intel HD Graphics 3000 OpenGL Engine
+                glGetString(GL_VERSION)    // e.g. 3.2 INTEL-8.0.61
+    );
 }
 
 void GLHelper::bufferVertexData(const std::vector<glm::vec3>& vertices,

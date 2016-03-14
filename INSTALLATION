@@ -1,0 +1,16 @@
+--- MacOS X ----
+
+-- Install cmake
+$ brew install cmake
+
+-- Install GLEW
+$ brew install glew
+
+-- Install SDL2
+$ brew install sdl2
+
+-- Install SDL2 image
+$ brew install sdl2_image
+
+-- Install bullet
+$ brew install bullet

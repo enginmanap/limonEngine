@@ -10,7 +10,11 @@
 #include "glm/gtc/type_ptr.hpp"
 
 #include <GL/glew.h>
-#include <GL/gl.h>
+#ifdef __APPLE__
+#  include <OpenGL/gl.h>
+#else
+#  include <GL/gl.h>
+#endif/*__APPLE__*/
 
 #include <string>
 #include <algorithm>
