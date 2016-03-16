@@ -123,7 +123,7 @@ Model::Model(GLHelper* glHelper, float mass):
     textureCoordinates.push_back(glm::vec2(1.0f, 0.0f));
     textureCoordinates.push_back(glm::vec2(1.0f, 1.0f));
 
-    texture = new Texture(glHelper, ".\\Data\\Textures\\Box\\crate2_diffuse.png");
+    texture = new Texture(glHelper, "./Data/Textures/Box/crate2_diffuse.png");
 
     glHelper->bufferVertexTextureCoordinates(textureCoordinates,vao,vbo,3,ebo);
     //glHelper->bufferVertexColor(colors,vao,vbo,3);

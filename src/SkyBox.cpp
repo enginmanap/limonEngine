@@ -8,7 +8,7 @@ SkyBox::SkyBox(GLHelper* glHelper, std::string right, std::string left, std::str
                std::string front):
     Renderable(glHelper)
     {
-    cubeMap = new CubeMap(glHelper, ".\\Data\\Textures\\Skyboxes\\ThickCloudsWater",
+    cubeMap = new CubeMap(glHelper, "./Data/Textures/Skyboxes/ThickCloudsWater",
                           "right.jpg", "left.jpg",
                           "top.jpg", "bottom.jpg",
                           "back.jpg", "front.jpg");

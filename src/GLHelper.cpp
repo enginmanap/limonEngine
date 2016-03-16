@@ -147,6 +147,8 @@ GLHelper::GLHelper() {
                 glGetString(GL_RENDERER),  // e.g. Intel HD Graphics 3000 OpenGL Engine
                 glGetString(GL_VERSION)    // e.g. 3.2 INTEL-8.0.61
     );
+
+    printf("Supported GLSL version is %s.\n", (char *)glGetString(GL_SHADING_LANGUAGE_VERSION));
 }
 
 void GLHelper::bufferVertexData(const std::vector<glm::vec3>& vertices,

@@ -1,4 +1,4 @@
-#version 400
+#version 330
 
 in vec2 vs_fs_textureCoord;
 out vec4 color;
