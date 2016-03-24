@@ -16,7 +16,7 @@
 class Camera {
     const glm::vec3 startPosition = glm::vec3(0,10,15);
     glm::vec3 moveSpeed = glm::vec3(3,0,3);
-    float jumpFactor = 10.0f;
+    float jumpFactor = 2.5f;
     float lookAroundSpeed = 1.0f;
     bool dirty;
     glm::vec3 position, center, up, right;
