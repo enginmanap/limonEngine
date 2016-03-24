@@ -7,7 +7,7 @@
 
 
 Model::Model(GLHelper* glHelper, float mass):
-    Renderable(glHelper){
+    PhysicalRenderable(glHelper){
 
     /*
      * These are the coordinates and faces for star.

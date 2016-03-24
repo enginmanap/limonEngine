@@ -6,7 +6,7 @@
 #define UBERGAME_WORLD_H
 
 #include <vector>
-#include "Renderable.h"
+#include "PhysicalRenderable.h"
 #include "GLHelper.h"
 #include <SDL2/SDL_stdinc.h>
 #include "glm/glm.hpp"
@@ -19,7 +19,7 @@
 #include <btBulletDynamicsCommon.h>
 
 class World {
-    std::vector<Renderable*> objects;
+    std::vector<PhysicalRenderable*> objects;
     std::vector<GUILayer*> guiLayers;
     SkyBox* sky;
     GLHelper *glHelper;

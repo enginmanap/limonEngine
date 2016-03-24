@@ -157,7 +157,7 @@ void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
 
 void World::render() {
     glHelper->setCamera(camera.getCameraMatrix());
-    for (std::vector<Renderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
+    for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
         (*it)->render();
     }
     dynamicsWorld->debugDrawWorld();
@@ -173,7 +173,7 @@ void World::render() {
 }
 
 World::~World() {
-    for (std::vector<Renderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
+    for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
         delete (*it);
     }
     delete sky;

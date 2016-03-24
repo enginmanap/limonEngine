@@ -10,12 +10,12 @@
 
 //TODO maybe we should not have direct dependency to glm and gl
 #include "glm/glm.hpp"
-#include "Renderable.h"
+#include "PhysicalRenderable.h"
 #include "Texture.h"
 
 
 
-class Model :public Renderable {
+class Model :public PhysicalRenderable {
     std::vector<glm::vec3> vertices;
     std::vector<glm::mediump_uvec3> faces;
     std::vector<glm::vec2> textureCoordinates;
