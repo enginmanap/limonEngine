@@ -6,20 +6,19 @@
 #define UBERGAME_GUILAYER_H
 
 #include "GLHelper.h"
-#include "Renderable.h"
+#include "GUIRenderable.h"
 
 class GUILayer {
     GLHelper* glHelper;
     int level;
-    std::vector<Renderable* > guiElements;
+    std::vector<GUIRenderable* > guiElements;
 
 public:
     GUILayer(GLHelper* glHelper, int level): glHelper(glHelper), level(level) {};
 
     int getLevel(){ return level;}
-    //renderable is wrong, this should be guiElement
-    void addGuiElement(Renderable* renderable){
-        guiElements.push_back(renderable);
+    void addGuiElement(GUIRenderable* guiElement){
+        guiElements.push_back(guiElement);
     }
 
     void render();

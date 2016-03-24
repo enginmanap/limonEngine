@@ -80,12 +80,12 @@ World::World(GLHelper *glHelper) {
     GUILayer* layer1 = new GUILayer(glHelper, 1);
     TextRenderer* tr = new TextRenderer(glHelper, "Data/Fonts/Wolf_in_the_City_Light.ttf", "Uber Game", 64, glm::vec3(0,0,0));
     tr->setScale(0.25f,0.25f);
-    tr->set2dWorldTransform(glm::vec2(0.0f, 0.75f), 0);
+    tr->set2dWorldTransform(glm::vec2(0.0f, 1 - (tr->getHeight())), 0);
     layer1->addGuiElement(tr);
 
-    tr = new TextRenderer(glHelper, "Data/Fonts/Helvetica-Normal.ttf", "Version 0.1", 32, glm::vec3(0,0,0));
+    tr = new TextRenderer(glHelper, "Data/Fonts/Helvetica-Normal.ttf", "Version 0.1", 32, glm::vec3(255,255,255));
     tr->setScale(0.1f,0.1f);
-    tr->set2dWorldTransform(glm::vec2(0.85f, -0.85f), 0);
+    tr->set2dWorldTransform(glm::vec2(1 - (tr->getWidth()), (tr->getHeight()) - 1), 0);
 
     layer1->addGuiElement(tr);
     guiLayers.push_back(layer1);
