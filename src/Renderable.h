@@ -14,7 +14,8 @@
 class Renderable {
 protected:
     GLHelper* glHelper;
-    GLuint vao, vbo, ebo;
+    std::vector<GLuint> bufferObjects;
+    GLuint vao, ebo;
     GLSLProgram* renderProgram;
     std::vector<std::string> uniforms;
     glm::mat4 worldTransform, oldWorldTransform;
@@ -75,6 +76,13 @@ public:
 
     btRigidBody* getRigidBody() { return rigidBody;};
     void updateTransformFromPhysics();
+    ~Renderable(){
+        for(int i = 0; i< bufferObjects.size(); ++i ){
+            glHelper->freeBuffer(bufferObjects[i]);
+        }
+        glHelper->freeBuffer(ebo);
+        glHelper->freeVAO(vao);
+    }
 };
 
 

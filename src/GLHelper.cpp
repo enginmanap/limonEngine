@@ -149,12 +149,77 @@ GLHelper::GLHelper() {
     checkErrors("Constructor");
 }
 
+GLuint GLHelper::generateBuffer(const GLuint number){
+    GLuint bufferID;
+    glGenBuffers(number, &bufferID);
+    bufferObjects.push_back(bufferID);
+
+    checkErrors("generateBuffer");
+    return bufferID;
+}
+
+bool GLHelper::deleteBuffer(const GLuint number, const GLuint bufferID){
+    if (glIsBuffer(bufferID)){
+        glDeleteBuffers(number, &bufferID);
+        checkErrors("deleteBuffer");
+        return true;
+    }
+    checkErrors("deleteBuffer");
+    return false;
+}
+
+bool GLHelper::freeBuffer(const GLuint bufferID){
+    for(int i = 0; i< bufferObjects.size(); ++i ){
+        if(bufferObjects[i] == bufferID) {
+            deleteBuffer(1,bufferObjects[i]);
+            bufferObjects[i] = bufferObjects[bufferObjects.size()-1];
+            bufferObjects.pop_back();
+            checkErrors("freeBuffer");
+            return true;
+        }
+    }
+    checkErrors("freeBuffer");
+    return false;
+}
+
+GLuint GLHelper::generateVAO(const GLuint number){
+    GLuint bufferID;
+    glGenVertexArrays(number, &bufferID);
+    vertexArrays.push_back(bufferID);
+    checkErrors("generateVAO");
+    return bufferID;
+}
+
+bool GLHelper::deleteVAO(const GLuint number, const GLuint bufferID){
+    if (glIsBuffer(bufferID)){
+        glDeleteVertexArrays(number, &bufferID);
+        checkErrors("deleteVAO");
+        return true;
+    }
+    checkErrors("deleteVAO");
+    return false;
+}
+
+bool GLHelper::freeVAO(const GLuint bufferID){
+    for(int i = 0; i< vertexArrays.size(); ++i ){
+        if(vertexArrays[i] == bufferID) {
+            deleteBuffer(1,vertexArrays[i]);
+            vertexArrays[i] = vertexArrays[vertexArrays.size()-1];
+            vertexArrays.pop_back();
+            checkErrors("freeVAO");
+            return true;
+        }
+    }
+    checkErrors("freeVAO");
+    return false;
+}
+
 void GLHelper::bufferVertexData(const std::vector<glm::vec3>& vertices,
                                 const std::vector<glm::mediump_uvec3>& faces,
                       GLuint& vao, GLuint& vbo, const GLuint attachPointer, GLuint& ebo){
 
     // Set up the element array buffer
-    glGenBuffers(1, &ebo);
+    ebo = generateBuffer(1);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::mediump_uvec3), faces.data(), GL_STATIC_DRAW);
 
@@ -162,7 +227,8 @@ void GLHelper::bufferVertexData(const std::vector<glm::vec3>& vertices,
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    glGenBuffers(1, &vbo);
+    vbo = generateBuffer(1);
+    bufferObjects.push_back(vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
     //glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize, vertexData);
@@ -175,7 +241,7 @@ void GLHelper::bufferVertexData(const std::vector<glm::vec3>& vertices,
 
 void GLHelper::bufferVertexColor(const std::vector<glm::vec4>& colors,
                        GLuint& vao, GLuint& vbo, const GLuint attachPointer){
-    glGenBuffers(1, &vbo);
+    vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(glm::vec4), colors.data(), GL_STATIC_DRAW);
 
@@ -188,7 +254,7 @@ void GLHelper::bufferVertexColor(const std::vector<glm::vec4>& colors,
 
 void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> textureCoordinates,
                                               GLuint &vao, GLuint &vbo, const GLuint attachPointer, GLuint &ebo) {
-    glGenBuffers(1, &vbo);
+    vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, textureCoordinates.size() * sizeof(std::vector<glm::vec2>), textureCoordinates.data(), GL_STATIC_DRAW);
 
@@ -253,7 +319,9 @@ bool GLHelper::checkErrors(std::string callerFunc){
 
 
 GLHelper::~GLHelper() {
-    //FIXME: Free all buffers
+    for(int i = 0; i< bufferObjects.size(); ++i ){
+        deleteBuffer(1,bufferObjects[i]);
+    }
     glUseProgram(0);
 }
 
@@ -341,7 +409,7 @@ void GLHelper::drawLine(GLuint program, GLuint &vao, GLuint &vbo, GLuint &ebo, c
 
     if(vbo == 0){
         //this means the vbo is not assigned yet.
-        glGenBuffers(1,&vbo);
+        vbo = generateBuffer(1);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         // constant 4 because 2 vertex and 2 color is used
         glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);

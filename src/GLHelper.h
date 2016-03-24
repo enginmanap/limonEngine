@@ -24,12 +24,18 @@ class GLHelper {
     GLenum error;
 
     float aspect;
+    std::vector<GLuint> bufferObjects;
+    std::vector<GLuint> vertexArrays;
 
     glm::mat4 cameraMatrix;
     glm::mat4 projectionMatrix;
     bool checkErrors(std::string callerFunc);
     GLuint createShader(GLenum, const std::string &);
     GLuint createProgram(const std::vector<GLuint> &);
+    GLuint generateBuffer(const GLuint number);
+    bool deleteBuffer(const GLuint number, const GLuint bufferID);
+    GLuint generateVAO(const GLuint number);
+    bool deleteVAO(const GLuint number, const GLuint bufferID);
 public:
     GLHelper();
     ~GLHelper();
@@ -43,7 +49,8 @@ public:
                            GLuint& vao, GLuint& vbo, const GLuint attachPointer);
     void bufferVertexTextureCoordinates(const std::vector<glm::vec2> textureCoordinates,
                           GLuint& vao, GLuint& vbo, const GLuint attachPointer, GLuint& ebo);
-
+    bool freeBuffer(const GLuint bufferID);
+    bool freeVAO(const GLuint VAO);
     void setCamera(const glm::mat4&);
 
     void clearFrame(){

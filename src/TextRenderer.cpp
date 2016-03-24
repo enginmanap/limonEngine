@@ -24,8 +24,9 @@ TextRenderer::TextRenderer(GLHelper* glHelper, const std::string fontFile, const
         faces.push_back(glm::mediump_uvec3( 0, 1, 2));//front
         faces.push_back(glm::mediump_uvec3( 0, 2, 3));
 
+        GLuint vbo;
         glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
-
+        bufferObjects.push_back(vbo);
 
         textureCoordinates.push_back(glm::vec2(0.0f, 1.0f));
         textureCoordinates.push_back(glm::vec2(1.0f, 1.0f));

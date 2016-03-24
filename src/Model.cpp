@@ -90,8 +90,9 @@ Model::Model(GLHelper* glHelper, float mass):
     faces.push_back(glm::mediump_uvec3(20,21,22));//right
     faces.push_back(glm::mediump_uvec3(20,22,23));
 
+    GLuint vbo;
     glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
-
+    bufferObjects.push_back(vbo);
 
     textureCoordinates.push_back(glm::vec2(0.0f, 1.0f));
     textureCoordinates.push_back(glm::vec2(0.0f, 0.0f));
