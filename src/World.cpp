@@ -5,6 +5,7 @@
 
 #include "World.h"
 #include "SkyBox.h"
+#include "TextRenderer.h"
 
 World::World(GLHelper *glHelper) {
 
@@ -76,7 +77,18 @@ World::World(GLHelper *glHelper) {
                             std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterFront2048.png")
     );
 
+    GUILayer* layer1 = new GUILayer(glHelper, 1);
+    TextRenderer* tr = new TextRenderer(glHelper, "Data/Fonts/Wolf_in_the_City_Light.ttf", "Uber Game", 64, glm::vec3(0,0,0));
+    tr->setScale(0.25f,0.25f);
+    tr->set2dWorldTransform(glm::vec2(0.0f, 0.75f), 0);
+    layer1->addGuiElement(tr);
 
+    tr = new TextRenderer(glHelper, "Data/Fonts/Helvetica-Normal.ttf", "Version 0.1", 32, glm::vec3(0,0,0));
+    tr->setScale(0.1f,0.1f);
+    tr->set2dWorldTransform(glm::vec2(0.85f, -0.85f), 0);
+
+    layer1->addGuiElement(tr);
+    guiLayers.push_back(layer1);
 }
 
 void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
@@ -134,6 +146,9 @@ void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
             direction = camera.RIGHT;
         }
     }
+    if(inputHandler.getInputStatus(inputHandler.JUMP)){
+        direction = camera.UP;
+    }
     if (direction!= camera.NONE){
         camera.move(direction);
     }
@@ -147,6 +162,13 @@ void World::render() {
     }
     dynamicsWorld->debugDrawWorld();
     sky->render();
+
+    //since gui uses blending, everything must be already rendered.
+    // Also, since gui elements only depth test each other, clear depth buffer
+    glHelper->clearDepthBuffer();
+    for (std::vector<GUILayer*>::iterator it = guiLayers.begin(); it != guiLayers.end(); ++it) {
+        (*it)->render();
+    }
     //debugDrawer->drawLine(btVector3(0,0,-3),btVector3(0,250,-3),btVector3(1,1,1));
 }
 

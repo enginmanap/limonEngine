@@ -48,11 +48,10 @@ public:
 
     void clearFrame(){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-;    }
+    }
     void render(const GLuint, const GLuint, const GLuint, const GLuint);
     void reshape(int height, int width);
-
-    GLuint loadTexture(int height, int width, bool alpha, void *data);
+    GLuint loadTexture(int height, int width, GLenum format, void *data);
     GLuint loadCubeMap(int height, int width, void* right, void* left, void* top, void* bottom, void* back, void* front);
     void attachTexture(GLuint textureID);
     void attachCubeMap(GLuint cubeMapID);
@@ -69,6 +68,11 @@ public:
 
     void drawLine(GLuint program, GLuint &vao, GLuint &vbo, GLuint &ebo, const glm::vec3 &from, const glm::vec3 &to,
                   const glm::vec3 &fromColor, const glm::vec3 &toColor);
+
+    void clearDepthBuffer() {
+        glClear(GL_DEPTH_BUFFER_BIT);
+    }
+
 };
 
 #endif //UBERGAME_GLHELPER_H

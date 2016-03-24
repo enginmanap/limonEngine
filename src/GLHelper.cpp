@@ -141,6 +141,11 @@ GLHelper::GLHelper() {
     glDepthFunc(GL_LEQUAL);
     glDepthMask(GL_TRUE);
     glDepthRange(0.0f, 1.0f);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
     checkErrors("Constructor");
 }
 
@@ -259,15 +264,11 @@ void GLHelper::reshape(int height, int width) {
     checkErrors("reshape");
 }
 
-GLuint GLHelper::loadTexture(int height, int width, bool alpha, void *data) {
+GLuint GLHelper::loadTexture(int height, int width, GLenum format, void *data) {
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
-    if(alpha){
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    } else {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    }
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
     checkErrors("loadTexture");
@@ -331,6 +332,9 @@ bool GLHelper::getUniformLocation(const GLuint programID, const std::string &uni
     return false;
 }
 
+/**
+ * This is pretty low performance, but it is used only for debugging physics, so it is good enough
+ */
 void GLHelper::drawLine(GLuint program, GLuint &vao, GLuint &vbo, GLuint &ebo, const glm::vec3 &from, const glm::vec3 &to,
                         const glm::vec3 &fromColor, const glm::vec3 &toColor) {
     glUseProgram(program);
@@ -369,5 +373,8 @@ void GLHelper::drawLine(GLuint program, GLuint &vao, GLuint &vbo, GLuint &ebo, c
     checkErrors("drawLine");
 
 }
+
+
+
 
 

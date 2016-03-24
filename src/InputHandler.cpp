@@ -14,6 +14,7 @@ window(window), height(height), width(width){
     inputStatus[MOVE_BACKWARD] = false;
     inputStatus[MOVE_LEFT] = false;
     inputStatus[MOVE_RIGHT] = false;
+    inputStatus[JUMP] = false;
 
 }
 
@@ -49,6 +50,9 @@ void InputHandler::mapInput() {
                     case SDLK_d:
                         inputStatus[MOVE_RIGHT] = true;
                         break;
+                    case SDLK_SPACE:
+                        inputStatus[JUMP] = true;
+                        break;
                 }
                 break;
             case SDL_KEYUP:
@@ -64,6 +68,9 @@ void InputHandler::mapInput() {
                         break;
                     case SDLK_d:
                         inputStatus[MOVE_RIGHT] = false;
+                        break;
+                    case SDLK_SPACE:
+                        inputStatus[JUMP] = false;
                         break;
                 }
                 break;

@@ -39,6 +39,9 @@ void Camera::move(moveDirections direction) {
     }
     dirty=true;
     switch (direction) {
+        case UP:
+            player->setLinearVelocity(player->getLinearVelocity() + BulletGLMConverter::GLMToBlt(up* jumpFactor));
+            break;
         case LEFT_BACKWARD:
             //position -= moveSpeed * center;
             //position -= moveSpeed * right;
@@ -127,6 +130,10 @@ void Camera::updateTransfromFromPhysics(const btDynamicsWorld* world){
         onAir = true;
     }
 
+    rayCallback.m_closestHitFraction= 1;
+
+    rayCallback.m_collisionObject = 0;
+
 
 
     player->getMotionState()->getWorldTransform(worldTransformHolder);
@@ -136,14 +143,14 @@ void Camera::updateTransfromFromPhysics(const btDynamicsWorld* world){
 
     rayCallback.m_rayFromWorld = worldTransformHolder.getOrigin() +btVector3(0,-1.01f,0);//the second vector is preventing hitting player capsule
     rayCallback.m_rayToWorld = rayCallback.m_rayFromWorld + btVector3(0,-1,0);
-/*
-    std::cout << "ray details: (" << rayCallback.m_rayFromWorld.getX() << ","
+
+    /*std::cout << "ray details: (" << rayCallback.m_rayFromWorld.getX() << ","
                                 << rayCallback.m_rayFromWorld.getY() << ","
                                 << rayCallback.m_rayFromWorld.getZ() << ")->("
                                 << rayCallback.m_rayToWorld.getX() << ","
                                 << rayCallback.m_rayToWorld.getY() << ","
-                                << rayCallback.m_rayToWorld.getZ() << ")" << std::endl;
-                                */
+                                << rayCallback.m_rayToWorld.getZ() << ")" << std::endl;*/
+
     //std::cout << "the objects last position is" << this->translate.x <<","<< this->translate.y <<","<<this->translate.z << std::endl;
     dirty = true;
 }

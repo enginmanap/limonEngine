@@ -15,10 +15,12 @@
 #include "Model.h"
 #include "SkyBox.h"
 #include "BulletDebugDrawer.h"
+#include "GUILayer.h"
 #include <btBulletDynamicsCommon.h>
 
 class World {
     std::vector<Renderable*> objects;
+    std::vector<GUILayer*> guiLayers;
     SkyBox* sky;
     GLHelper *glHelper;
     Camera camera;

@@ -59,6 +59,7 @@ public:
 
     virtual void render() = 0;
 
+    //FIXME this should be removed
     void setWorldTransform(const glm::mat4& transformMatrix){
         this->oldWorldTransform = this->worldTransform;
         this->worldTransform = transformMatrix;
