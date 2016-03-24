@@ -1,5 +1,5 @@
 //
-// Created by engin on 23.03.2016.
+// Created by Engin Manap on 23.03.2016.
 //
 
 #include "GUILayer.h"

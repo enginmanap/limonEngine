@@ -1,5 +1,5 @@
 //
-// Created by engin on 14.03.2016.
+// Created by Engin Manap on 14.03.2016.
 //
 
 #ifndef UBERGAME_TEXTRENDERER_H
