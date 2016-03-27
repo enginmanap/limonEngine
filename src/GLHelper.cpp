@@ -406,38 +406,39 @@ bool GLHelper::getUniformLocation(const GLuint programID, const std::string &uni
 void GLHelper::drawLine(GLuint program, GLuint &vao, GLuint &vbo, GLuint &ebo, const glm::vec3 &from, const glm::vec3 &to,
                         const glm::vec3 &fromColor, const glm::vec3 &toColor) {
     glUseProgram(program);
-
-    if(vbo == 0){
+    if(vbo == 0 || vao == 0){
         //this means the vbo is not assigned yet.
         vbo = generateBuffer(1);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         // constant 4 because 2 vertex and 2 color is used
-        glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
-    }
 
-    glBufferSubData(GL_ARRAY_BUFFER,0                    ,sizeof(glm::vec3),&from);
-    glBufferSubData(GL_ARRAY_BUFFER,    sizeof(glm::vec3),sizeof(glm::vec3),&fromColor);
-    glBufferSubData(GL_ARRAY_BUFFER,2 * sizeof(glm::vec3),sizeof(glm::vec3),&to);
-    glBufferSubData(GL_ARRAY_BUFFER,3 * sizeof(glm::vec3),sizeof(glm::vec3),&toColor);
+        std::vector<GLuint> indexes;
+        indexes.push_back(0);
+        indexes.push_back(1);
+        glBufferData(GL_ARRAY_BUFFER, indexes.size() * sizeof(GLuint), indexes.data(), GL_STATIC_DRAW);
 
-    if(vao == 0){
         //this means the vao is not created yet.
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
-
-        glEnableVertexAttribArray(0);
         //stride means the space between start of 2 elements. 0 is special, means the space is equal to size.
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), 0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), (const GLvoid*)sizeof(glm::vec3));
+        glVertexAttribPointer(0, 1, GL_UNSIGNED_INT, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(0);
     }
 
-    glBindVertexArray(vao);
-    glDrawArrays(GL_LINES,0,2);
-    //std::cout << "glDrawLines call" << std::endl;
+    glm::mat4 matrix(glm::vec4(from,1.0f),
+                     glm::vec4(to,1.0f),
+                     glm::vec4(fromColor,1.0f),
+                     glm::vec4(toColor,1.0f));
 
-    glUseProgram(0);
+    GLuint uniformID = glGetUniformLocation(program, "lineInfo");
+    glUniformMatrix4fv(uniformID,1,GL_FALSE,glm::value_ptr(matrix));
+
+    glBindVertexArray(vao);
+
+    glDrawArrays(GL_LINES,0,2);
+
     glBindVertexArray(0);
+    glUseProgram(0);
     checkErrors("drawLine");
 
 }
