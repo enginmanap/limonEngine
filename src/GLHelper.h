@@ -73,8 +73,8 @@ public:
     glm::mat4 getCameraMatrix() const {return cameraMatrix;};
     glm::mat4 getProjectionMatrix() const {return projectionMatrix;};
 
-    void drawLine(GLuint program, GLuint &vao, GLuint &vbo, GLuint &ebo, const glm::vec3 &from, const glm::vec3 &to,
-                  const glm::vec3 &fromColor, const glm::vec3 &toColor);
+    void drawLine(const glm::vec3 &from, const glm::vec3 &to,
+                  const glm::vec3 &fromColor, const glm::vec3 &toColor, bool willTransform);
 
     void clearDepthBuffer() {
         glClear(GL_DEPTH_BUFFER_BIT);

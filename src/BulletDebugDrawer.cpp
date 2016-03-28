@@ -7,13 +7,9 @@
 
 void BulletDebugDrawer::drawLine(const btVector3& from, const btVector3& to, const btVector3& fromColor, const btVector3& toColor){
 
-    glm::mat4 viewMatrix = glHelper->getProjectionMatrix() * glHelper->getCameraMatrix();
-    GLuint viewTransformLocation;
-    renderProgram->getUniformLocation("cameraTransformMatrix", viewTransformLocation);
-    glHelper->setUniform(renderProgram->getID(),viewTransformLocation,viewMatrix);
-    glHelper->drawLine(renderProgram->getID(), vao, vbo, ebo,
-                       BulletGLMConverter::BltToGLM(from),
+    glHelper->drawLine(BulletGLMConverter::BltToGLM(from),
                        BulletGLMConverter::BltToGLM(to),
                        BulletGLMConverter::BltToGLM(fromColor),
-                       BulletGLMConverter::BltToGLM(toColor));
+                       BulletGLMConverter::BltToGLM(toColor),
+                       true);
 }

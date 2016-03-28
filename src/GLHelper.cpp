@@ -403,14 +403,16 @@ bool GLHelper::getUniformLocation(const GLuint programID, const std::string &uni
 /**
  * This is pretty low performance, but it is used only for debugging physics, so it is good enough
  */
-void GLHelper::drawLine(GLuint program, GLuint &vao, GLuint &vbo, GLuint &ebo, const glm::vec3 &from, const glm::vec3 &to,
-                        const glm::vec3 &fromColor, const glm::vec3 &toColor) {
-    glUseProgram(program);
-    if(vbo == 0 || vao == 0){
-        //this means the vbo is not assigned yet.
+void GLHelper::drawLine(const glm::vec3 &from, const glm::vec3 &to,
+                        const glm::vec3 &fromColor, const glm::vec3 &toColor, bool willTransform) {
+    static GLuint program, viewTransformU, lineInfoU, vao,vbo;
+    if(program == 0 || vbo == 0 || vao == 0){
+        program = initializeProgram("./Data/Shaders/Line/vertex.shader","./Data/Shaders/Line/fragment.shader");
+        lineInfoU = glGetUniformLocation(program, "lineInfo");
+        viewTransformU = glGetUniformLocation(program, "cameraTransformMatrix");
+        glUseProgram(program);
         vbo = generateBuffer(1);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        // constant 4 because 2 vertex and 2 color is used
 
         std::vector<GLuint> indexes;
         indexes.push_back(0);
@@ -424,14 +426,19 @@ void GLHelper::drawLine(GLuint program, GLuint &vao, GLuint &vbo, GLuint &ebo, c
         glVertexAttribPointer(0, 1, GL_UNSIGNED_INT, GL_FALSE, 0, 0);
         glEnableVertexAttribArray(0);
     }
-
+    glUseProgram(program);
     glm::mat4 matrix(glm::vec4(from,1.0f),
                      glm::vec4(to,1.0f),
                      glm::vec4(fromColor,1.0f),
                      glm::vec4(toColor,1.0f));
 
-    GLuint uniformID = glGetUniformLocation(program, "lineInfo");
-    glUniformMatrix4fv(uniformID,1,GL_FALSE,glm::value_ptr(matrix));
+    glUniformMatrix4fv(lineInfoU,1,GL_FALSE,glm::value_ptr(matrix));
+
+    if(willTransform) {
+        glUniformMatrix4fv(viewTransformU, 1, GL_FALSE, glm::value_ptr(getProjectionMatrix() * getCameraMatrix()));
+    } else {
+            glUniformMatrix4fv(viewTransformU, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0)));
+    }
 
     glBindVertexArray(vao);
 
