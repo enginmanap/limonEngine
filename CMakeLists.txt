@@ -47,7 +47,7 @@ endif(NOT BULLET_FOUND)
 
 file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/Data)
 file(COPY Data DESTINATION .)
-configure_file(bin/glew32.dll glew32.dll COPYONLY)
+#configure_file(bin/glew32.dll glew32.dll COPYONLY)
 
 
 STRING(REGEX REPLACE "  -mwindows" "" SDL2_LIBRARIES ${SDL2_LIBRARIES})
