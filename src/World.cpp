@@ -78,6 +78,7 @@ World::World(GLHelper *glHelper) {
     );
 
     GUILayer* layer1 = new GUILayer(glHelper, 1);
+    layer1->setDebug(true);
     TextRenderer* tr = new TextRenderer(glHelper, "Data/Fonts/Wolf_in_the_City_Light.ttf", "Uber Game", 64, glm::vec3(0,0,0));
     tr->setScale(0.25f,0.25f);
     tr->set2dWorldTransform(glm::vec2(0.0f, 1 - (tr->getHeight())), 0);

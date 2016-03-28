@@ -31,7 +31,7 @@ public:
     }
 
     void render();
-
+    void renderDebug();
     float getWidth() { return scale.x;}
     float getHeight() { return scale.y;}
 };

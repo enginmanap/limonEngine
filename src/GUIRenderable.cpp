@@ -36,3 +36,16 @@ void GUIRenderable::render(){
     }
 }
 
+void GUIRenderable::renderDebug(){
+    float up = translate.y + scale.y;
+    float down = translate.y - scale.y;
+
+    float right = translate.x + scale.x;
+    float left = translate.x - scale.x;
+
+    //now build 4 lines;
+    glHelper->drawLine(glm::vec3(left,up,0.0f),glm::vec3(left,down,0.0f),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
+    glHelper->drawLine(glm::vec3(right,up,0.0f),glm::vec3(right,down,0.0f),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
+    glHelper->drawLine(glm::vec3(left,up,0.0f),glm::vec3(right,up,0.0f),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
+    glHelper->drawLine(glm::vec3(left,down,0.0f),glm::vec3(right,down,0.0f),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
+}
