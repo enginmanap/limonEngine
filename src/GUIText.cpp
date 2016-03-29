@@ -2,9 +2,9 @@
 // Created by Engin Manap on 14.03.2016.
 //
 
-#include "TextRenderer.h"
+#include "GUIText.h"
 
-TextRenderer::TextRenderer(GLHelper* glHelper, const std::string fontFile, const std::string text, const int size, const glm::lowp_uvec3 color): GUIRenderable(glHelper){
+GUIText::GUIText(GLHelper* glHelper, const std::string fontFile, const std::string text, const int size, const glm::lowp_uvec3 color): GUIRenderable(glHelper){
     //TODO these init and quit should be done by font manager
     if(TTF_Init() == -1) {
         std::cerr << "SDL ttf could not init, error: \n"<< TTF_GetError() << "\n Exiting.." << std::endl;

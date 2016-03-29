@@ -10,14 +10,12 @@
 #include "GLHelper.h"
 #include "GUIRenderable.h"
 
-class TextRenderer : public GUIRenderable {
+class GUIText : public GUIRenderable {
 
 public:
-    TextRenderer(GLHelper* glHelper, const std::string fontFile, const std::string text, const int size, const glm::lowp_uvec3 color);
+    GUIText(GLHelper* glHelper, const std::string fontFile, const std::string text, const int size, const glm::lowp_uvec3 color);
 
-
-
-    ~TextRenderer() {
+    ~GUIText() {
         TTF_Quit();
     }
 
