@@ -4,13 +4,9 @@
 
 #include "GUIText.h"
 
-GUIText::GUIText(GLHelper* glHelper, const std::string fontFile, const std::string text, const int size, const glm::lowp_uvec3 color): GUIRenderable(glHelper){
+GUIText::GUIText(GLHelper* glHelper,  TTF_Font* font, const std::string text, const glm::lowp_uvec3 color): GUIRenderable(glHelper){
     //TODO these init and quit should be done by font manager
-    if(TTF_Init() == -1) {
-        std::cerr << "SDL ttf could not init, error: \n"<< TTF_GetError() << "\n Exiting.." << std::endl;
-        exit(1);
-    }
-    TTF_Font *font = TTF_OpenFont(fontFile.c_str(), size);
+
     SDL_Color sdlColor = {(Uint8)color.r,(Uint8)color.g,(Uint8)color.b};
     SDL_Surface *Message = TTF_RenderText_Blended(font, text.c_str(), sdlColor);
     float aspect = (float) Message->h / Message->w;

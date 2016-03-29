@@ -13,11 +13,7 @@
 class GUIText : public GUIRenderable {
 
 public:
-    GUIText(GLHelper* glHelper, const std::string fontFile, const std::string text, const int size, const glm::lowp_uvec3 color);
-
-    ~GUIText() {
-        TTF_Quit();
-    }
+    GUIText(GLHelper* glHelper, TTF_Font* font, const std::string text, const glm::lowp_uvec3 color);
 
     void updateText(std::string text){
         std::cerr << "text update is not implemented" << std::endl;

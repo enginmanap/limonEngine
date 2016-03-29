@@ -7,7 +7,7 @@
 #include "SkyBox.h"
 #include "GUIText.h"
 
-World::World(GLHelper *glHelper) {
+World::World(GLHelper *glHelper): glHelper(glHelper) {
 
     // physics init
     broadphase = new btDbvtBroadphase();
@@ -25,9 +25,6 @@ World::World(GLHelper *glHelper) {
     //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
 
     // end of physics init
-
-
-    this->glHelper = glHelper;
 
     rigidBodies.push_back(camera.getRigidBody());
     dynamicsWorld->addRigidBody(camera.getRigidBody());
@@ -79,12 +76,12 @@ World::World(GLHelper *glHelper) {
 
     GUILayer* layer1 = new GUILayer(glHelper, 1);
     layer1->setDebug(true);
-    GUIText* tr = new GUIText(glHelper, "Data/Fonts/Wolf_in_the_City_Light.ttf", "Uber Game", 64, glm::vec3(0,0,0));
+    GUIText* tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf",64), "Uber Game", glm::vec3(0,0,0));
     tr->setScale(0.25f,0.25f);
     tr->set2dWorldTransform(glm::vec2(0.0f, 1 - (tr->getHeight())), 0);
     layer1->addGuiElement(tr);
 
-    tr = new GUIText(glHelper, "Data/Fonts/Helvetica-Normal.ttf", "Version 0.1", 32, glm::vec3(255,255,255));
+    tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 32), "Version 0.1", glm::vec3(255,255,255));
     tr->setScale(0.1f,0.1f);
     tr->set2dWorldTransform(glm::vec2(1 - (tr->getWidth()), (tr->getHeight()) - 1), 0);
 
