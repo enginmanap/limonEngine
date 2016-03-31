@@ -7,7 +7,7 @@
 
 #include <iostream>
 #include <string>
-#include <map>x
+#include <map>
 
 #include <SDL2/SDL_ttf.h>
 class SDLFontManager {
@@ -35,7 +35,7 @@ public:
 
                 ttf_font = TTF_OpenFont(DEFAULT_FONT_PATH, DEFAULT_FONT_SIZE);
             }
-            
+
             fonts[fontPath + std::to_string(size)] = ttf_font;
         }
 
