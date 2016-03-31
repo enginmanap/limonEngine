@@ -25,11 +25,9 @@ public:
     TTF_Font* getFont(const std::string fontPath, const int size){
         if(fonts.count(fontPath + std::to_string(size)) == 0){
             fonts[fontPath + std::to_string(size)] = TTF_OpenFont(fontPath.c_str(), size);
-            return fonts[fontPath + std::to_string(size)];
-        } else {
-            return fonts[fontPath + std::to_string(size)];
-        }
-
+        } 
+        
+        return fonts[fontPath + std::to_string(size)];
     }
 
     ~SDLFontManager() {
