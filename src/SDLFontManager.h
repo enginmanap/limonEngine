@@ -7,11 +7,13 @@
 
 #include <iostream>
 #include <string>
-#include <map>
+#include <map>x
 
 #include <SDL2/SDL_ttf.h>
 class SDLFontManager {
     std::map<std::string, TTF_Font*> fonts;
+    static const std::string DEFAULT_FONT_PATH = "Data/Fonts/Helvetica-Normal.ttf";
+    static const int DEFAULT_FONT_SIZE = 32;
 public:
     SDLFontManager(){
         if(TTF_Init() == -1) {
@@ -24,9 +26,19 @@ public:
 
     TTF_Font* getFont(const std::string fontPath, const int size){
         if(fonts.count(fontPath + std::to_string(size)) == 0){
-            fonts[fontPath + std::to_string(size)] = TTF_OpenFont(fontPath.c_str(), size);
-        } 
-        
+            TTF_Font* ttf_font = TTF_OpenFont(fontPath.c_str(), size);
+
+            if (!ttf_font) {
+                std::cerr << "Could not create font with path=[" << fontPath << "]" << " and size=[" << size << "]"
+                << "Error=" << std::endl << TTF_GetError()
+                << "Creating with default path=[" << DEFAULT_FONT_PATH << "] and size=[" << DEFAULT_FONT_SIZE << "]" << std::endl;
+
+                ttf_font = TTF_OpenFont(DEFAULT_FONT_PATH, DEFAULT_FONT_SIZE);
+            }
+            
+            fonts[fontPath + std::to_string(size)] = ttf_font;
+        }
+
         return fonts[fontPath + std::to_string(size)];
     }
 
