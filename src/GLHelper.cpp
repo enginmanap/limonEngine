@@ -144,7 +144,7 @@ GLHelper::GLHelper() {
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     checkErrors("Constructor");
 }
@@ -329,6 +329,7 @@ void GLHelper::reshape(int height, int width) {
     glViewport(0, 0 , width, height);
     aspect = float(height) / float(width);
     projectionMatrix = glm::frustum(-1.0f, 1.0f, -aspect, aspect, 1.0f, 500.0f);
+    orthogonalProjectionMatrix = glm::ortho(0.0f,(float)width,0.0f,(float)height);
     checkErrors("reshape");
 }
 

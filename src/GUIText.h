@@ -9,15 +9,20 @@
 #include <iostream>
 #include "GLHelper.h"
 #include "GUIRenderable.h"
+#include "FontManager.h"
+
 
 class GUIText : public GUIRenderable {
-
+    Face* face;
+    std::string text;
 public:
-    GUIText(GLHelper* glHelper, TTF_Font* font, const std::string text, const glm::lowp_uvec3 color);
+    GUIText(GLHelper* glHelper, Face* font, const std::string text, const glm::lowp_uvec3 color);
 
     void updateText(std::string text){
         std::cerr << "text update is not implemented" << std::endl;
     }
+
+    void render();
 };
 
 

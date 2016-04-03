@@ -5,7 +5,7 @@ project(UberGame)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(SOURCE_FILES src/main.cpp src/SDL2Helper.cpp src/SDL2Helper.h src/GLHelper.cpp src/GLHelper.h src/Model.cpp src/Model.h src/World.cpp src/World.h src/InputHandler.cpp src/InputHandler.h src/Camera.cpp src/Camera.h src/SkyBox.cpp src/SkyBox.h src/Texture.cpp src/Texture.h src/CubeMap.cpp src/CubeMap.h src/GLSLProgram.cpp src/GLSLProgram.h src/Renderable.cpp src/Renderable.h src/Utils/BulletGLMConverter.cpp src/Utils/BulletGLMConverter.h src/BulletDebugDrawer.cpp src/BulletDebugDrawer.h src/GUIText.cpp src/GUIText.h src/GUILayer.cpp src/GUILayer.h src/PhysicalRenderable.cpp src/PhysicalRenderable.h src/GUIRenderable.cpp src/GUIRenderable.h src/SDLFontManager.cpp src/SDLFontManager.h)
+set(SOURCE_FILES src/main.cpp src/SDL2Helper.cpp src/SDL2Helper.h src/GLHelper.cpp src/GLHelper.h src/Model.cpp src/Model.h src/World.cpp src/World.h src/InputHandler.cpp src/InputHandler.h src/Camera.cpp src/Camera.h src/SkyBox.cpp src/SkyBox.h src/Texture.cpp src/Texture.h src/CubeMap.cpp src/CubeMap.h src/GLSLProgram.cpp src/GLSLProgram.h src/Renderable.cpp src/Renderable.h src/Utils/BulletGLMConverter.cpp src/Utils/BulletGLMConverter.h src/BulletDebugDrawer.cpp src/BulletDebugDrawer.h src/GUIText.cpp src/GUIText.h src/GUILayer.cpp src/GUILayer.h src/PhysicalRenderable.cpp src/PhysicalRenderable.h src/GUIRenderable.cpp src/GUIRenderable.h src/FontManager.cpp src/FontManager.h)
 add_executable(UberGame ${SOURCE_FILES})
 
 
@@ -21,12 +21,12 @@ if(NOT SDL_Image_FOUND)
     message(ERROR " SDL_Image not found!")
 endif(NOT SDL_Image_FOUND)
 
-PKG_SEARCH_MODULE(SDL2TTF REQUIRED SDL2_ttf>=2.0.0)
-INCLUDE_DIRECTORIES(${SDL2TTF_INCLUDE_DIRS})
+find_package(FREETYPE REQUIRED)
+INCLUDE_DIRECTORIES(${FREETYPE_INCLUDE_DIRS})
 
-if(NOT SDL2TTF_FOUND)
-    message(ERROR " SDL_ttf not found!")
-endif(NOT SDL2TTF_FOUND)
+if(NOT FREETYPE_FOUND)
+    message(ERROR " FREETYPE not found!")
+endif(NOT FREETYPE_FOUND)
 
 find_package(GLEW REQUIRED)
 INCLUDE_DIRECTORIES(${GLEW_INCLUDE_DIRS})
@@ -52,6 +52,6 @@ file(COPY Data DESTINATION .)
 
 STRING(REGEX REPLACE "  -mwindows" "" SDL2_LIBRARIES ${SDL2_LIBRARIES})
 
-TARGET_LINK_LIBRARIES(UberGame ${BULLET_LIBRARIES} ${SDL2_LIBRARIES} ${SDL2TTF_LIBRARIES} ${SDL2IMAGE_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES})
+TARGET_LINK_LIBRARIES(UberGame ${BULLET_LIBRARIES} ${SDL2_LIBRARIES} ${FREETYPE_LIBRARIES} ${SDL2IMAGE_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES})
 
 

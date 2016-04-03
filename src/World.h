@@ -16,7 +16,7 @@
 #include "SkyBox.h"
 #include "BulletDebugDrawer.h"
 #include "GUILayer.h"
-#include "SDLFontManager.h"
+#include "FontManager.h"
 #include <btBulletDynamicsCommon.h>
 
 class World {
@@ -24,7 +24,7 @@ class World {
     std::vector<GUILayer*> guiLayers;
     SkyBox* sky;
     GLHelper *glHelper;
-    SDLFontManager fontManager;
+    FontManager fontManager;
     Camera camera;
     BulletDebugDrawer* debugDrawer;
 

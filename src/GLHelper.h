@@ -29,6 +29,7 @@ class GLHelper {
 
     glm::mat4 cameraMatrix;
     glm::mat4 projectionMatrix;
+    glm::mat4 orthogonalProjectionMatrix;
     bool checkErrors(std::string callerFunc);
     GLuint createShader(GLenum, const std::string &);
     GLuint createProgram(const std::vector<GLuint> &);
@@ -72,7 +73,7 @@ public:
 
     glm::mat4 getCameraMatrix() const {return cameraMatrix;};
     glm::mat4 getProjectionMatrix() const {return projectionMatrix;};
-
+    glm::mat4 getOrthogonalProjectionMatrix() const { return orthogonalProjectionMatrix; }
     void drawLine(const glm::vec3 &from, const glm::vec3 &to,
                   const glm::vec3 &fromColor, const glm::vec3 &toColor, bool willTransform);
 

@@ -10,10 +10,10 @@
 
 class GUIRenderable : public Renderable {
     std::vector<glm::vec3> vertices;
-    std::vector<glm::mediump_uvec3> faces;
     std::vector<glm::vec2> textureCoordinates;
 protected:
     //TODO maybe this should not be protected, but private
+    std::vector<glm::mediump_uvec3> faces;
     GLuint textureID;
 public:
     GUIRenderable(GLHelper* glHelper);
@@ -30,8 +30,8 @@ public:
         scale.y *= height;
     }
 
-    void render();
-    void renderDebug();
+    virtual void render();
+    virtual void renderDebug();
     float getWidth() { return scale.x;}
     float getHeight() { return scale.y;}
 };
