@@ -422,23 +422,23 @@ void GLHelper::drawLine(const glm::vec3 &from, const glm::vec3 &to,
         vbo = generateBuffer(1);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-        std::vector<GLuint> indexes;
+        std::vector<GLint> indexes;
         indexes.push_back(0);
         indexes.push_back(1);
-        glBufferData(GL_ARRAY_BUFFER, indexes.size() * sizeof(GLuint), indexes.data(), GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, indexes.size() * sizeof(GLint), indexes.data(), GL_STATIC_DRAW);
 
         //this means the vao is not created yet.
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
         //stride means the space between start of 2 elements. 0 is special, means the space is equal to size.
-        glVertexAttribPointer(0, 1, GL_UNSIGNED_INT, GL_FALSE, 0, 0);
+        glVertexAttribPointer(0, 1, GL_INT, GL_FALSE, 0, 0);
         glEnableVertexAttribArray(0);
     }
     glUseProgram(program);
     glm::mat4 matrix(glm::vec4(from,1.0f),
                      glm::vec4(to,1.0f),
                      glm::vec4(fromColor,1.0f),
-                     glm::vec4(toColor,1.0f));
+    glm::vec4(toColor,1.0f));
 
     glUniformMatrix4fv(lineInfoU,1,GL_FALSE,glm::value_ptr(matrix));
 

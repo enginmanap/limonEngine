@@ -1,6 +1,6 @@
 #version 330
 
-layout (location = 0) in uint index;
+layout (location = 0) in int index;
 
 uniform mat4 cameraTransformMatrix;
 uniform mat4 lineInfo;
