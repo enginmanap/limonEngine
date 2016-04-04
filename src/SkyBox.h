@@ -21,11 +21,12 @@ public:
     SkyBox(GLHelper* glHelper, std::string right, std::string left,
            std::string top, std::string down,
            std::string back, std::string front);
-
-
+    
     void render();
 
-    //FIME destructor needed.
+    ~SkyBox(){
+        delete cubeMap;
+    }
 };
 
 #endif //UBERGAME_SKYBOX_H
