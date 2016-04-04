@@ -11,6 +11,7 @@ Texture::Texture(GLHelper* glHelper, std::string name):
 
     if(!surface){
         std::cerr << "Texture Load failed for " << name << ". Error:" << std::endl << IMG_GetError << std::endl;
+        exit(1);
     } else {
         std::cout << "Texture " << name << " loaded succesfully."<< std::endl;
     }
