@@ -5,8 +5,9 @@
 
 #include "World.h"
 #include "SkyBox.h"
+#include "GUIText.h"
 
-World::World(GLHelper *glHelper) {
+World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
 
     // physics init
     broadphase = new btDbvtBroadphase();
@@ -24,9 +25,6 @@ World::World(GLHelper *glHelper) {
     //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
 
     // end of physics init
-
-
-    this->glHelper = glHelper;
 
     rigidBodies.push_back(camera.getRigidBody());
     dynamicsWorld->addRigidBody(camera.getRigidBody());
@@ -76,6 +74,18 @@ World::World(GLHelper *glHelper) {
                             std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterFront2048.png")
     );
 
+    GUILayer* layer1 = new GUILayer(glHelper, 1);
+    layer1->setDebug(true);
+    GUIText* tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf",128), "Uber Game", glm::vec3(0,0,0));
+    //tr->setScale(0.25f,0.25f);
+    tr->set2dWorldTransform(glm::vec2(512.0f,700.0f), 0);
+    layer1->addGuiElement(tr);
+
+    tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 32), "Version 0.1", glm::vec3(255,255,255));
+    //tr->setScale(0.25f,0.25f);
+    tr->set2dWorldTransform(glm::vec2(850,25), 0);
+    layer1->addGuiElement(tr);
+    guiLayers.push_back(layer1);
 
 }
 
@@ -134,6 +144,9 @@ void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
             direction = camera.RIGHT;
         }
     }
+    if(inputHandler.getInputStatus(inputHandler.JUMP)){
+        direction = camera.UP;
+    }
     if (direction!= camera.NONE){
         camera.move(direction);
     }
@@ -142,16 +155,23 @@ void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
 
 void World::render() {
     glHelper->setCamera(camera.getCameraMatrix());
-    for (std::vector<Renderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
+    for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
         (*it)->render();
     }
     dynamicsWorld->debugDrawWorld();
     sky->render();
+
+    //since gui uses blending, everything must be already rendered.
+    // Also, since gui elements only depth test each other, clear depth buffer
+    glHelper->clearDepthBuffer();
+    for (std::vector<GUILayer*>::iterator it = guiLayers.begin(); it != guiLayers.end(); ++it) {
+        (*it)->render();
+    }
     //debugDrawer->drawLine(btVector3(0,0,-3),btVector3(0,250,-3),btVector3(1,1,1));
 }
 
 World::~World() {
-    for (std::vector<Renderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
+    for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
         delete (*it);
     }
     delete sky;

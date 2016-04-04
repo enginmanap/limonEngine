@@ -141,6 +141,11 @@ GLHelper::GLHelper() {
     glDepthFunc(GL_LEQUAL);
     glDepthMask(GL_TRUE);
     glDepthRange(0.0f, 1.0f);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
     checkErrors("Constructor");
 
     std::printf("%s\n%s\n",
@@ -151,12 +156,77 @@ GLHelper::GLHelper() {
     printf("Supported GLSL version is %s.\n", (char *)glGetString(GL_SHADING_LANGUAGE_VERSION));
 }
 
+GLuint GLHelper::generateBuffer(const GLuint number){
+    GLuint bufferID;
+    glGenBuffers(number, &bufferID);
+    bufferObjects.push_back(bufferID);
+
+    checkErrors("generateBuffer");
+    return bufferID;
+}
+
+bool GLHelper::deleteBuffer(const GLuint number, const GLuint bufferID){
+    if (glIsBuffer(bufferID)){
+        glDeleteBuffers(number, &bufferID);
+        checkErrors("deleteBuffer");
+        return true;
+    }
+    checkErrors("deleteBuffer");
+    return false;
+}
+
+bool GLHelper::freeBuffer(const GLuint bufferID){
+    for(int i = 0; i< bufferObjects.size(); ++i ){
+        if(bufferObjects[i] == bufferID) {
+            deleteBuffer(1,bufferObjects[i]);
+            bufferObjects[i] = bufferObjects[bufferObjects.size()-1];
+            bufferObjects.pop_back();
+            checkErrors("freeBuffer");
+            return true;
+        }
+    }
+    checkErrors("freeBuffer");
+    return false;
+}
+
+GLuint GLHelper::generateVAO(const GLuint number){
+    GLuint bufferID;
+    glGenVertexArrays(number, &bufferID);
+    vertexArrays.push_back(bufferID);
+    checkErrors("generateVAO");
+    return bufferID;
+}
+
+bool GLHelper::deleteVAO(const GLuint number, const GLuint bufferID){
+    if (glIsBuffer(bufferID)){
+        glDeleteVertexArrays(number, &bufferID);
+        checkErrors("deleteVAO");
+        return true;
+    }
+    checkErrors("deleteVAO");
+    return false;
+}
+
+bool GLHelper::freeVAO(const GLuint bufferID){
+    for(int i = 0; i< vertexArrays.size(); ++i ){
+        if(vertexArrays[i] == bufferID) {
+            deleteBuffer(1,vertexArrays[i]);
+            vertexArrays[i] = vertexArrays[vertexArrays.size()-1];
+            vertexArrays.pop_back();
+            checkErrors("freeVAO");
+            return true;
+        }
+    }
+    checkErrors("freeVAO");
+    return false;
+}
+
 void GLHelper::bufferVertexData(const std::vector<glm::vec3>& vertices,
                                 const std::vector<glm::mediump_uvec3>& faces,
                       GLuint& vao, GLuint& vbo, const GLuint attachPointer, GLuint& ebo){
 
     // Set up the element array buffer
-    glGenBuffers(1, &ebo);
+    ebo = generateBuffer(1);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::mediump_uvec3), faces.data(), GL_STATIC_DRAW);
 
@@ -164,7 +234,8 @@ void GLHelper::bufferVertexData(const std::vector<glm::vec3>& vertices,
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    glGenBuffers(1, &vbo);
+    vbo = generateBuffer(1);
+    bufferObjects.push_back(vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
     //glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize, vertexData);
@@ -177,7 +248,7 @@ void GLHelper::bufferVertexData(const std::vector<glm::vec3>& vertices,
 
 void GLHelper::bufferVertexColor(const std::vector<glm::vec4>& colors,
                        GLuint& vao, GLuint& vbo, const GLuint attachPointer){
-    glGenBuffers(1, &vbo);
+    vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(glm::vec4), colors.data(), GL_STATIC_DRAW);
 
@@ -190,7 +261,7 @@ void GLHelper::bufferVertexColor(const std::vector<glm::vec4>& colors,
 
 void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> textureCoordinates,
                                               GLuint &vao, GLuint &vbo, const GLuint attachPointer, GLuint &ebo) {
-    glGenBuffers(1, &vbo);
+    vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, textureCoordinates.size() * sizeof(std::vector<glm::vec2>), textureCoordinates.data(), GL_STATIC_DRAW);
 
@@ -255,7 +326,9 @@ bool GLHelper::checkErrors(std::string callerFunc){
 
 
 GLHelper::~GLHelper() {
-    //FIXME: Free all buffers
+    for(int i = 0; i< bufferObjects.size(); ++i ){
+        deleteBuffer(1,bufferObjects[i]);
+    }
     glUseProgram(0);
 }
 
@@ -263,18 +336,15 @@ void GLHelper::reshape(int height, int width) {
     glViewport(0, 0 , width, height);
     aspect = float(height) / float(width);
     projectionMatrix = glm::frustum(-1.0f, 1.0f, -aspect, aspect, 1.0f, 500.0f);
+    orthogonalProjectionMatrix = glm::ortho(0.0f,(float)width,0.0f,(float)height);
     checkErrors("reshape");
 }
 
-GLuint GLHelper::loadTexture(int height, int width, bool alpha, void *data) {
+GLuint GLHelper::loadTexture(int height, int width, GLenum format, void *data) {
     GLuint texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
-    if(alpha){
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    } else {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    }
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
     checkErrors("loadTexture");
@@ -338,43 +408,57 @@ bool GLHelper::getUniformLocation(const GLuint programID, const std::string &uni
     return false;
 }
 
-void GLHelper::drawLine(GLuint program, GLuint &vao, GLuint &vbo, GLuint &ebo, const glm::vec3 &from, const glm::vec3 &to,
-                        const glm::vec3 &fromColor, const glm::vec3 &toColor) {
-    glUseProgram(program);
-
-    if(vbo == 0){
-        //this means the vbo is not assigned yet.
-        glGenBuffers(1,&vbo);
+/**
+ * This is pretty low performance, but it is used only for debugging physics, so it is good enough
+ */
+void GLHelper::drawLine(const glm::vec3 &from, const glm::vec3 &to,
+                        const glm::vec3 &fromColor, const glm::vec3 &toColor, bool willTransform) {
+    static GLuint program, viewTransformU, lineInfoU, vao,vbo;
+    if(program == 0 || vbo == 0 || vao == 0){
+        program = initializeProgram("./Data/Shaders/Line/vertex.shader","./Data/Shaders/Line/fragment.shader");
+        lineInfoU = glGetUniformLocation(program, "lineInfo");
+        viewTransformU = glGetUniformLocation(program, "cameraTransformMatrix");
+        glUseProgram(program);
+        vbo = generateBuffer(1);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        // constant 4 because 2 vertex and 2 color is used
-        glBufferData(GL_ARRAY_BUFFER, 4 * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
-    }
 
-    glBufferSubData(GL_ARRAY_BUFFER,0                    ,sizeof(glm::vec3),&from);
-    glBufferSubData(GL_ARRAY_BUFFER,    sizeof(glm::vec3),sizeof(glm::vec3),&fromColor);
-    glBufferSubData(GL_ARRAY_BUFFER,2 * sizeof(glm::vec3),sizeof(glm::vec3),&to);
-    glBufferSubData(GL_ARRAY_BUFFER,3 * sizeof(glm::vec3),sizeof(glm::vec3),&toColor);
+        std::vector<GLuint> indexes;
+        indexes.push_back(0);
+        indexes.push_back(1);
+        glBufferData(GL_ARRAY_BUFFER, indexes.size() * sizeof(GLuint), indexes.data(), GL_STATIC_DRAW);
 
-    if(vao == 0){
         //this means the vao is not created yet.
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
-
-        glEnableVertexAttribArray(0);
         //stride means the space between start of 2 elements. 0 is special, means the space is equal to size.
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), 0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(glm::vec3), (const GLvoid*)sizeof(glm::vec3));
+        glVertexAttribPointer(0, 1, GL_UNSIGNED_INT, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(0);
+    }
+    glUseProgram(program);
+    glm::mat4 matrix(glm::vec4(from,1.0f),
+                     glm::vec4(to,1.0f),
+                     glm::vec4(fromColor,1.0f),
+                     glm::vec4(toColor,1.0f));
+
+    glUniformMatrix4fv(lineInfoU,1,GL_FALSE,glm::value_ptr(matrix));
+
+    if(willTransform) {
+        glUniformMatrix4fv(viewTransformU, 1, GL_FALSE, glm::value_ptr(getProjectionMatrix() * getCameraMatrix()));
+    } else {
+            glUniformMatrix4fv(viewTransformU, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0)));
     }
 
     glBindVertexArray(vao);
-    glDrawArrays(GL_LINES,0,2);
-    //std::cout << "glDrawLines call" << std::endl;
 
-    glUseProgram(0);
+    glDrawArrays(GL_LINES,0,2);
+
     glBindVertexArray(0);
+    glUseProgram(0);
     checkErrors("drawLine");
 
 }
+
+
+
 
 

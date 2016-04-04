@@ -6,7 +6,7 @@
 #define UBERGAME_WORLD_H
 
 #include <vector>
-#include "Renderable.h"
+#include "PhysicalRenderable.h"
 #include "GLHelper.h"
 #include <SDL2/SDL_stdinc.h>
 #include "glm/glm.hpp"
@@ -15,12 +15,16 @@
 #include "Model.h"
 #include "SkyBox.h"
 #include "BulletDebugDrawer.h"
+#include "GUILayer.h"
+#include "FontManager.h"
 #include <btBulletDynamicsCommon.h>
 
 class World {
-    std::vector<Renderable*> objects;
+    std::vector<PhysicalRenderable*> objects;
+    std::vector<GUILayer*> guiLayers;
     SkyBox* sky;
     GLHelper *glHelper;
+    FontManager fontManager;
     Camera camera;
     BulletDebugDrawer* debugDrawer;
 

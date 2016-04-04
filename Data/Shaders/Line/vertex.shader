@@ -1,15 +1,19 @@
 #version 330
 
-layout (location = 0) in vec4 position;
-layout (location = 1) in vec4 color;
+layout (location = 0) in uint index;
 
 uniform mat4 cameraTransformMatrix;
-
+uniform mat4 lineInfo;
 
 out vec4 vs_fs_color;
 
 void main(void)
 {
-    gl_Position = cameraTransformMatrix * position;
-    vs_fs_color = color;
+	if(index == 0) {
+		gl_Position = cameraTransformMatrix * lineInfo[0];
+		vs_fs_color = lineInfo[2];
+	} else {
+		gl_Position = cameraTransformMatrix * lineInfo[1];
+		vs_fs_color = lineInfo[3];
+	}
 }

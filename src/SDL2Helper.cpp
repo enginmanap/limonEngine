@@ -43,11 +43,13 @@ SDL2Helper::SDL2Helper(const char* title, int height, int width) {
 
     /* This makes our buffer swap syncronized with the monitor's vertical refresh */
     //SDL_GL_SetSwapInterval(1);
+    SDL_ShowCursor(SDL_DISABLE);
     std::cout << "SDL started."  << std::endl;
 }
 
 SDL2Helper::~SDL2Helper() {
     /* Delete our opengl context, destroy our window, and shutdown SDL */
+    SDL_ShowCursor(SDL_ENABLE);
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
     SDL_Quit();

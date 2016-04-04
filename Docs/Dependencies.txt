@@ -1,5 +1,6 @@
 1)SDL2 2.0.0
 2)GLEW 1.13
 3)SDL_Image 2.0.0
+4)SDL_ttf 2.0.13
 4)Bullet Physics 2.83
 5)Cmake 3.3

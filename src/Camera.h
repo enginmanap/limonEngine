@@ -16,6 +16,7 @@
 class Camera {
     const glm::vec3 startPosition = glm::vec3(0,10,15);
     glm::vec3 moveSpeed = glm::vec3(3,0,3);
+    float jumpFactor = 2.5f;
     float lookAroundSpeed = 1.0f;
     bool dirty;
     glm::vec3 position, center, up, right;
@@ -26,7 +27,7 @@ class Camera {
     btTransform worldTransformHolder;
     bool onAir;
 public:
-    enum moveDirections{NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD};
+    enum moveDirections{NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD, UP};
     Camera();
     void updateTransfromFromPhysics(const btDynamicsWorld* world);
 

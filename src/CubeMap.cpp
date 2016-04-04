@@ -1,5 +1,5 @@
 //
-// Created by engin on 1.03.2016.
+// Created by Engin Manap on 1.03.2016.
 //
 
 #include "CubeMap.h"

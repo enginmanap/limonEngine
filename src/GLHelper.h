@@ -28,12 +28,19 @@ class GLHelper {
     GLenum error;
 
     float aspect;
+    std::vector<GLuint> bufferObjects;
+    std::vector<GLuint> vertexArrays;
 
     glm::mat4 cameraMatrix;
     glm::mat4 projectionMatrix;
+    glm::mat4 orthogonalProjectionMatrix;
     bool checkErrors(std::string callerFunc);
     GLuint createShader(GLenum, const std::string &);
     GLuint createProgram(const std::vector<GLuint> &);
+    GLuint generateBuffer(const GLuint number);
+    bool deleteBuffer(const GLuint number, const GLuint bufferID);
+    GLuint generateVAO(const GLuint number);
+    bool deleteVAO(const GLuint number, const GLuint bufferID);
 public:
     GLHelper();
     ~GLHelper();
@@ -47,16 +54,16 @@ public:
                            GLuint& vao, GLuint& vbo, const GLuint attachPointer);
     void bufferVertexTextureCoordinates(const std::vector<glm::vec2> textureCoordinates,
                           GLuint& vao, GLuint& vbo, const GLuint attachPointer, GLuint& ebo);
-
+    bool freeBuffer(const GLuint bufferID);
+    bool freeVAO(const GLuint VAO);
     void setCamera(const glm::mat4&);
 
     void clearFrame(){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-;    }
+    }
     void render(const GLuint, const GLuint, const GLuint, const GLuint);
     void reshape(int height, int width);
-
-    GLuint loadTexture(int height, int width, bool alpha, void *data);
+    GLuint loadTexture(int height, int width, GLenum format, void *data);
     GLuint loadCubeMap(int height, int width, void* right, void* left, void* top, void* bottom, void* back, void* front);
     void attachTexture(GLuint textureID);
     void attachCubeMap(GLuint cubeMapID);
@@ -70,9 +77,14 @@ public:
 
     glm::mat4 getCameraMatrix() const {return cameraMatrix;};
     glm::mat4 getProjectionMatrix() const {return projectionMatrix;};
+    glm::mat4 getOrthogonalProjectionMatrix() const { return orthogonalProjectionMatrix; }
+    void drawLine(const glm::vec3 &from, const glm::vec3 &to,
+                  const glm::vec3 &fromColor, const glm::vec3 &toColor, bool willTransform);
 
-    void drawLine(GLuint program, GLuint &vao, GLuint &vbo, GLuint &ebo, const glm::vec3 &from, const glm::vec3 &to,
-                  const glm::vec3 &fromColor, const glm::vec3 &toColor);
+    void clearDepthBuffer() {
+        glClear(GL_DEPTH_BUFFER_BIT);
+    }
+
 };
 
 #endif //UBERGAME_GLHELPER_H

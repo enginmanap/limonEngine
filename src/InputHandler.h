@@ -12,7 +12,7 @@
 class InputHandler {
 public:
     //FIXME access modifiers should not be like this
-    enum states {QUIT, MOUSE_MOVE, MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT, MOVE_RIGHT };
+    enum states {QUIT, MOUSE_MOVE, MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT, MOVE_RIGHT, JUMP };
 private:
     SDL_Window* window;
     int height, width;
