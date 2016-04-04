@@ -15,6 +15,8 @@
 class GUIText : public GUIRenderable {
     Face* face;
     std::string text;
+    int height,width;
+    int bearingUp;
 public:
     GUIText(GLHelper* glHelper, Face* font, const std::string text, const glm::lowp_uvec3 color);
 
@@ -23,6 +25,7 @@ public:
     }
 
     void render();
+    void renderDebug();
 };
 
 

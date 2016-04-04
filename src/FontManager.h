@@ -36,7 +36,7 @@ public:
                 << "char: " << character << std::endl
                 << "size: " << this->size.x << "," << this->size.y << std::endl
                 << "bearing: " << bearing.x <<"," << bearing.y << std::endl
-                << "advance: " << advance << std::endl;
+                << "advance: " << advance << " (" << advance / 64 << ")" << std::endl;
         }
 
     }
