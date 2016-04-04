@@ -18,7 +18,7 @@ CubeMap::CubeMap(GLHelper* glHelper, std::string path,
             names[3]= bottom;
             names[4]= back;
             names[5]= front;
-            SDL_Surface* surfaces[5] = {0};
+            SDL_Surface* surfaces[6] = {0};
 
             for(int i=0; i<6;i++){
                 surfaces[i] = IMG_Load((path + "/" + names[i]).data());
