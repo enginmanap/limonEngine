@@ -12,7 +12,11 @@ GUIText::GUIText(GLHelper* glHelper,  Face* face, const std::string text, const 
     const Glyph* glyph;
     for (int i = 0; i < text.length() ; ++i) {
         glyph = face->getGlyph(text.at(i));
-        width += glyph->getBearing().x + (glyph->getAdvance() /64);
+        if(i == 0 ){
+            //for first element, add the bearing
+            width = glyph->getBearing().x;
+        }
+        width += (glyph->getAdvance() /64);
         if(up < glyph->getBearing().y ) {
             up = glyph->getBearing().y;
         }
@@ -25,6 +29,7 @@ GUIText::GUIText(GLHelper* glHelper,  Face* face, const std::string text, const 
      * */
     //width += face->getGlyph(text.at(0))->getSize().x / 2;
     width += face->getGlyph(text.at(text.length()-1))->getSize().x;
+    width += face->getGlyph(text.at(text.length()-1))->getBearing().x;
     width -= face->getGlyph(text.at(text.length()-1))->getAdvance() / 64;
 
     height = up+bearingUp;
@@ -44,19 +49,18 @@ void GUIText::render() {
 
     if(renderProgram->getUniformLocation("worldTransformMatrix", worldTransformlocation)) {
 
-        glm::vec3 baseTranslate = this->translate + glm::vec3(-width * scale.x /2.0f, -height * scale.y /2.0f, 0.0f);
-        glm::vec3 baseScale = this->scale;
-        float charTranslateX, charTranslateY, charScaleX, charScaleY;
+        glm::vec3 baseTranslate = this->translate - glm::vec3(width * scale.x /2.0f, height * scale.y /2.0f, 0.0f);
+        float quadPositionX, quadPositionY, quadSizeX, quadSizeY;
         const Glyph* glyph;
         for(int i=0; i < text.length(); ++i) {
             glyph = face->getGlyph(text.at(i));
-            charScaleX = baseScale.x * (glyph->getSize().x / 2.0f);
-            charScaleY = baseScale.y * (glyph->getSize().y / 2.0f);
+            quadSizeX = glyph->getSize().x / 2.0f;
+            quadSizeY = glyph->getSize().y / 2.0f;
 
-            charTranslateX = baseTranslate.x + (totalAdvance + charScaleX + glyph->getBearing().x * baseScale.x);
-            charTranslateY = baseTranslate.y + (glyph->getBearing().y * baseScale.y - charScaleY);
+            quadPositionX = totalAdvance + glyph->getBearing().x + quadSizeX; //origin is left side
+            quadPositionY = glyph->getBearing().y  - quadSizeY; // origin is the bottom line
 
-            glm::mat4 currentTransform = glm::translate(glm::mat4(1.0f), glm::vec3(charTranslateX,charTranslateY,0)) * glm::scale(glm::mat4(1.0f), glm::vec3(charScaleX, charScaleY, 1.0f));
+            glm::mat4 currentTransform = glm::translate(glm::mat4(1.0f), baseTranslate + glm::vec3(quadPositionX,quadPositionY,0)) * glm::scale(glm::mat4(1.0f), this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f));
 
             if(!glHelper->setUniform(renderProgram->getID(), worldTransformlocation, currentTransform)){
                 std::cerr << "failed to set uniform" << std::endl;
@@ -64,21 +68,22 @@ void GUIText::render() {
             glHelper->attachTexture(glyph->getTextureID());
             glHelper->render(renderProgram->getID(), vao, ebo, (const GLuint) (faces.size() * 3));
 
-            advance = glyph->getAdvance() /64 * baseScale.x;
+            advance = glyph->getAdvance() /64;
             totalAdvance += advance;
 
             //FIXME these are debug drawing commands. they need their own method.
-            charTranslateX = orthogonalPM[0][0] * charTranslateX + orthogonalPM[3][0];
-            charTranslateY = orthogonalPM[1][1] * charTranslateY + orthogonalPM[3][1];
+            glm::mat4 transform = (orthogonalPM * currentTransform);
+            quadPositionX = transform[3][0];
+            quadPositionY = transform[3][1];
 
-            charScaleX = orthogonalPM[0][0] * charScaleX;
-            charScaleY = orthogonalPM[1][1] * charScaleY;
+            quadSizeX = transform[0][0];
+            quadSizeY = transform[1][1];
 
-            float up =  charTranslateY + charScaleY;
-            float down = charTranslateY - charScaleY;
+            float up =  quadPositionY + quadSizeY;
+            float down = quadPositionY - quadSizeY;
 
-            float right = charTranslateX  + charScaleX;
-            float left = charTranslateX - charScaleX;
+            float right = quadPositionX  + quadSizeX;
+            float left = quadPositionX - quadSizeX;
 
             glHelper->drawLine(glm::vec3(left,up,0.0f),glm::vec3(left,down,0.0f),glm::vec3(1.0f, 0.0f, 0.0f),glm::vec3(1.0f, 0.0f, 0.0f), false);
             glHelper->drawLine(glm::vec3(right,up,0.0f),glm::vec3(right,down,0.0f),glm::vec3(1.0f, 0.0f, 0.0f),glm::vec3(1.0f, 0.0f, 0.0f), false);
