@@ -22,6 +22,7 @@ protected:
     glm::vec3 scale, translate;
     glm::quat orientation;
     bool isDirty;
+    bool isRotated;
 
     void generateWorldTransform() ;
 
@@ -42,6 +43,7 @@ public:
         this->orientation *= orientation;
         this->orientation = glm::normalize(this->orientation);
         std::cerr << "not handled case for physics" << std::endl;
+        isRotated = this->orientation.w > cos(0.1f/2); //if the total rotation is bigger than 0.1 rad
         isDirty=true;
     }
 

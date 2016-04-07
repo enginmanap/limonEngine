@@ -5,7 +5,7 @@
 #include "Renderable.h"
 
 Renderable::Renderable(GLHelper* glHelper):
-    glHelper(glHelper), isDirty(true), scale(1.0f,1.0f,1.0f) {
+    glHelper(glHelper), isDirty(true), isRotated(false), scale(1.0f,1.0f,1.0f) {
 }
 
 void Renderable::generateWorldTransform()  {

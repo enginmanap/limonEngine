@@ -23,6 +23,8 @@ public:
     void set2dWorldTransform(const glm::vec2 &position, const float rotation){
         translate = glm::vec3(position, 0);
         orientation = glm::quat(cos(rotation/2), 0,0,-1 * sin(rotation/2));
+        isRotated = this->orientation.w < cos(0.1f/2); //if the total rotation is less than 0.1 rad
+        isDirty=true;
     }
 
     void setScale(float height, float width) {

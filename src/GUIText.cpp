@@ -71,13 +71,23 @@ void GUIText::render() {
              *
              * The double translate is because we want to rotate from center of the text.
              */
-            currentTransform = glm::scale(
-                                    glm::translate(
-                                        (glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation)),
-                                        glm::vec3(quadPositionX,quadPositionY,0) - glm::vec3(width * scale.x /2.0f, height * scale.y /2.0f, 0.0f)),
-                                    this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
-                                );
-
+            if(isRotated) {
+                currentTransform = glm::scale(
+                        glm::translate(
+                                (glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation)),
+                                glm::vec3(quadPositionX, quadPositionY, 0) -
+                                glm::vec3(width * scale.x / 2.0f, height * scale.y / 2.0f, 0.0f)),
+                        this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
+                );
+            } else {
+                //this branch removes quaternion cast, so double translate is not necessary.
+                currentTransform = glm::scale(
+                                glm::translate(glm::mat4(1.0f), translate +
+                                glm::vec3(quadPositionX, quadPositionY, 0) -
+                                glm::vec3(width * scale.x / 2.0f, height * scale.y / 2.0f, 0.0f)),
+                        this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
+                );
+            }
             if(!glHelper->setUniform(renderProgram->getID(), worldTransformlocation, currentTransform)){
                 std::cerr << "failed to set uniform" << std::endl;
             }
@@ -120,12 +130,22 @@ void GUIText::renderDebug() {
         quadPositionX = totalAdvance + glyph->getBearing().x + quadSizeX; //origin is left side
         quadPositionY = glyph->getBearing().y  - quadSizeY; // origin is the bottom line
 
-        currentTransform = glm::scale(
-                glm::translate(
-                        (glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation)),
-                        glm::vec3(quadPositionX,quadPositionY,0) - glm::vec3(width * scale.x /2.0f, height * scale.y /2.0f, 0.0f)),
-                this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
-        );
+        if(isRotated) {
+            currentTransform = glm::scale(
+                    glm::translate(
+                            (glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation)),
+                            glm::vec3(quadPositionX, quadPositionY, 0) -
+                            glm::vec3(width * scale.x / 2.0f, height * scale.y / 2.0f, 0.0f)),
+                    this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
+            );
+        } else {
+            currentTransform = glm::scale(
+                    glm::translate(glm::mat4(1.0f), translate +
+                                                    glm::vec3(quadPositionX, quadPositionY, 0) -
+                                                    glm::vec3(width * scale.x / 2.0f, height * scale.y / 2.0f, 0.0f)),
+                    this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
+            );
+        }
         advance = glyph->getAdvance() /64;
         totalAdvance += advance;
 
