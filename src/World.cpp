@@ -78,12 +78,12 @@ World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
     layer1->setDebug(true);
     GUIText* tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf",128), "Uber Game", glm::vec3(0,0,0));
     //tr->setScale(0.25f,0.25f);
-    tr->set2dWorldTransform(glm::vec2(512.0f,700.0f), 0);
+    tr->set2dWorldTransform(glm::vec2(512.0f,700.0f), 0.0f);
     layer1->addGuiElement(tr);
 
     tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 32), "Version 0.1", glm::vec3(255,255,255));
     //tr->setScale(0.25f,0.25f);
-    tr->set2dWorldTransform(glm::vec2(850,25), 0);
+    tr->set2dWorldTransform(glm::vec2(1024 - 50,100), -3.14f / 2);
     layer1->addGuiElement(tr);
     guiLayers.push_back(layer1);
 

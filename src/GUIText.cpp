@@ -47,9 +47,9 @@ void GUIText::render() {
     renderProgram->getUniformLocation("orthogonalProjectionMatrix", ortoProjLocation);
     glHelper->setUniform(renderProgram->getID(), ortoProjLocation, orthogonalPM);
 
+    glm::mat4 currentTransform;
     if(renderProgram->getUniformLocation("worldTransformMatrix", worldTransformlocation)) {
 
-        glm::vec3 baseTranslate = this->translate - glm::vec3(width * scale.x /2.0f, height * scale.y /2.0f, 0.0f);
         float quadPositionX, quadPositionY, quadSizeX, quadSizeY;
         const Glyph* glyph;
         glm::mat4 currentTransform;
@@ -61,7 +61,7 @@ void GUIText::render() {
             quadPositionX = totalAdvance + glyph->getBearing().x + quadSizeX; //origin is left side
             quadPositionY = glyph->getBearing().y  - quadSizeY; // origin is the bottom line
 
-            glm::mat4 currentTransform = glm::translate(glm::mat4(1.0f), baseTranslate + glm::vec3(quadPositionX,quadPositionY,0)) * glm::scale(glm::mat4(1.0f), this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f));
+            currentTransform = glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation) * glm::translate(glm::mat4(1.0f),glm::vec3(quadPositionX,quadPositionY,0) - glm::vec3(width * scale.x /2.0f, height * scale.y /2.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f));
 
             if(!glHelper->setUniform(renderProgram->getID(), worldTransformlocation, currentTransform)){
                 std::cerr << "failed to set uniform" << std::endl;
@@ -77,34 +77,26 @@ void GUIText::render() {
 
 void GUIText::renderDebug() {
     glm::mat4 orthogonalPM = glHelper->getOrthogonalProjectionMatrix();
-    float textPositionX, textPositionY, textSizeX, textSizeY;
 
-    textPositionX = orthogonalPM[0][0] * this->translate.x + orthogonalPM[3][0];
-    textPositionY = orthogonalPM[1][1] * this->translate.y + orthogonalPM[3][1];
+    glm::mat4 transform = (orthogonalPM * getWorldTransform());
 
-    textSizeX = orthogonalPM[0][0] * width/2 * this->scale.x;
-    textSizeY = orthogonalPM[1][1] * height/2 * this->scale.y;
+    glm::vec4 upLeft    =  (transform * glm::vec4(-width/2,  height/2 - bearingUp, 0.0f, 1.0f));
+    glm::vec4 upRight   =  (transform * glm::vec4( width/2,  height/2 - bearingUp, 0.0f, 1.0f));
+    glm::vec4 downLeft  =  (transform * glm::vec4(-width/2, -height/2 - bearingUp, 0.0f, 1.0f));
+    glm::vec4 downRight =  (transform * glm::vec4( width/2, -height/2 - bearingUp, 0.0f, 1.0f));
 
-    float up =  textPositionY + textSizeY - bearingUp * scale.y * orthogonalPM[1][1];
-    float down = textPositionY - textSizeY - bearingUp * scale.y * orthogonalPM[1][1];
-
-    float right = textPositionX  + textSizeX;
-    float left = textPositionX - textSizeX;
-
-    glHelper->drawLine(glm::vec3(left,up,0.0f),glm::vec3(left,down,0.0f),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
-    glHelper->drawLine(glm::vec3(right,up,0.0f),glm::vec3(right,down,0.0f),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
-    glHelper->drawLine(glm::vec3(left,up,0.0f),glm::vec3(right,up,0.0f),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
-    glHelper->drawLine(glm::vec3(left,down,0.0f),glm::vec3(right,down,0.0f),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
-
-
+    glHelper->drawLine(glm::vec3(upLeft.x,upLeft.y, upLeft.z),glm::vec3(upRight.x,upRight.y,upRight.z),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
+    glHelper->drawLine(glm::vec3(downLeft.x,downLeft.y,downLeft.z),glm::vec3(downRight.x,downRight.y,downRight.z),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
+    glHelper->drawLine(glm::vec3(upLeft.x,upLeft.y, upLeft.z),glm::vec3(downLeft.x,downLeft.y,downLeft.z),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
+    glHelper->drawLine(glm::vec3(upRight.x,upRight.y,upRight.z),glm::vec3(downRight.x,downRight.y,downRight.z),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
     //per glyph debug render:
 
     float totalAdvance = 0.0f;
-    float advance = 0.0f;
+    float advance;
 
-    glm::vec3 baseTranslate = this->translate - glm::vec3(width * scale.x /2.0f, height * scale.y /2.0f, 0.0f);
     float quadPositionX, quadPositionY, quadSizeX, quadSizeY;
     const Glyph* glyph;
+    glm::mat4 currentTransform;
     for(int i=0; i < text.length(); ++i) {
         glyph = face->getGlyph(text.at(i));
         quadSizeX = glyph->getSize().x / 2.0f;
@@ -113,28 +105,21 @@ void GUIText::renderDebug() {
         quadPositionX = totalAdvance + glyph->getBearing().x + quadSizeX; //origin is left side
         quadPositionY = glyph->getBearing().y  - quadSizeY; // origin is the bottom line
 
-        glm::mat4 currentTransform = glm::translate(glm::mat4(1.0f), baseTranslate + glm::vec3(quadPositionX,quadPositionY,0)) * glm::scale(glm::mat4(1.0f), this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f));
+        currentTransform = glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation) * glm::translate(glm::mat4(1.0f),glm::vec3(quadPositionX,quadPositionY,0) - glm::vec3(width * scale.x /2.0f, height * scale.y /2.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f));
 
         advance = glyph->getAdvance() /64;
         totalAdvance += advance;
 
         glm::mat4 transform = (orthogonalPM * currentTransform);
-        // quadPositionX = transform[3][0] -> this is the x position of the character center
-        // quadPositionY = transform[3][1] -> this is the y position of the character center
+        glm::vec4 upLeft    =  (transform * glm::vec4(-1.0f,  1.0f, 0.0f, 1.0f));
+        glm::vec4 upRight   =  (transform * glm::vec4( 1.0f,  1.0f, 0.0f, 1.0f));
+        glm::vec4 downLeft  =  (transform * glm::vec4(-1.0f, -1.0f, 0.0f, 1.0f));
+        glm::vec4 downRight =  (transform * glm::vec4( 1.0f, -1.0f, 0.0f, 1.0f));
 
-        // quadSizeX = transform[0][0] -> this is the size of character quad in x direction
-        // quadSizeY = transform[1][1] -> -> this is the size of character quad in y direction
-
-        float up =  transform[3][1] + transform[1][1];
-        float down = transform[3][1] - transform[1][1];
-
-        float right = transform[3][0]  + transform[0][0];
-        float left = transform[3][0] - transform[0][0];
-
-        glHelper->drawLine(glm::vec3(left,up,0.0f),glm::vec3(left,down,0.0f),glm::vec3(1.0f, 0.0f, 0.0f),glm::vec3(1.0f, 0.0f, 0.0f), false);
-        glHelper->drawLine(glm::vec3(right,up,0.0f),glm::vec3(right,down,0.0f),glm::vec3(1.0f, 0.0f, 0.0f),glm::vec3(1.0f, 0.0f, 0.0f), false);
-        glHelper->drawLine(glm::vec3(left,up,0.0f),glm::vec3(right,up,0.0f),glm::vec3(1.0f, 0.0f, 0.0f),glm::vec3(1.0f, 0.0f, 0.0f), false);
-        glHelper->drawLine(glm::vec3(left,down,0.0f),glm::vec3(right,down,0.0f),glm::vec3(1.0f, 0.0f, 0.0f),glm::vec3(1.0f, 0.0f, 0.0f), false);
+        glHelper->drawLine(glm::vec3(upLeft.x,upLeft.y, upLeft.z),glm::vec3(upRight.x,upRight.y,upRight.z),glm::vec3(1.0f, 0.0f, 0.0f),glm::vec3(1.0f, 0.0f, 0.0f), false);
+        glHelper->drawLine(glm::vec3(downLeft.x,downLeft.y,downLeft.z),glm::vec3(downRight.x,downRight.y,downRight.z),glm::vec3(1.0f, 0.0f, 0.0f),glm::vec3(1.0f, 0.0f, 0.0f), false);
+        glHelper->drawLine(glm::vec3(upLeft.x,upLeft.y, upLeft.z),glm::vec3(downLeft.x,downLeft.y,downLeft.z),glm::vec3(1.0f, 0.0f, 0.0f),glm::vec3(1.0f, 0.0f, 0.0f), false);
+        glHelper->drawLine(glm::vec3(upRight.x,upRight.y,upRight.z),glm::vec3(downRight.x,downRight.y,downRight.z),glm::vec3(1.0f, 0.0f, 0.0f),glm::vec3(1.0f, 0.0f, 0.0f), false);
     }
 
 }
