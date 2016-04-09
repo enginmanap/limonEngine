@@ -25,6 +25,7 @@ GUIRenderable::GUIRenderable(GLHelper* glHelper) : Renderable(glHelper) {
 
     uniforms.push_back("worldTransformMatrix");
     uniforms.push_back("orthogonalProjectionMatrix");
+    uniforms.push_back("inColor");
     renderProgram = new GLSLProgram(glHelper,"./Data/Shaders/GUI/vertex.shader","./Data/Shaders/GUI/fragment.shader",uniforms);
 }
 

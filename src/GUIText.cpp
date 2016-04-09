@@ -4,8 +4,8 @@
 
 #include "GUIText.h"
 
-GUIText::GUIText(GLHelper* glHelper,  Face* face, const std::string text, const glm::lowp_uvec3 color):
-        GUIRenderable(glHelper), face(face), text(text) , height(0), width(0), bearingUp(0){
+GUIText::GUIText(GLHelper* glHelper,  Face* face, const std::string text, const glm::vec3 color):
+        GUIRenderable(glHelper), color(color.x/256,color.y/256,color.z/256), face(face), text(text) , height(0), width(0), bearingUp(0){
     //calculate the size of text. This also force glyph load.
 
     int up=0;
@@ -38,11 +38,14 @@ GUIText::GUIText(GLHelper* glHelper,  Face* face, const std::string text, const 
 }
 
 void GUIText::render() {
-    GLuint worldTransformlocation, ortoProjLocation;
+    GLuint worldTransformlocation, ortoProjLocation, inColorLocation;
 
     float totalAdvance = 0.0f;
     float advance = 0.0f;
     glm::mat4 orthogonalPM = glHelper->getOrthogonalProjectionMatrix();
+
+    renderProgram->getUniformLocation("inColor", inColorLocation);
+    glHelper->setUniform(renderProgram->getID(), inColorLocation, color);
 
     renderProgram->getUniformLocation("orthogonalProjectionMatrix", ortoProjLocation);
     glHelper->setUniform(renderProgram->getID(), ortoProjLocation, orthogonalPM);

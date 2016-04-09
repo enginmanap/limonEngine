@@ -13,13 +13,14 @@
 
 
 class GUIText : public GUIRenderable {
+    glm::vec3 color;
     Face* face;
     int height,width;
     int bearingUp;
 protected:
     std::string text;
 public:
-    GUIText(GLHelper* glHelper, Face* font, const std::string text, const glm::lowp_uvec3 color);
+    GUIText(GLHelper* glHelper, Face* font, const std::string text, const glm::vec3 color);
 
     void updateText(const std::string& text){
         this->text = text;

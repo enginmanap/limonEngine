@@ -1,11 +1,12 @@
-#version 400
+#version 330
+
+uniform sampler2D boxSampler;
+uniform vec3 inColor;
 
 in vec2 vs_fs_textureCoord;
 out vec4 color;
 
-uniform sampler2D boxSampler;
-
 void main(void)
 {
-		color = vec4(1.0, 1.0, 1.0, texture(boxSampler, vs_fs_textureCoord).r);
+		color = vec4(inColor, texture(boxSampler, vs_fs_textureCoord).r);
 }

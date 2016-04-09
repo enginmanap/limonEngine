@@ -315,6 +315,20 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
 
 }
 
+bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const glm::vec3 vector){
+    if(!glIsProgram(programID)){
+        std::cerr << "invalid program for setting uniform." << std::endl;
+        return false;
+    } else {
+        glUseProgram(programID);
+        glUniform3fv(uniformID, 1, glm::value_ptr(vector));
+        glUseProgram(0);
+        checkErrors("setUniform");
+        return true;
+    }
+
+}
+
 bool GLHelper::checkErrors(std::string callerFunc){
     bool hasError = false;
     while((error = glGetError()) != GL_NO_ERROR){

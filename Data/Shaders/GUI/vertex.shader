@@ -1,7 +1,8 @@
-#version 400
+#version 330
 
 uniform mat4 worldTransformMatrix;
 uniform mat4 orthogonalProjectionMatrix;
+uniform vec3 inColor;
 
 layout (location = 2) in vec4 position;
 layout (location = 3) in vec2 textureCoordinate;

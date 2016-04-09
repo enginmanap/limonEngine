@@ -86,7 +86,7 @@ World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
     layer1->addGuiElement(tr);
 
 
-    tr = new GUIFPSCounter(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 32), "0", glm::vec3(255,255,255));
+    tr = new GUIFPSCounter(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 32), "0", glm::vec3(204,204,0));
     tr->set2dWorldTransform(glm::vec2(1024 - 51,768 -38), 0);
     layer1->addGuiElement(tr);
 
