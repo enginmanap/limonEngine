@@ -37,7 +37,7 @@ int main(int argc, char *argv[]){
             inputHandler.mapInput();
 
             //FIXME this does not account for long operations/low framerate
-            world.play(worldUpdateTime,inputHandler);
+            world.play(worldUpdateTime, inputHandler);
             accumulatedTime -= worldUpdateTime;
         }
         glHelper.clearFrame();

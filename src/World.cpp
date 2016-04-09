@@ -5,7 +5,6 @@
 
 #include "World.h"
 #include "SkyBox.h"
-#include "GUIText.h"
 
 World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
 
@@ -85,8 +84,13 @@ World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
     //tr->setScale(0.25f,0.25f);
     tr->set2dWorldTransform(glm::vec2(1024 - 50,100), -3.14f / 2);
     layer1->addGuiElement(tr);
-    guiLayers.push_back(layer1);
 
+
+    tr = new GUIFPSCounter(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 32), "0", glm::vec3(255,255,255));
+    tr->set2dWorldTransform(glm::vec2(1024 - 51,768 -38), 0);
+    layer1->addGuiElement(tr);
+
+    guiLayers.push_back(layer1);
 }
 
 void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
@@ -171,6 +175,8 @@ void World::render() {
 }
 
 World::~World() {
+
+    //FIXME clear GUIlayer elements
     for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
         delete (*it);
     }

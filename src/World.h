@@ -18,6 +18,8 @@
 #include "GUILayer.h"
 #include "FontManager.h"
 #include <btBulletDynamicsCommon.h>
+#include "GUIText.h"
+#include "GUIFPSCounter.h"
 
 class World {
     std::vector<PhysicalRenderable*> objects;
