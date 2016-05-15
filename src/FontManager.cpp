@@ -3,6 +3,7 @@
 //
 
 #include "FontManager.h"
+#include <algorithm>
 
 const std::string FontManager::DEFAULT_FONT_PATH = "Data/Fonts/Helvetica-Normal.ttf";
 
@@ -27,6 +28,27 @@ Face* FontManager::getFont(const std::string fontPath, const int size){
         }
 
         fonts[fontPath + std::to_string(size)] = new Face(glHelper, fontPath, size, face);
+        FT_Set_Pixel_Sizes(face, 0, size);
+        //now we should calculate what we have
+        std::cout << "for size " << size << " bb " <<face->bbox.xMax - face->bbox.xMin << "," << face->bbox.yMax - face->bbox.yMin << std::endl;
+
+        unsigned int w = 0;
+        unsigned int h = 0;
+
+        for(unsigned int i = 0; i < 256; i++) {
+            if(FT_Load_Char(face, i, FT_LOAD_RENDER)) {
+                fprintf(stderr, "Loading character %c failed!\n", i);
+                continue;
+            }
+
+            w = std::max(w, face->glyph->bitmap.width);
+            h = std::max(h, face->glyph->bitmap.rows);
+
+        }
+
+        std::cout << "atlas h: " << h << ", w " << w << std::endl;
+
+        //now we have the atlas
     }
 
     return fonts[fontPath + std::to_string(size)];

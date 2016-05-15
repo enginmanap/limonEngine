@@ -11,7 +11,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/quaternion.hpp"
 
-#include "Utils/BulletGLMConverter.h"
+#include "Utils/GLMConverter.h"
 
 class Camera {
     const glm::vec3 startPosition = glm::vec3(0,10,15);

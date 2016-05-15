@@ -12,13 +12,13 @@ Camera::Camera():
         up(glm::vec3(0,1,0)),
         right(glm::vec3(-1,0,0)),
         view(glm::quat(0,0,0,-1)),
-        rayCallback(btCollisionWorld::ClosestRayResultCallback(BulletGLMConverter::GLMToBlt(startPosition + glm::vec3(0,-1.01f,0)),
-                                                               BulletGLMConverter::GLMToBlt(startPosition + glm::vec3(0,-2.01f,0)))),
+        rayCallback(btCollisionWorld::ClosestRayResultCallback(GLMConverter::GLMToBlt(startPosition + glm::vec3(0,-1.01f,0)),
+                                                               GLMConverter::GLMToBlt(startPosition + glm::vec3(0,-2.01f,0)))),
         onAir(true){
     cameraTransformMatrix = glm::lookAt(position, center, up);
     btCollisionShape* capsuleShape = new btCapsuleShape(1,2);
     btDefaultMotionState *boxMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1),
-                                                                                BulletGLMConverter::GLMToBlt(startPosition)));
+                                                                                GLMConverter::GLMToBlt(startPosition)));
     btVector3 fallInertia(0, 0, 0);
     capsuleShape->calculateLocalInertia(1, fallInertia);
     btRigidBody::btRigidBodyConstructionInfo
@@ -39,43 +39,43 @@ void Camera::move(moveDirections direction) {
     dirty=true;
     switch (direction) {
         case UP:
-            player->setLinearVelocity(player->getLinearVelocity() + BulletGLMConverter::GLMToBlt(up* jumpFactor));
+            player->setLinearVelocity(player->getLinearVelocity() + GLMConverter::GLMToBlt(up* jumpFactor));
             break;
         case LEFT_BACKWARD:
             //position -= moveSpeed * center;
             //position -= moveSpeed * right;
-            player->setLinearVelocity(BulletGLMConverter::GLMToBlt(-1.0f * (right + center )* moveSpeed));
+            player->setLinearVelocity(GLMConverter::GLMToBlt(-1.0f * (right + center )* moveSpeed));
             break;
         case LEFT_FORWARD:
             //position += moveSpeed * center;
             //position -= moveSpeed * right;
-            player->setLinearVelocity(BulletGLMConverter::GLMToBlt((-1.0f * right + center )* moveSpeed));
+            player->setLinearVelocity(GLMConverter::GLMToBlt((-1.0f * right + center )* moveSpeed));
             break;
         case LEFT:
             //position -= moveSpeed * right;
-            player->setLinearVelocity(BulletGLMConverter::GLMToBlt(right * -1.0f * moveSpeed));
+            player->setLinearVelocity(GLMConverter::GLMToBlt(right * -1.0f * moveSpeed));
             break;
         case RIGHT_BACKWARD:
             //position -= moveSpeed * center;
             //position += moveSpeed * right;
-            player->setLinearVelocity(BulletGLMConverter::GLMToBlt((right + -1.0f * center )* moveSpeed));
+            player->setLinearVelocity(GLMConverter::GLMToBlt((right + -1.0f * center )* moveSpeed));
             break;
         case RIGHT_FORWARD:
             //position += moveSpeed * center;
             //position += moveSpeed * right;
-            player->setLinearVelocity(BulletGLMConverter::GLMToBlt((right + center )* moveSpeed));
+            player->setLinearVelocity(GLMConverter::GLMToBlt((right + center )* moveSpeed));
             break;
         case RIGHT:
             //position += moveSpeed * right;
-            player->setLinearVelocity(BulletGLMConverter::GLMToBlt(right * moveSpeed));
+            player->setLinearVelocity(GLMConverter::GLMToBlt(right * moveSpeed));
             break;
         case BACKWARD:
             //position -= moveSpeed * center;
-            player->setLinearVelocity(BulletGLMConverter::GLMToBlt(center * -1.0f * moveSpeed));
+            player->setLinearVelocity(GLMConverter::GLMToBlt(center * -1.0f * moveSpeed));
             break;
         case FORWARD:
             //position += moveSpeed * center;
-            player->setLinearVelocity(BulletGLMConverter::GLMToBlt(center * moveSpeed));
+            player->setLinearVelocity(GLMConverter::GLMToBlt(center * moveSpeed));
             break;
     }
     //this activates user rigidbody if it moves. Otherwise island management ignores movement.
@@ -137,7 +137,7 @@ void Camera::updateTransfromFromPhysics(const btDynamicsWorld* world){
 
     player->getMotionState()->getWorldTransform(worldTransformHolder);
 
-    position = BulletGLMConverter::BltToGLM(worldTransformHolder.getOrigin());
+    position = GLMConverter::BltToGLM(worldTransformHolder.getOrigin());
     position.y +=1;
 
     rayCallback.m_rayFromWorld = worldTransformHolder.getOrigin() +btVector3(0,-1.01f,0);//the second vector is preventing hitting player capsule

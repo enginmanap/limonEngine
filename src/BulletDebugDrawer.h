@@ -9,7 +9,7 @@
 #include <btBulletDynamicsCommon.h>
 #include "GLHelper.h"
 #include "GLSLProgram.h"
-#include "Utils/BulletGLMConverter.h"
+#include "Utils/GLMConverter.h"
 
 class BulletDebugDrawer : public btIDebugDraw {
     DebugDrawModes currentMode;

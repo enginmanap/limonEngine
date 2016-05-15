@@ -3,130 +3,76 @@
 //
 
 #include "Model.h"
-
+#include "Utils/GLMConverter.h"
 
 
 Model::Model(GLHelper* glHelper, float mass):
     PhysicalRenderable(glHelper){
 
-    /*
-     * These are the coordinates and faces for star.
-     *
-    vertices.push_back(glm::vec3(+0.5f, +0.5f,  0.5f));
-    vertices.push_back(glm::vec3(-0.5f, -0.5f,  0.5f));
-    vertices.push_back(glm::vec3(-0.5f, +0.5f, -0.5f));
-    vertices.push_back(glm::vec3(+0.5f, -0.5f, -0.5f));
-    vertices.push_back(glm::vec3(-0.5f, -0.5f, -0.5f));
-    vertices.push_back(glm::vec3(+0.5f, +0.5f, -0.5f));
-    vertices.push_back(glm::vec3(+0.5f, -0.5f,  0.5f));
-    vertices.push_back(glm::vec3(-0.5f, +0.5f,  0.5f));
+    Assimp::Importer import;
+    //FIXME triangulate creates too many vertices, it is unnecessary, but optimize requires some work.
+    const aiScene* scene = import.ReadFile("./Data/Models/Box/Box.obj", aiProcess_Triangulate);
+
+    if(!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+    {
+        std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
+        return;
+    }
+
+    std::cout << "Load success::ASSIMP" << std::endl;
+
+    if(!scene->HasMeshes()){
+        std::cout << "Model does not contain a mesh. This is not handled." << std::endl;
+        exit(-1);
+    }
+
+    for (int i = 0; i < scene->mNumMeshes; ++i) {
+        aiMesh* currentMesh = scene->mMeshes[i];
+
+        if(!currentMesh->HasPositions()){
+            continue; //Not going to process if mesh is empty
+        }
+        if(currentMesh->HasTextureCoords(0))
+            for (int j= 0; j < currentMesh->mNumVertices; ++j) {
+                vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
+                textureCoordinates.push_back(glm::vec2(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y));
+            }
+        else {
+            for (int j = 0; j < currentMesh->mNumVertices; ++j) {
+                vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
+            }
+        }
+    
+        for (int j= 0; j < currentMesh->mNumFaces; ++j) {
+            faces.push_back(glm::vec3(currentMesh->mFaces[j].mIndices[0],
+                                      currentMesh->mFaces[j].mIndices[1],
+                                      currentMesh->mFaces[j].mIndices[2]));
+        }
 
 
 
-    colors.push_back(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-    colors.push_back(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-    colors.push_back(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-    colors.push_back(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
-    colors.push_back(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-    colors.push_back(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-    colors.push_back(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-    colors.push_back(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
+        // create material uniform buffer
+        aiMaterial *currentMaterial = scene->mMaterials[currentMesh->mMaterialIndex];
+
+        GLuint vbo;
+        glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
+        bufferObjects.push_back(vbo);
+
+        aiString texturePath;	//contains filename of texture
+        if(AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath)){
+            //bind texture
+            texture = new Texture(glHelper, texturePath.C_Str());
+
+            glHelper->bufferVertexTextureCoordinates(textureCoordinates,vao,vbo,3,ebo);
+        }
+        else {
+            std::cerr << "The model contained texture information, but texture loading failed. \n" <<
+                         "Texture path: " << texturePath.C_Str() << std::endl;
+        }
+
+    }
 
 
-
-    faces.push_back(glm::mediump_uvec3(1, 0, 2));
-    faces.push_back(glm::mediump_uvec3(0, 1, 3));
-    faces.push_back(glm::mediump_uvec3(3, 2, 0));
-    faces.push_back(glm::mediump_uvec3(2, 3, 1));
-
-    faces.push_back(glm::mediump_uvec3(4, 5, 6));
-    faces.push_back(glm::mediump_uvec3(5, 4, 7));
-    faces.push_back(glm::mediump_uvec3(6, 7, 4));
-    faces.push_back(glm::mediump_uvec3(7, 6, 5));
-*/
-
-    //back
-    vertices.push_back(glm::vec3(-1.0f,  1.0f, -1.0f));
-    vertices.push_back(glm::vec3( 1.0f,  1.0f, -1.0f));
-    vertices.push_back(glm::vec3( 1.0f, -1.0f, -1.0f));
-    vertices.push_back(glm::vec3(-1.0f, -1.0f, -1.0f));
-    //front
-    vertices.push_back(glm::vec3(-1.0f, -1.0f,  1.0f));
-    vertices.push_back(glm::vec3( 1.0f, -1.0f,  1.0f));
-    vertices.push_back(glm::vec3( 1.0f,  1.0f,  1.0f));
-    vertices.push_back(glm::vec3(-1.0f,  1.0f,  1.0f));
-    //up
-    vertices.push_back(glm::vec3(-1.0f,  1.0f, -1.0f));
-    vertices.push_back(glm::vec3(-1.0f,  1.0f,  1.0f));
-    vertices.push_back(glm::vec3( 1.0f,  1.0f,  1.0f));
-    vertices.push_back(glm::vec3( 1.0f,  1.0f, -1.0f));
-    //down
-    vertices.push_back(glm::vec3(-1.0f, -1.0f,  1.0f));
-    vertices.push_back(glm::vec3(-1.0f, -1.0f, -1.0f));
-    vertices.push_back(glm::vec3( 1.0f, -1.0f, -1.0f));
-    vertices.push_back(glm::vec3( 1.0f, -1.0f,  1.0f));
-    //left
-    vertices.push_back(glm::vec3(-1.0f,  1.0f, -1.0f));
-    vertices.push_back(glm::vec3(-1.0f, -1.0f, -1.0f));
-    vertices.push_back(glm::vec3(-1.0f, -1.0f,  1.0f));
-    vertices.push_back(glm::vec3(-1.0f,  1.0f,  1.0f));
-    //right
-    vertices.push_back(glm::vec3( 1.0f,  1.0f,  1.0f));
-    vertices.push_back(glm::vec3( 1.0f, -1.0f,  1.0f));
-    vertices.push_back(glm::vec3( 1.0f, -1.0f, -1.0f));
-    vertices.push_back(glm::vec3( 1.0f,  1.0f, -1.0f));
-
-
-    faces.push_back(glm::mediump_uvec3( 0, 1, 2));//front
-    faces.push_back(glm::mediump_uvec3( 0, 2, 3));
-    faces.push_back(glm::mediump_uvec3( 4, 5, 6));//Back
-    faces.push_back(glm::mediump_uvec3( 4, 6, 7));
-    faces.push_back(glm::mediump_uvec3( 8, 9,10));//up
-    faces.push_back(glm::mediump_uvec3( 8,10,11));
-    faces.push_back(glm::mediump_uvec3(12,13,14));//down
-    faces.push_back(glm::mediump_uvec3(12,14,15));
-    faces.push_back(glm::mediump_uvec3(16,17,18));//left
-    faces.push_back(glm::mediump_uvec3(16,18,19));
-    faces.push_back(glm::mediump_uvec3(20,21,22));//right
-    faces.push_back(glm::mediump_uvec3(20,22,23));
-
-    GLuint vbo;
-    glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
-    bufferObjects.push_back(vbo);
-
-    textureCoordinates.push_back(glm::vec2(0.0f, 1.0f));
-    textureCoordinates.push_back(glm::vec2(0.0f, 0.0f));
-    textureCoordinates.push_back(glm::vec2(1.0f, 0.0f));
-    textureCoordinates.push_back(glm::vec2(1.0f, 1.0f));
-
-    textureCoordinates.push_back(glm::vec2(0.0f, 1.0f));
-    textureCoordinates.push_back(glm::vec2(0.0f, 0.0f));
-    textureCoordinates.push_back(glm::vec2(1.0f, 0.0f));
-    textureCoordinates.push_back(glm::vec2(1.0f, 1.0f));
-
-    textureCoordinates.push_back(glm::vec2(0.0f, 1.0f));
-    textureCoordinates.push_back(glm::vec2(0.0f, 0.0f));
-    textureCoordinates.push_back(glm::vec2(1.0f, 0.0f));
-    textureCoordinates.push_back(glm::vec2(1.0f, 1.0f));
-
-    textureCoordinates.push_back(glm::vec2(0.0f, 1.0f));
-    textureCoordinates.push_back(glm::vec2(0.0f, 0.0f));
-    textureCoordinates.push_back(glm::vec2(1.0f, 0.0f));
-    textureCoordinates.push_back(glm::vec2(1.0f, 1.0f));
-
-    textureCoordinates.push_back(glm::vec2(0.0f, 1.0f));
-    textureCoordinates.push_back(glm::vec2(0.0f, 0.0f));
-    textureCoordinates.push_back(glm::vec2(1.0f, 0.0f));
-    textureCoordinates.push_back(glm::vec2(1.0f, 1.0f));
-
-    textureCoordinates.push_back(glm::vec2(0.0f, 1.0f));
-    textureCoordinates.push_back(glm::vec2(0.0f, 0.0f));
-    textureCoordinates.push_back(glm::vec2(1.0f, 0.0f));
-    textureCoordinates.push_back(glm::vec2(1.0f, 1.0f));
-
-    texture = new Texture(glHelper, "./Data/Textures/Box/crate2_diffuse.png");
-
-    glHelper->bufferVertexTextureCoordinates(textureCoordinates,vao,vbo,3,ebo);
     //glHelper->bufferVertexColor(colors,vao,vbo,3);
     worldTransform = glm::mat4(1.0f);
 

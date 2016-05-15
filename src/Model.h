@@ -7,6 +7,9 @@
 
 
 #include <vector>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 //TODO maybe we should not have direct dependency to glm and gl
 #include "glm/glm.hpp"
