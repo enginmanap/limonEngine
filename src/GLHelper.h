@@ -52,7 +52,7 @@ public:
                           GLuint& vao, GLuint& vbo, const GLuint attachPointer, GLuint& ebo);
     void bufferVertexColor(const std::vector<glm::vec4>& colors,
                            GLuint& vao, GLuint& vbo, const GLuint attachPointer);
-    void bufferVertexTextureCoordinates(const std::vector<glm::vec2> textureCoordinates,
+    void bufferVertexTextureCoordinates(const std::vector<glm::vec2>& textureCoordinates,
                           GLuint& vao, GLuint& vbo, const GLuint attachPointer, GLuint& ebo);
     bool freeBuffer(const GLuint bufferID);
     bool freeVAO(const GLuint VAO);

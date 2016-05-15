@@ -28,7 +28,7 @@ World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
     rigidBodies.push_back(camera.getRigidBody());
     dynamicsWorld->addRigidBody(camera.getRigidBody());
 
-    Model *crate = new Model(glHelper);
+    Model *crate = new Model(glHelper, "./Data/Models/Box/Box.obj");
     crate->addScale(glm::vec3(250.0f,1.0f,250.0f));
     crate->addTranslate(glm::vec3(-125.0f, 0.0f, 125.0f));
     crate->getWorldTransform();
@@ -36,33 +36,43 @@ World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    crate = new Model(glHelper,1);
+    crate = new Model(glHelper,1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(2.0f, 25.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    crate = new Model(glHelper,1);
+    crate = new Model(glHelper,1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(-2.0f, 23.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    crate = new Model(glHelper,1);
+    crate = new Model(glHelper,1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(2.0f, 23.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    crate = new Model(glHelper,1);
+    crate = new Model(glHelper,1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(3.25f, 2.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
+
+
+    Model* mario = new Model(glHelper,1, "./Data/Models/Mario/Mario_obj.obj");
+    mario->addTranslate(glm::vec3(5.0f, 23.0f, -3.0f));
+    mario->addScale(glm::vec3(0.25f,0.25f,0.25f));
+    mario->addScale(glm::vec3(0.25f,0.25f,0.25f));
+    mario->getWorldTransform();
+    objects.push_back(mario);
+    rigidBodies.push_back(mario->getRigidBody());
+    dynamicsWorld->addRigidBody(mario->getRigidBody());
 
     sky = new SkyBox(glHelper,
                             std::string("D:user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterUp2048.png"),
@@ -97,11 +107,10 @@ void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
     // Step simulation
     dynamicsWorld->stepSimulation(simulationTimeFrame/1000.0f);
     camera.updateTransfromFromPhysics(dynamicsWorld);
-    objects[0]->updateTransformFromPhysics();
-    objects[1]->updateTransformFromPhysics();
-    objects[2]->updateTransformFromPhysics();
-    objects[3]->updateTransformFromPhysics();
-    objects[4]->updateTransformFromPhysics();
+    for (int i = 0; i < objects.size(); ++i) {
+        objects[i]->updateTransformFromPhysics();
+    }
+
     //end of physics step
 
     btCollisionWorld::ClosestRayResultCallback RayCallback(btVector3(0,0,0), btVector3(0,25,-3));

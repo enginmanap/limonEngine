@@ -6,12 +6,12 @@
 #include "Utils/GLMConverter.h"
 
 
-Model::Model(GLHelper* glHelper, float mass):
-    PhysicalRenderable(glHelper){
+Model::Model(GLHelper* glHelper, const float mass, const std::string& modelFile):
+    PhysicalRenderable(glHelper), modelFile(modelFile){
 
     Assimp::Importer import;
     //FIXME triangulate creates too many vertices, it is unnecessary, but optimize requires some work.
-    const aiScene* scene = import.ReadFile("./Data/Models/Box/Box.obj", aiProcess_Triangulate);
+    const aiScene* scene = import.ReadFile(modelFile, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality);
 
     if(!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
@@ -19,7 +19,7 @@ Model::Model(GLHelper* glHelper, float mass):
         return;
     }
 
-    std::cout << "Load success::ASSIMP" << std::endl;
+    std::cout << "Load success::ASSIMP::" << modelFile << std::endl;
 
     if(!scene->HasMeshes()){
         std::cout << "Model does not contain a mesh. This is not handled." << std::endl;
@@ -32,12 +32,14 @@ Model::Model(GLHelper* glHelper, float mass):
         if(!currentMesh->HasPositions()){
             continue; //Not going to process if mesh is empty
         }
-        if(currentMesh->HasTextureCoords(0))
-            for (int j= 0; j < currentMesh->mNumVertices; ++j) {
+        if(currentMesh->HasTextureCoords(0)) {
+            for (int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
-                textureCoordinates.push_back(glm::vec2(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y));
+                textureCoordinates.push_back(
+                        glm::vec2(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y));
+
             }
-        else {
+        } else {
             for (int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
             }
@@ -49,8 +51,6 @@ Model::Model(GLHelper* glHelper, float mass):
                                       currentMesh->mFaces[j].mIndices[2]));
         }
 
-
-
         // create material uniform buffer
         aiMaterial *currentMaterial = scene->mMaterials[currentMesh->mMaterialIndex];
 
@@ -60,18 +60,45 @@ Model::Model(GLHelper* glHelper, float mass):
 
         aiString texturePath;	//contains filename of texture
         if(AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath)){
+            //TODO even though we load all the textures, only the first one is active, multi texture is not
+            //implemented
+
             //bind texture
             texture = new Texture(glHelper, texturePath.C_Str());
 
             glHelper->bufferVertexTextureCoordinates(textureCoordinates,vao,vbo,3,ebo);
+            std::cout << "loaded texture " << texturePath.C_Str() << std::endl;
         }
         else {
             std::cerr << "The model contained texture information, but texture loading failed. \n" <<
-                         "Texture path: " << texturePath.C_Str() << std::endl;
+                         "Texture path: [" << texturePath.C_Str() << "]" << std::endl;
         }
 
     }
 
+    aiVector3D min,max;
+    AssimpUtils::get_bounding_box (scene, &min, &max);
+
+
+    std::cout << "bounding box of the model is " << "(" << max.x << "," <<
+                                                           max.y << "," <<
+                                                           max.z << ")" << ", " <<
+                                                    "(" << min.x << "," <<
+                                                           min.y << "," <<
+                                                           min.z << ")"<< std::endl;
+
+    //set up the rigid body
+
+    btCollisionShape* boxShape = new btBoxShape(btVector3((max.x - min.x)/2,
+                                                          (max.y - min.y)/2,
+                                                          (max.z - min.z)/2));
+
+    btDefaultMotionState *boxMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3((max.x+min.x)/2, (max.y+min.y)/2, (max.z+min.z)/2)));
+    btVector3 fallInertia(0, 0, 0);
+    boxShape->calculateLocalInertia(mass, fallInertia);
+    btRigidBody::btRigidBodyConstructionInfo
+            boxRigidBodyCI(mass, boxMotionState, boxShape, fallInertia);
+    rigidBody = new btRigidBody(boxRigidBodyCI);
 
     //glHelper->bufferVertexColor(colors,vao,vbo,3);
     worldTransform = glm::mat4(1.0f);
@@ -81,15 +108,7 @@ Model::Model(GLHelper* glHelper, float mass):
     uniforms.push_back("worldTransformMatrix");
     renderProgram = new GLSLProgram(glHelper,"./Data/Shaders/Box/vertex.shader","./Data/Shaders/Box/fragment.shader",uniforms);
 
-    //set up the rigit body
 
-    btCollisionShape* boxShape = new btBoxShape(btVector3(1, 1, 1));
-    btDefaultMotionState *boxMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3(0, 25, 0)));
-    btVector3 fallInertia(0, 0, 0);
-    boxShape->calculateLocalInertia(mass, fallInertia);
-    btRigidBody::btRigidBodyConstructionInfo
-            boxRigidBodyCI(mass, boxMotionState, boxShape, fallInertia);
-    rigidBody = new btRigidBody(boxRigidBodyCI);
 
 }
 

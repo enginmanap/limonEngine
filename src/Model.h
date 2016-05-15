@@ -10,6 +10,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include "Utils/AssimpUtils.h"
 
 //TODO maybe we should not have direct dependency to glm and gl
 #include "glm/glm.hpp"
@@ -19,6 +20,8 @@
 
 
 class Model :public PhysicalRenderable {
+
+    std::string modelFile;
     std::vector<glm::vec3> vertices;
     std::vector<glm::mediump_uvec3> faces;
     std::vector<glm::vec2> textureCoordinates;
@@ -26,9 +29,10 @@ class Model :public PhysicalRenderable {
 
     std::vector<glm::vec4> colors;
 public:
-    Model(GLHelper* glHelper) : Model(glHelper,0) {};
-    Model(GLHelper*, float mass);
+    Model(GLHelper* glHelper, const std::string& modelFile) : Model(glHelper, 0, modelFile) {};
+    Model(GLHelper*, const float mass, const std::string& modelFile);
     void render();
+
 
     //TODO we need to free the texture. Destructor needed.
     ~Model() {
