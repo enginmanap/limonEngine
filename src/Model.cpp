@@ -93,7 +93,8 @@ Model::Model(GLHelper* glHelper, const float mass, const std::string& modelFile)
                                                           (max.y - min.y)/2,
                                                           (max.z - min.z)/2));
 
-    btDefaultMotionState *boxMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), btVector3((max.x+min.x)/2, (max.y+min.y)/2, (max.z+min.z)/2)));
+    centerOffset = glm::vec3((max.x+min.x)/2, (max.y+min.y)/2, (max.z+min.z)/2);
+    btDefaultMotionState *boxMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), GLMConverter::GLMToBlt(centerOffset)));
     btVector3 fallInertia(0, 0, 0);
     boxShape->calculateLocalInertia(mass, fallInertia);
     btRigidBody::btRigidBodyConstructionInfo

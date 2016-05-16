@@ -11,8 +11,9 @@
 class PhysicalRenderable : public Renderable {
 protected:
     btRigidBody* rigidBody;
+    glm::vec3 centerOffset;
 public:
-    PhysicalRenderable(GLHelper* glHelper): Renderable(glHelper){};
+    PhysicalRenderable(GLHelper* glHelper): Renderable(glHelper), centerOffset(glm::vec3(0,0,0)){};
     btRigidBody* getRigidBody() { return rigidBody;};
 
     void addScale(const glm::vec3& scale){
