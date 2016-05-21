@@ -21,6 +21,8 @@ Model::Model(GLHelper* glHelper, const float mass, const std::string& modelFile)
 
     std::cout << "Load success::ASSIMP::" << modelFile << std::endl;
 
+    btTriangleMesh *bulletMesh = new btTriangleMesh();
+    std::vector<btVector3> bulletMeshVertices;
     if(!scene->HasMeshes()){
         std::cout << "Model does not contain a mesh. This is not handled." << std::endl;
         exit(-1);
@@ -35,6 +37,7 @@ Model::Model(GLHelper* glHelper, const float mass, const std::string& modelFile)
         if(currentMesh->HasTextureCoords(0)) {
             for (int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
+                bulletMeshVertices.push_back(GLMConverter::AssimpToBullet(currentMesh->mVertices[j]));
                 textureCoordinates.push_back(
                         glm::vec2(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y));
 
@@ -42,6 +45,7 @@ Model::Model(GLHelper* glHelper, const float mass, const std::string& modelFile)
         } else {
             for (int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
+                bulletMeshVertices.push_back(GLMConverter::AssimpToBullet(currentMesh->mVertices[j]));
             }
         }
     
@@ -49,6 +53,9 @@ Model::Model(GLHelper* glHelper, const float mass, const std::string& modelFile)
             faces.push_back(glm::vec3(currentMesh->mFaces[j].mIndices[0],
                                       currentMesh->mFaces[j].mIndices[1],
                                       currentMesh->mFaces[j].mIndices[2]));
+            bulletMesh->addTriangle(bulletMeshVertices[currentMesh->mFaces[j].mIndices[0]],
+                                    bulletMeshVertices[currentMesh->mFaces[j].mIndices[1]],
+                                    bulletMeshVertices[currentMesh->mFaces[j].mIndices[2]]);
         }
 
         // create material uniform buffer
@@ -89,17 +96,35 @@ Model::Model(GLHelper* glHelper, const float mass, const std::string& modelFile)
 
     //set up the rigid body
 
-    btCollisionShape* boxShape = new btBoxShape(btVector3((max.x - min.x)/2,
-                                                          (max.y - min.y)/2,
-                                                          (max.z - min.z)/2));
+    btConvexTriangleMeshShape* convexShape = new btConvexTriangleMeshShape(bulletMesh);
 
     centerOffset = glm::vec3((max.x+min.x)/2, (max.y+min.y)/2, (max.z+min.z)/2);
     btDefaultMotionState *boxMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1), GLMConverter::GLMToBlt(centerOffset)));
     btVector3 fallInertia(0, 0, 0);
-    boxShape->calculateLocalInertia(mass, fallInertia);
-    btRigidBody::btRigidBodyConstructionInfo
-            boxRigidBodyCI(mass, boxMotionState, boxShape, fallInertia);
-    rigidBody = new btRigidBody(boxRigidBodyCI);
+    convexShape->calculateLocalInertia(mass, fallInertia);
+    btRigidBody::btRigidBodyConstructionInfo* rigidBodyConstructionInfo;
+    if(bulletMeshVertices.size() > 24) { // hull shape has 24 vertices, if we already has less, don't generate hull.
+        //hull approximation
+        btShapeHull *hull = new btShapeHull(convexShape);
+        btScalar margin = convexShape->getMargin();
+        hull->buildHull(margin);
+        btConvexHullShape *simplifiedConvexShape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
+                                                                         hull->numVertices());
+        rigidBodyConstructionInfo = new btRigidBody::btRigidBodyConstructionInfo(mass, boxMotionState, simplifiedConvexShape, fallInertia);
+
+    } else {
+        //direct use of the object
+        rigidBodyConstructionInfo = new btRigidBody::btRigidBodyConstructionInfo(mass, boxMotionState, convexShape, fallInertia);
+    }
+    rigidBody = new btRigidBody(*rigidBodyConstructionInfo);
+    //TODO check if this values are too low.
+    rigidBody->setSleepingThresholds(0.1, 0.1);
+
+
+    std::cout << "deactivation timeout is " << rigidBody->getDeactivationTime() << std::endl;
+
+    std::cout << "deactivation thresholds are " << rigidBody->getLinearSleepingThreshold() << ", " << rigidBody->getAngularSleepingThreshold() << std::endl;
+
 
     //glHelper->bufferVertexColor(colors,vao,vbo,3);
     worldTransform = glm::mat4(1.0f);

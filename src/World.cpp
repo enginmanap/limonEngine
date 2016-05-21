@@ -65,10 +65,10 @@ World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
 
-    Model* mario = new Model(glHelper,1, "./Data/Models/Mario/Mario_obj.obj");
+    Model* mario = new Model(glHelper,10, "./Data/Models/Mario/Mario_obj.obj");
     mario->addTranslate(glm::vec3(5.0f, 23.0f, -3.0f));
     mario->addScale(glm::vec3(0.25f,0.25f,0.25f));
-    mario->addScale(glm::vec3(0.25f,0.25f,0.25f));
+
     mario->getWorldTransform();
     objects.push_back(mario);
     rigidBodies.push_back(mario->getRigidBody());

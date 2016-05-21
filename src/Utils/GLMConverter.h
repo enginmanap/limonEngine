@@ -24,6 +24,10 @@ public:
     static aiVector3D GLMToAssimp(const glm::vec3 &vector) {
         return aiVector3D(vector.x, vector.y, vector.z);
     }
+
+    static btVector3 AssimpToBullet(const aiVector3D& vector) {
+        return btVector3(vector.x, vector.y, vector.z);
+    }
 };
 
 
