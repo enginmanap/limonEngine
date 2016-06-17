@@ -21,7 +21,7 @@ Model::Model(GLHelper* glHelper, const float mass, const std::string& modelFile)
 
     std::cout << "Load success::ASSIMP::" << modelFile << std::endl;
 
-    btTriangleMesh *bulletMesh = new btTriangleMesh();
+    bulletMesh = new btTriangleMesh();
     std::vector<btVector3> bulletMeshVertices;
     if(!scene->HasMeshes()){
         std::cout << "Model does not contain a mesh. This is not handled." << std::endl;
@@ -108,23 +108,19 @@ Model::Model(GLHelper* glHelper, const float mass, const std::string& modelFile)
         btShapeHull *hull = new btShapeHull(convexShape);
         btScalar margin = convexShape->getMargin();
         hull->buildHull(margin);
-        btConvexHullShape *simplifiedConvexShape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
+        simplifiedConvexShape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
                                                                          hull->numVertices());
         rigidBodyConstructionInfo = new btRigidBody::btRigidBodyConstructionInfo(mass, boxMotionState, simplifiedConvexShape, fallInertia);
 
     } else {
         //direct use of the object
         rigidBodyConstructionInfo = new btRigidBody::btRigidBodyConstructionInfo(mass, boxMotionState, convexShape, fallInertia);
+        simplifiedConvexShape = NULL;
     }
+
     rigidBody = new btRigidBody(*rigidBodyConstructionInfo);
     //TODO check if this values are too low.
     rigidBody->setSleepingThresholds(0.1, 0.1);
-
-
-    std::cout << "deactivation timeout is " << rigidBody->getDeactivationTime() << std::endl;
-
-    std::cout << "deactivation thresholds are " << rigidBody->getLinearSleepingThreshold() << ", " << rigidBody->getAngularSleepingThreshold() << std::endl;
-
 
     //glHelper->bufferVertexColor(colors,vao,vbo,3);
     worldTransform = glm::mat4(1.0f);

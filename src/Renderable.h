@@ -65,7 +65,11 @@ public:
         }
         glHelper->freeBuffer(ebo);
         glHelper->freeVAO(vao);
+
+        delete renderProgram;
     }
+
+
 };
 
 

@@ -29,6 +29,10 @@ class Model :public PhysicalRenderable {
     Texture* texture;
 
     std::vector<glm::vec4> colors;
+
+    btTriangleMesh* bulletMesh;
+    btConvexTriangleMeshShape* convexShape;
+    btConvexHullShape* simplifiedConvexShape;
 public:
     Model(GLHelper* glHelper, const std::string& modelFile) : Model(glHelper, 0, modelFile) {};
     Model(GLHelper*, const float mass, const std::string& modelFile);
@@ -40,8 +44,14 @@ public:
         delete texture;
 
         delete rigidBody->getMotionState();
-        delete rigidBody->getCollisionShape();
         delete rigidBody;
+
+
+        if(simplifiedConvexShape != NULL){
+            delete simplifiedConvexShape;
+        }
+        delete convexShape;
+        delete bulletMesh;
 
     }
 };

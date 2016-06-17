@@ -20,8 +20,8 @@ World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
     dynamicsWorld->setGravity(btVector3(0, -10, 0));
     debugDrawer = new BulletDebugDrawer(glHelper);
     dynamicsWorld->setDebugDrawer(debugDrawer);
-    dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
-    //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
+    //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
+    dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
 
     // end of physics init
 
@@ -31,6 +31,7 @@ World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
     Model *crate = new Model(glHelper, "./Data/Models/Box/Box.obj");
     crate->addScale(glm::vec3(250.0f,1.0f,250.0f));
     crate->addTranslate(glm::vec3(-125.0f, 0.0f, 125.0f));
+    crate->addOrientation(glm::quat(0.0f,0.0f,1.0f, 0.2f));
     crate->getWorldTransform();
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
@@ -65,7 +66,7 @@ World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
 
-    Model* mario = new Model(glHelper,10, "./Data/Models/Mario/Mario_obj.obj");
+    Model* mario = new Model(glHelper,100, "./Data/Models/Mario/Mario_obj.obj");
     mario->addTranslate(glm::vec3(5.0f, 23.0f, -3.0f));
     mario->addScale(glm::vec3(0.25f,0.25f,0.25f));
 
