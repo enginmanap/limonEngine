@@ -24,6 +24,7 @@ CubeMap::CubeMap(GLHelper* glHelper, std::string path,
                 surfaces[i] = IMG_Load((path + "/" + names[i]).data());
                 if(!surfaces[i]){
                     std::cerr << "Texture Load failed for " << path + "/" + names[i] << ". Error:" << std::endl << IMG_GetError << std::endl;
+                    exit(-1);
                 } else {
                     std::cout << "Texture " << path + "/" + names[i] << " loaded succesfully."<< std::endl;
                 }
