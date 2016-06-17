@@ -18,7 +18,7 @@ class SkyBox : public Renderable {
     CubeMap* cubeMap;
 
 public:
-    SkyBox(GLHelper* glHelper, std::string right, std::string left,
+    SkyBox(GLHelper* glHelper, std::string path, std::string right, std::string left,
            std::string top, std::string down,
            std::string back, std::string front);
     

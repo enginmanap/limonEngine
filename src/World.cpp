@@ -76,12 +76,13 @@ World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
     dynamicsWorld->addRigidBody(mario->getRigidBody());
 
     sky = new SkyBox(glHelper,
-                            std::string("D:user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterUp2048.png"),
-                            std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterDown2048.png"),
-                            std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterRight2048.png"),
-                            std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterLeft2048.png"),
-                            std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterBack2048.png"),
-                            std::string("D:/user_files/engin/Documents/engin/UberGame/Data/Textures/Skyboxes/ThickCloudsWater/ThickCloudsWaterFront2048.png")
+                            std::string("./Data/Textures/Skyboxes/ThickCloudsWater"),
+                            std::string("right.jpg"),
+                            std::string("left.jpg"),
+                            std::string("top.jpg"),
+                            std::string("bottom.jpg"),
+                            std::string("back.jpg"),
+                            std::string("front.jpg")
     );
 
     GUILayer* layer1 = new GUILayer(glHelper, 1);

@@ -4,14 +4,14 @@
 
 #include "SkyBox.h"
 
-SkyBox::SkyBox(GLHelper* glHelper, std::string right, std::string left, std::string top, std::string down, std::string back,
+SkyBox::SkyBox(GLHelper* glHelper, std::string path, std::string right, std::string left, std::string top, std::string down, std::string back,
                std::string front):
     Renderable(glHelper)
     {
-    cubeMap = new CubeMap(glHelper, "./Data/Textures/Skyboxes/ThickCloudsWater",
-                          "right.jpg", "left.jpg",
-                          "top.jpg", "bottom.jpg",
-                          "back.jpg", "front.jpg");
+    cubeMap = new CubeMap(glHelper, path,
+                          right, left,
+                          top, down,
+                          back, front);
 
 
     vertices.push_back(glm::vec3(-1.0f, -1.0f, -1.0f));
