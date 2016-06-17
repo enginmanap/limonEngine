@@ -15,16 +15,16 @@ class SkyBox : public Renderable {
     std::vector<glm::vec3> vertices;
     std::vector<glm::mediump_uvec3> faces;
 
-    CubeMap* cubeMap;
+    CubeMap *cubeMap;
 
 public:
-    SkyBox(GLHelper* glHelper, std::string path, std::string right, std::string left,
+    SkyBox(GLHelper *glHelper, std::string path, std::string right, std::string left,
            std::string top, std::string down,
            std::string back, std::string front);
-    
+
     void render();
 
-    ~SkyBox(){
+    ~SkyBox() {
         delete cubeMap;
     }
 };

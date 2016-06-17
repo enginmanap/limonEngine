@@ -12,15 +12,14 @@
 #include "GLHelper.h"
 
 
-
-class Texture{
+class Texture {
 protected:
-    GLHelper* glHelper;
+    GLHelper *glHelper;
     std::string name;
     GLuint textureBufferID;
 
 public:
-    Texture(GLHelper*, std::string);
+    Texture(GLHelper *, std::string);
 
     ~Texture();
 

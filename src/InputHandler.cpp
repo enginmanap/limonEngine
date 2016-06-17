@@ -5,8 +5,8 @@
 #include <iostream>
 #include "InputHandler.h"
 
-InputHandler::InputHandler(SDL_Window* window, int height, int width):
-window(window), height(height), width(width){
+InputHandler::InputHandler(SDL_Window *window, int height, int width) :
+        window(window), height(height), width(width) {
     SDL_SetWindowGrab(window, SDL_TRUE);
     inputStatus[QUIT] = false;
     inputStatus[MOUSE_MOVE] = false;
@@ -20,18 +20,18 @@ window(window), height(height), width(width){
 
 void InputHandler::mapInput() {
     while (SDL_PollEvent(&event)) {
-        switch(event.type) {
+        switch (event.type) {
             case SDL_QUIT:
                 inputStatus[QUIT] = true;
                 break;
             case SDL_MOUSEMOTION:
                 inputStatus[MOUSE_MOVE] = true;
-                xPos = (event.motion.x - (width / 2.0f)) / (width/2);
-                xChange =(event.motion.xrel) / (width/2.0f);
-                yPos = (event.motion.y - (height / 2.0f)) / (height/2);
-                yChange = (event.motion.yrel) / (height/2.0f);
+                xPos = (event.motion.x - (width / 2.0f)) / (width / 2);
+                xChange = (event.motion.xrel) / (width / 2.0f);
+                yPos = (event.motion.y - (height / 2.0f)) / (height / 2);
+                yChange = (event.motion.yrel) / (height / 2.0f);
                 //fixme this is wrong, we need window position to fix it.
-                SDL_WarpMouseInWindow(window, width/2, height/2);
+                SDL_WarpMouseInWindow(window, width / 2, height / 2);
                 break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.sym) {
@@ -85,7 +85,7 @@ void InputHandler::getMousePosition(float &xPos, float &yPos) const {
 }
 
 bool InputHandler::getMouseChange(float &xChange, float &yChange) {
-    if(inputStatus[MOUSE_MOVE]) {
+    if (inputStatus[MOUSE_MOVE]) {
         xChange = this->xChange;
         yChange = this->yChange;
         this->inputStatus[MOUSE_MOVE] = false;

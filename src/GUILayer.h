@@ -9,15 +9,15 @@
 #include "GUIRenderable.h"
 
 class GUILayer {
-    GLHelper* glHelper;
+    GLHelper *glHelper;
     int level;
     bool isDebug;
-    std::vector<GUIRenderable* > guiElements;
+    std::vector<GUIRenderable *> guiElements;
 
 public:
-    GUILayer(GLHelper* glHelper, int level): glHelper(glHelper), level(level), isDebug(false) {};
+    GUILayer(GLHelper *glHelper, int level) : glHelper(glHelper), level(level), isDebug(false) { };
 
-    int getLevel(){ return level;}
+    int getLevel() { return level; }
 
     bool getDebug() const {
         return isDebug;
@@ -27,7 +27,7 @@ public:
         GUILayer::isDebug = isDebug;
     }
 
-    void addGuiElement(GUIRenderable* guiElement){
+    void addGuiElement(GUIRenderable *guiElement) {
         guiElements.push_back(guiElement);
     }
 

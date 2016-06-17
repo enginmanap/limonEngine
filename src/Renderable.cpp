@@ -4,17 +4,18 @@
 
 #include "Renderable.h"
 
-Renderable::Renderable(GLHelper* glHelper):
-    glHelper(glHelper), isDirty(true), isRotated(false), scale(1.0f,1.0f,1.0f) {
+Renderable::Renderable(GLHelper *glHelper) :
+        glHelper(glHelper), isDirty(true), isRotated(false), scale(1.0f, 1.0f, 1.0f) {
 }
 
-void Renderable::generateWorldTransform()  {
+void Renderable::generateWorldTransform() {
     this->oldWorldTransform = this->worldTransform;
-    this->worldTransform = glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation)* glm::scale(glm::mat4(1.0f),scale);
-    isDirty=false;
+    this->worldTransform = glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation) *
+                           glm::scale(glm::mat4(1.0f), scale);
+    isDirty = false;
 }
 
-void Renderable::setWorldTransform(const glm::mat4& transformMatrix){
+void Renderable::setWorldTransform(const glm::mat4 &transformMatrix) {
     this->oldWorldTransform = this->worldTransform;
     this->worldTransform = transformMatrix;
     //these 2 values are not used afterwards

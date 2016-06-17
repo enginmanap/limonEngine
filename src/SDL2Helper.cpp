@@ -4,7 +4,7 @@
 
 #include "SDL2Helper.h"
 
-SDL2Helper::SDL2Helper(const char* title, int height, int width) {
+SDL2Helper::SDL2Helper(const char *title, int height, int width) {
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) { /* Initialize SDL's Video subsystem */
         std::cout << "Unable to initialize SDL";
@@ -15,7 +15,7 @@ SDL2Helper::SDL2Helper(const char* title, int height, int width) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute (SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
 
     /* Turn on double buffering with a 24bit Z buffer.
      * You may need to change this to 16 or 32 for your system */
@@ -25,8 +25,8 @@ SDL2Helper::SDL2Helper(const char* title, int height, int width) {
 
     /* Create our window centered at 512x512 resolution */
     window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                  width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
-    if (!window){ /* Die if creation failed */
+                              width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+    if (!window) { /* Die if creation failed */
         std::cout << "SDL Error: " << SDL_GetError() << std::endl;
         SDL_Quit();
         throw;
@@ -35,8 +35,8 @@ SDL2Helper::SDL2Helper(const char* title, int height, int width) {
     /* Create our opengl context and attach it to our window */
     context = SDL_GL_CreateContext(window);
 
-    if(context == NULL){
-        std::cout << "SDL2: OpenGL context creation failed."  << std::endl;
+    if (context == NULL) {
+        std::cout << "SDL2: OpenGL context creation failed." << std::endl;
         exit(1);
 
     }
@@ -44,7 +44,7 @@ SDL2Helper::SDL2Helper(const char* title, int height, int width) {
     /* This makes our buffer swap syncronized with the monitor's vertical refresh */
     //SDL_GL_SetSwapInterval(1);
     SDL_ShowCursor(SDL_DISABLE);
-    std::cout << "SDL started."  << std::endl;
+    std::cout << "SDL started." << std::endl;
 }
 
 SDL2Helper::~SDL2Helper() {
@@ -55,6 +55,6 @@ SDL2Helper::~SDL2Helper() {
     SDL_Quit();
 }
 
-SDL_Window* SDL2Helper::getWindow() {
+SDL_Window *SDL2Helper::getWindow() {
     return window;
 }

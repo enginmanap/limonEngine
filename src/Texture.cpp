@@ -4,21 +4,21 @@
 
 #include "Texture.h"
 
-Texture::Texture(GLHelper* glHelper, std::string name):
-    glHelper(glHelper),
-    name(name){
-    SDL_Surface* surface = IMG_Load(name.data());
+Texture::Texture(GLHelper *glHelper, std::string name) :
+        glHelper(glHelper),
+        name(name) {
+    SDL_Surface *surface = IMG_Load(name.data());
 
-    if(!surface){
+    if (!surface) {
         std::cerr << "Texture Load failed for " << name << ". Error:" << std::endl << IMG_GetError << std::endl;
         exit(1);
     } else {
-        std::cout << "Texture " << name << " loaded succesfully."<< std::endl;
+        std::cout << "Texture " << name << " loaded succesfully." << std::endl;
     }
-    if(surface->format->BytesPerPixel == 4){
+    if (surface->format->BytesPerPixel == 4) {
         textureBufferID = glHelper->loadTexture(surface->h, surface->w, GL_RGBA, surface->pixels);
         std::cout << " Buffer id " << textureBufferID << std::endl;
-    } else if(surface->format->BytesPerPixel == 3){
+    } else if (surface->format->BytesPerPixel == 3) {
         textureBufferID = glHelper->loadTexture(surface->h, surface->w, GL_RGB, surface->pixels);
         std::cout << " Buffer id " << textureBufferID << std::endl;
     } else {

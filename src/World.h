@@ -22,29 +22,31 @@
 #include "GUIFPSCounter.h"
 
 class World {
-    std::vector<PhysicalRenderable*> objects;
-    std::vector<GUILayer*> guiLayers;
-    SkyBox* sky;
+    std::vector<PhysicalRenderable *> objects;
+    std::vector<GUILayer *> guiLayers;
+    SkyBox *sky;
     GLHelper *glHelper;
     FontManager fontManager;
     Camera camera;
-    BulletDebugDrawer* debugDrawer;
+    BulletDebugDrawer *debugDrawer;
 
-    btDiscreteDynamicsWorld* dynamicsWorld;
-    std::vector<btRigidBody*> rigidBodies;
+    btDiscreteDynamicsWorld *dynamicsWorld;
+    std::vector<btRigidBody *> rigidBodies;
 
 
-    btBroadphaseInterface* broadphase;
-    btDefaultCollisionConfiguration* collisionConfiguration;
-    btCollisionDispatcher* dispatcher;
-    btSequentialImpulseConstraintSolver* solver;
+    btBroadphaseInterface *broadphase;
+    btDefaultCollisionConfiguration *collisionConfiguration;
+    btCollisionDispatcher *dispatcher;
+    btSequentialImpulseConstraintSolver *solver;
 
 public:
-    World(GLHelper*);
+    World(GLHelper *);
+
     ~World();
 
 
-    void play(Uint32, InputHandler&);
+    void play(Uint32, InputHandler &);
+
     void render();
 };
 

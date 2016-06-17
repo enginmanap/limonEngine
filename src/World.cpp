@@ -4,9 +4,8 @@
 
 
 #include "World.h"
-#include "SkyBox.h"
 
-World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
+World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
 
     // physics init
     broadphase = new btDbvtBroadphase();
@@ -29,36 +28,36 @@ World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
     dynamicsWorld->addRigidBody(camera.getRigidBody());
 
     Model *crate = new Model(glHelper, "./Data/Models/Box/Box.obj");
-    crate->addScale(glm::vec3(250.0f,1.0f,250.0f));
+    crate->addScale(glm::vec3(250.0f, 1.0f, 250.0f));
     crate->addTranslate(glm::vec3(-125.0f, 0.0f, 125.0f));
-    crate->addOrientation(glm::quat(0.0f,0.0f,1.0f, 0.2f));
+    crate->addOrientation(glm::quat(0.0f, 0.0f, 1.0f, 0.2f));
     crate->getWorldTransform();
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    crate = new Model(glHelper,1, "./Data/Models/Box/Box.obj");
+    crate = new Model(glHelper, 1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(2.0f, 25.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    crate = new Model(glHelper,1, "./Data/Models/Box/Box.obj");
+    crate = new Model(glHelper, 1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(-2.0f, 23.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    crate = new Model(glHelper,1, "./Data/Models/Box/Box.obj");
+    crate = new Model(glHelper, 1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(2.0f, 23.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    crate = new Model(glHelper,1, "./Data/Models/Box/Box.obj");
+    crate = new Model(glHelper, 1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(3.25f, 2.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
@@ -66,9 +65,9 @@ World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
 
-    Model* mario = new Model(glHelper,100, "./Data/Models/Mario/Mario_obj.obj");
+    Model *mario = new Model(glHelper, 100, "./Data/Models/Mario/Mario_obj.obj");
     mario->addTranslate(glm::vec3(5.0f, 23.0f, -3.0f));
-    mario->addScale(glm::vec3(0.25f,0.25f,0.25f));
+    mario->addScale(glm::vec3(0.25f, 0.25f, 0.25f));
 
     mario->getWorldTransform();
     objects.push_back(mario);
@@ -76,38 +75,41 @@ World::World(GLHelper *glHelper): glHelper(glHelper), fontManager(glHelper) {
     dynamicsWorld->addRigidBody(mario->getRigidBody());
 
     sky = new SkyBox(glHelper,
-                            std::string("./Data/Textures/Skyboxes/ThickCloudsWater"),
-                            std::string("right.jpg"),
-                            std::string("left.jpg"),
-                            std::string("top.jpg"),
-                            std::string("bottom.jpg"),
-                            std::string("back.jpg"),
-                            std::string("front.jpg")
+                     std::string("./Data/Textures/Skyboxes/ThickCloudsWater"),
+                     std::string("right.jpg"),
+                     std::string("left.jpg"),
+                     std::string("top.jpg"),
+                     std::string("bottom.jpg"),
+                     std::string("back.jpg"),
+                     std::string("front.jpg")
     );
 
-    GUILayer* layer1 = new GUILayer(glHelper, 1);
+    GUILayer *layer1 = new GUILayer(glHelper, 1);
     layer1->setDebug(true);
-    GUIText* tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf",128), "Uber Game", glm::vec3(0,0,0));
+    GUIText *tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 128), "Uber Game",
+                              glm::vec3(0, 0, 0));
     //tr->setScale(0.25f,0.25f);
-    tr->set2dWorldTransform(glm::vec2(512.0f,700.0f), 0.0f);
+    tr->set2dWorldTransform(glm::vec2(512.0f, 700.0f), 0.0f);
     layer1->addGuiElement(tr);
 
-    tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 32), "Version 0.1", glm::vec3(255,255,255));
+    tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 32), "Version 0.1",
+                     glm::vec3(255, 255, 255));
     //tr->setScale(0.25f,0.25f);
-    tr->set2dWorldTransform(glm::vec2(1024 - 50,100), -3.14f / 2);
+    tr->set2dWorldTransform(glm::vec2(1024 - 50, 100), -3.14f / 2);
     layer1->addGuiElement(tr);
 
 
-    tr = new GUIFPSCounter(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 32), "0", glm::vec3(204,204,0));
-    tr->set2dWorldTransform(glm::vec2(1024 - 51,768 -38), 0);
+    tr = new GUIFPSCounter(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 32), "0",
+                           glm::vec3(204, 204, 0));
+    tr->set2dWorldTransform(glm::vec2(1024 - 51, 768 - 38), 0);
     layer1->addGuiElement(tr);
 
     guiLayers.push_back(layer1);
 }
 
-void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
+void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
     // Step simulation
-    dynamicsWorld->stepSimulation(simulationTimeFrame/1000.0f);
+    dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
     camera.updateTransfromFromPhysics(dynamicsWorld);
     for (int i = 0; i < objects.size(); ++i) {
         objects[i]->updateTransformFromPhysics();
@@ -115,12 +117,12 @@ void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
 
     //end of physics step
 
-    btCollisionWorld::ClosestRayResultCallback RayCallback(btVector3(0,0,0), btVector3(0,25,-3));
+    btCollisionWorld::ClosestRayResultCallback RayCallback(btVector3(0, 0, 0), btVector3(0, 25, -3));
 
 // Perform raycast
-    dynamicsWorld->rayTest(btVector3(0,20,0), btVector3(0,0,-3), RayCallback);
+    dynamicsWorld->rayTest(btVector3(0, 20, 0), btVector3(0, 0, -3), RayCallback);
 
-    if(RayCallback.hasHit()) {
+    if (RayCallback.hasHit()) {
         /*
         End = RayCallback.m_hitPointWorld;
         Normal = RayCallback.m_hitNormalWorld;
@@ -129,12 +131,13 @@ void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
     }
 
     float xLook, yLook;
-    if(inputHandler.getMouseChange(xLook, yLook)){
-        camera.rotate(xLook,yLook);
+    if (inputHandler.getMouseChange(xLook, yLook)) {
+        camera.rotate(xLook, yLook);
     }
     Camera::moveDirections direction = Camera::moveDirections::NONE;
     //ignore if both are pressed.
-    if (inputHandler.getInputStatus(inputHandler.MOVE_FORWARD) !=  inputHandler.getInputStatus(inputHandler.MOVE_BACKWARD)) {
+    if (inputHandler.getInputStatus(inputHandler.MOVE_FORWARD) !=
+        inputHandler.getInputStatus(inputHandler.MOVE_BACKWARD)) {
         if (inputHandler.getInputStatus(inputHandler.MOVE_FORWARD)) {
             direction = camera.FORWARD;
         } else {
@@ -145,24 +148,23 @@ void World::play(Uint32 simulationTimeFrame, InputHandler& inputHandler) {
         if (inputHandler.getInputStatus(inputHandler.MOVE_LEFT)) {
             if (direction == camera.FORWARD) {
                 direction = camera.LEFT_FORWARD;
-            } else if (direction == camera.BACKWARD){
+            } else if (direction == camera.BACKWARD) {
                 direction = camera.LEFT_BACKWARD;
             } else {
                 direction = camera.LEFT;
             }
-        } else
-        if (direction == camera.FORWARD) {
+        } else if (direction == camera.FORWARD) {
             direction = camera.RIGHT_FORWARD;
-        } else if (direction == camera.BACKWARD){
+        } else if (direction == camera.BACKWARD) {
             direction = camera.RIGHT_BACKWARD;
         } else {
             direction = camera.RIGHT;
         }
     }
-    if(inputHandler.getInputStatus(inputHandler.JUMP)){
+    if (inputHandler.getInputStatus(inputHandler.JUMP)) {
         direction = camera.UP;
     }
-    if (direction!= camera.NONE){
+    if (direction != camera.NONE) {
         camera.move(direction);
     }
 
@@ -179,7 +181,7 @@ void World::render() {
     //since gui uses blending, everything must be already rendered.
     // Also, since gui elements only depth test each other, clear depth buffer
     glHelper->clearDepthBuffer();
-    for (std::vector<GUILayer*>::iterator it = guiLayers.begin(); it != guiLayers.end(); ++it) {
+    for (std::vector<GUILayer *>::iterator it = guiLayers.begin(); it != guiLayers.end(); ++it) {
         (*it)->render();
     }
     //debugDrawer->drawLine(btVector3(0,0,-3),btVector3(0,250,-3),btVector3(1,1,1));
@@ -192,7 +194,7 @@ World::~World() {
         delete (*it);
     }
     delete sky;
-    for(std::vector<btRigidBody*>::iterator it = rigidBodies.begin(); it!= rigidBodies.end(); ++it){
+    for (std::vector<btRigidBody *>::iterator it = rigidBodies.begin(); it != rigidBodies.end(); ++it) {
         dynamicsWorld->removeRigidBody((*it));
     }
 

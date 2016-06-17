@@ -5,18 +5,19 @@
 #include "Camera.h"
 
 
-Camera::Camera():
+Camera::Camera() :
         dirty(false),
         position(startPosition),
-        center(glm::vec3(0,0,-1)),
-        up(glm::vec3(0,1,0)),
-        right(glm::vec3(-1,0,0)),
-        view(glm::quat(0,0,0,-1)),
-        rayCallback(btCollisionWorld::ClosestRayResultCallback(GLMConverter::GLMToBlt(startPosition + glm::vec3(0,-1.01f,0)),
-                                                               GLMConverter::GLMToBlt(startPosition + glm::vec3(0,-2.01f,0)))),
-        onAir(true){
+        center(glm::vec3(0, 0, -1)),
+        up(glm::vec3(0, 1, 0)),
+        right(glm::vec3(-1, 0, 0)),
+        view(glm::quat(0, 0, 0, -1)),
+        rayCallback(btCollisionWorld::ClosestRayResultCallback(
+                GLMConverter::GLMToBlt(startPosition + glm::vec3(0, -1.01f, 0)),
+                GLMConverter::GLMToBlt(startPosition + glm::vec3(0, -2.01f, 0)))),
+        onAir(true) {
     cameraTransformMatrix = glm::lookAt(position, center, up);
-    btCollisionShape* capsuleShape = new btCapsuleShape(1,2);
+    btCollisionShape *capsuleShape = new btCapsuleShape(1, 2);
     btDefaultMotionState *boxMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1),
                                                                                 GLMConverter::GLMToBlt(startPosition)));
     btVector3 fallInertia(0, 0, 0);
@@ -30,26 +31,26 @@ Camera::Camera():
 }
 
 void Camera::move(moveDirections direction) {
-    if(direction == NONE) {
+    if (direction == NONE) {
         return;
     }
-    if(onAir){
+    if (onAir) {
         return;
     }
-    dirty=true;
+    dirty = true;
     switch (direction) {
         case UP:
-            player->setLinearVelocity(player->getLinearVelocity() + GLMConverter::GLMToBlt(up* jumpFactor));
+            player->setLinearVelocity(player->getLinearVelocity() + GLMConverter::GLMToBlt(up * jumpFactor));
             break;
         case LEFT_BACKWARD:
             //position -= moveSpeed * center;
             //position -= moveSpeed * right;
-            player->setLinearVelocity(GLMConverter::GLMToBlt(-1.0f * (right + center )* moveSpeed));
+            player->setLinearVelocity(GLMConverter::GLMToBlt(-1.0f * (right + center) * moveSpeed));
             break;
         case LEFT_FORWARD:
             //position += moveSpeed * center;
             //position -= moveSpeed * right;
-            player->setLinearVelocity(GLMConverter::GLMToBlt((-1.0f * right + center )* moveSpeed));
+            player->setLinearVelocity(GLMConverter::GLMToBlt((-1.0f * right + center) * moveSpeed));
             break;
         case LEFT:
             //position -= moveSpeed * right;
@@ -58,12 +59,12 @@ void Camera::move(moveDirections direction) {
         case RIGHT_BACKWARD:
             //position -= moveSpeed * center;
             //position += moveSpeed * right;
-            player->setLinearVelocity(GLMConverter::GLMToBlt((right + -1.0f * center )* moveSpeed));
+            player->setLinearVelocity(GLMConverter::GLMToBlt((right + -1.0f * center) * moveSpeed));
             break;
         case RIGHT_FORWARD:
             //position += moveSpeed * center;
             //position += moveSpeed * right;
-            player->setLinearVelocity(GLMConverter::GLMToBlt((right + center )* moveSpeed));
+            player->setLinearVelocity(GLMConverter::GLMToBlt((right + center) * moveSpeed));
             break;
         case RIGHT:
             //position += moveSpeed * right;
@@ -109,14 +110,14 @@ void Camera::rotate(float xChange, float yChange) {
     center.z = view.z;
     center = glm::normalize(center);
     right = glm::normalize(glm::cross(center, up));
-    this->dirty=true;
+    this->dirty = true;
 }
 
-void Camera::updateTransfromFromPhysics(const btDynamicsWorld* world){
+void Camera::updateTransfromFromPhysics(const btDynamicsWorld *world) {
 
     world->rayTest(rayCallback.m_rayFromWorld, rayCallback.m_rayToWorld, rayCallback);
 
-    if(rayCallback.hasHit()) {
+    if (rayCallback.hasHit()) {
         /*
         End = RayCallback.m_hitPointWorld;
         Normal = RayCallback.m_hitNormalWorld;
@@ -129,19 +130,19 @@ void Camera::updateTransfromFromPhysics(const btDynamicsWorld* world){
         onAir = true;
     }
 
-    rayCallback.m_closestHitFraction= 1;
+    rayCallback.m_closestHitFraction = 1;
 
     rayCallback.m_collisionObject = 0;
-
 
 
     player->getMotionState()->getWorldTransform(worldTransformHolder);
 
     position = GLMConverter::BltToGLM(worldTransformHolder.getOrigin());
-    position.y +=1;
+    position.y += 1;
 
-    rayCallback.m_rayFromWorld = worldTransformHolder.getOrigin() +btVector3(0,-1.01f,0);//the second vector is preventing hitting player capsule
-    rayCallback.m_rayToWorld = rayCallback.m_rayFromWorld + btVector3(0,-1,0);
+    rayCallback.m_rayFromWorld = worldTransformHolder.getOrigin() +
+                                 btVector3(0, -1.01f, 0);//the second vector is preventing hitting player capsule
+    rayCallback.m_rayToWorld = rayCallback.m_rayFromWorld + btVector3(0, -1, 0);
 
     /*std::cout << "ray details: (" << rayCallback.m_rayFromWorld.getX() << ","
                                 << rayCallback.m_rayFromWorld.getY() << ","

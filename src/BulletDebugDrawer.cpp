@@ -5,7 +5,8 @@
 #include "BulletDebugDrawer.h"
 
 
-void BulletDebugDrawer::drawLine(const btVector3& from, const btVector3& to, const btVector3& fromColor, const btVector3& toColor){
+void BulletDebugDrawer::drawLine(const btVector3 &from, const btVector3 &to, const btVector3 &fromColor,
+                                 const btVector3 &toColor) {
 
     glHelper->drawLine(GLMConverter::BltToGLM(from),
                        GLMConverter::BltToGLM(to),

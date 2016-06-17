@@ -4,10 +4,10 @@
 
 #include "SkyBox.h"
 
-SkyBox::SkyBox(GLHelper* glHelper, std::string path, std::string right, std::string left, std::string top, std::string down, std::string back,
-               std::string front):
-    Renderable(glHelper)
-    {
+SkyBox::SkyBox(GLHelper *glHelper, std::string path, std::string right, std::string left, std::string top,
+               std::string down, std::string back,
+               std::string front) :
+        Renderable(glHelper) {
     cubeMap = new CubeMap(glHelper, path,
                           right, left,
                           top, down,
@@ -15,14 +15,14 @@ SkyBox::SkyBox(GLHelper* glHelper, std::string path, std::string right, std::str
 
 
     vertices.push_back(glm::vec3(-1.0f, -1.0f, -1.0f));
-    vertices.push_back(glm::vec3( 1.0f, -1.0f, -1.0f));
-    vertices.push_back(glm::vec3( 1.0f,  1.0f, -1.0f));
-    vertices.push_back(glm::vec3(-1.0f,  1.0f, -1.0f));
+    vertices.push_back(glm::vec3(1.0f, -1.0f, -1.0f));
+    vertices.push_back(glm::vec3(1.0f, 1.0f, -1.0f));
+    vertices.push_back(glm::vec3(-1.0f, 1.0f, -1.0f));
 
     vertices.push_back(glm::vec3(-1.0f, -1.0f, 1.0f));
-    vertices.push_back(glm::vec3( 1.0f, -1.0f, 1.0f));
-    vertices.push_back(glm::vec3( 1.0f,  1.0f, 1.0f));
-    vertices.push_back(glm::vec3(-1.0f,  1.0f, 1.0f));
+    vertices.push_back(glm::vec3(1.0f, -1.0f, 1.0f));
+    vertices.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
+    vertices.push_back(glm::vec3(-1.0f, 1.0f, 1.0f));
 
     //front
     faces.push_back(glm::mediump_uvec3(0, 1, 2));
@@ -49,14 +49,15 @@ SkyBox::SkyBox(GLHelper* glHelper, std::string path, std::string right, std::str
     bufferObjects.push_back(vbo);
 
     uniforms.push_back("cameraTransformMatrix");
-    renderProgram = new GLSLProgram(glHelper,"./Data/Shaders/SkyCube/vertex.shader","./Data/Shaders/SkyCube/fragment.shader",uniforms);
+    renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/SkyCube/vertex.shader",
+                                    "./Data/Shaders/SkyCube/fragment.shader", uniforms);
 }
 
-void SkyBox::render(){
+void SkyBox::render() {
     glHelper->attachCubeMap(cubeMap->getID());
     glm::mat4 viewMatrix = glHelper->getProjectionMatrix() * glm::mat4(glm::mat3(glHelper->getCameraMatrix()));
     GLuint location;
-    if(renderProgram->getUniformLocation("cameraTransformMatrix", location)) {
+    if (renderProgram->getUniformLocation("cameraTransformMatrix", location)) {
         glHelper->setUniform(renderProgram->getID(), location, viewMatrix);
         glHelper->render(renderProgram->getID(), vao, ebo, 36);
     }

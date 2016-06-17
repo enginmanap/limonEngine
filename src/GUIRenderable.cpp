@@ -4,14 +4,14 @@
 
 #include "GUIRenderable.h"
 
-GUIRenderable::GUIRenderable(GLHelper* glHelper) : Renderable(glHelper) {
-    vertices.push_back(glm::vec3(-1.0f, -1.0f,  0.0f));
-    vertices.push_back(glm::vec3( 1.0f, -1.0f,  0.0f));
-    vertices.push_back(glm::vec3( 1.0f,  1.0f,  0.0f));
-    vertices.push_back(glm::vec3(-1.0f,  1.0f,  0.0f));
+GUIRenderable::GUIRenderable(GLHelper *glHelper) : Renderable(glHelper) {
+    vertices.push_back(glm::vec3(-1.0f, -1.0f, 0.0f));
+    vertices.push_back(glm::vec3(1.0f, -1.0f, 0.0f));
+    vertices.push_back(glm::vec3(1.0f, 1.0f, 0.0f));
+    vertices.push_back(glm::vec3(-1.0f, 1.0f, 0.0f));
 
-    faces.push_back(glm::mediump_uvec3( 0, 1, 2));//front
-    faces.push_back(glm::mediump_uvec3( 0, 2, 3));
+    faces.push_back(glm::mediump_uvec3(0, 1, 2));//front
+    faces.push_back(glm::mediump_uvec3(0, 2, 3));
 
     GLuint vbo;
     glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
@@ -21,24 +21,25 @@ GUIRenderable::GUIRenderable(GLHelper* glHelper) : Renderable(glHelper) {
     textureCoordinates.push_back(glm::vec2(1.0f, 1.0f));
     textureCoordinates.push_back(glm::vec2(1.0f, 0.0f));
     textureCoordinates.push_back(glm::vec2(0.0f, 0.0f));
-    glHelper->bufferVertexTextureCoordinates(textureCoordinates,vao,vbo,3,ebo);
+    glHelper->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3, ebo);
 
     uniforms.push_back("worldTransformMatrix");
     uniforms.push_back("orthogonalProjectionMatrix");
     uniforms.push_back("inColor");
-    renderProgram = new GLSLProgram(glHelper,"./Data/Shaders/GUI/vertex.shader","./Data/Shaders/GUI/fragment.shader",uniforms);
+    renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/GUI/vertex.shader", "./Data/Shaders/GUI/fragment.shader",
+                                    uniforms);
 }
 
-void GUIRenderable::render(){
+void GUIRenderable::render() {
     GLuint location;
-    if(renderProgram->getUniformLocation("worldTransformMatrix", location)) {
+    if (renderProgram->getUniformLocation("worldTransformMatrix", location)) {
         glHelper->setUniform(renderProgram->getID(), location, getWorldTransform());
         glHelper->attachTexture(textureID);
-        glHelper->render(renderProgram->getID(), vao, ebo, faces.size()*3);
+        glHelper->render(renderProgram->getID(), vao, ebo, faces.size() * 3);
     }
 }
 
-void GUIRenderable::renderDebug(){
+void GUIRenderable::renderDebug() {
     float up = translate.y + scale.y;
     float down = translate.y - scale.y;
 
@@ -46,8 +47,12 @@ void GUIRenderable::renderDebug(){
     float left = translate.x - scale.x;
 
     //now build 4 lines;
-    glHelper->drawLine(glm::vec3(left,up,0.0f),glm::vec3(left,down,0.0f),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
-    glHelper->drawLine(glm::vec3(right,up,0.0f),glm::vec3(right,down,0.0f),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
-    glHelper->drawLine(glm::vec3(left,up,0.0f),glm::vec3(right,up,0.0f),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
-    glHelper->drawLine(glm::vec3(left,down,0.0f),glm::vec3(right,down,0.0f),glm::vec3(1.0f, 1.0f, 1.0f),glm::vec3(1.0f, 1.0f, 1.0f), false);
+    glHelper->drawLine(glm::vec3(left, up, 0.0f), glm::vec3(left, down, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
+                       glm::vec3(1.0f, 1.0f, 1.0f), false);
+    glHelper->drawLine(glm::vec3(right, up, 0.0f), glm::vec3(right, down, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
+                       glm::vec3(1.0f, 1.0f, 1.0f), false);
+    glHelper->drawLine(glm::vec3(left, up, 0.0f), glm::vec3(right, up, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
+                       glm::vec3(1.0f, 1.0f, 1.0f), false);
+    glHelper->drawLine(glm::vec3(left, down, 0.0f), glm::vec3(right, down, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
+                       glm::vec3(1.0f, 1.0f, 1.0f), false);
 }

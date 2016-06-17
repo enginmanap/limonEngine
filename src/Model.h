@@ -19,23 +19,24 @@
 #include "Texture.h"
 
 
-
-class Model :public PhysicalRenderable {
+class Model : public PhysicalRenderable {
 
     std::string modelFile;
     std::vector<glm::vec3> vertices;
     std::vector<glm::mediump_uvec3> faces;
     std::vector<glm::vec2> textureCoordinates;
-    Texture* texture;
+    Texture *texture;
 
     std::vector<glm::vec4> colors;
 
-    btTriangleMesh* bulletMesh;
-    btConvexTriangleMeshShape* convexShape;
-    btConvexHullShape* simplifiedConvexShape;
+    btTriangleMesh *bulletMesh;
+    btConvexTriangleMeshShape *convexShape;
+    btConvexHullShape *simplifiedConvexShape;
 public:
-    Model(GLHelper* glHelper, const std::string& modelFile) : Model(glHelper, 0, modelFile) {};
-    Model(GLHelper*, const float mass, const std::string& modelFile);
+    Model(GLHelper *glHelper, const std::string &modelFile) : Model(glHelper, 0, modelFile) { };
+
+    Model(GLHelper *, const float mass, const std::string &modelFile);
+
     void render();
 
 
@@ -47,7 +48,7 @@ public:
         delete rigidBody;
 
 
-        if(simplifiedConvexShape != NULL){
+        if (simplifiedConvexShape != NULL) {
             delete simplifiedConvexShape;
         }
         delete convexShape;
@@ -55,4 +56,5 @@ public:
 
     }
 };
+
 #endif //UBERGAME_MODEL_H

@@ -16,15 +16,16 @@ protected:
     std::vector<glm::mediump_uvec3> faces;
     GLuint textureID;
 public:
-    GUIRenderable(GLHelper* glHelper);
+    GUIRenderable(GLHelper *glHelper);
+
     /**
      * the position on x,y coordinates, and clockwise rotation as radian
      */
-    void set2dWorldTransform(const glm::vec2 &position, const float rotation){
+    void set2dWorldTransform(const glm::vec2 &position, const float rotation) {
         translate = glm::vec3(position, 0);
-        orientation = glm::quat(cos(rotation/2), 0,0,-1 * sin(rotation/2));
-        isRotated = this->orientation.w < cos(0.1f/2); //if the total rotation is less than 0.1 rad
-        isDirty=true;
+        orientation = glm::quat(cos(rotation / 2), 0, 0, -1 * sin(rotation / 2));
+        isRotated = this->orientation.w < cos(0.1f / 2); //if the total rotation is less than 0.1 rad
+        isDirty = true;
     }
 
     void setScale(float height, float width) {
@@ -33,9 +34,12 @@ public:
     }
 
     virtual void render();
+
     virtual void renderDebug();
-    float getWidth() { return scale.x;}
-    float getHeight() { return scale.y;}
+
+    float getWidth() { return scale.x; }
+
+    float getHeight() { return scale.y; }
 };
 
 

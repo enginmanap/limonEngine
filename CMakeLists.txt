@@ -18,16 +18,16 @@ INCLUDE(FindPkgConfig)
 find_package(SDL2_image REQUIRED SDL2_image>=2.0.0)
 INCLUDE_DIRECTORIES(${SDL_IMAGE_INCLUDE_DIRS})
 
-if(NOT SDL_Image_FOUND)
+if (NOT SDL_Image_FOUND)
     message(ERROR " SDL_Image not found!")
-endif(NOT SDL_Image_FOUND)
+endif (NOT SDL_Image_FOUND)
 
 find_package(FREETYPE REQUIRED)
 INCLUDE_DIRECTORIES(${FREETYPE_INCLUDE_DIRS})
 
-if(NOT FREETYPE_FOUND)
+if (NOT FREETYPE_FOUND)
     message(ERROR " FREETYPE not found!")
-endif(NOT FREETYPE_FOUND)
+endif (NOT FREETYPE_FOUND)
 
 find_package(GLEW REQUIRED)
 INCLUDE_DIRECTORIES(${GLEW_INCLUDE_DIRS})
@@ -35,21 +35,21 @@ INCLUDE_DIRECTORIES(${GLEW_INCLUDE_DIRS})
 find_package(OpenGL REQUIRED)
 INCLUDE_DIRECTORIES(${OpenGL_INCLUDE_DIRS})
 
-if(NOT OPENGL_FOUND)
+if (NOT OPENGL_FOUND)
     message(ERROR " OPENGL not found!")
-endif(NOT OPENGL_FOUND)
+endif (NOT OPENGL_FOUND)
 
 find_package(Bullet REQUIRED)
 INCLUDE_DIRECTORIES(${BULLET_INCLUDE_DIRS})
 
-if(NOT BULLET_FOUND)
+if (NOT BULLET_FOUND)
     message(ERROR " Bullet not found!")
-endif(NOT BULLET_FOUND)
+endif (NOT BULLET_FOUND)
 
 find_package(assimp REQUIRED)
-if(NOT assimp_FOUND)
+if (NOT assimp_FOUND)
     message(ERROR " Assimp not found!")
-endif(NOT assimp_FOUND)
+endif (NOT assimp_FOUND)
 INCLUDE_DIRECTORIES(${ASSIMP_INCLUDE_DIRS})
 
 

@@ -13,10 +13,10 @@
 
 class Renderable {
 protected:
-    GLHelper* glHelper;
+    GLHelper *glHelper;
     std::vector<GLuint> bufferObjects;
     GLuint vao, ebo;
-    GLSLProgram* renderProgram;
+    GLSLProgram *renderProgram;
     std::vector<std::string> uniforms;
     glm::mat4 worldTransform, oldWorldTransform;
     glm::vec3 scale, translate;
@@ -24,31 +24,32 @@ protected:
     bool isDirty;
     bool isRotated;
 
-    void generateWorldTransform() ;
+    void generateWorldTransform();
 
-    Renderable(GLHelper* glHelper);
+    Renderable(GLHelper *glHelper);
 
 
 public:
-    void addScale(const glm::vec3& scale){
+    void addScale(const glm::vec3 &scale) {
         this->scale *= scale;
-        isDirty=true;
+        isDirty = true;
     }
 
-    void addTranslate(const glm::vec3& translate){
+    void addTranslate(const glm::vec3 &translate) {
         this->translate += translate;
-        isDirty=true;
+        isDirty = true;
     }
-    void addOrientation(const glm::quat& orientation){
+
+    void addOrientation(const glm::quat &orientation) {
         this->orientation *= orientation;
         this->orientation = glm::normalize(this->orientation);
         std::cerr << "not handled case for physics" << std::endl;
-        isRotated = this->orientation.w > cos(0.1f/2); //if the total rotation is bigger than 0.1 rad
-        isDirty=true;
+        isRotated = this->orientation.w > cos(0.1f / 2); //if the total rotation is bigger than 0.1 rad
+        isDirty = true;
     }
 
     const glm::mat4 &getWorldTransform() {
-        if(isDirty) {
+        if (isDirty) {
             generateWorldTransform();
         }
         return worldTransform;
@@ -57,10 +58,10 @@ public:
     virtual void render() = 0;
 
     //FIXME this should be removed
-    void setWorldTransform(const glm::mat4& transformMatrix);
+    void setWorldTransform(const glm::mat4 &transformMatrix);
 
-    ~Renderable(){
-        for(int i = 0; i< bufferObjects.size(); ++i ){
+    ~Renderable() {
+        for (int i = 0; i < bufferObjects.size(); ++i) {
             glHelper->freeBuffer(bufferObjects[i]);
         }
         glHelper->freeBuffer(ebo);

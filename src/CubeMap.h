@@ -13,17 +13,17 @@
 
 
 class CubeMap {
-    GLHelper* glHelper;
+    GLHelper *glHelper;
     std::string path;
     std::string names[6];
     GLuint cubeMapBufferID;
 public:
-    CubeMap(GLHelper* glHelper, std::string path,
-        std::string right, std::string left,
-        std::string top, std::string bottom,
-        std::string back, std::string front);
+    CubeMap(GLHelper *glHelper, std::string path,
+            std::string right, std::string left,
+            std::string top, std::string bottom,
+            std::string back, std::string front);
 
-    ~CubeMap(){
+    ~CubeMap() {
         glHelper->deleteTexture(cubeMapBufferID);
     }
 

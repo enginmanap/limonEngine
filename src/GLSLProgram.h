@@ -12,7 +12,7 @@
 
 
 class GLSLProgram {
-    GLHelper* glHelper;
+    GLHelper *glHelper;
     std::string vertexShader;
     std::string fragmentShader;
     std::vector<std::string> uniforms;
@@ -21,11 +21,13 @@ class GLSLProgram {
     std::map<std::string, GLuint> uniformLocations;
 
 public:
-    GLSLProgram(GLHelper* glHelper, std::string vertexShader, std::string fragmentShader, std::vector<std::string> uniforms);
+    GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::string fragmentShader,
+                std::vector<std::string> uniforms);
 
 
-    GLuint getID() const {return programID;}
-    bool getUniformLocation(const std::string uniformName, GLuint& location) {
+    GLuint getID() const { return programID; }
+
+    bool getUniformLocation(const std::string uniformName, GLuint &location) {
         if (uniformLocations.count(uniformName)) {
             location = uniformLocations[uniformName];
             return true;
@@ -36,4 +38,5 @@ public:
     }
 
 };
+
 #endif //UBERGAME_GLSLPROGRAM_H

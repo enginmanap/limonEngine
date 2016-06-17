@@ -4,11 +4,11 @@
 
 #include "GUILayer.h"
 
-void GUILayer::render(){
+void GUILayer::render() {
     for (std::vector<GUIRenderable *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
         (*it)->render();
     }
-    if(isDebug) {
+    if (isDebug) {
         for (std::vector<GUIRenderable *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
             (*it)->renderDebug();
         }

@@ -15,13 +15,15 @@ class SDL2Helper {
     SDL_GLContext context;
 public:
 
-    SDL2Helper(const char*, int, int);
+    SDL2Helper(const char *, int, int);
+
     ~SDL2Helper();
 
-    void swap(){
+    void swap() {
         SDL_GL_SwapWindow(window);
     };
 
-    SDL_Window* getWindow();
+    SDL_Window *getWindow();
 };
+
 #endif //UBERGAME_SDL2HELPER_CPP_H
