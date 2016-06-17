@@ -41,7 +41,6 @@ void GUIText::render() {
     GLuint worldTransformlocation, ortoProjLocation, inColorLocation;
 
     float totalAdvance = 0.0f;
-    float advance = 0.0f;
     glm::mat4 orthogonalPM = glHelper->getOrthogonalProjectionMatrix();
 
     renderProgram->getUniformLocation("inColor", inColorLocation);
@@ -55,7 +54,6 @@ void GUIText::render() {
 
         float quadPositionX, quadPositionY, quadSizeX, quadSizeY;
         const Glyph* glyph;
-        glm::mat4 currentTransform;
         for(int i=0; i < text.length(); ++i) {
             glyph = face->getGlyph(text.at(i));
             quadSizeX = glyph->getSize().x / 2.0f;
@@ -97,8 +95,7 @@ void GUIText::render() {
             glHelper->attachTexture(glyph->getTextureID());
             glHelper->render(renderProgram->getID(), vao, ebo, (const GLuint) (faces.size() * 3));
 
-            advance = glyph->getAdvance() /64;
-            totalAdvance += advance;
+            totalAdvance += glyph->getAdvance() /64;
         }
     }
 }
@@ -152,11 +149,12 @@ void GUIText::renderDebug() {
         advance = glyph->getAdvance() /64;
         totalAdvance += advance;
 
-        glm::mat4 transform = (orthogonalPM * currentTransform);
-        glm::vec4 upLeft    =  (transform * glm::vec4(-1.0f,  1.0f, 0.0f, 1.0f));
-        glm::vec4 upRight   =  (transform * glm::vec4( 1.0f,  1.0f, 0.0f, 1.0f));
-        glm::vec4 downLeft  =  (transform * glm::vec4(-1.0f, -1.0f, 0.0f, 1.0f));
-        glm::vec4 downRight =  (transform * glm::vec4( 1.0f, -1.0f, 0.0f, 1.0f));
+        //all variables are reused
+        transform = (orthogonalPM * currentTransform);
+        upLeft    =  (transform * glm::vec4(-1.0f,  1.0f, 0.0f, 1.0f));
+        upRight   =  (transform * glm::vec4( 1.0f,  1.0f, 0.0f, 1.0f));
+        downLeft  =  (transform * glm::vec4(-1.0f, -1.0f, 0.0f, 1.0f));
+        downRight =  (transform * glm::vec4( 1.0f, -1.0f, 0.0f, 1.0f));
 
         glHelper->drawLine(glm::vec3(upLeft.x,upLeft.y, upLeft.z),glm::vec3(upRight.x,upRight.y,upRight.z),glm::vec3(1.0f, 0.0f, 0.0f),glm::vec3(1.0f, 0.0f, 0.0f), false);
         glHelper->drawLine(glm::vec3(downLeft.x,downLeft.y,downLeft.z),glm::vec3(downRight.x,downRight.y,downRight.z),glm::vec3(1.0f, 0.0f, 0.0f),glm::vec3(1.0f, 0.0f, 0.0f), false);
