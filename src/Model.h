@@ -23,6 +23,7 @@ class Model : public PhysicalRenderable {
 
     std::string modelFile;
     std::vector<glm::vec3> vertices;
+    std::vector<glm::vec3> normals;
     std::vector<glm::mediump_uvec3> faces;
     std::vector<glm::vec2> textureCoordinates;
     Texture *texture;

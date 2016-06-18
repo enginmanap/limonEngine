@@ -12,7 +12,7 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
     Assimp::Importer import;
     //FIXME triangulate creates too many vertices, it is unnecessary, but optimize requires some work.
     const aiScene *scene = import.ReadFile(modelFile, aiProcess_Triangulate | aiProcess_FlipUVs |
-                                                      aiProcessPreset_TargetRealtime_MaxQuality);
+                                                      aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_GenNormals);
 
     if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
@@ -37,6 +37,7 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
         if (currentMesh->HasTextureCoords(0)) {
             for (int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
+                normals.push_back(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]));
                 bulletMeshVertices.push_back(GLMConverter::AssimpToBullet(currentMesh->mVertices[j]));
                 textureCoordinates.push_back(
                         glm::vec2(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y));
@@ -45,6 +46,7 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
         } else {
             for (int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
+                normals.push_back(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]));
                 bulletMeshVertices.push_back(GLMConverter::AssimpToBullet(currentMesh->mVertices[j]));
             }
         }
@@ -63,6 +65,9 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
 
         GLuint vbo;
         glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
+        bufferObjects.push_back(vbo);
+        //Fixme vbo seems unnecessary
+        glHelper->bufferNormalData(normals, vao, vbo, 4);
         bufferObjects.push_back(vbo);
 
         aiString texturePath;    //contains filename of texture
@@ -149,6 +154,8 @@ void Model::render() {
             glHelper->render(renderProgram->getID(), vao, ebo, faces.size() * 3);
         }
     }
+
+    //uniform vec3 viewPosition;
 
     //glHelper->render(0, vao, ebo, worldTransform, 24);
 }

@@ -171,7 +171,7 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 }
 
 void World::render() {
-    glHelper->setCamera(camera.getCameraMatrix());
+    glHelper->setCamera(camera.getPosition(), camera.getCameraMatrix());
     for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
         (*it)->render();
     }

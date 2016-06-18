@@ -127,7 +127,9 @@ GLHelper::GLHelper() {
     }
     checkErrors("after Context creation");
 
-    cameraMatrix = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    cameraPosition = glm::vec3(0.0f, 0.0f, 0.0f);
+    cameraMatrix = glm::lookAt(cameraPosition, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     // Setup
@@ -245,6 +247,19 @@ void GLHelper::bufferVertexData(const std::vector<glm::vec3> &vertices,
     checkErrors("bufferVertexData");
 }
 
+void GLHelper::bufferNormalData(const std::vector<glm::vec3> &normals,
+                                GLuint &vao, GLuint &vbo, const GLuint attachPointer) {
+    vbo = generateBuffer(1);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), normals.data(), GL_STATIC_DRAW);
+
+    glBindVertexArray(vao);
+    glVertexAttribPointer(attachPointer, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(attachPointer);
+    glBindVertexArray(0);
+    checkErrors("bufferVertexColor");
+}
+
 void GLHelper::bufferVertexColor(const std::vector<glm::vec4> &colors,
                                  GLuint &vao, GLuint &vbo, const GLuint attachPointer) {
     vbo = generateBuffer(1);
@@ -273,7 +288,7 @@ void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &text
     checkErrors("bufferVertexTextureCoordinates");
 }
 
-void GLHelper::setCamera(const glm::mat4 &cameraTransform) {
+void GLHelper::setCamera(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform) {
     this->cameraMatrix = cameraTransform;
 }
 

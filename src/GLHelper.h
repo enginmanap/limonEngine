@@ -34,6 +34,8 @@ class GLHelper {
     std::vector<GLuint> bufferObjects;
     std::vector<GLuint> vertexArrays;
 
+    glm::vec3 cameraPosition;
+
     glm::mat4 cameraMatrix;
     glm::mat4 projectionMatrix;
     glm::mat4 orthogonalProjectionMatrix;
@@ -63,8 +65,12 @@ public:
                           const std::vector<glm::mediump_uvec3> &faces,
                           GLuint &vao, GLuint &vbo, const GLuint attachPointer, GLuint &ebo);
 
+    void bufferNormalData(const std::vector<glm::vec3> &colors,
+                          GLuint &vao, GLuint &vbo, const GLuint attachPointer);
+
     void bufferVertexColor(const std::vector<glm::vec4> &colors,
                            GLuint &vao, GLuint &vbo, const GLuint attachPointer);
+
 
     void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
                                         GLuint &vao, GLuint &vbo, const GLuint attachPointer, GLuint &ebo);
@@ -73,7 +79,7 @@ public:
 
     bool freeVAO(const GLuint VAO);
 
-    void setCamera(const glm::mat4 &);
+    void setCamera(const glm::vec3 &, const glm::mat4 &);
 
     void clearFrame() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -102,6 +108,8 @@ public:
     bool setUniform(const GLuint programID, const GLuint uniformID, const glm::vec3 vector);
 
     glm::mat4 getCameraMatrix() const { return cameraMatrix; };
+
+    glm::vec3 getCameraPosition() const { return cameraPosition; };
 
     glm::mat4 getProjectionMatrix() const { return projectionMatrix; };
 

@@ -57,6 +57,10 @@ public:
         return cameraTransformMatrix;
     }
 
+    glm::vec3 const getPosition() {
+        return position;
+    }
+
     btRigidBody *getRigidBody() {
         return player;
     }
