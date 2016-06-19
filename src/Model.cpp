@@ -136,6 +136,7 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
     //set up the program to render object
     uniforms.push_back("cameraTransformMatrix");
     uniforms.push_back("worldTransformMatrix");
+    uniforms.push_back("cameraPosition");
     renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/Box/vertex.shader", "./Data/Shaders/Box/fragment.shader",
                                     uniforms);
 
@@ -150,8 +151,11 @@ void Model::render() {
         glHelper->setUniform(renderProgram->getID(), location, viewMatrix);
         if (renderProgram->getUniformLocation("worldTransformMatrix", location)) {
             glHelper->setUniform(renderProgram->getID(), location, getWorldTransform());
-            glHelper->attachTexture(texture->getID());
-            glHelper->render(renderProgram->getID(), vao, ebo, faces.size() * 3);
+            if (renderProgram->getUniformLocation("cameraPosition", location)) {
+                glHelper->setUniform(renderProgram->getID(), location, glHelper->getCameraPosition());
+                glHelper->attachTexture(texture->getID());
+                glHelper->render(renderProgram->getID(), vao, ebo, faces.size() * 3);
+            }
         }
     }
 
