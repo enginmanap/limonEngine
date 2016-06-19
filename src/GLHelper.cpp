@@ -317,7 +317,7 @@ void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, 
 }
 
 
-bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 matrix) {
+bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 &matrix) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
@@ -331,7 +331,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
 
 }
 
-bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const glm::vec3 vector) {
+bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const glm::vec3 &vector) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
@@ -342,7 +342,19 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         checkErrors("setUniform");
         return true;
     }
+}
 
+bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const float value) {
+    if (!glIsProgram(programID)) {
+        std::cerr << "invalid program for setting uniform." << std::endl;
+        return false;
+    } else {
+        glUseProgram(programID);
+        glUniform1f(uniformID, value);
+        glUseProgram(0);
+        checkErrors("setUniform");
+        return true;
+    }
 }
 
 bool GLHelper::checkErrors(std::string callerFunc) {

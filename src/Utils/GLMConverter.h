@@ -7,6 +7,7 @@
 
 #include <btBulletDynamicsCommon.h>
 #include <assimp/vector3.h>
+#include <assimp/types.h>
 #include "../glm/glm.hpp"
 
 class GLMConverter {
@@ -21,6 +22,10 @@ public:
 
     static glm::vec3 AssimpToGLM(const aiVector3D &vector) {
         return glm::vec3(vector.x, vector.y, vector.z);
+    }
+
+    static glm::vec3 AssimpToGLM(const aiColor3D &color) {
+        return glm::vec3(color.r, color.g, color.b);
     }
 
     static aiVector3D GLMToAssimp(const glm::vec3 &vector) {

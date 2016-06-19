@@ -17,6 +17,7 @@
 #include "glm/glm.hpp"
 #include "PhysicalRenderable.h"
 #include "Texture.h"
+#include "Material.h"
 
 
 class Model : public PhysicalRenderable {
@@ -26,9 +27,7 @@ class Model : public PhysicalRenderable {
     std::vector<glm::vec3> normals;
     std::vector<glm::mediump_uvec3> faces;
     std::vector<glm::vec2> textureCoordinates;
-    Texture *texture;
-
-    std::vector<glm::vec4> colors;
+    std::map<std::string, Material *> materialMap;
 
     btTriangleMesh *bulletMesh;
     btConvexTriangleMeshShape *convexShape;
@@ -38,12 +37,18 @@ public:
 
     Model(GLHelper *, const float mass, const std::string &modelFile);
 
+    void activateMaterial(const Material *material);
+
     void render();
 
 
     //TODO we need to free the texture. Destructor needed.
     ~Model() {
-        delete texture;
+
+        for (std::map<std::string, Material *>::iterator iter = materialMap.begin();
+             iter != materialMap.end(); ++iter) {
+            delete iter->second;
+        }
 
         delete rigidBody->getMotionState();
         delete rigidBody;

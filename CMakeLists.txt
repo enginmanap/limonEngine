@@ -7,7 +7,7 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(SOURCE_FILES src/main.cpp src/SDL2Helper.cpp src/SDL2Helper.h src/GLHelper.cpp src/GLHelper.h src/Model.cpp src/Model.h src/World.cpp src/World.h src/InputHandler.cpp src/InputHandler.h src/Camera.cpp src/Camera.h src/SkyBox.cpp src/SkyBox.h src/Texture.cpp src/Texture.h src/CubeMap.cpp src/CubeMap.h src/GLSLProgram.cpp src/GLSLProgram.h src/Renderable.cpp src/Renderable.h src/Utils/GLMConverter.cpp src/Utils/GLMConverter.h src/BulletDebugDrawer.cpp src/BulletDebugDrawer.h src/GUIText.cpp src/GUIText.h src/GUILayer.cpp src/GUILayer.h src/PhysicalRenderable.cpp src/PhysicalRenderable.h src/GUIRenderable.cpp src/GUIRenderable.h src/FontManager.cpp src/FontManager.h src/GUIFPSCounter.cpp src/GUIFPSCounter.h src/Utils/AssimpUtils.cpp src/Utils/AssimpUtils.h)
+set(SOURCE_FILES src/main.cpp src/SDL2Helper.cpp src/SDL2Helper.h src/GLHelper.cpp src/GLHelper.h src/Model.cpp src/Model.h src/World.cpp src/World.h src/InputHandler.cpp src/InputHandler.h src/Camera.cpp src/Camera.h src/SkyBox.cpp src/SkyBox.h src/Texture.cpp src/Texture.h src/CubeMap.cpp src/CubeMap.h src/GLSLProgram.cpp src/GLSLProgram.h src/Renderable.cpp src/Renderable.h src/Utils/GLMConverter.cpp src/Utils/GLMConverter.h src/BulletDebugDrawer.cpp src/BulletDebugDrawer.h src/GUIText.cpp src/GUIText.h src/GUILayer.cpp src/GUILayer.h src/PhysicalRenderable.cpp src/PhysicalRenderable.h src/GUIRenderable.cpp src/GUIRenderable.h src/FontManager.cpp src/FontManager.h src/GUIFPSCounter.cpp src/GUIFPSCounter.h src/Utils/AssimpUtils.cpp src/Utils/AssimpUtils.h src/Light.cpp src/Light.h src/Material.cpp src/Material.h)
 add_executable(UberGame ${SOURCE_FILES})
 
 find_package(SDL2 REQUIRED)

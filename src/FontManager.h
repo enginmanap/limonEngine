@@ -33,11 +33,13 @@ public:
             this->size = glm::mediump_vec2(face->glyph->bitmap.width, face->glyph->bitmap.rows);
             bearing = glm::mediump_vec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
             advance = face->glyph->advance.x;
+            /**
             std::cout << "Glyph load success. Information:" << std::endl
             << "char: " << character << std::endl
             << "size: " << this->size.x << "," << this->size.y << std::endl
             << "bearing: " << bearing.x << "," << bearing.y << std::endl
             << "advance: " << advance << " (" << advance / 64 << ")" << std::endl;
+             */
         }
 
     }

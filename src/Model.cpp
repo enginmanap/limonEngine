@@ -60,9 +60,6 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
                                     bulletMeshVertices[currentMesh->mFaces[j].mIndices[2]]);
         }
 
-        // create material uniform buffer
-        aiMaterial *currentMaterial = scene->mMaterials[currentMesh->mMaterialIndex];
-
         GLuint vbo;
         glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
         bufferObjects.push_back(vbo);
@@ -70,22 +67,70 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
         glHelper->bufferNormalData(normals, vao, vbo, 4);
         bufferObjects.push_back(vbo);
 
-        aiString texturePath;    //contains filename of texture
-        if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath)) {
-            //TODO even though we load all the textures, only the first one is active, multi texture is not
-            //implemented
+        // create material uniform buffer
+        aiMaterial *currentMaterial = scene->mMaterials[currentMesh->mMaterialIndex];
+        aiString property;    //contains filename of texture
+        if (AI_SUCCESS != currentMaterial->Get(AI_MATKEY_NAME, property)) {
+            std::cerr << "Material without a name is not handled." << std::endl;
+            exit(-1);
+        }
 
-            //bind texture
-            texture = new Texture(glHelper, texturePath.C_Str());
+        if (materialMap.find(property.C_Str()) == materialMap.end()) {//search for the name
+            //if the material is not loaded before
+            Material *newMaterial = new Material(glHelper, property.C_Str());
+            aiColor3D color(0.f, 0.f, 0.f);
+            float transferFloat;
+
+            if (AI_SUCCESS == currentMaterial->Get(AI_MATKEY_COLOR_AMBIENT, color)) {
+                newMaterial->setAmbientColor(GLMConverter::AssimpToGLM(color));
+            }
+
+            if (AI_SUCCESS == currentMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color)) {
+                newMaterial->setDiffuseColor(GLMConverter::AssimpToGLM(color));
+            }
+
+            if (AI_SUCCESS == currentMaterial->Get(AI_MATKEY_COLOR_SPECULAR, color)) {
+                newMaterial->setSpecularColor(GLMConverter::AssimpToGLM(color));
+            }
+
+            if (AI_SUCCESS == currentMaterial->Get(AI_MATKEY_SHININESS, transferFloat)) {
+                newMaterial->setSpecularExponent(transferFloat);
+            }
+
+            if ((currentMaterial->GetTextureCount(aiTextureType_AMBIENT) > 0)) {
+                if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_AMBIENT, 0, &property)) {
+                    newMaterial->setAmbientTexture(property.C_Str());
+                    std::cout << "loaded ambient texture " << property.C_Str() << std::endl;
+                } else {
+                    std::cerr << "The model contained ambient texture information, but texture loading failed. \n" <<
+                    "Texture path: [" << property.C_Str() << "]" << std::endl;
+                }
+            }
+            if ((currentMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0)) {
+                if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &property)) {
+                    newMaterial->setDiffuseTexture(property.C_Str());
+                    std::cout << "loaded diffuse texture " << property.C_Str() << std::endl;
+                } else {
+                    std::cerr << "The model contained diffuse texture information, but texture loading failed. \n" <<
+                    "Texture path: [" << property.C_Str() << "]" << std::endl;
+                }
+            }
+
+            if ((currentMaterial->GetTextureCount(aiTextureType_SPECULAR) > 0)) {
+                if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_SPECULAR, 0, &property)) {
+                    newMaterial->setSpecularTexture(property.C_Str());
+                    std::cout << "loaded specular texture " << property.C_Str() << std::endl;
+                } else {
+                    std::cerr << "The model contained specular texture information, but texture loading failed. \n" <<
+                    "Texture path: [" << property.C_Str() << "]" << std::endl;
+                }
+            }
+
+            materialMap[newMaterial->getName()] = newMaterial;
 
             glHelper->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3, ebo);
-            std::cout << "loaded texture " << texturePath.C_Str() << std::endl;
+            bufferObjects.push_back(vbo);
         }
-        else {
-            std::cerr << "The model contained texture information, but texture loading failed. \n" <<
-            "Texture path: [" << texturePath.C_Str() << "]" << std::endl;
-        }
-
     }
 
     aiVector3D min, max;
@@ -137,10 +182,26 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
     uniforms.push_back("cameraTransformMatrix");
     uniforms.push_back("worldTransformMatrix");
     uniforms.push_back("cameraPosition");
+    uniforms.push_back("ambientColor");
+    uniforms.push_back("specularStrength");
     renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/Box/vertex.shader", "./Data/Shaders/Box/fragment.shader",
                                     uniforms);
 
 
+}
+
+void Model::activateMaterial(const Material *material) {
+    GLuint location;
+    if (renderProgram->getUniformLocation("ambientColor", location)) {
+        glHelper->setUniform(renderProgram->getID(), location, material->getAmbientColor());
+    }
+
+    if (renderProgram->getUniformLocation("specularStrength", location)) {
+        glHelper->setUniform(renderProgram->getID(), location, material->getSpecularExponent());
+    }
+
+    glHelper->attachTexture(material->getDiffuseTexture()->getID());
+    //TODO we should support multi texture on one pass
 }
 
 void Model::render() {
@@ -153,13 +214,12 @@ void Model::render() {
             glHelper->setUniform(renderProgram->getID(), location, getWorldTransform());
             if (renderProgram->getUniformLocation("cameraPosition", location)) {
                 glHelper->setUniform(renderProgram->getID(), location, glHelper->getCameraPosition());
-                glHelper->attachTexture(texture->getID());
+                if (this->materialMap.begin() != this->materialMap.end()) {
+                    this->activateMaterial(materialMap.begin()->second);
+                }
                 glHelper->render(renderProgram->getID(), vao, ebo, faces.size() * 3);
             }
         }
     }
 
-    //uniform vec3 viewPosition;
-
-    //glHelper->render(0, vao, ebo, worldTransform, 24);
 }

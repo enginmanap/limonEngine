@@ -2,6 +2,9 @@
 
 uniform mat4 worldTransformMatrix;
 uniform mat4 cameraTransformMatrix;
+uniform vec3 cameraPosition;
+uniform vec3 ambientColor;
+uniform float specularStrength;
 
 layout (location = 2) in vec4 position;
 layout (location = 3) in vec2 textureCoordinate;
