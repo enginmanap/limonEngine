@@ -17,11 +17,15 @@ void main(void)
 
 		vec4 objectColor = texture(boxSampler, vs_fs_textureCoord);
 
+		//Ambient lighting
+        float ambientRate = 0.1f;
+
         // Diffuse Lighting
         vec3 lightDir = normalize(lightPos - vs_fs_fragPos);
         float diffuseRate = max(dot(vs_fs_normal, lightDir), 0.0);
-        vec3 diffuseColorFactor = diffuseRate * lightColor;
 
-        finalColor = vec4(diffuseColorFactor,1.0f) * objectColor;
+        vec3 lightingColorFactor = (diffuseRate + ambientRate) * lightColor;
+
+        finalColor = vec4(lightingColorFactor,1.0f) * objectColor;
 
 }
