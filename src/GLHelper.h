@@ -102,13 +102,6 @@ public:
 
     bool getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location);
 
-    //maybe this should be used by GLSLProgram, instead of model.
-    bool setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 &matrix);
-
-    bool setUniform(const GLuint programID, const GLuint uniformID, const glm::vec3 &vector);
-
-    bool setUniform(const GLuint programID, const GLuint uniformID, const float value);
-
     glm::mat4 getCameraMatrix() const { return cameraMatrix; };
 
     glm::vec3 getCameraPosition() const { return cameraPosition; };
@@ -123,6 +116,12 @@ public:
     void clearDepthBuffer() {
         glClear(GL_DEPTH_BUFFER_BIT);
     }
+
+    bool setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 &matrix);
+
+    bool setUniform(const GLuint programID, const GLuint uniformID, const glm::vec3 &vector);
+
+    bool setUniform(const GLuint programID, const GLuint uniformID, const float value);
 
 };
 

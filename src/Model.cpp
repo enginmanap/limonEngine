@@ -192,12 +192,12 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
 
 void Model::activateMaterial(const Material *material) {
     GLuint location;
-    if (renderProgram->getUniformLocation("ambientColor", location)) {
-        glHelper->setUniform(renderProgram->getID(), location, material->getAmbientColor());
+    if (!renderProgram->setUniform("ambientColor", material->getAmbientColor())) {
+        std::cerr << "Uniform \"ambientColor\" could not be set." << std::endl;
     }
 
-    if (renderProgram->getUniformLocation("specularStrength", location)) {
-        glHelper->setUniform(renderProgram->getID(), location, material->getSpecularExponent());
+    if (!renderProgram->setUniform("specularStrength", material->getSpecularExponent())) {
+        std::cerr << "Uniform \"specularStrength\" could not be set" << std::endl;
     }
 
     glHelper->attachTexture(material->getDiffuseTexture()->getID());
@@ -208,18 +208,23 @@ void Model::render() {
 
     glm::mat4 viewMatrix = glHelper->getProjectionMatrix() * glHelper->getCameraMatrix();
     GLuint location;
-    if (renderProgram->getUniformLocation("cameraTransformMatrix", location)) {
-        glHelper->setUniform(renderProgram->getID(), location, viewMatrix);
-        if (renderProgram->getUniformLocation("worldTransformMatrix", location)) {
-            glHelper->setUniform(renderProgram->getID(), location, getWorldTransform());
-            if (renderProgram->getUniformLocation("cameraPosition", location)) {
-                glHelper->setUniform(renderProgram->getID(), location, glHelper->getCameraPosition());
+    if (renderProgram->setUniform("cameraTransformMatrix", viewMatrix)) {
+        if (renderProgram->setUniform("worldTransformMatrix", getWorldTransform())) {
+            if (renderProgram->setUniform("cameraPosition", glHelper->getCameraPosition())) {
                 if (this->materialMap.begin() != this->materialMap.end()) {
                     this->activateMaterial(materialMap.begin()->second);
+                } else {
+                    std::cerr << "No material setup, passing rendering. " << std::endl;
                 }
                 glHelper->render(renderProgram->getID(), vao, ebo, faces.size() * 3);
+            } else {
+                std::cerr << "Uniform \"cameraPosition\" could not be set, passing rendering." << std::endl;
             }
+        } else {
+            std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
         }
+    } else {
+        std::cerr << "Uniform \"cameraTransformMatrix\" could not be set, passing rendering." << std::endl;
     }
 
 }

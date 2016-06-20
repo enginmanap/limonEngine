@@ -57,8 +57,9 @@ void SkyBox::render() {
     glHelper->attachCubeMap(cubeMap->getID());
     glm::mat4 viewMatrix = glHelper->getProjectionMatrix() * glm::mat4(glm::mat3(glHelper->getCameraMatrix()));
     GLuint location;
-    if (renderProgram->getUniformLocation("cameraTransformMatrix", location)) {
-        glHelper->setUniform(renderProgram->getID(), location, viewMatrix);
+    if (renderProgram->setUniform("cameraTransformMatrix", viewMatrix)) {
         glHelper->render(renderProgram->getID(), vao, ebo, 36);
+    } else {
+        std::cerr << "Uniform \"cameraTransformMatrix\" could not be set, passing rendering." << std::endl;
     }
 }

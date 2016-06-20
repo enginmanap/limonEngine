@@ -44,62 +44,63 @@ void GUIText::render() {
     float totalAdvance = 0.0f;
     glm::mat4 orthogonalPM = glHelper->getOrthogonalProjectionMatrix();
 
-    renderProgram->getUniformLocation("inColor", inColorLocation);
-    glHelper->setUniform(renderProgram->getID(), inColorLocation, color);
+    renderProgram->setUniform("inColor", color);
 
-    renderProgram->getUniformLocation("orthogonalProjectionMatrix", ortoProjLocation);
-    glHelper->setUniform(renderProgram->getID(), ortoProjLocation, orthogonalPM);
+
+    renderProgram->setUniform("orthogonalProjectionMatrix", orthogonalPM);
+
 
     glm::mat4 currentTransform;
-    if (renderProgram->getUniformLocation("worldTransformMatrix", worldTransformlocation)) {
 
-        float quadPositionX, quadPositionY, quadSizeX, quadSizeY;
-        const Glyph *glyph;
-        for (int i = 0; i < text.length(); ++i) {
-            glyph = face->getGlyph(text.at(i));
-            quadSizeX = glyph->getSize().x / 2.0f;
-            quadSizeY = glyph->getSize().y / 2.0f;
+    //Setup position
+    float quadPositionX, quadPositionY, quadSizeX, quadSizeY;
+    const Glyph *glyph;
+    for (int i = 0; i < text.length(); ++i) {
+        glyph = face->getGlyph(text.at(i));
+        quadSizeX = glyph->getSize().x / 2.0f;
+        quadSizeY = glyph->getSize().y / 2.0f;
 
-            quadPositionX = totalAdvance + glyph->getBearing().x + quadSizeX; //origin is left side
-            quadPositionY = glyph->getBearing().y - quadSizeY; // origin is the bottom line
+        quadPositionX = totalAdvance + glyph->getBearing().x + quadSizeX; //origin is left side
+        quadPositionY = glyph->getBearing().y - quadSizeY; // origin is the bottom line
 
 
-            /**
-             * the scale, translate and rotate functions apply the transition to first element, so the below code is
-             * scale to quadSizeX/Y * this->scale first,
-             * than translate to quadPositionX/Y - width/height* scale/2,
-             * than rotate using orientation,
-             * than translate to this->translate
-             *
-             * The double translate is because we want to rotate from center of the text.
-             */
-            if (isRotated) {
-                currentTransform = glm::scale(
-                        glm::translate(
-                                (glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation)),
-                                glm::vec3(quadPositionX, quadPositionY, 0) -
-                                glm::vec3(width * scale.x / 2.0f, height * scale.y / 2.0f, 0.0f)),
-                        this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
-                );
-            } else {
-                //this branch removes quaternion cast, so double translate is not necessary.
-                currentTransform = glm::scale(
-                        glm::translate(glm::mat4(1.0f), translate +
-                                                        glm::vec3(quadPositionX, quadPositionY, 0) -
-                                                        glm::vec3(width * scale.x / 2.0f, height * scale.y / 2.0f,
-                                                                  0.0f)),
-                        this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
-                );
-            }
-            if (!glHelper->setUniform(renderProgram->getID(), worldTransformlocation, currentTransform)) {
-                std::cerr << "failed to set uniform" << std::endl;
-            }
-            glHelper->attachTexture(glyph->getTextureID());
-            glHelper->render(renderProgram->getID(), vao, ebo, (const GLuint) (faces.size() * 3));
-
-            totalAdvance += glyph->getAdvance() / 64;
+        /**
+         * the scale, translate and rotate functions apply the transition to first element, so the below code is
+         * scale to quadSizeX/Y * this->scale first,
+         * than translate to quadPositionX/Y - width/height* scale/2,
+         * than rotate using orientation,
+         * than translate to this->translate
+         *
+         * The double translate is because we want to rotate from center of the text.
+         */
+        if (isRotated) {
+            currentTransform = glm::scale(
+                    glm::translate(
+                            (glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation)),
+                            glm::vec3(quadPositionX, quadPositionY, 0) -
+                            glm::vec3(width * scale.x / 2.0f, height * scale.y / 2.0f, 0.0f)),
+                    this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
+            );
+        } else {
+            //this branch removes quaternion cast, so double translate is not necessary.
+            currentTransform = glm::scale(
+                    glm::translate(glm::mat4(1.0f), translate +
+                                                    glm::vec3(quadPositionX, quadPositionY, 0) -
+                                                    glm::vec3(width * scale.x / 2.0f, height * scale.y / 2.0f,
+                                                              0.0f)),
+                    this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
+            );
         }
+
+        if (!renderProgram->setUniform("worldTransformMatrix", currentTransform)) {
+            std::cerr << "failed to set uniform" << std::endl;
+        }
+        glHelper->attachTexture(glyph->getTextureID());
+        glHelper->render(renderProgram->getID(), vao, ebo, (const GLuint) (faces.size() * 3));
+
+        totalAdvance += glyph->getAdvance() / 64;
     }
+
 }
 
 void GUIText::renderDebug() {

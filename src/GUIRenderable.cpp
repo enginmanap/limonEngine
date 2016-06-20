@@ -32,10 +32,13 @@ GUIRenderable::GUIRenderable(GLHelper *glHelper) : Renderable(glHelper) {
 
 void GUIRenderable::render() {
     GLuint location;
-    if (renderProgram->getUniformLocation("worldTransformMatrix", location)) {
-        glHelper->setUniform(renderProgram->getID(), location, getWorldTransform());
+    if (renderProgram->setUniform("worldTransformMatrix", getWorldTransform())) {
         glHelper->attachTexture(textureID);
         glHelper->render(renderProgram->getID(), vao, ebo, faces.size() * 3);
+    } else {
+        std::cerr << "Uniform \"cameraTransformMatrix\" could not be set, passing rendering of GUIRenderable" <<
+        std::endl;
+
     }
 }
 
