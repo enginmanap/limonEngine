@@ -98,7 +98,7 @@ GLuint GLHelper::createProgram(const std::vector<GLuint> &shaderList) {
 }
 
 
-GLuint GLHelper::initializeProgram(std::string vertexShaderFile, std::string fragmentShaderFile) {
+GLuint GLHelper::initializeProgram(std::string vertexShaderFile, std::string fragmentShaderFile, std::map<std::string, Uniform*> &uniformMap) {
     GLuint program;
     std::vector<GLuint> shaderList;
     checkErrors("before create shaders");
@@ -108,8 +108,52 @@ GLuint GLHelper::initializeProgram(std::string vertexShaderFile, std::string fra
 
     program = createProgram(shaderList);
     std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
+
+    fillUniformMap(program, uniformMap);
     checkErrors("initializeProgram");
     return program;
+}
+
+void GLHelper::fillUniformMap(const GLuint program, std::map<std::string, GLHelper::Uniform *> &uniformMap) const {
+    GLint i;
+    GLint count;
+
+    GLint size; // size of the variable
+    GLenum type; // type of the variable (float, vec3 or mat4, etc)
+
+    GLint maxLength;
+
+    glGetProgramiv(program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxLength);
+
+    GLchar name[maxLength]; // variable name in GLSL
+    GLsizei length; // name length
+
+    glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &count);
+    printf("Active Uniforms: %d\n", count);
+
+    VariableTypes variableType = UNDEFINED;
+    for (i = 0; i < count; i++)
+    {
+        glGetActiveUniform(program, (GLuint)i, maxLength, &length, &size, &type, name);
+
+        //std::cout << "Uniform "<< i << " Type: " << type << " Name: " << name << std::endl;
+
+        switch (type){
+            case GL_FLOAT: variableType = FLOAT;
+                break;
+            case GL_FLOAT_VEC2: variableType = FLOAT_VEC2;
+                break;
+            case GL_FLOAT_VEC3: variableType = FLOAT_VEC3;
+                break;
+            case GL_FLOAT_VEC4: variableType = FLOAT_VEC4;
+                break;
+            case GL_FLOAT_MAT4: variableType = FLOAT_MAT4;
+                break;
+            default:
+                variableType = UNDEFINED;
+        }
+        uniformMap[name] = new Uniform(i,name,variableType,size);
+    }
 }
 
 
@@ -456,8 +500,9 @@ bool GLHelper::getUniformLocation(const GLuint programID, const std::string &uni
 void GLHelper::drawLine(const glm::vec3 &from, const glm::vec3 &to,
                         const glm::vec3 &fromColor, const glm::vec3 &toColor, bool willTransform) {
     static GLuint program, viewTransformU, lineInfoU, vao, vbo;
+    static std::map<std::string, Uniform*> uniformMap;//FIXME That map will always be empty, maybe we should overload
     if (program == 0 || vbo == 0 || vao == 0) {
-        program = initializeProgram("./Data/Shaders/Line/vertex.shader", "./Data/Shaders/Line/fragment.shader");
+        program = initializeProgram("./Data/Shaders/Line/vertex.shader", "./Data/Shaders/Line/fragment.shader", uniformMap);
         lineInfoU = glGetUniformLocation(program, "lineInfo");
         viewTransformU = glGetUniformLocation(program, "cameraTransformMatrix");
         glUseProgram(program);

@@ -26,8 +26,29 @@
 #include <fstream>
 #include <streambuf>
 #include <iostream>
+#include <map>
 
 class GLHelper {
+public:
+    enum VariableTypes {
+        FLOAT,
+        FLOAT_VEC2,
+        FLOAT_VEC3,
+        FLOAT_VEC4,
+        FLOAT_MAT4,
+        UNDEFINED };
+
+    class Uniform{
+    public:
+        unsigned int location;
+        std::string name;
+        VariableTypes type;
+        unsigned int size;
+
+        Uniform(unsigned int location, const std::string &name, VariableTypes type, unsigned int size) : location(location), name(name), type(type), size(size) { }
+    };
+
+private:
     GLenum error;
 
     float aspect;
@@ -59,7 +80,7 @@ public:
 
     ~GLHelper();
 
-    GLuint initializeProgram(std::string vertexShaderFile, std::string fragmentShaderFile);
+    GLuint initializeProgram(std::string vertexShaderFile, std::string fragmentShaderFile, std::map<std::string, Uniform*>&);
 
     void bufferVertexData(const std::vector<glm::vec3> &vertices,
                           const std::vector<glm::mediump_uvec3> &faces,
@@ -123,6 +144,7 @@ public:
 
     bool setUniform(const GLuint programID, const GLuint uniformID, const float value);
 
+    void fillUniformMap(const GLuint program, std::map<std::string, Uniform *> &uniformMap) const;
 };
 
 #endif //UBERGAME_GLHELPER_H
