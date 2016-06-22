@@ -10,52 +10,57 @@
 #include <map>
 #include "GLHelper.h"
 
+
 class GLSLProgram {
+
+    enum VariableTypes {
+    FLOAT,
+    FLOAT_VEC2,
+    FLOAT_VEC3,
+    FLOAT_VEC4,
+    FLOAT_MAT4,
+    UNDEFINED };
+
+    class Uniform{
+    public:
+        unsigned int location;
+        std::string name;
+        VariableTypes type;
+        unsigned int size;
+
+        Uniform(unsigned int location, const std::string &name, VariableTypes type, unsigned int size) : location(location), name(name), type(type), size(size) { }
+    };
+
     GLHelper *glHelper;
     std::string vertexShader;
     std::string fragmentShader;
-    std::vector<std::string> uniforms;
+    std::map<std::string, Uniform*> uniformMap;
 
     GLuint programID;
-    std::map<std::string, GLuint> uniformLocations;
 
 public:
-    GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::string fragmentShader,
-                std::vector<std::string> uniforms);
+    GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::string fragmentShader);
 
 
     GLuint getID() const { return programID; }
 
-    //FIXME is this needed for anything?
-    /*
-    bool getUniformLocation(const std::string uniformName, GLuint &location) {
-        if (uniformLocations.count(uniformName)) {
-            location = uniformLocations[uniformName];
-            return true;
-        } else {
-            std::cerr << "requested uniform[" << uniformName << "] doesn't have a location." << std::endl;
-            return false;
-        }
-    }
-    */
-
     bool setUniform(const std::string uniformName, const glm::mat4 &matrix) {
-        if (uniformLocations.count(uniformName)) {
-            return glHelper->setUniform(programID, uniformLocations[uniformName], matrix);
+        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == FLOAT_MAT4) {
+            return glHelper->setUniform(programID, uniformMap[uniformName]->location, matrix);
         }
         return false;
     }
 
     bool setUniform(const std::string uniformName, const glm::vec3 &vector) {
-        if (uniformLocations.count(uniformName)) {
-            return glHelper->setUniform(programID, uniformLocations[uniformName], vector);
+        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == FLOAT_VEC3) {
+            return glHelper->setUniform(programID, uniformMap[uniformName]->location, vector);
         }
         return false;
     }
 
     bool setUniform(const std::string uniformName, const float value) {
-        if (uniformLocations.count(uniformName)) {
-            return glHelper->setUniform(programID, uniformLocations[uniformName], value);
+        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == FLOAT) {
+            return glHelper->setUniform(programID, uniformMap[uniformName]->location, value);
         }
         return false;
     }

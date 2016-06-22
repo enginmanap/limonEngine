@@ -179,13 +179,7 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
     worldTransform = glm::mat4(1.0f);
 
     //set up the program to render object
-    uniforms.push_back("cameraTransformMatrix");
-    uniforms.push_back("worldTransformMatrix");
-    uniforms.push_back("cameraPosition");
-    uniforms.push_back("ambientColor");
-    uniforms.push_back("specularStrength");
-    renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/Box/vertex.shader", "./Data/Shaders/Box/fragment.shader",
-                                    uniforms);
+    renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/Box/vertex.shader", "./Data/Shaders/Box/fragment.shader");
 
 
 }

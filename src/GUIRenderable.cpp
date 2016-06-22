@@ -23,11 +23,7 @@ GUIRenderable::GUIRenderable(GLHelper *glHelper) : Renderable(glHelper) {
     textureCoordinates.push_back(glm::vec2(0.0f, 0.0f));
     glHelper->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3, ebo);
 
-    uniforms.push_back("worldTransformMatrix");
-    uniforms.push_back("orthogonalProjectionMatrix");
-    uniforms.push_back("inColor");
-    renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/GUI/vertex.shader", "./Data/Shaders/GUI/fragment.shader",
-                                    uniforms);
+    renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/GUI/vertex.shader", "./Data/Shaders/GUI/fragment.shader");
 }
 
 void GUIRenderable::render() {

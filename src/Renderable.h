@@ -17,7 +17,6 @@ protected:
     std::vector<GLuint> bufferObjects;
     GLuint vao, ebo;
     GLSLProgram *renderProgram;
-    std::vector<std::string> uniforms;
     glm::mat4 worldTransform, oldWorldTransform;
     glm::vec3 scale, translate;
     glm::quat orientation;

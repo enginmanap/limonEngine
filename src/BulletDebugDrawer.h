@@ -14,14 +14,12 @@
 class BulletDebugDrawer : public btIDebugDraw {
     DebugDrawModes currentMode;
     GLHelper *glHelper;
-    std::vector<std::string> uniforms;
     GLSLProgram *renderProgram;
     GLuint vao, vbo, ebo;
 public:
     BulletDebugDrawer(GLHelper *glHelper) : glHelper(glHelper), vao(0), vbo(0), ebo(0) {
-        uniforms.push_back("cameraTransformMatrix");
         renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/Line/vertex.shader",
-                                        "./Data/Shaders/Line/fragment.shader", uniforms);
+                                        "./Data/Shaders/Line/fragment.shader");
     }
 
     void drawLine(const btVector3 &from, const btVector3 &to, const btVector3 &fromColor, const btVector3 &toColor);

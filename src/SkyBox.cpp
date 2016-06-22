@@ -48,9 +48,8 @@ SkyBox::SkyBox(GLHelper *glHelper, std::string path, std::string right, std::str
     glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
     bufferObjects.push_back(vbo);
 
-    uniforms.push_back("cameraTransformMatrix");
     renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/SkyCube/vertex.shader",
-                                    "./Data/Shaders/SkyCube/fragment.shader", uniforms);
+                                    "./Data/Shaders/SkyCube/fragment.shader");
 }
 
 void SkyBox::render() {
