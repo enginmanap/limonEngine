@@ -21,7 +21,8 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     dynamicsWorld->setDebugDrawer(debugDrawer);
     //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
     dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
-
+    GUILayer *layer1 = new GUILayer(glHelper, 1);
+    layer1->setDebug(false);
     // end of physics init
 
     rigidBodies.push_back(camera.getRigidBody());
@@ -84,8 +85,6 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
                      std::string("front.jpg")
     );
 
-    GUILayer *layer1 = new GUILayer(glHelper, 1);
-    layer1->setDebug(true);
     GUIText *tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 128), "Uber Game",
                               glm::vec3(0, 0, 0));
     //tr->setScale(0.25f,0.25f);
