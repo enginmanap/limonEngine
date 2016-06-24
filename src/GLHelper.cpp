@@ -3,7 +3,6 @@
 //
 
 #include "GLHelper.h"
-#include "GLSLProgram.h"
 
 
 GLuint GLHelper::createShader(GLenum eShaderType, const std::string &strShaderFile) {
@@ -129,7 +128,7 @@ void GLHelper::fillUniformMap(const GLuint program, std::map<std::string, GLHelp
     GLsizei length; // name length
 
     glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &count);
-    printf("Active Uniforms: %d\n", count);
+    std::cout << "Active Uniforms:" << count << std::endl;
 
     VariableTypes variableType = UNDEFINED;
     for (i = 0; i < count; i++)

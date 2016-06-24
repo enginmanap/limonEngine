@@ -29,8 +29,7 @@ Face *FontManager::getFont(const std::string fontPath, const int size) {
         fonts[fontPath + std::to_string(size)] = new Face(glHelper, fontPath, size, face);
         FT_Set_Pixel_Sizes(face, 0, size);
         //now we should calculate what we have
-        std::cout << "for size " << size << " bb " << face->bbox.xMax - face->bbox.xMin << "," <<
-        face->bbox.yMax - face->bbox.yMin << std::endl;
+
 
         unsigned int w = 0;
         unsigned int h = 0;
