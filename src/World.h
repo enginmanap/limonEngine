@@ -29,6 +29,7 @@ class World {
     FontManager fontManager;
     Camera camera;
     BulletDebugDrawer *debugDrawer;
+    Light *light;
 
     btDiscreteDynamicsWorld *dynamicsWorld;
     std::vector<btRigidBody *> rigidBodies;

@@ -7,6 +7,7 @@
 
 
 #include "glm/glm.hpp"
+#include "GLSLProgram.h"
 
 class Light {
     enum LightTypes {
@@ -16,6 +17,15 @@ class Light {
     glm::vec3 position, color;
     LightTypes lightType;
 
+public:
+    Light(const glm::vec3 &position, const glm::vec3 &color) : position(position), color(color) { }
+
+    bool setLightToProgram(GLSLProgram *program) {
+        if (!program->setUniform("light.position", position))
+            std::cerr << "light position could not be set " << std::endl;
+        if (!program->setUniform("light.color", color))
+            std::cerr << "light color could not be set " << std::endl;
+    }
 };
 
 

@@ -4,7 +4,7 @@
 
 #include "GUIFPSCounter.h"
 
-void GUIFPSCounter::render() {
+void GUIFPSCounter::render(Light *light) {
     currentTime = SDL_GetTicks();
     Uint32 newFrameTime = currentTime - lastRenderTime;
     lastFrameTime += newFrameTime - previousFrameTimes[framePointer];
@@ -14,5 +14,5 @@ void GUIFPSCounter::render() {
 
     int normalizedFrameRate = (unsigned int) (1000.0f / (lastFrameTime / 100.0f));
     this->text = std::to_string(normalizedFrameRate);
-    GUIText::render();
+    GUIText::render(light);
 }

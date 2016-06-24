@@ -85,6 +85,9 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
                      std::string("front.jpg")
     );
 
+    light = new Light(glm::vec3(-15.0f, 50.0f, -25.0f),
+                      glm::vec3(1.0f, 1.0f, 1.0f));
+
     GUIText *tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 128), "Uber Game",
                               glm::vec3(0, 0, 0));
     //tr->setScale(0.25f,0.25f);
@@ -94,7 +97,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 32), "Version 0.1",
                      glm::vec3(255, 255, 255));
     //tr->setScale(0.25f,0.25f);
-    tr->set2dWorldTransform(glm::vec2(1024 - 50, 100), -3.14f / 2);
+    tr->set2dWorldTransform(glm::vec2(1024 - 50, 100), -3.14159265358979323846f / 2);
     layer1->addGuiElement(tr);
 
 
@@ -172,16 +175,16 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 void World::render() {
     glHelper->setCamera(camera.getPosition(), camera.getCameraMatrix());
     for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
-        (*it)->render();
+        (*it)->render(light);
     }
     dynamicsWorld->debugDrawWorld();
-    sky->render();
+    sky->render(NULL);
 
     //since gui uses blending, everything must be already rendered.
     // Also, since gui elements only depth test each other, clear depth buffer
     glHelper->clearDepthBuffer();
     for (std::vector<GUILayer *>::iterator it = guiLayers.begin(); it != guiLayers.end(); ++it) {
-        (*it)->render();
+        (*it)->render(NULL);
     }
     //debugDrawer->drawLine(btVector3(0,0,-3),btVector3(0,250,-3),btVector3(1,1,1));
 }
@@ -196,6 +199,8 @@ World::~World() {
     for (std::vector<btRigidBody *>::iterator it = rigidBodies.begin(); it != rigidBodies.end(); ++it) {
         dynamicsWorld->removeRigidBody((*it));
     }
+
+    delete light;
 
     delete dynamicsWorld;
     delete solver;

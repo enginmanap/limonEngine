@@ -26,7 +26,7 @@ GUIRenderable::GUIRenderable(GLHelper *glHelper) : Renderable(glHelper) {
     renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/GUI/vertex.shader", "./Data/Shaders/GUI/fragment.shader");
 }
 
-void GUIRenderable::render() {
+void GUIRenderable::render(Light *light) {
     GLuint location;
     if (renderProgram->setUniform("worldTransformMatrix", getWorldTransform())) {
         glHelper->attachTexture(textureID);

@@ -39,7 +39,7 @@ public:
 
     void activateMaterial(const Material *material);
 
-    void render();
+    void render(Light *light);
 
 
     //TODO we need to free the texture. Destructor needed.

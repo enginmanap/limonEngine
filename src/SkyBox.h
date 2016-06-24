@@ -22,7 +22,7 @@ public:
            std::string top, std::string down,
            std::string back, std::string front);
 
-    void render();
+    void render(Light *light);
 
     ~SkyBox() {
         delete cubeMap;

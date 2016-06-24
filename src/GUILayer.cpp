@@ -4,9 +4,9 @@
 
 #include "GUILayer.h"
 
-void GUILayer::render() {
+void GUILayer::render(Light *light) {
     for (std::vector<GUIRenderable *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
-        (*it)->render();
+        (*it)->render(light);
     }
     if (isDebug) {
         for (std::vector<GUIRenderable *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {

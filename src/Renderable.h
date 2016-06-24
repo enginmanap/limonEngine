@@ -10,6 +10,7 @@
 #include "GLSLProgram.h"
 #include <btBulletDynamicsCommon.h>
 #include "glm/gtx/matrix_decompose.hpp"
+#include "Light.h"
 
 class Renderable {
 protected:
@@ -54,7 +55,8 @@ public:
         return worldTransform;
     }
 
-    virtual void render() = 0;
+    //FIXME Do we really need to pass light on all cases?
+    virtual void render(Light *light) = 0;
 
     //FIXME this should be removed
     void setWorldTransform(const glm::mat4 &transformMatrix);

@@ -31,7 +31,7 @@ public:
         guiElements.push_back(guiElement);
     }
 
-    void render();
+    void render(Light *light);
 };
 
 

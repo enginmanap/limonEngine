@@ -31,7 +31,7 @@ public:
         std::cerr << "Text update on GUIFPSCounter class is invalid operation." << std::endl;
     }
 
-    void render();
+    void render(Light *light);
 
 };
 
