@@ -6,6 +6,7 @@
 #define UBERGAME_TEXTRENDERER_H
 
 #include <iostream>
+
 #include "GLHelper.h"
 #include "GUIRenderable.h"
 #include "FontManager.h"

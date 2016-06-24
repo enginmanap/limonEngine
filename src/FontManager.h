@@ -17,8 +17,8 @@
 
 class Glyph {
     GLuint textureID;
-    glm::mediump_vec2 size;
-    glm::mediump_vec2 bearing;
+    glm::mediump_ivec2 size;
+    glm::mediump_ivec2 bearing;
     GLuint advance;
 public:
     Glyph(GLHelper *glHelper, FT_Face face, const int size, const char character) :
@@ -30,8 +30,8 @@ public:
         } else {
             textureID = glHelper->loadTexture(face->glyph->bitmap.rows, face->glyph->bitmap.width, GL_RED,
                                               face->glyph->bitmap.buffer);
-            this->size = glm::mediump_vec2(face->glyph->bitmap.width, face->glyph->bitmap.rows);
-            bearing = glm::mediump_vec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
+            this->size = glm::mediump_ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows);
+            bearing = glm::mediump_ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
             advance = face->glyph->advance.x;
             /**
             std::cout << "Glyph load success. Information:" << std::endl
@@ -46,9 +46,9 @@ public:
 
     GLuint getTextureID() const { return textureID; }
 
-    const glm::mediump_vec2 &getSize() const { return size; }
+    const glm::mediump_ivec2 &getSize() const { return size; }
 
-    const glm::mediump_vec2 &getBearing() const { return bearing; }
+    const glm::mediump_ivec2 &getBearing() const { return bearing; }
 
     GLuint getAdvance() const { return advance; }
 };

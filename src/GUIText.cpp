@@ -18,12 +18,8 @@ GUIText::GUIText(GLHelper *glHelper, Face *face, const std::string text, const g
             width = glyph->getBearing().x;
         }
         width += (glyph->getAdvance() / 64);
-        if (up < glyph->getBearing().y) {
-            up = glyph->getBearing().y;
-        }
-        if (bearingUp < glyph->getSize().y - glyph->getBearing().y) {
-            bearingUp = glyph->getSize().y - glyph->getBearing().y;
-        }
+        up = std::max(up, glyph->getBearing().y);
+        bearingUp = std::max(bearingUp, glyph->getSize().y - glyph->getBearing().y + 1);
     }
     /**
      * Last characters advance is not used, size is used instead
