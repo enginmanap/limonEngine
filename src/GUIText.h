@@ -27,7 +27,7 @@ public:
         this->text = text;
     }
 
-    virtual void render(Light *light);
+    virtual void render();
 
     void renderDebug();
 };

@@ -33,7 +33,7 @@ public:
         scale.y *= height;
     }
 
-    virtual void render(Light *light);
+    virtual void render();
 
     virtual void renderDebug();
 

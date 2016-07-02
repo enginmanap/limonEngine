@@ -52,7 +52,7 @@ SkyBox::SkyBox(GLHelper *glHelper, std::string path, std::string right, std::str
                                     "./Data/Shaders/SkyCube/fragment.shader");
 }
 
-void SkyBox::render(Light *light) {
+void SkyBox::render() {
     glHelper->attachCubeMap(cubeMap->getID());
     glm::mat4 viewMatrix = glHelper->getProjectionMatrix() * glm::mat4(glm::mat3(glHelper->getCameraMatrix()));
     GLuint location;

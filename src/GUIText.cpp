@@ -31,10 +31,10 @@ GUIText::GUIText(GLHelper *glHelper, Face *face, const std::string text, const g
 
     height = up + bearingUp;
 
-    //std::cout << "for " << text << " up: " << up << ", down: " << bearingUp << ", width: " << width << std::endl;
+    std::cout << "for " << text << " up: " << up << ", down: " << bearingUp << ", width: " << width << std::endl;
 }
 
-void GUIText::render(Light *light) {
+void GUIText::render() {
     GLuint worldTransformlocation, ortoProjLocation, inColorLocation;
 
     float totalAdvance = 0.0f;

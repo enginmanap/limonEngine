@@ -136,6 +136,14 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
     aiVector3D min, max;
     AssimpUtils::get_bounding_box(scene, &min, &max);
 
+
+    std::cout << "bounding box of the model is " << "(" << max.x << "," <<
+    max.y << "," <<
+    max.z << ")" << ", " <<
+    "(" << min.x << "," <<
+    min.y << "," <<
+    min.z << ")" << std::endl;
+
     //set up the rigid body
 
     btConvexTriangleMeshShape *convexShape = new btConvexTriangleMeshShape(bulletMesh);
@@ -190,9 +198,7 @@ void Model::activateMaterial(const Material *material) {
     //TODO we should support multi texture on one pass
 }
 
-void Model::render(Light *light) {
-
-    light->setLightToProgram(renderProgram);
+void Model::render() {
 
     glm::mat4 viewMatrix = glHelper->getProjectionMatrix() * glHelper->getCameraMatrix();
     GLuint location;
