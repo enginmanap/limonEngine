@@ -64,7 +64,7 @@ private:
     GLuint playerUBOLocation;
 
     glm::mat4 cameraMatrix;
-    glm::mat4 projectionMatrix;
+    glm::mat4 perspectiveProjectionMatrix;
     glm::mat4 orthogonalProjectionMatrix;
 
     bool checkErrors(std::string callerFunc);
@@ -137,7 +137,7 @@ public:
 
     glm::vec3 getCameraPosition() const { return cameraPosition; };
 
-    glm::mat4 getProjectionMatrix() const { return projectionMatrix; };
+    glm::mat4 getProjectionMatrix() const { return perspectiveProjectionMatrix; };
 
     glm::mat4 getOrthogonalProjectionMatrix() const { return orthogonalProjectionMatrix; }
 

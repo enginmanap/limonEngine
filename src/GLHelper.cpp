@@ -461,7 +461,7 @@ GLHelper::~GLHelper() {
 void GLHelper::reshape(int height, int width) {
     glViewport(0, 0, width, height);
     aspect = float(height) / float(width);
-    projectionMatrix = glm::frustum(-1.0f, 1.0f, -aspect, aspect, 1.0f, 100.0f);
+    perspectiveProjectionMatrix = glm::perspective(45.0f, 1.0f / aspect, 0.1f, 100.0f);
     orthogonalProjectionMatrix = glm::ortho(0.0f, (float) width, 0.0f, (float) height);
     checkErrors("reshape");
 }
@@ -597,8 +597,8 @@ void GLHelper::setLight(const Light &light, const int i) {
 void GLHelper::setPlayerMatrices() {
     glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
     glBufferSubData(GL_UNIFORM_BUFFER, 0 * sizeof(glm::mat4), sizeof(glm::mat4), &cameraMatrix);
-    glBufferSubData(GL_UNIFORM_BUFFER, 1 * sizeof(glm::mat4), sizeof(glm::mat4), &projectionMatrix);
-    glm::mat4 viewMatrix = projectionMatrix * cameraMatrix;
+    glBufferSubData(GL_UNIFORM_BUFFER, 1 * sizeof(glm::mat4), sizeof(glm::mat4), &perspectiveProjectionMatrix);
+    glm::mat4 viewMatrix = perspectiveProjectionMatrix * cameraMatrix;
     glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), sizeof(glm::mat4), &viewMatrix);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
