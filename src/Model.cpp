@@ -200,8 +200,6 @@ void Model::activateMaterial(const Material *material) {
 }
 
 void Model::render() {
-
-    GLuint location;
     if (renderProgram->setUniform("worldTransformMatrix", getWorldTransform())) {
         if (renderProgram->setUniform("cameraPosition", glHelper->getCameraPosition())) {
             if (this->materialMap.begin() != this->materialMap.end()) {
