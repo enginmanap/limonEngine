@@ -1,23 +1,22 @@
 #version 330
 
-uniform mat4 worldTransformMatrix;
-uniform mat4 cameraTransformMatrix;
-uniform vec3 cameraPosition;
-uniform vec3 ambientColor;
-uniform float specularStrength;
-
 layout (location = 2) in vec4 position;
 layout (location = 3) in vec2 textureCoordinate;
 layout (location = 4) in vec3 normal;
 
-out vec2 vs_fs_textureCoord;
-out vec3 vs_fs_normal;
-out vec3 vs_fs_fragPos;
+out VS_FS {
+    vec2 textureCoord;
+    vec3 normal;
+    vec3 fragPos;
+} to_fs;
+
+uniform mat4 worldTransformMatrix;
+uniform mat4 cameraTransformMatrix;
 
 void main(void)
 {
-    vs_fs_textureCoord = textureCoordinate;
-    vs_fs_normal = normalize(mat3(transpose(inverse(worldTransformMatrix))) * normal);
-    vs_fs_fragPos = vec3(worldTransformMatrix * position);
+    to_fs.textureCoord = textureCoordinate;
+    to_fs.normal = normalize(mat3(transpose(inverse(worldTransformMatrix))) * normal);
+    to_fs.fragPos = vec3(worldTransformMatrix * position);
     gl_Position = cameraTransformMatrix * (worldTransformMatrix * position);
 }

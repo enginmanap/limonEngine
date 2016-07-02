@@ -14,9 +14,15 @@ struct LightSource
 		vec3 lightColor;
 };
 
+in VS_FS {
+    vec2 textureCoord;
+    vec3 normal;
+    vec3 fragPos;
+} from_vs;
+
+out vec4 finalColor;
 
 uniform Material material;
-
 uniform sampler2D boxSampler;
 uniform vec3 cameraPosition;
 
@@ -25,24 +31,22 @@ layout (std140) uniform LightSourceBlock
     LightSource lights[NR_POINT_LIGHTS];
 } LightSources;
 
-in vec2 vs_fs_textureCoord;
-in vec3 vs_fs_normal;
-in vec3 vs_fs_fragPos;
-out vec4 finalColor;
+
+
 
 
 void main(void)
 {
-		vec4 objectColor = texture(boxSampler, vs_fs_textureCoord);
+		vec4 objectColor = texture(boxSampler, from_vs.textureCoord);
 		vec3 lightingColorFactor = vec3(0,0,0);
         for(int i=0; i < NR_POINT_LIGHTS; ++i){
             // Diffuse Lighting
-            vec3 lightDirectory = normalize(LightSources.lights[i].lightPos - vs_fs_fragPos);
-            float diffuseRate = max(dot(vs_fs_normal, lightDirectory), 0.0);
+            vec3 lightDirectory = normalize(LightSources.lights[i].lightPos - from_vs.fragPos);
+            float diffuseRate = max(dot(from_vs.normal, lightDirectory), 0.0);
 
             // Specular
-            vec3 viewDirectory = normalize(cameraPosition - vs_fs_fragPos);
-            vec3 reflectDirectory = reflect(-lightDirectory, vs_fs_normal);
+            vec3 viewDirectory = normalize(cameraPosition - from_vs.fragPos);
+            vec3 reflectDirectory = reflect(-lightDirectory, from_vs.normal);
             float specularRate = pow(max(dot(viewDirectory, reflectDirectory), 0.0), 32);
             specularRate = material.shininess * specularRate;//same variable as above
 
