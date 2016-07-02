@@ -179,7 +179,8 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
     worldTransform = glm::mat4(1.0f);
 
     //set up the program to render object
-    renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/Box/vertex.shader", "./Data/Shaders/Box/fragment.shader");
+    renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertex.shader",
+                                    "./Data/Shaders/Model/fragment.shader");
 
 
 }
