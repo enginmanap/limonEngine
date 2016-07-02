@@ -54,9 +54,10 @@ SkyBox::SkyBox(GLHelper *glHelper, std::string path, std::string right, std::str
 
 void SkyBox::render() {
     glHelper->attachCubeMap(cubeMap->getID());
+    //this is because we want to remove translate component from cameraMatrix.
     glm::mat4 viewMatrix = glHelper->getProjectionMatrix() * glm::mat4(glm::mat3(glHelper->getCameraMatrix()));
     if (renderProgram->setUniform("cameraTransformMatrix", viewMatrix)) {
-        glHelper->render(renderProgram->getID(), vao, ebo, 36);
+        glHelper->render(renderProgram->getID(), vao, ebo, faces.size() * 3);
     } else {
         std::cerr << "Uniform \"cameraTransformMatrix\" could not be set, passing rendering." << std::endl;
     }
