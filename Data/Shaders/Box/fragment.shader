@@ -2,10 +2,11 @@
 
 #define NR_POINT_LIGHTS 4
 
-uniform sampler2D boxSampler;
-uniform vec3 cameraPosition;
-uniform vec3 ambientColor;
-uniform float specularStrength;
+struct Material {
+    vec3 ambient;
+    vec3 specular;//currently not used. Should be a map
+    float shininess;
+};
 
 struct LightSource
 {
@@ -13,11 +14,16 @@ struct LightSource
 		vec3 lightColor;
 };
 
+
+uniform Material material;
+
+uniform sampler2D boxSampler;
+uniform vec3 cameraPosition;
+
 layout (std140) uniform LightSourceBlock
 {
     LightSource lights[NR_POINT_LIGHTS];
 } LightSources;
-
 
 in vec2 vs_fs_textureCoord;
 in vec3 vs_fs_normal;
@@ -38,9 +44,9 @@ void main(void)
             vec3 viewDirectory = normalize(cameraPosition - vs_fs_fragPos);
             vec3 reflectDirectory = reflect(-lightDirectory, vs_fs_normal);
             float specularRate = pow(max(dot(viewDirectory, reflectDirectory), 0.0), 32);
-            specularRate = specularStrength * specularRate;//same variable as above
+            specularRate = material.shininess * specularRate;//same variable as above
 
-            lightingColorFactor += ambientColor + (diffuseRate + specularRate) * LightSources.lights[i].lightColor;
+            lightingColorFactor += material.ambient + (diffuseRate + specularRate) * LightSources.lights[i].lightColor;
         }
 
         finalColor = vec4(lightingColorFactor,1.0f) * objectColor;

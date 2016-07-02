@@ -186,12 +186,12 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
 
 void Model::activateMaterial(const Material *material) {
     GLuint location;
-    if (!renderProgram->setUniform("ambientColor", material->getAmbientColor())) {
-        std::cerr << "Uniform \"ambientColor\" could not be set." << std::endl;
+    if (!renderProgram->setUniform("material.ambient", material->getAmbientColor())) {
+        std::cerr << "Uniform \"material.ambient\" could not be set." << std::endl;
     }
 
-    if (!renderProgram->setUniform("specularStrength", material->getSpecularExponent())) {
-        std::cerr << "Uniform \"specularStrength\" could not be set" << std::endl;
+    if (!renderProgram->setUniform("material.shininess", material->getSpecularExponent())) {
+        std::cerr << "Uniform \"material.shininess\" could not be set" << std::endl;
     }
 
     glHelper->attachTexture(material->getDiffuseTexture()->getID());
