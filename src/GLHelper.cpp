@@ -160,10 +160,19 @@ void GLHelper::fillUniformMap(const GLuint program, std::map<std::string, GLHelp
 void GLHelper::attachUBOs(const GLuint program) const {//Attach the light block to our UBO
     int uniformIndex = glGetUniformBlockIndex(program, "LightSourceBlock");
     if (uniformIndex >= 0) {
-        glBindBuffer(GL_UNIFORM_BUFFER, LightUBOLocation);
+        glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
         glUniformBlockBinding(program, uniformIndex, 0);
-        glBindBufferRange(GL_UNIFORM_BUFFER, uniformIndex, LightUBOLocation, 0,
+        glBindBufferRange(GL_UNIFORM_BUFFER, 0, lightUBOLocation, 0,
                           2 * sizeof(glm::vec4) * NR_POINT_LIGHTS);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
+
+    int uniformIndex2 = glGetUniformBlockIndex(program, "PlayerTransformBlock");
+    if (uniformIndex2 >= 0) {
+        glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
+        glUniformBlockBinding(program, uniformIndex2, 1);
+        glBindBufferRange(GL_UNIFORM_BUFFER, 1, playerUBOLocation, 0,
+                          3 * sizeof(glm::mat4));
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
@@ -216,12 +225,19 @@ GLHelper::GLHelper() {
 
 
 
-    //create the Uniform Buffer Object for later usage
-    glGenBuffers(1, &LightUBOLocation);
+    //create the Light Uniform Buffer Object for later usage
+    glGenBuffers(1, &lightUBOLocation);
 
-    glBindBuffer(GL_UNIFORM_BUFFER, LightUBOLocation);
+    glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
     glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::vec4) * NR_POINT_LIGHTS, NULL, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    //create player transforms uniform buffer object
+    glGenBuffers(1, &playerUBOLocation);
+    glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
+    glBufferData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
 
     checkErrors("Constructor");
 }
@@ -436,6 +452,9 @@ GLHelper::~GLHelper() {
     for (int i = 0; i < bufferObjects.size(); ++i) {
         deleteBuffer(1, bufferObjects[i]);
     }
+
+    deleteBuffer(1, lightUBOLocation);
+    deleteBuffer(1, playerUBOLocation);
     glUseProgram(0);
 }
 
@@ -568,17 +587,18 @@ void GLHelper::drawLine(const glm::vec3 &from, const glm::vec3 &to,
 
 void GLHelper::setLight(const Light &light, const int i) {
 
-    glBindBuffer(GL_UNIFORM_BUFFER, LightUBOLocation);
+    glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
     glBufferSubData(GL_UNIFORM_BUFFER, (2 * i) * sizeof(glm::vec4), sizeof(glm::vec3), &light.getPosition());
     glBufferSubData(GL_UNIFORM_BUFFER, ((2 * i) + 1) * sizeof(glm::vec4), sizeof(glm::vec3), &light.getColor());
 
-
-    glBindBuffer(GL_UNIFORM_BUFFER, LightUBOLocation);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-
-
-
-
-
-
+void GLHelper::setPlayerMatrices() {
+    glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0 * sizeof(glm::mat4), sizeof(glm::mat4), &cameraMatrix);
+    glBufferSubData(GL_UNIFORM_BUFFER, 1 * sizeof(glm::mat4), sizeof(glm::mat4), &projectionMatrix);
+    glm::mat4 viewMatrix = projectionMatrix * cameraMatrix;
+    glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), sizeof(glm::mat4), &viewMatrix);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}

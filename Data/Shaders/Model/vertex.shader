@@ -10,13 +10,19 @@ out VS_FS {
     vec3 fragPos;
 } to_fs;
 
+layout (std140) uniform PlayerTransformBlock {
+    mat4 camera;
+    mat4 projection;
+    mat4 cameraProjection;
+} playerTransforms;
+
+
 uniform mat4 worldTransformMatrix;
-uniform mat4 cameraTransformMatrix;
 
 void main(void)
 {
     to_fs.textureCoord = textureCoordinate;
     to_fs.normal = normalize(mat3(transpose(inverse(worldTransformMatrix))) * normal);
     to_fs.fragPos = vec3(worldTransformMatrix * position);
-    gl_Position = cameraTransformMatrix * (worldTransformMatrix * position);
+    gl_Position = playerTransforms.cameraProjection * (worldTransformMatrix * position);
 }

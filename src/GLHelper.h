@@ -60,7 +60,8 @@ private:
 
 
     glm::vec3 cameraPosition;
-    GLuint LightUBOLocation;
+    GLuint lightUBOLocation;
+    GLuint playerUBOLocation;
 
     glm::mat4 cameraMatrix;
     glm::mat4 projectionMatrix;
@@ -79,6 +80,10 @@ private:
     GLuint generateVAO(const GLuint number);
 
     bool deleteVAO(const GLuint number, const GLuint bufferID);
+
+    void fillUniformMap(const GLuint program, std::map<std::string, Uniform *> &uniformMap) const;
+
+    void attachUBOs(const GLuint program) const;
 
 public:
     GLHelper();
@@ -149,11 +154,10 @@ public:
 
     bool setUniform(const GLuint programID, const GLuint uniformID, const float value);
 
-    void fillUniformMap(const GLuint program, std::map<std::string, Uniform *> &uniformMap) const;
-
     void setLight(const Light &light, const int i);
 
-    void attachUBOs(const GLuint program) const;
+    void setPlayerMatrices();
+
 };
 
 #endif //UBERGAME_GLHELPER_H

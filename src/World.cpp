@@ -185,6 +185,9 @@ void World::render() {
     }
 
     glHelper->setCamera(camera.getPosition(), camera.getCameraMatrix());
+    glHelper->setPlayerMatrices();
+
+
     for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
         (*it)->render();
     }
