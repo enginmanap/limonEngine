@@ -8,6 +8,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "Light.h"
 
 #include <GL/glew.h>
 
@@ -18,6 +19,8 @@
 #  include <GL/gl.h>
 
 #endif/*__APPLE__*/
+
+#define NR_POINT_LIGHTS 4
 
 #include <string>
 #include <algorithm>
@@ -55,7 +58,9 @@ private:
     std::vector<GLuint> bufferObjects;
     std::vector<GLuint> vertexArrays;
 
+
     glm::vec3 cameraPosition;
+    GLuint LightUBOLocation;
 
     glm::mat4 cameraMatrix;
     glm::mat4 projectionMatrix;
@@ -145,6 +150,10 @@ public:
     bool setUniform(const GLuint programID, const GLuint uniformID, const float value);
 
     void fillUniformMap(const GLuint program, std::map<std::string, Uniform *> &uniformMap) const;
+
+    void setLight(const Light &light, const int i);
+
+    void attachUBOs(const GLuint program) const;
 };
 
 #endif //UBERGAME_GLHELPER_H

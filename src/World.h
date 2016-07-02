@@ -20,9 +20,11 @@
 #include <btBulletDynamicsCommon.h>
 #include "GUIText.h"
 #include "GUIFPSCounter.h"
+#include "Light.h"
 
 class World {
     std::vector<PhysicalRenderable *> objects;
+    std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
     SkyBox *sky;
     GLHelper *glHelper;

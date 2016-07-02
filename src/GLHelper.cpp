@@ -109,6 +109,8 @@ GLuint GLHelper::initializeProgram(std::string vertexShaderFile, std::string fra
     std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
 
     fillUniformMap(program, uniformMap);
+    attachUBOs(program);
+
     checkErrors("initializeProgram");
     return program;
 }
@@ -128,14 +130,14 @@ void GLHelper::fillUniformMap(const GLuint program, std::map<std::string, GLHelp
     GLsizei length; // name length
 
     glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &count);
-    std::cout << "Active Uniforms:" << count << std::endl;
+    //std::cout << "Active Uniforms:" << count << std::endl;
 
     VariableTypes variableType = UNDEFINED;
     for (i = 0; i < count; i++)
     {
         glGetActiveUniform(program, (GLuint)i, maxLength, &length, &size, &type, name);
 
-        //std::cout << "Uniform "<< i << " Type: " << type << " Name: " << name << std::endl;
+        //std::cout << "Uniform " << i << " Type: " << type << " Name: " << name << std::endl;
 
         switch (type){
             case GL_FLOAT: variableType = FLOAT;
@@ -153,6 +155,19 @@ void GLHelper::fillUniformMap(const GLuint program, std::map<std::string, GLHelp
         }
         uniformMap[name] = new Uniform(i,name,variableType,size);
     }
+}
+
+void GLHelper::attachUBOs(const GLuint program) const {//Attach the light block to our UBO
+    int uniformIndex = glGetUniformBlockIndex(program, "LightSourceBlock");
+    if (uniformIndex >= 0) {
+        glBindBuffer(GL_UNIFORM_BUFFER, LightUBOLocation);
+        glUniformBlockBinding(program, uniformIndex, 0);
+        glBindBufferRange(GL_UNIFORM_BUFFER, uniformIndex, LightUBOLocation, 0,
+                          2 * sizeof(glm::vec4) * NR_POINT_LIGHTS);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
+
+
 }
 
 
@@ -190,7 +205,7 @@ GLHelper::GLHelper() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    checkErrors("Constructor");
+
 
     std::printf("%s\n%s\n",
                 glGetString(GL_RENDERER),  // e.g. Intel HD Graphics 3000 OpenGL Engine
@@ -198,6 +213,17 @@ GLHelper::GLHelper() {
     );
 
     printf("Supported GLSL version is %s.\n", (char *) glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+
+
+    //create the Uniform Buffer Object for later usage
+    glGenBuffers(1, &LightUBOLocation);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, LightUBOLocation);
+    glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::vec4) * NR_POINT_LIGHTS, NULL, GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    checkErrors("Constructor");
 }
 
 GLuint GLHelper::generateBuffer(const GLuint number) {
@@ -353,10 +379,6 @@ void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, 
     glUseProgram(0);
 
     checkErrors("render");
-    // DrawArraysInstanced
-    //glDrawArraysInstanced(GL_TRIANGLES, 0, 3, 1);
-    // DrawElementsBaseVertex
-    //glDrawElementsBaseVertex(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, NULL, 1);
 }
 
 
@@ -420,7 +442,7 @@ GLHelper::~GLHelper() {
 void GLHelper::reshape(int height, int width) {
     glViewport(0, 0, width, height);
     aspect = float(height) / float(width);
-    projectionMatrix = glm::frustum(-1.0f, 1.0f, -aspect, aspect, 1.0f, 500.0f);
+    projectionMatrix = glm::frustum(-1.0f, 1.0f, -aspect, aspect, 1.0f, 100.0f);
     orthogonalProjectionMatrix = glm::ortho(0.0f, (float) width, 0.0f, (float) height);
     checkErrors("reshape");
 }
@@ -543,6 +565,18 @@ void GLHelper::drawLine(const glm::vec3 &from, const glm::vec3 &to,
     checkErrors("drawLine");
 
 }
+
+void GLHelper::setLight(const Light &light, const int i) {
+
+    glBindBuffer(GL_UNIFORM_BUFFER, LightUBOLocation);
+    glBufferSubData(GL_UNIFORM_BUFFER, (2 * i) * sizeof(glm::vec4), sizeof(glm::vec3), &light.getPosition());
+    glBufferSubData(GL_UNIFORM_BUFFER, ((2 * i) + 1) * sizeof(glm::vec4), sizeof(glm::vec3), &light.getColor());
+
+
+    glBindBuffer(GL_UNIFORM_BUFFER, LightUBOLocation);
+}
+
+
 
 
 

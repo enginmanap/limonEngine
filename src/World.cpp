@@ -104,6 +104,15 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     layer1->addGuiElement(tr);
 
     guiLayers.push_back(layer1);
+
+
+    Light *light = new Light(Light::POINT, glm::vec3(-25.0f, 50.0f, -25.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+    lights.push_back(light);
+
+    light = new Light(Light::POINT, glm::vec3(-25.0f, 50.0f, 25.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    lights.push_back(light);
+
+
 }
 
 void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
@@ -170,6 +179,11 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 }
 
 void World::render() {
+
+    for (int i = 0; i < lights.size(); ++i) {
+        glHelper->setLight(*(lights[i]), i);
+    }
+
     glHelper->setCamera(camera.getPosition(), camera.getCameraMatrix());
     for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
         (*it)->render();
@@ -195,6 +209,10 @@ World::~World() {
     delete sky;
     for (std::vector<btRigidBody *>::iterator it = rigidBodies.begin(); it != rigidBodies.end(); ++it) {
         dynamicsWorld->removeRigidBody((*it));
+    }
+
+    for (std::vector<Light *>::iterator it = lights.begin(); it != lights.end(); ++it) {
+        delete (*it);
     }
 
     delete dynamicsWorld;
