@@ -21,7 +21,7 @@ private:
 public:
     Light(LightTypes lightType, const glm::vec3 &position, const glm::vec3 &color) : position(position), color(color),
                                                                                      lightType(lightType) { }
-
+    //TODO add isDirty so we don't update the uniform if not necessary
 
     const glm::vec3 &getPosition() const {
         return position;
