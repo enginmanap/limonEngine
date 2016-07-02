@@ -199,7 +199,7 @@ void Model::activateMaterial(const Material *material) {
     //TODO we should support multi texture on one pass
 }
 
-void Model::render() {
+bool Model::setupRenderVariables() {
     if (renderProgram->setUniform("worldTransformMatrix", getWorldTransform())) {
         if (renderProgram->setUniform("cameraPosition", glHelper->getCameraPosition())) {
             if (this->materialMap.begin() != this->materialMap.end()) {
@@ -207,12 +207,19 @@ void Model::render() {
             } else {
                 std::cerr << "No material setup, passing rendering. " << std::endl;
             }
-            glHelper->render(renderProgram->getID(), vao, ebo, faces.size() * 3);
+            return true;
         } else {
             std::cerr << "Uniform \"cameraPosition\" could not be set, passing rendering." << std::endl;
         }
     } else {
         std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
     }
+    return false;
 
+}
+
+void Model::render() {
+    if (setupRenderVariables()) {
+        glHelper->render(renderProgram->getID(), vao, ebo, faces.size() * 3);
+    }
 }

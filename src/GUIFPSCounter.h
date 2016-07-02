@@ -33,6 +33,7 @@ public:
 
     void render();
 
+    void updateFPS();
 };
 
 

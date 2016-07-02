@@ -35,16 +35,12 @@ GUIText::GUIText(GLHelper *glHelper, Face *face, const std::string text, const g
 }
 
 void GUIText::render() {
-    GLuint worldTransformlocation, ortoProjLocation, inColorLocation;
 
     float totalAdvance = 0.0f;
-    glm::mat4 orthogonalPM = glHelper->getOrthogonalProjectionMatrix();
 
     renderProgram->setUniform("inColor", color);
 
-
-    renderProgram->setUniform("orthogonalProjectionMatrix", orthogonalPM);
-
+    renderProgram->setUniform("orthogonalProjectionMatrix", glHelper->getOrthogonalProjectionMatrix());
 
     glm::mat4 currentTransform;
 

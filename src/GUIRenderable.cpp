@@ -26,15 +26,20 @@ GUIRenderable::GUIRenderable(GLHelper *glHelper) : Renderable(glHelper) {
     renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/GUI/vertex.shader", "./Data/Shaders/GUI/fragment.shader");
 }
 
-void GUIRenderable::render() {
-    GLuint location;
+bool GUIRenderable::setupRenderVariables() {
     if (renderProgram->setUniform("worldTransformMatrix", getWorldTransform())) {
         glHelper->attachTexture(textureID);
-        glHelper->render(renderProgram->getID(), vao, ebo, faces.size() * 3);
+        return true;
     } else {
         std::cerr << "Uniform \"cameraTransformMatrix\" could not be set, passing rendering of GUIRenderable" <<
         std::endl;
+    }
+    return false;
+}
 
+void GUIRenderable::render() {
+    if (setupRenderVariables()) {
+        glHelper->render(renderProgram->getID(), vao, ebo, faces.size() * 3);
     }
 }
 

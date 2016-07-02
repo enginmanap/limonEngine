@@ -39,6 +39,8 @@ public:
 
     void activateMaterial(const Material *material);
 
+    bool setupRenderVariables();
+
     void render();
 
 
