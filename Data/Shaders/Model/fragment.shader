@@ -23,7 +23,7 @@ in VS_FS {
 out vec4 finalColor;
 
 uniform Material material;
-uniform sampler2D boxSampler;
+uniform sampler2D diffuseSampler;
 uniform vec3 cameraPosition;
 
 layout (std140) uniform LightSourceBlock
@@ -37,7 +37,7 @@ layout (std140) uniform LightSourceBlock
 
 void main(void)
 {
-		vec4 objectColor = texture(boxSampler, from_vs.textureCoord);
+		vec4 objectColor = texture(diffuseSampler, from_vs.textureCoord);
 		vec3 lightingColorFactor = vec3(0,0,0);
         for(int i=0; i < NR_POINT_LIGHTS; ++i){
             // Diffuse Lighting

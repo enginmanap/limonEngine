@@ -34,6 +34,7 @@
 class GLHelper {
 public:
     enum VariableTypes {
+        INT,
         FLOAT,
         FLOAT_VEC2,
         FLOAT_VEC3,
@@ -48,12 +49,40 @@ public:
         VariableTypes type;
         unsigned int size;
 
-        Uniform(unsigned int location, const std::string &name, VariableTypes type, unsigned int size) : location(location), name(name), type(type), size(size) { }
+        Uniform(unsigned int location, const std::string &name, GLenum typeEnum, unsigned int size) : location(
+                location), name(name), size(size) {
+            switch (typeEnum) {
+                case GL_SAMPLER_CUBE: //these are because sampler takes a int as texture unit
+                case GL_SAMPLER_2D:
+                case GL_INT:
+                    type = INT;
+                    break;
+                case GL_FLOAT:
+                    type = FLOAT;
+                    break;
+                case GL_FLOAT_VEC2:
+                    type = FLOAT_VEC2;
+                    break;
+                case GL_FLOAT_VEC3:
+                    type = FLOAT_VEC3;
+                    break;
+                case GL_FLOAT_VEC4:
+                    type = FLOAT_VEC4;
+                    break;
+                case GL_FLOAT_MAT4:
+                    type = FLOAT_MAT4;
+                    break;
+                default:
+                    type = UNDEFINED;
+            }
+
+        }
     };
 
 private:
     GLenum error;
 
+    unsigned int screenHeight, screenWidth;
     float aspect;
     std::vector<GLuint> bufferObjects;
     std::vector<GLuint> vertexArrays;
@@ -62,6 +91,10 @@ private:
     glm::vec3 cameraPosition;
     GLuint lightUBOLocation;
     GLuint playerUBOLocation;
+
+    GLuint depthOnlyFrameBuffer;
+    GLuint depthMap;
+    const GLuint SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024; //TODO these values should be parameters
 
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;
@@ -118,16 +151,16 @@ public:
 
     void render(const GLuint, const GLuint, const GLuint, const GLuint);
 
-    void reshape(int height, int width);
+    void reshape(unsigned int height, unsigned int width);
 
     GLuint loadTexture(int height, int width, GLenum format, void *data);
 
     GLuint loadCubeMap(int height, int width, void *right, void *left, void *top, void *bottom, void *back,
                        void *front);
 
-    void attachTexture(GLuint textureID);
+    void attachTexture(unsigned int textureID, unsigned int attachPoint);
 
-    void attachCubeMap(GLuint cubeMapID);
+    void attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint);
 
     bool deleteTexture(GLuint textureID);
 
@@ -154,10 +187,15 @@ public:
 
     bool setUniform(const GLuint programID, const GLuint uniformID, const float value);
 
+    bool setUniform(const GLuint programID, const GLuint uniformID, const int value);
+
     void setLight(const Light &light, const int i);
 
     void setPlayerMatrices();
 
+    void switchFrameBufferToShadowMap(const unsigned int index);
+
+    void switchFrameBufferToDefault();
 };
 
 #endif //UBERGAME_GLHELPER_H

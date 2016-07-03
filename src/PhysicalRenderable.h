@@ -36,6 +36,8 @@ public:
     void setWorldTransform(const glm::mat4 &transformMatrix) {
         std::cerr << "Physical Renderables can not be set manually, don't use setWorldTransform." << std::endl;
     }
+
+    void virtual renderWithProgram(GLSLProgram &program) = 0;
 };
 
 

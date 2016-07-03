@@ -33,10 +33,6 @@ public:
         scale.y *= height;
     }
 
-    bool setupRenderVariables();
-
-    virtual void render();
-
     virtual void renderDebug();
 
     float getWidth() { return scale.x; }

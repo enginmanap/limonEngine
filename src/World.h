@@ -28,6 +28,7 @@ class World {
     std::vector<GUILayer *> guiLayers;
     SkyBox *sky;
     GLHelper *glHelper;
+    GLSLProgram *shadowMapProgram;
     FontManager fontManager;
     Camera camera;
     BulletDebugDrawer *debugDrawer;

@@ -130,39 +130,26 @@ void GLHelper::fillUniformMap(const GLuint program, std::map<std::string, GLHelp
     GLsizei length; // name length
 
     glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &count);
-    //std::cout << "Active Uniforms:" << count << std::endl;
+    std::cout << "Active Uniforms:" << count << std::endl;
 
-    VariableTypes variableType = UNDEFINED;
+
     for (i = 0; i < count; i++)
     {
         glGetActiveUniform(program, (GLuint)i, maxLength, &length, &size, &type, name);
 
-        //std::cout << "Uniform " << i << " Type: " << type << " Name: " << name << std::endl;
-
-        switch (type){
-            case GL_FLOAT: variableType = FLOAT;
-                break;
-            case GL_FLOAT_VEC2: variableType = FLOAT_VEC2;
-                break;
-            case GL_FLOAT_VEC3: variableType = FLOAT_VEC3;
-                break;
-            case GL_FLOAT_VEC4: variableType = FLOAT_VEC4;
-                break;
-            case GL_FLOAT_MAT4: variableType = FLOAT_MAT4;
-                break;
-            default:
-                variableType = UNDEFINED;
-        }
-        uniformMap[name] = new Uniform(i,name,variableType,size);
+        std::cout << "Uniform " << i << " Type: " << type << " Name: " << name << std::endl;
+        uniformMap[name] = new Uniform(i, name, type, size);
     }
 }
 
 void GLHelper::attachUBOs(const GLuint program) const {//Attach the light block to our UBO
+    GLuint lightAttachPoint = 0, playerAttachPoint = 1;
+
     int uniformIndex = glGetUniformBlockIndex(program, "LightSourceBlock");
     if (uniformIndex >= 0) {
         glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-        glUniformBlockBinding(program, uniformIndex, 0);
-        glBindBufferRange(GL_UNIFORM_BUFFER, 0, lightUBOLocation, 0,
+        glUniformBlockBinding(program, uniformIndex, lightAttachPoint);
+        glBindBufferRange(GL_UNIFORM_BUFFER, lightAttachPoint, lightUBOLocation, 0,
                           2 * sizeof(glm::vec4) * NR_POINT_LIGHTS);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
@@ -170,8 +157,8 @@ void GLHelper::attachUBOs(const GLuint program) const {//Attach the light block 
     int uniformIndex2 = glGetUniformBlockIndex(program, "PlayerTransformBlock");
     if (uniformIndex2 >= 0) {
         glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
-        glUniformBlockBinding(program, uniformIndex2, 1);
-        glBindBufferRange(GL_UNIFORM_BUFFER, 1, playerUBOLocation, 0,
+        glUniformBlockBinding(program, uniformIndex2, playerAttachPoint);
+        glBindBufferRange(GL_UNIFORM_BUFFER, playerAttachPoint, playerUBOLocation, 0,
                           3 * sizeof(glm::mat4));
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
@@ -238,6 +225,23 @@ GLHelper::GLHelper() {
     glBufferData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
+    //create depth buffer and texture for shadow map
+    glGenFramebuffers(1, &depthOnlyFrameBuffer);
+
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+                 SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     checkErrors("Constructor");
 }
@@ -378,13 +382,33 @@ void GLHelper::setCamera(const glm::vec3 &cameraPosition, const glm::mat4 &camer
 }
 
 
+void GLHelper::switchFrameBufferToShadowMap(const unsigned int index) {
+    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBuffer);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+}
+
+void GLHelper::switchFrameBufferToDefault() {
+    glViewport(0, 0, screenWidth, screenHeight);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //https://www.khronos.org/opengles/sdk/docs/man3/html/glGet.xhtml GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS must be atleast 32.
+    //we bind shadow map to last texture unit
+    glActiveTexture(GL_TEXTURE0 + 31);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glActiveTexture(GL_TEXTURE0);
+}
+
+
+
+
 void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount) {
     if (program == 0) {
         std::cerr << "No program render requested." << std::endl;
         return;
     }
     glUseProgram(program);
-
 
     // Set up for a glDrawElements call
     glBindVertexArray(vao);
@@ -438,6 +462,19 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
     }
 }
 
+bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const int value) {
+    if (!glIsProgram(programID)) {
+        std::cerr << "invalid program for setting uniform." << std::endl;
+        return false;
+    } else {
+        glUseProgram(programID);
+        glUniform1i(uniformID, value);
+        glUseProgram(0);
+        checkErrors("setUniform");
+        return true;
+    }
+}
+
 bool GLHelper::checkErrors(std::string callerFunc) {
     bool hasError = false;
     while ((error = glGetError()) != GL_NO_ERROR) {
@@ -455,10 +492,14 @@ GLHelper::~GLHelper() {
 
     deleteBuffer(1, lightUBOLocation);
     deleteBuffer(1, playerUBOLocation);
+    deleteBuffer(1, depthMap);
+    glDeleteFramebuffers(1, &depthOnlyFrameBuffer); //maybe we should wrap this up too
     glUseProgram(0);
 }
 
-void GLHelper::reshape(int height, int width) {
+void GLHelper::reshape(unsigned int height, unsigned int width) {
+    this->screenHeight = height;
+    this->screenWidth = width;
     glViewport(0, 0, width, height);
     aspect = float(height) / float(width);
     perspectiveProjectionMatrix = glm::perspective(45.0f, 1.0f / aspect, 0.1f, 100.0f);
@@ -469,6 +510,7 @@ void GLHelper::reshape(int height, int width) {
 GLuint GLHelper::loadTexture(int height, int width, GLenum format, void *data) {
     GLuint texture;
     glGenTextures(1, &texture);
+    glActiveTexture(GL_TEXTURE0);//this is the default working texture
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -477,13 +519,18 @@ GLuint GLHelper::loadTexture(int height, int width, GLenum format, void *data) {
     return texture;
 }
 
-void GLHelper::attachTexture(GLuint textureID) {
+void GLHelper::attachTexture(unsigned int textureID, unsigned int attachPoint) {
+    //https://www.khronos.org/opengles/sdk/1.1/docs/man/glActiveTexture.xml guarantees below works for texture selection
+    glActiveTexture(GL_TEXTURE0 + attachPoint);
     glBindTexture(GL_TEXTURE_2D, textureID);
+    glActiveTexture(GL_TEXTURE0);
     checkErrors("attachTexture");
 }
 
-void GLHelper::attachCubeMap(GLuint cubeMapID) {
+void GLHelper::attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint) {
+    glActiveTexture(GL_TEXTURE0 + attachPoint);
     glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapID);
+    glActiveTexture(GL_TEXTURE0);
     checkErrors("attachCubeMap");
 }
 

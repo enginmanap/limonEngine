@@ -195,7 +195,7 @@ void Model::activateMaterial(const Material *material) {
         std::cerr << "Uniform \"material.shininess\" could not be set" << std::endl;
     }
 
-    glHelper->attachTexture(material->getDiffuseTexture()->getID());
+    glHelper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
     //TODO we should support multi texture on one pass
 }
 
@@ -206,6 +206,10 @@ bool Model::setupRenderVariables() {
                 this->activateMaterial(materialMap.begin()->second);
             } else {
                 std::cerr << "No material setup, passing rendering. " << std::endl;
+            }
+            if (!renderProgram->setUniform("diffuseSampler",
+                                           diffuseMapAttachPoint)) { //even if diffuse map cannot attach, we still render
+                std::cerr << "Uniform \"diffuseSampler\" could not be set, passing rendering." << std::endl;
             }
             return true;
         } else {
@@ -221,5 +225,13 @@ bool Model::setupRenderVariables() {
 void Model::render() {
     if (setupRenderVariables()) {
         glHelper->render(renderProgram->getID(), vao, ebo, faces.size() * 3);
+    }
+}
+
+void Model::renderWithProgram(GLSLProgram &program) {
+    if (program.setUniform("worldTransformMatrix", getWorldTransform())) {
+        glHelper->render(program.getID(), vao, ebo, faces.size() * 3);
+    } else {
+        std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
     }
 }

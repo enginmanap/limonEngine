@@ -28,6 +28,9 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     rigidBodies.push_back(camera.getRigidBody());
     dynamicsWorld->addRigidBody(camera.getRigidBody());
 
+    shadowMapProgram = new GLSLProgram(glHelper, "./Data/Shaders/ShadowMap/vertex.shader",
+                                       "./Data/Shaders/ShadowMap/fragment.shader");
+
     Model *crate = new Model(glHelper, "./Data/Models/Box/Box.obj");
     crate->addScale(glm::vec3(250.0f, 1.0f, 250.0f));
     crate->addTranslate(glm::vec3(-125.0f, 0.0f, 125.0f));
@@ -100,7 +103,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
 
     tr = new GUIFPSCounter(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 32), "0",
                            glm::vec3(204, 204, 0));
-    tr->set2dWorldTransform(glm::vec2(1024 - 51, 768 - 38), 0);
+    tr->set2dWorldTransform(glm::vec2(1024 - 100, 768 - 38), 0);
     layer1->addGuiElement(tr);
 
     guiLayers.push_back(layer1);
@@ -179,6 +182,26 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 }
 
 void World::render() {
+
+
+    GLfloat near_plane = 1.0f, far_plane = 100.0f;
+    glm::mat4 lightProjection = glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, near_plane, far_plane);
+
+    glm::mat4 lightView = glm::lookAt(lights[0]->getPosition(),
+                                      glm::vec3(0.0f, 0.0f, 0.0f),
+                                      glm::vec3(0.0f, 1.0f, 0.0f));
+
+    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+
+    shadowMapProgram->setUniform("lightSpaceMatrix", lightSpaceMatrix);
+
+    //generate shadow map
+    glHelper->switchFrameBufferToShadowMap(0);
+    for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
+        (*it)->renderWithProgram(*shadowMapProgram);
+    }
+
+    glHelper->switchFrameBufferToDefault();
 
     for (int i = 0; i < lights.size(); ++i) {
         glHelper->setLight(*(lights[i]), i);

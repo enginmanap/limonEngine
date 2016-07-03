@@ -46,6 +46,13 @@ public:
         return false;
     }
 
+    bool setUniform(const std::string uniformName, const int value) {
+        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GLHelper::INT) {
+            return glHelper->setUniform(programID, uniformMap[uniformName]->location, value);
+        }
+        return false;
+    }
+
 };
 
 #endif //UBERGAME_GLSLPROGRAM_H

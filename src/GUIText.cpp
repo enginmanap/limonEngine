@@ -85,9 +85,13 @@ void GUIText::render() {
         }
 
         if (!renderProgram->setUniform("worldTransformMatrix", currentTransform)) {
-            std::cerr << "failed to set uniform" << std::endl;
+            std::cerr << "failed to set uniform \"worldTransformMatrix\"" << std::endl;
         }
-        glHelper->attachTexture(glyph->getTextureID());
+
+        if (!renderProgram->setUniform("GUISampler", glyphAttachPoint)) {
+            std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
+        }
+        glHelper->attachTexture(glyph->getTextureID(), glyphAttachPoint);
         glHelper->render(renderProgram->getID(), vao, ebo, (const GLuint) (faces.size() * 3));
 
         totalAdvance += glyph->getAdvance() / 64;

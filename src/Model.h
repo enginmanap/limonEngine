@@ -28,6 +28,7 @@ class Model : public PhysicalRenderable {
     std::vector<glm::mediump_uvec3> faces;
     std::vector<glm::vec2> textureCoordinates;
     std::map<std::string, Material *> materialMap;
+    int diffuseMapAttachPoint = 1;
 
     btTriangleMesh *bulletMesh;
     btConvexTriangleMeshShape *convexShape;
@@ -42,6 +43,8 @@ public:
     bool setupRenderVariables();
 
     void render();
+
+    void renderWithProgram(GLSLProgram &program);
 
 
     //TODO we need to free the texture. Destructor needed.
@@ -63,6 +66,8 @@ public:
         delete bulletMesh;
 
     }
+
+
 };
 
 #endif //UBERGAME_MODEL_H

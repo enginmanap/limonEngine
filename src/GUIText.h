@@ -18,6 +18,7 @@ class GUIText : public GUIRenderable {
     Face *face;
     int height, width;
     int bearingUp;
+    int glyphAttachPoint = 1;
 protected:
     std::string text;
 public:
