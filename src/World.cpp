@@ -109,7 +109,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     guiLayers.push_back(layer1);
 
 
-    Light *light = new Light(Light::POINT, glm::vec3(-25.0f, 50.0f, -25.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+    Light *light = new Light(Light::POINT, glm::vec3(-25.0f, 50.0f, -25.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     lights.push_back(light);
 
     light = new Light(Light::POINT, glm::vec3(-25.0f, 50.0f, 25.0f), glm::vec3(1.0f, 0.0f, 0.0f));
@@ -182,18 +182,6 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 }
 
 void World::render() {
-
-
-    GLfloat near_plane = 1.0f, far_plane = 100.0f;
-    glm::mat4 lightProjection = glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, near_plane, far_plane);
-
-    glm::mat4 lightView = glm::lookAt(lights[0]->getPosition(),
-                                      glm::vec3(0.0f, 0.0f, 0.0f),
-                                      glm::vec3(0.0f, 1.0f, 0.0f));
-
-    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-
-    shadowMapProgram->setUniform("lightSpaceMatrix", lightSpaceMatrix);
 
     //generate shadow map
     glHelper->switchFrameBufferToShadowMap(0);

@@ -94,11 +94,16 @@ private:
 
     GLuint depthOnlyFrameBuffer;
     GLuint depthMap;
-    const GLuint SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024; //TODO these values should be parameters
+
+    const GLuint SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048; //TODO these values should be parameters
+    const GLfloat lightOrthogonalProjectionNearPlane = 1.0f;
+    const GLfloat lightOrthogonalProjectionFarPlane = 100.0f;
+    const glm::vec4 lightOrthogonalProjectionValues = glm::vec4(-100.0f, 100.0f, -100.0f, 100.0f);
 
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;
     glm::mat4 orthogonalProjectionMatrix;
+    glm::mat4 lightProjection;
 
     bool checkErrors(std::string callerFunc);
 

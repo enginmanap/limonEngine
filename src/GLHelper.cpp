@@ -150,7 +150,8 @@ void GLHelper::attachUBOs(const GLuint program) const {//Attach the light block 
         glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
         glUniformBlockBinding(program, uniformIndex, lightAttachPoint);
         glBindBufferRange(GL_UNIFORM_BUFFER, lightAttachPoint, lightUBOLocation, 0,
-                          2 * sizeof(glm::vec4) * NR_POINT_LIGHTS);
+                          (sizeof(glm::mat4) + 2 * sizeof(glm::vec4)) *
+                          NR_POINT_LIGHTS); //FIXME calculating the size should not be like that
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
@@ -184,6 +185,12 @@ GLHelper::GLHelper() {
     cameraPosition = glm::vec3(0.0f, 0.0f, 0.0f);
     cameraMatrix = glm::lookAt(cameraPosition, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
+    lightProjection = glm::ortho(lightOrthogonalProjectionValues.x,
+                                 lightOrthogonalProjectionValues.y,
+                                 lightOrthogonalProjectionValues.z,
+                                 lightOrthogonalProjectionValues.w,
+                                 lightOrthogonalProjectionNearPlane, lightOrthogonalProjectionFarPlane);
+
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     // Setup
@@ -216,7 +223,8 @@ GLHelper::GLHelper() {
     glGenBuffers(1, &lightUBOLocation);
 
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::vec4) * NR_POINT_LIGHTS, NULL, GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, (sizeof(glm::mat4) + 2 * sizeof(glm::vec4)) * NR_POINT_LIGHTS, NULL,
+                 GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //create player transforms uniform buffer object
@@ -395,6 +403,7 @@ void GLHelper::switchFrameBufferToDefault() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     //https://www.khronos.org/opengles/sdk/docs/man3/html/glGet.xhtml GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS must be atleast 32.
     //we bind shadow map to last texture unit
+    //FIXME this is not last, this is 32
     glActiveTexture(GL_TEXTURE0 + 31);
     glBindTexture(GL_TEXTURE_2D, depthMap);
     glActiveTexture(GL_TEXTURE0);
@@ -633,12 +642,23 @@ void GLHelper::drawLine(const glm::vec3 &from, const glm::vec3 &to,
 }
 
 void GLHelper::setLight(const Light &light, const int i) {
+    glm::mat4 lightView = glm::lookAt(light.getPosition(),
+                                      glm::vec3(0.0f, 0.0f, 0.0f),
+                                      glm::vec3(0.0f, 1.0f, 0.0f));
+
+    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, (2 * i) * sizeof(glm::vec4), sizeof(glm::vec3), &light.getPosition());
-    glBufferSubData(GL_UNIFORM_BUFFER, ((2 * i) + 1) * sizeof(glm::vec4), sizeof(glm::vec3), &light.getColor());
+    glBufferSubData(GL_UNIFORM_BUFFER, i * (sizeof(glm::mat4) + 2 * sizeof(glm::vec4)), sizeof(glm::mat4),
+                    glm::value_ptr(lightSpaceMatrix));
+    glBufferSubData(GL_UNIFORM_BUFFER, i * (sizeof(glm::mat4) + 2 * sizeof(glm::vec4)) + sizeof(glm::mat4),
+                    sizeof(glm::vec3), &light.getPosition());
+    glBufferSubData(GL_UNIFORM_BUFFER,
+                    i * (sizeof(glm::mat4) + 2 * sizeof(glm::vec4)) + sizeof(glm::mat4) + sizeof(glm::vec4),
+                    sizeof(glm::vec3), &light.getColor());
 
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    checkErrors("setLight");
 }
 
 void GLHelper::setPlayerMatrices() {
@@ -648,4 +668,5 @@ void GLHelper::setPlayerMatrices() {
     glm::mat4 viewMatrix = perspectiveProjectionMatrix * cameraMatrix;
     glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), sizeof(glm::mat4), &viewMatrix);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    checkErrors("setPlayerMatrices");
 }

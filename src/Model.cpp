@@ -209,7 +209,11 @@ bool Model::setupRenderVariables() {
             }
             if (!renderProgram->setUniform("diffuseSampler",
                                            diffuseMapAttachPoint)) { //even if diffuse map cannot attach, we still render
-                std::cerr << "Uniform \"diffuseSampler\" could not be set, passing rendering." << std::endl;
+                std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
+            }
+            if (!renderProgram->setUniform("shadowSampler",
+                                           31)) { //even if shadow map cannot attach, we still render
+                std::cerr << "Uniform \"shadowSampler\" could not be set" << std::endl;
             }
             return true;
         } else {
