@@ -98,7 +98,7 @@ private:
     const GLuint SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048; //TODO these values should be parameters
     const GLfloat lightOrthogonalProjectionNearPlane = 1.0f;
     const GLfloat lightOrthogonalProjectionFarPlane = 100.0f;
-    const glm::vec4 lightOrthogonalProjectionValues = glm::vec4(-100.0f, 100.0f, -100.0f, 100.0f);
+    const glm::vec4 lightOrthogonalProjectionValues = glm::vec4(-50.0f, 50.0f, -50.0f, 50.0f);
 
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;
@@ -198,9 +198,9 @@ public:
 
     void setPlayerMatrices();
 
-    void switchFrameBufferToShadowMap(const unsigned int index);
+    void switchRenderToShadowMap(const unsigned int index);
 
-    void switchFrameBufferToDefault();
+    void switchrenderToDefault();
 };
 
 #endif //UBERGAME_GLHELPER_H

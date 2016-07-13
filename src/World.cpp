@@ -184,12 +184,12 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 void World::render() {
 
     //generate shadow map
-    glHelper->switchFrameBufferToShadowMap(0);
+    glHelper->switchRenderToShadowMap(0);
     for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
         (*it)->renderWithProgram(*shadowMapProgram);
     }
 
-    glHelper->switchFrameBufferToDefault();
+    glHelper->switchrenderToDefault();
 
     for (int i = 0; i < lights.size(); ++i) {
         glHelper->setLight(*(lights[i]), i);
