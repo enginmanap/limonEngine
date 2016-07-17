@@ -17,9 +17,13 @@ layout (std140) uniform LightSourceBlock
 } LightSources;
 
 uniform mat4 worldTransformMatrix;
+uniform int renderLightIndex;
 
 void main()
 {
-    //FIXME this forces single light
-    gl_Position = LightSources.lights[0].lightSpaceMatrix * (worldTransformMatrix * position);
+    for(int i = 0; i < NR_POINT_LIGHTS; i++){
+        if(i == renderLightIndex){
+            gl_Position = LightSources.lights[i].lightSpaceMatrix * (worldTransformMatrix * position);
+        }
+    }
 }

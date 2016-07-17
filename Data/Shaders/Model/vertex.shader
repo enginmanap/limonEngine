@@ -10,7 +10,7 @@ out VS_FS {
     vec2 textureCoord;
     vec3 normal;
     vec3 fragPos;
-    vec4 fragPosLightSpace;
+    vec4 fragPosLightSpace[NR_POINT_LIGHTS];
 } to_fs;
 
 layout (std140) uniform PlayerTransformBlock {
@@ -38,7 +38,8 @@ void main(void)
     to_fs.textureCoord = textureCoordinate;
     to_fs.normal = normalize(mat3(transpose(inverse(worldTransformMatrix))) * normal);
     to_fs.fragPos = vec3(worldTransformMatrix * position);
-    //FIXME this forces single light
-    to_fs.fragPosLightSpace = LightSources.lights[0].lightSpaceMatrix * vec4(to_fs.fragPos, 1.0);
+    for(int i = 0; i < NR_POINT_LIGHTS; i++){
+        to_fs.fragPosLightSpace[i] = LightSources.lights[i].lightSpaceMatrix * vec4(to_fs.fragPos, 1.0);
+    }
     gl_Position = playerTransforms.cameraProjection * (worldTransformMatrix * position);
 }

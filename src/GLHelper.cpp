@@ -237,18 +237,23 @@ GLHelper::GLHelper() {
     glGenFramebuffers(1, &depthOnlyFrameBuffer);
 
     glGenTextures(1, &depthMap);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
-                 SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, depthMap);
+//    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+//                 SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    //glTexStorage3D(GL_TEXTURE_2D_ARRAY, 0 , GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_WIDTH, NR_POINT_LIGHTS);
+    //glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, SHADOW_WIDTH, SHADOW_WIDTH, NR_POINT_LIGHTS, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_WIDTH, NR_POINT_LIGHTS, 0,
+                 GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     GLfloat borderColor[] = {1.0, 1.0, 1.0, 1.0};
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, borderColor);
 
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMap, 0, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -395,6 +400,8 @@ void GLHelper::setCamera(const glm::vec3 &cameraPosition, const glm::mat4 &camer
 void GLHelper::switchRenderToShadowMap(const unsigned int index) {
     glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBuffer);
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMap, 0, index);
+
     glClear(GL_DEPTH_BUFFER_BIT);
 
     glCullFace(GL_FRONT);
@@ -409,7 +416,7 @@ void GLHelper::switchrenderToDefault() {
     //we bind shadow map to last texture unit
     //FIXME this is not last, this is 32
     glActiveTexture(GL_TEXTURE0 + 31);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, depthMap);
     glActiveTexture(GL_TEXTURE0);
     glCullFace(GL_BACK);
 }
@@ -441,7 +448,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         glUseProgram(programID);
         glUniformMatrix4fv(uniformID, 1, GL_FALSE, glm::value_ptr(matrix));
         glUseProgram(0);
-        checkErrors("setUniform");
+        checkErrors("setUniformMatrix");
         return true;
     }
 
@@ -455,7 +462,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         glUseProgram(programID);
         glUniform3fv(uniformID, 1, glm::value_ptr(vector));
         glUseProgram(0);
-        checkErrors("setUniform");
+        checkErrors("setUniformVector");
         return true;
     }
 }
@@ -468,7 +475,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         glUseProgram(programID);
         glUniform1f(uniformID, value);
         glUseProgram(0);
-        checkErrors("setUniform");
+        checkErrors("setUniformFloat");
         return true;
     }
 }
@@ -481,7 +488,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         glUseProgram(programID);
         glUniform1i(uniformID, value);
         glUseProgram(0);
-        checkErrors("setUniform");
+        checkErrors("setUniformInt");
         return true;
     }
 }

@@ -54,6 +54,7 @@ public:
             switch (typeEnum) {
                 case GL_SAMPLER_CUBE: //these are because sampler takes a int as texture unit
                 case GL_SAMPLER_2D:
+                case GL_SAMPLER_2D_ARRAY:
                 case GL_INT:
                     type = INT;
                     break;
