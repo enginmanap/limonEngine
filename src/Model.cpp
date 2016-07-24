@@ -212,7 +212,8 @@ bool Model::setupRenderVariables() {
                 std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
             }
             if (!renderProgram->setUniform("shadowSampler",
-                                           31)) { //even if shadow map cannot attach, we still render
+                                           glHelper->getMaxTextureImageUnits() -
+                                           1)) { //even if shadow map cannot attach, we still render
                 std::cerr << "Uniform \"shadowSampler\" could not be set" << std::endl;
             }
             return true;

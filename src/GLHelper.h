@@ -32,6 +32,59 @@
 #include <map>
 
 class GLHelper {
+    class OpenglState {
+        unsigned int activeProgram;
+        unsigned int activeTextureUnit;
+        unsigned int *textures;
+
+        void attachTexture(GLuint textureID, GLuint textureUnit, GLenum type) {
+            if (textures[textureUnit] != textureID) {
+                textures[textureUnit] = textureID;
+                activateTextureUnit(textureUnit);
+                glBindTexture(type, textureID);
+            }
+        }
+
+    public:
+
+        OpenglState(GLint textureUnitCount) : activeProgram(0) {
+            textures = new unsigned int[textureUnitCount];
+            memset(textures, 0, textureUnitCount * sizeof(int));
+            activeTextureUnit = 0;
+            glActiveTexture(GL_TEXTURE0);
+        }
+
+        void activateTextureUnit(GLuint textureUnit) {
+            if (activeTextureUnit != textureUnit) {
+                activeTextureUnit = textureUnit;
+                //https://www.khronos.org/opengles/sdk/1.1/docs/man/glActiveTexture.xml guarantees below works for texture selection
+                glActiveTexture(GL_TEXTURE0 + textureUnit);
+            }
+        }
+
+        void attachTexture(GLuint textureID, GLuint textureUnit) {
+            attachTexture(textureID, textureUnit, GL_TEXTURE_2D);
+        }
+
+        void attach2DTextureArray(GLuint textureID, GLuint textureUnit) {
+            attachTexture(textureID, textureUnit, GL_TEXTURE_2D_ARRAY);
+        }
+
+        void attachCubemap(GLuint textureID, GLuint textureUnit) {
+            attachTexture(textureID, textureUnit, GL_TEXTURE_CUBE_MAP);
+        }
+
+
+        void setProgram(GLuint program) {
+            if (program != this->activeProgram) {
+                glUseProgram(program);
+                this->activeProgram = program;
+            }
+        }
+
+    };
+
+
 public:
     enum VariableTypes {
         INT,
@@ -41,6 +94,7 @@ public:
         FLOAT_VEC4,
         FLOAT_MAT4,
         UNDEFINED };
+
 
     class Uniform{
     public:
@@ -82,6 +136,8 @@ public:
 
 private:
     GLenum error;
+    GLint maxTextureImageUnits;
+    OpenglState *state;
 
     unsigned int screenHeight, screenWidth;
     float aspect;
@@ -202,6 +258,10 @@ public:
     void switchRenderToShadowMap(const unsigned int index);
 
     void switchrenderToDefault();
+
+    int getMaxTextureImageUnits() const {
+        return maxTextureImageUnits;
+    }
 };
 
 #endif //UBERGAME_GLHELPER_H

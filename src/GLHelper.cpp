@@ -182,6 +182,9 @@ GLHelper::GLHelper() {
     }
     checkErrors("after Context creation");
 
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureImageUnits);
+    state = new OpenglState(maxTextureImageUnits);
+
     cameraPosition = glm::vec3(0.0f, 0.0f, 0.0f);
     cameraMatrix = glm::lookAt(cameraPosition, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
@@ -408,12 +411,8 @@ void GLHelper::switchrenderToDefault() {
     glViewport(0, 0, screenWidth, screenHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    //https://www.khronos.org/opengles/sdk/docs/man3/html/glGet.xhtml GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS must be atleast 32.
     //we bind shadow map to last texture unit
-    //FIXME this is not last, this is 32
-    glActiveTexture(GL_TEXTURE0 + 31);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, depthMap);
-    glActiveTexture(GL_TEXTURE0);
+    state->attach2DTextureArray(depthMap, maxTextureImageUnits - 1);
     glCullFace(GL_BACK);
 }
 
@@ -422,7 +421,7 @@ void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, 
         std::cerr << "No program render requested." << std::endl;
         return;
     }
-    glUseProgram(program);
+    state->setProgram(program);
 
     // Set up for a glDrawElements call
     glBindVertexArray(vao);
@@ -430,7 +429,7 @@ void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, 
 
     glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, NULL);
     glBindVertexArray(0);
-    glUseProgram(0);
+    //state->setProgram(0);
 
     checkErrors("render");
 }
@@ -441,9 +440,9 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
     } else {
-        glUseProgram(programID);
+        state->setProgram(programID);
         glUniformMatrix4fv(uniformID, 1, GL_FALSE, glm::value_ptr(matrix));
-        glUseProgram(0);
+        //state->setProgram(0);
         checkErrors("setUniformMatrix");
         return true;
     }
@@ -455,9 +454,9 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
     } else {
-        glUseProgram(programID);
+        state->setProgram(programID);
         glUniform3fv(uniformID, 1, glm::value_ptr(vector));
-        glUseProgram(0);
+        //state->setProgram(0);
         checkErrors("setUniformVector");
         return true;
     }
@@ -468,9 +467,9 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
     } else {
-        glUseProgram(programID);
+        state->setProgram(programID);
         glUniform1f(uniformID, value);
-        glUseProgram(0);
+        //state->setProgram(0);
         checkErrors("setUniformFloat");
         return true;
     }
@@ -481,9 +480,9 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
     } else {
-        glUseProgram(programID);
+        state->setProgram(programID);
         glUniform1i(uniformID, value);
-        glUseProgram(0);
+        //state->setProgram(0);
         checkErrors("setUniformInt");
         return true;
     }
@@ -508,7 +507,7 @@ GLHelper::~GLHelper() {
     deleteBuffer(1, playerUBOLocation);
     deleteBuffer(1, depthMap);
     glDeleteFramebuffers(1, &depthOnlyFrameBuffer); //maybe we should wrap this up too
-    glUseProgram(0);
+    //state->setProgram(0);
 }
 
 void GLHelper::reshape(unsigned int height, unsigned int width) {
@@ -524,7 +523,7 @@ void GLHelper::reshape(unsigned int height, unsigned int width) {
 GLuint GLHelper::loadTexture(int height, int width, GLenum format, void *data) {
     GLuint texture;
     glGenTextures(1, &texture);
-    glActiveTexture(GL_TEXTURE0);//this is the default working texture
+    state->activateTextureUnit(0);//this is the default working texture
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -534,17 +533,12 @@ GLuint GLHelper::loadTexture(int height, int width, GLenum format, void *data) {
 }
 
 void GLHelper::attachTexture(unsigned int textureID, unsigned int attachPoint) {
-    //https://www.khronos.org/opengles/sdk/1.1/docs/man/glActiveTexture.xml guarantees below works for texture selection
-    glActiveTexture(GL_TEXTURE0 + attachPoint);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    glActiveTexture(GL_TEXTURE0);
+    state->attachTexture(textureID, attachPoint);
     checkErrors("attachTexture");
 }
 
 void GLHelper::attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint) {
-    glActiveTexture(GL_TEXTURE0 + attachPoint);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapID);
-    glActiveTexture(GL_TEXTURE0);
+    state->attachCubemap(cubeMapID, attachPoint);
     checkErrors("attachCubeMap");
 }
 
@@ -606,7 +600,7 @@ void GLHelper::drawLine(const glm::vec3 &from, const glm::vec3 &to,
         program = initializeProgram("./Data/Shaders/Line/vertex.glsl", "./Data/Shaders/Line/fragment.glsl", uniformMap);
         lineInfoU = glGetUniformLocation(program, "lineInfo");
         viewTransformU = glGetUniformLocation(program, "cameraTransformMatrix");
-        glUseProgram(program);
+        state->setProgram(program);
         vbo = generateBuffer(1);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
@@ -622,7 +616,7 @@ void GLHelper::drawLine(const glm::vec3 &from, const glm::vec3 &to,
         glVertexAttribPointer(0, 1, GL_INT, GL_FALSE, 0, 0);
         glEnableVertexAttribArray(0);
     }
-    glUseProgram(program);
+    state->setProgram(program);
     glm::mat4 matrix(glm::vec4(from, 1.0f),
                      glm::vec4(to, 1.0f),
                      glm::vec4(fromColor, 1.0f),
@@ -641,7 +635,7 @@ void GLHelper::drawLine(const glm::vec3 &from, const glm::vec3 &to,
     glDrawArrays(GL_LINES, 0, 2);
 
     glBindVertexArray(0);
-    glUseProgram(0);
+    //state->setProgram(0);
     checkErrors("drawLine");
 
 }
@@ -675,3 +669,5 @@ void GLHelper::setPlayerMatrices() {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setPlayerMatrices");
 }
+
+
