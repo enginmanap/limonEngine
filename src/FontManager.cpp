@@ -47,7 +47,7 @@ Face *FontManager::getFont(const std::string fontPath, const int size) {
 
         std::cout << "atlas h: " << h << ", w " << w << std::endl;
 
-        //now we have the atlas
+        //now we have maximum size of the textures
     }
 
     return fonts[fontPath + std::to_string(size)];

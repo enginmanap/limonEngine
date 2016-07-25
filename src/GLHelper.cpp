@@ -130,14 +130,14 @@ void GLHelper::fillUniformMap(const GLuint program, std::map<std::string, GLHelp
     GLsizei length; // name length
 
     glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &count);
-    std::cout << "Active Uniforms:" << count << std::endl;
+    //std::cout << "Active Uniforms:" << count << std::endl;
 
 
     for (i = 0; i < count; i++)
     {
         glGetActiveUniform(program, (GLuint)i, maxLength, &length, &size, &type, name);
 
-        std::cout << "Uniform " << i << " Type: " << type << " Name: " << name << std::endl;
+        //std::cout << "Uniform " << i << " Type: " << type << " Name: " << name << std::endl;
         uniformMap[name] = new Uniform(i, name, type, size);
     }
 }
@@ -183,6 +183,8 @@ GLHelper::GLHelper() {
     checkErrors("after Context creation");
 
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureImageUnits);
+
+    std::cout << "Maximum number of texture image units is " << maxTextureImageUnits << std::endl;
     state = new OpenglState(maxTextureImageUnits);
 
     cameraPosition = glm::vec3(0.0f, 0.0f, 0.0f);
