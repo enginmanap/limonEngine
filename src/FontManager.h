@@ -16,20 +16,18 @@
 
 
 class Glyph {
-    GLuint textureID;
     glm::mediump_ivec2 size;
     glm::mediump_ivec2 bearing;
     GLuint advance;
 public:
-    Glyph(GLHelper *glHelper, FT_Face face, const int size, const char character) :
-            textureID(0), size(glm::mediump_vec2(0)), bearing(glm::mediump_vec2(0)), advance(0) {
+    Glyph(GLHelper *glHelper, FT_Face face, const int size, const char character, const unsigned int textureID) :
+            size(glm::mediump_vec2(0)), bearing(glm::mediump_vec2(0)), advance(0) {
         //FIXME this is not correct, there is a better function in API
         FT_Set_Pixel_Sizes(face, 0, size);
         if (FT_Load_Char(face, character, FT_LOAD_RENDER)) {
             std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
         } else {
-            textureID = glHelper->loadTexture(face->glyph->bitmap.rows, face->glyph->bitmap.width, GL_RED,
-                                              face->glyph->bitmap.buffer);
+            glHelper->loadTextureArrayElement(textureID, character, face->glyph->bitmap.rows, face->glyph->bitmap.width, GL_RED, face->glyph->bitmap.buffer);
             this->size = glm::mediump_ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows);
             bearing = glm::mediump_ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
             advance = face->glyph->advance.x;
@@ -44,8 +42,6 @@ public:
 
     }
 
-    GLuint getTextureID() const { return textureID; }
-
     const glm::mediump_ivec2 &getSize() const { return size; }
 
     const glm::mediump_ivec2 &getBearing() const { return bearing; }
@@ -57,23 +53,51 @@ class Face {
     GLHelper *glHelper;
     std::string path;
     unsigned int size;
+    unsigned int textureID;
     FT_Face face;
     std::map<const char, Glyph *> glyphs;
 public:
     Face(GLHelper *glHelper, std::string path, int size, FT_Face face) : glHelper(glHelper), path(path), size(size),
-                                                                         face(face) { }
+                                                                         face(face) {
+        //now we should calculate what we have
+
+
+        unsigned int w = 0;
+        unsigned int h = 0;
+
+        for (unsigned int i = 0; i < 256; i++) {
+            if (FT_Load_Char(face, i, FT_LOAD_RENDER)) {
+                fprintf(stderr, "Loading character %c failed!\n", i);
+                continue;
+            }
+
+            w = std::max(w, face->glyph->bitmap.width);
+            h = std::max(h, face->glyph->bitmap.rows);
+
+        }
+
+        std::cout << "atlas h: " << h << ", w " << w << std::endl;
+
+        //now we have maximum size of the textures
+
+        textureID = glHelper->createTextureArray(w, h, 256);
+    }
 
     const Glyph *getGlyph(const char character) {
         if (glyphs.count(character) == 0) {
-            glyphs[character] = new Glyph(glHelper, face, size, character);
+            glyphs[character] = new Glyph(glHelper, face, size, character, textureID);
         }
         return glyphs[character];
     }
+
+    GLuint getTextureID() const { return textureID; }
 
     ~Face() {
         for (std::map<const char, Glyph *>::iterator iter = glyphs.begin(); iter != glyphs.end(); ++iter) {
             delete iter->second;
         }
+
+        glHelper->deleteTexture(textureID);
     }
 };
 

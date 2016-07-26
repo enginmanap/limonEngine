@@ -242,14 +242,16 @@ GLHelper::GLHelper() {
     glGenFramebuffers(1, &depthOnlyFrameBuffer);
 
     glGenTextures(1, &depthMap);
+    state->activateTextureUnit(0);
+    /****************** this block is copy of createTextureArray, except it is GL_DEPTH_COMPONENT *********/
     glBindTexture(GL_TEXTURE_2D_ARRAY, depthMap);
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_WIDTH, NR_POINT_LIGHTS, 0,
                  GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    /****************** this block is copy of createTextureArray, except it is GL_DEPTH_COMPONENT *********/
     GLfloat borderColor[] = {1.0, 1.0, 1.0, 1.0};
     glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, borderColor);
 
@@ -539,6 +541,12 @@ void GLHelper::attachTexture(unsigned int textureID, unsigned int attachPoint) {
     checkErrors("attachTexture");
 }
 
+void GLHelper::attach2DTextureArray(unsigned int textureID, unsigned int attachPoint) {
+    state->attach2DTextureArray(textureID, attachPoint);
+    checkErrors("attachTexture");
+}
+
+
 void GLHelper::attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint) {
     state->attachCubemap(cubeMapID, attachPoint);
     checkErrors("attachCubeMap");
@@ -670,6 +678,30 @@ void GLHelper::setPlayerMatrices() {
     glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), sizeof(glm::mat4), &viewMatrix);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setPlayerMatrices");
+}
+
+unsigned int GLHelper::createTextureArray(const unsigned int width, const unsigned int height, const unsigned int arraySize) {
+    unsigned int textureID;
+    state->activateTextureUnit(0);
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, textureID);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, width, height, arraySize, 0,
+                 GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+    checkErrors("createTextureArray");
+    return textureID;
+}
+
+void GLHelper::loadTextureArrayElement(const unsigned int textureID, const char index, unsigned int height,
+                                       unsigned int width, int component, void *data) {
+    state->activateTextureUnit(0);//this is the default working texture
+    glBindTexture(GL_TEXTURE_2D_ARRAY, textureID);
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, index, width, height, 1, component, GL_UNSIGNED_BYTE, data);
+    checkErrors("loadTextureArrayElement");
 }
 
 

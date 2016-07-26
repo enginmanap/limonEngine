@@ -91,7 +91,13 @@ void GUIText::render() {
         if (!renderProgram->setUniform("GUISampler", glyphAttachPoint)) {
             std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
         }
-        glHelper->attachTexture(glyph->getTextureID(), glyphAttachPoint);
+
+        if (!renderProgram->setUniform("characterIndex", text.at(i))) {
+            std::cerr << "failed to set uniform \"characterIndex\"" << std::endl;
+        }
+
+        glHelper->attach2DTextureArray(face->getTextureID(), glyphAttachPoint);
+
         glHelper->render(renderProgram->getID(), vao, ebo, (const GLuint) (faces.size() * 3));
 
         totalAdvance += glyph->getAdvance() / 64;

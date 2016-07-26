@@ -3,6 +3,7 @@
 uniform mat4 worldTransformMatrix;
 uniform mat4 orthogonalProjectionMatrix;
 uniform vec3 inColor;
+uniform int characterIndex;
 
 layout (location = 2) in vec4 position;
 layout (location = 3) in vec2 textureCoordinate;

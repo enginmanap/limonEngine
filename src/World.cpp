@@ -91,6 +91,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     GUIText *tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 128), "Uber Game",
                               glm::vec3(0, 0, 0));
     //tr->setScale(0.25f,0.25f);
+    std::cout << "the tr is not the problem " << std::endl;
     tr->set2dWorldTransform(glm::vec2(512.0f, 700.0f), 0.0f);
     layer1->addGuiElement(tr);
 
@@ -111,9 +112,10 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
 
     Light *light = new Light(Light::POINT, glm::vec3(-25.0f, 50.0f, -25.0f), glm::vec3(1.0f, 1.0f, 1.0f));
     lights.push_back(light);
-
+/*
     light = new Light(Light::POINT, glm::vec3(-25.0f, 50.0f, 25.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     lights.push_back(light);
+    */
 }
 
 void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {

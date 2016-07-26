@@ -222,6 +222,8 @@ public:
 
     void attachTexture(unsigned int textureID, unsigned int attachPoint);
 
+    void attach2DTextureArray(unsigned int textureID, unsigned int attachPoint);
+
     void attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint);
 
     bool deleteTexture(GLuint textureID);
@@ -262,6 +264,11 @@ public:
     int getMaxTextureImageUnits() const {
         return maxTextureImageUnits;
     }
+
+    unsigned int createTextureArray(const unsigned int width, const unsigned int height, const unsigned int arraySize);
+
+    void loadTextureArrayElement(const unsigned int textureID, const char index, unsigned int height, unsigned int width,
+                                 int component, void *data);
 };
 
 #endif //UBERGAME_GLHELPER_H
