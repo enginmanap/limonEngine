@@ -103,7 +103,7 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
                     std::cout << "loaded ambient texture " << property.C_Str() << std::endl;
                 } else {
                     std::cerr << "The model contained ambient texture information, but texture loading failed. \n" <<
-                    "Texture path: [" << property.C_Str() << "]" << std::endl;
+                              "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
                 }
             }
             if ((currentMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0)) {
@@ -112,7 +112,7 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
                     std::cout << "loaded diffuse texture " << property.C_Str() << std::endl;
                 } else {
                     std::cerr << "The model contained diffuse texture information, but texture loading failed. \n" <<
-                    "Texture path: [" << property.C_Str() << "]" << std::endl;
+                              "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
                 }
             }
 
@@ -122,7 +122,7 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
                     std::cout << "loaded specular texture " << property.C_Str() << std::endl;
                 } else {
                     std::cerr << "The model contained specular texture information, but texture loading failed. \n" <<
-                    "Texture path: [" << property.C_Str() << "]" << std::endl;
+                              "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
                 }
             }
 

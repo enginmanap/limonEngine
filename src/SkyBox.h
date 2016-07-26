@@ -8,14 +8,14 @@
 #include <string>
 
 #include "Renderable.h"
-#include "CubeMap.h"
+#include "Assets/CubeMapAsset.h"
 
 //FIXME model constructor has a model in it. They should have a common parent.
 class SkyBox : public Renderable {
     std::vector<glm::vec3> vertices;
     std::vector<glm::mediump_uvec3> faces;
 
-    CubeMap *cubeMap;
+    CubeMapAsset *cubeMap;
 
 public:
     SkyBox(GLHelper *glHelper, std::string path, std::string right, std::string left,

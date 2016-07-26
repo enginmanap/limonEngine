@@ -6,7 +6,7 @@
 #define UBERGAME_MATERIAL_H
 
 #include "glm/glm.hpp"
-#include "Texture.h"
+#include "Assets/TextureAsset.h"
 
 
 class Material {
@@ -18,7 +18,7 @@ private:
     glm::vec3 ambientColor, diffuseColor, specularColor;
     float refractionIndex;
 
-    Texture *ambientTexture = NULL, *diffuseTexture = NULL, *specularTexture = NULL;
+    TextureAsset *ambientTexture = NULL, *diffuseTexture = NULL, *specularTexture = NULL;
 
 public:
     Material(GLHelper *glHelper, const std::string &name, float specularExponent, const glm::vec3 &ambientColor,
@@ -80,15 +80,15 @@ public:
         this->refractionIndex = refractionIndex;
     }
 
-    Texture *getAmbientTexture() const {
+    TextureAsset *getAmbientTexture() const {
         return ambientTexture;
     }
 
     void setAmbientTexture(std::string ambientTexture) {
-        this->ambientTexture = new Texture(glHelper, ambientTexture);
+        this->ambientTexture = new TextureAsset(glHelper, ambientTexture);
     }
 
-    Texture *getDiffuseTexture() const {
+    TextureAsset *getDiffuseTexture() const {
         if (diffuseTexture == NULL) {
             std::cerr << "access to null element" << std::endl;
         }
@@ -96,15 +96,15 @@ public:
     }
 
     void setDiffuseTexture(std::string diffuseTexture) {
-        this->diffuseTexture = new Texture(glHelper, diffuseTexture);
+        this->diffuseTexture = new TextureAsset(glHelper, diffuseTexture);
     }
 
-    Texture *getSpecularTexture() const {
+    TextureAsset *getSpecularTexture() const {
         return specularTexture;
     }
 
     void setSpecularTexture(std::string specularTexture) {
-        this->specularTexture = new Texture(glHelper, specularTexture);
+        this->specularTexture = new TextureAsset(glHelper, specularTexture);
     }
 
     ~Material() {

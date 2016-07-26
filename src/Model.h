@@ -16,7 +16,7 @@
 //TODO maybe we should not have direct dependency to glm and gl
 #include "glm/glm.hpp"
 #include "PhysicalRenderable.h"
-#include "Texture.h"
+#include "Assets/TextureAsset.h"
 #include "Material.h"
 
 

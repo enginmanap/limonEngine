@@ -9,21 +9,21 @@
 #include <string>
 #include <SDL2/SDL_image.h>
 
-#include "GLHelper.h"
+#include "../GLHelper.h"
 
 
-class CubeMap {
+class CubeMapAsset {
     GLHelper *glHelper;
     std::string path;
     std::string names[6];
     GLuint cubeMapBufferID;
 public:
-    CubeMap(GLHelper *glHelper, std::string path,
-            std::string right, std::string left,
-            std::string top, std::string bottom,
-            std::string back, std::string front);
+    CubeMapAsset(GLHelper *glHelper, std::string path,
+                 std::string right, std::string left,
+                 std::string top, std::string bottom,
+                 std::string back, std::string front);
 
-    ~CubeMap() {
+    ~CubeMapAsset() {
         glHelper->deleteTexture(cubeMapBufferID);
     }
 

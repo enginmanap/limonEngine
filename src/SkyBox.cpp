@@ -8,10 +8,10 @@ SkyBox::SkyBox(GLHelper *glHelper, std::string path, std::string right, std::str
                std::string down, std::string back,
                std::string front) :
         Renderable(glHelper) {
-    cubeMap = new CubeMap(glHelper, path,
-                          right, left,
-                          top, down,
-                          back, front);
+    cubeMap = new CubeMapAsset(glHelper, path,
+                               right, left,
+                               top, down,
+                               back, front);
 
 
     vertices.push_back(glm::vec3(-1.0f, -1.0f, -1.0f));

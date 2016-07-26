@@ -2,13 +2,13 @@
 // Created by Engin Manap on 1.03.2016.
 //
 
-#include "CubeMap.h"
+#include "CubeMapAsset.h"
 
 
-CubeMap::CubeMap(GLHelper *glHelper, std::string path,
-                 std::string right, std::string left,
-                 std::string top, std::string bottom,
-                 std::string back, std::string front) :
+CubeMapAsset::CubeMapAsset(GLHelper *glHelper, std::string path,
+                           std::string right, std::string left,
+                           std::string top, std::string bottom,
+                           std::string back, std::string front) :
         glHelper(glHelper),
         path(path) {
     names[0] = right;
@@ -22,11 +22,11 @@ CubeMap::CubeMap(GLHelper *glHelper, std::string path,
     for (int i = 0; i < 6; i++) {
         surfaces[i] = IMG_Load((path + "/" + names[i]).data());
         if (!surfaces[i]) {
-            std::cerr << "Texture Load failed for " << path + "/" + names[i] << ". Error:" << std::endl <<
-            IMG_GetError << std::endl;
+            std::cerr << "TextureAsset Load failed for " << path + "/" + names[i] << ". Error:" << std::endl <<
+                      IMG_GetError << std::endl;
             exit(-1);
         } else {
-            std::cout << "Texture " << path + "/" + names[i] << " loaded succesfully." << std::endl;
+            std::cout << "TextureAsset " << path + "/" + names[i] << " loaded succesfully." << std::endl;
         }
 
     }

@@ -2,18 +2,18 @@
 // Created by Engin manap on 1.03.2016.
 //
 
-#include "Texture.h"
+#include "TextureAsset.h"
 
-Texture::Texture(GLHelper *glHelper, std::string name) :
+TextureAsset::TextureAsset(GLHelper *glHelper, std::string name) :
         glHelper(glHelper),
         name(name) {
     SDL_Surface *surface = IMG_Load(name.data());
 
     if (!surface) {
-        std::cerr << "Texture Load failed for " << name << ". Error:" << std::endl << IMG_GetError << std::endl;
+        std::cerr << "TextureAsset Load failed for " << name << ". Error:" << std::endl << IMG_GetError << std::endl;
         exit(1);
     } else {
-        std::cout << "Texture " << name << " loaded succesfully." << std::endl;
+        std::cout << "TextureAsset " << name << " loaded succesfully." << std::endl;
     }
     if (surface->format->BytesPerPixel == 4) {
         textureBufferID = glHelper->loadTexture(surface->h, surface->w, GL_RGBA, surface->pixels);
@@ -26,6 +26,6 @@ Texture::Texture(GLHelper *glHelper, std::string name) :
     delete surface;
 }
 
-Texture::~Texture() {
+TextureAsset::~TextureAsset() {
     glHelper->deleteTexture(textureBufferID);
 }

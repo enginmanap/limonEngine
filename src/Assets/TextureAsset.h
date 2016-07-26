@@ -9,19 +9,19 @@
 #include <iostream>
 #include <SDL2/SDL_image.h>
 
-#include "GLHelper.h"
+#include "../GLHelper.h"
 
 
-class Texture {
+class TextureAsset {
 protected:
     GLHelper *glHelper;
     std::string name;
     GLuint textureBufferID;
 
 public:
-    Texture(GLHelper *, std::string);
+    TextureAsset(GLHelper *, std::string);
 
-    ~Texture();
+    ~TextureAsset();
 
     GLuint getID() const {
         return textureBufferID;
