@@ -9,6 +9,7 @@
 
 #include "Renderable.h"
 #include "Assets/CubeMapAsset.h"
+#include "Assets/AssetManager.h"
 
 //FIXME model constructor has a model in it. They should have a common parent.
 class SkyBox : public Renderable {
@@ -18,7 +19,7 @@ class SkyBox : public Renderable {
     CubeMapAsset *cubeMap;
 
 public:
-    SkyBox(GLHelper *glHelper, std::string path, std::string right, std::string left,
+    SkyBox(AssetManager *assetManager, std::string path, std::string right, std::string left,
            std::string top, std::string down,
            std::string back, std::string front);
 

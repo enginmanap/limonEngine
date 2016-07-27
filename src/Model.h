@@ -22,7 +22,7 @@
 
 class Model : public PhysicalRenderable {
 
-    std::string modelFile;
+    AssetManager *assetManager;
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> normals;
     std::vector<glm::mediump_uvec3> faces;
@@ -34,9 +34,9 @@ class Model : public PhysicalRenderable {
     btConvexTriangleMeshShape *convexShape;
     btConvexHullShape *simplifiedConvexShape;
 public:
-    Model(GLHelper *glHelper, const std::string &modelFile) : Model(glHelper, 0, modelFile) { };
+    Model(AssetManager *assetManager, const std::string &modelFile) : Model(assetManager, 0, modelFile) {};
 
-    Model(GLHelper *, const float mass, const std::string &modelFile);
+    Model(AssetManager *assetManager, const float mass, const std::string &modelFile);
 
     void activateMaterial(const Material *material);
 

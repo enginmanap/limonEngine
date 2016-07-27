@@ -8,18 +8,18 @@
 #include <string>
 #include <iostream>
 #include <SDL2/SDL_image.h>
-
+#include "Asset.h"
 #include "../GLHelper.h"
 
 
-class TextureAsset {
+class TextureAsset : public Asset {
 protected:
     GLHelper *glHelper;
     std::string name;
     GLuint textureBufferID;
 
 public:
-    TextureAsset(GLHelper *, std::string);
+    TextureAsset(GLHelper *glHelper, const std::vector<std::string> &files);
 
     ~TextureAsset();
 

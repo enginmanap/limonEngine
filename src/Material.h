@@ -7,11 +7,12 @@
 
 #include "glm/glm.hpp"
 #include "Assets/TextureAsset.h"
+#include "Assets/AssetManager.h"
 
 
 class Material {
 private:
-    GLHelper *glHelper;
+    AssetManager *assetManager;
     std::string name;
     float specularExponent;
 
@@ -21,9 +22,9 @@ private:
     TextureAsset *ambientTexture = NULL, *diffuseTexture = NULL, *specularTexture = NULL;
 
 public:
-    Material(GLHelper *glHelper, const std::string &name, float specularExponent, const glm::vec3 &ambientColor,
+    Material(AssetManager *assetManager, const std::string &name, float specularExponent, const glm::vec3 &ambientColor,
              const glm::vec3 &diffuseColor, const glm::vec3 &specularColor, float refractionIndex)
-            : glHelper(glHelper),
+            : assetManager(assetManager),
               name(name),
               specularExponent(specularExponent),
               ambientColor(ambientColor),
@@ -32,8 +33,8 @@ public:
               refractionIndex(refractionIndex) { }
 
 
-    Material(GLHelper *glHelper, const std::string &name)
-            : glHelper(glHelper),
+    Material(AssetManager *assetManager, const std::string &name)
+            : assetManager(assetManager),
               name(name) { }
 
     const std::string &getName() const {
@@ -85,7 +86,8 @@ public:
     }
 
     void setAmbientTexture(std::string ambientTexture) {
-        this->ambientTexture = new TextureAsset(glHelper, ambientTexture);
+
+        this->ambientTexture = assetManager->loadAsset<TextureAsset>({ambientTexture});
     }
 
     TextureAsset *getDiffuseTexture() const {
@@ -96,7 +98,7 @@ public:
     }
 
     void setDiffuseTexture(std::string diffuseTexture) {
-        this->diffuseTexture = new TextureAsset(glHelper, diffuseTexture);
+        this->diffuseTexture = assetManager->loadAsset<TextureAsset>({diffuseTexture});
     }
 
     TextureAsset *getSpecularTexture() const {
@@ -104,7 +106,7 @@ public:
     }
 
     void setSpecularTexture(std::string specularTexture) {
-        this->specularTexture = new TextureAsset(glHelper, specularTexture);
+        this->specularTexture = assetManager->loadAsset<TextureAsset>({specularTexture});
     }
 
     ~Material() {

@@ -4,9 +4,17 @@
 
 #include "TextureAsset.h"
 
-TextureAsset::TextureAsset(GLHelper *glHelper, std::string name) :
-        glHelper(glHelper),
-        name(name) {
+TextureAsset::TextureAsset(GLHelper *glHelper, const std::vector<std::string> &files) :
+        Asset(glHelper, files),
+        glHelper(glHelper) {
+    if (files.size() < 1) {
+        std::cerr << "Texture load failed because file name vector is empty." << std::endl;
+        exit(-1);
+    }
+    name = files[0];
+    if (files.size() > 1) {
+        std::cerr << "multiple files are sent to Texture constructor, extra elements ignored." << std::endl;
+    }
     SDL_Surface *surface = IMG_Load(name.data());
 
     if (!surface) {

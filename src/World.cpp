@@ -6,7 +6,7 @@
 #include "World.h"
 
 World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
-
+    assetManager = new AssetManager(glHelper);
     // physics init
     broadphase = new btDbvtBroadphase();
 
@@ -31,7 +31,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     shadowMapProgram = new GLSLProgram(glHelper, "./Data/Shaders/ShadowMap/vertex.glsl",
                                        "./Data/Shaders/ShadowMap/fragment.glsl");
 
-    Model *crate = new Model(glHelper, "./Data/Models/Box/Box.obj");
+    Model *crate = new Model(assetManager, "./Data/Models/Box/Box.obj");
     crate->addScale(glm::vec3(250.0f, 1.0f, 250.0f));
     crate->addTranslate(glm::vec3(-125.0f, 0.0f, 125.0f));
     crate->addOrientation(glm::quat(0.0f, 0.0f, 1.0f, 0.2f));
@@ -40,28 +40,28 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    crate = new Model(glHelper, 1, "./Data/Models/Box/Box.obj");
+    crate = new Model(assetManager, 1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(2.0f, 25.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    crate = new Model(glHelper, 1, "./Data/Models/Box/Box.obj");
+    crate = new Model(assetManager, 1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(-2.0f, 23.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    crate = new Model(glHelper, 1, "./Data/Models/Box/Box.obj");
+    crate = new Model(assetManager, 1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(2.0f, 23.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-    crate = new Model(glHelper, 1, "./Data/Models/Box/Box.obj");
+    crate = new Model(assetManager, 1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(3.25f, 2.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
@@ -69,7 +69,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
 
-    Model *mario = new Model(glHelper, 100, "./Data/Models/Mario/Mario_obj.obj");
+    Model *mario = new Model(assetManager, 100, "./Data/Models/Mario/Mario_obj.obj");
     mario->addTranslate(glm::vec3(5.0f, 23.0f, -3.0f));
     mario->addScale(glm::vec3(0.25f, 0.25f, 0.25f));
 
@@ -78,7 +78,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     rigidBodies.push_back(mario->getRigidBody());
     dynamicsWorld->addRigidBody(mario->getRigidBody());
 
-    sky = new SkyBox(glHelper,
+    sky = new SkyBox(assetManager,
                      std::string("./Data/Textures/Skyboxes/ThickCloudsWater"),
                      std::string("right.jpg"),
                      std::string("left.jpg"),

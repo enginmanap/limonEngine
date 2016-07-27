@@ -4,14 +4,15 @@
 
 #include "SkyBox.h"
 
-SkyBox::SkyBox(GLHelper *glHelper, std::string path, std::string right, std::string left, std::string top,
+
+SkyBox::SkyBox(AssetManager *assetManager, std::string path, std::string right, std::string left, std::string top,
                std::string down, std::string back,
                std::string front) :
-        Renderable(glHelper) {
-    cubeMap = new CubeMapAsset(glHelper, path,
-                               right, left,
-                               top, down,
-                               back, front);
+        Renderable(assetManager->getGlHelper()) {
+    cubeMap = assetManager->loadAsset<CubeMapAsset>({path,
+                                                     right, left,
+                                                     top, down,
+                                                     back, front});
 
 
     vertices.push_back(glm::vec3(-1.0f, -1.0f, -1.0f));

@@ -10,18 +10,16 @@
 #include <SDL2/SDL_image.h>
 
 #include "../GLHelper.h"
+#include "Asset.h"
 
 
-class CubeMapAsset {
+class CubeMapAsset : public Asset {
     GLHelper *glHelper;
     std::string path;
     std::string names[6];
     GLuint cubeMapBufferID;
 public:
-    CubeMapAsset(GLHelper *glHelper, std::string path,
-                 std::string right, std::string left,
-                 std::string top, std::string bottom,
-                 std::string back, std::string front);
+    CubeMapAsset(GLHelper *glHelper, const std::vector<std::string> &fileList);
 
     ~CubeMapAsset() {
         glHelper->deleteTexture(cubeMapBufferID);

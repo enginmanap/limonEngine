@@ -6,8 +6,8 @@
 #include "Utils/GLMConverter.h"
 
 
-Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile) :
-        PhysicalRenderable(glHelper), modelFile(modelFile) {
+Model::Model(AssetManager *assetManager, const float mass, const std::string &modelFile) :
+        PhysicalRenderable(assetManager->getGlHelper()) {
 
     Assimp::Importer import;
     //FIXME triangulate creates too many vertices, it is unnecessary, but optimize requires some work.
@@ -77,7 +77,7 @@ Model::Model(GLHelper *glHelper, const float mass, const std::string &modelFile)
 
         if (materialMap.find(property.C_Str()) == materialMap.end()) {//search for the name
             //if the material is not loaded before
-            Material *newMaterial = new Material(glHelper, property.C_Str());
+            Material *newMaterial = new Material(assetManager, property.C_Str());
             aiColor3D color(0.f, 0.f, 0.f);
             float transferFloat;
 

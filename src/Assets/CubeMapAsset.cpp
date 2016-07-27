@@ -5,18 +5,28 @@
 #include "CubeMapAsset.h"
 
 
-CubeMapAsset::CubeMapAsset(GLHelper *glHelper, std::string path,
-                           std::string right, std::string left,
-                           std::string top, std::string bottom,
-                           std::string back, std::string front) :
-        glHelper(glHelper),
-        path(path) {
-    names[0] = right;
-    names[1] = left;
-    names[2] = top;
-    names[3] = bottom;
-    names[4] = back;
-    names[5] = front;
+CubeMapAsset::CubeMapAsset(GLHelper *glHelper, const std::vector<std::string> &fileList) :
+//, std::string path,
+//                  std::string right, std::string left,
+//                 std::string top, std::string bottom,
+//               std::string back, std::string front) :
+        Asset(glHelper, fileList),
+        glHelper(glHelper) {
+    if (fileList.size() < 7) {
+        std::cerr << "CubeMap load failed because file name vector does not have 7 elements." << std::endl;
+        exit(-1);
+    }
+    path = fileList[0];
+    names[0] = fileList[1];
+    names[1] = fileList[2];
+    names[2] = fileList[3];
+    names[3] = fileList[4];
+    names[4] = fileList[5];
+    names[5] = fileList[6];
+    if (fileList.size() > 7) {
+        std::cerr << "more than 7 files are sent to CubeMap constructor, extra elements ignored." << std::endl;
+    }
+
     SDL_Surface *surfaces[6] = {0};
 
     for (int i = 0; i < 6; i++) {
