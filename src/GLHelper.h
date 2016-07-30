@@ -199,7 +199,7 @@ public:
 
 
     void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
-                                        GLuint &vao, GLuint &vbo, const GLuint attachPointer, GLuint &ebo);
+                                        GLuint &vao, GLuint &vbo, const GLuint attachPointer);
 
     bool freeBuffer(const GLuint bufferID);
 

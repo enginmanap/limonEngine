@@ -128,7 +128,7 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
 
             materialMap[newMaterial->getName()] = newMaterial;
 
-            glHelper->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3, ebo);
+            glHelper->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
             bufferObjects.push_back(vbo);
         }
     }

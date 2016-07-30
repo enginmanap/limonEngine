@@ -379,7 +379,7 @@ void GLHelper::bufferVertexColor(const std::vector<glm::vec4> &colors,
 }
 
 void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
-                                              GLuint &vao, GLuint &vbo, const GLuint attachPointer, GLuint &ebo) {
+                                              GLuint &vao, GLuint &vbo, const GLuint attachPointer) {
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
