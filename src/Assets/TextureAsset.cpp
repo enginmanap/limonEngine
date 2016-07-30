@@ -4,9 +4,8 @@
 
 #include "TextureAsset.h"
 
-TextureAsset::TextureAsset(GLHelper *glHelper, const std::vector<std::string> &files) :
-        Asset(glHelper, files),
-        glHelper(glHelper) {
+TextureAsset::TextureAsset(AssetManager* assetManager, const std::vector<std::string> &files) :
+        Asset(assetManager, files) {
     if (files.size() < 1) {
         std::cerr << "Texture load failed because file name vector is empty." << std::endl;
         exit(-1);
@@ -24,9 +23,9 @@ TextureAsset::TextureAsset(GLHelper *glHelper, const std::vector<std::string> &f
         std::cout << "TextureAsset " << name << " loaded succesfully." << std::endl;
     }
     if (surface->format->BytesPerPixel == 4) {
-        textureBufferID = glHelper->loadTexture(surface->h, surface->w, GL_RGBA, surface->pixels);
+        textureBufferID = assetManager->getGlHelper()->loadTexture(surface->h, surface->w, GL_RGBA, surface->pixels);
     } else if (surface->format->BytesPerPixel == 3) {
-        textureBufferID = glHelper->loadTexture(surface->h, surface->w, GL_RGB, surface->pixels);
+        textureBufferID = assetManager->getGlHelper()->loadTexture(surface->h, surface->w, GL_RGB, surface->pixels);
     } else {
         std::cerr << "Format has undefined number of pixels:" << surface->format->BytesPerPixel << std::endl;
         exit(1);
@@ -35,5 +34,5 @@ TextureAsset::TextureAsset(GLHelper *glHelper, const std::vector<std::string> &f
 }
 
 TextureAsset::~TextureAsset() {
-    glHelper->deleteTexture(textureBufferID);
+    assetManager->getGlHelper()->deleteTexture(textureBufferID);
 }

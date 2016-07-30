@@ -28,7 +28,7 @@ public:
     template<class T>
     T *loadAsset(const std::vector<std::string> files) {
         if (assets.count(files) == 0) {
-            assets[files] = new T(glHelper, files);
+            assets[files] = new T(this, files);
         }
         return (T *) assets[files];
     };

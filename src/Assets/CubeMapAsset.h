@@ -11,18 +11,18 @@
 
 #include "../GLHelper.h"
 #include "Asset.h"
+#include "AssetManager.h"
 
 
 class CubeMapAsset : public Asset {
-    GLHelper *glHelper;
     std::string path;
     std::string names[6];
     GLuint cubeMapBufferID;
 public:
-    CubeMapAsset(GLHelper *glHelper, const std::vector<std::string> &fileList);
+    CubeMapAsset(AssetManager* assetManager, const std::vector<std::string> &fileList);
 
     ~CubeMapAsset() {
-        glHelper->deleteTexture(cubeMapBufferID);
+        assetManager->getGlHelper()->deleteTexture(cubeMapBufferID);
     }
 
     GLuint getID() const {

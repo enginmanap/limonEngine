@@ -5,13 +5,8 @@
 #include "CubeMapAsset.h"
 
 
-CubeMapAsset::CubeMapAsset(GLHelper *glHelper, const std::vector<std::string> &fileList) :
-//, std::string path,
-//                  std::string right, std::string left,
-//                 std::string top, std::string bottom,
-//               std::string back, std::string front) :
-        Asset(glHelper, fileList),
-        glHelper(glHelper) {
+CubeMapAsset::CubeMapAsset(AssetManager* assetManager, const std::vector<std::string> &fileList) :
+        Asset(assetManager, fileList) {
     if (fileList.size() < 7) {
         std::cerr << "CubeMap load failed because file name vector does not have 7 elements." << std::endl;
         exit(-1);
@@ -41,7 +36,7 @@ CubeMapAsset::CubeMapAsset(GLHelper *glHelper, const std::vector<std::string> &f
 
     }
     //check if all the maps has same height/width
-    cubeMapBufferID = glHelper->loadCubeMap(surfaces[0]->h, surfaces[0]->w,
+    cubeMapBufferID = assetManager->getGlHelper()->loadCubeMap(surfaces[0]->h, surfaces[0]->w,
                                             surfaces[0]->pixels, surfaces[1]->pixels,
                                             surfaces[2]->pixels, surfaces[3]->pixels,
                                             surfaces[4]->pixels, surfaces[5]->pixels);
