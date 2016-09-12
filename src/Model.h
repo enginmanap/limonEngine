@@ -18,21 +18,21 @@
 #include "PhysicalRenderable.h"
 #include "Assets/TextureAsset.h"
 #include "Material.h"
+#include "Assets/ModelAsset.h"
 
 
 class Model : public PhysicalRenderable {
 
     AssetManager *assetManager;
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::mediump_uvec3> faces;
-    std::vector<glm::vec2> textureCoordinates;
+    ModelAsset *modelAsset;
+
+    btConvexShape *bulletConvexShape;
+
     std::map<std::string, Material *> materialMap;
     int diffuseMapAttachPoint = 1;
+    uint_fast32_t triangleCount;
 
-    btTriangleMesh *bulletMesh;
-    btConvexTriangleMeshShape *convexShape;
-    btConvexHullShape *simplifiedConvexShape;
+
 public:
     Model(AssetManager *assetManager, const std::string &modelFile) : Model(assetManager, 0, modelFile) {};
 
@@ -49,22 +49,15 @@ public:
 
     //TODO we need to free the texture. Destructor needed.
     ~Model() {
-
-        for (std::map<std::string, Material *>::iterator iter = materialMap.begin();
-             iter != materialMap.end(); ++iter) {
-            delete iter->second;
-        }
-
         delete rigidBody->getMotionState();
         delete rigidBody;
 
-
+/*
         if (simplifiedConvexShape != NULL) {
             delete simplifiedConvexShape;
         }
         delete convexShape;
-        delete bulletMesh;
-
+*/
     }
 
 
