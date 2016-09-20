@@ -11,21 +11,27 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
     modelAsset = assetManager->loadAsset<ModelAsset>({modelFile});
     //set up the rigid body
 
-    this->triangleCount = modelAsset->getTriangleCount();
+    this->triangleCount = 0;
+    this->vao = 0;
+    this->ebo = 0;//these are not per Model, but per Mesh
     this->centerOffset = modelAsset->getCenterOffset();
 
-    bulletConvexShape = modelAsset->getCollisionMesh();
+    btCompoundShape *compoundShape = new btCompoundShape();
+    btTransform emptyTransform(btQuaternion(0, 0, 0, 1));
 
+    std::vector<MeshAsset *> meshes = modelAsset->getMeshes();
+    for (std::vector<MeshAsset *>::iterator iter = meshes.begin(); iter != meshes.end(); ++iter) {
+        compoundShape->addChildShape(emptyTransform, (*iter)->getCollisionShape());
+    }
     btDefaultMotionState *boxMotionState = new btDefaultMotionState(
             btTransform(btQuaternion(0, 0, 0, 1), GLMConverter::GLMToBlt(centerOffset)));
     btVector3 fallInertia(0, 0, 0);
-    bulletConvexShape->calculateLocalInertia(mass, fallInertia);
+    compoundShape->calculateLocalInertia(mass, fallInertia);
     btRigidBody::btRigidBodyConstructionInfo *rigidBodyConstructionInfo = new btRigidBody::btRigidBodyConstructionInfo(
-            mass, boxMotionState, bulletConvexShape,
+            mass, boxMotionState, compoundShape,
             fallInertia);
 
-    this->vao = modelAsset->getVao();
-    this->ebo = modelAsset->getEbo();
+
     this->materialMap = modelAsset->getMaterialMap();
 
     rigidBody = new btRigidBody(*rigidBodyConstructionInfo);
@@ -86,13 +92,22 @@ bool Model::setupRenderVariables() {
 
 void Model::render() {
     if (setupRenderVariables()) {
-        glHelper->render(renderProgram->getID(), vao, ebo, triangleCount * 3);
+        std::vector<MeshAsset *> meshes = modelAsset->getMeshes();
+        for (std::vector<MeshAsset *>::iterator iter = meshes.begin(); iter != meshes.end(); ++iter) {
+            this->activateMaterial((*iter)->getMaterial());
+            glHelper->render(renderProgram->getID(), (*iter)->getVao(), (*iter)->getEbo(),
+                             (*iter)->getTriangleCount() * 3);
+        }
     }
 }
 
 void Model::renderWithProgram(GLSLProgram &program) {
     if (program.setUniform("worldTransformMatrix", getWorldTransform())) {
-        glHelper->render(program.getID(), vao, ebo, triangleCount * 3);
+        std::vector<MeshAsset *> meshes = modelAsset->getMeshes();
+        for (std::vector<MeshAsset *>::iterator iter = meshes.begin(); iter != meshes.end(); ++iter) {
+            this->activateMaterial((*iter)->getMaterial());
+            glHelper->render(program.getID(), (*iter)->getVao(), (*iter)->getEbo(), (*iter)->getTriangleCount() * 3);
+        }
     } else {
         std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
     }

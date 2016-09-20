@@ -14,6 +14,10 @@ TextureAsset::TextureAsset(AssetManager* assetManager, const std::vector<std::st
     if (files.size() > 1) {
         std::cerr << "multiple files are sent to Texture constructor, extra elements ignored." << std::endl;
     }
+    /**
+     * FIXME: This takes full path, which is not acceptable,
+     * we need to work with relative path to model for textures
+     */
     SDL_Surface *surface = IMG_Load(name.data());
 
     if (!surface) {

@@ -26,7 +26,7 @@ class Model : public PhysicalRenderable {
     AssetManager *assetManager;
     ModelAsset *modelAsset;
 
-    btConvexShape *bulletConvexShape;
+    btCompoundShape *compoundShape;
 
     std::map<std::string, Material *> materialMap;
     int diffuseMapAttachPoint = 1;

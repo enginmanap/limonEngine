@@ -78,6 +78,16 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     rigidBodies.push_back(mario->getRigidBody());
     dynamicsWorld->addRigidBody(mario->getRigidBody());
 
+    Model *dwarf = new Model(assetManager, 10, "./Data/Models/Dwarf/dwarf.x");
+    dwarf->addTranslate(glm::vec3(-3.0f, 23.0f, -3.0f));
+    dwarf->addScale(glm::vec3(0.04f, 0.04f, 0.04f));
+
+    dwarf->getWorldTransform();
+    objects.push_back(dwarf);
+    rigidBodies.push_back(dwarf->getRigidBody());
+    dynamicsWorld->addRigidBody(dwarf->getRigidBody());
+
+
     sky = new SkyBox(assetManager,
                      std::string("./Data/Textures/Skyboxes/ThickCloudsWater"),
                      std::string("right.jpg"),
@@ -112,8 +122,8 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     Light *light = new Light(Light::POINT, glm::vec3(-25.0f, 50.0f, -25.0f), glm::vec3(1.0f, 1.0f, 1.0f));
     lights.push_back(light);
 
-//    light = new Light(Light::POINT, glm::vec3(-25.0f, 50.0f, 25.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    //   lights.push_back(light);
+    light = new Light(Light::POINT, glm::vec3(-25.0f, 50.0f, 25.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+    lights.push_back(light);
 }
 
 void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
