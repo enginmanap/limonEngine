@@ -43,9 +43,6 @@ public:
 
     uint_fast32_t getTriangleCount() const { return triangleCount; }
 
-    // FIXME This returns hull vertex count, it does not sound correct
-    uint_fast32_t getVertexCount() const { return vertexCount; }
-
     uint_fast32_t getVao() const { return vao; }
 
     uint_fast32_t getEbo() const { return ebo; }
