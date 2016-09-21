@@ -25,7 +25,7 @@ class MeshAsset {
     std::vector<glm::mediump_uvec3> faces;
     std::vector<glm::vec2> textureCoordinates;
 
-    Material *material;
+    const Material *material;
 
     uint_fast32_t bulletTriangleCount;
     btTriangleMesh *bulletMesh;
@@ -39,7 +39,7 @@ class MeshAsset {
 
 
 public:
-    MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh);
+    MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, const Material *material);
 
     uint_fast32_t getTriangleCount() const { return triangleCount; }
 
@@ -70,12 +70,7 @@ public:
         return copyShape;
     }
 
-    //TODO this method should be used by creater ModelAsset, so maybe it should be part of construction
-    void setMaterial(Material *material) {
-        this->material = material;
-    }
-
-    const Material *getMaterial() {
+    const Material *getMaterial() const {
         return material;
     }
 

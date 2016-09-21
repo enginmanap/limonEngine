@@ -34,12 +34,12 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
     }
     MeshAsset *mesh;
     Material *meshMaterial;
+    aiMesh *currentMesh;
     for (int i = 0; i < scene->mNumMeshes; ++i) {
-        aiMesh *currentMesh = scene->mMeshes[i];
-        mesh = new MeshAsset(assetManager, currentMesh);
-        meshes.push_back(mesh);
+        currentMesh = scene->mMeshes[i];
         meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
-        mesh->setMaterial(meshMaterial);
+        mesh = new MeshAsset(assetManager, currentMesh, meshMaterial);
+        meshes.push_back(mesh);
     }
 
 

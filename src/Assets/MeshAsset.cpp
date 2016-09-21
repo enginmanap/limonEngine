@@ -5,7 +5,8 @@
 #include "MeshAsset.h"
 
 
-MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh) : material(NULL) {
+MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, const Material *material) : material(
+        material) {
     triangleCount = currentMesh->mNumFaces;
     bulletMesh = new btTriangleMesh();
     if (!currentMesh->HasPositions()) {
