@@ -57,8 +57,12 @@ void Model::activateMaterial(const Material *material) {
     if (!renderProgram->setUniform("material.shininess", material->getSpecularExponent())) {
         std::cerr << "Uniform \"material.shininess\" could not be set" << std::endl;
     }
-
-    glHelper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
+    TextureAsset* diffuse = material->getDiffuseTexture();
+    if(diffuse!= NULL) {
+        glHelper->attachTexture(diffuse->getID(), diffuseMapAttachPoint);
+    } else {
+        //DEBUG log no diffuse found
+    }
     //TODO we should support multi texture on one pass
 }
 

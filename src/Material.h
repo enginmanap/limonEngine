@@ -91,9 +91,9 @@ public:
     }
 
     TextureAsset *getDiffuseTexture() const {
-        if (diffuseTexture == NULL) {
-            std::cerr << "access to null element" << std::endl;
-        }
+//        if (diffuseTexture == NULL) {
+//            std::cerr << "access to null element" << std::endl;
+//        }
         return diffuseTexture;
     }
 
