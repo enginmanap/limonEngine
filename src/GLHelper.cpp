@@ -365,17 +365,30 @@ void GLHelper::bufferNormalData(const std::vector<glm::vec3> &normals,
     checkErrors("bufferVertexColor");
 }
 
-void GLHelper::bufferVertexColor(const std::vector<glm::vec4> &colors,
-                                 GLuint &vao, GLuint &vbo, const GLuint attachPointer) {
+void GLHelper::bufferExtraVertexData(const std::vector<glm::vec4> &extraData,
+                                     GLuint &vao, GLuint &vbo, const GLuint attachPointer) {
+    bufferExtraVertexData(4, GL_FLOAT, extraData.size() * sizeof(glm::vec4), extraData.data(), vao, vbo, attachPointer);
+    checkErrors("bufferVertexDataVec4");
+}
+
+void GLHelper::bufferExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData,
+                                     GLuint &vao, GLuint &vbo, const GLuint attachPointer) {
+    bufferExtraVertexData(4, GL_UNSIGNED_INT, extraData.size() * sizeof(glm::lowp_uvec4), extraData.data(), vao, vbo,
+                          attachPointer);
+    checkErrors("bufferVertexDataVec4");
+}
+
+void GLHelper::bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
+                                     const void *extraData, GLuint &vao, GLuint &vbo, const GLuint attachPointer) {
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(glm::vec4), colors.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, dataSize, extraData, GL_STATIC_DRAW);
 
     glBindVertexArray(vao);
-    glVertexAttribPointer(attachPointer, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(attachPointer, elementPerVertexCount, elementType, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(attachPointer);
     glBindVertexArray(0);
-    checkErrors("bufferVertexColor");
+    checkErrors("bufferExtraVertexDataInternal");
 }
 
 void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,

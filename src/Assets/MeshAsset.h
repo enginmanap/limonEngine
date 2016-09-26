@@ -25,6 +25,14 @@ class MeshAsset {
     std::vector<glm::mediump_uvec3> faces;
     std::vector<glm::vec2> textureCoordinates;
 
+    bool bones;
+public:
+    bool hasBones() const;
+
+private:
+    std::vector<glm::lowp_uvec4> boneIDs;
+    std::vector<glm::vec4> boneWeights;
+
     const Material *material;
 
     uint_fast32_t bulletTriangleCount;
@@ -66,6 +74,8 @@ public:
         shapeCopies.push_back(copyShape);
         return copyShape;
     }
+
+    bool addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, float weight);
 
     const Material *getMaterial() const {
         return material;

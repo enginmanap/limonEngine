@@ -86,4 +86,58 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
         bufferObjects.push_back(vbo);
     }
 
+
+    //loadBoneInformation
+    if (currentMesh->HasBones()) {
+        this->bones = true;
+        boneIDs.resize(vertices.size());
+        boneWeights.resize(vertices.size());
+        for (unsigned int j = 0; j < currentMesh->mNumBones; ++j) {
+            /*
+             * Assimp has a bone array with weight lists for vertices,
+             * we need a vertex array with weight list for bones.
+             * This loop should genetare that
+             */
+            for (uint_fast32_t k = 0; k < currentMesh->mBones[j]->mNumWeights; ++k) {
+                addWeightToVertex(k, currentMesh->mBones[j]->mWeights[k].mVertexId,
+                                  currentMesh->mBones[j]->mWeights[k].mWeight);
+            }
+        }
+        std::cout << "Animation added for mesh" << std::endl;
+
+    } else {
+        this->bones = false;
+    }
+
+    assetManager->getGlHelper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
+    bufferObjects.push_back(vbo);
+
+    assetManager->getGlHelper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
+    bufferObjects.push_back(vbo);
+
 }
+
+bool MeshAsset::addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, float weight) {
+    glm::lowp_uvec4 *vertexBoneIDs = &boneIDs[vertex];
+    glm::vec4 *vertexWeights = &boneWeights[vertex];
+    //the weights are suppose to be ordered,
+    for (int i = 0; i < 4; ++i) { //we allow only 4 bones per vertex
+        if ((*vertexWeights)[i] < weight) {
+            //shift to open slot
+            for (int j = 3; j > i; --j) {
+                (*vertexWeights)[j] = (*vertexWeights)[j - 1];
+                (*vertexBoneIDs)[j] = (*vertexBoneIDs)[j - 1];
+            }
+            (*vertexWeights)[i] = weight;
+            (*vertexBoneIDs)[i] = boneID;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool MeshAsset::hasBones() const {
+    return bones;
+}
+
+

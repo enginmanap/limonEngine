@@ -180,6 +180,9 @@ private:
 
     void attachUBOs(const GLuint program) const;
 
+    void bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
+                               const void *extraData, GLuint &vao, GLuint &vbo, const GLuint attachPointer);
+
 public:
     GLHelper();
 
@@ -194,9 +197,11 @@ public:
     void bufferNormalData(const std::vector<glm::vec3> &colors,
                           GLuint &vao, GLuint &vbo, const GLuint attachPointer);
 
-    void bufferVertexColor(const std::vector<glm::vec4> &colors,
-                           GLuint &vao, GLuint &vbo, const GLuint attachPointer);
+    void bufferExtraVertexData(const std::vector<glm::vec4> &extraData,
+                               GLuint &vao, GLuint &vbo, const GLuint attachPointer);
 
+    void bufferExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData,
+                               GLuint &vao, GLuint &vbo, const GLuint attachPointer);
 
     void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
                                         GLuint &vao, GLuint &vbo, const GLuint attachPointer);

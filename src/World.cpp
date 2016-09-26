@@ -19,8 +19,9 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     dynamicsWorld->setGravity(btVector3(0, -10, 0));
     debugDrawer = new BulletDebugDrawer(glHelper);
     dynamicsWorld->setDebugDrawer(debugDrawer);
-    //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
-    dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
+    //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
+    dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
+
     GUILayer *layer1 = new GUILayer(glHelper, 1);
     layer1->setDebug(false);
     // end of physics init
@@ -39,7 +40,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
-
+/*
     crate = new Model(assetManager, 1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(2.0f, 25.0f, -3.0f));
     crate->getWorldTransform();
@@ -67,7 +68,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
-
+*/
 
     Model *mario = new Model(assetManager, 100, "./Data/Models/Mario/Mario_obj.obj");
     mario->addTranslate(glm::vec3(5.0f, 23.0f, -3.0f));
@@ -87,6 +88,12 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     rigidBodies.push_back(dwarf->getRigidBody());
     dynamicsWorld->addRigidBody(dwarf->getRigidBody());
 
+    Model *animatedBoxes = new Model(assetManager, 1, "./Data/Models/testAnim/animatedBoxes.dae");
+    animatedBoxes->addTranslate(glm::vec3(10.0f, 29.0f, -3.0f));
+    animatedBoxes->getWorldTransform();
+    objects.push_back(animatedBoxes);
+    rigidBodies.push_back(animatedBoxes->getRigidBody());
+    dynamicsWorld->addRigidBody(animatedBoxes->getRigidBody());
 
     sky = new SkyBox(assetManager,
                      std::string("./Data/Textures/Skyboxes/ThickCloudsWater"),

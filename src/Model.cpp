@@ -41,10 +41,15 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
     //glHelper->bufferVertexColor(colors,vao,vbo,3);
     worldTransform = glm::mat4(1.0f);
 
-    //set up the program to render object
-    renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertex.glsl",
-                                    "./Data/Shaders/Model/fragment.glsl");
-
+    if (!modelAsset->getMeshes()[0]->hasBones()) {
+        //set up the program to render object
+        renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertex.glsl",
+                                        "./Data/Shaders/Model/fragment.glsl");
+    } else {
+        //set up the program to render object
+        renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertexAnimated.glsl",
+                                        "./Data/Shaders/Model/fragmentAnimated.glsl");
+    }
 
 }
 

@@ -31,10 +31,13 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
     if (!scene->HasMeshes()) {
         std::cout << "Model does not contain a mesh. This is not handled." << std::endl;
         exit(-1);
+    } else {
+        std::cout << "Model has " << scene->mNumMeshes << " mesh(es)." << std::endl;
     }
     MeshAsset *mesh;
     Material *meshMaterial;
     aiMesh *currentMesh;
+
     for (int i = 0; i < scene->mNumMeshes; ++i) {
         currentMesh = scene->mMeshes[i];
         meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
