@@ -26,10 +26,7 @@ class MeshAsset {
     std::vector<glm::vec2> textureCoordinates;
 
     bool bones;
-public:
-    bool hasBones() const;
 
-private:
     std::vector<glm::lowp_uvec4> boneIDs;
     std::vector<glm::vec4> boneWeights;
 
@@ -47,7 +44,8 @@ private:
 
 
 public:
-    MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, const Material *material);
+    MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, const Material *material,
+              const std::map<std::string, uint_fast32_t> &boneIDMap);
 
     uint_fast32_t getTriangleCount() const { return triangleCount; }
 
@@ -80,6 +78,8 @@ public:
     const Material *getMaterial() const {
         return material;
     }
+
+    bool hasBones() const;
 
     ~MeshAsset() {
         delete bulletMesh;

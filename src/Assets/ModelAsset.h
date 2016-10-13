@@ -21,7 +21,20 @@
 
 
 class ModelAsset : public Asset {
+
+    struct BoneNode {
+        uint_fast32_t boneID;
+        std::vector<BoneNode *> children;
+        glm::mat4 offset;
+        glm::mat4 selfTransform;
+        glm::mat4 totalTransform;
+    };
+
     std::string name;
+
+    BoneNode *rootNode;
+    std::map<std::string, uint_fast32_t> *boneIDMap;
+    int_fast32_t boneIDCounter;
 
     glm::vec3 boundingBoxMin;
     glm::vec3 boundingBoxMax;
@@ -33,6 +46,7 @@ class ModelAsset : public Asset {
 
     Material *loadMaterials(const aiScene *scene, unsigned int materialIndex);
 
+    BoneNode *loadNodeTree(aiNode *aiNode);
 
 public:
     ModelAsset(AssetManager *assetManager, const std::vector<std::string> &fileList);
@@ -42,7 +56,6 @@ public:
     const glm::vec3 &getBoundingBoxMax() const { return boundingBoxMax; }
 
     const glm::vec3 &getCenterOffset() const { return centerOffset; }
-
 
 
     /*
@@ -64,6 +77,8 @@ public:
     std::vector<MeshAsset *> getMeshes() const {
         return meshes;
     }
+
+
 };
 
 

@@ -6,7 +6,8 @@
 
 
 ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string> &fileList) : Asset(assetManager,
-                                                                                                     fileList) {
+                                                                                                     fileList),
+                                                                                               boneIDCounter(0) {
     if (fileList.size() < 1) {
         std::cerr << "Model load failed because file name vector is empty." << std::endl;
         exit(-1);
@@ -38,10 +39,15 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
     Material *meshMaterial;
     aiMesh *currentMesh;
 
+    if (scene->mNumAnimations > 0) {
+        boneIDMap = new std::map<std::string, uint_fast32_t>();
+        this->rootNode = loadNodeTree(scene->mRootNode);
+    }
+
     for (int i = 0; i < scene->mNumMeshes; ++i) {
         currentMesh = scene->mMeshes[i];
         meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
-        mesh = new MeshAsset(assetManager, currentMesh, meshMaterial);
+        mesh = new MeshAsset(assetManager, currentMesh, meshMaterial, (*boneIDMap));
         meshes.push_back(mesh);
     }
 
@@ -121,4 +127,14 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
         newMaterial = materialMap[property.C_Str()];
     }
     return newMaterial;
+}
+
+ModelAsset::BoneNode *ModelAsset::loadNodeTree(aiNode *aiNode) {
+    ModelAsset::BoneNode *currentNode = new ModelAsset::BoneNode();
+    (*boneIDMap)[aiNode->mName.C_Str()] = boneIDCounter++;
+    for (int i = 0; i < aiNode->mNumChildren; ++i) {
+        currentNode->children.push_back(loadNodeTree(aiNode->mChildren[i]));
+    }
+    return currentNode;
+
 }
