@@ -88,6 +88,22 @@ bool Model::setupRenderVariables() {
                                            1)) { //even if shadow map cannot attach, we still render
                 std::cerr << "Uniform \"shadowSampler\" could not be set" << std::endl;
             }
+            /* FIXME This is before animation loading, to fill the bone data ***********/
+            if (modelAsset->getMeshes()[0]->hasBones()) {
+                //set all of the bones to unitTransform for testing
+                glm::mat4 unitMatrix;
+                unitMatrix[1][1] = 0.71f;
+                unitMatrix[1][2] = 0.71f;
+                unitMatrix[2][1] = -0.71f;
+                unitMatrix[2][2] = 0.71f;
+                std::vector<glm::mat4> unitMatrixArray;
+                for (int i = 0; i < 128; ++i) {
+                    unitMatrixArray.push_back(unitMatrix);
+                }
+                renderProgram->setUniformArray("boneTransformArray[0]", unitMatrixArray);
+            }
+            /********* This is before animation loading, to fill the bone data ***********/
+
             return true;
         } else {
             std::cerr << "Uniform \"cameraPosition\" could not be set, passing rendering." << std::endl;

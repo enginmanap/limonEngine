@@ -53,6 +53,13 @@ public:
         return false;
     }
 
+    bool setUniformArray(std::string uniformArrayName, const std::vector<glm::mat4> &matrix) {
+        if (uniformMap.count(uniformArrayName) && uniformMap[uniformArrayName]->type == GLHelper::FLOAT_MAT4) {
+            //FIXME this should have a control of some sort
+            return glHelper->setUniformArray(programID, uniformMap[uniformArrayName]->location, matrix);
+        }
+        return false;
+    }
 };
 
 #endif //UBERGAME_GLSLPROGRAM_H

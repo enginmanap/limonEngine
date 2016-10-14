@@ -108,16 +108,15 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
         }
         std::cout << "Animation added for mesh" << std::endl;
 
+        assetManager->getGlHelper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
+        bufferObjects.push_back(vbo);
+
+        assetManager->getGlHelper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
+        bufferObjects.push_back(vbo);
+
     } else {
         this->bones = false;
     }
-
-    assetManager->getGlHelper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
-    bufferObjects.push_back(vbo);
-
-    assetManager->getGlHelper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
-    bufferObjects.push_back(vbo);
-
 }
 
 bool MeshAsset::addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, float weight) {

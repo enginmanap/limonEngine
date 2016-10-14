@@ -1,12 +1,15 @@
 #version 330
 
 #define NR_POINT_LIGHTS 4
+#define NR_BONE 128
 
 layout (location = 2) in vec4 position;
 layout (location = 3) in vec2 textureCoordinate;
 layout (location = 4) in vec3 normal;
-layout (location = 5) in vec3 boneIDs;
-layout (location = 6) in vec3 boneWeights;
+layout (location = 5) in uvec4 boneIDs;
+layout (location = 6) in vec4 boneWeights;
+
+
 
 out VS_FS {
     vec3 boneColor;
@@ -34,18 +37,24 @@ layout (std140) uniform LightSourceBlock
     LightSource lights[NR_POINT_LIGHTS];
 } LightSources;
 
+uniform mat4 boneTransformArray[NR_BONE];
 uniform mat4 worldTransformMatrix;
+
 
 void main(void)
 {
-    to_fs.boneColor = vec3( (int(boneIDs.x) % 3)* boneWeights.x,
-                            (int(boneIDs.y) % 3)* boneWeights.y,
-                            (int(boneIDs.z) % 3)* boneWeights.z);
+
+    mat4 BoneTransform = boneTransformArray[boneIDs[0]] * boneWeights[0];
+    BoneTransform += boneTransformArray[boneIDs[1]] * boneWeights[1];
+    BoneTransform += boneTransformArray[boneIDs[2]] * boneWeights[2];
+    BoneTransform += boneTransformArray[boneIDs[3]] * boneWeights[3];
+
+
     to_fs.textureCoord = textureCoordinate;
-    to_fs.normal = normalize(mat3(transpose(inverse(worldTransformMatrix))) * normal);
+    to_fs.normal = vec3(normalize(transpose(inverse(worldTransformMatrix)) * (BoneTransform * vec4(normal, 0.0))));
     to_fs.fragPos = vec3(worldTransformMatrix * position);
     for(int i = 0; i < NR_POINT_LIGHTS; i++){
         to_fs.fragPosLightSpace[i] = LightSources.lights[i].lightSpaceMatrix * vec4(to_fs.fragPos, 1.0);
     }
-    gl_Position = playerTransforms.cameraProjection * (worldTransformMatrix * position);
+    gl_Position = playerTransforms.cameraProjection * (worldTransformMatrix * (BoneTransform *vec4(vec3(position), 1.0)));
 }

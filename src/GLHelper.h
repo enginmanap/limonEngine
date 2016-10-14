@@ -256,6 +256,8 @@ public:
 
     bool setUniform(const GLuint programID, const GLuint uniformID, const int value);
 
+    bool setUniformArray(const GLuint programID, const GLuint uniformID, const std::vector<glm::mat4> &matrixArray);
+
     void setLight(const Light &light, const int i);
 
     void setPlayerMatrices();

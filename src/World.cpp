@@ -19,8 +19,8 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     dynamicsWorld->setGravity(btVector3(0, -10, 0));
     debugDrawer = new BulletDebugDrawer(glHelper);
     dynamicsWorld->setDebugDrawer(debugDrawer);
-    //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
-    dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
+    dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
+    //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
 
     GUILayer *layer1 = new GUILayer(glHelper, 1);
     layer1->setDebug(false);

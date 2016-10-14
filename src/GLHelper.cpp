@@ -132,13 +132,14 @@ void GLHelper::fillUniformMap(const GLuint program, std::map<std::string, GLHelp
     glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &count);
     //std::cout << "Active Uniforms:" << count << std::endl;
 
-
+    uint32_t uniformLocation;
     for (i = 0; i < count; i++)
     {
         glGetActiveUniform(program, (GLuint)i, maxLength, &length, &size, &type, name);
+        uniformLocation = glGetUniformLocation(program, name);
 
-        //std::cout << "Uniform " << i << " Type: " << type << " Name: " << name << std::endl;
-        uniformMap[name] = new Uniform(i, name, type, size);
+        //std::cout << "Uniform " << i << " Location: " << uniformLocation << " Type: " << type << " Name: " << name << std::endl;
+        uniformMap[name] = new Uniform(uniformLocation, name, type, size);
     }
 }
 
@@ -375,7 +376,7 @@ void GLHelper::bufferExtraVertexData(const std::vector<glm::lowp_uvec4> &extraDa
                                      GLuint &vao, GLuint &vbo, const GLuint attachPointer) {
     bufferExtraVertexData(4, GL_UNSIGNED_INT, extraData.size() * sizeof(glm::lowp_uvec4), extraData.data(), vao, vbo,
                           attachPointer);
-    checkErrors("bufferVertexDataVec4");
+    checkErrors("bufferVertexDataIVec4");
 }
 
 void GLHelper::bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
@@ -385,7 +386,15 @@ void GLHelper::bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum
     glBufferData(GL_ARRAY_BUFFER, dataSize, extraData, GL_STATIC_DRAW);
 
     glBindVertexArray(vao);
-    glVertexAttribPointer(attachPointer, elementPerVertexCount, elementType, GL_FALSE, 0, 0);
+    switch (elementType) {
+        case GL_UNSIGNED_INT:
+        case GL_INT:
+            glVertexAttribIPointer(attachPointer, elementPerVertexCount, elementType, 0, 0);
+            break;
+        default:
+            glVertexAttribPointer(attachPointer, elementPerVertexCount, elementType, GL_FALSE, 0, 0);
+    }
+
     glEnableVertexAttribArray(attachPointer);
     glBindVertexArray(0);
     checkErrors("bufferExtraVertexDataInternal");
@@ -449,7 +458,6 @@ void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, 
     checkErrors("render");
 }
 
-
 bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 &matrix) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
@@ -459,6 +467,23 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         glUniformMatrix4fv(uniformID, 1, GL_FALSE, glm::value_ptr(matrix));
         //state->setProgram(0);
         checkErrors("setUniformMatrix");
+        return true;
+    }
+
+}
+
+
+bool
+GLHelper::setUniformArray(const GLuint programID, const GLuint uniformID, const std::vector<glm::mat4> &matrixArray) {
+    if (!glIsProgram(programID)) {
+        std::cerr << "invalid program for setting uniform." << std::endl;
+        return false;
+    } else {
+        state->setProgram(programID);
+        int elementCount = matrixArray.size();
+        glUniformMatrix4fv(uniformID, elementCount, GL_FALSE, glm::value_ptr(matrixArray.at(0)));
+        //state->setProgram(0);
+        checkErrors("setUniformMatrixArray");
         return true;
     }
 
