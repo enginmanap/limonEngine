@@ -53,25 +53,7 @@ public:
 
     uint_fast32_t getEbo() const { return ebo; }
 
-    btConvexShape *getCollisionShape() {
-        btTriangleMesh *copyMesh = new btTriangleMesh();
-        if (hull == NULL) {
-            for (int i = 0; i < bulletTriangleCount; ++i) {
-                copyMesh->addTriangle(GLMConverter::GLMToBlt(vertices.at(bulletMeshFaces[i].x)),
-                                      GLMConverter::GLMToBlt(vertices.at(bulletMeshFaces[i].y)),
-                                      GLMConverter::GLMToBlt(vertices.at(bulletMeshFaces[i].z)));
-            }
-        } else {
-            for (int i = 0; i < bulletTriangleCount; ++i) {
-                copyMesh->addTriangle(hull->getVertexPointer()[bulletMeshFaces[i].x],
-                                      hull->getVertexPointer()[bulletMeshFaces[i].y],
-                                      hull->getVertexPointer()[bulletMeshFaces[i].z]);
-            }
-        }
-        btConvexShape *copyShape = new btConvexTriangleMeshShape(copyMesh);
-        shapeCopies.push_back(copyShape);
-        return copyShape;
-    }
+    btConvexShape *getCollisionShape();
 
     bool addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, float weight);
 
