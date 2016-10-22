@@ -97,7 +97,7 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
             /*
              * Assimp has a bone array with weight lists for vertices,
              * we need a vertex array with weight list for bones.
-             * This loop should genetare that
+             * This loop should generate that
              */
             for (uint_fast32_t k = 0; k < currentMesh->mBones[j]->mNumWeights; ++k) {
                 addWeightToVertex(boneID, currentMesh->mBones[j]->mWeights[k].mVertexId,
