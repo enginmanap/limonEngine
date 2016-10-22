@@ -129,8 +129,8 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
     return newMaterial;
 }
 
-ModelAsset::BoneNode *ModelAsset::loadNodeTree(aiNode *aiNode) {
-    ModelAsset::BoneNode *currentNode = new ModelAsset::BoneNode();
+BoneNode *ModelAsset::loadNodeTree(aiNode *aiNode) {
+    BoneNode *currentNode = new BoneNode();
     (*boneIDMap)[aiNode->mName.C_Str()] = boneIDCounter++;
     for (int i = 0; i < aiNode->mNumChildren; ++i) {
         currentNode->children.push_back(loadNodeTree(aiNode->mChildren[i]));

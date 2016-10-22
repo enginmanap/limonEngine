@@ -18,17 +18,12 @@
 #include "Asset.h"
 #include "MeshAsset.h"
 #include "../Utils/GLMConverter.h"
+#include "BoneNode.h"
 
 
 class ModelAsset : public Asset {
 
-    struct BoneNode {
-        uint_fast32_t boneID;
-        std::vector<BoneNode *> children;
-        glm::mat4 offset;
-        glm::mat4 selfTransform;
-        glm::mat4 totalTransform;
-    };
+
 
     std::string name;
 
