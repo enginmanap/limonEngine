@@ -27,6 +27,7 @@ class MeshAsset {
 
     bool bones;
 
+    //below 2 elements are used for passing id-weight pairs to GPU
     std::vector<glm::lowp_uvec4> boneIDs;
     std::vector<glm::vec4> boneWeights;
 
