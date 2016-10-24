@@ -28,8 +28,7 @@ class ModelAsset : public Asset {
     std::string name;
 
     BoneNode *rootNode;
-    std::map<std::string, uint_fast32_t> *boneIDMap;
-    int_fast32_t boneIDCounter;
+    int_fast32_t boneIDCounter, boneIDCounterPerMesh;
 
     glm::vec3 boundingBoxMin;
     glm::vec3 boundingBoxMax;
@@ -42,6 +41,10 @@ class ModelAsset : public Asset {
     Material *loadMaterials(const aiScene *scene, unsigned int materialIndex);
 
     BoneNode *loadNodeTree(aiNode *aiNode);
+
+    BoneNode *createMeshTree(const BoneNode *sceneNode, const aiMesh *mesh);
+
+    bool findNode(const BoneNode *nodeToMatch, const aiMesh *meshToCheckBone, int *index);
 
 public:
     ModelAsset(AssetManager *assetManager, const std::vector<std::string> &fileList);
@@ -72,7 +75,6 @@ public:
     std::vector<MeshAsset *> getMeshes() const {
         return meshes;
     }
-
 
 };
 

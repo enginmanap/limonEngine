@@ -6,6 +6,8 @@
 #define UBERGAME_MESHASSET_H
 
 #include <vector>
+#include <map>
+#include <string>
 #include <iostream>
 #include <assimp/scene.h>
 #include <BulletCollision/CollisionShapes/btShapeHull.h>
@@ -14,6 +16,7 @@
 #include "../Utils/GLMConverter.h"
 #include "AssetManager.h"
 #include "../Material.h"
+#include "BoneNode.h"
 
 
 class MeshAsset {
@@ -24,6 +27,9 @@ class MeshAsset {
     std::vector<glm::vec3> normals;
     std::vector<glm::mediump_uvec3> faces;
     std::vector<glm::vec2> textureCoordinates;
+
+    const BoneNode *skeleton;
+    std::map<std::string, uint_fast32_t> boneIdMap;
 
     bool bones;
 
@@ -46,7 +52,7 @@ class MeshAsset {
 
 public:
     MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, const Material *material,
-              const std::map<std::string, uint_fast32_t> &boneIDMap);
+              const BoneNode *meshSkeleton);
 
     uint_fast32_t getTriangleCount() const { return triangleCount; }
 
@@ -71,6 +77,12 @@ public:
         for (int i = 0; i < shapeCopies.size(); ++i) {
             delete shapeCopies[i];
         }
+
+    }
+
+    void fillBoneMap(const BoneNode *boneNode);
+
+    BoneNode *getSkeletonCopy() {
 
     }
 };

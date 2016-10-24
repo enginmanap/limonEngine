@@ -6,7 +6,7 @@
 
 
 MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, const Material *material,
-                     const std::map<std::string, uint_fast32_t> &boneIDMap) : material(
+                     const BoneNode *meshSkeleton) : material(
         material) {
     triangleCount = currentMesh->mNumFaces;
     bulletMesh = new btTriangleMesh();
@@ -90,10 +90,18 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
     //loadBoneInformation
     if (currentMesh->HasBones()) {
         this->bones = true;
+
+        assert(meshSkeleton != NULL);
+        this->skeleton = meshSkeleton;
+        //we will create a bone* vector so we can load the weight information to GPU. The same vector should be
+        //copied and filled with animation information on Model class
+        //an a name->bone* map, for animation.
+        fillBoneMap(this->skeleton);
+
         boneIDs.resize(vertices.size());
         boneWeights.resize(vertices.size());
         for (unsigned int j = 0; j < currentMesh->mNumBones; ++j) {
-            uint_fast32_t boneID = boneIDMap.at(currentMesh->mBones[j]->mName.C_Str());//using at because it is const
+            uint_fast32_t boneID = boneIdMap[currentMesh->mBones[j]->mName.C_Str()];
             /*
              * Assimp has a bone array with weight lists for vertices,
              * we need a vertex array with weight list for bones.
@@ -113,7 +121,6 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
 
         assetManager->getGlHelper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
         bufferObjects.push_back(vbo);
-
     } else {
         this->bones = false;
     }
@@ -162,6 +169,16 @@ btConvexShape *MeshAsset::getCollisionShape() {
 
 bool MeshAsset::hasBones() const {
     return bones;
+}
+
+void MeshAsset::fillBoneMap(const BoneNode *boneNode) {
+    if (boneNode == NULL) {
+        return;
+    }
+    boneIdMap[boneNode->name] = boneNode->boneID;
+    for (int i = 0; i < boneNode->children.size(); ++i) {
+        fillBoneMap(boneNode->children[i]);
+    }
 }
 
 
