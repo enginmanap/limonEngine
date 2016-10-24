@@ -66,7 +66,10 @@ public:
         glHelper->freeBuffer(ebo);
         glHelper->freeVAO(vao);
 
-        delete renderProgram;
+        if(renderProgram != NULL) {
+            //model renderable creates its own
+            delete renderProgram;
+        }
     }
 
 

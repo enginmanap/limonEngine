@@ -23,8 +23,18 @@
 
 class Model : public PhysicalRenderable {
 
+    struct MeshMeta {
+        MeshAsset* mesh;
+        BoneNode* skeleton;
+        GLSLProgram* program;
+
+        MeshMeta() : mesh(NULL), skeleton(NULL), program(NULL) {}
+    };
+
     AssetManager *assetManager;
     ModelAsset *modelAsset;
+
+    std::vector<MeshMeta *> meshes;
 
     btCompoundShape *compoundShape;
 
@@ -38,9 +48,9 @@ public:
 
     Model(AssetManager *assetManager, const float mass, const std::string &modelFile);
 
-    void activateMaterial(const Material *material);
+    void activateMaterial(const Material *material, GLSLProgram *program);
 
-    bool setupRenderVariables();
+    bool setupRenderVariables(GLSLProgram *program);
 
     void render();
 
