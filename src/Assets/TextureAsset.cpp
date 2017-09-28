@@ -21,7 +21,7 @@ TextureAsset::TextureAsset(AssetManager* assetManager, const std::vector<std::st
     SDL_Surface *surface = IMG_Load(name.data());
 
     if (!surface) {
-        std::cerr << "TextureAsset Load from disk failed for " << name << ". Error:" << std::endl << IMG_GetError
+        std::cerr << "TextureAsset Load from disk failed for " << name << ". Error:" << std::endl << IMG_GetError()
                   << std::endl;
         exit(1);
     } else {
