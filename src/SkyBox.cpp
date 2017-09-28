@@ -50,7 +50,7 @@ SkyBox::SkyBox(AssetManager *assetManager, std::string path, std::string right, 
     bufferObjects.push_back(vbo);
 
     renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/SkyCube/vertex.glsl",
-                                    "./Data/Shaders/SkyCube/fragment.glsl");
+                                    "./Data/Shaders/SkyCube/fragment.glsl", false);
 }
 
 void SkyBox::render() {

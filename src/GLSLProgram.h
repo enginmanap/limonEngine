@@ -13,15 +13,16 @@
 
 class GLSLProgram {
     GLHelper *glHelper;
+    std::string programName;
+
     std::string vertexShader;
     std::string fragmentShader;
     std::map<std::string, GLHelper::Uniform*> uniformMap;
-
+    bool materialRequired;
     GLuint programID;
 
 public:
-    GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::string fragmentShader);
-
+    GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed);
 
     GLuint getID() const { return programID; }
 
@@ -60,6 +61,17 @@ public:
         }
         return false;
     }
+
+    const std::string &getProgramName() const {
+        return programName;
+    }
+
+    bool IsMaterialRequired() const {
+        return materialRequired;
+    }
+
 };
+
+
 
 #endif //UBERGAME_GLSLPROGRAM_H

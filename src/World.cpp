@@ -30,7 +30,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     dynamicsWorld->addRigidBody(camera.getRigidBody());
 
     shadowMapProgram = new GLSLProgram(glHelper, "./Data/Shaders/ShadowMap/vertex.glsl",
-                                       "./Data/Shaders/ShadowMap/fragment.glsl");
+                                       "./Data/Shaders/ShadowMap/fragment.glsl", false);
 
     Model *crate = new Model(assetManager, "./Data/Models/Box/Box.obj");
     crate->addScale(glm::vec3(250.0f, 1.0f, 250.0f));

@@ -108,8 +108,10 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
              * This loop should generate that
              */
             for (uint_fast32_t k = 0; k < currentMesh->mBones[j]->mNumWeights; ++k) {
-                addWeightToVertex(boneID, currentMesh->mBones[j]->mWeights[k].mVertexId,
-                                  currentMesh->mBones[j]->mWeights[k].mWeight);
+                if(currentMesh->mBones[j]->mWeights[k].mWeight > 0.0f) {
+                    addWeightToVertex(boneID, currentMesh->mBones[j]->mWeights[k].mVertexId,
+                                      currentMesh->mBones[j]->mWeights[k].mWeight);
+                }
             }
 
 
@@ -127,18 +129,18 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
 }
 
 bool MeshAsset::addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, float weight) {
-    glm::lowp_uvec4 *vertexBoneIDs = &boneIDs[vertex];//this allows us to change bone ids
-    glm::vec4 *vertexWeights = &boneWeights[vertex];
     //the weights are suppose to be ordered,
     for (int i = 0; i < 4; ++i) { //we allow only 4 bones per vertex
-        if ((*vertexWeights)[i] < weight) {
+        if (boneWeights[vertex][i] < weight) {
             //shift to open slot
-            for (int j = 3; j > i; --j) {
-                (*vertexWeights)[j] = (*vertexWeights)[j - 1];
-                (*vertexBoneIDs)[j] = (*vertexBoneIDs)[j - 1];
+            if(boneWeights[vertex][i] > 0.0f) {
+                for (int j = 3; j > i; --j) {
+                    boneWeights[vertex][j] = boneWeights[vertex][j - 1];
+                    boneIDs[vertex][j] = boneIDs[vertex][j - 1];
+                }
             }
-            (*vertexWeights)[i] = weight;
-            (*vertexBoneIDs)[i] = boneID;
+            boneWeights[vertex][i] = weight;
+            boneIDs[vertex][i] = boneID;
             return true;
         }
     }

@@ -3,6 +3,7 @@
 //
 
 #include "ModelAsset.h"
+#include "../glm/gtx/matrix_decompose.hpp"
 
 
 ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string> &fileList) : Asset(assetManager,
@@ -18,14 +19,26 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
         std::cerr << "multiple files are sent to Model constructor, extra elements ignored." << std::endl;
     }
     std::cout << "ASSIMP::Loading::" << name << std::endl;
-    Assimp::Importer import;
     //FIXME triangulate creates too many vertices, it is unnecessary, but optimize requires some work.
-    const aiScene *scene = import.ReadFile(name, aiProcess_Triangulate | aiProcess_FlipUVs |
-                                                 aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_GenNormals);
+    scene = import.ReadFile(name, aiProcess_Triangulate | aiProcess_FlipUVs |
+                                  aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_GenNormals);
 
     if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
         return;
+    }
+
+    aiMatrix4x4 m_GlobalInverseTransform = scene->mRootNode->mTransformation;
+    m_GlobalInverseTransform.Inverse();
+
+    globalInverseTransform = GLMConverter::AssimpToGLM(m_GlobalInverseTransform);
+
+    animations = scene->mAnimations;//FIXME this is not acceptable, requires fixing.
+
+    if (scene->mNumAnimations == 0) {
+        this->hasAnimation = false;
+    } else {
+        this->hasAnimation = true;
     }
 
     std::cout << "ASSIMP::success::" << name << std::endl;
@@ -43,16 +56,14 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
     if (scene->mNumAnimations > 0) {
         this->rootNode = loadNodeTree(scene->mRootNode);
     }
-
     for (int i = 0; i < scene->mNumMeshes; ++i) {
         currentMesh = scene->mMeshes[i];
-        //we should build bone tree for mesh
-        BoneNode *meshBoneRoot = NULL;
-        if (currentMesh->mNumBones != 0) {
-            meshBoneRoot = createMeshTree(rootNode, currentMesh);
+        for(int j = 0; j < currentMesh->mNumBones; ++j) {
+            meshOffsetmap[currentMesh->mBones[j]->mName.C_Str()] = GLMConverter::AssimpToGLM(currentMesh->mBones[j]->mOffsetMatrix);
         }
+
         meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
-        mesh = new MeshAsset(assetManager, currentMesh, meshMaterial, meshBoneRoot);
+        mesh = new MeshAsset(assetManager, currentMesh, meshMaterial, rootNode);
         meshes.push_back(mesh);
     }
 
@@ -65,6 +76,7 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
     centerOffset = glm::vec3((max.x + min.x) / 2, (max.y + min.y) / 2, (max.z + min.z) / 2);
 }
 
+
 Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialIndex) {
 
     // create material uniform buffer
@@ -72,7 +84,9 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
     aiString property;    //contains filename of texture
     if (AI_SUCCESS != currentMaterial->Get(AI_MATKEY_NAME, property)) {
         std::cerr << "Material without a name is not handled." << std::endl;
+        std::cerr << "Model " << this->name << std::endl;
         exit(-1);
+        //return NULL; should work too.
     }
 
     Material *newMaterial;
@@ -137,8 +151,8 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
 BoneNode *ModelAsset::loadNodeTree(aiNode *aiNode) {
     BoneNode *currentNode = new BoneNode();
     currentNode->name = aiNode->mName.C_Str();
-    currentNode->boneID = ++boneIDCounter;
-    currentNode->offset = GLMConverter::AssimpToGLM(aiNode->mTransformation);
+    currentNode->boneID = boneIDCounter++;
+    currentNode->transformation = GLMConverter::AssimpToGLM(aiNode->mTransformation);
     for (int i = 0; i < aiNode->mNumChildren; ++i) {
         currentNode->children.push_back(loadNodeTree(aiNode->mChildren[i]));
     }
@@ -151,8 +165,9 @@ BoneNode *ModelAsset::createMeshTree(const BoneNode *sceneNode, const aiMesh *me
         BoneNode *newBone = new BoneNode();
         newBone->boneID = ++boneIDCounterPerMesh;
         newBone->name = sceneNode->name;
-        newBone->offset = sceneNode->offset;
-        newBone->offset = GLMConverter::AssimpToGLM(mesh->mBones[boneIndex]->mOffsetMatrix);
+        std::cout << "Bone \"" << newBone->name << "\" id is " << newBone->boneID << std::endl;
+        newBone->transformation = sceneNode->transformation;
+        newBone->transformation = GLMConverter::AssimpToGLM(mesh->mBones[boneIndex]->mOffsetMatrix);
         for (int i = 0; i < sceneNode->children.size(); ++i) {
             newBone->children.push_back(createMeshTree(sceneNode->children[i], mesh));
         }
@@ -181,4 +196,169 @@ bool ModelAsset::findNode(const BoneNode *nodeToMatch, const aiMesh *meshToCheck
         }
     }
     return false;
+}
+
+void ModelAsset::getTransform(long time, std::vector<glm::mat4> &transformMatrix) const {
+    aiAnimation *currentAnimation = animations[0];
+
+    float ticksPersecond;
+    if (currentAnimation->mTicksPerSecond != 0) {
+        ticksPersecond = currentAnimation->mTicksPerSecond;
+    } else {
+        ticksPersecond = 25.0f;
+    }
+
+    float animationTime = fmod((time / 1000.0f) * ticksPersecond, currentAnimation->mDuration);
+
+    glm::mat4 parentTransform = glm::mat4(1.0f);
+    traverseAndSetTransform(rootNode, parentTransform, currentAnimation, animationTime, transformMatrix);
+
+}
+
+void
+ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform, aiAnimation *animation,
+                                    float timeInTicks,
+                                    std::vector<glm::mat4> &transforms) const {
+    const aiNodeAnim *nodeAnimation = findNodeAnimation(animation, boneNode->name);
+    glm::mat4 nodeTransform;
+
+    if (nodeAnimation == NULL) {
+        nodeTransform = boneNode->transformation;
+    } else {
+        // Interpolate scaling and generate scaling transformation matrix
+        aiVector3D scalingTransformVector, transformVector;
+        aiQuaternion rotationTransformQuaternion;
+
+        scalingTransformVector = getScalingVector(timeInTicks, nodeAnimation);
+        rotationTransformQuaternion = getRotationQuat(timeInTicks, nodeAnimation);
+        transformVector = getPositionVector(timeInTicks, nodeAnimation);
+
+        glm::mat4 rotationMatrix = glm::mat4_cast(GLMConverter::AssimpToGLM(rotationTransformQuaternion));
+        glm::mat4 translateMatrix = glm::translate(glm::mat4(1.0f), GLMConverter::AssimpToGLM(transformVector));
+        glm::mat4 scaleTransform = glm::scale(glm::mat4(1.0f), GLMConverter::AssimpToGLM(scalingTransformVector));
+        nodeTransform =  translateMatrix * rotationMatrix * scaleTransform;
+    }
+
+    nodeTransform = parentTransform * nodeTransform;
+
+    if(meshOffsetmap.find(boneNode->name) != meshOffsetmap.end()) {
+        //std::cout << "bone offset found for " << boneNode->name << ", processing it." << std::endl;
+        transforms[boneNode->boneID] =
+                globalInverseTransform * nodeTransform * meshOffsetmap.at(boneNode->name);
+    } else {
+        //std::cout << "bone offset not found for " << boneNode->name << ", passing it." << std::endl;
+        //transforms[boneNode->boneID] = globalInverseTransform * nodeTransform;
+    }
+
+    //Call children even if parent does not have animation attached.
+    for (int i = 0; i < boneNode->children.size(); ++i) {
+        traverseAndSetTransform(boneNode->children[i], nodeTransform, animation, timeInTicks, transforms);
+    }
+}
+
+aiVector3D ModelAsset::getPositionVector(const float timeInTicks, const aiNodeAnim *nodeAnimation) const {
+    aiVector3D transformVector;
+    if (nodeAnimation->mNumPositionKeys == 1) {
+            transformVector = nodeAnimation->mPositionKeys[0].mValue;
+        } else {
+
+            int positionIndex = 0;
+
+            for (int i = 0; i < nodeAnimation->mNumPositionKeys; i++) {
+                if (timeInTicks < (float) nodeAnimation->mPositionKeys[i + 1].mTime) {
+                    positionIndex = i;
+                    break;
+                }
+            }
+
+            int NextPositionIndex = (positionIndex + 1);
+            assert(NextPositionIndex < nodeAnimation->mNumPositionKeys);
+            float DeltaTime = (float) (nodeAnimation->mPositionKeys[NextPositionIndex].mTime -
+                                       nodeAnimation->mPositionKeys[positionIndex].mTime);
+            float Factor = (timeInTicks - (float) nodeAnimation->mPositionKeys[positionIndex].mTime) / DeltaTime;
+            assert(Factor >= 0.0f && Factor <= 1.0f);
+            const aiVector3D &Start = nodeAnimation->mPositionKeys[positionIndex].mValue;
+            const aiVector3D &End = nodeAnimation->mPositionKeys[NextPositionIndex].mValue;
+            aiVector3D Delta = End - Start;
+            transformVector = Start + Factor * Delta;
+        }
+    return transformVector;
+}
+
+aiVector3D ModelAsset::getScalingVector(const float timeInTicks, const aiNodeAnim *nodeAnimation) const {
+    aiVector3D scalingTransformVector;
+    if (nodeAnimation->mNumScalingKeys == 1) {
+            scalingTransformVector = nodeAnimation->mScalingKeys[0].mValue;
+        } else {
+            int ScalingIndex = 0;
+
+            assert(nodeAnimation->mNumScalingKeys > 0);
+
+            for (int i = 0; i < nodeAnimation->mNumScalingKeys; i++) {
+                if (timeInTicks < (float) nodeAnimation->mScalingKeys[i + 1].mTime) {
+                    ScalingIndex = i;
+                    break;
+                }
+            }
+
+
+            int NextScalingIndex = (ScalingIndex + 1);
+            assert(NextScalingIndex < nodeAnimation->mNumScalingKeys);
+            float DeltaTime = (float) (nodeAnimation->mScalingKeys[NextScalingIndex].mTime -
+                                       nodeAnimation->mScalingKeys[ScalingIndex].mTime);
+            float Factor = (timeInTicks - (float) nodeAnimation->mScalingKeys[ScalingIndex].mTime) / DeltaTime;
+            assert(Factor >= 0.0f && Factor <= 1.0f);
+            const aiVector3D &Start = nodeAnimation->mScalingKeys[ScalingIndex].mValue;
+            const aiVector3D &End = nodeAnimation->mScalingKeys[NextScalingIndex].mValue;
+            aiVector3D Delta = End - Start;
+            scalingTransformVector = Start + Factor * Delta;
+        }
+    return scalingTransformVector;
+}
+
+aiQuaternion ModelAsset::getRotationQuat(const float timeInTicks, const aiNodeAnim *nodeAnimation) const {
+    aiQuaternion rotationTransformQuaternion;
+    if (nodeAnimation->mNumRotationKeys == 1) {
+        rotationTransformQuaternion = nodeAnimation->mRotationKeys[0].mValue;
+        } else {
+
+            int rotationIndex = 0;
+
+            assert(nodeAnimation->mNumRotationKeys > 0);
+
+            for (int i = 0; i < nodeAnimation->mNumRotationKeys; i++) {
+                if (timeInTicks < (float) nodeAnimation->mRotationKeys[i + 1].mTime) {
+                    rotationIndex = i;
+                    break;
+                }
+            }
+
+            int NextRotationIndex = (rotationIndex + 1);
+            assert(NextRotationIndex < nodeAnimation->mNumRotationKeys);
+            float DeltaTime = (float) (nodeAnimation->mRotationKeys[NextRotationIndex].mTime -
+                                       nodeAnimation->mRotationKeys[rotationIndex].mTime);
+            float Factor = (timeInTicks - (float) nodeAnimation->mRotationKeys[rotationIndex].mTime) / DeltaTime;
+            assert(Factor >= 0.0f && Factor <= 1.0f);
+            const aiQuaternion &StartRotationQ = nodeAnimation->mRotationKeys[rotationIndex].mValue;
+            const aiQuaternion &EndRotationQ = nodeAnimation->mRotationKeys[NextRotationIndex].mValue;
+            aiQuaternion::Interpolate(rotationTransformQuaternion, StartRotationQ, EndRotationQ, Factor);
+            rotationTransformQuaternion = rotationTransformQuaternion.Normalize();
+        }
+    return rotationTransformQuaternion;
+}
+
+const aiNodeAnim *ModelAsset::findNodeAnimation(aiAnimation *animation, std::string nodeName) const {
+    for (int i = 0; i < animation->mNumChannels; i++) {
+        const aiNodeAnim *nodeAnimation = animation->mChannels[i];
+
+        if (nodeAnimation->mNodeName.C_Str() == nodeName) {
+            return nodeAnimation;
+        }
+    }
+
+    return NULL;
+}
+
+bool ModelAsset::isAnimated() const {
+    return hasAnimation;
 }

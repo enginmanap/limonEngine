@@ -15,13 +15,14 @@ public:
     std::string name;
     uint_fast32_t boneID;
     std::vector<BoneNode *> children;
-    glm::mat4 offset;
+    glm::mat4 transformation;
+
 
     BoneNode() {};
 
     BoneNode(const BoneNode &originalNode) {
         this->name = originalNode.name;
-        this->offset = originalNode.offset;
+        this->transformation = originalNode.transformation;
         for (int i = 0; i < originalNode.children.size(); ++i) {
             this->children.push_back(new BoneNode((*originalNode.children.at(i))));
         }

@@ -33,13 +33,13 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
             meshMeta->skeleton = (*iter)->getSkeletonCopy();
             //set up the program to render object
             meshMeta->program = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertexAnimated.glsl",
-                                                "./Data/Shaders/Model/fragmentAnimated.glsl");
+                                                "./Data/Shaders/Model/fragmentAnimated.glsl", true);
             //Now we should find out about bone tree
 
         } else {
             //set up the program to render object without bones
             meshMeta->program = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertex.glsl",
-                                                "./Data/Shaders/Model/fragment.glsl");
+                                                "./Data/Shaders/Model/fragment.glsl", true);
         }
         meshes.push_back(meshMeta);
         compoundShape->addChildShape(emptyTransform, (*iter)->getCollisionShape());//this add the mesh to collition shape
@@ -66,13 +66,16 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
 }
 
 void Model::activateMaterial(const Material *material, GLSLProgram *program) {
+    if(material == NULL ) {
+        return;
+    }
     GLuint location;
     if (!program->setUniform("material.ambient", material->getAmbientColor())) {
-        std::cerr << "Uniform \"material.ambient\" could not be set." << std::endl;
+        std::cerr << "Uniform \"material.ambient\" could not be set for program " << program->getProgramName()  << std::endl;
     }
 
     if (!program->setUniform("material.shininess", material->getSpecularExponent())) {
-        std::cerr << "Uniform \"material.shininess\" could not be set" << std::endl;
+        std::cerr << "Uniform \"material.shininess\" could not be set for program "  << program->getProgramName() << std::endl;
     }
     TextureAsset* diffuse = material->getDiffuseTexture();
     if(diffuse!= NULL) {
@@ -101,18 +104,13 @@ bool Model::setupRenderVariables(GLSLProgram *program) {
                 std::cerr << "Uniform \"shadowSampler\" could not be set" << std::endl;
             }
             /* FIXME This is before animation loading, to fill the bone data ***********/
-            if (modelAsset->getMeshes()[0]->hasBones()) {
+            if (modelAsset->isAnimated()) {
                 //set all of the bones to unitTransform for testing
-                glm::mat4 unitMatrix;
-                unitMatrix[1][1] = 0.71f;
-                unitMatrix[1][2] = 0.71f;
-                unitMatrix[2][1] = -0.71f;
-                unitMatrix[2][2] = 0.71f;
-                std::vector<glm::mat4> unitMatrixArray;
-                for (int i = 0; i < 128; ++i) {
-                    unitMatrixArray.push_back(unitMatrix);
-                }
-                program->setUniformArray("boneTransformArray[0]", unitMatrixArray);
+
+                std::vector<glm::mat4> transforms(128);
+                modelAsset->getTransform(SDL_GetTicks(),transforms);
+
+                program->setUniformArray("boneTransformArray[0]", transforms);
             }
             /********* This is before animation loading, to fill the bone data ***********/
 
@@ -141,7 +139,19 @@ void Model::renderWithProgram(GLSLProgram &program) {
     if (program.setUniform("worldTransformMatrix", getWorldTransform())) {
         std::vector<MeshAsset *> meshes = modelAsset->getMeshes();
         for (std::vector<MeshAsset *>::iterator iter = meshes.begin(); iter != meshes.end(); ++iter) {
-            this->activateMaterial((*iter)->getMaterial(), &program);
+            if (modelAsset->isAnimated()) {
+                //set all of the bones to unitTransform for testing
+
+                std::vector<glm::mat4> transforms(128);
+                modelAsset->getTransform(SDL_GetTicks(),transforms);
+                program.setUniformArray("boneTransformArray[0]", transforms);
+                program.setUniform("isAnimated", true);
+            } else {
+                program.setUniform("isAnimated", false);
+            }
+            if(program.IsMaterialRequired()) {
+                this->activateMaterial((*iter)->getMaterial(), &program);
+            }
             glHelper->render(program.getID(), (*iter)->getVao(), (*iter)->getEbo(), (*iter)->getTriangleCount() * 3);
         }
     } else {
