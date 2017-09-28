@@ -6,9 +6,14 @@
 #define UBERGAME_BULLETGLMCONVERTER_H
 
 #include <btBulletDynamicsCommon.h>
+#include "../glm/gtx/quaternion.hpp" //TODO check why is this include required?
+#include "../glm/glm.hpp"
+
+
 #include <assimp/vector3.h>
 #include <assimp/types.h>
-#include "../glm/glm.hpp"
+#include <assimp/quaternion.h>
+
 
 class GLMConverter {
 public:
@@ -22,6 +27,11 @@ public:
 
     static glm::vec3 AssimpToGLM(const aiVector3D &vector) {
         return glm::vec3(vector.x, vector.y, vector.z);
+    }
+
+    static glm::quat AssimpToGLM(const aiQuaternion &quaternion) {
+        glm::quat newQuat(quaternion.w, quaternion.x, quaternion.y, quaternion.z);
+        return newQuat;
     }
 
     static glm::vec3 AssimpToGLM(const aiColor3D &color) {
