@@ -51,9 +51,10 @@ void main(void)
 
     to_fs.textureCoord = textureCoordinate;
     to_fs.normal = vec3(normalize(transpose(inverse(worldTransformMatrix)) * (BoneTransform * vec4(normal, 0.0))));
-    to_fs.fragPos = vec3(worldTransformMatrix * position);
+    to_fs.fragPos = vec3(worldTransformMatrix * (BoneTransform * position));
     for(int i = 0; i < NR_POINT_LIGHTS; i++){
         to_fs.fragPosLightSpace[i] = LightSources.lights[i].lightSpaceMatrix * vec4(to_fs.fragPos, 1.0);
     }
-    gl_Position = playerTransforms.cameraProjection * (worldTransformMatrix * (BoneTransform * vec4(vec3(position), 1.0)));
+    //The transform is calculated twice, it can be reused from to_fs.fragPos
+    gl_Position = playerTransforms.cameraProjection * (worldTransformMatrix * (BoneTransform * position));
 }
