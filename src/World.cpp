@@ -82,7 +82,6 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     Model *dwarf = new Model(assetManager, 10, "./Data/Models/Dwarf/dwarf.x");
     dwarf->addTranslate(glm::vec3(-3.0f, 23.0f, -3.0f));
     dwarf->addScale(glm::vec3(0.04f, 0.04f, 0.04f));
-
     dwarf->getWorldTransform();
     objects.push_back(dwarf);
     rigidBodies.push_back(dwarf->getRigidBody());
@@ -135,9 +134,12 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
 
 void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
     // Step simulation
+    long time = SDL_GetTicks();
     dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
     camera.updateTransfromFromPhysics(dynamicsWorld);
+
     for (int i = 0; i < objects.size(); ++i) {
+        objects[i]->setupForTime(time);
         objects[i]->updateTransformFromPhysics();
     }
 

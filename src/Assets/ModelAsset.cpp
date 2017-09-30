@@ -199,6 +199,7 @@ bool ModelAsset::findNode(const BoneNode *nodeToMatch, const aiMesh *meshToCheck
 }
 
 void ModelAsset::getTransform(long time, std::vector<glm::mat4> &transformMatrix) const {
+
     aiAnimation *currentAnimation = animations[0];
 
     float ticksPersecond;

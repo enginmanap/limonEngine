@@ -33,6 +33,8 @@ class Model : public PhysicalRenderable {
 
     AssetManager *assetManager;
     ModelAsset *modelAsset;
+    bool animated;
+    std::vector<glm::mat4> boneTransforms;
 
     std::vector<MeshMeta *> meshes;
 
@@ -52,10 +54,13 @@ public:
 
     bool setupRenderVariables(GLSLProgram *program);
 
+    void setupForTime(long time);
+
     void render();
 
     void renderWithProgram(GLSLProgram &program);
 
+    bool isAnimated() const { return animated;};
 
     //TODO we need to free the texture. Destructor needed.
     ~Model() {

@@ -8,9 +8,10 @@
 Model::Model(AssetManager *assetManager, const float mass, const std::string &modelFile) :
         PhysicalRenderable(assetManager->getGlHelper()) {
 
+    //this is required because the shader has fixed size arrays
+    boneTransforms.resize(128);
     modelAsset = assetManager->loadAsset<ModelAsset>({modelFile});
     //set up the rigid body
-
     this->triangleCount = 0;
     this->vao = 0;
     this->ebo = 0;//these are not per Model, but per Mesh
@@ -19,8 +20,7 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
     btCompoundShape *compoundShape = new btCompoundShape();
     btTransform emptyTransform(btQuaternion(0, 0, 0, 1));
 
-
-
+    this->animated = modelAsset->isAnimated();
 
     MeshMeta *meshMeta;
     std::vector<MeshAsset *> assetMeshes = modelAsset->getMeshes();
@@ -65,6 +65,12 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
 
 }
 
+void Model::setupForTime(long time) {
+    if(animated) {
+        modelAsset->getTransform(time, boneTransforms);
+    }
+}
+
 void Model::activateMaterial(const Material *material, GLSLProgram *program) {
     if(material == NULL ) {
         return;
@@ -104,13 +110,9 @@ bool Model::setupRenderVariables(GLSLProgram *program) {
                 std::cerr << "Uniform \"shadowSampler\" could not be set" << std::endl;
             }
             /* FIXME This is before animation loading, to fill the bone data ***********/
-            if (modelAsset->isAnimated()) {
+            if (animated) {
                 //set all of the bones to unitTransform for testing
-
-                std::vector<glm::mat4> transforms(128);
-                modelAsset->getTransform(SDL_GetTicks(),transforms);
-
-                program->setUniformArray("boneTransformArray[0]", transforms);
+                program->setUniformArray("boneTransformArray[0]", boneTransforms);
             }
             /********* This is before animation loading, to fill the bone data ***********/
 
@@ -139,12 +141,9 @@ void Model::renderWithProgram(GLSLProgram &program) {
     if (program.setUniform("worldTransformMatrix", getWorldTransform())) {
         std::vector<MeshAsset *> meshes = modelAsset->getMeshes();
         for (std::vector<MeshAsset *>::iterator iter = meshes.begin(); iter != meshes.end(); ++iter) {
-            if (modelAsset->isAnimated()) {
+            if (animated) {
                 //set all of the bones to unitTransform for testing
-
-                std::vector<glm::mat4> transforms(128);
-                modelAsset->getTransform(SDL_GetTicks(),transforms);
-                program.setUniformArray("boneTransformArray[0]", transforms);
+                program.setUniformArray("boneTransformArray[0]", boneTransforms);
                 program.setUniform("isAnimated", true);
             } else {
                 program.setUniform("isAnimated", false);
