@@ -14,8 +14,8 @@
 class Renderable {
 protected:
     GLHelper *glHelper;
-    std::vector<GLuint> bufferObjects;
-    GLuint vao, ebo;
+    std::vector<uint_fast32_t > bufferObjects;
+    uint_fast32_t vao, ebo;
     GLSLProgram *renderProgram;
     glm::mat4 worldTransform, oldWorldTransform;
     glm::vec3 scale, translate;

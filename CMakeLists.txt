@@ -23,7 +23,11 @@ if (NOT SDL_Image_FOUND)
     message(ERROR " SDL_Image not found!")
 endif (NOT SDL_Image_FOUND)
 
-find_package(FREETYPE REQUIRED)
+if(WINDOWS)
+    find_package(FREETYPE REQUIRED)
+else()
+    find_package(Freetype REQUIRED)
+endif()
 INCLUDE_DIRECTORIES(${FREETYPE_INCLUDE_DIRS})
 
 if (NOT FREETYPE_FOUND)

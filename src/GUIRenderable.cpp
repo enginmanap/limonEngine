@@ -13,7 +13,7 @@ GUIRenderable::GUIRenderable(GLHelper *glHelper) : Renderable(glHelper) {
     faces.push_back(glm::mediump_uvec3(0, 1, 2));//front
     faces.push_back(glm::mediump_uvec3(0, 2, 3));
 
-    GLuint vbo;
+    uint_fast32_t vbo;
     glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
     bufferObjects.push_back(vbo);
 

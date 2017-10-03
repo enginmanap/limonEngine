@@ -330,7 +330,8 @@ bool GLHelper::freeVAO(const GLuint bufferID) {
 
 void GLHelper::bufferVertexData(const std::vector<glm::vec3> &vertices,
                                 const std::vector<glm::mediump_uvec3> &faces,
-                                GLuint &vao, GLuint &vbo, const GLuint attachPointer, GLuint &ebo) {
+                                uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer,
+                                uint_fast32_t &ebo) {
 
     // Set up the element array buffer
     ebo = generateBuffer(1);
@@ -338,9 +339,11 @@ void GLHelper::bufferVertexData(const std::vector<glm::vec3> &vertices,
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::mediump_uvec3), faces.data(), GL_STATIC_DRAW);
 
     // Set up the vertex attributes
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
+    //FIXME this temp should not be needed, but uint_fast32_t requires a cast. re evaluate using uint32_t
+    uint32_t temp;
+    glGenVertexArrays(1, &temp);
+    glBindVertexArray(temp);
+    vao = temp;
     vbo = generateBuffer(1);
     bufferObjects.push_back(vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -354,7 +357,7 @@ void GLHelper::bufferVertexData(const std::vector<glm::vec3> &vertices,
 }
 
 void GLHelper::bufferNormalData(const std::vector<glm::vec3> &normals,
-                                GLuint &vao, GLuint &vbo, const GLuint attachPointer) {
+                                uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), normals.data(), GL_STATIC_DRAW);
@@ -367,20 +370,21 @@ void GLHelper::bufferNormalData(const std::vector<glm::vec3> &normals,
 }
 
 void GLHelper::bufferExtraVertexData(const std::vector<glm::vec4> &extraData,
-                                     GLuint &vao, GLuint &vbo, const GLuint attachPointer) {
+                                     uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
     bufferExtraVertexData(4, GL_FLOAT, extraData.size() * sizeof(glm::vec4), extraData.data(), vao, vbo, attachPointer);
     checkErrors("bufferVertexDataVec4");
 }
 
 void GLHelper::bufferExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData,
-                                     GLuint &vao, GLuint &vbo, const GLuint attachPointer) {
+                                     uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
     bufferExtraVertexData(4, GL_UNSIGNED_INT, extraData.size() * sizeof(glm::lowp_uvec4), extraData.data(), vao, vbo,
                           attachPointer);
     checkErrors("bufferVertexDataIVec4");
 }
 
 void GLHelper::bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
-                                     const void *extraData, GLuint &vao, GLuint &vbo, const GLuint attachPointer) {
+                                     const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
+                                     const uint_fast32_t attachPointer) {
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, dataSize, extraData, GL_STATIC_DRAW);
@@ -401,7 +405,7 @@ void GLHelper::bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum
 }
 
 void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
-                                              GLuint &vao, GLuint &vbo, const GLuint attachPointer) {
+                                              uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 

@@ -20,8 +20,8 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
     }
     std::cout << "ASSIMP::Loading::" << name << std::endl;
     //FIXME triangulate creates too many vertices, it is unnecessary, but optimize requires some work.
-    scene = import.ReadFile(name, aiProcess_Triangulate | aiProcess_FlipUVs |
-                                  aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_GenNormals);
+    scene = import.ReadFile(name, aiProcess_FlipUVs |
+                                  aiProcessPreset_TargetRealtime_MaxQuality);
 
     if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
