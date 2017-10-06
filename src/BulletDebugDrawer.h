@@ -19,7 +19,7 @@ class BulletDebugDrawer : public btIDebugDraw {
 public:
     BulletDebugDrawer(GLHelper *glHelper) : glHelper(glHelper), vao(0), vbo(0), ebo(0) {
         renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/Line/vertex.glsl",
-                                        "./Data/Shaders/Line/fragment.glsl");
+                                        "./Data/Shaders/Line/fragment.glsl", false);
     }
 
     void drawLine(const btVector3 &from, const btVector3 &to, const btVector3 &fromColor, const btVector3 &toColor);

@@ -38,6 +38,8 @@ public:
     }
 
     void virtual renderWithProgram(GLSLProgram &program) = 0;
+
+    void virtual setupForTime(long time) = 0;
 };
 
 

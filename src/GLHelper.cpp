@@ -132,13 +132,14 @@ void GLHelper::fillUniformMap(const GLuint program, std::map<std::string, GLHelp
     glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &count);
     //std::cout << "Active Uniforms:" << count << std::endl;
 
-
+    uint32_t uniformLocation;
     for (i = 0; i < count; i++)
     {
         glGetActiveUniform(program, (GLuint)i, maxLength, &length, &size, &type, name);
+        uniformLocation = glGetUniformLocation(program, name);
 
-        //std::cout << "Uniform " << i << " Type: " << type << " Name: " << name << std::endl;
-        uniformMap[name] = new Uniform(i, name, type, size);
+        //std::cout << "Uniform " << i << " Location: " << uniformLocation << " Type: " << type << " Name: " << name << std::endl;
+        uniformMap[name] = new Uniform(uniformLocation, name, type, size);
     }
 }
 
@@ -329,7 +330,8 @@ bool GLHelper::freeVAO(const GLuint bufferID) {
 
 void GLHelper::bufferVertexData(const std::vector<glm::vec3> &vertices,
                                 const std::vector<glm::mediump_uvec3> &faces,
-                                GLuint &vao, GLuint &vbo, const GLuint attachPointer, GLuint &ebo) {
+                                uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer,
+                                uint_fast32_t &ebo) {
 
     // Set up the element array buffer
     ebo = generateBuffer(1);
@@ -337,9 +339,11 @@ void GLHelper::bufferVertexData(const std::vector<glm::vec3> &vertices,
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::mediump_uvec3), faces.data(), GL_STATIC_DRAW);
 
     // Set up the vertex attributes
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
+    //FIXME this temp should not be needed, but uint_fast32_t requires a cast. re evaluate using uint32_t
+    uint32_t temp;
+    glGenVertexArrays(1, &temp);
+    glBindVertexArray(temp);
+    vao = temp;
     vbo = generateBuffer(1);
     bufferObjects.push_back(vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -353,7 +357,7 @@ void GLHelper::bufferVertexData(const std::vector<glm::vec3> &vertices,
 }
 
 void GLHelper::bufferNormalData(const std::vector<glm::vec3> &normals,
-                                GLuint &vao, GLuint &vbo, const GLuint attachPointer) {
+                                uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), normals.data(), GL_STATIC_DRAW);
@@ -365,21 +369,43 @@ void GLHelper::bufferNormalData(const std::vector<glm::vec3> &normals,
     checkErrors("bufferVertexColor");
 }
 
-void GLHelper::bufferVertexColor(const std::vector<glm::vec4> &colors,
-                                 GLuint &vao, GLuint &vbo, const GLuint attachPointer) {
+void GLHelper::bufferExtraVertexData(const std::vector<glm::vec4> &extraData,
+                                     uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
+    bufferExtraVertexData(4, GL_FLOAT, extraData.size() * sizeof(glm::vec4), extraData.data(), vao, vbo, attachPointer);
+    checkErrors("bufferVertexDataVec4");
+}
+
+void GLHelper::bufferExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData,
+                                     uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
+    bufferExtraVertexData(4, GL_UNSIGNED_INT, extraData.size() * sizeof(glm::lowp_uvec4), extraData.data(), vao, vbo,
+                          attachPointer);
+    checkErrors("bufferVertexDataIVec4");
+}
+
+void GLHelper::bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
+                                     const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
+                                     const uint_fast32_t attachPointer) {
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(glm::vec4), colors.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, dataSize, extraData, GL_STATIC_DRAW);
 
     glBindVertexArray(vao);
-    glVertexAttribPointer(attachPointer, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    switch (elementType) {
+        case GL_UNSIGNED_INT:
+        case GL_INT:
+            glVertexAttribIPointer(attachPointer, elementPerVertexCount, elementType, 0, 0);
+            break;
+        default:
+            glVertexAttribPointer(attachPointer, elementPerVertexCount, elementType, GL_FALSE, 0, 0);
+    }
+
     glEnableVertexAttribArray(attachPointer);
     glBindVertexArray(0);
-    checkErrors("bufferVertexColor");
+    checkErrors("bufferExtraVertexDataInternal");
 }
 
 void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
-                                              GLuint &vao, GLuint &vbo, const GLuint attachPointer, GLuint &ebo) {
+                                              uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
@@ -436,7 +462,6 @@ void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, 
     checkErrors("render");
 }
 
-
 bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 &matrix) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
@@ -446,6 +471,23 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         glUniformMatrix4fv(uniformID, 1, GL_FALSE, glm::value_ptr(matrix));
         //state->setProgram(0);
         checkErrors("setUniformMatrix");
+        return true;
+    }
+
+}
+
+
+bool
+GLHelper::setUniformArray(const GLuint programID, const GLuint uniformID, const std::vector<glm::mat4> &matrixArray) {
+    if (!glIsProgram(programID)) {
+        std::cerr << "invalid program for setting uniform." << std::endl;
+        return false;
+    } else {
+        state->setProgram(programID);
+        int elementCount = matrixArray.size();
+        glUniformMatrix4fv(uniformID, elementCount, GL_FALSE, glm::value_ptr(matrixArray.at(0)));
+        //state->setProgram(0);
+        checkErrors("setUniformMatrixArray");
         return true;
     }
 
@@ -493,7 +535,8 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
 bool GLHelper::checkErrors(std::string callerFunc) {
     bool hasError = false;
     while ((error = glGetError()) != GL_NO_ERROR) {
-        std::cerr << "error found on GL context while " << callerFunc << ":" << error << std::endl;
+        std::cerr << "error found on GL context while " << callerFunc << ":" << error << ":" << gluErrorString(error)
+                  << std::endl;
         hasError = true;
     }
     return hasError;

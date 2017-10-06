@@ -16,55 +16,63 @@
 //TODO maybe we should not have direct dependency to glm and gl
 #include "glm/glm.hpp"
 #include "PhysicalRenderable.h"
-#include "Texture.h"
+#include "Assets/TextureAsset.h"
 #include "Material.h"
+#include "Assets/ModelAsset.h"
 
 
 class Model : public PhysicalRenderable {
 
-    std::string modelFile;
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::mediump_uvec3> faces;
-    std::vector<glm::vec2> textureCoordinates;
+    struct MeshMeta {
+        MeshAsset* mesh;
+        BoneNode* skeleton;
+        GLSLProgram* program;
+
+        MeshMeta() : mesh(NULL), skeleton(NULL), program(NULL) {}
+    };
+
+    AssetManager *assetManager;
+    ModelAsset *modelAsset;
+    bool animated;
+    std::vector<glm::mat4> boneTransforms;
+
+    std::vector<MeshMeta *> meshes;
+
+    btCompoundShape *compoundShape;
+
     std::map<std::string, Material *> materialMap;
     int diffuseMapAttachPoint = 1;
+    uint_fast32_t triangleCount;
 
-    btTriangleMesh *bulletMesh;
-    btConvexTriangleMeshShape *convexShape;
-    btConvexHullShape *simplifiedConvexShape;
+
 public:
-    Model(GLHelper *glHelper, const std::string &modelFile) : Model(glHelper, 0, modelFile) { };
+    Model(AssetManager *assetManager, const std::string &modelFile) : Model(assetManager, 0, modelFile) {};
 
-    Model(GLHelper *, const float mass, const std::string &modelFile);
+    Model(AssetManager *assetManager, const float mass, const std::string &modelFile);
 
-    void activateMaterial(const Material *material);
+    void activateMaterial(const Material *material, GLSLProgram *program);
 
-    bool setupRenderVariables();
+    bool setupRenderVariables(GLSLProgram *program);
+
+    void setupForTime(long time);
 
     void render();
 
     void renderWithProgram(GLSLProgram &program);
 
+    bool isAnimated() const { return animated;};
 
     //TODO we need to free the texture. Destructor needed.
     ~Model() {
-
-        for (std::map<std::string, Material *>::iterator iter = materialMap.begin();
-             iter != materialMap.end(); ++iter) {
-            delete iter->second;
-        }
-
         delete rigidBody->getMotionState();
         delete rigidBody;
 
-
+/*
         if (simplifiedConvexShape != NULL) {
             delete simplifiedConvexShape;
         }
         delete convexShape;
-        delete bulletMesh;
-
+*/
     }
 
 

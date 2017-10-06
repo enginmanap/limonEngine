@@ -180,6 +180,10 @@ private:
 
     void attachUBOs(const GLuint program) const;
 
+    void bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
+                               const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
+                               const uint_fast32_t attachPointer);
+
 public:
     GLHelper();
 
@@ -189,17 +193,19 @@ public:
 
     void bufferVertexData(const std::vector<glm::vec3> &vertices,
                           const std::vector<glm::mediump_uvec3> &faces,
-                          GLuint &vao, GLuint &vbo, const GLuint attachPointer, GLuint &ebo);
+                          uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer, uint_fast32_t &ebo);
 
     void bufferNormalData(const std::vector<glm::vec3> &colors,
-                          GLuint &vao, GLuint &vbo, const GLuint attachPointer);
+                          uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer);
 
-    void bufferVertexColor(const std::vector<glm::vec4> &colors,
-                           GLuint &vao, GLuint &vbo, const GLuint attachPointer);
+    void bufferExtraVertexData(const std::vector<glm::vec4> &extraData,
+                               uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer);
 
+    void bufferExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData,
+                               uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer);
 
     void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
-                                        GLuint &vao, GLuint &vbo, const GLuint attachPointer, GLuint &ebo);
+                                        uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer);
 
     bool freeBuffer(const GLuint bufferID);
 
@@ -250,6 +256,8 @@ public:
     bool setUniform(const GLuint programID, const GLuint uniformID, const float value);
 
     bool setUniform(const GLuint programID, const GLuint uniformID, const int value);
+
+    bool setUniformArray(const GLuint programID, const GLuint uniformID, const std::vector<glm::mat4> &matrixArray);
 
     void setLight(const Light &light, const int i);
 

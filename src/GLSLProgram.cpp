@@ -4,9 +4,9 @@
 
 #include "GLSLProgram.h"
 
-GLSLProgram::GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::string fragmentShader) :
-        glHelper(glHelper), vertexShader(vertexShader), fragmentShader(fragmentShader) {
-
+GLSLProgram::GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed) :
+        glHelper(glHelper), vertexShader(vertexShader), fragmentShader(fragmentShader), materialRequired(isMaterialUsed) {
+    programName = vertexShader + fragmentShader;
     programID = glHelper->initializeProgram(vertexShader, fragmentShader, uniformMap);
 
 }

@@ -4,14 +4,15 @@
 
 #include "SkyBox.h"
 
-SkyBox::SkyBox(GLHelper *glHelper, std::string path, std::string right, std::string left, std::string top,
+
+SkyBox::SkyBox(AssetManager *assetManager, std::string path, std::string right, std::string left, std::string top,
                std::string down, std::string back,
                std::string front) :
-        Renderable(glHelper) {
-    cubeMap = new CubeMap(glHelper, path,
-                          right, left,
-                          top, down,
-                          back, front);
+        Renderable(assetManager->getGlHelper()) {
+    cubeMap = assetManager->loadAsset<CubeMapAsset>({path,
+                                                     right, left,
+                                                     top, down,
+                                                     back, front});
 
 
     vertices.push_back(glm::vec3(-1.0f, -1.0f, -1.0f));
@@ -44,12 +45,12 @@ SkyBox::SkyBox(GLHelper *glHelper, std::string path, std::string right, std::str
     faces.push_back(glm::mediump_uvec3(3, 2, 6));
 
 
-    GLuint vbo;
+    uint_fast32_t vbo;
     glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
     bufferObjects.push_back(vbo);
 
     renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/SkyCube/vertex.glsl",
-                                    "./Data/Shaders/SkyCube/fragment.glsl");
+                                    "./Data/Shaders/SkyCube/fragment.glsl", false);
 }
 
 void SkyBox::render() {
