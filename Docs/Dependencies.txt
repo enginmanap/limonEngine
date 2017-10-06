@@ -4,3 +4,5 @@
 4)SDL_ttf 2.0.13
 4)Bullet Physics 2.83
 5)Cmake 3.3
+6)Assimp 3.3
+7)GLM 0.9.8
