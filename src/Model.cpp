@@ -94,7 +94,6 @@ void Model::activateMaterial(const Material *material, GLSLProgram *program) {
 
 bool Model::setupRenderVariables(GLSLProgram *program) {
     if (program->setUniform("worldTransformMatrix", getWorldTransform())) {
-        if (program->setUniform("cameraPosition", glHelper->getCameraPosition())) {
             if (this->materialMap.begin() != this->materialMap.end()) {
                 this->activateMaterial(materialMap.begin()->second, program);
             } else {
@@ -126,9 +125,6 @@ bool Model::setupRenderVariables(GLSLProgram *program) {
             /********* This is before animation loading, to fill the bone data ***********/
 
             return true;
-        } else {
-            std::cerr << "Uniform \"cameraPosition\" could not be set, passing rendering." << std::endl;
-        }
     } else {
         std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
     }

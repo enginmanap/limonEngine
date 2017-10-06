@@ -191,10 +191,6 @@ GLHelper::GLHelper() {
     std::cout << "Maximum number of texture image units is " << maxTextureImageUnits << std::endl;
     state = new OpenglState(maxTextureImageUnits);
 
-    //FIXME this value is used for reflection. It must be switched to player position.
-    cameraPosition = glm::vec3(0.0f, 0.0f, 0.0f);
-    cameraMatrix = glm::lookAt(cameraPosition, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-
     lightProjectionMatrixDirectional = glm::ortho(lightOrthogonalProjectionValues.x,
                                                   lightOrthogonalProjectionValues.y,
                                                   lightOrthogonalProjectionValues.z,
@@ -245,7 +241,7 @@ GLHelper::GLHelper() {
     //create player transforms uniform buffer object
     glGenBuffers(1, &playerUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
-    glBufferData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4) + sizeof(glm::vec3), NULL, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //create depth buffer and texture for directional shadow map
@@ -448,11 +444,6 @@ void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &text
     glBindVertexArray(0);
     checkErrors("bufferVertexTextureCoordinates");
 }
-
-void GLHelper::setCamera(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform) {
-    this->cameraMatrix = cameraTransform;
-}
-
 
 void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
     glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
@@ -725,7 +716,7 @@ void GLHelper::drawLine(const glm::vec3 &from, const glm::vec3 &to,
     glUniformMatrix4fv(lineInfoU, 1, GL_FALSE, glm::value_ptr(matrix));
 
     if (willTransform) {
-        glUniformMatrix4fv(viewTransformU, 1, GL_FALSE, glm::value_ptr(getProjectionMatrix() * getCameraMatrix()));
+        glUniformMatrix4fv(viewTransformU, 1, GL_FALSE, glm::value_ptr(perspectiveProjectionMatrix * cameraMatrix));
     } else {
         glUniformMatrix4fv(viewTransformU, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0)));
     }
@@ -773,12 +764,14 @@ void GLHelper::setLight(const Light &light, const int i) {
     checkErrors("setLight");
 }
 
-void GLHelper::setPlayerMatrices() {
+void GLHelper::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform) {
+    this->cameraMatrix = cameraTransform;
     glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0 * sizeof(glm::mat4), sizeof(glm::mat4), &cameraMatrix);
-    glBufferSubData(GL_UNIFORM_BUFFER, 1 * sizeof(glm::mat4), sizeof(glm::mat4), &perspectiveProjectionMatrix);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0 * sizeof(glm::mat4), sizeof(glm::mat4), &cameraMatrix);//changes with camera
+    glBufferSubData(GL_UNIFORM_BUFFER, 1 * sizeof(glm::mat4), sizeof(glm::mat4), &perspectiveProjectionMatrix);//never changes
     glm::mat4 viewMatrix = perspectiveProjectionMatrix * cameraMatrix;
-    glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), sizeof(glm::mat4), &viewMatrix);
+    glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), sizeof(glm::mat4), &viewMatrix);//changes with camera
+    glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), sizeof(glm::vec3), &cameraPosition);//changes with camera
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setPlayerMatrices");
 }

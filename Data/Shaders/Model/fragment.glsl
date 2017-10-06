@@ -2,6 +2,13 @@
 
 #define NR_POINT_LIGHTS 4
 
+layout (std140) uniform PlayerTransformBlock {
+    mat4 camera;
+    mat4 projection;
+    mat4 cameraProjection;
+    vec3 position;
+} playerTransforms;
+
 struct Material {
     vec3 ambient;
     vec3 specular;//currently not used. Should be a map
@@ -30,8 +37,6 @@ uniform sampler2D diffuseSampler;
 uniform sampler2DArray shadowSamplerDirectional;
 uniform samplerCube shadowSamplerPoint;
 uniform float farPlanePoint;//FIXME this should set once, and shared between programs
-
-uniform vec3 cameraPosition;
 
 layout (std140) uniform LightSourceBlock
 {
@@ -98,7 +103,7 @@ void main(void)
             vec3 lightDirectory = normalize(LightSources.lights[i].position - from_vs.fragPos);
             float diffuseRate = max(dot(from_vs.normal, lightDirectory), 0.0);
             // Specular
-            vec3 viewDirectory = normalize(cameraPosition - from_vs.fragPos);
+            vec3 viewDirectory = normalize(playerTransforms.position - from_vs.fragPos);
             vec3 reflectDirectory = reflect(-lightDirectory, from_vs.normal);
             float specularRate = pow(max(dot(viewDirectory, reflectDirectory), 0.0), 32);
             specularRate = material.shininess * specularRate;//same variable as above

@@ -23,6 +23,7 @@ layout (std140) uniform PlayerTransformBlock {
     mat4 camera;
     mat4 projection;
     mat4 cameraProjection;
+    vec3 position;
 } playerTransforms;
 
 struct LightSource

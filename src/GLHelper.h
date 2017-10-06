@@ -145,7 +145,6 @@ private:
     std::vector<GLuint> vertexArrays;
 
 
-    glm::vec3 cameraPosition;
     GLuint lightUBOLocation;
     GLuint playerUBOLocation;
 
@@ -219,8 +218,6 @@ public:
 
     bool freeVAO(const GLuint VAO);
 
-    void setCamera(const glm::vec3 &, const glm::mat4 &);
-
     void clearFrame() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
@@ -243,8 +240,6 @@ public:
     bool getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location);
 
     glm::mat4 getCameraMatrix() const { return cameraMatrix; };
-
-    glm::vec3 getCameraPosition() const { return cameraPosition; };
 
     glm::mat4 getProjectionMatrix() const { return perspectiveProjectionMatrix; };
 
@@ -269,7 +264,7 @@ public:
 
     void setLight(const Light &light, const int i);
 
-    void setPlayerMatrices();
+    void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix);
 
     void switchRenderToShadowMapDirectional(const unsigned int index);
 

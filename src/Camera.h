@@ -57,6 +57,10 @@ public:
         return cameraTransformMatrix;
     }
 
+    bool isDirty() const {
+        return dirty;
+    }
+
     glm::vec3 const getPosition() {
         return position;
     }
@@ -64,6 +68,7 @@ public:
     btRigidBody *getRigidBody() {
         return player;
     }
+
 };
 
 #endif //UBERGAME_CAMERA_H
