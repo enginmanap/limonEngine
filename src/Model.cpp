@@ -75,7 +75,6 @@ void Model::activateMaterial(const Material *material, GLSLProgram *program) {
     if(material == NULL ) {
         return;
     }
-    GLuint location;
     if (!program->setUniform("material.ambient", material->getAmbientColor())) {
         std::cerr << "Uniform \"material.ambient\" could not be set for program " << program->getProgramName()  << std::endl;
     }

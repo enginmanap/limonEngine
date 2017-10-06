@@ -27,35 +27,35 @@ public:
 
     GLuint getID() const { return programID; }
 
-    bool setUniform(const std::string uniformName, const glm::mat4 &matrix) {
+    bool setUniform(const std::string &uniformName, const glm::mat4 &matrix) {
         if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GLHelper::FLOAT_MAT4) {
             return glHelper->setUniform(programID, uniformMap[uniformName]->location, matrix);
         }
         return false;
     }
 
-    bool setUniform(const std::string uniformName, const glm::vec3 &vector) {
+    bool setUniform(const std::string &uniformName, const glm::vec3 &vector) {
         if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GLHelper::FLOAT_VEC3) {
             return glHelper->setUniform(programID, uniformMap[uniformName]->location, vector);
         }
         return false;
     }
 
-    bool setUniform(const std::string uniformName, const float value) {
+    bool setUniform(const std::string &uniformName, const float value) {
         if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GLHelper::FLOAT) {
             return glHelper->setUniform(programID, uniformMap[uniformName]->location, value);
         }
         return false;
     }
 
-    bool setUniform(const std::string uniformName, const int value) {
+    bool setUniform(const std::string &uniformName, const int value) {
         if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GLHelper::INT) {
             return glHelper->setUniform(programID, uniformMap[uniformName]->location, value);
         }
         return false;
     }
 
-    bool setUniformArray(std::string uniformArrayName, const std::vector<glm::mat4> &matrix) {
+    bool setUniformArray(const std::string &uniformArrayName, const std::vector<glm::mat4> &matrix) {
         if (uniformMap.count(uniformArrayName) && uniformMap[uniformArrayName]->type == GLHelper::FLOAT_MAT4) {
             //FIXME this should have a control of some sort
             return glHelper->setUniformArray(programID, uniformMap[uniformArrayName]->location, matrix);

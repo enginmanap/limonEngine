@@ -24,7 +24,7 @@ protected:
 public:
     GUIText(GLHelper *glHelper, Face *font, const std::string text, const glm::vec3 color);
 
-    void updateText(const std::string &text) {
+    virtual void updateText(const std::string &text) {
         this->text = text;
     }
 

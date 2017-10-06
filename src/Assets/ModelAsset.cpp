@@ -64,6 +64,7 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
 
         meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
         mesh = new MeshAsset(assetManager, currentMesh, meshMaterial, rootNode);
+        //FIXME the exception thown from new is not catched
         meshes.push_back(mesh);
     }
 

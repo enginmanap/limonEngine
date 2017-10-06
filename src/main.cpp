@@ -14,8 +14,6 @@ int main(int argc, char *argv[]) {
     int height = 768, width = 1024;
     Uint32 worldUpdateTime = 1000 / 60;//This value is used to update world on a locked Timestep
 
-    bool quit = false;
-
     SDL2Helper sdlHelper(PROGRAM_NAME, height, width);
 
     GLHelper glHelper;

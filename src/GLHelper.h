@@ -161,12 +161,12 @@ private:
     const glm::vec4 lightOrthogonalProjectionValues = glm::vec4(-50.0f, 50.0f, -50.0f, 50.0f);
     //aspect,near,far
     const glm::vec3 lightPerspectiveProjectionValues = glm::vec3((float)SHADOW_WIDTH/(float)SHADOW_HEIGHT, 1.0f, 100.0f);
-    glm::mat4 lightProjectionMatrixPoint;
 
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;
     glm::mat4 orthogonalProjectionMatrix;
     glm::mat4 lightProjectionMatrixDirectional;
+    glm::mat4 lightProjectionMatrixPoint;
 
     bool checkErrors(std::string callerFunc);
 
@@ -269,7 +269,7 @@ public:
     void switchRenderToShadowMapDirectional(const unsigned int index);
 
     //FIXME this passing matrix is unnecessary.
-    std::vector<glm::mat4> switchRenderToShadowMapPoint(const unsigned int index, const glm::vec3 &lightPosition);
+    std::vector<glm::mat4> switchRenderToShadowMapPoint(const glm::vec3 &lightPosition);
 
 
     void switchrenderToDefault();

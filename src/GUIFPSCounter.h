@@ -21,7 +21,7 @@ class GUIFPSCounter : public GUIText {
     Uint32 lastFrameTime;
     short framePointer;
 public:
-    GUIFPSCounter(GLHelper *glHelper, Face *font, const std::string text, const glm::lowp_uvec3 color) :
+    GUIFPSCounter(GLHelper *glHelper, Face *font, const std::string &text, const glm::lowp_uvec3 color) :
             GUIText(glHelper, font, text, color),
             previousFrameTimes{0}, lastRenderTime(0), framePointer(0), lastFrameTime(0) {
 

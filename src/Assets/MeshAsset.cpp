@@ -12,7 +12,6 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
     bulletMesh = new btTriangleMesh();
     if (!currentMesh->HasPositions()) {
         throw "No position found"; //Not going to process if mesh is empty
-        return;
     }
 
     vertexCount = currentMesh->mNumVertices;

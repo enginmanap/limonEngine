@@ -103,7 +103,7 @@ GLuint GLHelper::initializeProgram(std::string vertexShaderFile, std::string geo
     std::vector<GLuint> shaderList;
     checkErrors("before create shaders");
     shaderList.push_back(createShader(GL_VERTEX_SHADER, vertexShaderFile));
-    if(geometryShaderFile!=""){
+    if(!geometryShaderFile.empty()){
         shaderList.push_back(createShader(GL_GEOMETRY_SHADER, geometryShaderFile));
     }
     shaderList.push_back(createShader(GL_FRAGMENT_SHADER, fragmentShaderFile));
@@ -455,7 +455,7 @@ void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
     glCullFace(GL_FRONT);
 }
 
-std::vector<glm::mat4> GLHelper::switchRenderToShadowMapPoint(const unsigned int index, const glm::vec3 &lightPosition) {
+std::vector<glm::mat4> GLHelper::switchRenderToShadowMapPoint(const glm::vec3 &lightPosition) {
     glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
     glClear(GL_DEPTH_BUFFER_BIT);
