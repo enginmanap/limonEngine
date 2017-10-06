@@ -248,7 +248,6 @@ void World::render() {
         shadowMapProgramPoint->setUniform("renderLightIndex", i);
         //FarPlanePoint is set at declaration, since it is a constant
         shadowMapProgramPoint->setUniform("farPlanePoint", 100.0f);
-        shadowMapProgramPoint->setUniform("lightPosition", lights[i]->getPosition());
         for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
             (*it)->renderWithProgram(*shadowMapProgramPoint);
         }

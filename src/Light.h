@@ -25,7 +25,7 @@ public:
         this->color.g = color.g < 1.0f ? color.g : 1.0f;
         this->color.b = color.b < 1.0f ? color.b : 1.0f;
     }
-    //TODO add isDirty so we don't update the uniform if not necessary
+
     const glm::vec3 &getPosition() const {
         return position;
     }
