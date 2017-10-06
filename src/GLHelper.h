@@ -194,8 +194,7 @@ public:
     GLHelper();
 
     ~GLHelper();
-    //TODO these should be const references
-    GLuint initializeProgram(std::string vertexShaderFile, std::string geometryShaderFile, std::string fragmentShaderFile,
+    GLuint initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
                                  std::map<std::string, Uniform *> &);
 
     void bufferVertexData(const std::vector<glm::vec3> &vertices,

@@ -97,7 +97,7 @@ GLuint GLHelper::createProgram(const std::vector<GLuint> &shaderList) {
 }
 
 
-GLuint GLHelper::initializeProgram(std::string vertexShaderFile, std::string geometryShaderFile, std::string fragmentShaderFile,
+GLuint GLHelper::initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
                                    std::map<std::string, Uniform *> &uniformMap) {
     GLuint program;
     std::vector<GLuint> shaderList;
