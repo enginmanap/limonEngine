@@ -149,18 +149,25 @@ private:
     GLuint lightUBOLocation;
     GLuint playerUBOLocation;
 
-    GLuint depthOnlyFrameBuffer;
-    GLuint depthMap;
+    GLuint depthOnlyFrameBufferDirectional;
+    GLuint depthMapDirectional;
+
+    uint_fast32_t depthOnlyFrameBufferPoint;
+    uint_fast32_t depthCubemapPoint;
 
     const GLuint SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048; //TODO these values should be parameters
+    const uint_fast32_t lightUniformSize = sizeof(glm::mat4) + 2 * sizeof(glm::vec4);
     const GLfloat lightOrthogonalProjectionNearPlane = 1.0f;
     const GLfloat lightOrthogonalProjectionFarPlane = 100.0f;
     const glm::vec4 lightOrthogonalProjectionValues = glm::vec4(-50.0f, 50.0f, -50.0f, 50.0f);
+    //aspect,near,far
+    const glm::vec3 lightPerspectiveProjectionValues = glm::vec3((float)SHADOW_WIDTH/(float)SHADOW_HEIGHT, 1.0f, 100.0f);
+    glm::mat4 lightProjectionMatrixPoint;
 
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;
     glm::mat4 orthogonalProjectionMatrix;
-    glm::mat4 lightProjection;
+    glm::mat4 lightProjectionMatrixDirectional;
 
     bool checkErrors(std::string callerFunc);
 
@@ -188,8 +195,9 @@ public:
     GLHelper();
 
     ~GLHelper();
-
-    GLuint initializeProgram(std::string vertexShaderFile, std::string fragmentShaderFile, std::map<std::string, Uniform*>&);
+    //TODO these should be const references
+    GLuint initializeProgram(std::string vertexShaderFile, std::string geometryShaderFile, std::string fragmentShaderFile,
+                                 std::map<std::string, Uniform *> &);
 
     void bufferVertexData(const std::vector<glm::vec3> &vertices,
                           const std::vector<glm::mediump_uvec3> &faces,
@@ -263,7 +271,11 @@ public:
 
     void setPlayerMatrices();
 
-    void switchRenderToShadowMap(const unsigned int index);
+    void switchRenderToShadowMapDirectional(const unsigned int index);
+
+    //FIXME this passing matrix is unnecessary.
+    std::vector<glm::mat4> switchRenderToShadowMapPoint(const unsigned int index, const glm::vec3 &lightPosition);
+
 
     void switchrenderToDefault();
 

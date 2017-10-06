@@ -104,12 +104,21 @@ bool Model::setupRenderVariables(GLSLProgram *program) {
                                            diffuseMapAttachPoint)) { //even if diffuse map cannot attach, we still render
                 std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
             }
-            if (!program->setUniform("shadowSampler",
+            if (!program->setUniform("shadowSamplerDirectional",
                                            glHelper->getMaxTextureImageUnits() -
                                            1)) { //even if shadow map cannot attach, we still render
-                std::cerr << "Uniform \"shadowSampler\" could not be set" << std::endl;
+                std::cerr << "Uniform \"shadowSamplerDirectional\" could not be set" << std::endl;
             }
-            /* FIXME This is before animation loading, to fill the bone data ***********/
+            if (!program->setUniform("shadowSamplerPoint",
+                                     glHelper->getMaxTextureImageUnits() -
+                                     2)) { //even if shadow map cannot attach, we still render
+                std::cerr << "Uniform \"shadowSamplerDirectional\" could not be set" << std::endl;
+            }
+            if (!program->setUniform("farPlanePoint",100.0f)) { //even if far plane cannot attach, we still render
+                std::cerr << "Uniform \"farPlanePoint\" could not be set" << std::endl;
+            }
+
+
             if (animated) {
                 //set all of the bones to unitTransform for testing
                 program->setUniformArray("boneTransformArray[0]", boneTransforms);

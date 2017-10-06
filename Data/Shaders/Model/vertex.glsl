@@ -24,6 +24,7 @@ struct LightSource
 		mat4 lightSpaceMatrix;
 		vec3 position;
 		vec3 color;
+        int type; //0 Directional, 1 point
 };
 
 layout (std140) uniform LightSourceBlock
@@ -39,7 +40,9 @@ void main(void)
     to_fs.normal = normalize(mat3(transpose(inverse(worldTransformMatrix))) * normal);
     to_fs.fragPos = vec3(worldTransformMatrix * position);
     for(int i = 0; i < NR_POINT_LIGHTS; i++){
-        to_fs.fragPosLightSpace[i] = LightSources.lights[i].lightSpaceMatrix * vec4(to_fs.fragPos, 1.0);
+        if(LightSources.lights[i].type == 0) {
+            to_fs.fragPosLightSpace[i] = LightSources.lights[i].lightSpaceMatrix * vec4(to_fs.fragPos, 1.0);
+        }
     }
     gl_Position = playerTransforms.cameraProjection * (worldTransformMatrix * position);
 }

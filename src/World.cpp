@@ -29,9 +29,12 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     rigidBodies.push_back(camera.getRigidBody());
     dynamicsWorld->addRigidBody(camera.getRigidBody());
 
-    shadowMapProgram = new GLSLProgram(glHelper, "./Data/Shaders/ShadowMap/vertex.glsl",
-                                       "./Data/Shaders/ShadowMap/fragment.glsl", false);
-
+    shadowMapProgramDirectional = new GLSLProgram(glHelper, "./Data/Shaders/ShadowMap/vertexDirectional.glsl",
+                                                  "./Data/Shaders/ShadowMap/fragmentDirectional.glsl", false);
+    shadowMapProgramPoint = new GLSLProgram(glHelper, "./Data/Shaders/ShadowMap/vertexPoint.glsl",
+                                            "./Data/Shaders/ShadowMap/geometryPoint.glsl",
+                                            "./Data/Shaders/ShadowMap/fragmentPoint.glsl", false);
+    shadowMapProgramPoint->setUniform("farPlanePoint", 100.0f);
     Model *crate = new Model(assetManager, "./Data/Models/Box/Box.obj");
     crate->addScale(glm::vec3(250.0f, 1.0f, 250.0f));
     crate->addTranslate(glm::vec3(-125.0f, 0.0f, 125.0f));
@@ -40,7 +43,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
-/*
+
     crate = new Model(assetManager, 1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(2.0f, 25.0f, -3.0f));
     crate->getWorldTransform();
@@ -68,7 +71,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
-*/
+
 
     Model *mario = new Model(assetManager, 100, "./Data/Models/Mario/Mario_obj.obj");
     mario->addTranslate(glm::vec3(5.0f, 23.0f, -3.0f));
@@ -79,21 +82,31 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     rigidBodies.push_back(mario->getRigidBody());
     dynamicsWorld->addRigidBody(mario->getRigidBody());
 
+
+    crate = new Model(assetManager, 1, "./Data/Models/Box/Box.obj");
+    crate->addTranslate(glm::vec3(-3.0f, 2.0f, -3.0f));
+    crate->getWorldTransform();
+    objects.push_back(crate);
+    rigidBodies.push_back(crate->getRigidBody());
+    dynamicsWorld->addRigidBody(crate->getRigidBody());
+
+
     Model *dwarf = new Model(assetManager, 10, "./Data/Models/Dwarf/dwarf.x");
-    dwarf->addTranslate(glm::vec3(-3.0f, 23.0f, -3.0f));
+    dwarf->addTranslate(glm::vec3(-3.0f, 5.0f, -3.0f));
     dwarf->addScale(glm::vec3(0.04f, 0.04f, 0.04f));
     dwarf->getWorldTransform();
     objects.push_back(dwarf);
     rigidBodies.push_back(dwarf->getRigidBody());
     dynamicsWorld->addRigidBody(dwarf->getRigidBody());
 
+/*
     Model *animatedBoxes = new Model(assetManager, 1, "./Data/Models/testAnim/animatedBoxes.dae");
     animatedBoxes->addTranslate(glm::vec3(10.0f, 29.0f, -3.0f));
     animatedBoxes->getWorldTransform();
     objects.push_back(animatedBoxes);
     rigidBodies.push_back(animatedBoxes->getRigidBody());
     dynamicsWorld->addRigidBody(animatedBoxes->getRigidBody());
-
+*/
     sky = new SkyBox(assetManager,
                      std::string("./Data/Textures/Skyboxes/ThickCloudsWater"),
                      std::string("right.jpg"),
@@ -124,13 +137,17 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
 
     guiLayers.push_back(layer1);
 
+    Light *light;
 
-    Light *light = new Light(Light::POINT, glm::vec3(-25.0f, 50.0f, -25.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+    light = new Light(Light::POINT, glm::vec3(5.0f, 10.0f, 10.0f), glm::vec3(1.0f, 1.0f, 1.0f));
     lights.push_back(light);
 
-    light = new Light(Light::POINT, glm::vec3(-25.0f, 50.0f, 25.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+    light = new Light(Light::DIRECTIONAL, glm::vec3(-25.0f, 50.0f, 25.0f), glm::vec3(1.0f, 1.0f, 1.0f));
     lights.push_back(light);
+
+
 }
+
 
 void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
     // Step simulation
@@ -201,11 +218,30 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 void World::render() {
 
     for (int i = 0; i < lights.size(); ++i) {
+        if(lights[i]->getLightType() != Light::DIRECTIONAL) {
+            continue;
+        }
         //generate shadow map
-        glHelper->switchRenderToShadowMap(i);
-        shadowMapProgram->setUniform("renderLightIndex", i);
+        glHelper->switchRenderToShadowMapDirectional(i);
+        shadowMapProgramDirectional->setUniform("renderLightIndex", i);
         for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
-            (*it)->renderWithProgram(*shadowMapProgram);
+            (*it)->renderWithProgram(*shadowMapProgramDirectional);
+        }
+    }
+
+    for (int i = 0; i < lights.size(); ++i) {
+        if(lights[i]->getLightType() != Light::POINT) {
+            continue;
+        }
+        //generate shadow map
+        std::vector<glm::mat4> shadowTransforms = glHelper->switchRenderToShadowMapPoint(i,lights[i]->getPosition());
+        shadowMapProgramPoint->setUniformArray("shadowMatrices[0]", shadowTransforms);
+        shadowMapProgramPoint->setUniform("renderLightIndex", i);
+        //FarPlanePoint is set at declaration, since it is a constant
+        shadowMapProgramPoint->setUniform("farPlanePoint", 100.0f);
+        shadowMapProgramPoint->setUniform("lightPosition", lights[i]->getPosition());
+        for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
+            (*it)->renderWithProgram(*shadowMapProgramPoint);
         }
     }
 
@@ -214,6 +250,7 @@ void World::render() {
     for (int i = 0; i < lights.size(); ++i) {
         glHelper->setLight(*(lights[i]), i);
     }
+
 
     glHelper->setCamera(camera.getPosition(), camera.getCameraMatrix());
     glHelper->setPlayerMatrices();

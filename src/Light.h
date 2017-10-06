@@ -33,6 +33,10 @@ public:
     const glm::vec3 &getColor() const {
         return color;
     }
+
+    const LightTypes getLightType() const {
+        return lightType;
+    }
 };
 
 

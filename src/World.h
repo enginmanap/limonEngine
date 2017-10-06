@@ -30,7 +30,7 @@ class World {
     GLHelper *glHelper;
     AssetManager *assetManager;
 
-    GLSLProgram *shadowMapProgram;
+    GLSLProgram *shadowMapProgramDirectional, *shadowMapProgramPoint;
     FontManager fontManager;
     Camera camera;
     BulletDebugDrawer *debugDrawer;

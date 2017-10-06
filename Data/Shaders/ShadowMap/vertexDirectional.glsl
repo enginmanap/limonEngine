@@ -12,6 +12,7 @@ struct LightSource
 		mat4 lightSpaceMatrix;
 		vec3 position;
 		vec3 color;
+		int type;
 };
 
 layout (std140) uniform LightSourceBlock

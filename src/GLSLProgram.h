@@ -23,6 +23,7 @@ class GLSLProgram {
 
 public:
     GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed);
+    GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed);
 
     GLuint getID() const { return programID; }
 

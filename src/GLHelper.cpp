@@ -97,11 +97,15 @@ GLuint GLHelper::createProgram(const std::vector<GLuint> &shaderList) {
 }
 
 
-GLuint GLHelper::initializeProgram(std::string vertexShaderFile, std::string fragmentShaderFile, std::map<std::string, Uniform*> &uniformMap) {
+GLuint GLHelper::initializeProgram(std::string vertexShaderFile, std::string geometryShaderFile, std::string fragmentShaderFile,
+                                   std::map<std::string, Uniform *> &uniformMap) {
     GLuint program;
     std::vector<GLuint> shaderList;
     checkErrors("before create shaders");
     shaderList.push_back(createShader(GL_VERTEX_SHADER, vertexShaderFile));
+    if(geometryShaderFile!=""){
+        shaderList.push_back(createShader(GL_GEOMETRY_SHADER, geometryShaderFile));
+    }
     shaderList.push_back(createShader(GL_FRAGMENT_SHADER, fragmentShaderFile));
 
 
@@ -151,8 +155,7 @@ void GLHelper::attachUBOs(const GLuint program) const {//Attach the light block 
         glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
         glUniformBlockBinding(program, uniformIndex, lightAttachPoint);
         glBindBufferRange(GL_UNIFORM_BUFFER, lightAttachPoint, lightUBOLocation, 0,
-                          (sizeof(glm::mat4) + 2 * sizeof(glm::vec4)) *
-                          NR_POINT_LIGHTS); //FIXME calculating the size should not be like that
+                          lightUniformSize * NR_POINT_LIGHTS);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
@@ -188,15 +191,21 @@ GLHelper::GLHelper() {
     std::cout << "Maximum number of texture image units is " << maxTextureImageUnits << std::endl;
     state = new OpenglState(maxTextureImageUnits);
 
+    //FIXME this value is used for reflection. It must be switched to player position.
     cameraPosition = glm::vec3(0.0f, 0.0f, 0.0f);
     cameraMatrix = glm::lookAt(cameraPosition, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
-    lightProjection = glm::ortho(lightOrthogonalProjectionValues.x,
-                                 lightOrthogonalProjectionValues.y,
-                                 lightOrthogonalProjectionValues.z,
-                                 lightOrthogonalProjectionValues.w,
-                                 lightOrthogonalProjectionNearPlane, lightOrthogonalProjectionFarPlane);
+    lightProjectionMatrixDirectional = glm::ortho(lightOrthogonalProjectionValues.x,
+                                                  lightOrthogonalProjectionValues.y,
+                                                  lightOrthogonalProjectionValues.z,
+                                                  lightOrthogonalProjectionValues.w,
+                                                  lightOrthogonalProjectionNearPlane,
+                                                  lightOrthogonalProjectionFarPlane);
 
+    lightProjectionMatrixPoint = glm::perspective(glm::radians(90.0f),
+                                                  lightPerspectiveProjectionValues.x,
+                                                  lightPerspectiveProjectionValues.y,
+                                                  lightPerspectiveProjectionValues.z);
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     // Setup
@@ -239,11 +248,10 @@ GLHelper::GLHelper() {
     glBufferData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    //create depth buffer and texture for shadow map
-    glGenFramebuffers(1, &depthOnlyFrameBuffer);
-
-    glGenTextures(1, &depthMap);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, depthMap);
+    //create depth buffer and texture for directional shadow map
+    glGenFramebuffers(1, &depthOnlyFrameBufferDirectional);
+    glGenTextures(1, &depthMapDirectional);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, depthMapDirectional);
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_WIDTH, NR_POINT_LIGHTS, 0,
                  GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 
@@ -254,12 +262,34 @@ GLHelper::GLHelper() {
     GLfloat borderColor[] = {1.0, 1.0, 1.0, 1.0};
     glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, borderColor);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBuffer);
-    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMap, 0, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional, 0, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    //create depth buffer and texture for point shadow map
+    glGenFramebuffers(1, &depthOnlyFrameBufferPoint);
+    // create depth cubemap texture
+    glGenTextures(1, &depthCubemapPoint);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemapPoint);
+    for (unsigned int i = 0; i < 6; ++i) {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0,
+                     GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+    glTexParameterfv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+
+    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubemapPoint, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     checkErrors("Constructor");
 }
 
@@ -424,23 +454,47 @@ void GLHelper::setCamera(const glm::vec3 &cameraPosition, const glm::mat4 &camer
 }
 
 
-void GLHelper::switchRenderToShadowMap(const unsigned int index) {
+void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
     glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBuffer);
-    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMap, 0, index);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional, 0, index);
 
     glClear(GL_DEPTH_BUFFER_BIT);
 
     glCullFace(GL_FRONT);
-
 }
+
+std::vector<glm::mat4> GLHelper::switchRenderToShadowMapPoint(const unsigned int index, const glm::vec3 &lightPosition) {
+    glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    //FIXME this calculation should be a part of Light class, and should not be updated at every frame
+    std::vector<glm::mat4> shadowTransforms;
+    shadowTransforms.push_back(lightProjectionMatrixPoint *
+                               glm::lookAt(lightPosition, lightPosition + glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)));
+    shadowTransforms.push_back(lightProjectionMatrixPoint *
+                               glm::lookAt(lightPosition, lightPosition + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)));
+    shadowTransforms.push_back(lightProjectionMatrixPoint *
+                               glm::lookAt(lightPosition, lightPosition + glm::vec3( 0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
+    shadowTransforms.push_back(lightProjectionMatrixPoint *
+                               glm::lookAt(lightPosition, lightPosition + glm::vec3( 0.0,-1.0, 0.0), glm::vec3(0.0, 0.0,-1.0)));
+    shadowTransforms.push_back(lightProjectionMatrixPoint *
+                               glm::lookAt(lightPosition, lightPosition + glm::vec3( 0.0, 0.0, 1.0), glm::vec3(0.0,-1.0, 0.0)));
+    shadowTransforms.push_back(lightProjectionMatrixPoint *
+                               glm::lookAt(lightPosition, lightPosition + glm::vec3( 0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0)));
+    glCullFace(GL_FRONT);
+    return shadowTransforms;
+}
+
 
 void GLHelper::switchrenderToDefault() {
     glViewport(0, 0, screenWidth, screenHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     //we bind shadow map to last texture unit
-    state->attach2DTextureArray(depthMap, maxTextureImageUnits - 1);
+    state->attach2DTextureArray(depthMapDirectional, maxTextureImageUnits - 1);
+    state->attachCubemap(depthCubemapPoint, maxTextureImageUnits - 2);
     glCullFace(GL_BACK);
 }
 
@@ -550,8 +604,8 @@ GLHelper::~GLHelper() {
 
     deleteBuffer(1, lightUBOLocation);
     deleteBuffer(1, playerUBOLocation);
-    deleteBuffer(1, depthMap);
-    glDeleteFramebuffers(1, &depthOnlyFrameBuffer); //maybe we should wrap this up too
+    deleteBuffer(1, depthMapDirectional);
+    glDeleteFramebuffers(1, &depthOnlyFrameBufferDirectional); //maybe we should wrap this up too
     //state->setProgram(0);
 }
 
@@ -642,7 +696,8 @@ void GLHelper::drawLine(const glm::vec3 &from, const glm::vec3 &to,
     static GLuint program, viewTransformU, lineInfoU, vao, vbo;
     static std::map<std::string, Uniform*> uniformMap;//FIXME That map will always be empty, maybe we should overload
     if (program == 0 || vbo == 0 || vao == 0) {
-        program = initializeProgram("./Data/Shaders/Line/vertex.glsl", "./Data/Shaders/Line/fragment.glsl", uniformMap);
+        program = initializeProgram("./Data/Shaders/Line/vertex.glsl", std::__cxx11::string(),
+                                    "./Data/Shaders/Line/fragment.glsl", uniformMap);
         lineInfoU = glGetUniformLocation(program, "lineInfo");
         viewTransformU = glGetUniformLocation(program, "cameraTransformMatrix");
         state->setProgram(program);
@@ -690,16 +745,29 @@ void GLHelper::setLight(const Light &light, const int i) {
                                       glm::vec3(0.0f, 0.0f, 0.0f),
                                       glm::vec3(0.0f, 1.0f, 0.0f));
 
-    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+    glm::mat4 lightSpaceMatrix = lightProjectionMatrixDirectional * lightView;
+    GLint lightType;
+    switch (light.getLightType()) {
+        case Light::DIRECTIONAL:
+            lightType = 0;
+            break;
+        case Light::POINT:
+            lightType = 1;
+            break;
+    }
+
+    //std::cout << "light type is " << lightType << std::endl;
+    //std::cout << "size is " << sizeof(GLint) << std::endl;
 
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, i * (sizeof(glm::mat4) + 2 * sizeof(glm::vec4)), sizeof(glm::mat4),
-                    glm::value_ptr(lightSpaceMatrix));
-    glBufferSubData(GL_UNIFORM_BUFFER, i * (sizeof(glm::mat4) + 2 * sizeof(glm::vec4)) + sizeof(glm::mat4),
+    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize,
+                    sizeof(glm::mat4), glm::value_ptr(lightSpaceMatrix));
+    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4),
                     sizeof(glm::vec3), &light.getPosition());
-    glBufferSubData(GL_UNIFORM_BUFFER,
-                    i * (sizeof(glm::mat4) + 2 * sizeof(glm::vec4)) + sizeof(glm::mat4) + sizeof(glm::vec4),
+    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) + sizeof(glm::vec4),
                     sizeof(glm::vec3), &light.getColor());
+    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) + sizeof(glm::vec4) + sizeof(glm::vec3),
+                    sizeof(GLint), &lightType);
 
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setLight");
