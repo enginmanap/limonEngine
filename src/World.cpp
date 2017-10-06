@@ -209,6 +209,13 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
     if (inputHandler.getInputStatus(inputHandler.JUMP)) {
         direction = camera.UP;
     }
+    if (inputHandler.getInputStatus(inputHandler.DEBUG)) {
+        if(dynamicsWorld->getDebugDrawer()->getDebugMode() == btIDebugDraw::DBG_NoDebug) {
+            dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
+        } else {
+            dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
+        }
+    }
     if (direction != camera.NONE) {
         camera.move(direction);
     }

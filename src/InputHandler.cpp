@@ -15,6 +15,7 @@ InputHandler::InputHandler(SDL_Window *window, int height, int width) :
     inputStatus[MOVE_LEFT] = false;
     inputStatus[MOVE_RIGHT] = false;
     inputStatus[JUMP] = false;
+    inputStatus[DEBUG] = false;
 
 }
 
@@ -53,6 +54,9 @@ void InputHandler::mapInput() {
                     case SDLK_SPACE:
                         inputStatus[JUMP] = true;
                         break;
+                    case SDLK_0:
+                        inputStatus[DEBUG] = true;
+                        break;
                 }
                 break;
             case SDL_KEYUP:
@@ -71,6 +75,9 @@ void InputHandler::mapInput() {
                         break;
                     case SDLK_SPACE:
                         inputStatus[JUMP] = false;
+                        break;
+                    case SDLK_0:
+                        inputStatus[DEBUG] = false;
                         break;
                 }
                 break;
