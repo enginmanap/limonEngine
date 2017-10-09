@@ -39,6 +39,8 @@ public:
     }
 
     static glm::mat4 AssimpToGLM(const aiMatrix4x4 &matrix) {
+        //the documentation says Assimp is row major while GLM and OpenGL is colomn major,
+        //but access to elements are the same, so the following is correct.
         return glm::mat4(
                 matrix[0][0], matrix[1][0], matrix[2][0], matrix[3][0],
                 matrix[0][1], matrix[1][1], matrix[2][1], matrix[3][1],
