@@ -47,27 +47,12 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
         std::cout << "Model does not contain a mesh. This is not handled." << std::endl;
         exit(-1);
     } else {
-        std::cout << "Model has " << scene->mNumMeshes << " mesh(es)." << std::endl;
-    }
-    MeshAsset *mesh;
-    Material *meshMaterial;
-    aiMesh *currentMesh;
-
-    if (scene->mNumAnimations > 0) {
-        this->rootNode = loadNodeTree(scene->mRootNode);
-    }
-    for (int i = 0; i < scene->mNumMeshes; ++i) {
-        currentMesh = scene->mMeshes[i];
-        for(int j = 0; j < currentMesh->mNumBones; ++j) {
-            meshOffsetmap[currentMesh->mBones[j]->mName.C_Str()] = GLMConverter::AssimpToGLM(currentMesh->mBones[j]->mOffsetMatrix);
-        }
-
-        meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
-        mesh = new MeshAsset(assetManager, currentMesh, meshMaterial, rootNode);
-        //FIXME the exception thown from new is not catched
-        meshes.push_back(mesh);
+        std::cout << "Model "<< this->name << " has " << scene->mNumMeshes << " mesh(es)." << std::endl;
     }
 
+    this->rootNode = loadNodeTree(scene->mRootNode);
+
+    createMeshes(scene->mRootNode, glm::mat4(1.0f));
 
     aiVector3D min, max;
     AssimpUtils::get_bounding_box(scene, &min, &max);
@@ -149,6 +134,30 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
     return newMaterial;
 }
 
+void ModelAsset::createMeshes(aiNode *aiNode, glm::mat4 parentTransform) {
+    parentTransform = parentTransform * GLMConverter::AssimpToGLM(aiNode->mTransformation);
+
+    for (int i = 0; i < aiNode->mNumMeshes; ++i) {
+            aiMesh *currentMesh;
+            currentMesh = scene->mMeshes[aiNode->mMeshes[i]];
+            for (int j = 0; j < currentMesh->mNumBones; ++j) {
+                meshOffsetmap[currentMesh->mBones[j]->mName.C_Str()] = GLMConverter::AssimpToGLM(
+                        currentMesh->mBones[j]->mOffsetMatrix);
+            }
+
+            Material *meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
+            MeshAsset *mesh = new MeshAsset(assetManager, currentMesh, meshMaterial, rootNode, parentTransform);
+            //FIXME the exception thrown from new is not catched
+            meshes.push_back(mesh);
+            std::cout << "loaded mesh " << currentMesh->mName.C_Str() << " for node " << aiNode->mName.C_Str()
+                      << std::endl;
+    }
+
+    for (int i = 0; i < aiNode->mNumChildren; ++i) {
+        createMeshes(aiNode->mChildren[i], parentTransform);
+    }
+}
+
 BoneNode *ModelAsset::loadNodeTree(aiNode *aiNode) {
     BoneNode *currentNode = new BoneNode();
     currentNode->name = aiNode->mName.C_Str();
@@ -158,34 +167,6 @@ BoneNode *ModelAsset::loadNodeTree(aiNode *aiNode) {
         currentNode->children.push_back(loadNodeTree(aiNode->mChildren[i]));
     }
     return currentNode;
-}
-
-BoneNode *ModelAsset::createMeshTree(const BoneNode *sceneNode, const aiMesh *mesh) {
-    int boneIndex;
-    if (findNode(sceneNode, mesh, &boneIndex)) {
-        BoneNode *newBone = new BoneNode();
-        newBone->boneID = ++boneIDCounterPerMesh;
-        newBone->name = sceneNode->name;
-        std::cout << "Bone \"" << newBone->name << "\" id is " << newBone->boneID << std::endl;
-        newBone->transformation = sceneNode->transformation;
-        newBone->transformation = GLMConverter::AssimpToGLM(mesh->mBones[boneIndex]->mOffsetMatrix);
-        for (int i = 0; i < sceneNode->children.size(); ++i) {
-            newBone->children.push_back(createMeshTree(sceneNode->children[i], mesh));
-        }
-        return newBone;
-    } else {
-        //if the current node is not part of bone tree, get to the children
-        for (int i = 0; i < sceneNode->children.size(); ++i) {
-            // FIXME this assumes only one child of the node can be found
-            // We assume not found case can only be if we did not get to skeleton tree yet, so it should work
-            BoneNode *temp = NULL;
-            temp = createMeshTree(sceneNode->children[i], mesh);
-            if (temp != NULL) {
-                return temp;
-            }
-        }
-    }
-    return NULL;
 }
 
 bool ModelAsset::findNode(const BoneNode *nodeToMatch, const aiMesh *meshToCheckBone, int *index) {

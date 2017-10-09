@@ -6,7 +6,7 @@
 
 
 MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, const Material *material,
-                     const BoneNode *meshSkeleton) : material(
+                     const BoneNode *meshSkeleton, const glm::mat4 &parentTransform) : material(
         material) {
     triangleCount = currentMesh->mNumFaces;
     bulletMesh = new btTriangleMesh();
@@ -17,16 +17,17 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
     vertexCount = currentMesh->mNumVertices;
     if (currentMesh->HasTextureCoords(0)) {
         for (int j = 0; j < currentMesh->mNumVertices; ++j) {
-            vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
-            normals.push_back(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]));
+
+            vertices.push_back(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]),1.0f));
+            normals.push_back(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]),1.0f));
             textureCoordinates.push_back(
                     glm::vec2(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y));
 
         }
     } else {
         for (int j = 0; j < currentMesh->mNumVertices; ++j) {
-            vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
-            normals.push_back(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]));
+            vertices.push_back(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]),1.0f));
+            normals.push_back(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]),1.0f));
         }
     }
 
@@ -38,6 +39,17 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
                                 GLMConverter::GLMToBlt(vertices[currentMesh->mFaces[j].mIndices[1]]),
                                 GLMConverter::GLMToBlt(vertices[currentMesh->mFaces[j].mIndices[2]]));
     }
+
+    /***************************************/
+//    hull = NULL;
+//    bulletTriangleCount = currentMesh->mNumFaces;
+//
+//    btCollisionShape* trimeshShape  = new btBvhTriangleMeshShape( bulletMesh, true );
+//    shapeType = BT_BVH_TRIANGLE_MESH;
+//    finalCollisionShape = trimeshShape;
+    /***************************************/
+
+    //FIXME vertexCount is changed is using hullShape, it should be renamed bulletVertexCount
     if (vertexCount <= 24) {
         for (int j = 0; j < currentMesh->mNumFaces; ++j) {
             bulletMeshFaces.push_back(glm::mediump_uvec3(currentMesh->mFaces[j].mIndices[0],
@@ -45,8 +57,8 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
                                                          currentMesh->mFaces[j].mIndices[2]));
         }
     }
-
     convexShape = new btConvexTriangleMeshShape(bulletMesh);
+    shapeType = BT_CONVEX_TRIANGLE_MESH;
     if (vertexCount > 24) { // hull shape has 24 vertices, if we already has less, don't generate hull.
         //hull approximation
 
@@ -54,9 +66,11 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
         btScalar margin = convexShape->getMargin();
         hull->buildHull(margin);
         delete convexShape;
+        convexShape = NULL;
 
-        simplifiedConvexShape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
+        finalCollisionShape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
                                                       hull->numVertices());
+        shapeType = BT_CONVEX_HULL;
 
         bulletMeshFaces.clear();
         for (int k = 0; k < hull->numIndices(); k = k + 3) {
@@ -66,11 +80,13 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
         }
         bulletTriangleCount = hull->numTriangles();
         vertexCount = hull->numVertices();
+
     } else {
-        hull = NULL;
         //direct use of the object
-        simplifiedConvexShape = convexShape;
+        hull = NULL;
+        finalCollisionShape = convexShape;
         bulletTriangleCount = triangleCount;
+
     }
     convexShape = NULL; //since simplified Convex shape has taken over, we don't need the pointer anymore
 
@@ -146,7 +162,7 @@ bool MeshAsset::addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, flo
     return false;
 }
 
-btConvexShape *MeshAsset::getCollisionShape() {
+btCollisionShape *MeshAsset::getCollisionShape() {
     {
         btTriangleMesh *copyMesh = new btTriangleMesh();
         if (hull == NULL) {
@@ -162,7 +178,17 @@ btConvexShape *MeshAsset::getCollisionShape() {
                                       hull->getVertexPointer()[bulletMeshFaces[i].z]);
             }
         }
-        btConvexShape *copyShape = new btConvexTriangleMeshShape(copyMesh);
+        btCollisionShape *copyShape;
+        switch(shapeType) {
+            case BT_BVH_TRIANGLE_MESH:
+                copyShape = new btBvhTriangleMeshShape(copyMesh, true);
+                break;
+            case BT_CONVEX_TRIANGLE_MESH:
+            case BT_CONVEX_HULL:
+                copyShape = new btConvexTriangleMeshShape(copyMesh);
+                break;
+        }
+
         shapeCopies.push_back(copyShape);
         return copyShape;
     }

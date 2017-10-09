@@ -51,7 +51,8 @@ class ModelAsset : public Asset {
 
     BoneNode *loadNodeTree(aiNode *aiNode);
 
-    BoneNode *createMeshTree(const BoneNode *sceneNode, const aiMesh *mesh);
+    void createMeshes(aiNode *aiNode, glm::mat4 parentTransform);//parent transform is not reference on purpose
+    //if it was, then we would need a stack
 
     bool findNode(const BoneNode *nodeToMatch, const aiMesh *meshToCheckBone, int *index);
 

@@ -11,8 +11,8 @@
 #include <iostream>
 #include <assimp/scene.h>
 #include <BulletCollision/CollisionShapes/btShapeHull.h>
+#include <GLM/glm.hpp>
 
-#include "../glm/glm.hpp"
 #include "../Utils/GLMConverter.h"
 #include "AssetManager.h"
 #include "../Material.h"
@@ -44,15 +44,17 @@ class MeshAsset {
     std::vector<glm::mediump_uvec3> bulletMeshFaces;
     btShapeHull *hull;
     btConvexTriangleMeshShape *convexShape;
-    btConvexShape *simplifiedConvexShape;
-    std::vector<btConvexShape *> shapeCopies;
+    btCollisionShape *finalCollisionShape;
+    enum CollisionShapeTypes { BT_BVH_TRIANGLE_MESH, BT_CONVEX_TRIANGLE_MESH, BT_CONVEX_HULL};
+    CollisionShapeTypes shapeType;
+    std::vector<btCollisionShape *> shapeCopies;
 
     std::vector<uint_fast32_t> bufferObjects;
 
 
 public:
     MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, const Material *material,
-              const BoneNode *meshSkeleton);
+              const BoneNode *meshSkeleton, const glm::mat4 &parentTransform);
 
     uint_fast32_t getTriangleCount() const { return triangleCount; }
 
@@ -60,7 +62,7 @@ public:
 
     uint_fast32_t getEbo() const { return ebo; }
 
-    btConvexShape *getCollisionShape();
+    btCollisionShape *getCollisionShape();
 
     bool addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, float weight);
 
@@ -72,7 +74,7 @@ public:
 
     ~MeshAsset() {
         delete bulletMesh;
-        delete simplifiedConvexShape;
+        delete finalCollisionShape;
 
         for (int i = 0; i < shapeCopies.size(); ++i) {
             delete shapeCopies[i];

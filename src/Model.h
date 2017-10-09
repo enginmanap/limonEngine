@@ -68,8 +68,8 @@ public:
         delete rigidBody;
 
 /*
-        if (simplifiedConvexShape != NULL) {
-            delete simplifiedConvexShape;
+        if (finalCollisionShape != NULL) {
+            delete finalCollisionShape;
         }
         delete convexShape;
 */
