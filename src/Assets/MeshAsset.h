@@ -39,15 +39,18 @@ class MeshAsset {
 
     const Material *material;
 
-    uint_fast32_t bulletTriangleCount;
+
     btTriangleMesh *bulletMesh;
-    std::vector<glm::mediump_uvec3> bulletMeshFaces;
-    btShapeHull *hull;
-    btConvexTriangleMeshShape *convexShape;
-    btCollisionShape *finalCollisionShape;
-    enum CollisionShapeTypes { BT_BVH_TRIANGLE_MESH, BT_CONVEX_TRIANGLE_MESH, BT_CONVEX_HULL};
-    CollisionShapeTypes shapeType;
-    std::vector<btCollisionShape *> shapeCopies;
+    /*
+     uint_fast32_t bulletTriangleCount;
+std::vector<glm::mediump_uvec3> bulletMeshFaces;
+
+btConvexTriangleMeshShape *convexShape;
+btCollisionShape *finalCollisionShape;
+enum CollisionShapeTypes { BT_BVH_TRIANGLE_MESH, BT_CONVEX_TRIANGLE_MESH, BT_CONVEX_HULL};
+CollisionShapeTypes shapeType;
+*/
+    std::vector<btTriangleMesh *> shapeCopies;
 
     std::vector<uint_fast32_t> bufferObjects;
 
@@ -62,7 +65,7 @@ public:
 
     uint_fast32_t getEbo() const { return ebo; }
 
-    btCollisionShape *getCollisionShape();
+    btTriangleMesh * getBulletMesh();
 
     bool addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, float weight);
 
@@ -74,7 +77,6 @@ public:
 
     ~MeshAsset() {
         delete bulletMesh;
-        delete finalCollisionShape;
 
         for (int i = 0; i < shapeCopies.size(); ++i) {
             delete shapeCopies[i];

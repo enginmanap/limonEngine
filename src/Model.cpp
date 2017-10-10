@@ -42,7 +42,27 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
                                                 "./Data/Shaders/Model/fragment.glsl", true);
         }
         meshes.push_back(meshMeta);
-        compoundShape->addChildShape(emptyTransform, (*iter)->getCollisionShape());//this add the mesh to collition shape
+        btTriangleMesh *rawCollisionMesh = (*iter)->getBulletMesh();
+        btCollisionShape* meshCollisionShape;
+        btConvexTriangleMeshShape* convexTriangleMeshShape;
+        if(mass == 0) {
+             meshCollisionShape = new btBvhTriangleMeshShape( rawCollisionMesh, true );
+        } else {
+            convexTriangleMeshShape = new btConvexTriangleMeshShape( rawCollisionMesh);
+            meshCollisionShape = convexTriangleMeshShape;
+             if(rawCollisionMesh->getNumTriangles() > 24) {
+                 btShapeHull *hull = new btShapeHull(convexTriangleMeshShape);
+                 btScalar margin = convexTriangleMeshShape->getMargin();
+                 hull->buildHull(margin);
+                 delete convexTriangleMeshShape;
+                 convexTriangleMeshShape = NULL;
+
+                 meshCollisionShape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
+                                                             hull->numVertices());
+             }
+        }
+
+        compoundShape->addChildShape(emptyTransform, meshCollisionShape);//this add the mesh to collition shape
     }
 
     btDefaultMotionState *boxMotionState = new btDefaultMotionState(

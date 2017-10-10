@@ -40,56 +40,6 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
                                 GLMConverter::GLMToBlt(vertices[currentMesh->mFaces[j].mIndices[2]]));
     }
 
-    /***************************************/
-//    hull = NULL;
-//    bulletTriangleCount = currentMesh->mNumFaces;
-//
-//    btCollisionShape* trimeshShape  = new btBvhTriangleMeshShape( bulletMesh, true );
-//    shapeType = BT_BVH_TRIANGLE_MESH;
-//    finalCollisionShape = trimeshShape;
-    /***************************************/
-
-    //FIXME vertexCount is changed is using hullShape, it should be renamed bulletVertexCount
-    if (vertexCount <= 24) {
-        for (int j = 0; j < currentMesh->mNumFaces; ++j) {
-            bulletMeshFaces.push_back(glm::mediump_uvec3(currentMesh->mFaces[j].mIndices[0],
-                                                         currentMesh->mFaces[j].mIndices[1],
-                                                         currentMesh->mFaces[j].mIndices[2]));
-        }
-    }
-    convexShape = new btConvexTriangleMeshShape(bulletMesh);
-    shapeType = BT_CONVEX_TRIANGLE_MESH;
-    if (vertexCount > 24) { // hull shape has 24 vertices, if we already has less, don't generate hull.
-        //hull approximation
-
-        hull = new btShapeHull(convexShape);
-        btScalar margin = convexShape->getMargin();
-        hull->buildHull(margin);
-        delete convexShape;
-        convexShape = NULL;
-
-        finalCollisionShape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
-                                                      hull->numVertices());
-        shapeType = BT_CONVEX_HULL;
-
-        bulletMeshFaces.clear();
-        for (int k = 0; k < hull->numIndices(); k = k + 3) {
-            bulletMeshFaces.push_back(glm::mediump_uvec3(hull->getIndexPointer()[k],
-                                                         hull->getIndexPointer()[k + 1],
-                                                         hull->getIndexPointer()[k + 2]));
-        }
-        bulletTriangleCount = hull->numTriangles();
-        vertexCount = hull->numVertices();
-
-    } else {
-        //direct use of the object
-        hull = NULL;
-        finalCollisionShape = convexShape;
-        bulletTriangleCount = triangleCount;
-
-    }
-    convexShape = NULL; //since simplified Convex shape has taken over, we don't need the pointer anymore
-
     uint_fast32_t vbo;
     assetManager->getGlHelper()->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
     bufferObjects.push_back(vbo);
@@ -162,36 +112,17 @@ bool MeshAsset::addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, flo
     return false;
 }
 
-btCollisionShape *MeshAsset::getCollisionShape() {
-    {
-        btTriangleMesh *copyMesh = new btTriangleMesh();
-        if (hull == NULL) {
-            for (int i = 0; i < bulletTriangleCount; ++i) {
-                copyMesh->addTriangle(GLMConverter::GLMToBlt(vertices.at(bulletMeshFaces[i].x)),
-                                      GLMConverter::GLMToBlt(vertices.at(bulletMeshFaces[i].y)),
-                                      GLMConverter::GLMToBlt(vertices.at(bulletMeshFaces[i].z)));
-            }
-        } else {
-            for (int i = 0; i < bulletTriangleCount; ++i) {
-                copyMesh->addTriangle(hull->getVertexPointer()[bulletMeshFaces[i].x],
-                                      hull->getVertexPointer()[bulletMeshFaces[i].y],
-                                      hull->getVertexPointer()[bulletMeshFaces[i].z]);
-            }
-        }
-        btCollisionShape *copyShape;
-        switch(shapeType) {
-            case BT_BVH_TRIANGLE_MESH:
-                copyShape = new btBvhTriangleMeshShape(copyMesh, true);
-                break;
-            case BT_CONVEX_TRIANGLE_MESH:
-            case BT_CONVEX_HULL:
-                copyShape = new btConvexTriangleMeshShape(copyMesh);
-                break;
-        }
+btTriangleMesh * MeshAsset::getBulletMesh() {
+    //Turns out bullet shapes does not copy meshes, so we should return a copy, not the original;
+    btTriangleMesh *copyMesh = new btTriangleMesh();
 
-        shapeCopies.push_back(copyShape);
-        return copyShape;
+    for (int j = 0; j < faces.size(); ++j) {
+        copyMesh->addTriangle(GLMConverter::GLMToBlt(vertices[faces[j][0]]),
+                                GLMConverter::GLMToBlt(vertices[faces[j][1]]),
+                                GLMConverter::GLMToBlt(vertices[faces[j][2]]));
     }
+    return copyMesh;
+    shapeCopies.push_back(copyMesh);
 }
 
 bool MeshAsset::hasBones() const {
