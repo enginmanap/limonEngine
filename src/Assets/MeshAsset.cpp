@@ -18,16 +18,16 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
     if (currentMesh->HasTextureCoords(0)) {
         for (int j = 0; j < currentMesh->mNumVertices; ++j) {
 
-            vertices.push_back(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]),1.0f));
-            normals.push_back(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]),1.0f));
+            vertices.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]),1.0f)));
+            normals.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]),1.0f)));
             textureCoordinates.push_back(
                     glm::vec2(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y));
 
         }
     } else {
         for (int j = 0; j < currentMesh->mNumVertices; ++j) {
-            vertices.push_back(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]),1.0f));
-            normals.push_back(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]),1.0f));
+            vertices.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]),1.0f)));
+            normals.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]),1.0f)));
         }
     }
 
