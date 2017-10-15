@@ -7,6 +7,7 @@ layout (location = 3) in vec2 textureCoordinate;
 layout (location = 4) in vec3 normal;
 
 out VS_FS {
+    vec3 boneColor;
     vec2 textureCoord;
     vec3 normal;
     vec3 fragPos;
