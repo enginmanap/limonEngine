@@ -31,7 +31,7 @@ struct LightSource
 		mat4 lightSpaceMatrix;
 		vec3 position;
 		vec3 color;
-		int type; //0 Directional, 1 point
+        int type; //0 Directional, 1 point
 };
 
 layout (std140) uniform LightSourceBlock
@@ -41,7 +41,6 @@ layout (std140) uniform LightSourceBlock
 
 uniform mat4 boneTransformArray[NR_BONE];
 uniform mat4 worldTransformMatrix;
-
 
 void main(void)
 {
