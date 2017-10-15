@@ -155,10 +155,11 @@ private:
     uint_fast32_t depthCubemapPoint;
 
     const GLuint SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048; //TODO these values should be parameters
+    //const GLuint SHADOW_WIDTH = 8192, SHADOW_HEIGHT = 8192; //TODO these values should be parameters
     const uint_fast32_t lightUniformSize = sizeof(glm::mat4) + 2 * sizeof(glm::vec4);
     const GLfloat lightOrthogonalProjectionNearPlane = 1.0f;
     const GLfloat lightOrthogonalProjectionFarPlane = 100.0f;
-    const glm::vec4 lightOrthogonalProjectionValues = glm::vec4(-50.0f, 50.0f, -50.0f, 50.0f);
+    const glm::vec4 lightOrthogonalProjectionValues = glm::vec4(-100.0f, 100.0f, -100.0f, 100.0f);
     //aspect,near,far
     const glm::vec3 lightPerspectiveProjectionValues = glm::vec3((float)SHADOW_WIDTH/(float)SHADOW_HEIGHT, 1.0f, 100.0f);
 

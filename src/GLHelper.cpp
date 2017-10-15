@@ -164,7 +164,7 @@ void GLHelper::attachUBOs(const GLuint program) const {//Attach the light block 
         glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
         glUniformBlockBinding(program, uniformIndex2, playerAttachPoint);
         glBindBufferRange(GL_UNIFORM_BUFFER, playerAttachPoint, playerUBOLocation, 0,
-                          3 * sizeof(glm::mat4));
+                          3 * sizeof(glm::mat4) + sizeof(glm::vec4));
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
@@ -241,7 +241,7 @@ GLHelper::GLHelper() {
     //create player transforms uniform buffer object
     glGenBuffers(1, &playerUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
-    glBufferData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4) + sizeof(glm::vec3), NULL, GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4) + sizeof(glm::vec4), NULL, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //create depth buffer and texture for directional shadow map
@@ -275,9 +275,10 @@ GLHelper::GLHelper() {
     }
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
+    //if we clamp to border, then the edges become visible. it should be clamped to edge
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     glTexParameterfv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BORDER_COLOR, borderColor);
 
 

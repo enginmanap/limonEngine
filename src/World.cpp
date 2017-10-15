@@ -76,7 +76,6 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     Model *mario = new Model(assetManager, 100, "./Data/Models/Mario/Mario_obj.obj");
     mario->addTranslate(glm::vec3(5.0f, 23.0f, -3.0f));
     mario->addScale(glm::vec3(0.25f, 0.25f, 0.25f));
-
     mario->getWorldTransform();
     objects.push_back(mario);
     rigidBodies.push_back(mario->getRigidBody());
@@ -91,8 +90,8 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 /*
     crate = new Model(assetManager, 0, "./Data/Models/Box/Box.obj");
-    crate->addTranslate(glm::vec3(0.0f, 9.0f, 0.0f));
-    crate->addScale(glm::vec3(0.3f,0.3f,0.3f));
+    crate->addTranslate(glm::vec3(1.0f, 6.0f, 0.0f));
+    crate->addScale(glm::vec3(0.2f,0.2f,0.2f));
     crate->getWorldTransform();
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
@@ -100,7 +99,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
 */
     Model *wall= new Model(assetManager, 0, "./Data/Models/Wall/archandwalls.FBX");
     wall->addTranslate(glm::vec3(10.0f, 0.0f, 10.0f));
-    wall->addScale(glm::vec3(0.05f, 0.1f, 0.05f));
+    wall->addScale(glm::vec3(0.05f, 0.05f, 0.05f));
     wall->addOrientation(glm::quat(0,0.7f,0,0.7f));
     wall->getWorldTransform();
     objects.push_back(wall);
@@ -156,10 +155,10 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
 
     Light *light;
 
-    light = new Light(Light::POINT, glm::vec3(2.0f, 6.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+    light = new Light(Light::POINT, glm::vec3(1.0f, 6.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f));
     lights.push_back(light);
 
-    light = new Light(Light::DIRECTIONAL, glm::vec3(-25.0f, 50.0f, -25.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+    light = new Light(Light::DIRECTIONAL, glm::vec3(25.0f, 50.0f, 25.0f), glm::vec3(1.0f, 1.0f, 1.0f));
     lights.push_back(light);
 
 
