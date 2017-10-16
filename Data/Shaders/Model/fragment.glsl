@@ -110,36 +110,26 @@ void main(void)
 {
 		vec4 objectColor = texture(diffuseSampler, from_vs.textureCoord);
 		vec3 lightingColorFactor = material.ambient;
-		//vec3 lightingColorFactor = vec3(0.0,0.0,0.0);
-
-		float viewDistance = length(playerTransforms.position - from_vs.fragPos);
-
         float shadow;
         for(int i=0; i < NR_POINT_LIGHTS; ++i){
-
-
-            //this is not correct for directional lighting, but I could't fix is with reasonable bias
-            vec3 lightDirectory = normalize(LightSources.lights[i].position - from_vs.fragPos);
             // Diffuse Lighting
-            float diffuseRate = max(dot(lightDirectory, from_vs.normal), 0.0);
+            vec3 lightDirectory = normalize(LightSources.lights[i].position - from_vs.fragPos);
+            float diffuseRate = max(dot(from_vs.normal, lightDirectory), 0.0);
             // Specular
             vec3 viewDirectory = normalize(playerTransforms.position - from_vs.fragPos);
-            vec3 reflectDirectory = normalize(reflect(-lightDirectory, from_vs.normal));
-            //float specularRate = max(dot(from_vs.normal, normalize(lightDirectory + viewDirectory)),0.0);
-            float specularRate = max(dot(viewDirectory, reflectDirectory),0.0);
+            vec3 reflectDirectory = reflect(-lightDirectory, from_vs.normal);
+            float specularRate = max(dot(viewDirectory, reflectDirectory), 0.0);
             if(specularRate != 0 && material.shininess != 0) {
                 specularRate = pow(specularRate, material.shininess);
             }
-            float bias = 0;//max(0.0005 * (1.0 - dot(from_vs.normal, normalize(LightSources.lights[i].position - from_vs.fragPos))), 0.0005);
+            float viewDistance = length(playerTransforms.position - from_vs.fragPos);
+            float bias = 0.0;
             if(LightSources.lights[i].type == 0) {//directional light
                 shadow = ShadowCalculationDirectional(from_vs.fragPosLightSpace[i], normalize(LightSources.lights[i].position - from_vs.fragPos), bias, viewDistance, i);
             } else {//point light
                 shadow = ShadowCalculationPoint(from_vs.fragPos, bias, viewDistance, i);
             }
-            //if(!(diffuseRate == 0.0 && specularRate ==  0.0)){
-                lightingColorFactor += ((1.0 - shadow) *(diffuseRate + specularRate) * LightSources.lights[i].color);
-            //}
-
+            lightingColorFactor += ((1.0 - shadow) * (diffuseRate + specularRate) * LightSources.lights[i].color);
         }
 
         finalColor = vec4(
