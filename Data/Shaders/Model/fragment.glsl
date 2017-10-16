@@ -121,6 +121,9 @@ void main(void)
             float specularRate = max(dot(viewDirectory, reflectDirectory), 0.0);
             if(specularRate != 0 && material.shininess != 0) {
                 specularRate = pow(specularRate, material.shininess);
+                //specularRate = specularRate * materialSpecular;//we should get specularMap to here
+            } else {
+                specularRate = 0;
             }
             float viewDistance = length(playerTransforms.position - from_vs.fragPos);
             float bias = 0.0;
