@@ -8,10 +8,9 @@
 
 TODO
 1) Input should use callback functions when possible
-~~2) Switch to fixed timestep~~
-3) vbo should not be exposed
-~~4) Uniform assignments should by done by GLSL program class~~
-5) We need a map editor using QT.
-~~6) Lighting should be implemented~~
-~~7) GUI elements should have debug draw.~~
-~~8) We need model loading~~
+2) vbo should not be exposed
+3) We need a map editor using QT.
+4) There should be some AI
+5) Point lights use 1 cubemap, so 1 point light can be used. It should be a texture array.
+
+
