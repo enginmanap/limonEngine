@@ -38,26 +38,18 @@ class MeshAsset {
     std::vector<glm::vec4> boneWeights;
 
     const Material *material;
+    const glm::mat4 parentTransform;
+    const bool isPartOfAnimated;
 
-
-    btTriangleMesh *bulletMesh;
-    /*
-     uint_fast32_t bulletTriangleCount;
-std::vector<glm::mediump_uvec3> bulletMeshFaces;
-
-btConvexTriangleMeshShape *convexShape;
-btCollisionShape *finalCollisionShape;
-enum CollisionShapeTypes { BT_BVH_TRIANGLE_MESH, BT_CONVEX_TRIANGLE_MESH, BT_CONVEX_HULL};
-CollisionShapeTypes shapeType;
-*/
     std::vector<btTriangleMesh *> shapeCopies;
 
     std::vector<uint_fast32_t> bufferObjects;
+    void setTriangles(const aiMesh *currentMesh);
 
 
 public:
     MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, const Material *material,
-              const BoneNode *meshSkeleton, const glm::mat4 &parentTransform);
+                  const BoneNode *meshSkeleton, const glm::mat4 &parentTransform, const bool isPartOfAnimated);
 
     uint_fast32_t getTriangleCount() const { return triangleCount; }
 
@@ -76,8 +68,6 @@ public:
     bool hasBones() const;
 
     ~MeshAsset() {
-        delete bulletMesh;
-
         for (int i = 0; i < shapeCopies.size(); ++i) {
             delete shapeCopies[i];
         }

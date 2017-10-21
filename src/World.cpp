@@ -81,6 +81,13 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     rigidBodies.push_back(mario->getRigidBody());
     dynamicsWorld->addRigidBody(mario->getRigidBody());
 
+    Model *armyPilot = new Model(assetManager, 25, "./Data/Models/ArmyPilot/ArmyPilot.dae");
+    armyPilot->addTranslate(glm::vec3(10.0f, 2.0f, -3.0f));
+    armyPilot->addScale(glm::vec3(2.0f,2.0f,2.0f));
+    armyPilot->getWorldTransform();
+    objects.push_back(armyPilot);
+    rigidBodies.push_back(armyPilot->getRigidBody());
+    dynamicsWorld->addRigidBody(armyPilot->getRigidBody());
 
     crate = new Model(assetManager, 5, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(-3.0f, 2.5f, -3.0f));
@@ -115,14 +122,6 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     rigidBodies.push_back(dwarf->getRigidBody());
     dynamicsWorld->addRigidBody(dwarf->getRigidBody());
 
-/*
-    Model *animatedBoxes = new Model(assetManager, 1, "./Data/Models/testAnim/animatedBoxes.dae");
-    animatedBoxes->addTranslate(glm::vec3(10.0f, 29.0f, -3.0f));
-    animatedBoxes->getWorldTransform();
-    objects.push_back(animatedBoxes);
-    rigidBodies.push_back(animatedBoxes->getRigidBody());
-    dynamicsWorld->addRigidBody(animatedBoxes->getRigidBody());
-*/
     sky = new SkyBox(assetManager,
                      std::string("./Data/Textures/Skyboxes/ThickCloudsWater"),
                      std::string("right.jpg"),

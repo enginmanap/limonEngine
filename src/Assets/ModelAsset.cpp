@@ -143,10 +143,13 @@ void ModelAsset::createMeshes(aiNode *aiNode, glm::mat4 parentTransform) {
             for (int j = 0; j < currentMesh->mNumBones; ++j) {
                 meshOffsetmap[currentMesh->mBones[j]->mName.C_Str()] = GLMConverter::AssimpToGLM(
                         currentMesh->mBones[j]->mOffsetMatrix);
+                std::string boneName =  currentMesh->mBones[j]->mName.C_Str();
+                boneName = boneName + "_parent";
+                meshOffsetmap[boneName] = parentTransform;
             }
 
             Material *meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
-            MeshAsset *mesh = new MeshAsset(assetManager, currentMesh, meshMaterial, rootNode, parentTransform);
+            MeshAsset *mesh = new MeshAsset(assetManager, currentMesh, meshMaterial, rootNode, parentTransform, hasAnimation);
             //FIXME the exception thrown from new is not catched
             meshes.push_back(mesh);
             std::cout << "loaded mesh " << currentMesh->mName.C_Str() << " for node " << aiNode->mName.C_Str()
@@ -225,12 +228,9 @@ ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &p
     nodeTransform = parentTransform * nodeTransform;
 
     if(meshOffsetmap.find(boneNode->name) != meshOffsetmap.end()) {
-        //std::cout << "bone offset found for " << boneNode->name << ", processing it." << std::endl;
         transforms[boneNode->boneID] =
-                globalInverseTransform * nodeTransform * meshOffsetmap.at(boneNode->name);
-    } else {
-        //std::cout << "bone offset not found for " << boneNode->name << ", passing it." << std::endl;
-        //transforms[boneNode->boneID] = globalInverseTransform * nodeTransform;
+                globalInverseTransform * meshOffsetmap.at(boneNode->name + "_parent") * nodeTransform * meshOffsetmap.at(boneNode->name);
+        //parent above means parent transform of the mesh node, not the parent of bone.
     }
 
     //Call children even if parent does not have animation attached.
