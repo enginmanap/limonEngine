@@ -30,7 +30,6 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
         meshMeta->mesh = (*iter);
 
         if ((*iter)->hasBones()) {
-            meshMeta->skeleton = (*iter)->getSkeletonCopy();
             //set up the program to render object
             meshMeta->program = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertexAnimated.glsl",
                                                 "./Data/Shaders/Model/fragment.glsl", true);

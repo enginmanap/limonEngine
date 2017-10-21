@@ -86,9 +86,6 @@ public:
 
     void fillBoneMap(const BoneNode *boneNode);
 
-    BoneNode *getSkeletonCopy() {
-
-    }
 };
 
 
