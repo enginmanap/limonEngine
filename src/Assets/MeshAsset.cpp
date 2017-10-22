@@ -136,23 +136,21 @@ bool MeshAsset::addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, flo
 btTriangleMesh * MeshAsset::getBulletMesh() {
     //Turns out bullet shapes does not copy meshes, so we should return a copy, not the original;
     btTriangleMesh *copyMesh = new btTriangleMesh();
-
-    //FIXME since we don't implement animated physics, this is not used, but is should be
-    /*
-    if(isPartOfAnimated) {
+    if(!isPartOfAnimated) {
         for (int j = 0; j < faces.size(); ++j) {
             copyMesh->addTriangle(GLMConverter::GLMToBlt(glm::vec4(vertices[faces[j][0]], 1.0f)),
                                   GLMConverter::GLMToBlt(glm::vec4(vertices[faces[j][1]], 1.0f)),
                                   GLMConverter::GLMToBlt(glm::vec4(vertices[faces[j][2]], 1.0f)));
         }
-    */
-    for (int j = 0; j < faces.size(); ++j) {
-        copyMesh->addTriangle(GLMConverter::GLMToBlt(parentTransform * glm::vec4(vertices[faces[j][0]], 1.0f)),
-                              GLMConverter::GLMToBlt(parentTransform * glm::vec4(vertices[faces[j][1]], 1.0f)),
-                              GLMConverter::GLMToBlt(parentTransform * glm::vec4(vertices[faces[j][2]], 1.0f)));
+    } else {
+        for (int j = 0; j < faces.size(); ++j) {
+            copyMesh->addTriangle(GLMConverter::GLMToBlt(parentTransform * glm::vec4(vertices[faces[j][0]], 1.0f)),
+                                  GLMConverter::GLMToBlt(parentTransform * glm::vec4(vertices[faces[j][1]], 1.0f)),
+                                  GLMConverter::GLMToBlt(parentTransform * glm::vec4(vertices[faces[j][2]], 1.0f)));
+        }
     }
-    return copyMesh;
     shapeCopies.push_back(copyMesh);
+    return copyMesh;
 }
 
 bool MeshAsset::hasBones() const {
