@@ -11,7 +11,7 @@
 #include <iostream>
 #include <assimp/scene.h>
 #include <BulletCollision/CollisionShapes/btShapeHull.h>
-#include <GLM/glm.hpp>
+#include <glm/glm.hpp>
 
 #include "../Utils/GLMConverter.h"
 #include "AssetManager.h"

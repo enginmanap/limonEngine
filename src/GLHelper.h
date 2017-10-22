@@ -5,9 +5,9 @@
 #ifndef UBERGAME_GLHELPER_H
 #define UBERGAME_GLHELPER_H
 
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtc/type_ptr.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include "Light.h"
 
 #include <GL/glew.h>
@@ -151,8 +151,8 @@ private:
     GLuint depthOnlyFrameBufferDirectional;
     GLuint depthMapDirectional;
 
-    uint_fast32_t depthOnlyFrameBufferPoint;
-    uint_fast32_t depthCubemapPoint;
+    GLuint depthOnlyFrameBufferPoint;
+    GLuint depthCubemapPoint;
 
     const GLuint SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048; //TODO these values should be parameters
     //const GLuint SHADOW_WIDTH = 8192, SHADOW_HEIGHT = 8192; //TODO these values should be parameters
