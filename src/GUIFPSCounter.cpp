@@ -14,7 +14,7 @@ void GUIFPSCounter::updateFPS() {
     lastRenderTime = currentTime;
 
     int normalizedFrameRate = (unsigned int) (1000.0f / (lastFrameTime / 100.0f));
-    text = std::__cxx11::to_string(normalizedFrameRate);
+    text = std::to_string(normalizedFrameRate);
 }
 
 void GUIFPSCounter::render() {

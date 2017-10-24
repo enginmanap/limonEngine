@@ -688,7 +688,7 @@ void GLHelper::drawLine(const glm::vec3 &from, const glm::vec3 &to,
     static GLuint program, viewTransformU, lineInfoU, vao, vbo;
     static std::map<std::string, Uniform*> uniformMap;//FIXME That map will always be empty, maybe we should overload
     if (program == 0 || vbo == 0 || vao == 0) {
-        program = initializeProgram("./Data/Shaders/Line/vertex.glsl", std::__cxx11::string(),
+        program = initializeProgram("./Data/Shaders/Line/vertex.glsl", std::string(),
                                     "./Data/Shaders/Line/fragment.glsl", uniformMap);
         lineInfoU = glGetUniformLocation(program, "lineInfo");
         viewTransformU = glGetUniformLocation(program, "cameraTransformMatrix");
