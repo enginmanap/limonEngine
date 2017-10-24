@@ -14,3 +14,6 @@ $ brew install sdl2_image
 
 -- Install bullet
 $ brew install bullet
+
+-- Install glm
+$ brew install glm
