@@ -154,10 +154,10 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
 
     Light *light;
 
-    light = new Light(Light::POINT, glm::vec3(1.0f, 6.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+    light = new Light(Light::POINT, glm::vec3(1.0f, 6.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f));
     lights.push_back(light);
 
-    light = new Light(Light::DIRECTIONAL, glm::vec3(25.0f, 50.0f, 25.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+    light = new Light(Light::DIRECTIONAL, glm::vec3(25.0f, 50.0f, 25.0f), glm::vec3(0.5f, 0.5f, 0.5f));
     lights.push_back(light);
 
 
