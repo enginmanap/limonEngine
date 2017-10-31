@@ -129,7 +129,7 @@ bool Model::setupRenderVariables(GLSLProgram *program) {
             if (!program->setUniform("shadowSamplerPoint",
                                      glHelper->getMaxTextureImageUnits() -
                                      2)) { //even if shadow map cannot attach, we still render
-                std::cerr << "Uniform \"shadowSamplerDirectional\" could not be set" << std::endl;
+                std::cerr << "Uniform \"shadowSamplerPoint\" could not be set" << std::endl;
             }
             if (!program->setUniform("farPlanePoint",100.0f)) { //even if far plane cannot attach, we still render
                 std::cerr << "Uniform \"farPlanePoint\" could not be set" << std::endl;
