@@ -11,6 +11,5 @@ TODO
 2) vbo should not be exposed
 3) We need a map editor using QT.
 4) There should be some AI
-5) Point lights use 1 cubemap, so 1 point light can be used. It should be a texture array.
 6) Spot lights should be added.
 
