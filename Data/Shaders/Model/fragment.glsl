@@ -1,4 +1,5 @@
 #version 330
+#extension GL_ARB_texture_cube_map_array : enable
 
 #define NR_POINT_LIGHTS 4
 
@@ -36,7 +37,7 @@ out vec4 finalColor;
 uniform Material material;
 uniform sampler2D diffuseSampler;
 uniform sampler2DArray shadowSamplerDirectional;
-uniform samplerCube shadowSamplerPoint;
+uniform samplerCubeArray shadowSamplerPoint;
 uniform float farPlanePoint;//FIXME this should set once, and shared between programs
 
 layout (std140) uniform LightSourceBlock
@@ -85,7 +86,7 @@ float ShadowCalculationPoint(vec3 fragPos, float bias, float viewDistance, int l
     // get vector between fragment position and light position
     vec3 fragToLight = fragPos - LightSources.lights[lightIndex].position;
     // use the light to fragment vector to sample from the depth map
-    float closestDepth = texture(shadowSamplerPoint, fragToLight).r;
+    float closestDepth = texture(shadowSamplerPoint, vec4(fragToLight, lightIndex)).r;
     // it is currently in linear range between [0,1]. Re-transform back to original value
     closestDepth *= farPlanePoint;
     // now get current linear depth as the length between the fragment and light position
@@ -96,7 +97,7 @@ float ShadowCalculationPoint(vec3 fragPos, float bias, float viewDistance, int l
     float diskRadius = (1.0 + (viewDistance / farPlanePoint)) / 25.0;
     for(int i = 0; i < samples; ++i)
     {
-        float closestDepth = texture(shadowSamplerPoint, fragToLight + pointSampleOffsetDirections[i] * diskRadius).r;
+        float closestDepth = texture(shadowSamplerPoint, vec4(fragToLight + pointSampleOffsetDirections[i] * diskRadius, lightIndex)).r;
         closestDepth *= farPlanePoint;   // Undo mapping [0;1]
         if(currentDepth + bias > closestDepth)
             shadow += 1.0;

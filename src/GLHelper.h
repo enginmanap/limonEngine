@@ -74,6 +74,10 @@ class GLHelper {
             attachTexture(textureID, textureUnit, GL_TEXTURE_CUBE_MAP);
         }
 
+        void attachCubemapArray(GLuint textureID, GLuint textureUnit) {
+            attachTexture(textureID, textureUnit, GL_TEXTURE_CUBE_MAP_ARRAY_ARB);
+        }
+
 
         void setProgram(GLuint program) {
             if (program != this->activeProgram) {
@@ -107,6 +111,7 @@ public:
                 location), name(name), size(size) {
             switch (typeEnum) {
                 case GL_SAMPLER_CUBE: //these are because sampler takes a int as texture unit
+                case GL_SAMPLER_CUBE_MAP_ARRAY_ARB:
                 case GL_SAMPLER_2D:
                 case GL_SAMPLER_2D_ARRAY:
                 case GL_INT:
@@ -220,6 +225,14 @@ public:
 
     void clearFrame() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        //additional depths for Directional is not needed, but depth for point is reqired, because there is no way to clear
+        //it per layer, so we are clearing per frame. This also means, lights should not reuse the textures.
+        glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     }
 
     void render(const GLuint, const GLuint, const GLuint, const GLuint);
@@ -269,7 +282,7 @@ public:
     void switchRenderToShadowMapDirectional(const unsigned int index);
 
     //FIXME this passing matrix is unnecessary.
-    std::vector<glm::mat4> switchRenderToShadowMapPoint(const glm::vec3 &lightPosition);
+    std::vector<glm::mat4> switchRenderToShadowMapPoint(const glm::vec3 &lightPosition, const unsigned int index);
 
 
     void switchrenderToDefault();

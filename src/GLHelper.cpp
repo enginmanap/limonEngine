@@ -226,6 +226,25 @@ GLHelper::GLHelper() {
 
     std::cout << "Supported GLSL version is "<< (char *) glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 
+    GLint n, i;
+    glGetIntegerv(GL_NUM_EXTENSIONS, &n);
+    std::cout << "found " << n << " extensions." << std::endl;
+    bool isCubeMapArraySupported = false;
+    char extensionNameBuffer[100];
+    for (i = 0; i < n; i++) {
+        glGetStringi(GL_EXTENSIONS, i);
+        sprintf(extensionNameBuffer, "%s", glGetStringi(GL_EXTENSIONS, i));
+        if(std::strcmp(extensionNameBuffer, "GL_ARB_texture_cube_map_array") == 0) {
+            isCubeMapArraySupported = true;
+            break;
+        }
+    }
+    if(!isCubeMapArraySupported) {
+        std::cerr << "Cubemap array support is mandatory, exiting.. " << std::endl;
+        exit(-1);
+    }
+
+    std::cout << "Cubemap array support is present. " << std::endl;
 
     //create the Light Uniform Buffer Object for later usage
     glGenBuffers(1, &lightUBOLocation);
@@ -254,6 +273,7 @@ GLHelper::GLHelper() {
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     GLfloat borderColor[] = {1.0, 1.0, 1.0, 1.0};
     glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
 
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional, 0, 0);
@@ -265,24 +285,26 @@ GLHelper::GLHelper() {
     glGenFramebuffers(1, &depthOnlyFrameBufferPoint);
     // create depth cubemap texture
     glGenTextures(1, &depthCubemapPoint);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemapPoint);
-    for (unsigned int i = 0; i < 6; ++i) {
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0,
-                     GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //if we clamp to border, then the edges become visible. it should be clamped to edge
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameterfv(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, depthCubemapPoint);
+    glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, NR_POINT_LIGHTS*6, 0,
+                 GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 
+    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //if we clamp to border, then the edges become visible. it should be clamped to edge
+    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameterfv(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0);
 
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubemapPoint, 0);
+
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     checkErrors("Constructor");
 }
@@ -451,12 +473,17 @@ void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
     glClear(GL_DEPTH_BUFFER_BIT);
 
     glCullFace(GL_FRONT);
+    checkErrors("switchRenderToShadowMapDirectional");
+
 }
 
-std::vector<glm::mat4> GLHelper::switchRenderToShadowMapPoint(const glm::vec3 &lightPosition) {
+std::vector<glm::mat4>
+GLHelper::switchRenderToShadowMapPoint(const glm::vec3 &lightPosition, const unsigned int index) {
+    checkErrors("switchRenderToShadowMapPointBefore");
     glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
-    glClear(GL_DEPTH_BUFFER_BIT);
+
+    glCullFace(GL_FRONT);
 
     //FIXME this calculation should be a part of Light class, and should not be updated at every frame
     std::vector<glm::mat4> shadowTransforms;
@@ -471,8 +498,9 @@ std::vector<glm::mat4> GLHelper::switchRenderToShadowMapPoint(const glm::vec3 &l
     shadowTransforms.push_back(lightProjectionMatrixPoint *
                                glm::lookAt(lightPosition, lightPosition + glm::vec3( 0.0, 0.0, 1.0), glm::vec3(0.0,-1.0, 0.0)));
     shadowTransforms.push_back(lightProjectionMatrixPoint *
-                               glm::lookAt(lightPosition, lightPosition + glm::vec3( 0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0)));
-    glCullFace(GL_FRONT);
+                              glm::lookAt(lightPosition, lightPosition + glm::vec3( 0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0)));
+
+    checkErrors("switchRenderToShadowMapPoint");
     return shadowTransforms;
 }
 
@@ -483,8 +511,9 @@ void GLHelper::switchrenderToDefault() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     //we bind shadow map to last texture unit
     state->attach2DTextureArray(depthMapDirectional, maxTextureImageUnits - 1);
-    state->attachCubemap(depthCubemapPoint, maxTextureImageUnits - 2);
+    state->attachCubemapArray(depthCubemapPoint, maxTextureImageUnits - 2);
     glCullFace(GL_BACK);
+    checkErrors("switchrenderToDefault");
 }
 
 void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount) {
@@ -576,6 +605,11 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
 }
 
 bool GLHelper::checkErrors(std::string callerFunc) {
+
+    GLenum fbStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (fbStatus != GL_FRAMEBUFFER_COMPLETE) {
+        std::cerr << "FB status is " << fbStatus << std::endl;
+    }
     bool hasError = false;
     while ((error = glGetError()) != GL_NO_ERROR) {
         std::cerr << "error found on GL context while " << callerFunc << ":" << error << ":" << gluErrorString(error)
