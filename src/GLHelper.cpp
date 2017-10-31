@@ -221,13 +221,10 @@ GLHelper::GLHelper() {
 
 
 
-    std::printf("%s\n%s\n",
-                glGetString(GL_RENDERER),  // e.g. Intel HD Graphics 3000 OpenGL Engine
-                glGetString(GL_VERSION)    // e.g. 3.2 INTEL-8.0.61
-    );
+    std::cout << "Rendererer: " << glGetString(GL_RENDERER) << std::endl  // e.g. Intel HD Graphics 3000 OpenGL Engine
+              << "GL version: " << glGetString(GL_VERSION) << std::endl;    // e.g. 3.2 INTEL-8.0.61
 
-    printf("Supported GLSL version is %s.\n", (char *) glGetString(GL_SHADING_LANGUAGE_VERSION));
-
+    std::cout << "Supported GLSL version is "<< (char *) glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 
 
     //create the Light Uniform Buffer Object for later usage
