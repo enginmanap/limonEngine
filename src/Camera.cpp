@@ -12,10 +12,15 @@ Camera::Camera() :
         up(glm::vec3(0, 1, 0)),
         right(glm::vec3(-1, 0, 0)),
         view(glm::quat(0, 0, 0, -1)),
-        rayCallback(btCollisionWorld::ClosestRayResultCallback(
-                GLMConverter::GLMToBlt(startPosition + glm::vec3(0, -1.01f, 0)),
-                GLMConverter::GLMToBlt(startPosition + glm::vec3(0, -2.01f, 0)))),
         onAir(true) {
+
+    for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
+        for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
+            rayCallbackArray.push_back(btCollisionWorld::ClosestRayResultCallback(
+                    GLMConverter::GLMToBlt(startPosition + glm::vec3(0, -1.01f, 0)),
+                    GLMConverter::GLMToBlt(startPosition + glm::vec3(0, -2.01f, 0))));
+        }
+    }
     cameraTransformMatrix = glm::lookAt(position, center, up);
     btCollisionShape *capsuleShape = new btCapsuleShape(1, 2);
     btDefaultMotionState *boxMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1),
@@ -114,43 +119,35 @@ void Camera::rotate(float xChange, float yChange) {
 }
 
 void Camera::updateTransfromFromPhysics(const btDynamicsWorld *world) {
+    onAir = true;//base assumption is we are flying
+    //we will test for STEPPING_TEST_COUNT^2 times
+    float requiredDelta = 1.0f / (STEPPING_TEST_COUNT-1);
+    for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
+        for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
+            btCollisionWorld::ClosestRayResultCallback *rayCallback = &rayCallbackArray[i*STEPPING_TEST_COUNT + j];
+            world->rayTest(rayCallback->m_rayFromWorld, rayCallback->m_rayToWorld, *rayCallback);
 
-    world->rayTest(rayCallback.m_rayFromWorld, rayCallback.m_rayToWorld, rayCallback);
+            if (rayCallback->hasHit()) {
+                //btVector3 end = rayCallback->m_hitPointWorld;
+                //std::cout << "hit id " << i << ", " << j  << "hit " << end.x() <<", " << end.y() << ", " << end.z() << std::endl;
+                onAir = false;
+            }
+            rayCallback->m_closestHitFraction = 1;
 
-    if (rayCallback.hasHit()) {
-        /*
-        End = RayCallback.m_hitPointWorld;
-        Normal = RayCallback.m_hitNormalWorld;
-        */
-        // Do some clever stuff here
-        //std::cout << "Player is close to land" << std::endl;
-        onAir = false;
-    } else {
-        //std::cout << "Player is on air" << std::endl;
-        onAir = true;
+            rayCallback->m_collisionObject = 0;
+
+
+            player->getMotionState()->getWorldTransform(worldTransformHolder);
+
+            position = GLMConverter::BltToGLM(worldTransformHolder.getOrigin());
+            position.y += 1;
+
+            rayCallback->m_rayFromWorld = worldTransformHolder.getOrigin() +
+                                         btVector3(-0.5f + i*requiredDelta, -1.01f,
+                                                   -0.5f + j*requiredDelta);//the second vector is preventing hitting player capsule
+            rayCallback->m_rayToWorld = rayCallback->m_rayFromWorld + btVector3(0, -1, 0);
+        }
     }
-
-    rayCallback.m_closestHitFraction = 1;
-
-    rayCallback.m_collisionObject = 0;
-
-
-    player->getMotionState()->getWorldTransform(worldTransformHolder);
-
-    position = GLMConverter::BltToGLM(worldTransformHolder.getOrigin());
-    position.y += 1;
-
-    rayCallback.m_rayFromWorld = worldTransformHolder.getOrigin() +
-                                 btVector3(0, -1.01f, 0);//the second vector is preventing hitting player capsule
-    rayCallback.m_rayToWorld = rayCallback.m_rayFromWorld + btVector3(0, -1, 0);
-
-    /*std::cout << "ray details: (" << rayCallback.m_rayFromWorld.getX() << ","
-                                << rayCallback.m_rayFromWorld.getY() << ","
-                                << rayCallback.m_rayFromWorld.getZ() << ")->("
-                                << rayCallback.m_rayToWorld.getX() << ","
-                                << rayCallback.m_rayToWorld.getY() << ","
-                                << rayCallback.m_rayToWorld.getZ() << ")" << std::endl;*/
-
     //std::cout << "the objects last position is" << this->translate.x <<","<< this->translate.y <<","<<this->translate.z << std::endl;
-    dirty = true;
+    dirty = true;//FIXME this always returns is dirty true;
 }
