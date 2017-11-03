@@ -35,7 +35,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
                                             "./Data/Shaders/ShadowMap/geometryPoint.glsl",
                                             "./Data/Shaders/ShadowMap/fragmentPoint.glsl", false);
     shadowMapProgramPoint->setUniform("farPlanePoint", 100.0f);
-    Model *crate = new Model(assetManager, "./Data/Models/Box/Box.obj");
+/*    Model *crate = new Model(assetManager, "./Data/Models/Box/Box.obj");
     crate->addScale(glm::vec3(250.0f, 1.0f, 250.0f));
     crate->addTranslate(glm::vec3(-125.0f, 0.0f, 125.0f));
     crate->addOrientation(glm::quat(0.0f, 0.0f, 1.0f, 0.2f));
@@ -43,7 +43,8 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
-
+*/
+ /*
     crate = new Model(assetManager, 1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(2.0f, 25.0f, -3.0f));
     crate->getWorldTransform();
@@ -95,6 +96,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
+    */
 /*
     crate = new Model(assetManager, 0, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(1.0f, 6.0f, 0.0f));
@@ -104,6 +106,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 */
+    /*
     Model *wall= new Model(assetManager, 0, "./Data/Models/Wall/archandwalls.FBX");
     wall->addTranslate(glm::vec3(10.0f, 0.0f, 10.0f));
     wall->addScale(glm::vec3(0.05f, 0.05f, 0.05f));
@@ -112,8 +115,18 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     objects.push_back(wall);
     rigidBodies.push_back(wall->getRigidBody());
     dynamicsWorld->addRigidBody(wall->getRigidBody());
+*/
 
+    Model *militaryZone= new Model(assetManager, 0, "./Data/Models/MilitaryZone/MilitaryZone.obj");
+    militaryZone->addTranslate(glm::vec3(-40.0f, 0.0f, 10.0f));
+    militaryZone->addScale(glm::vec3(1.0f, 1.0f, 1.0f));
+    //tavern->addOrientation(glm::quat(0,0.7f,0,0.7f));
+    militaryZone->getWorldTransform();
+    objects.push_back(militaryZone);
+    rigidBodies.push_back(militaryZone->getRigidBody());
+    dynamicsWorld->addRigidBody(militaryZone->getRigidBody());
 
+    /*
     Model *dwarf = new Model(assetManager, 10, "./Data/Models/Dwarf/dwarf.x");
     dwarf->addTranslate(glm::vec3(-3.0f, 6.5f, -3.0f));
     dwarf->addScale(glm::vec3(0.04f, 0.04f, 0.04f));
@@ -121,7 +134,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     objects.push_back(dwarf);
     rigidBodies.push_back(dwarf->getRigidBody());
     dynamicsWorld->addRigidBody(dwarf->getRigidBody());
-
+*/
     sky = new SkyBox(assetManager,
                      std::string("./Data/Textures/Skyboxes/ThickCloudsWater"),
                      std::string("right.jpg"),
@@ -132,37 +145,36 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
                      std::string("front.jpg")
     );
 
-    GUIText *tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 128), "Uber Game",
+    GUIText *tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 64), "Uber Game",
                               glm::vec3(0, 0, 0));
     //tr->setScale(0.25f,0.25f);
-    tr->set2dWorldTransform(glm::vec2(512.0f, 700.0f), 0.0f);
+    tr->set2dWorldTransform(glm::vec2(512.0f, 740.0f), 0.0f);
     layer1->addGuiElement(tr);
 
-    tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 32), "Version 0.1",
+    tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "Version 0.2",
                      glm::vec3(255, 255, 255));
     //tr->setScale(0.25f,0.25f);
-    tr->set2dWorldTransform(glm::vec2(1024 - 50, 100), -3.14f / 2);
+    tr->set2dWorldTransform(glm::vec2(1024 - 20, 100), -3.14f / 2);
     layer1->addGuiElement(tr);
 
 
-    tr = new GUIFPSCounter(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 32), "0",
+    tr = new GUIFPSCounter(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                            glm::vec3(204, 204, 0));
-    tr->set2dWorldTransform(glm::vec2(1024 - 100, 768 - 38), 0);
+    tr->set2dWorldTransform(glm::vec2(1024 - 50, 768 - 18), 0);
     layer1->addGuiElement(tr);
 
     guiLayers.push_back(layer1);
 
     Light *light;
-
+/*
     light = new Light(Light::POINT, glm::vec3(1.0f, 6.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f));
     lights.push_back(light);
-
+/*
     light = new Light(Light::POINT, glm::vec3(8.0f, 6.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f));
     lights.push_back(light);
-/*
-    light = new Light(Light::DIRECTIONAL, glm::vec3(25.0f, 50.0f, 25.0f), glm::vec3(0.5f, 0.5f, 0.5f));
-    lights.push_back(light);
 */
+    light = new Light(Light::DIRECTIONAL, glm::vec3(-25.0f, 50.0f, -25.0f), glm::vec3(0.7f, 0.7f, 0.7f));
+    lights.push_back(light);
 
 }
 

@@ -1,0 +1,468 @@
+
+newmtl Tent_Medic
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Tent_Medic.png
+
+
+
+
+newmtl Office_Damaged_b
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Office_Damaged_c.png
+
+
+
+
+newmtl Apartment_Damaged_a
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Apartment_Damaged_a.png
+
+
+
+
+newmtl Barracks_a
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Barracks_a.png
+
+
+
+
+newmtl Mud_Hut
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Mud_Hut.png
+
+
+
+
+newmtl Tent
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Tent.png
+
+
+
+
+newmtl Barracks_c
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Barracks_c.png
+
+
+
+
+newmtl Fortification
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Fortification.png
+
+
+
+
+newmtl Road
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Road.png
+
+
+
+
+newmtl Dirt_Box
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Dirt_Box.png
+
+
+
+
+newmtl road_Dirt
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Road_Dirt.png
+
+
+
+
+newmtl road_Asphalt
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Road_Asphalt.png
+
+
+
+
+newmtl Heli_Pad
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Heli_Pad.png
+
+
+
+
+newmtl Palm_Tree
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Palm_Tree.png
+
+
+
+
+newmtl Brown_Rocks
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Brown_Rocks.png
+
+
+
+
+newmtl Crate_Barrel_Box
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Crate_Barrel_Box.png
+
+
+
+
+newmtl Troop_Car_a
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Troop_Car_a.png
+
+
+
+
+newmtl Fence_Alpha
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Fence_Alpha.png
+
+
+
+
+newmtl Attack_Heli_a
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Attack_Heli_a.png
+
+
+
+
+newmtl Road_Barrier
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Road_Barrier.png
+
+
+
+
+newmtl Fuel_Tank
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Fuel_Tank.png
+
+
+
+
+newmtl Apc_01_c
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Apc_01_c.png
+
+
+
+
+newmtl Shop_Damaged_a
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Shop_Damaged_a.png
+
+
+
+
+newmtl Army_Truck_b
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Army_Truck_b.png
+
+
+
+
+newmtl Apc_01_b
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Apc_01_b.png
+
+
+
+
+newmtl Troop_Car_b
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Troop_Car_b.png
+
+
+
+
+newmtl Troop_Car_c
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Troop_Car_c.png
+
+
+
+
+newmtl Apc_01_a
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Apc_01_a.png
+
+
+
+
+newmtl Tank_01_a
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Tank_01_a.png
+
+
+
+
+newmtl Tank_02_b
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Tank_02_b.png
+
+
+
+
+newmtl Tank_01_c
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Tank_01_c.png
+
+
+
+
+newmtl Army_Truck_a
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Army_Truck_a.png
+
+
+
+
+newmtl Armor_Car_a
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Armor_Car_a.png
+
+
+
+
+newmtl Tank_02_c
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Tank_02_c.png
+
+
+
+
+newmtl Tank_02_a
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Tank_02_a.png
+
+
+
+
+newmtl Army_Truck_c
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Army_Truck_c.png
+
+
+
+
+newmtl Small_Heli_a
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Small_Heli_a.png
+
+
+
+
+newmtl Tank_01_b
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Tank_01_b.png
+
+
+
+
+newmtl Attack_Heli_c
+Ka  0.6 0.6 0.6
+Kd  0.6 0.6 0.6
+Ks  0.1 0.1 0.1
+d  1.0
+Ns  150.0
+illum 2
+map_Kd ./Data/Textures/MilitaryZone/Attack_Heli_c.png
+
+
+
