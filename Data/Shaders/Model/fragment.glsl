@@ -12,8 +12,9 @@ layout (std140) uniform PlayerTransformBlock {
 
 struct Material {
     vec3 ambient;
-    vec3 specular;//currently not used. Should be a map
+    vec3 diffuse;
     float shininess;
+    int isMap; 	//using the last 4, ambient=8, diffuse=4, specular=2, opacity = 1
 };
 
 struct LightSource
@@ -35,7 +36,11 @@ in VS_FS {
 out vec4 finalColor;
 
 uniform Material material;
+uniform sampler2D ambientSampler;
 uniform sampler2D diffuseSampler;
+uniform sampler2D specularSampler;
+uniform sampler2D opacitySampler;
+
 uniform sampler2DArray shadowSamplerDirectional;
 uniform samplerCubeArray shadowSamplerPoint;
 uniform float farPlanePoint;//FIXME this should set once, and shared between programs
@@ -109,8 +114,24 @@ float ShadowCalculationPoint(vec3 fragPos, float bias, float viewDistance, int l
 
 void main(void)
 {
-		vec4 objectColor = texture(diffuseSampler, from_vs.textureCoord);
-		vec3 lightingColorFactor = material.ambient;
+        vec4 objectColor;
+        if((material.isMap & 0x0004)!=0) {
+            if((material.isMap & 0x0001)!=0) { //if there is a opacity map, and it with diffuse
+                vec4 opacity = texture(opacitySampler, from_vs.textureCoord);
+                objectColor = texture(diffuseSampler, from_vs.textureCoord);
+                objectColor.w =  opacity.x;
+            } else {
+                objectColor = texture(diffuseSampler, from_vs.textureCoord);
+            }
+        } else {
+            objectColor = vec4(material.diffuse, 1.0);
+        }
+
+        vec3 lightingColorFactor = material.ambient;
+        if((material.isMap & 0x0008)!=0) {
+            lightingColorFactor = vec3(texture(ambientSampler, from_vs.textureCoord));
+        }
+
         float shadow;
         for(int i=0; i < NR_POINT_LIGHTS; ++i){
             // Diffuse Lighting

@@ -98,15 +98,66 @@ void Model::activateMaterial(const Material *material, GLSLProgram *program) {
         std::cerr << "Uniform \"material.ambient\" could not be set for program " << program->getProgramName()  << std::endl;
     }
 
+    if (!program->setUniform("material.diffuse", material->getDiffuseColor())) {
+        std::cerr << "Uniform \"material.diffuse\" could not be set for program "  << program->getProgramName() << std::endl;
+    }
+
     if (!program->setUniform("material.shininess", material->getSpecularExponent())) {
         std::cerr << "Uniform \"material.shininess\" could not be set for program "  << program->getProgramName() << std::endl;
     }
-    TextureAsset* diffuse = material->getDiffuseTexture();
-    if(diffuse!= NULL) {
-        glHelper->attachTexture(diffuse->getID(), diffuseMapAttachPoint);
+
+    if(material->hasDiffuseMap()) {
+        glHelper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
+        if (!program->setUniform("diffuseSampler",
+                                 diffuseMapAttachPoint)) { //even if diffuse map cannot attach, we still render
+            std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
+        }
     } else {
-        //DEBUG log no diffuse found
+
     }
+
+    if(material->hasAmbientMap()) {
+        glHelper->attachTexture(material->getAmbientTexture()->getID(), ambientMapAttachPoint);
+        if (!program->setUniform("ambientSampler",
+                                 ambientMapAttachPoint)) { //even if ambient map cannot attach, we still render
+            std::cerr << "Uniform \"ambientSampler\" could not be set" << std::endl;
+        }
+    }
+
+    if(material->hasSpecularMap()) {
+        glHelper->attachTexture(material->getSpecularTexture()->getID(), specularMapAttachPoint);
+        if (!program->setUniform("specularSampler",
+                                 specularMapAttachPoint)) { //even if specular map cannot attach, we still render
+            std::cerr << "Uniform \"specularSampler\" could not be set" << std::endl;
+        }
+    }
+
+    if(material->hasOpacityMap()) {
+        glHelper->attachTexture(material->getOpacityTexture()->getID(), opacityMapAttachPoint);
+        if (!program->setUniform("opacitySampler",
+                                 opacityMapAttachPoint)) { //even if opacity map cannot attach, we still render
+            std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
+        }
+    }
+
+    int maps = 0;
+    if(material->hasAmbientMap()) {
+        maps +=8;
+    }
+    if(material->hasDiffuseMap()) {
+        maps +=4;
+    }
+    if(material->hasSpecularMap()) {
+        maps +=2;
+    }
+    if(material->hasOpacityMap()) {
+        maps +=1;
+    }
+
+    if (!program->setUniform("material.isMap", maps)) {
+        std::cerr << "Uniform \"material.isMap\" could not be set for program "  << program->getProgramName() << std::endl;
+    }
+
     //TODO we should support multi texture on one pass
 }
 
@@ -116,10 +167,6 @@ bool Model::setupRenderVariables(GLSLProgram *program) {
                 this->activateMaterial(materialMap.begin()->second, program);
             } else {
                 std::cerr << "No material setup, passing rendering. " << std::endl;
-            }
-            if (!program->setUniform("diffuseSampler",
-                                           diffuseMapAttachPoint)) { //even if diffuse map cannot attach, we still render
-                std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
             }
             if (!program->setUniform("shadowSamplerDirectional",
                                            glHelper->getMaxTextureImageUnits() -
@@ -135,12 +182,10 @@ bool Model::setupRenderVariables(GLSLProgram *program) {
                 std::cerr << "Uniform \"farPlanePoint\" could not be set" << std::endl;
             }
 
-
             if (animated) {
                 //set all of the bones to unitTransform for testing
                 program->setUniformArray("boneTransformArray[0]", boneTransforms);
             }
-            /********* This is before animation loading, to fill the bone data ***********/
 
             return true;
     } else {

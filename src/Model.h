@@ -42,6 +42,9 @@ class Model : public PhysicalRenderable {
 
     std::map<std::string, Material *> materialMap;
     int diffuseMapAttachPoint = 1;
+    int ambientMapAttachPoint = 2;
+    int specularMapAttachPoint = 3;
+    int opacityMapAttachPoint = 4;
     uint_fast32_t triangleCount;
 
 

@@ -116,6 +116,16 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     rigidBodies.push_back(wall->getRigidBody());
     dynamicsWorld->addRigidBody(wall->getRigidBody());
 */
+/*
+    Model *shanghai= new Model(assetManager, 0, "./Data/Models/shanghai/shanghai.obj");
+    shanghai->addTranslate(glm::vec3(10.0f, 0.0f, 10.0f));
+    shanghai->addScale(glm::vec3(0.02f, 0.02f, 0.02f));
+    shanghai->getWorldTransform();
+    objects.push_back(shanghai);
+    rigidBodies.push_back(shanghai->getRigidBody());
+    dynamicsWorld->addRigidBody(shanghai->getRigidBody());
+*/
+
 
     Model *militaryZone= new Model(assetManager, 0, "./Data/Models/MilitaryZone/MilitaryZone.obj");
     militaryZone->addTranslate(glm::vec3(-40.0f, 0.0f, 10.0f));
@@ -126,7 +136,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     rigidBodies.push_back(militaryZone->getRigidBody());
     dynamicsWorld->addRigidBody(militaryZone->getRigidBody());
 
-    /*
+
     Model *dwarf = new Model(assetManager, 10, "./Data/Models/Dwarf/dwarf.x");
     dwarf->addTranslate(glm::vec3(-3.0f, 6.5f, -3.0f));
     dwarf->addScale(glm::vec3(0.04f, 0.04f, 0.04f));
@@ -134,7 +144,7 @@ World::World(GLHelper *glHelper) : glHelper(glHelper), fontManager(glHelper) {
     objects.push_back(dwarf);
     rigidBodies.push_back(dwarf->getRigidBody());
     dynamicsWorld->addRigidBody(dwarf->getRigidBody());
-*/
+
     sky = new SkyBox(assetManager,
                      std::string("./Data/Textures/Skyboxes/ThickCloudsWater"),
                      std::string("right.jpg"),
@@ -255,7 +265,6 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 }
 
 void World::render() {
-
     for (int i = 0; i < lights.size(); ++i) {
         if(lights[i]->getLightType() != Light::DIRECTIONAL) {
             continue;
@@ -284,7 +293,7 @@ void World::render() {
     }
 
     glHelper->switchrenderToDefault();
-
+    sky->render();//this is moved to the top, because transparency can create issues if this is at the end
     for (int i = 0; i < lights.size(); ++i) {
         glHelper->setLight(*(lights[i]), i);
     }
@@ -299,7 +308,6 @@ void World::render() {
         (*it)->render();
     }
     dynamicsWorld->debugDrawWorld();
-    sky->render();
 
     //since gui uses blending, everything must be already rendered.
     // Also, since gui elements only depth test each other, clear depth buffer

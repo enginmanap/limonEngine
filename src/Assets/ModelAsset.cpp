@@ -127,6 +127,16 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
             }
         }
 
+        if ((currentMaterial->GetTextureCount(aiTextureType_OPACITY) > 0)) {
+            if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_OPACITY, 0, &property)) {
+                newMaterial->setOpacityTexture(property.C_Str());
+                std::cout << "loaded opacity texture " << property.C_Str() << std::endl;
+            } else {
+                std::cerr << "The model contained opacity texture information, but texture loading failed. \n" <<
+                          "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
+            }
+        }
+
         materialMap[newMaterial->getName()] = newMaterial;
     } else {
         newMaterial = materialMap[property.C_Str()];
@@ -151,7 +161,11 @@ void ModelAsset::createMeshes(aiNode *aiNode, glm::mat4 parentTransform) {
             Material *meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
             MeshAsset *mesh = new MeshAsset(assetManager, currentMesh, meshMaterial, rootNode, parentTransform, hasAnimation);
             //FIXME the exception thrown from new is not catched
-            meshes.push_back(mesh);
+            if(meshMaterial->hasOpacityMap()) {
+                meshes.push_back(mesh);
+            } else {
+                meshes.insert(meshes.begin(),mesh);
+            }
             std::cout << "loaded mesh " << currentMesh->mName.C_Str() << " for node " << aiNode->mName.C_Str()
                       << std::endl;
     }

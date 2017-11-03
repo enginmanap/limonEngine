@@ -17,9 +17,13 @@ private:
     float specularExponent;
 
     glm::vec3 ambientColor, diffuseColor, specularColor;
+    bool isAmbientMap = false;
+    bool isDiffuseMap = false;
+    bool isSpecularMap = false;
+    bool isOpacityMap = false;
     float refractionIndex;
 
-    TextureAsset *ambientTexture = NULL, *diffuseTexture = NULL, *specularTexture = NULL;
+    TextureAsset *ambientTexture = NULL, *diffuseTexture = NULL, *specularTexture = NULL, *opacityTexture = NULL;
 
 public:
     Material(AssetManager *assetManager, const std::string &name, float specularExponent, const glm::vec3 &ambientColor,
@@ -86,19 +90,21 @@ public:
     }
 
     void setAmbientTexture(std::string ambientTexture) {
-
         this->ambientTexture = assetManager->loadAsset<TextureAsset>({ambientTexture});
+        this->isAmbientMap = true;
     }
 
     TextureAsset *getDiffuseTexture() const {
-//        if (diffuseTexture == NULL) {
-//            std::cerr << "access to null element" << std::endl;
-//        }
+        if (!isDiffuseMap) {
+            std::cerr << "access to null element for " << this->name << std::endl;
+            return NULL;
+        }
         return diffuseTexture;
     }
 
     void setDiffuseTexture(std::string diffuseTexture) {
         this->diffuseTexture = assetManager->loadAsset<TextureAsset>({diffuseTexture});
+        this->isDiffuseMap = true;
     }
 
     TextureAsset *getSpecularTexture() const {
@@ -107,6 +113,17 @@ public:
 
     void setSpecularTexture(std::string specularTexture) {
         this->specularTexture = assetManager->loadAsset<TextureAsset>({specularTexture});
+        this->isSpecularMap = true;
+    }
+
+
+    void setOpacityTexture(std::string opacityTexture) {
+        this->opacityTexture = assetManager->loadAsset<TextureAsset>({opacityTexture});
+        this->isOpacityMap = true;
+    }
+
+    TextureAsset *getOpacityTexture() const {
+        return opacityTexture;
     }
 
     ~Material() {
@@ -119,7 +136,27 @@ public:
         if (specularTexture != NULL) {
             delete specularTexture;
         }
+        if (opacityTexture != NULL) {
+            delete opacityTexture;
+        }
     }
+
+    bool hasAmbientMap() const {
+        return isAmbientMap;
+    }
+
+    bool hasDiffuseMap() const {
+        return isDiffuseMap;
+    }
+
+    bool hasSpecularMap() const {
+        return isSpecularMap;
+    }
+
+    bool hasOpacityMap() const {
+        return isOpacityMap;
+    }
+
 };
 
 

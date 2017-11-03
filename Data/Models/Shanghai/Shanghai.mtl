@@ -1,0 +1,1015 @@
+# 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
+# File Created: 09.02.2016 12:26:37
+
+newmtl Material__1980
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Floor_02_House_ID4_FallOff Map_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Floor_02_House_ID4_FallOff Map_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/Prop_09_Bridge_ID3_Falloff_ROUNT_OPACITY.jpg
+
+newmtl Material__1967
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/ID10_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/ID10_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/ID10_Opacity.jpg
+
+newmtl Material__1981
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Floor_02_House_ID2_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Floor_02_House_ID2_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/Floor_02_House_ID2_Opacity.jpg
+
+newmtl Floor_01_Hotel_Stairs_Stairs
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Stairs.jpg
+	map_Kd ./Data/Textures/shanghai/Stairs.jpg
+
+newmtl Floor_01_Hotel_Stairs_Old_Tiles
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/tile_old.jpg
+	map_Kd ./Data/Textures/shanghai/tile_old.jpg
+
+newmtl Floor_01_Hotel_Stairs_Concrete
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/ConcreteDirty0323_1_S.jpg
+	map_Kd ./Data/Textures/shanghai/ConcreteDirty0323_1_S.jpg
+
+newmtl Floor_01_Hotel_Stairs_Decall_Metal
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Decall_Pole_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Decall_Pole_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/Decall_Pole_Opacity.jpg
+
+newmtl Floor_01_Hotel_Stairs_signs
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Signs stairs.jpg
+	map_Kd ./Data/Textures/shanghai/Signs stairs.jpg
+
+newmtl Floor_02_House2_Concrete
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Floor_02_House_ID1_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Floor_02_House_ID1_Diffuse.jpg
+
+newmtl Floor_02_House2_Decals
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Floor_02_House_ID2_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Floor_02_House_ID2_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/Floor_02_House_ID2_Opacity.jpg
+
+newmtl Floor_02_House2_Stairs
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Floor_02_House_ID3_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Floor_02_House_ID3_Diffuse.jpg
+
+newmtl Floor_02_House2_Falloff
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Floor_02_House_ID4_FallOff Map_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Floor_02_House_ID4_FallOff Map_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/Floor_02_House_ID4_Falloff_Opacity.jpg
+
+newmtl Floor_02_House2_Stones
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Floor_02_House_ID5_SquareFloor_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Floor_02_House_ID5_SquareFloor_Diffuse.jpg
+
+newmtl Floor_02_House2_Stairs_Trim
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Floor_02_House_ID6_Trim_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Floor_02_House_ID6_Trim_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/Floor_02_House_ID6_Trim_Opacity.jpg
+
+newmtl Floor_02_House_waterwall
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Floor_02_House_ID7_SideWall_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Floor_02_House_ID7_SideWall_Diffuse.jpg
+
+newmtl Floor_02_House_Tiles_02
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Floor_02_House_ID8_LongTiles_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Floor_02_House_ID8_LongTiles_Diffuse.jpg
+
+newmtl Floor_02_House_water
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Floor_02_House_ID10_Water_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Floor_02_House_ID10_Water_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/Floor_02_House_ID10_Water_Opacity.jpg
+
+newmtl Floor_02_House_Soil
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Floor_02_House_ID11_Soil_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Floor_02_House_ID11_Soil_Diffuse.jpg
+
+newmtl Material__495
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Asphalt.jpg
+	map_Kd ./Data/Textures/shanghai/Asphalt.jpg
+
+newmtl House_02_old_House_wood_Poles
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 1.0000 0.1647 0.0000
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Wooden_Poles_Seamless_Vertical_Cropped.jpg
+	map_Kd ./Data/Textures/shanghai/Wooden_Poles_Seamless_Vertical_Cropped.jpg
+
+newmtl House_02_old_House_Front_Side
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.4353 0.0000 0.0000
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/wooden_planks_Seamless.jpg
+	map_Kd ./Data/Textures/shanghai/wooden_planks_Seamless.jpg
+
+newmtl House_02_old_House_Horizontal_PLanks
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.0000 1.0000 0.0706
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/wheaterboard_seamless.jpg
+	map_Kd ./Data/Textures/shanghai/wheaterboard_seamless.jpg
+
+newmtl House_02_old_House_Roof
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.0000 1.0000 0.9176
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/corrugatedRoof_Seamless_2sided_red.jpg
+	map_Kd ./Data/Textures/shanghai/corrugatedRoof_Seamless_2sided_red.jpg
+
+newmtl House_02_old_House_Props
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.0471 0.0000 1.0000
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Trim Texture.jpg
+	map_Kd ./Data/Textures/shanghai/Trim Texture.jpg
+
+newmtl House_02_old_House_oak
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.9176 0.0000 1.0000
+	Kd 0.9176 0.0000 1.0000
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/WoodRough0088_1_S.jpg
+	map_Kd ./Data/Textures/shanghai/WoodRough0088_1_S.jpg
+
+newmtl House_4_Hotel_Railing
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/House_4_Hotel_ID1_railingDiffuse.jpg
+	map_Kd ./Data/Textures/shanghai/House_4_Hotel_ID1_railingDiffuse.jpg
+	map_d ./Data/Textures/shanghai/House_4_Hotel_ID1_railing_Opacity.jpg
+
+newmtl House_4_Hotel_Windows
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/House_4_Hotel_ID2_Windows_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/House_4_Hotel_ID2_Windows_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/House_4_Hotel_ID2_Windows_Opacity.jpg
+
+newmtl House_4_Hotel_Concrete
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/House_4_Hotel_ID3_Plaster_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/House_4_Hotel_ID3_Plaster_Diffuse.jpg
+
+newmtl House_4_Hotel_decorative_Rails
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/House_4_Hotel_ID4_decorative_Rails_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/House_4_Hotel_ID4_decorative_Rails_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/House_4_Hotel_ID4_decorative_Rails_Opacity.jpg
+
+newmtl House_4_Hotel_Railing_Wood
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/House_4_Hotel_ID5_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/House_4_Hotel_ID5_Diffuse.jpg
+
+newmtl Material__388
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/House_4_Hotel_ID6_asian plaster.jpg
+	map_Kd ./Data/Textures/shanghai/House_4_Hotel_ID6_asian plaster.jpg
+
+newmtl House_4_Hotel_Roof
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/House_4_Hotel_ID7_Roof.jpg
+	map_Kd ./Data/Textures/shanghai/House_4_Hotel_ID7_Roof.jpg
+
+newmtl BookStore_Books
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/BookStore_Props_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/BookStore_Props_Diffuse.jpg
+
+newmtl BookStore_AO
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/PlywoodNew0073_1_Seamless.jpg
+	map_Kd ./Data/Textures/shanghai/PlywoodNew0073_1_Seamless.jpg
+
+newmtl BookStore_trim
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Wooden_Poles_Seamless_Vertical_Cropped.jpg
+	map_Kd ./Data/Textures/shanghai/Wooden_Poles_Seamless_Vertical_Cropped.jpg
+
+newmtl BookStore_Roof
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/corrugatedRoof_Seamless_2sided_red.jpg
+	map_Kd ./Data/Textures/shanghai/corrugatedRoof_Seamless_2sided_red.jpg
+
+newmtl Material__439
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Trim_Decal.jpg
+	map_Kd ./Data/Textures/shanghai/Trim_Decal.jpg
+
+newmtl wire_008061138
+	Ns 32
+	d 1
+	Tr 0
+	Tf 1 1 1
+	illum 2
+	Ka 0.0314 0.2392 0.5412
+	Kd 0.0314 0.2392 0.5412
+	Ks 0.3500 0.3500 0.3500
+
+newmtl Prop_Road_Triangle_diffuse
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 1.0000 0.0706 0.2039
+	Kd 1.0000 0.0706 0.2039
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/prop_01_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/prop_01_Diffuse.jpg
+
+newmtl Prop_02_Bench_diffuse
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5882 0.5882 0.5882
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_Bench_texture.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_Bench_texture.jpg
+
+newmtl Prop_03_Decorative_GarbageBin
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5882 0.5882 0.5882
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_Bin_Texture.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_Bin_Texture.jpg
+	map_d ./Data/Textures/shanghai/Prop_Bin_Texture_opacity.jpg
+
+newmtl Prop_04_Decorative_Pole_Diffuse
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5882 0.5882 0.5882
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_Decorative_Pole_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_Decorative_Pole_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/Prop_Decorative_Pole_Opacity_Map.jpg
+
+newmtl Prop_05_Toilet_Signs_Diffuse
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.1725 0.1725 0.1725
+	Kd 0.1725 0.1725 0.1725
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Kd ./Data/Textures/shanghai/Prop_Toilet_Sign_Diffuse.jpg
+
+newmtl Prop_06_Boat_Diffuse
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.1725 0.1725 0.1725
+	Kd 0.1725 0.1725 0.1725
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_Kd ./Data/Textures/shanghai/Prop_Boat_Diffuse.jpg
+
+newmtl Prop_08_Garbage_Bin_Diffuse
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5882 0.5882 0.5882
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_Garbage_bind_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_Garbage_bind_Diffuse.jpg
+
+newmtl Prop_09_Bridge_Trim
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5882 0.5882 0.5882
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_09_Bridge_ID1_Trim.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_09_Bridge_ID1_Trim.jpg
+
+newmtl Prop_09_Bridge_stones
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_09_Bridge_ID2_bricks.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_09_Bridge_ID2_bricks.jpg
+
+newmtl Prop_09_Bridge_falloff_Round_Opacity
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_d ./Data/Textures/shanghai/Prop_09_Bridge_ID3_Falloff_ROUNT_OPACITY.jpg
+
+newmtl Prop_09_Bridge_gradient
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	map_d ./Data/Textures/shanghai/Prop_09_Bridge_ID4_Falloff_Gradient.jpg
+
+newmtl Prop_09_Bridge_floor
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_09_Bridge_ID5_Floor.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_09_Bridge_ID5_Floor.jpg
+
+newmtl Prop_10_Light_pole
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5882 0.5882 0.5882
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_Light pole.Diffuse2.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_Light pole.Diffuse2.jpg
+	map_d ./Data/Textures/shanghai/Prop_Light pole.opacity2.jpg
+
+newmtl Material__4
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/FlowerBeds0006_1_S.jpg
+	map_Kd ./Data/Textures/shanghai/FlowerBeds0006_1_S.jpg
+	map_d ./Data/Textures/shanghai/Fowerbed_Opacity.jpg
+
+newmtl Prop_11_Market_Billboard_Small_Diffuse
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_11_Market_BillBoard.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_11_Market_BillBoard.jpg
+
+newmtl Prop_11_Market_Chair_Diffuse
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_11_Market Chiar.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_11_Market Chiar.jpg
+
+newmtl Prop_12_Restaurant_Tables_Diffuse
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_12_Restaurant_Tables_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_12_Restaurant_Tables_Diffuse.jpg
+
+newmtl Prop_12_Restaurant_Tables
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Map__4_Checker.jpg
+	map_Kd ./Data/Textures/shanghai/Map__4_Checker.jpg
+
+newmtl Prop_13_Restaurant_Lamp_Map_Diffuse
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5882 0.5882 0.5882
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_13_Restaurant_Lamp_01t_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_13_Restaurant_Lamp_01t_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/Prop_13_Restaurant_Lamp_Opacity.jpg
+
+newmtl baked_Prop_14_Bonsai_Three_Pot
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5882 0.5882 0.5882
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_14_Bonsai_Props_Texture.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_14_Bonsai_Props_Texture.jpg
+
+newmtl baked_Prop_14_Bonsai_Three_Pot_flora
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5882 0.5882 0.5882
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_14_Bonsai_three_texture.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_14_Bonsai_three_texture.jpg
+	map_d ./Data/Textures/shanghai/Prop_14_Bonsai_three_Alpha.jpg
+
+newmtl wire_027177027
+	Ns 32
+	d 1
+	Tr 0
+	Tf 1 1 1
+	illum 2
+	Ka 0.1059 0.6941 0.1059
+	Kd 0.1059 0.6941 0.1059
+	Ks 0.3500 0.3500 0.3500
+
+newmtl Prop_15_Fire_Pole
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_15_Fire_Pole_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_15_Fire_Pole_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/Prop_15_Fire_Pole_Opacity.jpg
+
+newmtl Prop_17_Rooftopchair_Diffuse
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Prop_17_RooftopChair.jpg
+	map_Kd ./Data/Textures/shanghai/Prop_17_RooftopChair.jpg
+
+newmtl Material__1979
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Floor_02_House_ID4_FallOff Map_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Floor_02_House_ID4_FallOff Map_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/Floor_02_House_ID4_Falloff_Opacity.jpg
+
+newmtl TeaHouse_ID2
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/ID2_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/ID2_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/ID2_Alpha.jpg
+
+newmtl TeaHouse_ID3
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/ID3_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/ID3_Diffuse.jpg
+
+newmtl TeaHouse_ID4
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/ID4_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/ID4_Diffuse.jpg
+
+newmtl TeaHouse_ID5
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/ID5_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/ID5_Diffuse.jpg
+
+newmtl TeaHouse_ID6
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/ID6_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/ID6_Diffuse.jpg
+
+newmtl TeaHouse_ID7
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/ID7_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/ID7_Diffuse.jpg
+
+newmtl TeaHouse_ID9
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/Floor_02_House_ID1_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/Floor_02_House_ID1_Diffuse.jpg
+
+newmtl ID10
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5880 0.5880 0.5880
+	Kd 0.5880 0.5880 0.5880
+	Ks 0.0000 0.0000 0.0000
+	Ke 0.0000 0.0000 0.0000
+	/map_Ka ./Data/Textures/shanghai/ID10_Diffuse.jpg
+	map_Kd ./Data/Textures/shanghai/ID10_Diffuse.jpg
+	map_d ./Data/Textures/shanghai/ID10_Opacity.jpg
+
+newmtl wire_177028149
+	Ns 32
+	d 1
+	Tr 0
+	Tf 1 1 1
+	illum 2
+	Ka 0.6941 0.1098 0.5843
+	Kd 0.6941 0.1098 0.5843
+	Ks 0.3500 0.3500 0.3500
