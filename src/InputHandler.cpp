@@ -8,6 +8,7 @@
 InputHandler::InputHandler(SDL_Window *window, int height, int width) :
         window(window), height(height), width(width) {
     SDL_SetWindowGrab(window, SDL_TRUE);
+    SDL_SetRelativeMouseMode(SDL_TRUE);
     inputStatus[QUIT] = false;
     inputStatus[MOUSE_MOVE] = false;
     inputStatus[MOVE_FORWARD] = false;
@@ -31,8 +32,6 @@ void InputHandler::mapInput() {
                 xChange = (event.motion.xrel) / (width / 2.0f);
                 yPos = (event.motion.y - (height / 2.0f)) / (height / 2);
                 yChange = (event.motion.yrel) / (height / 2.0f);
-                //fixme this is wrong, we need window position to fix it.
-                SDL_WarpMouseInWindow(window, width / 2, height / 2);
                 break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.sym) {
