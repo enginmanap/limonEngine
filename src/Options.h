@@ -12,7 +12,24 @@ private:
     glm::vec3 moveSpeed = glm::vec3(5, 0, 5);
     float jumpFactor = 3.0f;
     float lookAroundSpeed = -2.5f;
+    int screenHeight = 768;
+    int screenWidth = 1024;
 public:
+    int getScreenHeight() const {
+        return screenHeight;
+    }
+
+    void setScreenHeight(int height) {
+        Options::screenHeight = height;
+    }
+
+    int getScreenWidth() const {
+        return screenWidth;
+    }
+
+    void setScreenWidth(int width) {
+        Options::screenWidth = width;
+    }
 
     const glm::vec3 &getMoveSpeed() const {
         return moveSpeed;

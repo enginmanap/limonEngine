@@ -11,15 +11,15 @@
 #define PROGRAM_NAME "UberGame"
 
 int main(int argc, char *argv[]) {
-    int height = 768, width = 1024;
     Uint32 worldUpdateTime = 1000 / 60;//This value is used to update world on a locked Timestep
-
-    SDL2Helper sdlHelper(PROGRAM_NAME, height, width);
     Options options;
 
+    SDL2Helper sdlHelper(PROGRAM_NAME, options.getScreenHeight(), options.getScreenWidth());
+
+
     GLHelper glHelper;
-    glHelper.reshape(height, width);
-    InputHandler inputHandler(sdlHelper.getWindow(), height, width);
+    glHelper.reshape(options.getScreenHeight(), options.getScreenWidth());
+    InputHandler inputHandler(sdlHelper.getWindow(), options.getScreenHeight(), options.getScreenWidth());
 
 
     World world(&glHelper, options);
