@@ -15,12 +15,14 @@ int main(int argc, char *argv[]) {
     Uint32 worldUpdateTime = 1000 / 60;//This value is used to update world on a locked Timestep
 
     SDL2Helper sdlHelper(PROGRAM_NAME, height, width);
+    Options options;
 
     GLHelper glHelper;
     glHelper.reshape(height, width);
     InputHandler inputHandler(sdlHelper.getWindow(), height, width);
 
-    World world(&glHelper);
+
+    World world(&glHelper, options);
     glHelper.clearFrame();
     Uint32 previousTime = SDL_GetTicks();
     Uint32 currentTime, frameTime, accumulatedTime = 0;

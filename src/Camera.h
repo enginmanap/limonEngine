@@ -9,19 +9,17 @@
 #include <btBulletDynamicsCommon.h>
 #include <vector>
 #include <iostream>
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtc/quaternion.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
+#include "Options.h"
 #include "Utils/GLMConverter.h"
 
 #define STEPPING_TEST_COUNT 5
 
 class Camera {
     const glm::vec3 startPosition = glm::vec3(0, 10, 15);
-    glm::vec3 moveSpeed = glm::vec3(5, 0, 5);
-    float jumpFactor = 3.0f;
-    float lookAroundSpeed = -2.5f;
     bool dirty;
     glm::vec3 position, center, up, right;
     glm::quat view, viewChange;
@@ -30,12 +28,13 @@ class Camera {
     std::vector<btCollisionWorld::ClosestRayResultCallback> rayCallbackArray;
     btTransform worldTransformHolder;
     bool onAir;
+    Options options;
 public:
     enum moveDirections {
         NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD, UP
     };
 
-    Camera();
+    Camera(Options &options);
 
     void updateTransfromFromPhysics(const btDynamicsWorld *world);
 
