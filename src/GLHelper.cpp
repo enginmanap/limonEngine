@@ -172,7 +172,7 @@ void GLHelper::attachUBOs(const GLuint program) const {//Attach the light block 
 }
 
 
-GLHelper::GLHelper() {
+GLHelper::GLHelper(Options &options): options(options) {
     GLenum rev;
     error = GL_NO_ERROR;
     glewExperimental = GL_TRUE;
@@ -632,13 +632,14 @@ GLHelper::~GLHelper() {
     //state->setProgram(0);
 }
 
-void GLHelper::reshape(unsigned int height, unsigned int width) {
-    this->screenHeight = height;
-    this->screenWidth = width;
-    glViewport(0, 0, width, height);
-    aspect = float(height) / float(width);
+void GLHelper::reshape() {
+    //reshape actually checks for changes on options.
+    this->screenHeight = options.getScreenHeight();
+    this->screenWidth = options.getScreenWidth();
+    glViewport(0, 0, options.getScreenWidth(), options.getScreenHeight());
+    aspect = float(options.getScreenHeight()) / float(options.getScreenWidth());
     perspectiveProjectionMatrix = glm::perspective(45.0f, 1.0f / aspect, 0.1f, 100.0f);
-    orthogonalProjectionMatrix = glm::ortho(0.0f, (float) width, 0.0f, (float) height);
+    orthogonalProjectionMatrix = glm::ortho(0.0f, (float) options.getScreenWidth(), 0.0f, (float) options.getScreenHeight());
     checkErrors("reshape");
 }
 

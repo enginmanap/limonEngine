@@ -8,8 +8,14 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "Light.h"
+#include <string>
+#include <algorithm>
+#include <vector>
 
+#include <fstream>
+#include <streambuf>
+#include <iostream>
+#include <map>
 #include <GL/glew.h>
 
 #ifdef __APPLE__
@@ -22,14 +28,8 @@
 
 #define NR_POINT_LIGHTS 4
 
-#include <string>
-#include <algorithm>
-#include <vector>
-
-#include <fstream>
-#include <streambuf>
-#include <iostream>
-#include <map>
+#include "Light.h"
+#include "Options.h"
 
 class GLHelper {
     class OpenglState {
@@ -159,6 +159,8 @@ private:
     GLuint depthOnlyFrameBufferPoint;
     GLuint depthCubemapPoint;
 
+    Options options;
+
     const GLuint SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048; //TODO these values should be parameters
     //const GLuint SHADOW_WIDTH = 8192, SHADOW_HEIGHT = 8192; //TODO these values should be parameters
     const uint_fast32_t lightUniformSize = sizeof(glm::mat4) + 2 * sizeof(glm::vec4);
@@ -197,7 +199,7 @@ private:
                                const uint_fast32_t attachPointer);
 
 public:
-    GLHelper();
+    GLHelper(Options &options);
 
     ~GLHelper();
     GLuint initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
@@ -237,7 +239,7 @@ public:
 
     void render(const GLuint, const GLuint, const GLuint, const GLuint);
 
-    void reshape(unsigned int height, unsigned int width);
+    void reshape();
 
     GLuint loadTexture(int height, int width, GLenum format, void *data);
 

@@ -17,8 +17,8 @@ int main(int argc, char *argv[]) {
     SDL2Helper sdlHelper(PROGRAM_NAME, options.getScreenHeight(), options.getScreenWidth());
 
 
-    GLHelper glHelper;
-    glHelper.reshape(options.getScreenHeight(), options.getScreenWidth());
+    GLHelper glHelper(options);
+    glHelper.reshape();
     InputHandler inputHandler(sdlHelper.getWindow(), options.getScreenHeight(), options.getScreenWidth());
 
 
