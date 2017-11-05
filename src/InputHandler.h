@@ -8,6 +8,8 @@
 #include <map>
 #include <SDL2/SDL.h>
 
+#include "Options.h"
+
 
 class InputHandler {
 public:
@@ -17,12 +19,12 @@ public:
     };
 private:
     SDL_Window *window;
-    int height, width;
+    Options options;
     SDL_Event event;
     std::map<states, bool> inputStatus;
     float xPos, yPos, xChange, yChange;
 public:
-    InputHandler(SDL_Window *, int, int);
+    InputHandler(SDL_Window *, Options &options);
 
     ~InputHandler() {
         SDL_SetWindowGrab(window, SDL_FALSE);

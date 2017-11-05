@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
 
     GLHelper glHelper(options);
     glHelper.reshape();
-    InputHandler inputHandler(sdlHelper.getWindow(), options.getScreenHeight(), options.getScreenWidth());
+    InputHandler inputHandler(sdlHelper.getWindow(), options);
 
 
     World world(&glHelper, options);

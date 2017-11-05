@@ -5,8 +5,8 @@
 #include <iostream>
 #include "InputHandler.h"
 
-InputHandler::InputHandler(SDL_Window *window, int height, int width) :
-        window(window), height(height), width(width) {
+InputHandler::InputHandler(SDL_Window *window, Options &options) :
+        window(window), options(options) {
     SDL_SetWindowGrab(window, SDL_TRUE);
     SDL_SetRelativeMouseMode(SDL_TRUE);
     inputStatus[QUIT] = false;
@@ -28,10 +28,10 @@ void InputHandler::mapInput() {
                 break;
             case SDL_MOUSEMOTION:
                 inputStatus[MOUSE_MOVE] = true;
-                xPos = (event.motion.x - (width / 2.0f)) / (width / 2);
-                xChange = (event.motion.xrel) / (width / 2.0f);
-                yPos = (event.motion.y - (height / 2.0f)) / (height / 2);
-                yChange = (event.motion.yrel) / (height / 2.0f);
+                xPos = (event.motion.x - (options.getScreenWidth() / 2.0f)) / (options.getScreenWidth() / 2);
+                xChange = (event.motion.xrel) / (options.getScreenWidth() / 2.0f);
+                yPos = (event.motion.y - (options.getScreenHeight() / 2.0f)) / (options.getScreenHeight() / 2);
+                yChange = (event.motion.yrel) / (options.getScreenHeight() / 2.0f);
                 break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.sym) {
