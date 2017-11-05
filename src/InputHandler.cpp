@@ -5,7 +5,7 @@
 #include <iostream>
 #include "InputHandler.h"
 
-InputHandler::InputHandler(SDL_Window *window, Options &options) :
+InputHandler::InputHandler(SDL_Window *window, Options *options) :
         window(window), options(options) {
     SDL_SetWindowGrab(window, SDL_TRUE);
     SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -28,10 +28,10 @@ void InputHandler::mapInput() {
                 break;
             case SDL_MOUSEMOTION:
                 inputStatus[MOUSE_MOVE] = true;
-                xPos = (event.motion.x - (options.getScreenWidth() / 2.0f)) / (options.getScreenWidth() / 2);
-                xChange = (event.motion.xrel) / (options.getScreenWidth() / 2.0f);
-                yPos = (event.motion.y - (options.getScreenHeight() / 2.0f)) / (options.getScreenHeight() / 2);
-                yChange = (event.motion.yrel) / (options.getScreenHeight() / 2.0f);
+                xPos = (event.motion.x - (options->getScreenWidth() / 2.0f)) / (options->getScreenWidth() / 2);
+                xChange = (event.motion.xrel) / (options->getScreenWidth() / 2.0f);
+                yPos = (event.motion.y - (options->getScreenHeight() / 2.0f)) / (options->getScreenHeight() / 2);
+                yChange = (event.motion.yrel) / (options->getScreenHeight() / 2.0f);
                 break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.sym) {
@@ -55,6 +55,12 @@ void InputHandler::mapInput() {
                         break;
                     case SDLK_0:
                         inputStatus[DEBUG] = true;
+                        break;
+                    case SDLK_KP_PLUS:
+                        options->setLookAroundSpeed(options->getLookAroundSpeed() + 1.0f);
+                        break;
+                    case SDLK_KP_MINUS:
+                        options->setLookAroundSpeed(options->getLookAroundSpeed() - 1.0f);
                         break;
                 }
                 break;

@@ -5,7 +5,7 @@
 #include "Camera.h"
 
 
-Camera::Camera(Options &options) :
+Camera::Camera(Options *options) :
         dirty(false),
         position(startPosition),
         center(glm::vec3(0, 0, -1)),
@@ -46,43 +46,43 @@ void Camera::move(moveDirections direction) {
     dirty = true;
     switch (direction) {
         case UP:
-            player->setLinearVelocity(player->getLinearVelocity() + GLMConverter::GLMToBlt(up * options.getJumpFactor()));
+            player->setLinearVelocity(player->getLinearVelocity() + GLMConverter::GLMToBlt(up * options->getJumpFactor()));
             break;
         case LEFT_BACKWARD:
             //position -= moveSpeed * center;
             //position -= moveSpeed * right;
-            player->setLinearVelocity(GLMConverter::GLMToBlt(-1.0f * (right + center) * options.getMoveSpeed()));
+            player->setLinearVelocity(GLMConverter::GLMToBlt(-1.0f * (right + center) * options->getMoveSpeed()));
             break;
         case LEFT_FORWARD:
             //position += moveSpeed * center;
             //position -= moveSpeed * right;
-            player->setLinearVelocity(GLMConverter::GLMToBlt((-1.0f * right + center) * options.getMoveSpeed()));
+            player->setLinearVelocity(GLMConverter::GLMToBlt((-1.0f * right + center) * options->getMoveSpeed()));
             break;
         case LEFT:
             //position -= moveSpeed * right;
-            player->setLinearVelocity(GLMConverter::GLMToBlt(right * -1.0f * options.getMoveSpeed()));
+            player->setLinearVelocity(GLMConverter::GLMToBlt(right * -1.0f * options->getMoveSpeed()));
             break;
         case RIGHT_BACKWARD:
             //position -= moveSpeed * center;
             //position += moveSpeed * right;
-            player->setLinearVelocity(GLMConverter::GLMToBlt((right + -1.0f * center) * options.getMoveSpeed()));
+            player->setLinearVelocity(GLMConverter::GLMToBlt((right + -1.0f * center) * options->getMoveSpeed()));
             break;
         case RIGHT_FORWARD:
             //position += moveSpeed * center;
             //position += moveSpeed * right;
-            player->setLinearVelocity(GLMConverter::GLMToBlt((right + center) * options.getMoveSpeed()));
+            player->setLinearVelocity(GLMConverter::GLMToBlt((right + center) * options->getMoveSpeed()));
             break;
         case RIGHT:
             //position += moveSpeed * right;
-            player->setLinearVelocity(GLMConverter::GLMToBlt(right * options.getMoveSpeed()));
+            player->setLinearVelocity(GLMConverter::GLMToBlt(right * options->getMoveSpeed()));
             break;
         case BACKWARD:
             //position -= moveSpeed * center;
-            player->setLinearVelocity(GLMConverter::GLMToBlt(center * -1.0f * options.getMoveSpeed()));
+            player->setLinearVelocity(GLMConverter::GLMToBlt(center * -1.0f * options->getMoveSpeed()));
             break;
         case FORWARD:
             //position += moveSpeed * center;
-            player->setLinearVelocity(GLMConverter::GLMToBlt(center * options.getMoveSpeed()));
+            player->setLinearVelocity(GLMConverter::GLMToBlt(center * options->getMoveSpeed()));
             break;
     }
     //this activates user rigidbody if it moves. Otherwise island management ignores movement.
@@ -90,18 +90,18 @@ void Camera::move(moveDirections direction) {
 }
 
 void Camera::rotate(float xChange, float yChange) {
-    viewChange = glm::quat(cos(yChange * options.getLookAroundSpeed() / 2),
-                           right.x * sin(yChange * options.getLookAroundSpeed() / 2),
-                           right.y * sin(yChange * options.getLookAroundSpeed() / 2),
-                           right.z * sin(yChange * options.getLookAroundSpeed() / 2));
+    viewChange = glm::quat(cos(yChange * options->getLookAroundSpeed() / 2),
+                           right.x * sin(yChange * options->getLookAroundSpeed() / 2),
+                           right.y * sin(yChange * options->getLookAroundSpeed() / 2),
+                           right.z * sin(yChange * options->getLookAroundSpeed() / 2));
 
     view = viewChange * view * glm::conjugate(viewChange);
     view = glm::normalize(view);
 
-    viewChange = glm::quat(cos(xChange * options.getLookAroundSpeed() / 2),
-                           up.x * sin(xChange * options.getLookAroundSpeed() / 2),
-                           up.y * sin(xChange * options.getLookAroundSpeed() / 2),
-                           up.z * sin(xChange * options.getLookAroundSpeed() / 2));
+    viewChange = glm::quat(cos(xChange * options->getLookAroundSpeed() / 2),
+                           up.x * sin(xChange * options->getLookAroundSpeed() / 2),
+                           up.y * sin(xChange * options->getLookAroundSpeed() / 2),
+                           up.z * sin(xChange * options->getLookAroundSpeed() / 2));
     view = viewChange * view * glm::conjugate(viewChange);
     view = glm::normalize(view);
 

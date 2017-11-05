@@ -172,7 +172,7 @@ void GLHelper::attachUBOs(const GLuint program) const {//Attach the light block 
 }
 
 
-GLHelper::GLHelper(Options &options): options(options) {
+GLHelper::GLHelper(Options *options): options(options) {
     GLenum rev;
     error = GL_NO_ERROR;
     glewExperimental = GL_TRUE;
@@ -191,17 +191,17 @@ GLHelper::GLHelper(Options &options): options(options) {
     std::cout << "Maximum number of texture image units is " << maxTextureImageUnits << std::endl;
     state = new OpenglState(maxTextureImageUnits);
 
-    lightProjectionMatrixDirectional = glm::ortho(options.getLightOrthogonalProjectionValues().x,
-                                                  options.getLightOrthogonalProjectionValues().y,
-                                                  options.getLightOrthogonalProjectionValues().z,
-                                                  options.getLightOrthogonalProjectionValues().w,
-                                                  options.getLightOrthogonalProjectionNearPlane(),
-                                                  options.getLightOrthogonalProjectionFarPlane());
+    lightProjectionMatrixDirectional = glm::ortho(options->getLightOrthogonalProjectionValues().x,
+                                                  options->getLightOrthogonalProjectionValues().y,
+                                                  options->getLightOrthogonalProjectionValues().z,
+                                                  options->getLightOrthogonalProjectionValues().w,
+                                                  options->getLightOrthogonalProjectionNearPlane(),
+                                                  options->getLightOrthogonalProjectionFarPlane());
 
     lightProjectionMatrixPoint = glm::perspective(glm::radians(90.0f),
-                                                  options.getLightPerspectiveProjectionValues().x,
-                                                  options.getLightPerspectiveProjectionValues().y,
-                                                  options.getLightPerspectiveProjectionValues().z);
+                                                  options->getLightPerspectiveProjectionValues().x,
+                                                  options->getLightPerspectiveProjectionValues().y,
+                                                  options->getLightPerspectiveProjectionValues().z);
 
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     // Setup
@@ -264,7 +264,7 @@ GLHelper::GLHelper(Options &options): options(options) {
     glGenFramebuffers(1, &depthOnlyFrameBufferDirectional);
     glGenTextures(1, &depthMapDirectional);
     glBindTexture(GL_TEXTURE_2D_ARRAY, depthMapDirectional);
-    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT, options.getShadowWidth(), options.getShadowHeight(), NR_POINT_LIGHTS, 0,
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT, options->getShadowWidth(), options->getShadowHeight(), NR_POINT_LIGHTS, 0,
                  GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -286,7 +286,7 @@ GLHelper::GLHelper(Options &options): options(options) {
     // create depth cubemap texture
     glGenTextures(1, &depthCubemapPoint);
     glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, depthCubemapPoint);
-    glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, GL_DEPTH_COMPONENT, options.getShadowWidth(), options.getShadowHeight(), NR_POINT_LIGHTS*6, 0,
+    glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, GL_DEPTH_COMPONENT, options->getShadowWidth(), options->getShadowHeight(), NR_POINT_LIGHTS*6, 0,
                  GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -466,7 +466,7 @@ void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &text
 }
 
 void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
-    glViewport(0, 0, options.getShadowWidth(), options.getShadowHeight());
+    glViewport(0, 0, options->getShadowWidth(), options->getShadowHeight());
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional, 0, index);
 
@@ -480,7 +480,7 @@ void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
 std::vector<glm::mat4>
 GLHelper::switchRenderToShadowMapPoint(const glm::vec3 &lightPosition, const unsigned int index) {
     checkErrors("switchRenderToShadowMapPointBefore");
-    glViewport(0, 0, options.getShadowWidth(), options.getShadowHeight());
+    glViewport(0, 0, options->getShadowWidth(), options->getShadowHeight());
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
 
     glCullFace(GL_FRONT);
@@ -633,13 +633,13 @@ GLHelper::~GLHelper() {
 }
 
 void GLHelper::reshape() {
-    //reshape actually checks for changes on options.
-    this->screenHeight = options.getScreenHeight();
-    this->screenWidth = options.getScreenWidth();
-    glViewport(0, 0, options.getScreenWidth(), options.getScreenHeight());
-    aspect = float(options.getScreenHeight()) / float(options.getScreenWidth());
+    //reshape actually checks for changes on options->
+    this->screenHeight = options->getScreenHeight();
+    this->screenWidth = options->getScreenWidth();
+    glViewport(0, 0, options->getScreenWidth(), options->getScreenHeight());
+    aspect = float(options->getScreenHeight()) / float(options->getScreenWidth());
     perspectiveProjectionMatrix = glm::perspective(45.0f, 1.0f / aspect, 0.1f, 100.0f);
-    orthogonalProjectionMatrix = glm::ortho(0.0f, (float) options.getScreenWidth(), 0.0f, (float) options.getScreenHeight());
+    orthogonalProjectionMatrix = glm::ortho(0.0f, (float) options->getScreenWidth(), 0.0f, (float) options->getScreenHeight());
     checkErrors("reshape");
 }
 

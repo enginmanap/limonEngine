@@ -28,6 +28,10 @@ private:
 
 
 public:
+    Options(int something) {
+        std::cout << "created options" << std::endl;
+    }
+
     uint32_t getShadowWidth() const {
         return shadowWidth;
     }
@@ -113,7 +117,7 @@ public:
     }
 
     void setLookAroundSpeed(float lookAroundSpeed) {
-        Options::lookAroundSpeed = lookAroundSpeed;
+        this->lookAroundSpeed = lookAroundSpeed;
     }
 
 };

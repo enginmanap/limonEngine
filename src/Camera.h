@@ -28,14 +28,15 @@ class Camera {
     std::vector<btCollisionWorld::ClosestRayResultCallback> rayCallbackArray;
     btTransform worldTransformHolder;
     bool onAir;
-    Options options;
+    Options *options;
 public:
     enum moveDirections {
         NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD, UP
     };
 
-    Camera(Options &options);
+    Camera(Options *options);
 
+    //FIXME there is a typo here
     void updateTransfromFromPhysics(const btDynamicsWorld *world);
 
     void setCenter(const glm::vec3 &center) {

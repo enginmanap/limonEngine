@@ -5,7 +5,7 @@
 
 #include "World.h"
 
-World::World(GLHelper *glHelper, Options &options) : glHelper(glHelper), fontManager(glHelper), camera(options) {
+World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontManager(glHelper), camera(options) {
     assetManager = new AssetManager(glHelper);
     // physics init
     broadphase = new btDbvtBroadphase();

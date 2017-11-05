@@ -45,7 +45,7 @@ class World {
     btSequentialImpulseConstraintSolver *solver;
 
 public:
-    World(GLHelper *, Options &options);
+    World(GLHelper *, Options *options);
 
     ~World();
 

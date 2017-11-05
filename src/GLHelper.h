@@ -159,7 +159,7 @@ private:
     GLuint depthOnlyFrameBufferPoint;
     GLuint depthCubemapPoint;
 
-    Options options;
+    Options *options;
 
     const uint_fast32_t lightUniformSize = sizeof(glm::mat4) + 2 * sizeof(glm::vec4);
     glm::mat4 cameraMatrix;
@@ -191,7 +191,7 @@ private:
                                const uint_fast32_t attachPointer);
 
 public:
-    GLHelper(Options &options);
+    GLHelper(Options *options);
 
     ~GLHelper();
     GLuint initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,

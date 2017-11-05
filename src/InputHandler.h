@@ -19,12 +19,12 @@ public:
     };
 private:
     SDL_Window *window;
-    Options options;
+    Options *options;
     SDL_Event event;
     std::map<states, bool> inputStatus;
     float xPos, yPos, xChange, yChange;
 public:
-    InputHandler(SDL_Window *, Options &options);
+    InputHandler(SDL_Window *, Options *options);
 
     ~InputHandler() {
         SDL_SetWindowGrab(window, SDL_FALSE);
