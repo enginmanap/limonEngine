@@ -19,7 +19,7 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
         std::cerr << "multiple files are sent to Model constructor, extra elements ignored." << std::endl;
     }
     std::cout << "ASSIMP::Loading::" << name << std::endl;
-    //FIXME triangulate creates too many vertices, it is unnecessary, but optimize requires some work.
+
     scene = import.ReadFile(name, aiProcess_FlipUVs |
                                   aiProcessPreset_TargetRealtime_MaxQuality);
 
