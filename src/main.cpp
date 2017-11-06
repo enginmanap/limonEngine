@@ -12,7 +12,7 @@
 
 int main(int argc, char *argv[]) {
     Uint32 worldUpdateTime = 1000 / 60;//This value is used to update world on a locked Timestep
-    Options options(1);
+    Options options;
 
     SDL2Helper sdlHelper(PROGRAM_NAME, options.getScreenHeight(), options.getScreenWidth());
 

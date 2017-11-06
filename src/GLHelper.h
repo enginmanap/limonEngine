@@ -31,6 +31,20 @@
 #include "Light.h"
 #include "Options.h"
 
+class GLSLProgram;
+
+struct Line {
+    glm::vec3 from;
+    glm::vec3 fromColor;
+    glm::vec3 to;
+    glm::vec3 toColor;
+
+    Line(const glm::vec3 &from,
+         const glm::vec3 &to,
+         const glm::vec3 &fromColor,
+         const glm::vec3 &toColor): from(from), to(to), fromColor(fromColor), toColor(toColor){};
+};
+
 class GLHelper {
     class OpenglState {
         unsigned int activeProgram;
@@ -229,7 +243,7 @@ public:
 
     }
 
-    void render(const GLuint, const GLuint, const GLuint, const GLuint);
+    void render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount);
 
     void reshape();
 
@@ -251,6 +265,10 @@ public:
     glm::mat4 getProjectionMatrix() const { return perspectiveProjectionMatrix; };
 
     glm::mat4 getOrthogonalProjectionMatrix() const { return orthogonalProjectionMatrix; }
+
+    void createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize);
+
+    void drawLines(GLSLProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines);
 
     void drawLine(const glm::vec3 &from, const glm::vec3 &to,
                   const glm::vec3 &fromColor, const glm::vec3 &toColor, bool willTransform);

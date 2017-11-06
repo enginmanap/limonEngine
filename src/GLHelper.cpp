@@ -3,6 +3,7 @@
 //
 
 #include "GLHelper.h"
+#include "GLSLProgram.h"
 
 
 GLuint GLHelper::createShader(GLenum eShaderType, const std::string &strShaderFile) {
@@ -710,6 +711,47 @@ bool GLHelper::getUniformLocation(const GLuint programID, const std::string &uni
         }
     }
     return false;
+}
+
+void GLHelper::createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize) {
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    vbo = generateBuffer(1);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(Line), NULL, GL_DYNAMIC_DRAW);
+    //glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize, vertexData);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 24, NULL); //position
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 24, (void*)12); //color
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    checkErrors("createDebugVAOVBO");
+}
+
+/**
+ * This method draws lines, but is refreshes whole buffer. In a better world, these values should be
+ * loaded with other values, and rendered without the heavy load. but for now, it is faster then the older version.
+ *
+ * PLEASE NOTE, IF LINE SIZE IS BIGGER THEN ASSIGNED, UNDEFINED BEHAVIOUR
+ *
+ * @param program - glsl program used to render
+ * @param vao     - vao
+ * @param vbo     - vbo that the lines will be buffered. It should be
+ * @param lines   - line vector
+ */
+void GLHelper::drawLines(GLSLProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines) {
+    state->setProgram(program.getID());
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, lines.size() * sizeof(Line), lines.data());
+    program.setUniform("cameraTransformMatrix", perspectiveProjectionMatrix * cameraMatrix);
+
+    glDrawArrays(GL_LINES, 0, lines.size()*2);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+    checkErrors("drawLines");
 }
 
 /**

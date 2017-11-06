@@ -7,19 +7,27 @@
 
 
 #include <btBulletDynamicsCommon.h>
+#include <vector>
+
 #include "GLHelper.h"
 #include "GLSLProgram.h"
 #include "Utils/GLMConverter.h"
+#include "Options.h"
 
 class BulletDebugDrawer : public btIDebugDraw {
     DebugDrawModes currentMode;
     GLHelper *glHelper;
     GLSLProgram *renderProgram;
     GLuint vao, vbo, ebo;
+    std::vector<Line> lineBuffer;
+    Options* options;
+
 public:
-    BulletDebugDrawer(GLHelper *glHelper) : glHelper(glHelper), vao(0), vbo(0), ebo(0) {
-        renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/Line/vertex.glsl",
-                                        "./Data/Shaders/Line/fragment.glsl", false);
+    BulletDebugDrawer(GLHelper *glHelper, Options* options) : glHelper(glHelper), options(options), vao(0), vbo(0), ebo(0) {
+        renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/Lines/vertex.glsl",
+                                        "./Data/Shaders/Lines/fragment.glsl", false);
+        std::cout << "Render program is ready with id " << renderProgram->getID() << std::endl;
+        glHelper->createDebugVAOVBO(vao, vbo, options->getDebugDrawBufferSize());
     }
 
     void drawLine(const btVector3 &from, const btVector3 &to, const btVector3 &fromColor, const btVector3 &toColor);
@@ -49,6 +57,8 @@ public:
     void setDebugMode(int debugMode) { currentMode = DebugDrawModes(debugMode); };
 
     int getDebugMode() const { return currentMode; }
+
+    void flushDraws();
 };
 
 

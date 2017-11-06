@@ -20,16 +20,20 @@ private:
     float lightOrthogonalProjectionNearPlane = 1.0f;
     float  lightOrthogonalProjectionFarPlane = 100.0f;
     glm::vec4 lightOrthogonalProjectionValues = glm::vec4(-100.0f, 100.0f, -100.0f, 100.0f);
-
     glm::vec3 lightPerspectiveProjectionValues = glm::vec3((float)shadowWidth/(float)shadowHeight, 1.0f, 100.0f);
     //aspect,near,far
 
-
-
+    uint32_t debugDrawBufferSize = 1000;
 
 public:
-    Options(int something) {
-        std::cout << "created options" << std::endl;
+    uint32_t getDebugDrawBufferSize() const {
+        return debugDrawBufferSize;
+    }
+
+    void setDebugDrawBufferSize(uint32_t debugDrawBufferSize) {
+        //we must resize the buffer for debug draw lines
+        //Options::debugDrawBufferSize = debugDrawBufferSize;
+        std::cerr << "Setting debugDrawBufferSize is not implemented." << std::endl;
     }
 
     uint32_t getShadowWidth() const {

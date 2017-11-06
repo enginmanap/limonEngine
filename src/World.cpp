@@ -17,7 +17,7 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
 
     dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
     dynamicsWorld->setGravity(btVector3(0, -10, 0));
-    debugDrawer = new BulletDebugDrawer(glHelper);
+    debugDrawer = new BulletDebugDrawer(glHelper, options);
     dynamicsWorld->setDebugDrawer(debugDrawer);
     dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
     //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
@@ -34,8 +34,9 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
     shadowMapProgramPoint = new GLSLProgram(glHelper, "./Data/Shaders/ShadowMap/vertexPoint.glsl",
                                             "./Data/Shaders/ShadowMap/geometryPoint.glsl",
                                             "./Data/Shaders/ShadowMap/fragmentPoint.glsl", false);
-    shadowMapProgramPoint->setUniform("farPlanePoint", 100.0f);
-/*    Model *crate = new Model(assetManager, "./Data/Models/Box/Box.obj");
+    shadowMapProgramPoint->setUniform("farPlanePoint", 100.0f);//FIXME this should be an option
+
+    Model *crate = new Model(assetManager, "./Data/Models/Box/Box.obj");
     crate->addScale(glm::vec3(250.0f, 1.0f, 250.0f));
     crate->addTranslate(glm::vec3(-125.0f, 0.0f, 125.0f));
     crate->addOrientation(glm::quat(0.0f, 0.0f, 1.0f, 0.2f));
@@ -43,14 +44,15 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
-*/
- /*
+
+
     crate = new Model(assetManager, 1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(2.0f, 25.0f, -3.0f));
     crate->getWorldTransform();
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
+
 
     crate = new Model(assetManager, 1, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(-2.0f, 23.0f, -3.0f));
@@ -73,7 +75,7 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
 
-
+/*
     Model *mario = new Model(assetManager, 100, "./Data/Models/Mario/Mario_obj.obj");
     mario->addTranslate(glm::vec3(5.0f, 23.0f, -3.0f));
     mario->addScale(glm::vec3(0.25f, 0.25f, 0.25f));
@@ -81,6 +83,7 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
     objects.push_back(mario);
     rigidBodies.push_back(mario->getRigidBody());
     dynamicsWorld->addRigidBody(mario->getRigidBody());
+*/
 
     Model *armyPilot = new Model(assetManager, 25, "./Data/Models/ArmyPilot/ArmyPilot.dae");
     armyPilot->addTranslate(glm::vec3(10.0f, 2.0f, -3.0f));
@@ -96,8 +99,8 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
-    */
-/*
+
+
     crate = new Model(assetManager, 0, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(1.0f, 6.0f, 0.0f));
     crate->addScale(glm::vec3(0.2f,0.2f,0.2f));
@@ -105,8 +108,8 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
     objects.push_back(crate);
     rigidBodies.push_back(crate->getRigidBody());
     dynamicsWorld->addRigidBody(crate->getRigidBody());
-*/
-    /*
+
+
     Model *wall= new Model(assetManager, 0, "./Data/Models/Wall/archandwalls.FBX");
     wall->addTranslate(glm::vec3(10.0f, 0.0f, 10.0f));
     wall->addScale(glm::vec3(0.05f, 0.05f, 0.05f));
@@ -115,7 +118,7 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
     objects.push_back(wall);
     rigidBodies.push_back(wall->getRigidBody());
     dynamicsWorld->addRigidBody(wall->getRigidBody());
-*/
+
 /*
     Model *shanghai= new Model(assetManager, 0, "./Data/Models/shanghai/shanghai.obj");
     shanghai->addTranslate(glm::vec3(10.0f, 0.0f, 10.0f));
@@ -126,7 +129,7 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
     dynamicsWorld->addRigidBody(shanghai->getRigidBody());
 */
 
-
+/*
     Model *militaryZone= new Model(assetManager, 0, "./Data/Models/MilitaryZone/MilitaryZone.obj");
     militaryZone->addTranslate(glm::vec3(-40.0f, 0.0f, 10.0f));
     militaryZone->addScale(glm::vec3(1.0f, 1.0f, 1.0f));
@@ -135,7 +138,7 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
     objects.push_back(militaryZone);
     rigidBodies.push_back(militaryZone->getRigidBody());
     dynamicsWorld->addRigidBody(militaryZone->getRigidBody());
-
+*/
 
     Model *dwarf = new Model(assetManager, 10, "./Data/Models/Dwarf/dwarf.x");
     dwarf->addTranslate(glm::vec3(-3.0f, 6.5f, -3.0f));
@@ -176,13 +179,14 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
     guiLayers.push_back(layer1);
 
     Light *light;
-/*
+
     light = new Light(Light::POINT, glm::vec3(1.0f, 6.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f));
     lights.push_back(light);
 /*
     light = new Light(Light::POINT, glm::vec3(8.0f, 6.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f));
     lights.push_back(light);
 */
+
     light = new Light(Light::DIRECTIONAL, glm::vec3(-25.0f, 50.0f, -25.0f), glm::vec3(0.7f, 0.7f, 0.7f));
     lights.push_back(light);
 
@@ -308,6 +312,11 @@ void World::render() {
         (*it)->render();
     }
     dynamicsWorld->debugDrawWorld();
+    //debugDrawer->drawLine(btVector3(0,0,-3),btVector3(0,250,-3),btVector3(1,1,1));
+
+    debugDrawer->flushDraws();
+
+
 
     //since gui uses blending, everything must be already rendered.
     // Also, since gui elements only depth test each other, clear depth buffer
@@ -315,7 +324,7 @@ void World::render() {
     for (std::vector<GUILayer *>::iterator it = guiLayers.begin(); it != guiLayers.end(); ++it) {
         (*it)->render();
     }
-    //debugDrawer->drawLine(btVector3(0,0,-3),btVector3(0,250,-3),btVector3(1,1,1));
+
 }
 
 World::~World() {
