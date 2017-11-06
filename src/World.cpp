@@ -34,7 +34,7 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
     shadowMapProgramPoint = new GLSLProgram(glHelper, "./Data/Shaders/ShadowMap/vertexPoint.glsl",
                                             "./Data/Shaders/ShadowMap/geometryPoint.glsl",
                                             "./Data/Shaders/ShadowMap/fragmentPoint.glsl", false);
-    shadowMapProgramPoint->setUniform("farPlanePoint", 100.0f);//FIXME this should be an option
+    shadowMapProgramPoint->setUniform("farPlanePoint", options->getLightPerspectiveProjectionValues().z);
 
     Model *crate = new Model(assetManager, "./Data/Models/Box/Box.obj");
     crate->addScale(glm::vec3(250.0f, 1.0f, 250.0f));
