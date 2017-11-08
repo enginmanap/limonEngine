@@ -15,6 +15,7 @@ TODO
 6) Debug draw should be improved
 	* Performance must be better. It is not working as it should right now
 	* needs to have some other debug shapes, like sphere
+	* Some cases might require a duration
 7) There are points that does not use time provided by main loop. everthing should use it.
 8) switching to game time required. or how are we going to pause the game?
 9) a loading screen is needed. Right now if a map takes several seconds, only a white screen is shown
