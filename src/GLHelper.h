@@ -36,13 +36,16 @@ class GLSLProgram;
 struct Line {
     glm::vec3 from;
     glm::vec3 fromColor;
+    int needsCameraTransform;//FIXME This variable is repeated, because it must be per vertex. Maybe we can share int as bytes.
     glm::vec3 to;
     glm::vec3 toColor;
+    int needsCameraTransform2;//this is the other one
 
     Line(const glm::vec3 &from,
          const glm::vec3 &to,
          const glm::vec3 &fromColor,
-         const glm::vec3 &toColor): from(from), to(to), fromColor(fromColor), toColor(toColor){};
+         const glm::vec3 &toColor,
+         const bool needsCameraTransform): from(from), to(to), fromColor(fromColor), toColor(toColor), needsCameraTransform(needsCameraTransform), needsCameraTransform2(needsCameraTransform){};
 };
 
 class GLHelper {
@@ -269,9 +272,6 @@ public:
     void createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize);
 
     void drawLines(GLSLProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines);
-
-    void drawLine(const glm::vec3 &from, const glm::vec3 &to,
-                  const glm::vec3 &fromColor, const glm::vec3 &toColor, bool willTransform);
 
     void clearDepthBuffer() {
         glClear(GL_DEPTH_BUFFER_BIT);

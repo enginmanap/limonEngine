@@ -7,6 +7,7 @@
 
 
 #include "Renderable.h"
+#include "BulletDebugDrawer.h"
 
 class GUIRenderable : public Renderable {
     std::vector<glm::vec3> vertices;
@@ -33,7 +34,7 @@ public:
         scale.y *= height;
     }
 
-    virtual void renderDebug();
+    virtual void renderDebug(BulletDebugDrawer *debugDrawer);
 
     float getWidth() { return scale.x; }
 

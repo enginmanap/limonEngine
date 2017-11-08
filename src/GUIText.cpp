@@ -7,6 +7,7 @@
 GUIText::GUIText(GLHelper *glHelper, Face *face, const std::string text, const glm::vec3 color) :
         GUIRenderable(glHelper), color(color.x / 256, color.y / 256, color.z / 256), face(face), text(text), height(0),
         width(0), bearingUp(0) {
+
     //calculate the size of text. This also force glyph load.
 
     int up = 0;
@@ -99,23 +100,23 @@ void GUIText::render() {
 
 }
 
-void GUIText::renderDebug() {
+void GUIText::renderDebug(BulletDebugDrawer *debugDrawer) {
     glm::mat4 orthogonalPM = glHelper->getOrthogonalProjectionMatrix();
 
     glm::mat4 transform = (orthogonalPM * getWorldTransform());
 
-    glm::vec4 upLeft = (transform * glm::vec4(-width / 2, height / 2 - bearingUp, 0.0f, 1.0f));
-    glm::vec4 upRight = (transform * glm::vec4(width / 2, height / 2 - bearingUp, 0.0f, 1.0f));
-    glm::vec4 downLeft = (transform * glm::vec4(-width / 2, -height / 2 - bearingUp, 0.0f, 1.0f));
-    glm::vec4 downRight = (transform * glm::vec4(width / 2, -height / 2 - bearingUp, 0.0f, 1.0f));
+    glm::vec4 upLeft = (transform * glm::vec4(-width / 2.0f, height / 2.0f - bearingUp, 0.0f, 1.0f));
+    glm::vec4 upRight = (transform * glm::vec4(width / 2.0f, height / 2.0f - bearingUp, 0.0f, 1.0f));
+    glm::vec4 downLeft = (transform * glm::vec4(-width / 2.0f, -height / 2.0f - bearingUp, 0.0f, 1.0f));
+    glm::vec4 downRight = (transform * glm::vec4(width / 2.0f, -height / 2.0f - bearingUp, 0.0f, 1.0f));
 
-    glHelper->drawLine(glm::vec3(upLeft.x, upLeft.y, upLeft.z), glm::vec3(upRight.x, upRight.y, upRight.z),
+    debugDrawer->drawLine(glm::vec3(upLeft.x, upLeft.y, upLeft.z), glm::vec3(upRight.x, upRight.y, upRight.z),
                        glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), false);
-    glHelper->drawLine(glm::vec3(downLeft.x, downLeft.y, downLeft.z), glm::vec3(downRight.x, downRight.y, downRight.z),
+    debugDrawer->drawLine(glm::vec3(downLeft.x, downLeft.y, downLeft.z), glm::vec3(downRight.x, downRight.y, downRight.z),
                        glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), false);
-    glHelper->drawLine(glm::vec3(upLeft.x, upLeft.y, upLeft.z), glm::vec3(downLeft.x, downLeft.y, downLeft.z),
+    debugDrawer->drawLine(glm::vec3(upLeft.x, upLeft.y, upLeft.z), glm::vec3(downLeft.x, downLeft.y, downLeft.z),
                        glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), false);
-    glHelper->drawLine(glm::vec3(upRight.x, upRight.y, upRight.z), glm::vec3(downRight.x, downRight.y, downRight.z),
+    debugDrawer->drawLine(glm::vec3(upRight.x, upRight.y, upRight.z), glm::vec3(downRight.x, downRight.y, downRight.z),
                        glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), false);
     //per glyph debug render:
 
@@ -159,14 +160,14 @@ void GUIText::renderDebug() {
         downLeft = (transform * glm::vec4(-1.0f, -1.0f, 0.0f, 1.0f));
         downRight = (transform * glm::vec4(1.0f, -1.0f, 0.0f, 1.0f));
 
-        glHelper->drawLine(glm::vec3(upLeft.x, upLeft.y, upLeft.z), glm::vec3(upRight.x, upRight.y, upRight.z),
+        debugDrawer->drawLine(glm::vec3(upLeft.x, upLeft.y, upLeft.z), glm::vec3(upRight.x, upRight.y, upRight.z),
                            glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), false);
-        glHelper->drawLine(glm::vec3(downLeft.x, downLeft.y, downLeft.z),
+        debugDrawer->drawLine(glm::vec3(downLeft.x, downLeft.y, downLeft.z),
                            glm::vec3(downRight.x, downRight.y, downRight.z), glm::vec3(1.0f, 0.0f, 0.0f),
                            glm::vec3(1.0f, 0.0f, 0.0f), false);
-        glHelper->drawLine(glm::vec3(upLeft.x, upLeft.y, upLeft.z), glm::vec3(downLeft.x, downLeft.y, downLeft.z),
+        debugDrawer->drawLine(glm::vec3(upLeft.x, upLeft.y, upLeft.z), glm::vec3(downLeft.x, downLeft.y, downLeft.z),
                            glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), false);
-        glHelper->drawLine(glm::vec3(upRight.x, upRight.y, upRight.z), glm::vec3(downRight.x, downRight.y, downRight.z),
+        debugDrawer->drawLine(glm::vec3(upRight.x, upRight.y, upRight.z), glm::vec3(downRight.x, downRight.y, downRight.z),
                            glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), false);
     }
 

@@ -30,7 +30,7 @@ public:
 
     virtual void render();
 
-    void renderDebug();
+    void renderDebug(BulletDebugDrawer *debugDrawer);
 };
 
 

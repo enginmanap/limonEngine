@@ -5,12 +5,12 @@
 #include "BulletDebugDrawer.h"
 
 
-void BulletDebugDrawer::drawLine(const btVector3 &from, const btVector3 &to, const btVector3 &fromColor,
-                                 const btVector3 &toColor) {
-    lineBuffer.push_back(Line(GLMConverter::BltToGLM(from),
-                              GLMConverter::BltToGLM(to),
-                              GLMConverter::BltToGLM(fromColor),
-                              GLMConverter::BltToGLM(toColor)));
+void BulletDebugDrawer::drawLine(const glm::vec3 &from, const glm::vec3 &to, const glm::vec3 &fromColor,
+                                 const glm::vec3 &toColor, bool needsCameraTransform) {
+    lineBuffer.push_back(Line(from,
+                              to,
+                              fromColor,
+                              toColor, needsCameraTransform));
     if(lineBuffer.size() == options->getDebugDrawBufferSize()) {
       flushDraws();
     }

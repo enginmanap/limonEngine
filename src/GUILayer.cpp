@@ -10,7 +10,7 @@ void GUILayer::render() {
     }
     if (isDebug) {
         for (std::vector<GUIRenderable *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
-            (*it)->renderDebug();
+            (*it)->renderDebug(debugDrawer);
         }
     }
 }

@@ -22,7 +22,7 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
     dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
     //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
 
-    GUILayer *layer1 = new GUILayer(glHelper, 1);
+    GUILayer *layer1 = new GUILayer(glHelper, debugDrawer, 1);
     layer1->setDebug(false);
     // end of physics init
 
@@ -167,7 +167,7 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
     tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "Version 0.2",
                      glm::vec3(255, 255, 255));
     //tr->setScale(0.25f,0.25f);
-    tr->set2dWorldTransform(glm::vec2(1024 - 20, 100), -3.14f / 2);
+    tr->set2dWorldTransform(glm::vec2(1024 - 50, 100), 0.0f);
     layer1->addGuiElement(tr);
 
 
@@ -206,6 +206,7 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 
     //end of physics step
 
+    //FIXME this ray code looks like leftover from camera code seperation
     btCollisionWorld::ClosestRayResultCallback RayCallback(btVector3(0, 0, 0), btVector3(0, 25, -3));
 
 // Perform raycast
@@ -311,6 +312,7 @@ void World::render() {
     for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
         (*it)->render();
     }
+
     dynamicsWorld->debugDrawWorld();
     //debugDrawer->drawLine(btVector3(0,0,-3),btVector3(0,250,-3),btVector3(1,1,1));
 
@@ -321,9 +323,11 @@ void World::render() {
     //since gui uses blending, everything must be already rendered.
     // Also, since gui elements only depth test each other, clear depth buffer
     glHelper->clearDepthBuffer();
+
     for (std::vector<GUILayer *>::iterator it = guiLayers.begin(); it != guiLayers.end(); ++it) {
         (*it)->render();
     }
+
 
 }
 
@@ -342,6 +346,7 @@ World::~World() {
         delete (*it);
     }
 
+    delete debugDrawer;
     delete dynamicsWorld;
     delete solver;
     delete collisionConfiguration;

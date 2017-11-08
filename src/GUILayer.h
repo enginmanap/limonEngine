@@ -10,12 +10,13 @@
 
 class GUILayer {
     GLHelper *glHelper;
+    BulletDebugDrawer* debugDrawer;
     int level;
     bool isDebug;
     std::vector<GUIRenderable *> guiElements;
 
 public:
-    GUILayer(GLHelper *glHelper, int level) : glHelper(glHelper), level(level), isDebug(false) { };
+    GUILayer(GLHelper *glHelper, BulletDebugDrawer* debugDrawer, int level) : glHelper(glHelper), debugDrawer(debugDrawer), level(level), isDebug(false) { };
 
     int getLevel() { return level; }
 

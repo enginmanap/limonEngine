@@ -720,10 +720,12 @@ void GLHelper::createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSi
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(Line), NULL, GL_DYNAMIC_DRAW);
     //glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize, vertexData);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 24, NULL); //position
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 24, (void*)12); //color
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 28, NULL); //position
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 28, (void*)12); //color
+    glVertexAttribPointer(2, 1, GL_INT,  GL_FALSE, 28, (void*)24); //needsCameraTransform
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     checkErrors("createDebugVAOVBO");
@@ -752,58 +754,6 @@ void GLHelper::drawLines(GLSLProgram &program, uint32_t vao, uint32_t vbo, const
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     checkErrors("drawLines");
-}
-
-/**
- * This is pretty low performance, but it is used only for debugging physics, so it is good enough
- */
-void GLHelper::drawLine(const glm::vec3 &from, const glm::vec3 &to,
-                        const glm::vec3 &fromColor, const glm::vec3 &toColor, bool willTransform) {
-    static GLuint program, viewTransformU, lineInfoU, vao, vbo;
-    static std::map<std::string, Uniform*> uniformMap;//FIXME That map will always be empty, maybe we should overload
-    if (program == 0 || vbo == 0 || vao == 0) {
-        program = initializeProgram("./Data/Shaders/Line/vertex.glsl", std::string(),
-                                    "./Data/Shaders/Line/fragment.glsl", uniformMap);
-        lineInfoU = glGetUniformLocation(program, "lineInfo");
-        viewTransformU = glGetUniformLocation(program, "cameraTransformMatrix");
-        state->setProgram(program);
-        vbo = generateBuffer(1);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-        std::vector<GLint> indexes;
-        indexes.push_back(0);
-        indexes.push_back(1);
-        glBufferData(GL_ARRAY_BUFFER, indexes.size() * sizeof(GLint), indexes.data(), GL_STATIC_DRAW);
-
-        //this means the vao is not created yet.
-        glGenVertexArrays(1, &vao);
-        glBindVertexArray(vao);
-        //stride means the space between start of 2 elements. 0 is special, means the space is equal to size.
-        glVertexAttribPointer(0, 1, GL_INT, GL_FALSE, 0, 0);
-        glEnableVertexAttribArray(0);
-    }
-    state->setProgram(program);
-    glm::mat4 matrix(glm::vec4(from, 1.0f),
-                     glm::vec4(to, 1.0f),
-                     glm::vec4(fromColor, 1.0f),
-                     glm::vec4(toColor, 1.0f));
-
-    glUniformMatrix4fv(lineInfoU, 1, GL_FALSE, glm::value_ptr(matrix));
-
-    if (willTransform) {
-        glUniformMatrix4fv(viewTransformU, 1, GL_FALSE, glm::value_ptr(perspectiveProjectionMatrix * cameraMatrix));
-    } else {
-        glUniformMatrix4fv(viewTransformU, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0)));
-    }
-
-    glBindVertexArray(vao);
-
-    glDrawArrays(GL_LINES, 0, 2);
-
-    glBindVertexArray(0);
-    //state->setProgram(0);
-    checkErrors("drawLine");
-
 }
 
 void GLHelper::setLight(const Light &light, const int i) {

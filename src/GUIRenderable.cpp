@@ -26,7 +26,7 @@ GUIRenderable::GUIRenderable(GLHelper *glHelper) : Renderable(glHelper) {
     renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/GUI/vertex.glsl", "./Data/Shaders/GUI/fragment.glsl", false);
 }
 
-void GUIRenderable::renderDebug() {
+void GUIRenderable::renderDebug(BulletDebugDrawer* debugDrawer) {
     float up = translate.y + scale.y;
     float down = translate.y - scale.y;
 
@@ -34,12 +34,12 @@ void GUIRenderable::renderDebug() {
     float left = translate.x - scale.x;
 
     //now build 4 lines;
-    glHelper->drawLine(glm::vec3(left, up, 0.0f), glm::vec3(left, down, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
+    debugDrawer->drawLine(glm::vec3(left, up, 0.0f), glm::vec3(left, down, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
                        glm::vec3(1.0f, 1.0f, 1.0f), false);
-    glHelper->drawLine(glm::vec3(right, up, 0.0f), glm::vec3(right, down, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
+    debugDrawer->drawLine(glm::vec3(right, up, 0.0f), glm::vec3(right, down, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
                        glm::vec3(1.0f, 1.0f, 1.0f), false);
-    glHelper->drawLine(glm::vec3(left, up, 0.0f), glm::vec3(right, up, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
+    debugDrawer->drawLine(glm::vec3(left, up, 0.0f), glm::vec3(right, up, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
                        glm::vec3(1.0f, 1.0f, 1.0f), false);
-    glHelper->drawLine(glm::vec3(left, down, 0.0f), glm::vec3(right, down, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
+    debugDrawer->drawLine(glm::vec3(left, down, 0.0f), glm::vec3(right, down, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
                        glm::vec3(1.0f, 1.0f, 1.0f), false);
 }
