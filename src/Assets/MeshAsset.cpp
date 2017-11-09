@@ -48,11 +48,16 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
              * Assimp has a bone array with weight lists for vertices,
              * we need a vertex array with weight list for bones.
              * This loop should generate that
+             *
+             * ADDITION
+             * I want to split BulletCollition meshes to move them with real mesh, for that
+             * I will use this information
              */
             for (uint_fast32_t k = 0; k < currentMesh->mBones[j]->mNumWeights; ++k) {
                 if(currentMesh->mBones[j]->mWeights[k].mWeight > 0.0f) {
                     addWeightToVertex(boneID, currentMesh->mBones[j]->mWeights[k].mVertexId,
                                       currentMesh->mBones[j]->mWeights[k].mWeight);
+                    boneAttachedMeshes[boneID].push_back(currentMesh->mBones[j]->mWeights[k].mVertexId);
                 }
             }
 
@@ -133,20 +138,42 @@ bool MeshAsset::addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, flo
     return false;
 }
 
-btTriangleMesh * MeshAsset::getBulletMesh() {
+/**
+ * this should return either a map of boneid<->hull or if no animation btTriangleMesh.
+ * this way, we can use animation transforms to move the individual hulls with the bones.
+ * @param compoundShape
+ * @return
+ */
+btTriangleMesh *MeshAsset::getBulletMesh(std::map<uint_fast32_t, btConvexHullShape *> *hullMap,
+                                         std::map<uint_fast32_t, btTransform> *parentTransformMap) {
     //Turns out bullet shapes does not copy meshes, so we should return a copy, not the original;
     btTriangleMesh *copyMesh = new btTriangleMesh();
     if(!isPartOfAnimated) {
+        //if not part of an animation, than we don't need to split based on bones
         for (int j = 0; j < faces.size(); ++j) {
             copyMesh->addTriangle(GLMConverter::GLMToBlt(glm::vec4(vertices[faces[j][0]], 1.0f)),
                                   GLMConverter::GLMToBlt(glm::vec4(vertices[faces[j][1]], 1.0f)),
                                   GLMConverter::GLMToBlt(glm::vec4(vertices[faces[j][2]], 1.0f)));
         }
     } else {
-        for (int j = 0; j < faces.size(); ++j) {
-            copyMesh->addTriangle(GLMConverter::GLMToBlt(parentTransform * glm::vec4(vertices[faces[j][0]], 1.0f)),
-                                  GLMConverter::GLMToBlt(parentTransform * glm::vec4(vertices[faces[j][1]], 1.0f)),
-                                  GLMConverter::GLMToBlt(parentTransform * glm::vec4(vertices[faces[j][2]], 1.0f)));
+        //in this case, we don't use faces directly, instead we use per bone vertex information.
+        std::map<uint_fast32_t, std::vector<uint_fast32_t >>::iterator it;
+        for (it = boneAttachedMeshes.begin(); it != boneAttachedMeshes.end(); it++) {
+            btConvexHullShape *hullshape = new btConvexHullShape();
+            for (int index = 0; index < it->second.size(); index++) {
+                hullshape->addPoint(GLMConverter::GLMToBlt(vertices[it->second[index]]));
+            }
+            btShapeHull *hull = new btShapeHull(hullshape);
+            btScalar margin = hullshape->getMargin();
+            hull->buildHull(margin);
+            delete hullshape;
+            hullshape = NULL;
+
+            hullshape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
+                                              hull->numVertices());
+            (*hullMap)[it->first] = hullshape;
+            (*parentTransformMap)[it->first].setFromOpenGLMatrix(
+                    (const btScalar *) (const float *) glm::value_ptr(parentTransform));
         }
     }
     shapeCopies.push_back(copyMesh);

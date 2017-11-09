@@ -21,9 +21,12 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
     btTransform emptyTransform(btQuaternion(0, 0, 0, 1));
 
     this->animated = modelAsset->isAnimated();
+    std::map<uint_fast32_t, btConvexHullShape *> hullMap;
+    std::map<uint_fast32_t, btTransform> btTransformMap;
 
     MeshMeta *meshMeta;
     std::vector<MeshAsset *> assetMeshes = modelAsset->getMeshes();
+
     for (std::vector<MeshAsset *>::iterator iter = assetMeshes.begin(); iter != assetMeshes.end(); ++iter) {
 
         meshMeta = new MeshMeta();
@@ -41,28 +44,37 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
                                                 "./Data/Shaders/Model/fragment.glsl", true);
         }
         meshes.push_back(meshMeta);
-        btTriangleMesh *rawCollisionMesh = (*iter)->getBulletMesh();
-        btCollisionShape* meshCollisionShape;
-        btConvexTriangleMeshShape* convexTriangleMeshShape;
-        if(mass == 0) {
-             meshCollisionShape = new btBvhTriangleMeshShape( rawCollisionMesh, true );
-        } else {
-            convexTriangleMeshShape = new btConvexTriangleMeshShape( rawCollisionMesh);
-            meshCollisionShape = convexTriangleMeshShape;
-             if(rawCollisionMesh->getNumTriangles() > 24) {
-                 btShapeHull *hull = new btShapeHull(convexTriangleMeshShape);
-                 btScalar margin = convexTriangleMeshShape->getMargin();
-                 hull->buildHull(margin);
-                 delete convexTriangleMeshShape;
-                 convexTriangleMeshShape = NULL;
 
-                 meshCollisionShape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
-                                                             hull->numVertices());
-             }
+        btTriangleMesh *rawCollisionMesh = (*iter)->getBulletMesh(&hullMap, &btTransformMap);
+        if (hullMap.size() == 0) {
+            btCollisionShape *meshCollisionShape;
+            btConvexTriangleMeshShape *convexTriangleMeshShape;
+            if (mass == 0) {
+                meshCollisionShape = new btBvhTriangleMeshShape(rawCollisionMesh, true);
+            } else {
+                convexTriangleMeshShape = new btConvexTriangleMeshShape(rawCollisionMesh);
+                meshCollisionShape = convexTriangleMeshShape;
+                if (rawCollisionMesh->getNumTriangles() > 24) {
+                    btShapeHull *hull = new btShapeHull(convexTriangleMeshShape);
+                    btScalar margin = convexTriangleMeshShape->getMargin();
+                    hull->buildHull(margin);
+                    delete convexTriangleMeshShape;
+                    convexTriangleMeshShape = NULL;
+
+                    meshCollisionShape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
+                                                               hull->numVertices());
+                }
+            }
+
+            //since there is no animation, we don't have to put the elements in order.
+            compoundShape->addChildShape(emptyTransform, meshCollisionShape);//this add the mesh to collition shape
         }
-
-        compoundShape->addChildShape(emptyTransform, meshCollisionShape);//this add the mesh to collition shape
     }
+    std::map<uint_fast32_t, btConvexHullShape *>::iterator it;
+    for (it = hullMap.begin(); it != hullMap.end(); it++) {
+        compoundShape->addChildShape(btTransformMap[it->first], it->second);//this add the mesh to collition shape
+    }
+
 
     btDefaultMotionState *boxMotionState = new btDefaultMotionState(
             btTransform(btQuaternion(0, 0, 0, 1), GLMConverter::GLMToBlt(centerOffset)));

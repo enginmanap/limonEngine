@@ -86,7 +86,7 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
 */
 
     Model *armyPilot = new Model(assetManager, 25, "./Data/Models/ArmyPilot/ArmyPilot.dae");
-    armyPilot->addTranslate(glm::vec3(10.0f, 2.0f, -3.0f));
+    armyPilot->addTranslate(glm::vec3(10.0f, 10.0f, -3.0f));
     armyPilot->addScale(glm::vec3(2.0f,2.0f,2.0f));
     armyPilot->getWorldTransform();
     objects.push_back(armyPilot);

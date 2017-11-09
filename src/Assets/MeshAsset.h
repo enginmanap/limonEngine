@@ -28,6 +28,8 @@ class MeshAsset {
     std::vector<glm::mediump_uvec3> faces;
     std::vector<glm::vec2> textureCoordinates;
 
+    std::map<uint_fast32_t, std::vector<uint_fast32_t >> boneAttachedMeshes;
+
     const BoneNode *skeleton;
     std::map<std::string, uint_fast32_t> boneIdMap;
 
@@ -57,7 +59,8 @@ public:
 
     uint_fast32_t getEbo() const { return ebo; }
 
-    btTriangleMesh * getBulletMesh();
+    btTriangleMesh *getBulletMesh(std::map<uint_fast32_t, btConvexHullShape *> *hullMap,
+                                  std::map<uint_fast32_t, btTransform> *parentTransformMap);
 
     bool addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, float weight);
 
