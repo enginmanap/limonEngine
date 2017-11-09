@@ -50,7 +50,7 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
              * This loop should generate that
              *
              * ADDITION
-             * I want to split BulletCollition meshes to move them with real mesh, for that
+             * I want to split BulletCollision meshes to move them with real mesh, for that
              * I will use this information
              */
             for (uint_fast32_t k = 0; k < currentMesh->mBones[j]->mNumWeights; ++k) {
@@ -147,14 +147,16 @@ bool MeshAsset::addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, flo
 btTriangleMesh *MeshAsset::getBulletMesh(std::map<uint_fast32_t, btConvexHullShape *> *hullMap,
                                          std::map<uint_fast32_t, btTransform> *parentTransformMap) {
     //Turns out bullet shapes does not copy meshes, so we should return a copy, not the original;
-    btTriangleMesh *copyMesh = new btTriangleMesh();
+    btTriangleMesh *copyMesh = NULL;
     if(!isPartOfAnimated) {
+        copyMesh = new btTriangleMesh();
         //if not part of an animation, than we don't need to split based on bones
         for (int j = 0; j < faces.size(); ++j) {
             copyMesh->addTriangle(GLMConverter::GLMToBlt(glm::vec4(vertices[faces[j][0]], 1.0f)),
                                   GLMConverter::GLMToBlt(glm::vec4(vertices[faces[j][1]], 1.0f)),
                                   GLMConverter::GLMToBlt(glm::vec4(vertices[faces[j][2]], 1.0f)));
         }
+        shapeCopies.push_back(copyMesh);
     } else {
         //in this case, we don't use faces directly, instead we use per bone vertex information.
         std::map<uint_fast32_t, std::vector<uint_fast32_t >>::iterator it;
@@ -171,12 +173,12 @@ btTriangleMesh *MeshAsset::getBulletMesh(std::map<uint_fast32_t, btConvexHullSha
 
             hullshape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
                                               hull->numVertices());
+            //FIXME clear memory leak here, no one deletes this shapes.
             (*hullMap)[it->first] = hullshape;
-            (*parentTransformMap)[it->first].setFromOpenGLMatrix(
-                    (const btScalar *) (const float *) glm::value_ptr(parentTransform));
+            (*parentTransformMap)[it->first].setFromOpenGLMatrix(glm::value_ptr(parentTransform));
         }
+
     }
-    shapeCopies.push_back(copyMesh);
     return copyMesh;
 }
 

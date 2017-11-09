@@ -93,6 +93,14 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
     rigidBodies.push_back(armyPilot->getRigidBody());
     dynamicsWorld->addRigidBody(armyPilot->getRigidBody());
 
+
+    crate = new Model(assetManager, 50, "./Data/Models/testAnim/animatedBoxes.dae");
+    crate->addTranslate(glm::vec3(10.0f, 10.5f, 15.0f));
+    crate->getWorldTransform();
+    objects.push_back(crate);
+    rigidBodies.push_back(crate->getRigidBody());
+    dynamicsWorld->addRigidBody(crate->getRigidBody());
+
     crate = new Model(assetManager, 5, "./Data/Models/Box/Box.obj");
     crate->addTranslate(glm::vec3(-3.0f, 2.5f, -3.0f));
     crate->getWorldTransform();

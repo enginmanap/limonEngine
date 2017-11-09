@@ -33,8 +33,10 @@ class Model : public PhysicalRenderable {
 
     AssetManager *assetManager;
     ModelAsset *modelAsset;
+    std::string name;
     bool animated;
     std::vector<glm::mat4> boneTransforms;
+    std::map<uint_fast32_t, uint_fast32_t> boneIdCompoundChildMap;
 
     std::vector<MeshMeta *> meshes;
 

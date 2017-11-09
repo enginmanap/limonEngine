@@ -6,7 +6,7 @@
 
 
 Model::Model(AssetManager *assetManager, const float mass, const std::string &modelFile) :
-        PhysicalRenderable(assetManager->getGlHelper()) {
+        PhysicalRenderable(assetManager->getGlHelper()), name(modelFile) {
 
     //this is required because the shader has fixed size arrays
     boneTransforms.resize(128);
@@ -17,11 +17,12 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
     this->ebo = 0;//these are not per Model, but per Mesh
     this->centerOffset = modelAsset->getCenterOffset();
 
-    btCompoundShape *compoundShape = new btCompoundShape();
+    compoundShape = new btCompoundShape();
     btTransform emptyTransform(btQuaternion(0, 0, 0, 1));
 
     this->animated = modelAsset->isAnimated();
     std::map<uint_fast32_t, btConvexHullShape *> hullMap;
+
     std::map<uint_fast32_t, btTransform> btTransformMap;
 
     MeshMeta *meshMeta;
@@ -46,7 +47,7 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
         meshes.push_back(meshMeta);
 
         btTriangleMesh *rawCollisionMesh = (*iter)->getBulletMesh(&hullMap, &btTransformMap);
-        if (hullMap.size() == 0) {
+        if (rawCollisionMesh != NULL) {
             btCollisionShape *meshCollisionShape;
             btConvexTriangleMeshShape *convexTriangleMeshShape;
             if (mass == 0) {
@@ -65,14 +66,24 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
                                                                hull->numVertices());
                 }
             }
-
             //since there is no animation, we don't have to put the elements in order.
             compoundShape->addChildShape(emptyTransform, meshCollisionShape);//this add the mesh to collition shape
         }
     }
-    std::map<uint_fast32_t, btConvexHullShape *>::iterator it;
-    for (it = hullMap.begin(); it != hullMap.end(); it++) {
-        compoundShape->addChildShape(btTransformMap[it->first], it->second);//this add the mesh to collition shape
+
+    if (animated) {
+        std::map<uint_fast32_t, btConvexHullShape *>::iterator it;
+        for (int i = 0;
+             i < 128; i++) {//FIXME 128 is the number of bones supported. It should be an option or an constant
+            if (btTransformMap.find(i) == btTransformMap.end() || hullMap.find(i) == hullMap.end()) {
+                std::cerr << name << " transform map or hull map does not have element " << i << std::endl;
+            }
+            if (btTransformMap.find(i) != btTransformMap.end() && hullMap.find(i) != hullMap.end()) {
+                boneIdCompoundChildMap[i] = compoundShape->getNumChildShapes();
+                compoundShape->addChildShape(btTransformMap[i], hullMap[i]);//this add the mesh to collision shape
+
+            }
+        }
     }
 
 
@@ -99,6 +110,17 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
 void Model::setupForTime(long time) {
     if(animated) {
         modelAsset->getTransform(time, boneTransforms);
+        btVector3 scale = this->getRigidBody()->getCollisionShape()->getLocalScaling();
+        this->getRigidBody()->getCollisionShape()->setLocalScaling(btVector3(1, 1, 1));
+        for (int i = 0; i < boneTransforms.size(); ++i) {
+            if (boneIdCompoundChildMap.find(i) != boneIdCompoundChildMap.end()) {
+                btTransform transform;
+                transform.setFromOpenGLMatrix(glm::value_ptr(boneTransforms[i]));
+
+                compoundShape->updateChildTransform(boneIdCompoundChildMap[i], transform);
+            }
+        }
+        this->getRigidBody()->getCollisionShape()->setLocalScaling(scale);
     }
 }
 
