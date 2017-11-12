@@ -75,9 +75,6 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
         std::map<uint_fast32_t, btConvexHullShape *>::iterator it;
         for (int i = 0;
              i < 128; i++) {//FIXME 128 is the number of bones supported. It should be an option or an constant
-            if (btTransformMap.find(i) == btTransformMap.end() || hullMap.find(i) == hullMap.end()) {
-                std::cerr << name << " transform map or hull map does not have element " << i << std::endl;
-            }
             if (btTransformMap.find(i) != btTransformMap.end() && hullMap.find(i) != hullMap.end()) {
                 boneIdCompoundChildMap[i] = compoundShape->getNumChildShapes();
                 compoundShape->addChildShape(btTransformMap[i], hullMap[i]);//this add the mesh to collision shape
