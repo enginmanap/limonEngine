@@ -36,125 +36,9 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
                                             "./Data/Shaders/ShadowMap/fragmentPoint.glsl", false);
     shadowMapProgramPoint->setUniform("farPlanePoint", options->getLightPerspectiveProjectionValues().z);
 
-    Model *crate = new Model(assetManager, "./Data/Models/Box/Box.obj");
-    crate->addScale(glm::vec3(250.0f, 1.0f, 250.0f));
-    crate->addTranslate(glm::vec3(-125.0f, 0.0f, 125.0f));
-    crate->addOrientation(glm::quat(0.0f, 0.0f, 1.0f, 0.2f));
-    crate->getWorldTransform();
-    objects.push_back(crate);
-    rigidBodies.push_back(crate->getRigidBody());
-    dynamicsWorld->addRigidBody(crate->getRigidBody());
-
-
-    crate = new Model(assetManager, 1, "./Data/Models/Box/Box.obj");
-    crate->addTranslate(glm::vec3(2.0f, 25.0f, -3.0f));
-    crate->getWorldTransform();
-    objects.push_back(crate);
-    rigidBodies.push_back(crate->getRigidBody());
-    dynamicsWorld->addRigidBody(crate->getRigidBody());
-
-
-    crate = new Model(assetManager, 1, "./Data/Models/Box/Box.obj");
-    crate->addTranslate(glm::vec3(-2.0f, 23.0f, -3.0f));
-    crate->getWorldTransform();
-    objects.push_back(crate);
-    rigidBodies.push_back(crate->getRigidBody());
-    dynamicsWorld->addRigidBody(crate->getRigidBody());
-
-    crate = new Model(assetManager, 1, "./Data/Models/Box/Box.obj");
-    crate->addTranslate(glm::vec3(2.0f, 23.0f, -3.0f));
-    crate->getWorldTransform();
-    objects.push_back(crate);
-    rigidBodies.push_back(crate->getRigidBody());
-    dynamicsWorld->addRigidBody(crate->getRigidBody());
-
-    crate = new Model(assetManager, 1, "./Data/Models/Box/Box.obj");
-    crate->addTranslate(glm::vec3(3.25f, 2.0f, -3.0f));
-    crate->getWorldTransform();
-    objects.push_back(crate);
-    rigidBodies.push_back(crate->getRigidBody());
-    dynamicsWorld->addRigidBody(crate->getRigidBody());
-
-/*
-    Model *mario = new Model(assetManager, 100, "./Data/Models/Mario/Mario_obj.obj");
-    mario->addTranslate(glm::vec3(5.0f, 23.0f, -3.0f));
-    mario->addScale(glm::vec3(0.25f, 0.25f, 0.25f));
-    mario->getWorldTransform();
-    objects.push_back(mario);
-    rigidBodies.push_back(mario->getRigidBody());
-    dynamicsWorld->addRigidBody(mario->getRigidBody());
-*/
-
-    Model *armyPilot = new Model(assetManager, 25, "./Data/Models/ArmyPilot/ArmyPilot.dae");
-    armyPilot->addTranslate(glm::vec3(10.0f, 10.0f, -3.0f));
-    armyPilot->addScale(glm::vec3(2.0f,2.0f,2.0f));
-    armyPilot->getWorldTransform();
-    objects.push_back(armyPilot);
-    rigidBodies.push_back(armyPilot->getRigidBody());
-    dynamicsWorld->addRigidBody(armyPilot->getRigidBody());
-
-
-    crate = new Model(assetManager, 50, "./Data/Models/testAnim/animatedBoxes.dae");
-    crate->addTranslate(glm::vec3(10.0f, 10.5f, 15.0f));
-    crate->getWorldTransform();
-    objects.push_back(crate);
-    rigidBodies.push_back(crate->getRigidBody());
-    dynamicsWorld->addRigidBody(crate->getRigidBody());
-
-    crate = new Model(assetManager, 5, "./Data/Models/Box/Box.obj");
-    crate->addTranslate(glm::vec3(-3.0f, 2.5f, -3.0f));
-    crate->getWorldTransform();
-    objects.push_back(crate);
-    rigidBodies.push_back(crate->getRigidBody());
-    dynamicsWorld->addRigidBody(crate->getRigidBody());
-
-
-    crate = new Model(assetManager, 0, "./Data/Models/Box/Box.obj");
-    crate->addTranslate(glm::vec3(1.0f, 6.0f, 0.0f));
-    crate->addScale(glm::vec3(0.2f,0.2f,0.2f));
-    crate->getWorldTransform();
-    objects.push_back(crate);
-    rigidBodies.push_back(crate->getRigidBody());
-    dynamicsWorld->addRigidBody(crate->getRigidBody());
-
-
-    Model *wall= new Model(assetManager, 0, "./Data/Models/Wall/archandwalls.FBX");
-    wall->addTranslate(glm::vec3(10.0f, 0.0f, 10.0f));
-    wall->addScale(glm::vec3(0.05f, 0.05f, 0.05f));
-    wall->addOrientation(glm::quat(0,0.7f,0,0.7f));
-    wall->getWorldTransform();
-    objects.push_back(wall);
-    rigidBodies.push_back(wall->getRigidBody());
-    dynamicsWorld->addRigidBody(wall->getRigidBody());
-
-/*
-    Model *shanghai= new Model(assetManager, 0, "./Data/Models/shanghai/shanghai.obj");
-    shanghai->addTranslate(glm::vec3(10.0f, 0.0f, 10.0f));
-    shanghai->addScale(glm::vec3(0.02f, 0.02f, 0.02f));
-    shanghai->getWorldTransform();
-    objects.push_back(shanghai);
-    rigidBodies.push_back(shanghai->getRigidBody());
-    dynamicsWorld->addRigidBody(shanghai->getRigidBody());
-*/
-
-/*
-    Model *militaryZone= new Model(assetManager, 0, "./Data/Models/MilitaryZone/MilitaryZone.obj");
-    militaryZone->addTranslate(glm::vec3(-40.0f, 0.0f, 10.0f));
-    militaryZone->addScale(glm::vec3(1.0f, 1.0f, 1.0f));
-    //tavern->addOrientation(glm::quat(0,0.7f,0,0.7f));
-    militaryZone->getWorldTransform();
-    objects.push_back(militaryZone);
-    rigidBodies.push_back(militaryZone->getRigidBody());
-    dynamicsWorld->addRigidBody(militaryZone->getRigidBody());
-*/
-
-    Model *dwarf = new Model(assetManager, 10, "./Data/Models/Dwarf/dwarf.x");
-    dwarf->addTranslate(glm::vec3(-3.0f, 6.5f, -3.0f));
-    dwarf->addScale(glm::vec3(0.04f, 0.04f, 0.04f));
-    dwarf->getWorldTransform();
-    objects.push_back(dwarf);
-    rigidBodies.push_back(dwarf->getRigidBody());
-    dynamicsWorld->addRigidBody(dwarf->getRigidBody());
+    if(!loadMapFromXML()) {
+        exit(-1);
+    }
 
     sky = new SkyBox(assetManager,
                      std::string("./Data/Textures/Skyboxes/ThickCloudsWater"),
@@ -190,10 +74,6 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
 
     light = new Light(Light::POINT, glm::vec3(1.0f, 6.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f));
     lights.push_back(light);
-/*
-    light = new Light(Light::POINT, glm::vec3(8.0f, 6.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f));
-    lights.push_back(light);
-*/
 
     light = new Light(Light::DIRECTIONAL, glm::vec3(-25.0f, 50.0f, -25.0f), glm::vec3(0.7f, 0.7f, 0.7f));
     lights.push_back(light);
@@ -361,4 +241,150 @@ World::~World() {
     delete dispatcher;
     delete broadphase;
 
+}
+
+bool World::loadMapFromXML() {
+
+    tinyxml2::XMLDocument xmlDoc;
+    tinyxml2::XMLError eResult = xmlDoc.LoadFile("./Data/Maps/World001.xml");
+    if (eResult != tinyxml2::XML_SUCCESS) {
+        std::cout << "Error loading XML: " <<  eResult << std::endl;
+    }
+
+    tinyxml2::XMLNode * worldNode = xmlDoc.FirstChild();
+    if (worldNode == NULL) {
+        std::cerr << "World xml is not a valid XML." << std::endl;
+        return false;
+    }
+
+    tinyxml2::XMLElement* worldName =  worldNode->FirstChildElement("Name");
+    if (worldName == NULL) {
+        std::cerr << "World must have a name." << std::endl;
+        return false;
+    }
+    std::cout << "read name as " << worldName->GetText() << std::endl;
+
+
+    tinyxml2::XMLElement* objectsListNode =  worldNode->FirstChildElement("Objects");
+    if (objectsListNode == NULL) {
+        std::cerr << "World Must have and Objects clause." << std::endl;
+        return false;
+    }
+
+    tinyxml2::XMLElement* objectNode =  objectsListNode->FirstChildElement("Object");
+    if (objectNode == NULL) {
+        std::cerr << "World Must have at least one object." << std::endl;
+        return false;
+    }
+    Model *xmlModel;
+    tinyxml2::XMLElement* objectAttribute;
+    tinyxml2::XMLElement* objectAttributeAttribute;
+    std::string modelFile;
+    float modelMass;
+    float x,y,z,w;
+    while(objectNode != NULL) {
+        objectAttribute =  objectNode->FirstChildElement("File");
+        if (objectAttribute == NULL) {
+            std::cerr << "Object must have a source file." << std::endl;
+            return false;
+        }
+        modelFile = objectAttribute->GetText();
+        objectAttribute =  objectNode->FirstChildElement("Mass");
+        if (objectAttribute == NULL) {
+            std::cout << "Object does not have mass, assume 0." << std::endl;
+            modelMass = 0;
+        } else {
+            modelMass = std::stof(objectAttribute->GetText());
+        }
+
+        xmlModel = new Model(assetManager,modelMass, modelFile);
+
+        objectAttribute =  objectNode->FirstChildElement("Scale");
+        if (objectAttribute == NULL) {
+            std::cout << "Object does not have scale." << std::endl;
+        } else {
+            objectAttributeAttribute =  objectAttribute->FirstChildElement("X");
+            if(objectAttributeAttribute != NULL) {
+                x = std::stof(objectAttributeAttribute->GetText());
+            } else {
+                x = 1.0;
+            }
+            objectAttributeAttribute =  objectAttribute->FirstChildElement("Y");
+            if(objectAttributeAttribute != NULL) {
+                y = std::stof(objectAttributeAttribute->GetText());
+            } else {
+                y = 1.0;
+            }
+            objectAttributeAttribute =  objectAttribute->FirstChildElement("Z");
+            if(objectAttributeAttribute != NULL) {
+                z = std::stof(objectAttributeAttribute->GetText());
+            } else {
+                z = 1.0;
+            }
+            xmlModel->addScale(glm::vec3(x,y,z));
+        }
+
+        objectAttribute =  objectNode->FirstChildElement("Translate");
+        if (objectAttribute == NULL) {
+            std::cout << "Object does not have translate." << std::endl;
+        } else {
+            objectAttributeAttribute =  objectAttribute->FirstChildElement("X");
+            if(objectAttributeAttribute != NULL) {
+                x = std::stof(objectAttributeAttribute->GetText());
+            } else {
+                x = 0.0;
+            }
+            objectAttributeAttribute =  objectAttribute->FirstChildElement("Y");
+            if(objectAttributeAttribute != NULL) {
+                y = std::stof(objectAttributeAttribute->GetText());
+            } else {
+                y = 0.0;
+            }
+            objectAttributeAttribute =  objectAttribute->FirstChildElement("Z");
+            if(objectAttributeAttribute != NULL) {
+                z = std::stof(objectAttributeAttribute->GetText());
+            } else {
+                z = 0.0;
+            }
+            xmlModel->addTranslate(glm::vec3(x,y,z));
+        }
+
+        objectAttribute =  objectNode->FirstChildElement("Rotate");
+        if (objectAttribute == NULL) {
+            std::cout << "Object does not have translate." << std::endl;
+        } else {
+            objectAttributeAttribute =  objectAttribute->FirstChildElement("X");
+            if(objectAttributeAttribute != NULL) {
+                x = std::stof(objectAttributeAttribute->GetText());
+            } else {
+                x = 0.0;
+            }
+            objectAttributeAttribute =  objectAttribute->FirstChildElement("Y");
+            if(objectAttributeAttribute != NULL) {
+                y = std::stof(objectAttributeAttribute->GetText());
+            } else {
+                y = 0.0;
+            }
+            objectAttributeAttribute =  objectAttribute->FirstChildElement("Z");
+            if(objectAttributeAttribute != NULL) {
+                z = std::stof(objectAttributeAttribute->GetText());
+            } else {
+                z = 0.0;
+            }
+            objectAttributeAttribute =  objectAttribute->FirstChildElement("W");
+            if(objectAttributeAttribute != NULL) {
+                w = std::stof(objectAttributeAttribute->GetText());
+            } else {
+                w = 0.0;
+            }
+            xmlModel->addOrientation(glm::quat(x, y, z, w));
+        }
+
+        xmlModel->getWorldTransform();
+        objects.push_back(xmlModel);
+        rigidBodies.push_back(xmlModel->getRigidBody());
+        dynamicsWorld->addRigidBody(xmlModel->getRigidBody());
+        objectNode =  objectNode->NextSiblingElement("Object");
+    }
+    return true;
 }

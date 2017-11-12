@@ -6,3 +6,4 @@
 5)Cmake 3.3
 6)Assimp 3.3
 7)GLM 0.9.8
+8)TinyXML2

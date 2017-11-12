@@ -6,9 +6,13 @@
 #define UBERGAME_WORLD_H
 
 #include <vector>
+#include <SDL2/SDL_stdinc.h>
+#include <btBulletDynamicsCommon.h>
+#include <tinyxml2.h>
+
+
 #include "PhysicalRenderable.h"
 #include "GLHelper.h"
-#include <SDL2/SDL_stdinc.h>
 #include "glm/glm.hpp"
 #include "InputHandler.h"
 #include "Camera.h"
@@ -17,7 +21,6 @@
 #include "BulletDebugDrawer.h"
 #include "GUILayer.h"
 #include "FontManager.h"
-#include <btBulletDynamicsCommon.h>
 #include "GUIText.h"
 #include "GUIFPSCounter.h"
 #include "Light.h"
@@ -54,6 +57,8 @@ public:
     void play(Uint32, InputHandler &);
 
     void render();
+
+    bool loadMapFromXML();
 };
 
 #endif //UBERGAME_WORLD_H
