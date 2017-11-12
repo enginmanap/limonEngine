@@ -6,7 +6,7 @@
 
 
 void GUIFPSCounter::updateFPS() {
-    currentTime = SDL_GetTicks();
+    currentTime = SDL_GetTicks();//this uses real time, because this needs real data, not game time
     Uint32 newFrameTime = currentTime - lastRenderTime;
     lastFrameTime += newFrameTime - previousFrameTimes[framePointer];
     previousFrameTimes[framePointer] = newFrameTime;

@@ -17,13 +17,12 @@ TODO
 	* needs to have some other debug shapes, like sphere
 	* Some cases might require a duration
 7) There are points that does not use time provided by main loop. everthing should use it.
-8) switching to game time required. or how are we going to pause the game?
-9) a loading screen is needed. Right now if a map takes several seconds, only a white screen is shown
-10) World definition should be moved to seperate file
-11) For proper handling of opacity, we need to order the objects.
-12) object culling? We are rendering everything, which is not feasible on the long run.
-13) there should be a console like quake.
-14) Options (like shadow res, screen res etc.) should be centralized
+8) a loading screen is needed. Right now if a map takes several seconds, only a white screen is shown
+9) World definition should be moved to seperate file
+10) For proper handling of opacity, we need to order the objects.
+11) object culling? We are rendering everything, which is not feasible on the long run.
+12) there should be a console like quake.
+13) Options (like shadow res, screen res etc.) should be centralized
 
 Shanghai City Scene(https://sketchfab.com/models/7dfb633ca4d8430f914d20a5213cfc6f) by jakob_van_damme(https://sketchfab.com/jakob_van_damme2) is licensed under CC Attribution(http://creativecommons.org/licenses/by/4.0/)
 SIMPLE MILITARY - CARTOON WAR(https://sketchfab.com/models/187a3122ef064912b7718c49dca40f5a) by Tonskiy(https://sketchfab.com/tonskiy) is licensed under CC Attribution(http://creativecommons.org/licenses/by/4.0/)

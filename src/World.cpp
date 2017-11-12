@@ -202,13 +202,13 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
 
 
 void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
-    // Step simulation
-    long time = SDL_GetTicks();
+    //everytime we call this method, we increase the time only by simulationTimeframe
+    gameTime += simulationTimeFrame;
     dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
     camera.updateTransfromFromPhysics(dynamicsWorld);
 
     for (int i = 0; i < objects.size(); ++i) {
-        objects[i]->setupForTime(time);
+        objects[i]->setupForTime(gameTime);
         objects[i]->updateTransformFromPhysics();
     }
 

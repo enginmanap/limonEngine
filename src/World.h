@@ -29,6 +29,7 @@ class World {
     SkyBox *sky;
     GLHelper *glHelper;
     AssetManager *assetManager;
+    long gameTime = 0;
 
     GLSLProgram *shadowMapProgramDirectional, *shadowMapProgramPoint;
     FontManager fontManager;
