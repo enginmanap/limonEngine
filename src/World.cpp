@@ -60,14 +60,6 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
 
     guiLayers.push_back(layer1);
 
-    Light *light;
-
-    light = new Light(Light::POINT, glm::vec3(1.0f, 6.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f));
-    lights.push_back(light);
-
-    light = new Light(Light::DIRECTIONAL, glm::vec3(-25.0f, 50.0f, -25.0f), glm::vec3(0.7f, 0.7f, 0.7f));
-    lights.push_back(light);
-
 }
 
 
@@ -260,9 +252,11 @@ bool World::loadMapFromXML() {
     if(!loadObjectsFromXML(worldNode)) {
         return false;
     }
-    //loadSkymap
+    //load Skymap
     loadSkymap(worldNode);
 
+    //load lights
+    loadLights(worldNode);
 
     return true;
 }
@@ -459,4 +453,107 @@ bool World::loadSkymap(tinyxml2::XMLNode *worldNode) {
                      std::string(back),
                      std::string(front)
     );
+    return true;
+}
+
+bool World::loadLights(tinyxml2::XMLNode *worldNode) {
+    tinyxml2::XMLElement* lightsListNode =  worldNode->FirstChildElement("Lights");
+    if (lightsListNode == NULL) {
+        std::cerr << "Lights clause not found." << std::endl;
+        return false;
+    }
+
+
+    tinyxml2::XMLElement* lightNode =  lightsListNode->FirstChildElement("Light");
+    if (lightNode == NULL) {
+        std::cerr << "Lights did not have at least one light." << std::endl;
+        return false;
+    }
+
+    Light::LightTypes type;
+    glm::vec3 position;
+    glm::vec3 color;
+    Light *xmlLight;
+    tinyxml2::XMLElement* lightAttribute;
+    tinyxml2::XMLElement* lightAttributeAttribute;
+    float x,y,z;
+    while(lightNode != NULL) {
+        lightAttribute = lightNode->FirstChildElement("Type");
+        if (lightAttribute == NULL) {
+            std::cerr << "Light must have a type." << std::endl;
+            return false;
+        }
+
+        std::string typeString = lightAttribute->GetText();
+        if (typeString == "POINT") {
+            type = Light::POINT;
+        } else if (typeString == "DIRECTIONAL") {
+            type = Light::DIRECTIONAL;
+        } else {
+            std::cerr << "Light type is not POINT or DIRECTIONAL. it is " << lightAttribute->GetText() << std::endl;
+            return false;
+        }
+        lightAttribute = lightNode->FirstChildElement("Position");
+        if (lightAttribute == NULL) {
+            std::cerr << "Light must have a position/direction." << std::endl;
+            return false;
+        } else {
+            lightAttributeAttribute = lightAttribute->FirstChildElement("X");
+            if (lightAttributeAttribute != NULL) {
+                x = std::stof(lightAttributeAttribute->GetText());
+            } else {
+                std::cerr << "Light position/direction missing x." << std::endl;
+                return false;
+            }
+            lightAttributeAttribute = lightAttribute->FirstChildElement("Y");
+            if (lightAttributeAttribute != NULL) {
+                y = std::stof(lightAttributeAttribute->GetText());
+            } else {
+                std::cerr << "Light position/direction missing y." << std::endl;
+                return false;
+            }
+            lightAttributeAttribute = lightAttribute->FirstChildElement("Z");
+            if (lightAttributeAttribute != NULL) {
+                z = std::stof(lightAttributeAttribute->GetText());
+            } else {
+                std::cerr << "Light position/direction missing z." << std::endl;
+                return false;
+            }
+        }
+        position.x = x;
+        position.y = y;
+        position.z = z;
+
+        lightAttribute = lightNode->FirstChildElement("Color");
+        if (lightAttribute == NULL) {
+            x = y = z = 1.0f;
+        } else {
+            lightAttributeAttribute = lightAttribute->FirstChildElement("X");
+            if (lightAttributeAttribute != NULL) {
+                x = std::stof(lightAttributeAttribute->GetText());
+            } else {
+                x = 1.0f;
+            }
+            lightAttributeAttribute = lightAttribute->FirstChildElement("Y");
+            if (lightAttributeAttribute != NULL) {
+                y = std::stof(lightAttributeAttribute->GetText());
+            } else {
+                y = 1.0f;
+            }
+            lightAttributeAttribute = lightAttribute->FirstChildElement("Z");
+            if (lightAttributeAttribute != NULL) {
+                z = std::stof(lightAttributeAttribute->GetText());
+            } else {
+                z = 1.0f;
+            }
+        }
+        color.x = x;
+        color.y = y;
+        color.z = z;
+
+        xmlLight = new Light(type,position,color);
+        lights.push_back(xmlLight);
+        lightNode =  lightNode->NextSiblingElement("Light");
+    }
+    return true;
 }

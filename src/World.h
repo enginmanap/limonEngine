@@ -63,6 +63,8 @@ public:
     bool loadObjectsFromXML(tinyxml2::XMLNode *worldNode);
 
     bool loadSkymap(tinyxml2::XMLNode *worldNode);
+
+    bool loadLights(tinyxml2::XMLNode *worldNode);
 };
 
 #endif //UBERGAME_WORLD_H

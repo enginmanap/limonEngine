@@ -129,4 +129,32 @@
         <Back>back.jpg</Back>
         <Front>front.jpg</Front>
     </Sky>
+    <Lights>
+        <Light>
+            <Type>POINT</Type>
+            <Position>
+                <X>1.0</X>
+                <Y>6.0</Y>
+                <Z>0.0</Z>
+            </Position>
+            <Color>
+                <R>0.5</R>
+                <G>0.5</G>
+                <B>0.5</B>
+            </Color>
+        </Light>
+        <Light>
+            <Type>DIRECTIONAL</Type>
+            <Position>
+                <X>-25.0</X>
+                <Y>50.0</Y>
+                <Z>-25.0</Z>
+            </Position>
+            <Color>
+                <R>0.7</R>
+                <G>0.7</G>
+                <B>0.7</B>
+            </Color>
+        </Light>
+    </Lights>
 </World>
