@@ -120,4 +120,13 @@
             </Translate>
         </Object>
     </Objects>
+    <Sky>
+        <ImagesPath>./Data/Textures/Skyboxes/ThickCloudsWater</ImagesPath>
+        <Right>right.jpg</Right>
+        <Left>left.jpg</Left>
+        <Top>top.jpg</Top>
+        <Bottom>bottom.jpg</Bottom>
+        <Back>back.jpg</Back>
+        <Front>front.jpg</Front>
+    </Sky>
 </World>

@@ -40,16 +40,6 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
         exit(-1);
     }
 
-    sky = new SkyBox(assetManager,
-                     std::string("./Data/Textures/Skyboxes/ThickCloudsWater"),
-                     std::string("right.jpg"),
-                     std::string("left.jpg"),
-                     std::string("top.jpg"),
-                     std::string("bottom.jpg"),
-                     std::string("back.jpg"),
-                     std::string("front.jpg")
-    );
-
     GUIText *tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 64), "Uber Game",
                               glm::vec3(0, 0, 0));
     //tr->setScale(0.25f,0.25f);
@@ -186,7 +176,9 @@ void World::render() {
     }
 
     glHelper->switchrenderToDefault();
-    sky->render();//this is moved to the top, because transparency can create issues if this is at the end
+    if(sky!=NULL) {
+        sky->render();//this is moved to the top, because transparency can create issues if this is at the end
+    }
     for (int i = 0; i < lights.size(); ++i) {
         glHelper->setLight(*(lights[i]), i);
     }
@@ -264,7 +256,18 @@ bool World::loadMapFromXML() {
     }
     std::cout << "read name as " << worldName->GetText() << std::endl;
 
+    //load objects
+    if(!loadObjectsFromXML(worldNode)) {
+        return false;
+    }
+    //loadSkymap
+    loadSkymap(worldNode);
 
+
+    return true;
+}
+
+bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
     tinyxml2::XMLElement* objectsListNode =  worldNode->FirstChildElement("Objects");
     if (objectsListNode == NULL) {
         std::cerr << "World Must have and Objects clause." << std::endl;
@@ -387,4 +390,73 @@ bool World::loadMapFromXML() {
         objectNode =  objectNode->NextSiblingElement("Object");
     }
     return true;
+}
+
+bool World::loadSkymap(tinyxml2::XMLNode *worldNode) {
+    tinyxml2::XMLElement* skyNode =  worldNode->FirstChildElement("Sky");
+    if (skyNode == NULL) {
+        std::cerr << "Sky clause not found." << std::endl;
+        return false;
+    }
+
+    tinyxml2::XMLElement* imagesPath =  skyNode->FirstChildElement("ImagesPath");
+    if (imagesPath == NULL) {
+        std::cerr << "Sky map must have the root path." << std::endl;
+        return false;
+    }
+
+    std::string path, left, right, top, bottom, front, back;
+    path = imagesPath->GetText();
+
+    tinyxml2::XMLElement* leftNode =  skyNode->FirstChildElement("Left");
+    if (leftNode == NULL) {
+        std::cerr << "Sky map must have left image name." << std::endl;
+        return false;
+    }
+    left = leftNode->GetText();
+
+    tinyxml2::XMLElement* rightNode =  skyNode->FirstChildElement("Right");
+    if (rightNode == NULL) {
+        std::cerr << "Sky map must have right image name." << std::endl;
+        return false;
+    }
+    right = rightNode->GetText();
+
+    tinyxml2::XMLElement* topNode =  skyNode->FirstChildElement("Top");
+    if (topNode == NULL) {
+        std::cerr << "Sky map must have top image name." << std::endl;
+        return false;
+    }
+    top = topNode->GetText();
+
+    tinyxml2::XMLElement* bottomNode =  skyNode->FirstChildElement("Bottom");
+    if (bottomNode == NULL) {
+        std::cerr << "Sky map must have bottom image name." << std::endl;
+        return false;
+    }
+    bottom = bottomNode->GetText();
+
+    tinyxml2::XMLElement* backNode =  skyNode->FirstChildElement("Back");
+    if (backNode == NULL) {
+        std::cerr << "Sky map must have back image name." << std::endl;
+        return false;
+    }
+    back = backNode->GetText();
+
+    tinyxml2::XMLElement* frontNode =  skyNode->FirstChildElement("Front");
+    if (frontNode == NULL) {
+        std::cerr << "Sky map must have front image name." << std::endl;
+        return false;
+    }
+    front = frontNode->GetText();
+
+    sky = new SkyBox(assetManager,
+                     std::string(path),
+                     std::string(right),
+                     std::string(left),
+                     std::string(top),
+                     std::string(bottom),
+                     std::string(back),
+                     std::string(front)
+    );
 }
