@@ -23,6 +23,11 @@ TODO
 11) object culling? We are rendering everything, which is not feasible on the long run.
 12) there should be a console like quake.
 13) Options (like shadow res, screen res etc.) should be centralized
+14) Logging should be better
+    * log level
+    * log channel (like animation, physics)
+    * log destination (file, console)
+
 
 Shanghai City Scene(https://sketchfab.com/models/7dfb633ca4d8430f914d20a5213cfc6f) by jakob_van_damme(https://sketchfab.com/jakob_van_damme2) is licensed under CC Attribution(http://creativecommons.org/licenses/by/4.0/)
 SIMPLE MILITARY - CARTOON WAR(https://sketchfab.com/models/187a3122ef064912b7718c49dca40f5a) by Tonskiy(https://sketchfab.com/tonskiy) is licensed under CC Attribution(http://creativecommons.org/licenses/by/4.0/)
