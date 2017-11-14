@@ -22,6 +22,7 @@ private:
     Options *options;
     SDL_Event event;
     std::map<states, bool> inputStatus;
+    std::map<states, bool> inputEvents;
     float xPos, yPos, xChange, yChange;
 public:
     InputHandler(SDL_Window *, Options *options);
@@ -34,6 +35,10 @@ public:
 
     bool getInputStatus(const states input) const {
         return inputStatus.at(input);
+    }
+
+    bool getInputEvents(const states input) const {
+        return inputEvents.at(input);
     }
 
     void getMousePosition(float &, float &) const;

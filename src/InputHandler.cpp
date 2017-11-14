@@ -17,10 +17,12 @@ InputHandler::InputHandler(SDL_Window *window, Options *options) :
     inputStatus[MOVE_RIGHT] = false;
     inputStatus[JUMP] = false;
     inputStatus[DEBUG] = false;
+    inputEvents[DEBUG] = false;
 
 }
 
 void InputHandler::mapInput() {
+    inputEvents[DEBUG] = false;
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
             case SDL_QUIT:
@@ -54,6 +56,9 @@ void InputHandler::mapInput() {
                         inputStatus[JUMP] = true;
                         break;
                     case SDLK_0:
+                        if(!inputStatus[DEBUG]) {
+                            inputEvents[DEBUG] = true;
+                        }
                         inputStatus[DEBUG] = true;
                         break;
                     case SDLK_KP_PLUS:
@@ -82,6 +87,9 @@ void InputHandler::mapInput() {
                         inputStatus[JUMP] = false;
                         break;
                     case SDLK_0:
+                        if(inputStatus[DEBUG]) {
+                            inputEvents[DEBUG] = true;
+                        }
                         inputStatus[DEBUG] = false;
                         break;
                 }
