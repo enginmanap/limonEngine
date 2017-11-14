@@ -6,8 +6,8 @@
 #define UBERGAME_GUIRENDERABLE_H
 
 
-#include "Renderable.h"
-#include "BulletDebugDrawer.h"
+#include "../Renderable.h"
+#include "../BulletDebugDrawer.h"
 
 class GUIRenderable : public Renderable {
     std::vector<glm::vec3> vertices;

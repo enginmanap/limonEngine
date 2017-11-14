@@ -19,10 +19,10 @@
 #include "Model.h"
 #include "SkyBox.h"
 #include "BulletDebugDrawer.h"
-#include "GUILayer.h"
+#include "GUI/GUILayer.h"
 #include "FontManager.h"
-#include "GUIText.h"
-#include "GUIFPSCounter.h"
+#include "GUI/GUIText.h"
+#include "GUI/GUIFPSCounter.h"
 #include "Light.h"
 
 class World {

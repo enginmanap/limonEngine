@@ -5,7 +5,7 @@
 #ifndef UBERGAME_GUILAYER_H
 #define UBERGAME_GUILAYER_H
 
-#include "GLHelper.h"
+#include "../GLHelper.h"
 #include "GUIRenderable.h"
 
 class GUILayer {
