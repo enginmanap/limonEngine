@@ -294,7 +294,7 @@ public:
     void switchRenderToShadowMapDirectional(const unsigned int index);
 
     //FIXME this passing matrix is unnecessary.
-    std::vector<glm::mat4> switchRenderToShadowMapPoint(const glm::vec3 &lightPosition, const unsigned int index);
+    std::vector<glm::mat4> switchRenderToShadowMapPoint(const glm::vec3 &lightPosition);
 
     void switchRenderToDefault();
 

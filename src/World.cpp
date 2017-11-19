@@ -164,7 +164,7 @@ void World::render() {
             continue;
         }
         //generate shadow map
-        std::vector<glm::mat4> shadowTransforms = glHelper->switchRenderToShadowMapPoint(lights[i]->getPosition(), i);
+        std::vector<glm::mat4> shadowTransforms = glHelper->switchRenderToShadowMapPoint(lights[i]->getPosition());
         shadowMapProgramPoint->setUniformArray("shadowMatrices[0]", shadowTransforms);
         shadowMapProgramPoint->setUniform("renderLightIndex", i);
         //FarPlanePoint is set at declaration, since it is a constant
