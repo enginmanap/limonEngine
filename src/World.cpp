@@ -72,7 +72,7 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
     //everytime we call this method, we increase the time only by simulationTimeframe
     gameTime += simulationTimeFrame;
     dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
-    camera.updateTransfromFromPhysics(dynamicsWorld);
+    camera.updateTransformFromPhysics(dynamicsWorld);
 
     for (int i = 0; i < objects.size(); ++i) {
         objects[i]->setupForTime(gameTime);

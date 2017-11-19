@@ -36,8 +36,7 @@ public:
 
     Camera(Options *options);
 
-    //FIXME there is a typo here
-    void updateTransfromFromPhysics(const btDynamicsWorld *world);
+    void updateTransformFromPhysics(const btDynamicsWorld *world);
 
     void setCenter(const glm::vec3 &center) {
         glm::vec3 normalizeCenter = glm::normalize(center);

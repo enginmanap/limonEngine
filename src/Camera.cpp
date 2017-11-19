@@ -119,7 +119,7 @@ void Camera::rotate(float xChange, float yChange) {
     this->dirty = true;
 }
 
-void Camera::updateTransfromFromPhysics(const btDynamicsWorld *world) {
+void Camera::updateTransformFromPhysics(const btDynamicsWorld *world) {
     onAir = true;//base assumption is we are flying
     //we will test for STEPPING_TEST_COUNT^2 times
     float requiredDelta = 1.0f / (STEPPING_TEST_COUNT-1);
