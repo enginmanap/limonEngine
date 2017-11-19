@@ -174,7 +174,7 @@ void World::render() {
         }
     }
 
-    glHelper->switchrenderToDefault();
+    glHelper->switchRenderToDefault();
     if(sky!=NULL) {
         sky->render();//this is moved to the top, because transparency can create issues if this is at the end
     }

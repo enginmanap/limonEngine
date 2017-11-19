@@ -506,7 +506,7 @@ GLHelper::switchRenderToShadowMapPoint(const glm::vec3 &lightPosition, const uns
 }
 
 
-void GLHelper::switchrenderToDefault() {
+void GLHelper::switchRenderToDefault() {
     glViewport(0, 0, screenWidth, screenHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -514,7 +514,7 @@ void GLHelper::switchrenderToDefault() {
     state->attach2DTextureArray(depthMapDirectional, maxTextureImageUnits - 1);
     state->attachCubemapArray(depthCubemapPoint, maxTextureImageUnits - 2);
     glCullFace(GL_BACK);
-    checkErrors("switchrenderToDefault");
+    checkErrors("switchRenderToDefault");
 }
 
 void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount) {
