@@ -52,6 +52,11 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
     tr->set2dWorldTransform(glm::vec2(1024 - 50, 100), 0.0f);
     layer1->addGuiElement(tr);
 
+    trd = new GUITextDynamic(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), glm::vec3(0, 0, 0), 640, 510);
+    //tr->setScale(0.25f,0.25f);
+    trd->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-255), 0.0f);
+    layer1->addGuiElement(trd);
+
 
     tr = new GUIFPSCounter(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                            glm::vec3(204, 204, 0));
@@ -127,9 +132,11 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
     if (inputHandler.getInputEvents(inputHandler.DEBUG) && inputHandler.getInputStatus(inputHandler.DEBUG)) {
         if(dynamicsWorld->getDebugDrawer()->getDebugMode() == btIDebugDraw::DBG_NoDebug) {
             dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE | dynamicsWorld->getDebugDrawer()->DBG_DrawAabb);
+            trd->addText("Debug enabled", SDL_GetTicks());
             guiLayers[0]->setDebug(true);
         } else {
             dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
+            trd->addText("Debug disabled", SDL_GetTicks());
             guiLayers[0]->setDebug(false);
         }
     }

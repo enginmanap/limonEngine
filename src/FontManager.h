@@ -58,10 +58,15 @@ class Face {
     std::string path;
     unsigned int size;
     FT_Face face;
+    int lineHeight;
+    int maxCharWidth;
     std::map<const char, Glyph *> glyphs;
 public:
     Face(GLHelper *glHelper, std::string path, int size, FT_Face face) : glHelper(glHelper), path(path), size(size),
-                                                                         face(face) { }
+                                                                         face(face) {
+        lineHeight = face->height;
+        maxCharWidth = face->max_advance_width;
+    }
 
     const Glyph *getGlyph(const char character) {
         if (glyphs.count(character) == 0) {
@@ -70,11 +75,21 @@ public:
         return glyphs[character];
     }
 
+    int getLineHeight() const {
+        return lineHeight;
+    }
+
+    int getMaxCharWidth() const {
+        return maxCharWidth;
+    }
+
     ~Face() {
         for (std::map<const char, Glyph *>::iterator iter = glyphs.begin(); iter != glyphs.end(); ++iter) {
             delete iter->second;
         }
     }
+
+
 };
 
 class FontManager {

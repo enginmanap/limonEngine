@@ -8,31 +8,35 @@ GUIText::GUIText(GLHelper *glHelper, Face *face, const std::string text, const g
         GUIRenderable(glHelper), color(color.x / 256, color.y / 256, color.z / 256), face(face), text(text), height(0),
         width(0), bearingUp(0) {
 
-    //calculate the size of text. This also force glyph load.
+    if(text.length() != 0) {
+        //calculate the size of text. This also force glyph load.
 
-    int up = 0;
-    const Glyph *glyph;
-    for (int i = 0; i < text.length(); ++i) {
-        glyph = face->getGlyph(text.at(i));
-        if (i == 0) {
-            //for first element, add the bearing
-            width = glyph->getBearing().x;
+        int up = 0;
+        const Glyph *glyph;
+        for (int i = 0; i < text.length(); ++i) {
+            glyph = face->getGlyph(text.at(i));
+            if (i == 0) {
+                //for first element, add the bearing
+                width = glyph->getBearing().x;
+            }
+            width += (glyph->getAdvance() / 64);
+            up = std::max(up, glyph->getBearing().y);
+            bearingUp = std::max(bearingUp, glyph->getSize().y - glyph->getBearing().y + 1);
         }
-        width += (glyph->getAdvance() / 64);
-        up = std::max(up, glyph->getBearing().y);
-        bearingUp = std::max(bearingUp, glyph->getSize().y - glyph->getBearing().y + 1);
+        /**
+         * Last characters advance is not used, size is used instead
+         * */
+        //width += face->getGlyph(text.at(0))->getSize().x / 2;
+        width += face->getGlyph(text.at(text.length() - 1))->getSize().x;
+        width += face->getGlyph(text.at(text.length() - 1))->getBearing().x;
+        width -= face->getGlyph(text.at(text.length() - 1))->getAdvance() / 64;
+
+        height = up + bearingUp;
+
+        std::cout << "for " << text << " up: " << up << ", down: " << bearingUp << ", width: " << width << std::endl;
+    } else {
+        std::cout << "No text provided, rendering for empty" << std::endl;
     }
-    /**
-     * Last characters advance is not used, size is used instead
-     * */
-    //width += face->getGlyph(text.at(0))->getSize().x / 2;
-    width += face->getGlyph(text.at(text.length() - 1))->getSize().x;
-    width += face->getGlyph(text.at(text.length() - 1))->getBearing().x;
-    width -= face->getGlyph(text.at(text.length() - 1))->getAdvance() / 64;
-
-    height = up + bearingUp;
-
-    std::cout << "for " << text << " up: " << up << ", down: " << bearingUp << ", width: " << width << std::endl;
 }
 
 void GUIText::render() {

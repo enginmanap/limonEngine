@@ -24,6 +24,7 @@
 #include "GUI/GUIText.h"
 #include "GUI/GUIFPSCounter.h"
 #include "Light.h"
+#include "GUI/GUITextDynamic.h"
 
 class World {
     std::vector<PhysicalRenderable *> objects;
@@ -33,6 +34,7 @@ class World {
     GLHelper *glHelper;
     AssetManager *assetManager;
     long gameTime = 0;
+    GUITextDynamic* trd;
 
     GLSLProgram *shadowMapProgramDirectional, *shadowMapProgramPoint;
     FontManager fontManager;
