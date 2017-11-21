@@ -479,31 +479,14 @@ void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
 
 }
 
-std::vector<glm::mat4>
-GLHelper::switchRenderToShadowMapPoint(const glm::vec3 &lightPosition) {
+void GLHelper::switchRenderToShadowMapPoint(const glm::vec3 &lightPosition) {
     checkErrors("switchRenderToShadowMapPointBefore");
     glViewport(0, 0, options->getShadowWidth(), options->getShadowHeight());
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
 
     glCullFace(GL_FRONT);
 
-    //FIXME this calculation should be a part of Light class, and should not be updated at every frame
-    std::vector<glm::mat4> shadowTransforms;
-    shadowTransforms.push_back(lightProjectionMatrixPoint *
-                               glm::lookAt(lightPosition, lightPosition + glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)));
-    shadowTransforms.push_back(lightProjectionMatrixPoint *
-                               glm::lookAt(lightPosition, lightPosition + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)));
-    shadowTransforms.push_back(lightProjectionMatrixPoint *
-                               glm::lookAt(lightPosition, lightPosition + glm::vec3( 0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
-    shadowTransforms.push_back(lightProjectionMatrixPoint *
-                               glm::lookAt(lightPosition, lightPosition + glm::vec3( 0.0,-1.0, 0.0), glm::vec3(0.0, 0.0,-1.0)));
-    shadowTransforms.push_back(lightProjectionMatrixPoint *
-                               glm::lookAt(lightPosition, lightPosition + glm::vec3( 0.0, 0.0, 1.0), glm::vec3(0.0,-1.0, 0.0)));
-    shadowTransforms.push_back(lightProjectionMatrixPoint *
-                              glm::lookAt(lightPosition, lightPosition + glm::vec3( 0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0)));
-
     checkErrors("switchRenderToShadowMapPoint");
-    return shadowTransforms;
 }
 
 
@@ -773,10 +756,28 @@ void GLHelper::setLight(const Light &light, const int i) {
             break;
     }
 
+    //FIXME this calculation should be a part of Light class, and should not be updated at every frame
+    glm::mat4 shadowTransforms[6];
+    shadowTransforms[0] =lightProjectionMatrixPoint *
+                               glm::lookAt(light.getPosition(), light.getPosition() + glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0));
+    shadowTransforms[1] =lightProjectionMatrixPoint *
+                               glm::lookAt(light.getPosition(), light.getPosition() + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0));
+    shadowTransforms[2] =lightProjectionMatrixPoint *
+                               glm::lookAt(light.getPosition(), light.getPosition() + glm::vec3( 0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
+    shadowTransforms[3] =lightProjectionMatrixPoint *
+                               glm::lookAt(light.getPosition(), light.getPosition() + glm::vec3( 0.0,-1.0, 0.0), glm::vec3(0.0, 0.0,-1.0));
+    shadowTransforms[4] =lightProjectionMatrixPoint *
+                               glm::lookAt(light.getPosition(), light.getPosition() + glm::vec3( 0.0, 0.0, 1.0), glm::vec3(0.0,-1.0, 0.0));
+    shadowTransforms[5] =lightProjectionMatrixPoint *
+                               glm::lookAt(light.getPosition(), light.getPosition() + glm::vec3( 0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0));
+
+
     //std::cout << "light type is " << lightType << std::endl;
     //std::cout << "size is " << sizeof(GLint) << std::endl;
 
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
+    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize,
+                    sizeof(glm::mat4) * 6, shadowTransforms);
     glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 6,
                     sizeof(glm::mat4), glm::value_ptr(lightSpaceMatrix));
     glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7,

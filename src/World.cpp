@@ -164,10 +164,10 @@ void World::render() {
             continue;
         }
         //generate shadow map
-        std::vector<glm::mat4> shadowTransforms = glHelper->switchRenderToShadowMapPoint(lights[i]->getPosition());
-        shadowMapProgramPoint->setUniformArray("shadowMatrices[0]", shadowTransforms);
+        glHelper->switchRenderToShadowMapPoint(lights[i]->getPosition());
+        //FIXME why are these set here?
         shadowMapProgramPoint->setUniform("renderLightIndex", i);
-        //FarPlanePoint is set at declaration, since it is a constant
+        //FIXME this is suppose to be an option //FarPlanePoint is set at declaration, since it is a constant
         shadowMapProgramPoint->setUniform("farPlanePoint", 100.0f);
         for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
             (*it)->renderWithProgram(*shadowMapProgramPoint);
