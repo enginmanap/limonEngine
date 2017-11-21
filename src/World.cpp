@@ -65,6 +65,10 @@ World::World(GLHelper *glHelper, Options *options) : glHelper(glHelper), fontMan
 
     guiLayers.push_back(layer1);
 
+    //Since all Lights are static, and we use UBOs for light values, we can set them here, and not update
+    for (int i = 0; i < lights.size(); ++i) {
+        glHelper->setLight(*(lights[i]), i);
+    }
 }
 
 
@@ -178,10 +182,6 @@ void World::render() {
     if(sky!=NULL) {
         sky->render();//this is moved to the top, because transparency can create issues if this is at the end
     }
-    for (int i = 0; i < lights.size(); ++i) {
-        glHelper->setLight(*(lights[i]), i);
-    }
-
 
     if(camera.isDirty()) {
         glHelper->setPlayerMatrices(camera.getPosition(), camera.getCameraMatrix());
