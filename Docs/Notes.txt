@@ -13,12 +13,12 @@ TODO
 4) There should be some AI
 5) Spot lights should be added.
 6) Debug draw should be improved
-	* Performance must be better. It is not working as it should right now
+	* Performance must be better. It is not working as it should right now/ DONE for now. It is not severely effecting speed at test scenes.
 	* needs to have some other debug shapes, like sphere
 	* Some cases might require a duration
-7) There are points that does not use time provided by main loop. everthing should use it.
+7) There are points that does not use time provided by main loop. everything should use it./ DONE. only FPS calculation left, and it should not use game clock.
 8) a loading screen is needed. Right now if a map takes several seconds, only a white screen is shown
-9) World definition should be moved to seperate file
+9) World definition should be moved to seperate file/ Partially done, except gui elements.
 10) For proper handling of opacity, we need to order the objects.
 11) object culling? We are rendering everything, which is not feasible on the long run.
 12) there should be a console like quake.
