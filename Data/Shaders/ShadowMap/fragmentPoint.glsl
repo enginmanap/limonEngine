@@ -8,10 +8,11 @@ uniform float farPlanePoint;
 
 struct LightSource
 {
-		mat4 lightSpaceMatrix;
-		vec3 position;
-		vec3 color;
-		int type;
+    mat4 shadowMatrices[6];
+    mat4 lightSpaceMatrix;
+    vec3 position;
+    vec3 color;
+    int type;
 };
 
 layout (std140) uniform LightSourceBlock

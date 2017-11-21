@@ -178,7 +178,7 @@ private:
 
     Options *options;
 
-    const uint_fast32_t lightUniformSize = sizeof(glm::mat4) + 2 * sizeof(glm::vec4);
+    const uint_fast32_t lightUniformSize = (sizeof(glm::mat4) * 7) + (2 * sizeof(glm::vec4));
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;
     glm::mat4 orthogonalProjectionMatrix;

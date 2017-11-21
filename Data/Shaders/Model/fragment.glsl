@@ -19,10 +19,11 @@ struct Material {
 
 struct LightSource
 {
-		mat4 lightSpaceMatrix;
-		vec3 position;
-		vec3 color;
-        int type; //0 Directional, 1 point
+    mat4 shadowMatrices[6];
+    mat4 lightSpaceMatrix;
+    vec3 position;
+    vec3 color;
+    int type; //0 Directional, 1 point
 };
 
 in VS_FS {

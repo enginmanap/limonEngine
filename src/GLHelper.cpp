@@ -251,13 +251,14 @@ GLHelper::GLHelper(Options *options): options(options) {
     glGenBuffers(1, &lightUBOLocation);
 
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    glBufferData(GL_UNIFORM_BUFFER, (sizeof(glm::mat4) + 2 * sizeof(glm::vec4)) * NR_POINT_LIGHTS, NULL,
+    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * NR_POINT_LIGHTS, NULL,
                  GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //create player transforms uniform buffer object
     glGenBuffers(1, &playerUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
+    //FIXME the value below should be a constant at header
     glBufferData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4) + sizeof(glm::vec4), NULL, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
@@ -776,15 +777,14 @@ void GLHelper::setLight(const Light &light, const int i) {
     //std::cout << "size is " << sizeof(GLint) << std::endl;
 
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize,
+    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 6,
                     sizeof(glm::mat4), glm::value_ptr(lightSpaceMatrix));
-    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4),
+    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7,
                     sizeof(glm::vec3), &light.getPosition());
-    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) + sizeof(glm::vec4),
+    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec4),
                     sizeof(glm::vec3), &light.getColor());
-    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) + sizeof(glm::vec4) + sizeof(glm::vec3),
+    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec4) + sizeof(glm::vec3),
                     sizeof(GLint), &lightType);
-
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setLight");
 }
