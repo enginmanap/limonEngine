@@ -7,16 +7,18 @@
 
 
 #include "GUIText.h"
+#include "../Utils/Logger.h"
+#include "../Options.h"
 #include <list>
 
-struct TimedText {
+struct TextLine {
     std::string text;
     long time;
     int extraLines = 0;
     bool renderedBefore = false;
 
-    TimedText(const std::string &text, long time, long logLineCount) : time(time) {
-        this->text = std::to_string(logLineCount)+ ": " + text;
+    TextLine(Logger::LogLine *logLine, long logLineCount) : time(logLine->time) {
+        this->text = std::to_string(logLineCount)+ ": " + std::to_string(logLine->level) + ": " + logLine->text;
     }
 };
 
@@ -25,27 +27,31 @@ class GUITextDynamic: public GUIText {
     int maxCharWidth;
     int totalExtraLines = 0;
     long logLineCount = 1;
-    std::list<TimedText> textList;
+    std::list<TextLine> textList;
+    Logger* source = NULL;
 
-    long duration = 5000;//default 10 second duration
+
+    long duration = 5000;//default 5 second duration
     bool wordWrap = true;
 
 
 public:
-    GUITextDynamic(GLHelper *glHelper, Face *font, const glm::vec3 color, int width, int height) : GUIText(glHelper, font, color) {
+    GUITextDynamic(GLHelper *glHelper, Face *font, const glm::vec3 color, int width, int height, Options* options) : GUIText(glHelper, font, color) {
         lineHeight = face->getLineHeight()/64;
         maxCharWidth = face->getMaxCharWidth()/64;
         this->height = height;
         this->width = width;
+        this->source = options->getLogger();
+
+    }
+
+    void SetSource(Logger *logger){
+        this->source = logger;
     }
 
     void setDuration(long duration) {
         this->duration = duration;
     }
-
-    void addText(const std::string &text, long time) {
-        textList.push_back(TimedText(text,time, logLineCount++));
-    };
 
     void render();
 };

@@ -4,9 +4,16 @@
 
 #include <SDL_timer.h>
 #include "GUITextDynamic.h"
-#include "../Utils/GLMUtils.h"
+
 
 void GUITextDynamic::render() {
+    //first move all logs to our list
+    Logger::LogLine* logLine = source->getLog();
+    while(logLine != NULL) {
+        this->textList.push_back(TextLine(logLine,logLineCount++));
+        delete logLine;
+        logLine = source->getLog();
+    }
     float totalAdvance = 0.0f;
 
     renderProgram->setUniform("inColor", color);
@@ -26,17 +33,17 @@ void GUITextDynamic::render() {
     int MaxLineCount = (height)/(lineHeight);
     int removeLineCount = textList.size() + totalExtraLines - MaxLineCount;
     if(removeLineCount > 0) {
-        std::list<TimedText>::iterator it = textList.begin();
+        std::list<TextLine>::iterator it = textList.begin();
         std::advance(it,removeLineCount);
-        for(std::list<TimedText>::iterator lineIt = textList.begin(); lineIt != it; lineIt++) {
+        for(std::list<TextLine>::iterator lineIt = textList.begin(); lineIt != it; lineIt++) {
             totalExtraLines = totalExtraLines - lineIt->extraLines;
         }
         textList.erase(textList.begin(),it);
     }
 
-    for(std::list<TimedText>::iterator lineIt = textList.begin(); lineIt != textList.end(); lineIt++, lineCount++) {
+    for(std::list<TextLine>::iterator lineIt = textList.begin(); lineIt != textList.end(); lineIt++, lineCount++) {
         if(SDL_GetTicks() - lineIt->time > duration) {
-            std::list<TimedText>::iterator test = lineIt;
+            std::list<TextLine>::iterator test = lineIt;
             lineIt++;
             totalExtraLines = totalExtraLines - test->extraLines;
             textList.erase(test);

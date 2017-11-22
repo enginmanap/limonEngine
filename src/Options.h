@@ -6,9 +6,11 @@
 #define UBERGAME_OPTIONS_H
 
 #include <glm/glm.hpp>
+#include "Utils/Logger.h"
 
 class Options {
 private:
+    Logger *logger;
     glm::vec3 moveSpeed = glm::vec3(5, 0, 5);
     float jumpFactor = 3.0f;
     float lookAroundSpeed = -2.5f;
@@ -122,8 +124,16 @@ public:
 
     void setLookAroundSpeed(float lookAroundSpeed) {
         this->lookAroundSpeed = lookAroundSpeed;
+        logger->log(Logger::SETTINGS, Logger::DEBUG, "Look around speed set to " + std::to_string(lookAroundSpeed));
     }
 
+    Options() {
+        this->logger = new Logger();
+    };
+
+    Logger* getLogger() {
+        return logger;
+    }
 };
 
 

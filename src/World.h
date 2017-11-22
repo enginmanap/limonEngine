@@ -27,6 +27,7 @@
 #include "GUI/GUITextDynamic.h"
 
 class World {
+    Options* options;
     std::vector<PhysicalRenderable *> objects;
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;

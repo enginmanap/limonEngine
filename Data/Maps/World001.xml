@@ -50,7 +50,7 @@
         </Object>
         <Object>
             <File>./Data/Models/ArmyPilot/ArmyPilot.dae</File>
-            <Mass>25</Mass>
+            <Mass>0</Mass>
             <Scale>
                 <X>2.0</X>
                 <Y>2.0</Y>
@@ -58,8 +58,8 @@
             </Scale>
             <Translate>
                 <X>10.0</X>
-                <Y>10.0</Y>
-                <Z>-3.0</Z>
+                <Y>1.0</Y>
+                <Z> 3.0</Z>
             </Translate>
         </Object>
         <Object>
