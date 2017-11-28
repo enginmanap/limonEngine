@@ -7,6 +7,7 @@
 
 
 #include "Renderable.h"
+#include "Utils/GLMConverter.h"
 
 class PhysicalRenderable : public Renderable {
 protected:
@@ -27,6 +28,16 @@ public:
         Renderable::addTranslate(translate);
         btTransform transform = this->rigidBody->getCenterOfMassTransform();
         transform.setOrigin(btVector3(this->translate.x, this->translate.y, this->translate.z));
+        this->rigidBody->setWorldTransform(transform);
+        this->rigidBody->getMotionState()->setWorldTransform(transform);
+    }
+
+    void addOrientation(const glm::quat &orientation) {
+        Renderable::addOrientation(orientation);
+        btTransform transform = this->rigidBody->getCenterOfMassTransform();
+        btQuaternion rotation = transform.getRotation();
+        rotation = rotation * GLMConverter::GLMToBlt(orientation);
+        transform.setRotation(rotation);
         this->rigidBody->setWorldTransform(transform);
         this->rigidBody->getMotionState()->setWorldTransform(transform);
     }
