@@ -16,6 +16,14 @@ public:
                   << matrix[0][2] << ", " << matrix[1][2] << ", " << matrix[2][2] << ", " << matrix[3][2] << "\n"
                   << matrix[0][3] << ", " << matrix[1][3] << ", " << matrix[2][3] << ", " << matrix[3][3] << std::endl;
     }
+
+    static void printVector(const glm::vec3 &vector) {
+        std::cout << " (" << vector[0] << ", " << vector[1] << ", " << vector[2] << ") " << std::endl;
+    }
+
+    static std::string vectorToString(const glm::vec3 &vector) {
+        return " (" + std::to_string(vector[0]) + ", " + std::to_string(vector[1]) + ", " + std::to_string(vector[2]) + ") ";
+    }
 };
 
 
