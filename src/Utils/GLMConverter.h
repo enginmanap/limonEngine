@@ -25,6 +25,10 @@ public:
         return btVector3(vector.x, vector.y, vector.z);
     }
 
+    static btQuaternion GLMToBlt(const glm::quat &quaternion) {
+        return btQuaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
+    }
+
     static glm::vec3 AssimpToGLM(const aiVector3D &vector) {
         return glm::vec3(vector.x, vector.y, vector.z);
     }
