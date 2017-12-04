@@ -25,12 +25,14 @@
 #include "GUI/GUIFPSCounter.h"
 #include "Light.h"
 #include "GUI/GUITextDynamic.h"
+#include "AI/Actor.h"
 
 class World {
     Options* options;
     std::vector<PhysicalRenderable *> objects;
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
+    std::vector<Actor*> actors;
     SkyBox *sky;
     GLHelper *glHelper;
     AssetManager *assetManager;
@@ -51,6 +53,14 @@ class World {
     btCollisionDispatcher *dispatcher;
     btSequentialImpulseConstraintSolver *solver;
 
+    bool loadMapFromXML();
+
+    bool loadObjectsFromXML(tinyxml2::XMLNode *worldNode);
+
+    bool loadSkymap(tinyxml2::XMLNode *worldNode);
+
+    bool loadLights(tinyxml2::XMLNode *worldNode);
+
 public:
     World(GLHelper *, Options *options);
 
@@ -61,13 +71,11 @@ public:
 
     void render();
 
-    bool loadMapFromXML();
+    void handlePlayerInput(InputHandler &inputHandler);
 
-    bool loadObjectsFromXML(tinyxml2::XMLNode *worldNode);
+    bool checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName);
 
-    bool loadSkymap(tinyxml2::XMLNode *worldNode);
-
-    bool loadLights(tinyxml2::XMLNode *worldNode);
+    ActorInformation fillActorInformaton(int j);
 };
 
 #endif //UBERGAME_WORLD_H

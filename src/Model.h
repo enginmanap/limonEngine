@@ -33,8 +33,10 @@ class Model : public PhysicalRenderable {
 
     AssetManager *assetManager;
     ModelAsset *modelAsset;
+    int animationIndex = 0;
     std::string name;
     bool animated;
+    std::string objectType;
     std::vector<glm::mat4> boneTransforms;
     std::map<uint_fast32_t, uint_fast32_t> boneIdCompoundChildMap;
 
@@ -67,6 +69,10 @@ public:
 
     bool isAnimated() const { return animated;};
 
+    void setAnimationIndex(int animationIndex) {
+        this->animationIndex = animationIndex;
+    }
+
     //TODO we need to free the texture. Destructor needed.
     ~Model() {
         delete rigidBody->getMotionState();
@@ -79,7 +85,6 @@ public:
         delete convexShape;
 */
     }
-
 
 };
 

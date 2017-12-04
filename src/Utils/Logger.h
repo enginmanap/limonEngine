@@ -12,7 +12,7 @@
 
 class Logger {
 public:
-    enum Subsystem {RENDER, MODEL, INPUT, SETTINGS };
+    enum Subsystem {RENDER, MODEL, INPUT, SETTINGS, AI };
     enum Level {TRACE, DEBUG, INFO, WARN, ERROR };
 
     struct LogLine {

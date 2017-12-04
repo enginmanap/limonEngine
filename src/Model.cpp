@@ -6,7 +6,7 @@
 
 
 Model::Model(AssetManager *assetManager, const float mass, const std::string &modelFile) :
-        PhysicalRenderable(assetManager->getGlHelper()), name(modelFile) {
+        PhysicalRenderable(assetManager->getGlHelper()), name(modelFile), objectType(modelFile) {
 
     //this is required because the shader has fixed size arrays
     boneTransforms.resize(128);
@@ -98,6 +98,7 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
     rigidBody = new btRigidBody(*rigidBodyConstructionInfo);
     //TODO check if this values are too low.
     rigidBody->setSleepingThresholds(0.1, 0.1);
+    rigidBody->setUserPointer(&objectType);
 
     //glHelper->bufferVertexColor(colors,vao,vbo,3);
     worldTransform = glm::mat4(1.0f);
@@ -106,7 +107,7 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
 
 void Model::setupForTime(long time) {
     if(animated) {
-        modelAsset->getTransform(time, boneTransforms);
+        modelAsset->getTransform(time, animationIndex, boneTransforms);
         btVector3 scale = this->getRigidBody()->getCollisionShape()->getLocalScaling();
         this->getRigidBody()->getCollisionShape()->setLocalScaling(btVector3(1, 1, 1));
         for (int i = 0; i < boneTransforms.size(); ++i) {

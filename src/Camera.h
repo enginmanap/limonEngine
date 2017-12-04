@@ -19,6 +19,7 @@
 #define STEPPING_TEST_COUNT 5
 
 class Camera {
+    std::string objectType = "camera";//FIXME this is just temporary ray test result detection code, we should return game objects instead of string
     const glm::vec3 startPosition = glm::vec3(0, 10, 15);
     bool dirty;
     glm::vec3 position, center, up, right;

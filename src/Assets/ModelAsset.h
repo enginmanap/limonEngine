@@ -54,7 +54,7 @@ class ModelAsset : public Asset {
     void createMeshes(aiNode *aiNode, glm::mat4 parentTransform);//parent transform is not reference on purpose
     //if it was, then we would need a stack
 
-    bool findNode(const BoneNode *nodeToMatch, const aiMesh *meshToCheckBone, int *index);
+    bool findNode(const std::string &nodeName, BoneNode** foundNode, BoneNode* searchRoot) const;
 
 
     void traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform, aiAnimation *animation, float timeInTicks,
@@ -74,10 +74,7 @@ public:
 
     bool isAnimated() const;
 
-    /*
-     * FIXME: this generates transforms for first animation for now
-     */
-    void getTransform(long time, std::vector<glm::mat4>& transformMatrix) const; //this method takes vector to avoid copying it
+    void getTransform(long time, int animationIndex, std::vector<glm::mat4> &transformMatrix) const; //this method takes vector to avoid copying it
 
     const glm::vec3 &getBoundingBoxMin() const { return boundingBoxMin; }
 

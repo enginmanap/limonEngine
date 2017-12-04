@@ -33,7 +33,7 @@ Camera::Camera(Options *options) :
     player = new btRigidBody(boxRigidBodyCI);
     player->setAngularFactor(0);
     player->setFriction(1);
-
+    player->setUserPointer(&objectType);
 }
 
 void Camera::move(moveDirections direction) {

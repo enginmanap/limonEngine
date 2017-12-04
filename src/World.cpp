@@ -4,6 +4,7 @@
 
 
 #include "World.h"
+#include "AI/HumanEnemy.h"
 
 World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(glHelper), fontManager(glHelper), camera(options) {
     assetManager = new AssetManager(glHelper);
@@ -72,9 +73,34 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
     }
 }
 
+ bool World::checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName) {
+     //FIXME this debug draw creates a flicker, because we redraw frames that surpass 60. we need duration for debug draw to prevent it
+     //debugDrawer->drawLine(GLMConverter::GLMToBlt(from), camera.getRigidBody()->getCenterOfMassPosition(), btVector3(1,0,0));
+     btCollisionWorld::AllHitsRayResultCallback RayCallback(GLMConverter::GLMToBlt(from), camera.getRigidBody()->getCenterOfMassPosition());
+
+     dynamicsWorld->rayTest(
+             GLMConverter::GLMToBlt(from),
+             GLMConverter::GLMToBlt(camera.getPosition()),
+             RayCallback
+     );
+
+     //debugDrawer->flushDraws();
+     if (RayCallback.hasHit()) {
+         for (int i = 0; i < RayCallback.m_collisionObjects.size(); ++i) {
+             std::string *objectType = (std::string *) RayCallback.m_collisionObjects[i]->getUserPointer();
+             if (*(objectType) != "camera" &&
+                 *(objectType) != fromName) {
+                 std::cout << "the object is " << *objectType << std::endl;
+                 return false;
+             }
+         }
+         return true;
+     }
+     return false;//if ray did not hit anything, return false. This should never happen
+ }
 
 void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
-    //everytime we call this method, we increase the time only by simulationTimeframe
+    //every time we call this method, we increase the time only by simulationTimeframe
     gameTime += simulationTimeFrame;
     dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
     camera.updateTransformFromPhysics(dynamicsWorld);
@@ -84,71 +110,110 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
         objects[i]->updateTransformFromPhysics();
     }
 
+    for (int j = 0; j < actors.size(); ++j) {
+        ActorInformation information = fillActorInformaton(j);
+        actors[j]->play(gameTime,information, options);
+    }
+
     //end of physics step
 
-    //FIXME this ray code looks like leftover from camera code seperation
-    btCollisionWorld::ClosestRayResultCallback RayCallback(btVector3(0, 0, 0), btVector3(0, 25, -3));
+    handlePlayerInput(inputHandler);
+}
 
-// Perform raycast
-    dynamicsWorld->rayTest(btVector3(0, 20, 0), btVector3(0, 0, -3), RayCallback);
+ActorInformation World::fillActorInformaton(int j) {
+    ActorInformation information;
+    //FIXME this is just for test
+    information.canSeePlayerDirectly = checkPlayerVisibility(actors[j]->getPosition(), "./Data/Models/ArmyPilot/ArmyPilot.dae");
+    glm::vec3 front = actors[j]->getFrontVector();
+    glm::vec3 rayDir = GLMConverter::BltToGLM(camera.getRigidBody()->getCenterOfMassPosition()) - actors[j]->getPosition();
+    float cosBetween = dot(normalize(front), normalize(rayDir));
+    information.cosineBetweenPlayer = cosBetween;
+    information.playerDirection = normalize(rayDir);
+    if(cosBetween > 0) {
+            information.isPlayerFront = true;
+            information.isPlayerBack = false;
+        } else {
+            information.isPlayerFront = false;
+            information.isPlayerBack = true;
+        }
+    //now we know if it is front or back. we can check up, down, left, right
+    //remove the y component, and test for left, right
+    glm::vec3 rayDirWithoutY = rayDir;
+    rayDirWithoutY.y = 0;
+    glm::vec3 frontWithoutY = front;
+    frontWithoutY.y = 0;
+    glm::vec3 crossBetween = cross(normalize(frontWithoutY), normalize(rayDirWithoutY));
+    if(crossBetween.y > 0){
+            information.isPlayerRight = false;
+            information.isPlayerLeft = true;
+        } else {
+            information.isPlayerRight = true;
+            information.isPlayerLeft = false;
+        }
+    //now we need up and down. For that, normally we can remove z or x, but since camera is z alone at start, I will use x
+    rayDir.x = 0;
+    front.x = 0;
+    crossBetween = cross(normalize(front), normalize(rayDir));
+    if(crossBetween.x > 0){
+            information.isPlayerUp = false;
+            information.isPlayerDown = true;
+        } else {
+            information.isPlayerUp = true;
+            information.isPlayerDown = false;
+        }
+    return information;
+}
 
-    if (RayCallback.hasHit()) {
-        /*
-        End = RayCallback.m_hitPointWorld;
-        Normal = RayCallback.m_hitNormalWorld;
-*/
-        // Do some clever stuff here
-    }
-
+void World::handlePlayerInput(InputHandler &inputHandler) {
     float xLook, yLook;
     if (inputHandler.getMouseChange(xLook, yLook)) {
-        camera.rotate(xLook, yLook);
+        this->camera.rotate(xLook, yLook);
     }
-    Camera::moveDirections direction = Camera::moveDirections::NONE;
+    Camera::moveDirections direction = Camera::NONE;
     //ignore if both are pressed.
     if (inputHandler.getInputStatus(inputHandler.MOVE_FORWARD) !=
         inputHandler.getInputStatus(inputHandler.MOVE_BACKWARD)) {
         if (inputHandler.getInputStatus(inputHandler.MOVE_FORWARD)) {
-            direction = camera.FORWARD;
+            direction = this->camera.FORWARD;
         } else {
-            direction = camera.BACKWARD;
+            direction = this->camera.BACKWARD;
         }
     }
     if (inputHandler.getInputStatus(inputHandler.MOVE_LEFT) != inputHandler.getInputStatus(inputHandler.MOVE_RIGHT)) {
         if (inputHandler.getInputStatus(inputHandler.MOVE_LEFT)) {
-            if (direction == camera.FORWARD) {
-                direction = camera.LEFT_FORWARD;
-            } else if (direction == camera.BACKWARD) {
-                direction = camera.LEFT_BACKWARD;
+            if (direction == this->camera.FORWARD) {
+                direction = this->camera.LEFT_FORWARD;
+            } else if (direction == this->camera.BACKWARD) {
+                direction = this->camera.LEFT_BACKWARD;
             } else {
-                direction = camera.LEFT;
+                direction = this->camera.LEFT;
             }
-        } else if (direction == camera.FORWARD) {
-            direction = camera.RIGHT_FORWARD;
-        } else if (direction == camera.BACKWARD) {
-            direction = camera.RIGHT_BACKWARD;
+        } else if (direction == this->camera.FORWARD) {
+            direction = this->camera.RIGHT_FORWARD;
+        } else if (direction == this->camera.BACKWARD) {
+            direction = this->camera.RIGHT_BACKWARD;
         } else {
-            direction = camera.RIGHT;
+            direction = this->camera.RIGHT;
         }
     }
     if (inputHandler.getInputStatus(inputHandler.JUMP)) {
-        direction = camera.UP;
+        direction = this->camera.UP;
     }
     if (inputHandler.getInputEvents(inputHandler.DEBUG) && inputHandler.getInputStatus(inputHandler.DEBUG)) {
-        if(dynamicsWorld->getDebugDrawer()->getDebugMode() == btIDebugDraw::DBG_NoDebug) {
-            dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE | dynamicsWorld->getDebugDrawer()->DBG_DrawAabb);
-            options->getLogger()->log(Logger::INPUT, Logger::INFO, "Debug enabled");
-            guiLayers[0]->setDebug(true);
+        if(this->dynamicsWorld->getDebugDrawer()->getDebugMode() == btIDebugDraw::DBG_NoDebug) {
+            this->dynamicsWorld->getDebugDrawer()->setDebugMode(
+                    this->dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE | this->dynamicsWorld->getDebugDrawer()->DBG_DrawAabb);
+            this->options->getLogger()->log(Logger::INPUT, Logger::INFO, "Debug enabled");
+            this->guiLayers[0]->setDebug(true);
         } else {
-            dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
-            options->getLogger()->log(Logger::INPUT, Logger::INFO, "Debug disabled");
-            guiLayers[0]->setDebug(false);
+            this->dynamicsWorld->getDebugDrawer()->setDebugMode(this->dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
+            this->options->getLogger()->log(Logger::INPUT, Logger::INFO, "Debug disabled");
+            this->guiLayers[0]->setDebug(false);
         }
     }
-    if (direction != camera.NONE) {
-        camera.move(direction);
+    if (direction != this->camera.NONE) {
+        this->camera.move(direction);
     }
-
 }
 
 void World::render() {
@@ -194,10 +259,9 @@ void World::render() {
     }
 
     dynamicsWorld->debugDrawWorld();
-    //debugDrawer->drawLine(btVector3(0,0,-3),btVector3(0,250,-3),btVector3(1,1,1));
+    debugDrawer->drawLine(btVector3(0,0,-3),btVector3(0,250,-3),btVector3(1,1,1));
 
     debugDrawer->flushDraws();
-
 
 
     //since gui uses blending, everything must be already rendered.
@@ -382,7 +446,17 @@ bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
             } else {
                 w = 0.0;
             }
-            xmlModel->addOrientation(glm::quat(x, y, z, w));
+            xmlModel->addOrientation(glm::quat(w, x, y, z));
+        }
+
+        objectAttribute =  objectNode->FirstChildElement("AI");
+        if (objectAttribute == NULL) {
+            std::cout << "Object does not have AI." << std::endl;
+        } else {
+            std::cout << "Object has AI." << std::endl;
+            HumanEnemy* newEnemy = new HumanEnemy();
+            newEnemy->setModel(xmlModel);
+            this->actors.push_back(newEnemy);
         }
 
         xmlModel->getWorldTransform();

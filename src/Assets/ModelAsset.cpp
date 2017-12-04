@@ -186,20 +186,39 @@ BoneNode *ModelAsset::loadNodeTree(aiNode *aiNode) {
     return currentNode;
 }
 
-bool ModelAsset::findNode(const BoneNode *nodeToMatch, const aiMesh *meshToCheckBone, int *index) {
-    std::string name = nodeToMatch->name;
-    for (int i = 0; i < meshToCheckBone->mNumBones; ++i) {
-        if (name == meshToCheckBone->mBones[i]->mName.C_Str()) {
-            (*index) = i;
-            return true;
+bool ModelAsset::findNode(const std::string &nodeName, BoneNode** foundNode, BoneNode* searchRoot) const {
+    if (nodeName == searchRoot->name) {
+        *foundNode = searchRoot;
+        return true;
+    } else {
+        for (int i = 0; i < searchRoot->children.size(); ++i) {
+            if (findNode(nodeName, foundNode, searchRoot->children[i])) {
+                return true;
+            }
         }
     }
     return false;
 }
 
-void ModelAsset::getTransform(long time, std::vector<glm::mat4> &transformMatrix) const {
+void ModelAsset::getTransform(long time, int animationIndex, std::vector<glm::mat4> &transformMatrix) const {
 
-    aiAnimation *currentAnimation = animations[0];
+    if(animationIndex == -1) {
+        //this means return to bind pose
+        //FIXME calculating bind pose for each frame is wrong, but I am assuming this part will be removed, and idle pose
+        //will be used instead. If bind pose requirement arises, it should set once, and reused.
+        for(std::map<std::string, glm::mat4>::const_iterator it = meshOffsetmap.begin(); it != meshOffsetmap.end(); it++){
+            BoneNode* node;
+            std::string name = it->first;
+            if(findNode(name, &node, rootNode)) {
+                transformMatrix[node->boneID] = meshOffsetmap.at(node->name + "_parent");
+                //parent above means parent transform of the mesh node, not the parent of bone.
+            }
+        }
+        return;
+    }
+    //if the id is not -1, means we want to show the animation for real.
+    aiAnimation *currentAnimation = animations[animationIndex];
+
 
     float ticksPersecond;
     if (currentAnimation->mTicksPerSecond != 0) {

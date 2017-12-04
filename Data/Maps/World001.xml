@@ -51,6 +51,7 @@
         <Object>
             <File>./Data/Models/ArmyPilot/ArmyPilot.dae</File>
             <Mass>0</Mass>
+            <AI>True</AI>
             <Scale>
                 <X>2.0</X>
                 <Y>2.0</Y>
