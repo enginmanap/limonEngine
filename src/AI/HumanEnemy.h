@@ -9,9 +9,36 @@
 #include "Actor.h"
 
 class HumanEnemy: public Actor {
+    long playerPursuitStartTime = 0L;
+    long playerPursuitTimeout = 5000L; //if not see player for this amount, return.
+    bool returnToPosition = false;
+    glm::vec3 initialPosition;
+
+public:
     void play(long time, ActorInformation &information, Options* options) {
         //check if the player can be seen
-        if(information.canSeePlayerDirectly){
+        if(information.canSeePlayerDirectly) {
+            if (playerPursuitStartTime == 0) {
+                //means we will just start pursuit, mark the position so we can return.
+                initialPosition = GLMConverter::BltToGLM(model->getRigidBody()->getCenterOfMassPosition());
+                returnToPosition = true;
+            }
+            playerPursuitStartTime = time;
+        }
+
+        if(time - playerPursuitStartTime >= playerPursuitTimeout) {
+            playerPursuitStartTime = 0;
+        }
+
+        if(playerPursuitStartTime == 0) {
+            //if not in player pursuit
+            if(returnToPosition) {
+                //search for route to initial position and return
+            } else {
+                model->setAnimationIndex(-1);
+            }
+        } else {
+            //if player pursuit mode
             glm::vec3 moveDirection = 0.05f * information.playerDirection;
             moveDirection.y = 0;//for now
             model->addTranslate( moveDirection);
@@ -41,13 +68,9 @@ class HumanEnemy: public Actor {
             if(information.isPlayerDown) {
                 //std::cout << "Down." << std::endl;
             }
-        } else {
-            //Can't see the player
-            model->setAnimationIndex(-1);
         }
     }
 
-public:
 
 };
 
