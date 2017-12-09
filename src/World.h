@@ -75,7 +75,7 @@ public:
 
     bool checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName);
 
-    ActorInformation fillActorInformaton(int j);
+    ActorInformation fillActorInformation(int j);
 };
 
 #endif //UBERGAME_WORLD_H

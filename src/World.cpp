@@ -111,7 +111,7 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
     }
 
     for (int j = 0; j < actors.size(); ++j) {
-        ActorInformation information = fillActorInformaton(j);
+        ActorInformation information = fillActorInformation(j);
         actors[j]->play(gameTime,information, options);
     }
 
@@ -120,7 +120,7 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
     handlePlayerInput(inputHandler);
 }
 
-ActorInformation World::fillActorInformaton(int j) {
+ActorInformation World::fillActorInformation(int j) {
     ActorInformation information;
     //FIXME this is just for test
     information.canSeePlayerDirectly = checkPlayerVisibility(actors[j]->getPosition(), "./Data/Models/ArmyPilot/ArmyPilot.dae");
