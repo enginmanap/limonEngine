@@ -77,13 +77,12 @@ public:
     ~Model() {
         delete rigidBody->getMotionState();
         delete rigidBody;
+        delete compoundShape;
 
-/*
-        if (finalCollisionShape != NULL) {
-            delete finalCollisionShape;
+        for (int i = 0; i < meshes.size(); ++i) {
+            delete meshes[i];
         }
-        delete convexShape;
-*/
+
     }
 
 };

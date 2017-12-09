@@ -60,47 +60,50 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
                     btScalar margin = convexTriangleMeshShape->getMargin();
                     hull->buildHull(margin);
                     delete convexTriangleMeshShape;
-                    convexTriangleMeshShape = NULL;
+                    convexTriangleMeshShape = NULL; //this is not needed, but I am leaving here in case I try to use it at a later revision.
 
                     meshCollisionShape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
                                                                hull->numVertices());
+                    delete hull;
                 }
             }
             //since there is no animation, we don't have to put the elements in order.
-            compoundShape->addChildShape(emptyTransform, meshCollisionShape);//this add the mesh to collition shape
+            compoundShape->addChildShape(emptyTransform, meshCollisionShape);//this add the mesh to collision shape
         }
     }
 
     if (animated) {
         std::map<uint_fast32_t, btConvexHullShape *>::iterator it;
-        for (int i = 0;
-             i < 128; i++) {//FIXME 128 is the number of bones supported. It should be an option or an constant
+        for (int i = 0;i < 128; i++) {//FIXME 128 is the number of bones supported. It should be an option or an constant
             if (btTransformMap.find(i) != btTransformMap.end() && hullMap.find(i) != hullMap.end()) {
                 boneIdCompoundChildMap[i] = compoundShape->getNumChildShapes();
-                compoundShape->addChildShape(btTransformMap[i], hullMap[i]);//this add the mesh to collision shape
+                compoundShape->addChildShape(btTransformMap[i], hullMap[i]);//this add the mesh to collision shape, in order
 
             }
         }
     }
 
-
-    btDefaultMotionState *boxMotionState = new btDefaultMotionState(
+    btDefaultMotionState *initialMotionState = new btDefaultMotionState(
             btTransform(btQuaternion(0, 0, 0, 1), GLMConverter::GLMToBlt(centerOffset)));
+
     btVector3 fallInertia(0, 0, 0);
     compoundShape->calculateLocalInertia(mass, fallInertia);
     btRigidBody::btRigidBodyConstructionInfo *rigidBodyConstructionInfo = new btRigidBody::btRigidBodyConstructionInfo(
-            mass, boxMotionState, compoundShape,
+            mass, initialMotionState, compoundShape,
             fallInertia);
-
+    rigidBody = new btRigidBody(*rigidBodyConstructionInfo);
+    delete rigidBodyConstructionInfo;
 
     this->materialMap = modelAsset->getMaterialMap();
 
-    rigidBody = new btRigidBody(*rigidBodyConstructionInfo);
-    //TODO check if this values are too low.
     rigidBody->setSleepingThresholds(0.1, 0.1);
     rigidBody->setUserPointer(&objectType);
 
-    //glHelper->bufferVertexColor(colors,vao,vbo,3);
+    if(animated) {
+        rigidBody->setCollisionFlags(rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+        rigidBody->setActivationState(DISABLE_DEACTIVATION);
+    }
+
     worldTransform = glm::mat4(1.0f);
 
 }
