@@ -36,10 +36,10 @@ class HumanEnemy: public Actor {
                 }
             }
             if(information.isPlayerUp) {
-                std::cout << "Up." << std::endl;
+                //std::cout << "Up." << std::endl;
             }
             if(information.isPlayerDown) {
-                std::cout << "Down." << std::endl;
+                //std::cout << "Down." << std::endl;
             }
         } else {
             //Can't see the player
