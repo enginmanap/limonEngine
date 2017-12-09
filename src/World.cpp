@@ -126,7 +126,7 @@ ActorInformation World::fillActorInformaton(int j) {
     information.canSeePlayerDirectly = checkPlayerVisibility(actors[j]->getPosition(), "./Data/Models/ArmyPilot/ArmyPilot.dae");
     glm::vec3 front = actors[j]->getFrontVector();
     glm::vec3 rayDir = GLMConverter::BltToGLM(camera.getRigidBody()->getCenterOfMassPosition()) - actors[j]->getPosition();
-    float cosBetween = dot(normalize(front), normalize(rayDir));
+    float cosBetween = glm::dot(normalize(front), normalize(rayDir));
     information.cosineBetweenPlayer = cosBetween;
     information.playerDirection = normalize(rayDir);
     if(cosBetween > 0) {
@@ -143,6 +143,8 @@ ActorInformation World::fillActorInformaton(int j) {
     glm::vec3 frontWithoutY = front;
     frontWithoutY.y = 0;
     glm::vec3 crossBetween = cross(normalize(frontWithoutY), normalize(rayDirWithoutY));
+    float cosineForSide = glm::dot(normalize(frontWithoutY), normalize(rayDirWithoutY));
+    information.cosineBetweenPlayerForSide = cosineForSide;
     if(crossBetween.y > 0){
             information.isPlayerRight = false;
             information.isPlayerLeft = true;
