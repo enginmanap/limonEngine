@@ -40,6 +40,7 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
     if(!loadMapFromXML()) {
         exit(-1);
     }
+    dynamicsWorld->addConstraint(camera.getSpring(dynamicsWorld));
 
     GUIText *tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 64), "Uber Game",
                               glm::vec3(0, 0, 0));
@@ -50,7 +51,7 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
     tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "Version 0.2",
                      glm::vec3(255, 255, 255));
     //tr->setScale(0.25f,0.25f);
-    tr->set2dWorldTransform(glm::vec2(1024 - 50, 100), 0.0f);
+    tr->set2dWorldTransform(glm::vec2(1024 - 50, 100), -1 * 3.14159265358979f / 2);
     layer1->addGuiElement(tr);
 
     trd = new GUITextDynamic(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), glm::vec3(0, 0, 0), 640, 510, options);
@@ -204,7 +205,7 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
     if (inputHandler.getInputEvents(inputHandler.DEBUG) && inputHandler.getInputStatus(inputHandler.DEBUG)) {
         if(this->dynamicsWorld->getDebugDrawer()->getDebugMode() == btIDebugDraw::DBG_NoDebug) {
             this->dynamicsWorld->getDebugDrawer()->setDebugMode(
-                    this->dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE | this->dynamicsWorld->getDebugDrawer()->DBG_DrawAabb);
+                    this->dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE | this->dynamicsWorld->getDebugDrawer()->DBG_DrawAabb | this->dynamicsWorld->getDebugDrawer()->DBG_DrawConstraints | this->dynamicsWorld->getDebugDrawer()->DBG_DrawConstraintLimits);
             this->options->getLogger()->log(Logger::INPUT, Logger::INFO, "Debug enabled");
             this->guiLayers[0]->setDebug(true);
         } else {
@@ -213,9 +214,9 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
             this->guiLayers[0]->setDebug(false);
         }
     }
-    if (direction != this->camera.NONE) {
-        this->camera.move(direction);
-    }
+    //if none, camera should handle how to get slower.
+    this->camera.move(direction);
+
 }
 
 void World::render() {
@@ -261,7 +262,7 @@ void World::render() {
     }
 
     dynamicsWorld->debugDrawWorld();
-    debugDrawer->drawLine(btVector3(0,0,-3),btVector3(0,250,-3),btVector3(1,1,1));
+    debugDrawer->drawLine(btVector3(0,0,0),btVector3(0,250,0),btVector3(1,1,1));
 
     debugDrawer->flushDraws();
 
@@ -304,7 +305,7 @@ World::~World() {
 bool World::loadMapFromXML() {
 
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile("./Data/Maps/World001.xml");
+    tinyxml2::XMLError eResult = xmlDoc.LoadFile("./Data/Maps/World002.xml");
     if (eResult != tinyxml2::XML_SUCCESS) {
         std::cout << "Error loading XML: " <<  eResult << std::endl;
     }
@@ -466,6 +467,8 @@ bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
         rigidBodies.push_back(xmlModel->getRigidBody());
         dynamicsWorld->addRigidBody(xmlModel->getRigidBody());
         objectNode =  objectNode->NextSiblingElement("Object");
+        btVector3 a,b;
+        xmlModel->getRigidBody()->getAabb(a,b);
     }
     return true;
 }

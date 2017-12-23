@@ -14,12 +14,6 @@
                 <Y>0.0</Y>
                 <Z>125.0</Z>
             </Translate>
-            <Rotate>
-                <X>0.0</X>
-                <Y>0.0</Y>
-                <Z>1.0</Z>
-                <W>0.2</W>
-            </Rotate>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
@@ -49,9 +43,65 @@
             </Translate>
         </Object>
         <Object>
+            <File>./Data/Models/Box/Box.obj</File>
+            <Mass>0</Mass>
+            <Scale>
+                <X>0.25</X>
+                <Y>0.25</Y>
+                <Z>1</Z>
+            </Scale>
+            <Translate>
+                <X>0.0</X>
+                <Y>1.25</Y>
+                <Z>0.0</Z>
+            </Translate>
+        </Object>
+        <Object>
+            <File>./Data/Models/Box/Box.obj</File>
+            <Mass>0</Mass>
+            <Scale>
+                <X>0.5</X>
+                <Y>0.5</Y>
+                <Z>1</Z>
+            </Scale>
+            <Translate>
+                <X>0.75</X>
+                <Y>1.5</Y>
+                <Z>0.0</Z>
+            </Translate>
+        </Object>
+        <Object>
+            <File>./Data/Models/Box/Box.obj</File>
+            <Mass>0</Mass>
+            <Scale>
+                <X>0.75</X>
+                <Y>0.75</Y>
+                <Z>1</Z>
+            </Scale>
+            <Translate>
+                <X>1.5</X>
+                <Y>1.75</Y>
+                <Z>0.0</Z>
+            </Translate>
+        </Object>
+        <Object>
+            <File>./Data/Models/Box/Box.obj</File>
+            <Mass>0</Mass>
+            <Scale>
+                <X>1.0</X>
+                <Y>1.0</Y>
+                <Z>1.0</Z>
+            </Scale>
+            <Translate>
+                <X>2.5</X>
+                <Y>2.0</Y>
+                <Z>0.0</Z>
+            </Translate>
+        </Object>
+        <Object>
             <File>./Data/Models/ArmyPilot/ArmyPilot.dae</File>
             <Mass>0</Mass>
-            <AI>True</AI>
+            <!--<AI>True</AI>-->
             <Scale>
                 <X>2.0</X>
                 <Y>2.0</Y>
@@ -70,20 +120,6 @@
                 <X>-3.0</X>
                 <Y>2.5</Y>
                 <Z>-3.0</Z>
-            </Translate>
-        </Object>
-        <Object>
-            <File>./Data/Models/Box/Box.obj</File>
-            <Mass>0</Mass>
-            <Scale>
-                <X>0.2</X>
-                <Y>0.2</Y>
-                <Z>0.2</Z>
-            </Scale>
-            <Translate>
-                <X>1.0</X>
-                <Y>6.0</Y>
-                <Z>0.0</Z>
             </Translate>
         </Object>
         <Object>

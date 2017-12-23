@@ -8,6 +8,7 @@
 
 #include <btBulletDynamicsCommon.h>
 #include <vector>
+#include <algorithm>
 #include <iostream>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -26,6 +27,9 @@ class Camera {
     glm::quat view, viewChange;
     glm::mat4 cameraTransformMatrix;
     btRigidBody *player;
+    btGeneric6DofSpring2Constraint *spring;
+    float equilibriumPoint;
+
     std::vector<btCollisionWorld::ClosestRayResultCallback> rayCallbackArray;
     btTransform worldTransformHolder;
     bool onAir;
@@ -36,6 +40,12 @@ public:
     };
 
     Camera(Options *options);
+    ~Camera() {
+        delete player;
+        if(spring != NULL) {
+            delete spring;
+        }
+    }
 
     void updateTransformFromPhysics(const btDynamicsWorld *world);
 
@@ -55,7 +65,9 @@ public:
 
     glm::mat4 getCameraMatrix() {
         if (this->dirty) {
-            this->cameraTransformMatrix = glm::lookAt(position, center + position, up);
+            glm::vec3 diff = glm::vec3(0.0f, -0.2f, -5.0f);
+            this->cameraTransformMatrix = glm::lookAt(position - diff, center + position - diff, up);
+//            this->cameraTransformMatrix = glm::lookAt(position, center + position, up);
             this->dirty = false;
         }
         return cameraTransformMatrix;
@@ -73,6 +85,15 @@ public:
         return player;
     }
 
+    /**
+     * This method requires the world, because it raytests for closest object below the camera.
+     * This is required because single sided spring constrain automatically attaches to world itself,
+     * and we need to calculate an equilibrium point.
+     *
+     * @param world
+     * @return
+     */
+    btGeneric6DofSpring2Constraint *getSpring(const btDynamicsWorld *world);
 };
 
 #endif //UBERGAME_CAMERA_H
