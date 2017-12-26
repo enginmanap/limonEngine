@@ -9,9 +9,14 @@
 #include "Utils/Logger.h"
 
 class Options {
+public:
+    enum MoveModes {WALK, RUN};
 private:
     Logger *logger;
-    glm::vec3 moveSpeed = glm::vec3(5, 0, 5);
+
+    glm::vec3 walkSpeed = glm::vec3(5, 0, 5);
+    glm::vec3 runSpeed = glm::vec3(8, 0, 8);
+    glm::vec3 moveSpeed = walkSpeed;
     float jumpFactor = 7.0f;
     float lookAroundSpeed = -2.5f;
     unsigned int screenHeight = 768;
@@ -114,8 +119,16 @@ public:
         return lookAroundSpeed;
     }
 
-    void setMoveSpeed(const glm::vec3 &moveSpeed) {
-        Options::moveSpeed = moveSpeed;
+    void setMoveSpeed(const MoveModes moveMode) {
+        switch(moveMode) {
+            case RUN:
+                moveSpeed = runSpeed;
+                break;
+            case WALK:
+            default:
+                moveSpeed = walkSpeed;
+
+        }
     }
 
     void setJumpFactor(float jumpFactor) {

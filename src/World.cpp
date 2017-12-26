@@ -172,6 +172,15 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
     if (inputHandler.getMouseChange(xLook, yLook)) {
         this->camera.rotate(xLook, yLook);
     }
+
+    if (inputHandler.getInputEvents(inputHandler.RUN)) {
+        if(inputHandler.getInputStatus(inputHandler.RUN)) {
+            options->setMoveSpeed(Options::RUN);
+        } else {
+            options->setMoveSpeed(Options::WALK);
+        }
+    }
+
     Camera::moveDirections direction = Camera::NONE;
     //ignore if both are pressed.
     if (inputHandler.getInputStatus(inputHandler.MOVE_FORWARD) !=
@@ -305,7 +314,7 @@ World::~World() {
 bool World::loadMapFromXML() {
 
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile("./Data/Maps/World001.xml");
+    tinyxml2::XMLError eResult = xmlDoc.LoadFile("./Data/Maps/World002.xml");
     if (eResult != tinyxml2::XML_SUCCESS) {
         std::cout << "Error loading XML: " <<  eResult << std::endl;
     }
