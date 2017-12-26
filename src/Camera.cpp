@@ -30,7 +30,7 @@ Camera::Camera(Options *options) :
     btVector3 fallInertia(0, 0, 0);
     capsuleShape->calculateLocalInertia(1, fallInertia);
     btRigidBody::btRigidBodyConstructionInfo
-            boxRigidBodyCI(1, boxMotionState, capsuleShape, fallInertia);
+            boxRigidBodyCI(75, boxMotionState, capsuleShape, fallInertia);
     player = new btRigidBody(boxRigidBodyCI);
     player->setAngularFactor(0);
     player->setFriction(1);
@@ -43,56 +43,40 @@ void Camera::move(moveDirections direction) {
     }
 
     if (direction == NONE) {
-        player->setLinearVelocity(btVector3(0,0,0));
+        player->setLinearVelocity(player->getLinearVelocity() / slowDownFactor);
         return;
     }
 
     dirty = true;
-    btVector3 upperLimit;
-    btVector3 lowerLimit;
     switch (direction) {
         case UP:
+            std::cout << "Player linear velocity before jump: " << GLMUtils::vectorToString(GLMConverter::BltToGLM(player->getLinearVelocity())) << std::endl;
             player->setLinearVelocity(player->getLinearVelocity() + GLMConverter::GLMToBlt(up * options->getJumpFactor()));
-            spring->getLinearUpperLimit(upperLimit);
-            spring->getLinearLowerLimit(lowerLimit);
-            spring->setLinearLowerLimit(btVector3(0.0f,  1.0f, 0.0f) + lowerLimit);
-            spring->setLinearUpperLimit(btVector3(0.0f,  1.0f, 0.0f) + upperLimit);
-            //spring->enableSpring(1, false);
+            std::cout << "Player linear velocity after jump: " << GLMUtils::vectorToString(GLMConverter::BltToGLM(player->getLinearVelocity())) << std::endl;
+            spring->setEnabled(false);
             break;
         case LEFT_BACKWARD:
-            //position -= moveSpeed * center;
-            //position -= moveSpeed * right;
             player->setLinearVelocity(GLMConverter::GLMToBlt(-1.0f * (right + center) * options->getMoveSpeed()));
             break;
         case LEFT_FORWARD:
-            //position += moveSpeed * center;
-            //position -= moveSpeed * right;
             player->setLinearVelocity(GLMConverter::GLMToBlt((-1.0f * right + center) * options->getMoveSpeed()));
             break;
         case LEFT:
-            //position -= moveSpeed * right;
             player->setLinearVelocity(GLMConverter::GLMToBlt(right * -1.0f * options->getMoveSpeed()));
             break;
         case RIGHT_BACKWARD:
-            //position -= moveSpeed * center;
-            //position += moveSpeed * right;
             player->setLinearVelocity(GLMConverter::GLMToBlt((right + -1.0f * center) * options->getMoveSpeed()));
             break;
         case RIGHT_FORWARD:
-            //position += moveSpeed * center;
-            //position += moveSpeed * right;
             player->setLinearVelocity(GLMConverter::GLMToBlt((right + center) * options->getMoveSpeed()));
             break;
         case RIGHT:
-            //position += moveSpeed * right;
             player->setLinearVelocity(GLMConverter::GLMToBlt(right * options->getMoveSpeed()));
             break;
         case BACKWARD:
-            //position -= moveSpeed * center;
             player->setLinearVelocity(GLMConverter::GLMToBlt(center * -1.0f * options->getMoveSpeed()));
             break;
         case FORWARD:
-            //position += moveSpeed * center;
             player->setLinearVelocity(GLMConverter::GLMToBlt(center * options->getMoveSpeed()));
             break;
     }
@@ -132,12 +116,22 @@ void Camera::rotate(float xChange, float yChange) {
 
 void Camera::updateTransformFromPhysics(const btDynamicsWorld *world) {
     onAir = true;//base assumption is we are flying
+    player->getMotionState()->getWorldTransform(worldTransformHolder);
+    position = GLMConverter::BltToGLM(worldTransformHolder.getOrigin());
+
     //we will test for STEPPING_TEST_COUNT^2 times
     float requiredDelta = 1.0f / (STEPPING_TEST_COUNT-1);
     float highestPoint =  std::numeric_limits<float>::lowest();
     for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
         for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
             btCollisionWorld::ClosestRayResultCallback *rayCallback = &rayCallbackArray[i*STEPPING_TEST_COUNT + j];
+            //set raycallback for downward raytest
+            rayCallback->m_closestHitFraction = 1;
+            rayCallback->m_collisionObject = 0;
+            rayCallback->m_rayFromWorld = worldTransformHolder.getOrigin() +
+                                          btVector3(-0.5f + i*requiredDelta, -1.01f,
+                                                    -0.5f + j*requiredDelta);//the second vector is preventing hitting player capsule
+            rayCallback->m_rayToWorld = rayCallback->m_rayFromWorld + btVector3(0, -1, 0);
             world->rayTest(rayCallback->m_rayFromWorld, rayCallback->m_rayToWorld, *rayCallback);
 
             if (rayCallback->hasHit()) {
@@ -146,35 +140,20 @@ void Camera::updateTransformFromPhysics(const btDynamicsWorld *world) {
                 //std::cout << "hit id " << i << ", " << j  << "hit " << end.x() <<", " << end.y() << ", " << end.z() << std::endl;
                 onAir = false;
             }
-            rayCallback->m_closestHitFraction = 1;
-
-            rayCallback->m_collisionObject = 0;
-
-
-            player->getMotionState()->getWorldTransform(worldTransformHolder);
-
-            position = GLMConverter::BltToGLM(worldTransformHolder.getOrigin());
-
-            rayCallback->m_rayFromWorld = worldTransformHolder.getOrigin() +
-                                         btVector3(-0.5f + i*requiredDelta, -1.01f,
-                                                   -0.5f + j*requiredDelta);//the second vector is preventing hitting player capsule
-            rayCallback->m_rayToWorld = rayCallback->m_rayFromWorld + btVector3(0, -2, 0);
         }
     }
-    //onAir = false;
 
     if(!onAir) {
         //spring->setEquilibriumPoint(1, -6 + -1.0 * (position.y - (highestPoint + 1.0f)));
         equilibriumPoint = highestPoint + 1.0f - startPosition.y;
 
-        spring->setLinearLowerLimit(btVector3(1.0f, equilibriumPoint + 2.0f, 1.0f));
-        spring->setLinearUpperLimit(btVector3(0.0f, equilibriumPoint + 3.0f, 0.0f));
-        spring->enableSpring(1,  true);
+        spring->setLinearLowerLimit(btVector3(1.0f, equilibriumPoint + 1.0f, 1.0f));
+        spring->setLinearUpperLimit(btVector3(0.0f, equilibriumPoint + 2.0f, 0.0f));
+        spring->setEnabled(true);
     } else {
-        spring->enableSpring(1,  false);
-        spring->setLinearLowerLimit(btVector3(1.0f, 1.0f, 1.0f));
-        spring->setLinearUpperLimit(btVector3(0.0f, 0.0f, 0.0f));
+        spring->setEnabled(false);
     }
+    //std::cout << GLMUtils::vectorToString(position) << " and equib is " << equilibriumPoint << std::endl;
     position.y += 1;//to make the camera at upper end, instead of center
     dirty = true;//FIXME this always returns is dirty true;
 }
@@ -188,7 +167,7 @@ btGeneric6DofSpring2Constraint * Camera::getSpring(const btDynamicsWorld *world)
     );
     //don't enable the spring, player might be at some height, waiting for falling.
     spring->setStiffness(1,  35.0f);
-    spring->setDamping  (1,  1000.0f);
+    spring->setDamping  (1,  1.0f);
 
     spring->setLinearLowerLimit(btVector3(1.0f, 1.0f, 1.0f));
     spring->setLinearUpperLimit(btVector3(0.0f, 0.0f, 0.0f));

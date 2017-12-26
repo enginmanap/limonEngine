@@ -12,7 +12,7 @@ class Options {
 private:
     Logger *logger;
     glm::vec3 moveSpeed = glm::vec3(5, 0, 5);
-    float jumpFactor = 3.0f;
+    float jumpFactor = 7.0f;
     float lookAroundSpeed = -2.5f;
     unsigned int screenHeight = 768;
     unsigned int screenWidth = 1024;

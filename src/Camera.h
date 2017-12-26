@@ -16,12 +16,15 @@
 
 #include "Options.h"
 #include "Utils/GLMConverter.h"
+#include "Utils/GLMUtils.h"
 
 #define STEPPING_TEST_COUNT 5
 
 class Camera {
     std::string objectType = "camera";//FIXME this is just temporary ray test result detection code, we should return game objects instead of string
     const glm::vec3 startPosition = glm::vec3(0, 10, 15);
+    float slowDownFactor = 2.5f;
+
     bool dirty;
     glm::vec3 position, center, up, right;
     glm::quat view, viewChange;
@@ -65,9 +68,7 @@ public:
 
     glm::mat4 getCameraMatrix() {
         if (this->dirty) {
-            glm::vec3 diff = glm::vec3(0.0f, -0.2f, -5.0f);
-            this->cameraTransformMatrix = glm::lookAt(position - diff, center + position - diff, up);
-//            this->cameraTransformMatrix = glm::lookAt(position, center + position, up);
+            this->cameraTransformMatrix = glm::lookAt(position, center + position, up);
             this->dirty = false;
         }
         return cameraTransformMatrix;
