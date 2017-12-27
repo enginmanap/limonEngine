@@ -3,3 +3,4 @@ build/
 *.lnk
 cmake-build-debug/
 .DS_Store
+cmake-build-*/
