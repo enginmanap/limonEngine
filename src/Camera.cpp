@@ -50,9 +50,7 @@ void Camera::move(moveDirections direction) {
     dirty = true;
     switch (direction) {
         case UP:
-            std::cout << "Player linear velocity before jump: " << GLMUtils::vectorToString(GLMConverter::BltToGLM(player->getLinearVelocity())) << std::endl;
             player->setLinearVelocity(player->getLinearVelocity() + GLMConverter::GLMToBlt(up * options->getJumpFactor()));
-            std::cout << "Player linear velocity after jump: " << GLMUtils::vectorToString(GLMConverter::BltToGLM(player->getLinearVelocity())) << std::endl;
             spring->setEnabled(false);
             break;
         case LEFT_BACKWARD:
@@ -136,24 +134,18 @@ void Camera::updateTransformFromPhysics(const btDynamicsWorld *world) {
 
             if (rayCallback->hasHit()) {
                 highestPoint = std::max(rayCallback->m_hitPointWorld.getY(), highestPoint);
-                //btVector3 end = rayCallback->m_hitPointWorld;
-                //std::cout << "hit id " << i << ", " << j  << "hit " << end.x() <<", " << end.y() << ", " << end.z() << std::endl;
                 onAir = false;
             }
         }
     }
 
     if(!onAir) {
-        //spring->setEquilibriumPoint(1, -6 + -1.0 * (position.y - (highestPoint + 1.0f)));
         equilibriumPoint = highestPoint + 1.0f - startPosition.y;
-
-        spring->setLinearLowerLimit(btVector3(1.0f, equilibriumPoint + 1.0f, 1.0f));
-        spring->setLinearUpperLimit(btVector3(0.0f, equilibriumPoint + 2.0f, 0.0f));
+        spring->setLimit(1,equilibriumPoint + 1.0f, equilibriumPoint + 2.0f);
         spring->setEnabled(true);
     } else {
         spring->setEnabled(false);
     }
-    //std::cout << GLMUtils::vectorToString(position) << " and equib is " << equilibriumPoint << std::endl;
     position.y += 1;//to make the camera at upper end, instead of center
     dirty = true;//FIXME this always returns is dirty true;
 }
@@ -172,7 +164,8 @@ btGeneric6DofSpring2Constraint * Camera::getSpring(const btDynamicsWorld *world)
     spring->setLinearLowerLimit(btVector3(1.0f, 1.0f, 1.0f));
     spring->setLinearUpperLimit(btVector3(0.0f, 0.0f, 0.0f));
     //spring->setEquilibriumPoint(1,  std::numeric_limits<float>::lowest());// if this is used, spring does not act as it should
-    spring->setEquilibriumPoint(1,  -9999);
+    spring->setEquilibriumPoint(1,  -9999);//TODO this should be set the low Y of AABB of world.
     spring->setParam(BT_CONSTRAINT_STOP_CFM, 1.0e-5f, 5);
+    spring->setEnabled(false);//don't enable until player is not on air
     return spring;
 }
