@@ -31,7 +31,7 @@ class Camera {
     glm::mat4 cameraTransformMatrix;
     btRigidBody *player;
     btGeneric6DofSpring2Constraint *spring;
-    float equilibriumPoint;
+    float springStandPoint;
 
     std::vector<btCollisionWorld::ClosestRayResultCallback> rayCallbackArray;
     btTransform worldTransformHolder;

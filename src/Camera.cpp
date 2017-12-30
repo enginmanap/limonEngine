@@ -140,8 +140,8 @@ void Camera::updateTransformFromPhysics(const btDynamicsWorld *world) {
     }
 
     if(!onAir) {
-        equilibriumPoint = highestPoint + 1.0f - startPosition.y;
-        spring->setLimit(1,equilibriumPoint + 1.0f, equilibriumPoint + 2.0f);
+        springStandPoint = highestPoint + 1.0f - startPosition.y;
+        spring->setLimit(1,springStandPoint + 1.0f, springStandPoint + 2.0f);
         spring->setEnabled(true);
     } else {
         spring->setEnabled(false);
