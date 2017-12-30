@@ -10,7 +10,7 @@ url: https://enginmanap.github.io/
 # be the project name.
 # *** IMPORTANT: If your local "jekyll serve" throws errors change this to '' or
 #     run it like so: jekyll serve --baseurl=''
-baseurl: '/googlePagesTest'
+baseurl: '/uberEngine'
 ## default date_format
 date_format: 
   title: "%B-%-d-%Y"
@@ -28,7 +28,7 @@ markdown: kramdown
 
 exclude: ['README.md', 'LICENSE', "*.bak"]
 
-repository: enginmana/uberEngine
+repository: enginmanap/uberEngine
 
 plugins:
   - 'jekyll-github-metadata'
