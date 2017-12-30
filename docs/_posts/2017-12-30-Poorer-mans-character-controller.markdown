@@ -11,7 +11,7 @@ tags: bullet physics,character controller
 
 Hi,
 
-As I am trying to improve ghe engine, I tried out different maps I find online, and one of the biggest issues I face was, almost all of the maps I can find has bumps, stairs etc. on the ground. This was a major issue because I was using a capsule shape for player simulation, and it became stuck in all the places. It was impossible to go up stairs too.
+As I am trying to improve the engine, I tried out different maps I find online, and one of the biggest issues I face was, almost all of the maps I can find has bumps, stairs etc. on the ground. This was a major issue because I was using a capsule shape for player simulation, and it became stuck in all the places. It was impossible to go up stairs too.
 
 I check out the internet to find out what other people do to fix this issue, and simply put, it is putting a spring below the player. Since I am using Bullet physics, I thought it should be easy enough. It turns out it is not, and I spend almost 3 weeks trying to figure out whats going on and how to implement what I want.
 
@@ -81,8 +81,8 @@ Until this point, the player mass was not effective, but at this point it starte
 Full source code can be seen at src/Camera.cpp
 
 Is this the final, and everything works as it should? Sadly, no. there are 2 issues:
-1) If player jumps on an really steep surface, sometimes spring creates too much force, throwing player up several units(meters for the scale)
-2) Player can't jump while going up/down steep surfaces, because onAir flag constantly changing, and as I said before, the engine ignores input if onAir.
+1. If player jumps on an really steep surface, sometimes spring creates too much force, throwing player up several units(meters for the scale)
+2. Player can't jump while going up/down steep surfaces, because onAir flag constantly changing, and as I said before, the engine ignores input if onAir.
 
 I am writing this down even with this issues, because I don't think these issues are caused by the spring, but it just allowed a deeper issue with control logic. I believe a single flag (onAir) is not enough information to disable player input or disable/enable spring on its own. So there is room for improvement, just in another place.
 
