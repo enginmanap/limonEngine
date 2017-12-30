@@ -2,8 +2,8 @@
 // Created by engin on 31.08.2016.
 //
 
-#ifndef UBERGAME_MODELASSET_H
-#define UBERGAME_MODELASSET_H
+#ifndef LIMONENGINE_MODELASSET_H
+#define LIMONENGINE_MODELASSET_H
 
 
 #include <assimp/Importer.hpp>
@@ -106,4 +106,4 @@ public:
 };
 
 
-#endif //UBERGAME_MODELASSET_H
+#endif //LIMONENGINE_MODELASSET_H

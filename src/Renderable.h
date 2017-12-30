@@ -2,8 +2,8 @@
 // Created by Engin Manap on 3.03.2016.
 //
 
-#ifndef UBERGAME_RENDERABLE_H
-#define UBERGAME_RENDERABLE_H
+#ifndef LIMONENGINE_RENDERABLE_H
+#define LIMONENGINE_RENDERABLE_H
 
 
 #include "GLHelper.h"
@@ -75,4 +75,4 @@ public:
 };
 
 
-#endif //UBERGAME_RENDERABLE_H
+#endif //LIMONENGINE_RENDERABLE_H

@@ -2,8 +2,8 @@
 // Created by Engin Manap on 24.03.2016.
 //
 
-#ifndef UBERGAME_PHYSICAL_H
-#define UBERGAME_PHYSICAL_H
+#ifndef LIMONENGINE_PHYSICAL_H
+#define LIMONENGINE_PHYSICAL_H
 
 
 #include "Renderable.h"
@@ -55,4 +55,4 @@ public:
 };
 
 
-#endif //UBERGAME_PHYSICAL_H
+#endif //LIMONENGINE_PHYSICAL_H

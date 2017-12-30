@@ -2,8 +2,8 @@
 // Created by Engin Manap on 2.03.2016.
 //
 
-#ifndef UBERGAME_GLSLPROGRAM_H
-#define UBERGAME_GLSLPROGRAM_H
+#ifndef LIMONENGINE_GLSLPROGRAM_H
+#define LIMONENGINE_GLSLPROGRAM_H
 
 #include <string>
 #include <vector>
@@ -75,4 +75,4 @@ public:
 
 
 
-#endif //UBERGAME_GLSLPROGRAM_H
+#endif //LIMONENGINE_GLSLPROGRAM_H

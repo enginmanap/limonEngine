@@ -2,8 +2,8 @@
 // Created by Engin Manap on 1.03.2016.
 //
 
-#ifndef UBERGAME_CUBEMAP_H
-#define UBERGAME_CUBEMAP_H
+#ifndef LIMONENGINE_CUBEMAP_H
+#define LIMONENGINE_CUBEMAP_H
 
 #include <iostream>
 #include <string>
@@ -30,4 +30,4 @@ public:
     }
 };
 
-#endif //UBERGAME_CUBEMAP_H
+#endif //LIMONENGINE_CUBEMAP_H

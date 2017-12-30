@@ -2,8 +2,8 @@
 // Created by engin on 14.09.2016.
 //
 
-#ifndef UBERGAME_MESHASSET_H
-#define UBERGAME_MESHASSET_H
+#ifndef LIMONENGINE_MESHASSET_H
+#define LIMONENGINE_MESHASSET_H
 
 #include <vector>
 #include <map>
@@ -82,4 +82,4 @@ public:
 };
 
 
-#endif //UBERGAME_MESHASSET_H
+#endif //LIMONENGINE_MESHASSET_H

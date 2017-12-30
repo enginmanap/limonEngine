@@ -2,8 +2,8 @@
 // Created by Engin Manap on 13.02.2016.
 //
 
-#ifndef UBERGAME_MODEL_H
-#define UBERGAME_MODEL_H
+#ifndef LIMONENGINE_MODEL_H
+#define LIMONENGINE_MODEL_H
 
 
 #include <vector>
@@ -87,4 +87,4 @@ public:
 
 };
 
-#endif //UBERGAME_MODEL_H
+#endif //LIMONENGINE_MODEL_H

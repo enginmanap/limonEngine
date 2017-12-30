@@ -2,8 +2,8 @@
 // Created by Engin Manap on 14.03.2016.
 //
 
-#ifndef UBERGAME_TEXTRENDERER_H
-#define UBERGAME_TEXTRENDERER_H
+#ifndef LIMONENGINE_TEXTRENDERER_H
+#define LIMONENGINE_TEXTRENDERER_H
 
 #include <iostream>
 
@@ -36,4 +36,4 @@ public:
 };
 
 
-#endif //UBERGAME_TEXTRENDERER_H
+#endif //LIMONENGINE_TEXTRENDERER_H

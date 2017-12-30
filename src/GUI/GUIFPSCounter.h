@@ -2,8 +2,8 @@
 // Created by Engin Manap on 9.04.2016.
 //
 
-#ifndef UBERGAME_GUIFPSCOUNTER_H
-#define UBERGAME_GUIFPSCOUNTER_H
+#ifndef LIMONENGINE_GUIFPSCOUNTER_H
+#define LIMONENGINE_GUIFPSCOUNTER_H
 
 #include "GUIText.h"
 #include <SDL2/SDL.h>
@@ -37,4 +37,4 @@ public:
 };
 
 
-#endif //UBERGAME_GUIFPSCOUNTER_H
+#endif //LIMONENGINE_GUIFPSCOUNTER_H

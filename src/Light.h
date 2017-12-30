@@ -2,8 +2,8 @@
 // Created by engin on 18.06.2016.
 //
 
-#ifndef UBERGAME_LIGHT_H
-#define UBERGAME_LIGHT_H
+#ifndef LIMONENGINE_LIGHT_H
+#define LIMONENGINE_LIGHT_H
 
 
 #include "glm/glm.hpp"
@@ -40,4 +40,4 @@ public:
 };
 
 
-#endif //UBERGAME_LIGHT_H
+#endif //LIMONENGINE_LIGHT_H

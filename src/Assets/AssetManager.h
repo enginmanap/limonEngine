@@ -2,8 +2,8 @@
 // Created by engin on 27.07.2016.
 //
 
-#ifndef UBERGAME_ASSETMANAGER_H
-#define UBERGAME_ASSETMANAGER_H
+#ifndef LIMONENGINE_ASSETMANAGER_H
+#define LIMONENGINE_ASSETMANAGER_H
 
 
 #include <string>
@@ -37,4 +37,4 @@ public:
 };
 
 
-#endif //UBERGAME_ASSETMANAGER_H
+#endif //LIMONENGINE_ASSETMANAGER_H

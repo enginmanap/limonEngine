@@ -2,8 +2,8 @@
 // Created by Engin Manap on 14.02.2016.
 //
 
-#ifndef UBERGAME_INPUTHANDLER_H
-#define UBERGAME_INPUTHANDLER_H
+#ifndef LIMONENGINE_INPUTHANDLER_H
+#define LIMONENGINE_INPUTHANDLER_H
 
 #include <map>
 #include <SDL2/SDL.h>
@@ -47,4 +47,4 @@ public:
 
 };
 
-#endif //UBERGAME_INPUTHANDLER_H
+#endif //LIMONENGINE_INPUTHANDLER_H

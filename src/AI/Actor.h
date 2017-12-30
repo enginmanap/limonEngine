@@ -2,8 +2,8 @@
 // Created by engin on 27.11.2017.
 //
 
-#ifndef UBERGAME_ACTOR_H
-#define UBERGAME_ACTOR_H
+#ifndef LIMONENGINE_ACTOR_H
+#define LIMONENGINE_ACTOR_H
 
 
 #include "../Model.h"
@@ -49,4 +49,4 @@ public:
 };
 
 
-#endif //UBERGAME_ACTOR_H
+#endif //LIMONENGINE_ACTOR_H

@@ -2,8 +2,8 @@
 // Created by engin-evam on 29.03.2016.
 //
 
-#ifndef UBERGAME_SDLFONTMANAGER_H
-#define UBERGAME_SDLFONTMANAGER_H
+#ifndef LIMONENGINE_SDLFONTMANAGER_H
+#define LIMONENGINE_SDLFONTMANAGER_H
 
 #include <iostream>
 #include <string>
@@ -107,4 +107,4 @@ public:
 };
 
 
-#endif //UBERGAME_SDLFONTMANAGER_H
+#endif //LIMONENGINE_SDLFONTMANAGER_H
