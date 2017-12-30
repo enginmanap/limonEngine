@@ -4,6 +4,6 @@ LimonEngine is a 3D first person shooter engine, developed as a hobby, to acquir
 
 It can load any model using Assimp, model animations are implemented. but since there is no AI, the first animation is played repeatedly. Realtime lighting and shadows are also implemented. It allows physical interaction with player and objects.
 
-You can check out the {{ site.github.url }} for the project web site. 
+You can check out the [project web site](http://enginmanap.github.io/limonEngine/status.html) 
 
 For a demonstration, check out the video at https://youtu.be/OkMz1MGk9NE
