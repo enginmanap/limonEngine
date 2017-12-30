@@ -1,0 +1,47 @@
+---
+layout: default
+---
+{% assign trans = site.data.values[site.lan] %}
+{% for post in paginator.posts %}
+<div class="well article">
+
+    <span class="post-date">
+        <!--
+        {% assign d = post.date | date: "%d" | plus:'0' %}
+        {{ post.date | date: "%B" }}
+        {% case d %}
+        {% when 1 or 21 or 31 %}{{ d }}st,
+        {% when 2 or 22 %}{{ d }}nd,
+        {% when 3 or 23 %}{{ d }}rd,
+        {% else %}{{ d }}th,
+        {% endcase %}
+        {{ post.date | date: "%Y" }}
+        -->
+        {% assign date_format = site.date_format.title %}
+        {{ post.date | date: date_format }}
+    </span>
+    
+    <h2>
+        <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
+    </h2>
+    
+    <div class="post-description">
+        {{ post.description }}
+    </div>
+    
+</div>
+{% endfor %}
+
+<div class="pagination">
+  {% if paginator.previous_page %}
+      {% if paginator.previous_page == 1 %}
+        <a class="btn btn-default" href="{{ site.baseurl}}/index.html" class="previous">Newer</a>
+      {% else %}
+        <a class="btn btn-default" href="{{ site.baseurl}}/page{{ paginator.previous_page }}" class="previous">Newer</a>
+      {% endif %}
+  {% endif %}
+  <span class="page_number ">{{ trans.page }}: {{ paginator.page }} of {{ paginator.total_pages }}</span>
+  {% if paginator.next_page %}
+    <a class="btn btn-default" href="{{ site.baseurl}}/page{{ paginator.next_page }}" class="next">Older</a>
+  {% endif %}
+</div>

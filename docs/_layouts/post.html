@@ -1,0 +1,92 @@
+---
+layout: default
+---
+{% assign trans = site.data.values[site.lan] %}
+<div class="well article">
+        <h2><a href="{{ site.baseurl}}{{ page.url }}">{{ page.title }}</a></h2>
+        <span class="post-date">
+            {% assign date_format = site.date_format.title %}
+            {{ page.date | date: date_format }}
+        </span>
+        <hr style="border-top:1px solid #28323C;"/>
+    {% if site.comments and page.comments %}
+        {% if site.disqus != '' %}
+        <p class="author"><a href="#disqus_thread" data-disqus-identifier="{{ page.url | slugify }}">Comments</a></p>
+        {% elsif site.isso != '' %}
+        <p class="author"><a href="{{ site.baseurl }}{{ page.url }}{{ site.isso_suffix }}#isso-thread">Comments</a></p>
+        {% endif %}
+    {% endif %}
+    <div class="post-content">
+    {{ content }}
+    <hr style="border-top:1px solid #28323C;"/>
+
+    <!-- tags and categories under post -->
+    {% unless page.categories == empty %}
+    <ul class="list-unstyled list-inline">
+      <li><i class="icon-folder-open"></i></li>
+      {% assign categories_list = page.categories %}
+      {% if categories_list.first[0] == null %}
+        {% for category in categories_list %} 
+            <li class="icon-style"><a href="{{ site.baseurl }}/categories.html">
+                {{ category | join: "/" }} <span>({{ site.categories[category].size }})</span>
+                {% unless forloop.last %},{% endunless %}
+            </a></li>
+        {% endfor %}
+      {% else %}
+        {% for category in categories_list %} 
+            <li class="icon-style"><a href="{{ site.baseurl }}/categories.html">
+                {{ category[0] | join: "/" }} <span>/{{ category[1].size }})</span>
+            </a></li>
+        {% endfor %}
+      {% endif %}
+    </ul>
+    {% endunless %}  
+
+    {% unless page.tags == empty %}
+    <ul class="list-unstyled list-inline">
+      <li><i class="icon-tags"></i></li>
+      {% assign tags_list = page.tags %}
+      {% if tags_list.first[0] == null %}
+        {% for tag in tags_list %} 
+            <li class="icon-style">
+                <a href="{{ site.baseurl }}/tags.html">
+                {{ tag }} <span>({{ site.tags[tag].size }})</span>
+                {% unless forloop.last %},{% endunless %}
+                </a>
+            </li>
+        {% endfor %}
+      {% else %}
+        {% for tag in tags_list %} 
+            <li class="icon-style">
+                <a href="{{ site.baseurl }}/tags.html">
+                    {{ tag[0] }} <span>({{ tag[1].size }})</span>
+                    {% unless forloop.last %},{% endunless %}
+                </a>
+            </li>
+           
+        {% endfor %}
+      {% endif %}
+      {% assign tags_list = nil %}
+    </ul>
+    {% endunless %}  
+
+    </div>
+    {% if page.comments %}
+        {% if site.disqus != '' %}
+    <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+        <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+        {% elsif site.isso != '' %}
+        <section id="isso-thread"></section>
+        {% endif %}
+    {% endif %}
+</div>
+<div class="pagination">
+    {% if page.next %}
+    <a class="btn btn-default" href="{{ site.baseurl}}{{ page.next.url }}" class="next">{{ trans.newer_post }}</a>
+    {% endif %}
+    {% if page.previous %}
+    <a class="btn btn-default" href="{{ site.baseurl}}{{ page.previous.url }}" class="previous">{{ trans.older_post }}</a>
+    {% endif %}
+</div>
