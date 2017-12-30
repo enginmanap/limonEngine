@@ -2,8 +2,8 @@
 // Created by Engin Manap on 23.03.2016.
 //
 
-#ifndef UBERGAME_GUILAYER_H
-#define UBERGAME_GUILAYER_H
+#ifndef LIMONENGINE_GUILAYER_H
+#define LIMONENGINE_GUILAYER_H
 
 #include "../GLHelper.h"
 #include "GUIRenderable.h"
@@ -36,4 +36,4 @@ public:
 };
 
 
-#endif //UBERGAME_GUILAYER_H
+#endif //LIMONENGINE_GUILAYER_H

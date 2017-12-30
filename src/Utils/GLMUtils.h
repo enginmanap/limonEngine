@@ -2,8 +2,8 @@
 // Created by engin on 17.10.2017.
 //
 
-#ifndef UBERGAME_GLMUTILS_H
-#define UBERGAME_GLMUTILS_H
+#ifndef LIMONENGINE_GLMUTILS_H
+#define LIMONENGINE_GLMUTILS_H
 
 #include <glm/glm.hpp>
 #include <iostream>
@@ -27,4 +27,4 @@ public:
 };
 
 
-#endif //UBERGAME_GLMUTILS_H
+#endif //LIMONENGINE_GLMUTILS_H

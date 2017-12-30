@@ -2,8 +2,8 @@
 // Created by Engin Manap on 10.02.2016.
 //
 
-#ifndef UBERGAME_GLHELPER_H
-#define UBERGAME_GLHELPER_H
+#ifndef LIMONENGINE_GLHELPER_H
+#define LIMONENGINE_GLHELPER_H
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -302,4 +302,4 @@ public:
     }
 };
 
-#endif //UBERGAME_GLHELPER_H
+#endif //LIMONENGINE_GLHELPER_H

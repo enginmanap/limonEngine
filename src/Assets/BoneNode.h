@@ -2,8 +2,8 @@
 // Created by engin on 22.10.2016.
 //
 
-#ifndef UBERGAME_BONENODE_H
-#define UBERGAME_BONENODE_H
+#ifndef LIMONENGINE_BONENODE_H
+#define LIMONENGINE_BONENODE_H
 
 #include <vector>
 #include <string>
@@ -30,4 +30,4 @@ public:
 };
 
 
-#endif //UBERGAME_BONENODE_H
+#endif //LIMONENGINE_BONENODE_H

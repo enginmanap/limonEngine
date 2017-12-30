@@ -2,8 +2,8 @@
 // Created by engin on 22.11.2017.
 //
 
-#ifndef UBERGAME_LOGGER_H
-#define UBERGAME_LOGGER_H
+#ifndef LIMONENGINE_LOGGER_H
+#define LIMONENGINE_LOGGER_H
 
 //THIS FILE SHOULD NOT INCLUDE ANY LOCAL CLASSES
 #include <string>
@@ -51,4 +51,4 @@ public:
 
 
 
-#endif //UBERGAME_LOGGER_H
+#endif //LIMONENGINE_LOGGER_H

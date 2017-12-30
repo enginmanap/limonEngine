@@ -2,8 +2,8 @@
 // Created by engin on 16.05.2016.
 //
 
-#ifndef UBERGAME_ASSIMPUTILS_H
-#define UBERGAME_ASSIMPUTILS_H
+#ifndef LIMONENGINE_ASSIMPUTILS_H
+#define LIMONENGINE_ASSIMPUTILS_H
 
 #include <assimp/scene.h>
 
@@ -49,4 +49,4 @@ public:
 };
 
 
-#endif //UBERGAME_ASSIMPUTILS_H
+#endif //LIMONENGINE_ASSIMPUTILS_H

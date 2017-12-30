@@ -2,8 +2,8 @@
 // Created by engin on 19.06.2016.
 //
 
-#ifndef UBERGAME_MATERIAL_H
-#define UBERGAME_MATERIAL_H
+#ifndef LIMONENGINE_MATERIAL_H
+#define LIMONENGINE_MATERIAL_H
 
 #include "glm/glm.hpp"
 #include "Assets/TextureAsset.h"
@@ -160,4 +160,4 @@ public:
 };
 
 
-#endif //UBERGAME_MATERIAL_H
+#endif //LIMONENGINE_MATERIAL_H

@@ -2,8 +2,8 @@
 // Created by Engin Manap on 17.02.2016.
 //
 
-#ifndef UBERGAME_CAMERA_H
-#define UBERGAME_CAMERA_H
+#ifndef LIMONENGINE_CAMERA_H
+#define LIMONENGINE_CAMERA_H
 
 
 #include <btBulletDynamicsCommon.h>
@@ -97,4 +97,4 @@ public:
     btGeneric6DofSpring2Constraint *getSpring(const btDynamicsWorld *world);
 };
 
-#endif //UBERGAME_CAMERA_H
+#endif //LIMONENGINE_CAMERA_H

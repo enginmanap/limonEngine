@@ -2,8 +2,8 @@
 // Created by Engin Manap on 1.03.2016.
 //
 
-#ifndef UBERGAME_TEXTURE_H
-#define UBERGAME_TEXTURE_H
+#ifndef LIMONENGINE_TEXTURE_H
+#define LIMONENGINE_TEXTURE_H
 
 #include <string>
 #include <iostream>
@@ -27,4 +27,4 @@ public:
     }
 };
 
-#endif //UBERGAME_TEXTURE_H
+#endif //LIMONENGINE_TEXTURE_H

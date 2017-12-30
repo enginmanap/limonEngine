@@ -2,8 +2,8 @@
 // Created by Engin Manap on 13.02.2016.
 //
 
-#ifndef UBERGAME_WORLD_H
-#define UBERGAME_WORLD_H
+#ifndef LIMONENGINE_WORLD_H
+#define LIMONENGINE_WORLD_H
 
 #include <vector>
 #include <SDL2/SDL_stdinc.h>
@@ -78,4 +78,4 @@ public:
     ActorInformation fillActorInformation(int j);
 };
 
-#endif //UBERGAME_WORLD_H
+#endif //LIMONENGINE_WORLD_H

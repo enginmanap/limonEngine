@@ -2,8 +2,8 @@
 // Created by Engin Manap on 9.03.2016.
 //
 
-#ifndef UBERGAME_BULLETDEBUGDRAWER_H
-#define UBERGAME_BULLETDEBUGDRAWER_H
+#ifndef LIMONENGINE_BULLETDEBUGDRAWER_H
+#define LIMONENGINE_BULLETDEBUGDRAWER_H
 
 
 #include <btBulletDynamicsCommon.h>
@@ -74,4 +74,4 @@ public:
 };
 
 
-#endif //UBERGAME_BULLETDEBUGDRAWER_H
+#endif //LIMONENGINE_BULLETDEBUGDRAWER_H

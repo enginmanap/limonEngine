@@ -2,8 +2,8 @@
 // Created by Engin Manap on 1.03.2016.
 //
 
-#ifndef UBERGAME_SKYBOX_H
-#define UBERGAME_SKYBOX_H
+#ifndef LIMONENGINE_SKYBOX_H
+#define LIMONENGINE_SKYBOX_H
 
 #include <string>
 
@@ -30,4 +30,4 @@ public:
     }
 };
 
-#endif //UBERGAME_SKYBOX_H
+#endif //LIMONENGINE_SKYBOX_H

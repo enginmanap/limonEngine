@@ -2,8 +2,8 @@
 // Created by engin on 27.11.2017.
 //
 
-#ifndef UBERGAME_HUMANENEMY_H
-#define UBERGAME_HUMANENEMY_H
+#ifndef LIMONENGINE_HUMANENEMY_H
+#define LIMONENGINE_HUMANENEMY_H
 
 
 #include "Actor.h"
@@ -75,4 +75,4 @@ public:
 };
 
 
-#endif //UBERGAME_HUMANENEMY_H
+#endif //LIMONENGINE_HUMANENEMY_H

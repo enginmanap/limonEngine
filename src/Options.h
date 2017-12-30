@@ -2,8 +2,8 @@
 // Created by engin on 5.11.2017.
 //
 
-#ifndef UBERGAME_OPTIONS_H
-#define UBERGAME_OPTIONS_H
+#ifndef LIMONENGINE_OPTIONS_H
+#define LIMONENGINE_OPTIONS_H
 
 #include <glm/glm.hpp>
 #include "Utils/Logger.h"
@@ -19,8 +19,8 @@ private:
     glm::vec3 moveSpeed = walkSpeed;
     float jumpFactor = 7.0f;
     float lookAroundSpeed = -2.5f;
-    unsigned int screenHeight = 768;
-    unsigned int screenWidth = 1024;
+    unsigned int screenHeight = 480;
+    unsigned int screenWidth = 640;
 
     uint32_t shadowWidth = 2048;
     uint32_t shadowHeight = 2048; //TODO these values should be parameters
@@ -150,4 +150,4 @@ public:
 };
 
 
-#endif //UBERGAME_OPTIONS_H
+#endif //LIMONENGINE_OPTIONS_H

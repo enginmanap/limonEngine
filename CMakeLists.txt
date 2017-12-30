@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.3)
-project(UberGame)
+project(LimonEngine)
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -13,7 +13,7 @@ else()
 ENDIF()
 
 set(SOURCE_FILES src/main.cpp src/SDL2Helper.cpp src/SDL2Helper.h src/GLHelper.cpp src/GLHelper.h src/Model.cpp src/Model.h src/World.cpp src/World.h src/InputHandler.cpp src/InputHandler.h src/Camera.cpp src/Camera.h src/SkyBox.cpp src/SkyBox.h src/Assets/TextureAsset.cpp src/Assets/TextureAsset.h src/Assets/CubeMapAsset.cpp src/Assets/CubeMapAsset.h src/GLSLProgram.cpp src/GLSLProgram.h src/Renderable.cpp src/Renderable.h src/Utils/GLMConverter.cpp src/Utils/GLMConverter.h src/BulletDebugDrawer.cpp src/BulletDebugDrawer.h src/GUI/GUIText.cpp src/GUI/GUIText.h src/GUI/GUILayer.cpp src/GUI/GUILayer.h src/PhysicalRenderable.cpp src/PhysicalRenderable.h src/GUI/GUIRenderable.cpp src/GUI/GUIRenderable.h src/FontManager.cpp src/FontManager.h src/GUI/GUIFPSCounter.cpp src/GUI/GUIFPSCounter.h src/Utils/AssimpUtils.cpp src/Utils/AssimpUtils.h src/Light.cpp src/Light.h src/Material.cpp src/Material.h src/Assets/AssetManager.cpp src/Assets/AssetManager.h src/Assets/Asset.cpp src/Assets/Asset.h src/Assets/ModelAsset.cpp src/Assets/ModelAsset.h src/Assets/MeshAsset.cpp src/Assets/MeshAsset.h src/Assets/BoneNode.cpp src/Assets/BoneNode.h src/Utils/GLMUtils.h src/Options.h src/GUI/GUITextDynamic.cpp src/GUI/GUITextDynamic.h src/Utils/Logger.cpp src/Utils/Logger.h src/AI/Actor.cpp src/AI/Actor.h src/AI/HumanEnemy.cpp src/AI/HumanEnemy.h)
-add_executable(UberGame ${SOURCE_FILES})
+add_executable(LimonEngine ${SOURCE_FILES})
 
 INCLUDE(FindPkgConfig)
 
@@ -74,8 +74,8 @@ INCLUDE_DIRECTORIES(${ASSIMP_INCLUDE_DIRS})
 add_custom_target(copyData
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/Data ${CMAKE_BINARY_DIR}/Data)
-add_dependencies(UberGame copyData)
+add_dependencies(LimonEngine copyData)
 
-TARGET_LINK_LIBRARIES(UberGame ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${ASSIMP_LIBRARIES})
+TARGET_LINK_LIBRARIES(LimonEngine ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${ASSIMP_LIBRARIES})
 
 

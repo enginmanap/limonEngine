@@ -8,7 +8,7 @@
 #include "SDL2Helper.h"
 #include "World.h"
 
-#define PROGRAM_NAME "UberGame"
+#define PROGRAM_NAME "LimonEngine"
 
 int main(int argc, char *argv[]) {
     Uint32 worldUpdateTime = 1000 / 60;//This value is used to update world on a locked Timestep

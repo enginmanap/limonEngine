@@ -2,8 +2,8 @@
 // Created by engin on 24.03.2016.
 //
 
-#ifndef UBERGAME_GUIRENDERABLE_H
-#define UBERGAME_GUIRENDERABLE_H
+#ifndef LIMONENGINE_GUIRENDERABLE_H
+#define LIMONENGINE_GUIRENDERABLE_H
 
 
 #include "../Renderable.h"
@@ -44,4 +44,4 @@ public:
 };
 
 
-#endif //UBERGAME_GUIRENDERABLE_H
+#endif //LIMONENGINE_GUIRENDERABLE_H

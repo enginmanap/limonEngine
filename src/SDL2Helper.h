@@ -2,8 +2,8 @@
 // Created by Engin Manap on 10.02.2016.
 //
 
-#ifndef UBERGAME_SDL2HELPER_CPP_H
-#define UBERGAME_SDL2HELPER_CPP_H
+#ifndef LIMONENGINE_SDL2HELPER_CPP_H
+#define LIMONENGINE_SDL2HELPER_CPP_H
 
 #include <iostream>
 
@@ -26,4 +26,4 @@ public:
     SDL_Window *getWindow();
 };
 
-#endif //UBERGAME_SDL2HELPER_CPP_H
+#endif //LIMONENGINE_SDL2HELPER_CPP_H
