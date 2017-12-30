@@ -1,0 +1,145 @@
+html {
+    height:100%;
+}
+
+body {
+    background-image: url(/jekyll-xixia/assets/images/canvas_bg.jpg);
+    padding-top: 60px;
+    height:100%;
+}
+
+.wrap {
+    position:relative;
+    min-height:100%;
+}
+
+.footer {
+    text-align: center;
+    color: $footer-color;
+    position:absolute;
+    bottom:0;
+    left:0;
+    width:100%;
+    min-height:40px;
+    background-color:$footer-background-color;
+}
+
+.footer a {
+    /* color: #aaa; */
+    color: $footer-a-color;
+}
+
+.footer a:hover {
+    color: $footer-a-hover-color;
+}
+
+.footer p {
+    margin-top:10px;
+}
+
+/* side bar */
+.sidebar {
+    color: $side-bar-color;
+    background-color: $side-bar-background-color;
+    font-size: 1.1em;
+}
+
+.sidebar h1 {
+    font-size: 1.3em;
+}
+
+.sidebar a {
+    color: $side-bar-a-color;
+}
+
+.sidebar li {
+    margin-top: .7em;
+    line-height: 1em;
+}
+
+.sidebar a:hover {
+    color: $side-bar-a-hover-color;
+}
+
+/* Xixia logo */
+.sidebar-header {
+	text-align: center;
+	margin-bottom: 10px;
+}
+
+.container-left {
+    margin: 0;
+    padding-bottom:60px;
+}
+
+/* post style */
+.article {
+    font-size: 17px;
+    color: $article-color;
+}
+
+.article img {
+    max-width:100%;
+}
+
+/* set the link style */
+.article a {
+	color: $article-a-color;
+}
+
+.article a:hover {
+	color: $article-a-hover-color;
+}
+
+.icon-style {
+    font-size: 13px;
+}
+
+.post-date {
+	text-transform: uppercase;
+	font-size: 14px;
+	letter-spacing: 3px;
+}
+
+/* 
+    custom bootstrap navbar
+    reference from: https://stackoverflow.com/questions/18529274/change-navbar-color-in-twitter-bootstrap-3 
+*/
+.navbar-custom {
+    background-color: $nav-bar-background-color;
+    color: $nav-bar-color;
+    border-radius:0;
+}
+
+.navbar-custom .navbar-nav > li > a {
+    color: $nav-bar-color;
+}
+
+.navbar-custom .navbar-nav > .active > a {
+    color: $nav-bar-color;
+    background-color:transparent;
+}
+
+.navbar-custom .navbar-nav > li > a:hover,
+.navbar-custom .navbar-nav > li > a:focus,
+.navbar-custom .navbar-nav > .active > a:hover,
+.navbar-custom .navbar-nav > .active > a:focus,
+.navbar-custom .navbar-nav > .open >a {
+    text-decoration: none;
+    background-color: $nav-bar-open-a-background-color;
+}
+
+.navbar-custom .navbar-brand {
+    color: $nav-bar-brand-color;
+}
+
+.navbar-custom .navbar-brand:hover {
+    color: $nav-bar-brand-hover-color;
+}
+
+.navbar-custom .navbar-toggle {
+    background-color:#eeeeee;
+}
+.navbar-custom .icon-bar {
+    background-color: $nav-bar-icon-bar;
+}

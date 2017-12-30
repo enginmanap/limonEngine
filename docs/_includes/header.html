@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{ site.name }}</title>
+	<link rel="icon" href="{{ site.baseurl }}/assets/images/favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="{{ site.baseurl }}/assets/js/jquery.min.js"></script>
+    <script src="{{ site.baseurl }}/assets/js/bootstrap.min.js"></script>
+    <link href="{{ site.baseurl }}/assets/css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <link href="{{ site.baseurl }}/assets/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <!--[if IE 7]>
+    <link rel="stylesheet" href="assets/css/font-awesome-ie7.min.css">
+    <![endif]-->
+    <!--[if lt IE 9]>
+       <script src="https://cdn.bootcss.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+       <script src="https://cdn.bootcss.com/respond.js/1.4.2/respond.js"></script>
+    <![endif]-->
+    <link href="{{ site.baseurl }}/assets/css/main.css" rel="stylesheet" type="text/css">
+{% include isso-comments.html %}
+</head>
+
+<body>
+
+<div class="container-fluid">
+    <div class="row-fluid">
+        <div class="navbar navbar-custom navbar-fixed-top" role="navigation">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="{{ site.baseurl }}/">{{ site.name }}</a>
+            </div>
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    {% assign trans = site.data.values[site.lan] %}
+                    <li class="active"><a href="{{ site.baseurl }}/archive.html">{{ trans.archive }}</a></li>
+<!--
+we don't need categories and tags for now
+		    <li class="active"><a href="{{ site.baseurl }}/categories.html">{{ trans.categories }}</a></li>
+                    <li class="active"><a href="{{ site.baseurl }}/tags.html">{{ trans.tags }}</a></li>
+-->
+                    <li class="active"><a href="{{ site.baseurl }}/status.html">{{ trans.status }}</a></li>
+    		    <li class="active"><a href="{{ site.github.repository_url }}">View on Github</a></li>
+    		    <li class="active"><a href="{{ site.github.wiki_url }}">Documentation</a></li>
+	            <li style="padding: 10px 40px"></li>
+		    <li class="active"><a href="{{ site.baseurl }}/about.html">{{ trans.about }}</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

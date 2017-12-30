@@ -1,0 +1,35 @@
+# Jekyll configuration
+
+name: Limon
+description: Limon, the 3D game engine thats just enough!
+
+# url is currently only used only for the RSS feed in feed.xml
+url: https://enginmanap.github.io/
+
+# baseurl will often be '', but for a project page on gh-pages, it needs to
+# be the project name.
+# *** IMPORTANT: If your local "jekyll serve" throws errors change this to '' or
+#     run it like so: jekyll serve --baseurl=''
+baseurl: '/googlePagesTest'
+## default date_format
+date_format: 
+  title: "%B-%-d-%Y"
+  archive: "%b"
+  categories: "%b-%Y"
+  tag: "%b-%Y"
+# Language
+lan: "en" 
+
+paginate: 10
+
+highlighter: rouge
+markdown: kramdown
+#gems: ['jekyll-paginate']
+
+exclude: ['README.md', 'LICENSE', "*.bak"]
+
+repository: enginmana/uberEngine
+
+plugins:
+  - 'jekyll-github-metadata'
+  - 'jekyll-paginate'

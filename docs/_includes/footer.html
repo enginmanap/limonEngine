@@ -1,0 +1,22 @@
+{% assign trans = site.data.values[site.lan] %}
+<div class="footer">
+    <p>&copy;{{ site.time | date: '%Y' }} {{ site.name }}{{ trans.thanks }}
+            {% for thank in site.data.thanks %}
+                <a href="{{ thank.url }}">
+                {{ thank.title }}
+                </a>
+                <!-- not the last, output a ',' -->
+                {% if forloop.last == false %}
+                ,
+                {% endif %}
+            {% endfor %}
+    </p>
+</div>
+
+<!-- 
+    {% include disqus-counts.html %}
+    {% include analytics.html %} 
+-->
+
+</body>
+</html>

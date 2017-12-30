@@ -1,0 +1,40 @@
+@charset "utf-8";
+
+/* main theme */
+$main-color: #28323C !default;
+$second-color: #e74c3c !default;
+$third-color: #0977b6 !default;
+
+$link-color-1:#aaa !default;
+
+/* side bar */
+$side-bar-color: #fff !default;
+$side-bar-background-color: $main-color;
+$side-bar-a-color: $link-color-1;
+$side-bar-a-hover-color: $second-color;
+
+/* footer */
+$footer-color: #fff !default;
+$footer-a-color: $link-color-1;
+$footer-a-hover-color: $second-color;
+$footer-background-color: $main-color;
+
+/* article */
+$article-color: $main-color;
+$article-a-color: $third-color;
+$article-a-hover-color: $second-color;
+$article-background-color: #eee;
+
+/* nav-bar */
+$nav-bar-background-color: $main-color;
+$nav-bar-color: #fff;
+$nav-bar-open-a-background-color: $second-color;
+$nav-bar-icon-bar: $main-color;
+$nav-bar-brand-color: #fff;
+$nav-bar-brand-hover-color: $link-color-1;
+
+
+@import 
+    "xixia/theme",
+    "xixia/syntax"
+;
