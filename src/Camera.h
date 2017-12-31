@@ -94,7 +94,7 @@ public:
      * @param world
      * @return
      */
-    btGeneric6DofSpring2Constraint *getSpring(const btDynamicsWorld *world);
+    btGeneric6DofSpring2Constraint *getSpring(float minY);
 };
 
 #endif //LIMONENGINE_CAMERA_H

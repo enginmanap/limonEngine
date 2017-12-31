@@ -150,9 +150,7 @@ void Camera::updateTransformFromPhysics(const btDynamicsWorld *world) {
     dirty = true;//FIXME this always returns is dirty true;
 }
 
-
-
-btGeneric6DofSpring2Constraint * Camera::getSpring(const btDynamicsWorld *world) {
+btGeneric6DofSpring2Constraint * Camera::getSpring(float minY) {
     spring = new btGeneric6DofSpring2Constraint(
             *player,
             btTransform(btQuaternion::getIdentity(), { 0.0f, -1.0f, 0.0f })
@@ -164,7 +162,7 @@ btGeneric6DofSpring2Constraint * Camera::getSpring(const btDynamicsWorld *world)
     spring->setLinearLowerLimit(btVector3(1.0f, 1.0f, 1.0f));
     spring->setLinearUpperLimit(btVector3(0.0f, 0.0f, 0.0f));
     //spring->setEquilibriumPoint(1,  std::numeric_limits<float>::lowest());// if this is used, spring does not act as it should
-    spring->setEquilibriumPoint(1,  -9999);//TODO this should be set the low Y of AABB of world.
+    spring->setEquilibriumPoint(1,  minY - 1);//1 lower then minY
     spring->setParam(BT_CONSTRAINT_STOP_CFM, 1.0e-5f, 5);
     spring->setEnabled(false);//don't enable until player is not on air
     return spring;
