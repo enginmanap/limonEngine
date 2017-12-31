@@ -25,7 +25,6 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
 
     GUILayer *layer1 = new GUILayer(glHelper, debugDrawer, 1);
     layer1->setDebug(false);
-    // end of physics init
 
     rigidBodies.push_back(camera.getRigidBody());
     dynamicsWorld->addRigidBody(camera.getRigidBody());
@@ -50,12 +49,10 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
 
     tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "Version 0.2",
                      glm::vec3(255, 255, 255));
-    //tr->setScale(0.25f,0.25f);
     tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), -1 * 3.14159265358979f / 2);
     layer1->addGuiElement(tr);
 
     trd = new GUITextDynamic(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), glm::vec3(0, 0, 0), 640, 510, options);
-    //tr->setScale(0.25f,0.25f);
     trd->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-255), 0.0f);
     layer1->addGuiElement(trd);
 
