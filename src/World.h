@@ -38,6 +38,8 @@ class World {
     AssetManager *assetManager;
     long gameTime = 0;
     GUITextDynamic* trd;
+    glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
+    glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
 
     GLSLProgram *shadowMapProgramDirectional, *shadowMapProgramPoint;
     FontManager fontManager;
@@ -76,6 +78,8 @@ public:
     bool checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName);
 
     ActorInformation fillActorInformation(int j);
+
+    void updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax);
 };
 
 #endif //LIMONENGINE_WORLD_H

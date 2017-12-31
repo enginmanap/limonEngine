@@ -40,7 +40,7 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
     if(!loadMapFromXML()) {
         exit(-1);
     }
-    dynamicsWorld->addConstraint(camera.getSpring(dynamicsWorld));
+    dynamicsWorld->addConstraint(camera.getSpring(this->worldAABBMin.y));
 
     GUIText *tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 64), "Limon Engine",
                               glm::vec3(0, 0, 0));
@@ -476,8 +476,9 @@ bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
         rigidBodies.push_back(xmlModel->getRigidBody());
         dynamicsWorld->addRigidBody(xmlModel->getRigidBody());
         objectNode =  objectNode->NextSiblingElement("Object");
-        btVector3 a,b;
-        xmlModel->getRigidBody()->getAabb(a,b);
+        btVector3 aabbMin,aabbMax;
+        xmlModel->getRigidBody()->getAabb(aabbMin,aabbMax);
+        updateWorldAABB(GLMConverter::BltToGLM(aabbMin), GLMConverter::BltToGLM(aabbMax));
     }
     return true;
 }
@@ -652,4 +653,9 @@ bool World::loadLights(tinyxml2::XMLNode *worldNode) {
         lightNode =  lightNode->NextSiblingElement("Light");
     }
     return true;
+}
+
+void World::updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax) {
+    worldAABBMin = glm::vec3(std::min(aabbMin.x, worldAABBMin.x), std::min(aabbMin.y, worldAABBMin.y), std::min(aabbMin.z, worldAABBMin.z));
+    worldAABBMax = glm::vec3(std::max(aabbMax.x, worldAABBMax.x), std::max(aabbMax.y, worldAABBMax.y), std::max(aabbMax.z, worldAABBMax.z));
 }
