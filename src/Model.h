@@ -43,6 +43,7 @@ class Model : public PhysicalRenderable {
     std::vector<MeshMeta *> meshes;
 
     btCompoundShape *compoundShape;
+    const float mass;
 
     std::map<std::string, Material *> materialMap;
     int diffuseMapAttachPoint = 1;
@@ -67,7 +68,9 @@ public:
 
     void renderWithProgram(GLSLProgram &program);
 
-    bool isAnimated() const { return animated;};
+    bool isAnimated() const { return animated;}
+
+    float getMass() const { return mass;}
 
     void setAnimationIndex(int animationIndex) {
         this->animationIndex = animationIndex;
@@ -84,7 +87,6 @@ public:
         }
 
     }
-
 };
 
 #endif //LIMONENGINE_MODEL_H
