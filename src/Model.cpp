@@ -6,7 +6,7 @@
 
 
 Model::Model(AssetManager *assetManager, const float mass, const std::string &modelFile) :
-        PhysicalRenderable(assetManager->getGlHelper()), name(modelFile), objectType(modelFile) {
+        PhysicalRenderable(assetManager->getGlHelper()), name(modelFile), objectType(modelFile), mass(mass) {
 
     //this is required because the shader has fixed size arrays
     boneTransforms.resize(128);
@@ -105,7 +105,6 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
     }
 
     worldTransform = glm::mat4(1.0f);
-
 }
 
 void Model::setupForTime(long time) {

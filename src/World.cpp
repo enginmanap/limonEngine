@@ -360,6 +360,7 @@ bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
     std::string modelFile;
     float modelMass;
     float x,y,z,w;
+    std::vector<Model*> notStaticObjects;
     while(objectNode != NULL) {
         objectAttribute =  objectNode->FirstChildElement("File");
         if (objectAttribute == NULL) {
@@ -467,17 +468,28 @@ bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
             newEnemy->setModel(xmlModel);
             this->actors.push_back(newEnemy);
         }
-
-        xmlModel->getWorldTransform();
-        objects.push_back(xmlModel);
-        rigidBodies.push_back(xmlModel->getRigidBody());
-        dynamicsWorld->addRigidBody(xmlModel->getRigidBody());
-        objectNode =  objectNode->NextSiblingElement("Object");
-        btVector3 aabbMin,aabbMax;
-        xmlModel->getRigidBody()->getAabb(aabbMin,aabbMax);
-        updateWorldAABB(GLMConverter::BltToGLM(aabbMin), GLMConverter::BltToGLM(aabbMax));
+        // We will add static objects first, build AI grid, then add other objects
+        if(xmlModel->getMass() == 0 && !xmlModel->isAnimated()) {
+            addModelToWorld(xmlModel);
+        } else {
+            notStaticObjects.push_back(xmlModel);
+        }
+        objectNode = objectNode->NextSiblingElement("Object");
+    } // end of while (objects)
+    for (int i = 0; i < notStaticObjects.size(); ++i) {
+        addModelToWorld(notStaticObjects[i]);
     }
     return true;
+}
+
+void World::addModelToWorld(Model *xmlModel) {
+    xmlModel->getWorldTransform();
+    objects.push_back(xmlModel);
+    rigidBodies.push_back(xmlModel->getRigidBody());
+    dynamicsWorld->addRigidBody(xmlModel->getRigidBody());
+    btVector3 aabbMin, aabbMax;
+    xmlModel->getRigidBody()->getAabb(aabbMin, aabbMax);
+    updateWorldAABB(GLMConverter::BltToGLM(aabbMin), GLMConverter::BltToGLM(aabbMax));
 }
 
 bool World::loadSkymap(tinyxml2::XMLNode *worldNode) {
