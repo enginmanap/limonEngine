@@ -51,7 +51,7 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
     tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "Version 0.2",
                      glm::vec3(255, 255, 255));
     //tr->setScale(0.25f,0.25f);
-    tr->set2dWorldTransform(glm::vec2(1024 - 50, 100), -1 * 3.14159265358979f / 2);
+    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), -1 * 3.14159265358979f / 2);
     layer1->addGuiElement(tr);
 
     trd = new GUITextDynamic(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), glm::vec3(0, 0, 0), 640, 510, options);
@@ -63,7 +63,7 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
 
     tr = new GUIFPSCounter(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                            glm::vec3(204, 204, 0));
-    tr->set2dWorldTransform(glm::vec2(1024 - 50, 768 - 18), 0);
+    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, options->getScreenHeight() - 18), 0);
     layer1->addGuiElement(tr);
 
     guiLayers.push_back(layer1);
