@@ -15,6 +15,8 @@ struct ActorInformation{
     float cosineBetweenPlayer = 0.0f;
     glm::vec3 playerDirection;
     float cosineBetweenPlayerForSide;
+    glm::vec3 toPlayerRoute;
+    bool canGoToPlayer = false;
 };
 
 class Actor {

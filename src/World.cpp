@@ -10,6 +10,9 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
     assetManager = new AssetManager(glHelper);
     // physics init
     broadphase = new btDbvtBroadphase();
+    ghostPairCallback = new btGhostPairCallback();
+    broadphase->getOverlappingPairCache()->setInternalGhostPairCallback(
+            ghostPairCallback);    // Needed once to enable ghost objects inside Bullet
 
     collisionConfiguration = new btDefaultCollisionConfiguration();
     dispatcher = new btCollisionDispatcher(collisionConfiguration);
@@ -26,9 +29,6 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
     GUILayer *layer1 = new GUILayer(glHelper, debugDrawer, 1);
     layer1->setDebug(false);
 
-    rigidBodies.push_back(camera.getRigidBody());
-    dynamicsWorld->addRigidBody(camera.getRigidBody());
-
     shadowMapProgramDirectional = new GLSLProgram(glHelper, "./Data/Shaders/ShadowMap/vertexDirectional.glsl",
                                                   "./Data/Shaders/ShadowMap/fragmentDirectional.glsl", false);
     shadowMapProgramPoint = new GLSLProgram(glHelper, "./Data/Shaders/ShadowMap/vertexPoint.glsl",
@@ -39,6 +39,10 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
     if(!loadMapFromXML()) {
         exit(-1);
     }
+
+    //adding camera after dynamic world because static only world is needed for ai movement grid generation
+    rigidBodies.push_back(camera.getRigidBody());
+    dynamicsWorld->addRigidBody(camera.getRigidBody());
     dynamicsWorld->addConstraint(camera.getSpring(this->worldAABBMin.y));
 
     GUIText *tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 64), "Limon Engine",
@@ -161,6 +165,18 @@ ActorInformation World::fillActorInformation(int j) {
             information.isPlayerUp = true;
             information.isPlayerDown = false;
         }
+    std::vector<glm::vec3> route;
+    glm::vec3 playerPosWithGrid = GLMConverter::BltToGLM(camera.getRigidBody()->getCenterOfMassPosition());
+    if (grid->coursePath(actors[j]->getPosition() + glm::vec3(0, 2.0f, 0), playerPosWithGrid, j, &route)) {
+        if (route.size() > 0) {
+            information.toPlayerRoute = route[route.size() - 1] - actors[j]->getPosition() - glm::vec3(0, 2.0f,
+                                                                                                       0);//Normally, this information should be used for straightening the path, but not yet.
+            information.canGoToPlayer = true;
+        } else {
+            information.toPlayerRoute = glm::vec3(0, 0, 0);
+            information.canGoToPlayer = false;
+        }
+    }
     return information;
 }
 
@@ -268,7 +284,11 @@ void World::render() {
     }
 
     dynamicsWorld->debugDrawWorld();
-    debugDrawer->drawLine(btVector3(0,0,0),btVector3(0,250,0),btVector3(1,1,1));
+    if (this->dynamicsWorld->getDebugDrawer()->getDebugMode() != btIDebugDraw::DBG_NoDebug) {
+        debugDrawer->drawLine(btVector3(0, 0, 0), btVector3(0, 250, 0), btVector3(1, 1, 1));
+        //draw the ai-grid
+        grid->debugDraw(debugDrawer);
+    }
 
     debugDrawer->flushDraws();
 
@@ -305,13 +325,14 @@ World::~World() {
     delete collisionConfiguration;
     delete dispatcher;
     delete broadphase;
-
+    delete ghostPairCallback;
+    delete grid;
 }
 
 bool World::loadMapFromXML() {
 
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile("./Data/Maps/World002.xml");
+    tinyxml2::XMLError eResult = xmlDoc.LoadFile("./Data/Maps/World001.xml");
     if (eResult != tinyxml2::XML_SUCCESS) {
         std::cout << "Error loading XML: " <<  eResult << std::endl;
     }
@@ -361,6 +382,8 @@ bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
     float modelMass;
     float x,y,z,w;
     std::vector<Model*> notStaticObjects;
+    bool isAIGridStartPointSet = false;
+    glm::vec3 aiGridStartPoint;
     while(objectNode != NULL) {
         objectAttribute =  objectNode->FirstChildElement("File");
         if (objectAttribute == NULL) {
@@ -458,11 +481,16 @@ bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
             }
             xmlModel->addOrientation(glm::quat(w, x, y, z));
         }
-
+        //Since we are not loading objects recursively, these can be set here safely
         objectAttribute =  objectNode->FirstChildElement("AI");
         if (objectAttribute == NULL) {
             std::cout << "Object does not have AI." << std::endl;
         } else {
+            if (!isAIGridStartPointSet) {
+                aiGridStartPoint = GLMConverter::BltToGLM(xmlModel->getRigidBody()->getCenterOfMassPosition()) +
+                                   glm::vec3(0, 2.0f, 0);
+                isAIGridStartPointSet = true;
+            }
             std::cout << "Object has AI." << std::endl;
             HumanEnemy* newEnemy = new HumanEnemy();
             newEnemy->setModel(xmlModel);
@@ -476,6 +504,9 @@ bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
         }
         objectNode = objectNode->NextSiblingElement("Object");
     } // end of while (objects)
+
+    grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax);
+
     for (int i = 0; i < notStaticObjects.size(); ++i) {
         addModelToWorld(notStaticObjects[i]);
     }

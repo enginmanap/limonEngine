@@ -26,6 +26,7 @@
 #include "Light.h"
 #include "GUI/GUITextDynamic.h"
 #include "AI/Actor.h"
+#include "AI/AIMovementGrid.h"
 
 class World {
     Options* options;
@@ -33,6 +34,7 @@ class World {
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
     std::vector<Actor*> actors;
+    AIMovementGrid *grid = NULL;
     SkyBox *sky;
     GLHelper *glHelper;
     AssetManager *assetManager;
@@ -46,6 +48,7 @@ class World {
     Camera camera;
     BulletDebugDrawer *debugDrawer;
 
+    btGhostPairCallback *ghostPairCallback;
     btDiscreteDynamicsWorld *dynamicsWorld;
     std::vector<btRigidBody *> rigidBodies;
 
