@@ -35,7 +35,7 @@ class Model : public PhysicalRenderable {
     ModelAsset *modelAsset;
     int animationIndex = 0;
     std::string name;
-    bool animated;
+    bool animated = false;
     std::string objectType;
     std::vector<glm::mat4> boneTransforms;
     std::map<uint_fast32_t, uint_fast32_t> boneIdCompoundChildMap;

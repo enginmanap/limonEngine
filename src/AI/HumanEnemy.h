@@ -7,12 +7,14 @@
 
 
 #include "Actor.h"
+#include "../Utils/GLMUtils.h"
 
 class HumanEnemy: public Actor {
     long playerPursuitStartTime = 0L;
-    long playerPursuitTimeout = 5000L; //if not see player for this amount, return.
+    long playerPursuitTimeout = 500000L; //if not see player for this amount, return.
     bool returnToPosition = false;
     glm::vec3 initialPosition;
+    glm::vec3 lastWalkDirection;
 
 public:
     void play(long time, ActorInformation &information, Options* options) {
@@ -39,9 +41,14 @@ public:
             }
         } else {
             //if player pursuit mode
-            glm::vec3 moveDirection = 0.05f * information.playerDirection;
-            moveDirection.y = 0;//for now
-            model->addTranslate( moveDirection);
+            if (information.canGoToPlayer) {
+                //keep the last known direction, if player is at a unknown place.
+                //FIXME this is a hack, normally this should not be necessary but sometimes even player is a valid place,
+                //actor might not be for current implementation.
+                lastWalkDirection = information.toPlayerRoute;
+            }
+            glm::vec3 moveDirection = 0.05f * lastWalkDirection;
+            model->addTranslate(moveDirection);
             //Can see the player
             if(information.isPlayerFront) {
                 model->setAnimationIndex(0);

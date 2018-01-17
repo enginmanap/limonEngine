@@ -5,14 +5,14 @@
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>0</Mass>
             <Scale>
-                <X>250.0</X>
+                <X>35.0</X>
                 <Y>1.0</Y>
-                <Z>250.0</Z>
+                <Z>35.0</Z>
             </Scale>
             <Translate>
-                <X>-125.0</X>
+                <X>0.0</X>
                 <Y>0.0</Y>
-                <Z>125.0</Z>
+                <Z>0.0</Z>
             </Translate>
         </Object>
         <Object>
@@ -51,9 +51,9 @@
                 <Z>1</Z>
             </Scale>
             <Translate>
-                <X>0.0</X>
+                <X>0.03</X>
                 <Y>1.25</Y>
-                <Z>0.0</Z>
+                <Z>0.02</Z>
             </Translate>
         </Object>
         <Object>
@@ -65,9 +65,9 @@
                 <Z>1</Z>
             </Scale>
             <Translate>
-                <X>0.75</X>
+                <X>0.753</X>
                 <Y>1.5</Y>
-                <Z>0.0</Z>
+                <Z>0.02</Z>
             </Translate>
         </Object>
         <Object>
@@ -79,9 +79,9 @@
                 <Z>1</Z>
             </Scale>
             <Translate>
-                <X>1.5</X>
+                <X>1.53</X>
                 <Y>1.75</Y>
-                <Z>0.0</Z>
+                <Z>0.02</Z>
             </Translate>
         </Object>
         <Object>
@@ -93,15 +93,15 @@
                 <Z>1.0</Z>
             </Scale>
             <Translate>
-                <X>2.5</X>
+                <X>2.53</X>
                 <Y>2.0</Y>
-                <Z>0.0</Z>
+                <Z>0.02</Z>
             </Translate>
         </Object>
         <Object>
             <File>./Data/Models/ArmyPilot/ArmyPilot.dae</File>
             <Mass>0</Mass>
-            <!--<AI>True</AI>-->
+            <AI>True</AI>
             <Scale>
                 <X>2.0</X>
                 <Y>2.0</Y>
@@ -110,7 +110,7 @@
             <Translate>
                 <X>10.0</X>
                 <Y>1.0</Y>
-                <Z> 3.0</Z>
+                <Z>3.0</Z>
             </Translate>
         </Object>
         <Object>
@@ -142,7 +142,7 @@
                 <W>0.7</W>
             </Rotate>
         </Object>
-        <Object>
+        <!--<Object>
             <File>./Data/Models/Dwarf/dwarf.x</File>
             <Mass>50</Mass>
             <Scale>
@@ -155,7 +155,7 @@
                 <Y>6.5</Y>
                 <Z>-3.0</Z>
             </Translate>
-        </Object>
+        </Object>-->
     </Objects>
     <Sky>
         <ImagesPath>./Data/Textures/Skyboxes/ThickCloudsWater</ImagesPath>
