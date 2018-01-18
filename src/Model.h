@@ -28,7 +28,7 @@ class Model : public PhysicalRenderable {
         BoneNode* skeleton;
         GLSLProgram* program;
 
-        MeshMeta() : mesh(NULL), skeleton(NULL), program(NULL) {}
+        MeshMeta() : mesh(nullptr), skeleton(nullptr), program(nullptr) {}
     };
 
     AssetManager *assetManager;

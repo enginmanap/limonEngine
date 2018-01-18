@@ -17,8 +17,7 @@ public:
     std::vector<BoneNode *> children;
     glm::mat4 transformation;
 
-
-    BoneNode() {};
+    BoneNode() = default;
 
     BoneNode(const BoneNode &originalNode) {
         this->name = originalNode.name;

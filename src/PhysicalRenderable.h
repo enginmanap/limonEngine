@@ -15,7 +15,7 @@ protected:
     std::string objectType = "physicalRenderable";//FIXME this is just temporary ray test result detection code, we should return game objects instead of string
     glm::vec3 centerOffset;
 public:
-    PhysicalRenderable(GLHelper *glHelper) : Renderable(glHelper), centerOffset(glm::vec3(0, 0, 0)) { };
+    explicit PhysicalRenderable(GLHelper *glHelper) : Renderable(glHelper), centerOffset(glm::vec3(0, 0, 0)) { };
 
     btRigidBody *getRigidBody() { return rigidBody; };
 
@@ -45,13 +45,9 @@ public:
 
     void updateTransformFromPhysics();
 
-    void setWorldTransform(const glm::mat4 &transformMatrix) {
-        std::cerr << "Physical Renderables can not be set manually, don't use setWorldTransform." << std::endl;
-    }
+    virtual void renderWithProgram(GLSLProgram &program) = 0;
 
-    void virtual renderWithProgram(GLSLProgram &program) = 0;
-
-    void virtual setupForTime(long time) = 0;
+    virtual void setupForTime(long time) = 0;
 };
 
 

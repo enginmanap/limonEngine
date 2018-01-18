@@ -99,7 +99,7 @@ class FontManager {
     static const int DEFAULT_FONT_SIZE = 32;
     FT_Library ft;
 public:
-    FontManager(GLHelper *glHelper);
+    explicit FontManager(GLHelper *glHelper);
 
     Face *getFont(const std::string fontPath, const int size);
 

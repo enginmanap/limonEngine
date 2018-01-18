@@ -14,7 +14,7 @@ Camera::Camera(Options *options) :
         view(glm::quat(0, 0, 0, -1)),
         onAir(true),
         options(options),
-        spring(NULL) {
+        spring(nullptr) {
 
     for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
         for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
@@ -125,7 +125,7 @@ void Camera::updateTransformFromPhysics(const btDynamicsWorld *world) {
             btCollisionWorld::ClosestRayResultCallback *rayCallback = &rayCallbackArray[i*STEPPING_TEST_COUNT + j];
             //set raycallback for downward raytest
             rayCallback->m_closestHitFraction = 1;
-            rayCallback->m_collisionObject = 0;
+            rayCallback->m_collisionObject = nullptr;
             rayCallback->m_rayFromWorld = worldTransformHolder.getOrigin() +
                                           btVector3(-0.5f + i*requiredDelta, -1.01f,
                                                     -0.5f + j*requiredDelta);//the second vector is preventing hitting player capsule

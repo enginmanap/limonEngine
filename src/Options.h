@@ -12,7 +12,7 @@ class Options {
 public:
     enum MoveModes {WALK, RUN};
 private:
-    Logger *logger;
+    Logger *logger{};
 
     glm::vec3 walkSpeed = glm::vec3(5, 0, 5);
     glm::vec3 runSpeed = glm::vec3(8, 0, 8);

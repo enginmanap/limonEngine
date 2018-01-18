@@ -42,12 +42,11 @@ public:
         NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD, UP
     };
 
-    Camera(Options *options);
+    explicit Camera(Options *options);
     ~Camera() {
         delete player;
-        if(spring != NULL) {
-            delete spring;
-        }
+        delete spring;
+
     }
 
     void updateTransformFromPhysics(const btDynamicsWorld *world);

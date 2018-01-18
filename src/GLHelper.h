@@ -64,7 +64,7 @@ class GLHelper {
 
     public:
 
-        OpenglState(GLint textureUnitCount) : activeProgram(0) {
+        explicit OpenglState(GLint textureUnitCount) : activeProgram(0) {
             textures = new unsigned int[textureUnitCount];
             memset(textures, 0, textureUnitCount * sizeof(int));
             activeTextureUnit = 0;
@@ -208,7 +208,7 @@ private:
                                const uint_fast32_t attachPointer);
 
 public:
-    GLHelper(Options *options);
+    explicit GLHelper(Options *options);
 
     ~GLHelper();
     GLuint initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,

@@ -17,7 +17,7 @@ protected:
     std::vector<glm::mediump_uvec3> faces;
     GLuint textureID;
 public:
-    GUIRenderable(GLHelper *glHelper);
+    explicit GUIRenderable(GLHelper *glHelper);
 
     /**
      * the position on x,y coordinates, and clockwise rotation as radian

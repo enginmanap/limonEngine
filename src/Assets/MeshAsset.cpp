@@ -33,7 +33,7 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, cons
     if (currentMesh->HasBones()) {
         this->bones = true;
 
-        assert(meshSkeleton != NULL);
+        assert(meshSkeleton != nullptr);
         this->skeleton = meshSkeleton;
         //we will create a bone* vector so we can load the weight information to GPU. The same vector should be
         //copied and filled with animation information on Model class
@@ -147,7 +147,7 @@ bool MeshAsset::addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, flo
 btTriangleMesh *MeshAsset::getBulletMesh(std::map<uint_fast32_t, btConvexHullShape *> *hullMap,
                                          std::map<uint_fast32_t, btTransform> *parentTransformMap) {
     //Turns out bullet shapes does not copy meshes, so we should return a copy, not the original;
-    btTriangleMesh *copyMesh = NULL;
+    btTriangleMesh *copyMesh = nullptr;
     if(!isPartOfAnimated) {
         copyMesh = new btTriangleMesh();
         //if not part of an animation, than we don't need to split based on bones
@@ -169,7 +169,7 @@ btTriangleMesh *MeshAsset::getBulletMesh(std::map<uint_fast32_t, btConvexHullSha
             btScalar margin = hullshape->getMargin();
             hull->buildHull(margin);
             delete hullshape;
-            hullshape = NULL;
+            hullshape = nullptr;
 
             hullshape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
                                               hull->numVertices());
@@ -187,7 +187,7 @@ bool MeshAsset::hasBones() const {
 }
 
 void MeshAsset::fillBoneMap(const BoneNode *boneNode) {
-    if (boneNode == NULL) {
+    if (boneNode == nullptr) {
         return;
     }
     boneIdMap[boneNode->name] = boneNode->boneID;

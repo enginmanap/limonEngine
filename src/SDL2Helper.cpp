@@ -35,7 +35,7 @@ SDL2Helper::SDL2Helper(const char *title, int height, int width) {
     /* Create our opengl context and attach it to our window */
     context = SDL_GL_CreateContext(window);
 
-    if (context == NULL) {
+    if (context == nullptr) {
         std::cout << "SDL2: OpenGL context creation failed." << std::endl;
         exit(1);
 

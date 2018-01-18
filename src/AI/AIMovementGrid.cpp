@@ -14,7 +14,7 @@ AIMovementNode *AIMovementGrid::isAlreadyVisited(const AIMovementNode *node) {
             return visited[i];
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 const AIMovementNode *
@@ -24,8 +24,8 @@ AIMovementGrid::aStarPath(const AIMovementNode *start, const glm::vec3 &destinat
 
     std::map<const AIMovementNode *, const AIMovementNode *> from;
     std::map<const AIMovementNode *, float> totalCost;
-    const AIMovementNode *finalNode = NULL;
-    from[start] = NULL;
+    const AIMovementNode *finalNode = nullptr;
+    from[start] = nullptr;
     totalCost[start] = 0;
     while (!frontier.empty()) {
         AINodeWithPriority nodeWithPriority = frontier.top();
@@ -38,7 +38,7 @@ AIMovementGrid::aStarPath(const AIMovementNode *start, const glm::vec3 &destinat
 
         for (int i = 0; i < 9; ++i) {
             AIMovementNode *currentNode = nodeWithPriority.node->getNeighbour(i);
-            if (currentNode == NULL) {
+            if (currentNode == nullptr) {
                 continue;
             }
             if (!currentNode->isIsMovable()) {
@@ -59,7 +59,7 @@ AIMovementGrid::aStarPath(const AIMovementNode *start, const glm::vec3 &destinat
 
     }
 
-    if (finalNode == NULL) {
+    if (finalNode == nullptr) {
         std::cerr << "Path search failed, please check the values: " << GLMUtils::vectorToString(start->getPosition())
                   << " to " << GLMUtils::vectorToString(destination) << std::endl;
         return finalNode;
@@ -99,14 +99,13 @@ bool AIMovementGrid::setProperHeight(glm::vec3 *position, float floatingHeight, 
         rayCallback->m_rayToWorld = GLMConverter::GLMToBlt(*position - glm::vec3(0, checkHeight, 0));
     }
     rayCallback->m_closestHitFraction = 1;
-    rayCallback->m_collisionObject = 0;
+    rayCallback->m_collisionObject = nullptr;
     staticWorld->rayTest(rayCallback->m_rayFromWorld, rayCallback->m_rayToWorld, *rayCallback);
     if (rayCallback->hasHit()) {
         //std::cout << "the object that hit is " << *((std::string*)rayCallback->m_collisionObject->getUserPointer()) << std::endl;
         position->y = rayCallback->m_hitPointWorld.getY() + floatingHeight;
         return true;
     } else {
-        std::cout << "nothing under: " << GLMUtils::vectorToString(*position) << std::endl;
         return false;
     }
 }
@@ -150,7 +149,7 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                     int neighbourIndex = (i + 1) * 3 + (j + 1);
                     glm::vec3 neighbourPosition = current->getPosition() + glm::vec3(i, 0, j);
                     if (!setProperHeight(&neighbourPosition, floatingHeight, floatingHeight + 1.0f, staticWorld)) {
-                        current->setNeighbour(neighbourIndex, NULL);
+                        current->setNeighbour(neighbourIndex, nullptr);
                         continue;// if there is nothing under for 1.5f, than don't process this node.
                     }
 
@@ -161,7 +160,7 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                     }
                     AIMovementNode *neighbour = new AIMovementNode(neighbourPosition);
                     AIMovementNode *visitedNode = isAlreadyVisited(neighbour);
-                    if (visitedNode != NULL) {
+                    if (visitedNode != nullptr) {
                         //std::cout << "already visited node at " << GLMUtils::vectorToString(neighbourPosition) << std::endl;
                         //std::cout << "already visited node position is " << GLMUtils::vectorToString(visitedNode->getPosition()) << std::endl;
                         current->setNeighbour(neighbourIndex, visitedNode);
@@ -267,7 +266,7 @@ bool
 AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, int actorId, std::vector<glm::vec3> *route) {
 
     //first search for from node.
-    const AIMovementNode *fromAINode = NULL;
+    const AIMovementNode *fromAINode = nullptr;
     if (actorLastNodeMap.find(actorId) != actorLastNodeMap.end()) {
         //if we already processed this actor before, use the last position of that actor we know
         fromAINode = actorLastNodeMap[actorId];
@@ -275,18 +274,15 @@ AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, int actor
         //if we never processed this actor, use root node for search start.
         fromAINode = root;
     }
-    if (fromAINode == NULL) {
-        std::cerr << "Old from node turned out to be null. This shouldn't have happened" << std::endl;
-        while (true) {
-            std::cerr << "Old from node turned out to be null. This shouldn't have happened" << std::endl;
-        }
+    if (fromAINode == nullptr) {
+        std::cerr << "Old from node turned out to be NULL. This shouldn't have happened" << std::endl;
         return false;
     }
 
     //search where the actor is
     fromAINode = aStarPath(fromAINode, from, route);
 
-    if (fromAINode == NULL) {
+    if (fromAINode == nullptr) {
         std::cerr << "new from node can't be found, this means snap distance is too small." << std::endl;
         return false;
     }
@@ -296,7 +292,7 @@ AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, int actor
 
     const AIMovementNode *finalNode = aStarPath(fromAINode, to, route);
 
-    if (finalNode == NULL) {
+    if (finalNode == nullptr) {
         std::cerr << "Destination can't be reached, most likely player moved to somewhere AI can't." << std::endl;
         return false;
     } else {
@@ -322,7 +318,7 @@ bool AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, std:
     long start = SDL_GetTicks();
 
     fromAINode = aStarPath(root, from, route);
-    if (fromAINode == NULL) {
+    if (fromAINode == nullptr) {
         return false;
     }
     long middle = SDL_GetTicks();
@@ -360,7 +356,7 @@ void AIMovementGrid::debugDraw(BulletDebugDrawer *debugDrawer) const {
             neighbourCount = 9; //if on an edge, neighbours will not be able to draw rest, draw all.
         }
         for (int j = 0; j < neighbourCount; ++j) {
-            if ((*it)->getNeighbour(j) != NULL) {
+            if ((*it)->getNeighbour(j) != nullptr) {
                 if ((*it)->getNeighbour(j)->isIsMovable()) {
                     toColor = glm::vec3(1, 1, 1);
                 } else {

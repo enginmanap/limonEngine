@@ -34,7 +34,7 @@ class World {
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
     std::vector<Actor*> actors;
-    AIMovementGrid *grid = NULL;
+    AIMovementGrid *grid = nullptr;
     SkyBox *sky;
     GLHelper *glHelper;
     AssetManager *assetManager;
