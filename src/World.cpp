@@ -168,13 +168,13 @@ ActorInformation World::fillActorInformation(int j) {
     std::vector<glm::vec3> route;
     glm::vec3 playerPosWithGrid = GLMConverter::BltToGLM(camera.getRigidBody()->getCenterOfMassPosition());
     if (grid->coursePath(actors[j]->getPosition() + glm::vec3(0, 2.0f, 0), playerPosWithGrid, j, &route)) {
-        if (route.size() > 0) {
-            information.toPlayerRoute = route[route.size() - 1] - actors[j]->getPosition() - glm::vec3(0, 2.0f,
-                                                                                                       0);//Normally, this information should be used for straightening the path, but not yet.
-            information.canGoToPlayer = true;
-        } else {
+        if (route.empty()) {
             information.toPlayerRoute = glm::vec3(0, 0, 0);
             information.canGoToPlayer = false;
+        } else {
+            //Normally, this information should be used for straightening the path, but not yet.
+            information.toPlayerRoute = route[route.size() - 1] - actors[j]->getPosition() - glm::vec3(0, 2.0f, 0);
+            information.canGoToPlayer = true;
         }
     }
     return information;
@@ -270,7 +270,7 @@ void World::render() {
     }
 
     glHelper->switchRenderToDefault();
-    if(sky!=NULL) {
+    if(sky!=nullptr) {
         sky->render();//this is moved to the top, because transparency can create issues if this is at the end
     }
 
@@ -338,13 +338,13 @@ bool World::loadMapFromXML() {
     }
 
     tinyxml2::XMLNode * worldNode = xmlDoc.FirstChild();
-    if (worldNode == NULL) {
+    if (worldNode == nullptr) {
         std::cerr << "World xml is not a valid XML." << std::endl;
         return false;
     }
 
     tinyxml2::XMLElement* worldName =  worldNode->FirstChildElement("Name");
-    if (worldName == NULL) {
+    if (worldName == nullptr) {
         std::cerr << "World must have a name." << std::endl;
         return false;
     }
@@ -365,13 +365,13 @@ bool World::loadMapFromXML() {
 
 bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
     tinyxml2::XMLElement* objectsListNode =  worldNode->FirstChildElement("Objects");
-    if (objectsListNode == NULL) {
+    if (objectsListNode == nullptr) {
         std::cerr << "World Must have and Objects clause." << std::endl;
         return false;
     }
 
     tinyxml2::XMLElement* objectNode =  objectsListNode->FirstChildElement("Object");
-    if (objectNode == NULL) {
+    if (objectNode == nullptr) {
         std::cerr << "World Must have at least one object." << std::endl;
         return false;
     }
@@ -384,15 +384,15 @@ bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
     std::vector<Model*> notStaticObjects;
     bool isAIGridStartPointSet = false;
     glm::vec3 aiGridStartPoint;
-    while(objectNode != NULL) {
+    while(objectNode != nullptr) {
         objectAttribute =  objectNode->FirstChildElement("File");
-        if (objectAttribute == NULL) {
+        if (objectAttribute == nullptr) {
             std::cerr << "Object must have a source file." << std::endl;
             return false;
         }
         modelFile = objectAttribute->GetText();
         objectAttribute =  objectNode->FirstChildElement("Mass");
-        if (objectAttribute == NULL) {
+        if (objectAttribute == nullptr) {
             std::cout << "Object does not have mass, assume 0." << std::endl;
             modelMass = 0;
         } else {
@@ -402,23 +402,23 @@ bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
         xmlModel = new Model(assetManager,modelMass, modelFile);
 
         objectAttribute =  objectNode->FirstChildElement("Scale");
-        if (objectAttribute == NULL) {
+        if (objectAttribute == nullptr) {
             std::cout << "Object does not have scale." << std::endl;
         } else {
             objectAttributeAttribute =  objectAttribute->FirstChildElement("X");
-            if(objectAttributeAttribute != NULL) {
+            if(objectAttributeAttribute != nullptr) {
                 x = std::stof(objectAttributeAttribute->GetText());
             } else {
                 x = 1.0;
             }
             objectAttributeAttribute =  objectAttribute->FirstChildElement("Y");
-            if(objectAttributeAttribute != NULL) {
+            if(objectAttributeAttribute != nullptr) {
                 y = std::stof(objectAttributeAttribute->GetText());
             } else {
                 y = 1.0;
             }
             objectAttributeAttribute =  objectAttribute->FirstChildElement("Z");
-            if(objectAttributeAttribute != NULL) {
+            if(objectAttributeAttribute != nullptr) {
                 z = std::stof(objectAttributeAttribute->GetText());
             } else {
                 z = 1.0;
@@ -427,23 +427,23 @@ bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
         }
 
         objectAttribute =  objectNode->FirstChildElement("Translate");
-        if (objectAttribute == NULL) {
+        if (objectAttribute == nullptr) {
             std::cout << "Object does not have translate." << std::endl;
         } else {
             objectAttributeAttribute =  objectAttribute->FirstChildElement("X");
-            if(objectAttributeAttribute != NULL) {
+            if(objectAttributeAttribute != nullptr) {
                 x = std::stof(objectAttributeAttribute->GetText());
             } else {
                 x = 0.0;
             }
             objectAttributeAttribute =  objectAttribute->FirstChildElement("Y");
-            if(objectAttributeAttribute != NULL) {
+            if(objectAttributeAttribute != nullptr) {
                 y = std::stof(objectAttributeAttribute->GetText());
             } else {
                 y = 0.0;
             }
             objectAttributeAttribute =  objectAttribute->FirstChildElement("Z");
-            if(objectAttributeAttribute != NULL) {
+            if(objectAttributeAttribute != nullptr) {
                 z = std::stof(objectAttributeAttribute->GetText());
             } else {
                 z = 0.0;
@@ -452,29 +452,29 @@ bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
         }
 
         objectAttribute =  objectNode->FirstChildElement("Rotate");
-        if (objectAttribute == NULL) {
+        if (objectAttribute == nullptr) {
             std::cout << "Object does not have translate." << std::endl;
         } else {
             objectAttributeAttribute =  objectAttribute->FirstChildElement("X");
-            if(objectAttributeAttribute != NULL) {
+            if(objectAttributeAttribute != nullptr) {
                 x = std::stof(objectAttributeAttribute->GetText());
             } else {
                 x = 0.0;
             }
             objectAttributeAttribute =  objectAttribute->FirstChildElement("Y");
-            if(objectAttributeAttribute != NULL) {
+            if(objectAttributeAttribute != nullptr) {
                 y = std::stof(objectAttributeAttribute->GetText());
             } else {
                 y = 0.0;
             }
             objectAttributeAttribute =  objectAttribute->FirstChildElement("Z");
-            if(objectAttributeAttribute != NULL) {
+            if(objectAttributeAttribute != nullptr) {
                 z = std::stof(objectAttributeAttribute->GetText());
             } else {
                 z = 0.0;
             }
             objectAttributeAttribute =  objectAttribute->FirstChildElement("W");
-            if(objectAttributeAttribute != NULL) {
+            if(objectAttributeAttribute != nullptr) {
                 w = std::stof(objectAttributeAttribute->GetText());
             } else {
                 w = 0.0;
@@ -483,7 +483,7 @@ bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
         }
         //Since we are not loading objects recursively, these can be set here safely
         objectAttribute =  objectNode->FirstChildElement("AI");
-        if (objectAttribute == NULL) {
+        if (objectAttribute == nullptr) {
             std::cout << "Object does not have AI." << std::endl;
         } else {
             if (!isAIGridStartPointSet) {
@@ -525,13 +525,13 @@ void World::addModelToWorld(Model *xmlModel) {
 
 bool World::loadSkymap(tinyxml2::XMLNode *worldNode) {
     tinyxml2::XMLElement* skyNode =  worldNode->FirstChildElement("Sky");
-    if (skyNode == NULL) {
+    if (skyNode == nullptr) {
         std::cerr << "Sky clause not found." << std::endl;
         return false;
     }
 
     tinyxml2::XMLElement* imagesPath =  skyNode->FirstChildElement("ImagesPath");
-    if (imagesPath == NULL) {
+    if (imagesPath == nullptr) {
         std::cerr << "Sky map must have the root path." << std::endl;
         return false;
     }
@@ -540,42 +540,42 @@ bool World::loadSkymap(tinyxml2::XMLNode *worldNode) {
     path = imagesPath->GetText();
 
     tinyxml2::XMLElement* leftNode =  skyNode->FirstChildElement("Left");
-    if (leftNode == NULL) {
+    if (leftNode == nullptr) {
         std::cerr << "Sky map must have left image name." << std::endl;
         return false;
     }
     left = leftNode->GetText();
 
     tinyxml2::XMLElement* rightNode =  skyNode->FirstChildElement("Right");
-    if (rightNode == NULL) {
+    if (rightNode == nullptr) {
         std::cerr << "Sky map must have right image name." << std::endl;
         return false;
     }
     right = rightNode->GetText();
 
     tinyxml2::XMLElement* topNode =  skyNode->FirstChildElement("Top");
-    if (topNode == NULL) {
+    if (topNode == nullptr) {
         std::cerr << "Sky map must have top image name." << std::endl;
         return false;
     }
     top = topNode->GetText();
 
     tinyxml2::XMLElement* bottomNode =  skyNode->FirstChildElement("Bottom");
-    if (bottomNode == NULL) {
+    if (bottomNode == nullptr) {
         std::cerr << "Sky map must have bottom image name." << std::endl;
         return false;
     }
     bottom = bottomNode->GetText();
 
     tinyxml2::XMLElement* backNode =  skyNode->FirstChildElement("Back");
-    if (backNode == NULL) {
+    if (backNode == nullptr) {
         std::cerr << "Sky map must have back image name." << std::endl;
         return false;
     }
     back = backNode->GetText();
 
     tinyxml2::XMLElement* frontNode =  skyNode->FirstChildElement("Front");
-    if (frontNode == NULL) {
+    if (frontNode == nullptr) {
         std::cerr << "Sky map must have front image name." << std::endl;
         return false;
     }
@@ -595,14 +595,14 @@ bool World::loadSkymap(tinyxml2::XMLNode *worldNode) {
 
 bool World::loadLights(tinyxml2::XMLNode *worldNode) {
     tinyxml2::XMLElement* lightsListNode =  worldNode->FirstChildElement("Lights");
-    if (lightsListNode == NULL) {
+    if (lightsListNode == nullptr) {
         std::cerr << "Lights clause not found." << std::endl;
         return false;
     }
 
 
     tinyxml2::XMLElement* lightNode =  lightsListNode->FirstChildElement("Light");
-    if (lightNode == NULL) {
+    if (lightNode == nullptr) {
         std::cerr << "Lights did not have at least one light." << std::endl;
         return false;
     }
@@ -614,9 +614,9 @@ bool World::loadLights(tinyxml2::XMLNode *worldNode) {
     tinyxml2::XMLElement* lightAttribute;
     tinyxml2::XMLElement* lightAttributeAttribute;
     float x,y,z;
-    while(lightNode != NULL) {
+    while(lightNode != nullptr) {
         lightAttribute = lightNode->FirstChildElement("Type");
-        if (lightAttribute == NULL) {
+        if (lightAttribute == nullptr) {
             std::cerr << "Light must have a type." << std::endl;
             return false;
         }
@@ -631,26 +631,26 @@ bool World::loadLights(tinyxml2::XMLNode *worldNode) {
             return false;
         }
         lightAttribute = lightNode->FirstChildElement("Position");
-        if (lightAttribute == NULL) {
+        if (lightAttribute == nullptr) {
             std::cerr << "Light must have a position/direction." << std::endl;
             return false;
         } else {
             lightAttributeAttribute = lightAttribute->FirstChildElement("X");
-            if (lightAttributeAttribute != NULL) {
+            if (lightAttributeAttribute != nullptr) {
                 x = std::stof(lightAttributeAttribute->GetText());
             } else {
                 std::cerr << "Light position/direction missing x." << std::endl;
                 return false;
             }
             lightAttributeAttribute = lightAttribute->FirstChildElement("Y");
-            if (lightAttributeAttribute != NULL) {
+            if (lightAttributeAttribute != nullptr) {
                 y = std::stof(lightAttributeAttribute->GetText());
             } else {
                 std::cerr << "Light position/direction missing y." << std::endl;
                 return false;
             }
             lightAttributeAttribute = lightAttribute->FirstChildElement("Z");
-            if (lightAttributeAttribute != NULL) {
+            if (lightAttributeAttribute != nullptr) {
                 z = std::stof(lightAttributeAttribute->GetText());
             } else {
                 std::cerr << "Light position/direction missing z." << std::endl;
@@ -662,23 +662,23 @@ bool World::loadLights(tinyxml2::XMLNode *worldNode) {
         position.z = z;
 
         lightAttribute = lightNode->FirstChildElement("Color");
-        if (lightAttribute == NULL) {
+        if (lightAttribute == nullptr) {
             x = y = z = 1.0f;
         } else {
             lightAttributeAttribute = lightAttribute->FirstChildElement("X");
-            if (lightAttributeAttribute != NULL) {
+            if (lightAttributeAttribute != nullptr) {
                 x = std::stof(lightAttributeAttribute->GetText());
             } else {
                 x = 1.0f;
             }
             lightAttributeAttribute = lightAttribute->FirstChildElement("Y");
-            if (lightAttributeAttribute != NULL) {
+            if (lightAttributeAttribute != nullptr) {
                 y = std::stof(lightAttributeAttribute->GetText());
             } else {
                 y = 1.0f;
             }
             lightAttributeAttribute = lightAttribute->FirstChildElement("Z");
-            if (lightAttributeAttribute != NULL) {
+            if (lightAttributeAttribute != nullptr) {
                 z = std::stof(lightAttributeAttribute->GetText());
             } else {
                 z = 1.0f;

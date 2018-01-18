@@ -23,7 +23,7 @@ private:
     bool isOpacityMap = false;
     float refractionIndex;
 
-    TextureAsset *ambientTexture = NULL, *diffuseTexture = NULL, *specularTexture = NULL, *opacityTexture = NULL;
+    TextureAsset *ambientTexture = nullptr, *diffuseTexture = nullptr, *specularTexture = nullptr, *opacityTexture = nullptr;
 
 public:
     Material(AssetManager *assetManager, const std::string &name, float specularExponent, const glm::vec3 &ambientColor,
@@ -96,8 +96,8 @@ public:
 
     TextureAsset *getDiffuseTexture() const {
         if (!isDiffuseMap) {
-            std::cerr << "access to null element for " << this->name << std::endl;
-            return NULL;
+            std::cerr << "access to nullptr element for " << this->name << std::endl;
+            return nullptr;
         }
         return diffuseTexture;
     }
@@ -127,16 +127,16 @@ public:
     }
 
     ~Material() {
-        if (ambientTexture != NULL) {
+        if (ambientTexture != nullptr) {
             delete ambientTexture;
         }
-        if (diffuseTexture != NULL) {
+        if (diffuseTexture != nullptr) {
             delete diffuseTexture;
         }
-        if (specularTexture != NULL) {
+        if (specularTexture != nullptr) {
             delete specularTexture;
         }
-        if (opacityTexture != NULL) {
+        if (opacityTexture != nullptr) {
             delete opacityTexture;
         }
     }

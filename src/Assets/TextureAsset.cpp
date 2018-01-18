@@ -6,7 +6,7 @@
 
 TextureAsset::TextureAsset(AssetManager* assetManager, const std::vector<std::string> &files) :
         Asset(assetManager, files) {
-    if (files.size() < 1) {
+    if (files.empty()) {
         std::cerr << "Texture load failed because file name vector is empty." << std::endl;
         exit(-1);
     }

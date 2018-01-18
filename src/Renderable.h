@@ -25,21 +25,21 @@ protected:
 
     void generateWorldTransform();
 
-    Renderable(GLHelper *glHelper);
+    explicit Renderable(GLHelper *glHelper);
 
 
 public:
-    void addScale(const glm::vec3 &scale) {
+    virtual void addScale(const glm::vec3 &scale) {
         this->scale *= scale;
         isDirty = true;
     }
 
-    void addTranslate(const glm::vec3 &translate) {
+    virtual void addTranslate(const glm::vec3 &translate) {
         this->translate += translate;
         isDirty = true;
     }
 
-    void addOrientation(const glm::quat &orientation) {
+    virtual void addOrientation(const glm::quat &orientation) {
         this->orientation *= orientation;
         this->orientation = glm::normalize(this->orientation);
         isRotated = this->orientation.w > cos(0.1f / 2); //if the total rotation is bigger than 0.1 rad
@@ -55,9 +55,6 @@ public:
 
     virtual void render() = 0;
 
-    //FIXME this should be removed
-    void setWorldTransform(const glm::mat4 &transformMatrix);
-
     ~Renderable() {
         for (int i = 0; i < bufferObjects.size(); ++i) {
             glHelper->freeBuffer(bufferObjects[i]);
@@ -65,10 +62,9 @@ public:
         glHelper->freeBuffer(ebo);
         glHelper->freeVAO(vao);
 
-        if(renderProgram != NULL) {
-            //model renderable creates its own
-            delete renderProgram;
-        }
+        //model renderable creates its own
+        delete renderProgram;
+
     }
 
 

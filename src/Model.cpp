@@ -47,7 +47,7 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
         meshes.push_back(meshMeta);
 
         btTriangleMesh *rawCollisionMesh = (*iter)->getBulletMesh(&hullMap, &btTransformMap);
-        if (rawCollisionMesh != NULL) {
+        if (rawCollisionMesh != nullptr) {
             btCollisionShape *meshCollisionShape;
             btConvexTriangleMeshShape *convexTriangleMeshShape;
             if (mass == 0) {
@@ -60,7 +60,7 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
                     btScalar margin = convexTriangleMeshShape->getMargin();
                     hull->buildHull(margin);
                     delete convexTriangleMeshShape;
-                    convexTriangleMeshShape = NULL; //this is not needed, but I am leaving here in case I try to use it at a later revision.
+                    convexTriangleMeshShape = nullptr; //this is not needed, but I am leaving here in case I try to use it at a later revision.
 
                     meshCollisionShape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
                                                                hull->numVertices());
@@ -125,7 +125,7 @@ void Model::setupForTime(long time) {
 }
 
 void Model::activateMaterial(const Material *material, GLSLProgram *program) {
-    if(material == NULL ) {
+    if(material == nullptr ) {
         return;
     }
     if (!program->setUniform("material.ambient", material->getAmbientColor())) {

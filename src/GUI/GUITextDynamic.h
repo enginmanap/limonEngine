@@ -28,7 +28,7 @@ class GUITextDynamic: public GUIText {
     int totalExtraLines = 0;
     long logLineCount = 1;
     std::list<TextLine> textList;
-    Logger* source = NULL;
+    Logger* source = nullptr;
 
 
     long duration = 5000;//default 5 second duration

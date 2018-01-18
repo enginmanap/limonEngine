@@ -23,7 +23,7 @@ public:
 
 public:
 
-    AssetManager(GLHelper *glHelper) : glHelper(glHelper) {}
+    explicit AssetManager(GLHelper *glHelper) : glHelper(glHelper) {}
 
     template<class T>
     T *loadAsset(const std::vector<std::string> files) {

@@ -9,7 +9,7 @@
 void GUITextDynamic::render() {
     //first move all logs to our list
     Logger::LogLine* logLine = source->getLog();
-    while(logLine != NULL) {
+    while(logLine != nullptr) {
         this->textList.push_back(TextLine(logLine,logLineCount++));
         delete logLine;
         logLine = source->getLog();
@@ -25,7 +25,7 @@ void GUITextDynamic::render() {
     //Setup position
     float quadPositionX, quadPositionY, quadSizeX, quadSizeY;
     const Glyph *glyph;
-    if(textList.size() == 0) {
+    if(textList.empty()) {
         return;
     }
     int lineCount=1;//the line 0 would be out of the box

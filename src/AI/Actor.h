@@ -21,7 +21,7 @@ struct ActorInformation{
 
 class Actor {
 protected:
-    Model* model = NULL;
+    Model* model = nullptr;
 public:
     virtual void play(long time, ActorInformation &information, Options* options) = 0;
 

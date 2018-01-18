@@ -40,7 +40,7 @@ class AIMovementGrid {
         return (glm::length(position1 - position2) < GRID_SNAP_DISTANCE);
     }
 
-    AIMovementNode *root = NULL;
+    AIMovementNode *root = nullptr;
     btCollisionShape *ghostShape;
     btPairCachingGhostObject *sharedGhostObject = new btPairCachingGhostObject();
     btCollisionWorld::ClosestRayResultCallback *rayCallback = new btCollisionWorld::ClosestRayResultCallback(

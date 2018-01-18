@@ -24,8 +24,6 @@
 
 class ModelAsset : public Asset {
 
-
-
     std::string name;
 
     BoneNode *rootNode;
@@ -49,13 +47,12 @@ class ModelAsset : public Asset {
 
     Material *loadMaterials(const aiScene *scene, unsigned int materialIndex);
 
-    BoneNode *loadNodeTree(aiNode *aiNode);
-
     void createMeshes(aiNode *aiNode, glm::mat4 parentTransform);//parent transform is not reference on purpose
     //if it was, then we would need a stack
 
-    bool findNode(const std::string &nodeName, BoneNode** foundNode, BoneNode* searchRoot) const;
+    BoneNode *loadNodeTree(aiNode *aiNode);
 
+    bool findNode(const std::string &nodeName, BoneNode** foundNode, BoneNode* searchRoot) const;
 
     void traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform, aiAnimation *animation, float timeInTicks,
                                  std::vector<glm::mat4> &transforms) const;

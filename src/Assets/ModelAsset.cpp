@@ -5,12 +5,11 @@
 #include "ModelAsset.h"
 #include "../glm/gtx/matrix_decompose.hpp"
 
-
 ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string> &fileList) : Asset(assetManager,
                                                                                                      fileList),
                                                                                                boneIDCounter(0),
                                                                                                boneIDCounterPerMesh(0) {
-    if (fileList.size() < 1) {
+    if (fileList.empty()) {
         std::cerr << "Model load failed because file name vector is empty." << std::endl;
         exit(-1);
     }
@@ -35,11 +34,7 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
 
     animations = scene->mAnimations;//FIXME this is not acceptable, requires fixing.
 
-    if (scene->mNumAnimations == 0) {
-        this->hasAnimation = false;
-    } else {
-        this->hasAnimation = true;
-    }
+    this->hasAnimation = (scene->mNumAnimations != 0);
 
     std::cout << "ASSIMP::success::" << name << std::endl;
 
@@ -72,7 +67,7 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
         std::cerr << "Material without a name is not handled." << std::endl;
         std::cerr << "Model " << this->name << std::endl;
         exit(-1);
-        //return NULL; should work too.
+        //return nullptr; should work too.
     }
 
     Material *newMaterial;
@@ -154,7 +149,7 @@ void ModelAsset::createMeshes(aiNode *aiNode, glm::mat4 parentTransform) {
                 meshOffsetmap[currentMesh->mBones[j]->mName.C_Str()] = GLMConverter::AssimpToGLM(
                         currentMesh->mBones[j]->mOffsetMatrix);
                 std::string boneName =  currentMesh->mBones[j]->mName.C_Str();
-                boneName = boneName + "_parent";
+                boneName += "_parent";
                 meshOffsetmap[boneName] = parentTransform;
             }
 
@@ -175,7 +170,7 @@ void ModelAsset::createMeshes(aiNode *aiNode, glm::mat4 parentTransform) {
     }
 }
 
-BoneNode *ModelAsset::loadNodeTree(aiNode *aiNode) {
+BoneNode* ModelAsset::loadNodeTree(aiNode *aiNode) {
     BoneNode *currentNode = new BoneNode();
     currentNode->name = aiNode->mName.C_Str();
     currentNode->boneID = boneIDCounter++;
@@ -241,7 +236,7 @@ ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &p
     const aiNodeAnim *nodeAnimation = findNodeAnimation(animation, boneNode->name);
     glm::mat4 nodeTransform;
 
-    if (nodeAnimation == NULL) {
+    if (nodeAnimation == nullptr) {
         nodeTransform = boneNode->transformation;
     } else {
         // Interpolate scaling and generate scaling transformation matrix
@@ -372,7 +367,7 @@ const aiNodeAnim *ModelAsset::findNodeAnimation(aiAnimation *animation, std::str
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 bool ModelAsset::isAnimated() const {

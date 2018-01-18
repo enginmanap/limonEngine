@@ -40,8 +40,8 @@ public:
      * @return single line of log
      */
     LogLine* getLog() {
-        if(logQueue.size() == 0 ) {
-            return NULL;
+        if(logQueue.empty() ) {
+            return nullptr;
         }
         LogLine* temp = logQueue.front();
         logQueue.pop_front();

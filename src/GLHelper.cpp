@@ -12,7 +12,7 @@ GLuint GLHelper::createShader(GLenum eShaderType, const std::string &strShaderFi
     std::ifstream shaderStream(strShaderFile.c_str(), std::ios::in);
 
     if (shaderStream.is_open()) {
-        std::string Line = "";
+        std::string Line;
 
         while (getline(shaderStream, Line))
             shaderCode += "\n" + Line;
@@ -26,7 +26,7 @@ GLuint GLHelper::createShader(GLenum eShaderType, const std::string &strShaderFi
     }
 
     const char *shaderCodePtr = shaderCode.c_str();
-    glShaderSource(shader, 1, &shaderCodePtr, NULL);
+    glShaderSource(shader, 1, &shaderCodePtr, nullptr);
 
     glCompileShader(shader);
 
@@ -38,8 +38,8 @@ GLuint GLHelper::createShader(GLenum eShaderType, const std::string &strShaderFi
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLogLength);
 
         GLchar *strInfoLog = new GLchar[infoLogLength + 1];
-        glGetShaderInfoLog(shader, infoLogLength, NULL, strInfoLog);
-        const char *strShaderType = NULL;
+        glGetShaderInfoLog(shader, infoLogLength, nullptr, strInfoLog);
+        const char *strShaderType = nullptr;
 
         switch (eShaderType) {
             case GL_VERTEX_SHADER:
@@ -82,7 +82,7 @@ GLuint GLHelper::createProgram(const std::vector<GLuint> &shaderList) {
         glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLogLength);
 
         GLchar *strInfoLog = new GLchar[infoLogLength + 1];
-        glGetProgramInfoLog(program, infoLogLength, NULL, strInfoLog);
+        glGetProgramInfoLog(program, infoLogLength, nullptr, strInfoLog);
         std::cerr << "Linking failed: \n" << strInfoLog << std::endl;
         delete[] strInfoLog;
     } else {
@@ -251,7 +251,7 @@ GLHelper::GLHelper(Options *options): options(options) {
     glGenBuffers(1, &lightUBOLocation);
 
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * NR_POINT_LIGHTS, NULL,
+    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * NR_POINT_LIGHTS, nullptr,
                  GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
@@ -259,7 +259,7 @@ GLHelper::GLHelper(Options *options): options(options) {
     glGenBuffers(1, &playerUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
     //FIXME the value below should be a constant at header
-    glBufferData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4) + sizeof(glm::vec4), NULL, GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4) + sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //create depth buffer and texture for directional shadow map
@@ -267,7 +267,7 @@ GLHelper::GLHelper(Options *options): options(options) {
     glGenTextures(1, &depthMapDirectional);
     glBindTexture(GL_TEXTURE_2D_ARRAY, depthMapDirectional);
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT, options->getShadowWidth(), options->getShadowHeight(), NR_POINT_LIGHTS, 0,
-                 GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+                 GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -289,7 +289,7 @@ GLHelper::GLHelper(Options *options): options(options) {
     glGenTextures(1, &depthCubemapPoint);
     glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, depthCubemapPoint);
     glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, GL_DEPTH_COMPONENT, options->getShadowWidth(), options->getShadowHeight(), NR_POINT_LIGHTS*6, 0,
-                 GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+                 GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -397,7 +397,7 @@ void GLHelper::bufferVertexData(const std::vector<glm::vec3> &vertices,
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
     //glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize, vertexData);
-    glVertexAttribPointer(attachPointer, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glVertexAttribPointer(attachPointer, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(attachPointer);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -512,7 +512,7 @@ void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, 
     glBindVertexArray(vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
-    glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, NULL);
+    glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, nullptr);
     glBindVertexArray(0);
     //state->setProgram(0);
 
@@ -702,9 +702,9 @@ void GLHelper::createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSi
     glBindVertexArray(vao);
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(Line), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, bufferSize * sizeof(Line), nullptr, GL_DYNAMIC_DRAW);
     //glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize, vertexData);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 28, NULL); //position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 28, nullptr); //position
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 28, (void*)12); //color
     glVertexAttribPointer(2, 1, GL_INT,  GL_FALSE, 28, (void*)24); //needsCameraTransform
     glEnableVertexAttribArray(0);
