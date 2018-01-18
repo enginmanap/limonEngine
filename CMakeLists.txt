@@ -4,6 +4,7 @@ project(LimonEngine)
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+include(cotire)
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Wshadow -Wnon-virtual-dtor -pedantic")
 IF (WIN32)
@@ -78,5 +79,4 @@ add_custom_target(copyData
 add_dependencies(LimonEngine copyData)
 
 TARGET_LINK_LIBRARIES(LimonEngine ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${ASSIMP_LIBRARIES})
-
-
+cotire(LimonEngine)
