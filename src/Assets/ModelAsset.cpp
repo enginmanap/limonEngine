@@ -224,7 +224,7 @@ void ModelAsset::getTransform(long time, int animationIndex, std::vector<glm::ma
 
     float animationTime = fmod((time / 1000.0f) * ticksPersecond, currentAnimation->mDuration);
 
-    glm::mat4 parentTransform = glm::mat4(1.0f);
+    glm::mat4 parentTransform(1.0f);
     traverseAndSetTransform(rootNode, parentTransform, currentAnimation, animationTime, transformMatrix);
 
 }
@@ -233,6 +233,7 @@ void
 ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform, aiAnimation *animation,
                                     float timeInTicks,
                                     std::vector<glm::mat4> &transforms) const {
+
     const aiNodeAnim *nodeAnimation = findNodeAnimation(animation, boneNode->name);
     glm::mat4 nodeTransform;
 
