@@ -81,32 +81,32 @@ void MeshAsset::setTriangles(const aiMesh *currentMesh) {
     if(isPartOfAnimated) {
         if (currentMesh->HasTextureCoords(0)) {
             for (int j = 0; j < currentMesh->mNumVertices; ++j) {
-                vertices.push_back(glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]), 1.0f));
-                normals.push_back(glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]), 1.0f));
+                vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
+                normals.push_back(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]));
                 textureCoordinates.push_back(
                         glm::vec2(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y));
 
             }
         } else {
             for (int j = 0; j < currentMesh->mNumVertices; ++j) {
-                vertices.push_back(glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]), 1.0f));
-                normals.push_back(glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]), 1.0f));
+                vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
+                normals.push_back(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]));
             }
         }
     } else {
 
         if (currentMesh->HasTextureCoords(0)) {
             for (int j = 0; j < currentMesh->mNumVertices; ++j) {
-                vertices.push_back(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]), 1.0f));
-                normals.push_back(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]), 1.0f));
+                vertices.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]), 1.0f)));
+                normals.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]), 1.0f)));
                 textureCoordinates.push_back(
                         glm::vec2(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y));
 
             }
         } else {
             for (int j = 0; j < currentMesh->mNumVertices; ++j) {
-                vertices.push_back(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]), 1.0f));
-                normals.push_back(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]), 1.0f));
+                vertices.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]), 1.0f)));
+                normals.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]), 1.0f)));
             }
         }
     }
@@ -152,9 +152,9 @@ btTriangleMesh *MeshAsset::getBulletMesh(std::map<uint_fast32_t, btConvexHullSha
         copyMesh = new btTriangleMesh();
         //if not part of an animation, than we don't need to split based on bones
         for (int j = 0; j < faces.size(); ++j) {
-            copyMesh->addTriangle(GLMConverter::GLMToBlt(glm::vec4(vertices[faces[j][0]], 1.0f)),
-                                  GLMConverter::GLMToBlt(glm::vec4(vertices[faces[j][1]], 1.0f)),
-                                  GLMConverter::GLMToBlt(glm::vec4(vertices[faces[j][2]], 1.0f)));
+            copyMesh->addTriangle(GLMConverter::GLMToBlt(vertices[faces[j][0]]),
+                                  GLMConverter::GLMToBlt(vertices[faces[j][1]]),
+                                  GLMConverter::GLMToBlt(vertices[faces[j][2]]));
         }
         shapeCopies.push_back(copyMesh);
     } else {
