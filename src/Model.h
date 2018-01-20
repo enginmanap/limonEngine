@@ -7,13 +7,8 @@
 
 
 #include <vector>
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 #include <bullet/BulletCollision/CollisionShapes/btShapeHull.h>
-#include "Utils/AssimpUtils.h"
 
-//TODO maybe we should not have direct dependency to glm and gl
 #include "glm/glm.hpp"
 #include "PhysicalRenderable.h"
 #include "Assets/TextureAsset.h"
