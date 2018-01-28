@@ -10,7 +10,18 @@
 
 class GLMUtils {
 public:
-    static void printMatrix(const glm::mat4 matrix) {
+
+    static float maxMatrixDifference(const glm::mat4& matrix1, const glm::mat4& matrix2) {
+        float max = 0;
+
+        max = std::max(std::fabs(matrix1[0][0] - matrix2[0][0]), max); max = std::max(std::fabs(matrix1[1][0] - matrix2[1][0]), max);    max = std::max(std::fabs(matrix1[2][0] - matrix2[2][0]), max); max = std::max(std::fabs(matrix1[3][0] - matrix2[3][0]), max);
+        max = std::max(std::fabs(matrix1[0][1] - matrix2[0][1]), max); max = std::max(std::fabs(matrix1[1][1] - matrix2[1][1]), max);    max = std::max(std::fabs(matrix1[2][1] - matrix2[2][1]), max); max = std::max(std::fabs(matrix1[3][1] - matrix2[3][1]), max);
+        max = std::max(std::fabs(matrix1[0][2] - matrix2[0][2]), max); max = std::max(std::fabs(matrix1[1][2] - matrix2[1][2]), max);    max = std::max(std::fabs(matrix1[2][2] - matrix2[2][2]), max); max = std::max(std::fabs(matrix1[3][2] - matrix2[3][2]), max);
+        max = std::max(std::fabs(matrix1[0][3] - matrix2[0][3]), max); max = std::max(std::fabs(matrix1[1][3] - matrix2[1][3]), max);    max = std::max(std::fabs(matrix1[2][3] - matrix2[2][3]), max); max = std::max(std::fabs(matrix1[3][3] - matrix2[3][3]), max);
+        return max;
+    }
+
+    static void printMatrix(const glm::mat4& matrix) {
         std::cout << matrix[0][0] << ", " << matrix[1][0] << ", " << matrix[2][0] << ", " << matrix[3][0] << "\n"
                   << matrix[0][1] << ", " << matrix[1][1] << ", " << matrix[2][1] << ", " << matrix[3][1] << "\n"
                   << matrix[0][2] << ", " << matrix[1][2] << ", " << matrix[2][2] << ", " << matrix[3][2] << "\n"

@@ -99,18 +99,18 @@
             </Translate>
         </Object>
         <Object>
-            <File>./Data/Models/ArmyPilot/ArmyPilot.dae</File>
+            <File>./Data/Models/ArmyPilot/ArmyPilot.mesh.xml</File>
             <Mass>0</Mass>
             <AI>True</AI>
             <Scale>
-                <X>2.0</X>
-                <Y>2.0</Y>
-                <Z>2.0</Z>
+                <X>0.02</X>
+                <Y>0.02</Y>
+                <Z>0.02</Z>
             </Scale>
             <Translate>
                 <X>10.0</X>
                 <Y>1.0</Y>
-                <Z>3.0</Z>
+                <Z>20.0</Z>
             </Translate>
         </Object>
         <Object>

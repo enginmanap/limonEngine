@@ -130,7 +130,7 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
         frontier.push(root);
         visited.push_back(root);
     } else {
-        std::cerr << "Root node is not movable, AI walk grid generation failed. Please check map." << std::endl;
+        std::cerr << "Root node " << GLMUtils::vectorToString(walkPoint) << "is not movable, AI walk grid generation failed. Please check map." << std::endl;
         return root;
     }
     AIMovementNode *current;
@@ -221,18 +221,17 @@ bool AIMovementGrid::isThereCollision(btDiscreteDynamicsWorld *staticWorld) {
                         GLMConverter::BltToGLM(sharedGhostObject->getWorldTransform().getOrigin()).z > 15 &&
                         GLMConverter::BltToGLM(sharedGhostObject->getWorldTransform().getOrigin()).x < 26 &&
                         GLMConverter::BltToGLM(sharedGhostObject->getWorldTransform().getOrigin()).x > -4) {
-                        std::cout << "ghost object collision at " << GLMUtils::vectorToString(
-                                GLMConverter::BltToGLM(sharedGhostObject->getWorldTransform().getOrigin()))
-                                  << std::endl;
-                        std::cout << "collided with" << *(std::string *) (manifold->getBody1()->getUserPointer())
-                                  << std::endl;
-
 //                            const btVector3& ptA = pt.getPositionWorldOnA();
 //                            const btVector3& ptB = pt.getPositionWorldOnB();
 //                            const btVector3& normalOnB = pt.m_normalWorldOnB;
 
 
                     }
+                    std::cout << "ghost object collision at " << GLMUtils::vectorToString(
+                            GLMConverter::BltToGLM(sharedGhostObject->getWorldTransform().getOrigin()))
+                              << std::endl;
+                    std::cout << "collided with" << *(std::string *) (manifold->getBody1()->getUserPointer())
+                              << std::endl;
                     return true;
                     //debugDrawer->drawLine(GLMConverter::BltToGLM(ptA), GLMConverter::BltToGLM(ptA) + )
                 }

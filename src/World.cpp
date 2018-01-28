@@ -124,7 +124,7 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 ActorInformation World::fillActorInformation(int j) {
     ActorInformation information;
     //FIXME this is just for test
-    information.canSeePlayerDirectly = checkPlayerVisibility(actors[j]->getPosition(), "./Data/Models/ArmyPilot/ArmyPilot.dae");
+    information.canSeePlayerDirectly = checkPlayerVisibility(actors[j]->getPosition(), "./Data/Models/ArmyPilot/ArmyPilot.mesh.xml");
     glm::vec3 front = actors[j]->getFrontVector();
     glm::vec3 rayDir = GLMConverter::BltToGLM(camera.getRigidBody()->getCenterOfMassPosition()) - actors[j]->getPosition();
     float cosBetween = glm::dot(normalize(front), normalize(rayDir));
@@ -331,7 +331,7 @@ World::~World() {
 bool World::loadMapFromXML() {
 
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile("./Data/Maps/World002.xml");
+    tinyxml2::XMLError eResult = xmlDoc.LoadFile("./Data/Maps/World001.xml");
     if (eResult != tinyxml2::XML_SUCCESS) {
         std::cout << "Error loading XML: " <<  eResult << std::endl;
     }

@@ -25,10 +25,9 @@ class Model : public PhysicalRenderable {
 
         MeshMeta() : mesh(nullptr), skeleton(nullptr), program(nullptr) {}
     };
-
     AssetManager *assetManager;
     ModelAsset *modelAsset;
-    int animationIndex = 0;
+    std::string animationName;
     std::string name;
     bool animated = false;
     std::string objectType;
@@ -67,8 +66,8 @@ public:
 
     float getMass() const { return mass;}
 
-    void setAnimationIndex(int animationIndex) {
-        this->animationIndex = animationIndex;
+    void setAnimation(const std::string& animationName) {
+        this->animationName = animationName;
     }
 
     //TODO we need to free the texture. Destructor needed.
