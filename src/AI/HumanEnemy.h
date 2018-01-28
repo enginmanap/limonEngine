@@ -19,7 +19,7 @@ class HumanEnemy: public Actor {
 public:
     void play(long time, ActorInformation &information, Options* options) {
         //check if the player can be seen
-        if(information.canSeePlayerDirectly) {
+        if(information.canSeePlayerDirectly && information.isPlayerFront) {
             if (playerPursuitStartTime == 0) {
                 //means we will just start pursuit, mark the position so we can return.
                 initialPosition = GLMConverter::BltToGLM(model->getRigidBody()->getCenterOfMassPosition());
@@ -37,7 +37,7 @@ public:
             if(returnToPosition) {
                 //search for route to initial position and return
             } else {
-                model->setAnimationIndex(-1);
+                model->setAnimation("Idle");
             }
         } else {
             //if player pursuit mode
@@ -51,9 +51,9 @@ public:
             model->addTranslate(moveDirection);
             //Can see the player
             if(information.isPlayerFront) {
-                model->setAnimationIndex(0);
+                model->setAnimation("Walk");
             } else {
-                model->setAnimationIndex(-1);
+                model->setAnimation("Idle");
             }
             if(information.isPlayerLeft) {
                 if(information.cosineBetweenPlayerForSide < 0.95) {

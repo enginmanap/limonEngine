@@ -109,7 +109,8 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
 
 void Model::setupForTime(long time) {
     if(animated) {
-        modelAsset->getTransform(time, animationIndex, boneTransforms);
+        modelAsset->getTransform(time, animationName, boneTransforms);
+        //modelAsset->getTransform(time, 0, boneTransforms);
         btVector3 scale = this->getRigidBody()->getCollisionShape()->getLocalScaling();
         this->getRigidBody()->getCollisionShape()->setLocalScaling(btVector3(1, 1, 1));
         for (int i = 0; i < boneTransforms.size(); ++i) {

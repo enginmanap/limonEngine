@@ -22,10 +22,24 @@
 #include "BoneNode.h"
 
 
+struct AnimationNode {
+    std::vector<glm::vec3> translates;
+    std::vector<float>translateTimes;
+    std::vector<glm::vec3> scales;
+    std::vector<float>scaleTimes;
+    std::vector<glm::quat> rotations;
+    std::vector<float>rotationTimes;
+};
+
+struct AnimationSet {
+    float ticksPerSecond;
+    float duration;
+    std::map<std::string, AnimationNode*> nodes;//FIXME these should be removed
+};
+
 class ModelAsset : public Asset {
-
     std::string name;
-
+    std::map<std::string, AnimationSet*> animations;//FIXME these should be removed
     BoneNode *rootNode;
     int_fast32_t boneIDCounter, boneIDCounterPerMesh;
 
@@ -37,41 +51,37 @@ class ModelAsset : public Asset {
     std::vector<btConvexShape *> shapeCopies;
     std::vector<MeshAsset *> meshes;
     std::map<std::string, glm::mat4> meshOffsetmap;
-
-    aiAnimation** animations; //FIXME exposing this like that is not logical, it prevents deleting scene object
-    const aiScene *scene;
-    Assimp::Importer import;
     glm::mat4 globalInverseTransform;
 
     bool hasAnimation;
 
     Material *loadMaterials(const aiScene *scene, unsigned int materialIndex);
 
-    void createMeshes(aiNode *aiNode, glm::mat4 parentTransform);//parent transform is not reference on purpose
+    void createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 parentTransform);//parent transform is not reference on purpose
     //if it was, then we would need a stack
 
     BoneNode *loadNodeTree(aiNode *aiNode);
 
     bool findNode(const std::string &nodeName, BoneNode** foundNode, BoneNode* searchRoot) const;
 
-    void traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform, aiAnimation *animation, float timeInTicks,
+    void traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform, const AnimationSet *animation, float timeInTicks,
                                  std::vector<glm::mat4> &transforms) const;
 
     const aiNodeAnim *findNodeAnimation(aiAnimation *pAnimation, std::string basic_string) const;
 
 
-    aiQuaternion getRotationQuat(const float timeInTicks, const aiNodeAnim *nodeAnimation) const;
+    glm::quat getRotationQuat(const float timeInTicks, const AnimationNode *nodeAnimation) const;
 
-    aiVector3D getScalingVector(const float timeInTicks, const aiNodeAnim *nodeAnimation) const;
+    glm::vec3 getScalingVector(const float timeInTicks, const AnimationNode *nodeAnimation) const;
 
-    aiVector3D getPositionVector(const float timeInTicks, const aiNodeAnim *nodeAnimation) const;
+    glm::vec3 getPositionVector(const float timeInTicks, const AnimationNode *nodeAnimation) const;
 
 public:
     ModelAsset(AssetManager *assetManager, const std::vector<std::string> &fileList);
 
     bool isAnimated() const;
 
-    void getTransform(long time, int animationIndex, std::vector<glm::mat4> &transformMatrix) const; //this method takes vector to avoid copying it
+    void getTransform(long time, std::string animationName, std::vector<glm::mat4> &transformMatrix) const; //this method takes vector to avoid copying it
 
     const glm::vec3 &getBoundingBoxMin() const { return boundingBoxMin; }
 
@@ -100,6 +110,11 @@ public:
         return meshes;
     }
 
+    void fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimations);
+
+    std::map<float, glm::mat4> createTransformsForAllTimes(aiNodeAnim *animation);
+
+    glm::mat4 calculateTransform(AnimationNode *animation, float time) const;
 };
 
 
