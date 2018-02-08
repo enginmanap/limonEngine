@@ -221,17 +221,17 @@ bool AIMovementGrid::isThereCollision(btDiscreteDynamicsWorld *staticWorld) {
                         GLMConverter::BltToGLM(sharedGhostObject->getWorldTransform().getOrigin()).z > 15 &&
                         GLMConverter::BltToGLM(sharedGhostObject->getWorldTransform().getOrigin()).x < 26 &&
                         GLMConverter::BltToGLM(sharedGhostObject->getWorldTransform().getOrigin()).x > -4) {
+                        std::cout << "ghost object collision at " << GLMUtils::vectorToString(
+                                GLMConverter::BltToGLM(sharedGhostObject->getWorldTransform().getOrigin()))
+                                  << std::endl;
+                        std::cout << "collided with" << *(std::string *) (manifold->getBody1()->getUserPointer())
+                                  << std::endl;
 //                            const btVector3& ptA = pt.getPositionWorldOnA();
 //                            const btVector3& ptB = pt.getPositionWorldOnB();
 //                            const btVector3& normalOnB = pt.m_normalWorldOnB;
 
 
                     }
-                    std::cout << "ghost object collision at " << GLMUtils::vectorToString(
-                            GLMConverter::BltToGLM(sharedGhostObject->getWorldTransform().getOrigin()))
-                              << std::endl;
-                    std::cout << "collided with" << *(std::string *) (manifold->getBody1()->getUserPointer())
-                              << std::endl;
                     return true;
                     //debugDrawer->drawLine(GLMConverter::BltToGLM(ptA), GLMConverter::BltToGLM(ptA) + )
                 }
@@ -241,7 +241,7 @@ bool AIMovementGrid::isThereCollision(btDiscreteDynamicsWorld *staticWorld) {
 
     }
     return false;
-};
+}
 
 AIMovementGrid::AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *staticOnlyPhysicsWorld, glm::vec3 min,
                                glm::vec3 max) {
@@ -301,43 +301,19 @@ AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, int actor
 
 bool AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, std::vector<glm::vec3> *route) {
     //first start by finding the from point. We should  cache these from values at some point, so we don't a* twice all the time
-//        std::cout << "Searching for start point, from "<< GLMUtils::vectorToString(root->getPosition()) << " to " << GLMUtils::vectorToString(from) << std::endl;
     const AIMovementNode *fromAINode;
-    /*
-    bool isFound = false;
-    for (int i = 0; i < calculatedNodes.size(); ++i) {
-        if(glm::length(from - calculatedNodes[i]->getPosition()) < GRID_SNAP_DISTANCE) {
-            fromAINode = calculatedNodes[i];
-            isFound = true;
-            break;
-        }
-    }
-     */
-//        if(!isFound) {
+
     long start = SDL_GetTicks();
 
     fromAINode = aStarPath(root, from, route);
     if (fromAINode == nullptr) {
         return false;
     }
-    long middle = SDL_GetTicks();
-    //calculatedNodes.push_back(fromAINode);
-//        }
 
-    //to point might be higher than walk height, since player might be jumping or falling. Normalize that
-    //if(!setProperHeight(&to, floatingHeight, floatingHeight + 1.0f, world)) {
-
-
-//    std::cout << "Found start point at  "<< GLMUtils::vectorToString(fromAINode->getPosition()) << " looking for the path itself" << std::endl;
     aStarPath(fromAINode, to, route);
     long end = SDL_GetTicks();
     std::cout << "route set " << end - start << std::endl;
 
-//    std::cout << "Route for: "<< GLMUtils::vectorToString(from) << " to " << GLMUtils::vectorToString(to) << std::endl;
-//    for (int i = 0; i < route->size(); ++i) {
-//        std::cout << GLMUtils::vectorToString((*route)[i]) << std::endl;
-//    }
-//    std::cout << "Route end: "<< std::endl;
 
 
     return true;

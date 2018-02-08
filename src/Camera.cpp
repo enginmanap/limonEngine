@@ -12,9 +12,9 @@ Camera::Camera(Options *options) :
         up(glm::vec3(0, 1, 0)),
         right(glm::vec3(-1, 0, 0)),
         view(glm::quat(0, 0, 0, -1)),
+        spring(nullptr),
         onAir(true),
-        options(options),
-        spring(nullptr) {
+        options(options) {
 
     for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
         for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {

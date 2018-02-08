@@ -123,11 +123,25 @@
             </Translate>
         </Object>
         <Object>
-            <File>./Data/Models/Wall/archandwalls.FBX</File>
+            <File>./Data/Models/Box/Box.obj</File>
+            <Mass>0</Mass>
+            <Scale>
+                <X>0.02</X>
+                <Y>0.02</Y>
+                <Z>0.02</Z>
+            </Scale>
+            <Translate>
+                <X>1.0</X>
+                <Y>6.0</Y>
+                <Z>0.0</Z>
+            </Translate>
+        </Object>
+        <Object>
+            <File>./Data/Models/Wall/archandwalls.obj</File>
             <Mass>0</Mass>
             <Scale>
                 <X>0.05</X>
-                <Y>0.05</Y>
+                <Y>0.1</Y>
                 <Z>0.05</Z>
             </Scale>
             <Translate>
@@ -142,20 +156,20 @@
                 <W>0.7</W>
             </Rotate>
         </Object>
-        <!--<Object>
+        <Object>
             <File>./Data/Models/Dwarf/dwarf.x</File>
             <Mass>50</Mass>
             <Scale>
-                <X>0.04</X>
-                <Y>0.04</Y>
-                <Z>0.04</Z>
+                <X>0.06</X>
+                <Y>0.06</Y>
+                <Z>0.06</Z>
             </Scale>
             <Translate>
                 <X>-3.0</X>
-                <Y>6.5</Y>
+                <Y>1.0</Y>
                 <Z>-3.0</Z>
             </Translate>
-        </Object>-->
+        </Object>
     </Objects>
     <Sky>
         <ImagesPath>./Data/Textures/Skyboxes/ThickCloudsWater</ImagesPath>
@@ -175,9 +189,9 @@
                 <Z>0.0</Z>
             </Position>
             <Color>
-                <R>0.5</R>
-                <G>0.5</G>
-                <B>0.5</B>
+                <R>0.0</R>
+                <G>1.0</G>
+                <B>1.0</B>
             </Color>
         </Light>
         <Light>
