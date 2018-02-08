@@ -21,7 +21,7 @@ public:
         std::string text;
         long time;
 
-        LogLine(Subsystem subsystem, Level level, const std::string &text, long time) : subsystem(subsystem), level(level), time(time), text(text) {};
+        LogLine(Subsystem subsystem, Level level, const std::string &text, long time) : subsystem(subsystem), level(level), text(text), time(time) {};
     };
 
 private:

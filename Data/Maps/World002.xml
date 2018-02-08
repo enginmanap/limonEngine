@@ -5,12 +5,12 @@
             <File>./Data/Models/Shanghai/Shanghai.obj</File>
             <Mass>0</Mass>
             <Scale>
-                <X>0.03</X>
-                <Y>0.03</Y>
-                <Z>0.03</Z>
+                <X>0.02</X>
+                <Y>0.02</Y>
+                <Z>0.02</Z>
             </Scale>
             <Translate>
-                <X>11.0</X>
+                <X>7.5</X>
                 <Y>0.0</Y>
                 <Z>0.0</Z>
             </Translate>
@@ -21,13 +21,13 @@
             <!--<AI>True</AI>-->
             <AI>True</AI>
             <Scale>
-                <X>2.0</X>
-                <Y>2.0</Y>
-                <Z>2.0</Z>
+                <X>0.02</X>
+                <Y>0.02</Y>
+                <Z>0.02</Z>
             </Scale>
             <Translate>
                 <X>-2.0</X>
-                <Y> 5.0</Y>
+                <Y> 2.2</Y>
                 <Z> 8.8</Z>
             </Translate>
         </Object>

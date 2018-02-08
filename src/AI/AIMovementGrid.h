@@ -72,7 +72,7 @@ public:
         delete rayCallback;
         delete sharedGhostObject;
         delete ghostShape;
-        for (int i = 0; i < visited.size(); ++i) {
+        for (unsigned int i = 0; i < visited.size(); ++i) {
             delete visited[i];
         }
 

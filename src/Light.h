@@ -34,7 +34,7 @@ public:
         return color;
     }
 
-    const LightTypes getLightType() const {
+    LightTypes getLightType() const {
         return lightType;
     }
 };

@@ -45,7 +45,7 @@ struct Line {
          const glm::vec3 &to,
          const glm::vec3 &fromColor,
          const glm::vec3 &toColor,
-         const bool needsCameraTransform): from(from), to(to), fromColor(fromColor), toColor(toColor), needsCameraTransform(needsCameraTransform), needsCameraTransform2(needsCameraTransform){};
+         const bool needsCameraTransform): from(from), fromColor(fromColor), needsCameraTransform(needsCameraTransform), to(to), toColor(toColor), needsCameraTransform2(needsCameraTransform){};
 };
 
 class GLHelper {
