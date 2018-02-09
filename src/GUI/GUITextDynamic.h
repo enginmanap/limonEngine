@@ -27,6 +27,7 @@ class GUITextDynamic: public GUIText {
     int maxCharWidth;
     int totalExtraLines = 0;
     long logLineCount = 1;
+    long renderSetupTime = 0;
     std::list<TextLine> textList;
     Logger* source = nullptr;
 
@@ -44,6 +45,10 @@ public:
         this->source = options->getLogger();
 
     }
+
+    virtual void setupForTime(long time) {
+        renderSetupTime = time;
+    };
 
     void SetSource(Logger *logger){
         this->source = logger;
