@@ -70,7 +70,7 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
     guiLayers.push_back(layer1);
 
     //Since all Lights are static, and we use UBOs for light values, we can set them here, and not update
-    for (int i = 0; i < lights.size(); ++i) {
+    for (unsigned int i = 0; i < lights.size(); ++i) {
         glHelper->setLight(*(lights[i]), i);
     }
 }
@@ -106,12 +106,12 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
     dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
     camera.updateTransformFromPhysics(dynamicsWorld);
 
-    for (int i = 0; i < objects.size(); ++i) {
+    for (unsigned int i = 0; i < objects.size(); ++i) {
         objects[i]->setupForTime(gameTime);
         objects[i]->updateTransformFromPhysics();
     }
 
-    for (int j = 0; j < actors.size(); ++j) {
+    for (unsigned int j = 0; j < actors.size(); ++j) {
         ActorInformation information = fillActorInformation(j);
         actors[j]->play(gameTime,information, options);
     }
@@ -241,26 +241,26 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
 }
 
 void World::render() {
-    for (int i = 0; i < lights.size(); ++i) {
+    for (unsigned int i = 0; i < lights.size(); ++i) {
         if(lights[i]->getLightType() != Light::DIRECTIONAL) {
             continue;
         }
         //generate shadow map
         glHelper->switchRenderToShadowMapDirectional(i);
-        shadowMapProgramDirectional->setUniform("renderLightIndex", i);
+        shadowMapProgramDirectional->setUniform("renderLightIndex", (int)i);
         for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
             (*it)->renderWithProgram(*shadowMapProgramDirectional);
         }
     }
 
-    for (int i = 0; i < lights.size(); ++i) {
+    for (unsigned int i = 0; i < lights.size(); ++i) {
         if(lights[i]->getLightType() != Light::POINT) {
             continue;
         }
         //generate shadow map
         glHelper->switchRenderToShadowMapPoint(lights[i]->getPosition());
         //FIXME why are these set here?
-        shadowMapProgramPoint->setUniform("renderLightIndex", i);
+        shadowMapProgramPoint->setUniform("renderLightIndex", (int)i);
         //FIXME this is suppose to be an option //FarPlanePoint is set at declaration, since it is a constant
         shadowMapProgramPoint->setUniform("farPlanePoint", 100.0f);
         for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
@@ -506,7 +506,7 @@ bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
 
     grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax);
 
-    for (int i = 0; i < notStaticObjects.size(); ++i) {
+    for (unsigned int i = 0; i < notStaticObjects.size(); ++i) {
         addModelToWorld(notStaticObjects[i]);
     }
     return true;

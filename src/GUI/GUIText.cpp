@@ -13,7 +13,7 @@ GUIText::GUIText(GLHelper *glHelper, Face *face, const std::string text, const g
 
         int up = 0;
         const Glyph *glyph;
-        for (int i = 0; i < text.length(); ++i) {
+        for (unsigned int i = 0; i < text.length(); ++i) {
             glyph = face->getGlyph(text.at(i));
             if (i == 0) {
                 //for first element, add the bearing
@@ -52,7 +52,7 @@ void GUIText::render() {
     //Setup position
     float quadPositionX, quadPositionY, quadSizeX, quadSizeY;
     const Glyph *glyph;
-    for (int i = 0; i < text.length(); ++i) {
+    for (unsigned int i = 0; i < text.length(); ++i) {
         glyph = face->getGlyph(text.at(i));
         quadSizeX = glyph->getSize().x / 2.0f;
         quadSizeY = glyph->getSize().y / 2.0f;
@@ -130,7 +130,7 @@ void GUIText::renderDebug(BulletDebugDrawer *debugDrawer) {
     float quadPositionX, quadPositionY, quadSizeX, quadSizeY;
     const Glyph *glyph;
     glm::mat4 currentTransform;
-    for (int i = 0; i < text.length(); ++i) {
+    for (unsigned int i = 0; i < text.length(); ++i) {
         glyph = face->getGlyph(text.at(i));
         quadSizeX = glyph->getSize().x / 2.0f;
         quadSizeY = glyph->getSize().y / 2.0f;

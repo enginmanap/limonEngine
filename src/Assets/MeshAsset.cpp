@@ -80,7 +80,7 @@ void MeshAsset::setTriangles(const aiMesh *currentMesh) {
     // not sure if that creates enough performance difference, it can be checked.
     if(isPartOfAnimated) {
         if (currentMesh->HasTextureCoords(0)) {
-            for (int j = 0; j < currentMesh->mNumVertices; ++j) {
+            for (unsigned int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
                 normals.push_back(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]));
                 textureCoordinates.push_back(
@@ -88,7 +88,7 @@ void MeshAsset::setTriangles(const aiMesh *currentMesh) {
 
             }
         } else {
-            for (int j = 0; j < currentMesh->mNumVertices; ++j) {
+            for (unsigned int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
                 normals.push_back(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]));
             }
@@ -96,7 +96,7 @@ void MeshAsset::setTriangles(const aiMesh *currentMesh) {
     } else {
 
         if (currentMesh->HasTextureCoords(0)) {
-            for (int j = 0; j < currentMesh->mNumVertices; ++j) {
+            for (unsigned int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]), 1.0f)));
                 normals.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]), 1.0f)));
                 textureCoordinates.push_back(
@@ -104,14 +104,14 @@ void MeshAsset::setTriangles(const aiMesh *currentMesh) {
 
             }
         } else {
-            for (int j = 0; j < currentMesh->mNumVertices; ++j) {
+            for (unsigned int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]), 1.0f)));
                 normals.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]), 1.0f)));
             }
         }
     }
 
-    for (int j = 0; j < currentMesh->mNumFaces; ++j) {
+    for (unsigned int j = 0; j < currentMesh->mNumFaces; ++j) {
         faces.push_back(glm::vec3(currentMesh->mFaces[j].mIndices[0],
                                   currentMesh->mFaces[j].mIndices[1],
                                   currentMesh->mFaces[j].mIndices[2]));
@@ -151,7 +151,7 @@ btTriangleMesh *MeshAsset::getBulletMesh(std::map<uint_fast32_t, btConvexHullSha
     if(!isPartOfAnimated) {
         copyMesh = new btTriangleMesh();
         //if not part of an animation, than we don't need to split based on bones
-        for (int j = 0; j < faces.size(); ++j) {
+        for (unsigned int j = 0; j < faces.size(); ++j) {
             copyMesh->addTriangle(GLMConverter::GLMToBlt(vertices[faces[j][0]]),
                                   GLMConverter::GLMToBlt(vertices[faces[j][1]]),
                                   GLMConverter::GLMToBlt(vertices[faces[j][2]]));
@@ -162,7 +162,7 @@ btTriangleMesh *MeshAsset::getBulletMesh(std::map<uint_fast32_t, btConvexHullSha
         std::map<uint_fast32_t, std::vector<uint_fast32_t >>::iterator it;
         for (it = boneAttachedMeshes.begin(); it != boneAttachedMeshes.end(); it++) {
             btConvexHullShape *hullshape = new btConvexHullShape();
-            for (int index = 0; index < it->second.size(); index++) {
+            for (unsigned int index = 0; index < it->second.size(); index++) {
                 hullshape->addPoint(GLMConverter::GLMToBlt(vertices[it->second[index]]));
             }
             btShapeHull *hull = new btShapeHull(hullshape);
@@ -191,7 +191,7 @@ void MeshAsset::fillBoneMap(const BoneNode *boneNode) {
         return;
     }
     boneIdMap[boneNode->name] = boneNode->boneID;
-    for (int i = 0; i < boneNode->children.size(); ++i) {
+    for (unsigned int i = 0; i < boneNode->children.size(); ++i) {
         fillBoneMap(boneNode->children[i]);
     }
 }

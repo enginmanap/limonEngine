@@ -76,7 +76,7 @@ public:
         delete rigidBody;
         delete compoundShape;
 
-        for (int i = 0; i < meshes.size(); ++i) {
+        for (unsigned int i = 0; i < meshes.size(); ++i) {
             delete meshes[i];
         }
 

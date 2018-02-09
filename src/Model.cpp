@@ -113,7 +113,7 @@ void Model::setupForTime(long time) {
         //modelAsset->getTransform(time, 0, boneTransforms);
         btVector3 scale = this->getRigidBody()->getCollisionShape()->getLocalScaling();
         this->getRigidBody()->getCollisionShape()->setLocalScaling(btVector3(1, 1, 1));
-        for (int i = 0; i < boneTransforms.size(); ++i) {
+        for (unsigned int i = 0; i < boneTransforms.size(); ++i) {
             if (boneIdCompoundChildMap.find(i) != boneIdCompoundChildMap.end()) {
                 btTransform transform;
                 transform.setFromOpenGLMatrix(glm::value_ptr(boneTransforms[i]));
