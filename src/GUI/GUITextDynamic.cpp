@@ -48,7 +48,7 @@ void GUITextDynamic::render() {
             totalExtraLines = totalExtraLines - test->extraLines;
             textList.erase(test);
         } else {
-            for (int character = 0; character < lineIt->text.length(); ++character) {
+            for (unsigned int character = 0; character < lineIt->text.length(); ++character) {
                 glm::vec3 lineTranslate = translate + glm::vec3(0, height - (lineCount * lineHeight), 0);
 
                 glyph = face->getGlyph(lineIt->text.at(character));

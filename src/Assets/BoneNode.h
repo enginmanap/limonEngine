@@ -22,7 +22,7 @@ public:
     BoneNode(const BoneNode &originalNode) {
         this->name = originalNode.name;
         this->transformation = originalNode.transformation;
-        for (int i = 0; i < originalNode.children.size(); ++i) {
+        for (unsigned int i = 0; i < originalNode.children.size(); ++i) {
             this->children.push_back(new BoneNode((*originalNode.children.at(i))));
         }
     }

@@ -146,10 +146,10 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
 void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 parentTransform) {
     parentTransform = parentTransform * GLMConverter::AssimpToGLM(aiNode->mTransformation);
 
-    for (int i = 0; i < aiNode->mNumMeshes; ++i) {
+    for (unsigned int i = 0; i < aiNode->mNumMeshes; ++i) {
             aiMesh *currentMesh;
             currentMesh = scene->mMeshes[aiNode->mMeshes[i]];
-            for (int j = 0; j < currentMesh->mNumBones; ++j) {
+            for (unsigned int j = 0; j < currentMesh->mNumBones; ++j) {
                 meshOffsetmap[currentMesh->mBones[j]->mName.C_Str()] = GLMConverter::AssimpToGLM(
                         currentMesh->mBones[j]->mOffsetMatrix);
                 std::string boneName =  currentMesh->mBones[j]->mName.C_Str();
@@ -169,7 +169,7 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
                       << std::endl;
     }
 
-    for (int i = 0; i < aiNode->mNumChildren; ++i) {
+    for (unsigned int i = 0; i < aiNode->mNumChildren; ++i) {
         createMeshes(scene, aiNode->mChildren[i], parentTransform);
     }
 }
@@ -179,7 +179,7 @@ BoneNode* ModelAsset::loadNodeTree(aiNode *aiNode) {
     currentNode->name = aiNode->mName.C_Str();
     currentNode->boneID = boneIDCounter++;
     currentNode->transformation = GLMConverter::AssimpToGLM(aiNode->mTransformation);
-    for (int i = 0; i < aiNode->mNumChildren; ++i) {
+    for (unsigned int i = 0; i < aiNode->mNumChildren; ++i) {
         currentNode->children.push_back(loadNodeTree(aiNode->mChildren[i]));
     }
     return currentNode;
@@ -190,7 +190,7 @@ bool ModelAsset::findNode(const std::string &nodeName, BoneNode** foundNode, Bon
         *foundNode = searchRoot;
         return true;
     } else {
-        for (int i = 0; i < searchRoot->children.size(); ++i) {
+        for (unsigned int i = 0; i < searchRoot->children.size(); ++i) {
             if (findNode(nodeName, foundNode, searchRoot->children[i])) {
                 return true;
             }
@@ -271,7 +271,7 @@ ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &p
     }
 
     //Call children even if parent does not have animation attached.
-    for (int i = 0; i < boneNode->children.size(); ++i) {
+    for (unsigned int i = 0; i < boneNode->children.size(); ++i) {
         traverseAndSetTransform(boneNode->children[i], nodeTransform, animation, timeInTicks, transforms);
     }
 }
@@ -281,15 +281,15 @@ glm::vec3 ModelAsset::getPositionVector(const float timeInTicks, const Animation
     if (nodeAnimation->translates.size() == 1) {
             transformVector = nodeAnimation->translates[0];
         } else {
-            int positionIndex = 0;
-            for (int i = 0; i < nodeAnimation->translates.size(); i++) {
+            unsigned int positionIndex = 0;
+            for (unsigned int i = 0; i < nodeAnimation->translates.size(); i++) {
                 if (timeInTicks < nodeAnimation->translateTimes[i + 1]) {
                     positionIndex = i;
                     break;
                 }
             }
 
-            int NextPositionIndex = (positionIndex + 1);
+            unsigned int NextPositionIndex = (positionIndex + 1);
             assert(NextPositionIndex < nodeAnimation->translates.size());
             float DeltaTime = (float) (nodeAnimation->translateTimes[NextPositionIndex] -
                                        nodeAnimation->translateTimes[positionIndex]);
@@ -308,9 +308,9 @@ glm::vec3 ModelAsset::getScalingVector(const float timeInTicks, const AnimationN
     if (nodeAnimation->scales.size() == 1) {
             scalingTransformVector = nodeAnimation->scales[0];
         } else {
-            int ScalingIndex = 0;
+            unsigned int ScalingIndex = 0;
             assert(nodeAnimation->scales.size() > 0);
-            for (int i = 0; i < nodeAnimation->scales.size(); i++) {
+            for (unsigned int i = 0; i < nodeAnimation->scales.size(); i++) {
                 if (timeInTicks < nodeAnimation->scaleTimes[i + 1]) {
                     ScalingIndex = i;
                     break;
@@ -318,7 +318,7 @@ glm::vec3 ModelAsset::getScalingVector(const float timeInTicks, const AnimationN
             }
 
 
-            int NextScalingIndex = (ScalingIndex + 1);
+            unsigned int NextScalingIndex = (ScalingIndex + 1);
             assert(NextScalingIndex < nodeAnimation->scales.size());
             float DeltaTime = (nodeAnimation->scaleTimes[NextScalingIndex] -
                                        nodeAnimation->scaleTimes[ScalingIndex]);
@@ -342,14 +342,14 @@ glm::quat ModelAsset::getRotationQuat(const float timeInTicks, const AnimationNo
 
             assert(nodeAnimation->rotations.size() > 0);
 
-            for (int i = 0; i < nodeAnimation->rotations.size(); i++) {
+            for (unsigned int i = 0; i < nodeAnimation->rotations.size(); i++) {
                 if (timeInTicks < (float) nodeAnimation->rotationTimes[i + 1]) {
                     rotationIndex = i;
                     break;
                 }
             }
 
-            int NextRotationIndex = (rotationIndex + 1);
+            unsigned int NextRotationIndex = (rotationIndex + 1);
             assert(NextRotationIndex < nodeAnimation->rotations.size());
             float DeltaTime = (nodeAnimation->rotationTimes[NextRotationIndex] -
                                        nodeAnimation->rotationTimes[rotationIndex]);
@@ -368,7 +368,7 @@ bool ModelAsset::isAnimated() const {
 
 void ModelAsset::fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimations) {
     aiAnimation* currentAnimation;
-    for (int i = 0; i < numAnimation; ++i) {
+    for (unsigned int i = 0; i < numAnimation; ++i) {
         currentAnimation = pAnimations[i];
         std::string animationName = currentAnimation->mName.C_Str();
         std::cerr << "add animation with name " << animationName << std::endl;
@@ -377,9 +377,9 @@ void ModelAsset::fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnim
         animationSet->duration = currentAnimation->mDuration;
         animationSet->ticksPerSecond = currentAnimation->mTicksPerSecond;
         //create and attach AnimationNodes
-        for (int j = 0; j < currentAnimation->mNumChannels; ++j) {
+        for (unsigned int j = 0; j < currentAnimation->mNumChannels; ++j) {
             AnimationNode* node = new AnimationNode();
-            for (int k = 0; k < currentAnimation->mChannels[j]->mNumPositionKeys; ++k) {
+            for (unsigned int k = 0; k < currentAnimation->mChannels[j]->mNumPositionKeys; ++k) {
                 node->translates.push_back(glm::vec3(
                         currentAnimation->mChannels[j]->mPositionKeys[k].mValue.x,
                         currentAnimation->mChannels[j]->mPositionKeys[k].mValue.y,
@@ -387,7 +387,7 @@ void ModelAsset::fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnim
                 node->translateTimes.push_back(currentAnimation->mChannels[j]->mPositionKeys[k].mTime);
             }
 
-            for (int k = 0; k < currentAnimation->mChannels[j]->mNumScalingKeys; ++k) {
+            for (unsigned int k = 0; k < currentAnimation->mChannels[j]->mNumScalingKeys; ++k) {
                 node->scales.push_back(glm::vec3(
                         currentAnimation->mChannels[j]->mScalingKeys[k].mValue.x,
                         currentAnimation->mChannels[j]->mScalingKeys[k].mValue.y,
@@ -395,7 +395,7 @@ void ModelAsset::fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnim
                 node->scaleTimes.push_back(currentAnimation->mChannels[j]->mScalingKeys[k].mTime);
             }
 
-            for (int k = 0; k < currentAnimation->mChannels[j]->mNumRotationKeys; ++k) {
+            for (unsigned int k = 0; k < currentAnimation->mChannels[j]->mNumRotationKeys; ++k) {
                 node->rotations.push_back(glm::quat(
                         currentAnimation->mChannels[j]->mRotationKeys[k].mValue.w,
                         currentAnimation->mChannels[j]->mRotationKeys[k].mValue.x,

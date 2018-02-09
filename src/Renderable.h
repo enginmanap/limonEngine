@@ -56,7 +56,7 @@ public:
     virtual void render() = 0;
 
     ~Renderable() {
-        for (int i = 0; i < bufferObjects.size(); ++i) {
+        for (unsigned int i = 0; i < bufferObjects.size(); ++i) {
             glHelper->freeBuffer(bufferObjects[i]);
         }
         glHelper->freeBuffer(ebo);

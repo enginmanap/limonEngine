@@ -331,7 +331,7 @@ bool GLHelper::deleteBuffer(const GLuint number, const GLuint bufferID) {
 }
 
 bool GLHelper::freeBuffer(const GLuint bufferID) {
-    for (int i = 0; i < bufferObjects.size(); ++i) {
+    for (unsigned int i = 0; i < bufferObjects.size(); ++i) {
         if (bufferObjects[i] == bufferID) {
             deleteBuffer(1, bufferObjects[i]);
             bufferObjects[i] = bufferObjects[bufferObjects.size() - 1];
@@ -363,7 +363,7 @@ bool GLHelper::deleteVAO(const GLuint number, const GLuint bufferID) {
 }
 
 bool GLHelper::freeVAO(const GLuint bufferID) {
-    for (int i = 0; i < vertexArrays.size(); ++i) {
+    for (unsigned int i = 0; i < vertexArrays.size(); ++i) {
         if (vertexArrays[i] == bufferID) {
             deleteBuffer(1, vertexArrays[i]);
             vertexArrays[i] = vertexArrays[vertexArrays.size() - 1];
@@ -606,7 +606,7 @@ bool GLHelper::checkErrors(std::string callerFunc) {
 
 
 GLHelper::~GLHelper() {
-    for (int i = 0; i < bufferObjects.size(); ++i) {
+    for (unsigned int i = 0; i < bufferObjects.size(); ++i) {
         deleteBuffer(1, bufferObjects[i]);
     }
 
