@@ -47,7 +47,6 @@ public:
 
     virtual void renderWithProgram(GLSLProgram &program) = 0;
 
-    virtual void setupForTime(long time) = 0;
 };
 
 

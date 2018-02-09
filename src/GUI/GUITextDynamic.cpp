@@ -42,7 +42,7 @@ void GUITextDynamic::render() {
     }
 
     for(std::list<TextLine>::iterator lineIt = textList.begin(); lineIt != textList.end(); lineIt++, lineCount++) {
-        if(SDL_GetTicks() - lineIt->time > duration) {
+        if(renderSetupTime - lineIt->time > duration) {//this is done here, because this way we don't iterate the list twice
             std::list<TextLine>::iterator test = lineIt;
             lineIt++;
             totalExtraLines = totalExtraLines - test->extraLines;

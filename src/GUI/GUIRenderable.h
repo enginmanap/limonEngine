@@ -36,6 +36,8 @@ public:
 
     virtual void renderDebug(BulletDebugDrawer *debugDrawer);
 
+    virtual void setupForTime(long time) {};//Most of the GUI elements shouldn't care about the time, so we can put an empty implementation
+
     float getWidth() { return scale.x; }
 
     float getHeight() { return scale.y; }
