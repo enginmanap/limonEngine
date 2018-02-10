@@ -77,6 +77,7 @@ void Camera::move(moveDirections direction) {
         case FORWARD:
             player->setLinearVelocity(GLMConverter::GLMToBlt(center * options->getMoveSpeed()));
             break;
+        case NONE:break;//this is here because -Wall complaints if it is not
     }
     //this activates user rigidbody if it moves. Otherwise island management ignores movement.
     player->setActivationState(ACTIVE_TAG);
