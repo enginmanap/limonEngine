@@ -57,7 +57,7 @@ public:
 
     virtual void setupForTime(long time) = 0;
 
-    ~Renderable() {
+    virtual ~Renderable() {
         for (unsigned int i = 0; i < bufferObjects.size(); ++i) {
             glHelper->freeBuffer(bufferObjects[i]);
         }
