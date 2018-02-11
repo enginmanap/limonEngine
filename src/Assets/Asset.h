@@ -21,7 +21,7 @@ protected:
      * @param fileList Asset files to load
      * @return empty asset
      */
-    Asset(AssetManager* assetManager, const std::vector<std::string> &fileList): assetManager(assetManager) {};
+    Asset(AssetManager* assetManager, const std::vector<std::string> &fileList __attribute__((unused))): assetManager(assetManager) {};
 };
 
 

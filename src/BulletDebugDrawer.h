@@ -51,6 +51,7 @@ public:
     void drawContactPoint(const btVector3 &PointOnB, const btVector3 &normalOnB, btScalar distance, int lifeTime,
                           const btVector3 &fromColor, const btVector3 &toColor) {
         std::cerr << "Draw contact point requested, but not implemented." << std::endl;
+        std::cerr << "called with parameters: " << PointOnB << ", " << normalOnB << ", " << distance << ", " << lifeTime << ", " << fromColor << ", " << toColor << std::endl;
     };
 
     void drawContactPoint(const btVector3 &PointOnB, const btVector3 &normalOnB, btScalar distance, int lifeTime,
@@ -64,6 +65,7 @@ public:
 
     void draw3dText(const btVector3 &location, const char *textString) {
         std::cerr << "Draw 3D text requested, but not implemented." << std::endl;
+        std::cout << "called with parameters: " << location << ", " << textString << std::endl;
     };
 
     void setDebugMode(int debugMode) { currentMode = DebugDrawModes(debugMode); };

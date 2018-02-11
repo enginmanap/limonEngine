@@ -258,7 +258,7 @@ void World::render() {
             continue;
         }
         //generate shadow map
-        glHelper->switchRenderToShadowMapPoint(lights[i]->getPosition());
+        glHelper->switchRenderToShadowMapPoint();
         //FIXME why are these set here?
         shadowMapProgramPoint->setUniform("renderLightIndex", (int)i);
         //FIXME this is suppose to be an option //FarPlanePoint is set at declaration, since it is a constant
@@ -331,7 +331,7 @@ World::~World() {
 bool World::loadMapFromXML() {
 
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile("./Data/Maps/World002.xml");
+    tinyxml2::XMLError eResult = xmlDoc.LoadFile("./Data/Maps/World001.xml");
     if (eResult != tinyxml2::XML_SUCCESS) {
         std::cout << "Error loading XML: " <<  eResult << std::endl;
     }

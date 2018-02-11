@@ -17,7 +17,7 @@ class HumanEnemy: public Actor {
     glm::vec3 lastWalkDirection;
 
 public:
-    void play(long time, ActorInformation &information, Options* options) {
+    void play(long time, ActorInformation &information, Options* options __attribute__((unused))) {//FIXME unused attribute is temporary
         //check if the player can be seen
         if(information.canSeePlayerDirectly && information.isPlayerFront) {
             if (playerPursuitStartTime == 0) {

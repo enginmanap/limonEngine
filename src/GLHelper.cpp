@@ -481,7 +481,7 @@ void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
 
 }
 
-void GLHelper::switchRenderToShadowMapPoint(const glm::vec3 &lightPosition) {
+void GLHelper::switchRenderToShadowMapPoint() {
     checkErrors("switchRenderToShadowMapPointBefore");
     glViewport(0, 0, options->getShadowWidth(), options->getShadowHeight());
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
