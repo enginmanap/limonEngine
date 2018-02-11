@@ -58,7 +58,7 @@ class World {
     btCollisionDispatcher *dispatcher;
     btSequentialImpulseConstraintSolver *solver;
 
-    bool loadMapFromXML();
+    bool loadMapFromXML(const std::string& worldFileName);
 
     bool loadObjectsFromXML(tinyxml2::XMLNode *worldNode);
 
@@ -67,7 +67,7 @@ class World {
     bool loadLights(tinyxml2::XMLNode *worldNode);
 
 public:
-    World(GLHelper *, Options *options);
+    World(GLHelper *, Options *options, const std::string& worldFileName);
 
     ~World();
 
