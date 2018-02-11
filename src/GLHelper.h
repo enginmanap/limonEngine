@@ -293,7 +293,7 @@ public:
 
     void switchRenderToShadowMapDirectional(const unsigned int index);
 
-    void switchRenderToShadowMapPoint(const glm::vec3 &lightPosition);
+    void switchRenderToShadowMapPoint();
 
     void switchRenderToDefault();
 

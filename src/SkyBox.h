@@ -24,7 +24,7 @@ public:
 
     void render();
 
-    void setupForTime(long time) {};
+    void setupForTime(long time __attribute__((unused))) {};
 
     ~SkyBox() {
         delete cubeMap;

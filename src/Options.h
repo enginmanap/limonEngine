@@ -40,7 +40,7 @@ public:
     void setDebugDrawBufferSize(uint32_t debugDrawBufferSize) {
         //we must resize the buffer for debug draw lines
         //Options::debugDrawBufferSize = debugDrawBufferSize;
-        std::cerr << "Setting debugDrawBufferSize is not implemented." << std::endl;
+        std::cerr << "Setting debugDrawBufferSize(" << debugDrawBufferSize << ") is not implemented." << std::endl;
     }
 
     uint32_t getShadowWidth() const {

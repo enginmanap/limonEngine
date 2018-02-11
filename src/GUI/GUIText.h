@@ -26,10 +26,6 @@ public:
     GUIText(GLHelper *glHelper, Face *font, const std::string text, const glm::vec3 color);
     GUIText(GLHelper *glHelper, Face *font, const glm::vec3 color) : GUIText(glHelper, font, "", color) {};
 
-    virtual void updateText(const std::string &text) {
-        this->text = text;
-    }
-
     virtual void render();
 
     void renderDebug(BulletDebugDrawer *debugDrawer);
