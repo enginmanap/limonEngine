@@ -6,7 +6,7 @@
 #include "World.h"
 #include "AI/HumanEnemy.h"
 
-World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(glHelper), fontManager(glHelper), camera(options) {
+World::World(GLHelper *glHelper, Options *options, const std::string& worldFileName) : options(options), glHelper(glHelper), fontManager(glHelper), camera(options) {
     assetManager = new AssetManager(glHelper);
     // physics init
     broadphase = new btDbvtBroadphase();
@@ -36,7 +36,7 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
                                             "./Data/Shaders/ShadowMap/fragmentPoint.glsl", false);
     shadowMapProgramPoint->setUniform("farPlanePoint", options->getLightPerspectiveProjectionValues().z);
 
-    if(!loadMapFromXML()) {
+    if(!loadMapFromXML(worldFileName)) {
         exit(-1);
     }
 
@@ -328,12 +328,13 @@ World::~World() {
     delete grid;
 }
 
-bool World::loadMapFromXML() {
+bool World::loadMapFromXML(const std::string& worldFileName) {
 
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile("./Data/Maps/World001.xml");
+    tinyxml2::XMLError eResult = xmlDoc.LoadFile(worldFileName.c_str());
     if (eResult != tinyxml2::XML_SUCCESS) {
-        std::cout << "Error loading XML: " <<  eResult << std::endl;
+        std::cerr << "Error loading XML: " <<  xmlDoc.ErrorName() << std::endl;
+        exit(-1);
     }
 
     tinyxml2::XMLNode * worldNode = xmlDoc.FirstChild();

@@ -8,13 +8,27 @@
 #include "SDL2Helper.h"
 #include "World.h"
 
-#define PROGRAM_NAME "LimonEngine"
+const std::string PROGRAM_NAME = "LimonEngine";
 
 int main(int argc, char *argv[]) {
+
+    std::string worldName;
+    if(argc == 1) {
+        std::cout << "No world file specified, trying to load ./Data/Maps/World001.xml" << std::endl;
+        worldName = "./Data/Maps/World001.xml";
+    } else if(argc == 2) {
+        worldName = argv[1];
+        std::cout << "Trying to load " <<  worldName << std::endl;
+    } else {
+        worldName = argv[1];
+        std::cout << "Trying to load " <<  worldName << std::endl;
+        std::cout << PROGRAM_NAME + " only takes one parameter. First one is processed as Map file, rest discarted." << std::endl;
+    }
+
     Uint32 worldUpdateTime = 1000 / 60;//This value is used to update world on a locked Timestep
     Options options;
 
-    SDL2Helper sdlHelper(PROGRAM_NAME, options.getScreenHeight(), options.getScreenWidth());
+    SDL2Helper sdlHelper(PROGRAM_NAME.c_str(), options.getScreenHeight(), options.getScreenWidth());
 
 
     GLHelper glHelper(&options);
@@ -22,7 +36,7 @@ int main(int argc, char *argv[]) {
     InputHandler inputHandler(sdlHelper.getWindow(), &options);
 
 
-    World world(&glHelper, &options);
+    World world(&glHelper, &options, worldName);
     glHelper.clearFrame();
     Uint32 previousTime = SDL_GetTicks();
     Uint32 currentTime, frameTime, accumulatedTime = 0;
