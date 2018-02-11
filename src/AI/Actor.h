@@ -48,6 +48,8 @@ public:
                  + 2.0f * s * glm::cross(u, forward);
         return vprime;
     }
+
+    virtual ~Actor() {};
 };
 
 

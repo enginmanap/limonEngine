@@ -131,7 +131,7 @@ void GLHelper::fillUniformMap(const GLuint program, std::map<std::string, GLHelp
 
     glGetProgramiv(program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxLength);
 
-    GLchar name[maxLength]; // variable name in GLSL
+    GLchar* name = new GLchar[maxLength]; // variable name in GLSL
     GLsizei length; // name length
 
     glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &count);
@@ -146,6 +146,8 @@ void GLHelper::fillUniformMap(const GLuint program, std::map<std::string, GLHelp
         //std::cout << "Uniform " << i << " Location: " << uniformLocation << " Type: " << type << " Name: " << name << std::endl;
         uniformMap[name] = new Uniform(uniformLocation, name, type, size);
     }
+
+    delete[] name;
 }
 
 void GLHelper::attachUBOs(const GLuint program) const {//Attach the light block to our UBO

@@ -331,7 +331,7 @@ World::~World() {
 bool World::loadMapFromXML() {
 
     tinyxml2::XMLDocument xmlDoc;
-    tinyxml2::XMLError eResult = xmlDoc.LoadFile("./Data/Maps/World001.xml");
+    tinyxml2::XMLError eResult = xmlDoc.LoadFile("./Data/Maps/World002.xml");
     if (eResult != tinyxml2::XML_SUCCESS) {
         std::cout << "Error loading XML: " <<  eResult << std::endl;
     }
