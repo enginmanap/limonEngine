@@ -31,7 +31,7 @@ public:
             assets[files] = new T(this, files);
         }
         return (T *) assets[files];
-    };
+    }
 
 
 };
