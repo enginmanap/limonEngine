@@ -18,38 +18,19 @@
 #include "Utils/GLMConverter.h"
 #include "Utils/GLMUtils.h"
 
-#define STEPPING_TEST_COUNT 5
 
 class Camera {
-    std::string objectType = "camera";//FIXME this is just temporary ray test result detection code, we should return game objects instead of string
     const glm::vec3 startPosition = glm::vec3(0, 10, 15);
-    float slowDownFactor = 2.5f;
-
     bool dirty;
     glm::vec3 position, center, up, right;
-    glm::quat view, viewChange;
+    glm::quat view;
     glm::mat4 cameraTransformMatrix;
-    btRigidBody *player;
-    btGeneric6DofSpring2Constraint *spring;
-    float springStandPoint;
 
-    std::vector<btCollisionWorld::ClosestRayResultCallback> rayCallbackArray;
-    btTransform worldTransformHolder;
-    bool onAir;
     Options *options;
 public:
-    enum moveDirections {
-        NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD, UP
-    };
 
     explicit Camera(Options *options);
-    ~Camera() {
-        delete player;
-        delete spring;
 
-    }
-
-    void updateTransformFromPhysics(const btDynamicsWorld *world);
 
     void setCenter(const glm::vec3 &center) {
         glm::vec3 normalizeCenter = glm::normalize(center);
@@ -60,10 +41,41 @@ public:
         }
     }
 
-    void move(moveDirections);
+    void setPosition(const glm::vec3& position) {
+        this->position = position;
+    }
 
-    void rotate(float xChange, float yChange);
+    void rotate(float xChange, float yChange) {
+        std::cout << "camera rotation " << std::endl;
+        glm::quat viewChange;
+        viewChange = glm::quat(cos(yChange * options->getLookAroundSpeed() / 2),
+                               right.x * sin(yChange * options->getLookAroundSpeed() / 2),
+                               right.y * sin(yChange * options->getLookAroundSpeed() / 2),
+                               right.z * sin(yChange * options->getLookAroundSpeed() / 2));
 
+        view = viewChange * view * glm::conjugate(viewChange);
+        view = glm::normalize(view);
+
+        viewChange = glm::quat(cos(xChange * options->getLookAroundSpeed() / 2),
+                               up.x * sin(xChange * options->getLookAroundSpeed() / 2),
+                               up.y * sin(xChange * options->getLookAroundSpeed() / 2),
+                               up.z * sin(xChange * options->getLookAroundSpeed() / 2));
+        view = viewChange * view * glm::conjugate(viewChange);
+        view = glm::normalize(view);
+
+        center.x = view.x;
+        if (view.y > 1.0f) {
+            center.y = 0.9999f;
+        } else if (view.y < -1.0f) {
+            center.y = -0.9999f;
+        } else {
+            center.y = view.y;
+        }
+        center.z = view.z;
+        center = glm::normalize(center);
+        right = glm::normalize(glm::cross(center, up));
+        dirty = true;
+    }
 
     glm::mat4 getCameraMatrix() {
         if (this->dirty) {
@@ -81,19 +93,7 @@ public:
         return position;
     }
 
-    btRigidBody *getRigidBody() {
-        return player;
-    }
-
-    /**
-     * This method requires the world, because it raytests for closest object below the camera.
-     * This is required because single sided spring constrain automatically attaches to world itself,
-     * and we need to calculate an equilibrium point.
-     *
-     * @param world
-     * @return
-     */
-    btGeneric6DofSpring2Constraint *getSpring(float minY);
 };
+
 
 #endif //LIMONENGINE_CAMERA_H
