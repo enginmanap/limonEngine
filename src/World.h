@@ -46,8 +46,8 @@ class World {
 
     GLSLProgram *shadowMapProgramDirectional, *shadowMapProgramPoint;
     FontManager fontManager;
-    Camera camera;
     Player player;
+    Camera camera;
     BulletDebugDrawer *debugDrawer;
 
     btGhostPairCallback *ghostPairCallback;
