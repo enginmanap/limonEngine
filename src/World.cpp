@@ -6,7 +6,7 @@
 #include "World.h"
 #include "AI/HumanEnemy.h"
 
-World::World(GLHelper *glHelper, Options *options, const std::string& worldFileName) : options(options), glHelper(glHelper), fontManager(glHelper), camera(options), player(options) {
+World::World(GLHelper *glHelper, Options *options, const std::string& worldFileName) : options(options), glHelper(glHelper), fontManager(glHelper), player(options), camera(options, &player) {
     assetManager = new AssetManager(glHelper);
     // physics init
     broadphase = new btDbvtBroadphase();
@@ -182,8 +182,8 @@ ActorInformation World::fillActorInformation(int j) {
 void World::handlePlayerInput(InputHandler &inputHandler) {
     float xLook, yLook;
     if (inputHandler.getMouseChange(xLook, yLook)) {
-        //this->player.rotate(xLook, yLook);
-        this->camera.rotate(xLook, yLook);
+        this->player.rotate(xLook, yLook);
+        //this->camera.rotate(xLook, yLook);
     }
 
     if (inputHandler.getInputEvents(inputHandler.RUN)) {

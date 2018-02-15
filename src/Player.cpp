@@ -6,13 +6,14 @@
 #include "Utils/GLMConverter.h"
 
 Player::Player(Options *options) :
+        center(glm::vec3(0,0,-1)),
         up(glm::vec3(0,1,0)),
         right(glm::vec3(-1,0,0)),
         view(glm::quat(0,0,0,-1)),
-        center(glm::vec3(0,0,-1)),
         spring(nullptr),
         onAir(true),
-        options(options) {
+        options(options),
+        dirty(true){
 
     for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
         for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
