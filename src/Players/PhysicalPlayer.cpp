@@ -2,10 +2,9 @@
 // Created by engin on 12.02.2018.
 //
 
-#include "Player.h"
-#include "Utils/GLMConverter.h"
+#include "PhysicalPlayer.h"
 
-Player::Player(Options *options) :
+PhysicalPlayer::PhysicalPlayer(Options *options) :
         center(glm::vec3(0,0,-1)),
         up(glm::vec3(0,1,0)),
         right(glm::vec3(-1,0,0)),
@@ -37,7 +36,7 @@ Player::Player(Options *options) :
 }
 
 
-void Player::move(moveDirections direction) {
+void PhysicalPlayer::move(moveDirections direction) {
     if (onAir) {
         return;
     }
@@ -82,7 +81,7 @@ void Player::move(moveDirections direction) {
     player->setActivationState(ACTIVE_TAG);
 }
 
-void Player::rotate(float xChange, float yChange) {
+void PhysicalPlayer::rotate(float xChange, float yChange) {
     glm::quat viewChange;
     viewChange = glm::quat(cos(yChange * options->getLookAroundSpeed() / 2),
                            right.x * sin(yChange * options->getLookAroundSpeed() / 2),
@@ -112,7 +111,7 @@ void Player::rotate(float xChange, float yChange) {
     right = glm::normalize(glm::cross(center, up));
 }
 
-void Player::updateTransformFromPhysics(const btDynamicsWorld *world) {
+void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
     onAir = true;//base assumption is we are flying
     player->getMotionState()->getWorldTransform(worldTransformHolder);
 
@@ -147,7 +146,7 @@ void Player::updateTransformFromPhysics(const btDynamicsWorld *world) {
     }
 }
 
-btGeneric6DofSpring2Constraint * Player::getSpring(float minY) {
+btGeneric6DofSpring2Constraint * PhysicalPlayer::getSpring(float minY) {
     spring = new btGeneric6DofSpring2Constraint(
             *player,
             btTransform(btQuaternion::getIdentity(), { 0.0f, -1.0f, 0.0f })

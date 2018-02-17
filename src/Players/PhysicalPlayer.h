@@ -2,8 +2,8 @@
 // Created by engin on 12.02.2018.
 //
 
-#ifndef LIMONENGINE_PLAYER_H
-#define LIMONENGINE_PLAYER_H
+#ifndef LIMONENGINE_PHYSICALPLAYER_H
+#define LIMONENGINE_PHYSICALPLAYER_H
 
 
 #include <glm/glm.hpp>
@@ -12,14 +12,16 @@
 #include <btBulletCollisionCommon.h>
 #include <vector>
 #include <BulletDynamics/Dynamics/btDynamicsWorld.h>
-#include "Options.h"
-#include "CameraAttachment.h"
-#include "Utils/GLMConverter.h"
+#include "../Options.h"
+#include "../CameraAttachment.h"
+#include "../Utils/GLMConverter.h"
+#include "Player.h"
+
 
 static const int STEPPING_TEST_COUNT = 5;
 
 
-class Player : public CameraAttachment {
+class PhysicalPlayer : public Player, public CameraAttachment {
     std::string objectType = "player";//FIXME this is just temporary ray test result detection code, we should return game objects instead of string
 
     const glm::vec3 startPosition = glm::vec3(0, 10, 15);
@@ -38,11 +40,9 @@ class Player : public CameraAttachment {
     bool dirty;
 
 public:
-    enum moveDirections {
-        NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD, UP
-    };
-
-    void updateTransformFromPhysics(const btDynamicsWorld *world);
+    glm::vec3 getPosition() {
+        return GLMConverter::BltToGLM(this->getRigidBody()->getCenterOfMassPosition());
+    }
 
     void move(moveDirections);
 
@@ -52,6 +52,15 @@ public:
         return player;
     }
 
+    void registerToPhysicalWorld(btDiscreteDynamicsWorld* world, const glm::vec3& worldAABBMin, const glm::vec3& worldAABBMax __attribute__((unused))) {
+        world->addRigidBody(getRigidBody());
+        world->addConstraint(getSpring(worldAABBMin.y));
+    }
+
+    void processPhysicsWorld(const btDiscreteDynamicsWorld *world);
+
+
+
     bool isDirty() {
         return dirty;//FIXME this always returns true because nothing sets it false;
     }
@@ -60,7 +69,7 @@ public:
         position.y += 1.0f;//for putting the camera up portion of capsule
         center = this->center;
         up = this->up;
-        right = this->up;
+        right = this->right;
     };
 
     /**
@@ -73,14 +82,13 @@ public:
      */
     btGeneric6DofSpring2Constraint *getSpring(float minY);
 
-    explicit Player(Options *options);
+    explicit PhysicalPlayer(Options *options);
 
-    ~Player() {
+    ~PhysicalPlayer() {
         delete player;
         delete spring;
-
     }
 };
 
 
-#endif //LIMONENGINE_PLAYER_H
+#endif //LIMONENGINE_PHYSICALPLAYER_H

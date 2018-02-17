@@ -625,7 +625,7 @@ void GLHelper::reshape() {
     this->screenWidth = options->getScreenWidth();
     glViewport(0, 0, options->getScreenWidth(), options->getScreenHeight());
     aspect = float(options->getScreenHeight()) / float(options->getScreenWidth());
-    perspectiveProjectionMatrix = glm::perspective(45.0f, 1.0f / aspect, 0.1f, 100.0f);
+    perspectiveProjectionMatrix = glm::perspective(45.0f, 1.0f / aspect, 0.1f, 1000.0f);
     orthogonalProjectionMatrix = glm::ortho(0.0f, (float) options->getScreenWidth(), 0.0f, (float) options->getScreenHeight());
     checkErrors("reshape");
 }
