@@ -30,7 +30,11 @@ class Camera {
     Options *options;
 public:
 
-    explicit Camera(Options *options, CameraAttachment* cameraAttachment);
+    Camera(Options *options, CameraAttachment* cameraAttachment);
+
+    void setCameraAttachment(CameraAttachment *cameraAttachment) {
+        Camera::cameraAttachment = cameraAttachment;
+    }
 
     glm::mat4 getCameraMatrix() {
         if (cameraAttachment->isDirty()) {

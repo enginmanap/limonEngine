@@ -6,7 +6,12 @@
 #include "World.h"
 #include "AI/HumanEnemy.h"
 
-World::World(GLHelper *glHelper, Options *options, const std::string& worldFileName) : options(options), glHelper(glHelper), fontManager(glHelper), player(options), camera(options, &player) {
+World::World(GLHelper *glHelper, Options *options, const std::string& worldFileName) : options(options), glHelper(glHelper), fontManager(glHelper) {
+
+    physicalPlayer = new PhysicalPlayer(options);
+    currentPlayer = physicalPlayer;
+    camera = new Camera(options, physicalPlayer);
+
     assetManager = new AssetManager(glHelper);
     // physics init
     broadphase = new btDbvtBroadphase();
@@ -41,9 +46,7 @@ World::World(GLHelper *glHelper, Options *options, const std::string& worldFileN
     }
 
     //adding camera after dynamic world because static only world is needed for ai movement grid generation
-    rigidBodies.push_back(player.getRigidBody());
-    dynamicsWorld->addRigidBody(player.getRigidBody());
-    dynamicsWorld->addConstraint(player.getSpring(this->worldAABBMin.y));
+    currentPlayer->registerToPhysicalWorld(dynamicsWorld, worldAABBMin, worldAABBMax);
 
     GUIText *tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 64), "Limon Engine",
                               glm::vec3(0, 0, 0));
@@ -78,11 +81,11 @@ World::World(GLHelper *glHelper, Options *options, const std::string& worldFileN
  bool World::checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName) {
      //FIXME this debug draw creates a flicker, because we redraw frames that surpass 60. we need duration for debug draw to prevent it
      //debugDrawer->drawLine(GLMConverter::GLMToBlt(from), camera.getRigidBody()->getCenterOfMassPosition(), btVector3(1,0,0));
-     btCollisionWorld::AllHitsRayResultCallback RayCallback(GLMConverter::GLMToBlt(from), player.getRigidBody()->getCenterOfMassPosition());
+     btCollisionWorld::AllHitsRayResultCallback RayCallback(GLMConverter::GLMToBlt(from), GLMConverter::GLMToBlt(currentPlayer->getPosition()));
 
      dynamicsWorld->rayTest(
              GLMConverter::GLMToBlt(from),
-             player.getRigidBody()->getCenterOfMassPosition(),
+             GLMConverter::GLMToBlt(currentPlayer->getPosition()),
              RayCallback
      );
 
@@ -104,7 +107,7 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
     //every time we call this method, we increase the time only by simulationTimeframe
     gameTime += simulationTimeFrame;
     dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
-    player.updateTransformFromPhysics(dynamicsWorld);
+    currentPlayer->processPhysicsWorld(dynamicsWorld);
 
     for (unsigned int i = 0; i < objects.size(); ++i) {
         objects[i]->setupForTime(gameTime);
@@ -126,7 +129,7 @@ ActorInformation World::fillActorInformation(int j) {
     //FIXME this is just for test
     information.canSeePlayerDirectly = checkPlayerVisibility(actors[j]->getPosition(), "./Data/Models/ArmyPilot/ArmyPilot.mesh.xml");
     glm::vec3 front = actors[j]->getFrontVector();
-    glm::vec3 rayDir = GLMConverter::BltToGLM(player.getRigidBody()->getCenterOfMassPosition()) - actors[j]->getPosition();
+    glm::vec3 rayDir = currentPlayer->getPosition() - actors[j]->getPosition();
     float cosBetween = glm::dot(normalize(front), normalize(rayDir));
     information.cosineBetweenPlayer = cosBetween;
     information.playerDirection = normalize(rayDir);
@@ -165,7 +168,7 @@ ActorInformation World::fillActorInformation(int j) {
             information.isPlayerDown = false;
         }
     std::vector<glm::vec3> route;
-    glm::vec3 playerPosWithGrid = GLMConverter::BltToGLM(player.getRigidBody()->getCenterOfMassPosition());
+    glm::vec3 playerPosWithGrid = currentPlayer->getPosition();
     if (grid->coursePath(actors[j]->getPosition() + glm::vec3(0, 2.0f, 0), playerPosWithGrid, j, &route)) {
         if (route.empty()) {
             information.toPlayerRoute = glm::vec3(0, 0, 0);
@@ -182,7 +185,7 @@ ActorInformation World::fillActorInformation(int j) {
 void World::handlePlayerInput(InputHandler &inputHandler) {
     float xLook, yLook;
     if (inputHandler.getMouseChange(xLook, yLook)) {
-        this->player.rotate(xLook, yLook);
+        currentPlayer->rotate(xLook, yLook);
         //this->camera.rotate(xLook, yLook);
     }
 
@@ -194,35 +197,35 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
         }
     }
 
-    Player::moveDirections direction = Player::NONE;
+    PhysicalPlayer::moveDirections direction = PhysicalPlayer::NONE;
     //ignore if both are pressed.
     if (inputHandler.getInputStatus(inputHandler.MOVE_FORWARD) !=
         inputHandler.getInputStatus(inputHandler.MOVE_BACKWARD)) {
         if (inputHandler.getInputStatus(inputHandler.MOVE_FORWARD)) {
-            direction = this->player.FORWARD;
+            direction = Player::FORWARD;
         } else {
-            direction = this->player.BACKWARD;
+            direction = Player::BACKWARD;
         }
     }
     if (inputHandler.getInputStatus(inputHandler.MOVE_LEFT) != inputHandler.getInputStatus(inputHandler.MOVE_RIGHT)) {
         if (inputHandler.getInputStatus(inputHandler.MOVE_LEFT)) {
-            if (direction == this->player.FORWARD) {
-                direction = this->player.LEFT_FORWARD;
-            } else if (direction == this->player.BACKWARD) {
-                direction = this->player.LEFT_BACKWARD;
+            if (direction == Player::FORWARD) {
+                direction = Player::LEFT_FORWARD;
+            } else if (direction == Player::BACKWARD) {
+                direction = Player::LEFT_BACKWARD;
             } else {
-                direction = this->player.LEFT;
+                direction = Player::LEFT;
             }
-        } else if (direction == this->player.FORWARD) {
-            direction = this->player.RIGHT_FORWARD;
-        } else if (direction == this->player.BACKWARD) {
-            direction = this->player.RIGHT_BACKWARD;
+        } else if (direction == Player::FORWARD) {
+            direction = Player::RIGHT_FORWARD;
+        } else if (direction == Player::BACKWARD) {
+            direction = Player::RIGHT_BACKWARD;
         } else {
-            direction = this->player.RIGHT;
+            direction = Player::RIGHT;
         }
     }
     if (inputHandler.getInputStatus(inputHandler.JUMP) && inputHandler.getInputEvents(inputHandler.JUMP)) {
-        direction = this->player.UP;
+        direction = Player::UP;
     }
     if (inputHandler.getInputEvents(inputHandler.DEBUG) && inputHandler.getInputStatus(inputHandler.DEBUG)) {
         if(this->dynamicsWorld->getDebugDrawer()->getDebugMode() == btIDebugDraw::DBG_NoDebug) {
@@ -230,14 +233,23 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
                     this->dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE | this->dynamicsWorld->getDebugDrawer()->DBG_DrawAabb | this->dynamicsWorld->getDebugDrawer()->DBG_DrawConstraints | this->dynamicsWorld->getDebugDrawer()->DBG_DrawConstraintLimits);
             this->options->getLogger()->log(Logger::INPUT, Logger::INFO, "Debug enabled");
             this->guiLayers[0]->setDebug(true);
+            //switch control to debug player
+            if(debugPlayer == nullptr) {
+                debugPlayer = new FreeMovingPlayer(options);
+                debugPlayer->registerToPhysicalWorld(dynamicsWorld, worldAABBMin, worldAABBMax);
+            }
+            currentPlayer = debugPlayer;
+            camera->setCameraAttachment(debugPlayer);
         } else {
             this->dynamicsWorld->getDebugDrawer()->setDebugMode(this->dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
             this->options->getLogger()->log(Logger::INPUT, Logger::INFO, "Debug disabled");
             this->guiLayers[0]->setDebug(false);
+            currentPlayer = physicalPlayer;
+            camera->setCameraAttachment(physicalPlayer);
         }
     }
     //if none, camera should handle how to get slower.
-    this->player.move(direction);
+    currentPlayer->move(direction);
 
 }
 
@@ -274,8 +286,8 @@ void World::render() {
         sky->render();//this is moved to the top, because transparency can create issues if this is at the end
     }
 
-    if(camera.isDirty()) {
-        glHelper->setPlayerMatrices(camera.getPosition(), camera.getCameraMatrix());
+    if(camera->isDirty()) {
+        glHelper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());
     }
 
 
@@ -305,28 +317,31 @@ void World::render() {
 }
 
 World::~World() {
+    delete dynamicsWorld;
 
     //FIXME clear GUIlayer elements
     for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
         delete (*it);
     }
     delete sky;
-    for (std::vector<btRigidBody *>::iterator it = rigidBodies.begin(); it != rigidBodies.end(); ++it) {
-        dynamicsWorld->removeRigidBody((*it));
-    }
 
     for (std::vector<Light *>::iterator it = lights.begin(); it != lights.end(); ++it) {
         delete (*it);
     }
-
     delete debugDrawer;
-    delete dynamicsWorld;
     delete solver;
     delete collisionConfiguration;
     delete dispatcher;
     delete broadphase;
     delete ghostPairCallback;
+
     delete grid;
+    delete camera;
+    delete physicalPlayer;
+    if(debugPlayer!= nullptr) {
+        delete debugPlayer;
+    }
+
 }
 
 bool World::loadMapFromXML(const std::string& worldFileName) {

@@ -27,7 +27,8 @@
 #include "GUI/GUITextDynamic.h"
 #include "AI/Actor.h"
 #include "AI/AIMovementGrid.h"
-#include "Player.h"
+#include "Players/PhysicalPlayer.h"
+#include "Players/FreeMovingPlayer.h"
 
 class World {
     Options* options;
@@ -46,8 +47,10 @@ class World {
 
     GLSLProgram *shadowMapProgramDirectional, *shadowMapProgramPoint;
     FontManager fontManager;
-    Player player;
-    Camera camera;
+    PhysicalPlayer* physicalPlayer;
+    FreeMovingPlayer* debugPlayer = nullptr;
+    Player* currentPlayer;
+    Camera* camera;
     BulletDebugDrawer *debugDrawer;
 
     btGhostPairCallback *ghostPairCallback;
