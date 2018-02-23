@@ -186,7 +186,6 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
     float xLook, yLook;
     if (inputHandler.getMouseChange(xLook, yLook)) {
         currentPlayer->rotate(xLook, yLook);
-        //this->camera.rotate(xLook, yLook);
     }
 
     if (inputHandler.getInputEvents(inputHandler.RUN)) {
@@ -194,6 +193,15 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
             options->setMoveSpeed(Options::RUN);
         } else {
             options->setMoveSpeed(Options::WALK);
+        }
+    }
+
+    if(inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
+        std::string *objectName = (std::string *) getPointedObject();
+        if (objectName != nullptr) {
+            std::cout << "object to pick is " << *objectName << std::endl;
+        } else {
+            std::cout << "no object to pick." << std::endl;
         }
     }
 
@@ -251,6 +259,47 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
     //if none, camera should handle how to get slower.
     currentPlayer->move(direction);
 
+}
+
+void *World::getPointedObject() const {
+    glm::vec3 from, to;
+    currentPlayer->getPick(from, to);
+    //we want to extend to vector to world AABB limit
+    glm::vec3 ray = to - from;
+    float maxFactor = 0;
+    if(ray.x > 0 ) {
+            maxFactor = (worldAABBMax.x - from.x) / ray.x;
+        } else {
+            maxFactor = (worldAABBMin.x + from.x) / ray.x;
+        }
+
+    if(ray.y > 0 ) {
+            std::max(maxFactor, (worldAABBMax.y - from.y) / ray.y);
+        } else {
+            std::max(maxFactor, (worldAABBMin.y + from.y) / ray.y);
+        }
+
+    if(ray.z > 0 ) {
+            std::max(maxFactor, (worldAABBMax.z - from.z) / ray.z);
+        } else {
+            std::max(maxFactor, (worldAABBMin.z + from.z) / ray.z);
+        }
+    ray = ray * maxFactor;
+    to = ray + from;
+    btCollisionWorld::ClosestRayResultCallback RayCallback(GLMConverter::GLMToBlt(from), GLMConverter::GLMToBlt(to));
+
+    dynamicsWorld->rayTest(
+                GLMConverter::GLMToBlt(from),
+                GLMConverter::GLMToBlt(to),
+                RayCallback
+        );
+
+    //debugDrawer->flushDraws();
+    if (RayCallback.hasHit()) {
+        return RayCallback.m_collisionObject->getUserPointer();
+    } else {
+        return nullptr;
+    }
 }
 
 void World::render() {

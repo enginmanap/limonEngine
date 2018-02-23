@@ -38,8 +38,13 @@ public:
 
     void move(moveDirections);
 
-    glm::vec3 getPosition() {
+    glm::vec3 getPosition() const {
         return position;
+    }
+
+    void getPick(glm::vec3 &fromPosition, glm::vec3 &toPosition) const {
+        fromPosition = this->getPosition();
+        toPosition = this->center + this->getPosition();
     }
 
     void registerToPhysicalWorld(btDiscreteDynamicsWorld* world __attribute__((unused)), const glm::vec3& worldAABBMin __attribute__((unused)), const glm::vec3& worldAABBMax __attribute__((unused))) {}
