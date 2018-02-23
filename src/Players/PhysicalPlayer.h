@@ -40,15 +40,15 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     bool dirty;
 
 public:
-    glm::vec3 getPosition() {
-        return GLMConverter::BltToGLM(this->getRigidBody()->getCenterOfMassPosition());
+    glm::vec3 getPosition() const {
+        return GLMConverter::BltToGLM(player->getCenterOfMassPosition());
     }
 
     void move(moveDirections);
 
     void rotate(float xChange, float yChange);
 
-    btRigidBody *getRigidBody() {
+    btRigidBody* getRigidBody() {
         return player;
     }
 
@@ -81,6 +81,12 @@ public:
      * @return
      */
     btGeneric6DofSpring2Constraint *getSpring(float minY);
+
+    void getPick(glm::vec3 &fromPosition, glm::vec3 &toPosition) const {
+        fromPosition = this->getPosition();
+        fromPosition.y += 1.0f;
+        toPosition = this->center + fromPosition;
+    }
 
     explicit PhysicalPlayer(Options *options);
 

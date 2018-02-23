@@ -90,6 +90,8 @@ public:
     void updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax);
 
     void addModelToWorld(Model *xmlModel);
+
+    void *getPointedObject() const;
 };
 
 #endif //LIMONENGINE_WORLD_H
