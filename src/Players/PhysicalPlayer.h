@@ -82,10 +82,10 @@ public:
      */
     btGeneric6DofSpring2Constraint *getSpring(float minY);
 
-    void getPick(glm::vec3 &fromPosition, glm::vec3 &toPosition) const {
+    void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const {
         fromPosition = this->getPosition();
         fromPosition.y += 1.0f;
-        toPosition = this->center + fromPosition;
+        lookDirection = this->center;
     }
 
     explicit PhysicalPlayer(Options *options);
