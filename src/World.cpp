@@ -262,30 +262,30 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
 }
 
 void *World::getPointedObject() const {
-    glm::vec3 from, to;
-    currentPlayer->getPick(from, to);
+    glm::vec3 from, lookDirection;
+    currentPlayer->getWhereCameraLooks(from, lookDirection);
     //we want to extend to vector to world AABB limit
-    glm::vec3 ray = to - from;
     float maxFactor = 0;
-    if(ray.x > 0 ) {
-            maxFactor = (worldAABBMax.x - from.x) / ray.x;
+    //TODO this finding max might be unnecessary, needs to be checked
+    if(lookDirection.x > 0 ) {
+            maxFactor = (worldAABBMax.x - from.x) / lookDirection.x;
         } else {
-            maxFactor = (worldAABBMin.x + from.x) / ray.x;
+            maxFactor = (worldAABBMin.x + from.x) / lookDirection.x;
         }
 
-    if(ray.y > 0 ) {
-            std::max(maxFactor, (worldAABBMax.y - from.y) / ray.y);
+    if(lookDirection.y > 0 ) {
+            std::max(maxFactor, (worldAABBMax.y - from.y) / lookDirection.y);
         } else {
-            std::max(maxFactor, (worldAABBMin.y + from.y) / ray.y);
+            std::max(maxFactor, (worldAABBMin.y + from.y) / lookDirection.y);
         }
 
-    if(ray.z > 0 ) {
-            std::max(maxFactor, (worldAABBMax.z - from.z) / ray.z);
+    if(lookDirection.z > 0 ) {
+            std::max(maxFactor, (worldAABBMax.z - from.z) / lookDirection.z);
         } else {
-            std::max(maxFactor, (worldAABBMin.z + from.z) / ray.z);
+            std::max(maxFactor, (worldAABBMin.z + from.z) / lookDirection.z);
         }
-    ray = ray * maxFactor;
-    to = ray + from;
+    lookDirection = lookDirection * maxFactor;
+    glm::vec3 to = lookDirection + from;
     btCollisionWorld::ClosestRayResultCallback RayCallback(GLMConverter::GLMToBlt(from), GLMConverter::GLMToBlt(to));
 
     dynamicsWorld->rayTest(

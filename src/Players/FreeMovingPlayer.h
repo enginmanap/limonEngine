@@ -42,9 +42,9 @@ public:
         return position;
     }
 
-    void getPick(glm::vec3 &fromPosition, glm::vec3 &toPosition) const {
+    void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const {
         fromPosition = this->getPosition();
-        toPosition = this->center + this->getPosition();
+        lookDirection = this->center;
     }
 
     void registerToPhysicalWorld(btDiscreteDynamicsWorld* world __attribute__((unused)), const glm::vec3& worldAABBMin __attribute__((unused)), const glm::vec3& worldAABBMax __attribute__((unused))) {}

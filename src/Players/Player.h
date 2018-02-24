@@ -25,7 +25,7 @@ public:
 
     virtual void processPhysicsWorld(const btDiscreteDynamicsWorld *world) = 0;
 
-    virtual void getPick(glm::vec3 &fromPosition, glm::vec3 &toPosition) const = 0;
+    virtual void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const = 0;
 };
 
 
