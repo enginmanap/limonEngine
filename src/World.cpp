@@ -561,6 +561,30 @@ bool World::loadObjectsFromXML(tinyxml2::XMLNode *worldNode) {
             newEnemy->setModel(xmlModel);
             this->actors.push_back(newEnemy);
         }
+
+        objectAttribute =  objectNode->FirstChildElement("AI");
+        if (objectAttribute == nullptr) {
+            std::cout << "Object does not have AI." << std::endl;
+        } else {
+            if (!isAIGridStartPointSet) {
+                aiGridStartPoint = GLMConverter::BltToGLM(xmlModel->getRigidBody()->getCenterOfMassPosition()) +
+                                   glm::vec3(0, 2.0f, 0);
+                isAIGridStartPointSet = true;
+            }
+            std::cout << "Object has AI." << std::endl;
+            HumanEnemy* newEnemy = new HumanEnemy();
+            newEnemy->setModel(xmlModel);
+            this->actors.push_back(newEnemy);
+        }
+
+        objectAttribute =  objectNode->FirstChildElement("Animation");
+        if (objectAttribute == nullptr) {
+            std::cout << "Object does not have default animation." << std::endl;
+        } else {
+            xmlModel->setAnimation(objectAttribute->GetText());
+        }
+
+        //ADD NEW ATTRIBUTES GOES UP FROM HERE
         // We will add static objects first, build AI grid, then add other objects
         if(xmlModel->getMass() == 0 && !xmlModel->isAnimated()) {
             addModelToWorld(xmlModel);
