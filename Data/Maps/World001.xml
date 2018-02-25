@@ -158,6 +158,7 @@
         </Object>
         <Object>
             <File>./Data/Models/Dwarf/dwarf.x</File>
+            <Animation>AnimationSet2</Animation>
             <Mass>50</Mass>
             <Scale>
                 <X>0.06</X>
@@ -190,11 +191,25 @@
             </Position>
             <Color>
                 <R>0.0</R>
-                <G>1.0</G>
+                <G>0.0</G>
                 <B>1.0</B>
             </Color>
         </Light>
         <Light>
+            <Type>POINT</Type>
+            <Position>
+                <X>0.0</X>
+                <Y>3.0</Y>
+                <Z>5.0</Z>
+            </Position>
+            <Color>
+                <R>1.0</R>
+                <G>0.0</G>
+                <B>0.0</B>
+            </Color>
+        </Light>
+
+        <!--<Light>
             <Type>DIRECTIONAL</Type>
             <Position>
                 <X>-25.0</X>
@@ -206,6 +221,6 @@
                 <G>0.7</G>
                 <B>0.7</B>
             </Color>
-        </Light>
+        </Light>-->
     </Lights>
 </World>
