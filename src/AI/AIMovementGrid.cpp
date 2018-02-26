@@ -4,9 +4,6 @@
 
 #include "AIMovementGrid.h"
 
-
-float floatingHeight = 2.00f;
-
 //FIXME: this must be the worst way to check for a node in a graph, when you already implemented a*
 AIMovementNode *AIMovementGrid::isAlreadyVisited(const AIMovementNode *node) {
     for (int i = visited.size() - 1; i >= 0; --i) {

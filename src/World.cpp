@@ -169,7 +169,8 @@ ActorInformation World::fillActorInformation(int j) {
         }
     std::vector<glm::vec3> route;
     glm::vec3 playerPosWithGrid = currentPlayer->getPosition();
-    if (grid->coursePath(actors[j]->getPosition() + glm::vec3(0, 2.0f, 0), playerPosWithGrid, j, &route)) {
+    bool isPlayerReachable = grid->setProperHeight(&playerPosWithGrid, AIMovementGrid::floatingHeight, 0.0f, dynamicsWorld);
+    if(isPlayerReachable && grid->coursePath(actors[j]->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0), playerPosWithGrid, j, &route)) {
         if (route.empty()) {
             information.toPlayerRoute = glm::vec3(0, 0, 0);
             information.canGoToPlayer = false;
