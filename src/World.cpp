@@ -51,7 +51,7 @@ World::World(GLHelper *glHelper, Options *options, const std::string& worldFileN
     GUIText *tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 64), "Limon Engine",
                               glm::vec3(0, 0, 0));
     //tr->setScale(0.25f,0.25f);
-    tr->set2dWorldTransform(glm::vec2(512.0f, 740.0f), 0.0f);
+    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2, options->getScreenHeight()-20), 0.0f);
     layer1->addGuiElement(tr);
 
     tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "Version 0.2",
