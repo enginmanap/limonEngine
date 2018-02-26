@@ -19,11 +19,21 @@ public:
 
     virtual glm::vec3 getPosition() const = 0;
 
+    /**
+     * This method should be used when player type changes, like from physical to free fly etc.
+     *
+     * @param position
+     * @param lookDirection
+     */
+    virtual void setPositionAndRotation(const glm::vec3& position, const glm::vec3 lookDirection) = 0;
+
     virtual void registerToPhysicalWorld(btDiscreteDynamicsWorld* world, const glm::vec3& worldAABBMin, const glm::vec3& worldAABBMax) = 0;
 
     virtual ~Player() {}
 
     virtual void processPhysicsWorld(const btDiscreteDynamicsWorld *world) = 0;
+
+    virtual glm::vec3 getLookDirection() const = 0;
 
     virtual void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const = 0;
 };
