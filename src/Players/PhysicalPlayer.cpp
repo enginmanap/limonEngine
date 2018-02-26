@@ -37,15 +37,21 @@ PhysicalPlayer::PhysicalPlayer(Options *options) :
 
 
 void PhysicalPlayer::move(moveDirections direction) {
-    if (onAir) {
+    if (!positionSet && onAir) {
         return;
     }
 
     if (direction == NONE) {
-        player->setLinearVelocity(player->getLinearVelocity() / slowDownFactor);
+        if(positionSet) {
+            player->setLinearVelocity(GLMConverter::GLMToBlt(up / 10.0f));
+            positionSet = false;
+        } else {
+            player->setLinearVelocity(player->getLinearVelocity() / slowDownFactor);
+        }
         return;
     }
 
+    positionSet = false;
     switch (direction) {
         case UP:
             player->setLinearVelocity(player->getLinearVelocity() + GLMConverter::GLMToBlt(up * options->getJumpFactor()));

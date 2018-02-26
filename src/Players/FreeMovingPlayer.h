@@ -42,12 +42,26 @@ public:
         return position;
     }
 
+    glm::vec3 getLookDirection() const {
+        return this->center;
+    };
+
     void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const {
         fromPosition = this->getPosition();
         lookDirection = this->center;
     }
 
+    void setPositionAndRotation(const glm::vec3& position, const glm::vec3 lookDirection) {
+        this->position = position;
+
+        this->center = glm::normalize(lookDirection);
+        this->right = glm::normalize(glm::cross(center, up));
+        this->view = this->center;
+    };
+
     void registerToPhysicalWorld(btDiscreteDynamicsWorld* world __attribute__((unused)), const glm::vec3& worldAABBMin __attribute__((unused)), const glm::vec3& worldAABBMax __attribute__((unused))) {}
+
+
     void processPhysicsWorld(const btDiscreteDynamicsWorld *world __attribute__((unused))) {};
 
     void rotate(float xChange, float yChange);

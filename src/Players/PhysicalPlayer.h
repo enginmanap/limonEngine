@@ -36,6 +36,7 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     std::vector<btCollisionWorld::ClosestRayResultCallback> rayCallbackArray;
     btTransform worldTransformHolder;
     bool onAir;
+    bool positionSet = false;
     Options *options;
     bool dirty;
 
@@ -59,8 +60,6 @@ public:
 
     void processPhysicsWorld(const btDiscreteDynamicsWorld *world);
 
-
-
     bool isDirty() {
         return dirty;//FIXME this always returns true because nothing sets it false;
     }
@@ -82,11 +81,32 @@ public:
      */
     btGeneric6DofSpring2Constraint *getSpring(float minY);
 
+    glm::vec3 getLookDirection() const {
+        return this->center;
+    };
+
     void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const {
         fromPosition = this->getPosition();
         fromPosition.y += 1.0f;
         lookDirection = this->center;
     }
+
+    void setPositionAndRotation(const glm::vec3& position, const glm::vec3 lookDirection) {
+        this->center = glm::normalize(lookDirection);
+        this->view = this->center;
+        this->right = glm::normalize(glm::cross(center, up));
+
+        btTransform transform = this->player->getCenterOfMassTransform();
+        transform.setOrigin(btVector3(position.x, position.y - 1.0f, position.z));// -1 because the capsule is lower by 1 then camera
+        //transform.setOrigin(btVector3(position.x, position.y + 1.0f, position.z));// -1 because the capsule is lower by 1 then camera
+        transform.setOrigin(btVector3(position.x, position.y, position.z));// -1 because the capsule is lower by 1 then camera
+        this->player->setWorldTransform(transform);
+        this->player->getMotionState()->setWorldTransform(transform);
+
+        positionSet = true;
+        spring->setEnabled(false);//don't enable until player is not on air
+
+    };
 
     explicit PhysicalPlayer(Options *options);
 

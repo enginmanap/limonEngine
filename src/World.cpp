@@ -246,14 +246,17 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
                 debugPlayer = new FreeMovingPlayer(options);
                 debugPlayer->registerToPhysicalWorld(dynamicsWorld, worldAABBMin, worldAABBMax);
             }
+            debugPlayer->setPositionAndRotation(currentPlayer->getPosition(), currentPlayer->getLookDirection());
             currentPlayer = debugPlayer;
             camera->setCameraAttachment(debugPlayer);
         } else {
             this->dynamicsWorld->getDebugDrawer()->setDebugMode(this->dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
             this->options->getLogger()->log(Logger::INPUT, Logger::INFO, "Debug disabled");
             this->guiLayers[0]->setDebug(false);
+            physicalPlayer->setPositionAndRotation(currentPlayer->getPosition(), currentPlayer->getLookDirection());
             currentPlayer = physicalPlayer;
             camera->setCameraAttachment(physicalPlayer);
+            dynamicsWorld->updateAabbs();//FIXME So this is wrong
         }
     }
     //if none, camera should handle how to get slower.
