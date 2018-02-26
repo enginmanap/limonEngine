@@ -21,7 +21,7 @@
 #include "../BulletDebugDrawer.h"
 
 //bigger than sqrt(3)/2
-#define GRID_SNAP_DISTANCE 0.75f
+#define GRID_SNAP_DISTANCE 0.86f
 
 class AIMovementGrid {
 
@@ -66,6 +66,8 @@ class AIMovementGrid {
     std::vector<const AIMovementNode *> calculatedNodes;
 
 public:
+    static constexpr float floatingHeight = 2.0f;
+
     AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *staticOnlyPhysicsWorld, glm::vec3 min, glm::vec3 max);
 
     ~AIMovementGrid() {
