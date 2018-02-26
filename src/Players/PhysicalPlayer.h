@@ -42,7 +42,7 @@ class PhysicalPlayer : public Player, public CameraAttachment {
 
 public:
     glm::vec3 getPosition() const {
-        return GLMConverter::BltToGLM(player->getCenterOfMassPosition());
+        return GLMConverter::BltToGLM(player->getCenterOfMassPosition()) + glm::vec3(0.0f, 1.0f, 0.0f);
     }
 
     void move(moveDirections);
@@ -87,7 +87,6 @@ public:
 
     void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const {
         fromPosition = this->getPosition();
-        fromPosition.y += 1.0f;
         lookDirection = this->center;
     }
 
@@ -98,10 +97,9 @@ public:
 
         btTransform transform = this->player->getCenterOfMassTransform();
         transform.setOrigin(btVector3(position.x, position.y - 1.0f, position.z));// -1 because the capsule is lower by 1 then camera
-        //transform.setOrigin(btVector3(position.x, position.y + 1.0f, position.z));// -1 because the capsule is lower by 1 then camera
-        transform.setOrigin(btVector3(position.x, position.y, position.z));// -1 because the capsule is lower by 1 then camera
         this->player->setWorldTransform(transform);
         this->player->getMotionState()->setWorldTransform(transform);
+        this->player->activate();
 
         positionSet = true;
         spring->setEnabled(false);//don't enable until player is not on air

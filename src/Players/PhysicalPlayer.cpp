@@ -41,17 +41,15 @@ void PhysicalPlayer::move(moveDirections direction) {
         return;
     }
 
+    if(positionSet) {
+        positionSet = false;
+    }
+
     if (direction == NONE) {
-        if(positionSet) {
-            player->setLinearVelocity(GLMConverter::GLMToBlt(up / 10.0f));
-            positionSet = false;
-        } else {
-            player->setLinearVelocity(player->getLinearVelocity() / slowDownFactor);
-        }
+        player->setLinearVelocity(player->getLinearVelocity() / slowDownFactor);
         return;
     }
 
-    positionSet = false;
     switch (direction) {
         case UP:
             player->setLinearVelocity(player->getLinearVelocity() + GLMConverter::GLMToBlt(up * options->getJumpFactor()));
@@ -84,7 +82,7 @@ void PhysicalPlayer::move(moveDirections direction) {
         case NONE:break;//this is here because -Wall complaints if it is not
     }
     //this activates user rigidbody if it moves. Otherwise island management ignores movement.
-    player->setActivationState(ACTIVE_TAG);
+    player->activate();
 }
 
 void PhysicalPlayer::rotate(float xChange, float yChange) {
