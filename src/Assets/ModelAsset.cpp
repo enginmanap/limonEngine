@@ -26,8 +26,8 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
                                   | aiProcessPreset_TargetRealtime_MaxQuality);
 
     if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-        std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
-        return;
+        std::cerr << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
+        exit(-1);
     }
 
     aiMatrix4x4 m_GlobalInverseTransform = scene->mRootNode->mTransformation;
