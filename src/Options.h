@@ -10,6 +10,9 @@
 
 class Options {
 public:
+
+    static constexpr float PI = 3.14159265358979f;
+    static constexpr float PI_DOUBLE = 3.141592653589793238463;
     enum MoveModes {WALK, RUN};
 private:
     Logger *logger{};

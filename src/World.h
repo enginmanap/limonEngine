@@ -29,6 +29,7 @@
 #include "AI/AIMovementGrid.h"
 #include "Players/PhysicalPlayer.h"
 #include "Players/FreeMovingPlayer.h"
+#include "Players/FreeCursorPlayer.h"
 
 class World {
     Options* options;
@@ -48,11 +49,11 @@ class World {
     GLSLProgram *shadowMapProgramDirectional, *shadowMapProgramPoint;
     FontManager fontManager;
     PhysicalPlayer* physicalPlayer;
-    FreeMovingPlayer* debugPlayer = nullptr;
+    FreeCursorPlayer* debugPlayer = nullptr;
     Player* currentPlayer;
     Camera* camera;
     BulletDebugDrawer *debugDrawer;
-
+    GUIText *cursor;
     btGhostPairCallback *ghostPairCallback;
     btDiscreteDynamicsWorld *dynamicsWorld;
     std::vector<btRigidBody *> rigidBodies;

@@ -5,6 +5,7 @@
 
 #include "World.h"
 #include "AI/HumanEnemy.h"
+#include "Players/FreeCursorPlayer.h"
 
 World::World(GLHelper *glHelper, Options *options, const std::string& worldFileName) : options(options), glHelper(glHelper), fontManager(glHelper) {
 
@@ -56,16 +57,16 @@ World::World(GLHelper *glHelper, Options *options, const std::string& worldFileN
 
     tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "Version 0.2",
                      glm::vec3(255, 255, 255));
-    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), -1 * 3.14159265358979f / 2);
+    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), -1 * options->PI / 2);
     layer1->addGuiElement(tr);
 
-    tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
+    cursor = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
                      glm::vec3(255, 255, 255));
-    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), -1 * 3.14159265358979f / 4);
-    layer1->addGuiElement(tr);
+    cursor->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), -1 * options->PI / 4);
+    layer1->addGuiElement(cursor);
 
-    trd = new GUITextDynamic(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), glm::vec3(0, 0, 0), 640, 510, options);
-    trd->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-255), 0.0f);
+    trd = new GUITextDynamic(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), glm::vec3(0, 0, 0), 640, 380, options);
+    trd->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-200), 0.0f);
     layer1->addGuiElement(trd);
 
 
@@ -204,11 +205,13 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
 
     if(inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
         std::string *objectName = (std::string *) getPointedObject();
+        std::string logLine;
         if (objectName != nullptr) {
-            std::cout << "object to pick is " << *objectName << std::endl;
+            logLine = "object to pick is " + *objectName;
         } else {
-            std::cout << "no object to pick." << std::endl;
+            logLine = "no object to pick.";
         }
+        options->getLogger()->log(Logger::INPUT, Logger::DEBUG, logLine);
     }
 
     PhysicalPlayer::moveDirections direction = PhysicalPlayer::NONE;
@@ -249,7 +252,7 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
             this->guiLayers[0]->setDebug(true);
             //switch control to debug player
             if(debugPlayer == nullptr) {
-                debugPlayer = new FreeMovingPlayer(options);
+                debugPlayer = new FreeCursorPlayer(options, cursor);
                 debugPlayer->registerToPhysicalWorld(dynamicsWorld, worldAABBMin, worldAABBMax);
             }
             debugPlayer->setPositionAndRotation(currentPlayer->getPosition(), currentPlayer->getLookDirection());

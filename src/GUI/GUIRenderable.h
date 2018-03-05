@@ -29,6 +29,28 @@ public:
         isDirty = true;
     }
 
+    /**
+     * Adds translate to current translation
+     * @param translate
+     */
+    void addTranslate(const glm::vec2 &translate) {
+        this->translate = this->translate + glm::vec3(translate, 0);
+        isDirty = true;
+    }
+
+    /**
+     * Sets translate to given translation. It overrides old one.
+     * @param translate
+     */
+    void setTranslate(const glm::vec2 &translate) {
+        this->translate = glm::vec3(translate, 0);
+        isDirty = true;
+    }
+
+    glm::vec2 getTranslate() const {
+        return glm::vec2(this->translate.x, this->translate.y);
+    }
+
     void setScale(float height, float width) {
         scale.x *= width;
         scale.y *= height;
