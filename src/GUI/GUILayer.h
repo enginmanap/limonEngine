@@ -33,6 +33,8 @@ public:
     }
 
     void render();
+
+    void setupForTime(long time);
 };
 
 

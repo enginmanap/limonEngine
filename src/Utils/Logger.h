@@ -31,6 +31,7 @@ public:
 
     void log(Subsystem subsystem, Level level, const std::string &text) {
         logQueue.push_back(new LogLine(subsystem, level, text, SDL_GetTicks()));//SDL_GETTicks is used because we want real time, not game time
+        //FIXME the SDL_GetTicks usage is causing issues since we switch to game time usage. Requires fixing
     };
 
     /**
