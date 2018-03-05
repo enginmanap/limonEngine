@@ -14,3 +14,9 @@ void GUILayer::render() {
         }
     }
 }
+
+void GUILayer::setupForTime(long time){
+    for (std::vector<GUIRenderable *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
+        (*it)->setupForTime(time);
+    }
+}

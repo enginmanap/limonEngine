@@ -120,6 +120,10 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
         objects[i]->updateTransformFromPhysics();
     }
 
+    for (unsigned int i = 0; i < guiLayers.size(); ++i) {
+        guiLayers[i]->setupForTime(gameTime);
+    }
+
     for (unsigned int j = 0; j < actors.size(); ++j) {
         ActorInformation information = fillActorInformation(j);
         actors[j]->play(gameTime,information, options);
