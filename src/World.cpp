@@ -207,15 +207,17 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
         }
     }
 
-    if(inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
-        std::string *objectName = (std::string *) getPointedObject();
-        std::string logLine;
-        if (objectName != nullptr) {
-            logLine = "object to pick is " + *objectName;
-        } else {
-            logLine = "no object to pick.";
+    if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT)) {
+        if(inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
+            std::string *objectName = (std::string *) getPointedObject();
+            std::string logLine;
+            if (objectName != nullptr) {
+                logLine = "object to pick is " + *objectName;
+            } else {
+                logLine = "no object to pick.";
+            }
+            options->getLogger()->log(Logger::INPUT, Logger::DEBUG, logLine);
         }
-        options->getLogger()->log(Logger::INPUT, Logger::DEBUG, logLine);
     }
 
     PhysicalPlayer::moveDirections direction = PhysicalPlayer::NONE;
