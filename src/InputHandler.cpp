@@ -28,6 +28,7 @@ void InputHandler::mapInput() {
     inputEvents[DEBUG] = false;
     inputEvents[JUMP] = false;
     inputEvents[RUN] = false;
+    inputEvents[MOUSE_BUTTON_LEFT] = false;
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
             case SDL_QUIT:
@@ -36,6 +37,9 @@ void InputHandler::mapInput() {
             case SDL_MOUSEBUTTONDOWN:
                 switch (event.button.button) {
                     case SDL_BUTTON_LEFT:
+                        if(!inputStatus[MOUSE_BUTTON_LEFT]) {
+                            inputEvents[MOUSE_BUTTON_LEFT] = true;
+                        }
                         inputStatus[MOUSE_BUTTON_LEFT] = true;
                         break;
                 }
