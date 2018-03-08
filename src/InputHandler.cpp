@@ -19,6 +19,8 @@ InputHandler::InputHandler(SDL_Window *window, Options *options) :
     inputEvents[JUMP] = false;
     inputStatus[DEBUG] = false;
     inputEvents[DEBUG] = false;
+    inputStatus[EDITOR] = false;
+    inputEvents[EDITOR] = false;
     inputStatus[MOUSE_BUTTON_LEFT] = false;
     inputEvents[MOUSE_BUTTON_LEFT] = false;
 
@@ -29,6 +31,7 @@ void InputHandler::mapInput() {
     inputEvents[JUMP] = false;
     inputEvents[RUN] = false;
     inputEvents[MOUSE_BUTTON_LEFT] = false;
+    inputEvents[EDITOR] = false;
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
             case SDL_QUIT:
@@ -93,6 +96,12 @@ void InputHandler::mapInput() {
                         }
                         inputStatus[DEBUG] = true;
                         break;
+                    case SDLK_QUOTEDBL:
+                        if(!inputStatus[EDITOR]) {
+                            inputEvents[EDITOR] = true;
+                        }
+                        inputStatus[EDITOR] = true;
+                        break;
                     case SDLK_KP_PLUS:
                         options->setLookAroundSpeed(options->getLookAroundSpeed() + 1.0f);
                         break;
@@ -132,6 +141,12 @@ void InputHandler::mapInput() {
                             inputEvents[DEBUG] = true;
                         }
                         inputStatus[DEBUG] = false;
+                        break;
+                    case SDLK_QUOTEDBL:
+                        if(!inputStatus[EDITOR]) {
+                            inputEvents[EDITOR] = true;
+                        }
+                        inputStatus[EDITOR] = false;
                         break;
                 }
                 break;
