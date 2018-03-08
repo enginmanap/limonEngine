@@ -92,7 +92,10 @@ public:
 
     void setPositionAndRotation(const glm::vec3& position, const glm::vec3 lookDirection) {
         this->center = glm::normalize(lookDirection);
-        this->view = this->center;
+        this->view.w = 0;
+        this->view.x = center.x;
+        this->view.y = center.y;
+        this->view.z = center.z;
         this->right = glm::normalize(glm::cross(center, up));
 
         btTransform transform = this->player->getCenterOfMassTransform();
