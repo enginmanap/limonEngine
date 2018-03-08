@@ -49,7 +49,8 @@ class World {
     GLSLProgram *shadowMapProgramDirectional, *shadowMapProgramPoint;
     FontManager fontManager;
     PhysicalPlayer* physicalPlayer;
-    FreeCursorPlayer* debugPlayer = nullptr;
+    FreeCursorPlayer* editorPlayer = nullptr;
+    FreeMovingPlayer* debugPlayer = nullptr;
     Player* currentPlayer;
     Camera* camera;
     BulletDebugDrawer *debugDrawer;
@@ -63,6 +64,7 @@ class World {
     btDefaultCollisionConfiguration *collisionConfiguration;
     btCollisionDispatcher *dispatcher;
     btSequentialImpulseConstraintSolver *solver;
+    bool inEditorMode = false;
 
     bool loadMapFromXML(const std::string& worldFileName);
 
@@ -93,6 +95,8 @@ public:
     void addModelToWorld(Model *xmlModel);
 
     void *getPointedObject() const;
+
+
 };
 
 #endif //LIMONENGINE_WORLD_H

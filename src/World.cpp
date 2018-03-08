@@ -250,7 +250,31 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
     if (inputHandler.getInputStatus(inputHandler.JUMP) && inputHandler.getInputEvents(inputHandler.JUMP)) {
         direction = Player::UP;
     }
-    if (inputHandler.getInputEvents(inputHandler.DEBUG) && inputHandler.getInputStatus(inputHandler.DEBUG)) {
+
+    if (inputHandler.getInputEvents(inputHandler.EDITOR) && inputHandler.getInputStatus(inputHandler.EDITOR)) {
+        if(!this->inEditorMode) {
+            //switch control to free cursor player
+            if(editorPlayer == nullptr) {
+                editorPlayer = new FreeCursorPlayer(options, cursor);
+                editorPlayer->registerToPhysicalWorld(dynamicsWorld, worldAABBMin, worldAABBMax);
+            }
+            editorPlayer->setPositionAndRotation(currentPlayer->getPosition(), currentPlayer->getLookDirection());
+            currentPlayer = editorPlayer;
+            camera->setCameraAttachment(editorPlayer);
+            inEditorMode = true;
+        } else {
+            this->dynamicsWorld->getDebugDrawer()->setDebugMode(this->dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
+            this->options->getLogger()->log(Logger::INPUT, Logger::INFO, "Debug disabled");
+            this->guiLayers[0]->setDebug(false);
+            physicalPlayer->setPositionAndRotation(currentPlayer->getPosition(), currentPlayer->getLookDirection());
+            currentPlayer = physicalPlayer;
+            camera->setCameraAttachment(physicalPlayer);
+            dynamicsWorld->updateAabbs();//FIXME So this is wrong
+            inEditorMode = false;
+        }
+    }
+
+    if (!inEditorMode && inputHandler.getInputEvents(inputHandler.DEBUG) && inputHandler.getInputStatus(inputHandler.DEBUG)) {
         if(this->dynamicsWorld->getDebugDrawer()->getDebugMode() == btIDebugDraw::DBG_NoDebug) {
             this->dynamicsWorld->getDebugDrawer()->setDebugMode(
                     this->dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE | this->dynamicsWorld->getDebugDrawer()->DBG_DrawAabb | this->dynamicsWorld->getDebugDrawer()->DBG_DrawConstraints | this->dynamicsWorld->getDebugDrawer()->DBG_DrawConstraintLimits);
@@ -258,7 +282,7 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
             this->guiLayers[0]->setDebug(true);
             //switch control to debug player
             if(debugPlayer == nullptr) {
-                debugPlayer = new FreeCursorPlayer(options, cursor);
+                debugPlayer = new FreeMovingPlayer(options);
                 debugPlayer->registerToPhysicalWorld(dynamicsWorld, worldAABBMin, worldAABBMax);
             }
             debugPlayer->setPositionAndRotation(currentPlayer->getPosition(), currentPlayer->getLookDirection());
@@ -276,7 +300,6 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
     }
     //if none, camera should handle how to get slower.
     currentPlayer->move(direction);
-
 }
 
 void *World::getPointedObject() const {

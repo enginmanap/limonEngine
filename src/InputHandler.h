@@ -15,7 +15,7 @@ class InputHandler {
 public:
     //FIXME access modifiers should not be like this
     enum states {
-        QUIT, MOUSE_MOVE, MOUSE_BUTTON_LEFT, MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT, MOVE_RIGHT, JUMP, RUN, DEBUG
+        QUIT, MOUSE_MOVE, MOUSE_BUTTON_LEFT, MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT, MOVE_RIGHT, JUMP, RUN, DEBUG, EDITOR
     };
 private:
     SDL_Window *window;
@@ -41,7 +41,7 @@ public:
         return inputEvents.at(input);
     }
 
-    void getMousePosition(float &, float &) const;
+    void getMousePosition(float &xPos, float &yPos) const;
 
     bool getMouseChange(float &xChange, float &yChange);
 
