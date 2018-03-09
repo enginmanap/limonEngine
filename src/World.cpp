@@ -5,7 +5,21 @@
 
 #include "World.h"
 #include "AI/HumanEnemy.h"
-#include "Players/FreeCursorPlayer.h"
+
+#include "Camera.h"
+#include "GameObjects/SkyBox.h"
+#include "BulletDebugDrawer.h"
+#include "AI/AIMovementGrid.h"
+
+
+#include "GameObjects/Players/FreeCursorPlayer.h"
+#include "GameObjects/Players/FreeMovingPlayer.h"
+#include "GameObjects/Players/PhysicalPlayer.h"
+#include "GUI/GUILayer.h"
+#include "GUI/GUIText.h"
+#include "GUI/GUIFPSCounter.h"
+#include "GUI/GUITextDynamic.h"
+
 
 World::World(GLHelper *glHelper, Options *options, const std::string& worldFileName) : options(options), glHelper(glHelper), fontManager(glHelper) {
 
@@ -98,9 +112,9 @@ World::World(GLHelper *glHelper, Options *options, const std::string& worldFileN
      //debugDrawer->flushDraws();
      if (RayCallback.hasHit()) {
          for (int i = 0; i < RayCallback.m_collisionObjects.size(); ++i) {
-             std::string *objectType = (std::string *) RayCallback.m_collisionObjects[i]->getUserPointer();
-             if (*(objectType) != "player" &&
-                 *(objectType) != fromName) {
+             GameObject *gameObject = static_cast<GameObject *>(RayCallback.m_collisionObjects[i]->getUserPointer());
+             if (gameObject->getTypeID() != GameObject::PLAYER &&
+                 gameObject->getName() != fromName) {
                  return false;
              }
          }
@@ -209,10 +223,10 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
 
     if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT)) {
         if(inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
-            std::string *objectName = (std::string *) getPointedObject();
+            GameObject *gameObject = getPointedObject();
             std::string logLine;
-            if (objectName != nullptr) {
-                logLine = "object to pick is " + *objectName;
+            if (gameObject != nullptr) {
+                logLine = "object to pick is " + gameObject->getName();
             } else {
                 logLine = "no object to pick.";
             }
@@ -302,7 +316,7 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
     currentPlayer->move(direction);
 }
 
-void *World::getPointedObject() const {
+GameObject * World::getPointedObject() const {
     glm::vec3 from, lookDirection;
     currentPlayer->getWhereCameraLooks(from, lookDirection);
     //we want to extend to vector to world AABB limit
@@ -338,7 +352,7 @@ void *World::getPointedObject() const {
 
     //debugDrawer->flushDraws();
     if (RayCallback.hasHit()) {
-        return RayCallback.m_collisionObject->getUserPointer();
+        return static_cast<GameObject *>(RayCallback.m_collisionObject->getUserPointer());
     } else {
         return nullptr;
     }

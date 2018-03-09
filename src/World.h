@@ -10,26 +10,29 @@
 #include <btBulletDynamicsCommon.h>
 #include <tinyxml2.h>
 
-
 #include "PhysicalRenderable.h"
 #include "GLHelper.h"
 #include "glm/glm.hpp"
 #include "InputHandler.h"
-#include "Camera.h"
-#include "Model.h"
-#include "SkyBox.h"
-#include "BulletDebugDrawer.h"
-#include "GUI/GUILayer.h"
 #include "FontManager.h"
-#include "GUI/GUIText.h"
-#include "GUI/GUIFPSCounter.h"
-#include "Light.h"
-#include "GUI/GUITextDynamic.h"
 #include "AI/Actor.h"
-#include "AI/AIMovementGrid.h"
-#include "Players/PhysicalPlayer.h"
-#include "Players/FreeMovingPlayer.h"
-#include "Players/FreeCursorPlayer.h"
+
+class Camera;
+class Model;
+class SkyBox;
+class BulletDebugDrawer;
+class Light;
+class AIMovementGrid;
+
+class GUILayer;
+class GUIText;
+class GUIFPSCounter;
+class GUITextDynamic;
+
+class Player;
+class PhysicalPlayer;
+class FreeMovingPlayer;
+class FreeCursorPlayer;
 
 class World {
     Options* options;
@@ -94,7 +97,7 @@ public:
 
     void addModelToWorld(Model *xmlModel);
 
-    void *getPointedObject() const;
+    GameObject * getPointedObject() const;
 
 
 };

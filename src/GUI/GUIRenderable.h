@@ -63,8 +63,6 @@ public:
     float getWidth() { return scale.x; }
 
     float getHeight() { return scale.y; }
-
-
 };
 
 

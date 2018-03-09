@@ -6,10 +6,11 @@
 #define LIMONENGINE_RENDERABLE_H
 
 
+#include "GameObjects/GameObject.h"
 #include "GLHelper.h"
 #include "GLSLProgram.h"
 #include <btBulletDynamicsCommon.h>
-#include "glm/gtx/matrix_decompose.hpp"
+#include <glm/gtx/matrix_decompose.hpp>
 
 class Renderable {
 protected:
@@ -68,7 +69,6 @@ public:
         delete renderProgram;
 
     }
-
 
 };
 

@@ -28,7 +28,7 @@
 
 #define NR_POINT_LIGHTS 4
 
-#include "Light.h"
+#include "GameObjects/Light.h"
 #include "Options.h"
 
 class GLSLProgram;

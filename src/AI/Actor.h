@@ -6,7 +6,7 @@
 #define LIMONENGINE_ACTOR_H
 
 
-#include "../Model.h"
+#include "../GameObjects/Model.h"
 #include "../Options.h"
 
 struct ActorInformation{

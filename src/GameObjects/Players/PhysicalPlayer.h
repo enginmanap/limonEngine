@@ -12,9 +12,9 @@
 #include <btBulletCollisionCommon.h>
 #include <vector>
 #include <BulletDynamics/Dynamics/btDynamicsWorld.h>
-#include "../Options.h"
-#include "../CameraAttachment.h"
-#include "../Utils/GLMConverter.h"
+#include "../../Options.h"
+#include "../../CameraAttachment.h"
+#include "../../Utils/GLMConverter.h"
 #include "Player.h"
 
 
@@ -22,7 +22,6 @@ static const int STEPPING_TEST_COUNT = 5;
 
 
 class PhysicalPlayer : public Player, public CameraAttachment {
-    std::string objectType = "player";//FIXME this is just temporary ray test result detection code, we should return game objects instead of string
 
     const glm::vec3 startPosition = glm::vec3(0, 10, 15);
 

@@ -7,8 +7,9 @@
 
 
 #include "glm/glm.hpp"
+#include "GameObject.h"
 
-class Light {
+class Light : public GameObject {
 public:
     enum LightTypes {
         DIRECTIONAL, POINT
@@ -37,6 +38,16 @@ public:
     LightTypes getLightType() const {
         return lightType;
     }
+
+    /************Game Object methods **************/
+    ObjectTypes getTypeID() const {
+        return GameObject::LIGHT;
+    };
+
+    std::string getName() const {
+        return "";//Lights doesn't have names
+    };
+    /************Game Object methods **************/
 };
 
 

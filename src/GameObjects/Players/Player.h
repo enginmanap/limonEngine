@@ -5,9 +5,13 @@
 #ifndef LIMONENGINE_PLAYER_H
 #define LIMONENGINE_PLAYER_H
 
+#include "../GameObject.h"
+#include <glm/glm.hpp>
+#include <string>
+
 class btDiscreteDynamicsWorld;
 
-class Player {
+class Player : public GameObject {
 public:
     enum moveDirections {
         NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD, UP
@@ -36,6 +40,16 @@ public:
     virtual glm::vec3 getLookDirection() const = 0;
 
     virtual void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const = 0;
+
+    /************Game Object methods **************/
+    ObjectTypes getTypeID() const {
+        return GameObject::PLAYER;
+    };
+
+    std::string getName() const {
+        return "Player";//Players doesn't have specific names
+    };
+    /************Game Object methods **************/
 };
 
 

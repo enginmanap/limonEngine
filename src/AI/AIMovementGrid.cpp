@@ -99,7 +99,6 @@ bool AIMovementGrid::setProperHeight(glm::vec3 *position, float floatingHeight, 
     rayCallback->m_collisionObject = nullptr;
     staticWorld->rayTest(rayCallback->m_rayFromWorld, rayCallback->m_rayToWorld, *rayCallback);
     if (rayCallback->hasHit()) {
-        //std::cout << "the object that hit is " << *((std::string*)rayCallback->m_collisionObject->getUserPointer()) << std::endl;
         position->y = rayCallback->m_hitPointWorld.getY() + floatingHeight;
         return true;
     } else {
@@ -203,34 +202,12 @@ bool AIMovementGrid::isThereCollision(btDiscreteDynamicsWorld *staticWorld) {
 
         for (int j = 0; j < sharedManifoldArray.size(); j++) {
             btPersistentManifold *manifold = sharedManifoldArray[j];
-
-            //bool isFirstBody = manifold->getBody0() == sharedGhostObject;
-
-            //btScalar direction = isFirstBody ? btScalar(-1.0) : btScalar(1.0);
-
             for (int p = 0; p < manifold->getNumContacts(); ++p) {
                 const btManifoldPoint &pt = manifold->getContactPoint(p);
 
                 if (pt.getDistance() < 0.f) {
-//                    if (true) {
-                    // handle collisions here
-                    if (GLMConverter::BltToGLM(sharedGhostObject->getWorldTransform().getOrigin()).z < 27 &&
-                        GLMConverter::BltToGLM(sharedGhostObject->getWorldTransform().getOrigin()).z > 15 &&
-                        GLMConverter::BltToGLM(sharedGhostObject->getWorldTransform().getOrigin()).x < 26 &&
-                        GLMConverter::BltToGLM(sharedGhostObject->getWorldTransform().getOrigin()).x > -4) {
-                        std::cout << "ghost object collision at " << GLMUtils::vectorToString(
-                                GLMConverter::BltToGLM(sharedGhostObject->getWorldTransform().getOrigin()))
-                                  << std::endl;
-                        std::cout << "collided with" << *(std::string *) (manifold->getBody1()->getUserPointer())
-                                  << std::endl;
-//                            const btVector3& ptA = pt.getPositionWorldOnA();
-//                            const btVector3& ptB = pt.getPositionWorldOnB();
-//                            const btVector3& normalOnB = pt.m_normalWorldOnB;
-
-
-                    }
+                    // There is a collision
                     return true;
-                    //debugDrawer->drawLine(GLMConverter::BltToGLM(ptA), GLMConverter::BltToGLM(ptA) + )
                 }
             }
         }
@@ -246,8 +223,6 @@ AIMovementGrid::AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *st
     //sharedGhostObject->setCollisionShape(new btCapsuleShape(1,1));
     ghostShape = new btCapsuleShape(capsuleRadius, capsuleHeight);
     sharedGhostObject->setCollisionShape(ghostShape);
-    std::string ghostSTR = "GHOST_OBJECT";
-    sharedGhostObject->setUserPointer(&ghostSTR);
     sharedGhostObject->setCollisionFlags(
             sharedGhostObject->getCollisionFlags() & btCollisionObject::CF_NO_CONTACT_RESPONSE);
     sharedGhostObject->setWorldTransform(btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(startPoint)));
