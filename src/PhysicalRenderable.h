@@ -12,7 +12,6 @@
 class PhysicalRenderable : public Renderable {
 protected:
     btRigidBody *rigidBody;
-    std::string objectType = "physicalRenderable";//FIXME this is just temporary ray test result detection code, we should return game objects instead of string
     glm::vec3 centerOffset;
 public:
     explicit PhysicalRenderable(GLHelper *glHelper) : Renderable(glHelper), centerOffset(glm::vec3(0, 0, 0)) { };

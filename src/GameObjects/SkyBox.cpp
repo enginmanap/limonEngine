@@ -8,7 +8,8 @@
 SkyBox::SkyBox(AssetManager *assetManager, std::string path, std::string right, std::string left, std::string top,
                std::string down, std::string back,
                std::string front) :
-        Renderable(assetManager->getGlHelper()) {
+        Renderable(assetManager->getGlHelper()),
+        path(path) {
     cubeMap = assetManager->loadAsset<CubeMapAsset>({path,
                                                      right, left,
                                                      top, down,

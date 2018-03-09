@@ -7,11 +7,12 @@
 
 #include <string>
 
-#include "Renderable.h"
-#include "Assets/CubeMapAsset.h"
-#include "Assets/AssetManager.h"
+#include "../Renderable.h"
+#include "../Assets/CubeMapAsset.h"
+#include "../Assets/AssetManager.h"
 
-class SkyBox : public Renderable {
+class SkyBox : public Renderable, public GameObject {
+    std::string path;
     std::vector<glm::vec3> vertices;
     std::vector<glm::mediump_uvec3> faces;
 
@@ -29,6 +30,17 @@ public:
     ~SkyBox() {
         delete cubeMap;
     }
+
+    /************Game Object methods **************/
+    ObjectTypes getTypeID() const {
+        return GameObject::SKYBOX;
+    }
+
+    std::string getName() const {
+        return path;
+    };
+    /************Game Object methods **************/
+
 };
 
 #endif //LIMONENGINE_SKYBOX_H

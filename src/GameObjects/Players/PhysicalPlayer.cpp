@@ -32,7 +32,7 @@ PhysicalPlayer::PhysicalPlayer(Options *options) :
     player = new btRigidBody(boxRigidBodyCI);
     player->setAngularFactor(0);
     player->setFriction(1);
-    player->setUserPointer(&objectType);
+    player->setUserPointer(static_cast<GameObject *>(this));
 }
 
 

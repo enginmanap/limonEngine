@@ -10,13 +10,13 @@
 #include <bullet/BulletCollision/CollisionShapes/btShapeHull.h>
 
 #include "glm/glm.hpp"
-#include "PhysicalRenderable.h"
-#include "Assets/TextureAsset.h"
-#include "Material.h"
-#include "Assets/ModelAsset.h"
+#include "../PhysicalRenderable.h"
+#include "../Assets/TextureAsset.h"
+#include "../Material.h"
+#include "../Assets/ModelAsset.h"
 
 
-class Model : public PhysicalRenderable {
+class Model : public PhysicalRenderable, public GameObject {
 
     struct MeshMeta {
         MeshAsset* mesh;
@@ -30,7 +30,6 @@ class Model : public PhysicalRenderable {
     std::string animationName;
     std::string name;
     bool animated = false;
-    std::string objectType;
     std::vector<glm::mat4> boneTransforms;
     std::map<uint_fast32_t, uint_fast32_t> boneIdCompoundChildMap;
 
@@ -81,6 +80,16 @@ public:
         }
 
     }
+
+    /************Game Object methods **************/
+    ObjectTypes getTypeID() const {
+        return GameObject::MODEL;
+    };
+
+    std::string getName() const {
+        return name;
+    };
+    /************Game Object methods **************/
 };
 
 #endif //LIMONENGINE_MODEL_H
