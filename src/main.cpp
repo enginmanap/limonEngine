@@ -7,6 +7,8 @@
 #include "GLHelper.h"
 #include "SDL2Helper.h"
 #include "World.h"
+#include "WorldLoader.h"
+#include "Assets/AssetManager.h"
 
 const std::string PROGRAM_NAME = "LimonEngine";
 
@@ -34,9 +36,9 @@ int main(int argc, char *argv[]) {
     GLHelper glHelper(&options);
     glHelper.reshape();
     InputHandler inputHandler(sdlHelper.getWindow(), &options);
-
-
-    World world(&glHelper, &options, worldName);
+    AssetManager assetManager(&glHelper);
+    WorldLoader* worldLoader = new WorldLoader(&assetManager, &glHelper, &options);
+    World* world = worldLoader->loadWorld(worldName);
     glHelper.clearFrame();
     Uint32 previousTime = SDL_GetTicks();
     Uint32 currentTime, frameTime, accumulatedTime = 0;
@@ -50,11 +52,11 @@ int main(int argc, char *argv[]) {
             inputHandler.mapInput();
 
             //FIXME this does not account for long operations/low framerate
-            world.play(worldUpdateTime, inputHandler);
+            world->play(worldUpdateTime, inputHandler);
             accumulatedTime -= worldUpdateTime;
         }
         glHelper.clearFrame();
-        world.render();
+        world->render();
         sdlHelper.swap();
     }
     return 0;
