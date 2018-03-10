@@ -7,7 +7,7 @@
 
 #include <string>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include "GLHelper.h"
 
 
@@ -17,7 +17,7 @@ class GLSLProgram {
 
     std::string vertexShader;
     std::string fragmentShader;
-    std::map<std::string, GLHelper::Uniform*> uniformMap;
+    std::unordered_map<std::string, GLHelper::Uniform*> uniformMap;
     bool materialRequired;
     GLuint programID;
 

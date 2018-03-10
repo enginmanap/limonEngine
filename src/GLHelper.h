@@ -15,7 +15,7 @@
 #include <fstream>
 #include <streambuf>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <GL/glew.h>
 
 #ifdef __APPLE__
@@ -199,7 +199,7 @@ private:
 
     bool deleteVAO(const GLuint number, const GLuint bufferID);
 
-    void fillUniformMap(const GLuint program, std::map<std::string, Uniform *> &uniformMap) const;
+    void fillUniformMap(const GLuint program, std::unordered_map<std::string, Uniform *> &uniformMap) const;
 
     void attachUBOs(const GLuint program) const;
 
@@ -212,7 +212,7 @@ public:
 
     ~GLHelper();
     GLuint initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
-                                 std::map<std::string, Uniform *> &);
+                                 std::unordered_map<std::string, Uniform *> &);
 
     void bufferVertexData(const std::vector<glm::vec3> &vertices,
                           const std::vector<glm::mediump_uvec3> &faces,
