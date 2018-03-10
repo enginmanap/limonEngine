@@ -33,15 +33,16 @@ class FreeMovingPlayer;
 class FreeCursorPlayer;
 
 class World {
+    friend class WorldLoader;
+
     Options* options;
     std::vector<PhysicalRenderable *> objects;
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
     std::vector<Actor*> actors;
     AIMovementGrid *grid = nullptr;
-    SkyBox *sky;
+    SkyBox *sky = nullptr;
     GLHelper *glHelper;
-    AssetManager *assetManager;
     long gameTime = 0;
     GUITextDynamic* trd;
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
@@ -67,23 +68,6 @@ class World {
     btSequentialImpulseConstraintSolver *solver;
     bool inEditorMode = false;
 
-    bool loadMapFromXML(const std::string& worldFileName);
-
-    bool loadObjectsFromXML(tinyxml2::XMLNode *worldNode);
-
-    bool loadSkymap(tinyxml2::XMLNode *worldNode);
-
-    bool loadLights(tinyxml2::XMLNode *worldNode);
-
-public:
-    World(GLHelper *, Options *options, const std::string& worldFileName);
-
-    ~World();
-
-
-    void play(Uint32, InputHandler &);
-
-    void render();
 
     void handlePlayerInput(InputHandler &inputHandler);
 
@@ -98,6 +82,22 @@ public:
     GameObject * getPointedObject() const;
 
 
+    void addActor(Actor *actor);
+
+    void createGridFrom(const glm::vec3 &aiGridStartPoint);
+
+    void setSky(SkyBox *skyBox);
+
+    void addLight(Light *light);
+
+    World(GLHelper *, Options *options);
+
+public:
+    ~World();
+
+    void play(Uint32, InputHandler &);
+
+    void render();
 };
 
 #endif //LIMONENGINE_WORLD_H

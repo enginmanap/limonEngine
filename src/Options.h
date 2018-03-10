@@ -22,8 +22,8 @@ private:
     glm::vec3 moveSpeed = walkSpeed;
     float jumpFactor = 7.0f;
     float lookAroundSpeed = -2.5f;
-    unsigned int screenHeight = 480;
-    unsigned int screenWidth = 640;
+    unsigned int screenHeight = 1080;
+    unsigned int screenWidth = 1920;
 
     uint32_t shadowWidth = 2048;
     uint32_t shadowHeight = 2048; //TODO these values should be parameters
