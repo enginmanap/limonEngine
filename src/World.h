@@ -6,10 +6,7 @@
 #define LIMONENGINE_WORLD_H
 
 #include <vector>
-#include <SDL2/SDL_stdinc.h>
-#include <btBulletDynamicsCommon.h>
 #include <tinyxml2.h>
-
 #include "PhysicalRenderable.h"
 #include "GLHelper.h"
 #include "glm/glm.hpp"
@@ -17,6 +14,7 @@
 #include "FontManager.h"
 #include "AI/Actor.h"
 
+class btGhostPairCallback;
 class Camera;
 class Model;
 class SkyBox;
