@@ -85,7 +85,7 @@ void PhysicalPlayer::move(moveDirections direction) {
     player->activate();
 }
 
-void PhysicalPlayer::rotate(float xChange, float yChange) {
+void PhysicalPlayer::rotate(float xPosition, float yPosition, float xChange, float yChange) {
     glm::quat viewChange;
     viewChange = glm::quat(cos(yChange * options->getLookAroundSpeed() / 2),
                            right.x * sin(yChange * options->getLookAroundSpeed() / 2),

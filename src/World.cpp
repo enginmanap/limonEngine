@@ -199,9 +199,9 @@ ActorInformation World::fillActorInformation(int j) {
 }
 
 void World::handlePlayerInput(InputHandler &inputHandler) {
-    float xLook, yLook;
-    if (inputHandler.getMouseChange(xLook, yLook)) {
-        currentPlayer->rotate(xLook, yLook);
+    float xPosition, yPosition, xChange, yChange;
+    if (inputHandler.getMouseChange(xPosition, yPosition, xChange, yChange)) {
+        currentPlayer->rotate(xPosition, yPosition, xChange, yChange);
     }
 
     if (inputHandler.getInputEvents(inputHandler.RUN)) {

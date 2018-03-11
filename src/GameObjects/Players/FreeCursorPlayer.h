@@ -58,12 +58,13 @@ public:
         this->center = glm::normalize(lookDirection);
         this->right = glm::normalize(glm::cross(center, up));
         this->view = this->center;
+
     };
 
     void registerToPhysicalWorld(btDiscreteDynamicsWorld* world __attribute__((unused)), const glm::vec3& worldAABBMin __attribute__((unused)), const glm::vec3& worldAABBMax __attribute__((unused))) {}
     void processPhysicsWorld(const btDiscreteDynamicsWorld *world __attribute__((unused))) {};
 
-    void rotate(float xChange, float yChange);
+    void rotate(float xPosition, float yPosition, float xChange, float yChange);
 };
 
 

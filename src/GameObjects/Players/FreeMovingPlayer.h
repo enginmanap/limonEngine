@@ -64,7 +64,7 @@ public:
 
     void processPhysicsWorld(const btDiscreteDynamicsWorld *world __attribute__((unused))) {};
 
-    void rotate(float xChange, float yChange);
+    void rotate(float xPosition, float yPosition, float xChange, float yChange);
 
 };
 

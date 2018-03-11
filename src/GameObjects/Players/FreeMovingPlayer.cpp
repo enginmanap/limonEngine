@@ -42,7 +42,7 @@ void FreeMovingPlayer::move(moveDirections direction) {
     }
 }
 
-void FreeMovingPlayer::rotate(float xChange, float yChange) {
+void FreeMovingPlayer::rotate(float xPosition, float yPosition, float xChange, float yChange) {
     glm::quat viewChange;
     viewChange = glm::quat(cos(yChange * options->getLookAroundSpeed() / 2),
                            right.x * sin(yChange * options->getLookAroundSpeed() / 2),

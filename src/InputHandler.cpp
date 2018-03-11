@@ -155,15 +155,23 @@ void InputHandler::mapInput() {
 
 }
 
-void InputHandler::getMousePosition(float &xPos, float &yPos) const {
-    xPos = this->xPos;
-    yPos = this->yPos;
-}
-
-bool InputHandler::getMouseChange(float &xChange, float &yChange) {
+/**
+ * xpos and ypos are actual position values. If relative mouse mode is enabled, mouse position is locked so they always
+ * return the same value. In that case use change values.
+ * change values return change like 0.001 if relative mouse mode is enabled.
+ *
+ * @param xChange
+ * @param yChange
+ * @param xPos
+ * @param yPos
+ * @return
+ */
+bool InputHandler::getMouseChange(float &xPosition, float &yPosition, float &xChange, float &yChange) {
     if (inputStatus[MOUSE_MOVE]) {
         xChange = this->xChange;
         yChange = this->yChange;
+        xPosition = this->xPos;
+        yPosition = this->yPos;
         this->inputStatus[MOUSE_MOVE] = false;
         this->xChange = 0.0f;
         this->yChange = 0.0f;
