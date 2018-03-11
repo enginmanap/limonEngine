@@ -10,12 +10,20 @@
 #include <string>
 
 class btDiscreteDynamicsWorld;
+class GUIRenderable;
 
 class Player : public GameObject {
+protected:
+    GUIRenderable* cursor;
+
 public:
     enum moveDirections {
         NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD, UP
     };
+
+    Player(GUIRenderable* cursor) : cursor(cursor){};
+
+    virtual ~Player() {}
 
     virtual void move(moveDirections) = 0;
 
@@ -29,11 +37,9 @@ public:
      * @param position
      * @param lookDirection
      */
-    virtual void setPositionAndRotation(const glm::vec3& position, const glm::vec3 lookDirection) = 0;
+    virtual void ownControl(const glm::vec3 &position, const glm::vec3 lookDirection) = 0;
 
     virtual void registerToPhysicalWorld(btDiscreteDynamicsWorld* world, const glm::vec3& worldAABBMin, const glm::vec3& worldAABBMax) = 0;
-
-    virtual ~Player() {}
 
     virtual void processPhysicsWorld(const btDiscreteDynamicsWorld *world) = 0;
 

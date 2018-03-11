@@ -16,7 +16,7 @@
 #include "../../CameraAttachment.h"
 #include "../../Utils/GLMConverter.h"
 #include "Player.h"
-
+#include "../../GUI/GUIRenderable.h"
 
 static const int STEPPING_TEST_COUNT = 5;
 
@@ -89,7 +89,7 @@ public:
         lookDirection = this->center;
     }
 
-    void setPositionAndRotation(const glm::vec3& position, const glm::vec3 lookDirection) {
+    void ownControl(const glm::vec3& position, const glm::vec3 lookDirection) {
         this->center = glm::normalize(lookDirection);
         this->view.w = 0;
         this->view.x = center.x;
@@ -105,10 +105,10 @@ public:
 
         positionSet = true;
         spring->setEnabled(false);//don't enable until player is not on air
-
+        cursor->setTranslate(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f));
     };
 
-    explicit PhysicalPlayer(Options *options);
+    PhysicalPlayer(Options *options, GUIRenderable* cursor);
 
     ~PhysicalPlayer() {
         delete player;

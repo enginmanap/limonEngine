@@ -31,6 +31,14 @@ public:
         SDL_SetWindowGrab(window, SDL_FALSE);
     }
 
+    void setMouseModeRelative() {
+        SDL_SetRelativeMouseMode(SDL_TRUE);
+    }
+
+    void setMouseModeFree() {
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+    }
+
     void mapInput();
 
     bool getInputStatus(const states input) const {

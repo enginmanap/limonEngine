@@ -10,6 +10,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include "Player.h"
+#include "../../GUI/GUIRenderable.h"
 
 class Options;
 
@@ -23,7 +24,7 @@ class FreeMovingPlayer : public Player, public CameraAttachment {
     glm::quat view;
 public:
 
-    FreeMovingPlayer(Options* options);
+    FreeMovingPlayer(Options* options, GUIRenderable* cursor);
 
     bool isDirty() {
         return dirty;
@@ -51,12 +52,14 @@ public:
         lookDirection = this->center;
     }
 
-    void setPositionAndRotation(const glm::vec3& position, const glm::vec3 lookDirection) {
+    void ownControl(const glm::vec3& position, const glm::vec3 lookDirection) {
         this->position = position;
 
         this->center = glm::normalize(lookDirection);
         this->right = glm::normalize(glm::cross(center, up));
         this->view = this->center;
+
+        cursor->setTranslate(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f));
     };
 
     void registerToPhysicalWorld(btDiscreteDynamicsWorld* world __attribute__((unused)), const glm::vec3& worldAABBMin __attribute__((unused)), const glm::vec3& worldAABBMax __attribute__((unused))) {}
