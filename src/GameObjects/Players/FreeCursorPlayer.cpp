@@ -43,9 +43,9 @@ void FreeCursorPlayer::move(moveDirections direction) {
     }
 }
 
-void FreeCursorPlayer::rotate(float xPosition, float yPosition, float xChange, float yChange) {
-    //FIXME hardcoded 500 is just terrible. Disabling mouse warp should be considered
-    cursor->addTranslate(glm::vec2(xChange * 500, yChange * 500 * -1.0f));
+void FreeCursorPlayer::rotate(float xPosition, float yPosition, float xChange __attribute__((unused)), float yChange __attribute__((unused))) {
+    cursor->setTranslate(glm::vec2((options->getScreenWidth()/2.0f)  + xPosition * options->getScreenWidth() /2.0f,
+                                   (options->getScreenHeight()/2.0f) - yPosition * options->getScreenHeight()/2.0f)); //y is negative, because sdl reports opposite of OpenGL
     }
 
 void FreeCursorPlayer::getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &toPosition) const {
@@ -73,14 +73,14 @@ void FreeCursorPlayer::getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &t
 }
 
 FreeCursorPlayer::FreeCursorPlayer(Options *options, GUIRenderable* cursor):
+        Player(cursor),
         options(options),
         dirty(true),
         position(),
         center(glm::vec3(0,0,-1)),
         up(glm::vec3(0,1,0)),
         right(glm::vec3(-1,0,0)),
-        view(glm::quat(0,0,0,-1)),
-        cursor(cursor)
+        view(glm::quat(0,0,0,-1))
 {
 
 }

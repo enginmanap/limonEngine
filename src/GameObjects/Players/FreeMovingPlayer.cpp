@@ -42,7 +42,7 @@ void FreeMovingPlayer::move(moveDirections direction) {
     }
 }
 
-void FreeMovingPlayer::rotate(float xPosition, float yPosition, float xChange, float yChange) {
+void FreeMovingPlayer::rotate(float xPosition __attribute__((unused)), float yPosition __attribute__((unused)), float xChange, float yChange) {
     glm::quat viewChange;
     viewChange = glm::quat(cos(yChange * options->getLookAroundSpeed() / 2),
                            right.x * sin(yChange * options->getLookAroundSpeed() / 2),
@@ -72,7 +72,8 @@ void FreeMovingPlayer::rotate(float xPosition, float yPosition, float xChange, f
     right = glm::normalize(glm::cross(center, up));
 }
 
-FreeMovingPlayer::FreeMovingPlayer(Options *options):
+FreeMovingPlayer::FreeMovingPlayer(Options *options, GUIRenderable* cursor):
+        Player(cursor),
         options(options),
         dirty(true),
         position(),

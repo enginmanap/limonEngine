@@ -10,6 +10,7 @@
 #include "../../Utils/GLMUtils.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <SDL2/SDL.h>
 
 
 class Options;
@@ -23,8 +24,6 @@ class FreeCursorPlayer : public Player, public CameraAttachment {
     glm::vec3 up;
     glm::vec3 right;
     glm::quat view;
-    GUIRenderable* cursor;
-    glm::vec3 toRay;
 public:
 
     FreeCursorPlayer(Options* options, GUIRenderable* cursor);
@@ -52,13 +51,19 @@ public:
         return this->center;
     };
 
-    void setPositionAndRotation(const glm::vec3& position, const glm::vec3 lookDirection) {
+    /**
+     * This method allows player class to setup what it needs to act properly.
+     *
+     * @param position
+     * @param lookDirection
+     */
+    void ownControl(const glm::vec3 &position, const glm::vec3 lookDirection) {
         this->position = position;
 
         this->center = glm::normalize(lookDirection);
         this->right = glm::normalize(glm::cross(center, up));
         this->view = this->center;
-
+        //FIXME Do we need release control?
     };
 
     void registerToPhysicalWorld(btDiscreteDynamicsWorld* world __attribute__((unused)), const glm::vec3& worldAABBMin __attribute__((unused)), const glm::vec3& worldAABBMax __attribute__((unused))) {}
