@@ -100,14 +100,18 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
 
      //debugDrawer->flushDraws();
      if (RayCallback.hasHit()) {
+         bool hasSeen = false;
          for (int i = 0; i < RayCallback.m_collisionObjects.size(); ++i) {
              GameObject *gameObject = static_cast<GameObject *>(RayCallback.m_collisionObjects[i]->getUserPointer());
              if (gameObject->getTypeID() != GameObject::PLAYER &&
                  gameObject->getName() != fromName) {
                  return false;
              }
+             if(gameObject->getTypeID() == GameObject::PLAYER) {
+                 hasSeen = true;
+             }
          }
-         return true;
+         return hasSeen;
      }
      return false;//if ray did not hit anything, return false. This should never happen
  }
