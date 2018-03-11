@@ -41,9 +41,7 @@ public:
         return inputEvents.at(input);
     }
 
-    void getMousePosition(float &xPos, float &yPos) const;
-
-    bool getMouseChange(float &xChange, float &yChange);
+    bool getMouseChange(float &xPosition, float &yPosition, float &xChange, float &yChange);
 
 };
 

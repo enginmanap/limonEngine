@@ -19,7 +19,7 @@ public:
 
     virtual void move(moveDirections) = 0;
 
-    virtual void rotate(float xChange, float yChange) = 0;
+    virtual void rotate(float xPosition, float yPosition, float xChange, float yChange) = 0;
 
     virtual glm::vec3 getPosition() const = 0;
 

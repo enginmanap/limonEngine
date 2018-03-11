@@ -43,7 +43,7 @@ void FreeCursorPlayer::move(moveDirections direction) {
     }
 }
 
-void FreeCursorPlayer::rotate(float xChange, float yChange) {
+void FreeCursorPlayer::rotate(float xPosition, float yPosition, float xChange, float yChange) {
     //FIXME hardcoded 500 is just terrible. Disabling mouse warp should be considered
     cursor->addTranslate(glm::vec2(xChange * 500, yChange * 500 * -1.0f));
     }
