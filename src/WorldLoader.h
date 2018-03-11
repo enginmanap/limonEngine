@@ -31,11 +31,7 @@ public:
     WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options* options);
     World* loadWorld(const std::string& worldFile) const;
 
-    ~WorldLoader() {
-        for (int i = 0; i < loadedWorlds.size(); ++i) {
-            delete loadedWorlds[i];
-        }
-    }
+    ~WorldLoader();
 };
 
 
