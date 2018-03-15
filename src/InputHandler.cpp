@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include "InputHandler.h"
+#include "ImGuiHelper.h"
 
 InputHandler::InputHandler(SDL_Window *window, Options *options) :
         window(window), options(options) {
@@ -21,9 +22,23 @@ InputHandler::InputHandler(SDL_Window *window, Options *options) :
     inputEvents[DEBUG] = false;
     inputStatus[EDITOR] = false;
     inputEvents[EDITOR] = false;
+    inputStatus[KEY_ALT] = false;
+    inputEvents[KEY_ALT] = false;
+    inputStatus[KEY_CTRL] = false;
+    inputEvents[KEY_CTRL] = false;
+    inputStatus[KEY_SHIFT] = false;
+    inputEvents[KEY_SHIFT] = false;
+    inputStatus[KEY_SUPER] = false;
+    inputEvents[KEY_SUPER] = false;
     inputStatus[MOUSE_BUTTON_LEFT] = false;
     inputEvents[MOUSE_BUTTON_LEFT] = false;
-
+    inputStatus[MOUSE_BUTTON_RIGHT] = false;
+    inputEvents[MOUSE_BUTTON_RIGHT] = false;
+    inputStatus[MOUSE_BUTTON_MIDDLE] = false;
+    inputEvents[MOUSE_BUTTON_MIDDLE] = false;
+    inputEvents[MOUSE_WHEEL_UP] = false;
+    inputEvents[MOUSE_WHEEL_DOWN] = false;
+    inputEvents[TEXT_INPUT] = false;
 }
 
 void InputHandler::mapInput() {
@@ -31,7 +46,17 @@ void InputHandler::mapInput() {
     inputEvents[JUMP] = false;
     inputEvents[RUN] = false;
     inputEvents[MOUSE_BUTTON_LEFT] = false;
+    inputEvents[MOUSE_BUTTON_MIDDLE] = false;
+    inputEvents[MOUSE_BUTTON_RIGHT] = false;
+    inputEvents[KEY_ALT] = false;
+    inputEvents[KEY_CTRL] = false;
+    inputEvents[KEY_SHIFT] = false;
+    inputEvents[KEY_SUPER] = false;
     inputEvents[EDITOR] = false;
+    inputEvents[MOUSE_WHEEL_UP] = false;
+    inputEvents[MOUSE_WHEEL_DOWN] = false;
+    inputEvents[TEXT_INPUT] = false;
+
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
             case SDL_QUIT:
@@ -45,12 +70,30 @@ void InputHandler::mapInput() {
                         }
                         inputStatus[MOUSE_BUTTON_LEFT] = true;
                         break;
+                    case SDL_BUTTON_MIDDLE:
+                        if(!inputStatus[MOUSE_BUTTON_MIDDLE]) {
+                            inputEvents[MOUSE_BUTTON_MIDDLE] = true;
+                        }
+                        inputStatus[MOUSE_BUTTON_MIDDLE] = true;
+                        break;
+                    case SDL_BUTTON_RIGHT:
+                        if(!inputStatus[MOUSE_BUTTON_RIGHT]) {
+                            inputEvents[MOUSE_BUTTON_RIGHT] = true;
+                        }
+                        inputStatus[MOUSE_BUTTON_RIGHT] = true;
+                        break;
                 }
                 break;
             case SDL_MOUSEBUTTONUP:
                 switch (event.button.button) {
                     case SDL_BUTTON_LEFT:
                         inputStatus[MOUSE_BUTTON_LEFT] = false;
+                        break;
+                    case SDL_BUTTON_MIDDLE:
+                        inputStatus[MOUSE_BUTTON_MIDDLE] = false;
+                        break;
+                    case SDL_BUTTON_RIGHT:
+                        inputStatus[MOUSE_BUTTON_RIGHT] = false;
                         break;
                 }
                 break;
@@ -60,6 +103,13 @@ void InputHandler::mapInput() {
                 xChange = (event.motion.xrel) / (options->getScreenWidth() / 2.0f);
                 yPos = (event.motion.y - (options->getScreenHeight() / 2.0f)) / (options->getScreenHeight() / 2);
                 yChange = (event.motion.yrel) / (options->getScreenHeight() / 2.0f);
+                break;
+            case SDL_MOUSEWHEEL:
+                if(event.wheel.y > 0) {
+                    inputEvents[MOUSE_WHEEL_UP] = true;
+                } else if(event.wheel.y < 0) {
+                    inputEvents[MOUSE_WHEEL_DOWN] = true;
+                }
                 break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.sym) {
@@ -84,11 +134,36 @@ void InputHandler::mapInput() {
                         }
                         inputStatus[JUMP] = true;
                         break;
+                    case SDLK_RSHIFT:
                     case SDLK_LSHIFT:
                         if(!inputStatus[RUN]) {
                             inputEvents[RUN] = true;
                         }
                         inputStatus[RUN] = true;
+                        if(!inputStatus[KEY_SHIFT]) {
+                            inputEvents[KEY_SHIFT] = true;
+                        }
+                        inputStatus[KEY_SHIFT] = true;
+                        break;
+                    case SDLK_LALT:
+                        if(!inputStatus[KEY_ALT]) {
+                            inputEvents[KEY_ALT] = true;
+                        }
+                        inputStatus[KEY_ALT] = true;
+                        break;
+                    case SDLK_LGUI:
+                    case SDLK_RGUI:
+                        if(!inputStatus[KEY_SUPER]) {
+                            inputEvents[KEY_SUPER] = true;
+                        }
+                        inputStatus[KEY_SUPER] = true;
+                        break;
+                    case SDLK_LCTRL:
+                    case SDLK_RCTRL:
+                        if(!inputStatus[KEY_CTRL]) {
+                            inputEvents[KEY_CTRL] = true;
+                        }
+                        inputStatus[KEY_CTRL] = true;
                         break;
                     case SDLK_0:
                         if(!inputStatus[DEBUG]) {
@@ -130,11 +205,36 @@ void InputHandler::mapInput() {
                         }
                         inputStatus[JUMP] = false;
                         break;
+                    case SDLK_RSHIFT:
                     case SDLK_LSHIFT:
                         if(inputStatus[RUN]) {
                             inputEvents[RUN] = true;
                         }
-                        inputStatus[RUN] = false;
+                        inputStatus[RUN] = true;
+                        if(inputStatus[KEY_SHIFT]) {
+                            inputEvents[KEY_SHIFT] = true;
+                        }
+                        inputStatus[KEY_SHIFT] = false;
+                        break;
+                    case SDLK_LALT:
+                        if(inputStatus[KEY_ALT]) {
+                            inputEvents[KEY_ALT] = true;
+                        }
+                        inputStatus[KEY_ALT] = false;
+                        break;
+                    case SDLK_LGUI:
+                    case SDLK_RGUI:
+                        if(inputStatus[KEY_SUPER]) {
+                            inputEvents[KEY_SUPER] = true;
+                        }
+                        inputStatus[KEY_SUPER] = false;
+                        break;
+                    case SDLK_LCTRL:
+                    case SDLK_RCTRL:
+                        if(inputStatus[KEY_CTRL]) {
+                            inputEvents[KEY_CTRL] = true;
+                        }
+                        inputStatus[KEY_CTRL] = false;
                         break;
                     case SDLK_0:
                         if(inputStatus[DEBUG]) {
@@ -149,6 +249,10 @@ void InputHandler::mapInput() {
                         inputStatus[EDITOR] = false;
                         break;
                 }
+                break;
+            case SDL_TEXTINPUT:
+                this->sdlText = event.text.text;
+                inputEvents[TEXT_INPUT] = true;
                 break;
         }
     }

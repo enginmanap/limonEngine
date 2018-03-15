@@ -31,7 +31,7 @@ class Player;
 class PhysicalPlayer;
 class FreeMovingPlayer;
 class FreeCursorPlayer;
-
+class ImGuiHelper;
 class World {
     friend class WorldLoader;
 
@@ -67,6 +67,7 @@ class World {
     btCollisionDispatcher *dispatcher;
     btSequentialImpulseConstraintSolver *solver;
     bool inEditorMode = false;
+    ImGuiHelper *imgGuiHelper;
 
 
     void handlePlayerInput(InputHandler &inputHandler);
@@ -92,6 +93,7 @@ class World {
 
     World(GLHelper *, Options *options);
 
+    void ImGuiFrameSetup() const;
 public:
     ~World();
 

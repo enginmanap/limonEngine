@@ -15,7 +15,7 @@ class InputHandler {
 public:
     //FIXME access modifiers should not be like this
     enum states {
-        QUIT, MOUSE_MOVE, MOUSE_BUTTON_LEFT, MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT, MOVE_RIGHT, JUMP, RUN, DEBUG, EDITOR
+        QUIT, MOUSE_MOVE, MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE, MOUSE_BUTTON_RIGHT, MOUSE_WHEEL_UP, MOUSE_WHEEL_DOWN, MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT, MOVE_RIGHT, JUMP, RUN, DEBUG, EDITOR, KEY_SHIFT, KEY_CTRL, KEY_ALT, KEY_SUPER, TEXT_INPUT
     };
 private:
     SDL_Window *window;
@@ -24,6 +24,7 @@ private:
     std::map<states, bool> inputStatus;
     std::map<states, bool> inputEvents;
     float xPos, yPos, xChange, yChange;
+    char* sdlText;
 public:
     InputHandler(SDL_Window *, Options *options);
 
@@ -47,6 +48,10 @@ public:
 
     bool getInputEvents(const states input) const {
         return inputEvents.at(input);
+    }
+
+    const char * getText() const {
+        return sdlText;
     }
 
     bool getMouseChange(float &xPosition, float &yPosition, float &xChange, float &yChange);

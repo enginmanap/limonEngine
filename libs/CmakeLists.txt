@@ -1,0 +1,17 @@
+cmake_minimum_required (VERSION 3.5.1)
+project (Dear_ImGui)
+
+set(IMGUI_SOURCES
+        "libs/ImGui/imgui.cpp"
+        "libs/ImGui/imgui_demo.cpp"
+        "libs/ImGui/imgui_draw.cpp")
+
+set(IMGUI_HEADERS
+        "libs/ImGui/imconfig.h"
+        "libs/ImGui/imgui.h"
+        "libs/ImGui/imgui_internal.h"
+        "libs/ImGui/stb_rect_pack.h"
+        "libs/ImGui/stb_textedit.h"
+        "libs/ImGui/stb_truetype.h")
+
+add_library(ImGui ${IMGUI_SOURCES} ${IMGUI_HEADERS})
