@@ -19,6 +19,7 @@
 #include "GUI/GUIText.h"
 #include "GUI/GUIFPSCounter.h"
 #include "GUI/GUITextDynamic.h"
+#include "ImGuiHelper.h"
 
 
 World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(glHelper), fontManager(glHelper){
@@ -85,6 +86,10 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
 
     guiLayers.push_back(layer1);
 
+    /************ ImGui *****************************/
+    // Setup ImGui binding
+    imgGuiHelper = new ImGuiHelper(glHelper, options);
+
 }
 
  bool World::checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName) {
@@ -138,7 +143,10 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 
     //end of physics step
 
-    handlePlayerInput(inputHandler);
+    // Pass input to ImGui, if it consumes returns true, if it doesn't then we will process it
+    if(!imgGuiHelper->ProcessEvent(inputHandler)) {
+        handlePlayerInput(inputHandler);
+    }
 }
 
 ActorInformation World::fillActorInformation(int j) {
@@ -210,7 +218,7 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
             } else {
                 logLine = "no object to pick.";
             }
-            options->getLogger()->log(Logger::INPUT, Logger::DEBUG, logLine);
+            options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, logLine);
         }
     }
 
@@ -229,7 +237,7 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
             inEditorMode = true;
         } else {
             this->dynamicsWorld->getDebugDrawer()->setDebugMode(this->dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
-            this->options->getLogger()->log(Logger::INPUT, Logger::INFO, "Debug disabled");
+            this->options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_INFO, "Debug disabled");
             this->guiLayers[0]->setDebug(false);
             physicalPlayer->ownControl(currentPlayer->getPosition(), currentPlayer->getLookDirection());
             currentPlayer = physicalPlayer;
@@ -244,7 +252,7 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
         if(this->dynamicsWorld->getDebugDrawer()->getDebugMode() == btIDebugDraw::DBG_NoDebug) {
             this->dynamicsWorld->getDebugDrawer()->setDebugMode(
                     this->dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE | this->dynamicsWorld->getDebugDrawer()->DBG_DrawAabb | this->dynamicsWorld->getDebugDrawer()->DBG_DrawConstraints | this->dynamicsWorld->getDebugDrawer()->DBG_DrawConstraintLimits);
-            this->options->getLogger()->log(Logger::INPUT, Logger::INFO, "Debug enabled");
+            this->options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_INFO, "Debug enabled");
             this->guiLayers[0]->setDebug(true);
             //switch control to debug player
             if(debugPlayer == nullptr) {
@@ -256,7 +264,7 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
             camera->setCameraAttachment(debugPlayer);
         } else {
             this->dynamicsWorld->getDebugDrawer()->setDebugMode(this->dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
-            this->options->getLogger()->log(Logger::INPUT, Logger::INFO, "Debug disabled");
+            this->options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_INFO, "Debug disabled");
             this->guiLayers[0]->setDebug(false);
             physicalPlayer->ownControl(currentPlayer->getPosition(), currentPlayer->getLookDirection());
             currentPlayer = physicalPlayer;
@@ -416,7 +424,36 @@ void World::render() {
         (*it)->render();
     }
 
+    ImGuiFrameSetup();
 
+}
+
+/**
+ * This method checks if we are in editor mode, and if we are, enables ImGui windows
+ * It also fills the windows with relevant parameters.
+ */
+void World::ImGuiFrameSetup() const {
+    if (this->inEditorMode) {
+        imgGuiHelper->NewFrame();
+        /* window definitions */
+        {
+            static float f = 0.0f;
+            ImGui::Text("Editor Window");                           // Some text (you can use a format string too)
+            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float as a slider from 0.0f to 1.0f
+            const ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+            ImGui::ColorEdit3("clear color", (float *) &clear_color); // Edit 3 floats as a color
+            if (ImGui::Button(
+                    "Demo Window"))                       // Use buttons to toggle our bools. We could use Checkbox() as well.
+                options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_TRACE, "demo window click");
+            if (ImGui::Button("Another Window"))
+                options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_TRACE, "another window click");
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
+                        ImGui::GetIO().Framerate);
+
+        }
+        /* window definitions */
+        imgGuiHelper->RenderDrawLists();
+    }
 }
 
 World::~World() {
@@ -444,7 +481,7 @@ World::~World() {
     if(debugPlayer!= nullptr) {
         delete debugPlayer;
     }
-
+    delete imgGuiHelper;
 }
 
 void World::addModelToWorld(Model *xmlModel) {

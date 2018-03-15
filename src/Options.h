@@ -35,7 +35,60 @@ private:
 
     uint32_t debugDrawBufferSize = 1000;
 
+    /*SDL properties that should be available */
+    void* imeWindowHandle;
+    int drawableWidth, drawableHeight;
+    int windowWidth, windowHeight;
+    bool isWindowInFocus;
 public:
+    void *getImeWindowHandle() const {
+        return imeWindowHandle;
+    }
+
+    void setImeWindowHandle(void *imeWindowHandle) {
+        Options::imeWindowHandle = imeWindowHandle;
+    }
+
+    int getDrawableWidth() const {
+        return drawableWidth;
+    }
+
+    void setDrawableWidth(int drawableWidth) {
+        Options::drawableWidth = drawableWidth;
+    }
+
+    int getDrawableHeight() const {
+        return drawableHeight;
+    }
+
+    void setDrawableHeight(int drawableHeight) {
+        Options::drawableHeight = drawableHeight;
+    }
+
+    int getWindowWidth() const {
+        return windowWidth;
+    }
+
+    void setWindowWidth(int windowWidth) {
+        Options::windowWidth = windowWidth;
+    }
+
+    int getWindowHeight() const {
+        return windowHeight;
+    }
+
+    void setWindowHeight(int windowHeight) {
+        Options::windowHeight = windowHeight;
+    }
+
+    bool isIsWindowInFocus() const {
+        return isWindowInFocus;
+    }
+
+    void setIsWindowInFocus(bool isWindowInFocus) {
+        Options::isWindowInFocus = isWindowInFocus;
+    }
+
     uint32_t getDebugDrawBufferSize() const {
         return debugDrawBufferSize;
     }
@@ -140,7 +193,7 @@ public:
 
     void setLookAroundSpeed(float lookAroundSpeed) {
         this->lookAroundSpeed = lookAroundSpeed;
-        logger->log(Logger::SETTINGS, Logger::DEBUG, "Look around speed set to " + std::to_string(lookAroundSpeed));
+        logger->log(Logger::log_Subsystem_SETTINGS, Logger::log_level_DEBUG, "Look around speed set to " + std::to_string(lookAroundSpeed));
     }
 
     Options() {

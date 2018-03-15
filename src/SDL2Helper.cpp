@@ -2,9 +2,11 @@
 // Created by Engin Manap on 10.02.2016.
 //
 
+#include <SDL_syswm.h>
 #include "SDL2Helper.h"
+#include "Options.h"
 
-SDL2Helper::SDL2Helper(const char *title, int height, int width) {
+SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) { /* Initialize SDL's Video subsystem */
         std::cout << "Unable to initialize SDL";
@@ -25,7 +27,7 @@ SDL2Helper::SDL2Helper(const char *title, int height, int width) {
 
     /* Create our window centered at 512x512 resolution */
     window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                              width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+                              options->getScreenWidth(), options->getScreenHeight(), SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
     if (!window) { /* Die if creation failed */
         std::cout << "SDL Error: " << SDL_GetError() << std::endl;
         SDL_Quit();
@@ -40,6 +42,22 @@ SDL2Helper::SDL2Helper(const char *title, int height, int width) {
         exit(1);
 
     }
+
+    SDL_SysWMinfo wmInfo;
+    SDL_VERSION(&wmInfo.version);
+    SDL_GetWindowWMInfo(window, &wmInfo);
+
+    options->setImeWindowHandle(wmInfo.info.win.window);
+
+    //if window has a scaling, we are setting the values to find out;
+    int w, h;
+    int display_w, display_h;
+    SDL_GetWindowSize(window, &w, &h);
+    SDL_GL_GetDrawableSize(window, &display_w, &display_h);
+    options->setDrawableHeight(display_h);
+    options->setDrawableWidth(display_w);
+    options->setWindowWidth(w);
+    options->setWindowHeight(h);
 
     /* This makes our buffer swap syncronized with the monitor's vertical refresh */
     //SDL_GL_SetSwapInterval(1);

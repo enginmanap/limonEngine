@@ -56,7 +56,6 @@ void FreeCursorPlayer::getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &t
     /* to normalized device coordinates */
     float normalizedDeviceCoordinateX = (2.0f * cursorPosition.x) / options->getScreenWidth() - 1.0f;
     float normalizedDeviceCoordinateY = (2.0f * cursorPosition.y) / options->getScreenHeight() - 1.0f;
-    std::cout << "normalized: " << normalizedDeviceCoordinateX << ", " << normalizedDeviceCoordinateY << std::endl;
     /* homogeneous clip coordinates */
     glm::vec4 clipSpaceRay = glm::vec4(normalizedDeviceCoordinateX, normalizedDeviceCoordinateY, -1.0, 1.0);
     /* eye coordinates */
