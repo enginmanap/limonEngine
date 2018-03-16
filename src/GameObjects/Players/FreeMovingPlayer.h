@@ -57,7 +57,10 @@ public:
 
         this->center = glm::normalize(lookDirection);
         this->right = glm::normalize(glm::cross(center, up));
-        this->view = this->center;
+        this->view.x = this->center.x;
+        this->view.y = this->center.y;
+        this->view.z = this->center.z;
+        this->view.w = 0;
 
         cursor->setTranslate(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f));
     };

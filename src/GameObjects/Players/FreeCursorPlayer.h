@@ -62,7 +62,10 @@ public:
 
         this->center = glm::normalize(lookDirection);
         this->right = glm::normalize(glm::cross(center, up));
-        this->view = this->center;
+        this->view.x = this->center.x;
+        this->view.y = this->center.y;
+        this->view.z = this->center.z;
+        this->view.w = 0;
         //FIXME Do we need release control?
     };
 
