@@ -93,7 +93,7 @@ public:
 
     void addImGuiEditorElements() {
         bool updated = false;
-        ImGui::Text(getName().c_str());                           // Some text (you can use a format string too)
+        ImGui::Text("%s",getName().c_str());                           // Some text (you can use a format string too)
         updated = ImGui::SliderFloat("Position X", &(this->translate.x), -100.0f, 100.0f)   || updated;
         updated = ImGui::SliderFloat("Position Y", &(this->translate.y), -100.0f, 100.0f)   || updated;
         updated = ImGui::SliderFloat("Position Z", &(this->translate.z), -100.0f, 100.0f)   || updated;
