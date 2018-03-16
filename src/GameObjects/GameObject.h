@@ -15,6 +15,7 @@ public:
     enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX };
     virtual ObjectTypes getTypeID() const = 0;
     virtual std::string getName() const = 0;
+    virtual void addImGuiEditorElements() {};
     virtual ~GameObject() {};
 };
 

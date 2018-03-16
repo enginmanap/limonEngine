@@ -27,11 +27,13 @@ class GUIText;
 class GUIFPSCounter;
 class GUITextDynamic;
 
+class GameObject;
 class Player;
 class PhysicalPlayer;
 class FreeMovingPlayer;
 class FreeCursorPlayer;
 class ImGuiHelper;
+
 class World {
     friend class WorldLoader;
 
@@ -68,7 +70,7 @@ class World {
     btSequentialImpulseConstraintSolver *solver;
     bool inEditorMode = false;
     ImGuiHelper *imgGuiHelper;
-
+    GameObject* pickedObject = nullptr;
 
     void handlePlayerInput(InputHandler &inputHandler);
 

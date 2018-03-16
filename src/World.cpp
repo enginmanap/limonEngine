@@ -214,8 +214,10 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
             GameObject *gameObject = getPointedObject();
             std::string logLine;
             if (gameObject != nullptr) {
+                pickedObject = gameObject;
                 logLine = "object to pick is " + gameObject->getName();
             } else {
+                pickedObject = nullptr;
                 logLine = "no object to pick.";
             }
             options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, logLine);
@@ -437,19 +439,12 @@ void World::ImGuiFrameSetup() const {
         imgGuiHelper->NewFrame();
         /* window definitions */
         {
-            static float f = 0.0f;
             ImGui::Text("Editor Window");                           // Some text (you can use a format string too)
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float as a slider from 0.0f to 1.0f
-            const ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-            ImGui::ColorEdit3("clear color", (float *) &clear_color); // Edit 3 floats as a color
-            if (ImGui::Button(
-                    "Demo Window"))                       // Use buttons to toggle our bools. We could use Checkbox() as well.
-                options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_TRACE, "demo window click");
-            if (ImGui::Button("Another Window"))
-                options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_TRACE, "another window click");
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
-                        ImGui::GetIO().Framerate);
-
+            if(pickedObject != nullptr) {
+                pickedObject->addImGuiEditorElements();
+            } else {
+                ImGui::Text("No object picked");                           // Some text (you can use a format string too)
+            }
         }
         /* window definitions */
         imgGuiHelper->RenderDrawLists();

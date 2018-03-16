@@ -21,11 +21,23 @@ public:
     void addScale(const glm::vec3 &scale) {
         Renderable::addScale(scale);
         rigidBody->getCollisionShape()->setLocalScaling(btVector3(this->scale.x, this->scale.y, this->scale.z));
+    }
 
+    void setScale(const glm::vec3 &scale) {
+        Renderable::setScale(scale);
+        rigidBody->getCollisionShape()->setLocalScaling(btVector3(this->scale.x, this->scale.y, this->scale.z));
     }
 
     void addTranslate(const glm::vec3 &translate) {
         Renderable::addTranslate(translate);
+        btTransform transform = this->rigidBody->getCenterOfMassTransform();
+        transform.setOrigin(btVector3(this->translate.x, this->translate.y, this->translate.z));
+        this->rigidBody->setWorldTransform(transform);
+        this->rigidBody->getMotionState()->setWorldTransform(transform);
+    }
+
+    void setTranslate(const glm::vec3 &translate) {
+        Renderable::setTranslate(translate);
         btTransform transform = this->rigidBody->getCenterOfMassTransform();
         transform.setOrigin(btVector3(this->translate.x, this->translate.y, this->translate.z));
         this->rigidBody->setWorldTransform(transform);

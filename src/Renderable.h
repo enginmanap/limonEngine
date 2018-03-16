@@ -35,8 +35,18 @@ public:
         isDirty = true;
     }
 
+    virtual void setScale(const glm::vec3 &scale) {
+        this->scale = scale;
+        isDirty = true;
+    }
+
     virtual void addTranslate(const glm::vec3 &translate) {
         this->translate += translate;
+        isDirty = true;
+    }
+
+    virtual void setTranslate(const glm::vec3 &translate) {
+        this->translate = translate;
         isDirty = true;
     }
 
