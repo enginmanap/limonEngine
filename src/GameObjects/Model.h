@@ -92,17 +92,21 @@ public:
     };
 
     void addImGuiEditorElements() {
+        bool updated = false;
         ImGui::Text(getName().c_str());                           // Some text (you can use a format string too)
-        ImGui::SliderFloat("Position X", &(this->translate.x), -100.0f, 100.0f);            // Edit 1 float as a slider from 0.0f to 1.0f
-        ImGui::SliderFloat("Position Y", &(this->translate.y), -100.0f, 100.0f);            // Edit 1 float as a slider from 0.0f to 1.0f
-        ImGui::SliderFloat("Position Z", &(this->translate.z), -100.0f, 100.0f);            // Edit 1 float as a slider from 0.0f to 1.0f
+        updated = ImGui::SliderFloat("Position X", &(this->translate.x), -100.0f, 100.0f)   || updated;
+        updated = ImGui::SliderFloat("Position Y", &(this->translate.y), -100.0f, 100.0f)   || updated;
+        updated = ImGui::SliderFloat("Position Z", &(this->translate.z), -100.0f, 100.0f)   || updated;
 
-        ImGui::SliderFloat("Scale X", &(this->scale.x), 0.01f, 10.0f);            // Edit 1 float as a slider from 0.0f to 1.0f
-        ImGui::SliderFloat("Scale Y", &(this->scale.y), 0.01f, 10.0f);            // Edit 1 float as a slider from 0.0f to 1.0f
-        ImGui::SliderFloat("Scale Z", &(this->scale.z), 0.01f, 10.0f);            // Edit 1 float as a slider from 0.0f to 1.0f
+        updated = ImGui::SliderFloat("Scale X", &(this->scale.x), 0.01f, 10.0f)             || updated;
+        updated = ImGui::SliderFloat("Scale Y", &(this->scale.y), 0.01f, 10.0f)             || updated;
+        updated = ImGui::SliderFloat("Scale Z", &(this->scale.z), 0.01f, 10.0f)             || updated;
 
-        this->setTranslate(translate);
-        this->setScale(scale);
+        if(updated) {
+            this->setTranslate(translate);
+            this->setScale(scale);
+            this->rigidBody->activate();
+        }
     };
     /************Game Object methods **************/
 };
