@@ -122,11 +122,19 @@ World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(
  }
 
 void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
-    //every time we call this method, we increase the time only by simulationTimeframe
-    gameTime += simulationTimeFrame;
-    dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
-    currentPlayer->processPhysicsWorld(dynamicsWorld);
+    if(!inEditorMode) {
+        //every time we call this method, we increase the time only by simulationTimeframe
+        gameTime += simulationTimeFrame;
+        dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
+        currentPlayer->processPhysicsWorld(dynamicsWorld);
 
+        for (unsigned int j = 0; j < actors.size(); ++j) {
+            ActorInformation information = fillActorInformation(j);
+            actors[j]->play(gameTime, information, options);
+        }
+    } else {
+        dynamicsWorld->updateAabbs();
+    }
     for (unsigned int i = 0; i < objects.size(); ++i) {
         objects[i]->setupForTime(gameTime);
         objects[i]->updateTransformFromPhysics();
@@ -134,11 +142,6 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
         guiLayers[i]->setupForTime(gameTime);
-    }
-
-    for (unsigned int j = 0; j < actors.size(); ++j) {
-        ActorInformation information = fillActorInformation(j);
-        actors[j]->play(gameTime,information, options);
     }
 
     //end of physics step
