@@ -39,7 +39,7 @@ class Model : public PhysicalRenderable, public GameObject {
     btCompoundShape *compoundShape;
     const float mass;
 
-    std::map<std::string, Material *> materialMap;
+    std::unordered_map<std::string, Material *> materialMap;
     int diffuseMapAttachPoint = 1;
     int ambientMapAttachPoint = 2;
     int specularMapAttachPoint = 3;
