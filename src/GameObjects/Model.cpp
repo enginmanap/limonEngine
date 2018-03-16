@@ -117,11 +117,12 @@ void Model::setupForTime(long time) {
                 btTransform transform;
                 transform.setFromOpenGLMatrix(glm::value_ptr(boneTransforms[i]));
 
-                compoundShape->updateChildTransform(boneIdCompoundChildMap[i], transform);
+                compoundShape->updateChildTransform(boneIdCompoundChildMap[i], transform, false);
             }
         }
         this->getRigidBody()->getCollisionShape()->setLocalScaling(scale);
     }
+    compoundShape->recalculateLocalAabb();
 }
 
 void Model::activateMaterial(const Material *material, GLSLProgram *program) {

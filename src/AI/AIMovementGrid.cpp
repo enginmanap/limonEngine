@@ -21,8 +21,8 @@ AIMovementGrid::aStarPath(const AIMovementNode *start, const glm::vec3 &destinat
     std::priority_queue<AINodeWithPriority, std::vector<AINodeWithPriority>, std::greater<AINodeWithPriority>> frontier;
     frontier.push(AINodeWithPriority(start, 0));
 
-    std::map<const AIMovementNode *, const AIMovementNode *> from;
-    std::map<const AIMovementNode *, float> totalCost;
+    std::unordered_map<const AIMovementNode *, const AIMovementNode *> from;
+    std::unordered_map<const AIMovementNode *, float> totalCost;
     const AIMovementNode *finalNode = nullptr;
     from[start] = nullptr;
     totalCost[start] = 0;
