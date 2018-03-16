@@ -12,7 +12,7 @@
 #include <BulletCollision/CollisionShapes/btTriangleMesh.h>
 #include <BulletCollision/CollisionShapes/btShapeHull.h>
 #include <cstdint>
-#include <map>
+#include <unordered_map>
 
 #include "../Utils/AssimpUtils.h"
 #include "../Material.h"
@@ -34,12 +34,12 @@ struct AnimationNode {
 struct AnimationSet {
     float ticksPerSecond;
     float duration;
-    std::map<std::string, AnimationNode*> nodes;//FIXME these should be removed
+    std::unordered_map<std::string, AnimationNode*> nodes;//FIXME these should be removed
 };
 
 class ModelAsset : public Asset {
     std::string name;
-    std::map<std::string, AnimationSet*> animations;//FIXME these should be removed
+    std::unordered_map<std::string, AnimationSet*> animations;//FIXME these should be removed
     BoneNode *rootNode;
     int_fast32_t boneIDCounter, boneIDCounterPerMesh;
 
@@ -47,10 +47,10 @@ class ModelAsset : public Asset {
     glm::vec3 boundingBoxMax;
     glm::vec3 centerOffset;
 
-    std::map<std::string, Material *> materialMap;
+    std::unordered_map<std::string, Material *> materialMap;
     std::vector<btConvexShape *> shapeCopies;
     std::vector<MeshAsset *> meshes;
-    std::map<std::string, glm::mat4> meshOffsetmap;
+    std::unordered_map<std::string, glm::mat4> meshOffsetmap;
     glm::mat4 globalInverseTransform;
 
     bool hasAnimation;
@@ -93,14 +93,14 @@ public:
     /*
      * FIXME: the materials should be const too
      */
-    const std::map<std::string, Material *> &getMaterialMap() const { return materialMap; };
+    const std::unordered_map<std::string, Material *> &getMaterialMap() const { return materialMap; };
 
     ~ModelAsset() {
         for (std::vector<MeshAsset *>::iterator iter = meshes.begin(); iter != meshes.end(); ++iter) {
             delete (*iter);
         }
 
-        for (std::map<std::string, Material *>::iterator iter = materialMap.begin();
+        for (std::unordered_map<std::string, Material *>::iterator iter = materialMap.begin();
              iter != materialMap.end(); ++iter) {
             delete iter->second;
         }
@@ -112,7 +112,7 @@ public:
 
     void fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimations);
 
-    std::map<float, glm::mat4> createTransformsForAllTimes(aiNodeAnim *animation);
+    std::unordered_map<float, glm::mat4> createTransformsForAllTimes(aiNodeAnim *animation);
 
     glm::mat4 calculateTransform(AnimationNode *animation, float time) const;
 };

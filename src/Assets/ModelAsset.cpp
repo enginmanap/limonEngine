@@ -209,7 +209,7 @@ void ModelAsset::getTransform(long time, std::string animationName, std::vector<
         //this means return to bind pose
         //FIXME calculating bind pose for each frame is wrong, but I am assuming this part will be removed, and idle pose
         //will be used instead. If bind pose requirement arises, it should set once, and reused.
-        for(std::map<std::string, glm::mat4>::const_iterator it = meshOffsetmap.begin(); it != meshOffsetmap.end(); it++){
+        for(std::unordered_map<std::string, glm::mat4>::const_iterator it = meshOffsetmap.begin(); it != meshOffsetmap.end(); it++){
             BoneNode* node;
             std::string name = it->first;
             if(findNode(name, &node, rootNode)) {
