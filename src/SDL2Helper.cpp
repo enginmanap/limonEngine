@@ -46,9 +46,9 @@ SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {
     SDL_SysWMinfo wmInfo;
     SDL_VERSION(&wmInfo.version);
     SDL_GetWindowWMInfo(window, &wmInfo);
-
+#ifdef _WIN32
     options->setImeWindowHandle(wmInfo.info.win.window);
-
+#endif
     //if window has a scaling, we are setting the values to find out;
     int w, h;
     int display_w, display_h;

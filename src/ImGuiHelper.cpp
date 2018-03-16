@@ -390,8 +390,6 @@ ImGuiHelper::ImGuiHelper(GLHelper* glHelper, Options* options) : options(options
 
 #ifdef _WIN32
     io.ImeWindowHandle = options->getImeWindowHandle();
-#else
-    (void)window;
 #endif
 
     // Setup style
