@@ -132,12 +132,12 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
             ActorInformation information = fillActorInformation(j);
             actors[j]->play(gameTime, information, options);
         }
+        for (unsigned int i = 0; i < objects.size(); ++i) {
+            objects[i]->setupForTime(gameTime);
+            objects[i]->updateTransformFromPhysics();
+        }
     } else {
         dynamicsWorld->updateAabbs();
-    }
-    for (unsigned int i = 0; i < objects.size(); ++i) {
-        objects[i]->setupForTime(gameTime);
-        objects[i]->updateTransformFromPhysics();
     }
 
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
