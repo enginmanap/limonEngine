@@ -185,7 +185,21 @@ private:
     glm::mat4 lightProjectionMatrixDirectional;
     glm::mat4 lightProjectionMatrixPoint;
 
-    bool checkErrors(std::string callerFunc);
+    inline bool checkErrors(const std::string &callerFunc) {
+#ifndef NDEBUG
+        GLenum fbStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (fbStatus != GL_FRAMEBUFFER_COMPLETE) {
+            std::cerr << "FB status is " << fbStatus << std::endl;
+        }
+        bool hasError = false;
+        while ((error = glGetError()) != GL_NO_ERROR) {
+            std::cerr << "error found on GL context while " << callerFunc << ":" << error << ":" << gluErrorString(error)
+                      << std::endl;
+            hasError = true;
+        }
+        return hasError;
+#endif
+    };
 
     GLuint createShader(GLenum, const std::string &);
 
