@@ -591,21 +591,6 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
     }
 }
 
-bool GLHelper::checkErrors(std::string callerFunc) {
-
-    GLenum fbStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (fbStatus != GL_FRAMEBUFFER_COMPLETE) {
-        std::cerr << "FB status is " << fbStatus << std::endl;
-    }
-    bool hasError = false;
-    while ((error = glGetError()) != GL_NO_ERROR) {
-        std::cerr << "error found on GL context while " << callerFunc << ":" << error << ":" << gluErrorString(error)
-                  << std::endl;
-        hasError = true;
-    }
-    return hasError;
-}
-
 
 GLHelper::~GLHelper() {
     for (unsigned int i = 0; i < bufferObjects.size(); ++i) {
