@@ -146,8 +146,10 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 
     //end of physics step
 
-    // Pass input to ImGui, if it consumes returns true, if it doesn't then we will process it
-    if(!imgGuiHelper->ProcessEvent(inputHandler)) {
+    // If not in editor mode, dont let imgGuiHelper get input
+    // if in editor mode, but player press editor button, dont allow imgui to process input
+    // if in editor mode, player did not press editor button, then check if imgui processed, if not use the input
+    if(!inEditorMode || inputHandler.getInputEvents(InputHandler::EDITOR) || !imgGuiHelper->ProcessEvent(inputHandler)) {
         handlePlayerInput(inputHandler);
     }
 }
