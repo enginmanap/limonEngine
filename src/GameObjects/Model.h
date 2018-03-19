@@ -29,6 +29,9 @@ class Model : public PhysicalRenderable, public GameObject {
     AssetManager *assetManager;
     ModelAsset *modelAsset;
     std::string animationName;
+    long animationTime = 0;
+    long lastSetupTime = 0;
+    float animationTimeScale = 1.0f;
     std::string name;
     bool animated = false;
     std::vector<glm::mat4> boneTransforms;
@@ -68,6 +71,7 @@ public:
 
     void setAnimation(const std::string& animationName) {
         this->animationName = animationName;
+        this->animationTime = 0;
     }
 
     //TODO we need to free the texture. Destructor needed.
@@ -109,16 +113,18 @@ public:
         }
 
         if(isAnimated()) {
+            ImGui::Text("Animation properties");                           // Some text (you can use a format string too)
             if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {
                 //ImGui::Combo();
                 for (std::unordered_map<std::string, AnimationSet *>::const_iterator it = modelAsset->getAnimations().begin();
                      it != modelAsset->getAnimations().end(); it++) {
                     if(ImGui::Selectable(it->first.c_str())) {
-                        this->animationName = it->first;
+                        setAnimation(it->first);
                     }
                 }
                 ImGui::EndCombo();
             }
+            ImGui::SliderFloat("Animation time scale", &(this->animationTimeScale), 0.01f, 2.0f);
         }
     };
     /************Game Object methods **************/
