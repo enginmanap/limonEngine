@@ -244,7 +244,6 @@ void World::handlePlayerInput(InputHandler &inputHandler) {
             inEditorMode = true;
         } else {
             this->dynamicsWorld->getDebugDrawer()->setDebugMode(this->dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
-            this->options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_INFO, "Debug disabled");
             this->guiLayers[0]->setDebug(false);
             physicalPlayer->ownControl(currentPlayer->getPosition(), currentPlayer->getLookDirection());
             currentPlayer = physicalPlayer;
