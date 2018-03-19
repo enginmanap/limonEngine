@@ -121,8 +121,8 @@ void Model::setupForTime(long time) {
             }
         }
         this->getRigidBody()->getCollisionShape()->setLocalScaling(scale);
+        compoundShape->recalculateLocalAabb();
     }
-    compoundShape->recalculateLocalAabb();
 }
 
 void Model::activateMaterial(const Material *material, GLSLProgram *program) {
