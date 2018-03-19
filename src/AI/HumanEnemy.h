@@ -21,6 +21,7 @@ public:
         //check if the player can be seen
         if(information.canSeePlayerDirectly && information.isPlayerFront) {
             if (playerPursuitStartTime == 0) {
+                model->setAnimation("Walk");
                 //means we will just start pursuit, mark the position so we can return.
                 initialPosition = GLMConverter::BltToGLM(model->getRigidBody()->getCenterOfMassPosition());
                 returnToPosition = true;
@@ -35,9 +36,7 @@ public:
         if(playerPursuitStartTime == 0) {
             //if not in player pursuit
             if(returnToPosition) {
-                //search for route to initial position and return
-            } else {
-                model->setAnimation("Idle");
+                //TODO search for route to initial position and return
             }
         } else {
             //if player pursuit mode
@@ -49,12 +48,6 @@ public:
             }
             glm::vec3 moveDirection = 0.05f * lastWalkDirection;
             model->addTranslate(moveDirection);
-            //Can see the player
-            if(information.isPlayerFront) {
-                model->setAnimation("Walk");
-            } else {
-                model->setAnimation("Idle");
-            }
             if(information.isPlayerLeft) {
                 if(information.cosineBetweenPlayerForSide < 0.95) {
                     glm::quat rotateLeft(1.0f, 0.0f, 0.015f, 0.0f);
@@ -63,7 +56,6 @@ public:
             }
             if(information.isPlayerRight) {
                 //turn just a little bit to right
-
                 if(information.cosineBetweenPlayerForSide < 0.95) {
                     glm::quat rotateRight(1.0f, 0.0f, -0.015f, 0.0f);
                     model->addOrientation(rotateRight);
