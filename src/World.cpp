@@ -443,12 +443,14 @@ void World::ImGuiFrameSetup() const {
         imgGuiHelper->NewFrame();
         /* window definitions */
         {
-            ImGui::Text("Editor Window");                           // Some text (you can use a format string too)
+            ImGui::Begin("Editor");
+            ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
             if(pickedObject != nullptr) {
                 pickedObject->addImGuiEditorElements();
             } else {
                 ImGui::Text("No object picked");                           // Some text (you can use a format string too)
             }
+            ImGui::End();
         }
         /* window definitions */
         imgGuiHelper->RenderDrawLists();
