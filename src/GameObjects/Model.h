@@ -107,6 +107,19 @@ public:
             this->setScale(scale);
             this->rigidBody->activate();
         }
+
+        if(isAnimated()) {
+            if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {
+                //ImGui::Combo();
+                for (std::unordered_map<std::string, AnimationSet *>::const_iterator it = modelAsset->getAnimations().begin();
+                     it != modelAsset->getAnimations().end(); it++) {
+                    if(ImGui::Selectable(it->first.c_str())) {
+                        this->animationName = it->first;
+                    }
+                }
+                ImGui::EndCombo();
+            }
+        }
     };
     /************Game Object methods **************/
 };

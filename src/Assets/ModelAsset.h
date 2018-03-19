@@ -115,6 +115,10 @@ public:
     std::unordered_map<float, glm::mat4> createTransformsForAllTimes(aiNodeAnim *animation);
 
     glm::mat4 calculateTransform(AnimationNode *animation, float time) const;
+
+    const std::unordered_map<std::string, AnimationSet *> &getAnimations() const {
+        return animations;
+    }
 };
 
 
