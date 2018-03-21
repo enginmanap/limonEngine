@@ -5,8 +5,9 @@
 #include "Model.h"
 
 
-Model::Model(AssetManager *assetManager, const float mass, const std::string &modelFile) :
-        PhysicalRenderable(assetManager->getGlHelper()), name(modelFile), mass(mass) {
+Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile) :
+        PhysicalRenderable(assetManager->getGlHelper()), objectID(objectID), assetManager(assetManager),
+        name(modelFile), mass(mass) {
 
     //this is required because the shader has fixed size arrays
     boneTransforms.resize(128);
@@ -44,7 +45,7 @@ Model::Model(AssetManager *assetManager, const float mass, const std::string &mo
             meshMeta->program = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertex.glsl",
                                                 "./Data/Shaders/Model/fragment.glsl", true);
         }
-        meshes.push_back(meshMeta);
+        meshMetaData.push_back(meshMeta);
 
         btTriangleMesh *rawCollisionMesh = (*iter)->getBulletMesh(&hullMap, &btTransformMap);
         if (rawCollisionMesh != nullptr) {
@@ -233,7 +234,7 @@ bool Model::setupRenderVariables(GLSLProgram *program) {
 }
 
 void Model::render() {
-    for (std::vector<MeshMeta *>::iterator iter = meshes.begin(); iter != meshes.end(); ++iter) {
+    for (std::vector<MeshMeta *>::iterator iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
         if (setupRenderVariables((*iter)->program)) {
             this->activateMaterial((*iter)->mesh->getMaterial(), (*iter)->program);
             glHelper->render((*iter)->program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(),

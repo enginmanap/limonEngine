@@ -8,12 +8,14 @@
 
 #include <string>
 #include <map>
+#include <utility>
 
 #include "Asset.h"
 
 
 class AssetManager {
-    std::map<const std::vector<std::string>, Asset *> assets;
+    //second of the pair is how many times load requested. prework for unload
+    std::map<const std::vector<std::string>, std::pair<Asset *, uint32_t>> assets;
     GLHelper *glHelper;
 public:
 
@@ -28,11 +30,35 @@ public:
     template<class T>
     T *loadAsset(const std::vector<std::string> files) {
         if (assets.count(files) == 0) {
-            assets[files] = new T(this, files);
+
+            assets[files] = std::make_pair(new T(this, files), 0);
         }
-        return (T *) assets[files];
+
+        assets[files].second++;
+        return (T *) assets[files].first;
     }
 
+    void freeAsset(const std::vector<std::string> files) {
+        if (assets.count(files) == 0) {
+            std::cerr << "Unloading an asset that was not loaded. skipping" << std::endl;
+            return;
+        }
+        assets[files].second--;
+        if (assets[files].second == 0) {
+            //last element that requested the load freed, delete the object
+            Asset *assetToRemove = assets[files].first;
+            delete assetToRemove;
+            assets.erase(files);
+        }
+    }
+
+    ~AssetManager() {
+        //free all the assets
+        for (std::map<const std::vector<std::string>, std::pair<Asset *, uint32_t>>::iterator it = assets.begin();
+             it != assets.end(); it++) {
+            delete it->second.first;
+        }
+    }
 
 };
 

@@ -132,9 +132,10 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
             ActorInformation information = fillActorInformation(j);
             actors[j]->play(gameTime, information, options);
         }
-        for (unsigned int i = 0; i < objects.size(); ++i) {
-            objects[i]->setupForTime(gameTime);
-            objects[i]->updateTransformFromPhysics();
+        for (std::unordered_map<uint32_t, PhysicalRenderable *>::iterator it = objects.begin();
+             it != objects.end(); ++it) {
+            it->second->setupForTime(gameTime);
+            it->second->updateTransformFromPhysics();
         }
     } else {
         dynamicsWorld->updateAabbs();
@@ -378,8 +379,9 @@ void World::render() {
         //generate shadow map
         glHelper->switchRenderToShadowMapDirectional(i);
         shadowMapProgramDirectional->setUniform("renderLightIndex", (int)i);
-        for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
-            (*it)->renderWithProgram(*shadowMapProgramDirectional);
+        for (std::unordered_map<uint32_t, PhysicalRenderable *>::iterator it = objects.begin();
+             it != objects.end(); ++it) {
+            (*it).second->renderWithProgram(*shadowMapProgramDirectional);
         }
     }
 
@@ -393,8 +395,9 @@ void World::render() {
         shadowMapProgramPoint->setUniform("renderLightIndex", (int)i);
         //FIXME this is suppose to be an option //FarPlanePoint is set at declaration, since it is a constant
         shadowMapProgramPoint->setUniform("farPlanePoint", 100.0f);
-        for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
-            (*it)->renderWithProgram(*shadowMapProgramPoint);
+        for (std::unordered_map<uint32_t, PhysicalRenderable *>::iterator it = objects.begin();
+             it != objects.end(); ++it) {
+            (*it).second->renderWithProgram(*shadowMapProgramPoint);
         }
     }
 
@@ -408,8 +411,8 @@ void World::render() {
     }
 
 
-    for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
-        (*it)->render();
+    for (std::unordered_map<uint32_t, PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
+        (*it).second->render();
     }
 
     dynamicsWorld->debugDrawWorld();
@@ -438,7 +441,7 @@ void World::render() {
  * This method checks if we are in editor mode, and if we are, enables ImGui windows
  * It also fills the windows with relevant parameters.
  */
-void World::ImGuiFrameSetup() const {
+void World::ImGuiFrameSetup() {//TODO not const because it removes the object. Should be seperated
     if (this->inEditorMode) {
         imgGuiHelper->NewFrame();
         /* window definitions */
@@ -447,6 +450,18 @@ void World::ImGuiFrameSetup() const {
             ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
             if(pickedObject != nullptr) {
                 pickedObject->addImGuiEditorElements();
+                ImGui::NewLine();
+                if (pickedObject->getTypeID() == GameObject::MODEL) {
+                    if (ImGui::Button("Remove This Object")) {
+                        //remove the object.
+                        PhysicalRenderable *removeObject = objects[pickedObject->getWorldObjectID()];
+                        //disconnect from physics
+                        dynamicsWorld->removeRigidBody(removeObject->getRigidBody());
+                        objects.erase(pickedObject->getWorldObjectID());
+                        pickedObject = nullptr;
+                        delete removeObject;
+                    }
+                }
             } else {
                 ImGui::Text("No object picked");                           // Some text (you can use a format string too)
             }
@@ -461,8 +476,8 @@ World::~World() {
     delete dynamicsWorld;
 
     //FIXME clear GUIlayer elements
-    for (std::vector<PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
-        delete (*it);
+    for (std::unordered_map<uint32_t, PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
+        delete (*it).second;
     }
     delete sky;
 
@@ -487,11 +502,14 @@ World::~World() {
 
 void World::addModelToWorld(Model *xmlModel) {
     xmlModel->getWorldTransform();
-    objects.push_back(xmlModel);
+    objects[xmlModel->getWorldObjectID()] = xmlModel;
     rigidBodies.push_back(xmlModel->getRigidBody());
     dynamicsWorld->addRigidBody(xmlModel->getRigidBody());
     btVector3 aabbMin, aabbMax;
     xmlModel->getRigidBody()->getAabb(aabbMin, aabbMax);
+    std::cout << "bounding box of model " << xmlModel->getName() << " is "
+              << GLMUtils::vectorToString(GLMConverter::BltToGLM(aabbMin)) << ", "
+              << GLMUtils::vectorToString(GLMConverter::BltToGLM(aabbMax)) << std::endl;
     updateWorldAABB(GLMConverter::BltToGLM(aabbMin), GLMConverter::BltToGLM(aabbMax));
 }
 

@@ -15,13 +15,15 @@ public:
         DIRECTIONAL, POINT
     };
 private:
-
+    uint32_t objectID;
     glm::vec3 position, color;
     LightTypes lightType;
 
 public:
-    Light(LightTypes lightType, const glm::vec3 &position, const glm::vec3 &color) : position(position),
-                                                                                     lightType(lightType) {
+    Light(uint32_t objectID, LightTypes lightType, const glm::vec3 &position, const glm::vec3 &color) :
+            objectID(objectID),
+            position(position),
+            lightType(lightType) {
         this->color.r = color.r < 1.0f ? color.r : 1.0f;
         this->color.g = color.g < 1.0f ? color.g : 1.0f;
         this->color.b = color.b < 1.0f ? color.b : 1.0f;
@@ -40,6 +42,11 @@ public:
     }
 
     /************Game Object methods **************/
+
+    uint32_t getWorldObjectID() {
+        return objectID;
+    };
+
     ObjectTypes getTypeID() const {
         return GameObject::LIGHT;
     };

@@ -48,6 +48,10 @@ public:
     virtual void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const = 0;
 
     /************Game Object methods **************/
+    uint32_t getWorldObjectID() {
+        std::cerr << "Player doesn't have a world object ID, it shouldn't have been needed." << std::endl;
+        return 0;
+    }
     ObjectTypes getTypeID() const {
         return GameObject::PLAYER;
     };

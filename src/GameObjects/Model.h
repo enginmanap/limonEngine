@@ -19,6 +19,7 @@
 
 class Model : public PhysicalRenderable, public GameObject {
 
+    uint32_t objectID;
     struct MeshMeta {
         MeshAsset* mesh;
         BoneNode* skeleton;
@@ -37,7 +38,7 @@ class Model : public PhysicalRenderable, public GameObject {
     std::vector<glm::mat4> boneTransforms;
     std::map<uint_fast32_t, uint_fast32_t> boneIdCompoundChildMap;
 
-    std::vector<MeshMeta *> meshes;
+    std::vector<MeshMeta *> meshMetaData;
 
     btCompoundShape *compoundShape;
     const float mass;
@@ -51,9 +52,10 @@ class Model : public PhysicalRenderable, public GameObject {
 
 
 public:
-    Model(AssetManager *assetManager, const std::string &modelFile) : Model(assetManager, 0, modelFile) {};
+    Model(uint32_t objectID, AssetManager *assetManager, const std::string &modelFile) : Model(objectID, assetManager,
+                                                                                               0, modelFile) {};
 
-    Model(AssetManager *assetManager, const float mass, const std::string &modelFile);
+    Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile);
 
     void activateMaterial(const Material *material, GLSLProgram *program);
 
@@ -80,13 +82,16 @@ public:
         delete rigidBody;
         delete compoundShape;
 
-        for (unsigned int i = 0; i < meshes.size(); ++i) {
-            delete meshes[i];
+        for (unsigned int i = 0; i < meshMetaData.size(); ++i) {
+            delete meshMetaData[i];
         }
-
+        assetManager->freeAsset({name});
     }
 
     /************Game Object methods **************/
+    uint32_t getWorldObjectID() {
+        return objectID;
+    }
     ObjectTypes getTypeID() const {
         return GameObject::MODEL;
     };
