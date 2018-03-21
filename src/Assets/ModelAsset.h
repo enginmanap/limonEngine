@@ -96,6 +96,7 @@ public:
     const std::unordered_map<std::string, Material *> &getMaterialMap() const { return materialMap; };
 
     ~ModelAsset() {
+        std::cout << "Model asset deleted: " << name << std::endl;
         for (std::vector<MeshAsset *>::iterator iter = meshes.begin(); iter != meshes.end(); ++iter) {
             delete (*iter);
         }
@@ -104,6 +105,8 @@ public:
              iter != materialMap.end(); ++iter) {
             delete iter->second;
         }
+        //FIXME GPU side is not freed
+
     }
 
     std::vector<MeshAsset *> getMeshes() const {

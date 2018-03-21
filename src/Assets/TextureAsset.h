@@ -25,6 +25,10 @@ public:
     GLuint getID() const {
         return textureBufferID;
     }
+
+    std::string getName() const {
+        return name;
+    }
 };
 
 #endif //LIMONENGINE_TEXTURE_H

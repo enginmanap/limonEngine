@@ -40,4 +40,5 @@ TextureAsset::TextureAsset(AssetManager* assetManager, const std::vector<std::st
 
 TextureAsset::~TextureAsset() {
     assetManager->getGlHelper()->deleteTexture(textureBufferID);
+    std::cout << "Texture asset " << name << " deleted." << std::endl;
 }

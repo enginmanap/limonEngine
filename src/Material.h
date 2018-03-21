@@ -128,16 +128,16 @@ public:
 
     ~Material() {
         if (ambientTexture != nullptr) {
-            delete ambientTexture;
+            assetManager->freeAsset({ambientTexture->getName()});
         }
         if (diffuseTexture != nullptr) {
-            delete diffuseTexture;
+            assetManager->freeAsset({diffuseTexture->getName()});
         }
         if (specularTexture != nullptr) {
-            delete specularTexture;
+            assetManager->freeAsset({specularTexture->getName()});
         }
         if (opacityTexture != nullptr) {
-            delete opacityTexture;
+            assetManager->freeAsset({opacityTexture->getName()});
         }
     }
 

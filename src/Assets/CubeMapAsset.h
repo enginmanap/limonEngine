@@ -28,6 +28,16 @@ public:
     GLuint getID() const {
         return cubeMapBufferID;
     }
+
+    std::vector<std::string> getNames() {
+        //FIXME this shouldn't be required. Assets should have IDs too
+        std::vector<std::string> result;
+        result.push_back(path);
+        for (int i = 0; i < 6; ++i) {
+            result.push_back(names[i]);
+        }
+        return result;
+    };
 };
 
 #endif //LIMONENGINE_CUBEMAP_H

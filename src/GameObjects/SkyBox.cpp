@@ -5,10 +5,11 @@
 #include "SkyBox.h"
 
 
-SkyBox::SkyBox(AssetManager *assetManager, std::string path, std::string right, std::string left, std::string top,
-               std::string down, std::string back,
-               std::string front) :
+SkyBox::SkyBox(uint32_t objectID, AssetManager *assetManager, std::string path, std::string right, std::string left,
+               std::string top, std::string down, std::string back, std::string front) :
         Renderable(assetManager->getGlHelper()),
+        objectID(objectID),
+        assetManager(assetManager),
         path(path) {
     cubeMap = assetManager->loadAsset<CubeMapAsset>({path,
                                                      right, left,

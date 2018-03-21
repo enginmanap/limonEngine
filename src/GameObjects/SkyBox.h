@@ -12,6 +12,8 @@
 #include "../Assets/AssetManager.h"
 
 class SkyBox : public Renderable, public GameObject {
+    uint32_t objectID;
+    AssetManager *assetManager;
     std::string path;
     std::vector<glm::vec3> vertices;
     std::vector<glm::mediump_uvec3> faces;
@@ -19,19 +21,22 @@ class SkyBox : public Renderable, public GameObject {
     CubeMapAsset *cubeMap;
 
 public:
-    SkyBox(AssetManager *assetManager, std::string path, std::string right, std::string left,
-           std::string top, std::string down,
-           std::string back, std::string front);
+    SkyBox(uint32_t objectID, AssetManager *assetManager, std::string path, std::string right, std::string left,
+           std::string top, std::string down, std::string back, std::string front);
 
     void render();
 
     void setupForTime(long time __attribute__((unused))) {};
 
     ~SkyBox() {
-        delete cubeMap;
+        assetManager->freeAsset(cubeMap->getNames());
     }
 
     /************Game Object methods **************/
+    uint32_t getWorldObjectID() {
+        return objectID;
+    };
+
     ObjectTypes getTypeID() const {
         return GameObject::SKYBOX;
     }

@@ -97,7 +97,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
             modelMass = std::stof(objectAttribute->GetText());
         }
 
-        xmlModel = new Model(assetManager,modelMass, modelFile);
+        xmlModel = new Model(world->getNextObjectID(), assetManager, modelMass, modelFile);
 
         objectAttribute =  objectNode->FirstChildElement("Scale");
         if (objectAttribute == nullptr) {
@@ -293,15 +293,10 @@ bool WorldLoader::loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const 
     }
     front = frontNode->GetText();
 
-    world->setSky(new SkyBox(assetManager,
-                     std::string(path),
-                     std::string(right),
-                     std::string(left),
-                     std::string(top),
-                     std::string(bottom),
-                     std::string(back),
-                     std::string(front)
-    ));
+    world->setSky(
+            new SkyBox(world->getNextObjectID(), assetManager, std::string(path), std::string(right), std::string(left),
+                       std::string(top),
+                       std::string(bottom), std::string(back), std::string(front)));
     return true;
 }
 
@@ -377,19 +372,19 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
         if (lightAttribute == nullptr) {
             x = y = z = 1.0f;
         } else {
-            lightAttributeAttribute = lightAttribute->FirstChildElement("X");
+            lightAttributeAttribute = lightAttribute->FirstChildElement("R");
             if (lightAttributeAttribute != nullptr) {
                 x = std::stof(lightAttributeAttribute->GetText());
             } else {
                 x = 1.0f;
             }
-            lightAttributeAttribute = lightAttribute->FirstChildElement("Y");
+            lightAttributeAttribute = lightAttribute->FirstChildElement("G");
             if (lightAttributeAttribute != nullptr) {
                 y = std::stof(lightAttributeAttribute->GetText());
             } else {
                 y = 1.0f;
             }
-            lightAttributeAttribute = lightAttribute->FirstChildElement("Z");
+            lightAttributeAttribute = lightAttribute->FirstChildElement("B");
             if (lightAttributeAttribute != nullptr) {
                 z = std::stof(lightAttributeAttribute->GetText());
             } else {
@@ -400,7 +395,7 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
         color.y = y;
         color.z = z;
 
-        xmlLight = new Light(type,position,color);
+        xmlLight = new Light(world->getNextObjectID(), type, position, color);
         world->addLight(xmlLight);
         lightNode =  lightNode->NextSiblingElement("Light");
     }

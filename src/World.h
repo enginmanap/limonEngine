@@ -5,8 +5,9 @@
 #ifndef LIMONENGINE_WORLD_H
 #define LIMONENGINE_WORLD_H
 
-#include <vector>
+#include<vector>
 #include <tinyxml2.h>
+#include <unordered_map>
 #include "PhysicalRenderable.h"
 #include "GLHelper.h"
 #include "glm/glm.hpp"
@@ -38,7 +39,8 @@ class World {
     friend class WorldLoader;
 
     Options* options;
-    std::vector<PhysicalRenderable *> objects;
+    uint32_t totalObjectCount = 1;
+    std::unordered_map<uint32_t, PhysicalRenderable *> objects;
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
     std::vector<Actor*> actors;
@@ -95,13 +97,17 @@ class World {
 
     World(GLHelper *, Options *options);
 
-    void ImGuiFrameSetup() const;
+    void ImGuiFrameSetup();
 public:
     ~World();
 
     void play(Uint32, InputHandler &);
 
     void render();
+
+    uint32_t getNextObjectID() {
+        return totalObjectCount++;
+    }
 };
 
 #endif //LIMONENGINE_WORLD_H

@@ -22,6 +22,9 @@ protected:
      * @return empty asset
      */
     Asset(AssetManager* assetManager, const std::vector<std::string> &fileList __attribute__((unused))): assetManager(assetManager) {};
+
+public:
+    virtual ~Asset() {};
 };
 
 
