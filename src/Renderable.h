@@ -24,7 +24,7 @@ protected:
     bool isDirty;
     bool isRotated;
 
-    void generateWorldTransform();
+    virtual void generateWorldTransform();
 
     explicit Renderable(GLHelper *glHelper);
 

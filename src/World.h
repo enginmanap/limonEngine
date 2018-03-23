@@ -34,10 +34,11 @@ class PhysicalPlayer;
 class FreeMovingPlayer;
 class FreeCursorPlayer;
 class ImGuiHelper;
+class AssetManager;
 
 class World {
     friend class WorldLoader;
-
+    AssetManager* assetManager;
     Options* options;
     uint32_t totalObjectCount = 1;
     std::unordered_map<uint32_t, PhysicalRenderable *> objects;
@@ -73,6 +74,7 @@ class World {
     bool inEditorMode = false;
     ImGuiHelper *imgGuiHelper;
     GameObject* pickedObject = nullptr;
+    bool availableAssetsLoaded = false;
 
     void handlePlayerInput(InputHandler &inputHandler);
 
@@ -95,7 +97,7 @@ class World {
 
     void addLight(Light *light);
 
-    World(GLHelper *, Options *options);
+    World(AssetManager *assetManager, GLHelper *, Options *options);
 
     void ImGuiFrameSetup();
 public:
@@ -108,6 +110,8 @@ public:
     uint32_t getNextObjectID() {
         return totalObjectCount++;
     }
+
+
 };
 
 #endif //LIMONENGINE_WORLD_H
