@@ -112,14 +112,20 @@ public:
         updated = ImGui::SliderFloat("Position X", &(this->translate.x), -100.0f, 100.0f)   || updated;
         updated = ImGui::SliderFloat("Position Y", &(this->translate.y), -100.0f, 100.0f)   || updated;
         updated = ImGui::SliderFloat("Position Z", &(this->translate.z), -100.0f, 100.0f)   || updated;
-
+        ImGui::NewLine();
         updated = ImGui::SliderFloat("Scale X", &(this->scale.x), 0.01f, 10.0f)             || updated;
         updated = ImGui::SliderFloat("Scale Y", &(this->scale.y), 0.01f, 10.0f)             || updated;
         updated = ImGui::SliderFloat("Scale Z", &(this->scale.z), 0.01f, 10.0f)             || updated;
+        ImGui::NewLine();
+        updated = ImGui::SliderFloat("Rotate X", &(this->orientation.x), -1.0f, 1.0f)             || updated;
+        updated = ImGui::SliderFloat("Rotate Y", &(this->orientation.y), -1.0f, 1.0f)             || updated;
+        updated = ImGui::SliderFloat("Rotate Z", &(this->orientation.z), -1.0f, 1.0f)             || updated;
+        updated = ImGui::SliderFloat("Rotate W", &(this->orientation.w), -1.0f, 1.0f)             || updated;
 
         if(updated) {
             this->setTranslate(translate);
             this->setScale(scale);
+            this->setOrientation(orientation);
             this->rigidBody->activate();
         }
 
