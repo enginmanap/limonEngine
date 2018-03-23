@@ -21,11 +21,27 @@ public:
     void addScale(const glm::vec3 &scale) {
         Renderable::addScale(scale);
         rigidBody->getCollisionShape()->setLocalScaling(btVector3(this->scale.x, this->scale.y, this->scale.z));
+        //local scale scales the shape, what about the rigid body -> shape positions
+        btCompoundShape * shape = static_cast<btCompoundShape *>(rigidBody->getCollisionShape());
+        for (int i = 0; i < shape->getNumChildShapes(); ++i) {
+            btTransform transform = shape->getChildTransform(i);
+            transform.setOrigin(GLMConverter::GLMToBlt(this->scale) * transform.getOrigin());
+            shape->updateChildTransform(i, transform);
+        }
+        centerOffset = centerOffset * this->scale;
     }
 
     void setScale(const glm::vec3 &scale) {
         Renderable::setScale(scale);
         rigidBody->getCollisionShape()->setLocalScaling(btVector3(this->scale.x, this->scale.y, this->scale.z));
+        //local scale scales the shape, what about the rigid body -> shape positions
+        btCompoundShape * shape = static_cast<btCompoundShape *>(rigidBody->getCollisionShape());
+        for (int i = 0; i < shape->getNumChildShapes(); ++i) {
+            btTransform transform = shape->getChildTransform(i);
+            transform.setOrigin(GLMConverter::GLMToBlt(scale) * transform.getOrigin());
+            shape->updateChildTransform(i, transform);
+        }
+        centerOffset = centerOffset * scale;
     }
 
     void addTranslate(const glm::vec3 &translate) {

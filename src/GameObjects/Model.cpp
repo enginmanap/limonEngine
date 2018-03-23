@@ -19,8 +19,9 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
     this->centerOffset = modelAsset->getCenterOffset();
 
     compoundShape = new btCompoundShape();
-    btTransform emptyTransform(btQuaternion(0, 0, 0, 1));
-
+    btTransform baseTranform;
+    baseTranform.setIdentity();
+    baseTranform.setOrigin(GLMConverter::GLMToBlt(-1.0f * centerOffset));
     this->animated = modelAsset->isAnimated();
     std::map<uint_fast32_t, btConvexHullShape *> hullMap;
 
@@ -69,7 +70,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
                 }
             }
             //since there is no animation, we don't have to put the elements in order.
-            compoundShape->addChildShape(emptyTransform, meshCollisionShape);//this add the mesh to collision shape
+            compoundShape->addChildShape(baseTranform, meshCollisionShape);//this add the mesh to collision shape
         }
     }
 
@@ -90,8 +91,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
     btVector3 fallInertia(0, 0, 0);
     compoundShape->calculateLocalInertia(mass, fallInertia);
     btRigidBody::btRigidBodyConstructionInfo *rigidBodyConstructionInfo = new btRigidBody::btRigidBodyConstructionInfo(
-            mass, initialMotionState, compoundShape,
-            fallInertia);
+            mass, initialMotionState, compoundShape, fallInertia);
     rigidBody = new btRigidBody(*rigidBodyConstructionInfo);
     delete rigidBodyConstructionInfo;
 

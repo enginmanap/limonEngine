@@ -22,7 +22,8 @@
 #include "ImGuiHelper.h"
 
 
-World::World(GLHelper *glHelper, Options *options) : options(options), glHelper(glHelper), fontManager(glHelper){
+World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
+        : assetManager(assetManager),options(options), glHelper(glHelper), fontManager(glHelper){
     // physics init
     broadphase = new btDbvtBroadphase();
     ghostPairCallback = new btGhostPairCallback();
@@ -443,10 +444,37 @@ void World::render() {
  */
 void World::ImGuiFrameSetup() {//TODO not const because it removes the object. Should be seperated
     if (this->inEditorMode) {
+
+        if(!availableAssetsLoaded) {
+            assetManager->loadAssetList("./Data/AssetList.xml");
+            availableAssetsLoaded = true;
+        }
         imgGuiHelper->NewFrame();
         /* window definitions */
         {
             ImGui::Begin("Editor");
+            //list available elements
+            static std::string selectedAssetFile = "";
+            if (ImGui::BeginCombo("Available objects", selectedAssetFile.c_str())) {
+                for (auto it = assetManager->getAvailableAssetsList().begin();
+                     it != assetManager->getAvailableAssetsList().end(); it++) {
+                    if(ImGui::Selectable(it->first.c_str())) {
+                        selectedAssetFile = it->first;
+                    }
+                }
+                ImGui::EndCombo();
+            }
+            if(selectedAssetFile != "") {
+                if(ImGui::Button("Add Selected Asset")) {
+                    Model* newModel = new Model(this->getNextObjectID(), assetManager, 10, selectedAssetFile);
+                    newModel->setTranslate(glm::vec3(0,15,0));
+                    //newModel->setScale(glm::vec3(0.025f,0.025f,0.025f));
+                    this->addModelToWorld(newModel);
+                    newModel->getRigidBody()->activate();
+                }
+            }
+
+
             ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
             if(pickedObject != nullptr) {
                 pickedObject->addImGuiEditorElements();

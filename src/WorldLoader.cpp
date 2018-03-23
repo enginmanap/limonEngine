@@ -17,7 +17,7 @@ WorldLoader::WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options
 {}
 
 World* WorldLoader::loadWorld(const std::string& worldFile) const {
-    World* newWorld = new World(glHelper, options);
+    World* newWorld = new World(assetManager, glHelper, options);
     if(!loadMapFromXML(worldFile, newWorld)) {
         std::cerr << "world load failed" << std::endl;
         return nullptr;
