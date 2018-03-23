@@ -50,6 +50,12 @@ public:
         isDirty = true;
     }
 
+    virtual void setOrientation(const glm::quat &orientation) {
+        this->orientation = glm::normalize(orientation);
+        isRotated = this->orientation.w > cos(0.1f / 2); //if the total rotation is bigger than 0.1 rad
+        isDirty = true;
+    }
+
     virtual void addOrientation(const glm::quat &orientation) {
         this->orientation *= orientation;
         this->orientation = glm::normalize(this->orientation);

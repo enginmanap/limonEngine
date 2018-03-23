@@ -60,6 +60,14 @@ public:
         this->rigidBody->getMotionState()->setWorldTransform(transform);
     }
 
+    void setOrientation(const glm::quat &orientation) {
+        Renderable::setOrientation(orientation);
+        btTransform transform = this->rigidBody->getCenterOfMassTransform();
+        transform.setRotation(GLMConverter::GLMToBlt(this->orientation));
+        this->rigidBody->setWorldTransform(transform);
+        this->rigidBody->getMotionState()->setWorldTransform(transform);
+    }
+
     void addOrientation(const glm::quat &orientation) {
         Renderable::addOrientation(orientation);
         btTransform transform = this->rigidBody->getCenterOfMassTransform();
