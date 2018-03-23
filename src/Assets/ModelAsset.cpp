@@ -56,8 +56,8 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
     AssimpUtils::get_bounding_box(scene, &min, &max);
     boundingBoxMax = GLMConverter::AssimpToGLM(max);
     boundingBoxMin = GLMConverter::AssimpToGLM(min);
-
     centerOffset = glm::vec3((max.x + min.x) / 2, (max.y + min.y) / 2, (max.z + min.z) / 2);
+    std::cout << "Model asset: " << name << "Assimp bounding box is " << GLMUtils::vectorToString(boundingBoxMin) << ", " <<  GLMUtils::vectorToString(boundingBoxMax) << std::endl;
     //Implicit call to import.FreeScene(), and removal of scene.
 }
 
@@ -100,7 +100,7 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
         if ((currentMaterial->GetTextureCount(aiTextureType_AMBIENT) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_AMBIENT, 0, &property)) {
                 newMaterial->setAmbientTexture(property.C_Str());
-                std::cout << "loaded ambient texture " << property.C_Str() << std::endl;
+                std::cout << "set ambient texture " << property.C_Str() << std::endl;
             } else {
                 std::cerr << "The model contained ambient texture information, but texture loading failed. \n" <<
                           "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
@@ -109,7 +109,7 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
         if ((currentMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &property)) {
                 newMaterial->setDiffuseTexture(property.C_Str());
-                std::cout << "loaded diffuse texture " << property.C_Str() << std::endl;
+                std::cout << "set diffuse texture " << property.C_Str() << std::endl;
             } else {
                 std::cerr << "The model contained diffuse texture information, but texture loading failed. \n" <<
                           "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
@@ -119,7 +119,7 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
         if ((currentMaterial->GetTextureCount(aiTextureType_SPECULAR) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_SPECULAR, 0, &property)) {
                 newMaterial->setSpecularTexture(property.C_Str());
-                std::cout << "loaded specular texture " << property.C_Str() << std::endl;
+                std::cout << "set specular texture " << property.C_Str() << std::endl;
             } else {
                 std::cerr << "The model contained specular texture information, but texture loading failed. \n" <<
                           "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
@@ -129,7 +129,7 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
         if ((currentMaterial->GetTextureCount(aiTextureType_OPACITY) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_OPACITY, 0, &property)) {
                 newMaterial->setOpacityTexture(property.C_Str());
-                std::cout << "loaded opacity texture " << property.C_Str() << std::endl;
+                std::cout << "set opacity texture " << property.C_Str() << std::endl;
             } else {
                 std::cerr << "The model contained opacity texture information, but texture loading failed. \n" <<
                           "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
@@ -144,6 +144,13 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
 }
 
 void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 parentTransform) {
+
+    if(!strncmp(aiNode->mName.C_Str(), "UCX_", strlen("UCX_"))) {
+        //if starts with "UCX_" skip
+        std::cout << "Mesh name " << aiNode->mName.C_Str() << " skipping, num mesh: " << aiNode->mNumMeshes<< std::endl;
+        return;
+    }
+
     parentTransform = parentTransform * GLMConverter::AssimpToGLM(aiNode->mTransformation);
 
     for (unsigned int i = 0; i < aiNode->mNumMeshes; ++i) {
@@ -165,7 +172,7 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
             } else {
                 meshes.insert(meshes.begin(),mesh);
             }
-            std::cout << "loaded mesh " << currentMesh->mName.C_Str() << " for node " << aiNode->mName.C_Str()
+            std::cout << "set mesh " << currentMesh->mName.C_Str() << " for node " << aiNode->mName.C_Str()
                       << std::endl;
     }
 
