@@ -455,6 +455,8 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             ImGui::Begin("Editor");
             //list available elements
             static std::string selectedAssetFile = "";
+            ImGui::Text("Add new Object");
+            ImGui::NewLine();
             if (ImGui::BeginCombo("Available objects", selectedAssetFile.c_str())) {
                 for (auto it = assetManager->getAvailableAssetsList().begin();
                      it != assetManager->getAvailableAssetsList().end(); it++) {
@@ -464,19 +466,29 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
                 ImGui::EndCombo();
             }
+            static float newObjectWeight;
+            ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
+            ImGui::NewLine();
+            static float newObjectX=0, newObjectY=15, newObjectZ=0;
+            ImGui::SliderFloat("Position X", &newObjectX, -10.0f, 10.0f);
+            ImGui::SliderFloat("Position Y", &newObjectY, -10.0f, 10.0f);
+            ImGui::SliderFloat("Position Z", &newObjectZ, -10.0f, 10.0f);
+            ImGui::NewLine();
+
             if(selectedAssetFile != "") {
-                if(ImGui::Button("Add Selected Asset")) {
-                    Model* newModel = new Model(this->getNextObjectID(), assetManager, 10, selectedAssetFile);
-                    newModel->setTranslate(glm::vec3(0,15,0));
-                    //newModel->setScale(glm::vec3(0.025f,0.025f,0.025f));
+                if(ImGui::Button("Add Object")) {
+                    Model* newModel = new Model(this->getNextObjectID(), assetManager, newObjectWeight, selectedAssetFile);
+                    newModel->setTranslate(glm::vec3(newObjectX, newObjectY, newObjectZ));
                     this->addModelToWorld(newModel);
                     newModel->getRigidBody()->activate();
+                    pickedObject = static_cast<GameObject*>(newModel);
                 }
             }
 
-
             ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
             if(pickedObject != nullptr) {
+                ImGui::Begin("Selected Object Properties");
+
                 pickedObject->addImGuiEditorElements();
                 ImGui::NewLine();
                 if (pickedObject->getTypeID() == GameObject::MODEL) {
@@ -490,6 +502,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                         delete removeObject;
                     }
                 }
+                ImGui::End();
             } else {
                 ImGui::Text("No object picked");                           // Some text (you can use a format string too)
             }
