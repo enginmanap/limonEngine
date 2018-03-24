@@ -185,7 +185,7 @@ private:
     glm::mat4 lightProjectionMatrixDirectional;
     glm::mat4 lightProjectionMatrixPoint;
 
-    inline bool checkErrors(const std::string &callerFunc) {
+    inline bool checkErrors(const std::string &callerFunc __attribute((unused))) {
 #ifndef NDEBUG
         GLenum fbStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (fbStatus != GL_FRAMEBUFFER_COMPLETE) {
@@ -198,6 +198,8 @@ private:
             hasError = true;
         }
         return hasError;
+#else
+        return false;
 #endif
     };
 
