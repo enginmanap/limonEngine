@@ -41,8 +41,6 @@ class Model : public PhysicalRenderable, public GameObject {
     std::vector<MeshMeta *> meshMetaData;
 
     btCompoundShape *compoundShape;
-    const float mass;
-
     std::unordered_map<std::string, Material *> materialMap;
     int diffuseMapAttachPoint = 1;
     int ambientMapAttachPoint = 2;

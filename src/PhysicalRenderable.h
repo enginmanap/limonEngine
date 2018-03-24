@@ -13,8 +13,10 @@ class PhysicalRenderable : public Renderable {
 protected:
     btRigidBody *rigidBody;
     glm::vec3 centerOffset;
+    const float mass;
+
 public:
-    explicit PhysicalRenderable(GLHelper *glHelper) : Renderable(glHelper), centerOffset(glm::vec3(0, 0, 0)) { };
+    explicit PhysicalRenderable(GLHelper *glHelper, float mass) : Renderable(glHelper), centerOffset(glm::vec3(0, 0, 0)), mass(mass) { };
 
     btRigidBody *getRigidBody() { return rigidBody; };
 
@@ -44,6 +46,10 @@ public:
         centerOffset = centerOffset * scale;
     }
 
+    glm::vec3 getScale() const {
+        return this->scale;
+    }
+
     void addTranslate(const glm::vec3 &translate) {
         Renderable::addTranslate(translate);
         btTransform transform = this->rigidBody->getCenterOfMassTransform();
@@ -58,6 +64,10 @@ public:
         transform.setOrigin(btVector3(this->translate.x, this->translate.y, this->translate.z));
         this->rigidBody->setWorldTransform(transform);
         this->rigidBody->getMotionState()->setWorldTransform(transform);
+    }
+
+    glm::vec3 getTranslate() const {
+        return this->translate;
     }
 
     void setOrientation(const glm::quat &orientation) {
@@ -78,9 +88,17 @@ public:
         this->rigidBody->getMotionState()->setWorldTransform(transform);
     }
 
+    glm::quat getOrientation() const {
+        return this->orientation;
+    }
+
     void updateTransformFromPhysics();
 
     virtual void renderWithProgram(GLSLProgram &program) = 0;
+
+    float getMass() const {
+        return mass;
+    };
 
 };
 
