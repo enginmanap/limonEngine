@@ -14,11 +14,11 @@
 #include "InputHandler.h"
 #include "FontManager.h"
 #include "AI/Actor.h"
+#include "GameObjects/SkyBox.h"
 
 class btGhostPairCallback;
 class Camera;
 class Model;
-class SkyBox;
 class BulletDebugDrawer;
 class Light;
 class AIMovementGrid;

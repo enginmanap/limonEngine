@@ -63,7 +63,13 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     if(!fillLights(mapDocument, currentElement, world)) {
         return false;
     };
-    rootNode->InsertEndChild(currentElement);//add objects
+    rootNode->InsertEndChild(currentElement);//add lights
+
+    currentElement = mapDocument.NewElement("Sky");
+    if(!addSky(mapDocument, currentElement, world)) {
+        return false;
+    };
+    rootNode->InsertEndChild(currentElement);//add lights
 
 
     tinyxml2::XMLError eResult = mapDocument.SaveFile(mapName.c_str());
@@ -176,5 +182,38 @@ bool WorldSaver::fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
         parent->InsertEndChild(currentElement);
         lightElement->InsertEndChild(parent);
     }
+    return true;
+}
+
+bool WorldSaver::addSky(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *skyNode, const World *world) {
+    //ImagesPath, Right, Left, Top, Bottom, Back, Front
+
+    tinyxml2::XMLElement *currentElement = document.NewElement("ImagesPath");
+    currentElement->SetText(world->sky->getPath().c_str());
+    skyNode->InsertEndChild(currentElement);
+
+    currentElement = document.NewElement("Right");
+    currentElement->SetText(world->sky->getRight().c_str());
+    skyNode->InsertEndChild(currentElement);
+
+    currentElement = document.NewElement("Left");
+    currentElement->SetText(world->sky->getLeft().c_str());
+    skyNode->InsertEndChild(currentElement);
+
+    currentElement = document.NewElement("Top");
+    currentElement->SetText(world->sky->getTop().c_str());
+    skyNode->InsertEndChild(currentElement);
+
+    currentElement = document.NewElement("Bottom");
+    currentElement->SetText(world->sky->getDown().c_str());
+    skyNode->InsertEndChild(currentElement);
+
+    currentElement = document.NewElement("Back");
+    currentElement->SetText(world->sky->getBack().c_str());
+    skyNode->InsertEndChild(currentElement);
+
+    currentElement = document.NewElement("Front");
+    currentElement->SetText(world->sky->getFront().c_str());
+    skyNode->InsertEndChild(currentElement);
     return true;
 }
