@@ -8,11 +8,13 @@
 class World;
 
 class WorldSaver {
+private:
+    static bool fillObjects(tinyxml2::XMLDocument& mapFile, tinyxml2::XMLElement * objectsNode, const World* world );
+    static bool fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *lightsNode, const World *world);
+    static bool addSky(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *skyNode, const World *world);
 public:
     static bool saveWorld(const std::string& mapName, const World* world);
-    static bool fillObjects(tinyxml2::XMLDocument& mapFile, tinyxml2::XMLElement * objectsNode, const World* world );
 
-    static bool fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *lightsNode, const World *world);
 };
 
 

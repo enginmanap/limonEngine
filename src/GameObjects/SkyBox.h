@@ -14,7 +14,23 @@
 class SkyBox : public Renderable, public GameObject {
     uint32_t objectID;
     AssetManager *assetManager;
-    std::string path;
+    std::string path, right, left, top, down, back, front;
+public:
+    const std::string &getPath() const;
+
+    const std::string &getRight() const;
+
+    const std::string &getLeft() const;
+
+    const std::string &getTop() const;
+
+    const std::string &getDown() const;
+
+    const std::string &getBack() const;
+
+    const std::string &getFront() const;
+
+private:
     std::vector<glm::vec3> vertices;
     std::vector<glm::mediump_uvec3> faces;
 

@@ -10,12 +10,11 @@ SkyBox::SkyBox(uint32_t objectID, AssetManager *assetManager, std::string path, 
         Renderable(assetManager->getGlHelper()),
         objectID(objectID),
         assetManager(assetManager),
-        path(path) {
+        path(path), right(right), left(left), top(top), down(down), back(back), front(front){
     cubeMap = assetManager->loadAsset<CubeMapAsset>({path,
                                                      right, left,
                                                      top, down,
                                                      back, front});
-
 
     vertices.push_back(glm::vec3(-1.0f, -1.0f, -1.0f));
     vertices.push_back(glm::vec3(1.0f, -1.0f, -1.0f));
@@ -70,4 +69,32 @@ void SkyBox::render() {
     } else {
         std::cerr << "Uniform \"cubeSampler\" could not be set, passing rendering." << std::endl;
     }
+}
+
+const std::string &SkyBox::getPath() const {
+    return path;
+}
+
+const std::string &SkyBox::getRight() const {
+    return right;
+}
+
+const std::string &SkyBox::getLeft() const {
+    return left;
+}
+
+const std::string &SkyBox::getTop() const {
+    return top;
+}
+
+const std::string &SkyBox::getDown() const {
+    return down;
+}
+
+const std::string &SkyBox::getBack() const {
+    return back;
+}
+
+const std::string &SkyBox::getFront() const {
+    return front;
 }
