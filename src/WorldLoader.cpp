@@ -5,9 +5,6 @@
 #include "WorldLoader.h"
 #include "World.h"
 #include "AI/HumanEnemy.h"
-#include "Options.h"
-#include "Assets/AssetManager.h"
-#include "GLHelper.h"
 #include "GameObjects/SkyBox.h"
 
 WorldLoader::WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options* options):

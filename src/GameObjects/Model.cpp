@@ -6,8 +6,8 @@
 
 
 Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile) :
-        PhysicalRenderable(assetManager->getGlHelper()), objectID(objectID), assetManager(assetManager),
-        name(modelFile), mass(mass) {
+        PhysicalRenderable(assetManager->getGlHelper(), mass), objectID(objectID), assetManager(assetManager),
+        name(modelFile) {
 
     //this is required because the shader has fixed size arrays
     boneTransforms.resize(128);

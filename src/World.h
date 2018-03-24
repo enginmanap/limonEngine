@@ -38,6 +38,7 @@ class AssetManager;
 
 class World {
     friend class WorldLoader;
+    friend class WorldSaver; //Those classes requre direct access to some of the internal data
     AssetManager* assetManager;
     Options* options;
     uint32_t totalObjectCount = 1;

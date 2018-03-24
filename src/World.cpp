@@ -20,6 +20,7 @@
 #include "GUI/GUIFPSCounter.h"
 #include "GUI/GUITextDynamic.h"
 #include "ImGuiHelper.h"
+#include "WorldSaver.h"
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
@@ -506,6 +507,15 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             } else {
                 ImGui::Text("No object picked");                           // Some text (you can use a format string too)
             }
+            if(ImGui::Button("Save Map")) {
+                if(WorldSaver::saveWorld("./Data/Maps/CustomWorld001.xml", this)) {
+                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
+                } else {
+                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
+                }
+
+            }
+
             ImGui::End();
         }
         /* window definitions */
