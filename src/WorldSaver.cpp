@@ -22,6 +22,9 @@
                     X,Y,Z
                 Rotate
                     X,Y,Z
+                Animation
+                AI (True, False)
+
  *      Sky
  *                  ImagesPath
                     Right
