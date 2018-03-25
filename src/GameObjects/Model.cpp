@@ -16,7 +16,8 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
     this->triangleCount = 0;
     this->vao = 0;
     this->ebo = 0;//these are not per Model, but per Mesh
-    this->centerOffset = modelAsset->getCenterOffset();
+    this->originalCenterOffset = modelAsset->getCenterOffset();
+    this->centerOffset = this->originalCenterOffset;
 
     compoundShape = new btCompoundShape();
     btTransform baseTranform;
