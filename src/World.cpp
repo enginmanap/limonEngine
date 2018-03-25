@@ -445,51 +445,65 @@ void World::render() {
  */
 void World::ImGuiFrameSetup() {//TODO not const because it removes the object. Should be seperated
     if (this->inEditorMode) {
-
         if(!availableAssetsLoaded) {
             assetManager->loadAssetList("./Data/AssetList.xml");
             availableAssetsLoaded = true;
         }
         imgGuiHelper->NewFrame();
+
         /* window definitions */
         {
             ImGui::Begin("Editor");
             //list available elements
             static std::string selectedAssetFile = "";
-            ImGui::Text("Add new Object");
-            ImGui::NewLine();
-            if (ImGui::BeginCombo("Available objects", selectedAssetFile.c_str())) {
-                for (auto it = assetManager->getAvailableAssetsList().begin();
-                     it != assetManager->getAvailableAssetsList().end(); it++) {
-                    if(ImGui::Selectable(it->first.c_str())) {
-                        selectedAssetFile = it->first;
+            if (ImGui::CollapsingHeader("Add New Object")) {
+                if (ImGui::BeginCombo("Available objects", selectedAssetFile.c_str())) {
+                    for (auto it = assetManager->getAvailableAssetsList().begin();
+                         it != assetManager->getAvailableAssetsList().end(); it++) {
+                        if (ImGui::Selectable(it->first.c_str())) {
+                            selectedAssetFile = it->first;
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                static float newObjectWeight;
+                ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
+                ImGui::NewLine();
+                static float newObjectX = 0, newObjectY = 15, newObjectZ = 0;
+                ImGui::SliderFloat("Position X", &newObjectX, -10.0f, 10.0f);
+                ImGui::SliderFloat("Position Y", &newObjectY, -10.0f, 10.0f);
+                ImGui::SliderFloat("Position Z", &newObjectZ, -10.0f, 10.0f);
+                ImGui::NewLine();
+                if(selectedAssetFile != "") {
+                    if(ImGui::Button("Add Object")) {
+                        Model* newModel = new Model(this->getNextObjectID(), assetManager, newObjectWeight, selectedAssetFile);
+                        newModel->setTranslate(glm::vec3(newObjectX, newObjectY, newObjectZ));
+                        this->addModelToWorld(newModel);
+                        newModel->getRigidBody()->activate();
+                        pickedObject = static_cast<GameObject*>(newModel);
+                    }
+                }
+
+            }
+            ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
+
+            ImGui::Begin("Selected Object Properties");
+            bool isObjectSelectorOpen;
+            if(pickedObject == nullptr) {
+                isObjectSelectorOpen = ImGui::BeginCombo("Picked object", "No object selected");
+            } else {
+                isObjectSelectorOpen =ImGui::BeginCombo("Picked object", pickedObject->getName().c_str());
+            }
+            if (isObjectSelectorOpen) {
+                for (auto it = objects.begin(); it != objects.end(); it++) {
+                    GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
+                    if (ImGui::Selectable(gameObject->getName().c_str())) {
+                        pickedObject = gameObject;
                     }
                 }
                 ImGui::EndCombo();
             }
-            static float newObjectWeight;
-            ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
-            ImGui::NewLine();
-            static float newObjectX=0, newObjectY=15, newObjectZ=0;
-            ImGui::SliderFloat("Position X", &newObjectX, -10.0f, 10.0f);
-            ImGui::SliderFloat("Position Y", &newObjectY, -10.0f, 10.0f);
-            ImGui::SliderFloat("Position Z", &newObjectZ, -10.0f, 10.0f);
-            ImGui::NewLine();
-
-            if(selectedAssetFile != "") {
-                if(ImGui::Button("Add Object")) {
-                    Model* newModel = new Model(this->getNextObjectID(), assetManager, newObjectWeight, selectedAssetFile);
-                    newModel->setTranslate(glm::vec3(newObjectX, newObjectY, newObjectZ));
-                    this->addModelToWorld(newModel);
-                    newModel->getRigidBody()->activate();
-                    pickedObject = static_cast<GameObject*>(newModel);
-                }
-            }
-
-            ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
             if(pickedObject != nullptr) {
-                ImGui::Begin("Selected Object Properties");
-
                 pickedObject->addImGuiEditorElements();
                 ImGui::NewLine();
                 if (pickedObject->getTypeID() == GameObject::MODEL) {
@@ -503,10 +517,10 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                         delete removeObject;
                     }
                 }
-                ImGui::End();
-            } else {
-                ImGui::Text("No object picked");                           // Some text (you can use a format string too)
             }
+
+            ImGui::End();
+            ImGui::NewLine();
             if(ImGui::Button("Save Map")) {
                 if(WorldSaver::saveWorld("./Data/Maps/CustomWorld001.xml", this)) {
                     options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
