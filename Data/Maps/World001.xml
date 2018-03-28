@@ -146,7 +146,7 @@
             </Scale>
             <Translate>
                 <X>10.0</X>
-                <Y>0.0</Y>
+                <Y>10.0</Y>
                 <Z>10.0</Z>
             </Translate>
             <Rotate>
@@ -190,26 +190,26 @@
                 <Z>0.0</Z>
             </Position>
             <Color>
-                <R>0.0</R>
-                <G>0.0</G>
-                <B>1.0</B>
+                <R>0.7</R>
+                <G>0.7</G>
+                <B>0.7</B>
             </Color>
         </Light>
-        <Light>
+        <!--<Light>
             <Type>POINT</Type>
             <Position>
-                <X>0.0</X>
-                <Y>3.0</Y>
-                <Z>5.0</Z>
+                <X>0.7</X>
+                <Y>0.7</Y>
+                <Z>0.7</Z>
             </Position>
             <Color>
                 <R>1.0</R>
                 <G>0.0</G>
                 <B>0.0</B>
             </Color>
-        </Light>
+        </Light>-->
 
-        <!--<Light>
+        <Light>
             <Type>DIRECTIONAL</Type>
             <Position>
                 <X>-25.0</X>
@@ -221,6 +221,6 @@
                 <G>0.7</G>
                 <B>0.7</B>
             </Color>
-        </Light>-->
+        </Light>
     </Lights>
 </World>
