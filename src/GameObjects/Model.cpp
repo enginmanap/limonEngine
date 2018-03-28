@@ -16,8 +16,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
     this->triangleCount = 0;
     this->vao = 0;
     this->ebo = 0;//these are not per Model, but per Mesh
-    this->originalCenterOffset = modelAsset->getCenterOffset();
-    this->centerOffset = this->originalCenterOffset;
+    this->centerOffset = modelAsset->getCenterOffset();
     this->centerOffsetMatrix = glm::translate(glm::mat4(1.0f), centerOffset);
 
     compoundShape = new btCompoundShape();
@@ -105,6 +104,8 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
     if(animated) {
         rigidBody->setCollisionFlags(rigidBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
         rigidBody->setActivationState(DISABLE_DEACTIVATION);
+        //for animated bodies, setup the first frame
+        this->setupForTime(0);
     }
 
     isDirty = true;
