@@ -12,7 +12,6 @@
 class PhysicalRenderable : public Renderable {
 protected:
     btRigidBody *rigidBody;
-    glm::vec3 originalCenterOffset;
     glm::vec3 centerOffset;
     glm::mat4 centerOffsetMatrix;
     const float mass;
