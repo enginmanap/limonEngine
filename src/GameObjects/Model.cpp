@@ -276,6 +276,11 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
     currentElement->SetText(name.c_str());
     objectElement->InsertEndChild(currentElement);
 
+    if(animated) {
+        currentElement = document.NewElement("Animation");
+        currentElement->SetText(animationName.c_str());
+        objectElement->InsertEndChild(currentElement);
+    }
 
     currentElement = document.NewElement("Mass");
     currentElement->SetText(mass);
