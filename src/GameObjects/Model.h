@@ -93,6 +93,8 @@ public:
         assetManager->freeAsset({name});
     }
 
+    void fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode) const;
+
     /************Game Object methods **************/
     uint32_t getWorldObjectID() {
         return objectID;
