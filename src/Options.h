@@ -20,6 +20,7 @@ private:
     glm::vec3 walkSpeed = glm::vec3(5, 0, 5);
     glm::vec3 runSpeed = glm::vec3(8, 0, 8);
     glm::vec3 moveSpeed = walkSpeed;
+    glm::vec3 freeMovementSpeed = glm::vec3(0.1f,0.1f,0.1f);
     float jumpFactor = 7.0f;
     float lookAroundSpeed = -2.5f;
     unsigned int screenHeight = 1080;
@@ -165,6 +166,10 @@ public:
 
     const glm::vec3 &getMoveSpeed() const {
         return moveSpeed;
+    }
+
+    const glm::vec3 &getFreeMovementSpeed() const {
+        return freeMovementSpeed;
     }
 
     float getJumpFactor() const {
