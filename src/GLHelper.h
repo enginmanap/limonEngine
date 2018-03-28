@@ -28,8 +28,8 @@
 
 #define NR_POINT_LIGHTS 4
 
-#include "GameObjects/Light.h"
 #include "Options.h"
+class Light;
 
 class GLSLProgram;
 
@@ -184,6 +184,10 @@ private:
     glm::mat4 orthogonalProjectionMatrix;
     glm::mat4 lightProjectionMatrixDirectional;
     glm::mat4 lightProjectionMatrixPoint;
+public:
+    const glm::mat4 &getLightProjectionMatrixPoint() const;
+
+private:
 
     inline bool checkErrors(const std::string &callerFunc __attribute((unused))) {
 #ifndef NDEBUG

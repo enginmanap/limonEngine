@@ -7,6 +7,7 @@
 
 #include "WorldSaver.h"
 #include "World.h"
+#include "GameObjects/Light.h"
 
 /************************************************************************************
  * Map file spec
