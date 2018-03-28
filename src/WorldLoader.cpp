@@ -6,6 +6,7 @@
 #include "World.h"
 #include "AI/HumanEnemy.h"
 #include "GameObjects/SkyBox.h"
+#include "GameObjects/Light.h"
 
 WorldLoader::WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options* options):
         options(options),
@@ -377,7 +378,7 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
         color.y = y;
         color.z = z;
 
-        xmlLight = new Light(world->getNextObjectID(), type, position, color);
+        xmlLight = new Light(glHelper, world->getNextObjectID(), type, position, color);
         world->addLight(xmlLight);
         lightNode =  lightNode->NextSiblingElement("Light");
     }

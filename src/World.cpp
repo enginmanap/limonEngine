@@ -15,6 +15,7 @@
 #include "GameObjects/Players/FreeCursorPlayer.h"
 #include "GameObjects/Players/FreeMovingPlayer.h"
 #include "GameObjects/Players/PhysicalPlayer.h"
+#include "GameObjects/Light.h"
 #include "GUI/GUILayer.h"
 #include "GUI/GUIText.h"
 #include "GUI/GUIFPSCounter.h"
