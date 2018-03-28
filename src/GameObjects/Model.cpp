@@ -18,11 +18,12 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
     this->ebo = 0;//these are not per Model, but per Mesh
     this->originalCenterOffset = modelAsset->getCenterOffset();
     this->centerOffset = this->originalCenterOffset;
+    this->centerOffsetMatrix = glm::translate(glm::mat4(1.0f), centerOffset);
 
     compoundShape = new btCompoundShape();
-    btTransform baseTranform;
-    baseTranform.setIdentity();
-    baseTranform.setOrigin(GLMConverter::GLMToBlt(-1.0f * centerOffset));
+    btTransform baseTransform;
+    baseTransform.setIdentity();
+    baseTransform.setOrigin(GLMConverter::GLMToBlt(-1.0f * centerOffset));
     this->animated = modelAsset->isAnimated();
     std::map<uint_fast32_t, btConvexHullShape *> hullMap;
 
@@ -53,7 +54,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
         if (rawCollisionMesh != nullptr) {
             btCollisionShape *meshCollisionShape;
             btConvexTriangleMeshShape *convexTriangleMeshShape;
-            if (mass == 0) {
+            if (mass == 0 && !animated ) {
                 meshCollisionShape = new btBvhTriangleMeshShape(rawCollisionMesh, true);
             } else {
                 convexTriangleMeshShape = new btConvexTriangleMeshShape(rawCollisionMesh);
@@ -71,7 +72,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
                 }
             }
             //since there is no animation, we don't have to put the elements in order.
-            compoundShape->addChildShape(baseTranform, meshCollisionShape);//this add the mesh to collision shape
+            compoundShape->addChildShape(baseTransform, meshCollisionShape);//this add the mesh to collision shape
         }
     }
 
@@ -79,7 +80,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
         std::map<uint_fast32_t, btConvexHullShape *>::iterator it;
         for (int i = 0;i < 128; i++) {//FIXME 128 is the number of bones supported. It should be an option or an constant
             if (btTransformMap.find(i) != btTransformMap.end() && hullMap.find(i) != hullMap.end()) {
-                boneIdCompoundChildMap[i] = compoundShape->getNumChildShapes();
+                boneIdCompoundChildMap[i] = compoundShape->getNumChildShapes();//get numchild actually increase with each new child add below
                 compoundShape->addChildShape(btTransformMap[i], hullMap[i]);//this add the mesh to collision shape, in order
 
             }
@@ -106,7 +107,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
         rigidBody->setActivationState(DISABLE_DEACTIVATION);
     }
 
-    worldTransform = glm::mat4(1.0f);
+    isDirty = true;
 }
 
 void Model::setupForTime(long time) {
@@ -119,8 +120,9 @@ void Model::setupForTime(long time) {
             if (boneIdCompoundChildMap.find(i) != boneIdCompoundChildMap.end()) {
                 btTransform transform;
                 transform.setFromOpenGLMatrix(glm::value_ptr(boneTransforms[i]));
+                compoundShape->updateChildTransform( boneIdCompoundChildMap[i], transform, false);
+                boneTransforms[i] = centerOffsetMatrix * boneTransforms[i];
 
-                compoundShape->updateChildTransform(boneIdCompoundChildMap[i], transform, false);
             }
         }
         this->getRigidBody()->getCollisionShape()->setLocalScaling(scale);
@@ -133,7 +135,7 @@ void Model::activateMaterial(const Material *material, GLSLProgram *program) {
     if(material == nullptr ) {
         return;
     }
-    if (!program->setUniform("material.ambient", material->getAmbientColor())) {
+    if (!program->setUniform("material.ambient", material->getAmbientColor() + glm::vec3(0.15f,0.15f,0.15f))) {
         std::cerr << "Uniform \"material.ambient\" could not be set for program " << program->getProgramName()  << std::endl;
     }
 
