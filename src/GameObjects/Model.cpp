@@ -3,7 +3,7 @@
 //
 
 #include "Model.h"
-
+#include "../AI/Actor.h"
 
 Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile) :
         PhysicalRenderable(assetManager->getGlHelper(), mass), objectID(objectID), assetManager(assetManager),
@@ -77,7 +77,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
 
     if (animated) {
         std::map<uint_fast32_t, btConvexHullShape *>::iterator it;
-        for (int i = 0;i < 128; i++) {//FIXME 128 is the number of bones supported. It should be an option or an constant
+        for (unsigned int i = 0;i < 128; i++) {//FIXME 128 is the number of bones supported. It should be an option or an constant
             if (btTransformMap.find(i) != btTransformMap.end() && hullMap.find(i) != hullMap.end()) {
                 boneIdCompoundChildMap[i] = compoundShape->getNumChildShapes();//get numchild actually increase with each new child add below
                 compoundShape->addChildShape(btTransformMap[i], hullMap[i]);//this add the mesh to collision shape, in order
@@ -282,6 +282,12 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
         objectElement->InsertEndChild(currentElement);
     }
 
+    if(AIActor != nullptr) {
+        currentElement = document.NewElement("AI");
+        currentElement->SetText("True");
+        objectElement->InsertEndChild(currentElement);
+    }
+
     currentElement = document.NewElement("Mass");
     currentElement->SetText(mass);
     objectElement->InsertEndChild(currentElement);
@@ -324,4 +330,24 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
     currentElement->SetText(orientation.w);
     parent->InsertEndChild(currentElement);
     objectElement->InsertEndChild(parent);
+}
+
+uint32_t Model::getAIID() {
+    if(AIActor == nullptr) {
+        return 0;
+    }
+    return this->AIActor->getWorldID();
+}
+
+//TODO we need to free the texture. Destructor needed.
+Model::~Model() {
+    delete rigidBody->getMotionState();
+    delete rigidBody;
+    delete compoundShape;
+    delete AIActor;
+
+    for (unsigned int i = 0; i < meshMetaData.size(); ++i) {
+        delete meshMetaData[i];
+    }
+    assetManager->freeAsset({name});
 }

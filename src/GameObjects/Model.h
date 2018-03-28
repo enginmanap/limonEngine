@@ -16,6 +16,7 @@
 #include "../Assets/ModelAsset.h"
 #include "../../libs/ImGui/imgui.h"
 
+class Actor;
 
 class Model : public PhysicalRenderable, public GameObject {
 
@@ -27,6 +28,7 @@ class Model : public PhysicalRenderable, public GameObject {
 
         MeshMeta() : mesh(nullptr), skeleton(nullptr), program(nullptr) {}
     };
+    Actor *AIActor = nullptr;
     AssetManager *assetManager;
     ModelAsset *modelAsset;
     std::string animationName;
@@ -81,17 +83,7 @@ public:
         this->animationTime = 0;
     }
 
-    //TODO we need to free the texture. Destructor needed.
-    ~Model() {
-        delete rigidBody->getMotionState();
-        delete rigidBody;
-        delete compoundShape;
-
-        for (unsigned int i = 0; i < meshMetaData.size(); ++i) {
-            delete meshMetaData[i];
-        }
-        assetManager->freeAsset({name});
-    }
+    ~Model();
 
     void fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode) const;
 
@@ -156,6 +148,18 @@ public:
         }
     };
     /************Game Object methods **************/
+    void attachAI(Actor *AIActor) {
+        //after this, clearing the AI is job of the model.
+        this->AIActor = AIActor;
+    }
+
+    uint32_t getAIID();
+
+    void detachAI() {
+        this->AIActor = nullptr;
+    }
+
+
 };
 
 #endif //LIMONENGINE_MODEL_H

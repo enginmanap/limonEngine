@@ -21,12 +21,21 @@ struct ActorInformation{
 
 class Actor {
 protected:
+    uint32_t worldID;
     Model* model = nullptr;
 public:
+
+    Actor(uint32_t id): worldID(id) {}
+
     virtual void play(long time, ActorInformation &information, Options* options) = 0;
 
+    uint32_t getWorldID() {
+        return worldID;
+    }
+
     void setModel(Model *model) {
-        this->model = model;//FIXME it looks like removing this object will be an issue because it is not clear who clears it
+        this->model = model;
+        model->attachAI(this);
     }
 
     glm::vec3 getPosition(){

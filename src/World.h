@@ -45,7 +45,7 @@ class World {
     std::unordered_map<uint32_t, PhysicalRenderable *> objects;
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
-    std::vector<Actor*> actors;
+    std::unordered_map<uint32_t, Actor*> actors;
     AIMovementGrid *grid = nullptr;
     SkyBox *sky = nullptr;
     GLHelper *glHelper;
@@ -81,7 +81,7 @@ class World {
 
     bool checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName);
 
-    ActorInformation fillActorInformation(int j);
+    ActorInformation fillActorInformation(Actor *actor);
 
     void updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax);
 

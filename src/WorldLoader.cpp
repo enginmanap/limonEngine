@@ -187,22 +187,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
                 isAIGridStartPointSet = true;
             }
             std::cout << "Object has AI." << std::endl;
-            HumanEnemy* newEnemy = new HumanEnemy();
-            newEnemy->setModel(xmlModel);
-            world->addActor(newEnemy);
-        }
-
-        objectAttribute =  objectNode->FirstChildElement("AI");
-        if (objectAttribute == nullptr) {
-            std::cout << "Object does not have AI." << std::endl;
-        } else {
-            if (!isAIGridStartPointSet) {
-                aiGridStartPoint = GLMConverter::BltToGLM(xmlModel->getRigidBody()->getCenterOfMassPosition()) +
-                                   glm::vec3(0, 2.0f, 0);
-                isAIGridStartPointSet = true;
-            }
-            std::cout << "Object has AI." << std::endl;
-            HumanEnemy* newEnemy = new HumanEnemy();
+            HumanEnemy* newEnemy = new HumanEnemy(world->getNextObjectID());
             newEnemy->setModel(xmlModel);
             world->addActor(newEnemy);
         }
