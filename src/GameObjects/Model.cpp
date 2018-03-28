@@ -267,3 +267,56 @@ void Model::renderWithProgram(GLSLProgram &program) {
         std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
     }
 }
+
+void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode) const {
+    tinyxml2::XMLElement *objectElement = document.NewElement("Object");
+    objectsNode->InsertEndChild(objectElement);
+
+    tinyxml2::XMLElement *currentElement = document.NewElement("File");
+    currentElement->SetText(name.c_str());
+    objectElement->InsertEndChild(currentElement);
+
+
+    currentElement = document.NewElement("Mass");
+    currentElement->SetText(mass);
+    objectElement->InsertEndChild(currentElement);
+
+    tinyxml2::XMLElement *parent = document.NewElement("Scale");
+    currentElement = document.NewElement("X");
+    currentElement->SetText(scale.x);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Y");
+    currentElement->SetText(scale.y);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Z");
+    currentElement->SetText(scale.z);
+    parent->InsertEndChild(currentElement);
+    objectElement->InsertEndChild(parent);
+
+    parent = document.NewElement("Translate");
+    currentElement = document.NewElement("X");
+    currentElement->SetText(translate.x);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Y");
+    currentElement->SetText(translate.y);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Z");
+    currentElement->SetText(translate.z);
+    parent->InsertEndChild(currentElement);
+    objectElement->InsertEndChild(parent);
+
+    parent = document.NewElement("Rotate");
+    currentElement = document.NewElement("X");
+    currentElement->SetText(orientation.x);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Y");
+    currentElement->SetText(orientation.y);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Z");
+    currentElement->SetText(orientation.z);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("W");
+    currentElement->SetText(orientation.w);
+    parent->InsertEndChild(currentElement);
+    objectElement->InsertEndChild(parent);
+}

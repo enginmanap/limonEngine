@@ -85,6 +85,8 @@ public:
         return mass;
     };
 
+    virtual void fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode) const = 0;
+
 };
 
 
