@@ -50,8 +50,9 @@ class Model : public PhysicalRenderable, public GameObject {
 
     void generateWorldTransform() {
         this->oldWorldTransform = this->worldTransform;
-        this->worldTransform = glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation) *
-                               glm::scale(glm::mat4(1.0f), scale) * glm::translate(glm::mat4(1.0f), -1.0f * this->originalCenterOffset);
+        //if animated, then the transform information will be updated according to bone transforms. Then ve apply current center offset
+            this->worldTransform = glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation) *
+                                   glm::scale(glm::mat4(1.0f), scale) * glm::translate(glm::mat4(1.0f), -1.0f * centerOffset);
         isDirty = false;
     }
 
@@ -106,25 +107,35 @@ public:
 
     void addImGuiEditorElements() {
         bool updated = false;
+        bool crudeUpdated = false;
+        static glm::vec3 preciseTranslatePoint = this->translate;
         ImGui::Text("%s",getName().c_str());                           // Some text (you can use a format string too)
-        updated = ImGui::SliderFloat("Position X", &(this->translate.x), -100.0f, 100.0f)   || updated;
-        updated = ImGui::SliderFloat("Position Y", &(this->translate.y), -100.0f, 100.0f)   || updated;
-        updated = ImGui::SliderFloat("Position Z", &(this->translate.z), -100.0f, 100.0f)   || updated;
+        updated = ImGui::SliderFloat("Precise Position X", &(this->translate.x), preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || updated;
+        updated = ImGui::SliderFloat("Precise Position Y", &(this->translate.y), preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || updated;
+        updated = ImGui::SliderFloat("Precise Position Z", &(this->translate.z), preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || updated;
         ImGui::NewLine();
-        updated = ImGui::SliderFloat("Scale X", &(this->scale.x), 0.01f, 10.0f)             || updated;
-        updated = ImGui::SliderFloat("Scale Y", &(this->scale.y), 0.01f, 10.0f)             || updated;
-        updated = ImGui::SliderFloat("Scale Z", &(this->scale.z), 0.01f, 10.0f)             || updated;
+        crudeUpdated = ImGui::SliderFloat("Crude Position X", &(this->translate.x), -100.0f, 100.0f)   || crudeUpdated;
+        crudeUpdated = ImGui::SliderFloat("Crude Position Y", &(this->translate.y), -100.0f, 100.0f)   || crudeUpdated;
+        crudeUpdated = ImGui::SliderFloat("Crude Position Z", &(this->translate.z), -100.0f, 100.0f)   || crudeUpdated;
+        ImGui::NewLine();
+        glm::vec3 tempScale(this->scale);
+        updated = ImGui::SliderFloat("Scale X", &(tempScale.x), 0.01f, 10.0f)             || updated;
+        updated = ImGui::SliderFloat("Scale Y", &(tempScale.y), 0.01f, 10.0f)             || updated;
+        updated = ImGui::SliderFloat("Scale Z", &(tempScale.z), 0.01f, 10.0f)             || updated;
         ImGui::NewLine();
         updated = ImGui::SliderFloat("Rotate X", &(this->orientation.x), -1.0f, 1.0f)             || updated;
         updated = ImGui::SliderFloat("Rotate Y", &(this->orientation.y), -1.0f, 1.0f)             || updated;
         updated = ImGui::SliderFloat("Rotate Z", &(this->orientation.z), -1.0f, 1.0f)             || updated;
         updated = ImGui::SliderFloat("Rotate W", &(this->orientation.w), -1.0f, 1.0f)             || updated;
 
-        if(updated) {
+        if(updated || crudeUpdated) {
             this->setTranslate(translate);
-            this->setScale(scale);
+            this->setScale(tempScale);
             this->setOrientation(orientation);
             this->rigidBody->activate();
+        }
+        if(crudeUpdated) {
+            preciseTranslatePoint = this->translate;
         }
 
         if(isAnimated()) {

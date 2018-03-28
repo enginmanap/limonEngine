@@ -14,6 +14,7 @@ protected:
     btRigidBody *rigidBody;
     glm::vec3 originalCenterOffset;
     glm::vec3 centerOffset;
+    glm::mat4 centerOffsetMatrix;
     const float mass;
 
 public:
@@ -24,32 +25,14 @@ public:
     void addScale(const glm::vec3 &scale) {
         Renderable::addScale(scale);
         rigidBody->getCollisionShape()->setLocalScaling(btVector3(this->scale.x, this->scale.y, this->scale.z));
-        //local scale scales the shape, what about the rigid body -> shape positions
-        btCompoundShape * shape = static_cast<btCompoundShape *>(rigidBody->getCollisionShape());
-        for (int i = 0; i < shape->getNumChildShapes(); ++i) {
-            btTransform transform = shape->getChildTransform(i);
-            transform.setOrigin(GLMConverter::GLMToBlt(this->scale) * transform.getOrigin());
-            shape->updateChildTransform(i, transform);
-        }
-        centerOffset = originalCenterOffset * this->scale;
     }
 
     void setScale(const glm::vec3 &scale) {
-        glm::vec3 oldScale =  this->scale;
-        btVector3 scaleToApply = GLMConverter::GLMToBlt(scale / oldScale);
         Renderable::setScale(scale);
         rigidBody->getCollisionShape()->setLocalScaling(btVector3(this->scale.x, this->scale.y, this->scale.z));
-        //local scale scales the shape, what about the rigid body -> shape positions
-        btCompoundShape * shape = static_cast<btCompoundShape *>(rigidBody->getCollisionShape());
-        for (int i = 0; i < shape->getNumChildShapes(); ++i) {
-            btTransform transform = shape->getChildTransform(i);
-            transform.setOrigin(scaleToApply * transform.getOrigin());
-            shape->updateChildTransform(i, transform);
-        }
-        centerOffset = originalCenterOffset * scale;
     }
 
-    glm::vec3 getScale() const {
+    const glm::vec3 getScale() const {
         return this->scale;
     }
 
