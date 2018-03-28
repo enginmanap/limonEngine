@@ -130,9 +130,9 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
         dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
         currentPlayer->processPhysicsWorld(dynamicsWorld);
 
-        for (unsigned int j = 0; j < actors.size(); ++j) {
-            ActorInformation information = fillActorInformation(j);
-            actors[j]->play(gameTime, information, options);
+        for (auto actorIt = actors.begin(); actorIt != actors.end(); ++actorIt) {
+            ActorInformation information = fillActorInformation(actorIt->second);
+            actorIt->second->play(gameTime, information, options);
         }
         for (std::unordered_map<uint32_t, PhysicalRenderable *>::iterator it = objects.begin();
              it != objects.end(); ++it) {
@@ -157,12 +157,12 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
     }
 }
 
-ActorInformation World::fillActorInformation(int j) {
+ActorInformation World::fillActorInformation(Actor *actor) {
     ActorInformation information;
     //FIXME this is just for test
-    information.canSeePlayerDirectly = checkPlayerVisibility(actors[j]->getPosition(), "./Data/Models/ArmyPilot/ArmyPilot.mesh.xml");
-    glm::vec3 front = actors[j]->getFrontVector();
-    glm::vec3 rayDir = currentPlayer->getPosition() - actors[j]->getPosition();
+    information.canSeePlayerDirectly = checkPlayerVisibility(actor->getPosition(), "./Data/Models/ArmyPilot/ArmyPilot.mesh.xml");
+    glm::vec3 front = actor->getFrontVector();
+    glm::vec3 rayDir = currentPlayer->getPosition() - actor->getPosition();
     float cosBetween = glm::dot(normalize(front), normalize(rayDir));
     information.cosineBetweenPlayer = cosBetween;
     information.playerDirection = normalize(rayDir);
@@ -203,13 +203,13 @@ ActorInformation World::fillActorInformation(int j) {
     std::vector<glm::vec3> route;
     glm::vec3 playerPosWithGrid = currentPlayer->getPosition();
     bool isPlayerReachable = grid->setProperHeight(&playerPosWithGrid, AIMovementGrid::floatingHeight, 0.0f, dynamicsWorld);
-    if(isPlayerReachable && grid->coursePath(actors[j]->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0), playerPosWithGrid, j, &route)) {
+    if(isPlayerReachable && grid->coursePath(actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0), playerPosWithGrid, actor->getWorldID(), &route)) {
         if (route.empty()) {
             information.toPlayerRoute = glm::vec3(0, 0, 0);
             information.canGoToPlayer = false;
         } else {
             //Normally, this information should be used for straightening the path, but not yet.
-            information.toPlayerRoute = route[route.size() - 1] - actors[j]->getPosition() - glm::vec3(0, 2.0f, 0);
+            information.toPlayerRoute = route[route.size() - 1] - actor->getPosition() - glm::vec3(0, 2.0f, 0);
             information.canGoToPlayer = true;
         }
     }
@@ -512,6 +512,10 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                         PhysicalRenderable *removeObject = objects[pickedObject->getWorldObjectID()];
                         //disconnect from physics
                         dynamicsWorld->removeRigidBody(removeObject->getRigidBody());
+                        //disconnect AI
+                        if(dynamic_cast<Model*>(removeObject)->getAIID() != 0) {
+                            actors.erase(dynamic_cast<Model*>(removeObject)->getAIID());
+                        }
                         objects.erase(pickedObject->getWorldObjectID());
                         pickedObject = nullptr;
                         delete removeObject;
@@ -584,7 +588,7 @@ void World::updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax) {
 }
 
 void World::addActor(Actor *actor) {
-    this->actors.push_back(actor);
+    this->actors[actor->getWorldID()] = actor;
 }
 
 void World::createGridFrom(const glm::vec3 &aiGridStartPoint) {
