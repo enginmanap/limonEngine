@@ -15,28 +15,28 @@ void FreeMovingPlayer::move(moveDirections direction) {
             position +=(up * options->getJumpFactor() / 100.0f);
             break;
         case LEFT_BACKWARD:
-            position +=(-1.0f * (right + center) * options->getMoveSpeed().x / 100.0f);
+            position +=(-1.0f * (right + center) * options->getFreeMovementSpeed().x);
             break;
         case LEFT_FORWARD:
-            position +=((-1.0f * right + center) * options->getMoveSpeed().x / 100.0f);
+            position +=((-1.0f * right + center) * options->getFreeMovementSpeed().x);
             break;
         case LEFT:
-            position +=(right * -1.0f * options->getMoveSpeed().x / 100.0f);
+            position +=(right * -1.0f * options->getFreeMovementSpeed().x);
             break;
         case RIGHT_BACKWARD:
-            position +=((right + -1.0f * center) * options->getMoveSpeed().x / 100.0f);
+            position +=((right + -1.0f * center) * options->getFreeMovementSpeed().x);
             break;
         case RIGHT_FORWARD:
-            position +=((right + center) * options->getMoveSpeed().x / 100.0f);
+            position +=((right + center) * options->getFreeMovementSpeed().x);
             break;
         case RIGHT:
-            position +=(right * options->getMoveSpeed().x / 100.0f);
+            position +=(right * options->getFreeMovementSpeed().x);
             break;
         case BACKWARD:
-            position +=(center * -1.0f * options->getMoveSpeed().x / 100.0f);
+            position +=(center * -1.0f * options->getFreeMovementSpeed().x);
             break;
         case FORWARD:
-            position +=(center * options->getMoveSpeed().x / 100.0f);
+            position +=(center * options->getFreeMovementSpeed().x);
             break;
         case NONE:break;//this is here because -Wall complaints if it is not
     }
