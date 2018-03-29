@@ -99,58 +99,106 @@ public:
         return name + "_" + std::to_string(objectID);
     };
 
-    void addImGuiEditorElements() {
+    GizmoRequest addImGuiEditorElements() {
+        static GizmoRequest request;
+        static glm::vec3 preciseTranslatePoint = this->translate;
+
         bool updated = false;
         bool crudeUpdated = false;
-        static glm::vec3 preciseTranslatePoint = this->translate;
-        ImGui::Text("%s",getName().c_str());                           // Some text (you can use a format string too)
-        updated = ImGui::SliderFloat("Precise Position X", &(this->translate.x), preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || updated;
-        updated = ImGui::SliderFloat("Precise Position Y", &(this->translate.y), preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || updated;
-        updated = ImGui::SliderFloat("Precise Position Z", &(this->translate.z), preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || updated;
-        ImGui::NewLine();
-        crudeUpdated = ImGui::SliderFloat("Crude Position X", &(this->translate.x), -100.0f, 100.0f)   || crudeUpdated;
-        crudeUpdated = ImGui::SliderFloat("Crude Position Y", &(this->translate.y), -100.0f, 100.0f)   || crudeUpdated;
-        crudeUpdated = ImGui::SliderFloat("Crude Position Z", &(this->translate.z), -100.0f, 100.0f)   || crudeUpdated;
-        ImGui::NewLine();
-        glm::vec3 tempScale(this->scale);
-        updated = ImGui::SliderFloat("Scale X", &(tempScale.x), 0.01f, 10.0f)             || updated;
-        updated = ImGui::SliderFloat("Scale Y", &(tempScale.y), 0.01f, 10.0f)             || updated;
-        updated = ImGui::SliderFloat("Scale Z", &(tempScale.z), 0.01f, 10.0f)             || updated;
-        ImGui::NewLine();
-        updated = ImGui::SliderFloat("Massive Scale X", &(tempScale.x), 0.01f, 100.0f)             || updated;
-        updated = ImGui::SliderFloat("Massive Scale Y", &(tempScale.y), 0.01f, 100.0f)             || updated;
-        updated = ImGui::SliderFloat("Massive Scale Z", &(tempScale.z), 0.01f, 100.0f)             || updated;
-        ImGui::NewLine();
-        updated = ImGui::SliderFloat("Rotate X", &(this->orientation.x), -1.0f, 1.0f)             || updated;
-        updated = ImGui::SliderFloat("Rotate Y", &(this->orientation.y), -1.0f, 1.0f)             || updated;
-        updated = ImGui::SliderFloat("Rotate Z", &(this->orientation.z), -1.0f, 1.0f)             || updated;
-        updated = ImGui::SliderFloat("Rotate W", &(this->orientation.w), -1.0f, 1.0f)             || updated;
 
-        if(updated || crudeUpdated) {
-            this->setTranslate(translate);
-            this->setScale(tempScale);
-            this->setOrientation(orientation);
-            this->rigidBody->activate();
-        }
-        if(crudeUpdated) {
-            preciseTranslatePoint = this->translate;
+        if (ImGui::IsKeyPressed(83)) {
+            request.useSnap = !request.useSnap;
         }
 
-        if(isAnimated()) {
-            ImGui::Text("Animation properties");                           // Some text (you can use a format string too)
-            if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {
-                //ImGui::Combo();
-                for (std::unordered_map<std::string, AnimationSet *>::const_iterator it = modelAsset->getAnimations().begin();
-                     it != modelAsset->getAnimations().end(); it++) {
-                    if(ImGui::Selectable(it->first.c_str())) {
-                        setAnimation(it->first);
-                    }
+        /*
+         * at first we decide whether we are in rotation, scale or translate mode.
+         */
+
+        if (ImGui::RadioButton("Translate", request.mode == EditorModes::TRANSLATE_MODE)) {
+            request.mode = EditorModes::TRANSLATE_MODE;
+        }
+
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Rotate", request.mode == EditorModes::ROTATE_MODE)) {
+            request.mode = EditorModes::ROTATE_MODE;
+        }
+
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Scale", request.mode == EditorModes::SCALE_MODE)) {
+            request.mode = EditorModes::SCALE_MODE;
+        }
+
+        switch (request.mode) {
+            case TRANSLATE_MODE:
+                updated = ImGui::SliderFloat("Precise Position X", &(this->translate.x), preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || updated;
+                updated = ImGui::SliderFloat("Precise Position Y", &(this->translate.y), preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || updated;
+                updated = ImGui::SliderFloat("Precise Position Z", &(this->translate.z), preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || updated;
+                ImGui::NewLine();
+                crudeUpdated = ImGui::SliderFloat("Crude Position X", &(this->translate.x), -100.0f, 100.0f)   || crudeUpdated;
+                crudeUpdated = ImGui::SliderFloat("Crude Position Y", &(this->translate.y), -100.0f, 100.0f)   || crudeUpdated;
+                crudeUpdated = ImGui::SliderFloat("Crude Position Z", &(this->translate.z), -100.0f, 100.0f)   || crudeUpdated;
+                if(updated || crudeUpdated) {
+                    this->setTranslate(translate);
+                    this->rigidBody->activate();
                 }
-                ImGui::EndCombo();
-            }
-            ImGui::SliderFloat("Animation time scale", &(this->animationTimeScale), 0.01f, 2.0f);
+                if(crudeUpdated) {
+                    preciseTranslatePoint = this->translate;
+                }
+                ImGui::NewLine();
+                ImGui::Checkbox("", &(request.useSnap));
+                ImGui::SameLine();
+                ImGui::InputFloat3("Snap", &(request.snap[0]));
+                break;
+            case ROTATE_MODE:
+                updated = ImGui::SliderFloat("Rotate X", &(this->orientation.x), -1.0f, 1.0f)             || updated;
+                updated = ImGui::SliderFloat("Rotate Y", &(this->orientation.y), -1.0f, 1.0f)             || updated;
+                updated = ImGui::SliderFloat("Rotate Z", &(this->orientation.z), -1.0f, 1.0f)             || updated;
+                updated = ImGui::SliderFloat("Rotate W", &(this->orientation.w), -1.0f, 1.0f)             || updated;
+                if(updated || crudeUpdated) {
+                    this->setOrientation(orientation);
+                    this->rigidBody->activate();
+                }
+                ImGui::NewLine();
+                ImGui::Checkbox("", &(request.useSnap));
+                ImGui::SameLine();
+                ImGui::InputFloat("Angle Snap", &(request.snap[0]));
+                break;
+            case SCALE_MODE:
+                updated = ImGui::SliderFloat("Scale X", &(scale.x), 0.01f, 10.0f)             || updated;
+                updated = ImGui::SliderFloat("Scale Y", &(scale.y), 0.01f, 10.0f)             || updated;
+                updated = ImGui::SliderFloat("Scale Z", &(scale.z), 0.01f, 10.0f)             || updated;
+                ImGui::NewLine();
+                updated = ImGui::SliderFloat("Massive Scale X", &(scale.x), 0.01f, 100.0f)             || updated;
+                updated = ImGui::SliderFloat("Massive Scale Y", &(scale.y), 0.01f, 100.0f)             || updated;
+                updated = ImGui::SliderFloat("Massive Scale Z", &(scale.z), 0.01f, 100.0f)             || updated;
+                if(updated || crudeUpdated) {
+                    this->setScale(scale);
+                    this->rigidBody->activate();
+                }
+                ImGui::NewLine();
+                ImGui::Checkbox("", &(request.useSnap));
+                ImGui::SameLine();
+                ImGui::InputFloat("Scale Snap", &(request.snap[0]));
+                break;
         }
-    };
+        ImGui::NewLine();
+        if(isAnimated()) {
+            if(ImGui::CollapsingHeader("Animation properties")) {
+                if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {
+                    //ImGui::Combo();
+                    for (auto it = modelAsset->getAnimations().begin(); it != modelAsset->getAnimations().end(); it++) {
+                        if(ImGui::Selectable(it->first.c_str())) {
+                            setAnimation(it->first);
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                ImGui::SliderFloat("Animation time scale", &(this->animationTimeScale), 0.01f, 2.0f);
+            }
+        }
+        request.isRequested = true;
+        return request;
+    }
     /************Game Object methods **************/
     void attachAI(Actor *AIActor) {
         //after this, clearing the AI is job of the model.

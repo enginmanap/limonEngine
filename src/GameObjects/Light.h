@@ -57,6 +57,12 @@ public:
         return position;
     }
 
+    void setPosition(glm::vec3 position) {
+        this->position = position;
+        setShadowMatricesForPosition();
+        glHelper->setLight(*this, objectID);
+    }
+
     const glm::vec3 &getColor() const {
         return color;
     }
@@ -94,12 +100,12 @@ public:
         return goName;
     };
 
-    void addImGuiEditorElements() {
+    GizmoRequest addImGuiEditorElements() {
+        static GizmoRequest request;
+
         bool updated = false;
         bool crudeUpdated = false;
         static glm::vec3 preciseTranslatePoint = this->position;
-        ImGui::Text("%s",getName().c_str());                           // Some text (you can use a format string too)
-        ImGui::Text("%s",getName().c_str());                           // Some text (you can use a format string too)
         updated = ImGui::SliderFloat("Precise Position X", &(this->position.x), preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || updated;
         updated = ImGui::SliderFloat("Precise Position Y", &(this->position.y), preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || updated;
         updated = ImGui::SliderFloat("Precise Position Z", &(this->position.z), preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || updated;
@@ -114,14 +120,13 @@ public:
         ImGui::NewLine();
 
         if(updated || crudeUpdated) {
-            this->position = position;
-            setShadowMatricesForPosition();
-            glHelper->setLight(*this, objectID);
+            this->setPosition(position);
         }
         if(crudeUpdated) {
             preciseTranslatePoint = this->position;
         }
-
+        request.isRequested = true;
+        return request;
     }
     /************Game Object methods **************/
 };
