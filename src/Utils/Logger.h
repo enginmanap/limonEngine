@@ -12,7 +12,7 @@
 
 class Logger {
 public:
-    enum Subsystem {log_Subsystem_RENDER, log_Subsystem_MODEL, log_Subsystem_INPUT, log_Subsystem_SETTINGS, log_Subsystem_AI, log_Subsystem_LOAD_SAVE};
+    enum Subsystem {log_Subsystem_RENDER, log_Subsystem_MODEL, log_Subsystem_INPUT, log_Subsystem_SETTINGS, log_Subsystem_AI, log_Subsystem_LOAD_SAVE, log_Subsystem_EDITOR};
     enum Level {log_level_TRACE, log_level_DEBUG, log_level_INFO, log_level_WARN, log_level_ERROR };
 
     struct LogLine {

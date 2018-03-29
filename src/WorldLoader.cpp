@@ -378,7 +378,7 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
         color.y = y;
         color.z = z;
 
-        xmlLight = new Light(glHelper, world->getNextObjectID(), type, position, color);
+        xmlLight = new Light(glHelper, world->lights.size(), type, position, color);
         world->addLight(xmlLight);
         lightNode =  lightNode->NextSiblingElement("Light");
     }
