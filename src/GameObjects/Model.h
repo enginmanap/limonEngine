@@ -117,6 +117,10 @@ public:
         updated = ImGui::SliderFloat("Scale Y", &(tempScale.y), 0.01f, 10.0f)             || updated;
         updated = ImGui::SliderFloat("Scale Z", &(tempScale.z), 0.01f, 10.0f)             || updated;
         ImGui::NewLine();
+        updated = ImGui::SliderFloat("Massive Scale X", &(tempScale.x), 0.01f, 100.0f)             || updated;
+        updated = ImGui::SliderFloat("Massive Scale Y", &(tempScale.y), 0.01f, 100.0f)             || updated;
+        updated = ImGui::SliderFloat("Massive Scale Z", &(tempScale.z), 0.01f, 100.0f)             || updated;
+        ImGui::NewLine();
         updated = ImGui::SliderFloat("Rotate X", &(this->orientation.x), -1.0f, 1.0f)             || updated;
         updated = ImGui::SliderFloat("Rotate Y", &(this->orientation.y), -1.0f, 1.0f)             || updated;
         updated = ImGui::SliderFloat("Rotate Z", &(this->orientation.z), -1.0f, 1.0f)             || updated;
