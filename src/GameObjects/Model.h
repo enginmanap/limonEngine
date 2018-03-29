@@ -96,7 +96,7 @@ public:
     };
 
     std::string getName() const {
-        return name;
+        return name + "_" + std::to_string(objectID);
     };
 
     void addImGuiEditorElements() {
