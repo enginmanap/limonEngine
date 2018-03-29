@@ -62,7 +62,7 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     tr->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2, options->getScreenHeight()-20), 0.0f);
     layer1->addGuiElement(tr);
 
-    tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "Version 0.2",
+    tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "Version 0.3",
                      glm::vec3(255, 255, 255));
     tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), -1 * options->PI / 2);
     layer1->addGuiElement(tr);
