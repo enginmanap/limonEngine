@@ -135,8 +135,7 @@ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
             ActorInformation information = fillActorInformation(actorIt->second);
             actorIt->second->play(gameTime, information, options);
         }
-        for (std::unordered_map<uint32_t, PhysicalRenderable *>::iterator it = objects.begin();
-             it != objects.end(); ++it) {
+        for (auto it = objects.begin(); it != objects.end(); ++it) {
             it->second->setupForTime(gameTime);
             it->second->updateTransformFromPhysics();
         }
@@ -382,8 +381,7 @@ void World::render() {
         //generate shadow map
         glHelper->switchRenderToShadowMapDirectional(i);
         shadowMapProgramDirectional->setUniform("renderLightIndex", (int)i);
-        for (std::unordered_map<uint32_t, PhysicalRenderable *>::iterator it = objects.begin();
-             it != objects.end(); ++it) {
+        for (auto it = objects.begin(); it != objects.end(); ++it) {
             (*it).second->renderWithProgram(*shadowMapProgramDirectional);
         }
     }
@@ -398,8 +396,7 @@ void World::render() {
         shadowMapProgramPoint->setUniform("renderLightIndex", (int)i);
         //FIXME this is suppose to be an option //FarPlanePoint is set at declaration, since it is a constant
         shadowMapProgramPoint->setUniform("farPlanePoint", 100.0f);
-        for (std::unordered_map<uint32_t, PhysicalRenderable *>::iterator it = objects.begin();
-             it != objects.end(); ++it) {
+        for (auto it = objects.begin(); it != objects.end(); ++it) {
             (*it).second->renderWithProgram(*shadowMapProgramPoint);
         }
     }
@@ -414,7 +411,7 @@ void World::render() {
     }
 
 
-    for (std::unordered_map<uint32_t, PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
+    for (auto it = objects.begin(); it != objects.end(); ++it) {
         (*it).second->render();
     }
 
@@ -493,7 +490,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             if(pickedObject == nullptr) {
                 isObjectSelectorOpen = ImGui::BeginCombo("Picked object", "No object selected");
             } else {
-                isObjectSelectorOpen =ImGui::BeginCombo("Picked object", pickedObject->getName().c_str());
+                isObjectSelectorOpen =ImGui::BeginCombo("Picked object", (pickedObject->getName().c_str()));
             }
             if (isObjectSelectorOpen) {
                 for (auto it = objects.begin(); it != objects.end(); it++) {
@@ -552,7 +549,7 @@ World::~World() {
     delete dynamicsWorld;
 
     //FIXME clear GUIlayer elements
-    for (std::unordered_map<uint32_t, PhysicalRenderable *>::iterator it = objects.begin(); it != objects.end(); ++it) {
+    for (auto it = objects.begin(); it != objects.end(); ++it) {
         delete (*it).second;
     }
     delete sky;

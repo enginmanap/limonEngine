@@ -42,7 +42,7 @@ class World {
     AssetManager* assetManager;
     Options* options;
     uint32_t totalObjectCount = 1;
-    std::unordered_map<uint32_t, PhysicalRenderable *> objects;
+    std::map<uint32_t, PhysicalRenderable *> objects;
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
     std::unordered_map<uint32_t, Actor*> actors;
