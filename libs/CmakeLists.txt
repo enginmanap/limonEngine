@@ -14,3 +14,13 @@ set(IMGUI_HEADERS
         "libs/ImGui/stb_truetype.h")
 
 add_library(ImGui ${IMGUI_SOURCES} ${IMGUI_HEADERS})
+		
+set(IMGUIZMO_SOURCES
+        "libs/ImGuizmo/ImGuizmo.cpp"
+        "libs/ImGuizmo/ImSequencer.cpp")
+
+set(IMGUIZMO_HEADERS
+        "libs/ImGuizmo/ImGuizmo.h"
+        "libs/ImGuizmo/ImSequencer.h")
+
+add_library(ImGuizmo ${IMGUIZMO_SOURCES} ${IMGUIZMO_HEADERS})

@@ -101,6 +101,7 @@ class World {
     World(AssetManager *assetManager, GLHelper *, Options *options);
 
     void ImGuiFrameSetup();
+    void ImGuizmoFrameSetup(const GameObject::GizmoRequest& request);
 public:
     ~World();
 

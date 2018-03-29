@@ -16,12 +16,14 @@
 #include "GameObjects/Players/FreeMovingPlayer.h"
 #include "GameObjects/Players/PhysicalPlayer.h"
 #include "GameObjects/Light.h"
+#include "GameObjects/GameObject.h"
 #include "GUI/GUILayer.h"
 #include "GUI/GUIText.h"
 #include "GUI/GUIFPSCounter.h"
 #include "GUI/GUITextDynamic.h"
 #include "ImGuiHelper.h"
 #include "WorldSaver.h"
+#include "../libs/ImGuizmo/ImGuizmo.h"
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
@@ -468,9 +470,9 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
                 ImGui::NewLine();
                 static float newObjectX = 0, newObjectY = 15, newObjectZ = 0;
-                ImGui::SliderFloat("Position X", &newObjectX, -10.0f, 10.0f);
-                ImGui::SliderFloat("Position Y", &newObjectY, -10.0f, 10.0f);
-                ImGui::SliderFloat("Position Z", &newObjectZ, -10.0f, 10.0f);
+                ImGui::SliderFloat("Position X", &newObjectX, -10.0f, 10.0f);ImGui::SameLine();ImGui::InputFloat("Position X##text", &newObjectX);
+                ImGui::SliderFloat("Position Y", &newObjectY, -10.0f, 10.0f);ImGui::SameLine();ImGui::InputFloat("Position Y##text", &newObjectY);
+                ImGui::SliderFloat("Position Z", &newObjectZ, -10.0f, 10.0f);ImGui::SameLine();ImGui::InputFloat("Position Z##text", &newObjectZ);
                 ImGui::NewLine();
                 if(selectedAssetFile != "") {
                     if(ImGui::Button("Add Object")) {
@@ -508,9 +510,13 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 ImGui::EndCombo();
             }
             if(pickedObject != nullptr) {
-                pickedObject->addImGuiEditorElements();
+                GameObject::GizmoRequest request = pickedObject->addImGuiEditorElements();
+                if(request.isRequested) {
+                    ImGuizmoFrameSetup(request);
+                }
                 ImGui::NewLine();
                 if (pickedObject->getTypeID() == GameObject::MODEL) {
+
                     if (ImGui::Button("Remove This Object")) {
                         //remove the object.
                         PhysicalRenderable *removeObject = objects[pickedObject->getWorldObjectID()];
@@ -543,6 +549,88 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
         /* window definitions */
         imgGuiHelper->RenderDrawLists();
     }
+}
+
+void World::ImGuizmoFrameSetup(const GameObject::GizmoRequest& request) {
+
+    ImGuizmo::OPERATION mCurrentGizmoOperation = ImGuizmo::TRANSLATE ;
+
+    switch (request.mode) {
+        case GameObject::TRANSLATE_MODE:
+            mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+            break;
+        case GameObject::ROTATE_MODE:
+            mCurrentGizmoOperation = ImGuizmo::ROTATE;
+            break;
+        case GameObject::SCALE_MODE:
+            mCurrentGizmoOperation = ImGuizmo::SCALE;
+            break;
+    }
+    glm::mat4 cameraMatrix = camera->getCameraMatrix();
+    glm::mat4 perspectiveMatrix = glHelper->getProjectionMatrix();
+    glm::mat4 objectMatrix;
+    ImGuizmo::BeginFrame();
+    glm::vec3 eulerRotation;
+    switch (pickedObject->getTypeID()) {
+        case GameObject::ObjectTypes::MODEL: {
+            eulerRotation = glm::eulerAngles(dynamic_cast<Model *>(pickedObject)->getOrientation());
+            eulerRotation = eulerRotation * 57.2957795f;
+            ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(dynamic_cast<Model *>(pickedObject)->getTranslate()),
+                                                    glm::value_ptr(eulerRotation),
+                                                    glm::value_ptr(dynamic_cast<Model *>(pickedObject)->getScale()),
+                                                    glm::value_ptr(objectMatrix));
+            break;
+        }
+        case GameObject::ObjectTypes::LIGHT: {
+            ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(dynamic_cast<Light *>(pickedObject)->getPosition()),
+                                                    glm::value_ptr(glm::vec3(0.0f)),
+                                                    glm::value_ptr(glm::vec3(1.0f)),
+                                                    glm::value_ptr(objectMatrix));
+            break;
+        }
+        default:
+            return;//we can't work without a way to define transform matrix
+    }
+
+
+    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+    float tempSnap[3] = {request.snap[0], request.snap[1], request.snap[2] };
+    ImGuizmo::Manipulate(glm::value_ptr(cameraMatrix), glm::value_ptr(perspectiveMatrix), mCurrentGizmoOperation, mCurrentGizmoMode, glm::value_ptr(objectMatrix), NULL, request.useSnap ? &(tempSnap[0]) : NULL);
+
+    //now we should have object matrix updated, update the object
+
+    glm::vec3 scale, translate;
+    glm::quat rotation;
+    ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(objectMatrix), glm::value_ptr(translate), glm::value_ptr(eulerRotation), glm::value_ptr(scale));
+    rotation = glm::quat(eulerRotation / 57.2957795f);
+    switch (mCurrentGizmoOperation) {
+        case ImGuizmo::TRANSLATE:
+            switch (pickedObject->getTypeID()) {
+                case GameObject::ObjectTypes::MODEL: {
+                    dynamic_cast<Model *>(pickedObject)->setTranslate(translate);
+                    break;
+                }
+                case GameObject::ObjectTypes::LIGHT: {
+                    dynamic_cast<Light *>(pickedObject)->setPosition(translate);
+                    break;
+                }
+                default: {
+                    std::cerr << "Translated unexpected object. Report to developer." << std::endl;
+                    exit(-1);
+                }
+            }
+            break;
+        case ImGuizmo::ROTATE:
+            dynamic_cast<Model*>(pickedObject)->setOrientation(rotation);
+            break;
+        case ImGuizmo::SCALE:
+            dynamic_cast<Model*>(pickedObject)->setScale(scale);
+            break;
+    }
+
 }
 
 World::~World() {
