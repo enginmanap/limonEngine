@@ -502,6 +502,12 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                         pickedObject = gameObject;
                     }
                 }
+                for (auto it = lights.begin(); it != lights.end(); it++) {
+                    GameObject* gameObject = dynamic_cast<GameObject *>(*it);
+                    if (ImGui::Selectable(gameObject->getName().c_str())) {
+                        pickedObject = (*it);
+                    }
+                }
                 ImGui::EndCombo();
             }
             if(pickedObject != nullptr) {
