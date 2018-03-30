@@ -39,7 +39,7 @@ public:
     glm::mat4 getCameraMatrix() {
         if (cameraAttachment->isDirty()) {
             cameraAttachment->getCameraVariables(position, center, up, right);
-            this->cameraTransformMatrix = glm::lookAt(position, center + position, up);
+            this->cameraTransformMatrix = glm::lookAt(position, position + center, up);
         }
         return cameraTransformMatrix;
     }
@@ -48,8 +48,12 @@ public:
         return cameraAttachment->isDirty();
     }
 
-    glm::vec3 const getPosition() {
+    glm::vec3 const getPosition() const {
         return position;
+    }
+
+    glm::vec3 const getCenter() const {
+        return center;
     }
 
 };

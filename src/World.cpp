@@ -468,16 +468,13 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
                 static float newObjectWeight;
                 ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
-                ImGui::NewLine();
-                static float newObjectX = 0, newObjectY = 15, newObjectZ = 0;
-                ImGui::SliderFloat("Position X", &newObjectX, -10.0f, 10.0f);ImGui::SameLine();ImGui::InputFloat("Position X##text", &newObjectX);
-                ImGui::SliderFloat("Position Y", &newObjectY, -10.0f, 10.0f);ImGui::SameLine();ImGui::InputFloat("Position Y##text", &newObjectY);
-                ImGui::SliderFloat("Position Z", &newObjectZ, -10.0f, 10.0f);ImGui::SameLine();ImGui::InputFloat("Position Z##text", &newObjectZ);
+                glm::vec3 newObjectPosition = camera->getPosition() + 10.0f * camera->getCenter();
+
                 ImGui::NewLine();
                 if(selectedAssetFile != "") {
                     if(ImGui::Button("Add Object")) {
                         Model* newModel = new Model(this->getNextObjectID(), assetManager, newObjectWeight, selectedAssetFile);
-                        newModel->setTranslate(glm::vec3(newObjectX, newObjectY, newObjectZ));
+                        newModel->setTranslate(newObjectPosition);
                         this->addModelToWorld(newModel);
                         newModel->getRigidBody()->activate();
                         pickedObject = static_cast<GameObject*>(newModel);

@@ -13,5 +13,5 @@ Camera::Camera(Options *options, CameraAttachment* cameraAttachment) :
         view(glm::quat(0, 0, 0, -1)),
         cameraAttachment(cameraAttachment),
         options(options){
-    cameraTransformMatrix = glm::lookAt(position, center, up);
+    cameraTransformMatrix = glm::lookAt(position, position + center, up);
 }
