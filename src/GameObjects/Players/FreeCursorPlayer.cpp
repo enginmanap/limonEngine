@@ -44,8 +44,69 @@ void FreeCursorPlayer::move(moveDirections direction) {
 }
 
 void FreeCursorPlayer::rotate(float xPosition, float yPosition, float xChange __attribute__((unused)), float yChange __attribute__((unused))) {
-    cursor->setTranslate(glm::vec2((options->getScreenWidth()/2.0f)  + xPosition * options->getScreenWidth() /2.0f,
-                                   (options->getScreenHeight()/2.0f) - yPosition * options->getScreenHeight()/2.0f)); //y is negative, because sdl reports opposite of OpenGL
+    glm::vec2 cursorPosition((options->getScreenWidth()/2.0f)  + xPosition * options->getScreenWidth() /2.0f,
+                             (options->getScreenHeight()/2.0f) - yPosition * options->getScreenHeight()/2.0f);//y is negative, because sdl reports opposite of OpenGL
+
+    // FIXME this look around code is repeated in each player. I believe it should have been part of player class.
+    // It can't be used directly because that would eliminate possibilities like 3rd person cameras.
+    
+    //if cursor is in the edge, rotate player look at
+    std::cout << cursorPosition.x << ", " << cursorPosition.y << ", change was:" << xChange <<", " << yChange << std::endl;
+
+    if(cursorPosition.x == 0 || cursorPosition.x == options->getScreenWidth() -1) {
+        float xSpeed = 0.02;
+        if(cursorPosition.x == 0) {
+            xSpeed = -0.02f;
+        }
+        glm::quat viewChange;
+        viewChange = glm::quat(cos(0.02 * options->getLookAroundSpeed() / 2),
+                               up.x * sin(xSpeed * options->getLookAroundSpeed() / 2),
+                               up.y * sin(xSpeed * options->getLookAroundSpeed() / 2),
+                               up.z * sin(xSpeed * options->getLookAroundSpeed() / 2));
+        view = viewChange * view * glm::conjugate(viewChange);
+        view = glm::normalize(view);
+
+        center.x = view.x;
+        if (view.y > 1.0f) {
+            center.y = 0.9999f;
+        } else if (view.y < -1.0f) {
+            center.y = -0.9999f;
+        } else {
+            center.y = view.y;
+        }
+        center.z = view.z;
+        center = glm::normalize(center);
+        right = glm::normalize(glm::cross(center, up));
+    }
+
+    if(cursorPosition.y == 1 || cursorPosition.y == options->getScreenHeight() ) {//since y was negative, the 1 changes places
+        float ySpeed = -0.02;
+        if(cursorPosition.y == 1) {
+            ySpeed = 0.02f;
+        }
+        glm::quat viewChange;
+        viewChange = glm::quat(cos(0.02 * options->getLookAroundSpeed() / 2),
+                               right.x * sin(ySpeed * options->getLookAroundSpeed() / 2),
+                               right.y * sin(ySpeed * options->getLookAroundSpeed() / 2),
+                               right.z * sin(ySpeed * options->getLookAroundSpeed() / 2));
+
+        view = viewChange * view * glm::conjugate(viewChange);
+        view = glm::normalize(view);
+
+        center.x = view.x;
+        if (view.y > 1.0f) {
+            center.y = 0.9999f;
+        } else if (view.y < -1.0f) {
+            center.y = -0.9999f;
+        } else {
+            center.y = view.y;
+        }
+        center.z = view.z;
+        center = glm::normalize(center);
+        right = glm::normalize(glm::cross(center, up));
+    }
+
+    cursor->setTranslate(cursorPosition);
     }
 
 void FreeCursorPlayer::getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &toPosition) const {
