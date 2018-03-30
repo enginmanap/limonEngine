@@ -60,7 +60,9 @@ SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {
     options->setWindowHeight(h);
 
     /* This makes our buffer swap syncronized with the monitor's vertical refresh */
-    //SDL_GL_SetSwapInterval(1);
+#ifndef NDEBUG
+    SDL_GL_SetSwapInterval(0);
+#endif
     SDL_ShowCursor(SDL_DISABLE);
     std::cout << "SDL started." << std::endl;
 }
