@@ -130,9 +130,9 @@ public:
 
         switch (request.mode) {
             case TRANSLATE_MODE:
-                updated = ImGui::SliderFloat("Precise Position X", &(this->translate.x), preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || updated;
-                updated = ImGui::SliderFloat("Precise Position Y", &(this->translate.y), preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || updated;
-                updated = ImGui::SliderFloat("Precise Position Z", &(this->translate.z), preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || updated;
+                updated = ImGui::DragFloat("Precise Position X", &(this->translate.x), 0.01f, preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || updated;
+                updated = ImGui::DragFloat("Precise Position Y", &(this->translate.y), 0.01f, preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || updated;
+                updated = ImGui::DragFloat("Precise Position Z", &(this->translate.z), 0.01f, preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || updated;
                 ImGui::NewLine();
                 crudeUpdated = ImGui::SliderFloat("Crude Position X", &(this->translate.x), -100.0f, 100.0f)   || crudeUpdated;
                 crudeUpdated = ImGui::SliderFloat("Crude Position Y", &(this->translate.y), -100.0f, 100.0f)   || crudeUpdated;
@@ -164,15 +164,17 @@ public:
                 ImGui::InputFloat("Angle Snap", &(request.snap[0]));
                 break;
             case SCALE_MODE:
-                updated = ImGui::SliderFloat("Scale X", &(scale.x), 0.01f, 10.0f)             || updated;
-                updated = ImGui::SliderFloat("Scale Y", &(scale.y), 0.01f, 10.0f)             || updated;
-                updated = ImGui::SliderFloat("Scale Z", &(scale.z), 0.01f, 10.0f)             || updated;
+            glm::vec3 tempScale = scale;
+                updated = ImGui::DragFloat("Scale X", &(tempScale.x), 0.01, 0.01f, 10.0f)             || updated;
+                updated = ImGui::DragFloat("Scale Y", &(tempScale.y), 0.01, 0.01f, 10.0f)             || updated;
+                updated = ImGui::DragFloat("Scale Z", &(tempScale.z), 0.01, 0.01f, 10.0f)             || updated;
                 ImGui::NewLine();
-                updated = ImGui::SliderFloat("Massive Scale X", &(scale.x), 0.01f, 100.0f)             || updated;
-                updated = ImGui::SliderFloat("Massive Scale Y", &(scale.y), 0.01f, 100.0f)             || updated;
-                updated = ImGui::SliderFloat("Massive Scale Z", &(scale.z), 0.01f, 100.0f)             || updated;
-                if(updated || crudeUpdated) {
-                    this->setScale(scale);
+                updated = ImGui::SliderFloat("Massive Scale X", &(tempScale.x), 0.01f, 100.0f)             || updated;
+                updated = ImGui::SliderFloat("Massive Scale Y", &(tempScale.y), 0.01f, 100.0f)             || updated;
+                updated = ImGui::SliderFloat("Massive Scale Z", &(tempScale.z), 0.01f, 100.0f)             || updated;
+                if((updated || crudeUpdated) && (tempScale.x != 0.0f && tempScale.y != 0.0f && tempScale.z != 0.0f)) {
+                    //it is possible to enter any scale now. If user enters 0, don't update
+                    this->setScale(tempScale);
                     this->rigidBody->activate();
                 }
                 ImGui::NewLine();
