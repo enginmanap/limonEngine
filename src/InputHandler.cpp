@@ -58,6 +58,10 @@ void InputHandler::mapInput() {
     inputEvents[TEXT_INPUT] = false;
 
     while (SDL_PollEvent(&event)) {
+        uint32_t downKey = event.key.keysym.sym & ~SDLK_SCANCODE_MASK;
+        if(downKey < keyBufferElements) {
+            downKeys[downKey] = event.type == SDL_KEYDOWN;
+        }
         switch (event.type) {
             case SDL_QUIT:
                 inputStatus[QUIT] = true;

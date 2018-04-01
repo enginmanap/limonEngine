@@ -13,11 +13,15 @@
 
 class InputHandler {
 public:
-    //FIXME access modifiers should not be like this
+    static const uint32_t keyBufferElements = 512;
+    static const uint32_t keyBufferSize = sizeof(bool) * keyBufferElements;
     enum states {
         QUIT, MOUSE_MOVE, MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE, MOUSE_BUTTON_RIGHT, MOUSE_WHEEL_UP, MOUSE_WHEEL_DOWN, MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT, MOVE_RIGHT, JUMP, RUN, DEBUG, EDITOR, KEY_SHIFT, KEY_CTRL, KEY_ALT, KEY_SUPER, TEXT_INPUT
     };
 private:
+    bool downKeys[keyBufferElements] = {0};
+
+
     SDL_Window *window;
     Options *options;
     SDL_Event event;
@@ -55,6 +59,10 @@ public:
     }
 
     bool getMouseChange(float &xPosition, float &yPosition, float &xChange, float &yChange);
+
+    const bool *  getAllKeyStates() const {
+        return downKeys;
+    }
 
 };
 
