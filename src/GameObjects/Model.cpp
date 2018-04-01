@@ -240,7 +240,6 @@ bool Model::setupRenderVariables(GLSLProgram *program) {
 void Model::render() {
     for (std::vector<MeshMeta *>::iterator iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
         if (setupRenderVariables((*iter)->program)) {
-            this->activateMaterial((*iter)->mesh->getMaterial(), (*iter)->program);
             glHelper->render((*iter)->program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(),
                              (*iter)->mesh->getTriangleCount() * 3);
         }
