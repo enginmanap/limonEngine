@@ -198,7 +198,6 @@ bool ImGuiHelper::ProcessEvent(const InputHandler& inputHandler) {
         }
         if(inputHandler.getInputEvents(InputHandler::KEY_ALT)) {
             io.KeyAlt = ((SDL_GetModState() & KMOD_ALT) != 0);
-            std::cout << "press alt detected" << std::endl;
         }
 
         /* FIXME All key mapping is not implemented
