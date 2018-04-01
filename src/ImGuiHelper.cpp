@@ -200,10 +200,12 @@ bool ImGuiHelper::ProcessEvent(const InputHandler& inputHandler) {
             io.KeyAlt = ((SDL_GetModState() & KMOD_ALT) != 0);
         }
 
-        /* FIXME All key mapping is not implemented
-        int key = event->key.keysym.sym & ~SDLK_SCANCODE_MASK;
-        io.KeysDown[key] = (event->type == SDL_KEYDOWN);
-         */
+
+        if(inputHandler.keyBufferSize > sizeof(io.KeysDown)) {
+            memcpy(io.KeysDown, inputHandler.getAllKeyStates(), inputHandler.keyBufferSize);
+        } else {
+            memcpy(io.KeysDown, inputHandler.getAllKeyStates(), sizeof(io.KeysDown));
+        }
         return true;
     } else {
         return false;
