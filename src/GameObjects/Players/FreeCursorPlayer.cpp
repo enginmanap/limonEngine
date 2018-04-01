@@ -51,8 +51,6 @@ void FreeCursorPlayer::rotate(float xPosition, float yPosition, float xChange __
     // It can't be used directly because that would eliminate possibilities like 3rd person cameras.
     
     //if cursor is in the edge, rotate player look at
-    std::cout << cursorPosition.x << ", " << cursorPosition.y << ", change was:" << xChange <<", " << yChange << std::endl;
-
     if(cursorPosition.x == 0 || cursorPosition.x == options->getScreenWidth() -1) {
         float xSpeed = 0.02;
         if(cursorPosition.x == 0) {
