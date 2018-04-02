@@ -25,7 +25,6 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
 
 
 bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world) const {
-
     tinyxml2::XMLDocument xmlDoc;
     tinyxml2::XMLError eResult = xmlDoc.LoadFile(worldFileName.c_str());
     if (eResult != tinyxml2::XML_SUCCESS) {

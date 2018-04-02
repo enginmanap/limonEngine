@@ -63,7 +63,6 @@ class GLHelper {
         }
 
     public:
-
         explicit OpenglState(GLint textureUnitCount) : activeProgram(0) {
             textures = new unsigned int[textureUnitCount];
             memset(textures, 0, textureUnitCount * sizeof(int));
@@ -102,7 +101,6 @@ class GLHelper {
                 this->activeProgram = program;
             }
         }
-
     };
 
 
@@ -152,7 +150,6 @@ public:
                 default:
                     type = UNDEFINED;
             }
-
         }
     };
 
@@ -184,11 +181,11 @@ private:
     glm::mat4 orthogonalProjectionMatrix;
     glm::mat4 lightProjectionMatrixDirectional;
     glm::mat4 lightProjectionMatrixPoint;
+
 public:
     const glm::mat4 &getLightProjectionMatrixPoint() const;
 
 private:
-
     inline bool checkErrors(const std::string &callerFunc __attribute((unused))) {
 #ifndef NDEBUG
         GLenum fbStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -263,7 +260,6 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
         glClear(GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
     }
 
     void render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount);

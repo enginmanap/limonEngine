@@ -19,7 +19,6 @@
 class Actor;
 
 class Model : public PhysicalRenderable, public GameObject {
-
     uint32_t objectID;
     struct MeshMeta {
         MeshAsset* mesh;
@@ -212,8 +211,6 @@ public:
     void detachAI() {
         this->AIActor = nullptr;
     }
-
-
 };
 
 #endif //LIMONENGINE_MODEL_H

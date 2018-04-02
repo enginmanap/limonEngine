@@ -114,6 +114,7 @@ class World {
 
     void ImGuiFrameSetup();
     void ImGuizmoFrameSetup(const GameObject::GizmoRequest& request);
+
 public:
     ~World();
 

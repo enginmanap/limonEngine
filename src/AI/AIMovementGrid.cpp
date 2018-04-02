@@ -77,7 +77,6 @@ AIMovementGrid::aStarPath(const AIMovementNode *start, const glm::vec3 &destinat
         }
         return finalNode;
     }
-
 }
 
 /**
@@ -176,12 +175,10 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                         current->setNeighbour(neighbourIndex, neighbour);
                         frontier.push(neighbour);
                         visited.push_back(neighbour);
-
                     }
                 }
             }
         }
-
     }
     return root;
 }

@@ -63,7 +63,6 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
 
 
 Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialIndex) {
-
     // create material uniform buffer
     aiMaterial *currentMaterial = scene->mMaterials[materialIndex];
     aiString property;    //contains filename of texture
@@ -144,7 +143,6 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
 }
 
 void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 parentTransform) {
-
     if(!strncmp(aiNode->mName.C_Str(), "UCX_", strlen("UCX_"))) {
         //if starts with "UCX_" skip
         std::cout << "Mesh name " << aiNode->mName.C_Str() << " skipping, num mesh: " << aiNode->mNumMeshes<< std::endl;
@@ -247,7 +245,6 @@ void ModelAsset::getTransform(long time, std::string animationName, std::vector<
     float animationTime = fmod((time / 1000.0f) * ticksPerSecond, currentAnimation->duration);
     glm::mat4 parentTransform(1.0f);
     traverseAndSetTransform(rootNode, parentTransform, currentAnimation, animationTime, transformMatrix);
-
 }
 
 void

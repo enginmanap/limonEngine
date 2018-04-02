@@ -94,7 +94,6 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     /************ ImGui *****************************/
     // Setup ImGui binding
     imgGuiHelper = new ImGuiHelper(glHelper, options);
-
 }
 
  bool World::checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName) {
@@ -553,7 +552,6 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                         pickedObject = static_cast<GameObject*>(newModel);
                     }
                 }
-
             }
             ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
 
@@ -586,7 +584,6 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
                 ImGui::NewLine();
                 if (pickedObject->getTypeID() == GameObject::MODEL) {
-
                     if (ImGui::Button("Remove This Object")) {
                         //remove the object.
                         PhysicalRenderable *removeObject = objects[pickedObject->getWorldObjectID()];
@@ -611,9 +608,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 } else {
                     options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
                 }
-
             }
-
             ImGui::End();
         }
         /* window definitions */
@@ -700,7 +695,6 @@ void World::ImGuizmoFrameSetup(const GameObject::GizmoRequest& request) {
             dynamic_cast<Model*>(pickedObject)->setScale(scale);
             break;
     }
-
 }
 
 World::~World() {
@@ -770,5 +764,4 @@ void World::setSky(SkyBox *skyBox) {
 void World::addLight(Light *light) {
     glHelper->setLight(*(light), lights.size());//since size start from 0, this should be before adding it to vector
     this->lights.push_back(light);
-
 }

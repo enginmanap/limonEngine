@@ -8,7 +8,6 @@
 Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile) :
         PhysicalRenderable(assetManager->getGlHelper(), mass), objectID(objectID), assetManager(assetManager),
         name(modelFile) {
-
     //this is required because the shader has fixed size arrays
     boneTransforms.resize(128);
     modelAsset = assetManager->loadAsset<ModelAsset>({modelFile});
@@ -32,7 +31,6 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
     std::vector<MeshAsset *> assetMeshes = modelAsset->getMeshes();
 
     for (std::vector<MeshAsset *>::iterator iter = assetMeshes.begin(); iter != assetMeshes.end(); ++iter) {
-
         meshMeta = new MeshMeta();
         meshMeta->mesh = (*iter);
 
@@ -81,7 +79,6 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
             if (btTransformMap.find(i) != btTransformMap.end() && hullMap.find(i) != hullMap.end()) {
                 boneIdCompoundChildMap[i] = compoundShape->getNumChildShapes();//get numchild actually increase with each new child add below
                 compoundShape->addChildShape(btTransformMap[i], hullMap[i]);//this add the mesh to collision shape, in order
-
             }
         }
     }
@@ -123,7 +120,6 @@ void Model::setupForTime(long time) {
                 transform.setFromOpenGLMatrix(glm::value_ptr(boneTransforms[i]));
                 compoundShape->updateChildTransform( boneIdCompoundChildMap[i], transform, false);
                 boneTransforms[i] = centerOffsetMatrix * boneTransforms[i];
-
             }
         }
         this->getRigidBody()->getCollisionShape()->setLocalScaling(scale);
@@ -155,7 +151,7 @@ void Model::activateMaterial(const Material *material, GLSLProgram *program) {
             std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
         }
     } else {
-
+        //FIXME why is this here?
     }
 
     if(material->hasAmbientMap()) {
@@ -228,13 +224,12 @@ bool Model::setupRenderVariables(GLSLProgram *program) {
                 //set all of the bones to unitTransform for testing
                 program->setUniformArray("boneTransformArray[0]", boneTransforms);
             }
-
+m
             return true;
     } else {
         std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
     }
     return false;
-
 }
 
 void Model::render() {
