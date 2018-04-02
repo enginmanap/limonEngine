@@ -272,7 +272,6 @@ void InputHandler::mapInput() {
                 break;
         }
     }
-
 }
 
 /**

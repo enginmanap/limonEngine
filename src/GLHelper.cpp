@@ -383,7 +383,6 @@ void GLHelper::bufferVertexData(const std::vector<glm::vec3> &vertices,
                                 const std::vector<glm::mediump_uvec3> &faces,
                                 uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer,
                                 uint_fast32_t &ebo) {
-
     // Set up the element array buffer
     ebo = generateBuffer(1);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
@@ -479,7 +478,6 @@ void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
 
     glCullFace(GL_FRONT);
     checkErrors("switchRenderToShadowMapDirectional");
-
 }
 
 void GLHelper::switchRenderToShadowMapPoint() {
@@ -533,7 +531,6 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         checkErrors("setUniformMatrix");
         return true;
     }
-
 }
 
 
@@ -550,7 +547,6 @@ GLHelper::setUniformArray(const GLuint programID, const GLuint uniformID, const 
         checkErrors("setUniformMatrixArray");
         return true;
     }
-
 }
 
 bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const glm::vec3 &vector) {
@@ -679,7 +675,6 @@ bool GLHelper::getUniformLocation(const GLuint programID, const std::string &uni
             return true;
         } else {
             std::cerr << "No error found, but uniform[" << uniformName << "] can not be located " << std::endl;
-
         }
     }
     return false;
