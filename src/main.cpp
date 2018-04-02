@@ -42,7 +42,8 @@ int main(int argc, char *argv[]) {
     glHelper.clearFrame();
     Uint32 previousTime = SDL_GetTicks();
     Uint32 currentTime, frameTime, accumulatedTime = 0;
-    while (!inputHandler.getInputStatus(inputHandler.QUIT)) {
+    bool worldQuitRequest = false;
+    while (!worldQuitRequest) {
         currentTime = SDL_GetTicks();
         frameTime = currentTime - previousTime;
         previousTime = currentTime;
@@ -52,7 +53,7 @@ int main(int argc, char *argv[]) {
             inputHandler.mapInput();
 
             //FIXME this does not account for long operations/low framerate
-            world->play(worldUpdateTime, inputHandler);
+            worldQuitRequest = world->play(worldUpdateTime, inputHandler);
             accumulatedTime -= worldUpdateTime;
         }
         glHelper.clearFrame();

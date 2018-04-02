@@ -39,6 +39,8 @@ class AssetManager;
 class World {
     friend class WorldLoader;
     friend class WorldSaver; //Those classes requre direct access to some of the internal data
+
+    enum PlayerModes {DEBUG_MODE, EDITOR_MODE, PHYSICAL_MODE, PAUSED_MODE}; //PAUSED mode is used by quit logic
     AssetManager* assetManager;
     Options* options;
     uint32_t totalObjectCount = 1;
@@ -72,12 +74,16 @@ class World {
     btDefaultCollisionConfiguration *collisionConfiguration;
     btCollisionDispatcher *dispatcher;
     btSequentialImpulseConstraintSolver *solver;
-    bool inEditorMode = false;
+    PlayerModes currentMode = PHYSICAL_MODE;
+    PlayerModes beforeMode = PHYSICAL_MODE;
     ImGuiHelper *imgGuiHelper;
     GameObject* pickedObject = nullptr;
     bool availableAssetsLoaded = false;
+    bool isQuitRequest = false;//does the player requested a quit?
+    bool isQuitVerified = false;//does the player set it is sure?
 
-    void handlePlayerInput(InputHandler &inputHandler);
+
+    bool handlePlayerInput(InputHandler &inputHandler);
 
     bool checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName);
 
@@ -100,20 +106,24 @@ class World {
 
     World(AssetManager *assetManager, GLHelper *, Options *options);
 
+    void switchToEditorMode(InputHandler &inputHandler);
+
+    void switchToPhysicalPlayer(InputHandler &inputHandler);
+
+    void switchToDebugMode(InputHandler &inputHandler);
+
     void ImGuiFrameSetup();
     void ImGuizmoFrameSetup(const GameObject::GizmoRequest& request);
 public:
     ~World();
 
-    void play(Uint32, InputHandler &);
+    bool play(Uint32, InputHandler &);
 
     void render();
 
     uint32_t getNextObjectID() {
         return totalObjectCount++;
     }
-
-
 };
 
 #endif //LIMONENGINE_WORLD_H
