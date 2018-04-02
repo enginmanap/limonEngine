@@ -39,6 +39,7 @@ InputHandler::InputHandler(SDL_Window *window, Options *options) :
     inputEvents[MOUSE_WHEEL_UP] = false;
     inputEvents[MOUSE_WHEEL_DOWN] = false;
     inputEvents[TEXT_INPUT] = false;
+    inputEvents[QUIT] = false;
 }
 
 void InputHandler::mapInput() {
@@ -56,6 +57,7 @@ void InputHandler::mapInput() {
     inputEvents[MOUSE_WHEEL_UP] = false;
     inputEvents[MOUSE_WHEEL_DOWN] = false;
     inputEvents[TEXT_INPUT] = false;
+    inputEvents[QUIT] = false;
 
     while (SDL_PollEvent(&event)) {
         uint32_t downKey = event.key.keysym.sym & ~SDLK_SCANCODE_MASK;
@@ -65,6 +67,7 @@ void InputHandler::mapInput() {
         switch (event.type) {
             case SDL_QUIT:
                 inputStatus[QUIT] = true;
+                inputEvents[QUIT] = true;
                 break;
             case SDL_MOUSEBUTTONDOWN:
                 switch (event.button.button) {
@@ -118,6 +121,9 @@ void InputHandler::mapInput() {
             case SDL_KEYDOWN:
                 switch (event.key.keysym.sym) {
                     case SDLK_ESCAPE:
+                        if(!inputStatus[QUIT]) {
+                            inputEvents[QUIT] = true;
+                        }
                         inputStatus[QUIT] = true;
                         break;
                     case SDLK_w:
@@ -191,6 +197,12 @@ void InputHandler::mapInput() {
                 break;
             case SDL_KEYUP:
                 switch (event.key.keysym.sym) {
+                    case SDLK_ESCAPE:
+                        if(inputStatus[QUIT]) {
+                            inputEvents[QUIT] = true;
+                        }
+                        inputStatus[QUIT] = false;
+                        break;
                     case SDLK_w:
                         inputStatus[MOVE_FORWARD] = false;
                         break;
