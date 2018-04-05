@@ -153,6 +153,16 @@ public:
         }
     };
 
+    enum FrustumSide
+    {
+        RIGHT	= 0,		// The RIGHT side of the frustum
+        LEFT	= 1,		// The LEFT	 side of the frustum
+        BOTTOM	= 2,		// The BOTTOM side of the frustum
+        TOP		= 3,		// The TOP side of the frustum
+        BACK	= 4,		// The BACK	side of the frustum
+        FRONT	= 5			// The FRONT side of the frustum
+    };
+
 private:
     GLenum error;
     GLint maxTextureImageUnits;
@@ -178,6 +188,7 @@ private:
     const uint_fast32_t lightUniformSize = (sizeof(glm::mat4) * 7) + (2 * sizeof(glm::vec4));
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;
+    glm::vec4 frustumPlanes[6];
     glm::mat4 orthogonalProjectionMatrix;
     glm::mat4 lightProjectionMatrixDirectional;
     glm::mat4 lightProjectionMatrixPoint;
@@ -223,6 +234,8 @@ private:
     void bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
                                const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
                                const uint_fast32_t attachPointer);
+
+    void calculateFrustumPlanes();
 
 public:
     explicit GLHelper(Options *options);
@@ -315,6 +328,22 @@ public:
 
     int getMaxTextureImageUnits() const {
         return maxTextureImageUnits;
+    }
+
+    inline bool isInFrustum(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const {
+        bool inside = true;
+        //test all 6 frustum planes
+        for (int i = 0; i<6; i++) {
+            //pick closest point to plane and check if it behind the plane
+            //if yes - object outside frustum
+            float d = std::fmax(aabbMin.x * frustumPlanes[i].x, aabbMax.x * frustumPlanes[i].x)
+                      + std::fmax(aabbMin.y * frustumPlanes[i].y, aabbMax.y * frustumPlanes[i].y)
+                      + std::fmax(aabbMin.z * frustumPlanes[i].z, aabbMax.z * frustumPlanes[i].z)
+                      + frustumPlanes[i].w;
+            inside &= d > 0;
+            //return false; //with flag works faster
+        }
+        return inside;
     }
 };
 

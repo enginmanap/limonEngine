@@ -23,6 +23,7 @@ protected:
     glm::quat orientation;
     bool isDirty;
     bool isRotated;
+    bool isInFrustum = true;
 
     virtual void generateWorldTransform();
 
@@ -84,6 +85,14 @@ public:
         //model renderable creates its own
         delete renderProgram;
 
+    }
+
+    bool isIsInFrustum() const {
+        return isInFrustum;
+    }
+
+    void setIsInFrustum(bool isInFrustum) {
+        Renderable::isInFrustum = isInFrustum;
     }
 
 };

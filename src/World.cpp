@@ -144,8 +144,14 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
             actorIt->second->play(gameTime, information, options);
         }
         for (auto it = objects.begin(); it != objects.end(); ++it) {
-            it->second->setupForTime(gameTime);
-            it->second->updateTransformFromPhysics();
+            if (!it->second->getRigidBody()->isStaticOrKinematicObject()) {
+                it->second->updateTransformFromPhysics();
+            }
+            it->second->setIsInFrustum(glHelper->isInFrustum(it->second->getAabbMin(), it->second->getAabbMax()));
+            if(it->second->isIsInFrustum()) {
+                it->second->setupForTime(gameTime);
+            }
+
         }
     } else {
         dynamicsWorld->updateAabbs();
@@ -456,18 +462,19 @@ void World::render() {
         }
     }
 
+    if(camera->isDirty()) {
+        glHelper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
+    }
+
     glHelper->switchRenderToDefault();
     if(sky!=nullptr) {
         sky->render();//this is moved to the top, because transparency can create issues if this is at the end
     }
 
-    if(camera->isDirty()) {
-        glHelper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());
-    }
-
-
     for (auto it = objects.begin(); it != objects.end(); ++it) {
-        (*it).second->render();
+        if(it->second->isIsInFrustum()) {
+            (*it).second->render();
+        }
     }
 
     dynamicsWorld->debugDrawWorld();
