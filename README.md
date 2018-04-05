@@ -7,3 +7,7 @@ It can load any model using Assimp, model animations are implemented. but since 
 You can check out the [project web site](http://enginmanap.github.io/limonEngine/status.html) 
 
 For a demonstration, check out the video at https://youtu.be/OkMz1MGk9NE
+
+Dependencies can be installed on Ubuntu 17.10 using:
+
+sudo apt-get install libassimp-dev libbullet-dev libsdl2-dev libsdl2-image-dev libfreetype6-dev libtinyxml2-dev libglew-dev build-essential libglm-dev libtinyxml2-dev
