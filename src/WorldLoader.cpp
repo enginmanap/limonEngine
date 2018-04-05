@@ -148,7 +148,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
 
         objectAttribute =  objectNode->FirstChildElement("Rotate");
         if (objectAttribute == nullptr) {
-            std::cout << "Object does not have translate." << std::endl;
+            std::cout << "Object does not have Rotation." << std::endl;
         } else {
             objectAttributeAttribute =  objectAttribute->FirstChildElement("X");
             if(objectAttributeAttribute != nullptr) {
