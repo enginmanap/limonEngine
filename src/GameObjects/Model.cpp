@@ -224,7 +224,6 @@ bool Model::setupRenderVariables(GLSLProgram *program) {
                 //set all of the bones to unitTransform for testing
                 program->setUniformArray("boneTransformArray[0]", boneTransforms);
             }
-m
             return true;
     } else {
         std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
