@@ -776,7 +776,6 @@ const glm::mat4 &GLHelper::getLightProjectionMatrixPoint() const {
 }
 
 void GLHelper::calculateFrustumPlanes() {
-    float   clip[16]; //clipping planes
     glm::mat4 clipMat;
 
     for(int i = 0; i < 4; i++) {
