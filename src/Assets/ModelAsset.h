@@ -50,6 +50,7 @@ class ModelAsset : public Asset {
     std::unordered_map<std::string, Material *> materialMap;
     std::vector<btConvexShape *> shapeCopies;
     std::vector<MeshAsset *> meshes;
+    std::unordered_map<std::string, MeshAsset *> simplifiedMeshes;
     std::unordered_map<std::string, glm::mat4> meshOffsetmap;
     glm::mat4 globalInverseTransform;
 
@@ -101,6 +102,10 @@ public:
             delete (*iter);
         }
 
+        for (auto iter = simplifiedMeshes.begin(); iter != simplifiedMeshes.end(); ++iter) {
+            delete iter->second;
+        }
+
         for (std::unordered_map<std::string, Material *>::iterator iter = materialMap.begin();
              iter != materialMap.end(); ++iter) {
             delete iter->second;
@@ -111,6 +116,25 @@ public:
 
     std::vector<MeshAsset *> getMeshes() const {
         return meshes;
+    }
+
+    /**
+     * This method checks if there is a simplified mesh with same name, and there is, adds simplified one instead of original.
+     * @return hybrid of original and simplified meshes
+     */
+    std::vector<MeshAsset *> getPhysicsMeshes() const {
+        if(simplifiedMeshes.size() == 0) {
+            return meshes;
+        }
+
+        std::vector<MeshAsset *> meshAssets = meshes;//shallow copy
+        for (unsigned int i = 0; i < meshes.size(); ++i) {
+            std::string meshName = "UCX_" + meshes[i]->getName();
+            if(simplifiedMeshes.find(meshName) != simplifiedMeshes.end()) {
+                meshAssets[i] = simplifiedMeshes.at(meshName);
+            }
+        }
+        return meshAssets;
     }
 
     void fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimations);

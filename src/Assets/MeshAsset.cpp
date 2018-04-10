@@ -5,10 +5,10 @@
 #include "MeshAsset.h"
 
 
-MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, const Material *material,
-                     const BoneNode *meshSkeleton, const glm::mat4 &parentTransform, const bool isPartOfAnimated)
-        : material(
-        material), parentTransform(parentTransform), isPartOfAnimated(isPartOfAnimated) {
+MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
+                     const Material *material, const BoneNode *meshSkeleton, const glm::mat4 &parentTransform,
+                     const bool isPartOfAnimated)
+        : name(name), material(material), parentTransform(parentTransform), isPartOfAnimated(isPartOfAnimated) {
     triangleCount = currentMesh->mNumFaces;
     if (!currentMesh->HasPositions()) {
         throw "No position found"; //Not going to process if mesh is empty

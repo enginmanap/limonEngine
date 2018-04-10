@@ -27,6 +27,7 @@ class MeshAsset {
     std::vector<glm::vec3> normals;
     std::vector<glm::mediump_uvec3> faces;
     std::vector<glm::vec2> textureCoordinates;
+    std::string name;
 
     std::map<uint_fast32_t, std::vector<uint_fast32_t >> boneAttachedMeshes;
 
@@ -50,8 +51,9 @@ class MeshAsset {
 
 
 public:
-    MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, const Material *material,
-                  const BoneNode *meshSkeleton, const glm::mat4 &parentTransform, const bool isPartOfAnimated);
+    MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
+                  const Material *material, const BoneNode *meshSkeleton, const glm::mat4 &parentTransform,
+                  const bool isPartOfAnimated);
 
     uint_fast32_t getTriangleCount() const { return triangleCount; }
 
@@ -79,6 +81,9 @@ public:
 
     void fillBoneMap(const BoneNode *boneNode);
 
+    std::string getName() {
+        return name;
+    }
 };
 
 

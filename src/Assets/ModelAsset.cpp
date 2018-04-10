@@ -143,35 +143,40 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
 }
 
 void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 parentTransform) {
-    if(!strncmp(aiNode->mName.C_Str(), "UCX_", strlen("UCX_"))) {
-        //if starts with "UCX_" skip
-        std::cout << "Mesh name " << aiNode->mName.C_Str() << " skipping, num mesh: " << aiNode->mNumMeshes<< std::endl;
-        return;
-    }
-
     parentTransform = parentTransform * GLMConverter::AssimpToGLM(aiNode->mTransformation);
 
     for (unsigned int i = 0; i < aiNode->mNumMeshes; ++i) {
-            aiMesh *currentMesh;
-            currentMesh = scene->mMeshes[aiNode->mMeshes[i]];
-            for (unsigned int j = 0; j < currentMesh->mNumBones; ++j) {
-                meshOffsetmap[currentMesh->mBones[j]->mName.C_Str()] = GLMConverter::AssimpToGLM(
-                        currentMesh->mBones[j]->mOffsetMatrix);
-                std::string boneName =  currentMesh->mBones[j]->mName.C_Str();
-                boneName += "_parent";
-                meshOffsetmap[boneName] = parentTransform;
-            }
+        aiMesh *currentMesh;
+        currentMesh = scene->mMeshes[aiNode->mMeshes[i]];
+        for (unsigned int j = 0; j < currentMesh->mNumBones; ++j) {
+            meshOffsetmap[currentMesh->mBones[j]->mName.C_Str()] = GLMConverter::AssimpToGLM(
+                    currentMesh->mBones[j]->mOffsetMatrix);
+            std::string boneName =  currentMesh->mBones[j]->mName.C_Str();
+            boneName += "_parent";
+            meshOffsetmap[boneName] = parentTransform;
+        }
 
-            Material *meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
-            MeshAsset *mesh = new MeshAsset(assetManager, currentMesh, meshMaterial, rootNode, parentTransform, hasAnimation);
-            //FIXME the exception thrown from new is not catched
-            if(meshMaterial->hasOpacityMap()) {
+        Material *meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
+        MeshAsset *mesh = new MeshAsset(assetManager, currentMesh,aiNode->mName.C_Str(), meshMaterial, rootNode,
+                                        parentTransform, hasAnimation);
+        //FIXME the exception thrown from new is not catch
+
+        if(!strncmp(aiNode->mName.C_Str(), "UCX_", strlen("UCX_"))) {
+            //if starts with "UCX_"
+            simplifiedMeshes[mesh->getName()] = mesh;
+            std::cout << "simplified mesh " << currentMesh->mName.C_Str() << " for node " << aiNode->mName.C_Str()
+                      << std::endl;
+        } else {
+
+            if (meshMaterial->hasOpacityMap()) {
                 meshes.push_back(mesh);
             } else {
-                meshes.insert(meshes.begin(),mesh);
+                meshes.insert(meshes.begin(), mesh);
             }
             std::cout << "set mesh " << currentMesh->mName.C_Str() << " for node " << aiNode->mName.C_Str()
                       << std::endl;
+        }
+
     }
 
     for (unsigned int i = 0; i < aiNode->mNumChildren; ++i) {
