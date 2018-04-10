@@ -34,7 +34,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
         meshMeta = new MeshMeta();
         meshMeta->mesh = (*iter);
 
-        if ((*iter)->hasBones()) {
+        if (this->animated) {//this was hasBones, but it turns out, there are models with bones, but no animation.
             //set up the program to render object
             meshMeta->program = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertexAnimated.glsl",
                                                 "./Data/Shaders/Model/fragment.glsl", true);
