@@ -154,7 +154,10 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 
         }
     } else {
-        dynamicsWorld->updateAabbs();
+        for (auto it = objects.begin(); it != objects.end(); ++it) {
+            it->second->setIsInFrustum(glHelper->isInFrustum(it->second->getAabbMin(), it->second->getAabbMax()));
+        }
+            dynamicsWorld->updateAabbs();
     }
 
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
