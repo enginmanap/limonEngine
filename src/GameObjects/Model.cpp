@@ -46,6 +46,11 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
                                                 "./Data/Shaders/Model/fragment.glsl", true);
         }
         meshMetaData.push_back(meshMeta);
+    }
+
+    std::vector<MeshAsset *> physicalMeshes = modelAsset->getPhysicsMeshes();
+
+    for(auto iter = physicalMeshes.begin(); iter != physicalMeshes.end(); ++iter) {
 
         btTriangleMesh *rawCollisionMesh = (*iter)->getBulletMesh(&hullMap, &btTransformMap);
         if (rawCollisionMesh != nullptr) {
@@ -199,10 +204,11 @@ void Model::activateMaterial(const Material *material, GLSLProgram *program) {
     //TODO we should support multi texture on one pass
 }
 
-bool Model::setupRenderVariables(GLSLProgram *program) {
+bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
+    GLSLProgram* program  = meshMetaData->program;
     if (program->setUniform("worldTransformMatrix", getWorldTransform())) {
-            if (this->materialMap.begin() != this->materialMap.end()) {
-                this->activateMaterial(materialMap.begin()->second, program);
+            if (meshMetaData->mesh != nullptr && meshMetaData->mesh->getMaterial() != nullptr) {
+                this->activateMaterial(meshMetaData->mesh->getMaterial(), program);
             } else {
                 std::cerr << "No material setup, passing rendering. " << std::endl;
             }
@@ -233,7 +239,7 @@ bool Model::setupRenderVariables(GLSLProgram *program) {
 
 void Model::render() {
     for (std::vector<MeshMeta *>::iterator iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
-        if (setupRenderVariables((*iter)->program)) {
+        if (setupRenderVariables((*iter))) {
             glHelper->render((*iter)->program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(),
                              (*iter)->mesh->getTriangleCount() * 3);
         }
@@ -243,7 +249,7 @@ void Model::render() {
 void Model::renderWithProgram(GLSLProgram &program) {
     if (program.setUniform("worldTransformMatrix", getWorldTransform())) {
         std::vector<MeshAsset *> meshes = modelAsset->getMeshes();
-        for (std::vector<MeshAsset *>::iterator iter = meshes.begin(); iter != meshes.end(); ++iter) {
+        for (std::vector<MeshAsset *>::iterator iter = meshes.begin(); iter != meshes.end(); ++iter) {//FIXME why this uses meshes, while normal render doesn't?
             if (animated) {
                 //set all of the bones to unitTransform for testing
                 program.setUniformArray("boneTransformArray[0]", boneTransforms);

@@ -65,7 +65,7 @@ public:
 
     void activateMaterial(const Material *material, GLSLProgram *program);
 
-    bool setupRenderVariables(GLSLProgram *program);
+    bool setupRenderVariables(MeshMeta *meshMetaData);
 
     void setupForTime(long time);
 
