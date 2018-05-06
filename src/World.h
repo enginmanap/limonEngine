@@ -113,7 +113,7 @@ class World {
     void switchToDebugMode(InputHandler &inputHandler);
 
     void ImGuiFrameSetup();
-    void ImGuizmoFrameSetup(const GameObject::GizmoRequest& request);
+    void ImGuizmoFrameSetup(const GameObject::ImGuiResult& request);
 
 public:
     ~World();

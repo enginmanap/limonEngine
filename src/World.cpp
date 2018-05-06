@@ -179,8 +179,7 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 
 ActorInformation World::fillActorInformation(Actor *actor) {
     ActorInformation information;
-    //FIXME this is just for test
-    information.canSeePlayerDirectly = checkPlayerVisibility(actor->getPosition(), "./Data/Models/ArmyPilot/ArmyPilot.mesh.xml");
+    information.canSeePlayerDirectly = checkPlayerVisibility(actor->getPosition()+ AIMovementGrid::floatingHeight, actor->getModel()->getName());
     glm::vec3 front = actor->getFrontVector();
     glm::vec3 rayDir = currentPlayer->getPosition() - actor->getPosition();
     float cosBetween = glm::dot(normalize(front), normalize(rayDir));
@@ -588,27 +587,43 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 ImGui::EndCombo();
             }
             if(pickedObject != nullptr) {
-                GameObject::GizmoRequest request = pickedObject->addImGuiEditorElements();
-                if(request.isRequested) {
+                GameObject::ImGuiResult request = pickedObject->addImGuiEditorElements();
+                if (request.isGizmoRequired) {
                     ImGuizmoFrameSetup(request);
                 }
-                ImGui::NewLine();
-                if (pickedObject->getTypeID() == GameObject::MODEL) {
-                    if (ImGui::Button("Remove This Object")) {
-                        //remove the object.
-                        PhysicalRenderable *removeObject = objects[pickedObject->getWorldObjectID()];
-                        //disconnect from physics
-                        dynamicsWorld->removeRigidBody(removeObject->getRigidBody());
-                        //disconnect AI
-                        if(dynamic_cast<Model*>(removeObject)->getAIID() != 0) {
-                            actors.erase(dynamic_cast<Model*>(removeObject)->getAIID());
+                if (request.removeAI) {
+                    //remove AI requested
+                    if (dynamic_cast<Model *>(pickedObject)->getAIID() != 0) {
+                        actors.erase(dynamic_cast<Model *>(pickedObject)->getAIID());
+                        dynamic_cast<Model *>(pickedObject)->detachAI();
+                    }
+                }
+
+                if (request.addAI) {
+                    std::cout << "adding AI to model " << std::endl;
+                    HumanEnemy *newEnemy = new HumanEnemy(getNextObjectID());
+                    newEnemy->setModel(dynamic_cast<Model *>(pickedObject));
+
+                    addActor(newEnemy);
+                    ImGui::NewLine();
+                    if (pickedObject->getTypeID() == GameObject::MODEL) {
+                        if (ImGui::Button("Remove This Object")) {
+                            //remove the object.
+                            PhysicalRenderable *removeObject = objects[pickedObject->getWorldObjectID()];
+                            //disconnect from physics
+                            dynamicsWorld->removeRigidBody(removeObject->getRigidBody());
+                            //disconnect AI
+                            if (dynamic_cast<Model *>(removeObject)->getAIID() != 0) {
+                                actors.erase(dynamic_cast<Model *>(removeObject)->getAIID());
+                            }
+                            objects.erase(pickedObject->getWorldObjectID());
+                            pickedObject = nullptr;
+                            delete removeObject;
                         }
-                        objects.erase(pickedObject->getWorldObjectID());
-                        pickedObject = nullptr;
-                        delete removeObject;
                     }
                 }
             }
+
 
             ImGui::End();
             ImGui::NewLine();
@@ -621,12 +636,13 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             }
             ImGui::End();
         }
+
         /* window definitions */
         imgGuiHelper->RenderDrawLists();
     }
 }
 
-void World::ImGuizmoFrameSetup(const GameObject::GizmoRequest& request) {
+void World::ImGuizmoFrameSetup(const GameObject::ImGuiResult& request) {
 
     ImGuizmo::OPERATION mCurrentGizmoOperation = ImGuizmo::TRANSLATE ;
 
