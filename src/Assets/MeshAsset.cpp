@@ -29,6 +29,8 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
         bufferObjects.push_back(vbo);
     }
 
+    //If model is animated, but mesh has no bones, it is most likely we need to attach to the nearest parent.
+
     //loadBoneInformation
     if (currentMesh->HasBones()) {
         this->bones = true;
@@ -71,7 +73,47 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
         assetManager->getGlHelper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
         bufferObjects.push_back(vbo);
     } else {
-        this->bones = false;
+        if(isPartOfAnimated) {
+            //what to do now? now we assign bone id of the node, and weight of 1.0
+
+            this->bones = true;
+
+            assert(meshSkeleton != nullptr);
+            this->skeleton = meshSkeleton;
+            //we will create a bone* vector so we can load the weight information to GPU. The same vector should be
+            //copied and filled with animation information on Model class
+            //an a name->bone* map, for animation.
+            fillBoneMap(this->skeleton);
+
+            boneIDs.resize(vertices.size());
+            boneWeights.resize(vertices.size());
+            uint_fast32_t boneID = boneIdMap[name];
+            /*
+             * Assimp has a bone array with weight lists for vertices,
+             * we need a vertex array with weight list for bones.
+             * This loop should generate that
+             *
+             * ADDITION
+             * I want to split BulletCollision meshes to move them with real mesh, for that
+             * I will use this information
+             */
+            for (uint_fast32_t k = 0; k < currentMesh->mNumVertices; ++k) {
+                addWeightToVertex(boneID, k, 1.0f);
+                boneAttachedMeshes[boneID].push_back(k);
+            }
+
+            std::cout << "Animation added for mesh" << std::endl;
+
+            assetManager->getGlHelper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
+            bufferObjects.push_back(vbo);
+
+            assetManager->getGlHelper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
+            bufferObjects.push_back(vbo);
+
+
+        } else {
+            this->bones = false;
+        }
     }
 }
 

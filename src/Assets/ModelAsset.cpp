@@ -155,6 +155,16 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
             boneName += "_parent";
             meshOffsetmap[boneName] = parentTransform;
         }
+        if(currentMesh->mNumBones == 0 && hasAnimation) {
+            //If animated, but a mesh without any bone exits, we should process that mesh specially
+            //meshOffsetmap[aiNode->mName.C_Str()] = GLMConverter::AssimpToGLM(aiNode->mTransformation);
+            //meshOffsetmap[aiNode->mName.C_Str()] = parentTransform;
+            meshOffsetmap[aiNode->mName.C_Str()] = glm::mat4(1.0f);
+            std::string boneName =  aiNode->mName.C_Str();
+            boneName += "_parent";
+            //meshOffsetmap[boneName] = GLMConverter::AssimpToGLM(aiNode->mTransformation);
+            meshOffsetmap[boneName] = glm::mat4(1.0f);
+        }
 
         Material *meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
         MeshAsset *mesh = new MeshAsset(assetManager, currentMesh,aiNode->mName.C_Str(), meshMaterial, rootNode,
@@ -380,7 +390,7 @@ void ModelAsset::fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnim
     for (unsigned int i = 0; i < numAnimation; ++i) {
         currentAnimation = pAnimations[i];
         std::string animationName = currentAnimation->mName.C_Str();
-        std::cerr << "add animation with name " << animationName << std::endl;
+        std::cout << "add animation with name " << animationName << std::endl;
 
         AnimationSet* animationSet = new AnimationSet();
         animationSet->duration = currentAnimation->mDuration;
