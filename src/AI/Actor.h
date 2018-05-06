@@ -38,6 +38,10 @@ public:
         model->attachAI(this);
     }
 
+    const Model * getModel() const {
+        return model;
+    }
+
     glm::vec3 getPosition(){
         return GLMConverter::BltToGLM(this->model->getRigidBody()->getCenterOfMassPosition());
     }
@@ -57,6 +61,8 @@ public:
                  + 2.0f * s * glm::cross(u, forward);
         return vprime;
     }
+
+    virtual void IMGuiEditorView() {};
 
     virtual ~Actor() {};
 };

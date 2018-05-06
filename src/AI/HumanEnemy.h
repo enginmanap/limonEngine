@@ -48,7 +48,7 @@ public:
                 //actor might not be for current implementation.
                 lastWalkDirection = information.toPlayerRoute;
             }
-            glm::vec3 moveDirection = 0.05f * lastWalkDirection;
+            glm::vec3 moveDirection = 0.1f * lastWalkDirection;
             model->addTranslate(moveDirection);
             if(information.isPlayerLeft) {
                 if(information.cosineBetweenPlayerForSide < 0.95) {
@@ -72,7 +72,19 @@ public:
         }
     }
 
+    virtual void IMGuiEditorView() {
+        ImGui::Text("Human Enemy AI");
+        if(playerPursuitStartTime == 0) {
+            ImGui::Text("Status: Awaiting Player detection");
+        } else {
+            ImGui::Text("Status: Player pursuit");
+            if(ImGui::Button("Stop pursuit")) {
+                playerPursuitStartTime = 0;
+                model->setAnimation("Idle");
+            }
+        }
 
+    }
 };
 
 

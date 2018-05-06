@@ -100,8 +100,8 @@ public:
         return goName;
     };
 
-    GizmoRequest addImGuiEditorElements() {
-        static GizmoRequest request;
+    ImGuiResult addImGuiEditorElements() {
+        static ImGuiResult request;
 
         bool updated = false;
         bool crudeUpdated = false;
@@ -125,7 +125,7 @@ public:
         if(crudeUpdated) {
             preciseTranslatePoint = this->position;
         }
-        request.isRequested = true;
+        request.isGizmoRequired = true;
         return request;
     }
     /************Game Object methods **************/
