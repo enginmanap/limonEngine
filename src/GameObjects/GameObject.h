@@ -19,6 +19,7 @@ public:
         bool useSnap = false;
         float snap[3] = {1.0f, 1.0f, 1.0f};
         EditorModes mode = TRANSLATE_MODE; //translate is best, because it allows direct use for Light
+        bool isEdited = false; //FIXME we should return this flag only, and gizmo request should be a reference parameter.
     };
     enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX };
 

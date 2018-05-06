@@ -81,7 +81,7 @@ class World {
     bool availableAssetsLoaded = false;
     bool isQuitRequest = false;//does the player requested a quit?
     bool isQuitVerified = false;//does the player set it is sure?
-
+    bool isLightsRendered = false;//if a static object is altered, this should reset to false
 
     bool handlePlayerInput(InputHandler &inputHandler);
 
@@ -113,7 +113,7 @@ class World {
     void switchToDebugMode(InputHandler &inputHandler);
 
     void ImGuiFrameSetup();
-    void ImGuizmoFrameSetup(const GameObject::GizmoRequest& request);
+    bool ImGuizmoFrameSetup(const GameObject::GizmoRequest &request);
 
 public:
     ~World();

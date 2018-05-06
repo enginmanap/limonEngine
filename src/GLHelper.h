@@ -266,7 +266,10 @@ public:
 
     void clearFrame() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //additional depths for Directional is not needed, but depth for point is reqired, because there is no way to clear
+    }
+
+    void clearShadowFrames() {
+        //additional depths for Directional is not needed, but depth for point is required, because there is no way to clear
         //it per layer, so we are clearing per frame. This also means, lights should not reuse the textures.
         glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
         glClear(GL_DEPTH_BUFFER_BIT);

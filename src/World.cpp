@@ -438,38 +438,42 @@ GameObject * World::getPointedObject() const {
 }
 
 void World::render() {
-    for (unsigned int i = 0; i < lights.size(); ++i) {
-        if(lights[i]->getLightType() != Light::DIRECTIONAL) {
-            continue;
-        }
-        //generate shadow map
-        glHelper->switchRenderToShadowMapDirectional(i);
-        shadowMapProgramDirectional->setUniform("renderLightIndex", (int)i);
-        for (auto it = objects.begin(); it != objects.end(); ++it) {
-            (*it).second->renderWithProgram(*shadowMapProgramDirectional);
-        }
-    }
-
-    for (unsigned int i = 0; i < lights.size(); ++i) {
-        if(lights[i]->getLightType() != Light::POINT) {
-            continue;
-        }
-        //generate shadow map
-        glHelper->switchRenderToShadowMapPoint();
-        //FIXME why are these set here?
-        shadowMapProgramPoint->setUniform("renderLightIndex", (int)i);
-        //FIXME this is suppose to be an option //FarPlanePoint is set at declaration, since it is a constant
-        shadowMapProgramPoint->setUniform("farPlanePoint", 100.0f);
-        for (auto it = objects.begin(); it != objects.end(); ++it) {
-            (*it).second->renderWithProgram(*shadowMapProgramPoint);
-        }
-    }
 
     if(camera->isDirty()) {
         glHelper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
     }
 
-    glHelper->switchRenderToDefault();
+    if(!isLightsRendered) {
+        glHelper->clearShadowFrames();
+        for (unsigned int i = 0; i < lights.size(); ++i) {
+            if (lights[i]->getLightType() != Light::DIRECTIONAL) {
+                continue;
+            }
+            //generate shadow map
+            glHelper->switchRenderToShadowMapDirectional(i);
+            shadowMapProgramDirectional->setUniform("renderLightIndex", (int) i);
+            for (auto it = objects.begin(); it != objects.end(); ++it) {
+                (*it).second->renderWithProgram(*shadowMapProgramDirectional);
+            }
+        }
+
+        for (unsigned int i = 0; i < lights.size(); ++i) {
+            if (lights[i]->getLightType() != Light::POINT) {
+                continue;
+            }
+            //generate shadow map
+            glHelper->switchRenderToShadowMapPoint();
+            //FIXME why are these set here?
+            shadowMapProgramPoint->setUniform("renderLightIndex", (int) i);
+            for (auto it = objects.begin(); it != objects.end(); ++it) {
+                (*it).second->renderWithProgram(*shadowMapProgramPoint);
+            }
+        }
+        glHelper->switchRenderToDefault();
+
+        isLightsRendered = true;
+    }
+
     if(sky!=nullptr) {
         sky->render();//this is moved to the top, because transparency can create issues if this is at the end
     }
@@ -590,7 +594,10 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             if(pickedObject != nullptr) {
                 GameObject::GizmoRequest request = pickedObject->addImGuiEditorElements();
                 if(request.isRequested) {
-                    ImGuizmoFrameSetup(request);
+                    isLightsRendered = !(request.isEdited || ImGuizmoFrameSetup(request));
+                    if(!isLightsRendered) {
+                        std::cout << "light refresh triggered" << std::endl;
+                    }
                 }
                 ImGui::NewLine();
                 if (pickedObject->getTypeID() == GameObject::MODEL) {
@@ -626,7 +633,11 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
     }
 }
 
-void World::ImGuizmoFrameSetup(const GameObject::GizmoRequest& request) {
+/**
+ * FIXME: This method should be in gameobject class, but it uses camera information, so stays here for just a bit.
+ * @param request
+ */
+bool World::ImGuizmoFrameSetup(const GameObject::GizmoRequest &request) {
 
     ImGuizmo::OPERATION mCurrentGizmoOperation = ImGuizmo::TRANSLATE ;
 
@@ -664,7 +675,7 @@ void World::ImGuizmoFrameSetup(const GameObject::GizmoRequest& request) {
             break;
         }
         default:
-            return;//we can't work without a way to define transform matrix
+            return false;//we can't work without a way to define transform matrix
     }
 
 
@@ -673,7 +684,8 @@ void World::ImGuizmoFrameSetup(const GameObject::GizmoRequest& request) {
     ImGuiIO& io = ImGui::GetIO();
     ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
     float tempSnap[3] = {request.snap[0], request.snap[1], request.snap[2] };
-    ImGuizmo::Manipulate(glm::value_ptr(cameraMatrix), glm::value_ptr(perspectiveMatrix), mCurrentGizmoOperation, mCurrentGizmoMode, glm::value_ptr(objectMatrix), NULL, request.useSnap ? &(tempSnap[0]) : NULL);
+    glm::mat4 delta;
+    ImGuizmo::Manipulate(glm::value_ptr(cameraMatrix), glm::value_ptr(perspectiveMatrix), mCurrentGizmoOperation, mCurrentGizmoMode, glm::value_ptr(objectMatrix), glm::value_ptr(delta), request.useSnap ? &(tempSnap[0]) : NULL);
 
     //now we should have object matrix updated, update the object
 
@@ -705,6 +717,7 @@ void World::ImGuizmoFrameSetup(const GameObject::GizmoRequest& request) {
             dynamic_cast<Model*>(pickedObject)->setScale(scale);
             break;
     }
+    return delta != glm::mat4(1.0);//return if anything changed or not
 }
 
 World::~World() {

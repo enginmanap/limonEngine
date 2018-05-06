@@ -125,6 +125,8 @@ public:
         if(crudeUpdated) {
             preciseTranslatePoint = this->position;
         }
+
+        request.isEdited = updated || crudeUpdated;
         request.isRequested = true;
         return request;
     }
