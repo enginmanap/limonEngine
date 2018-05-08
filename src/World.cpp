@@ -24,6 +24,7 @@
 #include "ImGuiHelper.h"
 #include "WorldSaver.h"
 #include "../libs/ImGuizmo/ImGuizmo.h"
+#include "GameObjects/TriggerObject.h"
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
@@ -112,7 +113,7 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
          bool hasSeen = false;
          for (int i = 0; i < RayCallback.m_collisionObjects.size(); ++i) {
              GameObject *gameObject = static_cast<GameObject *>(RayCallback.m_collisionObjects[i]->getUserPointer());
-             if (gameObject->getTypeID() != GameObject::PLAYER &&
+             if (gameObject->getTypeID() != GameObject::PLAYER && gameObject->getTypeID() != GameObject::TRIGGER && //trigger is ghost, so it should not block
                  gameObject->getName() != fromName) {
                  return false;
              }
@@ -537,6 +538,8 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             ImGui::Begin("Editor");
             //list available elements
             static std::string selectedAssetFile = "";
+            glm::vec3 newObjectPosition = camera->getPosition() + 10.0f * camera->getCenter();
+
             if (ImGui::CollapsingHeader("Add New Object")) {
                 if (ImGui::BeginCombo("Available objects", selectedAssetFile.c_str())) {
                     for (auto it = assetManager->getAvailableAssetsList().begin();
@@ -549,7 +552,6 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
                 static float newObjectWeight;
                 ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
-                glm::vec3 newObjectPosition = camera->getPosition() + 10.0f * camera->getCenter();
 
                 ImGui::NewLine();
                 if(selectedAssetFile != "") {
@@ -562,6 +564,18 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     }
                 }
             }
+
+            if(ImGui::Button("Add Trigger")) {
+
+                TriggerObject* to = new TriggerObject(this->getNextObjectID());
+                to->setTranslate(newObjectPosition);
+                this->dynamicsWorld->addCollisionObject(to->getGhostObject(), btBroadphaseProxy::SensorTrigger,
+                                                        btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger);
+                triggers[to->getWorldObjectID()] = to;
+
+                pickedObject = static_cast<GameObject*>(to);
+            }
+
             ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
 
             ImGui::Begin("Selected Object Properties");
@@ -730,6 +744,11 @@ World::~World() {
     for (auto it = objects.begin(); it != objects.end(); ++it) {
         delete (*it).second;
     }
+
+    for (auto it = triggers.begin(); it != triggers.end(); ++it) {
+        delete (*it).second;
+    }
+    
     delete sky;
 
     for (std::vector<Light *>::iterator it = lights.begin(); it != lights.end(); ++it) {

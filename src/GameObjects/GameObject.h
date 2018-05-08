@@ -29,7 +29,7 @@ public:
         bool removeAI = false;
     };
 
-    enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX };
+    enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER };
 
     virtual ObjectTypes getTypeID() const = 0;
     virtual std::string getName() const = 0;

@@ -5,7 +5,7 @@
 #ifndef LIMONENGINE_WORLD_H
 #define LIMONENGINE_WORLD_H
 
-#include<vector>
+#include <vector>
 #include <tinyxml2.h>
 #include <unordered_map>
 #include "PhysicalRenderable.h"
@@ -35,16 +35,18 @@ class FreeMovingPlayer;
 class FreeCursorPlayer;
 class ImGuiHelper;
 class AssetManager;
+class TriggerObject;
 
 class World {
     friend class WorldLoader;
-    friend class WorldSaver; //Those classes requre direct access to some of the internal data
+    friend class WorldSaver; //Those classes require direct access to some of the internal data
 
     enum PlayerModes {DEBUG_MODE, EDITOR_MODE, PHYSICAL_MODE, PAUSED_MODE}; //PAUSED mode is used by quit logic
     AssetManager* assetManager;
     Options* options;
     uint32_t totalObjectCount = 1;
     std::map<uint32_t, PhysicalRenderable *> objects;
+    std::map<uint32_t, TriggerObject*> triggers;
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
     std::unordered_map<uint32_t, Actor*> actors;
