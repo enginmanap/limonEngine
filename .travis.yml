@@ -1,0 +1,22 @@
+dist: trusty
+sudo: false
+language: cpp
+
+addons:
+  apt:
+    packages:
+      - build-essential
+      - g++-5
+      - libassimp-dev
+      - libbullet-dev
+      - libsdl2-dev
+      - libsdl2-image-dev
+      - libfreetype6-dev
+      - libtinyxml2-dev
+      - libglew-dev
+      - libglm-dev
+      - libtinyxml2-dev
+
+script:
+  - CXX=/usr/bin/g++-5 CC=/usr/bin/gcc-5 cmake .
+  - cmake --build . -- -j2
