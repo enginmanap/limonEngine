@@ -23,22 +23,18 @@ public:
 
     TriggerObject(uint32_t id): objectID(id) {
         ghostObject->setCollisionShape(ghostShape);
-        ghostObject->setCollisionFlags(ghostObject->getCollisionFlags() &
-                                             btCollisionObject::CF_NO_CONTACT_RESPONSE);
+        ghostObject->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
         ghostObject->setWorldTransform(btTransform(btQuaternion::getIdentity(), btVector3()));
-
         ghostObject->setUserPointer(static_cast<GameObject *>(this));
-/*
-        dynamicsWorld->addCollisionObject(ghostObject, btBroadphaseProxy::SensorTrigger,
-                                        btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger);
-*/
     }
 
     void addScale(const glm::vec3 &scale) {
+        this->scale = scale;
         ghostObject->getCollisionShape()->setLocalScaling(btVector3(this->scale.x, this->scale.y, this->scale.z));
     }
 
     void setScale(const glm::vec3 &scale) {
+        this->scale = scale;
         ghostObject->getCollisionShape()->setLocalScaling(btVector3(this->scale.x, this->scale.y, this->scale.z));
     }
 
@@ -47,10 +43,10 @@ public:
     }
 
     void addTranslate(const glm::vec3 &translate) {
+        this->translate += translate;
         btTransform transform = this->ghostObject->getWorldTransform();
         transform.setOrigin(btVector3(this->translate.x, this->translate.y, this->translate.z));
         this->ghostObject->setWorldTransform(transform);
-        this->translate += translate;
     }
 
     void setTranslate(const glm::vec3 &translate) {
@@ -65,12 +61,15 @@ public:
     }
 
     void setOrientation(const glm::quat &orientation) {
+        this->orientation = orientation;
         btTransform transform = this->ghostObject->getWorldTransform();
         transform.setRotation(GLMConverter::GLMToBlt(this->orientation));
         this->ghostObject->setWorldTransform(transform);
     }
 
     void addOrientation(const glm::quat &orientation) {
+        this->orientation *= orientation;
+        this->orientation = glm::normalize(this->orientation);
         btTransform transform = this->ghostObject->getWorldTransform();
         btQuaternion rotation = transform.getRotation();
         rotation = rotation * GLMConverter::GLMToBlt(orientation);
@@ -84,6 +83,18 @@ public:
 
     btPairCachingGhostObject *getGhostObject() const {
         return ghostObject;
+    }
+
+    bool checkAndTrigger() {
+        //Bullet collision callbacks are global, and since player is suppose to collide with world all the time, it doesn't make sense to use them
+        for(int i = 0; i < ghostObject->getNumOverlappingObjects(); i++ ) {
+            btCollisionObject* object = ghostObject->getOverlappingPairs().at(i);
+            if(object->getUserPointer() != nullptr && static_cast<GameObject*>(object->getUserPointer())->getTypeID() == GameObject::PLAYER) {
+                std::cout << "Player contact found" << std::endl;
+                return true;
+            }
+        }
+        return false;
     }
 
 
