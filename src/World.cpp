@@ -165,6 +165,10 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
         guiLayers[i]->setupForTime(gameTime);
     }
 
+    for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
+        trigger->second->checkAndTrigger();
+    }
+
     //end of physics step
 
     // If not in editor mode, dont let imgGuiHelper get input
@@ -658,7 +662,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
 void World::ImGuizmoFrameSetup(const GameObject::ImGuiResult& request) {
 
-    ImGuizmo::OPERATION mCurrentGizmoOperation = ImGuizmo::TRANSLATE ;
+    ImGuizmo::OPERATION mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
 
     switch (request.mode) {
         case GameObject::TRANSLATE_MODE:
@@ -693,6 +697,15 @@ void World::ImGuizmoFrameSetup(const GameObject::ImGuiResult& request) {
                                                     glm::value_ptr(objectMatrix));
             break;
         }
+        case GameObject::ObjectTypes::TRIGGER: {
+            eulerRotation = glm::eulerAngles(dynamic_cast<TriggerObject *>(pickedObject)->getOrientation());
+            eulerRotation = eulerRotation * 57.2957795f;
+            ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(dynamic_cast<TriggerObject *>(pickedObject)->getTranslate()),
+                                                    glm::value_ptr(eulerRotation),
+                                                    glm::value_ptr(dynamic_cast<TriggerObject *>(pickedObject)->getScale()),
+                                                    glm::value_ptr(objectMatrix));
+            break;
+        }
         default:
             return;//we can't work without a way to define transform matrix
     }
@@ -722,6 +735,12 @@ void World::ImGuizmoFrameSetup(const GameObject::ImGuiResult& request) {
                     dynamic_cast<Light *>(pickedObject)->setPosition(translate);
                     break;
                 }
+
+                case GameObject::ObjectTypes::TRIGGER: {
+                    dynamic_cast<TriggerObject *>(pickedObject)->setTranslate(translate);
+                    break;
+                }
+
                 default: {
                     std::cerr << "Translated unexpected object. Report to developer." << std::endl;
                     exit(-1);
@@ -729,10 +748,37 @@ void World::ImGuizmoFrameSetup(const GameObject::ImGuiResult& request) {
             }
             break;
         case ImGuizmo::ROTATE:
-            dynamic_cast<Model*>(pickedObject)->setOrientation(rotation);
+            switch (pickedObject->getTypeID()) {
+                case GameObject::ObjectTypes::MODEL: {
+                    dynamic_cast<Model *>(pickedObject)->setOrientation(rotation);
+                    break;
+                }
+                case GameObject::ObjectTypes::TRIGGER: {
+                    dynamic_cast<TriggerObject *>(pickedObject)->setOrientation(rotation);
+                    break;
+                }
+                default: {
+                    std::cerr << "ROTATED unexpected object. Report to developer." << std::endl;
+                    exit(-1);
+                }
+            }
+
             break;
         case ImGuizmo::SCALE:
-            dynamic_cast<Model*>(pickedObject)->setScale(scale);
+            switch (pickedObject->getTypeID()) {
+                case GameObject::ObjectTypes::MODEL: {
+                    dynamic_cast<Model *>(pickedObject)->setScale(scale);
+                    break;
+                }
+                case GameObject::ObjectTypes::TRIGGER: {
+                    dynamic_cast<TriggerObject *>(pickedObject)->setScale(scale);
+                    break;
+                }
+                default: {
+                    std::cerr << "SCALED unexpected object. Report to developer." << std::endl;
+                    exit(-1);
+                }
+            }
             break;
     }
 }
