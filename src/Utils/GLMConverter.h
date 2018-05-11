@@ -25,6 +25,10 @@ public:
         return btVector3(vector.x, vector.y, vector.z);
     }
 
+    static glm::quat BltToGLM(const btQuaternion &quaternion) {
+        return glm::quat(quaternion.getW(), quaternion.getX(), quaternion.getY(), quaternion.getZ());
+    }
+
     static btQuaternion GLMToBlt(const glm::quat &quaternion) {
         return btQuaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
     }
@@ -34,8 +38,8 @@ public:
     }
 
     static glm::quat AssimpToGLM(const aiQuaternion &quaternion) {
-        glm::quat newQuat(quaternion.w, quaternion.x, quaternion.y, quaternion.z);
-        return newQuat;
+        return glm::quat(quaternion.w, quaternion.x, quaternion.y, quaternion.z);
+
     }
 
     static glm::vec3 AssimpToGLM(const aiColor3D &color) {

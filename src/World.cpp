@@ -561,7 +561,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 if(selectedAssetFile != "") {
                     if(ImGui::Button("Add Object")) {
                         Model* newModel = new Model(this->getNextObjectID(), assetManager, newObjectWeight, selectedAssetFile);
-                        newModel->setTranslate(newObjectPosition);
+                        newModel->getTransformation()->setTranslate(newObjectPosition);
                         this->addModelToWorld(newModel);
                         newModel->getRigidBody()->activate();
                         pickedObject = static_cast<GameObject*>(newModel);
@@ -572,7 +572,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             if(ImGui::Button("Add Trigger")) {
 
                 TriggerObject* to = new TriggerObject(this->getNextObjectID());
-                to->setTranslate(newObjectPosition);
+                to->getTransformation()->setTranslate(newObjectPosition);
                 this->dynamicsWorld->addCollisionObject(to->getGhostObject(), btBroadphaseProxy::SensorTrigger,
                                                         btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger);
                 triggers[to->getWorldObjectID()] = to;
@@ -623,6 +623,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     newEnemy->setModel(dynamic_cast<Model *>(pickedObject));
 
                     addActor(newEnemy);
+                }
                     ImGui::NewLine();
                     if (pickedObject->getTypeID() == GameObject::MODEL) {
                         if (ImGui::Button("Remove This Object")) {
@@ -639,7 +640,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                             delete removeObject;
                         }
                     }
-                }
+
             }
 
 
@@ -682,11 +683,11 @@ void World::ImGuizmoFrameSetup(const GameObject::ImGuiResult& request) {
     glm::vec3 eulerRotation;
     switch (pickedObject->getTypeID()) {
         case GameObject::ObjectTypes::MODEL: {
-            eulerRotation = glm::eulerAngles(dynamic_cast<Model *>(pickedObject)->getOrientation());
+            eulerRotation = glm::eulerAngles(dynamic_cast<Model *>(pickedObject)->getTransformation()->getOrientation());
             eulerRotation = eulerRotation * 57.2957795f;
-            ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(dynamic_cast<Model *>(pickedObject)->getTranslate()),
+            ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(dynamic_cast<Model *>(pickedObject)->getTransformation()->getTranslate()),
                                                     glm::value_ptr(eulerRotation),
-                                                    glm::value_ptr(dynamic_cast<Model *>(pickedObject)->getScale()),
+                                                    glm::value_ptr(dynamic_cast<Model *>(pickedObject)->getTransformation()->getScale()),
                                                     glm::value_ptr(objectMatrix));
             break;
         }
@@ -698,11 +699,11 @@ void World::ImGuizmoFrameSetup(const GameObject::ImGuiResult& request) {
             break;
         }
         case GameObject::ObjectTypes::TRIGGER: {
-            eulerRotation = glm::eulerAngles(dynamic_cast<TriggerObject *>(pickedObject)->getOrientation());
+            eulerRotation = glm::eulerAngles(dynamic_cast<TriggerObject *>(pickedObject)->getTransformation()->getOrientation());
             eulerRotation = eulerRotation * 57.2957795f;
-            ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(dynamic_cast<TriggerObject *>(pickedObject)->getTranslate()),
+            ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(dynamic_cast<TriggerObject *>(pickedObject)->getTransformation()->getTranslate()),
                                                     glm::value_ptr(eulerRotation),
-                                                    glm::value_ptr(dynamic_cast<TriggerObject *>(pickedObject)->getScale()),
+                                                    glm::value_ptr(dynamic_cast<TriggerObject *>(pickedObject)->getTransformation()->getScale()),
                                                     glm::value_ptr(objectMatrix));
             break;
         }
@@ -728,7 +729,7 @@ void World::ImGuizmoFrameSetup(const GameObject::ImGuiResult& request) {
         case ImGuizmo::TRANSLATE:
             switch (pickedObject->getTypeID()) {
                 case GameObject::ObjectTypes::MODEL: {
-                    dynamic_cast<Model *>(pickedObject)->setTranslate(translate);
+                    dynamic_cast<Model *>(pickedObject)->getTransformation()->setTranslate(translate);
                     break;
                 }
                 case GameObject::ObjectTypes::LIGHT: {
@@ -737,7 +738,7 @@ void World::ImGuizmoFrameSetup(const GameObject::ImGuiResult& request) {
                 }
 
                 case GameObject::ObjectTypes::TRIGGER: {
-                    dynamic_cast<TriggerObject *>(pickedObject)->setTranslate(translate);
+                    dynamic_cast<TriggerObject *>(pickedObject)->getTransformation()->setTranslate(translate);
                     break;
                 }
 
@@ -750,11 +751,11 @@ void World::ImGuizmoFrameSetup(const GameObject::ImGuiResult& request) {
         case ImGuizmo::ROTATE:
             switch (pickedObject->getTypeID()) {
                 case GameObject::ObjectTypes::MODEL: {
-                    dynamic_cast<Model *>(pickedObject)->setOrientation(rotation);
+                    dynamic_cast<Model *>(pickedObject)->getTransformation()->setOrientation(rotation);
                     break;
                 }
                 case GameObject::ObjectTypes::TRIGGER: {
-                    dynamic_cast<TriggerObject *>(pickedObject)->setOrientation(rotation);
+                    dynamic_cast<TriggerObject *>(pickedObject)->getTransformation()->setOrientation(rotation);
                     break;
                 }
                 default: {
@@ -767,11 +768,11 @@ void World::ImGuizmoFrameSetup(const GameObject::ImGuiResult& request) {
         case ImGuizmo::SCALE:
             switch (pickedObject->getTypeID()) {
                 case GameObject::ObjectTypes::MODEL: {
-                    dynamic_cast<Model *>(pickedObject)->setScale(scale);
+                    dynamic_cast<Model *>(pickedObject)->getTransformation()->setScale(scale);
                     break;
                 }
                 case GameObject::ObjectTypes::TRIGGER: {
-                    dynamic_cast<TriggerObject *>(pickedObject)->setScale(scale);
+                    dynamic_cast<TriggerObject *>(pickedObject)->getTransformation()->setScale(scale);
                     break;
                 }
                 default: {
@@ -817,7 +818,7 @@ World::~World() {
 }
 
 void World::addModelToWorld(Model *xmlModel) {
-    xmlModel->getWorldTransform();
+    xmlModel->getTransformation()->getWorldTransform();
     objects[xmlModel->getWorldObjectID()] = xmlModel;
     rigidBodies.push_back(xmlModel->getRigidBody());
     dynamicsWorld->addRigidBody(xmlModel->getRigidBody());

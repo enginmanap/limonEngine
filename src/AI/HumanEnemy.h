@@ -49,18 +49,18 @@ public:
                 lastWalkDirection = information.toPlayerRoute;
             }
             glm::vec3 moveDirection = 0.1f * lastWalkDirection;
-            model->addTranslate(moveDirection);
+            model->getTransformation()->addTranslate(moveDirection);
             if(information.isPlayerLeft) {
                 if(information.cosineBetweenPlayerForSide < 0.95) {
                     glm::quat rotateLeft(1.0f, 0.0f, 0.015f, 0.0f);
-                    model->addOrientation(rotateLeft);
+                    model->getTransformation()->addOrientation(rotateLeft);
                 }
             }
             if(information.isPlayerRight) {
                 //turn just a little bit to right
                 if(information.cosineBetweenPlayerForSide < 0.95) {
                     glm::quat rotateRight(1.0f, 0.0f, -0.015f, 0.0f);
-                    model->addOrientation(rotateRight);
+                    model->getTransformation()->addOrientation(rotateRight);
                 }
             }
             if(information.isPlayerUp) {

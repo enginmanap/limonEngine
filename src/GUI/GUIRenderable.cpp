@@ -27,11 +27,11 @@ GUIRenderable::GUIRenderable(GLHelper *glHelper) : Renderable(glHelper) {
 }
 
 void GUIRenderable::renderDebug(BulletDebugDrawer* debugDrawer) {
-    float up = translate.y + scale.y;
-    float down = translate.y - scale.y;
+    float up    = transformation.getTranslate().y + transformation.getScale().y;
+    float down  = transformation.getTranslate().y - transformation.getScale().y;
 
-    float right = translate.x + scale.x;
-    float left = translate.x - scale.x;
+    float right = transformation.getTranslate().x + transformation.getScale().x;
+    float left  = transformation.getTranslate().x - transformation.getScale().x;
 
     //now build 4 lines;
     debugDrawer->drawLine(glm::vec3(left, up, 0.0f), glm::vec3(left, down, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),

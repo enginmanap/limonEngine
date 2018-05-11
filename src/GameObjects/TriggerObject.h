@@ -10,14 +10,24 @@
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 #include "../Utils/GLMConverter.h"
 #include "GameObject.h"
+#include "../Transformation.h"
 
 class TriggerObject : public GameObject {
-    glm::vec3 scale, translate;
-    glm::quat orientation;
+    Transformation transformation;
     uint32_t objectID;
 
     btCollisionShape *ghostShape = new btBoxShape(btVector3(0.5f, 0.5f, 0.5f));
     btPairCachingGhostObject *ghostObject = new btPairCachingGhostObject();
+
+    void updatePhysicsFromTransform() {
+        //std::cout << "updatePhysicsFromTransform transform call " << std::endl;
+        ghostObject->getCollisionShape()->setLocalScaling(btVector3(transformation.getScale().x, transformation.getScale().y, transformation.getScale().z));
+
+        btTransform transform = ghostObject->getWorldTransform();
+        transform.setOrigin(btVector3(transformation.getTranslate().x, transformation.getTranslate().y, transformation.getTranslate().z));
+        transform.setRotation(GLMConverter::GLMToBlt(transformation.getOrientation()));
+        ghostObject->setWorldTransform(transform);
+    }
 
 public:
 
@@ -26,63 +36,17 @@ public:
         ghostObject->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
         ghostObject->setWorldTransform(btTransform(btQuaternion::getIdentity(), btVector3()));
         ghostObject->setUserPointer(static_cast<GameObject *>(this));
-    }
 
-    void addScale(const glm::vec3 &scale) {
-        this->scale = scale;
-        ghostObject->getCollisionShape()->setLocalScaling(btVector3(this->scale.x, this->scale.y, this->scale.z));
-    }
+        transformation.setUpdateCallback(std::bind(&TriggerObject::updatePhysicsFromTransform, this));
 
-    void setScale(const glm::vec3 &scale) {
-        this->scale = scale;
-        ghostObject->getCollisionShape()->setLocalScaling(btVector3(this->scale.x, this->scale.y, this->scale.z));
-    }
-
-    const glm::vec3 getScale() const {
-        return this->scale;
-    }
-
-    void addTranslate(const glm::vec3 &translate) {
-        this->translate += translate;
-        btTransform transform = this->ghostObject->getWorldTransform();
-        transform.setOrigin(btVector3(this->translate.x, this->translate.y, this->translate.z));
-        this->ghostObject->setWorldTransform(transform);
-    }
-
-    void setTranslate(const glm::vec3 &translate) {
-        this->translate = translate;
-        btTransform transform = this->ghostObject->getWorldTransform();
-        transform.setOrigin(btVector3(this->translate.x, this->translate.y, this->translate.z));
-        this->ghostObject->setWorldTransform(transform);
-    }
-
-    glm::vec3 getTranslate() const {
-        return this->translate;
-    }
-
-    void setOrientation(const glm::quat &orientation) {
-        this->orientation = orientation;
-        btTransform transform = this->ghostObject->getWorldTransform();
-        transform.setRotation(GLMConverter::GLMToBlt(this->orientation));
-        this->ghostObject->setWorldTransform(transform);
-    }
-
-    void addOrientation(const glm::quat &orientation) {
-        this->orientation *= orientation;
-        this->orientation = glm::normalize(this->orientation);
-        btTransform transform = this->ghostObject->getWorldTransform();
-        btQuaternion rotation = transform.getRotation();
-        rotation = rotation * GLMConverter::GLMToBlt(orientation);
-        transform.setRotation(rotation);
-        this->ghostObject->setWorldTransform(transform);
-    }
-
-    glm::quat getOrientation() const {
-        return this->orientation;
     }
 
     btPairCachingGhostObject *getGhostObject() const {
         return ghostObject;
+    }
+
+    Transformation* getTransformation() {
+        return &transformation;
     }
 
     bool checkAndTrigger() {
