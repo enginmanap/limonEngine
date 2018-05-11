@@ -7,7 +7,7 @@
 
 GameObject::ImGuiResult TriggerObject::addImGuiEditorElements() {
     static ImGuiResult request;
-    static glm::vec3 preciseTranslatePoint = this->translate;
+    static glm::vec3 preciseTranslatePoint = this->transformation.getTranslate();
 
     bool updated = false;
     bool crudeUpdated = false;
@@ -35,49 +35,53 @@ GameObject::ImGuiResult TriggerObject::addImGuiEditorElements() {
     }
 
     switch (request.mode) {
-        case TRANSLATE_MODE:
+        case TRANSLATE_MODE: {
+            glm::vec3 translate = this->transformation.getTranslate();
             updated =
-                    ImGui::DragFloat("Precise Position X", &(this->translate.x), 0.01f, preciseTranslatePoint.x - 5.0f,
+                    ImGui::DragFloat("Precise Position X", &(translate.x), 0.01f, preciseTranslatePoint.x - 5.0f,
                                      preciseTranslatePoint.x + 5.0f) || updated;
             updated =
-                    ImGui::DragFloat("Precise Position Y", &(this->translate.y), 0.01f, preciseTranslatePoint.y - 5.0f,
+                    ImGui::DragFloat("Precise Position Y", &(translate.y), 0.01f, preciseTranslatePoint.y - 5.0f,
                                      preciseTranslatePoint.y + 5.0f) || updated;
             updated =
-                    ImGui::DragFloat("Precise Position Z", &(this->translate.z), 0.01f, preciseTranslatePoint.z - 5.0f,
+                    ImGui::DragFloat("Precise Position Z", &(translate.z), 0.01f, preciseTranslatePoint.z - 5.0f,
                                      preciseTranslatePoint.z + 5.0f) || updated;
             ImGui::NewLine();
             crudeUpdated =
-                    ImGui::SliderFloat("Crude Position X", &(this->translate.x), -100.0f, 100.0f) || crudeUpdated;
+                    ImGui::SliderFloat("Crude Position X", &(translate.x), -100.0f, 100.0f) || crudeUpdated;
             crudeUpdated =
-                    ImGui::SliderFloat("Crude Position Y", &(this->translate.y), -100.0f, 100.0f) || crudeUpdated;
+                    ImGui::SliderFloat("Crude Position Y", &(translate.y), -100.0f, 100.0f) || crudeUpdated;
             crudeUpdated =
-                    ImGui::SliderFloat("Crude Position Z", &(this->translate.z), -100.0f, 100.0f) || crudeUpdated;
+                    ImGui::SliderFloat("Crude Position Z", &(translate.z), -100.0f, 100.0f) || crudeUpdated;
             if (updated || crudeUpdated) {
-                this->setTranslate(translate);
+                this->transformation.setTranslate(translate);
             }
             if (crudeUpdated) {
-                preciseTranslatePoint = this->translate;
+                preciseTranslatePoint = translate;
             }
             ImGui::NewLine();
             ImGui::Checkbox("", &(request.useSnap));
             ImGui::SameLine();
             ImGui::InputFloat3("Snap", &(request.snap[0]));
             break;
-        case ROTATE_MODE:
-            updated = ImGui::SliderFloat("Rotate X", &(this->orientation.x), -1.0f, 1.0f) || updated;
-            updated = ImGui::SliderFloat("Rotate Y", &(this->orientation.y), -1.0f, 1.0f) || updated;
-            updated = ImGui::SliderFloat("Rotate Z", &(this->orientation.z), -1.0f, 1.0f) || updated;
-            updated = ImGui::SliderFloat("Rotate W", &(this->orientation.w), -1.0f, 1.0f) || updated;
+        }
+        case ROTATE_MODE: {
+            glm::quat orientation = transformation.getOrientation();
+            updated = ImGui::SliderFloat("Rotate X", &(orientation.x), -1.0f, 1.0f) || updated;
+            updated = ImGui::SliderFloat("Rotate Y", &(orientation.y), -1.0f, 1.0f) || updated;
+            updated = ImGui::SliderFloat("Rotate Z", &(orientation.z), -1.0f, 1.0f) || updated;
+            updated = ImGui::SliderFloat("Rotate W", &(orientation.w), -1.0f, 1.0f) || updated;
             if (updated || crudeUpdated) {
-                this->setOrientation(orientation);
+                this->transformation.setOrientation(orientation);
             }
             ImGui::NewLine();
             ImGui::Checkbox("", &(request.useSnap));
             ImGui::SameLine();
             ImGui::InputFloat("Angle Snap", &(request.snap[0]));
             break;
+        }
         case SCALE_MODE:
-            glm::vec3 tempScale = scale;
+            glm::vec3 tempScale = transformation.getScale();
             updated = ImGui::DragFloat("Scale X", &(tempScale.x), 0.01, 0.01f, 10.0f) || updated;
             updated = ImGui::DragFloat("Scale Y", &(tempScale.y), 0.01, 0.01f, 10.0f) || updated;
             updated = ImGui::DragFloat("Scale Z", &(tempScale.z), 0.01, 0.01f, 10.0f) || updated;
@@ -87,7 +91,7 @@ GameObject::ImGuiResult TriggerObject::addImGuiEditorElements() {
             updated = ImGui::SliderFloat("Massive Scale Z", &(tempScale.z), 0.01f, 100.0f) || updated;
             if ((updated || crudeUpdated) && (tempScale.x != 0.0f && tempScale.y != 0.0f && tempScale.z != 0.0f)) {
 //it is possible to enter any scale now. If user enters 0, don't update
-                this->setScale(tempScale);
+                this->transformation.setScale(tempScale);
             }
             ImGui::NewLine();
             ImGui::Checkbox("", &(request.useSnap));

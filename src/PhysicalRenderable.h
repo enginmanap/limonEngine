@@ -18,71 +18,38 @@ protected:
 
     const float mass;
 
+
 public:
-    explicit PhysicalRenderable(GLHelper *glHelper, float mass) : Renderable(glHelper), centerOffset(glm::vec3(0, 0, 0)), mass(mass) { };
+    explicit PhysicalRenderable(GLHelper *glHelper, float mass) : Renderable(glHelper), centerOffset(glm::vec3(0, 0, 0)), mass(mass) {
+        transformation.setGenerateWorldTransform(std::bind(&PhysicalRenderable::processTransformForPyhsics, this));
+        transformation.setUpdateCallback(std::bind(&PhysicalRenderable::updatePhysicsFromTransform, this));
+    };
 
     btRigidBody *getRigidBody() { return rigidBody; };
 
-    void addScale(const glm::vec3 &scale) {
-        Renderable::addScale(scale);
-        rigidBody->getCollisionShape()->setLocalScaling(btVector3(this->scale.x, this->scale.y, this->scale.z));
-        updateAABB();
-    }
+    void updatePhysicsFromTransform() {
+        //std::cout << "updatePhysicsFromTransform transform call " << std::endl;
+        rigidBody->getCollisionShape()->setLocalScaling(btVector3(transformation.getScale().x, transformation.getScale().y, transformation.getScale().z));
 
-    void setScale(const glm::vec3 &scale) {
-        Renderable::setScale(scale);
-        rigidBody->getCollisionShape()->setLocalScaling(btVector3(this->scale.x, this->scale.y, this->scale.z));
-        updateAABB();
-    }
-
-    const glm::vec3 getScale() const {
-        return this->scale;
-    }
-
-    void addTranslate(const glm::vec3 &translate) {
-        Renderable::addTranslate(translate);
         btTransform transform = this->rigidBody->getCenterOfMassTransform();
-        transform.setOrigin(btVector3(this->translate.x, this->translate.y, this->translate.z));
+        transform.setOrigin(btVector3(transformation.getTranslate().x, transformation.getTranslate().y, transformation.getTranslate().z));
+        transform.setRotation(GLMConverter::GLMToBlt(transformation.getOrientation()));
         this->rigidBody->setWorldTransform(transform);
         this->rigidBody->getMotionState()->setWorldTransform(transform);
+        this->rigidBody->activate();
         updateAABB();
     }
 
-    void setTranslate(const glm::vec3 &translate) {
-        Renderable::setTranslate(translate);
-        btTransform transform = this->rigidBody->getCenterOfMassTransform();
-        transform.setOrigin(btVector3(this->translate.x, this->translate.y, this->translate.z));
-        this->rigidBody->setWorldTransform(transform);
-        this->rigidBody->getMotionState()->setWorldTransform(transform);
-        updateAABB();
-    }
+    /**
+     * If there were any change with transform, trigger this
+     */
+    glm::mat4 processTransformForPyhsics() {
+        //std::cout << "processTransformForPyhsics transform call " << std::endl;
 
-    glm::vec3 getTranslate() const {
-        return this->translate;
-    }
+        //if animated, then the transform information will be updated according to bone transforms. Then we apply current center offset
+        return glm::translate(glm::mat4(1.0f), transformation.getTranslate()) * glm::mat4_cast(transformation.getOrientation()) *
+               glm::scale(glm::mat4(1.0f), transformation.getScale()) * glm::translate(glm::mat4(1.0f), -1.0f * centerOffset);
 
-    void setOrientation(const glm::quat &orientation) {
-        Renderable::setOrientation(orientation);
-        btTransform transform = this->rigidBody->getCenterOfMassTransform();
-        transform.setRotation(GLMConverter::GLMToBlt(this->orientation));
-        this->rigidBody->setWorldTransform(transform);
-        this->rigidBody->getMotionState()->setWorldTransform(transform);
-        updateAABB();
-    }
-
-    void addOrientation(const glm::quat &orientation) {
-        Renderable::addOrientation(orientation);
-        btTransform transform = this->rigidBody->getCenterOfMassTransform();
-        btQuaternion rotation = transform.getRotation();
-        rotation = rotation * GLMConverter::GLMToBlt(orientation);
-        transform.setRotation(rotation);
-        this->rigidBody->setWorldTransform(transform);
-        this->rigidBody->getMotionState()->setWorldTransform(transform);
-        updateAABB();
-    }
-
-    glm::quat getOrientation() const {
-        return this->orientation;
     }
 
     void updateTransformFromPhysics();
@@ -92,7 +59,6 @@ public:
     float getMass() const {
         return mass;
     };
-
 
     const glm::vec3 &getAabbMax() const {
         return aabbMax;

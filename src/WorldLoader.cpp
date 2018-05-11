@@ -118,7 +118,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
             } else {
                 z = 1.0;
             }
-            xmlModel->addScale(glm::vec3(x,y,z));
+            xmlModel->getTransformation()->addScale(glm::vec3(x,y,z));
         }
 
         objectAttribute =  objectNode->FirstChildElement("Translate");
@@ -143,7 +143,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
             } else {
                 z = 0.0;
             }
-            xmlModel->addTranslate(glm::vec3(x,y,z));
+            xmlModel->getTransformation()->addTranslate(glm::vec3(x,y,z));
         }
 
         objectAttribute =  objectNode->FirstChildElement("Rotate");
@@ -174,7 +174,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
             } else {
                 w = 0.0;
             }
-            xmlModel->addOrientation(glm::quat(w, x, y, z));
+            xmlModel->getTransformation()->addOrientation(glm::quat(w, x, y, z));
         }
         //Since we are not loading objects recursively, these can be set here safely
         objectAttribute =  objectNode->FirstChildElement("AI");

@@ -70,22 +70,22 @@ void GUIText::render() {
          *
          * The double translate is because we want to rotate from center of the text.
          */
-        if (isRotated) {
+        if (transformation.isRotated()) {
             currentTransform = glm::scale(
                     glm::translate(
-                            (glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation)),
+                            (glm::translate(glm::mat4(1.0f), transformation.getTranslate()) * glm::mat4_cast(transformation.getOrientation())),
                             glm::vec3(quadPositionX, quadPositionY, 0) -
-                            glm::vec3(width * scale.x / 2.0f, height * scale.y / 2.0f, 0.0f)),
-                    this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
+                            glm::vec3(width * transformation.getScale().x / 2.0f, height * transformation.getScale().y / 2.0f, 0.0f)),
+                    this->transformation.getScale() * glm::vec3(quadSizeX, quadSizeY, 1.0f)
             );
         } else {
             //this branch removes quaternion cast, so double translate is not necessary.
             currentTransform = glm::scale(
-                    glm::translate(glm::mat4(1.0f), translate +
+                    glm::translate(glm::mat4(1.0f), transformation.getTranslate() +
                                                     glm::vec3(quadPositionX, quadPositionY, 0) -
-                                                    glm::vec3(width * scale.x / 2.0f, height * scale.y / 2.0f,
+                                                    glm::vec3(width * transformation.getScale().x / 2.0f, height * transformation.getScale().y / 2.0f,
                                                               0.0f)),
-                    this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
+                    this->transformation.getScale() * glm::vec3(quadSizeX, quadSizeY, 1.0f)
             );
         }
 
@@ -107,7 +107,7 @@ void GUIText::render() {
 void GUIText::renderDebug(BulletDebugDrawer *debugDrawer) {
     glm::mat4 orthogonalPM = glHelper->getOrthogonalProjectionMatrix();
 
-    glm::mat4 transform = (orthogonalPM * getWorldTransform());
+    glm::mat4 transform = (orthogonalPM * transformation.getWorldTransform());
 
     glm::vec4 upLeft = (transform * glm::vec4(-width / 2.0f, height / 2.0f - bearingUp, 0.0f, 1.0f));
     glm::vec4 upRight = (transform * glm::vec4(width / 2.0f, height / 2.0f - bearingUp, 0.0f, 1.0f));
@@ -138,20 +138,20 @@ void GUIText::renderDebug(BulletDebugDrawer *debugDrawer) {
         quadPositionX = totalAdvance + glyph->getBearing().x + quadSizeX; //origin is left side
         quadPositionY = glyph->getBearing().y - quadSizeY; // origin is the bottom line
 
-        if (isRotated) {
+        if (transformation.isRotated()) {
             currentTransform = glm::scale(
                     glm::translate(
-                            (glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation)),
+                            (glm::translate(glm::mat4(1.0f), transformation.getTranslate()) * glm::mat4_cast(transformation.getOrientation())),
                             glm::vec3(quadPositionX, quadPositionY, 0) -
-                            glm::vec3(width * scale.x / 2.0f, height * scale.y / 2.0f, 0.0f)),
-                    this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
+                            glm::vec3(width * transformation.getScale().x / 2.0f, height * transformation.getScale().y / 2.0f, 0.0f)),
+                    this->transformation.getScale() * glm::vec3(quadSizeX, quadSizeY, 1.0f)
             );
         } else {
             currentTransform = glm::scale(
-                    glm::translate(glm::mat4(1.0f), translate +
+                    glm::translate(glm::mat4(1.0f), transformation.getTranslate() +
                                                     glm::vec3(quadPositionX, quadPositionY, 0) -
-                                                    glm::vec3(width * scale.x / 2.0f, height * scale.y / 2.0f, 0.0f)),
-                    this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
+                                                    glm::vec3(width * transformation.getScale().x / 2.0f, height * transformation.getScale().y / 2.0f, 0.0f)),
+                    this->transformation.getScale() * glm::vec3(quadSizeX, quadSizeY, 1.0f)
             );
         }
         advance = glyph->getAdvance() / 64;

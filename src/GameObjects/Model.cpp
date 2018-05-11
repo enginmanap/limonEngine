@@ -109,8 +109,6 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
         //for animated bodies, setup the first frame
         this->setupForTime(0);
     }
-
-    isDirty = true;
 }
 
 void Model::setupForTime(long time) {
@@ -206,7 +204,7 @@ void Model::activateMaterial(const Material *material, GLSLProgram *program) {
 
 bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
     GLSLProgram* program  = meshMetaData->program;
-    if (program->setUniform("worldTransformMatrix", getWorldTransform())) {
+    if (program->setUniform("worldTransformMatrix", transformation.getWorldTransform())) {
             if (meshMetaData->mesh != nullptr && meshMetaData->mesh->getMaterial() != nullptr) {
                 this->activateMaterial(meshMetaData->mesh->getMaterial(), program);
             } else {
@@ -247,7 +245,7 @@ void Model::render() {
 }
 
 void Model::renderWithProgram(GLSLProgram &program) {
-    if (program.setUniform("worldTransformMatrix", getWorldTransform())) {
+    if (program.setUniform("worldTransformMatrix", transformation.getWorldTransform())) {
         std::vector<MeshAsset *> meshes = modelAsset->getMeshes();
         for (std::vector<MeshAsset *>::iterator iter = meshes.begin(); iter != meshes.end(); ++iter) {//FIXME why this uses meshes, while normal render doesn't?
             if (animated) {
@@ -293,40 +291,40 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
 
     tinyxml2::XMLElement *parent = document.NewElement("Scale");
     currentElement = document.NewElement("X");
-    currentElement->SetText(scale.x);
+    currentElement->SetText(transformation.getScale().x);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Y");
-    currentElement->SetText(scale.y);
+    currentElement->SetText(transformation.getScale().y);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Z");
-    currentElement->SetText(scale.z);
+    currentElement->SetText(transformation.getScale().z);
     parent->InsertEndChild(currentElement);
     objectElement->InsertEndChild(parent);
 
     parent = document.NewElement("Translate");
     currentElement = document.NewElement("X");
-    currentElement->SetText(translate.x);
+    currentElement->SetText(transformation.getTranslate().x);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Y");
-    currentElement->SetText(translate.y);
+    currentElement->SetText(transformation.getTranslate().y);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Z");
-    currentElement->SetText(translate.z);
+    currentElement->SetText(transformation.getTranslate().z);
     parent->InsertEndChild(currentElement);
     objectElement->InsertEndChild(parent);
 
     parent = document.NewElement("Rotate");
     currentElement = document.NewElement("X");
-    currentElement->SetText(orientation.x);
+    currentElement->SetText(transformation.getOrientation().x);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Y");
-    currentElement->SetText(orientation.y);
+    currentElement->SetText(transformation.getOrientation().y);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Z");
-    currentElement->SetText(orientation.z);
+    currentElement->SetText(transformation.getOrientation().z);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("W");
-    currentElement->SetText(orientation.w);
+    currentElement->SetText(transformation.getOrientation().w);
     parent->InsertEndChild(currentElement);
     objectElement->InsertEndChild(parent);
 }
@@ -340,7 +338,7 @@ uint32_t Model::getAIID() {
 
 GameObject::ImGuiResult Model::addImGuiEditorElements() {
     static ImGuiResult request;
-    static glm::vec3 preciseTranslatePoint = this->translate;
+    static glm::vec3 preciseTranslatePoint = transformation.getTranslate();
 
     bool updated = false;
     bool crudeUpdated = false;
@@ -368,42 +366,45 @@ GameObject::ImGuiResult Model::addImGuiEditorElements() {
     }
 
     switch (request.mode) {
-        case TRANSLATE_MODE:
+        case TRANSLATE_MODE: {
+            glm::vec3 translate = transformation.getTranslate();
             updated =
-                    ImGui::DragFloat("Precise Position X", &(this->translate.x), 0.01f, preciseTranslatePoint.x - 5.0f,
+                    ImGui::DragFloat("Precise Position X", &(translate.x), 0.01f, preciseTranslatePoint.x - 5.0f,
                                      preciseTranslatePoint.x + 5.0f) || updated;
             updated =
-                    ImGui::DragFloat("Precise Position Y", &(this->translate.y), 0.01f, preciseTranslatePoint.y - 5.0f,
+                    ImGui::DragFloat("Precise Position Y", &(translate.y), 0.01f, preciseTranslatePoint.y - 5.0f,
                                      preciseTranslatePoint.y + 5.0f) || updated;
             updated =
-                    ImGui::DragFloat("Precise Position Z", &(this->translate.z), 0.01f, preciseTranslatePoint.z - 5.0f,
+                    ImGui::DragFloat("Precise Position Z", &(translate.z), 0.01f, preciseTranslatePoint.z - 5.0f,
                                      preciseTranslatePoint.z + 5.0f) || updated;
             ImGui::NewLine();
             crudeUpdated =
-                    ImGui::SliderFloat("Crude Position X", &(this->translate.x), -100.0f, 100.0f) || crudeUpdated;
+                    ImGui::SliderFloat("Crude Position X", &(translate.x), -100.0f, 100.0f) || crudeUpdated;
             crudeUpdated =
-                    ImGui::SliderFloat("Crude Position Y", &(this->translate.y), -100.0f, 100.0f) || crudeUpdated;
+                    ImGui::SliderFloat("Crude Position Y", &(translate.y), -100.0f, 100.0f) || crudeUpdated;
             crudeUpdated =
-                    ImGui::SliderFloat("Crude Position Z", &(this->translate.z), -100.0f, 100.0f) || crudeUpdated;
+                    ImGui::SliderFloat("Crude Position Z", &(translate.z), -100.0f, 100.0f) || crudeUpdated;
             if (updated || crudeUpdated) {
-                this->setTranslate(translate);
+                transformation.setTranslate(translate);
                 this->rigidBody->activate();
             }
             if (crudeUpdated) {
-                preciseTranslatePoint = this->translate;
+                preciseTranslatePoint = transformation.getTranslate();
             }
             ImGui::NewLine();
             ImGui::Checkbox("", &(request.useSnap));
             ImGui::SameLine();
             ImGui::InputFloat3("Snap", &(request.snap[0]));
             break;
-        case ROTATE_MODE:
-            updated = ImGui::SliderFloat("Rotate X", &(this->orientation.x), -1.0f, 1.0f) || updated;
-            updated = ImGui::SliderFloat("Rotate Y", &(this->orientation.y), -1.0f, 1.0f) || updated;
-            updated = ImGui::SliderFloat("Rotate Z", &(this->orientation.z), -1.0f, 1.0f) || updated;
-            updated = ImGui::SliderFloat("Rotate W", &(this->orientation.w), -1.0f, 1.0f) || updated;
+        }
+        case ROTATE_MODE: {
+            glm::quat orientation = transformation.getOrientation();
+            updated = ImGui::SliderFloat("Rotate X", &(orientation.x), -1.0f, 1.0f) || updated;
+            updated = ImGui::SliderFloat("Rotate Y", &(orientation.y), -1.0f, 1.0f) || updated;
+            updated = ImGui::SliderFloat("Rotate Z", &(orientation.z), -1.0f, 1.0f) || updated;
+            updated = ImGui::SliderFloat("Rotate W", &(orientation.w), -1.0f, 1.0f) || updated;
             if (updated || crudeUpdated) {
-                this->setOrientation(orientation);
+                transformation.setOrientation(orientation);
                 this->rigidBody->activate();
             }
             ImGui::NewLine();
@@ -411,8 +412,9 @@ GameObject::ImGuiResult Model::addImGuiEditorElements() {
             ImGui::SameLine();
             ImGui::InputFloat("Angle Snap", &(request.snap[0]));
             break;
-        case SCALE_MODE:
-            glm::vec3 tempScale = scale;
+        }
+        case SCALE_MODE: {
+            glm::vec3 tempScale = transformation.getScale();
             updated = ImGui::DragFloat("Scale X", &(tempScale.x), 0.01, 0.01f, 10.0f) || updated;
             updated = ImGui::DragFloat("Scale Y", &(tempScale.y), 0.01, 0.01f, 10.0f) || updated;
             updated = ImGui::DragFloat("Scale Z", &(tempScale.z), 0.01, 0.01f, 10.0f) || updated;
@@ -422,7 +424,7 @@ GameObject::ImGuiResult Model::addImGuiEditorElements() {
             updated = ImGui::SliderFloat("Massive Scale Z", &(tempScale.z), 0.01f, 100.0f) || updated;
             if ((updated || crudeUpdated) && (tempScale.x != 0.0f && tempScale.y != 0.0f && tempScale.z != 0.0f)) {
 //it is possible to enter any scale now. If user enters 0, don't update
-                this->setScale(tempScale);
+                transformation.setScale(tempScale);
                 this->rigidBody->activate();
             }
             ImGui::NewLine();
@@ -430,6 +432,7 @@ GameObject::ImGuiResult Model::addImGuiEditorElements() {
             ImGui::SameLine();
             ImGui::InputFloat("Scale Snap", &(request.snap[0]));
             break;
+        }
     }
     ImGui::NewLine();
     if (isAnimated()) {

@@ -9,67 +9,22 @@
 #include "GameObjects/GameObject.h"
 #include "GLHelper.h"
 #include "GLSLProgram.h"
+#include "Transformation.h"
 #include <btBulletDynamicsCommon.h>
 #include <glm/gtx/matrix_decompose.hpp>
 
 class Renderable {
 protected:
-    GLHelper *glHelper;
+    Transformation transformation;
     std::vector<uint_fast32_t > bufferObjects;
     uint_fast32_t vao, ebo;
+    GLHelper *glHelper;
     GLSLProgram *renderProgram;
-    glm::mat4 worldTransform, oldWorldTransform;
-    glm::vec3 scale, translate;
-    glm::quat orientation;
-    bool isDirty;
-    bool isRotated;
     bool isInFrustum = true;
 
-    virtual void generateWorldTransform();
-
-    explicit Renderable(GLHelper *glHelper);
-
-
+    explicit Renderable(GLHelper *glHelper) :
+            glHelper(glHelper), renderProgram(nullptr) {}
 public:
-    virtual void addScale(const glm::vec3 &scale) {
-        this->scale *= scale;
-        isDirty = true;
-    }
-
-    virtual void setScale(const glm::vec3 &scale) {
-        this->scale = scale;
-        isDirty = true;
-    }
-
-    virtual void addTranslate(const glm::vec3 &translate) {
-        this->translate += translate;
-        isDirty = true;
-    }
-
-    virtual void setTranslate(const glm::vec3 &translate) {
-        this->translate = translate;
-        isDirty = true;
-    }
-
-    virtual void setOrientation(const glm::quat &orientation) {
-        this->orientation = glm::normalize(orientation);
-        isRotated = this->orientation.w > cos(0.1f / 2); //if the total rotation is bigger than 0.1 rad
-        isDirty = true;
-    }
-
-    virtual void addOrientation(const glm::quat &orientation) {
-        this->orientation *= orientation;
-        this->orientation = glm::normalize(this->orientation);
-        isRotated = this->orientation.w > cos(0.1f / 2); //if the total rotation is bigger than 0.1 rad
-        isDirty = true;
-    }
-
-    const glm::mat4 &getWorldTransform() {
-        if (isDirty) {
-            generateWorldTransform();
-        }
-        return worldTransform;
-    }
 
     virtual void render() = 0;
 
@@ -93,6 +48,10 @@ public:
 
     void setIsInFrustum(bool isInFrustum) {
         Renderable::isInFrustum = isInFrustum;
+    }
+
+    Transformation* getTransformation() {
+        return &transformation;
     }
 
 };
