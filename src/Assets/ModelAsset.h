@@ -22,24 +22,11 @@
 #include "BoneNode.h"
 
 
-struct AnimationNode {
-    std::vector<glm::vec3> translates;
-    std::vector<float>translateTimes;
-    std::vector<glm::vec3> scales;
-    std::vector<float>scaleTimes;
-    std::vector<glm::quat> rotations;
-    std::vector<float>rotationTimes;
-};
-
-struct AnimationSet {
-    float ticksPerSecond;
-    float duration;
-    std::unordered_map<std::string, AnimationNode*> nodes;//FIXME these should be removed
-};
+class Animation;
 
 class ModelAsset : public Asset {
     std::string name;
-    std::unordered_map<std::string, AnimationSet*> animations;//FIXME these should be removed
+    std::unordered_map<std::string, Animation*> animations;//FIXME these should be removed
     BoneNode *rootNode;
     int_fast32_t boneIDCounter, boneIDCounterPerMesh;
 
@@ -65,17 +52,11 @@ class ModelAsset : public Asset {
 
     bool findNode(const std::string &nodeName, BoneNode** foundNode, BoneNode* searchRoot) const;
 
-    void traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform, const AnimationSet *animation, float timeInTicks,
+    void traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform, const Animation *animation,
+                                 float timeInTicks,
                                  std::vector<glm::mat4> &transforms) const;
 
     const aiNodeAnim *findNodeAnimation(aiAnimation *pAnimation, std::string basic_string) const;
-
-
-    glm::quat getRotationQuat(const float timeInTicks, const AnimationNode *nodeAnimation) const;
-
-    glm::vec3 getScalingVector(const float timeInTicks, const AnimationNode *nodeAnimation) const;
-
-    glm::vec3 getPositionVector(const float timeInTicks, const AnimationNode *nodeAnimation) const;
 
 public:
     ModelAsset(AssetManager *assetManager, const std::vector<std::string> &fileList);
@@ -89,7 +70,6 @@ public:
     const glm::vec3 &getBoundingBoxMax() const { return boundingBoxMax; }
 
     const glm::vec3 &getCenterOffset() const { return centerOffset; }
-
 
     /*
      * FIXME: the materials should be const too
@@ -139,13 +119,10 @@ public:
 
     void fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimations);
 
-    std::unordered_map<float, glm::mat4> createTransformsForAllTimes(aiNodeAnim *animation);
-
-    glm::mat4 calculateTransform(AnimationNode *animation, float time) const;
-
-    const std::unordered_map<std::string, AnimationSet *> &getAnimations() const {
+    const std::unordered_map<std::string, Animation*> &getAnimations() const {
         return animations;
     }
+
 };
 
 
