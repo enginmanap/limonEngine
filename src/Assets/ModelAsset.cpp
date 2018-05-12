@@ -6,6 +6,7 @@
 #include "ModelAsset.h"
 #include "../glm/gtx/matrix_decompose.hpp"
 #include "../Utils/GLMUtils.h"
+#include "../GamePlay/Animation.h"
 
 ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string> &fileList) : Asset(assetManager,
                                                                                                      fileList),
@@ -241,29 +242,30 @@ void ModelAsset::getTransform(long time, std::string animationName, std::vector<
         return;
     }
 
-    const AnimationSet *currentAnimation;
+    const Animation *currentAnimation;
     if(animations.find(animationName) != animations.end()) {
         currentAnimation = animations.at(animationName);
     } else {
         std::cerr << "Animation " << animationName << " not found, playing first animation. " << std::endl;
         currentAnimation = animations.begin()->second;
     }
-    
-    
+
+
     float ticksPerSecond;
-    if (currentAnimation->ticksPerSecond != 0) {
-        ticksPerSecond = currentAnimation->ticksPerSecond;
+    if (currentAnimation->getTicksPerSecond() != 0) {
+        ticksPerSecond = currentAnimation->getTicksPerSecond();
     } else {
         ticksPerSecond = 60.0f;
     }
 
-    float animationTime = fmod((time / 1000.0f) * ticksPerSecond, currentAnimation->duration);
+    float animationTime = fmod((time / 1000.0f) * ticksPerSecond, currentAnimation->getDuration());
     glm::mat4 parentTransform(1.0f);
     traverseAndSetTransform(rootNode, parentTransform, currentAnimation, animationTime, transformMatrix);
 }
 
 void
-ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform, const AnimationSet *animation,
+ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform,
+                                    const Animation *animation,
                                     float timeInTicks,
                                     std::vector<glm::mat4> &transforms) const {
 /*
@@ -272,13 +274,11 @@ ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &p
     }
 */
     glm::mat4 nodeTransform;
+    bool isFound;
+    nodeTransform = animation->calculateTransform(boneNode->name, timeInTicks, isFound);
 
-    if (animation->nodes.find(boneNode->name) == animation->nodes.end()) {//if the bone has no animation, it can happen
+    if(!isFound) {
         nodeTransform = boneNode->transformation;
-    } else {
-        // Interpolate scaling and generate scaling transformation matrix
-        AnimationNode *nodeAnimation = animation->nodes.at(boneNode->name);
-        nodeTransform = calculateTransform(nodeAnimation, timeInTicks);
     }
 
     nodeTransform = parentTransform * nodeTransform;
@@ -295,92 +295,6 @@ ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &p
     }
 }
 
-glm::vec3 ModelAsset::getPositionVector(const float timeInTicks, const AnimationNode *nodeAnimation) const {
-    glm::vec3 transformVector;
-    if (nodeAnimation->translates.size() == 1) {
-            transformVector = nodeAnimation->translates[0];
-        } else {
-            unsigned int positionIndex = 0;
-            for (unsigned int i = 0; i < nodeAnimation->translates.size(); i++) {
-                if (timeInTicks < nodeAnimation->translateTimes[i + 1]) {
-                    positionIndex = i;
-                    break;
-                }
-            }
-
-            unsigned int NextPositionIndex = (positionIndex + 1);
-            assert(NextPositionIndex < nodeAnimation->translates.size());
-            float DeltaTime = (float) (nodeAnimation->translateTimes[NextPositionIndex] -
-                                       nodeAnimation->translateTimes[positionIndex]);
-            float Factor = (timeInTicks - (float) nodeAnimation->translateTimes[positionIndex]) / DeltaTime;
-            assert(Factor >= 0.0f && Factor <= 1.0f);
-            const glm::vec3 &Start = nodeAnimation->translates[positionIndex];
-            const glm::vec3 &End = nodeAnimation->translates[NextPositionIndex];
-            glm::vec3 Delta = End - Start;
-            transformVector = Start + Factor * Delta;
-        }
-    return transformVector;
-}
-
-glm::vec3 ModelAsset::getScalingVector(const float timeInTicks, const AnimationNode *nodeAnimation) const {
-    glm::vec3 scalingTransformVector;
-    if (nodeAnimation->scales.size() == 1) {
-            scalingTransformVector = nodeAnimation->scales[0];
-        } else {
-            unsigned int ScalingIndex = 0;
-            assert(nodeAnimation->scales.size() > 0);
-            for (unsigned int i = 0; i < nodeAnimation->scales.size(); i++) {
-                if (timeInTicks < nodeAnimation->scaleTimes[i + 1]) {
-                    ScalingIndex = i;
-                    break;
-                }
-            }
-
-
-            unsigned int NextScalingIndex = (ScalingIndex + 1);
-            assert(NextScalingIndex < nodeAnimation->scales.size());
-            float DeltaTime = (nodeAnimation->scaleTimes[NextScalingIndex] -
-                                       nodeAnimation->scaleTimes[ScalingIndex]);
-            float Factor = (timeInTicks - (float) nodeAnimation->scaleTimes[ScalingIndex]) / DeltaTime;
-            assert(Factor >= 0.0f && Factor <= 1.0f);
-            const glm::vec3 &Start = nodeAnimation->scales[ScalingIndex];
-            const glm::vec3 &End = nodeAnimation->scales[NextScalingIndex];
-            glm::vec3 Delta = End - Start;
-            scalingTransformVector = Start + Factor * Delta;
-        }
-    return scalingTransformVector;
-}
-
-glm::quat ModelAsset::getRotationQuat(const float timeInTicks, const AnimationNode *nodeAnimation) const {
-    glm::quat rotationTransformQuaternion;
-    if (nodeAnimation->rotations.size() == 1) {
-        rotationTransformQuaternion = nodeAnimation->rotations[0];
-        } else {
-
-            int rotationIndex = 0;
-
-            assert(nodeAnimation->rotations.size() > 0);
-
-            for (unsigned int i = 0; i < nodeAnimation->rotations.size(); i++) {
-                if (timeInTicks < (float) nodeAnimation->rotationTimes[i + 1]) {
-                    rotationIndex = i;
-                    break;
-                }
-            }
-
-            unsigned int NextRotationIndex = (rotationIndex + 1);
-            assert(NextRotationIndex < nodeAnimation->rotations.size());
-            float DeltaTime = (nodeAnimation->rotationTimes[NextRotationIndex] -
-                                       nodeAnimation->rotationTimes[rotationIndex]);
-            float Factor = (timeInTicks - (float) nodeAnimation->rotationTimes[rotationIndex]) / DeltaTime;
-            assert(Factor >= 0.0f && Factor <= 1.0f);
-            const glm::quat &StartRotationQ = nodeAnimation->rotations[rotationIndex];
-            const glm::quat &EndRotationQ = nodeAnimation->rotations[NextRotationIndex];
-            rotationTransformQuaternion = glm::normalize(glm::slerp(StartRotationQ, EndRotationQ, Factor));
-        }
-    return rotationTransformQuaternion;
-}
-
 bool ModelAsset::isAnimated() const {
     return hasAnimation;
 }
@@ -392,56 +306,10 @@ void ModelAsset::fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnim
         std::string animationName = currentAnimation->mName.C_Str();
         std::cout << "add animation with name " << animationName << std::endl;
 
-        AnimationSet* animationSet = new AnimationSet();
-        animationSet->duration = currentAnimation->mDuration;
-        animationSet->ticksPerSecond = currentAnimation->mTicksPerSecond;
-        //create and attach AnimationNodes
-        for (unsigned int j = 0; j < currentAnimation->mNumChannels; ++j) {
-            AnimationNode* node = new AnimationNode();
-            for (unsigned int k = 0; k < currentAnimation->mChannels[j]->mNumPositionKeys; ++k) {
-                node->translates.push_back(glm::vec3(
-                        currentAnimation->mChannels[j]->mPositionKeys[k].mValue.x,
-                        currentAnimation->mChannels[j]->mPositionKeys[k].mValue.y,
-                        currentAnimation->mChannels[j]->mPositionKeys[k].mValue.z));
-                node->translateTimes.push_back(currentAnimation->mChannels[j]->mPositionKeys[k].mTime);
-            }
-
-            for (unsigned int k = 0; k < currentAnimation->mChannels[j]->mNumScalingKeys; ++k) {
-                node->scales.push_back(glm::vec3(
-                        currentAnimation->mChannels[j]->mScalingKeys[k].mValue.x,
-                        currentAnimation->mChannels[j]->mScalingKeys[k].mValue.y,
-                        currentAnimation->mChannels[j]->mScalingKeys[k].mValue.z));
-                node->scaleTimes.push_back(currentAnimation->mChannels[j]->mScalingKeys[k].mTime);
-            }
-
-            for (unsigned int k = 0; k < currentAnimation->mChannels[j]->mNumRotationKeys; ++k) {
-                node->rotations.push_back(glm::quat(
-                        currentAnimation->mChannels[j]->mRotationKeys[k].mValue.w,
-                        currentAnimation->mChannels[j]->mRotationKeys[k].mValue.x,
-                        currentAnimation->mChannels[j]->mRotationKeys[k].mValue.y,
-                        currentAnimation->mChannels[j]->mRotationKeys[k].mValue.z));
-                node->rotationTimes.push_back(currentAnimation->mChannels[j]->mRotationKeys[k].mTime);
-            }
-            animationSet->nodes[currentAnimation->mChannels[j]->mNodeName.C_Str()] = node;
-        }
-        animations[animationName] = animationSet;
+        Animation* animationObject = new Animation(currentAnimation);
+        animations[animationName] = animationObject;
     }
 
     //validate
 }
 
-
-glm::mat4 ModelAsset::calculateTransform(AnimationNode *animation, float time) const {
-//this method can benefit from move and also reusing the intermediate matrices
-    glm::vec3 scalingTransformVector, transformVector;
-    glm::quat rotationTransformQuaternion;
-
-    scalingTransformVector = getScalingVector(time, animation);
-    rotationTransformQuaternion = getRotationQuat(time, animation);
-    transformVector = getPositionVector(time, animation);
-
-    glm::mat4 rotationMatrix = glm::mat4_cast(rotationTransformQuaternion);
-    glm::mat4 translateMatrix = glm::translate(glm::mat4(1.0f), transformVector);
-    glm::mat4 scaleTransform = glm::scale(glm::mat4(1.0f), scalingTransformVector);
-    return translateMatrix * rotationMatrix * scaleTransform;
-}
