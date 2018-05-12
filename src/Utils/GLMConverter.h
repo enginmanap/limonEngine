@@ -2,8 +2,8 @@
 // Created by Engin Manap on 8.03.2016.
 //
 
-#ifndef LIMONENGINE_BULLETGLMCONVERTER_H
-#define LIMONENGINE_BULLETGLMCONVERTER_H
+#ifndef LIMONENGINE_GLMCONVERTER_H
+#define LIMONENGINE_GLMCONVERTER_H
 
 #include <btBulletDynamicsCommon.h>
 #include "../glm/gtx/quaternion.hpp" //TODO check why is this include required?
@@ -68,4 +68,4 @@ public:
 };
 
 
-#endif //LIMONENGINE_BULLETGLMCONVERTER_H
+#endif //LIMONENGINE_GLMCONVERTER_H
