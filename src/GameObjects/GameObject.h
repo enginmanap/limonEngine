@@ -12,19 +12,10 @@
  */
 class GameObject {
 public:
-    enum EditorModes {ROTATE_MODE, TRANSLATE_MODE, SCALE_MODE};
-
     /**
      * Since the world is not passed with ImGui request, changes to world must be returned using this struct
      */
     struct ImGuiResult {
-        /**** GIZMO information *****/
-        bool isGizmoRequired = false;
-        bool useSnap = false;
-        float snap[3] = {1.0f, 1.0f, 1.0f};
-        EditorModes mode = TRANSLATE_MODE; //translate is best, because it allows direct use for Light
-        /**** GIZMO information *****/
-
         bool addAI = false;
         bool removeAI = false;
     };
@@ -33,7 +24,7 @@ public:
 
     virtual ObjectTypes getTypeID() const = 0;
     virtual std::string getName() const = 0;
-    virtual ImGuiResult addImGuiEditorElements() {ImGuiResult imGuiResult; return imGuiResult;};
+    virtual ImGuiResult addImGuiEditorElements(const glm::mat4 &cameraMatrix __attribute__((unused)), const glm::mat4 &perspectiveMatrix __attribute__((unused))) {ImGuiResult imGuiResult; return imGuiResult;};
 
     virtual uint32_t getWorldObjectID() = 0;
     virtual ~GameObject() {};

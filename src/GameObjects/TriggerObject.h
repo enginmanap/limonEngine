@@ -74,7 +74,7 @@ public:
         return "TRIGGER-" + std::to_string(objectID);
     };
 
-    ImGuiResult addImGuiEditorElements() ;
+    GameObject::ImGuiResult addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix);
     /************Game Object methods **************/
 
 };

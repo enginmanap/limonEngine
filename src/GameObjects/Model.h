@@ -90,7 +90,7 @@ public:
         return name + "_" + std::to_string(objectID);
     };
 
-    ImGuiResult addImGuiEditorElements() ;
+    ImGuiResult addImGuiEditorElements(const glm::mat4& cameraMatrix, const glm::mat4& perspectiveMatrix) ;
     /************Game Object methods **************/
 
     void attachAI(Actor *AIActor) {

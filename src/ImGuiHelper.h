@@ -19,7 +19,6 @@ typedef union SDL_Event SDL_Event;
 
 class ImGuiHelper {
 private:
-
     GLHelper* glHelper = nullptr;
     GLSLProgram* program = nullptr;
     Options* options;
