@@ -7,9 +7,19 @@
 
 
 #include <functional>
+#include <glm/glm.hpp>
+
 
 class Transformation {
-private:
+    /* EDITOR INFORMATION PART */
+    enum EditorModes {ROTATE_MODE, TRANSLATE_MODE, SCALE_MODE};
+    struct ImGuizmoState {
+        bool useSnap = false;
+        float snap[3] = {1.0f, 1.0f, 1.0f};
+        EditorModes mode = TRANSLATE_MODE;
+    };
+    /* EDITOR INFORMATION PART */
+
     glm::mat4 worldTransform, oldWorldTransform;
     glm::vec3 translate;
     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -130,6 +140,12 @@ public:
         }
         return worldTransform;
     }
+
+    bool addImGuiEditorElements(const glm::mat4& cameraMatrix, const glm::mat4& perspectiveMatrix);
+
+    void addImGuizmoElements(const ImGuizmoState& editorState, const glm::mat4& cameraMatrix, const glm::mat4& perspectiveMatrix);
+
+
 };
 
 

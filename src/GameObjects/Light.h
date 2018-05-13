@@ -10,6 +10,7 @@
 #include "GameObject.h"
 #include "../GLHelper.h"
 #include "../../libs/ImGui/imgui.h"
+#include "../../libs/ImGuizmo/ImGuizmo.h"
 
 class Light : public GameObject {
 public:
@@ -100,7 +101,7 @@ public:
         return goName;
     };
 
-    ImGuiResult addImGuiEditorElements() {
+    ImGuiResult addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix) {
         static ImGuiResult request;
 
         bool updated = false;
@@ -125,10 +126,31 @@ public:
         if(crudeUpdated) {
             preciseTranslatePoint = this->position;
         }
-        request.isGizmoRequired = true;
+
+        /* IMGUIZMO PART */
+
+        static bool useSnap; //these are static because we want to keep the values
+        static float snap[3] = {1.0f, 1.0f, 1.0f};
+        ImGui::NewLine();
+        ImGui::Checkbox("", &(useSnap));
+        ImGui::SameLine();
+        ImGui::InputFloat3("Snap", &(snap[0]));
+
+        glm::mat4 objectMatrix = glm::translate(glm::mat4(1.0f), position);
+        ImGuizmo::BeginFrame();
+        static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
+
+        ImGuiIO& io = ImGui::GetIO();
+        ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+        ImGuizmo::Manipulate(glm::value_ptr(cameraMatrix), glm::value_ptr(perspectiveMatrix), ImGuizmo::TRANSLATE, mCurrentGizmoMode, glm::value_ptr(objectMatrix), NULL, useSnap ? &(snap[0]) : NULL);
+
+        //now we should have object matrix updated, update the object
+        this->setPosition(glm::vec3(objectMatrix[3][0], objectMatrix[3][1], objectMatrix[3][2]));
+
         return request;
     }
     /************Game Object methods **************/
+
 };
 
 
