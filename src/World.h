@@ -15,6 +15,7 @@
 #include "FontManager.h"
 #include "AI/Actor.h"
 #include "GameObjects/SkyBox.h"
+#include "GamePlay/Animation.h"
 
 class btGhostPairCallback;
 class Camera;
@@ -38,6 +39,18 @@ class AssetManager;
 class TriggerObject;
 
 class World {
+
+    struct AnimationStatus {
+        Model* model = nullptr;
+        Animation *animation;
+        bool loop;
+        long startTime;
+        Transformation originalTransformation;
+        bool wasKinematic;
+
+        Animation::AnimationForNode* animationNode;
+    };
+
     friend class WorldLoader;
     friend class WorldSaver; //Those classes require direct access to some of the internal data
 
@@ -47,6 +60,8 @@ class World {
     uint32_t totalObjectCount = 1;
     std::map<uint32_t, PhysicalRenderable *> objects;
     std::map<uint32_t, TriggerObject*> triggers;
+    std::list<AnimationStatus> activeAnimations;
+    AnimationStatus* animationInProgress = nullptr;
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
     std::unordered_map<uint32_t, Actor*> actors;
@@ -115,7 +130,6 @@ class World {
     void switchToDebugMode(InputHandler &inputHandler);
 
     void ImGuiFrameSetup();
-    void ImGuizmoFrameSetup(const GameObject::ImGuiResult& request);
 
 public:
     ~World();
@@ -127,6 +141,8 @@ public:
     uint32_t getNextObjectID() {
         return totalObjectCount++;
     }
+
+    void addAnimationToObject(Model *model, Animation *animation, bool looped);
 };
 
 #endif //LIMONENGINE_WORLD_H

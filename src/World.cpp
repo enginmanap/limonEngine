@@ -25,6 +25,7 @@
 #include "WorldSaver.h"
 #include "../libs/ImGuizmo/ImGuizmo.h"
 #include "GameObjects/TriggerObject.h"
+#include "GamePlay/Animation.h"
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
@@ -140,6 +141,44 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
         dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
         currentPlayer->processPhysicsWorld(dynamicsWorld);
 
+        for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
+            trigger->second->checkAndTrigger();
+        }
+
+        for(auto anim = activeAnimations.begin(); anim != activeAnimations.end(); anim++) {
+
+            if((anim->loop ) || anim->animation->getDuration() + anim->startTime > gameTime) {
+
+                float ticksPerSecond;
+                if (anim->animation->getTicksPerSecond() != 0) {
+                    ticksPerSecond = anim->animation->getTicksPerSecond();
+                } else {
+                    ticksPerSecond = 60.0f;
+                }
+                float animationTime = fmod((gameTime / 1000.0f) * ticksPerSecond, anim->animation->getDuration());
+
+                bool isFound;
+                glm::mat4 tf = anim->animation->calculateTransform("root", animationTime, isFound);
+
+                glm::vec3 translate, scale;
+                glm::quat orientation;
+                glm::vec3 skew;
+                glm::vec4 perspective;
+                glm::decompose(tf, scale, orientation, translate, skew, perspective);
+                //FIXME this is not an acceptable animating technique, I need a transform stack, but not implemented it yet.
+                (*anim->model->getTransformation()) = anim->originalTransformation;
+                anim->model->getTransformation()->addOrientation(orientation);
+                anim->model->getTransformation()->addScale(scale);
+                anim->model->getTransformation()->addTranslate(translate);
+            } else {
+                if(!anim->wasKinematic) {
+                    anim->model->getRigidBody()->setCollisionFlags(anim->model->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
+                }
+                anim = activeAnimations.erase(anim);
+
+            }
+        }
+
         for (auto actorIt = actors.begin(); actorIt != actors.end(); ++actorIt) {
             ActorInformation information = fillActorInformation(actorIt->second);
             actorIt->second->play(gameTime, information, options);
@@ -165,9 +204,7 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
         guiLayers[i]->setupForTime(gameTime);
     }
 
-    for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
-        trigger->second->checkAndTrigger();
-    }
+
 
     //end of physics step
 
@@ -605,10 +642,68 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 ImGui::EndCombo();
             }
             if(pickedObject != nullptr) {
-                GameObject::ImGuiResult request = pickedObject->addImGuiEditorElements();
-                if (request.isGizmoRequired) {
-                    ImGuizmoFrameSetup(request);
+                GameObject::ImGuiResult request = pickedObject->addImGuiEditorElements(camera->getCameraMatrix(), glHelper->getProjectionMatrix());
+                if(pickedObject->getTypeID() == GameObject::MODEL) {
+                    //If there is no animation setup ongoing, or there is one, but not for this model,
+                    //put start animation button.
+                    //else put time input, add and finalize buttons.
+                    if(animationInProgress == nullptr || animationInProgress->model != dynamic_cast<Model*>(pickedObject)) {
+                        if (ImGui::Button("Start animation definition")) {
+                            if (animationInProgress == nullptr) {
+                                animationInProgress = new AnimationStatus();
+                            } else {
+                                //ask for removal of the old work
+                                delete animationInProgress->animationNode;
+                                delete animationInProgress;
+                                animationInProgress = new AnimationStatus();
+                            }
+                            animationInProgress->model = dynamic_cast<Model*>(pickedObject);
+                            // At this point we should know the animationInProgress is for current object
+                            animationInProgress->originalTransformation = *dynamic_cast<Model *>(pickedObject)->getTransformation();
+                            animationInProgress->animationNode = new Animation::AnimationForNode();
+                            /* The animation should start with the current position, so save empty transforms */
+                            animationInProgress->animationNode->translates.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+                            animationInProgress->animationNode->translateTimes.push_back(0);
+                            animationInProgress->animationNode->scales.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
+                            animationInProgress->animationNode->scaleTimes.push_back(0);
+                            animationInProgress->animationNode->rotations.push_back(glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
+                            animationInProgress->animationNode->rotationTimes.push_back(0.0f);
+                        }
+                    } else {
+                        //this means the original transform is saved, with others(possibly) stacked on top.
+                        static int time = 60;
+                        ImGui::InputInt("Time of position:", &time);
+                        if(ImGui::Button("Add Animation key frame")) {
+                            glm::vec3 translate, scale;
+                            glm::quat rotation;
+                            animationInProgress->originalTransformation.getDifference(*dynamic_cast<Model *>(pickedObject)->getTransformation(), translate, scale, rotation);
+                            //now we have the difference, check if it is same as the last one, if it is, don't add.
+                            if(translate != *animationInProgress->animationNode->translates.rbegin()) {
+                                animationInProgress->animationNode->translates.push_back(translate);
+                                animationInProgress->animationNode->translateTimes.push_back(time);
+                            }
+                            if(scale != *animationInProgress->animationNode->scales.rbegin()) {
+                                animationInProgress->animationNode->scales.push_back(scale);
+                                animationInProgress->animationNode->scaleTimes.push_back(time);
+                            }
+                            if(rotation != *animationInProgress->animationNode->rotations.rbegin()) {
+                                animationInProgress->animationNode->rotations.push_back(rotation);
+                                animationInProgress->animationNode->rotationTimes.push_back(time);
+                            }
+                        }
+                        if(ImGui::Button("Finish Animation")) {
+                            animationInProgress->animation = new Animation("root", animationInProgress->animationNode, time);
+
+                            (*dynamic_cast<Model *>(pickedObject)->getTransformation()) = animationInProgress->originalTransformation;
+                            //Calling addAnimation here is odd, but I am planning to add animations using an external API call in next revisions.
+                            addAnimationToObject(dynamic_cast<Model *>(pickedObject), animationInProgress->animation, true);
+                            delete animationInProgress;
+                            animationInProgress = nullptr;
+                            //TODO, who deletes what is not clear, I should use smart pointers.
+                        }
+                    }
                 }
+
                 if (request.removeAI) {
                     //remove AI requested
                     if (dynamic_cast<Model *>(pickedObject)->getAIID() != 0) {
@@ -643,7 +738,6 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
             }
 
-
             ImGui::End();
             ImGui::NewLine();
             if(ImGui::Button("Save Map")) {
@@ -661,132 +755,9 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
     }
 }
 
-void World::ImGuizmoFrameSetup(const GameObject::ImGuiResult& request) {
-
-    ImGuizmo::OPERATION mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
-
-    switch (request.mode) {
-        case GameObject::TRANSLATE_MODE:
-            mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
-            break;
-        case GameObject::ROTATE_MODE:
-            mCurrentGizmoOperation = ImGuizmo::ROTATE;
-            break;
-        case GameObject::SCALE_MODE:
-            mCurrentGizmoOperation = ImGuizmo::SCALE;
-            break;
-    }
-    glm::mat4 cameraMatrix = camera->getCameraMatrix();
-    glm::mat4 perspectiveMatrix = glHelper->getProjectionMatrix();
-    glm::mat4 objectMatrix;
-    ImGuizmo::BeginFrame();
-    glm::vec3 eulerRotation;
-    switch (pickedObject->getTypeID()) {
-        case GameObject::ObjectTypes::MODEL: {
-            eulerRotation = glm::eulerAngles(dynamic_cast<Model *>(pickedObject)->getTransformation()->getOrientation());
-            eulerRotation = eulerRotation * 57.2957795f;
-            ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(dynamic_cast<Model *>(pickedObject)->getTransformation()->getTranslate()),
-                                                    glm::value_ptr(eulerRotation),
-                                                    glm::value_ptr(dynamic_cast<Model *>(pickedObject)->getTransformation()->getScale()),
-                                                    glm::value_ptr(objectMatrix));
-            break;
-        }
-        case GameObject::ObjectTypes::LIGHT: {
-            ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(dynamic_cast<Light *>(pickedObject)->getPosition()),
-                                                    glm::value_ptr(glm::vec3(0.0f)),
-                                                    glm::value_ptr(glm::vec3(1.0f)),
-                                                    glm::value_ptr(objectMatrix));
-            break;
-        }
-        case GameObject::ObjectTypes::TRIGGER: {
-            eulerRotation = glm::eulerAngles(dynamic_cast<TriggerObject *>(pickedObject)->getTransformation()->getOrientation());
-            eulerRotation = eulerRotation * 57.2957795f;
-            ImGuizmo::RecomposeMatrixFromComponents(glm::value_ptr(dynamic_cast<TriggerObject *>(pickedObject)->getTransformation()->getTranslate()),
-                                                    glm::value_ptr(eulerRotation),
-                                                    glm::value_ptr(dynamic_cast<TriggerObject *>(pickedObject)->getTransformation()->getScale()),
-                                                    glm::value_ptr(objectMatrix));
-            break;
-        }
-        default:
-            return;//we can't work without a way to define transform matrix
-    }
-
-
-    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
-
-    ImGuiIO& io = ImGui::GetIO();
-    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-    float tempSnap[3] = {request.snap[0], request.snap[1], request.snap[2] };
-    ImGuizmo::Manipulate(glm::value_ptr(cameraMatrix), glm::value_ptr(perspectiveMatrix), mCurrentGizmoOperation, mCurrentGizmoMode, glm::value_ptr(objectMatrix), NULL, request.useSnap ? &(tempSnap[0]) : NULL);
-
-    //now we should have object matrix updated, update the object
-
-    glm::vec3 scale, translate;
-    glm::quat rotation;
-    ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(objectMatrix), glm::value_ptr(translate), glm::value_ptr(eulerRotation), glm::value_ptr(scale));
-    rotation = glm::quat(eulerRotation / 57.2957795f);
-    switch (mCurrentGizmoOperation) {
-        case ImGuizmo::TRANSLATE:
-            switch (pickedObject->getTypeID()) {
-                case GameObject::ObjectTypes::MODEL: {
-                    dynamic_cast<Model *>(pickedObject)->getTransformation()->setTranslate(translate);
-                    break;
-                }
-                case GameObject::ObjectTypes::LIGHT: {
-                    dynamic_cast<Light *>(pickedObject)->setPosition(translate);
-                    break;
-                }
-
-                case GameObject::ObjectTypes::TRIGGER: {
-                    dynamic_cast<TriggerObject *>(pickedObject)->getTransformation()->setTranslate(translate);
-                    break;
-                }
-
-                default: {
-                    std::cerr << "Translated unexpected object. Report to developer." << std::endl;
-                    exit(-1);
-                }
-            }
-            break;
-        case ImGuizmo::ROTATE:
-            switch (pickedObject->getTypeID()) {
-                case GameObject::ObjectTypes::MODEL: {
-                    dynamic_cast<Model *>(pickedObject)->getTransformation()->setOrientation(rotation);
-                    break;
-                }
-                case GameObject::ObjectTypes::TRIGGER: {
-                    dynamic_cast<TriggerObject *>(pickedObject)->getTransformation()->setOrientation(rotation);
-                    break;
-                }
-                default: {
-                    std::cerr << "ROTATED unexpected object. Report to developer." << std::endl;
-                    exit(-1);
-                }
-            }
-
-            break;
-        case ImGuizmo::SCALE:
-            switch (pickedObject->getTypeID()) {
-                case GameObject::ObjectTypes::MODEL: {
-                    dynamic_cast<Model *>(pickedObject)->getTransformation()->setScale(scale);
-                    break;
-                }
-                case GameObject::ObjectTypes::TRIGGER: {
-                    dynamic_cast<TriggerObject *>(pickedObject)->getTransformation()->setScale(scale);
-                    break;
-                }
-                default: {
-                    std::cerr << "SCALED unexpected object. Report to developer." << std::endl;
-                    exit(-1);
-                }
-            }
-            break;
-    }
-}
-
 World::~World() {
     delete dynamicsWorld;
-
+    delete animationInProgress;
     //FIXME clear GUIlayer elements
     for (auto it = objects.begin(); it != objects.end(); ++it) {
         delete (*it).second;
@@ -795,7 +766,7 @@ World::~World() {
     for (auto it = triggers.begin(); it != triggers.end(); ++it) {
         delete (*it).second;
     }
-    
+
     delete sky;
 
     for (std::vector<Light *>::iterator it = lights.begin(); it != lights.end(); ++it) {
@@ -856,4 +827,20 @@ void World::setSky(SkyBox *skyBox) {
 void World::addLight(Light *light) {
     glHelper->setLight(*(light), lights.size());//since size start from 0, this should be before adding it to vector
     this->lights.push_back(light);
+}
+
+void World::addAnimationToObject(Model *model, Animation *animation, bool looped) {
+    AnimationStatus as;
+    as.model = model;
+    as.originalTransformation = (*model->getTransformation());
+    as.animation = animation;
+    as.loop = looped;
+    as.wasKinematic = model->getRigidBody()->getCollisionFlags() & btCollisionObject::CF_KINEMATIC_OBJECT;
+    as.startTime = gameTime;
+    activeAnimations.push_back(as);
+    //FIXME this flag should be removed once the animation is done
+    model->getRigidBody()->setCollisionFlags(model->getRigidBody()->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+
+
+
 }

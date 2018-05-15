@@ -6,7 +6,13 @@
 #define LIMONENGINE_ANIMATION_H
 
 
+#include <assimp/anim.h>
+#include <glm/glm.hpp>
+#include <vector>
+#include <unordered_map>
+
 class Animation {
+public:
     struct AnimationForNode {
         std::vector<glm::vec3> translates;
         std::vector<float>translateTimes;
@@ -15,7 +21,7 @@ class Animation {
         std::vector<glm::quat> rotations;
         std::vector<float>rotationTimes;
     };
-
+private:
     float ticksPerSecond;
     float duration;
     //This map keeps the animations for node(bone)
@@ -29,6 +35,10 @@ class Animation {
 
 public:
     Animation(aiAnimation *assimpAnimation);
+    //For single Node animation creation
+    Animation(std::string nodeName, AnimationForNode *animationNode, int duration) : ticksPerSecond(60), duration(duration) {
+        this->nodes[nodeName] = animationNode;
+    }
 
     glm::mat4 calculateTransform(const std::string& nodeName, float time, bool &isFound) const;
 

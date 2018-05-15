@@ -2,6 +2,8 @@
 // Created by engin on 12.05.2018.
 //
 
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include "Animation.h"
 
 
@@ -91,7 +93,8 @@ glm::quat Animation::getRotationQuat(const float timeInTicks, const AnimationFor
     return rotationTransformQuaternion;
 }
 
-//FIXME there must be a better way then is found
+//FIXME there must be a better way then is found.
+//FIXME requiring node name should not be a thing
 glm::mat4 Animation::calculateTransform(const std::string& nodeName, float time, bool &isFound) const {
     if (nodes.find(nodeName) == nodes.end()) {//if the bone has no animation, it can happen
         isFound = false;

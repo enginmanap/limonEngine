@@ -20,13 +20,24 @@ class Transformation {
     };
     /* EDITOR INFORMATION PART */
 
-    glm::mat4 worldTransform, oldWorldTransform;
+    glm::mat4 worldTransform;//private
+
+    void setWorldTransform(const glm::mat4& transform){
+        this->worldTransform = transform;
+        isDirty = false;
+    }
+
+    void propagateUpdate(){
+        if(this->updateCallback) {
+            updateCallback();
+        }
+    }
+protected:
     glm::vec3 translate;
     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
-    glm::quat orientation;
+    glm::quat orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
     bool isDirty = true;
     bool rotated = false;
-    glm::mat4 offset;
 
     glm::mat4 generateWorldTransformDefault(){
         return glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation) *
@@ -34,19 +45,7 @@ class Transformation {
     }
 
     std::function<glm::mat4()> generateWorldTransform;
-    std::function<void()> updateCallback = nullptr;
-
-    void setWorldTransform(const glm::mat4& transform){
-        this->oldWorldTransform = this->worldTransform;
-        this->worldTransform = transform;
-        isDirty = false;
-    }
-
-    void propagateUpdate(){
-        if(this->updateCallback != nullptr) {
-            updateCallback();
-        }
-    }
+    std::function<void()> updateCallback;
 public:
 
     Transformation() {
@@ -146,6 +145,7 @@ public:
     void addImGuizmoElements(const ImGuizmoState& editorState, const glm::mat4& cameraMatrix, const glm::mat4& perspectiveMatrix);
 
 
+    void getDifference(const Transformation& otherTransformation, glm::vec3 &translate, glm::vec3 &scale, glm::quat &rotation) const;
 };
 
 
