@@ -155,3 +155,11 @@ void Transformation::addImGuizmoElements(const ImGuizmoState& editorState, const
             break;
     }
 }
+
+void Transformation::getDifference(const Transformation& otherTransformation, glm::vec3 &translateOut, glm::vec3 &scaleOut, glm::quat &rotationOut) const {
+    translateOut = otherTransformation.translate - this->translate;
+    scaleOut = otherTransformation.scale / this->scale;
+    rotationOut = otherTransformation.orientation;
+    rotationOut = glm::inverse(rotationOut);
+    rotationOut = rotationOut * this->orientation;
+}
