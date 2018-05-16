@@ -677,19 +677,12 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                             glm::vec3 translate, scale;
                             glm::quat rotation;
                             animationInProgress->originalTransformation.getDifference(*dynamic_cast<Model *>(pickedObject)->getTransformation(), translate, scale, rotation);
-                            //now we have the difference, check if it is same as the last one, if it is, don't add.
-                            if(translate != *animationInProgress->animationNode->translates.rbegin()) {
-                                animationInProgress->animationNode->translates.push_back(translate);
-                                animationInProgress->animationNode->translateTimes.push_back(time);
-                            }
-                            if(scale != *animationInProgress->animationNode->scales.rbegin()) {
-                                animationInProgress->animationNode->scales.push_back(scale);
-                                animationInProgress->animationNode->scaleTimes.push_back(time);
-                            }
-                            if(rotation != *animationInProgress->animationNode->rotations.rbegin()) {
-                                animationInProgress->animationNode->rotations.push_back(rotation);
-                                animationInProgress->animationNode->rotationTimes.push_back(time);
-                            }
+                            animationInProgress->animationNode->translates.push_back(translate);
+                            animationInProgress->animationNode->translateTimes.push_back(time);
+                            animationInProgress->animationNode->scales.push_back(scale);
+                            animationInProgress->animationNode->scaleTimes.push_back(time);
+                            animationInProgress->animationNode->rotations.push_back(rotation);
+                            animationInProgress->animationNode->rotationTimes.push_back(time);
                         }
                         if(ImGui::Button("Finish Animation")) {
                             animationInProgress->animation = new Animation("root", animationInProgress->animationNode, time);
