@@ -741,6 +741,14 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             ImGui::End();
             ImGui::NewLine();
             if(ImGui::Button("Save Map")) {
+                for(size_t i = 0; i < activeAnimations.size(); i++) {
+                    if(activeAnimations.at(i).animation->serializeAnimation("./Data/Animations/")) {
+                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation saved");
+                    } else {
+                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation save failed");
+                    }
+
+                }
                 if(WorldSaver::saveWorld("./Data/Maps/CustomWorld001.xml", this)) {
                     options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
                 } else {
