@@ -96,7 +96,7 @@ glm::quat Animation::getRotationQuat(const float timeInTicks, const AnimationFor
 
 //FIXME there must be a better way then is found.
 //FIXME requiring node name should not be a thing
-glm::mat4 Animation::calculateTransform(const std::string& nodeName, float time, bool &isFound) const {
+glm::mat4 Animation::calculateTransform(const std::string &nodeName, float time, bool &isFound) const {
     if (nodes.find(nodeName) == nodes.end()) {//if the bone has no animation, it can happen
         isFound = false;
         return glm::mat4(1.0f);
@@ -122,7 +122,7 @@ Animation::Animation(aiAnimation *assimpAnimation) : customCreation(false) {
     ticksPerSecond = assimpAnimation->mTicksPerSecond;
     //create and attach AnimationNodes
     for (unsigned int j = 0; j < assimpAnimation->mNumChannels; ++j) {
-        AnimationForNode* node = new AnimationForNode();
+        AnimationForNode *node = new AnimationForNode();
         for (unsigned int k = 0; k < assimpAnimation->mChannels[j]->mNumPositionKeys; ++k) {
             node->translates.push_back(glm::vec3(
                     assimpAnimation->mChannels[j]->mPositionKeys[k].mValue.x,
@@ -159,18 +159,18 @@ Animation::Animation(aiAnimation *assimpAnimation) : customCreation(false) {
  * @return true if saved successfully, or not needs saving. False if fails to save
  */
 bool Animation::serializeAnimation(const std::string &path) const {
-        if(!this->customCreation) {
-            return true; //don't try to serialize assimp animations, only custom ones
-        }
+    if (!this->customCreation) {
+        return true; //don't try to serialize assimp animations, only custom ones
+    }
     tinyxml2::XMLDocument animationDocument;
-    tinyxml2::XMLNode * rootNode = animationDocument.NewElement("Animation");
+    tinyxml2::XMLNode *rootNode = animationDocument.NewElement("Animation");
     animationDocument.InsertFirstChild(rootNode);
-    tinyxml2::XMLElement * currentElement = animationDocument.NewElement("Name");
+    tinyxml2::XMLElement *currentElement = animationDocument.NewElement("Name");
     currentElement->SetText(this->nodes.begin()->first.c_str());
     rootNode->InsertEndChild(currentElement);
     //after current element is inserted, we can reuse
     currentElement = animationDocument.NewElement("Nodes");
-    for(auto nodeIt = nodes.begin(); nodeIt != nodes.end(); nodeIt++) {
+    for (auto nodeIt = nodes.begin(); nodeIt != nodes.end(); nodeIt++) {
         //save node
         nodeIt->second->fillNode(animationDocument, currentElement, nodeIt->first);
     }
@@ -185,7 +185,7 @@ bool Animation::serializeAnimation(const std::string &path) const {
     rootNode->InsertEndChild(currentElement);//add ticks per second
 
     tinyxml2::XMLError eResult = animationDocument.SaveFile((path + this->nodes.begin()->first + ".xml").c_str());
-    if(eResult != tinyxml2::XML_SUCCESS) {
+    if (eResult != tinyxml2::XML_SUCCESS) {
         std::cout << "ERROR " << eResult << std::endl;
         return false;
     }
@@ -208,13 +208,14 @@ void Animation::AnimationForNode::fillNode(tinyxml2::XMLDocument &document, tiny
     fillRotationAndTimes(document, nodeElement);
 }
 
-void Animation::AnimationForNode::fillTranslateAndTimes(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *nodeElement) const {
+void Animation::AnimationForNode::fillTranslateAndTimes(tinyxml2::XMLDocument &document,
+                                                        tinyxml2::XMLElement *nodeElement) const {
     tinyxml2::XMLElement *currentElement;//used for multiple elements
 
     tinyxml2::XMLElement *translatesNode = document.NewElement("Translates");
-    for(size_t i = 0; i < translates.size(); i++) {
+    for (size_t i = 0; i < translates.size(); i++) {
         tinyxml2::XMLElement *translateNode = document.NewElement("Translate");
-        currentElement = document.NewElement("index");
+        currentElement = document.NewElement("Index");
         currentElement->SetText(std::to_string(i).c_str());
         translateNode->InsertEndChild(currentElement);
 
@@ -234,13 +235,13 @@ void Animation::AnimationForNode::fillTranslateAndTimes(tinyxml2::XMLDocument &d
     nodeElement->InsertEndChild(translatesNode);
 
     tinyxml2::XMLElement *translateTimesNode = document.NewElement("TranslateTimes");
-    for(size_t i = 0; i < translateTimes.size(); i++) {
+    for (size_t i = 0; i < translateTimes.size(); i++) {
         tinyxml2::XMLElement *translateTimeNode = document.NewElement("Time");
-        currentElement = document.NewElement("index");
+        currentElement = document.NewElement("Index");
         currentElement->SetText(std::to_string(i).c_str());
         translateTimeNode->InsertEndChild(currentElement);
 
-        currentElement = document.NewElement("value");
+        currentElement = document.NewElement("Value");
         currentElement->SetText(std::to_string(translateTimes[i]).c_str());
         translateTimeNode->InsertEndChild(currentElement);
 
@@ -249,13 +250,14 @@ void Animation::AnimationForNode::fillTranslateAndTimes(tinyxml2::XMLDocument &d
     nodeElement->InsertEndChild(translateTimesNode);
 }
 
-void Animation::AnimationForNode::fillScaleAndTimes(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *nodeElement) const {
+void Animation::AnimationForNode::fillScaleAndTimes(tinyxml2::XMLDocument &document,
+                                                    tinyxml2::XMLElement *nodeElement) const {
     tinyxml2::XMLElement *currentElement;//used for multiple elements
 
     tinyxml2::XMLElement *scalesNode = document.NewElement("Scales");
-    for(size_t i = 0; i < scales.size(); i++) {
+    for (size_t i = 0; i < scales.size(); i++) {
         tinyxml2::XMLElement *scaleNode = document.NewElement("Scale");
-        currentElement = document.NewElement("index");
+        currentElement = document.NewElement("Index");
         currentElement->SetText(std::to_string(i).c_str());
         scaleNode->InsertEndChild(currentElement);
 
@@ -275,13 +277,13 @@ void Animation::AnimationForNode::fillScaleAndTimes(tinyxml2::XMLDocument &docum
     nodeElement->InsertEndChild(scalesNode);
 
     tinyxml2::XMLElement *scaleTimesNode = document.NewElement("ScaleTimes");
-    for(size_t i = 0; i < scaleTimes.size(); i++) {
+    for (size_t i = 0; i < scaleTimes.size(); i++) {
         tinyxml2::XMLElement *scaleTimeNode = document.NewElement("Time");
-        currentElement = document.NewElement("index");
+        currentElement = document.NewElement("Index");
         currentElement->SetText(std::to_string(i).c_str());
         scaleTimeNode->InsertEndChild(currentElement);
 
-        currentElement = document.NewElement("value");
+        currentElement = document.NewElement("Value");
         currentElement->SetText(std::to_string(scaleTimes[i]).c_str());
         scaleTimeNode->InsertEndChild(currentElement);
 
@@ -290,13 +292,14 @@ void Animation::AnimationForNode::fillScaleAndTimes(tinyxml2::XMLDocument &docum
     nodeElement->InsertEndChild(scaleTimesNode);
 }
 
-void Animation::AnimationForNode::fillRotationAndTimes(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *nodeElement) const {
+void Animation::AnimationForNode::fillRotationAndTimes(tinyxml2::XMLDocument &document,
+                                                       tinyxml2::XMLElement *nodeElement) const {
     tinyxml2::XMLElement *currentElement;//used for multiple elements
 
     tinyxml2::XMLElement *rotationsNode = document.NewElement("Rotations");
-    for(size_t i = 0; i < rotations.size(); i++) {
+    for (size_t i = 0; i < rotations.size(); i++) {
         tinyxml2::XMLElement *rotationNode = document.NewElement("Rotation");
-        currentElement = document.NewElement("index");
+        currentElement = document.NewElement("Index");
         currentElement->SetText(std::to_string(i).c_str());
         rotationNode->InsertEndChild(currentElement);
 
@@ -321,13 +324,13 @@ void Animation::AnimationForNode::fillRotationAndTimes(tinyxml2::XMLDocument &do
     nodeElement->InsertEndChild(rotationsNode);
 
     tinyxml2::XMLElement *rotationTimesNode = document.NewElement("RotationTimes");
-    for(size_t i = 0; i < rotationTimes.size(); i++) {
+    for (size_t i = 0; i < rotationTimes.size(); i++) {
         tinyxml2::XMLElement *rotationTimeNode = document.NewElement("Time");
-        currentElement = document.NewElement("index");
+        currentElement = document.NewElement("Index");
         currentElement->SetText(std::to_string(i).c_str());
         rotationTimeNode->InsertEndChild(currentElement);
 
-        currentElement = document.NewElement("value");
+        currentElement = document.NewElement("Value");
         currentElement->SetText(std::to_string(rotationTimes[i]).c_str());
         rotationTimeNode->InsertEndChild(currentElement);
 
