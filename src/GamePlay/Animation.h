@@ -12,7 +12,9 @@
 #include <unordered_map>
 #include <tinyxml2.h>
 
+
 class Animation {
+    friend class AnimationLoader;
 public:
     struct AnimationForNode {
         std::vector<glm::vec3> translates;
@@ -45,6 +47,9 @@ private:
     glm::vec3 getScalingVector(const float timeInTicks, const AnimationForNode *nodeAnimation) const;
 
     glm::vec3 getPositionVector(const float timeInTicks, const AnimationForNode *nodeAnimation) const;
+
+    /*this private constructor is meant for deserialize only*/
+    Animation() = default;
 
 public:
     Animation(aiAnimation *assimpAnimation);
