@@ -26,6 +26,8 @@
 #include "../libs/ImGuizmo/ImGuizmo.h"
 #include "GameObjects/TriggerObject.h"
 #include "GamePlay/AnimationAssimp.h"
+#include "GamePlay/AnimationLoader.h"
+#include "GamePlay/AnimationNode.h"
 #include "GamePlay/AnimationCustom.h"
 
 
@@ -645,11 +647,19 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             if(pickedObject != nullptr) {
                 GameObject::ImGuiResult request = pickedObject->addImGuiEditorElements(camera->getCameraMatrix(), glHelper->getProjectionMatrix());
                 if(pickedObject->getTypeID() == GameObject::MODEL) {
+                    static char animationNameBuffer[32];
+                    ImGui::Columns(2, "AnimationColumns", false);  // 2-ways, no border for animation name
+
+                    ImGui::Text("Custom animation name:");
+                    //double # because I don't want to show it
+                    ImGui::InputText("##customAnimationName", animationNameBuffer, sizeof(animationNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
+                    ImGui::NextColumn();
+
                     //If there is no animation setup ongoing, or there is one, but not for this model,
                     //put start animation button.
                     //else put time input, add and finalize buttons.
                     if(animationInProgress == nullptr || animationInProgress->model != dynamic_cast<Model*>(pickedObject)) {
-                        if (ImGui::Button("Start animation definition")) {
+                        if (ImGui::Button("Start definition")) {
                             if (animationInProgress == nullptr) {
                                 animationInProgress = new AnimationStatus();
                             } else {
@@ -670,7 +680,27 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                             animationInProgress->animationNode->rotations.push_back(glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
                             animationInProgress->animationNode->rotationTimes.push_back(0.0f);
                         }
+
+                        if(ImGui::Button("load animation")) {
+
+                            AnimationCustom* animation = AnimationLoader::loadAnimation("./Data/Animations/"+ std::string(animationNameBuffer) +".xml");
+                            if(animation == nullptr) {
+                                options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation load failed");
+                            } else {
+                                options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation loaded");
+
+                                animationInProgress = new AnimationStatus();
+                                animationInProgress->animation = animation;
+                                animationInProgress->model = dynamic_cast<Model*>(pickedObject);
+                                // At this point we should know the animationInProgress is for current object
+                                animationInProgress->originalTransformation = *dynamic_cast<Model *>(pickedObject)->getTransformation();
+                                addAnimationToObject(animationInProgress->model, animationInProgress->animation, true);
+                                animationInProgress = nullptr;
+                            }
+                        }
+                        ImGui::Columns(1);  // no coloumn after buttons
                     } else {
+                        ImGui::Columns(1);  // no coloumn if no buttons
                         //this means the original transform is saved, with others(possibly) stacked on top.
                         static int time = 60;
                         ImGui::InputInt("Time of position:", &time);
@@ -685,8 +715,9 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                             animationInProgress->animationNode->rotations.push_back(rotation);
                             animationInProgress->animationNode->rotationTimes.push_back(time);
                         }
+
                         if(ImGui::Button("Finish Animation")) {
-                            animationInProgress->animation = new AnimationCustom("AnimationNamePlaceHolder",
+                            animationInProgress->animation = new AnimationCustom(std::string(animationNameBuffer),
                                                                                  animationInProgress->animationNode,
                                                                                  time);
 
@@ -696,6 +727,13 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                             delete animationInProgress;
                             animationInProgress = nullptr;
                             //TODO, who deletes what is not clear, I should use smart pointers.
+                        }
+                        ImGui::SameLine();
+                        if(ImGui::Button("Cancel ")) {
+                            delete animationInProgress->animationNode;
+                            delete animationInProgress->animation;
+                            delete animationInProgress;
+                            animationInProgress = nullptr;
                         }
                     }
                 }
