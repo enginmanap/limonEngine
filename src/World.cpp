@@ -660,7 +660,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                             animationInProgress->model = dynamic_cast<Model*>(pickedObject);
                             // At this point we should know the animationInProgress is for current object
                             animationInProgress->originalTransformation = *dynamic_cast<Model *>(pickedObject)->getTransformation();
-                            animationInProgress->animationNode = new Animation::AnimationForNode();
+                            animationInProgress->animationNode = new AnimationNode();
                             /* The animation should start with the current position, so save empty transforms */
                             animationInProgress->animationNode->translates.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
                             animationInProgress->animationNode->translateTimes.push_back(0);

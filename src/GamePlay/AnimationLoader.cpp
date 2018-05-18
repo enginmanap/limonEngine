@@ -6,6 +6,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include "AnimationLoader.h"
 #include "Animation.h"
+#include "AnimationNode.h"
 
 Animation *AnimationLoader::loadAnimation(const std::string &fileName) {
     Animation* newAnimation = new Animation();
@@ -67,7 +68,7 @@ bool AnimationLoader::loadNodesFromXML(tinyxml2::XMLNode *animationNode, Animati
         std::cerr << "Animation must have at least one animation node." << std::endl;
         return false;
     }
-    Animation::AnimationForNode *animationForNode = new Animation::AnimationForNode();
+    AnimationNode *animationForNode = new AnimationNode();
     while(nodeNode != nullptr) {
         tinyxml2::XMLElement* nodeAttribute;
         nodeAttribute =  nodeNode->FirstChildElement("Name");
@@ -87,7 +88,7 @@ bool AnimationLoader::loadNodesFromXML(tinyxml2::XMLNode *animationNode, Animati
 }
 
 bool AnimationLoader::readTranslateAndTimes(tinyxml2::XMLElement *nodeNode,
-                                            Animation::AnimationForNode *animationForNode) {
+                                            AnimationNode *animationForNode) {
     tinyxml2::XMLElement *nodeAttribute;
     tinyxml2::XMLElement* nodeAttributeAttribute;
     tinyxml2::XMLElement* nodeAttributeAttributeValue;
@@ -150,7 +151,7 @@ bool AnimationLoader::readTranslateAndTimes(tinyxml2::XMLElement *nodeNode,
     return true;
 }
 
-bool AnimationLoader::readScaleAndTimes(tinyxml2::XMLElement *nodeNode, Animation::AnimationForNode *animationForNode) {
+bool AnimationLoader::readScaleAndTimes(tinyxml2::XMLElement *nodeNode, AnimationNode *animationForNode) {
     tinyxml2::XMLElement *nodeAttribute;
     tinyxml2::XMLElement* nodeAttributeAttribute;
     tinyxml2::XMLElement* nodeAttributeAttributeValue;
@@ -214,7 +215,7 @@ bool AnimationLoader::readScaleAndTimes(tinyxml2::XMLElement *nodeNode, Animatio
 }
 
 bool
-AnimationLoader::readRotationAndTimes(tinyxml2::XMLElement *nodeNode, Animation::AnimationForNode *animationForNode) {
+AnimationLoader::readRotationAndTimes(tinyxml2::XMLElement *nodeNode, AnimationNode *animationForNode) {
     tinyxml2::XMLElement *nodeAttribute;
     tinyxml2::XMLElement* nodeAttributeAttribute;
     tinyxml2::XMLElement* nodeAttributeAttributeValue;
