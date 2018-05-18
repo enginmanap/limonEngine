@@ -48,7 +48,7 @@ class World {
         Transformation originalTransformation;
         bool wasKinematic;
 
-        Animation::AnimationForNode* animationNode;
+        AnimationNode* animationNode;
     };
 
     friend class WorldLoader;

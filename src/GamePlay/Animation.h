@@ -12,41 +12,17 @@
 #include <unordered_map>
 #include <tinyxml2.h>
 
+class AnimationNode;
 
 class Animation {
     friend class AnimationLoader;
 public:
-    struct AnimationForNode {
-        std::vector<glm::vec3> translates;
-        std::vector<float>translateTimes;
-        std::vector<glm::vec3> scales;
-        std::vector<float>scaleTimes;
-        std::vector<glm::quat> rotations;
-        std::vector<float>rotationTimes;
 
-        void fillNode(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *nodeElement,
-                              const std::string &nodeName) const;
-
-        glm::quat getRotationQuat(const float timeInTicks) const;
-
-        glm::vec3 getScalingVector(const float timeInTicks) const;
-
-        glm::vec3 getPositionVector(const float timeInTicks) const;
-
-    private:
-        void fillTranslateAndTimes(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *nodeElement) const;
-
-        void fillScaleAndTimes(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *nodeElement) const;
-
-        void fillRotationAndTimes(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *nodeElement) const;
-
-
-    };
 private:
     float ticksPerSecond;
     float duration;
     //This map keeps the animations for node(bone)
-    std::unordered_map<std::string, AnimationForNode*> nodes; //IF
+    std::unordered_map<std::string, AnimationNode*> nodes; //IF
     bool customCreation;
 
     /*this private constructor is meant for deserialize only*/
@@ -55,7 +31,7 @@ private:
 public:
     Animation(aiAnimation *assimpAnimation);
     //For single Node animation creation
-    Animation(std::string nodeName, AnimationForNode *animationNode, int duration) : ticksPerSecond(60), duration(duration), customCreation(true) {
+    Animation(std::string nodeName, AnimationNode *animationNode, int duration) : ticksPerSecond(60), duration(duration), customCreation(true) {
         this->nodes[nodeName] = animationNode;
     }
 
