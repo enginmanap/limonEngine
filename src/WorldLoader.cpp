@@ -193,7 +193,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
             world->addActor(newEnemy);
         }
 
-        objectAttribute =  objectNode->FirstChildElement("Animation");
+        objectAttribute =  objectNode->FirstChildElement("AnimationAssimp");
         if (objectAttribute == nullptr) {
             std::cout << "Object does not have default animation." << std::endl;
         } else {

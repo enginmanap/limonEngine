@@ -5,14 +5,14 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
-#include "Animation.h"
+#include "AnimationAssimp.h"
 #include "AnimationNode.h"
 
 
 
 //FIXME there must be a better way then is found.
 //FIXME requiring node name should not be a thing
-glm::mat4 Animation::calculateTransform(const std::string &nodeName, float time, bool &isFound) const {
+glm::mat4 AnimationAssimp::calculateTransform(const std::string &nodeName, float time, bool &isFound) const {
     if (nodes.find(nodeName) == nodes.end()) {//if the bone has no animation, it can happen
         isFound = false;
         return glm::mat4(1.0f);
@@ -33,7 +33,7 @@ glm::mat4 Animation::calculateTransform(const std::string &nodeName, float time,
     return translateMatrix * rotationMatrix * scaleTransform;
 }
 
-Animation::Animation(aiAnimation *assimpAnimation) : customCreation(false) {
+AnimationAssimp::AnimationAssimp(aiAnimation *assimpAnimation) {
     duration = assimpAnimation->mDuration;
     ticksPerSecond = assimpAnimation->mTicksPerSecond;
     //create and attach AnimationNodes
@@ -67,45 +67,4 @@ Animation::Animation(aiAnimation *assimpAnimation) : customCreation(false) {
     }
 
     //validate
-}
-
-/**
- * Saves the animation to a xml file with the name of first node of animation.
- * @param path must end with "/"
- * @return true if saved successfully, or not needs saving. False if fails to save
- */
-bool Animation::serializeAnimation(const std::string &path) const {
-    if (!this->customCreation) {
-        return true; //don't try to serialize assimp animations, only custom ones
-    }
-    tinyxml2::XMLDocument animationDocument;
-    tinyxml2::XMLNode *rootNode = animationDocument.NewElement("Animation");
-    animationDocument.InsertFirstChild(rootNode);
-    tinyxml2::XMLElement *currentElement = animationDocument.NewElement("Name");
-    currentElement->SetText(this->nodes.begin()->first.c_str());
-    rootNode->InsertEndChild(currentElement);
-    //after current element is inserted, we can reuse
-    currentElement = animationDocument.NewElement("Nodes");
-    for (auto nodeIt = nodes.begin(); nodeIt != nodes.end(); nodeIt++) {
-        //save node
-        nodeIt->second->fillNode(animationDocument, currentElement, nodeIt->first);
-    }
-    rootNode->InsertEndChild(currentElement);//add nodes
-
-    currentElement = animationDocument.NewElement("Duration");
-    currentElement->SetText(std::to_string(this->duration).c_str());
-    rootNode->InsertEndChild(currentElement);//add duration
-
-    currentElement = animationDocument.NewElement("TicksPerSecond");
-    currentElement->SetText(std::to_string(this->ticksPerSecond).c_str());
-    rootNode->InsertEndChild(currentElement);//add ticks per second
-
-    tinyxml2::XMLError eResult = animationDocument.SaveFile((path + this->nodes.begin()->first + ".xml").c_str());
-    if (eResult != tinyxml2::XML_SUCCESS) {
-        std::cout << "ERROR " << eResult << std::endl;
-        return false;
-    }
-
-    return true;
-
 }

@@ -5,21 +5,21 @@
 #include <iostream>
 #include <glm/gtc/quaternion.hpp>
 #include "AnimationLoader.h"
-#include "Animation.h"
-#include "AnimationNode.h"
 
-Animation *AnimationLoader::loadAnimation(const std::string &fileName) {
-    Animation* newAnimation = new Animation();
+#include "AnimationNode.h"
+#include "AnimationCustom.h"
+
+AnimationCustom *AnimationLoader::loadAnimation(const std::string &fileName) {
+    AnimationCustom* newAnimation = new AnimationCustom();
     if(!loadAnimationFromXML(fileName, newAnimation)) {
-        std::cerr << "Animation load failed" << std::endl;
+        std::cerr << "AnimationAssimp load failed" << std::endl;
         delete newAnimation;
         return nullptr;
     }
     return newAnimation;
 }
 
-bool AnimationLoader::loadAnimationFromXML(const std::string &fileName, Animation *loadingAnimation) {
-    loadingAnimation->customCreation = true;
+bool AnimationLoader::loadAnimationFromXML(const std::string &fileName, AnimationCustom *loadingAnimation) {
 
     tinyxml2::XMLDocument xmlDoc;
     tinyxml2::XMLError eResult = xmlDoc.LoadFile(fileName.c_str());
@@ -30,27 +30,27 @@ bool AnimationLoader::loadAnimationFromXML(const std::string &fileName, Animatio
 
     tinyxml2::XMLNode * animationNode = xmlDoc.FirstChild();
     if (animationNode == nullptr) {
-        std::cerr << "Animation xml is not a valid XML." << std::endl;
+        std::cerr << "AnimationAssimp xml is not a valid XML." << std::endl;
         return false;
     }
 
     tinyxml2::XMLElement* animationName =  animationNode->FirstChildElement("Name");
     if (animationName == nullptr) {
-        std::cerr << "Animation must have a name." << std::endl;//TODO it actually doesn't
+        std::cerr << "AnimationAssimp must have a name." << std::endl;//TODO it actually doesn't
         return false;
     }
-    std::cout << "read Animation with name " << animationName->GetText() << std::endl;
+    std::cout << "read AnimationAssimp with name " << animationName->GetText() << std::endl;
 
     tinyxml2::XMLElement* animationDuration =  animationNode->FirstChildElement("Duration");
     if (animationDuration == nullptr) {
-        std::cerr << "Animation must have a duration." << std::endl;
+        std::cerr << "AnimationAssimp must have a duration." << std::endl;
         return false;
     }
     loadingAnimation->duration = std::stof(animationDuration->GetText());
 
     tinyxml2::XMLElement* animationTicksPerSecond =  animationNode->FirstChildElement("TicksPerSecond");
     if (animationTicksPerSecond == nullptr) {
-        std::cerr << "Animation must have a TicksPerSecond." << std::endl;
+        std::cerr << "AnimationAssimp must have a TicksPerSecond." << std::endl;
         return false;
     }
     loadingAnimation->ticksPerSecond = std::stof(animationTicksPerSecond->GetText());
@@ -62,28 +62,26 @@ bool AnimationLoader::loadAnimationFromXML(const std::string &fileName, Animatio
     return loadNodesFromXML(nodesNode, loadingAnimation);
 }
 
-bool AnimationLoader::loadNodesFromXML(tinyxml2::XMLNode *animationNode, Animation *loadingAnimation) {
+bool AnimationLoader::loadNodesFromXML(tinyxml2::XMLNode *animationNode, AnimationCustom *loadingAnimation) {
     tinyxml2::XMLElement* nodeNode =  animationNode->FirstChildElement("Node");
     if (nodeNode == nullptr) {
-        std::cerr << "Animation must have at least one animation node." << std::endl;
+        std::cerr << "AnimationAssimp must have at least one animation node." << std::endl;
         return false;
     }
     AnimationNode *animationForNode = new AnimationNode();
-    while(nodeNode != nullptr) {
-        tinyxml2::XMLElement* nodeAttribute;
-        nodeAttribute =  nodeNode->FirstChildElement("Name");
-        if (nodeAttribute == nullptr) {
-            std::cerr << "Object must have a source file." << std::endl;
-            return false;
-        }
-        loadingAnimation->nodes[nodeAttribute->GetText()] = animationForNode;
 
-        readTranslateAndTimes(nodeNode, animationForNode);
-        readScaleAndTimes(nodeNode, animationForNode);
-        readRotationAndTimes(nodeNode, animationForNode);
-
-        nodeNode = nodeNode->NextSiblingElement("Node");
+    tinyxml2::XMLElement* nodeAttribute;
+    nodeAttribute =  nodeNode->FirstChildElement("Name");
+    if (nodeAttribute == nullptr) {
+        std::cerr << "Object must have a source file." << std::endl;
+        return false;
     }
+    loadingAnimation->animationNode = animationForNode;
+
+    readTranslateAndTimes(nodeNode, animationForNode);
+    readScaleAndTimes(nodeNode, animationForNode);
+    readRotationAndTimes(nodeNode, animationForNode);
+
     return true;
 }
 

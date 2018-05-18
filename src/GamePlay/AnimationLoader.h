@@ -6,19 +6,19 @@
 #define LIMONENGINE_ANIMATIONLOADER_H
 
 
-#include "Animation.h"
+#include "AnimationAssimp.h"
 
-class Animation;
+class AnimationCustom;
 
 class AnimationLoader {
-    static bool loadAnimationFromXML(const std::string &fileName, Animation *loadingAnimation);
-    static bool loadNodesFromXML(tinyxml2::XMLNode *animationNode, Animation *loadingAnimation);
+    static bool loadAnimationFromXML(const std::string &fileName, AnimationCustom *loadingAnimation);
+    static bool loadNodesFromXML(tinyxml2::XMLNode *animationNode, AnimationCustom *loadingAnimation);
 
     static bool readTranslateAndTimes(tinyxml2::XMLElement *nodeNode, AnimationNode *animationForNode);
     static bool readScaleAndTimes(tinyxml2::XMLElement *nodeNode, AnimationNode *animationForNode);
     static bool readRotationAndTimes(tinyxml2::XMLElement *nodeNode, AnimationNode *animationForNode);
 public:
-    static Animation* loadAnimation(const std::string& fileName);
+    static AnimationCustom* loadAnimation(const std::string& fileName);
 
 
 };
