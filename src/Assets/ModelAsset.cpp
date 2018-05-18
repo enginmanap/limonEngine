@@ -6,7 +6,7 @@
 #include "ModelAsset.h"
 #include "../glm/gtx/matrix_decompose.hpp"
 #include "../Utils/GLMUtils.h"
-#include "../GamePlay/Animation.h"
+#include "../GamePlay/AnimationAssimp.h"
 
 ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string> &fileList) : Asset(assetManager,
                                                                                                      fileList),
@@ -242,11 +242,11 @@ void ModelAsset::getTransform(long time, std::string animationName, std::vector<
         return;
     }
 
-    const Animation *currentAnimation;
+    const AnimationAssimp *currentAnimation;
     if(animations.find(animationName) != animations.end()) {
         currentAnimation = animations.at(animationName);
     } else {
-        std::cerr << "Animation " << animationName << " not found, playing first animation. " << std::endl;
+        std::cerr << "AnimationAssimp " << animationName << " not found, playing first animation. " << std::endl;
         currentAnimation = animations.begin()->second;
     }
 
@@ -265,12 +265,12 @@ void ModelAsset::getTransform(long time, std::string animationName, std::vector<
 
 void
 ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform,
-                                    const Animation *animation,
+                                    const AnimationAssimp *animation,
                                     float timeInTicks,
                                     std::vector<glm::mat4> &transforms) const {
 /*
     for(auto it = animation->nodes.begin(); it != animation->nodes.end(); it++) {
-        std::cout << "Animation node name: " << it->first << std::endl;
+        std::cout << "AnimationAssimp node name: " << it->first << std::endl;
     }
 */
     glm::mat4 nodeTransform;
@@ -306,7 +306,7 @@ void ModelAsset::fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnim
         std::string animationName = currentAnimation->mName.C_Str();
         std::cout << "add animation with name " << animationName << std::endl;
 
-        Animation* animationObject = new Animation(currentAnimation);
+        AnimationAssimp* animationObject = new AnimationAssimp(currentAnimation);
         animations[animationName] = animationObject;
     }
 

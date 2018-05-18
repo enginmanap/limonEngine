@@ -25,7 +25,8 @@
 #include "WorldSaver.h"
 #include "../libs/ImGuizmo/ImGuizmo.h"
 #include "GameObjects/TriggerObject.h"
-#include "GamePlay/Animation.h"
+#include "GamePlay/AnimationAssimp.h"
+#include "GamePlay/AnimationCustom.h"
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
@@ -158,7 +159,7 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
                 float animationTime = fmod((gameTime / 1000.0f) * ticksPerSecond, anim->animation->getDuration());
 
                 bool isFound;
-                glm::mat4 tf = anim->animation->calculateTransform("root", animationTime, isFound);
+                glm::mat4 tf = anim->animation->calculateTransform(animationTime, isFound);
 
                 glm::vec3 translate, scale;
                 glm::quat orientation;
@@ -673,7 +674,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                         //this means the original transform is saved, with others(possibly) stacked on top.
                         static int time = 60;
                         ImGui::InputInt("Time of position:", &time);
-                        if(ImGui::Button("Add Animation key frame")) {
+                        if(ImGui::Button("Add AnimationAssimp key frame")) {
                             glm::vec3 translate, scale;
                             glm::quat rotation;
                             animationInProgress->originalTransformation.getDifference(*dynamic_cast<Model *>(pickedObject)->getTransformation(), translate, scale, rotation);
@@ -684,8 +685,8 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                             animationInProgress->animationNode->rotations.push_back(rotation);
                             animationInProgress->animationNode->rotationTimes.push_back(time);
                         }
-                        if(ImGui::Button("Finish Animation")) {
-                            animationInProgress->animation = new Animation("root", animationInProgress->animationNode, time);
+                        if(ImGui::Button("Finish AnimationAssimp")) {
+                            animationInProgress->animation = new AnimationCustom(animationInProgress->animationNode, time);
 
                             (*dynamic_cast<Model *>(pickedObject)->getTransformation()) = animationInProgress->originalTransformation;
                             //Calling addAnimation here is odd, but I am planning to add animations using an external API call in next revisions.
@@ -736,9 +737,9 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             if(ImGui::Button("Save Map")) {
                 for(size_t i = 0; i < activeAnimations.size(); i++) {
                     if(activeAnimations.at(i).animation->serializeAnimation("./Data/Animations/")) {
-                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation saved");
+                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "AnimationAssimp saved");
                     } else {
-                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation save failed");
+                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "AnimationAssimp save failed");
                     }
 
                 }
@@ -830,7 +831,7 @@ void World::addLight(Light *light) {
     this->lights.push_back(light);
 }
 
-void World::addAnimationToObject(Model *model, Animation *animation, bool looped) {
+void World::addAnimationToObject(Model *model, AnimationCustom *animation, bool looped) {
     AnimationStatus as;
     as.model = model;
     as.originalTransformation = (*model->getTransformation());

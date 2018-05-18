@@ -15,7 +15,8 @@
 #include "FontManager.h"
 #include "AI/Actor.h"
 #include "GameObjects/SkyBox.h"
-#include "GamePlay/Animation.h"
+#include "GamePlay/AnimationAssimp.h"
+
 
 class btGhostPairCallback;
 class Camera;
@@ -37,12 +38,13 @@ class FreeCursorPlayer;
 class ImGuiHelper;
 class AssetManager;
 class TriggerObject;
+class AnimationCustom;
 
 class World {
 
     struct AnimationStatus {
         Model* model = nullptr;
-        Animation *animation;
+        AnimationCustom *animation;
         bool loop;
         long startTime;
         Transformation originalTransformation;
@@ -142,7 +144,7 @@ public:
         return totalObjectCount++;
     }
 
-    void addAnimationToObject(Model *model, Animation *animation, bool looped);
+    void addAnimationToObject(Model *model, AnimationCustom *animation, bool looped);
 };
 
 #endif //LIMONENGINE_WORLD_H
