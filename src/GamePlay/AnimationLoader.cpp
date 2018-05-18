@@ -12,7 +12,7 @@
 AnimationCustom *AnimationLoader::loadAnimation(const std::string &fileName) {
     AnimationCustom* newAnimation = new AnimationCustom();
     if(!loadAnimationFromXML(fileName, newAnimation)) {
-        std::cerr << "AnimationAssimp load failed" << std::endl;
+        std::cerr << "Animation load failed" << std::endl;
         delete newAnimation;
         return nullptr;
     }
@@ -30,27 +30,29 @@ bool AnimationLoader::loadAnimationFromXML(const std::string &fileName, Animatio
 
     tinyxml2::XMLNode * animationNode = xmlDoc.FirstChild();
     if (animationNode == nullptr) {
-        std::cerr << "AnimationAssimp xml is not a valid XML." << std::endl;
+        std::cerr << fileName << " is not a valid XML." << std::endl;
         return false;
+    } else {
+        std::cout << "Loading animation " << fileName << std::endl;
     }
 
     tinyxml2::XMLElement* animationName =  animationNode->FirstChildElement("Name");
     if (animationName == nullptr) {
-        std::cerr << "AnimationAssimp must have a name." << std::endl;//TODO it actually doesn't
+        std::cerr << "Animation must have a name." << std::endl;
         return false;
     }
-    std::cout << "read AnimationAssimp with name " << animationName->GetText() << std::endl;
+    loadingAnimation->name = animationName->GetText();
 
     tinyxml2::XMLElement* animationDuration =  animationNode->FirstChildElement("Duration");
     if (animationDuration == nullptr) {
-        std::cerr << "AnimationAssimp must have a duration." << std::endl;
+        std::cerr << "Animation must have a duration." << std::endl;
         return false;
     }
     loadingAnimation->duration = std::stof(animationDuration->GetText());
 
     tinyxml2::XMLElement* animationTicksPerSecond =  animationNode->FirstChildElement("TicksPerSecond");
     if (animationTicksPerSecond == nullptr) {
-        std::cerr << "AnimationAssimp must have a TicksPerSecond." << std::endl;
+        std::cerr << "Animation must have a TicksPerSecond." << std::endl;
         return false;
     }
     loadingAnimation->ticksPerSecond = std::stof(animationTicksPerSecond->GetText());
@@ -65,17 +67,11 @@ bool AnimationLoader::loadAnimationFromXML(const std::string &fileName, Animatio
 bool AnimationLoader::loadNodesFromXML(tinyxml2::XMLNode *animationNode, AnimationCustom *loadingAnimation) {
     tinyxml2::XMLElement* nodeNode =  animationNode->FirstChildElement("Node");
     if (nodeNode == nullptr) {
-        std::cerr << "AnimationAssimp must have at least one animation node." << std::endl;
+        std::cerr << "Animation must have at least one animation node." << std::endl;
         return false;
     }
     AnimationNode *animationForNode = new AnimationNode();
 
-    tinyxml2::XMLElement* nodeAttribute;
-    nodeAttribute =  nodeNode->FirstChildElement("Name");
-    if (nodeAttribute == nullptr) {
-        std::cerr << "Object must have a source file." << std::endl;
-        return false;
-    }
     loadingAnimation->animationNode = animationForNode;
 
     readTranslateAndTimes(nodeNode, animationForNode);

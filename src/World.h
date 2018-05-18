@@ -15,8 +15,6 @@
 #include "FontManager.h"
 #include "AI/Actor.h"
 #include "GameObjects/SkyBox.h"
-#include "GamePlay/AnimationAssimp.h"
-
 
 class btGhostPairCallback;
 class Camera;
@@ -39,6 +37,7 @@ class ImGuiHelper;
 class AssetManager;
 class TriggerObject;
 class AnimationCustom;
+class AnimationNode;
 
 class World {
 

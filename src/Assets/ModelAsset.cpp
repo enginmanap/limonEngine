@@ -246,7 +246,7 @@ void ModelAsset::getTransform(long time, std::string animationName, std::vector<
     if(animations.find(animationName) != animations.end()) {
         currentAnimation = animations.at(animationName);
     } else {
-        std::cerr << "AnimationAssimp " << animationName << " not found, playing first animation. " << std::endl;
+        std::cerr << "Animation " << animationName << " not found, playing first animation. " << std::endl;
         currentAnimation = animations.begin()->second;
     }
 
@@ -270,7 +270,7 @@ ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &p
                                     std::vector<glm::mat4> &transforms) const {
 /*
     for(auto it = animation->nodes.begin(); it != animation->nodes.end(); it++) {
-        std::cout << "AnimationAssimp node name: " << it->first << std::endl;
+        std::cout << "Animation node name: " << it->first << std::endl;
     }
 */
     glm::mat4 nodeTransform;

@@ -22,8 +22,7 @@ struct AnimationNode {
         std::vector<glm::quat> rotations;
         std::vector<float>rotationTimes;
 
-        void fillNode(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *nodeElement,
-                      const std::string &nodeName) const;
+        void fillNode(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *nodeElement) const;
 
         glm::quat getRotationQuat(const float timeInTicks) const;
 

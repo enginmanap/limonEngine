@@ -15,12 +15,14 @@ class AnimationCustom {
     float duration;
 
     AnimationNode* animationNode;
+    std::string name;
 
     /*this private constructor is meant for deserialize only*/
     AnimationCustom() = default;
 
 public:
-    AnimationCustom(AnimationNode *animationNode, int duration) : ticksPerSecond(60), duration(duration) {
+    AnimationCustom(const std::string &animationName, AnimationNode *animationNode, int duration)
+            : ticksPerSecond(60), duration(duration), name(animationName) {
             this->animationNode = animationNode;
     }
 
