@@ -8,87 +8,86 @@
 #include "Animation.h"
 
 
-glm::vec3 Animation::getPositionVector(const float timeInTicks, const AnimationForNode *nodeAnimation) const {
+glm::vec3 Animation::AnimationForNode::getPositionVector(const float timeInTicks) const {
     glm::vec3 transformVector;
-    if (nodeAnimation->translates.size() == 1) {
-        transformVector = nodeAnimation->translates[0];
+    if (translates.size() == 1) {
+        transformVector = translates[0];
     } else {
         unsigned int positionIndex = 0;
-        for (unsigned int i = 0; i < nodeAnimation->translates.size(); i++) {
-            if (timeInTicks < nodeAnimation->translateTimes[i + 1]) {
+        for (unsigned int i = 0; i < translates.size(); i++) {
+            if (timeInTicks < translateTimes[i + 1]) {
                 positionIndex = i;
                 break;
             }
         }
 
         unsigned int NextPositionIndex = (positionIndex + 1);
-        assert(NextPositionIndex < nodeAnimation->translates.size());
-        float DeltaTime = (float) (nodeAnimation->translateTimes[NextPositionIndex] -
-                                   nodeAnimation->translateTimes[positionIndex]);
-        float Factor = (timeInTicks - (float) nodeAnimation->translateTimes[positionIndex]) / DeltaTime;
+        assert(NextPositionIndex < translates.size());
+        float DeltaTime = (float) (translateTimes[NextPositionIndex] -
+                                   translateTimes[positionIndex]);
+        float Factor = (timeInTicks - (float) translateTimes[positionIndex]) / DeltaTime;
         assert(Factor >= 0.0f && Factor <= 1.0f);
-        const glm::vec3 &Start = nodeAnimation->translates[positionIndex];
-        const glm::vec3 &End = nodeAnimation->translates[NextPositionIndex];
+        const glm::vec3 &Start = translates[positionIndex];
+        const glm::vec3 &End = translates[NextPositionIndex];
         glm::vec3 Delta = End - Start;
         transformVector = Start + Factor * Delta;
     }
     return transformVector;
 }
 
-glm::vec3 Animation::getScalingVector(const float timeInTicks, const AnimationForNode *nodeAnimation) const {
+glm::vec3 Animation::AnimationForNode::getScalingVector(const float timeInTicks) const {
     glm::vec3 scalingTransformVector;
-    if (nodeAnimation->scales.size() == 1) {
-        scalingTransformVector = nodeAnimation->scales[0];
+    if (scales.size() == 1) {
+        scalingTransformVector = scales[0];
     } else {
         unsigned int ScalingIndex = 0;
-        assert(nodeAnimation->scales.size() > 0);
-        for (unsigned int i = 0; i < nodeAnimation->scales.size(); i++) {
-            if (timeInTicks < nodeAnimation->scaleTimes[i + 1]) {
+        assert(scales.size() > 0);
+        for (unsigned int i = 0; i < scales.size(); i++) {
+            if (timeInTicks < scaleTimes[i + 1]) {
                 ScalingIndex = i;
                 break;
             }
         }
 
-
         unsigned int NextScalingIndex = (ScalingIndex + 1);
-        assert(NextScalingIndex < nodeAnimation->scales.size());
-        float DeltaTime = (nodeAnimation->scaleTimes[NextScalingIndex] -
-                           nodeAnimation->scaleTimes[ScalingIndex]);
-        float Factor = (timeInTicks - (float) nodeAnimation->scaleTimes[ScalingIndex]) / DeltaTime;
+        assert(NextScalingIndex < scales.size());
+        float DeltaTime = (scaleTimes[NextScalingIndex] -
+                           scaleTimes[ScalingIndex]);
+        float Factor = (timeInTicks - (float) scaleTimes[ScalingIndex]) / DeltaTime;
         assert(Factor >= 0.0f && Factor <= 1.0f);
-        const glm::vec3 &Start = nodeAnimation->scales[ScalingIndex];
-        const glm::vec3 &End = nodeAnimation->scales[NextScalingIndex];
+        const glm::vec3 &Start = scales[ScalingIndex];
+        const glm::vec3 &End = scales[NextScalingIndex];
         glm::vec3 Delta = End - Start;
         scalingTransformVector = Start + Factor * Delta;
     }
     return scalingTransformVector;
 }
 
-glm::quat Animation::getRotationQuat(const float timeInTicks, const AnimationForNode *nodeAnimation) const {
+glm::quat Animation::AnimationForNode::getRotationQuat(const float timeInTicks) const {
     glm::quat rotationTransformQuaternion;
-    if (nodeAnimation->rotations.size() == 1) {
-        rotationTransformQuaternion = nodeAnimation->rotations[0];
+    if (rotations.size() == 1) {
+        rotationTransformQuaternion = rotations[0];
     } else {
 
         int rotationIndex = 0;
 
-        assert(nodeAnimation->rotations.size() > 0);
+        assert(rotations.size() > 0);
 
-        for (unsigned int i = 0; i < nodeAnimation->rotations.size(); i++) {
-            if (timeInTicks < (float) nodeAnimation->rotationTimes[i + 1]) {
+        for (unsigned int i = 0; i < rotations.size(); i++) {
+            if (timeInTicks < (float) rotationTimes[i + 1]) {
                 rotationIndex = i;
                 break;
             }
         }
 
         unsigned int NextRotationIndex = (rotationIndex + 1);
-        assert(NextRotationIndex < nodeAnimation->rotations.size());
-        float DeltaTime = (nodeAnimation->rotationTimes[NextRotationIndex] -
-                           nodeAnimation->rotationTimes[rotationIndex]);
-        float Factor = (timeInTicks - (float) nodeAnimation->rotationTimes[rotationIndex]) / DeltaTime;
+        assert(NextRotationIndex < rotations.size());
+        float DeltaTime = (rotationTimes[NextRotationIndex] -
+                           rotationTimes[rotationIndex]);
+        float Factor = (timeInTicks - (float) rotationTimes[rotationIndex]) / DeltaTime;
         assert(Factor >= 0.0f && Factor <= 1.0f);
-        const glm::quat &StartRotationQ = nodeAnimation->rotations[rotationIndex];
-        const glm::quat &EndRotationQ = nodeAnimation->rotations[NextRotationIndex];
+        const glm::quat &StartRotationQ = rotations[rotationIndex];
+        const glm::quat &EndRotationQ = rotations[NextRotationIndex];
         rotationTransformQuaternion = glm::normalize(glm::slerp(StartRotationQ, EndRotationQ, Factor));
     }
     return rotationTransformQuaternion;
@@ -107,9 +106,9 @@ glm::mat4 Animation::calculateTransform(const std::string &nodeName, float time,
     glm::vec3 scalingTransformVector, transformVector;
     glm::quat rotationTransformQuaternion;
 
-    scalingTransformVector = getScalingVector(time, nodeAnimation);
-    rotationTransformQuaternion = getRotationQuat(time, nodeAnimation);
-    transformVector = getPositionVector(time, nodeAnimation);
+    scalingTransformVector = nodeAnimation->getScalingVector(time);
+    rotationTransformQuaternion = nodeAnimation->getRotationQuat(time);
+    transformVector = nodeAnimation->getPositionVector(time);
 
     glm::mat4 rotationMatrix = glm::mat4_cast(rotationTransformQuaternion);
     glm::mat4 translateMatrix = glm::translate(glm::mat4(1.0f), transformVector);
