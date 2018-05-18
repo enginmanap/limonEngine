@@ -35,15 +35,15 @@ glm::mat4 AnimationCustom::calculateTransform(float time, bool &isFound) const {
  */
 bool AnimationCustom::serializeAnimation(const std::string &path) const {
     tinyxml2::XMLDocument animationDocument;
-    tinyxml2::XMLNode *rootNode = animationDocument.NewElement("AnimationAssimp");
+    tinyxml2::XMLNode *rootNode = animationDocument.NewElement("Animation");
     animationDocument.InsertFirstChild(rootNode);
     tinyxml2::XMLElement *currentElement = animationDocument.NewElement("Name");
-    currentElement->SetText("root");
+    currentElement->SetText(this->name.c_str());
     rootNode->InsertEndChild(currentElement);
     //after current element is inserted, we can reuse
     currentElement = animationDocument.NewElement("Nodes");
     //save node
-    animationNode->fillNode(animationDocument, currentElement, "root");
+    animationNode->fillNode(animationDocument, currentElement);
 
     rootNode->InsertEndChild(currentElement);//add nodes
 
@@ -55,7 +55,7 @@ bool AnimationCustom::serializeAnimation(const std::string &path) const {
     currentElement->SetText(std::to_string(this->ticksPerSecond).c_str());
     rootNode->InsertEndChild(currentElement);//add ticks per second
 
-    tinyxml2::XMLError eResult = animationDocument.SaveFile((path + "root" + ".xml").c_str());
+    tinyxml2::XMLError eResult = animationDocument.SaveFile((path + this->name + ".xml").c_str());
     if (eResult != tinyxml2::XML_SUCCESS) {
         std::cout << "ERROR " << eResult << std::endl;
         return false;

@@ -90,14 +90,9 @@ glm::quat AnimationNode::getRotationQuat(const float timeInTicks) const {
 }
 
 
-void AnimationNode::fillNode(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *nodesNode,
-                                           const std::string &nodeName) const {
+void AnimationNode::fillNode(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *nodesNode) const {
     tinyxml2::XMLElement *nodeElement = document.NewElement("Node");
     nodesNode->InsertEndChild(nodeElement);
-
-    tinyxml2::XMLElement *currentElement = document.NewElement("Name");
-    currentElement->SetText(nodeName.c_str());
-    nodeElement->InsertEndChild(currentElement);//add name
 
     fillTranslateAndTimes(document, nodeElement);
     fillScaleAndTimes(document, nodeElement);

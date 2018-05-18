@@ -65,7 +65,7 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
 
 
         }
-        std::cout << "AnimationAssimp added for mesh" << std::endl;
+        std::cout << "Animation added for mesh" << std::endl;
 
         assetManager->getGlHelper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
         bufferObjects.push_back(vbo);
@@ -102,7 +102,7 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
                 boneAttachedMeshes[boneID].push_back(k);
             }
 
-            std::cout << "AnimationAssimp added for mesh" << std::endl;
+            std::cout << "Animation added for mesh" << std::endl;
 
             assetManager->getGlHelper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
             bufferObjects.push_back(vbo);

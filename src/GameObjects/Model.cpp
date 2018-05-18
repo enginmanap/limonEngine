@@ -274,7 +274,7 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
     objectElement->InsertEndChild(currentElement);
 
     if(animated) {
-        currentElement = document.NewElement("AnimationAssimp");
+        currentElement = document.NewElement("Animation");
         currentElement->SetText(animationName.c_str());
         objectElement->InsertEndChild(currentElement);
     }
@@ -347,8 +347,8 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const glm::mat4& cameraMat
 
         ImGui::NewLine();
     if (isAnimated()) {
-        if (ImGui::CollapsingHeader("AnimationAssimp properties")) {
-            if (ImGui::BeginCombo("AnimationAssimp Name", animationName.c_str())) {
+        if (ImGui::CollapsingHeader("Animation properties")) {
+            if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {
                 for (auto it = modelAsset->getAnimations().begin(); it != modelAsset->getAnimations().end(); it++) {
                     if (ImGui::Selectable(it->first.c_str())) {
                         setAnimation(it->first);
@@ -356,7 +356,7 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const glm::mat4& cameraMat
                 }
                 ImGui::EndCombo();
             }
-            ImGui::SliderFloat("AnimationAssimp time scale", &(this->animationTimeScale), 0.01f, 2.0f);
+            ImGui::SliderFloat("Animation time scale", &(this->animationTimeScale), 0.01f, 2.0f);
         }
     }
     if (isAnimated()) { //in animated objects can't have AI, can they?
