@@ -25,7 +25,7 @@ bool AnimationLoader::loadAnimationFromXML(const std::string &fileName, Animatio
     tinyxml2::XMLError eResult = xmlDoc.LoadFile(fileName.c_str());
     if (eResult != tinyxml2::XML_SUCCESS) {
         std::cerr << "Error loading "<< fileName << " XML: " <<  xmlDoc.ErrorName() << std::endl;
-        exit(-1);
+        return false;
     }
 
     tinyxml2::XMLNode * animationNode = xmlDoc.FirstChild();
