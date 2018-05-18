@@ -26,6 +26,13 @@ public:
 
         void fillNode(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *nodeElement,
                               const std::string &nodeName) const;
+
+        glm::quat getRotationQuat(const float timeInTicks) const;
+
+        glm::vec3 getScalingVector(const float timeInTicks) const;
+
+        glm::vec3 getPositionVector(const float timeInTicks) const;
+
     private:
         void fillTranslateAndTimes(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *nodeElement) const;
 
@@ -41,12 +48,6 @@ private:
     //This map keeps the animations for node(bone)
     std::unordered_map<std::string, AnimationForNode*> nodes; //IF
     bool customCreation;
-
-    glm::quat getRotationQuat(const float timeInTicks, const AnimationForNode *nodeAnimation) const;
-
-    glm::vec3 getScalingVector(const float timeInTicks, const AnimationForNode *nodeAnimation) const;
-
-    glm::vec3 getPositionVector(const float timeInTicks, const AnimationForNode *nodeAnimation) const;
 
     /*this private constructor is meant for deserialize only*/
     Animation() = default;
