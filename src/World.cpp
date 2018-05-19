@@ -148,20 +148,20 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
             trigger->second->checkAndTrigger();
         }
 
-        for(auto anim = activeAnimations.begin(); anim != activeAnimations.end(); anim++) {
-
-            if((anim->loop ) || anim->animation->getDuration() + anim->startTime > gameTime) {
+        for(auto animIt = activeAnimations.begin(); animIt != activeAnimations.end(); animIt++) {
+            AnimationStatus* animationStatus = &(animIt->second);
+            if((animationStatus->loop ) || animationStatus->animation->getDuration() + animationStatus->startTime > gameTime) {
 
                 float ticksPerSecond;
-                if (anim->animation->getTicksPerSecond() != 0) {
-                    ticksPerSecond = anim->animation->getTicksPerSecond();
+                if (animationStatus->animation->getTicksPerSecond() != 0) {
+                    ticksPerSecond = animationStatus->animation->getTicksPerSecond();
                 } else {
                     ticksPerSecond = 60.0f;
                 }
-                float animationTime = fmod((gameTime / 1000.0f) * ticksPerSecond, anim->animation->getDuration());
+                float animationTime = fmod((gameTime / 1000.0f) * ticksPerSecond, animationStatus->animation->getDuration());
 
                 bool isFound;
-                glm::mat4 tf = anim->animation->calculateTransform(animationTime, isFound);
+                glm::mat4 tf = animationStatus->animation->calculateTransform(animationTime, isFound);
 
                 glm::vec3 translate, scale;
                 glm::quat orientation;
@@ -169,16 +169,15 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
                 glm::vec4 perspective;
                 glm::decompose(tf, scale, orientation, translate, skew, perspective);
                 //FIXME this is not an acceptable animating technique, I need a transform stack, but not implemented it yet.
-                (*anim->model->getTransformation()) = anim->originalTransformation;
-                anim->model->getTransformation()->addOrientation(orientation);
-                anim->model->getTransformation()->addScale(scale);
-                anim->model->getTransformation()->addTranslate(translate);
+                (*animationStatus->model->getTransformation()) = animationStatus->originalTransformation;
+                animationStatus->model->getTransformation()->addOrientation(orientation);
+                animationStatus->model->getTransformation()->addScale(scale);
+                animationStatus->model->getTransformation()->addTranslate(translate);
             } else {
-                if(!anim->wasKinematic) {
-                    anim->model->getRigidBody()->setCollisionFlags(anim->model->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
+                if(!animationStatus->wasKinematic) {
+                    animationStatus->model->getRigidBody()->setCollisionFlags(animationStatus->model->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
                 }
-                anim = activeAnimations.erase(anim);
-
+                activeAnimations.erase(animIt);
             }
         }
 
@@ -756,6 +755,9 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     ImGui::NewLine();
                     if (pickedObject->getTypeID() == GameObject::MODEL) {
                         if (ImGui::Button("Remove This Object")) {
+                            //remove animation
+                            activeAnimations.erase(dynamic_cast<Model *>(pickedObject));
+
                             //remove the object.
                             PhysicalRenderable *removeObject = objects[pickedObject->getWorldObjectID()];
                             //disconnect from physics
@@ -775,8 +777,8 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             ImGui::End();
             ImGui::NewLine();
             if(ImGui::Button("Save Map")) {
-                for(size_t i = 0; i < activeAnimations.size(); i++) {
-                    if(activeAnimations.at(i).animation->serializeAnimation("./Data/Animations/")) {
+                for(auto animIt = activeAnimations.begin(); animIt != activeAnimations.end(); animIt++) {
+                    if(animIt->second.animation->serializeAnimation("./Data/Animations/")) {
                         options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation saved");
                     } else {
                         options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation save failed");
@@ -879,8 +881,10 @@ void World::addAnimationToObject(Model *model, AnimationCustom *animation, bool 
     as.loop = looped;
     as.wasKinematic = model->getRigidBody()->getCollisionFlags() & btCollisionObject::CF_KINEMATIC_OBJECT;
     as.startTime = gameTime;
-    activeAnimations.push_back(as);
-    //FIXME this flag should be removed once the animation is done
+    if(activeAnimations.count(model) != 0) {
+        options->getLogger()->log(Logger::log_Subsystem_ANIMATION, Logger::log_level_WARN, "Model had custom animation, overriding.");
+    }
+    activeAnimations[model] = as;
     model->getRigidBody()->setCollisionFlags(model->getRigidBody()->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
 
 

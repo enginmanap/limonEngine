@@ -61,7 +61,7 @@ class World {
     uint32_t totalObjectCount = 1;
     std::map<uint32_t, PhysicalRenderable *> objects;
     std::map<uint32_t, TriggerObject*> triggers;
-    std::vector<AnimationStatus> activeAnimations;
+    std::unordered_map<Model*, AnimationStatus> activeAnimations;
     AnimationStatus* animationInProgress = nullptr;
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
