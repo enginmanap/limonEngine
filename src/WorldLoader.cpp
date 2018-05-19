@@ -7,6 +7,7 @@
 #include "AI/HumanEnemy.h"
 #include "GameObjects/SkyBox.h"
 #include "GameObjects/Light.h"
+#include "GamePlay/LimonAPI.h"
 
 WorldLoader::WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options* options):
         options(options),
@@ -21,6 +22,7 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
         delete newWorld;
         return nullptr;
     }
+    LimonAPI::setWorld(newWorld);
     return newWorld;
 }
 

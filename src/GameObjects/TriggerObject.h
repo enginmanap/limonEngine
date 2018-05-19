@@ -11,10 +11,15 @@
 #include "../Utils/GLMConverter.h"
 #include "GameObject.h"
 #include "../Transformation.h"
+#include "../GamePlay/LimonAPI.h"
 
 class TriggerObject : public GameObject {
     Transformation transformation;
     uint32_t objectID;
+    bool triggered = false;
+
+    Model* model = nullptr;
+    const AnimationCustom* animation = nullptr;
 
     btCollisionShape *ghostShape = new btBoxShape(btVector3(0.5f, 0.5f, 0.5f));
     btPairCachingGhostObject *ghostObject = new btPairCachingGhostObject();
@@ -50,11 +55,15 @@ public:
     }
 
     bool checkAndTrigger() {
+        if(triggered) {
+            return false;
+        }
         //Bullet collision callbacks are global, and since player is suppose to collide with world all the time, it doesn't make sense to use them
         for(int i = 0; i < ghostObject->getNumOverlappingObjects(); i++ ) {
             btCollisionObject* object = ghostObject->getOverlappingPairs().at(i);
             if(object->getUserPointer() != nullptr && static_cast<GameObject*>(object->getUserPointer())->getTypeID() == GameObject::PLAYER) {
-                std::cout << "Player contact found" << std::endl;
+                LimonAPI::animateModel(model, animation, false);
+                triggered = true;
                 return true;
             }
         }
