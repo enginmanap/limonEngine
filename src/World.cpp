@@ -148,9 +148,10 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
             trigger->second->checkAndTrigger();
         }
 
-        for(auto animIt = activeAnimations.begin(); animIt != activeAnimations.end(); animIt++) {
+        // ATTENTION iterator is not increased in for, it is done manually.
+        for(auto animIt = activeAnimations.begin(); animIt != activeAnimations.end();) {
             AnimationStatus* animationStatus = &(animIt->second);
-            if((animationStatus->loop ) || animationStatus->animation->getDuration() + animationStatus->startTime > gameTime) {
+            if((animationStatus->loop ) || animationStatus->animation->getDuration() / animationStatus->animation->getTicksPerSecond() * 1000  + animationStatus->startTime > gameTime) {
 
                 float ticksPerSecond;
                 if (animationStatus->animation->getTicksPerSecond() != 0) {
@@ -158,7 +159,7 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
                 } else {
                     ticksPerSecond = 60.0f;
                 }
-                float animationTime = fmod((gameTime / 1000.0f) * ticksPerSecond, animationStatus->animation->getDuration());
+                float animationTime = fmod(((gameTime - animationStatus->startTime) / 1000.0f) * ticksPerSecond, animationStatus->animation->getDuration());
 
                 bool isFound;
                 glm::mat4 tf = animationStatus->animation->calculateTransform(animationTime, isFound);
@@ -173,11 +174,14 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
                 animationStatus->model->getTransformation()->addOrientation(orientation);
                 animationStatus->model->getTransformation()->addScale(scale);
                 animationStatus->model->getTransformation()->addTranslate(translate);
+                animIt++;
             } else {
                 if(!animationStatus->wasKinematic) {
                     animationStatus->model->getRigidBody()->setCollisionFlags(animationStatus->model->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
                 }
-                activeAnimations.erase(animIt);
+                std::cerr << "Animation worked out, deleting" << std::endl;
+                animIt = activeAnimations.erase(animIt);
+
             }
         }
 
@@ -647,12 +651,10 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 GameObject::ImGuiResult request = pickedObject->addImGuiEditorElements(camera->getCameraMatrix(), glHelper->getProjectionMatrix());
                 if(pickedObject->getTypeID() == GameObject::MODEL) {
                     static char animationNameBuffer[32];
-                    ImGui::Columns(2, "AnimationColumns", false);  // 2-ways, no border for animation name
 
-                    ImGui::Text("Custom animation name:");
+                    ImGui::Text("New animation name:");
                     //double # because I don't want to show it
-                    ImGui::InputText("##customAnimationName", animationNameBuffer, sizeof(animationNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
-                    ImGui::NextColumn();
+                    ImGui::InputText("##newAnimationNameField", animationNameBuffer, sizeof(animationNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
 
                     //If there is no animation setup ongoing, or there is one, but not for this model,
                     //put start animation button.
@@ -680,26 +682,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                             animationInProgress->animationNode->rotationTimes.push_back(0.0f);
                         }
 
-                        if(ImGui::Button("load animation")) {
-
-                            AnimationCustom* animation = AnimationLoader::loadAnimation("./Data/Animations/"+ std::string(animationNameBuffer) +".xml");
-                            if(animation == nullptr) {
-                                options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation load failed");
-                            } else {
-                                options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation loaded");
-
-                                animationInProgress = new AnimationStatus();
-                                animationInProgress->animation = animation;
-                                animationInProgress->model = dynamic_cast<Model*>(pickedObject);
-                                // At this point we should know the animationInProgress is for current object
-                                animationInProgress->originalTransformation = *dynamic_cast<Model *>(pickedObject)->getTransformation();
-                                addAnimationToObject(animationInProgress->model, animationInProgress->animation, true);
-                                animationInProgress = nullptr;
-                            }
-                        }
-                        ImGui::Columns(1);  // no coloumn after buttons
                     } else {
-                        ImGui::Columns(1);  // no coloumn if no buttons
                         //this means the original transform is saved, with others(possibly) stacked on top.
                         static int time = 60;
                         ImGui::InputInt("Time of position:", &time);
@@ -776,6 +759,21 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
             ImGui::End();
             ImGui::NewLine();
+            static char loadAnimationNameBuffer[32];
+            ImGui::Text("Load animation:");
+            //double # because I don't want to show it
+            ImGui::InputText("##LoadAnimationNameField", loadAnimationNameBuffer, sizeof(loadAnimationNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
+            if(ImGui::Button("load animation")) {
+
+                AnimationCustom* animation = AnimationLoader::loadAnimation("./Data/Animations/"+ std::string(loadAnimationNameBuffer) +".xml");
+                if(animation == nullptr) {
+                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation load failed");
+                } else {
+                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation loaded");
+                    loadedAnimations.push_back(*animation);
+                }
+            }
+
             if(ImGui::Button("Save Map")) {
                 for(auto animIt = activeAnimations.begin(); animIt != activeAnimations.end(); animIt++) {
                     if(animIt->second.animation->serializeAnimation("./Data/Animations/")) {
@@ -873,7 +871,7 @@ void World::addLight(Light *light) {
     this->lights.push_back(light);
 }
 
-void World::addAnimationToObject(Model *model, AnimationCustom *animation, bool looped) {
+void World::addAnimationToObject(Model *model, const AnimationCustom *animation, bool looped) {
     AnimationStatus as;
     as.model = model;
     as.originalTransformation = (*model->getTransformation());

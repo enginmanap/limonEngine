@@ -36,6 +36,10 @@ public:
         return duration;
     }
 
+    std::string getName() const {
+        return name;
+    }
+
     bool serializeAnimation(const std::string &path) const;
 };
 

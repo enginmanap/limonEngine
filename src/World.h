@@ -15,6 +15,7 @@
 #include "FontManager.h"
 #include "AI/Actor.h"
 #include "GameObjects/SkyBox.h"
+#include "GamePlay/LimonAPI.h"
 
 class btGhostPairCallback;
 class Camera;
@@ -43,7 +44,7 @@ class World {
 
     struct AnimationStatus {
         Model* model = nullptr;
-        AnimationCustom *animation;
+        const AnimationCustom *animation;
         bool loop;
         long startTime;
         Transformation originalTransformation;
@@ -61,6 +62,7 @@ class World {
     uint32_t totalObjectCount = 1;
     std::map<uint32_t, PhysicalRenderable *> objects;
     std::map<uint32_t, TriggerObject*> triggers;
+    std::vector<AnimationCustom> loadedAnimations;
     std::unordered_map<Model*, AnimationStatus> activeAnimations;
     AnimationStatus* animationInProgress = nullptr;
     std::vector<Light *> lights;
@@ -132,6 +134,10 @@ class World {
 
     void ImGuiFrameSetup();
 
+    //API methods
+
+    friend const std::map<uint32_t, PhysicalRenderable *> & LimonAPI::getObjects();
+    friend const std::vector<AnimationCustom> & LimonAPI::getAnimations();
 public:
     ~World();
 
@@ -143,7 +149,7 @@ public:
         return totalObjectCount++;
     }
 
-    void addAnimationToObject(Model *model, AnimationCustom *animation, bool looped);
+    void addAnimationToObject(Model *model, const AnimationCustom *animation, bool looped);
 };
 
 #endif //LIMONENGINE_WORLD_H
