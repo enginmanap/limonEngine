@@ -25,10 +25,10 @@
 #include "WorldSaver.h"
 #include "../libs/ImGuizmo/ImGuizmo.h"
 #include "GameObjects/TriggerObject.h"
-#include "GamePlay/AnimationAssimp.h"
-#include "GamePlay/AnimationLoader.h"
-#include "GamePlay/AnimationNode.h"
-#include "GamePlay/AnimationCustom.h"
+#include "Assets/Animations/AnimationAssimp.h"
+#include "Assets/Animations/AnimationLoader.h"
+#include "Assets/Animations/AnimationNode.h"
+#include "Assets/Animations/AnimationCustom.h"
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)

@@ -6,7 +6,7 @@
 #include "ModelAsset.h"
 #include "../glm/gtx/matrix_decompose.hpp"
 #include "../Utils/GLMUtils.h"
-#include "../GamePlay/AnimationAssimp.h"
+#include "Animations/AnimationAssimp.h"
 
 ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string> &fileList) : Asset(assetManager,
                                                                                                      fileList),
