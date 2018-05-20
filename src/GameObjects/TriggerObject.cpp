@@ -49,6 +49,23 @@ GameObject::ImGuiResult TriggerObject::addImGuiEditorElements(const glm::mat4 &c
         ImGui::EndCombo();
     }
 
+    if(this->enabled) {
+        if(ImGui::Button("Disable Trigger")) {
+            this->enabled = false;
+        }
+    } else {
+        if(this->model != nullptr && this->animation != nullptr) {
+            if (ImGui::Button("Enable Trigger")) {
+                this->enabled = true;
+            }
+        } else {
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+            ImGui::Button("Enable Trigger");
+            ImGui::PopStyleVar();
+
+        }
+    }
+
     return request;
 }
 
