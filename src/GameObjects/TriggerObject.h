@@ -13,6 +13,7 @@
 #include "../Transformation.h"
 #include "../GamePlay/LimonAPI.h"
 #include "../GamePlay/TriggerInterface.h"
+#include "../BulletDebugDrawer.h"
 
 class TriggerObject : public GameObject {
     Transformation transformation;
@@ -21,7 +22,7 @@ class TriggerObject : public GameObject {
     bool enabled = false;
     TriggerInterface* triggerCode;
 
-    btCollisionShape *ghostShape = new btBoxShape(btVector3(0.5f, 0.5f, 0.5f));
+    btCollisionShape *ghostShape = new btBoxShape(btVector3(1.0f, 1.0f, 1.0f));
     btPairCachingGhostObject *ghostObject = new btPairCachingGhostObject();
 
     void updatePhysicsFromTransform() {
@@ -52,6 +53,42 @@ public:
 
     Transformation* getTransformation() {
         return &transformation;
+    }
+
+    void render(BulletDebugDrawer *debugDrawer) {
+        //render 12 lines
+
+        glm::mat4 boxTransform = transformation.getWorldTransform();
+        /* There are 8 points.
+         * xyz
+         * 1 +++
+         * 2 ++-
+         * 3 -++
+         * 4 -+-
+         *
+         * 5 +-+
+         * 6 +--
+         * 7 --+
+         * 8 ---
+         * */
+
+        //top
+        debugDrawer->drawLine(boxTransform* glm::vec4( 1, 1, 1,1), boxTransform* glm::vec4( 1, 1,-1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 1 -> 2
+        debugDrawer->drawLine(boxTransform* glm::vec4( 1, 1,-1,1), boxTransform* glm::vec4(-1, 1,-1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 2 -> 4
+        debugDrawer->drawLine(boxTransform* glm::vec4(-1, 1,-1,1), boxTransform* glm::vec4(-1, 1, 1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 4 -> 3
+        debugDrawer->drawLine(boxTransform* glm::vec4(-1, 1, 1,1), boxTransform* glm::vec4( 1, 1, 1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 3 -> 1
+
+        //bottom
+        debugDrawer->drawLine(boxTransform* glm::vec4( 1,-1, 1,1), boxTransform* glm::vec4( 1,-1,-1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 1 -> 2
+        debugDrawer->drawLine(boxTransform* glm::vec4( 1,-1,-1,1), boxTransform* glm::vec4(-1,-1,-1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 2 -> 4
+        debugDrawer->drawLine(boxTransform* glm::vec4(-1,-1,-1,1), boxTransform* glm::vec4(-1,-1, 1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 4 -> 3
+        debugDrawer->drawLine(boxTransform* glm::vec4(-1,-1, 1,1), boxTransform* glm::vec4( 1,-1, 1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 3 -> 1
+
+        //sides
+        debugDrawer->drawLine(boxTransform* glm::vec4( 1, 1, 1,1), boxTransform* glm::vec4( 1,-1, 1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 1 -> 1
+        debugDrawer->drawLine(boxTransform* glm::vec4( 1, 1,-1,1), boxTransform* glm::vec4( 1,-1,-1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 2 -> 2
+        debugDrawer->drawLine(boxTransform* glm::vec4(-1, 1, 1,1), boxTransform* glm::vec4(-1,-1, 1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 3 -> 3
+        debugDrawer->drawLine(boxTransform* glm::vec4(-1, 1,-1,1), boxTransform* glm::vec4(-1,-1,-1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 4 -> 4
     }
 
     bool checkAndTrigger() {
