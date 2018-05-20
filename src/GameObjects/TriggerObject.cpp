@@ -4,7 +4,7 @@
 
 #include "TriggerObject.h"
 #include "../GamePlay/LimonAPI.h"
-#include "../GamePlay/AnimationCustom.h"
+#include "../Assets/Animations/AnimationCustom.h"
 #include "../../libs/ImGui/imgui.h"
 #include "../GameObjects/Model.h"
 
