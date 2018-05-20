@@ -17,6 +17,7 @@ class TriggerObject : public GameObject {
     Transformation transformation;
     uint32_t objectID;
     bool triggered = false;
+    bool enabled = false;
 
     Model* model = nullptr;
     const AnimationCustom* animation = nullptr;
@@ -55,7 +56,7 @@ public:
     }
 
     bool checkAndTrigger() {
-        if(triggered) {
+        if(triggered || !enabled) {
             return false;
         }
         //Bullet collision callbacks are global, and since player is suppose to collide with world all the time, it doesn't make sense to use them
@@ -85,6 +86,7 @@ public:
 
     GameObject::ImGuiResult addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix);
     /************Game Object methods **************/
+
 
 };
 
