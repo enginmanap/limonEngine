@@ -29,6 +29,7 @@
 #include "Assets/Animations/AnimationLoader.h"
 #include "Assets/Animations/AnimationNode.h"
 #include "Assets/Animations/AnimationCustom.h"
+#include "GamePlay/AnimateOnTrigger.h"
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
@@ -614,8 +615,8 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             }
 
             if(ImGui::Button("Add Trigger")) {
-
-                TriggerObject* to = new TriggerObject(this->getNextObjectID());
+                AnimateOnTrigger* aot = new AnimateOnTrigger();
+                TriggerObject* to = new TriggerObject(this->getNextObjectID(),aot);
                 to->getTransformation()->setTranslate(newObjectPosition);
                 this->dynamicsWorld->addCollisionObject(to->getGhostObject(), btBroadphaseProxy::SensorTrigger,
                                                         btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger);
