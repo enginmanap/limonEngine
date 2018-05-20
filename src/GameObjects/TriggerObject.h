@@ -12,15 +12,14 @@
 #include "GameObject.h"
 #include "../Transformation.h"
 #include "../GamePlay/LimonAPI.h"
+#include "../GamePlay/TriggerInterface.h"
 
 class TriggerObject : public GameObject {
     Transformation transformation;
     uint32_t objectID;
     bool triggered = false;
     bool enabled = false;
-
-    Model* model = nullptr;
-    const AnimationCustom* animation = nullptr;
+    TriggerInterface* triggerCode;
 
     btCollisionShape *ghostShape = new btBoxShape(btVector3(0.5f, 0.5f, 0.5f));
     btPairCachingGhostObject *ghostObject = new btPairCachingGhostObject();
@@ -37,7 +36,7 @@ class TriggerObject : public GameObject {
 
 public:
 
-    TriggerObject(uint32_t id): objectID(id) {
+    TriggerObject(uint32_t id, TriggerInterface* triggerCode): objectID(id), triggerCode(triggerCode) {
         ghostObject->setCollisionShape(ghostShape);
         ghostObject->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
         ghostObject->setWorldTransform(btTransform(btQuaternion::getIdentity(), btVector3()));
@@ -63,9 +62,8 @@ public:
         for(int i = 0; i < ghostObject->getNumOverlappingObjects(); i++ ) {
             btCollisionObject* object = ghostObject->getOverlappingPairs().at(i);
             if(object->getUserPointer() != nullptr && static_cast<GameObject*>(object->getUserPointer())->getTypeID() == GameObject::PLAYER) {
-                LimonAPI::animateModel(model, animation, false);
                 triggered = true;
-                return true;
+                return this->triggerCode->run();
             }
         }
         return false;
