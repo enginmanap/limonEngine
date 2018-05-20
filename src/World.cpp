@@ -180,7 +180,7 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
                     animationStatus->model->getRigidBody()->setCollisionFlags(animationStatus->model->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
                     animationStatus->model->getRigidBody()->setActivationState(ACTIVE_TAG);
                 }
-                std::cerr << "Animation worked out, deleting" << std::endl;
+                options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, "Animation " + animIt->second.animation->getName() +" finished, removing. ");
                 animIt = activeAnimations.erase(animIt);
 
             }
