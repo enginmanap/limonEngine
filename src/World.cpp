@@ -536,6 +536,12 @@ void World::render() {
         grid->debugDraw(debugDrawer);
     }
 
+    if(currentMode == PlayerModes::EDITOR_MODE  && !isQuitRequest) {
+        for (auto it = triggers.begin(); it != triggers.end(); ++it) {
+            it->second->render(debugDrawer);
+        }
+    }
+
     debugDrawer->flushDraws();
 
 
