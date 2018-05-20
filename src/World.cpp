@@ -178,6 +178,7 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
             } else {
                 if(!animationStatus->wasKinematic) {
                     animationStatus->model->getRigidBody()->setCollisionFlags(animationStatus->model->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
+                    animationStatus->model->getRigidBody()->setActivationState(ACTIVE_TAG);
                 }
                 std::cerr << "Animation worked out, deleting" << std::endl;
                 animIt = activeAnimations.erase(animIt);
@@ -884,6 +885,7 @@ void World::addAnimationToObject(Model *model, const AnimationCustom *animation,
     }
     activeAnimations[model] = as;
     model->getRigidBody()->setCollisionFlags(model->getRigidBody()->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+    model->getRigidBody()->setActivationState(DISABLE_DEACTIVATION);
 
 
 
