@@ -8,6 +8,7 @@
 #include <vector>
 #include <tinyxml2.h>
 #include <unordered_map>
+#include <set>
 #include "PhysicalRenderable.h"
 #include "GLHelper.h"
 #include "glm/glm.hpp"
@@ -102,6 +103,49 @@ class World {
     bool isQuitRequest = false;//does the player requested a quit?
     bool isQuitVerified = false;//does the player set it is sure?
 
+    /**
+     * This method checks, if IDs assigned without any empty space, and any collision
+     * and sets the totalObjectCount accordingly.
+     * @return true if everything ok, false if not
+     */
+    bool verifyIDs(){
+        std::set<uint32_t > usedIDs;
+        uint32_t maxID;
+        /** there are 3 places that has IDs,
+         * 1) sky
+         * 2) objects
+         * 3) AIs
+         */
+        //put sky first, since it is guaranteed to be single
+        usedIDs.insert(this->sky->getWorldObjectID());
+        maxID = this->sky->getWorldObjectID();
+
+        for(auto object = objects.begin(); object != objects.end(); object++) {
+            auto result = usedIDs.insert(object->first);
+            if(result.second == false) {
+                return false;
+            }
+            maxID = object->first;
+        }
+
+        for(auto actor = actors.begin(); actor != actors.end(); actor++) {
+            auto result = usedIDs.insert(actor->first);
+            if(result.second == false) {
+                return false;
+            }
+            maxID = actor->first;
+        }
+
+        for(uint32_t index = 0; index <= maxID; index++) {
+            if(usedIDs.count(index != 1)) {
+                //TODO this should be ok, logging just to check. Can be removed in the future
+                std::cout << "found empty ID" << index << std::endl;
+            }
+        }
+
+        totalObjectCount = maxID+1;
+        return true;
+    }
 
     bool handlePlayerInput(InputHandler &inputHandler);
 

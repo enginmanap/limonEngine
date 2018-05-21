@@ -144,6 +144,10 @@ bool WorldSaver::addSky(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *s
     currentElement->SetText(world->sky->getPath().c_str());
     skyNode->InsertEndChild(currentElement);
 
+    currentElement = document.NewElement("ID");
+    currentElement->SetText(world->sky->getWorldObjectID());
+    skyNode->InsertEndChild(currentElement);
+
     currentElement = document.NewElement("Right");
     currentElement->SetText(world->sky->getRight().c_str());
     skyNode->InsertEndChild(currentElement);

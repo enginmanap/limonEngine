@@ -283,10 +283,18 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
         currentElement = document.NewElement("AI");
         currentElement->SetText("True");
         objectElement->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("AI_ID");
+        currentElement->SetText(this->AIActor->getWorldID());
+        objectElement->InsertEndChild(currentElement);
     }
 
     currentElement = document.NewElement("Mass");
     currentElement->SetText(mass);
+    objectElement->InsertEndChild(currentElement);
+
+    currentElement = document.NewElement("ID");
+    currentElement->SetText(objectID);
     objectElement->InsertEndChild(currentElement);
 
     tinyxml2::XMLElement *parent = document.NewElement("Scale");

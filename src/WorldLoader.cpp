@@ -17,11 +17,17 @@ WorldLoader::WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options
 
 World* WorldLoader::loadWorld(const std::string& worldFile) const {
     World* newWorld = new World(assetManager, glHelper, options);
+
     if(!loadMapFromXML(worldFile, newWorld)) {
         std::cerr << "world load failed" << std::endl;
         delete newWorld;
         return nullptr;
     }
+    if(!(newWorld->verifyIDs())) {
+        std::cerr << "world ID verification failed" << std::endl;
+        delete newWorld;
+        return nullptr;
+    };
     LimonAPI::setWorld(newWorld);
     return newWorld;
 }
@@ -96,8 +102,16 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
         } else {
             modelMass = std::stof(objectAttribute->GetText());
         }
+        int id;
+        objectAttribute =  objectNode->FirstChildElement("ID");
+        if (objectAttribute == nullptr) {
+            std::cout << "Object does not have ID. Can't be loaded" << std::endl;
+            return false;
+        } else {
+            id = std::stoi(objectAttribute->GetText());
+        }
 
-        xmlModel = new Model(world->getNextObjectID(), assetManager, modelMass, modelFile);
+        xmlModel = new Model(id, assetManager, modelMass, modelFile);
 
         objectAttribute =  objectNode->FirstChildElement("Scale");
         if (objectAttribute == nullptr) {
@@ -184,13 +198,21 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
         if (objectAttribute == nullptr) {
             std::cout << "Object does not have AI." << std::endl;
         } else {
+            int ai_id;
+            objectAttribute =  objectNode->FirstChildElement("AI_ID");
+            if (objectAttribute == nullptr) {
+                std::cout << "Object AI does not have ID. Can't be loaded" << std::endl;
+                return false;
+            } else {
+                ai_id = std::stoi(objectAttribute->GetText());
+            }
             if (!isAIGridStartPointSet) {
                 aiGridStartPoint = GLMConverter::BltToGLM(xmlModel->getRigidBody()->getCenterOfMassPosition()) +
                                    glm::vec3(0, 2.0f, 0);
                 isAIGridStartPointSet = true;
             }
             std::cout << "Object has AI." << std::endl;
-            HumanEnemy* newEnemy = new HumanEnemy(world->getNextObjectID());
+            HumanEnemy* newEnemy = new HumanEnemy(ai_id);
             newEnemy->setModel(xmlModel);
             world->addActor(newEnemy);
         }
@@ -278,8 +300,16 @@ bool WorldLoader::loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const 
     }
     front = frontNode->GetText();
 
+    int id;
+    tinyxml2::XMLElement* idNode =  skyNode->FirstChildElement("ID");
+    if (frontNode == nullptr) {
+        std::cerr << "Sky map must have ID. Can't be loaded." << std::endl;
+        return false;
+    }
+    id = std::stoi(idNode->GetText());
+
     world->setSky(
-            new SkyBox(world->getNextObjectID(), assetManager, std::string(path), std::string(right), std::string(left),
+            new SkyBox(id, assetManager, std::string(path), std::string(right), std::string(left),
                        std::string(top),
                        std::string(bottom), std::string(back), std::string(front)));
     return true;
