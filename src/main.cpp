@@ -39,6 +39,10 @@ int main(int argc, char *argv[]) {
     AssetManager assetManager(&glHelper);
     WorldLoader* worldLoader = new WorldLoader(&assetManager, &glHelper, &options);
     World* world = worldLoader->loadWorld(worldName);
+    if(world == nullptr) {
+        std::cerr << "WorldLoader didn't hand out a valid world. exiting.." << std::endl;
+        exit(-1);
+    }
     glHelper.clearFrame();
     Uint32 previousTime = SDL_GetTicks();
     Uint32 currentTime, frameTime, accumulatedTime = 0;

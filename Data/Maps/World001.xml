@@ -1,66 +1,68 @@
 <World>
-    <Name>Test01</Name>
+    <Name>./Data/Maps/CustomWorld001.xml</Name>
     <Objects>
-        <Object>
+        <!--<Object>
             <File>./Data/Models/ArmyPilot/ArmyPilot.mesh.xml</File>
-            <Mass>0</Mass>
-            <AI>True</AI>
             <Animation>Idle</Animation>
+            <AI>True</AI>
+            <AI_ID>2</AI_ID>
+            <Mass>0</Mass>
+            <ID>1</ID>
             <Scale>
                 <X>0.02</X>
                 <Y>0.02</Y>
                 <Z>0.02</Z>
             </Scale>
             <Translate>
-                <X>10.0</X>
-                <Y>1.0</Y>
-                <Z>20.0</Z>
+                <X>10</X>
+                <Y>1</Y>
+                <Z>20</Z>
             </Translate>
-        </Object>
+        </Object>-->
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>0</Mass>
+            <ID>3</ID>
             <Scale>
-                <X>35.0</X>
-                <Y>1.0</Y>
-                <Z>35.0</Z>
+                <X>35</X>
+                <Y>1</Y>
+                <Z>35</Z>
             </Scale>
+        </Object>
+        <Object>
+            <File>./Data/Models/Box/Box.obj</File>
+            <Mass>1</Mass>
+            <ID>4</ID>
             <Translate>
-                <X>0.0</X>
-                <Y>0.0</Y>
-                <Z>0.0</Z>
+                <X>2</X>
+                <Y>25</Y>
+                <Z>-3</Z>
             </Translate>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>1</Mass>
+            <ID>5</ID>
             <Translate>
-                <X>2.0</X>
-                <Y>25.0</Y>
-                <Z>-3.0</Z>
+                <X>-2</X>
+                <Y>23</Y>
+                <Z>-3</Z>
             </Translate>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>1</Mass>
+            <ID>6</ID>
             <Translate>
-                <X>-2.0</X>
-                <Y>23.0</Y>
-                <Z>-3.0</Z>
-            </Translate>
-        </Object>
-        <Object>
-            <File>./Data/Models/Box/Box.obj</File>
-            <Mass>1</Mass>
-            <Translate>
-                <X>2.0</X>
-                <Y>23.0</Y>
-                <Z>-3.0</Z>
+                <X>2</X>
+                <Y>23</Y>
+                <Z>-3</Z>
             </Translate>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>0</Mass>
+            <ID>7</ID>
             <Scale>
                 <X>0.25</X>
                 <Y>0.25</Y>
@@ -75,13 +77,14 @@
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>0</Mass>
+            <ID>8</ID>
             <Scale>
                 <X>0.5</X>
                 <Y>0.5</Y>
                 <Z>1</Z>
             </Scale>
             <Translate>
-                <X>0.753</X>
+                <X>0.75</X>
                 <Y>1.5</Y>
                 <Z>0.02</Z>
             </Translate>
@@ -89,6 +92,7 @@
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>0</Mass>
+            <ID>9</ID>
             <Scale>
                 <X>0.75</X>
                 <Y>0.75</Y>
@@ -103,20 +107,17 @@
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>0</Mass>
-            <Scale>
-                <X>1.0</X>
-                <Y>1.0</Y>
-                <Z>1.0</Z>
-            </Scale>
+            <ID>10</ID>
             <Translate>
-                <X>2.53</X>
-                <Y>2.0</Y>
+                <X>2.5</X>
+                <Y>2</Y>
                 <Z>0.02</Z>
             </Translate>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>5</Mass>
+            <ID>11</ID>
             <Translate>
                 <X>-3.0</X>
                 <Y>2.5</Y>
@@ -126,34 +127,36 @@
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>0</Mass>
+            <ID>12</ID>
             <Scale>
                 <X>0.02</X>
                 <Y>0.02</Y>
                 <Z>0.02</Z>
             </Scale>
             <Translate>
-                <X>1.0</X>
-                <Y>6.0</Y>
-                <Z>0.0</Z>
+                <X>1</X>
+                <Y>6</Y>
+                <Z>0</Z>
             </Translate>
         </Object>
         <Object>
             <File>./Data/Models/Wall/archandwalls.obj</File>
             <Mass>0</Mass>
+            <ID>13</ID>
             <Scale>
                 <X>0.05</X>
                 <Y>0.1</Y>
                 <Z>0.05</Z>
             </Scale>
             <Translate>
-                <X>10.0</X>
-                <Y>10.0</Y>
-                <Z>10.0</Z>
+                <X>10</X>
+                <Y>10</Y>
+                <Z>10</Z>
             </Translate>
             <Rotate>
-                <X>0.0</X>
+                <X>0</X>
                 <Y>0.7</Y>
-                <Z>0.0</Z>
+                <Z>0</Z>
                 <W>0.7</W>
             </Rotate>
         </Object>
@@ -161,20 +164,51 @@
             <File>./Data/Models/Dwarf/dwarf.x</File>
             <Animation>AnimationSet2</Animation>
             <Mass>50</Mass>
+            <ID>14</ID>
             <Scale>
                 <X>0.06</X>
                 <Y>0.06</Y>
                 <Z>0.06</Z>
             </Scale>
             <Translate>
-                <X>-3.0</X>
-                <Y>1.0</Y>
-                <Z>-3.0</Z>
+                <X>-3</X>
+                <Y>1</Y>
+                <Z>-3</Z>
             </Translate>
         </Object>
     </Objects>
+    <Lights>
+        <Light>
+            <Type>POINT</Type>
+            <Position>
+                <X>1</X>
+                <Y>6</Y>
+                <Z>0</Z>
+            </Position>
+            <Color>
+                <R>0.7</R>
+                <G>0.7</G>
+                <B>0.7</B>
+            </Color>
+        </Light>
+        <Light>
+            <Type>DIRECTIONAL</Type>
+            <Position>
+                <X>-25</X>
+                <Y>50</Y>
+                <Z>-25</Z>
+            </Position>
+            <Color>
+                <R>0.7</R>
+                <G>0.7</G>
+                <B>0.7</B>
+            </Color>
+        </Light>
+		
+    </Lights>
     <Sky>
         <ImagesPath>./Data/Textures/Skyboxes/ThickCloudsWater</ImagesPath>
+        <ID>15</ID>
         <Right>right.jpg</Right>
         <Left>left.jpg</Left>
         <Top>top.jpg</Top>
@@ -182,46 +216,4 @@
         <Back>back.jpg</Back>
         <Front>front.jpg</Front>
     </Sky>
-    <Lights>
-        <Light>
-            <Type>POINT</Type>
-            <Position>
-                <X>1.0</X>
-                <Y>6.0</Y>
-                <Z>0.0</Z>
-            </Position>
-            <Color>
-                <R>0.7</R>
-                <G>0.7</G>
-                <B>0.7</B>
-            </Color>
-        </Light>
-        <!--<Light>
-            <Type>POINT</Type>
-            <Position>
-                <X>0.7</X>
-                <Y>0.7</Y>
-                <Z>0.7</Z>
-            </Position>
-            <Color>
-                <R>1.0</R>
-                <G>0.0</G>
-                <B>0.0</B>
-            </Color>
-        </Light>-->
-
-        <Light>
-            <Type>DIRECTIONAL</Type>
-            <Position>
-                <X>-25.0</X>
-                <Y>50.0</Y>
-                <Z>-25.0</Z>
-            </Position>
-            <Color>
-                <R>0.7</R>
-                <G>0.7</G>
-                <B>0.7</B>
-            </Color>
-        </Light>
-    </Lights>
 </World>
