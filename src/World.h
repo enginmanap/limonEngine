@@ -136,8 +136,8 @@ class World {
             maxID = actor->first;
         }
 
-        for(uint32_t index = 0; index <= maxID; index++) {
-            if(usedIDs.count(index != 1)) {
+        for(uint32_t index = 1; index <= maxID; index++) {
+            if(usedIDs.count(index) != 1) {
                 //TODO this should be ok, logging just to check. Can be removed in the future
                 std::cout << "found empty ID" << index << std::endl;
             }
