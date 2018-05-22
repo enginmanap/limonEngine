@@ -292,6 +292,7 @@ bool Transformation::deserialize(tinyxml2::XMLElement *transformationNode) {
         } else {
             this->orientation.w = 0.0;
         }
+        this->orientation = glm::normalize(this->orientation);
     }
     //now propagate the load
     propagateUpdate();
