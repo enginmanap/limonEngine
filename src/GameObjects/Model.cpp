@@ -296,45 +296,7 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
     currentElement = document.NewElement("ID");
     currentElement->SetText(objectID);
     objectElement->InsertEndChild(currentElement);
-
-    tinyxml2::XMLElement *parent = document.NewElement("Scale");
-    currentElement = document.NewElement("X");
-    currentElement->SetText(transformation.getScale().x);
-    parent->InsertEndChild(currentElement);
-    currentElement = document.NewElement("Y");
-    currentElement->SetText(transformation.getScale().y);
-    parent->InsertEndChild(currentElement);
-    currentElement = document.NewElement("Z");
-    currentElement->SetText(transformation.getScale().z);
-    parent->InsertEndChild(currentElement);
-    objectElement->InsertEndChild(parent);
-
-    parent = document.NewElement("Translate");
-    currentElement = document.NewElement("X");
-    currentElement->SetText(transformation.getTranslate().x);
-    parent->InsertEndChild(currentElement);
-    currentElement = document.NewElement("Y");
-    currentElement->SetText(transformation.getTranslate().y);
-    parent->InsertEndChild(currentElement);
-    currentElement = document.NewElement("Z");
-    currentElement->SetText(transformation.getTranslate().z);
-    parent->InsertEndChild(currentElement);
-    objectElement->InsertEndChild(parent);
-
-    parent = document.NewElement("Rotate");
-    currentElement = document.NewElement("X");
-    currentElement->SetText(transformation.getOrientation().x);
-    parent->InsertEndChild(currentElement);
-    currentElement = document.NewElement("Y");
-    currentElement->SetText(transformation.getOrientation().y);
-    parent->InsertEndChild(currentElement);
-    currentElement = document.NewElement("Z");
-    currentElement->SetText(transformation.getOrientation().z);
-    parent->InsertEndChild(currentElement);
-    currentElement = document.NewElement("W");
-    currentElement->SetText(transformation.getOrientation().w);
-    parent->InsertEndChild(currentElement);
-    objectElement->InsertEndChild(parent);
+    transformation.serialize(document, objectElement);
 }
 
 uint32_t Model::getAIID() {

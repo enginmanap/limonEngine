@@ -2,6 +2,8 @@
 // Created by engin on 13.05.2018.
 //
 
+#include <tinyxml2.h>
+#include <glm/gtc/quaternion.hpp>
 #include "Transformation.h"
 #include "../libs/ImGui/imgui.h"
 #include "../libs/ImGuizmo/ImGuizmo.h"
@@ -162,4 +164,136 @@ void Transformation::getDifference(const Transformation& otherTransformation, gl
     rotationOut = otherTransformation.orientation;
     rotationOut = glm::inverse(rotationOut);
     rotationOut = rotationOut * this->orientation;
+}
+
+bool Transformation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) const {
+    tinyxml2::XMLElement* currentElement;
+    tinyxml2::XMLElement *classNode = document.NewElement("Transformation");
+    parentNode->InsertEndChild(classNode);
+
+    tinyxml2::XMLElement *parent = document.NewElement("Scale");
+    currentElement = document.NewElement("X");
+    currentElement->SetText(scale.x);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Y");
+    currentElement->SetText(scale.y);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Z");
+    currentElement->SetText(scale.z);
+    parent->InsertEndChild(currentElement);
+    classNode->InsertEndChild(parent);
+
+    parent = document.NewElement("Translate");
+    currentElement = document.NewElement("X");
+    currentElement->SetText(translate.x);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Y");
+    currentElement->SetText(translate.y);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Z");
+    currentElement->SetText(translate.z);
+    parent->InsertEndChild(currentElement);
+    classNode->InsertEndChild(parent);
+
+    parent = document.NewElement("Rotate");
+    currentElement = document.NewElement("X");
+    currentElement->SetText(orientation.x);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Y");
+    currentElement->SetText(orientation.y);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Z");
+    currentElement->SetText(orientation.z);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("W");
+    currentElement->SetText(orientation.w);
+    parent->InsertEndChild(currentElement);
+    classNode->InsertEndChild(parent);
+
+    return true;
+}
+
+bool Transformation::deserialize(tinyxml2::XMLElement *transformationNode) {
+    tinyxml2::XMLElement* transformationAttribute;
+    tinyxml2::XMLElement* transformationAttributeAttribute;
+    transformationAttribute =  transformationNode->FirstChildElement("Scale");
+    if (transformationAttribute == nullptr) {
+        std::cout << "Transformation does not have scale." << std::endl;
+    } else {
+        transformationAttributeAttribute =  transformationAttribute->FirstChildElement("X");
+        if(transformationAttributeAttribute != nullptr) {
+            this->scale.x = std::stof(transformationAttributeAttribute->GetText());
+        } else {
+            this->scale.x = 1.0;
+        }
+        transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Y");
+        if(transformationAttributeAttribute != nullptr) {
+            this->scale.y = std::stof(transformationAttributeAttribute->GetText());
+        } else {
+            this->scale.y = 1.0;
+        }
+        transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Z");
+        if(transformationAttributeAttribute != nullptr) {
+            this->scale.z = std::stof(transformationAttributeAttribute->GetText());
+        } else {
+            this->scale.z = 1.0;
+        }
+    }
+
+    transformationAttribute =  transformationNode->FirstChildElement("Translate");
+    if (transformationAttribute == nullptr) {
+        std::cout << "Transformation does not have translate." << std::endl;
+    } else {
+        transformationAttributeAttribute =  transformationAttribute->FirstChildElement("X");
+        if(transformationAttributeAttribute != nullptr) {
+            this->translate.x = std::stof(transformationAttributeAttribute->GetText());
+        } else {
+            this->translate.x = 0.0;
+        }
+        transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Y");
+        if(transformationAttributeAttribute != nullptr) {
+            this->translate.y = std::stof(transformationAttributeAttribute->GetText());
+        } else {
+            this->translate.y = 0.0;
+        }
+        transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Z");
+        if(transformationAttributeAttribute != nullptr) {
+            this->translate.z = std::stof(transformationAttributeAttribute->GetText());
+        } else {
+            this->translate.z = 0.0;
+        }
+    }
+
+    transformationAttribute =  transformationNode->FirstChildElement("Rotate");
+    if (transformationAttribute == nullptr) {
+        std::cout << "Transformation does not have Rotation." << std::endl;
+    } else {
+        transformationAttributeAttribute =  transformationAttribute->FirstChildElement("X");
+        if(transformationAttributeAttribute != nullptr) {
+            this->orientation.x = std::stof(transformationAttributeAttribute->GetText());
+        } else {
+            this->orientation.x = 0.0;
+        }
+        transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Y");
+        if(transformationAttributeAttribute != nullptr) {
+            this->orientation.y = std::stof(transformationAttributeAttribute->GetText());
+        } else {
+            this->orientation.y = 0.0;
+        }
+        transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Z");
+        if(transformationAttributeAttribute != nullptr) {
+            this->orientation.z = std::stof(transformationAttributeAttribute->GetText());
+        } else {
+            this->orientation.z = 0.0;
+        }
+        transformationAttributeAttribute =  transformationAttribute->FirstChildElement("W");
+        if(transformationAttributeAttribute != nullptr) {
+            this->orientation.w = std::stof(transformationAttributeAttribute->GetText());
+        } else {
+            this->orientation.w = 0.0;
+        }
+    }
+    //now propagate the load
+    propagateUpdate();
+    return true;
 }
