@@ -1,180 +1,191 @@
 <World>
     <Name>./Data/Maps/CustomWorld001.xml</Name>
     <Objects>
-        <!--<Object>
-            <File>./Data/Models/ArmyPilot/ArmyPilot.mesh.xml</File>
-            <Animation>Idle</Animation>
-            <AI>True</AI>
-            <AI_ID>2</AI_ID>
-            <Mass>0</Mass>
-            <ID>1</ID>
-            <Scale>
-                <X>0.02</X>
-                <Y>0.02</Y>
-                <Z>0.02</Z>
-            </Scale>
-            <Translate>
-                <X>10</X>
-                <Y>1</Y>
-                <Z>20</Z>
-            </Translate>
-        </Object>-->
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>0</Mass>
             <ID>3</ID>
-            <Scale>
-                <X>35</X>
-                <Y>1</Y>
-                <Z>35</Z>
-            </Scale>
+            <Transformation>
+                <Scale>
+                    <X>35</X>
+                    <Y>1</Y>
+                    <Z>35</Z>
+                </Scale>
+                <Translate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                </Translate>
+            </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>1</Mass>
             <ID>4</ID>
-            <Translate>
-                <X>2</X>
-                <Y>25</Y>
-                <Z>-3</Z>
-            </Translate>
+            <Transformation>
+                <Translate>
+                    <X>2</X>
+                    <Y>25</Y>
+                    <Z>-3</Z>
+                </Translate>
+            </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>1</Mass>
             <ID>5</ID>
-            <Translate>
-                <X>-2</X>
-                <Y>23</Y>
-                <Z>-3</Z>
-            </Translate>
+            <Transformation>
+                <Translate>
+                    <X>-2</X>
+                    <Y>23</Y>
+                    <Z>-3</Z>
+                </Translate>
+            </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>1</Mass>
             <ID>6</ID>
-            <Translate>
-                <X>2</X>
-                <Y>23</Y>
-                <Z>-3</Z>
-            </Translate>
+            <Transformation>
+                <Translate>
+                    <X>2</X>
+                    <Y>23</Y>
+                    <Z>-3</Z>
+                </Translate>
+            </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>0</Mass>
             <ID>7</ID>
-            <Scale>
-                <X>0.25</X>
-                <Y>0.25</Y>
-                <Z>1</Z>
-            </Scale>
-            <Translate>
-                <X>0.03</X>
-                <Y>1.25</Y>
-                <Z>0.02</Z>
-            </Translate>
+            <Transformation>
+                <Scale>
+                    <X>0.25</X>
+                    <Y>0.25</Y>
+                    <Z>1</Z>
+                </Scale>
+                <Translate>
+                    <X>0.03</X>
+                    <Y>1.25</Y>
+                    <Z>0.02</Z>
+                </Translate>
+            </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>0</Mass>
             <ID>8</ID>
-            <Scale>
-                <X>0.5</X>
-                <Y>0.5</Y>
-                <Z>1</Z>
-            </Scale>
-            <Translate>
-                <X>0.75</X>
-                <Y>1.5</Y>
-                <Z>0.02</Z>
-            </Translate>
+            <Transformation>
+                <Scale>
+                    <X>0.5</X>
+                    <Y>0.5</Y>
+                    <Z>1</Z>
+                </Scale>
+                <Translate>
+                    <X>0.75</X>
+                    <Y>1.5</Y>
+                    <Z>0.02</Z>
+                </Translate>
+            </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>0</Mass>
             <ID>9</ID>
-            <Scale>
-                <X>0.75</X>
-                <Y>0.75</Y>
-                <Z>1</Z>
-            </Scale>
-            <Translate>
-                <X>1.53</X>
-                <Y>1.75</Y>
-                <Z>0.02</Z>
-            </Translate>
+            <Transformation>
+                <Scale>
+                    <X>0.75</X>
+                    <Y>0.75</Y>
+                    <Z>1</Z>
+                </Scale>
+                <Translate>
+                    <X>1.53</X>
+                    <Y>1.75</Y>
+                    <Z>0.02</Z>
+                </Translate>
+            </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>0</Mass>
             <ID>10</ID>
-            <Translate>
-                <X>2.5</X>
-                <Y>2</Y>
-                <Z>0.02</Z>
-            </Translate>
+            <Transformation>
+                <Translate>
+                    <X>2.5</X>
+                    <Y>2</Y>
+                    <Z>0.02</Z>
+                </Translate>
+            </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>5</Mass>
             <ID>11</ID>
-            <Translate>
-                <X>-3.0</X>
-                <Y>2.5</Y>
-                <Z>-3.0</Z>
-            </Translate>
+            <Transformation>
+                <Translate>
+                    <X>2</X>
+                    <Y>21</Y>
+                    <Z>-3</Z>
+                </Translate>
+            </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Mass>0</Mass>
             <ID>12</ID>
-            <Scale>
-                <X>0.02</X>
-                <Y>0.02</Y>
-                <Z>0.02</Z>
-            </Scale>
-            <Translate>
-                <X>1</X>
-                <Y>6</Y>
-                <Z>0</Z>
-            </Translate>
+            <Transformation>
+                <Scale>
+                    <X>0.02</X>
+                    <Y>0.02</Y>
+                    <Z>0.02</Z>
+                </Scale>
+                <Translate>
+                    <X>1</X>
+                    <Y>6</Y>
+                    <Z>0</Z>
+                </Translate>
+            </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/Wall/archandwalls.obj</File>
             <Mass>0</Mass>
             <ID>13</ID>
-            <Scale>
-                <X>0.05</X>
-                <Y>0.1</Y>
-                <Z>0.05</Z>
-            </Scale>
-            <Translate>
-                <X>10</X>
-                <Y>10</Y>
-                <Z>10</Z>
-            </Translate>
-            <Rotate>
-                <X>0</X>
-                <Y>0.7</Y>
-                <Z>0</Z>
-                <W>0.7</W>
-            </Rotate>
+            <Transformation>
+                <Scale>
+                    <X>0.05</X>
+                    <Y>0.1</Y>
+                    <Z>0.05</Z>
+                </Scale>
+                <Translate>
+                    <X>10</X>
+                    <Y>10</Y>
+                    <Z>10</Z>
+                </Translate>
+                <Rotate>
+                    <X>0</X>
+                    <Y>0.7</Y>
+                    <Z>0</Z>
+                    <W>0.7</W>
+                </Rotate>
+            </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/Dwarf/dwarf.x</File>
             <Animation>AnimationSet2</Animation>
             <Mass>50</Mass>
             <ID>14</ID>
-            <Scale>
-                <X>0.06</X>
-                <Y>0.06</Y>
-                <Z>0.06</Z>
-            </Scale>
-            <Translate>
-                <X>-3</X>
-                <Y>1</Y>
-                <Z>-3</Z>
-            </Translate>
+            <Transformation>
+                <Scale>
+                    <X>0.06</X>
+                    <Y>0.06</Y>
+                    <Z>0.06</Z>
+                </Scale>
+                <Translate>
+                    <X>-3</X>
+                    <Y>1</Y>
+                    <Z>-3</Z>
+                </Translate>
+            </Transformation>
         </Object>
     </Objects>
     <Lights>
@@ -204,7 +215,6 @@
                 <B>0.7</B>
             </Color>
         </Light>
-		
     </Lights>
     <Sky>
         <ImagesPath>./Data/Textures/Skyboxes/ThickCloudsWater</ImagesPath>
