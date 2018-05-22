@@ -8,6 +8,7 @@
 #include "WorldSaver.h"
 #include "World.h"
 #include "GameObjects/Light.h"
+#include "Assets/Animations/AnimationCustom.h"
 
 /************************************************************************************
  * Map file spec
@@ -17,17 +18,21 @@
  *          Object (for each)
  *              File
                 Mass
-                Scale
-                    X,Y,Z
-                Translate
-                    X,Y,Z
-                Rotate
-                    X,Y,Z
-                Animation
+                ID
+                Transformation
+                    Scale
+                        X,Y,Z
+                    Translate
+                        X,Y,Z
+                    Rotate
+                        X,Y,Z
+                    Animation
                 AI (True, False)
+                    AI_ID (If AI true)
 
  *      Sky
  *                  ImagesPath
+ *                  ID
                     Right
                     Left
                     Top
@@ -41,6 +46,11 @@
                         X,Y,Z
                     Color
                         R,G,B
+ *      LoadedAnimations
+ *              LoadedAnimation
+ *                  Name
+ *                  Index
+ *
  */
 
 #define XMLCheckResult(a_eResult) if (a_eResult != XML_SUCCESS) { printf("Error: %i\n", a_eResult); return a_eResult; }
@@ -71,6 +81,12 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
 
     currentElement = mapDocument.NewElement("Sky");
     if(!addSky(mapDocument, currentElement, world)) {
+        return false;
+    };
+    rootNode->InsertEndChild(currentElement);//add lights
+
+    currentElement = mapDocument.NewElement("LoadedAnimations");
+    if(!fillLoadedAnimations(mapDocument, currentElement, world)) {
         return false;
     };
     rootNode->InsertEndChild(currentElement);//add lights
@@ -172,4 +188,20 @@ bool WorldSaver::addSky(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *s
     currentElement->SetText(world->sky->getFront().c_str());
     skyNode->InsertEndChild(currentElement);
     return true;
+}
+
+bool WorldSaver::fillLoadedAnimations(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *loadedAnimationsNode, const World *world) {
+    for(size_t index = 0; index < world->loadedAnimations.size(); index++) {
+
+        tinyxml2::XMLElement *animationElement = document.NewElement("LoadedAnimation");
+        loadedAnimationsNode->InsertEndChild(animationElement);
+        tinyxml2::XMLElement *currentElement = document.NewElement("Name");
+        currentElement->SetText(world->loadedAnimations[index].getName().c_str());
+        animationElement->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Index");
+        currentElement->SetText(std::to_string(index).c_str());
+        animationElement->InsertEndChild(currentElement);
+    }
+    return true;
+
 }

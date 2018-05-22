@@ -32,6 +32,8 @@ public:
     World* loadWorld(const std::string& worldFile) const;
 
     ~WorldLoader();
+
+    bool loadAnimations(tinyxml2::XMLNode *worldNode, World *world) const;
 };
 
 

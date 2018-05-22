@@ -8,6 +8,8 @@
 #include "GameObjects/SkyBox.h"
 #include "GameObjects/Light.h"
 #include "GamePlay/LimonAPI.h"
+#include "Assets/Animations/AnimationLoader.h"
+#include "Assets/Animations/AnimationCustom.h"
 
 WorldLoader::WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options* options):
         options(options),
@@ -58,6 +60,8 @@ bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world)
     if(!loadObjectsFromXML(worldNode, world)) {
         return false;
     }
+
+    loadAnimations(worldNode, world);
     //load Skymap
     loadSkymap(worldNode, world);
 
@@ -345,4 +349,49 @@ WorldLoader::~WorldLoader() {
     for (unsigned int i = 0; i < loadedWorlds.size(); ++i) {
         delete loadedWorlds[i];
     }
+}
+
+bool WorldLoader::loadAnimations(tinyxml2::XMLNode *worldNode, World *world) const {
+    tinyxml2::XMLElement* loadedAnimationsListNode =  worldNode->FirstChildElement("LoadedAnimations");
+    if (loadedAnimationsListNode == nullptr) {
+        std::cerr << "LoadedAnimations clause not found." << std::endl;
+        return false;
+    }
+
+
+    tinyxml2::XMLElement* loadedAnimationNode =  loadedAnimationsListNode->FirstChildElement("LoadedAnimation");
+    if (loadedAnimationNode == nullptr) {
+        std::cerr << "Loaded animations did not have at least one animation." << std::endl;
+        return false;
+    }
+
+    tinyxml2::XMLElement* animationAttribute;
+    while(loadedAnimationNode != nullptr) {
+        animationAttribute = loadedAnimationNode->FirstChildElement("Name");
+        if (animationAttribute == nullptr) {
+            std::cerr << "Animation must have a name." << std::endl;
+            return false;
+        }
+        std::string name = animationAttribute->GetText();
+
+        animationAttribute = loadedAnimationNode->FirstChildElement("Index");
+        if (animationAttribute == nullptr) {
+            std::cerr << "Animation must have a name." << std::endl;
+            return false;
+        }
+        uint32_t index = std::stoi(animationAttribute->GetText());
+
+        AnimationCustom* animation = AnimationLoader::loadAnimation("./Data/Animations/"+ std::string(name) +".xml");
+        if(animation == nullptr) {
+            std::cout << "Animation " << name << " load failed" << std::endl;
+            return false;
+        } else {
+            std::cout << "Animation " << name << " loaded" << std::endl;
+            world->loadedAnimations.insert(world->loadedAnimations.begin() + index, *animation);
+            delete animation;
+        }
+        loadedAnimationNode =  loadedAnimationNode->NextSiblingElement("LoadedAnimation");
+    }
+    return true;
+
 }
