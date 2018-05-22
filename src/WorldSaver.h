@@ -15,6 +15,7 @@ private:
 public:
     static bool saveWorld(const std::string& mapName, const World* world);
 
+    static bool fillLoadedAnimations(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *loadedAnimationsNode, const World *world);
 };
 
 
