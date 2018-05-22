@@ -81,10 +81,8 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
     }
     Model *xmlModel;
     tinyxml2::XMLElement* objectAttribute;
-    tinyxml2::XMLElement* objectAttributeAttribute;
     std::string modelFile;
     float modelMass;
-    float x,y,z,w;
     std::vector<Model*> notStaticObjects;
     bool isAIGridStartPointSet = false;
     glm::vec3 aiGridStartPoint;
@@ -105,94 +103,20 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
         int id;
         objectAttribute =  objectNode->FirstChildElement("ID");
         if (objectAttribute == nullptr) {
-            std::cout << "Object does not have ID. Can't be loaded" << std::endl;
+            std::cerr << "Object does not have ID. Can't be loaded" << std::endl;
             return false;
         } else {
             id = std::stoi(objectAttribute->GetText());
         }
-
         xmlModel = new Model(id, assetManager, modelMass, modelFile);
 
-        objectAttribute =  objectNode->FirstChildElement("Scale");
-        if (objectAttribute == nullptr) {
-            std::cout << "Object does not have scale." << std::endl;
-        } else {
-            objectAttributeAttribute =  objectAttribute->FirstChildElement("X");
-            if(objectAttributeAttribute != nullptr) {
-                x = std::stof(objectAttributeAttribute->GetText());
-            } else {
-                x = 1.0;
-            }
-            objectAttributeAttribute =  objectAttribute->FirstChildElement("Y");
-            if(objectAttributeAttribute != nullptr) {
-                y = std::stof(objectAttributeAttribute->GetText());
-            } else {
-                y = 1.0;
-            }
-            objectAttributeAttribute =  objectAttribute->FirstChildElement("Z");
-            if(objectAttributeAttribute != nullptr) {
-                z = std::stof(objectAttributeAttribute->GetText());
-            } else {
-                z = 1.0;
-            }
-            xmlModel->getTransformation()->addScale(glm::vec3(x,y,z));
+        objectAttribute =  objectNode->FirstChildElement("Transformation");
+        if(objectAttribute == nullptr) {
+            std::cerr << "Object does not have transformation. Can't be loaded" << std::endl;
+            return false;
         }
+        xmlModel->getTransformation()->deserialize(objectAttribute);
 
-        objectAttribute =  objectNode->FirstChildElement("Translate");
-        if (objectAttribute == nullptr) {
-            std::cout << "Object does not have translate." << std::endl;
-        } else {
-            objectAttributeAttribute =  objectAttribute->FirstChildElement("X");
-            if(objectAttributeAttribute != nullptr) {
-                x = std::stof(objectAttributeAttribute->GetText());
-            } else {
-                x = 0.0;
-            }
-            objectAttributeAttribute =  objectAttribute->FirstChildElement("Y");
-            if(objectAttributeAttribute != nullptr) {
-                y = std::stof(objectAttributeAttribute->GetText());
-            } else {
-                y = 0.0;
-            }
-            objectAttributeAttribute =  objectAttribute->FirstChildElement("Z");
-            if(objectAttributeAttribute != nullptr) {
-                z = std::stof(objectAttributeAttribute->GetText());
-            } else {
-                z = 0.0;
-            }
-            xmlModel->getTransformation()->addTranslate(glm::vec3(x,y,z));
-        }
-
-        objectAttribute =  objectNode->FirstChildElement("Rotate");
-        if (objectAttribute == nullptr) {
-            std::cout << "Object does not have Rotation." << std::endl;
-        } else {
-            objectAttributeAttribute =  objectAttribute->FirstChildElement("X");
-            if(objectAttributeAttribute != nullptr) {
-                x = std::stof(objectAttributeAttribute->GetText());
-            } else {
-                x = 0.0;
-            }
-            objectAttributeAttribute =  objectAttribute->FirstChildElement("Y");
-            if(objectAttributeAttribute != nullptr) {
-                y = std::stof(objectAttributeAttribute->GetText());
-            } else {
-                y = 0.0;
-            }
-            objectAttributeAttribute =  objectAttribute->FirstChildElement("Z");
-            if(objectAttributeAttribute != nullptr) {
-                z = std::stof(objectAttributeAttribute->GetText());
-            } else {
-                z = 0.0;
-            }
-            objectAttributeAttribute =  objectAttribute->FirstChildElement("W");
-            if(objectAttributeAttribute != nullptr) {
-                w = std::stof(objectAttributeAttribute->GetText());
-            } else {
-                w = 0.0;
-            }
-            xmlModel->getTransformation()->addOrientation(glm::quat(w, x, y, z));
-        }
         //Since we are not loading objects recursively, these can be set here safely
         objectAttribute =  objectNode->FirstChildElement("AI");
         if (objectAttribute == nullptr) {

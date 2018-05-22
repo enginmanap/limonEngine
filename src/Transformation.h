@@ -146,6 +146,10 @@ public:
 
 
     void getDifference(const Transformation& otherTransformation, glm::vec3 &translate, glm::vec3 &scale, glm::quat &rotation) const;
+
+    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) const;
+
+    bool deserialize(tinyxml2::XMLElement *transformationNode);
 };
 
 
