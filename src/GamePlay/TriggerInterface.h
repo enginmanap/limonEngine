@@ -5,14 +5,14 @@
 #ifndef LIMONENGINE_TRIGGERINTERFACE_H
 #define LIMONENGINE_TRIGGERINTERFACE_H
 
+#include "LimonAPI.h"
 
 class TriggerInterface {
 public:
-    virtual bool addEditorElements() = 0;
-    virtual bool run() = 0;
+    virtual std::vector<LimonAPI::ParameterRequest> getParameters() = 0;
+    virtual bool run(std::vector<LimonAPI::ParameterRequest> parameters) = 0;
 
     virtual ~TriggerInterface() = default;
 };
-
 
 #endif //LIMONENGINE_TRIGGERINTERFACE_H

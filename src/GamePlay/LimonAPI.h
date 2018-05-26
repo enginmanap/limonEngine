@@ -24,9 +24,27 @@ class LimonAPI {
 
     static void setWorld(World* inputWorld);
 public:
-    static void animateModel(Model *model, const AnimationCustom *, bool looped);
-    static const std::map<uint32_t, PhysicalRenderable *> & getObjects();
-    static const std::vector<AnimationCustom> & getAnimations();
+    struct ParameterRequest {
+        enum RequestParameterTypes { MODEL, ANIMATION, BOOLEAN };
+        RequestParameterTypes requestType;
+        std::string description;
+        //Up part used for requesting parameter, down part used as values of that request.
+        enum ValueTypes { STRING, DOUBLE, LONG, BOOL };
+        ValueTypes valueType;
+        union Value {
+            long longValue;
+            double doubleValue;
+            bool boolValue;
+            char* stringValue;
+        };
+
+        Value value;
+        bool isSet = false;
+    };
+
+    static bool generateEditorElementsForParameters(std::vector<ParameterRequest>& runParameters);
+
+    static void animateModel(uint32_t modelID, uint32_t animationID, bool looped);
 };
 
 

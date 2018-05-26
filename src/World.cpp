@@ -171,15 +171,15 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
                 glm::vec4 perspective;
                 glm::decompose(tf, scale, orientation, translate, skew, perspective);
                 //FIXME this is not an acceptable animating technique, I need a transform stack, but not implemented it yet.
-                (*animationStatus->model->getTransformation()) = animationStatus->originalTransformation;
-                animationStatus->model->getTransformation()->addOrientation(orientation);
-                animationStatus->model->getTransformation()->addScale(scale);
-                animationStatus->model->getTransformation()->addTranslate(translate);
+                (*animationStatus->object->getTransformation()) = animationStatus->originalTransformation;
+                animationStatus->object->getTransformation()->addOrientation(orientation);
+                animationStatus->object->getTransformation()->addScale(scale);
+                animationStatus->object->getTransformation()->addTranslate(translate);
                 animIt++;
             } else {
                 if(!animationStatus->wasKinematic) {
-                    animationStatus->model->getRigidBody()->setCollisionFlags(animationStatus->model->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
-                    animationStatus->model->getRigidBody()->setActivationState(ACTIVE_TAG);
+                    animationStatus->object->getRigidBody()->setCollisionFlags(animationStatus->object->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
+                    animationStatus->object->getRigidBody()->setActivationState(ACTIVE_TAG);
                 }
                 options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, "Animation " + animIt->second.animation->getName() +" finished, removing. ");
                 animIt = activeAnimations.erase(animIt);
@@ -667,7 +667,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     //If there is no animation setup ongoing, or there is one, but not for this model,
                     //put start animation button.
                     //else put time input, add and finalize buttons.
-                    if(animationInProgress == nullptr || animationInProgress->model != dynamic_cast<Model*>(pickedObject)) {
+                    if(animationInProgress == nullptr || animationInProgress->object != dynamic_cast<Model*>(pickedObject)) {
                         if (ImGui::Button("Start definition")) {
                             if (animationInProgress == nullptr) {
                                 animationInProgress = new AnimationStatus();
@@ -677,7 +677,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                                 delete animationInProgress;
                                 animationInProgress = new AnimationStatus();
                             }
-                            animationInProgress->model = dynamic_cast<Model*>(pickedObject);
+                            animationInProgress->object = dynamic_cast<Model*>(pickedObject);
                             // At this point we should know the animationInProgress is for current object
                             animationInProgress->originalTransformation = *dynamic_cast<Model *>(pickedObject)->getTransformation();
                             animationInProgress->animationNode = new AnimationNode();
@@ -707,13 +707,14 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                         }
 
                         if(ImGui::Button("Finish Animation")) {
-                            animationInProgress->animation = new AnimationCustom(std::string(animationNameBuffer),
+                            loadedAnimations.push_back(AnimationCustom(std::string(animationNameBuffer),
                                                                                  animationInProgress->animationNode,
-                                                                                 time);
+                                                                                 time));
 
                             (*dynamic_cast<Model *>(pickedObject)->getTransformation()) = animationInProgress->originalTransformation;
                             //Calling addAnimation here is odd, but I am planning to add animations using an external API call in next revisions.
-                            addAnimationToObject(dynamic_cast<Model *>(pickedObject), animationInProgress->animation, true);
+
+                            addAnimationToObject(dynamic_cast<Model *>(pickedObject)->getWorldObjectID(), loadedAnimations.size()-1, true);
                             delete animationInProgress;
                             animationInProgress = nullptr;
                             //TODO, who deletes what is not clear, I should use smart pointers.
@@ -879,21 +880,86 @@ void World::addLight(Light *light) {
     this->lights.push_back(light);
 }
 
-void World::addAnimationToObject(Model *model, const AnimationCustom *animation, bool looped) {
+void World::addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped) {
     AnimationStatus as;
-    as.model = model;
-    as.originalTransformation = (*model->getTransformation());
-    as.animation = animation;
+    as.object = objects[modelID];
+    as.originalTransformation = *(as.object->getTransformation());
+    as.animation = &(loadedAnimations[animationID]);
     as.loop = looped;
-    as.wasKinematic = model->getRigidBody()->getCollisionFlags() & btCollisionObject::CF_KINEMATIC_OBJECT;
+    as.wasKinematic = as.object->getRigidBody()->getCollisionFlags() & btCollisionObject::CF_KINEMATIC_OBJECT;
     as.startTime = gameTime;
-    if(activeAnimations.count(model) != 0) {
+    if(activeAnimations.count(as.object) != 0) {
         options->getLogger()->log(Logger::log_Subsystem_ANIMATION, Logger::log_level_WARN, "Model had custom animation, overriding.");
     }
-    activeAnimations[model] = as;
-    model->getRigidBody()->setCollisionFlags(model->getRigidBody()->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-    model->getRigidBody()->setActivationState(DISABLE_DEACTIVATION);
+    activeAnimations[as.object] = as;
+    as.object->getRigidBody()->setCollisionFlags(as.object->getRigidBody()->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+    as.object->getRigidBody()->setActivationState(DISABLE_DEACTIVATION);
+
+}
 
 
+bool World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest> &runParameters) {
+    bool isAllSet = true;
+    for (size_t i = 0; i < runParameters.size(); ++i) {
+        LimonAPI::ParameterRequest& parameter = runParameters[i];
 
+        switch(parameter.requestType) {
+            case LimonAPI::ParameterRequest::RequestParameterTypes::MODEL: {
+                std::string currentObject;
+                if(parameter.isSet) {
+                    currentObject = dynamic_cast<Model*>(objects[(uint32_t) (parameter.value.longValue)])->getName();
+                } else {
+                    currentObject = "Not selected";
+                    isAllSet = false;
+                }
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i)).c_str(), currentObject.c_str())) {
+                    for (auto it = objects.begin();
+                         it != objects.end(); it++) {
+                        if (ImGui::Selectable(dynamic_cast<Model*>((it->second))->getName().c_str())) {
+                            parameter.value.longValue = static_cast<long>(dynamic_cast<Model*>((it->second))->getWorldObjectID());
+                            parameter.isSet = true;
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+                break;
+            case LimonAPI::ParameterRequest::RequestParameterTypes::ANIMATION: {
+
+                std::string currentAnimation;
+                if(parameter.isSet) {
+                    currentAnimation = loadedAnimations[static_cast<uint32_t >(parameter.value.longValue)].getName();
+                } else {
+                    currentAnimation = "Not selected";
+                    isAllSet = false;
+                }
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i)).c_str(), currentAnimation.c_str())) {
+                    for (uint32_t j = 0; j < loadedAnimations.size(); ++j) {
+                        if (ImGui::Selectable(loadedAnimations[j].getName().c_str())) {
+                            parameter.value.longValue = static_cast<long>(j);
+                            parameter.isSet = true;
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+                break;
+            case LimonAPI::ParameterRequest::RequestParameterTypes::BOOLEAN: {
+                bool isSelected;
+                if(parameter.isSet) {
+                    isSelected = parameter.value.boolValue;
+                } else {
+                    isSelected = false;
+                    isAllSet = false;
+                }
+                if(ImGui::Checkbox((parameter.description + "##triggerParam" + std::to_string(i)).c_str(), &isSelected)) {
+                    parameter.isSet = true;
+                    parameter.value.boolValue = isSelected;
+                };
+            }
+                break;
+        }
+    }
+    //runParameters = requiredParameters;
+    return isAllSet;
 }

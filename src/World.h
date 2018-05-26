@@ -9,14 +9,12 @@
 #include <tinyxml2.h>
 #include <unordered_map>
 #include <set>
-#include "PhysicalRenderable.h"
-#include "GLHelper.h"
 #include "glm/glm.hpp"
 #include "InputHandler.h"
 #include "FontManager.h"
-#include "AI/Actor.h"
 #include "GameObjects/SkyBox.h"
 #include "GamePlay/LimonAPI.h"
+#include "AI/Actor.h"
 
 class btGhostPairCallback;
 class Camera;
@@ -44,7 +42,7 @@ class AnimationNode;
 class World {
 
     struct AnimationStatus {
-        Model* model = nullptr;
+        PhysicalRenderable* object = nullptr;
         const AnimationCustom *animation;
         bool loop;
         long startTime;
@@ -64,7 +62,7 @@ class World {
     std::map<uint32_t, PhysicalRenderable *> objects;
     std::map<uint32_t, TriggerObject*> triggers;
     std::vector<AnimationCustom> loadedAnimations;
-    std::unordered_map<Model*, AnimationStatus> activeAnimations;
+    std::unordered_map<PhysicalRenderable*, AnimationStatus> activeAnimations;
     AnimationStatus* animationInProgress = nullptr;
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
@@ -180,8 +178,6 @@ class World {
 
     //API methods
 
-    friend const std::map<uint32_t, PhysicalRenderable *> & LimonAPI::getObjects();
-    friend const std::vector<AnimationCustom> & LimonAPI::getAnimations();
 public:
     ~World();
 
@@ -193,7 +189,17 @@ public:
         return totalObjectCount++;
     }
 
-    void addAnimationToObject(Model *model, const AnimationCustom *animation, bool looped);
+
+    /**
+    * This method fills the parameters required to run the trigger
+    * @param runParameters
+    * @return true if all requied parameters are set, otherwise false
+    */
+    bool generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest>& runParameters);
+
+    void addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped);
+
+
 };
 
 #endif //LIMONENGINE_WORLD_H

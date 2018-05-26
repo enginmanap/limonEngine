@@ -21,6 +21,7 @@ class TriggerObject : public GameObject {
     bool triggered = false;
     bool enabled = false;
     TriggerInterface* triggerCode;
+    std::vector<LimonAPI::ParameterRequest> runParameters;
 
     btCollisionShape *ghostShape = new btBoxShape(btVector3(1.0f, 1.0f, 1.0f));
     btPairCachingGhostObject *ghostObject = new btPairCachingGhostObject();
@@ -44,7 +45,7 @@ public:
         ghostObject->setUserPointer(static_cast<GameObject *>(this));
 
         transformation.setUpdateCallback(std::bind(&TriggerObject::updatePhysicsFromTransform, this));
-
+        runParameters = triggerCode->getParameters();
     }
 
     btPairCachingGhostObject *getGhostObject() const {
@@ -91,6 +92,7 @@ public:
         debugDrawer->drawLine(boxTransform* glm::vec4(-1, 1,-1,1), boxTransform* glm::vec4(-1,-1,-1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 4 -> 4
     }
 
+
     bool checkAndTrigger() {
         if(triggered || !enabled) {
             return false;
@@ -100,7 +102,7 @@ public:
             btCollisionObject* object = ghostObject->getOverlappingPairs().at(i);
             if(object->getUserPointer() != nullptr && static_cast<GameObject*>(object->getUserPointer())->getTypeID() == GameObject::PLAYER) {
                 triggered = true;
-                return this->triggerCode->run();
+                return this->triggerCode->run(runParameters);
             }
         }
         return false;
