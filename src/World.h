@@ -84,6 +84,7 @@ class World {
     Camera* camera;
     BulletDebugDrawer *debugDrawer;
     GUIText *cursor;
+    GUILayer *ApiLayer;
     btGhostPairCallback *ghostPairCallback;
     btDiscreteDynamicsWorld *dynamicsWorld;
     std::vector<btRigidBody *> rigidBodies;
@@ -198,7 +199,8 @@ public:
     bool generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest>& runParameters);
 
     void addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped);
-
+    void addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text, const glm::vec3 &color,
+                        const glm::vec2 &position, float rotation);
 
 };
 
