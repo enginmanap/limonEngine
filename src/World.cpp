@@ -631,12 +631,8 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             }
 
             if(ImGui::Button("Add Trigger")) {
-                //AnimateOnTrigger* aot = new AnimateOnTrigger();
-                //AddGuiTextOnTrigger* agtot = new AddGuiTextOnTrigger();
 
-                //TriggerObject* to = new TriggerObject(this->getNextObjectID(),aot);
-                TriggerInterface* ti = TriggerInterface::createTrigger("AnimateOnTrigger");
-                TriggerObject* to = new TriggerObject(this->getNextObjectID(),ti);
+                TriggerObject* to = new TriggerObject(this->getNextObjectID());
                 to->getTransformation()->setTranslate(newObjectPosition);
                 this->dynamicsWorld->addCollisionObject(to->getGhostObject(), btBroadphaseProxy::SensorTrigger,
                                                         btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger);
