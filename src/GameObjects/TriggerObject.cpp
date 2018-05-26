@@ -3,7 +3,6 @@
 //
 
 #include "TriggerObject.h"
-#include "../GamePlay/LimonAPI.h"
 #include "../Assets/Animations/AnimationCustom.h"
 #include "../../libs/ImGui/imgui.h"
 #include "../GameObjects/Model.h"
@@ -13,7 +12,8 @@ GameObject::ImGuiResult TriggerObject::addImGuiEditorElements(const glm::mat4 &c
 
     transformation.addImGuiEditorElements(cameraMatrix, perspectiveMatrix);
 
-    bool isSet = triggerCode->addEditorElements();
+
+    bool isSet = LimonAPI::generateEditorElementsForParameters(runParameters);
     if(this->enabled) {
         if(ImGui::Button("Disable Trigger")) {
             this->enabled = false;

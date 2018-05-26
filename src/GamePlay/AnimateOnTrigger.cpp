@@ -3,12 +3,9 @@
 //
 
 #include "AnimateOnTrigger.h"
-#include "../PhysicalRenderable.h"
-#include "../GameObjects/Model.h"
-#include "../Assets/Animations/AnimationCustom.h"
 #include "LimonAPI.h"
-#include "../../libs/ImGui/imgui.h"
 
+/*
 bool AnimateOnTrigger::addEditorElements() {
 
     //let user select model and animation.
@@ -50,8 +47,30 @@ bool AnimateOnTrigger::addEditorElements() {
     //if both model and animation is set, means can be enabled;
     return (this->model && this->animation);
 }
+*/
+std::vector<LimonAPI::ParameterRequest> AnimateOnTrigger::getParameters() {
+    std::vector<LimonAPI::ParameterRequest> parameters;
+    LimonAPI::ParameterRequest param1;
+    param1.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MODEL;
+    param1.description = "Model to animate";
+    parameters.push_back(param1);
 
-bool AnimateOnTrigger::run() {
-    LimonAPI::animateModel(model, animation, loop);
+    LimonAPI::ParameterRequest param2;
+    param2.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::ANIMATION;
+    param2.description = "Animation to apply";
+    parameters.push_back(param2);
+
+    LimonAPI::ParameterRequest param3;
+    param3.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::BOOLEAN;
+    param3.description = "Is animation looped";
+    parameters.push_back(param3);
+
+    return parameters;
+}
+
+bool AnimateOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters) {
+    LimonAPI::animateModel(static_cast<uint32_t>(parameters[0].value.longValue),
+                           static_cast<uint32_t>(parameters[1].value.longValue),
+                           parameters[2].value.boolValue);
     return true;
 }

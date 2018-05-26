@@ -8,19 +8,14 @@
 
 #include "TriggerInterface.h"
 
-class AnimationCustom;
-class Model;
-
 class AnimateOnTrigger : public TriggerInterface {
-    const AnimationCustom* animation = nullptr;
-    Model* model;
-    bool loop;
 public:
-    bool addEditorElements() override;
+    std::vector<LimonAPI::ParameterRequest> getParameters() override;
 
-    bool run() override;
-
+    bool run(std::vector<LimonAPI::ParameterRequest> parameters) override;
 };
+
+
 
 
 #endif //LIMONENGINE_ANIMATONTRIGGER_H
