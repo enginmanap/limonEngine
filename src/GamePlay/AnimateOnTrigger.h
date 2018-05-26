@@ -9,6 +9,8 @@
 #include "TriggerInterface.h"
 
 class AnimateOnTrigger : public TriggerInterface {
+private:
+    static TriggerRegister<AnimateOnTrigger> reg;
 public:
     std::vector<LimonAPI::ParameterRequest> getParameters() override;
 

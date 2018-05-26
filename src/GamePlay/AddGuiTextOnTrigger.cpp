@@ -2,7 +2,11 @@
 // Created by engin on 26.05.2018.
 //
 
+#include <iostream>
 #include "AddGuiTextOnTrigger.h"
+
+
+TriggerRegister<AddGuiTextOnTrigger> AddGuiTextOnTrigger::reg("AddGuiTextOnTrigger");
 
 std::vector<LimonAPI::ParameterRequest> AddGuiTextOnTrigger::getParameters() {
     std::vector<LimonAPI::ParameterRequest> parameters;
@@ -10,6 +14,11 @@ std::vector<LimonAPI::ParameterRequest> AddGuiTextOnTrigger::getParameters() {
     pr.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
     pr.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_TEXT;
     parameters.push_back(pr);
+
+    std::cout << "Map elements:" << std::endl;
+    for (auto it = getMap()->begin(); it!= getMap()->end(); it++) {
+        std::cout << it->first + ", " << std::endl;
+    }
     return parameters;
 }
 
