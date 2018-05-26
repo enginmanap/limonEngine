@@ -21,6 +21,15 @@ protected:
     }
 
 public:
+    // Not virtual
+    static std::vector<std::string> getTriggerNames() {
+        std::vector<std::string> names;
+        for (auto it = typeMap->begin(); it != typeMap->end(); it++) {
+            names.push_back(it->first);
+        }
+        return names;
+    }
+
     virtual std::vector<LimonAPI::ParameterRequest> getParameters() = 0;
     virtual bool run(std::vector<LimonAPI::ParameterRequest> parameters) = 0;
 
