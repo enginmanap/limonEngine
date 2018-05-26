@@ -30,6 +30,7 @@
 #include "Assets/Animations/AnimationNode.h"
 #include "Assets/Animations/AnimationCustom.h"
 #include "GamePlay/AnimateOnTrigger.h"
+#include "GamePlay/AddGuiTextOnTrigger.h"
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
@@ -52,8 +53,6 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
     //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
 
-    GUILayer *layer1 = new GUILayer(glHelper, debugDrawer, 1);
-    layer1->setDebug(false);
 
     shadowMapProgramDirectional = new GLSLProgram(glHelper, "./Data/Shaders/ShadowMap/vertexDirectional.glsl",
                                                   "./Data/Shaders/ShadowMap/fragmentDirectional.glsl", false);
@@ -61,6 +60,14 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
                                             "./Data/Shaders/ShadowMap/geometryPoint.glsl",
                                             "./Data/Shaders/ShadowMap/fragmentPoint.glsl", false);
     shadowMapProgramPoint->setUniform("farPlanePoint", options->getLightPerspectiveProjectionValues().z);
+
+
+    ApiLayer = new GUILayer(glHelper, debugDrawer, 1);
+    ApiLayer->setDebug(false);
+    guiLayers.push_back(ApiLayer);
+
+    GUILayer *layer1 = new GUILayer(glHelper, debugDrawer, 2);
+    layer1->setDebug(false);
 
     GUIText *tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 64), "Limon Engine",
                               glm::vec3(0, 0, 0));
@@ -81,6 +88,8 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     trd = new GUITextDynamic(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), glm::vec3(0, 0, 0), 640, 380, options);
     trd->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-200), 0.0f);
     layer1->addGuiElement(trd);
+
+
 
     physicalPlayer = new PhysicalPlayer(options, cursor);
     currentPlayer = physicalPlayer;
@@ -621,8 +630,10 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             }
 
             if(ImGui::Button("Add Trigger")) {
-                AnimateOnTrigger* aot = new AnimateOnTrigger();
-                TriggerObject* to = new TriggerObject(this->getNextObjectID(),aot);
+                //AnimateOnTrigger* aot = new AnimateOnTrigger();
+                AddGuiTextOnTrigger* agtot = new AddGuiTextOnTrigger();
+                //TriggerObject* to = new TriggerObject(this->getNextObjectID(),aot);
+                TriggerObject* to = new TriggerObject(this->getNextObjectID(),agtot);
                 to->getTransformation()->setTranslate(newObjectPosition);
                 this->dynamicsWorld->addCollisionObject(to->getGhostObject(), btBroadphaseProxy::SensorTrigger,
                                                         btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger);
@@ -906,17 +917,18 @@ bool World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterR
         switch(parameter.requestType) {
             case LimonAPI::ParameterRequest::RequestParameterTypes::MODEL: {
                 std::string currentObject;
-                if(parameter.isSet) {
-                    currentObject = dynamic_cast<Model*>(objects[(uint32_t) (parameter.value.longValue)])->getName();
+                if (parameter.isSet) {
+                    currentObject = dynamic_cast<Model *>(objects[(uint32_t) (parameter.value.longValue)])->getName();
                 } else {
                     currentObject = "Not selected";
                     isAllSet = false;
                 }
-                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i)).c_str(), currentObject.c_str())) {
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i)).c_str(),
+                                      currentObject.c_str())) {
                     for (auto it = objects.begin();
                          it != objects.end(); it++) {
-                        if (ImGui::Selectable(dynamic_cast<Model*>((it->second))->getName().c_str())) {
-                            parameter.value.longValue = static_cast<long>(dynamic_cast<Model*>((it->second))->getWorldObjectID());
+                        if (ImGui::Selectable(dynamic_cast<Model *>((it->second))->getName().c_str())) {
+                            parameter.value.longValue = static_cast<long>(dynamic_cast<Model *>((it->second))->getWorldObjectID());
                             parameter.isSet = true;
                         }
                     }
@@ -927,13 +939,14 @@ bool World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterR
             case LimonAPI::ParameterRequest::RequestParameterTypes::ANIMATION: {
 
                 std::string currentAnimation;
-                if(parameter.isSet) {
+                if (parameter.isSet) {
                     currentAnimation = loadedAnimations[static_cast<uint32_t >(parameter.value.longValue)].getName();
                 } else {
                     currentAnimation = "Not selected";
                     isAllSet = false;
                 }
-                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i)).c_str(), currentAnimation.c_str())) {
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i)).c_str(),
+                                      currentAnimation.c_str())) {
                     for (uint32_t j = 0; j < loadedAnimations.size(); ++j) {
                         if (ImGui::Selectable(loadedAnimations[j].getName().c_str())) {
                             parameter.value.longValue = static_cast<long>(j);
@@ -946,20 +959,39 @@ bool World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterR
                 break;
             case LimonAPI::ParameterRequest::RequestParameterTypes::BOOLEAN: {
                 bool isSelected;
-                if(parameter.isSet) {
+                if (parameter.isSet) {
                     isSelected = parameter.value.boolValue;
                 } else {
                     isSelected = false;
                     isAllSet = false;
                 }
-                if(ImGui::Checkbox((parameter.description + "##triggerParam" + std::to_string(i)).c_str(), &isSelected)) {
+                if (ImGui::Checkbox((parameter.description + "##triggerParam" + std::to_string(i)).c_str(),
+                                    &isSelected)) {
                     parameter.isSet = true;
                     parameter.value.boolValue = isSelected;
                 };
             }
                 break;
+            case LimonAPI::ParameterRequest::RequestParameterTypes::FREE_TEXT: {
+                if (!parameter.isSet) {
+                    isAllSet = false;
+                }
+                if (ImGui::InputText((parameter.description + "##triggerParam" + std::to_string(i)).c_str(),
+                                     parameter.value.stringValue, sizeof(parameter.value.stringValue))) {
+                    parameter.isSet = true;
+                };
+            }
+                break;
         }
     }
-    //runParameters = requiredParameters;
     return isAllSet;
+}
+
+void World::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text, const glm::vec3 &color,
+                       const glm::vec2 &position, float rotation) {
+    GUIText* tr = new GUIText(glHelper, fontManager.getFont(fontFilePath, fontSize), text,
+                                 color);
+    tr->set2dWorldTransform(position, rotation);
+    ApiLayer->addGuiElement(tr);
+
 }
