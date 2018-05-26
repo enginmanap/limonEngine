@@ -6,7 +6,7 @@
 #define LIMONENGINE_GAMEOBJECT_H
 
 #include <string>
-
+#include <glm/glm.hpp>
 /**
  * This class is used to provide a polymorphic way of determining type and name of the object.
  */

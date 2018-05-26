@@ -6,6 +6,7 @@
 #define LIMONENGINE_OPTIONS_H
 
 #include <glm/glm.hpp>
+#include <iostream>
 #include "Utils/Logger.h"
 
 class Options {

@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <glm/glm.hpp>
+#include <tinyxml2.h>
 
 
 class Transformation {
