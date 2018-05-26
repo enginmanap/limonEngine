@@ -75,9 +75,10 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     tr->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2, options->getScreenHeight()-20), 0.0f);
     layer1->addGuiElement(tr);
 
-    tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "Version 0.3",
+    tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "Version 0.4",
                      glm::vec3(255, 255, 255));
-    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), -1 * options->PI / 2);
+    //tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), -1 * options->PI / 2);
+    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), 0);
     layer1->addGuiElement(tr);
 
     cursor = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
@@ -631,9 +632,11 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
             if(ImGui::Button("Add Trigger")) {
                 //AnimateOnTrigger* aot = new AnimateOnTrigger();
-                AddGuiTextOnTrigger* agtot = new AddGuiTextOnTrigger();
+                //AddGuiTextOnTrigger* agtot = new AddGuiTextOnTrigger();
+
                 //TriggerObject* to = new TriggerObject(this->getNextObjectID(),aot);
-                TriggerObject* to = new TriggerObject(this->getNextObjectID(),agtot);
+                TriggerInterface* ti = TriggerInterface::createTrigger("AnimateOnTrigger");
+                TriggerObject* to = new TriggerObject(this->getNextObjectID(),ti);
                 to->getTransformation()->setTranslate(newObjectPosition);
                 this->dynamicsWorld->addCollisionObject(to->getGhostObject(), btBroadphaseProxy::SensorTrigger,
                                                         btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger);
