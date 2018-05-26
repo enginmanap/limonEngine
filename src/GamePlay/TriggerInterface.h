@@ -35,6 +35,8 @@ public:
 
     virtual ~TriggerInterface() = default;
 
+    virtual std::string getName() = 0;
+
     static TriggerInterface * createTrigger(std::string const& s) {
         std::map<std::string, TriggerInterface*(*)()>::iterator it = getMap()->find(s);
         if(it == getMap()->end()) {
@@ -58,6 +60,9 @@ class TriggerRegister : TriggerInterface {
     virtual bool run(std::vector<LimonAPI::ParameterRequest> parameters __attribute((unused))) {
         return false;
     };
+    std::string getName() override {
+        return "This object is not meant to be used";
+    }
 public:
     TriggerRegister(std::string const& s) {
         getMap()->insert(std::make_pair(s, &createT<T>));

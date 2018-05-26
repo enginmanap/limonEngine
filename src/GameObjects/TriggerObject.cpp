@@ -48,41 +48,53 @@ GameObject::ImGuiResult TriggerObject::addImGuiEditorElements(const glm::mat4 &c
 
     transformation.addImGuiEditorElements(cameraMatrix, perspectiveMatrix);
 
-    if(this->triggerCode == nullptr) {
+    if (ImGui::CollapsingHeader("Trigger Properties")) {
+        std::string currentTriggerName;
+        if (this->triggerCode == nullptr) {
+            currentTriggerName = "Not selected";
+        } else {
+            currentTriggerName = this->triggerCode->getName();
+        }
         //let user select what kind of trigger required
         std::vector<std::string> triggerCodes = TriggerInterface::getTriggerNames();
-        if (ImGui::BeginCombo("Trigger action type", "Not selected")) {
+        if (ImGui::BeginCombo("Trigger action type", currentTriggerName.c_str())) {
             for (auto it = triggerCodes.begin();
                  it != triggerCodes.end(); it++) {
                 if (ImGui::Selectable(it->c_str())) {
-                    this->triggerCode = TriggerInterface::createTrigger(*it);
-                    runParameters = triggerCode->getParameters();
+                    if (this->triggerCode == nullptr ||
+                        this->triggerCode->getName() != *it) {//ignore if same trigger selected
 
+                        if (this->triggerCode != nullptr) {
+                            delete this->triggerCode;
+                        }
+                        this->triggerCode = TriggerInterface::createTrigger(*it);
+                        runParameters = triggerCode->getParameters();
+                    }
                 }
             }
             ImGui::EndCombo();
         }
-    } else {
-        bool isSet = LimonAPI::generateEditorElementsForParameters(runParameters);
-        if (this->enabled) {
-            if (ImGui::Button("Disable Trigger")) {
-                this->enabled = false;
-            }
-        } else {
-            if (isSet) {
-                if (ImGui::Button("Enable Trigger")) {
-                    this->enabled = true;
+        if (this->triggerCode != nullptr) {
+            bool isSet = LimonAPI::generateEditorElementsForParameters(runParameters);
+            if (this->enabled) {
+                if (ImGui::Button("Disable Trigger")) {
+                    this->enabled = false;
                 }
             } else {
-                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-                ImGui::Button("Enable Trigger");
-                ImGui::PopStyleVar();
+                if (isSet) {
+                    if (ImGui::Button("Enable Trigger")) {
+                        this->enabled = true;
+                    }
+                } else {
+                    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+                    ImGui::Button("Enable Trigger");
+                    ImGui::PopStyleVar();
+                }
             }
+
+
         }
-
-
     }
-
     return request;
 }
 

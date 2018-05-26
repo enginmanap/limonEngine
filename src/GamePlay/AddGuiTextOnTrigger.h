@@ -14,6 +14,10 @@ public:
     std::vector<LimonAPI::ParameterRequest> getParameters() override;
 
     bool run(std::vector<LimonAPI::ParameterRequest> parameters) override;
+
+    std::string getName() override {
+        return "AddGuiTextOnTrigger";
+    }
 };
 
 #endif //LIMONENGINE_ADDGUITEXTONTRIGGER_H
