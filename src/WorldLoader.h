@@ -26,14 +26,15 @@ class WorldLoader {
     bool loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* world)const;
     bool loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const;
     bool loadLights(tinyxml2::XMLNode *lightsNode, World* world) const;
-
+    bool loadAnimations(tinyxml2::XMLNode *worldNode, World *world) const;
+    bool loadTriggers(tinyxml2::XMLNode *worldNode, World *world) const;
 public:
     WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options* options);
     World* loadWorld(const std::string& worldFile) const;
 
     ~WorldLoader();
 
-    bool loadAnimations(tinyxml2::XMLNode *worldNode, World *world) const;
+
 };
 
 

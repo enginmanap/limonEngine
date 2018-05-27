@@ -139,4 +139,67 @@ void TriggerObject::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
 }
 
 
+bool TriggerObject::deserialize(tinyxml2::XMLElement *triggersNode) {
+
+    tinyxml2::XMLElement* triggerAttribute;
+
+    triggerAttribute = triggersNode->FirstChildElement("Name");
+    if (triggerAttribute == nullptr) {
+        std::cerr << "Trigger must have a Name." << std::endl;
+        return false;
+    }
+    this->name = triggerAttribute->GetText();
+
+    triggerAttribute = triggersNode->FirstChildElement("ID");
+    if (triggerAttribute == nullptr) {
+        std::cerr << "Trigger must have a ID." << std::endl;
+        return false;
+    }
+    this->objectID = std::stoul(triggerAttribute->GetText());
+
+    triggerAttribute = triggersNode->FirstChildElement("TriggerCode");
+    if (triggerAttribute != nullptr) {
+        this->triggerCode = TriggerInterface::createTrigger(triggerAttribute->GetText());
+    }
+
+    triggerAttribute = triggersNode->FirstChildElement("Enabled");
+    if (triggerAttribute == nullptr) {
+        std::cerr << "Trigger Didn't have enabled set, defaulting to False." << std::endl;
+        this->enabled = false;
+    } else {
+        if(strcmp(triggerAttribute->GetText(), "True") == 0) {
+            this->enabled = true;
+        } else if(strcmp(triggerAttribute->GetText(), "False") == 0) {
+            this->enabled = false;
+        } else {
+            std::cerr << "Trigger enabled setting is unknown value ["<< triggerAttribute->GetText()  <<"], can't be loaded " << std::endl;
+            return false;
+        }
+    }
+
+    triggerAttribute =  triggersNode->FirstChildElement("Transformation");
+    if(triggerAttribute == nullptr) {
+        std::cerr << "Object does not have transformation. Can't be loaded" << std::endl;
+        return false;
+    }
+    this->transformation.deserialize(triggerAttribute);
+
+
+    triggerAttribute = triggersNode->FirstChildElement("RunParameters");
+
+    tinyxml2::XMLElement* triggerParameter = triggerAttribute->FirstChildElement("Parameter");
+
+    uint32_t index;
+    while(triggerParameter != nullptr) {
+        LimonAPI::ParameterRequest request;
+
+        if(!request.deserialize(triggerParameter, index)) {
+            return false;
+        }
+        runParameters.insert(runParameters.begin() + index, request);
+        triggerParameter = triggerParameter->NextSiblingElement("Parameter");
+    } // end of while (Trigger parameters)
+    return true;
+}
+
 
