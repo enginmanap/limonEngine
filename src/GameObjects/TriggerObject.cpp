@@ -69,6 +69,7 @@ GameObject::ImGuiResult TriggerObject::addImGuiEditorElements(const glm::mat4 &c
                         }
                         this->triggerCode = TriggerInterface::createTrigger(*it);
                         runParameters = triggerCode->getParameters();
+                        this->enabled = false;
                     }
                 }
             }
@@ -96,6 +97,45 @@ GameObject::ImGuiResult TriggerObject::addImGuiEditorElements(const glm::mat4 &c
         }
     }
     return request;
+}
+
+void TriggerObject::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *triggersNode) const {
+
+    tinyxml2::XMLElement *triggerNode= document.NewElement("Trigger");
+    triggersNode->InsertEndChild(triggerNode);
+
+    tinyxml2::XMLElement *currentElement = document.NewElement("Name");
+    currentElement->SetText(name.c_str());
+    triggerNode->InsertEndChild(currentElement);
+
+    currentElement = document.NewElement("ID");
+    currentElement->SetText(objectID);
+    triggerNode->InsertEndChild(currentElement);
+
+    if(triggerCode != nullptr) {
+        currentElement = document.NewElement("TriggerCode");
+        currentElement->SetText(triggerCode->getName().c_str());
+        triggerNode->InsertEndChild(currentElement);
+    }
+
+    currentElement = document.NewElement("Enabled");
+    if(this->enabled) {
+        currentElement->SetText("True");
+    } else {
+        currentElement->SetText("False");
+    }
+    triggerNode->InsertEndChild(currentElement);
+
+    //now serialize the parameters
+
+    currentElement = document.NewElement("RunParameters");
+    for (size_t i = 0; i < runParameters.size(); ++i) {
+        runParameters[i].serialize(document, currentElement, i);
+    }
+    triggerNode->InsertEndChild(currentElement);
+
+    transformation.serialize(document, triggerNode);
+
 }
 
 

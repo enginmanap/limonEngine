@@ -16,6 +16,7 @@
 #include "../BulletDebugDrawer.h"
 
 class TriggerObject : public GameObject {
+    std::string name;
     Transformation transformation;
     uint32_t objectID;
     bool triggered = false;
@@ -43,6 +44,7 @@ public:
         ghostObject->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
         ghostObject->setWorldTransform(btTransform(btQuaternion::getIdentity(), btVector3()));
         ghostObject->setUserPointer(static_cast<GameObject *>(this));
+        name  = "TRIGGER-" + std::to_string(objectID);
 
         transformation.setUpdateCallback(std::bind(&TriggerObject::updatePhysicsFromTransform, this));
     }
@@ -87,13 +89,14 @@ public:
     };
 
     std::string getName() const {
-        return "TRIGGER-" + std::to_string(objectID);
+        return name;
     };
 
     GameObject::ImGuiResult addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix);
     /************Game Object methods **************/
 
 
+    void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *triggersNode) const;
 };
 
 

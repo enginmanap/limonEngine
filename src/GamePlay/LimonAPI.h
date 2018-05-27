@@ -9,6 +9,7 @@
 #include <map>
 #include <cstdint>
 #include <glm/glm.hpp>
+#include <tinyxml2.h>
 
 
 class Model;
@@ -26,14 +27,14 @@ class LimonAPI {
     static void setWorld(World* inputWorld);
 public:
     struct ParameterRequest {
-        enum RequestParameterTypes { MODEL, ANIMATION, BOOLEAN, FREE_TEXT };
+        enum RequestParameterTypes { MODEL, ANIMATION, SWITCH, FREE_TEXT };
         RequestParameterTypes requestType;
         std::string description;
-        //Up part used for requesting parameter, down part used as values of that request.
-        enum ValueTypes { STRING, DOUBLE, LONG, BOOL };
+        enum ValueTypes { STRING, DOUBLE, LONG, BOOLEAN };
         ValueTypes valueType;
+        //Up part used for requesting parameter, down part used as values of that request.
         union Value {
-            char stringValue[64];
+            char stringValue[64] = {0};
             long longValue;
             double doubleValue;
             bool boolValue;
@@ -41,6 +42,9 @@ public:
 
         Value value;
         bool isSet = false;
+
+        bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *ParametersNode,
+                       uint32_t index) const;
     };
 
     static bool generateEditorElementsForParameters(std::vector<ParameterRequest>& runParameters);

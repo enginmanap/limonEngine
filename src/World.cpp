@@ -915,6 +915,7 @@ bool World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterR
 
         switch(parameter.requestType) {
             case LimonAPI::ParameterRequest::RequestParameterTypes::MODEL: {
+                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
                 std::string currentObject;
                 if (parameter.isSet) {
                     currentObject = dynamic_cast<Model *>(objects[(uint32_t) (parameter.value.longValue)])->getName();
@@ -936,7 +937,7 @@ bool World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterR
             }
                 break;
             case LimonAPI::ParameterRequest::RequestParameterTypes::ANIMATION: {
-
+                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
                 std::string currentAnimation;
                 if (parameter.isSet) {
                     currentAnimation = loadedAnimations[static_cast<uint32_t >(parameter.value.longValue)].getName();
@@ -956,7 +957,8 @@ bool World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterR
                 }
             }
                 break;
-            case LimonAPI::ParameterRequest::RequestParameterTypes::BOOLEAN: {
+            case LimonAPI::ParameterRequest::RequestParameterTypes::SWITCH: {
+                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::BOOLEAN;
                 bool isSelected;
                 if (parameter.isSet) {
                     isSelected = parameter.value.boolValue;
@@ -972,6 +974,7 @@ bool World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterR
             }
                 break;
             case LimonAPI::ParameterRequest::RequestParameterTypes::FREE_TEXT: {
+                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
                 if (!parameter.isSet) {
                     isAllSet = false;
                 }
