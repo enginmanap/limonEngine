@@ -20,7 +20,7 @@ std::vector<LimonAPI::ParameterRequest> AnimateOnTrigger::getParameters() {
     parameters.push_back(param2);
 
     LimonAPI::ParameterRequest param3;
-    param3.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::BOOLEAN;
+    param3.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::SWITCH;
     param3.description = "Is animation looped";
     parameters.push_back(param3);
 

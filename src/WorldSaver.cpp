@@ -9,6 +9,7 @@
 #include "World.h"
 #include "GameObjects/Light.h"
 #include "Assets/Animations/AnimationCustom.h"
+#include "GameObjects/TriggerObject.h"
 
 /************************************************************************************
  * Map file spec
@@ -89,7 +90,13 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     if(!fillLoadedAnimations(mapDocument, currentElement, world)) {
         return false;
     };
-    rootNode->InsertEndChild(currentElement);//add lights
+    rootNode->InsertEndChild(currentElement);//add animations
+
+    currentElement = mapDocument.NewElement("Triggers");
+    if(!fillTriggers(mapDocument, currentElement, world)) {
+        return false;
+    };
+    rootNode->InsertEndChild(currentElement);//add Triggers
 
 
     tinyxml2::XMLError eResult = mapDocument.SaveFile(mapName.c_str());
@@ -192,7 +199,6 @@ bool WorldSaver::addSky(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *s
 
 bool WorldSaver::fillLoadedAnimations(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *loadedAnimationsNode, const World *world) {
     for(size_t index = 0; index < world->loadedAnimations.size(); index++) {
-
         tinyxml2::XMLElement *animationElement = document.NewElement("LoadedAnimation");
         loadedAnimationsNode->InsertEndChild(animationElement);
         tinyxml2::XMLElement *currentElement = document.NewElement("Name");
@@ -204,4 +210,11 @@ bool WorldSaver::fillLoadedAnimations(tinyxml2::XMLDocument &document, tinyxml2:
     }
     return true;
 
+}
+
+bool WorldSaver::fillTriggers(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *triggersNode, const World *world) {
+    for(auto it= world->triggers.begin(); it != world->triggers.end(); it++) {
+        it->second->serialize(document, triggersNode);
+    }
+    return true;
 }
