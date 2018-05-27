@@ -7,9 +7,12 @@
 #include "AI/HumanEnemy.h"
 #include "GameObjects/SkyBox.h"
 #include "GameObjects/Light.h"
+#include "GameObjects/TriggerObject.h"
+
 #include "GamePlay/LimonAPI.h"
 #include "Assets/Animations/AnimationLoader.h"
 #include "Assets/Animations/AnimationCustom.h"
+
 
 WorldLoader::WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options* options):
         options(options),
@@ -67,6 +70,9 @@ bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world)
 
     //load lights
     loadLights(worldNode, world);
+
+    //load triggers
+    loadTriggers(worldNode, world);
 
     return true;
 }
@@ -230,7 +236,7 @@ bool WorldLoader::loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const 
 
     int id;
     tinyxml2::XMLElement* idNode =  skyNode->FirstChildElement("ID");
-    if (frontNode == nullptr) {
+    if (idNode == nullptr) {
         std::cerr << "Sky map must have ID. Can't be loaded." << std::endl;
         return false;
     }
@@ -394,4 +400,30 @@ bool WorldLoader::loadAnimations(tinyxml2::XMLNode *worldNode, World *world) con
     }
     return true;
 
+}
+
+bool WorldLoader::loadTriggers(tinyxml2::XMLNode *worldNode, World *world) const {
+    tinyxml2::XMLElement* triggerListNode =  worldNode->FirstChildElement("Triggers");
+    if (triggerListNode == nullptr) {
+        std::cout << "World doesn't have any triggers." << std::endl;
+        return true;
+    }
+
+    tinyxml2::XMLElement* triggerNode =  triggerListNode->FirstChildElement("Trigger");
+
+    while(triggerNode != nullptr) {
+        TriggerObject* triggerObject = new TriggerObject(0);//0 is place holder, deserialize sets real value;
+        if(!triggerObject->deserialize(triggerNode)) {
+            //this trigger is now headless
+            delete triggerObject;
+            return false;
+        }
+        world->triggers[triggerObject->getWorldObjectID()] = triggerObject;
+        //FIXME adding the collision object should not be here
+        world->dynamicsWorld->addCollisionObject(triggerObject->getGhostObject(), btBroadphaseProxy::SensorTrigger,
+                                                btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger);
+        triggerNode = triggerNode->NextSiblingElement("Trigger");
+    } // end of while (Triggers)
+
+    return true;
 }

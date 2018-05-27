@@ -43,7 +43,7 @@ bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tiny
         }
             break;
         case SWITCH: {
-            currentElement->SetText("Boolean");
+            currentElement->SetText("Switch");
         }
             break;
         case FREE_TEXT: {
@@ -101,5 +101,99 @@ bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tiny
     currentElement = document.NewElement("Index");
     currentElement->SetText(index);
     parameterNode->InsertEndChild(currentElement);
+    return true;
+}
+
+bool LimonAPI::ParameterRequest::deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index) {
+    tinyxml2::XMLElement* parameterAttribute;
+
+    parameterAttribute = parameterNode->FirstChildElement("RequestType");
+    if (parameterAttribute == nullptr) {
+        std::cerr << "Trigger parameter must have a Request type." << std::endl;
+        return false;
+    }
+    if(strcmp(parameterAttribute->GetText(), "Model") == 0) {
+        this->requestType = RequestParameterTypes::MODEL;
+    } else if(strcmp(parameterAttribute->GetText(), "Animation") == 0) {
+        this->requestType = RequestParameterTypes::ANIMATION;
+    } else if(strcmp(parameterAttribute->GetText(), "Switch") == 0) {
+        this->requestType = RequestParameterTypes::SWITCH;
+    } else if(strcmp(parameterAttribute->GetText(), "FreeText") == 0) {
+        this->requestType = RequestParameterTypes::FREE_TEXT;
+    } else {
+        std::cerr << "Trigger parameter request type was unknown." << std::endl;
+        return false;
+    }
+
+    parameterAttribute = parameterNode->FirstChildElement("Description");
+    if (parameterAttribute == nullptr) {
+        std::cerr << "Trigger parameter must have a description." << std::endl;
+        return false;
+    }
+    this->description = parameterAttribute->GetText();
+
+    parameterAttribute = parameterNode->FirstChildElement("IsSet");
+    if (parameterAttribute == nullptr) {
+        std::cerr << "Trigger parameter Didn't have isSet set, defaulting to False." << std::endl;
+        this->isSet = false;
+    } else {
+        if(strcmp(parameterAttribute->GetText(), "True") == 0) {
+            this->isSet = true;
+        } else if(strcmp(parameterAttribute->GetText(), "False") == 0) {
+            this->isSet = false;
+        } else {
+            std::cerr << "Trigger parameter isSet setting is unknown value ["<< parameterAttribute->GetText()  <<"], can't be loaded " << std::endl;
+            return false;
+        }
+    }
+
+    parameterAttribute = parameterNode->FirstChildElement("valueType");
+    if (parameterAttribute == nullptr) {
+        std::cerr << "Trigger parameter must have a Value type." << std::endl;
+        return false;
+    }
+    if(strcmp(parameterAttribute->GetText(),"String") == 0)  {
+        this->valueType = ValueTypes::STRING;
+        if(this->isSet) {
+            parameterAttribute = parameterNode->FirstChildElement("Value");
+            std::string temp = parameterAttribute->GetText();
+            snprintf(this->value.stringValue, 63, "%s", temp.c_str());
+        }
+    } else if(strcmp(parameterAttribute->GetText(),"Double") == 0) {
+        this->valueType = ValueTypes::DOUBLE;
+        if(this->isSet) {
+            parameterAttribute = parameterNode->FirstChildElement("Value");
+            this->value.doubleValue = std::stod(parameterAttribute->GetText());
+        }
+    } else if(strcmp(parameterAttribute->GetText(),"Long")== 0) {
+        this->valueType = ValueTypes::LONG;
+        if(this->isSet) {
+            parameterAttribute = parameterNode->FirstChildElement("Value");
+            this->value.longValue = std::stol(parameterAttribute->GetText());
+        }
+    } else if(strcmp(parameterAttribute->GetText(), "Boolean")== 0) {
+        this->valueType = ValueTypes::BOOLEAN;
+        if(this->isSet) {
+            parameterAttribute = parameterNode->FirstChildElement("Value");
+            if(strcmp(parameterAttribute->GetText(), "True") == 0) {
+                value.boolValue = true;
+            } else if(strcmp(parameterAttribute->GetText(), "False")== 0) {
+                value.boolValue = false;
+            } else {
+                std::cerr << "Trigger parameter boolean value setting is unknown value ["<< parameterAttribute->GetText()  <<"], can't be loaded " << std::endl;
+                return false;
+            }
+        }
+    } else {
+        std::cerr << "Trigger parameter value type was unknown." << std::endl;
+        return false;
+    }
+
+    parameterAttribute = parameterNode->FirstChildElement("Index");
+    if (parameterAttribute == nullptr) {
+        std::cerr << "Trigger parameter must have an index." << std::endl;
+        return false;
+    }
+    index = std::stol(parameterAttribute->GetText());
     return true;
 }

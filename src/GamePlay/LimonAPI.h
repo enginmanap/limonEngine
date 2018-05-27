@@ -45,6 +45,8 @@ public:
 
         bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *ParametersNode,
                        uint32_t index) const;
+
+        bool deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index);
     };
 
     static bool generateEditorElementsForParameters(std::vector<ParameterRequest>& runParameters);
