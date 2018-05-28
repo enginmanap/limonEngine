@@ -77,8 +77,8 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
 
     tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "Version 0.4",
                      glm::vec3(255, 255, 255));
-    //tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), -1 * options->PI / 2);
-    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), 0);
+    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), -1 * options->PI / 2);
+    //tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), 0);
     layer1->addGuiElement(tr);
 
     cursor = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",

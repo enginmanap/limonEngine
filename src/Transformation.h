@@ -99,7 +99,7 @@ public:
 
     void setOrientation(const glm::quat &orientation) {
         this->orientation = glm::normalize(orientation);
-        rotated = this->orientation.w > cos(0.1f / 2); //if the total rotation is bigger than 0.1 rad
+        rotated = this->orientation.w < 0.99; // with rotation w gets smaller.
         isDirty = true;
         propagateUpdate();
     }
@@ -107,7 +107,7 @@ public:
     void addOrientation(const glm::quat &orientation) {
         this->orientation *= orientation;
         this->orientation = glm::normalize(this->orientation);
-        rotated = this->orientation.w > cos(0.1f / 2); //if the total rotation is bigger than 0.1 rad
+        rotated = this->orientation.w < 0.99; // with rotation w gets smaller.
         isDirty = true;
         propagateUpdate();
     }
