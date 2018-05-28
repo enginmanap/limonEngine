@@ -13,6 +13,7 @@ std::vector<LimonAPI::ParameterRequest> AddGuiTextOnTrigger::getParameters() {
     LimonAPI::ParameterRequest pr;
     pr.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
     pr.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_TEXT;
+    pr.description = "Text message to add as GUI element";
     parameters.push_back(pr);
 
     std::cout << "Map elements:" << std::endl;

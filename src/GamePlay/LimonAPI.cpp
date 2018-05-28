@@ -16,8 +16,8 @@ void LimonAPI::animateModel(uint32_t modelID, uint32_t animationID, bool looped)
     world->addAnimationToObject(modelID, animationID, looped);
 }
 
-bool LimonAPI::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest> &runParameters) {
-    return world->generateEditorElementsForParameters(runParameters);
+bool LimonAPI::generateEditorElementsForParameters(std::vector<ParameterRequest> &runParameters, uint32_t index) {
+    return world->generateEditorElementsForParameters(runParameters, index);
 }
 
 void LimonAPI::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text,

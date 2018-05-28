@@ -49,7 +49,7 @@ public:
         bool deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index);
     };
 
-    static bool generateEditorElementsForParameters(std::vector<ParameterRequest>& runParameters);
+    static bool generateEditorElementsForParameters(std::vector<ParameterRequest> &runParameters, uint32_t index);
 
     static void animateModel(uint32_t modelID, uint32_t animationID, bool looped);
     static void addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text, const glm::vec3 &color,

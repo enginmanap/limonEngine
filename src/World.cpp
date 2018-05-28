@@ -915,7 +915,8 @@ void World::addAnimationToObject(uint32_t modelID, uint32_t animationID, bool lo
 }
 
 
-bool World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest> &runParameters) {
+bool
+World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest> &runParameters, uint32_t index) {
     bool isAllSet = true;
     for (size_t i = 0; i < runParameters.size(); ++i) {
         LimonAPI::ParameterRequest& parameter = runParameters[i];
@@ -930,7 +931,7 @@ bool World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterR
                     currentObject = "Not selected";
                     isAllSet = false;
                 }
-                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i)).c_str(),
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
                                       currentObject.c_str())) {
                     for (auto it = objects.begin();
                          it != objects.end(); it++) {
@@ -952,7 +953,7 @@ bool World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterR
                     currentAnimation = "Not selected";
                     isAllSet = false;
                 }
-                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i)).c_str(),
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
                                       currentAnimation.c_str())) {
                     for (uint32_t j = 0; j < loadedAnimations.size(); ++j) {
                         if (ImGui::Selectable(loadedAnimations[j].getName().c_str())) {
@@ -973,7 +974,7 @@ bool World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterR
                     isSelected = false;
                     isAllSet = false;
                 }
-                if (ImGui::Checkbox((parameter.description + "##triggerParam" + std::to_string(i)).c_str(),
+                if (ImGui::Checkbox((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
                                     &isSelected)) {
                     parameter.isSet = true;
                     parameter.value.boolValue = isSelected;
@@ -985,7 +986,7 @@ bool World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterR
                 if (!parameter.isSet) {
                     isAllSet = false;
                 }
-                if (ImGui::InputText((parameter.description + "##triggerParam" + std::to_string(i)).c_str(),
+                if (ImGui::InputText((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
                                      parameter.value.stringValue, sizeof(parameter.value.stringValue))) {
                     parameter.isSet = true;
                 };

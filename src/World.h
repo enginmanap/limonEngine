@@ -196,7 +196,7 @@ public:
     * @param runParameters
     * @return true if all requied parameters are set, otherwise false
     */
-    bool generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest>& runParameters);
+    bool generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest> &runParameters, uint32_t index);
 
     void addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped);
     void addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text, const glm::vec3 &color,
