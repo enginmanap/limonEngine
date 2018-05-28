@@ -18,11 +18,21 @@
 class TriggerObject : public GameObject {
     std::string name;
     Transformation transformation;
+    std::vector<LimonAPI::ParameterRequest> firstEnterParameters;
+    std::vector<LimonAPI::ParameterRequest> enterParameters;
+    std::vector<LimonAPI::ParameterRequest> exitParameters;
+
     uint32_t objectID;
+    TriggerInterface* firstEnterTriggerCode = nullptr;
+    TriggerInterface* enterTriggerCode = nullptr;
+    TriggerInterface* exitTriggerCode = nullptr;
+
     bool triggered = false;
-    bool enabled = false;
-    TriggerInterface* triggerCode = nullptr;
-    std::vector<LimonAPI::ParameterRequest> runParameters;
+    bool inside = false;
+    bool enabledAny = false;
+    bool enabledFirstTrigger = false;
+    bool enabledEnterTrigger = false;
+    bool enabledExitTrigger = false;
 
     btCollisionShape *ghostShape = new btBoxShape(btVector3(1.0f, 1.0f, 1.0f));
     btPairCachingGhostObject *ghostObject = new btPairCachingGhostObject();
@@ -37,6 +47,13 @@ class TriggerObject : public GameObject {
         ghostObject->setWorldTransform(transform);
     }
 
+    void PutTriggerInGui(TriggerInterface *&triggerCode, std::vector<LimonAPI::ParameterRequest> &parameters,
+                         bool &enabled, uint32_t index);
+
+    void
+    serializeTriggerCode(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *triggerNode, TriggerInterface *triggerCode,
+                         const std::string &triggerCodeNodeName, const std::vector<LimonAPI::ParameterRequest> &parameters) const;
+
 public:
 
     TriggerObject(uint32_t id): objectID(id) {
@@ -50,7 +67,9 @@ public:
     }
 
     ~TriggerObject() {
-        delete this->triggerCode;
+        delete ghostObject;
+        delete ghostShape;
+        delete this->firstEnterTriggerCode;
     }
 
     btPairCachingGhostObject *getGhostObject() const {
@@ -65,18 +84,53 @@ public:
 
 
     bool checkAndTrigger() {
-        if(triggered || !enabled) {
+        if(!enabledAny) {
             return false;
         }
+
+        if(enterTriggerCode == nullptr && exitTriggerCode == nullptr && triggered) {
+            return false;// first trigger done, and no other triggers found
+        }
+        bool playerFound = false;
         //Bullet collision callbacks are global, and since player is suppose to collide with world all the time, it doesn't make sense to use them
         for(int i = 0; i < ghostObject->getNumOverlappingObjects(); i++ ) {
             btCollisionObject* object = ghostObject->getOverlappingPairs().at(i);
             if(object->getUserPointer() != nullptr && static_cast<GameObject*>(object->getUserPointer())->getTypeID() == GameObject::PLAYER) {
-                triggered = true;
-                return this->triggerCode->run(runParameters);
+                playerFound = true;
+                break;
             }
         }
-        return false;
+
+        /**
+         * now decide what to do. 4 options
+         * inside == found -> do nothing
+         * found true, inside false -> if triggered do enter, if not and has first, do first
+         * found false inside true -> do exit
+         */
+
+        if(inside == playerFound) {
+            return false;
+        }
+        if(playerFound) {
+            inside = true;//we can assume inside was false in this if
+
+            if(!triggered && firstEnterTriggerCode != nullptr) {
+                this->triggered = true;
+                return this->firstEnterTriggerCode->run(firstEnterParameters);
+            }
+            //now we are sure first is not called, either because it was before, or because
+            // first is not defined, both cases, call enter trigger
+            if(enterTriggerCode != nullptr) {
+                this->triggered = true;
+                return this->enterTriggerCode->run(enterParameters);
+            }
+        } else {
+            inside = false; //assume it was true
+            if(this->exitTriggerCode != nullptr) {
+                return this->exitTriggerCode->run(exitParameters);
+            }
+        }
+        return false;//means required trigger code was null;
     }
 
 
@@ -98,6 +152,10 @@ public:
 
     void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *triggersNode) const;
     bool deserialize(tinyxml2::XMLElement * triggerNode);
+
+    bool deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxml2::XMLElement *triggerAttribute,
+                                const std::string &nodeName, TriggerInterface *&triggerCode,
+                                std::vector<LimonAPI::ParameterRequest> &parameters, bool &enabled) const;
 };
 
 
