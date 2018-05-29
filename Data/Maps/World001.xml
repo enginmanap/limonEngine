@@ -16,6 +16,12 @@
                     <Y>0</Y>
                     <Z>0</Z>
                 </Translate>
+                <Rotate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
+                </Rotate>
             </Transformation>
         </Object>
         <Object>
@@ -23,35 +29,68 @@
             <Mass>1</Mass>
             <ID>4</ID>
             <Transformation>
+                <Scale>
+                    <X>1</X>
+                    <Y>1</Y>
+                    <Z>1</Z>
+                </Scale>
                 <Translate>
                     <X>2</X>
-                    <Y>25</Y>
+                    <Y>19</Y>
                     <Z>-3</Z>
                 </Translate>
+                <Rotate>
+                    <X>-3.2994016e-008</X>
+                    <Y>-3.0516759e-015</Y>
+                    <Z>-6.941976e-029</Z>
+                    <W>1</W>
+                </Rotate>
             </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
-            <Mass>1</Mass>
+            <Mass>10</Mass>
             <ID>5</ID>
             <Transformation>
+                <Scale>
+                    <X>1</X>
+                    <Y>1</Y>
+                    <Z>1</Z>
+                </Scale>
                 <Translate>
                     <X>-2</X>
-                    <Y>23</Y>
+                    <Y>17</Y>
                     <Z>-3</Z>
                 </Translate>
+                <Rotate>
+                    <X>-0.00011716161</X>
+                    <Y>4.4408921e-016</Y>
+                    <Z>-4.9010203e-005</Z>
+                    <W>1</W>
+                </Rotate>
             </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
-            <Mass>1</Mass>
+            <Mass>10</Mass>
             <ID>6</ID>
             <Transformation>
+                <Scale>
+                    <X>1</X>
+                    <Y>1</Y>
+                    <Z>1</Z>
+                </Scale>
                 <Translate>
                     <X>2</X>
-                    <Y>23</Y>
+                    <Y>12</Y>
                     <Z>-3</Z>
                 </Translate>
+                <Rotate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
+                </Rotate>
             </Transformation>
         </Object>
         <Object>
@@ -65,10 +104,16 @@
                     <Z>1</Z>
                 </Scale>
                 <Translate>
-                    <X>0.03</X>
+                    <X>0.029999999</X>
                     <Y>1.25</Y>
                     <Z>0.02</Z>
                 </Translate>
+                <Rotate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
+                </Rotate>
             </Transformation>
         </Object>
         <Object>
@@ -86,6 +131,12 @@
                     <Y>1.5</Y>
                     <Z>0.02</Z>
                 </Translate>
+                <Rotate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
+                </Rotate>
             </Transformation>
         </Object>
         <Object>
@@ -103,6 +154,12 @@
                     <Y>1.75</Y>
                     <Z>0.02</Z>
                 </Translate>
+                <Rotate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
+                </Rotate>
             </Transformation>
         </Object>
         <Object>
@@ -110,23 +167,45 @@
             <Mass>0</Mass>
             <ID>10</ID>
             <Transformation>
+                <Scale>
+                    <X>1</X>
+                    <Y>1</Y>
+                    <Z>1</Z>
+                </Scale>
                 <Translate>
                     <X>2.5</X>
                     <Y>2</Y>
                     <Z>0.02</Z>
                 </Translate>
+                <Rotate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
+                </Rotate>
             </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
-            <Mass>5</Mass>
+            <Mass>3</Mass>
             <ID>11</ID>
             <Transformation>
+                <Scale>
+                    <X>1</X>
+                    <Y>1</Y>
+                    <Z>1</Z>
+                </Scale>
                 <Translate>
                     <X>2</X>
-                    <Y>21</Y>
+                    <Y>15</Y>
                     <Z>-3</Z>
                 </Translate>
+                <Rotate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
+                </Rotate>
             </Transformation>
         </Object>
         <Object>
@@ -144,6 +223,12 @@
                     <Y>6</Y>
                     <Z>0</Z>
                 </Translate>
+                <Rotate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
+                </Rotate>
             </Transformation>
         </Object>
         <Object>
@@ -152,9 +237,9 @@
             <ID>13</ID>
             <Transformation>
                 <Scale>
-                    <X>0.05</X>
+                    <X>0.050000001</X>
                     <Y>0.1</Y>
-                    <Z>0.05</Z>
+                    <Z>0.050000001</Z>
                 </Scale>
                 <Translate>
                     <X>10</X>
@@ -163,9 +248,9 @@
                 </Translate>
                 <Rotate>
                     <X>0</X>
-                    <Y>0.7</Y>
+                    <Y>0.70710683</Y>
                     <Z>0</Z>
-                    <W>0.7</W>
+                    <W>0.70710683</W>
                 </Rotate>
             </Transformation>
         </Object>
@@ -176,15 +261,21 @@
             <ID>14</ID>
             <Transformation>
                 <Scale>
-                    <X>0.06</X>
-                    <Y>0.06</Y>
-                    <Z>0.06</Z>
+                    <X>0.059999999</X>
+                    <Y>0.059999999</Y>
+                    <Z>0.059999999</Z>
                 </Scale>
                 <Translate>
                     <X>-3</X>
                     <Y>1</Y>
                     <Z>-3</Z>
                 </Translate>
+                <Rotate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
+                </Rotate>
             </Transformation>
         </Object>
     </Objects>
@@ -197,9 +288,9 @@
                 <Z>0</Z>
             </Position>
             <Color>
-                <R>0.7</R>
-                <G>0.7</G>
-                <B>0.7</B>
+                <R>0.69999999</R>
+                <G>0.69999999</G>
+                <B>0.69999999</B>
             </Color>
         </Light>
         <Light>
@@ -210,9 +301,9 @@
                 <Z>-25</Z>
             </Position>
             <Color>
-                <R>0.7</R>
-                <G>0.7</G>
-                <B>0.7</B>
+                <R>0.69999999</R>
+                <G>0.69999999</G>
+                <B>0.69999999</B>
             </Color>
         </Light>
     </Lights>
@@ -226,4 +317,57 @@
         <Back>back.jpg</Back>
         <Front>front.jpg</Front>
     </Sky>
+    <LoadedAnimations/>
+    <Triggers>
+        <Trigger>
+            <Name>TRIGGER-15</Name>
+            <ID>15</ID>
+            <Transformation>
+                <Scale>
+                    <X>2</X>
+                    <Y>2</Y>
+                    <Z>2</Z>
+                </Scale>
+                <Translate>
+                    <X>10</X>
+                    <Y>3</Y>
+                    <Z>10</Z>
+                </Translate>
+                <Rotate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
+                </Rotate>
+            </Transformation>
+            <EnterTriggerCode>
+                <Name>AddGuiTextOnTrigger</Name>
+                <parameters>
+                    <Parameter>
+                        <RequestType>FreeText</RequestType>
+                        <Description>Text message to add as GUI element</Description>
+                        <Value>Inside</Value>
+                        <valueType>String</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>0</Index>
+                    </Parameter>
+                </parameters>
+                <Enabled>True</Enabled>
+            </EnterTriggerCode>
+            <ExitTriggerCode>
+                <Name>RemoveGuiTextOnTrigger</Name>
+                <parameters>
+                    <Parameter>
+                        <RequestType>Trigger</RequestType>
+                        <Description>Text creator Trigger</Description>
+                        <Value>3,15,2</Value>
+                        <valueType>LongArray</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>0</Index>
+                    </Parameter>
+                </parameters>
+                <Enabled>True</Enabled>
+            </ExitTriggerCode>
+        </Trigger>
+    </Triggers>
 </World>
