@@ -75,6 +75,7 @@ public:
         rigidBody->getAabb(abMin,abMax);
         this->aabbMin = GLMConverter::BltToGLM(abMin);
         this->aabbMax = GLMConverter::BltToGLM(abMax);
+        this->dirtyForFrustum = true;
     }
 };
 

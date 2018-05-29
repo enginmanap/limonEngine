@@ -84,8 +84,13 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     guiElements[tr->getWorldID()] = tr;
     layer1->addGuiElement(tr);
 
+    renderCounts = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0", glm::vec3(204, 204, 0));
+    renderCounts->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 170, options->getScreenHeight() - 36), 0);
+    guiElements[renderCounts->getWorldID()] = renderCounts;
+    layer1->addGuiElement(renderCounts);
+
     cursor = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
-                     glm::vec3(255, 255, 255));
+                         glm::vec3(255, 255, 255));
     cursor->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), -1 * options->PI / 4);
     guiElements[cursor->getWorldID()] = cursor;
     layer1->addGuiElement(cursor);
@@ -208,18 +213,35 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
             actorIt->second->play(gameTime, information, options);
         }
         for (auto it = objects.begin(); it != objects.end(); ++it) {
-            if (!it->second->getRigidBody()->isStaticOrKinematicObject()) {
+            if (!it->second->getRigidBody()->isStaticOrKinematicObject() && it->second->getRigidBody()->isActive()) {
                 it->second->updateTransformFromPhysics();
             }
             it->second->setIsInFrustum(glHelper->isInFrustum(it->second->getAabbMin(), it->second->getAabbMax()));
             if(it->second->isIsInFrustum()) {
                 it->second->setupForTime(gameTime);
             }
+            for(size_t i = 0; i < lights.size(); i++) {
+                if(it->second->isDirtyForFrustum() ||lights[i]->isFrustumChanged()) {
+                    it->second->setIsInLightFrustum(i, lights[i]->isShadowCaster(it->second->getAabbMin(),
+                                                                                 it->second->getAabbMin(),
+                                                                                 it->second->getTransformation()->getTranslate()));
+                }
+            }
+            for(size_t i = 0; i < lights.size(); i++) {
+                lights[i]->setFrustumChanged(false);
+            }
+            it->second->setCleanForFrustum();
 
         }
     } else {
         for (auto it = objects.begin(); it != objects.end(); ++it) {
             it->second->setIsInFrustum(glHelper->isInFrustum(it->second->getAabbMin(), it->second->getAabbMax()));
+
+            for(size_t i = 0; i < lights.size(); i++) {
+                it->second->setIsInLightFrustum(i, glHelper->isInFrustum(it->second->getAabbMin(),
+                                                                         it->second->getAabbMax(),
+                                                                         lights[i]->getFrustumPlanes()));
+            }
         }
             dynamicsWorld->updateAabbs();
     }
@@ -511,7 +533,9 @@ void World::render() {
         glHelper->switchRenderToShadowMapDirectional(i);
         shadowMapProgramDirectional->setUniform("renderLightIndex", (int)i);
         for (auto it = objects.begin(); it != objects.end(); ++it) {
-            (*it).second->renderWithProgram(*shadowMapProgramDirectional);
+            if(it->second->isInLightFrustum(i)) { // FIXME this should have " && it->second->isIsInFrustum()" but we are calculating the frustum planes without shadows
+                (*it).second->renderWithProgram(*shadowMapProgramDirectional);
+            }
         }
     }
 
@@ -568,6 +592,10 @@ void World::render() {
     for (std::vector<GUILayer *>::iterator it = guiLayers.begin(); it != guiLayers.end(); ++it) {
         (*it)->render();
     }
+
+    uint32_t triangle, line;
+    glHelper->getRenderTriangleAndLineCount(triangle, line);
+    renderCounts->updateText("Tris: " + std::to_string(triangle) + ", lines: " + std::to_string(line));
     if(currentMode == EDITOR_MODE) {
         ImGuiFrameSetup();
     }

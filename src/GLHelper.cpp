@@ -311,6 +311,8 @@ GLHelper::GLHelper(Options *options): options(options) {
     glReadBuffer(GL_NONE);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    frustumPlanes.reserve(6);
     checkErrors("Constructor");
 }
 
@@ -513,6 +515,7 @@ void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, 
     glBindVertexArray(vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
+    renderTriangleCount = renderTriangleCount + elementCount;
     glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, nullptr);
     glBindVertexArray(0);
     //state->setProgram(0);
@@ -716,6 +719,7 @@ void GLHelper::drawLines(GLSLProgram &program, uint32_t vao, uint32_t vbo, const
     glBufferSubData(GL_ARRAY_BUFFER, 0, lines.size() * sizeof(Line), lines.data());
     program.setUniform("cameraTransformMatrix", perspectiveProjectionMatrix * cameraMatrix);
 
+    renderLineCount = renderLineCount + lines.size();
     glDrawArrays(GL_LINES, 0, lines.size()*2);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -767,64 +771,60 @@ void GLHelper::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat
     glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), sizeof(glm::vec3), &cameraPosition);//changes with camera
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    calculateFrustumPlanes();
+    calculateFrustumPlanes(cameraMatrix, perspectiveProjectionMatrix, frustumPlanes);
     checkErrors("setPlayerMatrices");
 }
 
-const glm::mat4 &GLHelper::getLightProjectionMatrixPoint() const {
-    return lightProjectionMatrixPoint;
-}
-
-void GLHelper::calculateFrustumPlanes() {
+void GLHelper::calculateFrustumPlanes(const glm::mat4 &cameraMatrix,
+                                      const glm::mat4 &projectionMatrix, std::vector<glm::vec4> &planes) const {
+    assert(planes.size() == 6);
     glm::mat4 clipMat;
 
     for(int i = 0; i < 4; i++) {
         glm::vec4 cameraRow = cameraMatrix[i];
-        clipMat[i].x = cameraRow.x * perspectiveProjectionMatrix[0].x + cameraRow.y * perspectiveProjectionMatrix[1].x +
-                        cameraRow.z * perspectiveProjectionMatrix[2].x + cameraRow.w * perspectiveProjectionMatrix[3].x;
-        clipMat[i].y = cameraRow.x * perspectiveProjectionMatrix[0].y + cameraRow.y * perspectiveProjectionMatrix[1].y +
-                        cameraRow.z * perspectiveProjectionMatrix[2].y + cameraRow.w * perspectiveProjectionMatrix[3].y;
-        clipMat[i].z = cameraRow.x * perspectiveProjectionMatrix[0].z + cameraRow.y * perspectiveProjectionMatrix[1].z +
-                        cameraRow.z * perspectiveProjectionMatrix[2].z + cameraRow.w * perspectiveProjectionMatrix[3].z;
-        clipMat[i].w = cameraRow.x * perspectiveProjectionMatrix[0].w + cameraRow.y * perspectiveProjectionMatrix[1].w +
-                        cameraRow.z * perspectiveProjectionMatrix[2].w + cameraRow.w * perspectiveProjectionMatrix[3].w;
+        clipMat[i].x =  cameraRow.x * projectionMatrix[0].x + cameraRow.y * projectionMatrix[1].x +
+                        cameraRow.z * projectionMatrix[2].x + cameraRow.w * projectionMatrix[3].x;
+        clipMat[i].y =  cameraRow.x * projectionMatrix[0].y + cameraRow.y * projectionMatrix[1].y +
+                        cameraRow.z * projectionMatrix[2].y + cameraRow.w * projectionMatrix[3].y;
+        clipMat[i].z =  cameraRow.x * projectionMatrix[0].z + cameraRow.y * projectionMatrix[1].z +
+                        cameraRow.z * projectionMatrix[2].z + cameraRow.w * projectionMatrix[3].z;
+        clipMat[i].w =  cameraRow.x * projectionMatrix[0].w + cameraRow.y * projectionMatrix[1].w +
+                        cameraRow.z * projectionMatrix[2].w + cameraRow.w * projectionMatrix[3].w;
     }
 
-    frustumPlanes[RIGHT].x = clipMat[0].w - clipMat[0].x;
-    frustumPlanes[RIGHT].y = clipMat[1].w - clipMat[1].x;
-    frustumPlanes[RIGHT].z = clipMat[2].w - clipMat[2].x;
-    frustumPlanes[RIGHT].w = clipMat[3].w - clipMat[3].x;
-    frustumPlanes[RIGHT] = glm::normalize(frustumPlanes[RIGHT]);
+    planes[RIGHT].x = clipMat[0].w - clipMat[0].x;
+    planes[RIGHT].y = clipMat[1].w - clipMat[1].x;
+    planes[RIGHT].z = clipMat[2].w - clipMat[2].x;
+    planes[RIGHT].w = clipMat[3].w - clipMat[3].x;
+    planes[RIGHT] = glm::normalize(planes[RIGHT]);
 
-    frustumPlanes[LEFT].x = clipMat[0].w + clipMat[0].x;
-    frustumPlanes[LEFT].y = clipMat[1].w + clipMat[1].x;
-    frustumPlanes[LEFT].z = clipMat[2].w + clipMat[2].x;
-    frustumPlanes[LEFT].w = clipMat[3].w + clipMat[3].x;
-    frustumPlanes[LEFT] = glm::normalize(frustumPlanes[LEFT]);
+    planes[LEFT].x = clipMat[0].w + clipMat[0].x;
+    planes[LEFT].y = clipMat[1].w + clipMat[1].x;
+    planes[LEFT].z = clipMat[2].w + clipMat[2].x;
+    planes[LEFT].w = clipMat[3].w + clipMat[3].x;
+    planes[LEFT] = glm::normalize(planes[LEFT]);
 
-    frustumPlanes[BOTTOM].x = clipMat[0].w + clipMat[0].y;
-    frustumPlanes[BOTTOM].y = clipMat[1].w + clipMat[1].y;
-    frustumPlanes[BOTTOM].z = clipMat[2].w + clipMat[2].y;
-    frustumPlanes[BOTTOM].w = clipMat[3].w + clipMat[3].y;
-    frustumPlanes[BOTTOM] = glm::normalize(frustumPlanes[BOTTOM]);
+    planes[BOTTOM].x = clipMat[0].w + clipMat[0].y;
+    planes[BOTTOM].y = clipMat[1].w + clipMat[1].y;
+    planes[BOTTOM].z = clipMat[2].w + clipMat[2].y;
+    planes[BOTTOM].w = clipMat[3].w + clipMat[3].y;
+    planes[BOTTOM] = glm::normalize(planes[BOTTOM]);
 
-    frustumPlanes[TOP].x = clipMat[0].w - clipMat[0].y;
-    frustumPlanes[TOP].y = clipMat[1].w - clipMat[1].y;
-    frustumPlanes[TOP].z = clipMat[2].w - clipMat[2].y;
-    frustumPlanes[TOP].w = clipMat[3].w - clipMat[3].y;
-    frustumPlanes[TOP] = glm::normalize(frustumPlanes[TOP]);
+    planes[TOP].x = clipMat[0].w - clipMat[0].y;
+    planes[TOP].y = clipMat[1].w - clipMat[1].y;
+    planes[TOP].z = clipMat[2].w - clipMat[2].y;
+    planes[TOP].w = clipMat[3].w - clipMat[3].y;
+    planes[TOP] = glm::normalize(planes[TOP]);
 
-    frustumPlanes[BACK].x = clipMat[0].w - clipMat[0].z;
-    frustumPlanes[BACK].y = clipMat[1].w - clipMat[1].z;
-    frustumPlanes[BACK].z = clipMat[2].w - clipMat[2].z;
-    frustumPlanes[BACK].w = clipMat[3].w - clipMat[3].z;
-    frustumPlanes[BACK] = glm::normalize(frustumPlanes[BACK]);
+    planes[BACK].x = clipMat[0].w - clipMat[0].z;
+    planes[BACK].y = clipMat[1].w - clipMat[1].z;
+    planes[BACK].z = clipMat[2].w - clipMat[2].z;
+    planes[BACK].w = clipMat[3].w - clipMat[3].z;
+    planes[BACK] = glm::normalize(planes[BACK]);
 
-    frustumPlanes[FRONT].x = clipMat[0].w + clipMat[0].z;
-    frustumPlanes[FRONT].y = clipMat[1].w + clipMat[1].z;
-    frustumPlanes[FRONT].z = clipMat[2].w + clipMat[2].z;
-    frustumPlanes[FRONT].w = clipMat[3].w + clipMat[3].z;
-    frustumPlanes[FRONT] = glm::normalize(frustumPlanes[FRONT]);
+    planes[FRONT].x = clipMat[0].w + clipMat[0].z;
+    planes[FRONT].y = clipMat[1].w + clipMat[1].z;
+    planes[FRONT].z = clipMat[2].w + clipMat[2].z;
+    planes[FRONT].w = clipMat[3].w + clipMat[3].z;
+    planes[FRONT] = glm::normalize(planes[FRONT]);
 }
-
-

@@ -188,13 +188,28 @@ private:
     const uint_fast32_t lightUniformSize = (sizeof(glm::mat4) * 7) + (2 * sizeof(glm::vec4));
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;
-    glm::vec4 frustumPlanes[6];
+    std::vector<glm::vec4>frustumPlanes;
     glm::mat4 orthogonalProjectionMatrix;
     glm::mat4 lightProjectionMatrixDirectional;
     glm::mat4 lightProjectionMatrixPoint;
+    uint32_t renderTriangleCount;
+    uint32_t renderLineCount;
 
 public:
-    const glm::mat4 &getLightProjectionMatrixPoint() const;
+    void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) {
+        triangleCount = renderTriangleCount;
+        lineCount = renderLineCount;
+    }
+private:
+
+public:
+    const glm::mat4 &getLightProjectionMatrixPoint() const {
+        return lightProjectionMatrixPoint;
+    }
+
+    const glm::mat4 &getLightProjectionMatrixDirectional() const {
+        return lightProjectionMatrixDirectional;
+    }
 
 private:
     inline bool checkErrors(const std::string &callerFunc __attribute((unused))) {
@@ -235,8 +250,6 @@ private:
                                const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
                                const uint_fast32_t attachPointer);
 
-    void calculateFrustumPlanes();
-
 public:
     explicit GLHelper(Options *options);
 
@@ -273,6 +286,9 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
         glClear(GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        renderTriangleCount = 0;
+        renderLineCount = 0;
     }
 
     void render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount);
@@ -330,16 +346,23 @@ public:
         return maxTextureImageUnits;
     }
 
+    void calculateFrustumPlanes(const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix,
+                                std::vector<glm::vec4> &planes) const;
+
     inline bool isInFrustum(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const {
+        return isInFrustum(aabbMin, aabbMax, frustumPlanes);
+    }
+
+    inline bool isInFrustum(const glm::vec3& aabbMin, const glm::vec3& aabbMax, const std::vector<glm::vec4>& frustumPlaneVector) const {
         bool inside = true;
         //test all 6 frustum planes
         for (int i = 0; i<6; i++) {
             //pick closest point to plane and check if it behind the plane
             //if yes - object outside frustum
-            float d = std::fmax(aabbMin.x * frustumPlanes[i].x, aabbMax.x * frustumPlanes[i].x)
-                      + std::fmax(aabbMin.y * frustumPlanes[i].y, aabbMax.y * frustumPlanes[i].y)
-                      + std::fmax(aabbMin.z * frustumPlanes[i].z, aabbMax.z * frustumPlanes[i].z)
-                      + frustumPlanes[i].w;
+            float d =   std::fmax(aabbMin.x * frustumPlaneVector[i].x, aabbMax.x * frustumPlaneVector[i].x)
+                      + std::fmax(aabbMin.y * frustumPlaneVector[i].y, aabbMax.y * frustumPlaneVector[i].y)
+                      + std::fmax(aabbMin.z * frustumPlaneVector[i].z, aabbMax.z * frustumPlaneVector[i].z)
+                      + frustumPlaneVector[i].w;
             inside &= d > 0;
             //return false; //with flag works faster
         }

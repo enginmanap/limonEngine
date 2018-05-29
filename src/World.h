@@ -87,6 +87,7 @@ class World {
     BulletDebugDrawer *debugDrawer;
     GUIText *cursor;
     GUILayer *ApiLayer;
+    GUIText* renderCounts;
     btGhostPairCallback *ghostPairCallback;
     btDiscreteDynamicsWorld *dynamicsWorld;
     std::vector<btRigidBody *> rigidBodies;
