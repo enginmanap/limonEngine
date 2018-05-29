@@ -312,7 +312,7 @@ GLHelper::GLHelper(Options *options): options(options) {
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    frustumPlanes.reserve(6);
+    frustumPlanes.resize(6);
     checkErrors("Constructor");
 }
 

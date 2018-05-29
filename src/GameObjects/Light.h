@@ -57,7 +57,7 @@ public:
                                           glm::vec3(0.0f, 0.0f, 0.0f),
                                           glm::vec3(0.0f, 1.0f, 0.0f));
 
-        this->frustumPlanes.reserve(6);
+        this->frustumPlanes.resize(6);
         glHelper->calculateFrustumPlanes(lightView, glHelper->getLightProjectionMatrixDirectional(), this->frustumPlanes);
         frustumChanged = true;
     }
