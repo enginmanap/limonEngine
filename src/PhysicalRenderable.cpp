@@ -12,5 +12,4 @@ void PhysicalRenderable::updateTransformFromPhysics() {
 
     transformation.setTransformationsNotPropagate(GLMConverter::BltToGLM(trans.getOrigin()), GLMConverter::BltToGLM(trans.getRotation()));
     updateAABB();
-
 }

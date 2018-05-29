@@ -17,13 +17,19 @@ class Renderable {
 protected:
     Transformation transformation;
     std::vector<uint_fast32_t > bufferObjects;
+    std::vector<bool> inLightFrustum;
     uint_fast32_t vao, ebo;
     GLHelper *glHelper;
     GLSLProgram *renderProgram;
-    bool isInFrustum = true;
+    bool isInCameraFrustum = true;
+    bool dirtyForFrustum = true;//is this object require a frustum recalculate
+
 
     explicit Renderable(GLHelper *glHelper) :
-            glHelper(glHelper), renderProgram(nullptr) {}
+            glHelper(glHelper), renderProgram(nullptr) {
+        this->inLightFrustum.reserve(4);//FIXME 4 is current light max, it will require update
+    }
+
 public:
 
     virtual void render() = 0;
@@ -43,11 +49,29 @@ public:
     }
 
     bool isIsInFrustum() const {
-        return isInFrustum;
+        return isInCameraFrustum;
     }
 
     void setIsInFrustum(bool isInFrustum) {
-        Renderable::isInFrustum = isInFrustum;
+        Renderable::isInCameraFrustum = isInFrustum;
+    }
+
+    bool isInLightFrustum(uint32_t lightIndex) const {
+        assert(lightIndex < 4);
+        return Renderable::inLightFrustum[lightIndex];
+    }
+
+    void setIsInLightFrustum(uint32_t lightIndex, bool isInFrustum) {
+        assert(lightIndex < 4);
+        Renderable::inLightFrustum[lightIndex] = isInFrustum;
+    }
+
+    bool isDirtyForFrustum() {
+        return this->dirtyForFrustum;
+    }
+
+    void setCleanForFrustum() {
+        this->dirtyForFrustum = false;
     }
 
     Transformation* getTransformation() {

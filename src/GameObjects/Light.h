@@ -20,10 +20,12 @@ public:
 private:
     GLHelper* glHelper;
     glm::mat4 shadowMatrices[6];//these are used only for point lights for now
+    std::vector<glm::vec4> frustumPlanes;
+
     uint32_t objectID;
     glm::vec3 position, color;
     LightTypes lightType;
-
+    bool frustumChanged;
     void setShadowMatricesForPosition(){
         shadowMatrices[0] =glHelper->getLightProjectionMatrixPoint() *
                            glm::lookAt(position, position + glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0));
@@ -50,9 +52,15 @@ public:
         this->color.b = color.b < 1.0f ? color.b : 1.0f;
 
         setShadowMatricesForPosition();
+
+        glm::mat4 lightView = glm::lookAt(this->position,
+                                          glm::vec3(0.0f, 0.0f, 0.0f),
+                                          glm::vec3(0.0f, 1.0f, 0.0f));
+
+        this->frustumPlanes.reserve(6);
+        glHelper->calculateFrustumPlanes(lightView, glHelper->getLightProjectionMatrixDirectional(), this->frustumPlanes);
+        frustumChanged = true;
     }
-
-
 
     const glm::vec3 &getPosition() const {
         return position;
@@ -61,6 +69,13 @@ public:
     void setPosition(glm::vec3 position) {
         this->position = position;
         setShadowMatricesForPosition();
+
+        glm::mat4 lightView = glm::lookAt(this->position,
+                                          glm::vec3(0.0f, 0.0f, 0.0f),
+                                          glm::vec3(0.0f, 1.0f, 0.0f));
+
+        glHelper->calculateFrustumPlanes(lightView, glHelper->getLightProjectionMatrixDirectional(), this->frustumPlanes);
+        frustumChanged = true;
         glHelper->setLight(*this, objectID);
     }
 
@@ -74,6 +89,32 @@ public:
 
      const glm::mat4 * getShadowMatrices() const {
         return shadowMatrices;
+    }
+
+    bool isFrustumChanged() const {
+        return frustumChanged;
+    }
+
+    void setFrustumChanged(bool frustumChanged) {
+        Light::frustumChanged = frustumChanged;
+    }
+
+    const std::vector<glm::vec4>& getFrustumPlanes() const {
+        return frustumPlanes;
+    }
+
+    bool isShadowCaster(const glm::vec3& aabbMin, const glm::vec3& aabbMax, const glm::vec3& position) const {
+        //there are 2 possibilities.
+        // 1) if directional light -> check if in frustum
+        // 2) point light -> check if within range
+
+        switch (this->lightType) {
+            case DIRECTIONAL:
+                return glHelper->isInFrustum(aabbMin, aabbMax, this->frustumPlanes);
+            case POINT:
+                return true; //TODO not implemented yet
+        }
+
     }
 
     /************Game Object methods **************/
