@@ -6,7 +6,9 @@
 #define LIMONENGINE_GUILAYER_H
 
 #include "../GLHelper.h"
-#include "GUIRenderable.h"
+
+class GUIRenderable;
+class BulletDebugDrawer;
 
 class GUILayer {
     GLHelper *glHelper;
@@ -28,9 +30,10 @@ public:
         GUILayer::isDebug = isDebug;
     }
 
-    void addGuiElement(GUIRenderable *guiElement) {
-        guiElements.push_back(guiElement);
-    }
+    void addGuiElement(GUIRenderable *guiElement);
+
+    void removeGuiElement(uint32_t guiElementID);
+
 
     void render();
 

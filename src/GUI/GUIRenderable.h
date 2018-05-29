@@ -9,16 +9,26 @@
 #include "../Renderable.h"
 #include "../BulletDebugDrawer.h"
 
+class GUILayer;
+
 class GUIRenderable : public Renderable {
+    std::vector<GUILayer*> parentLayers;
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec2> textureCoordinates;
+    uint32_t worldID;
+
+
 protected:
     //TODO maybe this should not be protected, but private
     std::vector<glm::mediump_uvec3> faces;
     GLuint textureID;
-public:
-    explicit GUIRenderable(GLHelper *glHelper);
 
+public:
+    explicit GUIRenderable(GLHelper *glHelper, uint32_t id);
+
+    void addedToLayer(GUILayer* layer);
+
+    virtual ~GUIRenderable();
     /**
      * the position on x,y coordinates, and clockwise rotation as radian
      */
@@ -58,6 +68,10 @@ public:
     float getWidth() { return transformation.getScale().x; }
 
     float getHeight() { return transformation.getScale().y; }
+
+    uint32_t getWorldID() {
+        return worldID;
+    }
 };
 
 

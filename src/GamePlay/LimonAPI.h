@@ -27,15 +27,16 @@ class LimonAPI {
     static void setWorld(World* inputWorld);
 public:
     struct ParameterRequest {
-        enum RequestParameterTypes { MODEL, ANIMATION, SWITCH, FREE_TEXT };
+        enum RequestParameterTypes { MODEL, ANIMATION, SWITCH, FREE_TEXT, TRIGGER };
         RequestParameterTypes requestType;
         std::string description;
-        enum ValueTypes { STRING, DOUBLE, LONG, BOOLEAN };
+        enum ValueTypes { STRING, DOUBLE, LONG, LONG_ARRAY, BOOLEAN };
         ValueTypes valueType;
         //Up part used for requesting parameter, down part used as values of that request.
         union Value {
             char stringValue[64] = {0};
             long longValue;
+            long longValues[16];//first element is the size
             double doubleValue;
             bool boolValue;
         };
@@ -51,9 +52,13 @@ public:
 
     static bool generateEditorElementsForParameters(std::vector<ParameterRequest> &runParameters, uint32_t index);
 
-    static void animateModel(uint32_t modelID, uint32_t animationID, bool looped);
-    static void addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text, const glm::vec3 &color,
-                                              const glm::vec2 &position, float rotation);
+    static uint32_t animateModel(uint32_t modelID, uint32_t animationID, bool looped);
+    static uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text,
+                               const glm::vec3 &color,
+                               const glm::vec2 &position, float rotation);
+    static uint32_t removeGuiElement(uint32_t guiElementID);
+
+    static std::vector<ParameterRequest> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
 };
 
 

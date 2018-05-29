@@ -32,6 +32,7 @@ public:
 
     virtual std::vector<LimonAPI::ParameterRequest> getParameters() = 0;
     virtual bool run(std::vector<LimonAPI::ParameterRequest> parameters) = 0;
+    virtual std::vector<LimonAPI::ParameterRequest> getResults() = 0;
 
     virtual ~TriggerInterface() = default;
 
@@ -57,12 +58,17 @@ class TriggerRegister : TriggerInterface {
     virtual std::vector<LimonAPI::ParameterRequest> getParameters() {
         return std::vector<LimonAPI::ParameterRequest>();
     };
-    virtual bool run(std::vector<LimonAPI::ParameterRequest> parameters __attribute((unused))) {
+    virtual bool run(std::vector<LimonAPI::ParameterRequest> parameters __attribute((unused))) override {
         return false;
     };
     std::string getName() override {
         return "This object is not meant to be used";
     }
+
+    std::vector<LimonAPI::ParameterRequest> getResults() override {
+        return std::vector<LimonAPI::ParameterRequest>();
+    }
+
 public:
     TriggerRegister(std::string const& s) {
         getMap()->insert(std::make_pair(s, &createT<T>));

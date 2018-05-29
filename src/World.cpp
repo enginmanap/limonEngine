@@ -18,6 +18,7 @@
 #include "GameObjects/Light.h"
 #include "GameObjects/GameObject.h"
 #include "GUI/GUILayer.h"
+#include "GUI/GUIRenderable.h"
 #include "GUI/GUIText.h"
 #include "GUI/GUIFPSCounter.h"
 #include "GUI/GUITextDynamic.h"
@@ -69,25 +70,29 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     GUILayer *layer1 = new GUILayer(glHelper, debugDrawer, 2);
     layer1->setDebug(false);
 
-    GUIText *tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 64), "Limon Engine",
+    GUIText *tr = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 64), "Limon Engine",
                               glm::vec3(0, 0, 0));
     //tr->setScale(0.25f,0.25f);
     tr->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2, options->getScreenHeight()-20), 0.0f);
+    guiElements[tr->getWorldID()] = tr;
     layer1->addGuiElement(tr);
 
-    tr = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "Version 0.4",
+    tr = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "Version 0.4",
                      glm::vec3(255, 255, 255));
     tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), -1 * options->PI / 2);
     //tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), 0);
+    guiElements[tr->getWorldID()] = tr;
     layer1->addGuiElement(tr);
 
-    cursor = new GUIText(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
+    cursor = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
                      glm::vec3(255, 255, 255));
     cursor->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), -1 * options->PI / 4);
+    guiElements[cursor->getWorldID()] = cursor;
     layer1->addGuiElement(cursor);
 
-    trd = new GUITextDynamic(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), glm::vec3(0, 0, 0), 640, 380, options);
+    trd = new GUITextDynamic(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), glm::vec3(0, 0, 0), 640, 380, options);
     trd->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-200), 0.0f);
+    guiElements[trd->getWorldID()] = trd;
     layer1->addGuiElement(trd);
 
 
@@ -100,9 +105,10 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, worldAABBMin, worldAABBMax);
 
 
-    tr = new GUIFPSCounter(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0",
+    tr = new GUIFPSCounter(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                            glm::vec3(204, 204, 0));
     tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, options->getScreenHeight() - 18), 0);
+    guiElements[tr->getWorldID()] = tr;
     layer1->addGuiElement(tr);
 
     guiLayers.push_back(layer1);
@@ -897,21 +903,23 @@ void World::addLight(Light *light) {
     this->lights.push_back(light);
 }
 
-void World::addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped) {
+uint32_t World::addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped) {
     AnimationStatus as;
     as.object = objects[modelID];
-    as.originalTransformation = *(as.object->getTransformation());
     as.animation = &(loadedAnimations[animationID]);
     as.loop = looped;
     as.wasKinematic = as.object->getRigidBody()->getCollisionFlags() & btCollisionObject::CF_KINEMATIC_OBJECT;
     as.startTime = gameTime;
     if(activeAnimations.count(as.object) != 0) {
         options->getLogger()->log(Logger::log_Subsystem_ANIMATION, Logger::log_level_WARN, "Model had custom animation, overriding.");
+        as.originalTransformation = activeAnimations[as.object].originalTransformation;
+    } else {
+        as.originalTransformation = *(as.object->getTransformation());
     }
     activeAnimations[as.object] = as;
     as.object->getRigidBody()->setCollisionFlags(as.object->getRigidBody()->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
     as.object->getRigidBody()->setActivationState(DISABLE_DEACTIVATION);
-
+    return modelID;
 }
 
 
@@ -992,16 +1000,68 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 };
             }
                 break;
+            case LimonAPI::ParameterRequest::RequestParameterTypes::TRIGGER: {
+                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG_ARRAY;
+                parameter.value.longValues[0] = 3;//including self
+                std::string currentObject;
+                if (parameter.isSet) {
+                    currentObject = dynamic_cast<TriggerObject*>(triggers[(uint32_t) (parameter.value.longValues[1])])->getName();
+                } else {
+                    currentObject = "Not selected";
+                    isAllSet = false;
+                }
+                std::string label = parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index);
+                if (ImGui::BeginCombo(label.c_str(), currentObject.c_str())) {
+                    for (auto it = triggers.begin();
+                         it != triggers.end(); it++) {
+                        if (ImGui::Selectable(dynamic_cast<TriggerObject *>((it->second))->getName().c_str())) {
+                            parameter.value.longValues[1] = static_cast<long>(dynamic_cast<TriggerObject *>((it->second))->getWorldObjectID());
+                            parameter.isSet= true;
+                        }
+                    }
+                    ImGui::EndCombo();
+
+                }
+                //we need user to select which of the triggers are wanted
+                int RadioButtonValue = parameter.value.longValues[2];
+                ImGui::BeginGroup();
+                ImGui::RadioButton(("First Enter##" + label).c_str(), &RadioButtonValue, 1);
+                ImGui::RadioButton(("Enter##" + label).c_str(), &RadioButtonValue, 2);
+                ImGui::RadioButton(("Exit##" + label).c_str(), &RadioButtonValue, 3);
+                ImGui::EndGroup();
+                parameter.value.longValues[2] = RadioButtonValue;
+            }
         }
     }
     return isAllSet;
 }
 
-void World::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text, const glm::vec3 &color,
-                       const glm::vec2 &position, float rotation) {
-    GUIText* tr = new GUIText(glHelper, fontManager.getFont(fontFilePath, fontSize), text,
+uint32_t World::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text,
+                           const glm::vec3 &color,
+                           const glm::vec2 &position, float rotation) {
+    GUIText* tr = new GUIText(glHelper, getNextObjectID(), fontManager.getFont(fontFilePath, fontSize), text,
                                  color);
     tr->set2dWorldTransform(position, rotation);
+    guiElements[tr->getWorldID()] = tr;
     ApiLayer->addGuiElement(tr);
+    return tr->getWorldID();
 
+}
+
+uint32_t World::removeGuiText(uint32_t guiElementID) {
+    if(guiElements.find(guiElementID) != guiElements.end()) {
+        delete guiElements[guiElementID];
+        guiElements.erase(guiElementID);
+    }
+    return 0;
+}
+
+std::vector<LimonAPI::ParameterRequest> World::getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID) {
+    std::vector<LimonAPI::ParameterRequest> result;
+    if(triggers.find(triggerObjectID) != triggers.end()) {
+        TriggerObject* to = triggers[triggerObjectID];
+        result = to->getResultOfCode(triggerCodeID);
+    }
+
+    return result;
 }

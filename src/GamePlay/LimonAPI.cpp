@@ -12,18 +12,28 @@ void LimonAPI::setWorld(World *inputWorld) {
         world = inputWorld;
 }
 
-void LimonAPI::animateModel(uint32_t modelID, uint32_t animationID, bool looped) {
-    world->addAnimationToObject(modelID, animationID, looped);
+uint32_t LimonAPI::animateModel(uint32_t modelID, uint32_t animationID, bool looped) {
+    return world->addAnimationToObject(modelID, animationID, looped);
 }
 
 bool LimonAPI::generateEditorElementsForParameters(std::vector<ParameterRequest> &runParameters, uint32_t index) {
     return world->generateEditorElementsForParameters(runParameters, index);
 }
 
-void LimonAPI::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text,
-                          const glm::vec3 &color, const glm::vec2 &position, float rotation) {
-    world->addGuiText(fontFilePath, fontSize, text,color, position,rotation);
+uint32_t LimonAPI::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text,
+                              const glm::vec3 &color, const glm::vec2 &position, float rotation) {
+    return world->addGuiText(fontFilePath, fontSize, text,color, position,rotation);
 
+}
+
+uint32_t LimonAPI::removeGuiElement(uint32_t guiElementID) {
+    return world->removeGuiText(guiElementID);
+
+}
+
+std::vector<LimonAPI::ParameterRequest> LimonAPI::getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID) {
+    std::vector<LimonAPI::ParameterRequest> results = world->getResultOfTrigger(TriggerObjectID, TriggerCodeID);
+    return results;
 }
 
 bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *ParametersNode,
@@ -48,6 +58,10 @@ bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tiny
             break;
         case FREE_TEXT: {
             currentElement->SetText("FreeText");
+        }
+            break;
+        case TRIGGER: {
+            currentElement->SetText("Trigger");
         }
             break;
         }
@@ -84,6 +98,18 @@ bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tiny
             }
         }
             break;
+        case LONG_ARRAY: {
+            currentElement->SetText("LongArray");
+            std::string commaSeperatedArray = "";
+            for (int32_t i = 0; i < value.longValues[0]; ++i) {
+                commaSeperatedArray = commaSeperatedArray + std::to_string(value.longValues[i]);
+                if(i < value.longValues[0] - 1) {//if not last element
+                    commaSeperatedArray = commaSeperatedArray + ",";
+                }
+            }
+            valueElement->SetText(commaSeperatedArray.c_str());
+        }
+        break;
         default:
             currentElement->SetText("UNKNOWN");
     }
@@ -120,6 +146,8 @@ bool LimonAPI::ParameterRequest::deserialize(tinyxml2::XMLElement *parameterNode
         this->requestType = RequestParameterTypes::SWITCH;
     } else if(strcmp(parameterAttribute->GetText(), "FreeText") == 0) {
         this->requestType = RequestParameterTypes::FREE_TEXT;
+    } else if(strcmp(parameterAttribute->GetText(), "Trigger") == 0) {
+        this->requestType = RequestParameterTypes::TRIGGER;
     } else {
         std::cerr << "Trigger parameter request type was unknown." << std::endl;
         return false;
@@ -182,6 +210,21 @@ bool LimonAPI::ParameterRequest::deserialize(tinyxml2::XMLElement *parameterNode
             } else {
                 std::cerr << "Trigger parameter boolean value setting is unknown value ["<< parameterAttribute->GetText()  <<"], can't be loaded " << std::endl;
                 return false;
+            }
+        }
+    } else if(strcmp(parameterAttribute->GetText(),"LongArray")== 0) {
+        this->valueType = ValueTypes::LONG_ARRAY;
+        if(this->isSet) {
+            parameterAttribute = parameterNode->FirstChildElement("Value");
+            std::string commaSeperatedParameterString = parameterAttribute->GetText();
+            //the parameters are comma seperated, seperate
+            std::size_t commaPosition = commaSeperatedParameterString.find(",");
+            value.longValues[0] = std::stol(commaSeperatedParameterString.substr(0, commaPosition));
+            commaSeperatedParameterString = commaSeperatedParameterString.substr(commaPosition + 1);
+            for(long i = 1; i < value.longValues[0]; i++) {
+                std::size_t commaPosition = commaSeperatedParameterString.find(",");
+                value.longValues[i] = std::stol(commaSeperatedParameterString.substr(0, commaPosition));
+                commaSeperatedParameterString = commaSeperatedParameterString.substr(commaPosition + 1);
             }
         }
     } else {

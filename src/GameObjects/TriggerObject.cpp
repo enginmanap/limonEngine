@@ -76,7 +76,8 @@ void TriggerObject::PutTriggerInGui(TriggerInterface *&triggerCode, std::vector<
         }
         //let user select what kind of trigger required
         std::vector<std::string> triggerCodes = TriggerInterface::getTriggerNames();
-        if (ImGui::BeginCombo("Trigger action type##" + index, currentTriggerName.c_str())) {
+
+        if (ImGui::BeginCombo(("Trigger action type##" + std::to_string(index)).c_str(), currentTriggerName.c_str())) {
             for (auto it = triggerCodes.begin();
                  it != triggerCodes.end(); it++) {
                 if (ImGui::Selectable(it->c_str())) {
@@ -97,17 +98,17 @@ void TriggerObject::PutTriggerInGui(TriggerInterface *&triggerCode, std::vector<
         if (triggerCode != nullptr) {
             bool isSet = LimonAPI::generateEditorElementsForParameters(parameters, index);
             if (enabled) {
-                if (ImGui::Button("Disable Trigger##" + index)) {
+                if (ImGui::Button(("Disable Trigger##" + std::to_string(index)).c_str())) {
                     enabled = false;
                 }
             } else {
                 if (isSet) {
-                    if (ImGui::Button("Enable Trigger##" + index)) {
+                    if (ImGui::Button(("Enable Trigger##" + std::to_string(index)).c_str())) {
                         enabled = true;
                     }
                 } else {
                     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-                    ImGui::Button("Enable Trigger##" + index);
+                    ImGui::Button(("Enable Trigger##" + std::to_string(index)).c_str());
                     ImGui::PopStyleVar();
                 }
             }
@@ -256,6 +257,28 @@ bool TriggerObject::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, t
         }
     }
     return true;
+}
+
+std::vector<LimonAPI::ParameterRequest> TriggerObject::getResultOfCode(uint32_t codeID) {
+    switch (codeID) {
+        case 1: {
+            if(firstEnterTriggerCode != nullptr) {
+                return firstEnterTriggerCode->getResults();
+            }
+        } break;
+        case 2: {
+            if(enterTriggerCode != nullptr) {
+                return enterTriggerCode->getResults();
+            }
+        } break;
+        case 3: {
+            if(exitTriggerCode != nullptr) {
+                return exitTriggerCode->getResults();
+            }
+        } break;
+
+    }
+    return std::vector<LimonAPI::ParameterRequest>();
 }
 
 

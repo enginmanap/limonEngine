@@ -23,6 +23,7 @@ class BulletDebugDrawer;
 class Light;
 class AIMovementGrid;
 
+class GUIRenderable;
 class GUILayer;
 class GUIText;
 class GUIFPSCounter;
@@ -60,6 +61,7 @@ class World {
     Options* options;
     uint32_t totalObjectCount = 1;
     std::map<uint32_t, PhysicalRenderable *> objects;
+    std::map<uint32_t, GUIRenderable*> guiElements;
     std::map<uint32_t, TriggerObject*> triggers;
     std::vector<AnimationCustom> loadedAnimations;
     std::unordered_map<PhysicalRenderable*, AnimationStatus> activeAnimations;
@@ -198,10 +200,14 @@ public:
     */
     bool generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest> &runParameters, uint32_t index);
 
-    void addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped);
-    void addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text, const glm::vec3 &color,
+    uint32_t addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped);
+    uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text,
+                        const glm::vec3 &color,
                         const glm::vec2 &position, float rotation);
 
+    uint32_t removeGuiText(uint32_t guiElementID);
+
+    std::vector<LimonAPI::ParameterRequest> getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID);
 };
 
 #endif //LIMONENGINE_WORLD_H
