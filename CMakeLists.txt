@@ -70,14 +70,16 @@ if (NOT assimp_FOUND)
 endif (NOT assimp_FOUND)
 INCLUDE_DIRECTORIES(${ASSIMP_INCLUDE_DIRS})
 
-#file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/Data)
-#MESSAGE(STATUS "CMAKE_BINARY_DIR:         " ${CMAKE_BINARY_DIR})
-#file(COPY Data DESTINATION ${CMAKE_BINARY_DIR})
-
 add_custom_target(copyData
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/Data ${CMAKE_BINARY_DIR}/Data)
 #add_dependencies(LimonEngine copyData)
 
 TARGET_LINK_LIBRARIES(LimonEngine ImGui ImGuizmo ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${ASSIMP_LIBRARIES})
+
+IF (WIN32)
+    #add icon to windows binary
+    SET( LimonEngine_LINKFLAGS ${CMAKE_CURRENT_SOURCE_DIR}/resources/limonEngine.res )
+    SET_TARGET_PROPERTIES(LimonEngine PROPERTIES LINK_FLAGS ${LimonEngine_LINKFLAGS} )
+ENDIF()
 cotire(LimonEngine)
