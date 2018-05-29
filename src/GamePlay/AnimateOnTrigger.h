@@ -15,6 +15,9 @@ public:
 
     bool run(std::vector<LimonAPI::ParameterRequest> parameters) override;
 
+
+    std::vector<LimonAPI::ParameterRequest> getResults() override;
+
     std::string getName() override {
         return "AnimateOnTrigger";
     }

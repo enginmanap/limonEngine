@@ -33,3 +33,8 @@ bool AnimateOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters) {
                            parameters[2].value.boolValue);
     return true;
 }
+
+
+std::vector<LimonAPI::ParameterRequest> AnimateOnTrigger::getResults() {
+    return std::vector<LimonAPI::ParameterRequest>();
+}

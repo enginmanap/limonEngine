@@ -156,6 +156,8 @@ public:
     bool deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxml2::XMLElement *triggerAttribute,
                                 const std::string &nodeName, TriggerInterface *&triggerCode,
                                 std::vector<LimonAPI::ParameterRequest> &parameters, bool &enabled) const;
+
+    std::vector<LimonAPI::ParameterRequest> getResultOfCode(uint32_t codeID);
 };
 
 

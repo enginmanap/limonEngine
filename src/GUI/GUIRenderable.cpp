@@ -3,8 +3,9 @@
 //
 
 #include "GUIRenderable.h"
+#include "GUILayer.h"
 
-GUIRenderable::GUIRenderable(GLHelper *glHelper) : Renderable(glHelper) {
+GUIRenderable::GUIRenderable(GLHelper *glHelper, uint32_t id) : Renderable(glHelper), worldID(id) {
     vertices.push_back(glm::vec3(-1.0f, -1.0f, 0.0f));
     vertices.push_back(glm::vec3(1.0f, -1.0f, 0.0f));
     vertices.push_back(glm::vec3(1.0f, 1.0f, 0.0f));
@@ -42,4 +43,14 @@ void GUIRenderable::renderDebug(BulletDebugDrawer* debugDrawer) {
                        glm::vec3(1.0f, 1.0f, 1.0f), false);
     debugDrawer->drawLine(glm::vec3(left, down, 0.0f), glm::vec3(right, down, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),
                        glm::vec3(1.0f, 1.0f, 1.0f), false);
+}
+
+void GUIRenderable::addedToLayer(GUILayer *layer) {
+    parentLayers.push_back(layer);
+}
+
+GUIRenderable::~GUIRenderable() {
+    for (size_t i = 0; i < parentLayers.size(); ++i) {
+        parentLayers[i]->removeGuiElement(this->getWorldID());
+    }
 }
