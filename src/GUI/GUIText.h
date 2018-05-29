@@ -29,6 +29,10 @@ public:
     virtual void render();
 
     void renderDebug(BulletDebugDrawer *debugDrawer);
+
+    void updateText(const std::string& text) {
+        this->text = text;
+    }
 };
 
 
