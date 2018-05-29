@@ -1069,7 +1069,11 @@ uint32_t World::addGuiText(const std::string &fontFilePath, uint32_t fontSize, c
                            const glm::vec2 &position, float rotation) {
     GUIText* tr = new GUIText(glHelper, getNextObjectID(), fontManager.getFont(fontFilePath, fontSize), text,
                                  color);
-    tr->set2dWorldTransform(position, rotation);
+    glm::vec2 screenPosition;
+    screenPosition.x = position.x * this->options->getScreenWidth();
+    screenPosition.y = position.y * this->options->getScreenHeight();
+
+    tr->set2dWorldTransform(screenPosition, rotation);
     guiElements[tr->getWorldID()] = tr;
     ApiLayer->addGuiElement(tr);
     return tr->getWorldID();
