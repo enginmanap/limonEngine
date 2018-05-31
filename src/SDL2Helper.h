@@ -26,6 +26,8 @@ public:
         options->setIsWindowInFocus(SDL_GetWindowFlags(window) & SDL_WINDOW_MOUSE_FOCUS);
     };
 
+    bool loadSharedLibrary(const std::string& fileName);
+
     SDL_Window *getWindow();
 };
 

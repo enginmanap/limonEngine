@@ -103,7 +103,7 @@ public:
         return frustumPlanes;
     }
 
-    bool isShadowCaster(const glm::vec3& aabbMin, const glm::vec3& aabbMax, const glm::vec3& position) const {
+    bool isShadowCaster(const glm::vec3& aabbMin, const glm::vec3& aabbMax, const glm::vec3& position __attribute((unused))) const {
         //there are 2 possibilities.
         // 1) if directional light -> check if in frustum
         // 2) point light -> check if within range
@@ -114,7 +114,7 @@ public:
             case POINT:
                 return true; //TODO not implemented yet
         }
-
+        return true;//for safety only
     }
 
     /************Game Object methods **************/

@@ -3,36 +3,33 @@
 //
 
 #include "LimonAPI.h"
-#include "../World.h"
 #include <tinyxml2.h>
-//this is because the variable is static
-World* LimonAPI::world;
-
-void LimonAPI::setWorld(World *inputWorld) {
-        world = inputWorld;
-}
+#include <iostream>
 
 uint32_t LimonAPI::animateModel(uint32_t modelID, uint32_t animationID, bool looped) {
-    return world->addAnimationToObject(modelID, animationID, looped);
+    return worldAddAnimationToObject(modelID, animationID, looped);
 }
 
 bool LimonAPI::generateEditorElementsForParameters(std::vector<ParameterRequest> &runParameters, uint32_t index) {
-    return world->generateEditorElementsForParameters(runParameters, index);
+    return worldGenerateEditorElementsForParameters(runParameters, index);
 }
 
 uint32_t LimonAPI::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text,
                               const glm::vec3 &color, const glm::vec2 &position, float rotation) {
-    return world->addGuiText(fontFilePath, fontSize, text,color, position,rotation);
+    return worldAddGuiText(fontFilePath, fontSize, text,color, position,rotation);
+}
 
+uint32_t LimonAPI::updateGuiText(uint32_t guiTextID, const std::string &newText) {
+    return worldUpdateGuiText(guiTextID, newText);
 }
 
 uint32_t LimonAPI::removeGuiElement(uint32_t guiElementID) {
-    return world->removeGuiText(guiElementID);
+    return worldRemoveGuiText(guiElementID);
 
 }
 
 std::vector<LimonAPI::ParameterRequest> LimonAPI::getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID) {
-    std::vector<LimonAPI::ParameterRequest> results = world->getResultOfTrigger(TriggerObjectID, TriggerCodeID);
+    std::vector<LimonAPI::ParameterRequest> results = worldGetResultOfTrigger(TriggerObjectID, TriggerCodeID);
     return results;
 }
 
@@ -62,6 +59,10 @@ bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tiny
             break;
         case TRIGGER: {
             currentElement->SetText("Trigger");
+        }
+            break;
+        case GUI_TEXT: {
+            currentElement->SetText("GUIText");
         }
             break;
         }
@@ -130,7 +131,8 @@ bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tiny
     return true;
 }
 
-bool LimonAPI::ParameterRequest::deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index) {
+bool LimonAPI::ParameterRequest::
+deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index) {
     tinyxml2::XMLElement* parameterAttribute;
 
     parameterAttribute = parameterNode->FirstChildElement("RequestType");
@@ -148,6 +150,8 @@ bool LimonAPI::ParameterRequest::deserialize(tinyxml2::XMLElement *parameterNode
         this->requestType = RequestParameterTypes::FREE_TEXT;
     } else if(strcmp(parameterAttribute->GetText(), "Trigger") == 0) {
         this->requestType = RequestParameterTypes::TRIGGER;
+    } else if(strcmp(parameterAttribute->GetText(), "GUIText") == 0) {
+        this->requestType = RequestParameterTypes::GUI_TEXT;
     } else {
         std::cerr << "Trigger parameter request type was unknown." << std::endl;
         return false;

@@ -23,6 +23,18 @@ WorldLoader::WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options
 World* WorldLoader::loadWorld(const std::string& worldFile) const {
     World* newWorld = new World(assetManager, glHelper, options);
 
+
+    // Set api endpoints accordingly
+    LimonAPI* api = new LimonAPI();
+    api->worldAddAnimationToObject = std::bind(&World::addAnimationToObject, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    api->worldAddGuiText = std::bind(&World::addGuiText, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6);
+    api->worldUpdateGuiText = std::bind(&World::updateGuiText, newWorld, std::placeholders::_1, std::placeholders::_2);
+    api->worldGenerateEditorElementsForParameters = std::bind(&World::generateEditorElementsForParameters, newWorld, std::placeholders::_1, std::placeholders::_2);
+    api->worldGetResultOfTrigger = std::bind(&World::getResultOfTrigger, newWorld, std::placeholders::_1, std::placeholders::_2);
+    api->worldRemoveGuiText = std::bind(&World::removeGuiText, newWorld, std::placeholders::_1);
+
+    newWorld->apiInstance = api;
+
     if(!loadMapFromXML(worldFile, newWorld)) {
         std::cerr << "world load failed" << std::endl;
         delete newWorld;
@@ -33,7 +45,6 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
         delete newWorld;
         return nullptr;
     };
-    LimonAPI::setWorld(newWorld);
     return newWorld;
 }
 
@@ -412,7 +423,7 @@ bool WorldLoader::loadTriggers(tinyxml2::XMLNode *worldNode, World *world) const
     tinyxml2::XMLElement* triggerNode =  triggerListNode->FirstChildElement("Trigger");
 
     while(triggerNode != nullptr) {
-        TriggerObject* triggerObject = new TriggerObject(0);//0 is place holder, deserialize sets real value;
+        TriggerObject* triggerObject = new TriggerObject(0, world->apiInstance);//0 is place holder, deserialize sets real value;
         if(!triggerObject->deserialize(triggerNode)) {
             //this trigger is now headless
             delete triggerObject;

@@ -4,4 +4,4 @@
 
 #include "TriggerInterface.h"
 
-std::map<std::string, TriggerInterface*(*)()>* TriggerInterface::typeMap;
+std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* TriggerInterface::typeMap;

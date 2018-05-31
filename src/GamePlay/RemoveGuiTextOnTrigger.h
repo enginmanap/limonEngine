@@ -11,6 +11,8 @@
 class RemoveGuiTextOnTrigger: public TriggerInterface {
     static TriggerRegister<RemoveGuiTextOnTrigger> reg;
 public:
+    RemoveGuiTextOnTrigger(LimonAPI *limonAPI);
+
     std::vector<LimonAPI::ParameterRequest> getParameters() override;
 
     std::vector<LimonAPI::ParameterRequest> getResults() override;

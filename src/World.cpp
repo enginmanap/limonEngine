@@ -666,7 +666,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
             if(ImGui::Button("Add Trigger")) {
 
-                TriggerObject* to = new TriggerObject(this->getNextObjectID());
+                TriggerObject* to = new TriggerObject(this->getNextObjectID(), this->apiInstance);
                 to->getTransformation()->setTranslate(newObjectPosition);
                 this->dynamicsWorld->addCollisionObject(to->getGhostObject(), btBroadphaseProxy::SensorTrigger,
                                                         btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger);
@@ -999,6 +999,29 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                     }
                     ImGui::EndCombo();
                 }
+                break;
+            }
+            case LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT: {
+                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+                std::string currentGUIText;
+                if (parameter.isSet) {
+                    currentGUIText = guiElements[static_cast<uint32_t >(parameter.value.longValue)]->getName();
+                } else {
+                    currentGUIText = "Not selected";
+                    isAllSet = false;
+                }
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
+                                      currentGUIText.c_str())) {
+                    //for (uint32_t j = 0; j < guiElements.size(); ++j) {
+                    for(auto it = guiElements.begin(); it != guiElements.end(); it++) {
+                        //FIXME if the object is TEXT?
+                        if (ImGui::Selectable(it->second->getName().c_str())) {
+                            parameter.value.longValue = static_cast<long>(it->first);
+                            parameter.isSet = true;
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
             }
                 break;
             case LimonAPI::ParameterRequest::RequestParameterTypes::SWITCH: {
@@ -1096,4 +1119,11 @@ std::vector<LimonAPI::ParameterRequest> World::getResultOfTrigger(uint32_t trigg
     }
 
     return result;
+}
+
+uint32_t World::updateGuiText(uint32_t guiTextID, const std::string &newText) {
+    if(guiElements.find(guiTextID) != guiElements.end()) {
+        dynamic_cast<GUIText*>(guiElements[guiTextID])->updateText(newText);
+    }
+    return 0;
 }

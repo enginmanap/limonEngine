@@ -40,6 +40,8 @@ class TriggerObject;
 class AnimationCustom;
 class AnimationNode;
 
+class LimonAPI;
+
 class World {
 
     struct AnimationStatus {
@@ -92,6 +94,7 @@ class World {
     btDiscreteDynamicsWorld *dynamicsWorld;
     std::vector<btRigidBody *> rigidBodies;
 
+    LimonAPI* apiInstance;
 
     btBroadphaseInterface *broadphase;
     btDefaultCollisionConfiguration *collisionConfiguration;
@@ -205,6 +208,8 @@ public:
     uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text,
                         const glm::vec3 &color,
                         const glm::vec2 &position, float rotation);
+
+    uint32_t updateGuiText(uint32_t guiTextID, const std::string &newText);
 
     uint32_t removeGuiText(uint32_t guiElementID);
 

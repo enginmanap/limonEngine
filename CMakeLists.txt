@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.3)
 project(LimonEngine)
 
+set(PROJECT_VERSION 0.4)
+
+
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
@@ -73,7 +76,7 @@ INCLUDE_DIRECTORIES(${ASSIMP_INCLUDE_DIRS})
 add_custom_target(copyData
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/Data ${CMAKE_BINARY_DIR}/Data)
-#add_dependencies(LimonEngine copyData)
+add_dependencies(LimonEngine copyData)
 
 TARGET_LINK_LIBRARIES(LimonEngine ImGui ImGuizmo ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${ASSIMP_LIBRARIES})
 
@@ -82,4 +85,11 @@ IF (WIN32)
     SET( LimonEngine_LINKFLAGS ${CMAKE_CURRENT_SOURCE_DIR}/resources/limonEngine.res )
     SET_TARGET_PROPERTIES(LimonEngine PROPERTIES LINK_FLAGS ${LimonEngine_LINKFLAGS} )
 ENDIF()
+
+add_library(customTriggers SHARED src/GamePlay/TriggerInterface.cpp src/GamePlay/LimonAPI.cpp src/GamePlay/updateGuiTextOnTrigger.cpp)
+TARGET_LINK_LIBRARIES(customTriggers ${TinyXML2_LIBRARIES})
+
+set_target_properties(customTriggers PROPERTIES VERSION ${PROJECT_VERSION})
+set_target_properties(customTriggers PROPERTIES SOVERSION 1)
+
 cotire(LimonEngine)

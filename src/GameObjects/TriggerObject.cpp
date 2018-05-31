@@ -87,7 +87,7 @@ void TriggerObject::PutTriggerInGui(TriggerInterface *&triggerCode, std::vector<
                         if (triggerCode != nullptr) {
                             delete triggerCode;
                         }
-                        triggerCode = TriggerInterface::createTrigger(*it);
+                        triggerCode = TriggerInterface::createTrigger(*it, limonAPI);
                         parameters = triggerCode->getParameters();
                         enabled = false;
                     }
@@ -96,7 +96,7 @@ void TriggerObject::PutTriggerInGui(TriggerInterface *&triggerCode, std::vector<
             ImGui::EndCombo();
         }
         if (triggerCode != nullptr) {
-            bool isSet = LimonAPI::generateEditorElementsForParameters(parameters, index);
+            bool isSet = limonAPI->generateEditorElementsForParameters(parameters, index);
             if (enabled) {
                 if (ImGui::Button(("Disable Trigger##" + std::to_string(index)).c_str())) {
                     enabled = false;
@@ -224,7 +224,7 @@ bool TriggerObject::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, t
     triggerAttribute = triggersNode->FirstChildElement(nodeName.c_str());
     if (triggerAttribute != nullptr) {
         tinyxml2::XMLElement* triggerCodeAttribute = triggerAttribute->FirstChildElement("Name");
-        triggerCode = TriggerInterface::createTrigger(triggerCodeAttribute->GetText());
+        triggerCode = TriggerInterface::createTrigger(triggerCodeAttribute->GetText(), limonAPI);
 
         triggerCodeAttribute = triggerAttribute->FirstChildElement("parameters");
 

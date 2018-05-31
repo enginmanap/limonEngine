@@ -12,6 +12,8 @@ class AddGuiTextOnTrigger: public TriggerInterface {
     static TriggerRegister<AddGuiTextOnTrigger> reg;
     std::vector<LimonAPI::ParameterRequest> result;
 public:
+    AddGuiTextOnTrigger(LimonAPI *limonAPI);
+
     std::vector<LimonAPI::ParameterRequest> getParameters() override;
 
     bool run(std::vector<LimonAPI::ParameterRequest> parameters) override;
