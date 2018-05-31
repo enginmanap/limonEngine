@@ -340,6 +340,28 @@
                     <W>1</W>
                 </Rotate>
             </Transformation>
+            <FirstEnterTriggerCode>
+                <Name>UpdateGuiTextOnTrigger</Name>
+                <parameters>
+                    <Parameter>
+                        <RequestType>GUIText</RequestType>
+                        <Description>GUI Text element</Description>
+                        <Value>1</Value>
+                        <valueType>Long</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>0</Index>
+                    </Parameter>
+                    <Parameter>
+                        <RequestType>FreeText</RequestType>
+                        <Description>New Text</Description>
+                        <Value>Limonation Engine</Value>
+                        <valueType>String</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>1</Index>
+                    </Parameter>
+                </parameters>
+                <Enabled>True</Enabled>
+            </FirstEnterTriggerCode>
             <EnterTriggerCode>
                 <Name>AddGuiTextOnTrigger</Name>
                 <parameters>
