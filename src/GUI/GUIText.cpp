@@ -33,10 +33,14 @@ GUIText::GUIText(GLHelper *glHelper, uint32_t id, Face *face, const std::string 
 
         height = up + bearingUp;
 
-        std::cout << "for " << text << " up: " << up << ", down: " << bearingUp << ", width: " << width << std::endl;
+        //std::cout << "for " << text << " up: " << up << ", down: " << bearingUp << ", width: " << width << std::endl;
+        name = this->text + "-" + std::to_string(getWorldID());
     } else {
+        name = "Gui_Text-" + std::to_string(getWorldID());
         std::cout << "No text provided, rendering for empty" << std::endl;
     }
+
+
 }
 
 void GUIText::render() {

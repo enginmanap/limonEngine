@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <tinyxml2.h>
+#include <functional>
 
 
 class Model;
@@ -21,13 +22,9 @@ class PhysicalRenderable;
 
 
 class LimonAPI {
-    friend class WorldLoader;
-    static World* world;
-
-    static void setWorld(World* inputWorld);
 public:
     struct ParameterRequest {
-        enum RequestParameterTypes { MODEL, ANIMATION, SWITCH, FREE_TEXT, TRIGGER };
+        enum RequestParameterTypes { MODEL, ANIMATION, SWITCH, FREE_TEXT, TRIGGER, GUI_TEXT };
         RequestParameterTypes requestType;
         std::string description;
         enum ValueTypes { STRING, DOUBLE, LONG, LONG_ARRAY, BOOLEAN };
@@ -50,15 +47,27 @@ public:
         bool deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index);
     };
 
-    static bool generateEditorElementsForParameters(std::vector<ParameterRequest> &runParameters, uint32_t index);
+    bool generateEditorElementsForParameters(std::vector<ParameterRequest> &runParameters, uint32_t index);
 
-    static uint32_t animateModel(uint32_t modelID, uint32_t animationID, bool looped);
-    static uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text,
+    uint32_t animateModel(uint32_t modelID, uint32_t animationID, bool looped);
+    uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text,
                                const glm::vec3 &color,
                                const glm::vec2 &position, float rotation);
-    static uint32_t removeGuiElement(uint32_t guiElementID);
+    uint32_t updateGuiText(uint32_t guiTextID, const std::string &newText);
+    uint32_t removeGuiElement(uint32_t guiElementID);
 
-    static std::vector<ParameterRequest> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
+    std::vector<ParameterRequest> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
+
+private:
+
+    friend class WorldLoader;
+
+    std::function<bool(std::vector<LimonAPI::ParameterRequest> &, uint32_t)> worldGenerateEditorElementsForParameters;
+    std::function<uint32_t(uint32_t , uint32_t , bool )> worldAddAnimationToObject;
+    std::function<uint32_t(const std::string &, uint32_t , const std::string &, const glm::vec3 &, const glm::vec2 &, float)> worldAddGuiText;
+    std::function<uint32_t(uint32_t, const std::string &)> worldUpdateGuiText;
+    std::function<uint32_t (uint32_t)> worldRemoveGuiText;
+    std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t , uint32_t )> worldGetResultOfTrigger;
 };
 
 

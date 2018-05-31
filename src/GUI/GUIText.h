@@ -32,6 +32,7 @@ public:
 
     void updateText(const std::string& text) {
         this->text = text;
+        name = this->text + "-" + std::to_string(getWorldID());
     }
 };
 

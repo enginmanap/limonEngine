@@ -21,9 +21,9 @@ std::vector<LimonAPI::ParameterRequest> RemoveGuiTextOnTrigger::getParameters() 
 
 bool RemoveGuiTextOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters) {
     //when run, ask LimonAPI for current result of the action we are set for.
-    std::vector<LimonAPI::ParameterRequest> results = LimonAPI::getResultOfTrigger(parameters[0].value.longValues[1], parameters[0].value.longValues[2]);
+    std::vector<LimonAPI::ParameterRequest> results = limonAPI->getResultOfTrigger(parameters[0].value.longValues[1], parameters[0].value.longValues[2]);
     if(results.size() > 0) {
-        LimonAPI::removeGuiElement(results[0].value.longValue);
+        limonAPI->removeGuiElement(results[0].value.longValue);
         return true;
     }
     return false;
@@ -32,3 +32,5 @@ bool RemoveGuiTextOnTrigger::run(std::vector<LimonAPI::ParameterRequest> paramet
 std::vector<LimonAPI::ParameterRequest> RemoveGuiTextOnTrigger::getResults() {
     return std::vector<LimonAPI::ParameterRequest>();
 }
+
+RemoveGuiTextOnTrigger::RemoveGuiTextOnTrigger(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}

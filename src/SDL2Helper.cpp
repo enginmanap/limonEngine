@@ -5,6 +5,8 @@
 #include <SDL_syswm.h>
 #include "SDL2Helper.h"
 #include "Options.h"
+#include "GamePlay/LimonAPI.h"
+#include "GamePlay/TriggerInterface.h"
 
 SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {
 
@@ -67,6 +69,8 @@ SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {
     std::cout << "SDL started." << std::endl;
 }
 
+
+
 SDL2Helper::~SDL2Helper() {
     /* Delete our opengl context, destroy our window, and shutdown SDL */
     SDL_ShowCursor(SDL_ENABLE);
@@ -77,4 +81,27 @@ SDL2Helper::~SDL2Helper() {
 
 SDL_Window *SDL2Helper::getWindow() {
     return window;
+}
+
+bool SDL2Helper::loadSharedLibrary(const std::string &fileName) {
+
+        void* objectHandle = nullptr;
+        const std::string registerFunctionName = "registerAsTrigger";
+        void(*registerFunction)(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>*);
+        objectHandle = SDL_LoadObject(fileName.c_str());
+        registerFunction = (void(*)(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
+        if(registerFunction != nullptr) {
+            std::cout << "function load successful" << std::endl;
+            //register requires parameter
+            std::map<std::string, TriggerInterface*(*)(LimonAPI*)> elements;
+            registerFunction(&elements);
+            //now add this elements to registered map
+            for (auto it = elements.begin(); it != elements.end(); it++) {
+                TriggerInterface::registerType(it->first, it->second);
+            }
+            return true;
+        } else {
+            std::cerr << "function load failed" << std::endl;
+            return false;
+        }
 }

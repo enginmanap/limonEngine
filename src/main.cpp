@@ -32,6 +32,7 @@ int main(int argc, char *argv[]) {
 
     SDL2Helper sdlHelper(PROGRAM_NAME.c_str(), &options);
 
+    sdlHelper.loadSharedLibrary("libcustomTriggers.dll");
 
     GLHelper glHelper(&options);
     glHelper.reshape();

@@ -23,6 +23,8 @@ class TriggerObject : public GameObject {
     std::vector<LimonAPI::ParameterRequest> exitParameters;
 
     uint32_t objectID;
+    LimonAPI* limonAPI;
+
     TriggerInterface* firstEnterTriggerCode = nullptr;
     TriggerInterface* enterTriggerCode = nullptr;
     TriggerInterface* exitTriggerCode = nullptr;
@@ -56,7 +58,7 @@ class TriggerObject : public GameObject {
 
 public:
 
-    TriggerObject(uint32_t id): objectID(id) {
+    TriggerObject(uint32_t id, LimonAPI* limonAPI): objectID(id), limonAPI(limonAPI) {
         ghostObject->setCollisionShape(ghostShape);
         ghostObject->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
         ghostObject->setWorldTransform(btTransform(btQuaternion::getIdentity(), btVector3()));

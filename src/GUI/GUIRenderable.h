@@ -17,10 +17,11 @@ class GUIRenderable : public Renderable {
     std::vector<glm::vec2> textureCoordinates;
     uint32_t worldID;
 
-
 protected:
     //TODO maybe this should not be protected, but private
     std::vector<glm::mediump_uvec3> faces;
+
+    std::string name;
     GLuint textureID;
 
 public:
@@ -71,6 +72,10 @@ public:
 
     uint32_t getWorldID() {
         return worldID;
+    }
+
+    const std::string& getName() {
+        return name;
     }
 };
 

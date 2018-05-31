@@ -25,6 +25,7 @@ GUIRenderable::GUIRenderable(GLHelper *glHelper, uint32_t id) : Renderable(glHel
     glHelper->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
 
     renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/GUI/vertex.glsl", "./Data/Shaders/GUI/fragment.glsl", false);
+    name = "Gui_Element_" + std::to_string(worldID);
 }
 
 void GUIRenderable::renderDebug(BulletDebugDrawer* debugDrawer) {

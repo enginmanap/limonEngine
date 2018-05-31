@@ -20,7 +20,7 @@ std::vector<LimonAPI::ParameterRequest> AddGuiTextOnTrigger::getParameters() {
 }
 
 bool AddGuiTextOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters) {
-    uint32_t guiID = LimonAPI::addGuiText("Data/Fonts/Helvetica-Normal.ttf", 32, std::string(parameters[0].value.stringValue), glm::vec3(0,255,255), glm::vec2(0.5f,0.3f), 0.0f);
+    uint32_t guiID = limonAPI->addGuiText("Data/Fonts/Helvetica-Normal.ttf", 32, std::string(parameters[0].value.stringValue), glm::vec3(0,255,255), glm::vec2(0.5f,0.3f), 0.0f);
     LimonAPI::ParameterRequest pr;
     pr.description = "Created GUI text id";
     pr.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
@@ -36,3 +36,5 @@ std::vector<LimonAPI::ParameterRequest> AddGuiTextOnTrigger::getResults() {
     result.clear();
     return temp;//Not sure if clearing it was wrong
 }
+
+AddGuiTextOnTrigger::AddGuiTextOnTrigger(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}

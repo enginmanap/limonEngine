@@ -28,7 +28,7 @@ std::vector<LimonAPI::ParameterRequest> AnimateOnTrigger::getParameters() {
 }
 
 bool AnimateOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters) {
-    LimonAPI::animateModel(static_cast<uint32_t>(parameters[0].value.longValue),
+    limonAPI->animateModel(static_cast<uint32_t>(parameters[0].value.longValue),
                            static_cast<uint32_t>(parameters[1].value.longValue),
                            parameters[2].value.boolValue);
     return true;
@@ -38,3 +38,5 @@ bool AnimateOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters) {
 std::vector<LimonAPI::ParameterRequest> AnimateOnTrigger::getResults() {
     return std::vector<LimonAPI::ParameterRequest>();
 }
+
+AnimateOnTrigger::AnimateOnTrigger(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}
