@@ -4,29 +4,34 @@ layout: default
 
 ## About
 
-Limon is a 3D FPS game engine. Main focus of its development is learning. It is not high performance, and will not be at least for seeable future. 
+Limon is a 3D FPS game engine. Main focus of its development is learning. It is not bleeding edge in any sense, but it is a functioning game engine none the less. 
 
 It is based on Opengl 3.3 + SDL2, but many other libraries are used.
 
 Here is the latest video of the engine:
 
-[![Third video](http://img.youtube.com/vi/OkMz1MGk9NE/0.jpg)](https://youtu.be/OkMz1MGk9NE)
+[![Limon Engine New map and Editor](http://img.youtube.com/vi/2rBYDD6Z52Q/0.jpg)](https://youtu.be/2rBYDD6Z52Q)
 
-# Features
+# Features (as of 01 June 2018)
 
 - Model loading using Assimp
 - Skeletal animations
 - Realtime shadows
 - Rigid body physics
+- Preliminary AI 
 
 # New Features!
-- Preliminary AI
+- In game map editor
+- Trigger volumes
+- Preliminary API for Custom Trigger code
+- Loading shared libraries that has Trigger code
+- Creating Animations in editor
 
 # Features to do
-- World unloading should unload assets.
+- ~~World unloading should unload assets.~~
 - Input should use callback functions when possible
 - vbo should not be exposed
-- We need a map editor using QT.
+- ~~We need a map editor using QT.~~
 - There should be some AI
 - Spot lights should be added.
 - Debug draw should be improved
@@ -38,9 +43,9 @@ Here is the latest video of the engine:
 - World definition should be moved to seperate file/ Partially done, except gui elements.
 - For proper handling of opacity, we need to order the objects.
 - object culling? We are rendering everything, which is not feasible on the long run.
-- there should be a console like quake.
-- Options (like shadow res, screen res etc.) should be centralized
+- ~~there should be a console like quake.~~
+- ~~Options (like shadow res, screen res etc.) should be centralized~~
 - Logging should be better
-    * log level
-    * log channel (like animation, physics)
+    * ~~log level~~
+    * ~~log channel (like animation, physics)~~
     * log destination (file, console)
