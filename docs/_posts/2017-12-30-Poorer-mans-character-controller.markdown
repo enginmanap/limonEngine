@@ -5,6 +5,7 @@ description: "How Limon engine simulates character with Bullet"
 date: "2017-12-30 17:44:00 +0300"
 author: enginmanap
 version: 0.0.2
+github_comments_issueid: 17
 categories: [technical]
 tags: bullet physics,character controller
 ---

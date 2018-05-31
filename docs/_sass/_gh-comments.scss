@@ -1,0 +1,28 @@
+// Original code taken with permission from : https://github.com/dwilliamson/donw.io/blob/master/public/css/main.css
+
+#gh-comments {
+  text-align: center;
+}
+
+#gh-comment {
+  text-align: left;
+  background-color:#E7E8E2;
+  border:1px solid #b3b3b3;
+  margin:2.5em 0;
+  padding:10px;
+}
+
+#gh-comment-hr {
+  border-top: inset 1px white;
+  margin: 8px 0px;
+}
+
+#gh-comment p {
+  margin:0px;
+}
+
+#gh-comment img {
+  display: inline;
+  vertical-align: middle;
+  margin: 2px 10px 2px 2px;
+}
