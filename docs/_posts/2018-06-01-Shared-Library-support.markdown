@@ -5,7 +5,7 @@ description: "Shared libraries that Use loader Application methods"
 date: "2018-06-03 19:08:13 +0300"
 author: enginmanap
 version: 0.0.4
-categories: [status][How-to]
+categories: [How-to]
 github_comments_issueid: 18
 ---
 
