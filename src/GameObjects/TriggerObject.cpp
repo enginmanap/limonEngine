@@ -25,22 +25,22 @@ void TriggerObject::render(BulletDebugDrawer *debugDrawer) {
      * */
 
     //top
-    debugDrawer->drawLine(boxTransform* glm::vec4( 1, 1, 1,1), boxTransform* glm::vec4( 1, 1,-1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 1 -> 2
-    debugDrawer->drawLine(boxTransform* glm::vec4( 1, 1,-1,1), boxTransform* glm::vec4(-1, 1,-1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 2 -> 4
-    debugDrawer->drawLine(boxTransform* glm::vec4(-1, 1,-1,1), boxTransform* glm::vec4(-1, 1, 1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 4 -> 3
-    debugDrawer->drawLine(boxTransform* glm::vec4(-1, 1, 1,1), boxTransform* glm::vec4( 1, 1, 1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 3 -> 1
+    debugDrawer->drawLine(glm::vec3(boxTransform* glm::vec4( 1, 1, 1,1)), glm::vec3(boxTransform* glm::vec4( 1, 1,-1,1)), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 1 -> 2
+    debugDrawer->drawLine(glm::vec3(boxTransform* glm::vec4( 1, 1,-1,1)), glm::vec3(boxTransform* glm::vec4(-1, 1,-1,1)), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 2 -> 4
+    debugDrawer->drawLine(glm::vec3(boxTransform* glm::vec4(-1, 1,-1,1)), glm::vec3(boxTransform* glm::vec4(-1, 1, 1,1)), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 4 -> 3
+    debugDrawer->drawLine(glm::vec3(boxTransform* glm::vec4(-1, 1, 1,1)), glm::vec3(boxTransform* glm::vec4( 1, 1, 1,1)), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 3 -> 1
 
     //bottom
-    debugDrawer->drawLine(boxTransform* glm::vec4( 1,-1, 1,1), boxTransform* glm::vec4( 1,-1,-1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 1 -> 2
-    debugDrawer->drawLine(boxTransform* glm::vec4( 1,-1,-1,1), boxTransform* glm::vec4(-1,-1,-1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 2 -> 4
-    debugDrawer->drawLine(boxTransform* glm::vec4(-1,-1,-1,1), boxTransform* glm::vec4(-1,-1, 1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 4 -> 3
-    debugDrawer->drawLine(boxTransform* glm::vec4(-1,-1, 1,1), boxTransform* glm::vec4( 1,-1, 1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 3 -> 1
+    debugDrawer->drawLine(glm::vec3(boxTransform* glm::vec4( 1,-1, 1,1)), glm::vec3(boxTransform* glm::vec4( 1,-1,-1,1)), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 1 -> 2
+    debugDrawer->drawLine(glm::vec3(boxTransform* glm::vec4( 1,-1,-1,1)), glm::vec3(boxTransform* glm::vec4(-1,-1,-1,1)), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 2 -> 4
+    debugDrawer->drawLine(glm::vec3(boxTransform* glm::vec4(-1,-1,-1,1)), glm::vec3(boxTransform* glm::vec4(-1,-1, 1,1)), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 4 -> 3
+    debugDrawer->drawLine(glm::vec3(boxTransform* glm::vec4(-1,-1, 1,1)), glm::vec3(boxTransform* glm::vec4( 1,-1, 1,1)), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 3 -> 1
 
     //sides
-    debugDrawer->drawLine(boxTransform* glm::vec4( 1, 1, 1,1), boxTransform* glm::vec4( 1,-1, 1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 1 -> 1
-    debugDrawer->drawLine(boxTransform* glm::vec4( 1, 1,-1,1), boxTransform* glm::vec4( 1,-1,-1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 2 -> 2
-    debugDrawer->drawLine(boxTransform* glm::vec4(-1, 1, 1,1), boxTransform* glm::vec4(-1,-1, 1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 3 -> 3
-    debugDrawer->drawLine(boxTransform* glm::vec4(-1, 1,-1,1), boxTransform* glm::vec4(-1,-1,-1,1), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 4 -> 4
+    debugDrawer->drawLine(glm::vec3(boxTransform* glm::vec4( 1, 1, 1,1)), glm::vec3(boxTransform* glm::vec4( 1,-1, 1,1)), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 1 -> 1
+    debugDrawer->drawLine(glm::vec3(boxTransform* glm::vec4( 1, 1,-1,1)), glm::vec3(boxTransform* glm::vec4( 1,-1,-1,1)), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 2 -> 2
+    debugDrawer->drawLine(glm::vec3(boxTransform* glm::vec4(-1, 1, 1,1)), glm::vec3(boxTransform* glm::vec4(-1,-1, 1,1)), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 3 -> 3
+    debugDrawer->drawLine(glm::vec3(boxTransform* glm::vec4(-1, 1,-1,1)), glm::vec3(boxTransform* glm::vec4(-1,-1,-1,1)), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 4 -> 4
 }
 
 GameObject::ImGuiResult TriggerObject::addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix) {
