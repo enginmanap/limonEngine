@@ -25,7 +25,7 @@ private:
     uint32_t objectID;
     glm::vec3 position, color;
     LightTypes lightType;
-    bool frustumChanged;
+    bool frustumChanged = true;
     void setShadowMatricesForPosition(){
         shadowMatrices[0] =glHelper->getLightProjectionMatrixPoint() *
                            glm::lookAt(position, position + glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0));
