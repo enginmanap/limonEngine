@@ -223,24 +223,23 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
             for(size_t i = 0; i < lights.size(); i++) {
                 if(it->second->isDirtyForFrustum() ||lights[i]->isFrustumChanged()) {
                     it->second->setIsInLightFrustum(i, lights[i]->isShadowCaster(it->second->getAabbMin(),
-                                                                                 it->second->getAabbMin(),
+                                                                                 it->second->getAabbMax(),
                                                                                  it->second->getTransformation()->getTranslate()));
+                    it->second->setCleanForFrustum();
                 }
             }
-            for(size_t i = 0; i < lights.size(); i++) {
-                lights[i]->setFrustumChanged(false);
-            }
-            it->second->setCleanForFrustum();
-
         }
+        for(size_t i = 0; i < lights.size(); i++) {
+            lights[i]->setFrustumChanged(false);
+        }
+
     } else {
         for (auto it = objects.begin(); it != objects.end(); ++it) {
             it->second->setIsInFrustum(glHelper->isInFrustum(it->second->getAabbMin(), it->second->getAabbMax()));
-
             for(size_t i = 0; i < lights.size(); i++) {
-                it->second->setIsInLightFrustum(i, glHelper->isInFrustum(it->second->getAabbMin(),
-                                                                         it->second->getAabbMax(),
-                                                                         lights[i]->getFrustumPlanes()));
+                it->second->setIsInLightFrustum(i, lights[i]->isShadowCaster(it->second->getAabbMin(),
+                                                                             it->second->getAabbMax(),
+                                                                             it->second->getTransformation()->getTranslate()));
             }
         }
             dynamicsWorld->updateAabbs();
