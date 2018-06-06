@@ -25,8 +25,11 @@ std::vector<LimonAPI::ParameterRequest> UpdateGuiTextOnTrigger::getParameters() 
 }
 
 bool UpdateGuiTextOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters) {
-    limonAPI->updateGuiText(parameters[0].value.longValue, parameters[1].value.stringValue);
-    return false;
+    if(limonAPI->updateGuiText(parameters[0].value.longValue, parameters[1].value.stringValue) == 0) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 std::vector<LimonAPI::ParameterRequest> UpdateGuiTextOnTrigger::getResults() {
