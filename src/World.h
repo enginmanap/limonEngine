@@ -61,7 +61,7 @@ class World {
     enum PlayerModes {DEBUG_MODE, EDITOR_MODE, PHYSICAL_MODE, PAUSED_MODE}; //PAUSED mode is used by quit logic
     AssetManager* assetManager;
     Options* options;
-    uint32_t totalObjectCount = 1;
+    uint32_t nextWorldID = 1;
     std::map<uint32_t, PhysicalRenderable *> objects;
     std::map<uint32_t, GUIRenderable*> guiElements;
     std::map<uint32_t, TriggerObject*> triggers;
@@ -128,9 +128,19 @@ class World {
         for(auto object = objects.begin(); object != objects.end(); object++) {
             auto result = usedIDs.insert(object->first);
             if(result.second == false) {
+                std::cerr << "world ID repetition on object detected! with id " << object->first << std::endl;
                 return false;
             }
-            maxID = object->first;
+            maxID = std::max(maxID,object->first);
+        }
+
+        for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
+            auto result = usedIDs.insert(trigger->first);
+            if(result.second == false) {
+                std::cerr << "world ID repetition on trigger detected! with id " << trigger->first << std::endl;
+                return false;
+            }
+            maxID = std::max(maxID,trigger->first);
         }
 
         for(auto actor = actors.begin(); actor != actors.end(); actor++) {
@@ -138,7 +148,7 @@ class World {
             if(result.second == false) {
                 return false;
             }
-            maxID = actor->first;
+            maxID = std::max(maxID,actor->first);
         }
 
         for(uint32_t index = 1; index <= maxID; index++) {
@@ -148,7 +158,7 @@ class World {
             }
         }
 
-        totalObjectCount = maxID+1;
+        nextWorldID = maxID+1;
         return true;
     }
 
@@ -193,7 +203,7 @@ public:
     void render();
 
     uint32_t getNextObjectID() {
-        return totalObjectCount++;
+        return nextWorldID++;
     }
 
 
