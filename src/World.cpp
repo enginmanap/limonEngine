@@ -71,9 +71,16 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     layer1->setDebug(false);
 
     GUIText *tr = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 64), "Limon Engine",
-                              glm::vec3(0, 0, 0));
+                                                            glm::vec3(0, 0, 0));
     //tr->setScale(0.25f,0.25f);
     tr->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2, options->getScreenHeight()-20), 0.0f);
+    guiElements[tr->getWorldID()] = tr;
+    layer1->addGuiElement(tr);
+
+    tr = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 64), "0",
+                              glm::vec3(0, 0, 0));
+    //tr->setScale(0.25f,0.25f);
+    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2, options->getScreenHeight()-60), 0.0f);
     guiElements[tr->getWorldID()] = tr;
     layer1->addGuiElement(tr);
 
@@ -1106,8 +1113,9 @@ uint32_t World::removeGuiText(uint32_t guiElementID) {
     if(guiElements.find(guiElementID) != guiElements.end()) {
         delete guiElements[guiElementID];
         guiElements.erase(guiElementID);
+        return 0;
     }
-    return 0;
+    return 1;
 }
 
 std::vector<LimonAPI::ParameterRequest> World::getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID) {
@@ -1125,4 +1133,14 @@ uint32_t World::updateGuiText(uint32_t guiTextID, const std::string &newText) {
         dynamic_cast<GUIText*>(guiElements[guiTextID])->updateText(newText);
     }
     return 0;
+}
+
+uint32_t World::removeObject(uint32_t objectID) {
+    if(objects.find(objectID) != objects.end()) {
+        dynamicsWorld->removeRigidBody(objects[objectID]->getRigidBody());
+        delete objects[objectID];
+        objects.erase(objectID);
+        return 0;
+    }
+    return 1;//not successful
 }
