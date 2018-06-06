@@ -38,8 +38,3 @@ std::vector<LimonAPI::ParameterRequest> UpdateGuiTextOnTrigger::getResults() {
 
 UpdateGuiTextOnTrigger::UpdateGuiTextOnTrigger(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}
 
-
-void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* triggerMap) {
-    (*triggerMap)["UpdateGuiTextOnTrigger"] = &createT<UpdateGuiTextOnTrigger>;
-    //TriggerRegister<UpdateGuiTextOnTrigger> reg("UpdateGuiTextOnTrigger");
-}
