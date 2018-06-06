@@ -55,6 +55,7 @@ public:
                                const glm::vec2 &position, float rotation);
     uint32_t updateGuiText(uint32_t guiTextID, const std::string &newText);
     uint32_t removeGuiElement(uint32_t guiElementID);
+    uint32_t removeObject(uint32_t guiElementID);
 
     std::vector<ParameterRequest> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
 
@@ -68,6 +69,7 @@ private:
     std::function<uint32_t(uint32_t, const std::string &)> worldUpdateGuiText;
     std::function<uint32_t (uint32_t)> worldRemoveGuiText;
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t , uint32_t )> worldGetResultOfTrigger;
+    std::function<uint32_t (uint32_t)> worldRemoveObject;
 };
 
 

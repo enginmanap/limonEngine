@@ -32,6 +32,7 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
     api->worldGenerateEditorElementsForParameters = std::bind(&World::generateEditorElementsForParameters, newWorld, std::placeholders::_1, std::placeholders::_2);
     api->worldGetResultOfTrigger = std::bind(&World::getResultOfTrigger, newWorld, std::placeholders::_1, std::placeholders::_2);
     api->worldRemoveGuiText = std::bind(&World::removeGuiText, newWorld, std::placeholders::_1);
+    api->worldRemoveObject = std::bind(&World::removeObject, newWorld, std::placeholders::_1);
 
     newWorld->apiInstance = api;
 

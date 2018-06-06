@@ -33,6 +33,10 @@ std::vector<LimonAPI::ParameterRequest> LimonAPI::getResultOfTrigger(uint32_t Tr
     return results;
 }
 
+uint32_t LimonAPI::removeObject(uint32_t guiElementID) {
+    return worldRemoveObject(guiElementID);
+}
+
 bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *ParametersNode,
                                            uint32_t index) const {
 

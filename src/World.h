@@ -207,6 +207,7 @@ public:
     }
 
 
+    /************************************ Methods LimonAPI exposes *************/
     /**
     * This method fills the parameters required to run the trigger
     * @param runParameters
@@ -221,9 +222,12 @@ public:
 
     uint32_t updateGuiText(uint32_t guiTextID, const std::string &newText);
 
+    uint32_t removeObject(uint32_t objectID);
     uint32_t removeGuiText(uint32_t guiElementID);
 
     std::vector<LimonAPI::ParameterRequest> getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID);
+
+    /************************************ Methods LimonAPI exposes *************/
 };
 
 #endif //LIMONENGINE_WORLD_H
