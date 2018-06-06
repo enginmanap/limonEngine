@@ -70,14 +70,14 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     GUILayer *layer1 = new GUILayer(glHelper, debugDrawer, 2);
     layer1->setDebug(false);
 
-    GUIText *tr = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 64), "Limon Engine",
+    GUIText *tr = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 32), "Limon Engine",
                                                             glm::vec3(0, 0, 0));
     //tr->setScale(0.25f,0.25f);
-    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2, options->getScreenHeight()-20), 0.0f);
+    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth()/8, options->getScreenHeight()-20), 0.0f);
     guiElements[tr->getWorldID()] = tr;
     layer1->addGuiElement(tr);
 
-    tr = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 64), "0",
+    tr = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 64), "0",
                               glm::vec3(0, 0, 0));
     //tr->setScale(0.25f,0.25f);
     tr->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2, options->getScreenHeight()-60), 0.0f);
