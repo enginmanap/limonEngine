@@ -24,8 +24,4 @@ public:
 
 };
 
-
-extern "C" void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* triggerMap);
-
-
 #endif //LIMONENGINE_UPDATEGUITEXTONTRIGGER_H

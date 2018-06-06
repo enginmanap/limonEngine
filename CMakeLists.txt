@@ -86,7 +86,8 @@ IF (WIN32)
     SET_TARGET_PROPERTIES(LimonEngine PROPERTIES LINK_FLAGS ${LimonEngine_LINKFLAGS} )
 ENDIF()
 
-add_library(customTriggers SHARED src/GamePlay/TriggerInterface.cpp src/GamePlay/LimonAPI.cpp src/GamePlay/CoinPickUpOnTrigger.cpp)
+add_library(customTriggers SHARED src/GamePlay/TriggerInterface.cpp src/GamePlay/LimonAPI.cpp src/GamePlay/CoinPickUpOnTrigger.cpp src/GamePlay/UpdateGuiTextOnTrigger)
+
 TARGET_LINK_LIBRARIES(customTriggers ${TinyXML2_LIBRARIES})
 
 set_target_properties(customTriggers PROPERTIES VERSION ${PROJECT_VERSION})
