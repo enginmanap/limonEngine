@@ -278,6 +278,52 @@
                 </Rotate>
             </Transformation>
         </Object>
+        <Object>
+            <File>./Data/Models/PirateCoin/Coin.obj</File>
+            <Mass>0</Mass>
+            <ID>17</ID>
+            <Transformation>
+                <Scale>
+                    <X>0.39983994</X>
+                    <Y>0.39997113</Y>
+                    <Z>0.39997098</Z>
+                </Scale>
+                <Translate>
+                    <X>0</X>
+                    <Y>3</Y>
+                    <Z>25</Z>
+                </Translate>
+                <Rotate>
+                    <X>-6.1772334e-006</X>
+                    <Y>-0.70799989</Y>
+                    <Z>0.70621258</Z>
+                    <W>-9.1304173e-009</W>
+                </Rotate>
+            </Transformation>
+        </Object>
+        <Object>
+            <File>./Data/Models/PirateCoin/Coin.obj</File>
+            <Mass>0</Mass>
+            <ID>18</ID>
+            <Transformation>
+                <Scale>
+                    <X>0.40000001</X>
+                    <Y>0.40000001</Y>
+                    <Z>0.40000001</Z>
+                </Scale>
+                <Translate>
+                    <X>20</X>
+                    <Y>3</Y>
+                    <Z>25</Z>
+                </Translate>
+                <Rotate>
+                    <X>-1.3963499e-005</X>
+                    <Y>-0.70657277</Y>
+                    <Z>0.70764047</Z>
+                    <W>1.8310636e-006</W>
+                </Rotate>
+            </Transformation>
+        </Object>
     </Objects>
     <Lights>
         <Light>
@@ -309,7 +355,7 @@
     </Lights>
     <Sky>
         <ImagesPath>./Data/Textures/Skyboxes/ThickCloudsWater</ImagesPath>
-        <ID>15</ID>
+        <ID>16</ID>
         <Right>right.jpg</Right>
         <Left>left.jpg</Left>
         <Top>top.jpg</Top>
@@ -317,7 +363,12 @@
         <Back>back.jpg</Back>
         <Front>front.jpg</Front>
     </Sky>
-    <LoadedAnimations/>
+    <LoadedAnimations>
+        <LoadedAnimation>
+            <Name>rotateCoin</Name>
+            <Index>0</Index>
+        </LoadedAnimation>
+    </LoadedAnimations>
     <Triggers>
         <Trigger>
             <Name>TRIGGER-15</Name>
@@ -390,6 +441,94 @@
                 </parameters>
                 <Enabled>True</Enabled>
             </ExitTriggerCode>
+        </Trigger>
+        <Trigger>
+            <Name>TRIGGER-19</Name>
+            <ID>19</ID>
+            <Transformation>
+                <Scale>
+                    <X>1.25</X>
+                    <Y>1.25</Y>
+                    <Z>1.25</Z>
+                </Scale>
+                <Translate>
+                    <X>0</X>
+                    <Y>3</Y>
+                    <Z>25</Z>
+                </Translate>
+                <Rotate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
+                </Rotate>
+            </Transformation>
+            <FirstEnterTriggerCode>
+                <Name>CoinPickUpOnTrigger</Name>
+                <parameters>
+                    <Parameter>
+                        <RequestType>GUIText</RequestType>
+                        <Description>Counter GUI Element</Description>
+                        <Value>2</Value>
+                        <valueType>Long</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>0</Index>
+                    </Parameter>
+                    <Parameter>
+                        <RequestType>Model</RequestType>
+                        <Description>Model to remove</Description>
+                        <Value>17</Value>
+                        <valueType>Long</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>1</Index>
+                    </Parameter>
+                </parameters>
+                <Enabled>True</Enabled>
+            </FirstEnterTriggerCode>
+        </Trigger>
+        <Trigger>
+            <Name>TRIGGER-20</Name>
+            <ID>20</ID>
+            <Transformation>
+                <Scale>
+                    <X>1.25</X>
+                    <Y>1.25</Y>
+                    <Z>1.25</Z>
+                </Scale>
+                <Translate>
+                    <X>20</X>
+                    <Y>3</Y>
+                    <Z>25</Z>
+                </Translate>
+                <Rotate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
+                </Rotate>
+            </Transformation>
+            <FirstEnterTriggerCode>
+                <Name>CoinPickUpOnTrigger</Name>
+                <parameters>
+                    <Parameter>
+                        <RequestType>GUIText</RequestType>
+                        <Description>Counter GUI Element</Description>
+                        <Value>2</Value>
+                        <valueType>Long</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>0</Index>
+                    </Parameter>
+                    <Parameter>
+                        <RequestType>Model</RequestType>
+                        <Description>Model to remove</Description>
+                        <Value>18</Value>
+                        <valueType>Long</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>1</Index>
+                    </Parameter>
+                </parameters>
+                <Enabled>True</Enabled>
+            </FirstEnterTriggerCode>
         </Trigger>
     </Triggers>
 </World>
