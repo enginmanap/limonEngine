@@ -375,14 +375,14 @@
             <ID>15</ID>
             <Transformation>
                 <Scale>
-                    <X>2</X>
+                    <X>4</X>
                     <Y>2</Y>
                     <Z>2</Z>
                 </Scale>
                 <Translate>
                     <X>10</X>
                     <Y>3</Y>
-                    <Z>10</Z>
+                    <Z>-10</Z>
                 </Translate>
                 <Rotate>
                     <X>0</X>
