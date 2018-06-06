@@ -125,6 +125,8 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
 
     guiLayers.push_back(layer1);
 
+    onLoadActions.push_back(new ActionForOnload());
+
     /************ ImGui *****************************/
     // Setup ImGui binding
     imgGuiHelper = new ImGuiHelper(glHelper, options);
@@ -670,7 +672,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
             }
 
-            if(ImGui::Button("Add Trigger")) {
+            if(ImGui::Button("Add Trigger Volume")) {
 
                 TriggerObject* to = new TriggerObject(this->getNextObjectID(), this->apiInstance);
                 to->getTransformation()->setTranslate(newObjectPosition);
@@ -679,6 +681,27 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 triggers[to->getWorldObjectID()] = to;
 
                 pickedObject = static_cast<GameObject*>(to);
+            }
+
+            if (ImGui::CollapsingHeader("Add on load trigger")) {
+                static size_t onLoadTriggerIndex = 0;//maximum size
+                std::string selectedID = std::to_string(onLoadTriggerIndex);
+                if (ImGui::BeginCombo("Current Triggers", selectedID.c_str())) {
+                    for(size_t i = 0; i < onLoadActions.size(); i++) {
+                        if (ImGui::Selectable(std::to_string(i).c_str())) {
+                            onLoadTriggerIndex = i;
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                //currently any trigger object can have 3 elements, so this should be >2 to avoid collision on imgui tags. I am assigning 100 just to be safe
+                TriggerObject::PutTriggerInGui(apiInstance, onLoadActions[onLoadTriggerIndex]->action, onLoadActions[onLoadTriggerIndex]->parameters,
+                                               onLoadActions[onLoadTriggerIndex]->enabled, 100+onLoadTriggerIndex);
+                if(onLoadActions[onLoadActions.size()-1]->enabled) {
+                    //when user presses the enable button, add another and select it
+                    onLoadTriggerIndex=onLoadActions.size();
+                    onLoadActions.push_back(new ActionForOnload());
+                }
             }
 
             ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
@@ -804,20 +827,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     ImGui::NewLine();
                     if (pickedObject->getTypeID() == GameObject::MODEL) {
                         if (ImGui::Button("Remove This Object")) {
-                            //remove animation
-                            activeAnimations.erase(dynamic_cast<Model *>(pickedObject));
-
-                            //remove the object.
-                            PhysicalRenderable *removeObject = objects[pickedObject->getWorldObjectID()];
-                            //disconnect from physics
-                            dynamicsWorld->removeRigidBody(removeObject->getRigidBody());
-                            //disconnect AI
-                            if (dynamic_cast<Model *>(removeObject)->getAIID() != 0) {
-                                actors.erase(dynamic_cast<Model *>(removeObject)->getAIID());
-                            }
-                            objects.erase(pickedObject->getWorldObjectID());
-                            pickedObject = nullptr;
-                            delete removeObject;
+                            removeObject(pickedObject->getWorldObjectID());
                         }
                     }
 
@@ -880,6 +890,12 @@ World::~World() {
     for (std::vector<Light *>::iterator it = lights.begin(); it != lights.end(); ++it) {
         delete (*it);
     }
+
+    for (auto it = onLoadActions.begin(); it != onLoadActions.end(); ++it) {
+        delete (*it)->action;
+        delete (*it);
+    }
+
     delete debugDrawer;
     delete solver;
     delete collisionConfiguration;
@@ -1137,10 +1153,27 @@ uint32_t World::updateGuiText(uint32_t guiTextID, const std::string &newText) {
 
 uint32_t World::removeObject(uint32_t objectID) {
     if(objects.find(objectID) != objects.end()) {
-        dynamicsWorld->removeRigidBody(objects[objectID]->getRigidBody());
+        PhysicalRenderable* objectToRemove = objects[objectID];
+        dynamicsWorld->removeRigidBody(objectToRemove->getRigidBody());
+        //disconnect AI
+        if (dynamic_cast<Model *>(objectToRemove)->getAIID() != 0) {
+            actors.erase(dynamic_cast<Model *>(objectToRemove)->getAIID());
+        }
+        //remove any active animations
+        activeAnimations.erase(objectToRemove);
+        //delete object itself
         delete objects[objectID];
         objects.erase(objectID);
         return 0;
     }
     return 1;//not successful
+}
+
+void World::afterLoadFinished() {
+    for (size_t i = 0; i < onLoadActions.size(); ++i) {
+        if(onLoadActions[i]->enabled) {
+            std::cout << "running trigger " << onLoadActions[i]->action->getName() << std::endl;
+            onLoadActions[i]->action->run(onLoadActions[i]->parameters);
+        }
+    }
 }
