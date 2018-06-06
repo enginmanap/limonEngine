@@ -49,14 +49,14 @@ class TriggerObject : public GameObject {
         ghostObject->setWorldTransform(transform);
     }
 
-    void PutTriggerInGui(TriggerInterface *&triggerCode, std::vector<LimonAPI::ParameterRequest> &parameters,
-                         bool &enabled, uint32_t index);
-
     void
     serializeTriggerCode(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *triggerNode, TriggerInterface *triggerCode,
                          const std::string &triggerCodeNodeName, const std::vector<LimonAPI::ParameterRequest> &parameters) const;
 
 public:
+
+    static void PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&triggerCode, std::vector<LimonAPI::ParameterRequest> &parameters,
+                                    bool &enabled, uint32_t index);
 
     TriggerObject(uint32_t id, LimonAPI* limonAPI): objectID(id), limonAPI(limonAPI) {
         ghostObject->setCollisionShape(ghostShape);

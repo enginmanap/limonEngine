@@ -22,6 +22,7 @@ class Model;
 class BulletDebugDrawer;
 class Light;
 class AIMovementGrid;
+class TriggerInterface;
 
 class GUIRenderable;
 class GUILayer;
@@ -55,6 +56,12 @@ class World {
         AnimationNode* animationNode;
     };
 
+    struct ActionForOnload {
+        TriggerInterface* action = nullptr;
+        std::vector<LimonAPI::ParameterRequest> parameters;
+        bool enabled = false;
+    };
+
     friend class WorldLoader;
     friend class WorldSaver; //Those classes require direct access to some of the internal data
 
@@ -65,6 +72,7 @@ class World {
     std::map<uint32_t, PhysicalRenderable *> objects;
     std::map<uint32_t, GUIRenderable*> guiElements;
     std::map<uint32_t, TriggerObject*> triggers;
+    std::vector<ActionForOnload* > onLoadActions;
     std::vector<AnimationCustom> loadedAnimations;
     std::unordered_map<PhysicalRenderable*, AnimationStatus> activeAnimations;
     AnimationStatus* animationInProgress = nullptr;
@@ -184,6 +192,8 @@ class World {
     void addLight(Light *light);
 
     World(AssetManager *assetManager, GLHelper *, Options *options);
+
+    void afterLoadFinished();
 
     void switchToEditorMode(InputHandler &inputHandler);
 

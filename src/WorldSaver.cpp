@@ -98,6 +98,12 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     };
     rootNode->InsertEndChild(currentElement);//add Triggers
 
+    currentElement = mapDocument.NewElement("OnloadActions");
+    if(!fillOnloadActions(mapDocument, currentElement, world)) {
+        return false;
+    };
+    rootNode->InsertEndChild(currentElement);//add OnloadActions
+
 
     tinyxml2::XMLError eResult = mapDocument.SaveFile(mapName.c_str());
     if(eResult != tinyxml2::XML_SUCCESS) {
@@ -215,6 +221,43 @@ bool WorldSaver::fillLoadedAnimations(tinyxml2::XMLDocument &document, tinyxml2:
 bool WorldSaver::fillTriggers(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *triggersNode, const World *world) {
     for(auto it= world->triggers.begin(); it != world->triggers.end(); it++) {
         it->second->serialize(document, triggersNode);
+    }
+    return true;
+}
+
+bool WorldSaver::fillOnloadActions(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *onloadActionsNode,
+                                   const World *world) {
+    for(auto it= world->onLoadActions.begin(); it != world->onLoadActions.end(); it++) {
+        if(!(*it)->enabled) {
+            continue;//Don't save disabled elements
+        }
+        //we need to save parameters, and trigger code
+        tinyxml2::XMLElement *onloadActionNode= document.NewElement("OnloadAction");
+        onloadActionsNode->InsertEndChild(onloadActionNode);
+
+        tinyxml2::XMLElement *actionNameNode = document.NewElement("ActionName");
+        actionNameNode->SetText((*it)->action->getName().c_str());
+        onloadActionNode->InsertEndChild(actionNameNode);
+
+
+        //now serialize the parameters
+        tinyxml2::XMLElement* parametersNode = document.NewElement("Parameters");
+        for (size_t i = 0; i < (*it)->parameters.size(); ++i) {
+            (*it)->parameters[i].serialize(document, parametersNode, i);
+        }
+        onloadActionNode->InsertEndChild(parametersNode);
+
+        tinyxml2::XMLElement* enabledNode = document.NewElement("Enabled");
+        if((*it)->enabled) {
+            enabledNode->SetText("True");
+        } else {
+            enabledNode->SetText("False");
+        }
+        onloadActionNode->InsertEndChild(enabledNode);
+
+        tinyxml2::XMLElement* indexNode = document.NewElement("Index");
+        indexNode->SetText(std::to_string(it - world->onLoadActions.begin()).c_str());
+        onloadActionNode->InsertEndChild(indexNode);
     }
     return true;
 }

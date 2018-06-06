@@ -50,13 +50,13 @@ GameObject::ImGuiResult TriggerObject::addImGuiEditorElements(const glm::mat4 &c
     if (ImGui::CollapsingHeader("Trigger Properties")) {
         ImGui::Text("If first enter trigger is empty, enter trigger will be run for first time too.");
         if (ImGui::CollapsingHeader("First Enter Trigger")) {
-            PutTriggerInGui(this->firstEnterTriggerCode, this->firstEnterParameters, enabledFirstTrigger, 0);
+            PutTriggerInGui(limonAPI, this->firstEnterTriggerCode, this->firstEnterParameters, enabledFirstTrigger, 0);
         }
         if (ImGui::CollapsingHeader("Enter Trigger")) {
-            PutTriggerInGui(this->enterTriggerCode, this->enterParameters, enabledEnterTrigger, 1);
+            PutTriggerInGui(limonAPI, this->enterTriggerCode, this->enterParameters, enabledEnterTrigger, 1);
         }
         if (ImGui::CollapsingHeader("Exit Trigger")) {
-            PutTriggerInGui(this->exitTriggerCode, this->exitParameters, enabledExitTrigger, 2);
+            PutTriggerInGui(limonAPI, this->exitTriggerCode, this->exitParameters, enabledExitTrigger, 2);
         }
     }
 
@@ -64,7 +64,7 @@ GameObject::ImGuiResult TriggerObject::addImGuiEditorElements(const glm::mat4 &c
     return request;
 }
 
-void TriggerObject::PutTriggerInGui(TriggerInterface *&triggerCode, std::vector<LimonAPI::ParameterRequest> &parameters,
+void TriggerObject::PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&triggerCode, std::vector<LimonAPI::ParameterRequest> &parameters,
                                     bool &enabled, uint32_t index) {
     //index is used because imgui doesn't allow repeating labels
         //now we should put 3 triggers,
@@ -148,7 +148,6 @@ void TriggerObject::serializeTriggerCode(tinyxml2::XMLDocument &document, tinyxm
         tinyxml2::XMLElement* codeElement = document.NewElement("Name");
         codeElement->SetText(triggerCode->getName().c_str());
         currentElement->InsertEndChild(codeElement);
-
 
         //now serialize the parameters
         codeElement = document.NewElement("parameters");

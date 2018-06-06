@@ -46,6 +46,8 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
         delete newWorld;
         return nullptr;
     };
+
+    newWorld->afterLoadFinished();
     return newWorld;
 }
 
@@ -85,6 +87,9 @@ bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world)
 
     //load triggers
     loadTriggers(worldNode, world);
+
+    //load onloadActions
+    loadOnLoadActions(worldNode, world);
 
     return true;
 }
@@ -436,6 +441,73 @@ bool WorldLoader::loadTriggers(tinyxml2::XMLNode *worldNode, World *world) const
                                                 btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger);
         triggerNode = triggerNode->NextSiblingElement("Trigger");
     } // end of while (Triggers)
+    return true;
+}
 
+bool WorldLoader::loadOnLoadActions(tinyxml2::XMLNode *worldNode, World *world) const {
+    tinyxml2::XMLElement* onloadActionListNode =  worldNode->FirstChildElement("OnloadActions");
+    if (onloadActionListNode == nullptr) {
+        std::cout << "World doesn't have any On load actions." << std::endl;
+        return true;
+    }
+
+    tinyxml2::XMLElement* onloadActionNode =  onloadActionListNode->FirstChildElement("OnloadAction");
+
+    while(onloadActionNode != nullptr) {
+        tinyxml2::XMLElement* actionCodeNameNode = onloadActionNode->FirstChildElement("ActionName");
+        if(actionCodeNameNode == nullptr) {
+            std::cerr << "Action Code name can't be read, skipping on load action load" << std::endl;
+        } else {
+            //now we know the action name, create it
+            World::ActionForOnload* actionForOnload = new World::ActionForOnload();
+            actionForOnload->action = TriggerInterface::createTrigger(actionCodeNameNode->GetText(), world->apiInstance);
+
+            //now we have the Trigger Action, load parameters
+            tinyxml2::XMLElement* parametersListNode = onloadActionNode->FirstChildElement("Parameters");
+
+            tinyxml2::XMLElement* parameterNode = parametersListNode->FirstChildElement("Parameter");
+            uint32_t index;
+            while(parameterNode != nullptr) {
+
+                LimonAPI::ParameterRequest request;
+                if(!request.deserialize(parameterNode, index)) {
+                    return false;
+                }
+                actionForOnload->parameters.insert(actionForOnload->parameters.begin() + index, request);
+
+                parameterNode = parameterNode->NextSiblingElement("Parameter");
+            }
+
+            //now load enabled state
+            tinyxml2::XMLElement* enabledNode = onloadActionNode->FirstChildElement("Enabled");
+            if (enabledNode == nullptr) {
+                std::cerr << "Onload Action Didn't have enabled set, defaulting to True." << std::endl;
+                actionForOnload->enabled = true;
+            } else {
+                if(strcmp(enabledNode->GetText(), "True") == 0) {
+                    actionForOnload->enabled = true;
+                } else if(strcmp(enabledNode->GetText(), "False") == 0) {
+                    actionForOnload->enabled = false;
+                } else {
+                    std::cerr << "Onload action enabled setting is unknown value [" << enabledNode->GetText() << "], can't be loaded " << std::endl;
+                    return false;
+                }
+            }
+
+            tinyxml2::XMLElement* indexNode = onloadActionNode->FirstChildElement("Index");
+            if(indexNode == nullptr) {
+                std::cerr << "Onload Action  Didn't have index, action can't be loaded." << std::endl;
+                delete actionForOnload;
+                return false;
+            }
+
+            size_t actionIndex = std::stoi(indexNode->GetText());
+            if(world->onLoadActions.size() < actionIndex + 1) {
+                world->onLoadActions.resize(actionIndex+1);
+            }
+            world->onLoadActions[actionIndex] = actionForOnload;
+        }
+        onloadActionNode = onloadActionNode->NextSiblingElement("OnloadAction");
+    } // end of while (OnloadAction)
     return true;
 }

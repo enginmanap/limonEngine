@@ -28,6 +28,7 @@ class WorldLoader {
     bool loadLights(tinyxml2::XMLNode *lightsNode, World* world) const;
     bool loadAnimations(tinyxml2::XMLNode *worldNode, World *world) const;
     bool loadTriggers(tinyxml2::XMLNode *worldNode, World *world) const;
+    bool loadOnLoadActions(tinyxml2::XMLNode *worldNode, World *world) const;
 public:
     WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options* options);
     World* loadWorld(const std::string& worldFile) const;
