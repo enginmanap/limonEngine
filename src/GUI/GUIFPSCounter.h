@@ -18,7 +18,7 @@ public:
     GUIFPSCounter(GLHelper *glHelper, uint32_t id, Face *font, const std::string &text, const glm::lowp_uvec3 color) :
             GUIText(glHelper, id, font, text, color),
             previousFrameTimes{0}, lastRenderTime(0), lastFrameTime(0), framePointer(0) {
-
+            this->name = "FPS Counter";
     }
 
     void render();
