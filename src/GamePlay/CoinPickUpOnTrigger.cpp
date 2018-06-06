@@ -23,7 +23,11 @@ std::vector<LimonAPI::ParameterRequest> CoinPickUpOnTrigger::getParameters() {
     return parameters;}
 
 bool CoinPickUpOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters) {
-    bool result = limonAPI->updateGuiText(parameters[0].value.longValue, "1") == 0; //set gui text to 1
+    //FIXME there is no enum value for variable, there should be
+    LimonAPI::ParameterRequest& coinPickupCount = limonAPI->getVariable("coinPickupCount");
+
+    coinPickupCount.value.longValue++;
+    bool result = limonAPI->updateGuiText(parameters[0].value.longValue, std::to_string(coinPickupCount.value.longValue)) == 0; //set gui text to 1
     result = limonAPI->removeObject(parameters[1].value.longValue) == 0 && result;
     return result;
 }

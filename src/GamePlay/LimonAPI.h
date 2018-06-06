@@ -59,9 +59,27 @@ public:
 
     std::vector<ParameterRequest> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
 
-private:
+    /**
+     * This method Returns a parameter request reference that you can update. If the variable was never set,
+     * it creates one with the default values. There are no safety checks, user is fully responsible for the variables.
+     *
+     * Don't forget, these variables are not saved in world save, so they should be considered temporary.
+     *
+     * @param variableName
+     * @return variable itself
+     */
+    LimonAPI::ParameterRequest& getVariable(const std::string& variableName) {
+        if(variableStore.find(variableName) == variableStore.end()) {
+            variableStore[variableName] = LimonAPI::ParameterRequest();
+        }
+        return variableStore[variableName];
+    }
 
+
+private:
     friend class WorldLoader;
+
+    std::map<std::string, LimonAPI::ParameterRequest> variableStore;
 
     std::function<bool(std::vector<LimonAPI::ParameterRequest> &, uint32_t)> worldGenerateEditorElementsForParameters;
     std::function<uint32_t(uint32_t , uint32_t , bool )> worldAddAnimationToObject;
