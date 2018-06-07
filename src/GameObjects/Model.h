@@ -22,10 +22,9 @@ class Model : public PhysicalRenderable, public GameObject {
     uint32_t objectID;
     struct MeshMeta {
         MeshAsset* mesh;
-        BoneNode* skeleton;
         GLSLProgram* program;
 
-        MeshMeta() : mesh(nullptr), skeleton(nullptr), program(nullptr) {}
+        MeshMeta() : mesh(nullptr), program(nullptr) {}
     };
     Actor *AIActor = nullptr;
     AssetManager *assetManager;
