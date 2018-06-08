@@ -556,7 +556,7 @@ void World::render() {
         //FIXME why are these set here?
         shadowMapProgramPoint->setUniform("renderLightIndex", (int)i);
         //FIXME this is suppose to be an option //FarPlanePoint is set at declaration, since it is a constant
-        shadowMapProgramPoint->setUniform("farPlanePoint", 100.0f);
+        shadowMapProgramPoint->setUniform("farPlanePoint", options->getLightPerspectiveProjectionValues().z);
         for (auto it = objects.begin(); it != objects.end(); ++it) {
             (*it).second->renderWithProgram(*shadowMapProgramPoint);
         }
