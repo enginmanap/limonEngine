@@ -21,10 +21,9 @@ class Actor;
 class Model : public PhysicalRenderable, public GameObject {
     uint32_t objectID;
     struct MeshMeta {
-        MeshAsset* mesh;
-        GLSLProgram* program;
-
-        MeshMeta() : mesh(nullptr), program(nullptr) {}
+        MeshAsset* mesh = nullptr;
+        GLSLProgram* program = nullptr;
+        bool isSet = false;
     };
     Actor *AIActor = nullptr;
     AssetManager *assetManager;
@@ -55,6 +54,7 @@ public:
     Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile);
 
     void activateMaterial(const Material *material, GLSLProgram *program);
+    void activateTexturesOnly(const Material *material);
 
     bool setupRenderVariables(MeshMeta *meshMetaData);
 

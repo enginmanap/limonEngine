@@ -131,6 +131,23 @@ void Model::setupForTime(long time) {
     lastSetupTime = time;
 }
 
+void Model::activateTexturesOnly(const Material *material) {
+    if(material->hasDiffuseMap()) {
+        glHelper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
+    }
+    if(material->hasAmbientMap()) {
+        glHelper->attachTexture(material->getAmbientTexture()->getID(), ambientMapAttachPoint);
+    }
+
+    if(material->hasSpecularMap()) {
+        glHelper->attachTexture(material->getSpecularTexture()->getID(), specularMapAttachPoint);
+    }
+
+    if(material->hasOpacityMap()) {
+        glHelper->attachTexture(material->getOpacityTexture()->getID(), opacityMapAttachPoint);
+    }
+}
+
 void Model::activateMaterial(const Material *material, GLSLProgram *program) {
     if(material == nullptr ) {
         return;
@@ -153,10 +170,7 @@ void Model::activateMaterial(const Material *material, GLSLProgram *program) {
                                  diffuseMapAttachPoint)) { //even if diffuse map cannot attach, we still render
             std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
         }
-    } else {
-        //FIXME why is this here?
     }
-
     if(material->hasAmbientMap()) {
         glHelper->attachTexture(material->getAmbientTexture()->getID(), ambientMapAttachPoint);
         if (!program->setUniform("ambientSampler",
@@ -204,6 +218,26 @@ void Model::activateMaterial(const Material *material, GLSLProgram *program) {
 
 bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
     GLSLProgram* program  = meshMetaData->program;
+    if(meshMetaData->isSet) {
+        if (meshMetaData->mesh != nullptr && meshMetaData->mesh->getMaterial() != nullptr) {
+            this->activateTexturesOnly(meshMetaData->mesh->getMaterial());
+        }
+
+        if(this->dirtyForWorldTransform) {
+            if (!program->setUniform("worldTransformMatrix", transformation.getWorldTransform())) {
+                std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
+                return false;
+            }
+            this->dirtyForFrustum = false;
+        }
+
+        if (animated) {
+            //set all of the bones to unitTransform for testing
+            program->setUniformArray("boneTransformArray[0]", boneTransforms);
+        }
+        return true;
+
+    }
     if (program->setUniform("worldTransformMatrix", transformation.getWorldTransform())) {
             if (meshMetaData->mesh != nullptr && meshMetaData->mesh->getMaterial() != nullptr) {
                 this->activateMaterial(meshMetaData->mesh->getMaterial(), program);
@@ -228,6 +262,7 @@ bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
                 //set all of the bones to unitTransform for testing
                 program->setUniformArray("boneTransformArray[0]", boneTransforms);
             }
+            meshMetaData->isSet = true;
             return true;
     } else {
         std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
