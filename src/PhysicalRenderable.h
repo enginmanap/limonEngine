@@ -15,7 +15,7 @@ protected:
     glm::vec3 centerOffset;
     glm::vec3 aabbMax, aabbMin;
     btRigidBody *rigidBody;
-
+    bool dirtyForWorldTransform = true;
     const float mass;
 
 
@@ -76,6 +76,7 @@ public:
         this->aabbMin = GLMConverter::BltToGLM(abMin);
         this->aabbMax = GLMConverter::BltToGLM(abMax);
         this->dirtyForFrustum = true;
+        this->dirtyForWorldTransform = true;
     }
 };
 
