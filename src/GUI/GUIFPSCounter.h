@@ -10,6 +10,7 @@
 
 class GUIFPSCounter : public GUIText {
     Uint32 currentTime;
+    Uint32 lastUpdateTime = 0;
     Uint32 previousFrameTimes[100];
     Uint32 lastRenderTime;
     Uint32 lastFrameTime;
