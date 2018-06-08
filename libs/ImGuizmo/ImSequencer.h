@@ -31,7 +31,7 @@ namespace ImSequencer
 		virtual void Copy() {}
 		virtual void Paste() {}
 
-		virtual ~SequenceInterface() = default;
+		virtual ~SequenceInterface() {}
 	};
 
 
