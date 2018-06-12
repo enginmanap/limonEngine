@@ -49,7 +49,7 @@ public:
         return duration;
     }
 
-    std::string getName() const {
+    const std::string& getName() const {
         return name;
     }
 
