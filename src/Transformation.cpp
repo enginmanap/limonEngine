@@ -155,6 +155,8 @@ void Transformation::addImGuizmoElements(const ImGuizmoState& editorState, const
         case ImGuizmo::SCALE:
             setScale(scale);
             break;
+        case ImGuizmo::BOUNDS://not used
+            break;
     }
 }
 
