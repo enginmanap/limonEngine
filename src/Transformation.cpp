@@ -300,3 +300,17 @@ bool Transformation::deserialize(tinyxml2::XMLElement *transformationNode) {
     propagateUpdate();
     return true;
 }
+
+void Transformation::combine(const Transformation &otherTransformation) {
+    this->orientation *= otherTransformation.getOrientation();
+    this->orientation = glm::normalize(this->orientation);
+    rotated = this->orientation.w < 0.99; // with rotation w gets smaller.
+
+    this->scale *= otherTransformation.getScale();
+
+    this->translate += otherTransformation.getTranslate();
+
+    isDirty = true;
+
+    propagateUpdate();
+}

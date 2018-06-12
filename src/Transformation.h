@@ -145,6 +145,7 @@ public:
 
     void addImGuizmoElements(const ImGuizmoState& editorState, const glm::mat4& cameraMatrix, const glm::mat4& perspectiveMatrix);
 
+    void combine(const Transformation &otherTransformation);
 
     void getDifference(const Transformation& otherTransformation, glm::vec3 &translate, glm::vec3 &scale, glm::quat &rotation) const;
 
