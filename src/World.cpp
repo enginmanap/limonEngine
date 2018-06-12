@@ -606,6 +606,17 @@ void World::render() {
     }
 }
 
+//This method is used only for ImGui loaded animations list generation
+bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {
+    auto& animations = *static_cast<std::vector<AnimationCustom> *>(data);
+    if(index < 0 || index >= animations.size()) {
+        return false;
+    }
+    *outText = animations.at(index).getName().c_str();
+    return true;
+
+}
+
 /**
  * This method checks if we are in editor mode, and if we are, enables ImGui windows
  * It also fills the windows with relevant parameters.
@@ -701,6 +712,49 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
             }
 
+            if (ImGui::CollapsingHeader("Custom Animations ")) {
+                //list loaded animations
+                static int listbox_item_current = 0;
+                ImGui::ListBox("Loaded animations", &listbox_item_current, getNameOfLoadedAnimation,
+                               static_cast<void *>(&loadedAnimations), loadedAnimations.size(), 10);
+                ImGui::Separator();
+
+
+                ImGui::NewLine();
+                static char loadAnimationNameBuffer[32];
+                ImGui::Text("Load animation from file:");
+                //double # because I don't want to show it
+                ImGui::InputText("##LoadAnimationNameField", loadAnimationNameBuffer, sizeof(loadAnimationNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
+                if (ImGui::Button("load animation")) {
+                    AnimationCustom *animation = AnimationLoader::loadAnimation("./Data/Animations/" + std::string(loadAnimationNameBuffer) + ".xml");
+                    if (animation == nullptr) {
+                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation load failed");
+                    } else {
+                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation loaded");
+                        loadedAnimations.push_back(*animation);
+                    }
+                }
+            }
+
+            ImGui::Separator();
+            if(ImGui::Button("Save Map")) {
+                for(auto animIt = loadedAnimations.begin(); animIt != loadedAnimations.end(); animIt++) {
+                    if(animIt->serializeAnimation("./Data/Animations/")) {
+                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation saved");
+                    } else {
+                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation save failed");
+                    }
+
+                }
+
+                if(WorldSaver::saveWorld("./Data/Maps/CustomWorld001.xml", this)) {
+                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
+                } else {
+                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
+                }
+            }
+            ImGui::End();
+
             ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
 
             ImGui::Begin("Selected Object Properties");
@@ -771,39 +825,6 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
             }
 
-            ImGui::End();
-            ImGui::NewLine();
-            static char loadAnimationNameBuffer[32];
-            ImGui::Text("Load animation:");
-            //double # because I don't want to show it
-            ImGui::InputText("##LoadAnimationNameField", loadAnimationNameBuffer, sizeof(loadAnimationNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
-            if(ImGui::Button("load animation")) {
-
-                AnimationCustom* animation = AnimationLoader::loadAnimation("./Data/Animations/"+ std::string(loadAnimationNameBuffer) +".xml");
-                if(animation == nullptr) {
-                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation load failed");
-                } else {
-                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation loaded");
-                    loadedAnimations.push_back(*animation);
-                }
-            }
-
-            if(ImGui::Button("Save Map")) {
-                for(auto animIt = loadedAnimations.begin(); animIt != loadedAnimations.end(); animIt++) {
-                    if(animIt->serializeAnimation("./Data/Animations/")) {
-                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation saved");
-                    } else {
-                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation save failed");
-                    }
-
-                }
-
-                if(WorldSaver::saveWorld("./Data/Maps/CustomWorld001.xml", this)) {
-                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
-                } else {
-                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
-                }
-            }
             ImGui::End();
         }
 
