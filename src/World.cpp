@@ -735,7 +735,15 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             if(pickedObject != nullptr) {
                 GameObject::ImGuiResult request = pickedObject->addImGuiEditorElements(camera->getCameraMatrix(), glHelper->getProjectionMatrix());
                 if(pickedObject->getTypeID() == GameObject::MODEL) {
-                    addAnimationDefinitionToEditor();
+                    PhysicalRenderable* selectedObject = dynamic_cast<Model*>(pickedObject);
+                    if(activeAnimations.find(selectedObject) != activeAnimations.end()) {
+                        if(ImGui::Button(("Remove custom animation: " + loadedAnimations[activeAnimations[selectedObject].animationIndex].getName()).c_str())) {
+                            (*dynamic_cast<Model*>(pickedObject)->getTransformation()) = activeAnimations[selectedObject].originalTransformation;
+                            activeAnimations.erase(dynamic_cast<Model*>(pickedObject));
+                        }
+                    } else {
+                        addAnimationDefinitionToEditor();
+                    }
                 }
 
                 if (request.removeAI) {
