@@ -348,6 +348,7 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const glm::mat4& cameraMat
     if(transformation.addImGuiEditorElements(cameraMatrix, perspectiveMatrix)) {
         //true means transformation changed, activate rigid body
         rigidBody->activate();
+        request.updated = true;
     }
 
         ImGui::NewLine();

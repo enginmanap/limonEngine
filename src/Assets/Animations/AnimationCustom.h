@@ -7,9 +7,11 @@
 
 
 #include "AnimationNode.h"
+#include "../../Transformation.h"
 
 class AnimationCustom {
     friend class AnimationLoader;
+    friend struct AnimationSequenceInterface;
 
     float ticksPerSecond;
     float duration;
@@ -26,7 +28,18 @@ public:
             this->animationNode = animationNode;
     }
 
-    glm::mat4 calculateTransform(float time, bool &isFound) const;
+    ~AnimationCustom() {
+        delete animationNode;
+    }
+
+    AnimationCustom(const AnimationCustom &otherAnimation) {
+        this->ticksPerSecond = otherAnimation.ticksPerSecond;
+        this->duration = otherAnimation.duration;
+        this->name = otherAnimation.name;
+        this->animationNode = new AnimationNode(*(otherAnimation.animationNode));//default copy constructor used
+    }
+
+    Transformation calculateTransform(float time) const;
 
     float getTicksPerSecond() const {
         return ticksPerSecond;

@@ -16,6 +16,8 @@
 #include "GamePlay/LimonAPI.h"
 #include "AI/Actor.h"
 
+
+
 class btGhostPairCallback;
 class Camera;
 class Model;
@@ -40,20 +42,18 @@ class AssetManager;
 class TriggerObject;
 class AnimationCustom;
 class AnimationNode;
-
+class AnimationSequenceInterface;
 class LimonAPI;
 
 class World {
 
     struct AnimationStatus {
         PhysicalRenderable* object = nullptr;
-        const AnimationCustom *animation;
+        uint32_t animationIndex;
         bool loop;
         long startTime;
         Transformation originalTransformation;
         bool wasKinematic;
-
-        AnimationNode* animationNode;
     };
 
     struct ActionForOnload {
@@ -75,7 +75,7 @@ class World {
     std::vector<ActionForOnload* > onLoadActions;
     std::vector<AnimationCustom> loadedAnimations;
     std::unordered_map<PhysicalRenderable*, AnimationStatus> activeAnimations;
-    AnimationStatus* animationInProgress = nullptr;
+    AnimationSequenceInterface* animationInProgress = nullptr;
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
     std::unordered_map<uint32_t, Actor*> actors;
@@ -116,7 +116,7 @@ class World {
     bool isQuitRequest = false;//does the player requested a quit?
     bool isQuitVerified = false;//does the player set it is sure?
 
-    /**
+        /**
      * This method checks, if IDs assigned without any empty space, and any collision
      * and sets the totalObjectCount accordingly.
      * @return true if everything ok, false if not
@@ -238,6 +238,8 @@ public:
     std::vector<LimonAPI::ParameterRequest> getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID);
 
     /************************************ Methods LimonAPI exposes *************/
+    void addAnimationDefinitionToEditor();
+
 };
 
 #endif //LIMONENGINE_WORLD_H

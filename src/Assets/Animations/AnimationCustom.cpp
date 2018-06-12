@@ -10,22 +10,16 @@
 
 
 
-//FIXME there must be a better way then is found.
-glm::mat4 AnimationCustom::calculateTransform(float time, bool &isFound) const {
+Transformation AnimationCustom::calculateTransform(float time) const {
+    Transformation resultTransformation;
 
-    isFound = true;
-    //this method can benefit from move and also reusing the intermediate matrices
-    glm::vec3 scalingTransformVector, transformVector;
-    glm::quat rotationTransformQuaternion;
+    resultTransformation.setScale( animationNode->getScalingVector(time));
+    resultTransformation.setTranslate( animationNode->getPositionVector(time));
+    resultTransformation.setOrientation(animationNode->getRotationQuat(time));
 
-    scalingTransformVector = animationNode->getScalingVector(time);
-    rotationTransformQuaternion = animationNode->getRotationQuat(time);
-    transformVector = animationNode->getPositionVector(time);
+    // there is no default propagation in Transformation
 
-    glm::mat4 rotationMatrix = glm::mat4_cast(rotationTransformQuaternion);
-    glm::mat4 translateMatrix = glm::translate(glm::mat4(1.0f), transformVector);
-    glm::mat4 scaleTransform = glm::scale(glm::mat4(1.0f), scalingTransformVector);
-    return translateMatrix * rotationMatrix * scaleTransform;
+    return resultTransformation;
 }
 
 /**

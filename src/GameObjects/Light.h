@@ -145,23 +145,22 @@ public:
     ImGuiResult addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix) {
         static ImGuiResult request;
 
-        bool updated = false;
         bool crudeUpdated = false;
         static glm::vec3 preciseTranslatePoint = this->position;
-        updated = ImGui::SliderFloat("Precise Position X", &(this->position.x), preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || updated;
-        updated = ImGui::SliderFloat("Precise Position Y", &(this->position.y), preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || updated;
-        updated = ImGui::SliderFloat("Precise Position Z", &(this->position.z), preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || updated;
+        request.updated = ImGui::SliderFloat("Precise Position X", &(this->position.x), preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || request.updated;
+        request.updated = ImGui::SliderFloat("Precise Position Y", &(this->position.y), preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || request.updated;
+        request.updated = ImGui::SliderFloat("Precise Position Z", &(this->position.z), preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || request.updated;
         ImGui::NewLine();
         crudeUpdated = ImGui::SliderFloat("Crude Position X", &(this->position.x), -100.0f, 100.0f)   || crudeUpdated;
         crudeUpdated = ImGui::SliderFloat("Crude Position Y", &(this->position.y), -100.0f, 100.0f)   || crudeUpdated;
         crudeUpdated = ImGui::SliderFloat("Crude Position Z", &(this->position.z), -100.0f, 100.0f)   || crudeUpdated;
         ImGui::NewLine();
-        updated = ImGui::SliderFloat("Color R", &(this->color.r), 0.0f, 1.0f)   || updated;
-        updated = ImGui::SliderFloat("Color G", &(this->color.g), 0.0f, 1.0f)   || updated;
-        updated = ImGui::SliderFloat("Color B", &(this->color.b), 0.0f, 1.0f)   || updated;
+        request.updated = ImGui::SliderFloat("Color R", &(this->color.r), 0.0f, 1.0f)   || request.updated;
+        request.updated = ImGui::SliderFloat("Color G", &(this->color.g), 0.0f, 1.0f)   || request.updated;
+        request.updated = ImGui::SliderFloat("Color B", &(this->color.b), 0.0f, 1.0f)   || request.updated;
         ImGui::NewLine();
 
-        if(updated || crudeUpdated) {
+        if(request.updated || crudeUpdated) {
             this->setPosition(position);
         }
         if(crudeUpdated) {
