@@ -765,6 +765,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     if (pickedObject->getTypeID() == GameObject::MODEL) {
                         if (ImGui::Button("Remove This Object")) {
                             removeObject(pickedObject->getWorldObjectID());
+                            pickedObject = nullptr;
                         }
                     }
 
