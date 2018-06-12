@@ -94,8 +94,14 @@ namespace ImSequencer
 			draw_list->AddRectFilled(canvas_pos, ImVec2(canvas_size.x + canvas_pos.x, canvas_pos.y + ItemHeight), 0xFF3D3837, 0);
 			if (sequenceOptions&SEQUENCER_ADD)
 			{
-				if (SequencerAddDelButton(draw_list, ImVec2(canvas_pos.x + legendWidth - ItemHeight, canvas_pos.y + 2), true) && io.MouseReleased[0])
-					ImGui::OpenPopup("addEntry");
+				if (SequencerAddDelButton(draw_list, ImVec2(canvas_pos.x + legendWidth - ItemHeight, canvas_pos.y + 2), true) && io.MouseReleased[0]) {
+					//if only one type, don't bother with type selection pop up and add directly
+					if(sequence->GetItemTypeCount() == 1) {
+						sequence->Add(0);
+					} else {
+						ImGui::OpenPopup("addEntry");
+					}
+				}
 
 				if (ImGui::BeginPopup("addEntry"))
 				{
