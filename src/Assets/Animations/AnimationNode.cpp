@@ -9,12 +9,17 @@ glm::vec3 AnimationNode::getPositionVector(const float timeInTicks) const {
     if (translates.size() == 1) {
         transformVector = translates[0];
     } else {
-        unsigned int positionIndex = 0;
+        uint32_t positionIndex = translateTimes.size();
         for (unsigned int i = 0; i < translates.size(); i++) {
             if (timeInTicks < translateTimes[i + 1]) {
                 positionIndex = i;
                 break;
             }
+        }
+
+        if(timeInTicks == translateTimes[translateTimes.size()-1]) {
+            //this is the case were we request last transformation, and it doesn't require interpolation
+            return translates[translateTimes.size()-1];
         }
 
         unsigned int NextPositionIndex = (positionIndex + 1);
@@ -36,13 +41,18 @@ glm::vec3 AnimationNode::getScalingVector(const float timeInTicks) const {
     if (scales.size() == 1) {
         scalingTransformVector = scales[0];
     } else {
-        unsigned int ScalingIndex = 0;
+        uint32_t ScalingIndex = scaleTimes.size();
         assert(scales.size() > 0);
         for (unsigned int i = 0; i < scales.size(); i++) {
             if (timeInTicks < scaleTimes[i + 1]) {
                 ScalingIndex = i;
                 break;
             }
+        }
+
+        if(timeInTicks == scaleTimes[scaleTimes.size()-1]) {
+            //this is the case were we request last transformation, and it doesn't require interpolation
+            return scales[scaleTimes.size()-1];
         }
 
         unsigned int NextScalingIndex = (ScalingIndex + 1);
@@ -65,7 +75,7 @@ glm::quat AnimationNode::getRotationQuat(const float timeInTicks) const {
         rotationTransformQuaternion = rotations[0];
     } else {
 
-        int rotationIndex = 0;
+        uint32_t rotationIndex = rotationTimes.size();
 
         assert(rotations.size() > 0);
 
@@ -74,6 +84,11 @@ glm::quat AnimationNode::getRotationQuat(const float timeInTicks) const {
                 rotationIndex = i;
                 break;
             }
+        }
+
+        if(timeInTicks == rotationTimes[rotationTimes.size()-1]) {
+            //this is the case were we request last transformation, and it doesn't require interpolation
+            return rotations[rotationTimes.size()-1];
         }
 
         unsigned int NextRotationIndex = (rotationIndex + 1);
