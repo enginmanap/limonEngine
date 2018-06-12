@@ -66,7 +66,7 @@ AnimationCustom* AnimationSequenceInterface::buildAnimationFromCurrentItems() {
     //first, delete old one
     delete animationInProgress;
     //create new ones
-    animationInProgress = new AnimationCustom("inProgress", new AnimationNode(), 0);// we don't have a duration yet. it will be determined afterwards
+    animationInProgress = new AnimationCustom(animationNameBuffer, new AnimationNode(), 0);// we don't have a duration yet. it will be determined afterwards
 
     if(sections.size() == 0) {
         pushIdentityToAnimationTime(animationInProgress->animationNode, 0);
@@ -105,7 +105,7 @@ AnimationCustom* AnimationSequenceInterface::buildAnimationFromCurrentItems() {
         delete animationBase;
         animationBase = new AnimationCustom(*animationInProgress);
         delete animationInProgress;
-        animationInProgress = new AnimationCustom("inProgress", new AnimationNode(), maxDuration);
+        animationInProgress = new AnimationCustom(animationNameBuffer, new AnimationNode(), maxDuration);
 
         //setup done, build animation for current item.
         item = sections[i];
@@ -220,10 +220,17 @@ void AnimationSequenceInterface::addAnimationSequencerToEditor(bool &finished, b
 
     ImGui::Begin("Animation Definition");
 
-    ImGui::Text("New animation name:");
+    if (strcmp(animationNameBuffer,"") == 0) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+        ImGui::Text("New animation name:");
+        ImGui::PopStyleColor();
+    } else {
+        ImGui::Text("New animation name:");
+    }
     ImGui::SameLine();
     //double # because I don't want to show it
     ImGui::InputText("##newAnimationNameField", animationNameBuffer, sizeof(animationNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
+
 
 
     ImGui::InputInt("Frame count", &mFrameCount);
@@ -248,9 +255,16 @@ void AnimationSequenceInterface::addAnimationSequencerToEditor(bool &finished, b
     }
 
 
-    if(ImGui::Button("Finish")) {
-        finished = true;
+    if (strcmp(animationNameBuffer,"") != 0) {
+        if(ImGui::Button("Finish")) {
+            finished = true;
+        }
+    } else {
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        ImGui::Button("Finish");
+        ImGui::PopStyleVar();
     }
+
     ImGui::SameLine();
     if(ImGui::Button("Cancel ")) {
         cancelled = true;
