@@ -32,6 +32,7 @@
 #include "Assets/Animations/AnimationCustom.h"
 #include "GamePlay/AnimateOnTrigger.h"
 #include "GamePlay/AddGuiTextOnTrigger.h"
+#include "AnimationSequencer.h"
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
@@ -130,6 +131,7 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     /************ ImGui *****************************/
     // Setup ImGui binding
     imgGuiHelper = new ImGuiHelper(glHelper, options);
+
 }
 
  bool World::checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName) {
@@ -182,36 +184,31 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
         // ATTENTION iterator is not increased in for, it is done manually.
         for(auto animIt = activeAnimations.begin(); animIt != activeAnimations.end();) {
             AnimationStatus* animationStatus = &(animIt->second);
-            if((animationStatus->loop ) || animationStatus->animation->getDuration() / animationStatus->animation->getTicksPerSecond() * 1000  + animationStatus->startTime > gameTime) {
+            const AnimationCustom* animationCustom = &loadedAnimations[animationStatus->animationIndex];
+            if((animationStatus->loop ) || animationCustom->getDuration() / animationCustom->getTicksPerSecond() * 1000  + animationStatus->startTime > gameTime) {
 
                 float ticksPerSecond;
-                if (animationStatus->animation->getTicksPerSecond() != 0) {
-                    ticksPerSecond = animationStatus->animation->getTicksPerSecond();
+                if (animationCustom->getTicksPerSecond() != 0) {
+                    ticksPerSecond = animationCustom->getTicksPerSecond();
                 } else {
                     ticksPerSecond = 60.0f;
                 }
-                float animationTime = fmod(((gameTime - animationStatus->startTime) / 1000.0f) * ticksPerSecond, animationStatus->animation->getDuration());
+                float animationTime = fmod(((gameTime - animationStatus->startTime) / 1000.0f) * ticksPerSecond, animationCustom->getDuration());
 
-                bool isFound;
-                glm::mat4 tf = animationStatus->animation->calculateTransform(animationTime, isFound);
+                Transformation tf = animationCustom->calculateTransform(animationTime);
 
-                glm::vec3 translate, scale;
-                glm::quat orientation;
-                glm::vec3 skew;
-                glm::vec4 perspective;
-                glm::decompose(tf, scale, orientation, translate, skew, perspective);
                 //FIXME this is not an acceptable animating technique, I need a transform stack, but not implemented it yet.
                 (*animationStatus->object->getTransformation()) = animationStatus->originalTransformation;
-                animationStatus->object->getTransformation()->addOrientation(orientation);
-                animationStatus->object->getTransformation()->addScale(scale);
-                animationStatus->object->getTransformation()->addTranslate(translate);
+                animationStatus->object->getTransformation()->addOrientation(tf.getOrientation());
+                animationStatus->object->getTransformation()->addScale(tf.getScale());
+                animationStatus->object->getTransformation()->addTranslate(tf.getTranslate());
                 animIt++;
             } else {
                 if(!animationStatus->wasKinematic) {
                     animationStatus->object->getRigidBody()->setCollisionFlags(animationStatus->object->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
                     animationStatus->object->getRigidBody()->setActivationState(ACTIVE_TAG);
                 }
-                options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, "Animation " + animIt->second.animation->getName() +" finished, removing. ");
+                options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, "Animation " + animationCustom->getName() +" finished, removing. ");
                 animIt = activeAnimations.erase(animIt);
 
             }
@@ -738,75 +735,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             if(pickedObject != nullptr) {
                 GameObject::ImGuiResult request = pickedObject->addImGuiEditorElements(camera->getCameraMatrix(), glHelper->getProjectionMatrix());
                 if(pickedObject->getTypeID() == GameObject::MODEL) {
-                    static char animationNameBuffer[32];
-
-                    ImGui::Text("New animation name:");
-                    //double # because I don't want to show it
-                    ImGui::InputText("##newAnimationNameField", animationNameBuffer, sizeof(animationNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
-
-                    //If there is no animation setup ongoing, or there is one, but not for this model,
-                    //put start animation button.
-                    //else put time input, add and finalize buttons.
-                    if(animationInProgress == nullptr || animationInProgress->object != dynamic_cast<Model*>(pickedObject)) {
-                        if (ImGui::Button("Start definition")) {
-                            if (animationInProgress == nullptr) {
-                                animationInProgress = new AnimationStatus();
-                            } else {
-                                //ask for removal of the old work
-                                delete animationInProgress->animationNode;
-                                delete animationInProgress;
-                                animationInProgress = new AnimationStatus();
-                            }
-                            animationInProgress->object = dynamic_cast<Model*>(pickedObject);
-                            // At this point we should know the animationInProgress is for current object
-                            animationInProgress->originalTransformation = *dynamic_cast<Model *>(pickedObject)->getTransformation();
-                            animationInProgress->animationNode = new AnimationNode();
-                            /* The animation should start with the current position, so save empty transforms */
-                            animationInProgress->animationNode->translates.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
-                            animationInProgress->animationNode->translateTimes.push_back(0);
-                            animationInProgress->animationNode->scales.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
-                            animationInProgress->animationNode->scaleTimes.push_back(0);
-                            animationInProgress->animationNode->rotations.push_back(glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
-                            animationInProgress->animationNode->rotationTimes.push_back(0.0f);
-                        }
-
-                    } else {
-                        //this means the original transform is saved, with others(possibly) stacked on top.
-                        static int time = 60;
-                        ImGui::InputInt("Time of position:", &time);
-                        if(ImGui::Button("Add Animation key frame")) {
-                            glm::vec3 translate, scale;
-                            glm::quat rotation;
-                            animationInProgress->originalTransformation.getDifference(*dynamic_cast<Model *>(pickedObject)->getTransformation(), translate, scale, rotation);
-                            animationInProgress->animationNode->translates.push_back(translate);
-                            animationInProgress->animationNode->translateTimes.push_back(time);
-                            animationInProgress->animationNode->scales.push_back(scale);
-                            animationInProgress->animationNode->scaleTimes.push_back(time);
-                            animationInProgress->animationNode->rotations.push_back(rotation);
-                            animationInProgress->animationNode->rotationTimes.push_back(time);
-                        }
-
-                        if(ImGui::Button("Finish Animation")) {
-                            loadedAnimations.push_back(AnimationCustom(std::string(animationNameBuffer),
-                                                                                 animationInProgress->animationNode,
-                                                                                 time));
-
-                            (*dynamic_cast<Model *>(pickedObject)->getTransformation()) = animationInProgress->originalTransformation;
-                            //Calling addAnimation here is odd, but I am planning to add animations using an external API call in next revisions.
-
-                            addAnimationToObject(dynamic_cast<Model *>(pickedObject)->getWorldObjectID(), loadedAnimations.size()-1, true);
-                            delete animationInProgress;
-                            animationInProgress = nullptr;
-                            //TODO, who deletes what is not clear, I should use smart pointers.
-                        }
-                        ImGui::SameLine();
-                        if(ImGui::Button("Cancel ")) {
-                            delete animationInProgress->animationNode;
-                            delete animationInProgress->animation;
-                            delete animationInProgress;
-                            animationInProgress = nullptr;
-                        }
-                    }
+                    addAnimationDefinitionToEditor();
                 }
 
                 if (request.removeAI) {
@@ -851,14 +780,15 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             }
 
             if(ImGui::Button("Save Map")) {
-                for(auto animIt = activeAnimations.begin(); animIt != activeAnimations.end(); animIt++) {
-                    if(animIt->second.animation->serializeAnimation("./Data/Animations/")) {
+                for(auto animIt = loadedAnimations.begin(); animIt != loadedAnimations.end(); animIt++) {
+                    if(animIt->serializeAnimation("./Data/Animations/")) {
                         options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation saved");
                     } else {
                         options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation save failed");
                     }
 
                 }
+
                 if(WorldSaver::saveWorld("./Data/Maps/CustomWorld001.xml", this)) {
                     options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
                 } else {
@@ -870,6 +800,39 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
         /* window definitions */
         imgGuiHelper->RenderDrawLists();
+    }
+}
+
+void World::addAnimationDefinitionToEditor() {
+    //If there is no animation setup ongoing, or there is one, but not for this model,
+    //put start animation button.
+    //else put time input, add and finalize buttons.
+    if(animationInProgress == nullptr || animationInProgress->getAnimatingObject() != dynamic_cast<Model*>(pickedObject)) {
+        if (ImGui::Button("Start animation definition")) {
+            if (animationInProgress == nullptr) {
+                animationInProgress = new AnimationSequenceInterface(dynamic_cast<PhysicalRenderable*>(pickedObject));
+            } else {
+                //ask for removal of the old work
+                delete animationInProgress;
+                animationInProgress = new AnimationSequenceInterface(dynamic_cast<PhysicalRenderable*>(pickedObject));
+            }
+            // At this point we should know the animationInProgress is for current object
+        }
+    } else {
+        bool finished, cancelled;
+        animationInProgress->addAnimationSequencerToEditor(finished, cancelled);
+        if(finished) {
+            loadedAnimations.push_back(AnimationCustom(*animationInProgress->buildAnimationFromCurrentItems()));
+
+            //Calling addAnimation here is odd, but I am planning to add animations using an external API call in next revisions.
+            addAnimationToObject(dynamic_cast<Model *>(pickedObject)->getWorldObjectID(), loadedAnimations.size() - 1, true);
+            delete animationInProgress;
+            animationInProgress = nullptr;
+        }
+        if(cancelled) {
+            delete animationInProgress;
+            animationInProgress = nullptr;
+        }
     }
 }
 
@@ -956,7 +919,8 @@ void World::addLight(Light *light) {
 uint32_t World::addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped) {
     AnimationStatus as;
     as.object = objects[modelID];
-    as.animation = &(loadedAnimations[animationID]);
+
+    as.animationIndex = animationID;
     as.loop = looped;
     as.wasKinematic = as.object->getRigidBody()->getCollisionFlags() & btCollisionObject::CF_KINEMATIC_OBJECT;
     as.startTime = gameTime;

@@ -18,6 +18,7 @@ public:
     struct ImGuiResult {
         bool addAI = false;
         bool removeAI = false;
+        bool updated = false;
     };
 
     enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER };

@@ -110,6 +110,7 @@ namespace ImSequencer
 						{
 							sequence->Add(i);
 							*selectedEntry = sequence->GetItemCount() - 1;
+							ret = true;
 						}
 
 					ImGui::EndPopup();
@@ -347,8 +348,10 @@ namespace ImSequencer
 		if (delEntry != -1)
 		{
 			sequence->Del(delEntry);
-			if (selectedEntry && (*selectedEntry == delEntry || *selectedEntry >= sequence->GetItemCount()))
+			if (selectedEntry && (*selectedEntry == delEntry || *selectedEntry >= sequence->GetItemCount())) {
 				*selectedEntry = -1;
+				ret = true;
+			}
 		}
 
 		if (dupEntry != -1)

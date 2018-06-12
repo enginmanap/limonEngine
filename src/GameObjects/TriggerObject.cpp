@@ -44,9 +44,9 @@ void TriggerObject::render(BulletDebugDrawer *debugDrawer) {
 }
 
 GameObject::ImGuiResult TriggerObject::addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix) {
-    static ImGuiResult request;
+    static ImGuiResult result;
 
-    transformation.addImGuiEditorElements(cameraMatrix, perspectiveMatrix);
+    result.updated = transformation.addImGuiEditorElements(cameraMatrix, perspectiveMatrix);
     if (ImGui::CollapsingHeader("Trigger Properties")) {
         ImGui::Text("If first enter trigger is empty, enter trigger will be run for first time too.");
         if (ImGui::CollapsingHeader("First Enter Trigger")) {
@@ -61,7 +61,7 @@ GameObject::ImGuiResult TriggerObject::addImGuiEditorElements(const glm::mat4 &c
     }
 
     enabledAny = enabledFirstTrigger || enabledEnterTrigger || enabledExitTrigger;
-    return request;
+    return result;
 }
 
 void TriggerObject::PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&triggerCode, std::vector<LimonAPI::ParameterRequest> &parameters,
