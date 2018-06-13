@@ -135,7 +135,23 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
         } else {
             id = std::stoi(objectAttribute->GetText());
         }
-        xmlModel = new Model(id, assetManager, modelMass, modelFile);
+
+        bool disconnected = false;
+        objectAttribute =  objectNode->FirstChildElement("Disconnected");
+        if (objectAttribute == nullptr) {
+            std::cout << "Object disconnect status is not set. defaulting to False" << std::endl;
+        } else {
+            std::string disConnectedText = objectAttribute->GetText();
+            if(disConnectedText == "True") {
+                disconnected = true;
+            } else if(disConnectedText == "False") {
+                disconnected = false;
+            } else {
+                std::cout << "Object disconnect status is unknown. defaulting to False" << std::endl;
+            }
+        }
+
+        xmlModel = new Model(id, assetManager, modelMass, modelFile, disconnected);
 
         objectAttribute =  objectNode->FirstChildElement("Transformation");
         if(objectAttribute == nullptr) {

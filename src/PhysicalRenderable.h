@@ -14,21 +14,24 @@ protected:
     glm::mat4 centerOffsetMatrix;
     glm::vec3 centerOffset;
     glm::vec3 aabbMax, aabbMin;
+    const float mass;
     btRigidBody *rigidBody;
     bool dirtyForWorldTransform = true;
-    const float mass;
-
+    bool disconnected = false;
 
 public:
-    explicit PhysicalRenderable(GLHelper *glHelper, float mass) : Renderable(glHelper), centerOffset(glm::vec3(0, 0, 0)), mass(mass) {
+    explicit PhysicalRenderable(GLHelper *glHelper, float mass, bool disconnected)
+            : Renderable(glHelper), centerOffset(glm::vec3(0, 0, 0)), mass(mass), disconnected(disconnected) {
         transformation.setGenerateWorldTransform(std::bind(&PhysicalRenderable::processTransformForPyhsics, this));
         transformation.setUpdateCallback(std::bind(&PhysicalRenderable::updatePhysicsFromTransform, this));
     };
 
     btRigidBody *getRigidBody() { return rigidBody; };
 
+    bool isDisconnected() const {
+        return disconnected;
+    }
     void updatePhysicsFromTransform() {
-        //std::cout << "updatePhysicsFromTransform transform call " << std::endl;
         rigidBody->getCollisionShape()->setLocalScaling(btVector3(transformation.getScale().x, transformation.getScale().y, transformation.getScale().z));
 
         btTransform transform = this->rigidBody->getCenterOfMassTransform();
@@ -44,8 +47,6 @@ public:
      * If there were any change with transform, trigger this
      */
     glm::mat4 processTransformForPyhsics() {
-        //std::cout << "processTransformForPyhsics transform call " << std::endl;
-
         //if animated, then the transform information will be updated according to bone transforms. Then we apply current center offset
         return glm::translate(glm::mat4(1.0f), transformation.getTranslate()) * glm::mat4_cast(transformation.getOrientation()) *
                glm::scale(glm::mat4(1.0f), transformation.getScale()) * glm::translate(glm::mat4(1.0f), -1.0f * centerOffset);
@@ -59,6 +60,24 @@ public:
     float getMass() const {
         return mass;
     };
+
+    bool disconnectFromPhysicsWorld(btDiscreteDynamicsWorld *dynamicsWorld) {
+        if(this->disconnected) {
+            return false;
+        }
+        dynamicsWorld->removeRigidBody(this->rigidBody);
+        this->disconnected = true;
+        return true;
+    }
+
+    bool connectToPhysicsWorld(btDiscreteDynamicsWorld *dynamicsWorld) {
+        if(!this->disconnected) {
+            return false;
+        }
+        dynamicsWorld->addRigidBody(this->rigidBody);
+        this->disconnected = false;
+        return true;
+    }
 
     const glm::vec3 &getAabbMax() const {
         return aabbMax;

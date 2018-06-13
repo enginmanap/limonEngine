@@ -671,7 +671,8 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 ImGui::NewLine();
                 if(selectedAssetFile != "") {
                     if(ImGui::Button("Add Object")) {
-                        Model* newModel = new Model(this->getNextObjectID(), assetManager, newObjectWeight, selectedAssetFile);
+                        Model* newModel = new Model(this->getNextObjectID(), assetManager, newObjectWeight,
+                                                    selectedAssetFile, false);
                         newModel->getTransformation()->setTranslate(newObjectPosition);
                         this->addModelToWorld(newModel);
                         newModel->getRigidBody()->activate();
@@ -817,6 +818,17 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
                     ImGui::NewLine();
                     if (pickedObject->getTypeID() == GameObject::MODEL) {
+                        if(static_cast<Model *>(pickedObject)->isDisconnected()) {
+                            if (ImGui::Button("reconnect to physics")) {
+                                static_cast<Model*>(pickedObject)->connectToPhysicsWorld(dynamicsWorld);
+                            }
+                        } else {
+                            if (ImGui::Button("Disconnect from physics")) {
+                                static_cast<Model*>(pickedObject)->disconnectFromPhysicsWorld(dynamicsWorld);
+                            }
+                            ImGui::Text("If object is placed in trigger volume, \ndisconnecting drastically improve performance.");
+                        }
+
                         if (ImGui::Button("Remove This Object")) {
                             removeObject(pickedObject->getWorldObjectID());
                             pickedObject = nullptr;
@@ -909,12 +921,23 @@ void World::addModelToWorld(Model *xmlModel) {
     xmlModel->getTransformation()->getWorldTransform();
     objects[xmlModel->getWorldObjectID()] = xmlModel;
     rigidBodies.push_back(xmlModel->getRigidBody());
-    dynamicsWorld->addRigidBody(xmlModel->getRigidBody());
+    xmlModel->updateAABB();
+    if(xmlModel->isDisconnected()) {
+        dynamicsWorld->removeRigidBody(xmlModel->getRigidBody());
+    } else {
+        dynamicsWorld->addRigidBody(xmlModel->getRigidBody());
+
+    }
     btVector3 aabbMin, aabbMax;
     xmlModel->getRigidBody()->getAabb(aabbMin, aabbMax);
+
+
+
+    /*
     std::cout << "bounding box of model " << xmlModel->getName() << " is "
               << GLMUtils::vectorToString(GLMConverter::BltToGLM(aabbMin)) << ", "
               << GLMUtils::vectorToString(GLMConverter::BltToGLM(aabbMax)) << std::endl;
+    */
     updateWorldAABB(GLMConverter::BltToGLM(aabbMin), GLMConverter::BltToGLM(aabbMax));
 }
 

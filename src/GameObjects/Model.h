@@ -49,9 +49,10 @@ class Model : public PhysicalRenderable, public GameObject {
 
 public:
     Model(uint32_t objectID, AssetManager *assetManager, const std::string &modelFile) : Model(objectID, assetManager,
-                                                                                               0, modelFile) {};
+                                                                                               0, modelFile, false) {};
 
-    Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile);
+    Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile,
+              bool disconnected);
 
     void activateMaterial(const Material *material, GLSLProgram *program);
     void activateTexturesOnly(const Material *material);
