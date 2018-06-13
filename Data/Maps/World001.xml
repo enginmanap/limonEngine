@@ -282,6 +282,7 @@
             <File>./Data/Models/PirateCoin/Coin.obj</File>
             <Mass>0</Mass>
             <ID>17</ID>
+            <Disconnected>True</Disconnected>
             <Transformation>
                 <Scale>
                     <X>0.39983994</X>
@@ -305,6 +306,7 @@
             <File>./Data/Models/PirateCoin/Coin.obj</File>
             <Mass>0</Mass>
             <ID>18</ID>
+            <Disconnected>True</Disconnected>
             <Transformation>
                 <Scale>
                     <X>0.40000001</X>

@@ -5,8 +5,9 @@
 #include "Model.h"
 #include "../AI/Actor.h"
 
-Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile) :
-        PhysicalRenderable(assetManager->getGlHelper(), mass), objectID(objectID), assetManager(assetManager),
+Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile,
+             bool disconnected = false) :
+        PhysicalRenderable(assetManager->getGlHelper(), mass, disconnected), objectID(objectID), assetManager(assetManager),
         name(modelFile) {
     //this is required because the shader has fixed size arrays
     boneTransforms.resize(128);
@@ -313,7 +314,15 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
         currentElement->SetText(animationName.c_str());
         objectElement->InsertEndChild(currentElement);
     }
-
+    currentElement = document.NewElement("Disconnected");
+    if(animated) {
+        if(disconnected) {
+            currentElement->SetText("True");
+        } else {
+            currentElement->SetText("False");
+        }
+    }
+    objectElement->InsertEndChild(currentElement);
     if(AIActor != nullptr) {
         currentElement = document.NewElement("AI");
         currentElement->SetText("True");
