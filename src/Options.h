@@ -29,10 +29,12 @@ private:
 
     uint32_t shadowWidth = 2048;
     uint32_t shadowHeight = 2048; //TODO these values should be parameters
+    uint32_t shadowMapPointWidth = 512;
+    uint32_t shadowMapPointHeight = 512; //TODO these values should be parameters
     float lightOrthogonalProjectionNearPlane = 1.0f;
     float  lightOrthogonalProjectionFarPlane = 100.0f;
     glm::vec4 lightOrthogonalProjectionValues = glm::vec4(-100.0f, 100.0f, -100.0f, 100.0f);
-    glm::vec3 lightPerspectiveProjectionValues = glm::vec3((float)shadowWidth/(float)shadowHeight, 1.0f, 100.0f);
+    glm::vec3 lightPerspectiveProjectionValues = glm::vec3((float)shadowMapDirectionalWidth/(float)shadowMapDirectionalHeight, 1.0f, 100.0f);
     //aspect,near,far
 
     uint32_t debugDrawBufferSize = 1000;
@@ -101,20 +103,20 @@ public:
         std::cerr << "Setting debugDrawBufferSize(" << debugDrawBufferSize << ") is not implemented." << std::endl;
     }
 
-    uint32_t getShadowWidth() const {
-        return shadowWidth;
+    uint32_t getShadowMapDirectionalWidth() const {
+        return shadowMapDirectionalWidth;
     }
 
-    void setShadowWidth(uint32_t shadowWidth) {
-        Options::shadowWidth = shadowWidth;
+    uint32_t getShadowMapDirectionalHeight() const {
+        return shadowMapDirectionalHeight;
     }
 
-    uint32_t getShadowHeight() const {
-        return shadowHeight;
+    uint32_t getShadowMapPointWidth() const {
+        return shadowMapPointWidth;
     }
 
-    void setShadowHeight(uint32_t shadowHeight) {
-        Options::shadowHeight = shadowHeight;
+    uint32_t getShadowMapPointHeight() const {
+        return shadowMapPointHeight;
     }
 
     float getLightOrthogonalProjectionNearPlane() const {
