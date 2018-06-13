@@ -269,7 +269,8 @@ GLHelper::GLHelper(Options *options): options(options) {
     glGenFramebuffers(1, &depthOnlyFrameBufferDirectional);
     glGenTextures(1, &depthMapDirectional);
     glBindTexture(GL_TEXTURE_2D_ARRAY, depthMapDirectional);
-    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT, options->getShadowWidth(), options->getShadowHeight(), NR_POINT_LIGHTS, 0,
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT, options->getShadowMapDirectionalWidth(),
+                 options->getShadowMapDirectionalHeight(), NR_POINT_LIGHTS, 0,
                  GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -291,7 +292,8 @@ GLHelper::GLHelper(Options *options): options(options) {
     // create depth cubemap texture
     glGenTextures(1, &depthCubemapPoint);
     glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, depthCubemapPoint);
-    glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, GL_DEPTH_COMPONENT, options->getShadowWidth(), options->getShadowHeight(), NR_POINT_LIGHTS*6, 0,
+    glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, GL_DEPTH_COMPONENT, options->getShadowMapPointWidth(),
+                 options->getShadowMapPointHeight(), NR_POINT_LIGHTS*6, 0,
                  GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -472,7 +474,7 @@ void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &text
 }
 
 void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
-    glViewport(0, 0, options->getShadowWidth(), options->getShadowHeight());
+    glViewport(0, 0, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight());
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional, 0, index);
 
@@ -484,7 +486,7 @@ void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
 
 void GLHelper::switchRenderToShadowMapPoint() {
     checkErrors("switchRenderToShadowMapPointBefore");
-    glViewport(0, 0, options->getShadowWidth(), options->getShadowHeight());
+    glViewport(0, 0, options->getShadowMapPointWidth(), options->getShadowMapPointHeight());
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
 
     glCullFace(GL_FRONT);
