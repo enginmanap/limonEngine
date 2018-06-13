@@ -27,8 +27,8 @@ private:
     unsigned int screenHeight = 1080;
     unsigned int screenWidth = 1920;
 
-    uint32_t shadowWidth = 2048;
-    uint32_t shadowHeight = 2048; //TODO these values should be parameters
+    uint32_t shadowMapDirectionalWidth = 2048;
+    uint32_t shadowMapDirectionalHeight = 2048; //TODO these values should be parameters
     uint32_t shadowMapPointWidth = 512;
     uint32_t shadowMapPointHeight = 512; //TODO these values should be parameters
     float lightOrthogonalProjectionNearPlane = 1.0f;
