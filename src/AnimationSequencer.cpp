@@ -257,6 +257,7 @@ void AnimationSequenceInterface::addAnimationSequencerToEditor(bool &finished, b
 
     if (strcmp(animationNameBuffer,"") != 0) {
         if(ImGui::Button("Finish")) {
+            setTransform(selectedEntry);
             finished = true;
         }
     } else {
