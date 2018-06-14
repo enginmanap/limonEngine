@@ -715,7 +715,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
             if (ImGui::CollapsingHeader("Custom Animations ")) {
                 //list loaded animations
-                static int listbox_item_current = 0;
+                int listbox_item_current = -1;//not static because I don't want user to select a item.
                 ImGui::ListBox("Loaded animations", &listbox_item_current, getNameOfLoadedAnimation,
                                static_cast<void *>(&loadedAnimations), loadedAnimations.size(), 10);
                 ImGui::Separator();
@@ -846,34 +846,52 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 }
 
 void World::addAnimationDefinitionToEditor() {
-    //If there is no animation setup ongoing, or there is one, but not for this model,
-    //put start animation button.
-    //else put time input, add and finalize buttons.
-    if(animationInProgress == nullptr || animationInProgress->getAnimatingObject() != dynamic_cast<Model*>(pickedObject)) {
-        if (ImGui::Button("Start animation definition")) {
-            if (animationInProgress == nullptr) {
-                animationInProgress = new AnimationSequenceInterface(dynamic_cast<PhysicalRenderable*>(pickedObject));
-            } else {
-                //ask for removal of the old work
-                delete animationInProgress;
-                animationInProgress = new AnimationSequenceInterface(dynamic_cast<PhysicalRenderable*>(pickedObject));
-            }
-            // At this point we should know the animationInProgress is for current object
-        }
-    } else {
-        bool finished, cancelled;
-        animationInProgress->addAnimationSequencerToEditor(finished, cancelled);
-        if(finished) {
-            loadedAnimations.push_back(AnimationCustom(*animationInProgress->buildAnimationFromCurrentItems()));
+    if (ImGui::CollapsingHeader("Custom animation properties")) {
+        //If there is no animation setup ongoing, or there is one, but not for this model,
+        //put start animation button.
+        //else put time input, add and finalize buttons.
+        if (animationInProgress == nullptr || animationInProgress->getAnimatingObject() != dynamic_cast<Model *>(pickedObject)) {
 
-            //Calling addAnimation here is odd, but I am planning to add animations using an external API call in next revisions.
-            addAnimationToObject(dynamic_cast<Model *>(pickedObject)->getWorldObjectID(), loadedAnimations.size() - 1, true);
-            delete animationInProgress;
-            animationInProgress = nullptr;
-        }
-        if(cancelled) {
-            delete animationInProgress;
-            animationInProgress = nullptr;
+            static int listbox_item_current = 0;
+            ImGui::Text("Loaded animations list");
+            ImGui::ListBox("##Loaded animations listbox", &listbox_item_current, getNameOfLoadedAnimation,
+                           static_cast<void *>(&loadedAnimations), loadedAnimations.size(), 10);
+
+            if (ImGui::Button("Apply selected")) {
+                addAnimationToObject(dynamic_cast<Model *>(pickedObject)->getWorldObjectID(), listbox_item_current,
+                                     true);
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button("Create new")) {
+                if (animationInProgress == nullptr) {
+                    animationInProgress = new AnimationSequenceInterface(
+                            dynamic_cast<PhysicalRenderable *>(pickedObject));
+                } else {
+                    //ask for removal of the old work
+                    delete animationInProgress;
+                    animationInProgress = new AnimationSequenceInterface(
+                            dynamic_cast<PhysicalRenderable *>(pickedObject));
+                }
+                // At this point we should know the animationInProgress is for current object
+            }
+        } else {
+            ImGui::Text("Please use animation definition window.");
+            bool finished, cancelled;
+            animationInProgress->addAnimationSequencerToEditor(finished, cancelled);
+            if (finished) {
+                loadedAnimations.push_back(AnimationCustom(*animationInProgress->buildAnimationFromCurrentItems()));
+
+                //Calling addAnimation here is odd, but I am planning to add animations using an external API call in next revisions.
+                addAnimationToObject(dynamic_cast<Model *>(pickedObject)->getWorldObjectID(),
+                                     loadedAnimations.size() - 1, true);
+                delete animationInProgress;
+                animationInProgress = nullptr;
+            }
+            if (cancelled) {
+                delete animationInProgress;
+                animationInProgress = nullptr;
+            }
         }
     }
 }

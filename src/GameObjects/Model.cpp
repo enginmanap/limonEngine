@@ -362,7 +362,7 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const glm::mat4& cameraMat
 
         ImGui::NewLine();
     if (isAnimated()) {
-        if (ImGui::CollapsingHeader("Animation properties")) {
+        if (ImGui::CollapsingHeader("Model animation properties")) {
             if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {
                 for (auto it = modelAsset->getAnimations().begin(); it != modelAsset->getAnimations().end(); it++) {
                     if (ImGui::Selectable(it->first.c_str())) {
