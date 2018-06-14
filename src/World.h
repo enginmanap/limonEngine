@@ -74,6 +74,7 @@ class World {
     std::map<uint32_t, TriggerObject*> triggers;
     std::vector<ActionForOnload* > onLoadActions;
     std::vector<AnimationCustom> loadedAnimations;
+    std::set<PhysicalRenderable*> onLoadAnimations;//Those renderables animations should be loaded and started on load
     std::unordered_map<PhysicalRenderable*, AnimationStatus> activeAnimations;
     AnimationSequenceInterface* animationInProgress = nullptr;
     std::vector<Light *> lights;
@@ -225,7 +226,7 @@ public:
     */
     bool generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest> &runParameters, uint32_t index);
 
-    uint32_t addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped);
+    uint32_t addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad = false);
     uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text,
                         const glm::vec3 &color,
                         const glm::vec2 &position, float rotation);

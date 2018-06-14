@@ -315,12 +315,10 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
         objectElement->InsertEndChild(currentElement);
     }
     currentElement = document.NewElement("Disconnected");
-    if(animated) {
-        if(disconnected) {
-            currentElement->SetText("True");
-        } else {
-            currentElement->SetText("False");
-        }
+    if(disconnected) {
+        currentElement->SetText("True");
+    } else {
+        currentElement->SetText("False");
     }
     objectElement->InsertEndChild(currentElement);
     if(AIActor != nullptr) {
