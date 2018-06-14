@@ -14,6 +14,8 @@
 #include "GamePlay/LimonAPI.h"
 #include "Assets/Animations/AnimationLoader.h"
 #include "Assets/Animations/AnimationCustom.h"
+#include "GUI/GUIText.h"
+#include "GUI/GUILayer.h"
 
 
 WorldLoader::WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options* options):
@@ -94,6 +96,8 @@ bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world)
     loadOnLoadActions(worldNode, world);
 
     loadOnLoadAnimations(worldNode, world);
+
+    loadGUILayersAndElements(worldNode, world);
 
     return true;
 }
@@ -559,4 +563,41 @@ bool WorldLoader::loadOnLoadAnimations(tinyxml2::XMLNode *worldNode, World *worl
             }
             onloadAnimationNode = onloadAnimationNode->NextSiblingElement("OnLoadAnimation");
         } // end of while (OnLoadAnimation)
-        return true;}
+        return true;
+}
+
+bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *world) const {
+    tinyxml2::XMLElement* GuiLayersListNode =  worldNode->FirstChildElement("GUILayers");
+    if (GuiLayersListNode == nullptr) {
+        std::cout << "World doesn't have any GUI elements." << std::endl;
+        return true;
+    }
+
+    tinyxml2::XMLElement* GUILayerNode =  GuiLayersListNode->FirstChildElement("GUILayer");
+
+    while(GUILayerNode != nullptr) {
+        tinyxml2::XMLElement* levelNode = GUILayerNode->FirstChildElement("Level");
+        if(levelNode == nullptr) {
+            std::cerr << "GUI layer level can't be read. GUI loading not possible" << std::endl;
+            return false;
+        }
+        uint32_t level = std::stoi(levelNode->GetText());
+
+        GUILayer* layer = new GUILayer(glHelper, world->debugDrawer, level);
+        layer->setDebug(false);
+        world->guiLayers.push_back(layer);
+        //now we should deserialize each element
+        tinyxml2::XMLElement* GUIElementNode =  GUILayerNode->FirstChildElement("GUIElement");
+        while(GUIElementNode != nullptr) {
+            // TODO we should have a factory to create objects from parameters we collect, currently single type, GUITEXT
+            GUIRenderable* element = GUIText::deserialize(GUIElementNode, glHelper, &world->fontManager);
+            world->guiElements[element->getWorldID()] = element;
+            layer->addGuiElement(element);
+
+            GUIElementNode = GUIElementNode->NextSiblingElement("GUIElement");
+        }// end of while (GUIElementNode)
+
+        GUILayerNode = GUILayerNode->NextSiblingElement("GUILayer");
+    } // end of while (GUILayer)
+    return true;
+}

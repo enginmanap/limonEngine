@@ -25,6 +25,7 @@ protected:
 public:
     GUIText(GLHelper *glHelper, uint32_t id, Face *font, const std::string text, const glm::vec3 color);
     GUIText(GLHelper *glHelper, uint32_t id, Face *font, const glm::vec3 color) : GUIText(glHelper, id, font, "", color) {};
+    static GUIText* deserialize(tinyxml2::XMLElement *GUIRenderableNode, GLHelper* glHelper, FontManager* fontManager); //will turn into factory class at some point
 
     virtual void render();
 

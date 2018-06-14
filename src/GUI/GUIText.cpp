@@ -182,10 +182,14 @@ void GUIText::renderDebug(BulletDebugDrawer *debugDrawer) {
 }
 
 bool GUIText::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) {
-    tinyxml2::XMLElement *guiTextNode = document.NewElement("GUIText");
+    tinyxml2::XMLElement *guiTextNode = document.NewElement("GUIElement");
     parentNode->InsertEndChild(guiTextNode);
 
-    tinyxml2::XMLElement *currentElement = document.NewElement("ID");
+    tinyxml2::XMLElement *currentElement = document.NewElement("Type");
+    currentElement->SetText("GUIText");
+    guiTextNode->InsertEndChild(currentElement);
+
+    currentElement = document.NewElement("ID");
     currentElement->SetText(getWorldID());
     guiTextNode->InsertEndChild(currentElement);
 
@@ -206,16 +210,108 @@ bool GUIText::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
 
     tinyxml2::XMLElement * parent = document.NewElement("Color");
     currentElement = document.NewElement("R");
-    currentElement->SetText(color.r);
+    currentElement->SetText(color.r * 256);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("G");
-    currentElement->SetText(color.g);
+    currentElement->SetText(color.g * 256);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("B");
-    currentElement->SetText(color.b);
+    currentElement->SetText(color.b * 256);
     parent->InsertEndChild(currentElement);
     guiTextNode->InsertEndChild(parent);
 
     transformation.serialize(document, guiTextNode);
     return true;
+}
+
+GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GLHelper* glHelper, FontManager* fontManager) {
+
+    tinyxml2::XMLElement* GUIRenderableAttribute;
+
+    GUIRenderableAttribute = GUIRenderableNode->FirstChildElement("Type");
+    if (GUIRenderableAttribute == nullptr) {
+        std::cerr << "GUI renderable must have a type. Skipping" << std::endl;
+        return nullptr;
+    }
+    std::string type = GUIRenderableAttribute->GetText();
+    if(type == "GUIText") {
+        GUIRenderableAttribute = GUIRenderableNode->FirstChildElement("ID");
+        if (GUIRenderableAttribute == nullptr) {
+            std::cerr << "GUI renderable must have a ID. Skipping" << std::endl;
+            return nullptr;
+        }
+        uint32_t id = std::stoi(GUIRenderableAttribute->GetText());
+        std::string text;
+
+        GUIRenderableAttribute = GUIRenderableNode->FirstChildElement("Text");
+        if (GUIRenderableAttribute == nullptr) {
+            std::cout << "GUI Text without text found, assuming empty" << std::endl;
+        } else {
+            text = GUIRenderableAttribute->GetText();
+        }
+
+        //now get the font
+        tinyxml2::XMLElement* FontAttribute = GUIRenderableNode->FirstChildElement("Font");
+
+
+        GUIRenderableAttribute = FontAttribute->FirstChildElement("Path");
+        if (GUIRenderableAttribute == nullptr) {
+            std::cout << "GUI Text Font path can't be read. Skipping" << std::endl;
+            return nullptr;
+        }
+        std::string path = GUIRenderableAttribute->GetText();
+
+        uint32_t size;
+        GUIRenderableAttribute = FontAttribute->FirstChildElement("Size");
+        if (GUIRenderableAttribute == nullptr) {
+            std::cerr << "GUI Text font size can't be read. Assumin 32" << std::endl;
+            size = 32;
+        } else {
+            size = std::stoi(GUIRenderableAttribute->GetText());
+        }
+
+        //now read the color information
+        glm::vec3 color;
+
+        tinyxml2::XMLElement* colorNode = GUIRenderableNode->FirstChildElement("Color");
+        if (colorNode == nullptr) {
+            color.x = color.y = color.z = 0.0f;
+        } else {
+            GUIRenderableAttribute = colorNode->FirstChildElement("R");
+            if (GUIRenderableAttribute != nullptr) {
+                color.x = std::stof(GUIRenderableAttribute->GetText());
+            } else {
+                color.x = 0.0f;
+            }
+            GUIRenderableAttribute = colorNode->FirstChildElement("G");
+            if (GUIRenderableAttribute != nullptr) {
+                color.y = std::stof(GUIRenderableAttribute->GetText());
+            } else {
+                color.y = 0.0f;
+            }
+            GUIRenderableAttribute = colorNode->FirstChildElement("B");
+            if (GUIRenderableAttribute != nullptr) {
+                color.z = std::stof(GUIRenderableAttribute->GetText());
+            } else {
+                color.z = 0.0f;
+            }
+        }
+
+        GUIRenderableAttribute =  GUIRenderableNode->FirstChildElement("Transformation");
+        if(GUIRenderableAttribute == nullptr) {
+            std::cerr << "GUI Text does not have transformation. Skipping" << std::endl;
+            return nullptr;
+        }
+        Transformation tr;
+        tr.deserialize(GUIRenderableAttribute);
+
+        //now we have everything, create the GUI Text
+        GUIText* element = new GUIText(glHelper, id, fontManager->getFont(path, size), text, color);
+        element->getTransformation()->setTranslate(tr.getTranslate());
+        element->getTransformation()->setOrientation(tr.getOrientation());
+        return element;
+    }
+
+    //unknown type case
+    return nullptr;
 }
