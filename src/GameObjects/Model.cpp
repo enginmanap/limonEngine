@@ -394,7 +394,6 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const glm::mat4& cameraMat
     return request;
 }
 
-//TODO we need to free the texture. Destructor needed.
 Model::~Model() {
     delete rigidBody->getMotionState();
     delete rigidBody;
@@ -405,4 +404,19 @@ Model::~Model() {
         delete meshMetaData[i];
     }
     assetManager->freeAsset({name});
+}
+
+Model::Model(const Model &otherModel, uint32_t objectID) :
+        Model(objectID, otherModel.assetManager, otherModel.mass, otherModel.name, otherModel.disconnected) {
+    //we have constructed the object, now set the properties that might have been changed
+    this->transformation.setTransformationsNotPropagate(
+            otherModel.transformation.getTranslate(),
+            otherModel.transformation.getOrientation(),
+            otherModel.transformation.getScale()
+            );
+    this->updateAABB();
+
+    this->animationName = otherModel.animationName;
+    this->animationTimeScale = otherModel.animationTimeScale;
+    this->animationTime = otherModel.animationTime;
 }

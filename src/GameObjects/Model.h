@@ -54,6 +54,8 @@ public:
     Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile,
               bool disconnected);
 
+    Model(const Model& otherModel, uint32_t objectID); //kind of copy constructor, except ID
+
     void activateMaterial(const Material *material, GLSLProgram *program);
     void activateTexturesOnly(const Material *material);
 

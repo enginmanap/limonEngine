@@ -485,6 +485,13 @@ void World::switchToEditorMode(InputHandler &inputHandler) {//switch control to 
     inputHandler.setMouseModeFree();
     beforeMode = currentMode;
     currentMode = EDITOR_MODE;
+
+    //when switching to editor mode, return all objects that are custom animated without triggers
+    //to original position
+    for(auto it = onLoadAnimations.begin(); it != onLoadAnimations.end(); it++) {
+        (*(*it)->getTransformation()) = activeAnimations[*it].originalTransformation;
+    }
+
 }
 
 GameObject * World::getPointedObject() const {
@@ -680,6 +687,23 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     }
                 }
             }
+            if(pickedObject != nullptr && pickedObject->getTypeID() == GameObject::MODEL) {
+                if (ImGui::Button("Copy Selected object")) {
+
+                    Model* pickedModel = dynamic_cast<Model*>(pickedObject);
+                    Model* newModel = new Model(*pickedModel, this->getNextObjectID());
+                    newModel->getTransformation()->addTranslate(glm::vec3(0.25f,0.25f,0.25f));
+                    addModelToWorld(newModel);
+                    //now we should apply the animations
+
+                    if(onLoadAnimations.find(pickedModel) != onLoadAnimations.end() &&
+                            activeAnimations.find(pickedModel) != activeAnimations.end()) {
+                        addAnimationToObject(newModel->getWorldObjectID(), activeAnimations[pickedModel].animationIndex, true, true);
+                    }
+                    pickedObject = static_cast<GameObject*>(newModel);
+                }
+            }
+
 
             if(ImGui::Button("Add Trigger Volume")) {
 
@@ -790,11 +814,16 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             if(pickedObject != nullptr) {
                 GameObject::ImGuiResult request = pickedObject->addImGuiEditorElements(camera->getCameraMatrix(), glHelper->getProjectionMatrix());
                 if(pickedObject->getTypeID() == GameObject::MODEL) {
-                    PhysicalRenderable* selectedObject = dynamic_cast<Model*>(pickedObject);
+                    Model* selectedObject = dynamic_cast<Model*>(pickedObject);
                     if(activeAnimations.find(selectedObject) != activeAnimations.end()) {
+                        if(request.updated) {
+                            activeAnimations[selectedObject].originalTransformation = *selectedObject->getTransformation();
+                        }
+
+
                         if(ImGui::Button(("Remove custom animation: " + loadedAnimations[activeAnimations[selectedObject].animationIndex].getName()).c_str())) {
-                            (*dynamic_cast<Model*>(pickedObject)->getTransformation()) = activeAnimations[selectedObject].originalTransformation;
-                            activeAnimations.erase(dynamic_cast<Model*>(pickedObject));
+                            (*selectedObject->getTransformation()) = activeAnimations[selectedObject].originalTransformation;
+                            activeAnimations.erase(selectedObject);
                         }
                     } else {
                         addAnimationDefinitionToEditor();
