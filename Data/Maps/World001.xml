@@ -3,6 +3,7 @@
     <Objects>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
+            <Disconnected>False</Disconnected>
             <Mass>0</Mass>
             <ID>3</ID>
             <Transformation>
@@ -26,6 +27,7 @@
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
+            <Disconnected>False</Disconnected>
             <Mass>1</Mass>
             <ID>4</ID>
             <Transformation>
@@ -49,6 +51,7 @@
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
+            <Disconnected>False</Disconnected>
             <Mass>10</Mass>
             <ID>5</ID>
             <Transformation>
@@ -72,6 +75,7 @@
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
+            <Disconnected>False</Disconnected>
             <Mass>10</Mass>
             <ID>6</ID>
             <Transformation>
@@ -95,6 +99,7 @@
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
+            <Disconnected>False</Disconnected>
             <Mass>0</Mass>
             <ID>7</ID>
             <Transformation>
@@ -118,6 +123,7 @@
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
+            <Disconnected>False</Disconnected>
             <Mass>0</Mass>
             <ID>8</ID>
             <Transformation>
@@ -141,6 +147,7 @@
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
+            <Disconnected>False</Disconnected>
             <Mass>0</Mass>
             <ID>9</ID>
             <Transformation>
@@ -164,6 +171,7 @@
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
+            <Disconnected>False</Disconnected>
             <Mass>0</Mass>
             <ID>10</ID>
             <Transformation>
@@ -187,6 +195,7 @@
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
+            <Disconnected>False</Disconnected>
             <Mass>3</Mass>
             <ID>11</ID>
             <Transformation>
@@ -210,6 +219,7 @@
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
+            <Disconnected>False</Disconnected>
             <Mass>0</Mass>
             <ID>12</ID>
             <Transformation>
@@ -233,6 +243,7 @@
         </Object>
         <Object>
             <File>./Data/Models/Wall/archandwalls.obj</File>
+            <Disconnected>False</Disconnected>
             <Mass>0</Mass>
             <ID>13</ID>
             <Transformation>
@@ -257,6 +268,7 @@
         <Object>
             <File>./Data/Models/Dwarf/dwarf.x</File>
             <Animation>AnimationSet2</Animation>
+            <Disconnected>False</Disconnected>
             <Mass>50</Mass>
             <ID>14</ID>
             <Transformation>
@@ -280,9 +292,9 @@
         </Object>
         <Object>
             <File>./Data/Models/PirateCoin/Coin.obj</File>
+            <Disconnected>True</Disconnected>
             <Mass>0</Mass>
             <ID>17</ID>
-            <Disconnected>True</Disconnected>
             <Transformation>
                 <Scale>
                     <X>0.39983994</X>
@@ -304,9 +316,9 @@
         </Object>
         <Object>
             <File>./Data/Models/PirateCoin/Coin.obj</File>
+            <Disconnected>True</Disconnected>
             <Mass>0</Mass>
             <ID>18</ID>
-            <Disconnected>True</Disconnected>
             <Transformation>
                 <Scale>
                     <X>0.40000001</X>
@@ -533,68 +545,15 @@
             </FirstEnterTriggerCode>
         </Trigger>
     </Triggers>
-    <OnloadActions>
-        <OnloadAction>
-            <ActionName>AnimateOnTrigger</ActionName>
-            <Parameters>
-                <Parameter>
-                    <RequestType>Model</RequestType>
-                    <Description>Model to animate</Description>
-                    <Value>17</Value>
-                    <valueType>Long</valueType>
-                    <IsSet>True</IsSet>
-                    <Index>0</Index>
-                </Parameter>
-                <Parameter>
-                    <RequestType>Animation</RequestType>
-                    <Description>Animation to apply</Description>
-                    <Value>0</Value>
-                    <valueType>Long</valueType>
-                    <IsSet>True</IsSet>
-                    <Index>1</Index>
-                </Parameter>
-                <Parameter>
-                    <RequestType>Switch</RequestType>
-                    <Description>Is animation looped</Description>
-                    <Value>True</Value>
-                    <valueType>Boolean</valueType>
-                    <IsSet>True</IsSet>
-                    <Index>2</Index>
-                </Parameter>
-            </Parameters>
-            <Enabled>True</Enabled>
-            <Index>0</Index>
-        </OnloadAction>
-        <OnloadAction>
-            <ActionName>AnimateOnTrigger</ActionName>
-            <Parameters>
-                <Parameter>
-                    <RequestType>Model</RequestType>
-                    <Description>Model to animate</Description>
-                    <Value>18</Value>
-                    <valueType>Long</valueType>
-                    <IsSet>True</IsSet>
-                    <Index>0</Index>
-                </Parameter>
-                <Parameter>
-                    <RequestType>Animation</RequestType>
-                    <Description>Animation to apply</Description>
-                    <Value>0</Value>
-                    <valueType>Long</valueType>
-                    <IsSet>True</IsSet>
-                    <Index>1</Index>
-                </Parameter>
-                <Parameter>
-                    <RequestType>Switch</RequestType>
-                    <Description>Is animation looped</Description>
-                    <Value>True</Value>
-                    <valueType>Boolean</valueType>
-                    <IsSet>True</IsSet>
-                    <Index>2</Index>
-                </Parameter>
-            </Parameters>
-            <Enabled>True</Enabled>
-            <Index>1</Index>
-        </OnloadAction>
-    </OnloadActions>
+    <OnloadActions/>
+    <OnLoadAnimations>
+        <OnLoadAnimation>
+            <ModelID>18</ModelID>
+            <AnimationID>0</AnimationID>
+        </OnLoadAnimation>
+        <OnLoadAnimation>
+            <ModelID>17</ModelID>
+            <AnimationID>0</AnimationID>
+        </OnLoadAnimation>
+    </OnLoadAnimations>
 </World>

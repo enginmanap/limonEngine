@@ -858,8 +858,7 @@ void World::addAnimationDefinitionToEditor() {
                            static_cast<void *>(&loadedAnimations), loadedAnimations.size(), 10);
 
             if (ImGui::Button("Apply selected")) {
-                addAnimationToObject(dynamic_cast<Model *>(pickedObject)->getWorldObjectID(), listbox_item_current,
-                                     true);
+                addAnimationToObject(dynamic_cast<Model *>(pickedObject)->getWorldObjectID(), listbox_item_current, true, true);
             }
 
             ImGui::SameLine();
@@ -882,9 +881,8 @@ void World::addAnimationDefinitionToEditor() {
             if (finished) {
                 loadedAnimations.push_back(AnimationCustom(*animationInProgress->buildAnimationFromCurrentItems()));
 
-                //Calling addAnimation here is odd, but I am planning to add animations using an external API call in next revisions.
                 addAnimationToObject(dynamic_cast<Model *>(pickedObject)->getWorldObjectID(),
-                                     loadedAnimations.size() - 1, true);
+                                     loadedAnimations.size() - 1, true, true);
                 delete animationInProgress;
                 animationInProgress = nullptr;
             }
@@ -987,7 +985,7 @@ void World::addLight(Light *light) {
     this->lights.push_back(light);
 }
 
-uint32_t World::addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped) {
+uint32_t World::addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad) {
     AnimationStatus as;
     as.object = objects[modelID];
 
@@ -1004,6 +1002,10 @@ uint32_t World::addAnimationToObject(uint32_t modelID, uint32_t animationID, boo
     activeAnimations[as.object] = as;
     as.object->getRigidBody()->setCollisionFlags(as.object->getRigidBody()->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
     as.object->getRigidBody()->setActivationState(DISABLE_DEACTIVATION);
+
+    if(startOnLoad) {
+        onLoadAnimations.insert(as.object);
+    }
     return modelID;
 }
 

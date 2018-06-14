@@ -2,6 +2,8 @@
 // Created by engin on 10.03.2018.
 //
 
+#include <algorithm>
+
 #include "WorldLoader.h"
 #include "World.h"
 #include "AI/HumanEnemy.h"
@@ -26,7 +28,7 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
 
     // Set api endpoints accordingly
     LimonAPI* api = new LimonAPI();
-    api->worldAddAnimationToObject = std::bind(&World::addAnimationToObject, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    api->worldAddAnimationToObject = std::bind(&World::addAnimationToObject, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false);
     api->worldAddGuiText = std::bind(&World::addGuiText, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6);
     api->worldUpdateGuiText = std::bind(&World::updateGuiText, newWorld, std::placeholders::_1, std::placeholders::_2);
     api->worldGenerateEditorElementsForParameters = std::bind(&World::generateEditorElementsForParameters, newWorld, std::placeholders::_1, std::placeholders::_2);
@@ -90,6 +92,8 @@ bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world)
 
     //load onloadActions
     loadOnLoadActions(worldNode, world);
+
+    loadOnLoadAnimations(worldNode, world);
 
     return true;
 }
@@ -527,3 +531,32 @@ bool WorldLoader::loadOnLoadActions(tinyxml2::XMLNode *worldNode, World *world) 
     } // end of while (OnloadAction)
     return true;
 }
+
+bool WorldLoader::loadOnLoadAnimations(tinyxml2::XMLNode *worldNode, World *world) const {
+        tinyxml2::XMLElement* onloadAnimationsListNode =  worldNode->FirstChildElement("OnLoadAnimations");
+        if (onloadAnimationsListNode == nullptr) {
+            std::cout << "World doesn't have any On load animations." << std::endl;
+            return true;
+        }
+
+        tinyxml2::XMLElement* onloadAnimationNode =  onloadAnimationsListNode->FirstChildElement("OnLoadAnimation");
+
+        while(onloadAnimationNode != nullptr) {
+            tinyxml2::XMLElement* modelIDNode = onloadAnimationNode->FirstChildElement("ModelID");
+            if(modelIDNode == nullptr) {
+                std::cerr << "Animation model ID can't be read. Animation loading not possible, skipping" << std::endl;
+            } else {
+                uint32_t modelID = std::stoi(modelIDNode->GetText());
+
+                tinyxml2::XMLElement *animationIDNode = onloadAnimationNode->FirstChildElement("AnimationID");
+                if (animationIDNode == nullptr) {
+                    std::cerr << "Animation ID can't be read. Animation loading not possible, skipping"  << std::endl;
+                } else {
+                    uint32_t animationID = std::stoi(animationIDNode->GetText());
+
+                    world->addAnimationToObject(modelID,animationID,true,true);
+                }
+            }
+            onloadAnimationNode = onloadAnimationNode->NextSiblingElement("OnLoadAnimation");
+        } // end of while (OnLoadAnimation)
+        return true;}

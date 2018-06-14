@@ -104,6 +104,11 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     };
     rootNode->InsertEndChild(currentElement);//add OnloadActions
 
+    currentElement = mapDocument.NewElement("OnLoadAnimations");//make sure this is after loading animations
+    if(!fillOnloadAnimations(mapDocument, currentElement, world)) {
+        return false;
+    };
+    rootNode->InsertEndChild(currentElement);//add OnloadAnimations
 
     tinyxml2::XMLError eResult = mapDocument.SaveFile(mapName.c_str());
     if(eResult != tinyxml2::XML_SUCCESS) {
@@ -261,3 +266,27 @@ bool WorldSaver::fillOnloadActions(tinyxml2::XMLDocument &document, tinyxml2::XM
     }
     return true;
 }
+
+bool WorldSaver::fillOnloadAnimations(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *onloadAnimationsNode,
+                                      const World *world) {
+    for(auto it= world->onLoadAnimations.begin(); it != world->onLoadAnimations.end(); it++) {
+        /**
+         * we need only 2 information, model ID and loaded animation ID.
+         */
+
+        uint32_t objectID = dynamic_cast<Model*>(world->activeAnimations.at(*it).object)->getWorldObjectID();
+        uint32_t loadedAnimationID = world->activeAnimations.at(*it).animationIndex;
+
+        //we need to save parameters, and trigger code
+        tinyxml2::XMLElement *onloadActionNode= document.NewElement("OnLoadAnimation");
+        onloadAnimationsNode->InsertEndChild(onloadActionNode);
+
+        tinyxml2::XMLElement *modelIDNode = document.NewElement("ModelID");
+        modelIDNode->SetText(std::to_string(objectID).c_str());
+        onloadActionNode->InsertEndChild(modelIDNode);
+
+        tinyxml2::XMLElement *animationIDNode = document.NewElement("AnimationID");
+        animationIDNode->SetText(std::to_string(loadedAnimationID).c_str());
+        onloadActionNode->InsertEndChild(animationIDNode);
+    }
+    return true;}
