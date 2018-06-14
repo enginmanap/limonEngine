@@ -59,6 +59,8 @@ public:
     }
 
     void render();
+
+    bool serialize(tinyxml2::XMLDocument &document __attribute((unused)), tinyxml2::XMLElement *parentNode __attribute((unused))) override { return true;};//This object is used for debug logging, it should not be serialized
 };
 
 

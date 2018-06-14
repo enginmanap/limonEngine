@@ -30,6 +30,7 @@ class WorldLoader {
     bool loadTriggers(tinyxml2::XMLNode *worldNode, World *world) const;
     bool loadOnLoadActions(tinyxml2::XMLNode *worldNode, World *world) const;
     bool loadOnLoadAnimations(tinyxml2::XMLNode *worldNode, World *world) const;
+    bool loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *world) const;
 
 public:
     WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options* options);

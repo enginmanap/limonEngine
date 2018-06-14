@@ -38,6 +38,8 @@ public:
     void render();
 
     void setupForTime(long time);
+
+    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *LayersListNode);
 };
 
 

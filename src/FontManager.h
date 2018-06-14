@@ -83,6 +83,14 @@ public:
         return maxCharWidth;
     }
 
+    const std::string &getPath() const {
+        return path;
+    }
+
+    unsigned int getSize() const {
+        return size;
+    }
+
     ~Face() {
         for (std::map<const char, Glyph *>::iterator iter = glyphs.begin(); iter != glyphs.end(); ++iter) {
             delete iter->second;
