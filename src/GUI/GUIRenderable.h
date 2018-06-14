@@ -77,6 +77,8 @@ public:
     const std::string& getName() {
         return name;
     }
+
+    virtual bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) = 0;
 };
 
 

@@ -84,7 +84,7 @@ class World {
     SkyBox *sky = nullptr;
     GLHelper *glHelper;
     long gameTime = 0;
-    GUITextDynamic* trd;
+    GUITextDynamic* debugOutputGUI;
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
 

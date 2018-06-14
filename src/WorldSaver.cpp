@@ -10,6 +10,7 @@
 #include "GameObjects/Light.h"
 #include "Assets/Animations/AnimationCustom.h"
 #include "GameObjects/TriggerObject.h"
+#include "GUI/GUILayer.h"
 
 /************************************************************************************
  * Map file spec
@@ -109,6 +110,13 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
         return false;
     };
     rootNode->InsertEndChild(currentElement);//add OnloadAnimations
+
+    currentElement = mapDocument.NewElement("GUILayers");
+    if(!fillGUILayersAndElements(mapDocument, currentElement, world)) {
+        return false;
+    };
+    rootNode->InsertEndChild(currentElement);//add GUI layers
+
 
     tinyxml2::XMLError eResult = mapDocument.SaveFile(mapName.c_str());
     if(eResult != tinyxml2::XML_SUCCESS) {
@@ -289,4 +297,16 @@ bool WorldSaver::fillOnloadAnimations(tinyxml2::XMLDocument &document, tinyxml2:
         animationIDNode->SetText(std::to_string(loadedAnimationID).c_str());
         onloadActionNode->InsertEndChild(animationIDNode);
     }
-    return true;}
+    return true;
+}
+
+bool WorldSaver::fillGUILayersAndElements(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *GUILayersListNode,
+                                          const World *world) {
+    //for(auto it= world->guiLayers.begin(); it != world->guiLayers.end(); it++) {
+    for (size_t i = 0; i < world->guiLayers.size(); ++i) {
+        if (!world->guiLayers[i]->serialize(document, GUILayersListNode)) {
+            return false;
+        }
+    }
+    return true;
+}

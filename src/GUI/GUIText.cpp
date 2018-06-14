@@ -180,3 +180,42 @@ void GUIText::renderDebug(BulletDebugDrawer *debugDrawer) {
     }
 
 }
+
+bool GUIText::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) {
+    tinyxml2::XMLElement *guiTextNode = document.NewElement("GUIText");
+    parentNode->InsertEndChild(guiTextNode);
+
+    tinyxml2::XMLElement *currentElement = document.NewElement("ID");
+    currentElement->SetText(getWorldID());
+    guiTextNode->InsertEndChild(currentElement);
+
+    currentElement = document.NewElement("Text");
+    currentElement->SetText(this->text.c_str());
+    guiTextNode->InsertEndChild(currentElement);
+
+    tinyxml2::XMLElement *fontNode = document.NewElement("Font");
+    guiTextNode->InsertEndChild(fontNode);
+
+    currentElement = document.NewElement("Path");
+    currentElement->SetText(this->face->getPath().c_str());
+    fontNode->InsertEndChild(currentElement);
+
+    currentElement = document.NewElement("Size");
+    currentElement->SetText(std::to_string(this->face->getSize()).c_str());
+    fontNode->InsertEndChild(currentElement);
+
+    tinyxml2::XMLElement * parent = document.NewElement("Color");
+    currentElement = document.NewElement("R");
+    currentElement->SetText(color.r);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("G");
+    currentElement->SetText(color.g);
+    parent->InsertEndChild(currentElement);
+    currentElement = document.NewElement("B");
+    currentElement->SetText(color.b);
+    parent->InsertEndChild(currentElement);
+    guiTextNode->InsertEndChild(parent);
+
+    transformation.serialize(document, guiTextNode);
+    return true;
+}

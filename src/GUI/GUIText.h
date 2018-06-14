@@ -34,6 +34,8 @@ public:
         this->text = text;
         name = this->text + "-" + std::to_string(getWorldID());
     }
+
+    virtual bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) override;
 };
 
 

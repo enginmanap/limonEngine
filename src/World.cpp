@@ -33,6 +33,7 @@
 #include "GamePlay/AnimateOnTrigger.h"
 #include "GamePlay/AddGuiTextOnTrigger.h"
 #include "AnimationSequencer.h"
+#include "GUI/Cursor.h"
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
@@ -95,18 +96,18 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     renderCounts = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0", glm::vec3(204, 204, 0));
     renderCounts->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 170, options->getScreenHeight() - 36), 0);
     guiElements[renderCounts->getWorldID()] = renderCounts;
-    layer1->addGuiElement(renderCounts);
+    //layer1->addGuiElement(renderCounts);
 
-    cursor = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
+    cursor = new Cursor(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
                          glm::vec3(255, 255, 255));
     cursor->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), -1 * options->PI / 4);
     guiElements[cursor->getWorldID()] = cursor;
     layer1->addGuiElement(cursor);
 
-    trd = new GUITextDynamic(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), glm::vec3(0, 0, 0), 640, 380, options);
-    trd->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-200), 0.0f);
-    guiElements[trd->getWorldID()] = trd;
-    layer1->addGuiElement(trd);
+    debugOutputGUI = new GUITextDynamic(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), glm::vec3(0, 0, 0), 640, 380, options);
+    debugOutputGUI->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-200), 0.0f);
+    guiElements[debugOutputGUI->getWorldID()] = debugOutputGUI;
+    layer1->addGuiElement(debugOutputGUI);
 
 
 
@@ -604,6 +605,8 @@ void World::render() {
     for (std::vector<GUILayer *>::iterator it = guiLayers.begin(); it != guiLayers.end(); ++it) {
         (*it)->render();
     }
+    renderCounts->render();
+
 
     uint32_t triangle, line;
     glHelper->getRenderTriangleAndLineCount(triangle, line);
@@ -1227,6 +1230,7 @@ uint32_t World::removeObject(uint32_t objectID) {
         }
         //remove any active animations
         activeAnimations.erase(objectToRemove);
+        onLoadAnimations.erase(objectToRemove);
         //delete object itself
         delete objects[objectID];
         objects.erase(objectID);
