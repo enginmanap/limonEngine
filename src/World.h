@@ -84,7 +84,6 @@ class World {
     SkyBox *sky = nullptr;
     GLHelper *glHelper;
     long gameTime = 0;
-    GUITextDynamic* debugOutputGUI;
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
 
@@ -96,9 +95,13 @@ class World {
     Player* currentPlayer;
     Camera* camera;
     BulletDebugDrawer *debugDrawer;
-    GUIText *cursor;
+
     GUILayer *ApiLayer;
     GUIText* renderCounts;
+    GUIText* fpsCounter;
+    GUIText *cursor;
+    GUITextDynamic* debugOutputGUI;
+
     btGhostPairCallback *ghostPairCallback;
     btDiscreteDynamicsWorld *dynamicsWorld;
     std::vector<btRigidBody *> rigidBodies;

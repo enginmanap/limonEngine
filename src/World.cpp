@@ -67,49 +67,16 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
 
     ApiLayer = new GUILayer(glHelper, debugDrawer, 1);
     ApiLayer->setDebug(false);
-    guiLayers.push_back(ApiLayer);
-
-    GUILayer *layer1 = new GUILayer(glHelper, debugDrawer, 2);
-    layer1->setDebug(false);
-
-    GUIText *tr = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Wolf_in_the_City_Light.ttf", 32), "Limon Engine",
-                                                            glm::vec3(0, 0, 0));
-    //tr->setScale(0.25f,0.25f);
-    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth()/8, options->getScreenHeight()-20), 0.0f);
-    guiElements[tr->getWorldID()] = tr;
-    layer1->addGuiElement(tr);
-
-    tr = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 64), "0",
-                              glm::vec3(0, 0, 0));
-    //tr->setScale(0.25f,0.25f);
-    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2, options->getScreenHeight()-60), 0.0f);
-    guiElements[tr->getWorldID()] = tr;
-    layer1->addGuiElement(tr);
-
-    tr = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "Version 0.4",
-                     glm::vec3(255, 255, 255));
-    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), -1 * options->PI / 2);
-    //tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, 100), 0);
-    guiElements[tr->getWorldID()] = tr;
-    layer1->addGuiElement(tr);
 
     renderCounts = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0", glm::vec3(204, 204, 0));
     renderCounts->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 170, options->getScreenHeight() - 36), 0);
-    guiElements[renderCounts->getWorldID()] = renderCounts;
-    //layer1->addGuiElement(renderCounts);
 
     cursor = new Cursor(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
                          glm::vec3(255, 255, 255));
     cursor->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), -1 * options->PI / 4);
-    guiElements[cursor->getWorldID()] = cursor;
-    layer1->addGuiElement(cursor);
 
     debugOutputGUI = new GUITextDynamic(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), glm::vec3(0, 0, 0), 640, 380, options);
     debugOutputGUI->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-200), 0.0f);
-    guiElements[debugOutputGUI->getWorldID()] = debugOutputGUI;
-    layer1->addGuiElement(debugOutputGUI);
-
-
 
     physicalPlayer = new PhysicalPlayer(options, cursor);
     currentPlayer = physicalPlayer;
@@ -119,15 +86,11 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, worldAABBMin, worldAABBMax);
 
 
-    tr = new GUIFPSCounter(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0",
+    fpsCounter = new GUIFPSCounter(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                            glm::vec3(204, 204, 0));
-    tr->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, options->getScreenHeight() - 18), 0);
-    guiElements[tr->getWorldID()] = tr;
-    layer1->addGuiElement(tr);
+    fpsCounter->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, options->getScreenHeight() - 18), 0);
 
-    guiLayers.push_back(layer1);
-
-    onLoadActions.push_back(new ActionForOnload());
+    onLoadActions.push_back(new ActionForOnload());//this is here for editor, as if no action is added, editor would fail to allow setting the first one.
 
     /************ ImGui *****************************/
     // Setup ImGui binding
@@ -606,7 +569,12 @@ void World::render() {
         (*it)->render();
     }
     renderCounts->render();
+    cursor->render();
+    debugOutputGUI->render();
+    fpsCounter->render();
 
+    //render API gui layer
+    ApiLayer->render();
 
     uint32_t triangle, line;
     glHelper->getRenderTriangleAndLineCount(triangle, line);
