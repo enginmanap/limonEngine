@@ -40,6 +40,8 @@ public:
     void setupForTime(long time);
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *LayersListNode);
+
+    GUIRenderable* getRenderableFromCoordinate(const glm::vec2& coordinates);
 };
 
 

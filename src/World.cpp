@@ -34,6 +34,7 @@
 #include "GamePlay/AddGuiTextOnTrigger.h"
 #include "AnimationSequencer.h"
 #include "GUI/Cursor.h"
+#include "GUI/GUILayer.h"
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
@@ -461,42 +462,61 @@ void World::switchToEditorMode(InputHandler &inputHandler) {//switch control to 
 GameObject * World::getPointedObject() const {
     glm::vec3 from, lookDirection;
     currentPlayer->getWhereCameraLooks(from, lookDirection);
-    //we want to extend to vector to world AABB limit
-    float maxFactor = 0;
 
-    if(lookDirection.x > 0 ) {
-        //so we are looking at positive x. determine how many times the ray x we need
-        maxFactor = (worldAABBMax.x - from.x) / lookDirection.x;
+    if(guiPickMode) {
+        GUIRenderable* pickedGui = nullptr;
+        // TODO this should filter by level
+        //then we don't need to rayTest. We can get the picked object directly by coordinate.
+        for (size_t i = 0; i < guiLayers.size(); ++i) {
+            GUIRenderable* pickedGuiTemp = guiLayers[i]->getRenderableFromCoordinate(cursor->getTranslate());
+            if(pickedGuiTemp != nullptr) {
+                pickedGui = pickedGuiTemp;
+                std::cout << "Picked gui object found. Name is " << pickedGui->getName() << std::endl;
+            }
+        }
+        return nullptr;
     } else {
-        maxFactor = (worldAABBMin.x - from.x) / lookDirection.x; //Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
-    }
+        //we want to extend to vector to world AABB limit
+        float maxFactor = 0;
 
-    if(lookDirection.y > 0 ) {
-        std::max(maxFactor, (worldAABBMax.y - from.y) / lookDirection.y);
-    } else {
-        std::max(maxFactor, (worldAABBMin.y - from.y) / lookDirection.y);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
-    }
+        if (lookDirection.x > 0) {
+            //so we are looking at positive x. determine how many times the ray x we need
+            maxFactor = (worldAABBMax.x - from.x) / lookDirection.x;
+        } else {
+            maxFactor = (worldAABBMin.x - from.x) /
+                        lookDirection.x; //Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
+        }
 
-    if(lookDirection.z > 0 ) {
-        std::max(maxFactor, (worldAABBMax.z - from.z) / lookDirection.z);
-    } else {
-        std::max(maxFactor, (worldAABBMin.z - from.z) / lookDirection.z);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
-    }
-    lookDirection = lookDirection * maxFactor;
-    glm::vec3 to = lookDirection + from;
-    btCollisionWorld::ClosestRayResultCallback RayCallback(GLMConverter::GLMToBlt(from), GLMConverter::GLMToBlt(to));
+        if (lookDirection.y > 0) {
+            std::max(maxFactor, (worldAABBMax.y - from.y) / lookDirection.y);
+        } else {
+            std::max(maxFactor, (worldAABBMin.y - from.y) /
+                                lookDirection.y);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
+        }
 
-    dynamicsWorld->rayTest(
+        if (lookDirection.z > 0) {
+            std::max(maxFactor, (worldAABBMax.z - from.z) / lookDirection.z);
+        } else {
+            std::max(maxFactor, (worldAABBMin.z - from.z) /
+                                lookDirection.z);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
+        }
+        lookDirection = lookDirection * maxFactor;
+        glm::vec3 to = lookDirection + from;
+        btCollisionWorld::ClosestRayResultCallback RayCallback(GLMConverter::GLMToBlt(from),
+                                                               GLMConverter::GLMToBlt(to));
+
+        dynamicsWorld->rayTest(
                 GLMConverter::GLMToBlt(from),
                 GLMConverter::GLMToBlt(to),
                 RayCallback
         );
 
-    //debugDrawer->flushDraws();
-    if (RayCallback.hasHit()) {
-        return static_cast<GameObject *>(RayCallback.m_collisionObject->getUserPointer());
-    } else {
-        return nullptr;
+        //debugDrawer->flushDraws();
+        if (RayCallback.hasHit()) {
+            return static_cast<GameObject *>(RayCallback.m_collisionObject->getUserPointer());
+        } else {
+            return nullptr;
+        }
     }
 }
 
@@ -629,6 +649,16 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
         /* window definitions */
         {
             ImGui::Begin("Editor");
+            if(guiPickMode == false) {
+                if (ImGui::Button("Switch to GUI selection mode")) {
+                    this->guiPickMode = true;
+                }
+            } else {
+                if (ImGui::Button("Switch to World selection mode")) {
+                    this->guiPickMode = false;
+                }
+            }
+
             //list available elements
             static std::string selectedAssetFile = "";
             glm::vec3 newObjectPosition = camera->getPosition() + 10.0f * camera->getCenter();
