@@ -119,8 +119,9 @@ class World {
     bool availableAssetsLoaded = false;
     bool isQuitRequest = false;//does the player requested a quit?
     bool isQuitVerified = false;//does the player set it is sure?
+    bool guiPickMode = false;
 
-        /**
+    /**
      * This method checks, if IDs assigned without any empty space, and any collision
      * and sets the totalObjectCount accordingly.
      * @return true if everything ok, false if not

@@ -78,6 +78,8 @@ public:
         return name;
     }
 
+    virtual void getAABB(glm::vec2 &aabbMin, glm::vec2 &aabbMax) const = 0;
+
     virtual bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) = 0;
 };
 

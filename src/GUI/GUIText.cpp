@@ -113,10 +113,10 @@ void GUIText::renderDebug(BulletDebugDrawer *debugDrawer) {
 
     glm::mat4 transform = (orthogonalPM * transformation.getWorldTransform());
 
-    glm::vec4 upLeft = (transform * glm::vec4(-width / 2.0f, height / 2.0f - bearingUp, 0.0f, 1.0f));
-    glm::vec4 upRight = (transform * glm::vec4(width / 2.0f, height / 2.0f - bearingUp, 0.0f, 1.0f));
-    glm::vec4 downLeft = (transform * glm::vec4(-width / 2.0f, -height / 2.0f - bearingUp, 0.0f, 1.0f));
-    glm::vec4 downRight = (transform * glm::vec4(width / 2.0f, -height / 2.0f - bearingUp, 0.0f, 1.0f));
+    glm::vec4 upLeft    = (transform * glm::vec4(-width / 2.0f,  height / 2.0f - bearingUp, 0.0f, 1.0f));
+    glm::vec4 upRight   = (transform * glm::vec4( width / 2.0f,  height / 2.0f - bearingUp, 0.0f, 1.0f));
+    glm::vec4 downLeft  = (transform * glm::vec4(-width / 2.0f, -height / 2.0f - bearingUp, 0.0f, 1.0f));
+    glm::vec4 downRight = (transform * glm::vec4( width / 2.0f, -height / 2.0f - bearingUp, 0.0f, 1.0f));
 
     debugDrawer->drawLine(glm::vec3(upLeft.x, upLeft.y, upLeft.z), glm::vec3(upRight.x, upRight.y, upRight.z),
                        glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), false);
@@ -314,4 +314,17 @@ GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GLHelper*
 
     //unknown type case
     return nullptr;
+}
+
+void GUIText::getAABB(glm::vec2 &aabbMin, glm::vec2 &aabbMax) const {
+    Transformation temp = transformation;
+    glm::vec4 upRight   = (temp.getWorldTransform() * glm::vec4( width / 2.0f,  height / 2.0f - bearingUp, 0.0f, 1.0f));
+    glm::vec4 downLeft  = (temp.getWorldTransform() * glm::vec4(-width / 2.0f, -height / 2.0f - bearingUp, 0.0f, 1.0f));
+
+    //it is possible with rotation the up value to be lower, right value to be more left then left. assign by check;
+    aabbMin.x = std::min(downLeft.x, upRight.x);
+    aabbMin.y = std::min(downLeft.y, upRight.y);
+
+    aabbMax.x = std::max(downLeft.x, upRight.x);
+    aabbMax.y = std::max(downLeft.y, upRight.y);
 }

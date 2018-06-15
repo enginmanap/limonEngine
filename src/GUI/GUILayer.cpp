@@ -50,3 +50,25 @@ bool GUILayer::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
 
     return true;
 }
+
+/**
+ * TODO: This method doesn't handle angled items, it should be improved.
+ *
+ * This method returns the first element found. If you need to put multiple elements on top of each other,
+ * you should use layers.
+ *
+ * @param coordinates
+ * @return null if no element found.
+ */
+GUIRenderable *GUILayer::getRenderableFromCoordinate(const glm::vec2 &coordinates) {
+    glm::vec2 aabbMin, aabbMax;
+    for (size_t i = 0; i < guiElements.size(); ++i) {
+        guiElements[i]->getAABB(aabbMin, aabbMax);
+        if(aabbMin.x <= coordinates.x && coordinates.x <= aabbMax.x &&
+                    aabbMin.y <= coordinates.y && coordinates.y <= aabbMax.y ) {
+            return guiElements[i];
+        }
+    }
+
+    return nullptr;
+}

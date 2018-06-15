@@ -36,6 +36,8 @@ public:
         name = this->text + "-" + std::to_string(getWorldID());
     }
 
+    void getAABB(glm::vec2 &aabbMin, glm::vec2 &aabbMax) const override;
+
     virtual bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) override;
 };
 
