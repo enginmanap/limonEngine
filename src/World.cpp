@@ -1066,7 +1066,13 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
                 std::string currentObject;
                 if (parameter.isSet) {
-                    currentObject = dynamic_cast<Model *>(objects[(uint32_t) (parameter.value.longValue)])->getName();
+                    if(objects.find((uint32_t) (parameter.value.longValue)) != objects.end()) {
+                        currentObject = dynamic_cast<Model *>(objects[(uint32_t) (parameter.value.longValue)])->getName();
+                    } else {
+                        parameter.isSet = false;
+                        currentObject = "Not selected";
+                        isAllSet = false;
+                    }
                 } else {
                     currentObject = "Not selected";
                     isAllSet = false;
@@ -1109,7 +1115,13 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
                 std::string currentGUIText;
                 if (parameter.isSet) {
-                    currentGUIText = guiElements[static_cast<uint32_t >(parameter.value.longValue)]->getName();
+                    if(guiElements.find(static_cast<uint32_t >(parameter.value.longValue)) != guiElements.end()) {
+                        currentGUIText = guiElements[static_cast<uint32_t >(parameter.value.longValue)]->getName();
+                    } else {
+                        parameter.isSet = false;
+                        currentGUIText = "Not selected";
+                        isAllSet = false;
+                    }
                 } else {
                     currentGUIText = "Not selected";
                     isAllSet = false;
