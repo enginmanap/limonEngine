@@ -4,6 +4,8 @@
 
 #include <tinyxml2.h>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <iostream>
 #include "Transformation.h"
 #include "../libs/ImGui/imgui.h"
 #include "../libs/ImGuizmo/ImGuizmo.h"

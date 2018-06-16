@@ -6,6 +6,7 @@
 #define LIMONENGINE_GLMUTILS_H
 
 #include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <iostream>
 
 class GLMUtils {

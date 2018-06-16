@@ -14,6 +14,7 @@
 #include <vector>
 #include <queue>
 #include <unordered_set>
+#include <map>
 
 #include "AIMovementNode.h"
 #include "../Utils/GLMConverter.h"

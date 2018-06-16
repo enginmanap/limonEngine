@@ -5,6 +5,7 @@
 #ifndef LIMONENGINE_GUILAYER_H
 #define LIMONENGINE_GUILAYER_H
 
+#include <tinyxml2.h>
 #include "../GLHelper.h"
 
 class GUIText;

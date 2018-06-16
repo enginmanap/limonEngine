@@ -8,6 +8,7 @@
 #include "../GameObject.h"
 #include <glm/glm.hpp>
 #include <string>
+#include <iostream>
 
 class btDiscreteDynamicsWorld;
 class GUIRenderable;
