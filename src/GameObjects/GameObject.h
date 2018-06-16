@@ -21,11 +21,21 @@ public:
         bool updated = false;
     };
 
-    enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER };
+    struct ImGuiRequest {
+        const glm::mat4& perspectiveCameraMatrix;
+        const glm::mat4& ortogonalCameraMatrix;
+        const glm::mat4& perspectiveMatrix;
+        const glm::mat4& ortogonalMatrix;
+
+        const uint32_t screenHeight;
+        const uint32_t screenWidth;
+    };
+
+    enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT };
 
     virtual ObjectTypes getTypeID() const = 0;
     virtual std::string getName() const = 0;
-    virtual ImGuiResult addImGuiEditorElements(const glm::mat4 &cameraMatrix __attribute__((unused)), const glm::mat4 &perspectiveMatrix __attribute__((unused))) {ImGuiResult imGuiResult; return imGuiResult;};
+    virtual ImGuiResult addImGuiEditorElements(const ImGuiRequest &request __attribute((unused))) {ImGuiResult imGuiResult; return imGuiResult;};
 
     virtual uint32_t getWorldObjectID() = 0;
     virtual ~GameObject() {};

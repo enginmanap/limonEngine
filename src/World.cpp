@@ -19,7 +19,7 @@
 #include "GameObjects/GameObject.h"
 #include "GUI/GUILayer.h"
 #include "GUI/GUIRenderable.h"
-#include "GUI/GUIText.h"
+#include "GUI/GUITextBase.h"
 #include "GUI/GUIFPSCounter.h"
 #include "GUI/GUITextDynamic.h"
 #include "ImGuiHelper.h"
@@ -35,6 +35,7 @@
 #include "AnimationSequencer.h"
 #include "GUI/Cursor.h"
 #include "GUI/GUILayer.h"
+#include "GameObjects/GUIText.h"
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
@@ -69,14 +70,16 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     ApiLayer = new GUILayer(glHelper, debugDrawer, 1);
     ApiLayer->setDebug(false);
 
-    renderCounts = new GUIText(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0", glm::vec3(204, 204, 0));
+    renderCounts = new GUIText(glHelper, getNextObjectID(), "Render Counts",
+                               fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0", glm::vec3(204, 204, 0));
     renderCounts->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 170, options->getScreenHeight() - 36), 0);
 
-    cursor = new Cursor(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
-                         glm::vec3(255, 255, 255));
+    cursor = new Cursor(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
+                        glm::vec3(255, 255, 255));
     cursor->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), -1 * options->PI / 4);
 
-    debugOutputGUI = new GUITextDynamic(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), glm::vec3(0, 0, 0), 640, 380, options);
+    debugOutputGUI = new GUITextDynamic(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16),
+                                        glm::vec3(0, 0, 0), 640, 380, options);
     debugOutputGUI->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-200), 0.0f);
 
     physicalPlayer = new PhysicalPlayer(options, cursor);
@@ -87,8 +90,8 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, worldAABBMin, worldAABBMax);
 
 
-    fpsCounter = new GUIFPSCounter(glHelper, getNextObjectID(), fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0",
-                           glm::vec3(204, 204, 0));
+    fpsCounter = new GUIFPSCounter(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0",
+                                   glm::vec3(204, 204, 0));
     fpsCounter->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, options->getScreenHeight() - 18), 0);
 
     onLoadActions.push_back(new ActionForOnload());//this is here for editor, as if no action is added, editor would fail to allow setting the first one.
@@ -464,17 +467,16 @@ GameObject * World::getPointedObject() const {
     currentPlayer->getWhereCameraLooks(from, lookDirection);
 
     if(guiPickMode) {
-        GUIRenderable* pickedGui = nullptr;
+        GUIText* pickedGuiElement = nullptr;
         // TODO this should filter by level
         //then we don't need to rayTest. We can get the picked object directly by coordinate.
         for (size_t i = 0; i < guiLayers.size(); ++i) {
-            GUIRenderable* pickedGuiTemp = guiLayers[i]->getRenderableFromCoordinate(cursor->getTranslate());
+            GUIText* pickedGuiTemp = dynamic_cast<GUIText*>(guiLayers[i]->getRenderableFromCoordinate(cursor->getTranslate()));
             if(pickedGuiTemp != nullptr) {
-                pickedGui = pickedGuiTemp;
-                std::cout << "Picked gui object found. Name is " << pickedGui->getName() << std::endl;
+                pickedGuiElement = pickedGuiTemp;
             }
         }
-        return nullptr;
+        return pickedGuiElement;
     } else {
         //we want to extend to vector to world AABB limit
         float maxFactor = 0;
@@ -607,7 +609,7 @@ void World::render() {
 //This method is used only for ImGui loaded animations list generation
 bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {
     auto& animations = *static_cast<std::vector<AnimationCustom> *>(data);
-    if(index < 0 || index >= animations.size()) {
+    if(index < 0 || (uint32_t)index >= animations.size()) {
         return false;
     }
     *outText = animations.at(index).getName().c_str();
@@ -813,11 +815,22 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 ImGui::EndCombo();
             }
             if(pickedObject != nullptr) {
-                GameObject::ImGuiResult request = pickedObject->addImGuiEditorElements(camera->getCameraMatrix(), glHelper->getProjectionMatrix());
+                glm::mat4 ortoCam = glm::lookAt(currentPlayer->getPosition(), currentPlayer->getPosition() +glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+                GameObject::ImGuiRequest request{
+                glHelper->getCameraMatrix(),
+                ortoCam,
+                glHelper->getProjectionMatrix(),
+                glHelper->getOrthogonalProjectionMatrix(),
+
+                options->getScreenHeight(),
+                options->getScreenWidth()
+                };
+
+                GameObject::ImGuiResult objectEditorResult = pickedObject->addImGuiEditorElements(request);
                 if(pickedObject->getTypeID() == GameObject::MODEL) {
                     Model* selectedObject = dynamic_cast<Model*>(pickedObject);
                     if(activeAnimations.find(selectedObject) != activeAnimations.end()) {
-                        if(request.updated) {
+                        if(objectEditorResult.updated) {
                             activeAnimations[selectedObject].originalTransformation = *selectedObject->getTransformation();
                         }
 
@@ -831,7 +844,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     }
                 }
 
-                if (request.removeAI) {
+                if (objectEditorResult.removeAI) {
                     //remove AI requested
                     if (dynamic_cast<Model *>(pickedObject)->getAIID() != 0) {
                         actors.erase(dynamic_cast<Model *>(pickedObject)->getAIID());
@@ -839,7 +852,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     }
                 }
 
-                if (request.addAI) {
+                if (objectEditorResult.addAI) {
                     std::cout << "adding AI to model " << std::endl;
                     HumanEnemy *newEnemy = new HumanEnemy(getNextObjectID());
                     newEnemy->setModel(dynamic_cast<Model *>(pickedObject));
@@ -1176,19 +1189,19 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
     return isAllSet;
 }
 
-uint32_t World::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text,
+uint32_t World::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &name, const std::string &text,
                            const glm::vec3 &color,
                            const glm::vec2 &position, float rotation) {
-    GUIText* tr = new GUIText(glHelper, getNextObjectID(), fontManager.getFont(fontFilePath, fontSize), text,
-                                 color);
+    GUIText* tr = new GUIText(glHelper, getNextObjectID(), name, fontManager.getFont(fontFilePath, fontSize),
+                              text, color);
     glm::vec2 screenPosition;
     screenPosition.x = position.x * this->options->getScreenWidth();
     screenPosition.y = position.y * this->options->getScreenHeight();
 
     tr->set2dWorldTransform(screenPosition, rotation);
-    guiElements[tr->getWorldID()] = tr;
+    guiElements[tr->getWorldObjectID()] = tr;
     ApiLayer->addGuiElement(tr);
-    return tr->getWorldID();
+    return tr->getWorldObjectID();
 
 }
 
@@ -1213,7 +1226,7 @@ std::vector<LimonAPI::ParameterRequest> World::getResultOfTrigger(uint32_t trigg
 
 uint32_t World::updateGuiText(uint32_t guiTextID, const std::string &newText) {
     if(guiElements.find(guiTextID) != guiElements.end()) {
-        dynamic_cast<GUIText*>(guiElements[guiTextID])->updateText(newText);
+        dynamic_cast<GUITextBase*>(guiElements[guiTextID])->updateText(newText);
     }
     return 0;
 }

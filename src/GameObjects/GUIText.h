@@ -1,0 +1,43 @@
+//
+// Created by engin on 15.06.2018.
+//
+
+#ifndef LIMONENGINE_GUITEXT_H
+#define LIMONENGINE_GUITEXT_H
+
+
+#include "../GUI/GUITextBase.h"
+
+class GUIText : public GUITextBase, public GameObject {
+    uint32_t worldID;
+    std::string name;
+    std::vector<GUILayer*> parentLayers;
+
+public:
+    GUIText(GLHelper *glHelper, uint32_t id, const std::string &name, Face *font, const std::string &text,
+                const glm::vec3 &color);
+
+    void addedToLayer(GUILayer* layer);
+
+    ~GUIText();
+
+    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode);
+
+    static GUIText* deserialize(tinyxml2::XMLElement *GUIRenderableNode, GLHelper* glHelper, FontManager* fontManager); //will turn into factory class at some point
+
+
+    /******************** Game object methods ************************************/
+    ObjectTypes getTypeID() const override;
+
+    std::string getName() const override;
+
+    uint32_t getWorldObjectID() override;
+
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
+
+/******************** Game object methods ************************************/
+
+};
+
+
+#endif //LIMONENGINE_GUITEXT_H

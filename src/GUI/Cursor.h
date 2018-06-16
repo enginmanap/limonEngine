@@ -6,15 +6,13 @@
 #define LIMONENGINE_CURSOR_H
 
 
-#include "GUIText.h"
+#include "GUITextBase.h"
 
 // TODO this class in current form is just a place holder
-class Cursor: public GUIText {
+class Cursor: public GUITextBase {
 public:
-    Cursor(GLHelper *glHelper, uint32_t id, Face *font, const std::string &text, const glm::vec3 &color) : GUIText(
-            glHelper, id, font, text, color) {}
-
-    bool serialize(tinyxml2::XMLDocument &document __attribute((unused)), tinyxml2::XMLElement *parentNode __attribute((unused))) override { return true;};//This object is created by world itself, it should not be serialized
+    Cursor(GLHelper *glHelper, Face *font, const std::string &text, const glm::vec3 &color) : GUITextBase(
+            glHelper, font, text, color) {}
 
 };
 

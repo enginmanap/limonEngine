@@ -43,10 +43,10 @@ void TriggerObject::render(BulletDebugDrawer *debugDrawer) {
     debugDrawer->drawLine(glm::vec3(boxTransform* glm::vec4(-1, 1,-1,1)), glm::vec3(boxTransform* glm::vec4(-1,-1,-1,1)), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 4 -> 4
 }
 
-GameObject::ImGuiResult TriggerObject::addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix) {
+GameObject::ImGuiResult TriggerObject::addImGuiEditorElements(const ImGuiRequest &request) {
     static ImGuiResult result;
 
-    result.updated = transformation.addImGuiEditorElements(cameraMatrix, perspectiveMatrix);
+    result.updated = transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix);
     if (ImGui::CollapsingHeader("Trigger Properties")) {
         ImGui::Text("If first enter trigger is empty, enter trigger will be run for first time too.");
         if (ImGui::CollapsingHeader("First Enter Trigger")) {

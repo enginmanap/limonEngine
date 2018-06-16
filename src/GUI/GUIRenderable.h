@@ -12,24 +12,19 @@
 class GUILayer;
 
 class GUIRenderable : public Renderable {
-    std::vector<GUILayer*> parentLayers;
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec2> textureCoordinates;
-    uint32_t worldID;
 
 protected:
     //TODO maybe this should not be protected, but private
     std::vector<glm::mediump_uvec3> faces;
-
-    std::string name;
     GLuint textureID;
 
 public:
-    explicit GUIRenderable(GLHelper *glHelper, uint32_t id);
+    explicit GUIRenderable(GLHelper *glHelper);
 
-    void addedToLayer(GUILayer* layer);
 
-    virtual ~GUIRenderable();
+    virtual ~GUIRenderable() {}
     /**
      * the position on x,y coordinates, and clockwise rotation as radian
      */
@@ -70,17 +65,8 @@ public:
 
     float getHeight() { return transformation.getScale().y; }
 
-    uint32_t getWorldID() {
-        return worldID;
-    }
-
-    const std::string& getName() {
-        return name;
-    }
-
     virtual void getAABB(glm::vec2 &aabbMin, glm::vec2 &aabbMax) const = 0;
 
-    virtual bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) = 0;
 };
 
 

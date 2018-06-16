@@ -3,33 +3,33 @@
 //
 
 #include "GUILayer.h"
-#include "GUIRenderable.h"
+#include "../GameObjects/GUIText.h"
 
 void GUILayer::render() {
-    for (std::vector<GUIRenderable *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
+    for (std::vector<GUIText *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
         (*it)->render();
     }
     if (isDebug) {
-        for (std::vector<GUIRenderable *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
+        for (std::vector<GUIText *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
             (*it)->renderDebug(debugDrawer);
         }
     }
 }
 
 void GUILayer::setupForTime(long time){
-    for (std::vector<GUIRenderable *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
+    for (std::vector<GUIText *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
         (*it)->setupForTime(time);
     }
 }
 
-void GUILayer::addGuiElement(GUIRenderable *guiElement) {
+void GUILayer::addGuiElement(GUIText *guiElement) {
         guiElements.push_back(guiElement);
         guiElement->addedToLayer(this);
 }
 
 void GUILayer::removeGuiElement(uint32_t guiElementID) {
     for (size_t i = 0; i < guiElements.size(); ++i) {
-        if(guiElements[i]->getWorldID() == guiElementID) {
+        if(guiElements[i]->getWorldObjectID() == guiElementID) {
             guiElements.erase(guiElements.begin() + i);
         }
     }
@@ -60,7 +60,7 @@ bool GUILayer::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
  * @param coordinates
  * @return null if no element found.
  */
-GUIRenderable *GUILayer::getRenderableFromCoordinate(const glm::vec2 &coordinates) {
+GUIText *GUILayer::getRenderableFromCoordinate(const glm::vec2 &coordinates) {
     glm::vec2 aabbMin, aabbMax;
     for (size_t i = 0; i < guiElements.size(); ++i) {
         guiElements[i]->getAABB(aabbMin, aabbMax);

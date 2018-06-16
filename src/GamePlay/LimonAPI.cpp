@@ -14,9 +14,9 @@ bool LimonAPI::generateEditorElementsForParameters(std::vector<ParameterRequest>
     return worldGenerateEditorElementsForParameters(runParameters, index);
 }
 
-uint32_t LimonAPI::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text,
+uint32_t LimonAPI::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &name, const std::string &text,
                               const glm::vec3 &color, const glm::vec2 &position, float rotation) {
-    return worldAddGuiText(fontFilePath, fontSize, text,color, position,rotation);
+    return worldAddGuiText(fontFilePath, fontSize, name, text, color, position,rotation);
 }
 
 uint32_t LimonAPI::updateGuiText(uint32_t guiTextID, const std::string &newText) {

@@ -348,14 +348,14 @@ uint32_t Model::getAIID() {
     return this->AIActor->getWorldID();
 }
 
-GameObject::ImGuiResult Model::addImGuiEditorElements(const glm::mat4& cameraMatrix, const glm::mat4& perspectiveMatrix) {
-    static ImGuiResult request;
+GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
+    static ImGuiResult result;
 
     //Allow transformation editing.
-    if(transformation.addImGuiEditorElements(cameraMatrix, perspectiveMatrix)) {
+    if(transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix)) {
         //true means transformation changed, activate rigid body
         rigidBody->activate();
-        request.updated = true;
+        result.updated = true;
     }
 
         ImGui::NewLine();
@@ -377,13 +377,13 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const glm::mat4& cameraMat
             bool isAIDriven = this->AIActor != nullptr;
             if (ImGui::Checkbox("AI Driven", &isAIDriven)) {
                 if (isAIDriven == true) {
-                    request.addAI = true;
+                    result.addAI = true;
                 } else {
-                    request.removeAI = true;
+                    result.removeAI = true;
                 }
             } else {
-                request.addAI = false;
-                request.removeAI = false;
+                result.addAI = false;
+                result.removeAI = false;
 
             }
             if (this->AIActor != nullptr) {
@@ -391,7 +391,7 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const glm::mat4& cameraMat
             }
         }
     }
-    return request;
+    return result;
 }
 
 Model::~Model() {

@@ -25,12 +25,15 @@ class BulletDebugDrawer;
 class Light;
 class AIMovementGrid;
 class TriggerInterface;
+class GUIText;
 
 class GUIRenderable;
 class GUILayer;
-class GUIText;
+class GUITextBase;
 class GUIFPSCounter;
 class GUITextDynamic;
+class Cursor;
+
 
 class GameObject;
 class Player;
@@ -70,7 +73,7 @@ class World {
     Options* options;
     uint32_t nextWorldID = 1;
     std::map<uint32_t, PhysicalRenderable *> objects;
-    std::map<uint32_t, GUIRenderable*> guiElements;
+    std::map<uint32_t, GUIText*> guiElements;
     std::map<uint32_t, TriggerObject*> triggers;
     std::vector<ActionForOnload* > onLoadActions;
     std::vector<AnimationCustom> loadedAnimations;
@@ -98,8 +101,8 @@ class World {
 
     GUILayer *ApiLayer;
     GUIText* renderCounts;
-    GUIText* fpsCounter;
-    GUIText *cursor;
+    GUIFPSCounter* fpsCounter;
+    Cursor* cursor;
     GUITextDynamic* debugOutputGUI;
 
     btGhostPairCallback *ghostPairCallback;
@@ -231,7 +234,8 @@ public:
     bool generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest> &runParameters, uint32_t index);
 
     uint32_t addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad = false);
-    uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &text,
+    uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize,
+                        const std::string &name, const std::string &text,
                         const glm::vec3 &color,
                         const glm::vec2 &position, float rotation);
 
