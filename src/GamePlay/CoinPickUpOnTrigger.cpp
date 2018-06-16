@@ -21,14 +21,28 @@ std::vector<LimonAPI::ParameterRequest> CoinPickUpOnTrigger::getParameters() {
     pr2.description = "Model to remove";
     parameters.push_back(pr2);
 
-    return parameters;}
+    LimonAPI::ParameterRequest pr3;
+    pr3.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+    pr3.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+    pr3.description = "Count to finish";
+    parameters.push_back(pr3);
+
+    return parameters;
+}
 
 bool CoinPickUpOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters) {
+    bool result;
     //FIXME there is no enum value for variable, there should be
     LimonAPI::ParameterRequest& coinPickupCount = limonAPI->getVariable("coinPickupCount");
 
     coinPickupCount.value.longValue++;
-    bool result = limonAPI->updateGuiText(parameters[0].value.longValue, std::to_string(coinPickupCount.value.longValue)) == 0; //set gui text to 1
+    if(coinPickupCount.value.longValue < parameters[2].value.longValue) {
+        result = limonAPI->updateGuiText(parameters[0].value.longValue, std::to_string(coinPickupCount.value.longValue)) == 0;
+    } else {
+        result = limonAPI->removeGuiElement(parameters[0].value.longValue) == 0;
+        result = limonAPI->addGuiText("./Data/Fonts/Helvetica-Normal.ttf", 64, "GameWinText", "Congratulations!", glm::vec3(50,255,50),glm::vec2(0.5f,0.5f), 0.0f) == 0 && result;
+    }
+
     result = limonAPI->removeObject(parameters[1].value.longValue) == 0 && result;
     return result;
 }

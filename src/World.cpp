@@ -1167,6 +1167,19 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 };
             }
                 break;
+            case LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER: {
+                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+                if (!parameter.isSet) {
+                    isAllSet = false;
+                }
+                int value = parameter.value.longValue;
+                if (ImGui::DragInt((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
+                                   &value, sizeof(parameter.value.longValue))) {
+                    parameter.value.longValue = value;
+                    parameter.isSet = true;
+                };
+            }
+                break;
             case LimonAPI::ParameterRequest::RequestParameterTypes::TRIGGER: {
                 parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG_ARRAY;
                 parameter.value.longValues[0] = 3;//including self

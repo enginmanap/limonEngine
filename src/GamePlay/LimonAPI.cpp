@@ -69,7 +69,11 @@ bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tiny
             currentElement->SetText("GUIText");
         }
             break;
+        case FREE_NUMBER: {
+            currentElement->SetText("FreeNumber");
         }
+            break;
+    }
     parameterNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("Description");
@@ -156,6 +160,8 @@ deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index) {
         this->requestType = RequestParameterTypes::TRIGGER;
     } else if(strcmp(parameterAttribute->GetText(), "GUIText") == 0) {
         this->requestType = RequestParameterTypes::GUI_TEXT;
+    } else if(strcmp(parameterAttribute->GetText(), "FreeNumber") == 0) {
+        this->requestType = RequestParameterTypes::FREE_NUMBER;
     } else {
         std::cerr << "Trigger parameter request type was unknown." << std::endl;
         return false;

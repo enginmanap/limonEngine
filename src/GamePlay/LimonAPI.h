@@ -24,7 +24,7 @@ class PhysicalRenderable;
 class LimonAPI {
 public:
     struct ParameterRequest {
-        enum RequestParameterTypes { MODEL, ANIMATION, SWITCH, FREE_TEXT, TRIGGER, GUI_TEXT };
+        enum RequestParameterTypes { MODEL, ANIMATION, SWITCH, FREE_TEXT, TRIGGER, GUI_TEXT, FREE_NUMBER};
         RequestParameterTypes requestType;
         std::string description;
         enum ValueTypes { STRING, DOUBLE, LONG, LONG_ARRAY, BOOLEAN };
