@@ -39,7 +39,7 @@
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
-        : assetManager(assetManager),options(options), glHelper(glHelper), fontManager(glHelper){
+        : assetManager(assetManager),options(options), glHelper(glHelper), fontManager(glHelper) {
     // physics init
     broadphase = new btDbvtBroadphase();
     ghostPairCallback = new btGhostPairCallback();
@@ -100,6 +100,9 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     // Setup ImGui binding
     imgGuiHelper = new ImGuiHelper(glHelper, options);
 
+    //setup request
+    request = new GameObject::ImGuiRequest(glHelper->getCameraMatrix(), glHelper->getProjectionMatrix(),
+            glHelper->getOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth());
 }
 
  bool World::checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName) {
@@ -596,7 +599,7 @@ void World::render() {
     fpsCounter->render();
 
     //render API gui layer
-    ApiLayer->render();
+    apiGUILayer->render();
 
     uint32_t triangle, line;
     glHelper->getRenderTriangleAndLineCount(triangle, line);
@@ -815,18 +818,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 ImGui::EndCombo();
             }
             if(pickedObject != nullptr) {
-                glm::mat4 ortoCam = glm::lookAt(currentPlayer->getPosition(), currentPlayer->getPosition() +glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-                GameObject::ImGuiRequest request{
-                glHelper->getCameraMatrix(),
-                ortoCam,
-                glHelper->getProjectionMatrix(),
-                glHelper->getOrthogonalProjectionMatrix(),
-
-                options->getScreenHeight(),
-                options->getScreenWidth()
-                };
-
-                GameObject::ImGuiResult objectEditorResult = pickedObject->addImGuiEditorElements(request);
+                GameObject::ImGuiResult objectEditorResult = pickedObject->addImGuiEditorElements(*request);
                 if(pickedObject->getTypeID() == GameObject::MODEL) {
                     Model* selectedObject = dynamic_cast<Model*>(pickedObject);
                     if(activeAnimations.find(selectedObject) != activeAnimations.end()) {
