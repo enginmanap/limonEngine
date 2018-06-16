@@ -226,7 +226,7 @@ void InputHandler::mapInput() {
                         if(inputStatus[RUN]) {
                             inputEvents[RUN] = true;
                         }
-                        inputStatus[RUN] = true;
+                        inputStatus[RUN] = false;
                         if(inputStatus[KEY_SHIFT]) {
                             inputEvents[KEY_SHIFT] = true;
                         }
