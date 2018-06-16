@@ -14,6 +14,7 @@
 
 
 class GUITextBase : public GUIRenderable {
+    void calculateSizes();
 
 protected:
     std::string text;
@@ -35,6 +36,7 @@ public:
 
     void updateText(const std::string& text) {
         this->text = text;
+        calculateSizes();
     }
 
     void getAABB(glm::vec2 &aabbMin, glm::vec2 &aabbMax) const override;
