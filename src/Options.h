@@ -151,7 +151,7 @@ public:
         Options::lightPerspectiveProjectionValues = lightPerspectiveProjectionValues;
     }
 
-    unsigned int getScreenHeight() const {
+    const uint32_t& getScreenHeight() const {
         return screenHeight;
     }
 
@@ -159,7 +159,7 @@ public:
         Options::screenHeight = height;
     }
 
-    unsigned int getScreenWidth() const {
+    const uint32_t& getScreenWidth() const {
         return screenWidth;
     }
 

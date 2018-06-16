@@ -7,6 +7,8 @@
 
 #include <string>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 /**
  * This class is used to provide a polymorphic way of determining type and name of the object.
  */
@@ -23,12 +25,17 @@ public:
 
     struct ImGuiRequest {
         const glm::mat4& perspectiveCameraMatrix;
-        const glm::mat4& ortogonalCameraMatrix;
+        const glm::mat4 ortogonalCameraMatrix = glm::lookAt(glm::vec3(0,0,1), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         const glm::mat4& perspectiveMatrix;
         const glm::mat4& ortogonalMatrix;
 
-        const uint32_t screenHeight;
-        const uint32_t screenWidth;
+        const uint32_t& screenHeight;
+        const uint32_t& screenWidth;
+
+        ImGuiRequest(const glm::mat4 &perspectiveCameraMatrix, const glm::mat4 &perspectiveMatrix,
+                     const glm::mat4 &ortogonalMatrix, const uint32_t &screenHeight, const uint32_t &screenWidth)
+                : perspectiveCameraMatrix(perspectiveCameraMatrix), perspectiveMatrix(perspectiveMatrix),
+                  ortogonalMatrix(ortogonalMatrix), screenHeight(screenHeight), screenWidth(screenWidth) {}
     };
 
     enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT };

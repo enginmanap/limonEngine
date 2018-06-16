@@ -98,6 +98,7 @@ class World {
     Player* currentPlayer;
     Camera* camera;
     BulletDebugDrawer *debugDrawer;
+    GameObject::ImGuiRequest* request;
 
     GUILayer *apiGUILayer;
     GUIText* renderCounts;

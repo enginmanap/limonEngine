@@ -308,11 +308,11 @@ public:
 
     bool getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location);
 
-    glm::mat4 getCameraMatrix() const { return cameraMatrix; };
+    const glm::mat4& getCameraMatrix() const { return cameraMatrix; };
 
-    glm::mat4 getProjectionMatrix() const { return perspectiveProjectionMatrix; };
+    const glm::mat4& getProjectionMatrix() const { return perspectiveProjectionMatrix; };
 
-    glm::mat4 getOrthogonalProjectionMatrix() const { return orthogonalProjectionMatrix; }
+    const glm::mat4& getOrthogonalProjectionMatrix() const { return orthogonalProjectionMatrix; }
 
     void createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize);
 
