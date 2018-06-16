@@ -67,8 +67,8 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     shadowMapProgramPoint->setUniform("farPlanePoint", options->getLightPerspectiveProjectionValues().z);
 
 
-    ApiLayer = new GUILayer(glHelper, debugDrawer, 1);
-    ApiLayer->setDebug(false);
+    apiGUILayer = new GUILayer(glHelper, debugDrawer, 1);
+    apiGUILayer->setDebug(false);
 
     renderCounts = new GUIText(glHelper, getNextObjectID(), "Render Counts",
                                fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0", glm::vec3(204, 204, 0));
@@ -1202,7 +1202,7 @@ uint32_t World::addGuiText(const std::string &fontFilePath, uint32_t fontSize, c
 
     tr->set2dWorldTransform(screenPosition, rotation);
     guiElements[tr->getWorldObjectID()] = tr;
-    ApiLayer->addGuiElement(tr);
+    apiGUILayer->addGuiElement(tr);
     return tr->getWorldObjectID();
 
 }
