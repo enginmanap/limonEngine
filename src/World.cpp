@@ -1042,13 +1042,15 @@ uint32_t World::addAnimationToObject(uint32_t modelID, uint32_t animationID, boo
     } else {
         as.originalTransformation = *(as.object->getTransformation());
     }
-    activeAnimations[as.object] = as;
+
     as.object->getRigidBody()->setCollisionFlags(as.object->getRigidBody()->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
     as.object->getRigidBody()->setActivationState(DISABLE_DEACTIVATION);
 
     if(startOnLoad) {
         onLoadAnimations.insert(as.object);
+        as.startTime = 0;
     }
+    activeAnimations[as.object] = as;
     return modelID;
 }
 
