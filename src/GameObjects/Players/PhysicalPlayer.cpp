@@ -3,6 +3,7 @@
 //
 
 #include "PhysicalPlayer.h"
+#include "../Model.h"
 
 PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable* cursor) :
         Player(cursor),
@@ -47,38 +48,39 @@ void PhysicalPlayer::move(moveDirections direction) {
     }
 
     if (direction == NONE) {
-        player->setLinearVelocity(player->getLinearVelocity() / slowDownFactor);
+        inputMovementSpeed = inputMovementSpeed / slowDownFactor;
+        player->setLinearVelocity(inputMovementSpeed + groundFrictionMovementSpeed);
         return;
     }
 
     switch (direction) {
         case UP:
-            player->setLinearVelocity(player->getLinearVelocity() + GLMConverter::GLMToBlt(up * options->getJumpFactor()));
+            inputMovementSpeed = inputMovementSpeed + GLMConverter::GLMToBlt(up * options->getJumpFactor());
             spring->setEnabled(false);
             break;
         case LEFT_BACKWARD:
-            player->setLinearVelocity(GLMConverter::GLMToBlt(-1.0f * (right + center) * options->getMoveSpeed()));
+            inputMovementSpeed = GLMConverter::GLMToBlt(-1.0f * (right + center) * options->getMoveSpeed());
             break;
         case LEFT_FORWARD:
-            player->setLinearVelocity(GLMConverter::GLMToBlt((-1.0f * right + center) * options->getMoveSpeed()));
+            inputMovementSpeed = GLMConverter::GLMToBlt((-1.0f * right + center) * options->getMoveSpeed());
             break;
         case LEFT:
-            player->setLinearVelocity(GLMConverter::GLMToBlt(right * -1.0f * options->getMoveSpeed()));
+            inputMovementSpeed = GLMConverter::GLMToBlt(right * -1.0f * options->getMoveSpeed());
             break;
         case RIGHT_BACKWARD:
-            player->setLinearVelocity(GLMConverter::GLMToBlt((right + -1.0f * center) * options->getMoveSpeed()));
+            inputMovementSpeed = GLMConverter::GLMToBlt((right + -1.0f * center) * options->getMoveSpeed());
             break;
         case RIGHT_FORWARD:
-            player->setLinearVelocity(GLMConverter::GLMToBlt((right + center) * options->getMoveSpeed()));
+            inputMovementSpeed = GLMConverter::GLMToBlt((right + center) * options->getMoveSpeed());
             break;
         case RIGHT:
-            player->setLinearVelocity(GLMConverter::GLMToBlt(right * options->getMoveSpeed()));
+            inputMovementSpeed = GLMConverter::GLMToBlt(right * options->getMoveSpeed());
             break;
         case BACKWARD:
-            player->setLinearVelocity(GLMConverter::GLMToBlt(center * -1.0f * options->getMoveSpeed()));
+            inputMovementSpeed = GLMConverter::GLMToBlt(center * -1.0f * options->getMoveSpeed());
             break;
         case FORWARD:
-            player->setLinearVelocity(GLMConverter::GLMToBlt(center * options->getMoveSpeed()));
+            inputMovementSpeed = GLMConverter::GLMToBlt(center * options->getMoveSpeed());
             break;
         case NONE:break;//this is here because -Wall complaints if it is not
     }
@@ -123,6 +125,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
     //we will test for STEPPING_TEST_COUNT^2 times
     float requiredDelta = 1.0f / (STEPPING_TEST_COUNT-1);
     float highestPoint =  std::numeric_limits<float>::lowest();
+    GameObject* hitObject = nullptr;
     for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
         for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
             btCollisionWorld::ClosestRayResultCallback *rayCallback = &rayCallbackArray[i*STEPPING_TEST_COUNT + j];
@@ -137,6 +140,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
 
             if (rayCallback->hasHit()) {
                 highestPoint = std::max(rayCallback->m_hitPointWorld.getY(), highestPoint);
+                hitObject = static_cast<GameObject*>(rayCallback->m_collisionObject->getUserPointer());
                 onAir = false;
             }
         }
@@ -146,7 +150,46 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
         springStandPoint = highestPoint + 1.0f - startPosition.y;
         spring->setLimit(1,springStandPoint + 1.0f, springStandPoint + 2.0f);
         spring->setEnabled(true);
+        Model* model = dynamic_cast<Model*>(hitObject);
+        if(model != nullptr) {
+            btVector3 groundSpeed = model->getRigidBody()->getLinearVelocity();
+            groundFrictionMovementSpeed = groundFrictionMovementSpeed + groundSpeed / groundFrictionFactor;
+            // cap the speed of friction to ground speed
+            if(groundSpeed.getX() > 0 ) {
+                if (groundFrictionMovementSpeed.getX() > groundSpeed.getX()) {
+                    groundFrictionMovementSpeed.setX(groundSpeed.getX());
+                }
+            } else {
+                if (groundFrictionMovementSpeed.getX() < groundSpeed.getX()) {
+                    groundFrictionMovementSpeed.setX(groundSpeed.getX());
+                }
+            }
+            if(groundSpeed.getY() > 0 ) {
+                if (groundFrictionMovementSpeed.getY() > groundSpeed.getY()) {
+                    groundFrictionMovementSpeed.setY(groundSpeed.getY());
+                }
+            } else {
+                if (groundFrictionMovementSpeed.getY() < groundSpeed.getY()) {
+                    groundFrictionMovementSpeed.setY(groundSpeed.getY());
+                }
+            }
+
+            if(groundSpeed.getZ() > 0 ) {
+                if (groundFrictionMovementSpeed.getZ() > groundSpeed.getZ()) {
+                    groundFrictionMovementSpeed.setZ(groundSpeed.getZ());
+                }
+            } else {
+                if (groundFrictionMovementSpeed.getZ() < groundSpeed.getZ()) {
+                    groundFrictionMovementSpeed.setZ(groundSpeed.getZ());
+                }
+            }
+            player->setLinearVelocity(inputMovementSpeed + groundFrictionMovementSpeed);
+        } else {
+            std::cerr << "The thing under Player is not a Model object, this violates the movement assumptions." << std::endl;
+        }
     } else {
+        inputMovementSpeed = btVector3(0,0,0);
+        groundFrictionMovementSpeed = btVector3(0,0,0);
         spring->setEnabled(false);
     }
 }
