@@ -99,7 +99,7 @@ class World {
     Camera* camera;
     BulletDebugDrawer *debugDrawer;
 
-    GUILayer *ApiLayer;
+    GUILayer *apiGUILayer;
     GUIText* renderCounts;
     GUIFPSCounter* fpsCounter;
     Cursor* cursor;
