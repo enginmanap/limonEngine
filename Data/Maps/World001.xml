@@ -432,11 +432,19 @@
                 <parameters>
                     <Parameter>
                         <RequestType>FreeText</RequestType>
+                        <Description>Name of GUI object</Description>
+                        <Value>DoorwayText</Value>
+                        <valueType>String</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>0</Index>
+                    </Parameter>
+                    <Parameter>
+                        <RequestType>FreeText</RequestType>
                         <Description>Text message to add as GUI element</Description>
                         <Value>Inside</Value>
                         <valueType>String</valueType>
                         <IsSet>True</IsSet>
-                        <Index>0</Index>
+                        <Index>1</Index>
                     </Parameter>
                 </parameters>
                 <Enabled>True</Enabled>
@@ -496,6 +504,14 @@
                         <IsSet>True</IsSet>
                         <Index>1</Index>
                     </Parameter>
+                    <Parameter>
+                        <RequestType>FreeNumber</RequestType>
+                        <Description>Count to finish</Description>
+                        <Value>2</Value>
+                        <valueType>Long</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>2</Index>
+                    </Parameter>
                 </parameters>
                 <Enabled>True</Enabled>
             </FirstEnterTriggerCode>
@@ -540,6 +556,14 @@
                         <IsSet>True</IsSet>
                         <Index>1</Index>
                     </Parameter>
+                    <Parameter>
+                        <RequestType>FreeNumber</RequestType>
+                        <Description>Count to finish</Description>
+                        <Value>2</Value>
+                        <valueType>Long</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>2</Index>
+                    </Parameter>
                 </parameters>
                 <Enabled>True</Enabled>
             </FirstEnterTriggerCode>
@@ -556,4 +580,108 @@
             <AnimationID>0</AnimationID>
         </OnLoadAnimation>
     </OnLoadAnimations>
+    <GUILayers>
+        <GUILayer>
+            <Level>2</Level>
+            <GUIElement>
+                <Type>GUIText</Type>
+                <Name>LimonEngine</Name>
+                <ID>1</ID>
+                <Text>Limon Engine</Text>
+                <Font>
+                    <Path>Data/Fonts/Wolf_in_the_City_Light.ttf</Path>
+                    <Size>32</Size>
+                </Font>
+                <Color>
+                    <R>0</R>
+                    <G>0</G>
+                    <B>0</B>
+                </Color>
+                <Transformation>
+                    <Scale>
+                        <X>1</X>
+                        <Y>1</Y>
+                        <Z>1</Z>
+                    </Scale>
+                    <Translate>
+                        <X>170</X>
+                        <Y>748</Y>
+                        <Z>0</Z>
+                    </Translate>
+                    <Rotate>
+                        <X>0</X>
+                        <Y>0</Y>
+                        <Z>-0</Z>
+                        <W>1</W>
+                    </Rotate>
+                </Transformation>
+            </GUIElement>
+            <GUIElement>
+                <Type>GUIText</Type>
+                <ID>2</ID>
+                <Name>CoinCounter</Name>
+                <Text>0</Text>
+                <Font>
+                    <Path>Data/Fonts/Helvetica-Normal.ttf</Path>
+                    <Size>64</Size>
+                </Font>
+                <Color>
+                    <R>0</R>
+                    <G>0</G>
+                    <B>0</B>
+                </Color>
+                <Transformation>
+                    <Scale>
+                        <X>1</X>
+                        <Y>1</Y>
+                        <Z>1</Z>
+                    </Scale>
+                    <Translate>
+                        <X>683</X>
+                        <Y>708</Y>
+                        <Z>0</Z>
+                    </Translate>
+                    <Rotate>
+                        <X>0</X>
+                        <Y>0</Y>
+                        <Z>-0</Z>
+                        <W>1</W>
+                    </Rotate>
+                </Transformation>
+            </GUIElement>
+            <GUIElement>
+                <Type>GUIText</Type>
+                <ID>3</ID>
+                <Name>VersionText</Name>
+                <Text>Version 0.4</Text>
+                <Font>
+                    <Path>Data/Fonts/Helvetica-Normal.ttf</Path>
+                    <Size>16</Size>
+                </Font>
+                <Color>
+                    <R>256</R>
+                    <G>256</G>
+                    <B>256</B>
+                </Color>
+                <Transformation>
+                    <Scale>
+                        <X>1</X>
+                        <Y>1</Y>
+                        <Z>1</Z>
+                    </Scale>
+                    <Translate>
+                        <X>1316</X>
+                        <Y>100</Y>
+                        <Z>0</Z>
+                    </Translate>
+                    <Rotate>
+                        <X>0</X>
+                        <Y>0</Y>
+                        <Z>0.70710683</Z>
+                        <W>0.70710683</W>
+                    </Rotate>
+                </Transformation>
+            </GUIElement>
+        </GUILayer>
+    </GUILayers>
 </World>
