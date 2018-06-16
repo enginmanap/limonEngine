@@ -4,11 +4,11 @@
 
 #include "GUITextBase.h"
 
-GUITextBase::GUITextBase(GLHelper *glHelper, Face *face, const std::string text, const glm::vec3 color) :
-        GUIRenderable(glHelper), text(text), color(color.x / 256, color.y / 256, color.z / 256), face(face), height(0),
-        width(0), bearingUp(0) {
-
-    if(text.length() != 0) {
+void GUITextBase::calculateSizes() {
+    width = 0;
+    height = 0;
+    bearingUp = 0;
+    if (text.length() != 0) {
         //calculate the size of text. This also force glyph load.
 
         int up = 0;
@@ -32,13 +32,13 @@ GUITextBase::GUITextBase(GLHelper *glHelper, Face *face, const std::string text,
         width -= face->getGlyph(text.at(text.length() - 1))->getAdvance() / 64;
 
         height = up + bearingUp;
-
-        //std::cout << "for " << text << " up: " << up << ", down: " << bearingUp << ", width: " << width << std::endl;
-    } else {
-        std::cout << "No text provided, rendering for empty" << std::endl;
     }
+}
 
-
+GUITextBase::GUITextBase(GLHelper *glHelper, Face *face, const std::string text, const glm::vec3 color) :
+        GUIRenderable(glHelper), text(text), color(color.x / 256, color.y / 256, color.z / 256), face(face), height(0),
+        width(0), bearingUp(0) {
+    calculateSizes();
 }
 
 void GUITextBase::render() {
