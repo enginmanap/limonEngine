@@ -148,7 +148,7 @@ public:
         return name;
     };
 
-    GameObject::ImGuiResult addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix);
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
     /************Game Object methods **************/
 
 

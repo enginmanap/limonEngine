@@ -142,25 +142,25 @@ public:
         return goName;
     };
 
-    ImGuiResult addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix) {
-        static ImGuiResult request;
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) {
+        static ImGuiResult result;
 
         bool crudeUpdated = false;
         static glm::vec3 preciseTranslatePoint = this->position;
-        request.updated = ImGui::SliderFloat("Precise Position X", &(this->position.x), preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || request.updated;
-        request.updated = ImGui::SliderFloat("Precise Position Y", &(this->position.y), preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || request.updated;
-        request.updated = ImGui::SliderFloat("Precise Position Z", &(this->position.z), preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || request.updated;
+        result.updated = ImGui::SliderFloat("Precise Position X", &(this->position.x), preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || result.updated;
+        result.updated = ImGui::SliderFloat("Precise Position Y", &(this->position.y), preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || result.updated;
+        result.updated = ImGui::SliderFloat("Precise Position Z", &(this->position.z), preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || result.updated;
         ImGui::NewLine();
         crudeUpdated = ImGui::SliderFloat("Crude Position X", &(this->position.x), -100.0f, 100.0f)   || crudeUpdated;
         crudeUpdated = ImGui::SliderFloat("Crude Position Y", &(this->position.y), -100.0f, 100.0f)   || crudeUpdated;
         crudeUpdated = ImGui::SliderFloat("Crude Position Z", &(this->position.z), -100.0f, 100.0f)   || crudeUpdated;
         ImGui::NewLine();
-        request.updated = ImGui::SliderFloat("Color R", &(this->color.r), 0.0f, 1.0f)   || request.updated;
-        request.updated = ImGui::SliderFloat("Color G", &(this->color.g), 0.0f, 1.0f)   || request.updated;
-        request.updated = ImGui::SliderFloat("Color B", &(this->color.b), 0.0f, 1.0f)   || request.updated;
+        result.updated = ImGui::SliderFloat("Color R", &(this->color.r), 0.0f, 1.0f)   || result.updated;
+        result.updated = ImGui::SliderFloat("Color G", &(this->color.g), 0.0f, 1.0f)   || result.updated;
+        result.updated = ImGui::SliderFloat("Color B", &(this->color.b), 0.0f, 1.0f)   || result.updated;
         ImGui::NewLine();
 
-        if(request.updated || crudeUpdated) {
+        if(result.updated || crudeUpdated) {
             this->setPosition(position);
         }
         if(crudeUpdated) {
@@ -182,12 +182,12 @@ public:
 
         ImGuiIO& io = ImGui::GetIO();
         ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-        ImGuizmo::Manipulate(glm::value_ptr(cameraMatrix), glm::value_ptr(perspectiveMatrix), ImGuizmo::TRANSLATE, mCurrentGizmoMode, glm::value_ptr(objectMatrix), NULL, useSnap ? &(snap[0]) : NULL);
+        ImGuizmo::Manipulate(glm::value_ptr(request.perspectiveCameraMatrix), glm::value_ptr(request.perspectiveMatrix), ImGuizmo::TRANSLATE, mCurrentGizmoMode, glm::value_ptr(objectMatrix), NULL, useSnap ? &(snap[0]) : NULL);
 
         //now we should have object matrix updated, update the object
         this->setPosition(glm::vec3(objectMatrix[3][0], objectMatrix[3][1], objectMatrix[3][2]));
 
-        return request;
+        return result;
     }
     /************Game Object methods **************/
 

@@ -23,5 +23,5 @@ void GUIFPSCounter::updateFPS() {
 void GUIFPSCounter::render() {
     updateFPS();
 
-    GUIText::render();
+    GUITextBase::render();
 }

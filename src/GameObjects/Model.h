@@ -15,6 +15,7 @@
 #include "../Material.h"
 #include "../Assets/ModelAsset.h"
 #include "../../libs/ImGui/imgui.h"
+#include "GameObject.h"
 
 class Actor;
 
@@ -92,7 +93,7 @@ public:
         return name + "_" + std::to_string(objectID);
     };
 
-    ImGuiResult addImGuiEditorElements(const glm::mat4& cameraMatrix, const glm::mat4& perspectiveMatrix) ;
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
     /************Game Object methods **************/
 
     void attachAI(Actor *AIActor) {

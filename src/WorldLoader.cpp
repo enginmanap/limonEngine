@@ -14,8 +14,9 @@
 #include "GamePlay/LimonAPI.h"
 #include "Assets/Animations/AnimationLoader.h"
 #include "Assets/Animations/AnimationCustom.h"
-#include "GUI/GUIText.h"
+#include "GUI/GUITextBase.h"
 #include "GUI/GUILayer.h"
+#include "GameObjects/GUIText.h"
 
 
 WorldLoader::WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options* options):
@@ -31,7 +32,7 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
     // Set api endpoints accordingly
     LimonAPI* api = new LimonAPI();
     api->worldAddAnimationToObject = std::bind(&World::addAnimationToObject, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false);
-    api->worldAddGuiText = std::bind(&World::addGuiText, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6);
+    api->worldAddGuiText = std::bind(&World::addGuiText, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7);
     api->worldUpdateGuiText = std::bind(&World::updateGuiText, newWorld, std::placeholders::_1, std::placeholders::_2);
     api->worldGenerateEditorElementsForParameters = std::bind(&World::generateEditorElementsForParameters, newWorld, std::placeholders::_1, std::placeholders::_2);
     api->worldGetResultOfTrigger = std::bind(&World::getResultOfTrigger, newWorld, std::placeholders::_1, std::placeholders::_2);
@@ -590,8 +591,8 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
         tinyxml2::XMLElement* GUIElementNode =  GUILayerNode->FirstChildElement("GUIElement");
         while(GUIElementNode != nullptr) {
             // TODO we should have a factory to create objects from parameters we collect, currently single type, GUITEXT
-            GUIRenderable* element = GUIText::deserialize(GUIElementNode, glHelper, &world->fontManager);
-            world->guiElements[element->getWorldID()] = element;
+            GUIText* element = GUIText::deserialize(GUIElementNode, glHelper, &world->fontManager);
+            world->guiElements[element->getWorldObjectID()] = element;
             layer->addGuiElement(element);
 
             GUIElementNode = GUIElementNode->NextSiblingElement("GUIElement");

@@ -7,7 +7,7 @@
 
 #include "../GLHelper.h"
 
-class GUIRenderable;
+class GUIText;
 class BulletDebugDrawer;
 
 class GUILayer {
@@ -15,7 +15,7 @@ class GUILayer {
     BulletDebugDrawer* debugDrawer;
     int level;
     bool isDebug;
-    std::vector<GUIRenderable *> guiElements;
+    std::vector<GUIText *> guiElements;
 
 public:
     GUILayer(GLHelper *glHelper, BulletDebugDrawer* debugDrawer, int level) : glHelper(glHelper), debugDrawer(debugDrawer), level(level), isDebug(false) { };
@@ -30,7 +30,7 @@ public:
         GUILayer::isDebug = isDebug;
     }
 
-    void addGuiElement(GUIRenderable *guiElement);
+    void addGuiElement(GUIText *guiElement);
 
     void removeGuiElement(uint32_t guiElementID);
 
@@ -41,7 +41,7 @@ public:
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *LayersListNode);
 
-    GUIRenderable* getRenderableFromCoordinate(const glm::vec2& coordinates);
+    GUIText* getRenderableFromCoordinate(const glm::vec2& coordinates);
 };
 
 
