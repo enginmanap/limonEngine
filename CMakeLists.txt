@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.3)
 project(LimonEngine)
 
 set(PROJECT_VERSION 0.4)
-
+add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
