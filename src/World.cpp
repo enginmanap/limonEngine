@@ -698,7 +698,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
                     Model* pickedModel = dynamic_cast<Model*>(pickedObject);
                     Model* newModel = new Model(*pickedModel, this->getNextObjectID());
-                    newModel->getTransformation()->addTranslate(glm::vec3(0.25f,0.25f,0.25f));
+                    newModel->getTransformation()->addTranslate(glm::vec3(5.08f,0.0f,5.08f));
                     addModelToWorld(newModel);
                     //now we should apply the animations
 
@@ -851,17 +851,19 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
                     addActor(newEnemy);
                 }
-                    ImGui::NewLine();
-                    if (pickedObject->getTypeID() == GameObject::MODEL) {
-                        if(static_cast<Model *>(pickedObject)->isDisconnected()) {
+                ImGui::NewLine();
+                switch (pickedObject->getTypeID()) {
+                    case GameObject::MODEL: {
+                        if (static_cast<Model *>(pickedObject)->isDisconnected()) {
                             if (ImGui::Button("reconnect to physics")) {
-                                static_cast<Model*>(pickedObject)->connectToPhysicsWorld(dynamicsWorld);
+                                static_cast<Model *>(pickedObject)->connectToPhysicsWorld(dynamicsWorld);
                             }
                         } else {
                             if (ImGui::Button("Disconnect from physics")) {
-                                static_cast<Model*>(pickedObject)->disconnectFromPhysicsWorld(dynamicsWorld);
+                                static_cast<Model *>(pickedObject)->disconnectFromPhysicsWorld(dynamicsWorld);
                             }
-                            ImGui::Text("If object is placed in trigger volume, \ndisconnecting drastically improve performance.");
+                            ImGui::Text(
+                                    "If object is placed in trigger volume, \ndisconnecting drastically improve performance.");
                         }
 
                         if (ImGui::Button("Remove This Object")) {
@@ -869,7 +871,19 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                             pickedObject = nullptr;
                         }
                     }
+                        break;
+                    case GameObject::TRIGGER: {
+                        if (ImGui::Button("Remove This Trigger")) {
+                            removeTriggerObject(pickedObject->getWorldObjectID());
+                            pickedObject = nullptr;
+                        }
+                    }
+                    break;
+                    default: {
+                        //there is nothing for now
+                    }
 
+                }
             }
 
             ImGui::End();
@@ -1248,6 +1262,19 @@ uint32_t World::updateGuiText(uint32_t guiTextID, const std::string &newText) {
         dynamic_cast<GUITextBase*>(guiElements[guiTextID])->updateText(newText);
     }
     return 0;
+}
+
+
+uint32_t World::removeTriggerObject(uint32_t triggerobjectID) {
+    if(triggers.find(triggerobjectID) != triggers.end()) {
+        TriggerObject* objectToRemove = triggers[triggerobjectID];
+        dynamicsWorld->removeCollisionObject(objectToRemove->getGhostObject());
+        //delete object itself
+        delete triggers[triggerobjectID];
+        triggers.erase(triggerobjectID);
+        return 0;
+    }
+    return 1;//not successful
 }
 
 uint32_t World::removeObject(uint32_t objectID) {
