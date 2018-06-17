@@ -72,6 +72,8 @@ public:
         delete ghostObject;
         delete ghostShape;
         delete this->firstEnterTriggerCode;
+        delete this->enterTriggerCode;
+        delete this->exitTriggerCode;
     }
 
     btPairCachingGhostObject *getGhostObject() const {
