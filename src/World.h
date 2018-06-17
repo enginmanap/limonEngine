@@ -243,6 +243,7 @@ public:
     uint32_t updateGuiText(uint32_t guiTextID, const std::string &newText);
 
     uint32_t removeObject(uint32_t objectID);
+    uint32_t removeTriggerObject(uint32_t triggerobjectID);
     uint32_t removeGuiText(uint32_t guiElementID);
 
     std::vector<LimonAPI::ParameterRequest> getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID);
