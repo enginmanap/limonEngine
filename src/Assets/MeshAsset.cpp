@@ -15,7 +15,9 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
     }
 
     vertexCount = currentMesh->mNumVertices;
-    setTriangles(currentMesh);
+    if(!setTriangles(currentMesh)) {
+        throw "No triangle found";
+    }
 
     uint_fast32_t vbo;
     assetManager->getGlHelper()->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
@@ -117,7 +119,7 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
     }
 }
 
-void MeshAsset::setTriangles(const aiMesh *currentMesh) {
+bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
     //In this part, the "if"s can be put in for, but then we will check them for each iteration. I am
     // not sure if that creates enough performance difference, it can be checked.
     if(isPartOfAnimated) {
@@ -154,11 +156,17 @@ void MeshAsset::setTriangles(const aiMesh *currentMesh) {
     }
 
     for (unsigned int j = 0; j < currentMesh->mNumFaces; ++j) {
-        faces.push_back(glm::vec3(currentMesh->mFaces[j].mIndices[0],
-                                  currentMesh->mFaces[j].mIndices[1],
-                                  currentMesh->mFaces[j].mIndices[2]));
+        if(currentMesh->mFaces[j].mNumIndices == 3) {
+            faces.push_back(glm::vec3(currentMesh->mFaces[j].mIndices[0],
+                                      currentMesh->mFaces[j].mIndices[1],
+                                      currentMesh->mFaces[j].mIndices[2]));
+        }
     }
 
+    if(faces.size() > 0) {
+        return true;
+    }
+    return false;
 }
 
 bool MeshAsset::addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, float weight) {
