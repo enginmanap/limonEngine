@@ -168,8 +168,14 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
         }
 
         Material *meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
-        MeshAsset *mesh = new MeshAsset(assetManager, currentMesh,aiNode->mName.C_Str(), meshMaterial, rootNode,
-                                        parentTransform, hasAnimation);
+        MeshAsset *mesh;
+        try {
+            mesh = new MeshAsset(assetManager, currentMesh, aiNode->mName.C_Str(), meshMaterial, rootNode,
+                                            parentTransform, hasAnimation);
+        } catch(...) {
+            std::cerr << "dudeee "<< std::endl;
+            continue;
+        }
         //FIXME the exception thrown from new is not catch
 
         if(!strncmp(aiNode->mName.C_Str(), "UCX_", strlen("UCX_"))) {

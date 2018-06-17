@@ -47,7 +47,7 @@ class MeshAsset {
     std::vector<btTriangleMesh *> shapeCopies;
 
     std::vector<uint_fast32_t> bufferObjects;
-    void setTriangles(const aiMesh *currentMesh);
+    bool setTriangles(const aiMesh *currentMesh);
 
 
 public:
