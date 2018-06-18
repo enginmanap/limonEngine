@@ -28,8 +28,24 @@ TextureAsset::TextureAsset(AssetManager* assetManager, const std::vector<std::st
         std::cout << "TextureAsset " << name << " loaded from disk successfully." << std::endl;
     }
     if (surface->format->BytesPerPixel == 4) {
+        if(surface->format->format != SDL_PIXELFORMAT_RGBA32) {
+            //if the internal format is not rgba32, convert to it.
+            SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(surface,
+                                                            SDL_PIXELFORMAT_RGBA32,
+                                                            0);
+            delete surface;
+            surface = surfaceTemp;
+        }
         textureBufferID = assetManager->getGlHelper()->loadTexture(surface->h, surface->w, GL_RGBA, surface->pixels);
     } else if (surface->format->BytesPerPixel == 3) {
+        if(surface->format->format != SDL_PIXELFORMAT_RGB24) {
+            //if the internal format is not rgb24, convert to it.
+            SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(surface,
+                                                                SDL_PIXELFORMAT_RGB24,
+                                                                0);
+            delete surface;
+            surface = surfaceTemp;
+        }
         textureBufferID = assetManager->getGlHelper()->loadTexture(surface->h, surface->w, GL_RGB, surface->pixels);
     } else {
         std::cerr << "Format has undefined number of pixels:" << surface->format->BytesPerPixel << std::endl;
