@@ -440,7 +440,10 @@ void World::switchToPhysicalPlayer(InputHandler &inputHandler) {
     dynamicsWorld->updateAabbs();
     inputHandler.setMouseModeRelative();
     this->dynamicsWorld->getDebugDrawer()->setDebugMode(this->dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
-    this->guiLayers[0]->setDebug(false);
+    for (size_t i = 0; i < guiLayers.size(); ++i) {
+        this->guiLayers[i]->setDebug(false);
+    }
+
     beforeMode = currentMode;
     currentMode = PHYSICAL_MODE;
 }
