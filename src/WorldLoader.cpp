@@ -177,7 +177,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
             int ai_id;
             objectAttribute =  objectNode->FirstChildElement("AI_ID");
             if (objectAttribute == nullptr) {
-                std::cout << "Object AI does not have ID. Can't be loaded" << std::endl;
+                std::cerr << "Object AI does not have ID. Can't be loaded" << std::endl;
                 return false;
             } else {
                 ai_id = std::stoi(objectAttribute->GetText());
