@@ -142,7 +142,24 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
   * @return
   */
 bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
-    if(currentMode != EDITOR_MODE && currentMode != PAUSED_MODE) {
+
+
+     // If not in editor mode, dont let imgGuiHelper get input
+     // if in editor mode, but player press editor button, dont allow imgui to process input
+     // if in editor mode, player did not press editor button, then check if imgui processed, if not use the input
+     if(currentMode != EDITOR_MODE || inputHandler.getInputEvents(InputHandler::EDITOR) || !imgGuiHelper->ProcessEvent(inputHandler)) {
+         if(handlePlayerInput(inputHandler)) {
+             isQuitRequest = !isQuitRequest;
+         }
+     }
+
+     if(camera->isDirty()) {
+         glHelper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
+     }
+
+
+
+     if(currentMode != EDITOR_MODE && currentMode != PAUSED_MODE) {
         //every time we call this method, we increase the time only by simulationTimeframe
         gameTime += simulationTimeFrame;
         dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
@@ -226,18 +243,6 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
         guiLayers[i]->setupForTime(gameTime);
     }
 
-
-
-    //end of physics step
-
-    // If not in editor mode, dont let imgGuiHelper get input
-    // if in editor mode, but player press editor button, dont allow imgui to process input
-    // if in editor mode, player did not press editor button, then check if imgui processed, if not use the input
-    if(currentMode != EDITOR_MODE || inputHandler.getInputEvents(InputHandler::EDITOR) || !imgGuiHelper->ProcessEvent(inputHandler)) {
-            if(handlePlayerInput(inputHandler)) {
-                isQuitRequest = !isQuitRequest;
-            }
-    }
     return isQuitRequest && isQuitVerified;
 }
 
@@ -332,14 +337,18 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
         if(currentMode != EDITOR_MODE ) {
             switchToEditorMode(inputHandler);
         } else {
-            switch (beforeMode) {
-                case DEBUG_MODE: {
-                    switchToDebugMode(inputHandler);
-                    break;
-                }
-                case PHYSICAL_MODE:
-                default: {
-                    switchToPhysicalPlayer(inputHandler);//if double editor, return to physical. This can happen when try to quit
+            //if user is shown quit dialog, don't allow switching modes, user should say no
+            if(!isQuitRequest == true) {
+                switch (beforeMode) {
+                    case DEBUG_MODE: {
+                        switchToDebugMode(inputHandler);
+                        break;
+                    }
+                    case PHYSICAL_MODE:
+                    default: {
+                        switchToPhysicalPlayer(
+                                inputHandler);//if double editor, return to physical. This can happen when try to quit
+                    }
                 }
             }
         }
@@ -556,10 +565,6 @@ void World::render() {
         for (auto it = objects.begin(); it != objects.end(); ++it) {
             (*it).second->renderWithProgram(*shadowMapProgramPoint);
         }
-    }
-
-    if(camera->isDirty()) {
-        glHelper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
     }
 
     glHelper->switchRenderToDefault();
