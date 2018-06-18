@@ -680,8 +680,11 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 if (ImGui::BeginCombo("Available objects", selectedAssetFile.c_str())) {
                     for (auto it = assetManager->getAvailableAssetsList().begin();
                          it != assetManager->getAvailableAssetsList().end(); it++) {
-                        if (ImGui::Selectable(it->first.c_str())) {
+                        if (ImGui::Selectable(it->first.c_str(), selectedAssetFile == it->first)) {
                             selectedAssetFile = it->first;
+                        }
+                        if(selectedAssetFile == it->first) {
+                            ImGui::SetItemDefaultFocus();
                         }
                     }
                     ImGui::EndCombo();
