@@ -428,7 +428,10 @@ void World::switchToDebugMode(InputHandler &inputHandler) {
     dynamicsWorld->getDebugDrawer()->setDebugMode(
             dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE | dynamicsWorld->getDebugDrawer()->DBG_DrawAabb | dynamicsWorld->getDebugDrawer()->DBG_DrawConstraints | dynamicsWorld->getDebugDrawer()->DBG_DrawConstraintLimits);
     options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_INFO, "Debug enabled");
-    guiLayers[0]->setDebug(true);
+    for (size_t i = 0; i < guiLayers.size(); ++i) {
+        guiLayers[i]->setDebug(true);
+    }
+
     //switch control to debug player
     if(debugPlayer == nullptr) {
                 debugPlayer = new FreeMovingPlayer(options, cursor);
