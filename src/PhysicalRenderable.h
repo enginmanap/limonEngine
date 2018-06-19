@@ -70,11 +70,11 @@ public:
         return true;
     }
 
-    bool connectToPhysicsWorld(btDiscreteDynamicsWorld *dynamicsWorld) {
+    bool connectToPhysicsWorld(btDiscreteDynamicsWorld *dynamicsWorld, int collisionGroup, int collisionMask) {
         if(!this->disconnected) {
             return false;
         }
-        dynamicsWorld->addRigidBody(this->rigidBody);
+        dynamicsWorld->addRigidBody(this->rigidBody,collisionGroup, collisionMask);
         this->disconnected = false;
         return true;
     }

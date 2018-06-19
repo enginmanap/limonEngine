@@ -84,10 +84,10 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
 
     physicalPlayer = new PhysicalPlayer(options, cursor);
     currentPlayer = physicalPlayer;
-    camera = new Camera(options, physicalPlayer);
+    camera = new Camera(options, physicalPlayer);//register is just below
 
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
-    currentPlayer->registerToPhysicalWorld(dynamicsWorld, worldAABBMin, worldAABBMax);
+    currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
 
 
     fpsCounter = new GUIFPSCounter(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0",
@@ -435,7 +435,7 @@ void World::switchToDebugMode(InputHandler &inputHandler) {
     //switch control to debug player
     if(debugPlayer == nullptr) {
                 debugPlayer = new FreeMovingPlayer(options, cursor);
-                debugPlayer->registerToPhysicalWorld(dynamicsWorld, worldAABBMin, worldAABBMax);
+        debugPlayer->registerToPhysicalWorld(dynamicsWorld, 0, 0, worldAABBMin, worldAABBMax);
             }
     debugPlayer->ownControl(currentPlayer->getPosition(), currentPlayer->getLookDirection());
     currentPlayer = debugPlayer;
@@ -463,7 +463,7 @@ void World::switchToPhysicalPlayer(InputHandler &inputHandler) {
 void World::switchToEditorMode(InputHandler &inputHandler) {//switch control to free cursor player
     if(editorPlayer == nullptr) {
                 editorPlayer = new FreeCursorPlayer(options, cursor);
-                editorPlayer->registerToPhysicalWorld(dynamicsWorld, worldAABBMin, worldAABBMax);
+        editorPlayer->registerToPhysicalWorld(dynamicsWorld, 0, 0, worldAABBMin, worldAABBMax);
             }
     editorPlayer->ownControl(currentPlayer->getPosition(), currentPlayer->getLookDirection());
     currentPlayer = editorPlayer;
@@ -526,6 +526,8 @@ GameObject * World::getPointedObject() const {
         glm::vec3 to = lookDirection + from;
         btCollisionWorld::ClosestRayResultCallback RayCallback(GLMConverter::GLMToBlt(from),
                                                                GLMConverter::GLMToBlt(to));
+        RayCallback.m_collisionFilterGroup = COLLIDE_EVERYTHING;
+        RayCallback.m_collisionFilterMask = ~(COLLIDE_NOTHING);
 
         dynamicsWorld->rayTest(
                 GLMConverter::GLMToBlt(from),
@@ -731,8 +733,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
                 TriggerObject* to = new TriggerObject(this->getNextObjectID(), this->apiInstance);
                 to->getTransformation()->setTranslate(newObjectPosition);
-                this->dynamicsWorld->addCollisionObject(to->getGhostObject(), btBroadphaseProxy::SensorTrigger,
-                                                        btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger);
+                this->dynamicsWorld->addCollisionObject(to->getGhostObject(), COLLIDE_TRIGGER_VOLUME, COLLIDE_PLAYER | COLLIDE_EVERYTHING);
                 triggers[to->getWorldObjectID()] = to;
 
                 pickedObject = static_cast<GameObject*>(to);
@@ -1009,8 +1010,7 @@ void World::addModelToWorld(Model *xmlModel) {
     if(xmlModel->isDisconnected()) {
         dynamicsWorld->removeRigidBody(xmlModel->getRigidBody());
     } else {
-        dynamicsWorld->addRigidBody(xmlModel->getRigidBody());
-
+        dynamicsWorld->addRigidBody(xmlModel->getRigidBody(), COLLIDE_MODELS, COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
     }
     btVector3 aabbMin, aabbMax;
     xmlModel->getRigidBody()->getAabb(aabbMin, aabbMax);
@@ -1346,6 +1346,6 @@ bool World::reconnectObjectToPhysics(uint32_t objectWorldID) {
         return false;//fail
     }
 
-    model->connectToPhysicsWorld(dynamicsWorld);
+    model->connectToPhysicsWorld(dynamicsWorld, COLLIDE_MODELS, COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
     return true;
 }

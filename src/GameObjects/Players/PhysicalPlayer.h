@@ -34,6 +34,8 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     btRigidBody *player;
     btGeneric6DofSpring2Constraint *spring;
     float springStandPoint;
+    int collisionGroup;
+    int collisionMask;
 
     std::vector<btCollisionWorld::ClosestRayResultCallback> rayCallbackArray;
     btTransform worldTransformHolder;
@@ -55,9 +57,19 @@ public:
         return player;
     }
 
-    void registerToPhysicalWorld(btDiscreteDynamicsWorld* world, const glm::vec3& worldAABBMin, const glm::vec3& worldAABBMax __attribute__((unused))) {
-        world->addRigidBody(getRigidBody());
+    void registerToPhysicalWorld(btDiscreteDynamicsWorld *world, int collisionGroup, int collisionMask,
+                                     const glm::vec3 &worldAABBMin __attribute((unused)), const glm::vec3 &worldAABBMax __attribute((unused))) {
+        world->addRigidBody(getRigidBody(), collisionGroup, collisionMask);
+        this->collisionGroup = collisionGroup;
+        this->collisionMask = collisionMask;
         world->addConstraint(getSpring(worldAABBMin.y));
+
+        for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
+            for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
+                rayCallbackArray[i * STEPPING_TEST_COUNT + j].m_collisionFilterGroup = this->collisionGroup;
+                rayCallbackArray[i * STEPPING_TEST_COUNT + j].m_collisionFilterMask = this->collisionMask;
+            }
+        }
     }
 
     void processPhysicsWorld(const btDiscreteDynamicsWorld *world);

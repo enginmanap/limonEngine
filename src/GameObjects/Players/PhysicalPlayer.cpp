@@ -20,7 +20,7 @@ PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable* cursor) :
         for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
             rayCallbackArray.push_back(btCollisionWorld::ClosestRayResultCallback(
                     GLMConverter::GLMToBlt(startPosition + glm::vec3(0, -1.01f, 0)),
-                    GLMConverter::GLMToBlt(startPosition + glm::vec3(0, -2.01f, 0))));
+                    GLMConverter::GLMToBlt(startPosition + glm::vec3(0, -3.01f, 0))));
         }
     }
 
@@ -135,7 +135,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
             rayCallback->m_rayFromWorld = worldTransformHolder.getOrigin() +
                                           btVector3(-0.5f + i*requiredDelta, -1.01f,
                                                     -0.5f + j*requiredDelta);//the second vector is preventing hitting player capsule
-            rayCallback->m_rayToWorld = rayCallback->m_rayFromWorld + btVector3(0, -1, 0);
+            rayCallback->m_rayToWorld = rayCallback->m_rayFromWorld + btVector3(0, -2, 0);
             world->rayTest(rayCallback->m_rayFromWorld, rayCallback->m_rayToWorld, *rayCallback);
 
             if (rayCallback->hasHit()) {
@@ -147,8 +147,8 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
     }
 
     if(!onAir) {
-        springStandPoint = highestPoint + 1.0f - startPosition.y;
-        spring->setLimit(1,springStandPoint + 1.0f, springStandPoint + 2.0f);
+        springStandPoint = highestPoint + 2.0f - startPosition.y;
+        spring->setLimit(1,springStandPoint + 1.0f, springStandPoint + 3.0f);
         spring->setEnabled(true);
         Model* model = dynamic_cast<Model*>(hitObject);
         if(model != nullptr) {
@@ -197,7 +197,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
 btGeneric6DofSpring2Constraint * PhysicalPlayer::getSpring(float minY) {
     spring = new btGeneric6DofSpring2Constraint(
             *player,
-            btTransform(btQuaternion::getIdentity(), { 0.0f, -1.0f, 0.0f })
+            btTransform(btQuaternion::getIdentity(), { 0.0f, -2.0f, 0.0f })
     );
     //don't enable the spring, player might be at some height, waiting for falling.
     spring->setStiffness(1,  35.0f);

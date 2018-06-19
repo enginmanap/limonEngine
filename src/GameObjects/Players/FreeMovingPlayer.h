@@ -65,7 +65,8 @@ public:
         cursor->setTranslate(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f));
     };
 
-    void registerToPhysicalWorld(btDiscreteDynamicsWorld* world __attribute__((unused)), const glm::vec3& worldAABBMin __attribute__((unused)), const glm::vec3& worldAABBMax __attribute__((unused))) {}
+    void registerToPhysicalWorld(btDiscreteDynamicsWorld *world __attribute((unused)), int collisionGroup __attribute((unused)), int collisionMask __attribute((unused)),
+                                     const glm::vec3 &worldAABBMin __attribute((unused)), const glm::vec3 &worldAABBMax __attribute((unused))) {}
 
 
     void processPhysicsWorld(const btDiscreteDynamicsWorld *world __attribute__((unused))) {};
