@@ -687,10 +687,11 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 if (ImGui::BeginCombo("Available objects", selectedAssetFile.c_str())) {
                     for (auto it = assetManager->getAvailableAssetsList().begin();
                          it != assetManager->getAvailableAssetsList().end(); it++) {
-                        if (ImGui::Selectable(it->first.c_str(), selectedAssetFile == it->first)) {
+                        bool selectedElement = selectedAssetFile == it->first;
+                        if (ImGui::Selectable(it->first.c_str(), selectedElement)) {
                             selectedAssetFile = it->first;
                         }
-                        if(selectedAssetFile == it->first) {
+                        if(selectedElement) {
                             ImGui::SetItemDefaultFocus();
                         }
                     }
@@ -806,30 +807,42 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
 
             ImGui::Begin("Selected Object Properties");
-            bool isObjectSelectorOpen;
+            std::string selectedName;
             if(pickedObject == nullptr) {
-                isObjectSelectorOpen = ImGui::BeginCombo("Picked object", "No object selected");
+                selectedName = "No object selected";
             } else {
-                isObjectSelectorOpen =ImGui::BeginCombo("Picked object", (pickedObject->getName().c_str()));
+                selectedName = pickedObject->getName().c_str();
             }
-            if (isObjectSelectorOpen) {
+            if (ImGui::BeginCombo("PickedGameObject", selectedName.c_str())) {
                 for (auto it = objects.begin(); it != objects.end(); it++) {
                     GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
-                    if (ImGui::Selectable(gameObject->getName().c_str())) {
+                    bool selectedElement = gameObject->getName() == selectedName;
+                    if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
                         pickedObject = gameObject;
+                    }
+                    if(selectedElement) {
+                        ImGui::SetItemDefaultFocus();
                     }
                 }
                 for (auto it = lights.begin(); it != lights.end(); it++) {
                     GameObject* gameObject = dynamic_cast<GameObject *>(*it);
-                    if (ImGui::Selectable(gameObject->getName().c_str())) {
+                    bool selectedElement = gameObject->getName() == selectedName;
+                    if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
                         pickedObject = (*it);
+                    }
+                    if(selectedElement) {
+                        ImGui::SetItemDefaultFocus();
                     }
                 }
 
                 for (auto it = triggers.begin(); it != triggers.end(); it++) {
                     GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
-                    if (ImGui::Selectable(gameObject->getName().c_str())) {
+                    bool selectedElement = gameObject->getName() == selectedName;
+                    if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
                         pickedObject = it->second;
+                    }
+                    if(selectedElement) {
+                        ImGui::SetItemDefaultFocus();
                     }
                 }
                 ImGui::EndCombo();
