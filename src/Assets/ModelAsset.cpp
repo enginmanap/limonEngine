@@ -173,7 +173,6 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
             mesh = new MeshAsset(assetManager, currentMesh, aiNode->mName.C_Str(), meshMaterial, rootNode,
                                             parentTransform, hasAnimation);
         } catch(...) {
-            std::cerr << "dudeee "<< std::endl;
             continue;
         }
         //FIXME the exception thrown from new is not catch
