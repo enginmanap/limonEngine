@@ -475,7 +475,9 @@ void World::switchToEditorMode(InputHandler &inputHandler) {//switch control to 
     //when switching to editor mode, return all objects that are custom animated without triggers
     //to original position
     for(auto it = onLoadAnimations.begin(); it != onLoadAnimations.end(); it++) {
-        (*(*it)->getTransformation()) = activeAnimations[*it].originalTransformation;
+         if(activeAnimations.find(*it) != activeAnimations.end()) {
+             (*(*it)->getTransformation()) = activeAnimations[*it].originalTransformation;
+         }
     }
 
 }
@@ -844,7 +846,10 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                         if(ImGui::Button(("Remove custom animation: " + loadedAnimations[activeAnimations[selectedObject].animationIndex].getName()).c_str())) {
                             (*selectedObject->getTransformation()) = activeAnimations[selectedObject].originalTransformation;
                             activeAnimations.erase(selectedObject);
-                        }
+                            if(onLoadAnimations.find(selectedObject) != onLoadAnimations.end()) {
+                                onLoadAnimations.erase(selectedObject);
+                            }
+                         }
                     } else {
                         addAnimationDefinitionToEditor();
                     }
