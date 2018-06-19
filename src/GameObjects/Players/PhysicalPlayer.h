@@ -106,6 +106,9 @@ public:
         this->player->getMotionState()->setWorldTransform(transform);
         this->player->activate();
 
+        this->inputMovementSpeed = btVector3(0,0,0);
+        this->groundFrictionMovementSpeed = btVector3(0,0,0);
+
         positionSet = true;
         spring->setEnabled(false);//don't enable until player is not on air
         cursor->setTranslate(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f));
