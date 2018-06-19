@@ -148,7 +148,9 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
         bool disconnected = false;
         objectAttribute =  objectNode->FirstChildElement("Disconnected");
         if (objectAttribute == nullptr) {
+#ifndef NDEBUG
             std::cout << "Object disconnect status is not set. defaulting to False" << std::endl;
+#endif
         } else {
             std::string disConnectedText = objectAttribute->GetText();
             if(disConnectedText == "True") {
@@ -172,7 +174,9 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
         //Since we are not loading objects recursively, these can be set here safely
         objectAttribute =  objectNode->FirstChildElement("AI");
         if (objectAttribute == nullptr) {
+#ifndef NDEBUG
             std::cout << "Object does not have AI." << std::endl;
+#endif
         } else {
             int ai_id;
             objectAttribute =  objectNode->FirstChildElement("AI_ID");
@@ -195,7 +199,9 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
 
         objectAttribute =  objectNode->FirstChildElement("Animation");
         if (objectAttribute == nullptr) {
+#ifndef NDEBUG
             std::cout << "Object does not have default animation." << std::endl;
+#endif
         } else {
             xmlModel->setAnimation(objectAttribute->GetText());
         }
