@@ -58,7 +58,7 @@ public:
     uint32_t removeGuiElement(uint32_t guiElementID);
     uint32_t removeObject(uint32_t guiElementID);
     uint32_t removeTriggerObject(uint32_t TriggerObjectID);
-    bool disconnectObjectFromPhysics(uint32_ modelID);
+    bool disconnectObjectFromPhysics(uint32_t modelID);
     bool reconnectObjectToPhysics(uint32_t modelID);
 
     std::vector<ParameterRequest> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
