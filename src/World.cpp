@@ -64,7 +64,6 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     shadowMapProgramPoint = new GLSLProgram(glHelper, "./Data/Shaders/ShadowMap/vertexPoint.glsl",
                                             "./Data/Shaders/ShadowMap/geometryPoint.glsl",
                                             "./Data/Shaders/ShadowMap/fragmentPoint.glsl", false);
-    shadowMapProgramPoint->setUniform("farPlanePoint", options->getLightPerspectiveProjectionValues().z);
 
 
     apiGUILayer = new GUILayer(glHelper, debugDrawer, 1);
@@ -551,6 +550,7 @@ void World::render() {
         }
         //generate shadow map
         glHelper->switchRenderToShadowMapDirectional(i);
+        //FIXME why are these set here?
         shadowMapProgramDirectional->setUniform("renderLightIndex", (int)i);
         for (auto it = objects.begin(); it != objects.end(); ++it) {
             if(it->second->isInLightFrustum(i)) { // FIXME this should have " && it->second->isIsInFrustum()" but we are calculating the frustum planes without shadows
@@ -567,8 +567,6 @@ void World::render() {
         glHelper->switchRenderToShadowMapPoint();
         //FIXME why are these set here?
         shadowMapProgramPoint->setUniform("renderLightIndex", (int)i);
-        //FIXME this is suppose to be an option //FarPlanePoint is set at declaration, since it is a constant
-        shadowMapProgramPoint->setUniform("farPlanePoint", options->getLightPerspectiveProjectionValues().z);
         for (auto it = objects.begin(); it != objects.end(); ++it) {
             (*it).second->renderWithProgram(*shadowMapProgramPoint);
         }

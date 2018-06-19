@@ -22,6 +22,7 @@ struct LightSource
     mat4 shadowMatrices[6];
     mat4 lightSpaceMatrix;
     vec3 position;
+    float farPlanePoint;
     vec3 color;
     int type; //0 Directional, 1 point
 };
@@ -44,7 +45,6 @@ uniform sampler2D opacitySampler;
 
 uniform sampler2DArray shadowSamplerDirectional;
 uniform samplerCubeArray shadowSamplerPoint;
-uniform float farPlanePoint;//FIXME this should set once, and shared between programs
 
 layout (std140) uniform LightSourceBlock
 {
@@ -94,17 +94,17 @@ float ShadowCalculationPoint(vec3 fragPos, float bias, float viewDistance, int l
     // use the light to fragment vector to sample from the depth map
     float closestDepth = texture(shadowSamplerPoint, vec4(fragToLight, lightIndex)).r;
     // it is currently in linear range between [0,1]. Re-transform back to original value
-    closestDepth *= farPlanePoint;
+    closestDepth *= LightSources.lights[lightIndex].farPlanePoint;
     // now get current linear depth as the length between the fragment and light position
     float currentDepth = length(fragToLight);
     // now test for shadows
     float shadow = 0.0;
     int samples  = 20;
-    float diskRadius = (1.0 + (viewDistance / farPlanePoint)) / 25.0;
+    float diskRadius = (1.0 + (viewDistance / LightSources.lights[lightIndex].farPlanePoint)) / 25.0;
     for(int i = 0; i < samples; ++i)
     {
         float closestDepth = texture(shadowSamplerPoint, vec4(fragToLight + pointSampleOffsetDirections[i] * diskRadius, lightIndex)).r;
-        closestDepth *= farPlanePoint;   // Undo mapping [0;1]
+        closestDepth *= LightSources.lights[lightIndex].farPlanePoint;   // Undo mapping [0;1]
         if(currentDepth + bias > closestDepth)
             shadow += 1.0;
     }

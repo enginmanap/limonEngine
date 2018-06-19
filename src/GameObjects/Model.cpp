@@ -153,7 +153,7 @@ void Model::activateMaterial(const Material *material, GLSLProgram *program) {
     if(material == nullptr ) {
         return;
     }
-    if (!program->setUniform("material.ambient", material->getAmbientColor() + glm::vec3(0.15f,0.15f,0.15f))) {
+    if (!program->setUniform("material.ambient", material->getAmbientColor())) {
         std::cerr << "Uniform \"material.ambient\" could not be set for program " << program->getProgramName()  << std::endl;
     }
 
@@ -254,9 +254,6 @@ bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
                                      glHelper->getMaxTextureImageUnits() -
                                      2)) { //even if shadow map cannot attach, we still render
                 std::cerr << "Uniform \"shadowSamplerPoint\" could not be set" << std::endl;
-            }
-            if (!program->setUniform("farPlanePoint",100.0f)) { //even if far plane cannot attach, we still render
-                std::cerr << "Uniform \"farPlanePoint\" could not be set" << std::endl;
             }
 
             if (animated) {
