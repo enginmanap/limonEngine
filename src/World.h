@@ -225,6 +225,7 @@ public:
         return nextWorldID++;
     }
 
+    void addAnimationDefinitionToEditor();
 
     /************************************ Methods LimonAPI exposes *************/
     /**
@@ -248,9 +249,11 @@ public:
 
     std::vector<LimonAPI::ParameterRequest> getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID);
 
-    /************************************ Methods LimonAPI exposes *************/
-    void addAnimationDefinitionToEditor();
+    bool disconnectObjectFromPhysics(uint32_t objectWorldID);
 
+    bool reconnectObjectToPhysics(uint32_t objectWorldID);
+
+    /************************************ Methods LimonAPI exposes *************/
 };
 
 #endif //LIMONENGINE_WORLD_H

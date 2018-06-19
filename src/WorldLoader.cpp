@@ -38,6 +38,10 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
     api->worldGetResultOfTrigger = std::bind(&World::getResultOfTrigger, newWorld, std::placeholders::_1, std::placeholders::_2);
     api->worldRemoveGuiText = std::bind(&World::removeGuiText, newWorld, std::placeholders::_1);
     api->worldRemoveObject = std::bind(&World::removeObject, newWorld, std::placeholders::_1);
+    api->worldRemoveTriggerObject = std::bind(&World::removeTriggerObject, newWorld, std::placeholders::_1);
+    api->worldDisconnectObjectFromPhysics = std::bind(&World::disconnectObjectFromPhysics, newWorld, std::placeholders::_1);
+    api->worldReconnectObjectToPhysics= std::bind(&World::reconnectObjectToPhysics, newWorld, std::placeholders::_1);
+
 
     newWorld->apiInstance = api;
 
