@@ -37,6 +37,18 @@ uint32_t LimonAPI::removeObject(uint32_t guiElementID) {
     return worldRemoveObject(guiElementID);
 }
 
+uint32_t LimonAPI::removeTriggerObject(uint32_t TriggerObjectID) {
+    return worldRemoveTriggerObject(TriggerObjectID);
+}
+
+bool LimonAPI::disconnectObjectFromPhysics(uint32_t modelID) {
+    return worldDisconnectObjectFromPhysics(modelID);
+}
+
+bool LimonAPI::reconnectObjectToPhysics(uint32_t modelID) {
+    return worldReconnectObjectToPhysics(modelID);
+}
+
 bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *ParametersNode,
                                            uint32_t index) const {
 

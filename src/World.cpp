@@ -875,11 +875,11 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     case GameObject::MODEL: {
                         if (static_cast<Model *>(pickedObject)->isDisconnected()) {
                             if (ImGui::Button("reconnect to physics")) {
-                                static_cast<Model *>(pickedObject)->connectToPhysicsWorld(dynamicsWorld);
+                                reconnectObjectToPhysics(static_cast<Model *>(pickedObject)->getWorldObjectID());
                             }
                         } else {
                             if (ImGui::Button("Disconnect from physics")) {
-                                static_cast<Model *>(pickedObject)->disconnectFromPhysicsWorld(dynamicsWorld);
+                                disconnectObjectFromPhysics(static_cast<Model *>(pickedObject)->getWorldObjectID());
                             }
                             ImGui::Text(
                                     "If object is placed in trigger volume, \ndisconnecting drastically improve performance.");
@@ -1322,4 +1322,30 @@ void World::afterLoadFinished() {
             onLoadActions[i]->action->run(onLoadActions[i]->parameters);
         }
     }
+}
+
+bool World::disconnectObjectFromPhysics(uint32_t objectWorldID) {
+    if(objects.find(objectWorldID) == objects.end()) {
+        return false;//fail
+    }
+    Model* model = dynamic_cast<Model*>(objects.at(objectWorldID));
+    if(model == nullptr) {
+        return false;//fail
+    }
+
+    model->disconnectFromPhysicsWorld(dynamicsWorld);
+    return true;
+}
+
+bool World::reconnectObjectToPhysics(uint32_t objectWorldID) {
+    if(objects.find(objectWorldID) == objects.end()) {
+        return false;//fail
+    }
+    Model* model = dynamic_cast<Model*>(objects.at(objectWorldID));
+    if(model == nullptr) {
+        return false;//fail
+    }
+
+    model->connectToPhysicsWorld(dynamicsWorld);
+    return true;
 }
