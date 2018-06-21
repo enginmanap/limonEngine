@@ -5,6 +5,8 @@
 #include "GUILayer.h"
 #include "../GameObjects/GUIText.h"
 
+class Options;
+
 void GUILayer::render() {
     for (std::vector<GUIText *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
         (*it)->render();
@@ -35,7 +37,7 @@ void GUILayer::removeGuiElement(uint32_t guiElementID) {
     }
 }
 
-bool GUILayer::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *LayersListNode) {
+bool GUILayer::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *LayersListNode, Options *options) {
 
     tinyxml2::XMLElement *layerNode= document.NewElement("GUILayer");
     LayersListNode->InsertEndChild(layerNode);
@@ -45,7 +47,7 @@ bool GUILayer::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
     layerNode->InsertEndChild(levelNode);
 
     for (size_t i = 0; i < guiElements.size(); ++i) {
-        guiElements[i]->serialize(document, layerNode);
+        guiElements[i]->serialize(document, layerNode, options);
     }
 
     return true;

@@ -292,14 +292,14 @@
         </Object>
         <Object>
             <File>./Data/Models/PirateCoin/Coin.obj</File>
-            <Disconnected>True</Disconnected>
+            <Disconnected>False</Disconnected>
             <Mass>0</Mass>
             <ID>17</ID>
             <Transformation>
                 <Scale>
-                    <X>0.39983994</X>
-                    <Y>0.39997113</Y>
-                    <Z>0.39997098</Z>
+                    <X>0.75</X>
+                    <Y>0.75</Y>
+                    <Z>0.75</Z>
                 </Scale>
                 <Translate>
                     <X>0</X>
@@ -307,23 +307,23 @@
                     <Z>25</Z>
                 </Translate>
                 <Rotate>
-                    <X>-6.1772334e-006</X>
-                    <Y>-0.70799989</Y>
-                    <Z>0.70621258</Z>
-                    <W>-9.1304173e-009</W>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
                 </Rotate>
             </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/PirateCoin/Coin.obj</File>
-            <Disconnected>True</Disconnected>
+            <Disconnected>False</Disconnected>
             <Mass>0</Mass>
             <ID>18</ID>
             <Transformation>
                 <Scale>
-                    <X>0.40000001</X>
-                    <Y>0.40000001</Y>
-                    <Z>0.40000001</Z>
+                    <X>0.75</X>
+                    <Y>0.75</Y>
+                    <Z>0.75</Z>
                 </Scale>
                 <Translate>
                     <X>20</X>
@@ -331,10 +331,10 @@
                     <Z>25</Z>
                 </Translate>
                 <Rotate>
-                    <X>-1.3963499e-005</X>
-                    <Y>-0.70657277</Y>
-                    <Z>0.70764047</Z>
-                    <W>1.8310636e-006</W>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
                 </Rotate>
             </Transformation>
         </Object>
@@ -572,11 +572,11 @@
     <OnloadActions/>
     <OnLoadAnimations>
         <OnLoadAnimation>
-            <ModelID>18</ModelID>
+            <ModelID>17</ModelID>
             <AnimationID>0</AnimationID>
         </OnLoadAnimation>
         <OnLoadAnimation>
-            <ModelID>17</ModelID>
+            <ModelID>18</ModelID>
             <AnimationID>0</AnimationID>
         </OnLoadAnimation>
     </OnLoadAnimations>
@@ -585,8 +585,8 @@
             <Level>2</Level>
             <GUIElement>
                 <Type>GUIText</Type>
-                <Name>LimonEngine</Name>
                 <ID>1</ID>
+                <Name>LimonEngine</Name>
                 <Text>Limon Engine</Text>
                 <Font>
                     <Path>Data/Fonts/Wolf_in_the_City_Light.ttf</Path>
@@ -604,8 +604,8 @@
                         <Z>1</Z>
                     </Scale>
                     <Translate>
-                        <X>170</X>
-                        <Y>748</Y>
+                        <X>0.052083332</X>
+                        <Y>0.97222221</Y>
                         <Z>0</Z>
                     </Translate>
                     <Rotate>
@@ -637,8 +637,8 @@
                         <Z>1</Z>
                     </Scale>
                     <Translate>
-                        <X>683</X>
-                        <Y>708</Y>
+                        <X>0.5</X>
+                        <Y>0.92592591</Y>
                         <Z>0</Z>
                     </Translate>
                     <Rotate>
@@ -670,8 +670,8 @@
                         <Z>1</Z>
                     </Scale>
                     <Translate>
-                        <X>1316</X>
-                        <Y>100</Y>
+                        <X>0.98260313</X>
+                        <Y>0.070924282</Y>
                         <Z>0</Z>
                     </Translate>
                     <Rotate>

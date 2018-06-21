@@ -8,6 +8,8 @@
 
 #include "../GUI/GUITextBase.h"
 
+class Options;
+
 class GUIText : public GUITextBase, public GameObject {
     uint32_t worldID;
     std::string name;
@@ -21,9 +23,9 @@ public:
 
     ~GUIText();
 
-    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode);
+    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
 
-    static GUIText* deserialize(tinyxml2::XMLElement *GUIRenderableNode, GLHelper* glHelper, FontManager* fontManager); //will turn into factory class at some point
+    static GUIText *deserialize(tinyxml2::XMLElement *GUIRenderableNode, GLHelper *glHelper, FontManager *fontManager, Options *options); //will turn into factory class at some point
 
 
     /******************** Game object methods ************************************/

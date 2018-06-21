@@ -601,7 +601,7 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
         tinyxml2::XMLElement* GUIElementNode =  GUILayerNode->FirstChildElement("GUIElement");
         while(GUIElementNode != nullptr) {
             // TODO we should have a factory to create objects from parameters we collect, currently single type, GUITEXT
-            GUIText* element = GUIText::deserialize(GUIElementNode, glHelper, &world->fontManager);
+            GUIText* element = GUIText::deserialize(GUIElementNode, glHelper, &world->fontManager, options);
             world->guiElements[element->getWorldObjectID()] = element;
             layer->addGuiElement(element);
 
