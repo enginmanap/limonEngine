@@ -4,6 +4,8 @@
 
 #include "CoinPickUpOnTrigger.h"
 #include "UpdateGuiTextOnTrigger.h"
+#include "MayanCoinPickup.h"
+#include "MayanLever.h"
 
 CoinPickUpOnTrigger::CoinPickUpOnTrigger(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}
 
@@ -54,4 +56,7 @@ std::vector<LimonAPI::ParameterRequest> CoinPickUpOnTrigger::getResults() {
 void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* triggerMap) {
     (*triggerMap)["CoinPickUpOnTrigger"] = &createT<CoinPickUpOnTrigger>;
     (*triggerMap)["UpdateGuiTextOnTrigger"] = &createT<UpdateGuiTextOnTrigger>;
+    (*triggerMap)["MayanCoinPickup"] = &createT<MayanCoinPickup>;
+    (*triggerMap)["MayanLever"] = &createT<MayanLever>;
+
 }
