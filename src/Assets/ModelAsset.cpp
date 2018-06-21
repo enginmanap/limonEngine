@@ -7,6 +7,7 @@
 #include "../glm/gtx/matrix_decompose.hpp"
 #include "../Utils/GLMUtils.h"
 #include "Animations/AnimationAssimp.h"
+#include "../GLHelper.h"
 
 ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string> &fileList) : Asset(assetManager,
                                                                                                      fileList),
@@ -77,7 +78,7 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
     Material *newMaterial;
     if (materialMap.find(property.C_Str()) == materialMap.end()) {//search for the name
         //if the material is not loaded before
-        newMaterial = new Material(assetManager, property.C_Str());
+        newMaterial = new Material(assetManager, property.C_Str(), assetManager->getGlHelper()->getNextMaterialIndex());
         aiColor3D color(0.f, 0.f, 0.f);
         float transferFloat;
 
@@ -136,6 +137,23 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
             }
         }
 
+        uint32_t maps = 0;
+        if(newMaterial->hasAmbientMap()) {
+            maps +=8;
+        }
+        if(newMaterial->hasDiffuseMap()) {
+            maps +=4;
+        }
+        if(newMaterial->hasSpecularMap()) {
+            maps +=2;
+        }
+        if(newMaterial->hasOpacityMap()) {
+            maps +=1;
+        }
+        newMaterial->setMaps(maps);
+
+        assetManager->getGlHelper()->setMaterial(newMaterial);
+
         materialMap[newMaterial->getName()] = newMaterial;
     } else {
         newMaterial = materialMap[property.C_Str()];
@@ -175,7 +193,6 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
         } catch(...) {
             continue;
         }
-        //FIXME the exception thrown from new is not catch
 
         if(!strncmp(aiNode->mName.C_Str(), "UCX_", strlen("UCX_"))) {
             //if starts with "UCX_"

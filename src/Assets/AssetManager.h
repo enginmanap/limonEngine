@@ -13,6 +13,8 @@
 
 #include "Asset.h"
 
+class GLHelper;
+
 
 class AssetManager {
     enum AssetTypes { Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP };

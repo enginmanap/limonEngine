@@ -41,8 +41,18 @@ layout (std140) uniform LightSourceBlock
     LightSource lights[NR_POINT_LIGHTS];
 } LightSources;
 
+layout (std140) uniform MaterialInformationBlock {
+    vec3 ambient;
+    float shininess;
+    vec3 diffuse;
+    int isMap; 	//using the last 4, ambient=8, diffuse=4, specular=2, opacity = 1
+} material;
+
+layout (std140) uniform ModelInformationBlock {
+    mat4 worldTransform;
+} model;
+
 uniform mat4 boneTransformArray[NR_BONE];
-uniform mat4 worldTransformMatrix;
 
 void main(void)
 {
@@ -53,13 +63,13 @@ void main(void)
     BoneTransform += boneTransformArray[boneIDs[3]] * boneWeights[3];
 
     to_fs.textureCoord = textureCoordinate;
-    to_fs.normal = vec3(normalize(transpose(inverse(worldTransformMatrix)) * (BoneTransform * vec4(normal, 0.0))));
-    to_fs.fragPos = vec3(worldTransformMatrix * (BoneTransform * position));
+    to_fs.normal = vec3(normalize(transpose(inverse(model.worldTransform)) * (BoneTransform * vec4(normal, 0.0))));
+    to_fs.fragPos = vec3(model.worldTransform * (BoneTransform * position));
     for(int i = 0; i < NR_POINT_LIGHTS; i++){
         if(LightSources.lights[i].type == 0) {
             to_fs.fragPosLightSpace[i] = LightSources.lights[i].lightSpaceMatrix * vec4(to_fs.fragPos, 1.0);
         }
     }
     //The transform is calculated twice, it can be reused from to_fs.fragPos
-    gl_Position = playerTransforms.cameraProjection * (worldTransformMatrix * (BoneTransform * position));
+    gl_Position = playerTransforms.cameraProjection * (model.worldTransform * (BoneTransform * position));
 }

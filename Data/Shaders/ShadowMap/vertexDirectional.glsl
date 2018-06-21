@@ -22,8 +22,18 @@ layout (std140) uniform LightSourceBlock
     LightSource lights[NR_POINT_LIGHTS];
 } LightSources;
 
+layout (std140) uniform MaterialInformationBlock {
+    vec3 ambient;
+    float shininess;
+    vec3 diffuse;
+    int isMap; 	//using the last 4, ambient=8, diffuse=4, specular=2, opacity = 1
+} material;
+
+layout (std140) uniform ModelInformationBlock {
+    mat4 worldTransform;
+} model;
+
 uniform mat4 boneTransformArray[NR_BONE];
-uniform mat4 worldTransformMatrix;
 uniform int renderLightIndex;
 uniform int isAnimated;
 
@@ -38,7 +48,7 @@ void main() {
     }
     for(int i = 0; i < NR_POINT_LIGHTS; i++){
         if(i == renderLightIndex){
-            gl_Position = LightSources.lights[i].lightSpaceMatrix * (worldTransformMatrix * (BoneTransform * vec4(vec3(position), 1.0)));
+            gl_Position = LightSources.lights[i].lightSpaceMatrix * (model.worldTransform * (BoneTransform * vec4(vec3(position), 1.0)));
         }
     }
 }
