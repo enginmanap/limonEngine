@@ -112,7 +112,7 @@ public:
          * found false inside true -> do exit
          */
 
-        if(inside == playerFound) {
+        if(inside == playerFound) {//means player was inside, and still is.
             return false;
         }
         if(playerFound) {
