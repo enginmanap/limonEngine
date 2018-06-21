@@ -34,7 +34,7 @@ GUIText::~GUIText() {
     }
 }
 
-bool GUIText::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) {
+bool GUIText::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options) {
     tinyxml2::XMLElement *guiTextNode = document.NewElement("GUIElement");
     parentNode->InsertEndChild(guiTextNode);
 
@@ -77,12 +77,20 @@ bool GUIText::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     parent->InsertEndChild(currentElement);
     guiTextNode->InsertEndChild(parent);
 
-    transformation.serialize(document, guiTextNode);
+    Transformation temp(transformation);
+
+    temp.setTranslate(glm::vec3(
+            temp.getTranslate().x / options->getScreenWidth(),
+            temp.getTranslate().y / options->getScreenHeight(),
+            temp.getTranslate().z
+                      ));
+
+    temp.serialize(document, guiTextNode);
     return true;
 }
 
 
-GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GLHelper* glHelper, FontManager* fontManager) {
+GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GLHelper *glHelper, FontManager *fontManager, Options *options) {
 
     tinyxml2::XMLElement* GUIRenderableAttribute;
 
@@ -171,6 +179,11 @@ GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GLHelper*
         Transformation tr;
         tr.deserialize(GUIRenderableAttribute);
 
+        tr.setTranslate(glm::vec3(
+                tr.getTranslate().x * options->getScreenWidth(),
+                tr.getTranslate().y * options->getScreenHeight(),
+                tr.getTranslate().z
+        ));
         //now we have everything, create the GUI Text
         GUIText* element = new GUIText(glHelper, id, name, fontManager->getFont(path, size), text, color);
         element->getTransformation()->setTranslate(tr.getTranslate());
@@ -185,8 +198,8 @@ GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GLHelper*
 GameObject::ImGuiResult GUIText::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult result;
     glm::vec2 translate = getTranslate();
-    result.updated = ImGui::SliderFloat("Position X", &(translate.x), 0,request.screenWidth)   || result.updated;
-    result.updated = ImGui::SliderFloat("Position Y", &(translate.y), 0,request.screenHeight)   || result.updated;
+    result.updated = ImGui::DragFloat("Position X", &(translate.x), 0,request.screenWidth)   || result.updated;
+    result.updated = ImGui::DragFloat("Position Y", &(translate.y), 0,request.screenHeight)   || result.updated;
 
     ImGui::NewLine();
     result.updated = ImGui::SliderFloat("Color R", &(this->color.r), 0.0f, 1.0f)   || result.updated;
@@ -214,8 +227,9 @@ GameObject::ImGuiResult GUIText::addImGuiEditorElements(const ImGuiRequest &requ
 
     ImGuiIO& io = ImGui::GetIO();
     ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+    ImGuizmo::SetOrthographic(true);
     ImGuizmo::Manipulate(glm::value_ptr(request.ortogonalCameraMatrix), glm::value_ptr(request.ortogonalMatrix), ImGuizmo::TRANSLATE, mCurrentGizmoMode, glm::value_ptr(objectMatrix), NULL, useSnap ? &(snap[0]) : NULL);
-
+    ImGuizmo::SetOrthographic(false);
     //now we should have object matrix updated, update the object
 
     //just clip the values

@@ -304,7 +304,7 @@ bool WorldSaver::fillGUILayersAndElements(tinyxml2::XMLDocument &document, tinyx
                                           const World *world) {
     //for(auto it= world->guiLayers.begin(); it != world->guiLayers.end(); it++) {
     for (size_t i = 0; i < world->guiLayers.size(); ++i) {
-        if (!world->guiLayers[i]->serialize(document, GUILayersListNode)) {
+        if (!world->guiLayers[i]->serialize(document, GUILayersListNode, world->options)) {
             return false;
         }
     }
