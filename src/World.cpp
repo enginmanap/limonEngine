@@ -822,6 +822,18 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                         ImGui::SetItemDefaultFocus();
                     }
                 }
+
+                for (auto it = guiElements.begin(); it != guiElements.end(); it++) {
+                    GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
+                    bool selectedElement = gameObject->getName() == selectedName;
+                    if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
+                        pickedObject = gameObject;
+                    }
+                    if(selectedElement) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+
                 for (auto it = lights.begin(); it != lights.end(); it++) {
                     GameObject* gameObject = dynamic_cast<GameObject *>(*it);
                     bool selectedElement = gameObject->getName() == selectedName;
