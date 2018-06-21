@@ -30,21 +30,54 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
 
     MeshMeta *meshMeta;
     std::vector<MeshAsset *> assetMeshes = modelAsset->getMeshes();
+    static GLSLProgram* animatedProgram = nullptr;
+    static GLSLProgram* nonAnimatedProgram = nullptr;
 
     for (std::vector<MeshAsset *>::iterator iter = assetMeshes.begin(); iter != assetMeshes.end(); ++iter) {
         meshMeta = new MeshMeta();
         meshMeta->mesh = (*iter);
 
         if (this->animated) {//this was hasBones, but it turns out, there are models with bones, but no animation.
+            if(animatedProgram == nullptr) {
+                animatedProgram = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertexAnimated.glsl",
+                                                 "./Data/Shaders/Model/fragment.glsl", true);
+                this->activateMaterial(meshMeta->mesh->getMaterial(), animatedProgram);
+
+                if (!animatedProgram->setUniform("shadowSamplerDirectional",
+                                         glHelper->getMaxTextureImageUnits() -
+                                         1)) { //even if shadow map cannot attach, we still render
+                    std::cerr << "Uniform \"shadowSamplerDirectional\" could not be set" << std::endl;
+                }
+                if (!animatedProgram->setUniform("shadowSamplerPoint",
+                                         glHelper->getMaxTextureImageUnits() -
+                                         2)) { //even if shadow map cannot attach, we still render
+                    std::cerr << "Uniform \"shadowSamplerPoint\" could not be set" << std::endl;
+                }
+
+            }
             //set up the program to render object
-            meshMeta->program = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertexAnimated.glsl",
-                                                "./Data/Shaders/Model/fragment.glsl", true);
+            meshMeta->program = animatedProgram;
             //Now we should find out about bone tree
 
         } else {
             //set up the program to render object without bones
-            meshMeta->program = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertex.glsl",
-                                                "./Data/Shaders/Model/fragment.glsl", true);
+            if(nonAnimatedProgram == nullptr) {
+                nonAnimatedProgram = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertex.glsl",
+                                                     "./Data/Shaders/Model/fragment.glsl", true);
+                this->activateMaterial(meshMeta->mesh->getMaterial(), nonAnimatedProgram);
+
+                if (!nonAnimatedProgram->setUniform("shadowSamplerDirectional",
+                                         glHelper->getMaxTextureImageUnits() -
+                                         1)) { //even if shadow map cannot attach, we still render
+                    std::cerr << "Uniform \"shadowSamplerDirectional\" could not be set" << std::endl;
+                }
+                if (!nonAnimatedProgram->setUniform("shadowSamplerPoint",
+                                         glHelper->getMaxTextureImageUnits() -
+                                         2)) { //even if shadow map cannot attach, we still render
+                    std::cerr << "Uniform \"shadowSamplerPoint\" could not be set" << std::endl;
+                }
+            }
+            meshMeta->program = nonAnimatedProgram;
         }
         meshMetaData.push_back(meshMeta);
     }
@@ -153,17 +186,6 @@ void Model::activateMaterial(const Material *material, GLSLProgram *program) {
     if(material == nullptr ) {
         return;
     }
-    if (!program->setUniform("material.ambient", material->getAmbientColor())) {
-        std::cerr << "Uniform \"material.ambient\" could not be set for program " << program->getProgramName()  << std::endl;
-    }
-
-    if (!program->setUniform("material.diffuse", material->getDiffuseColor())) {
-        std::cerr << "Uniform \"material.diffuse\" could not be set for program "  << program->getProgramName() << std::endl;
-    }
-
-    if (!program->setUniform("material.shininess", material->getSpecularExponent())) {
-        std::cerr << "Uniform \"material.shininess\" could not be set for program "  << program->getProgramName() << std::endl;
-    }
 
     if(material->hasDiffuseMap()) {
         glHelper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
@@ -195,25 +217,6 @@ void Model::activateMaterial(const Material *material, GLSLProgram *program) {
             std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
         }
     }
-
-    int maps = 0;
-    if(material->hasAmbientMap()) {
-        maps +=8;
-    }
-    if(material->hasDiffuseMap()) {
-        maps +=4;
-    }
-    if(material->hasSpecularMap()) {
-        maps +=2;
-    }
-    if(material->hasOpacityMap()) {
-        maps +=1;
-    }
-
-    if (!program->setUniform("material.isMap", maps)) {
-        std::cerr << "Uniform \"material.isMap\" could not be set for program "  << program->getProgramName() << std::endl;
-    }
-
     //TODO we should support multi texture on one pass
 }
 
@@ -221,17 +224,10 @@ bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
     GLSLProgram* program  = meshMetaData->program;
     if(meshMetaData->isSet) {
         if (meshMetaData->mesh != nullptr && meshMetaData->mesh->getMaterial() != nullptr) {
+            glHelper->attachMaterialUBO(program->getID(), meshMetaData->mesh->getMaterial()->getMaterialIndex());
+            glHelper->attachModelUBO(program->getID(), this->getWorldObjectID());
             this->activateTexturesOnly(meshMetaData->mesh->getMaterial());
         }
-
-        if(this->dirtyForWorldTransform) {
-            if (!program->setUniform("worldTransformMatrix", transformation.getWorldTransform())) {
-                std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
-                return false;
-            }
-            this->dirtyForFrustum = false;
-        }
-
         if (animated) {
             //set all of the bones to unitTransform for testing
             program->setUniformArray("boneTransformArray[0]", boneTransforms);
@@ -239,36 +235,31 @@ bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
         return true;
 
     }
-    if (program->setUniform("worldTransformMatrix", transformation.getWorldTransform())) {
-            if (meshMetaData->mesh != nullptr && meshMetaData->mesh->getMaterial() != nullptr) {
-                this->activateMaterial(meshMetaData->mesh->getMaterial(), program);
-            } else {
-                std::cerr << "No material setup, passing rendering. " << std::endl;
-            }
-            if (!program->setUniform("shadowSamplerDirectional",
-                                           glHelper->getMaxTextureImageUnits() -
-                                           1)) { //even if shadow map cannot attach, we still render
-                std::cerr << "Uniform \"shadowSamplerDirectional\" could not be set" << std::endl;
-            }
-            if (!program->setUniform("shadowSamplerPoint",
-                                     glHelper->getMaxTextureImageUnits() -
-                                     2)) { //even if shadow map cannot attach, we still render
-                std::cerr << "Uniform \"shadowSamplerPoint\" could not be set" << std::endl;
-            }
 
-            if (animated) {
-                //set all of the bones to unitTransform for testing
-                program->setUniformArray("boneTransformArray[0]", boneTransforms);
-            }
-            meshMetaData->isSet = true;
-            return true;
+    glHelper->attachModelUBO(program->getID(), this->getWorldObjectID());
+    if (meshMetaData->mesh != nullptr && meshMetaData->mesh->getMaterial() != nullptr) {
+        glHelper->attachMaterialUBO(program->getID(), meshMetaData->mesh->getMaterial()->getMaterialIndex());
     } else {
-        std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
+        std::cerr << "No material setup, passing rendering. " << std::endl;
     }
-    return false;
+
+    if (animated) {
+        //set all of the bones to unitTransform for testing
+        program->setUniformArray("boneTransformArray[0]", boneTransforms);
+    }
+    meshMetaData->isSet = true;
+    return true;
+//    } else {
+//        std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
+//    }
+//    return false;
 }
 
 void Model::render() {
+    if(dirtyForWorldTransform) {
+        glHelper->setModel(this->getWorldObjectID(), transformation.getWorldTransform());
+        dirtyForWorldTransform = false;
+    }
     for (std::vector<MeshMeta *>::iterator iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
         if (setupRenderVariables((*iter))) {
             glHelper->render((*iter)->program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(),
@@ -278,23 +269,24 @@ void Model::render() {
 }
 
 void Model::renderWithProgram(GLSLProgram &program) {
-    if (program.setUniform("worldTransformMatrix", transformation.getWorldTransform())) {
-        std::vector<MeshAsset *> meshes = modelAsset->getMeshes();
-        for (std::vector<MeshAsset *>::iterator iter = meshes.begin(); iter != meshes.end(); ++iter) {//FIXME why this uses meshes, while normal render doesn't?
-            if (animated) {
-                //set all of the bones to unitTransform for testing
-                program.setUniformArray("boneTransformArray[0]", boneTransforms);
-                program.setUniform("isAnimated", true);
-            } else {
-                program.setUniform("isAnimated", false);
-            }
-            if(program.IsMaterialRequired()) {
-                this->activateMaterial((*iter)->getMaterial(), &program);
-            }
-            glHelper->render(program.getID(), (*iter)->getVao(), (*iter)->getEbo(), (*iter)->getTriangleCount() * 3);
+    if(dirtyForWorldTransform) {
+        glHelper->setModel(this->getWorldObjectID(), transformation.getWorldTransform());
+        dirtyForWorldTransform = false;
+    }
+
+    for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {//FIXME why this uses meshes, while normal render doesn't?
+        glHelper->attachModelUBO(program.getID(), this->getWorldObjectID());
+        if (animated) {
+            //set all of the bones to unitTransform for testing
+            program.setUniformArray("boneTransformArray[0]", boneTransforms);
+            program.setUniform("isAnimated", true);
+        } else {
+            program.setUniform("isAnimated", false);
         }
-    } else {
-        std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
+        if(program.IsMaterialRequired()) {
+            glHelper->attachMaterialUBO(program.getID(), (*iter)->mesh->getMaterial()->getMaterialIndex());
+        }
+        glHelper->render(program.getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount() * 3);
     }
 }
 

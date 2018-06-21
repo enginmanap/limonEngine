@@ -6,6 +6,9 @@
 #include "GLSLProgram.h"
 
 #include "GameObjects/Light.h"
+#include "Material.h"
+#include "GameObjects/Model.h"
+#include "Utils/GLMUtils.h"
 
 GLuint GLHelper::createShader(GLenum eShaderType, const std::string &strShaderFile) {
     GLuint shader = glCreateShader(eShaderType);
@@ -115,7 +118,7 @@ GLuint GLHelper::initializeProgram(const std::string &vertexShaderFile, const st
     std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
 
     fillUniformMap(program, uniformMap);
-    attachUBOs(program);
+    attachGeneralUBOs(program);
 
     checkErrors("initializeProgram");
     return program;
@@ -151,7 +154,34 @@ void GLHelper::fillUniformMap(const GLuint program, std::unordered_map<std::stri
     delete[] name;
 }
 
-void GLHelper::attachUBOs(const GLuint program) const {//Attach the light block to our UBO
+void GLHelper::attachModelUBO(const uint32_t program, const uint32_t modelID) const {
+    GLuint allMaterialsAttachPoint = 4;
+
+    int uniformIndex = glGetUniformBlockIndex(program, "ModelInformationBlock");
+    if (uniformIndex >= 0) {
+        glBindBuffer(GL_UNIFORM_BUFFER, allModelsUBOLocation);
+        glUniformBlockBinding(program, uniformIndex, allMaterialsAttachPoint);
+        glBindBufferRange(GL_UNIFORM_BUFFER, allMaterialsAttachPoint, allModelsUBOLocation, modelID * modelUniformSize,
+                          modelUniformSize);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
+}
+
+void GLHelper::attachMaterialUBO(const uint32_t program, const uint32_t materialID) const {
+    GLuint allMaterialsAttachPoint = 3;
+
+    int uniformIndex = glGetUniformBlockIndex(program, "MaterialInformationBlock");
+    if (uniformIndex >= 0) {
+        glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
+        glUniformBlockBinding(program, uniformIndex, allMaterialsAttachPoint);
+        glBindBufferRange(GL_UNIFORM_BUFFER, allMaterialsAttachPoint, allMaterialsUBOLocation, materialID * materialUniformSize,
+                          materialUniformSize);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
+}
+
+void GLHelper::attachGeneralUBOs(const GLuint program) const {//Attach the light block to our UBO
+
     GLuint lightAttachPoint = 0, playerAttachPoint = 1;
 
     int uniformIndex = glGetUniformBlockIndex(program, "LightSourceBlock");
@@ -168,11 +198,9 @@ void GLHelper::attachUBOs(const GLuint program) const {//Attach the light block 
         glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
         glUniformBlockBinding(program, uniformIndex2, playerAttachPoint);
         glBindBufferRange(GL_UNIFORM_BUFFER, playerAttachPoint, playerUBOLocation, 0,
-                          3 * sizeof(glm::mat4) + sizeof(glm::vec4));
+                          playerUniformSize);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
-
-
 }
 
 
@@ -250,19 +278,42 @@ GLHelper::GLHelper(Options *options): options(options) {
 
     std::cout << "Cubemap array support is present. " << std::endl;
 
+    GLint uniformBufferAlignSize = 0;
+    glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformBufferAlignSize);
+
+    if(uniformBufferAlignSize > materialUniformSize) {
+        materialUniformSize = uniformBufferAlignSize;
+    }
+
+    if(uniformBufferAlignSize > modelUniformSize) {
+        modelUniformSize = uniformBufferAlignSize;
+    }
+
+    std::cout << "Uniform alignment size is " << uniformBufferAlignSize << std::endl;
+
+
     //create the Light Uniform Buffer Object for later usage
     glGenBuffers(1, &lightUBOLocation);
-
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * NR_POINT_LIGHTS, nullptr,
-                 GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * NR_POINT_LIGHTS, nullptr, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //create player transforms uniform buffer object
     glGenBuffers(1, &playerUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
-    //FIXME the value below should be a constant at header
-    glBufferData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4) + sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, playerUniformSize, nullptr, GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    //create material uniform buffer object
+    glGenBuffers(1, &allMaterialsUBOLocation);
+    glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
+    glBufferData(GL_UNIFORM_BUFFER, materialUniformSize * NR_MAX_MATERIALS, nullptr, GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    //create material uniform buffer object
+    glGenBuffers(1, &allModelsUBOLocation);
+    glBindBuffer(GL_UNIFORM_BUFFER, allModelsUBOLocation);
+    glBufferData(GL_UNIFORM_BUFFER, modelUniformSize * NR_MAX_MODELS, nullptr, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //create depth buffer and texture for directional shadow map
@@ -315,6 +366,7 @@ GLHelper::GLHelper(Options *options): options(options) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     frustumPlanes.resize(6);
+
     checkErrors("Constructor");
 }
 
@@ -481,6 +533,8 @@ void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
     glClear(GL_DEPTH_BUFFER_BIT);
 
     glCullFace(GL_FRONT);
+    //glDisable(GL_CULL_FACE);
+
     checkErrors("switchRenderToShadowMapDirectional");
 }
 
@@ -490,6 +544,7 @@ void GLHelper::switchRenderToShadowMapPoint() {
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
 
     glCullFace(GL_FRONT);
+    //glDisable(GL_CULL_FACE);
 
     checkErrors("switchRenderToShadowMapPoint");
 }
@@ -503,6 +558,7 @@ void GLHelper::switchRenderToDefault() {
     state->attach2DTextureArray(depthMapDirectional, maxTextureImageUnits - 1);
     state->attachCubemapArray(depthCubemapPoint, maxTextureImageUnits - 2);
     glCullFace(GL_BACK);
+    //glEnable(GL_CULL_FACE);
     checkErrors("switchRenderToDefault");
 }
 
@@ -533,6 +589,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         state->setProgram(programID);
         glUniformMatrix4fv(uniformID, 1, GL_FALSE, glm::value_ptr(matrix));
         //state->setProgram(0);
+        uniformSetCount++;
         checkErrors("setUniformMatrix");
         return true;
     }
@@ -549,6 +606,7 @@ GLHelper::setUniformArray(const GLuint programID, const GLuint uniformID, const 
         int elementCount = matrixArray.size();
         glUniformMatrix4fv(uniformID, elementCount, GL_FALSE, glm::value_ptr(matrixArray.at(0)));
         //state->setProgram(0);
+        uniformSetCount++;
         checkErrors("setUniformMatrixArray");
         return true;
     }
@@ -562,6 +620,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         state->setProgram(programID);
         glUniform3fv(uniformID, 1, glm::value_ptr(vector));
         //state->setProgram(0);
+        uniformSetCount++;
         checkErrors("setUniformVector");
         return true;
     }
@@ -575,6 +634,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         state->setProgram(programID);
         glUniform1f(uniformID, value);
         //state->setProgram(0);
+        uniformSetCount++;
         checkErrors("setUniformFloat");
         return true;
     }
@@ -588,6 +648,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         state->setProgram(programID);
         glUniform1i(uniformID, value);
         //state->setProgram(0);
+        uniformSetCount++;
         checkErrors("setUniformInt");
         return true;
     }
@@ -601,6 +662,7 @@ GLHelper::~GLHelper() {
 
     deleteBuffer(1, lightUBOLocation);
     deleteBuffer(1, playerUBOLocation);
+    deleteBuffer(1, allMaterialsUBOLocation);
     deleteBuffer(1, depthMapDirectional);
     glDeleteFramebuffers(1, &depthOnlyFrameBufferDirectional); //maybe we should wrap this up too
     //state->setProgram(0);
@@ -764,6 +826,41 @@ void GLHelper::setLight(const Light &light, const int i) {
                     sizeof(GLint), &lightType);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setLight");
+}
+
+void GLHelper::setMaterial(const Material* material) {
+    /*
+     * this buffer has 2 objects, model has mat4 and then the material below:
+     *
+    layout (std140) uniform MaterialInformationBlock {
+            vec3 ambient;
+            float shininess;
+            vec3 diffuse;
+            int isMap;
+    } material;
+    */
+    float shininess = material->getSpecularExponent();
+    uint32_t maps = material->getMaps();
+
+    glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
+    glBufferSubData(GL_UNIFORM_BUFFER, material->getMaterialIndex() * materialUniformSize,
+                    sizeof(glm::vec3), glm::value_ptr(material->getAmbientColor()));
+    glBufferSubData(GL_UNIFORM_BUFFER, material->getMaterialIndex() * materialUniformSize + sizeof(glm::vec3),
+                    sizeof(GLfloat), &shininess);
+    glBufferSubData(GL_UNIFORM_BUFFER, material->getMaterialIndex() * materialUniformSize + sizeof(glm::vec3) + sizeof(GLfloat),
+                    sizeof(glm::vec3), glm::value_ptr(material->getDiffuseColor()));
+    glBufferSubData(GL_UNIFORM_BUFFER, material->getMaterialIndex() * materialUniformSize + 2 *sizeof(glm::vec3) + sizeof(GLfloat),
+                    sizeof(GLint), &maps);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    checkErrors("setMaterial");
+}
+
+void GLHelper::setModel(const uint32_t modelID, const glm::mat4& worldTransform) {
+    glBindBuffer(GL_UNIFORM_BUFFER, allModelsUBOLocation);
+    glBufferSubData(GL_UNIFORM_BUFFER, modelID * modelUniformSize,
+                    sizeof(glm::mat4), glm::value_ptr(worldTransform));
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    checkErrors("setModel");
 }
 
 void GLHelper::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform) {

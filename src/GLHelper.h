@@ -27,8 +27,12 @@
 #endif/*__APPLE__*/
 
 #define NR_POINT_LIGHTS 4
+#define NR_MAX_MODELS 1000
+#define NR_MAX_MATERIALS 2000
 
 #include "Options.h"
+class Material;
+
 class Light;
 
 class GLSLProgram;
@@ -63,6 +67,8 @@ class GLHelper {
         }
 
     public:
+        uint32_t programChangeCount=0;
+
         explicit OpenglState(GLint textureUnitCount) : activeProgram(0) {
             textures = new unsigned int[textureUnitCount];
             memset(textures, 0, textureUnitCount * sizeof(int));
@@ -97,6 +103,7 @@ class GLHelper {
 
         void setProgram(GLuint program) {
             if (program != this->activeProgram) {
+                programChangeCount++;
                 glUseProgram(program);
                 this->activeProgram = program;
             }
@@ -165,6 +172,7 @@ public:
 
 private:
     GLenum error;
+    uint32_t nextMaterialIndex = 0;//this is used to keep each material in the  GPU memory. imagine it like size of vector
     GLint maxTextureImageUnits;
     OpenglState *state;
 
@@ -176,6 +184,8 @@ private:
 
     GLuint lightUBOLocation;
     GLuint playerUBOLocation;
+    GLuint allMaterialsUBOLocation;
+    GLuint allModelsUBOLocation;
 
     GLuint depthOnlyFrameBufferDirectional;
     GLuint depthMapDirectional;
@@ -186,6 +196,10 @@ private:
     Options *options;
 
     const uint_fast32_t lightUniformSize = (sizeof(glm::mat4) * 7) + (2 * sizeof(glm::vec4));
+    const uint32_t playerUniformSize = 3 * sizeof(glm::mat4) + sizeof(glm::vec4);
+    uint_fast32_t materialUniformSize = 2 * sizeof(glm::vec3) + sizeof(float) + sizeof(GLuint);
+    uint_fast32_t modelUniformSize = sizeof(glm::mat4);
+
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;
     std::vector<glm::vec4>frustumPlanes;
@@ -194,15 +208,15 @@ private:
     glm::mat4 lightProjectionMatrixPoint;
     uint32_t renderTriangleCount;
     uint32_t renderLineCount;
+    uint32_t uniformSetCount=0;
+
 
 public:
     void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) {
         triangleCount = renderTriangleCount;
         lineCount = renderLineCount;
     }
-private:
 
-public:
     const glm::mat4 &getLightProjectionMatrixPoint() const {
         return lightProjectionMatrixPoint;
     }
@@ -244,8 +258,7 @@ private:
 
     void fillUniformMap(const GLuint program, std::unordered_map<std::string, Uniform *> &uniformMap) const;
 
-    void attachUBOs(const GLuint program) const;
-
+    void attachGeneralUBOs(const GLuint program) const;
     void bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
                                const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
                                const uint_fast32_t attachPointer);
@@ -254,6 +267,15 @@ public:
     explicit GLHelper(Options *options);
 
     ~GLHelper();
+
+    void attachModelUBO(const uint32_t program, const uint32_t modelID) const;
+
+    void attachMaterialUBO(const uint32_t program, const uint32_t materialID) const;
+
+    uint32_t getNextMaterialIndex() {
+        return nextMaterialIndex++;
+    }
+
     GLuint initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
                                  std::unordered_map<std::string, Uniform *> &);
 
@@ -289,6 +311,11 @@ public:
 
         renderTriangleCount = 0;
         renderLineCount = 0;
+        //std::cout << "program change count was : " << state->programChangeCount << std::endl;
+        state->programChangeCount = 0;
+
+        //std::cout << "uniform set count was : " << uniformSetCount << std::endl;
+        uniformSetCount = 0;
     }
 
     void render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount);
@@ -368,6 +395,10 @@ public:
         }
         return inside;
     }
+
+    void setMaterial(const Material *material);
+
+    void setModel(const uint32_t modelID, const glm::mat4 &worldTransform);
 };
 
 #endif //LIMONENGINE_GLHELPER_H

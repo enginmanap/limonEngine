@@ -7,7 +7,7 @@
 
 #include <vector>
 #include <string>
-#include "../GLHelper.h"
+
 
 class AssetManager;//avoid cyclic include
 

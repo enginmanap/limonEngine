@@ -15,6 +15,8 @@ private:
     AssetManager *assetManager;
     std::string name;
     float specularExponent;
+    uint32_t materialIndex;
+    uint32_t maps;
 
     glm::vec3 ambientColor, diffuseColor, specularColor;
     bool isAmbientMap = false;
@@ -26,23 +28,28 @@ private:
     TextureAsset *ambientTexture = nullptr, *diffuseTexture = nullptr, *specularTexture = nullptr, *opacityTexture = nullptr;
 
 public:
-    Material(AssetManager *assetManager, const std::string &name, float specularExponent, const glm::vec3 &ambientColor,
+    Material(AssetManager *assetManager, const std::string &name, uint32_t materialIndex, float specularExponent, const glm::vec3 &ambientColor,
              const glm::vec3 &diffuseColor, const glm::vec3 &specularColor, float refractionIndex)
             : assetManager(assetManager),
               name(name),
               specularExponent(specularExponent),
+              materialIndex(materialIndex),
               ambientColor(ambientColor),
               diffuseColor(diffuseColor),
               specularColor(specularColor),
               refractionIndex(refractionIndex) { }
 
 
-    Material(AssetManager *assetManager, const std::string &name)
+    Material(AssetManager *assetManager, const std::string &name, uint32_t materialIndex)
             : assetManager(assetManager),
-              name(name) { }
+              name(name), materialIndex(materialIndex) { }
 
     const std::string &getName() const {
         return name;
+    }
+
+    uint32_t getMaterialIndex() const {
+        return materialIndex;
     }
 
     float getSpecularExponent() const {
@@ -155,6 +162,14 @@ public:
 
     bool hasOpacityMap() const {
         return isOpacityMap;
+    }
+
+    void setMaps(uint32_t maps) {
+        this->maps = maps;
+    }
+
+    uint32_t getMaps() const {
+        return maps;
     }
 
 };

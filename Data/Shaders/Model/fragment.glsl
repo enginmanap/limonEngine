@@ -10,13 +10,6 @@ layout (std140) uniform PlayerTransformBlock {
     vec3 position;
 } playerTransforms;
 
-struct Material {
-    vec3 ambient;
-    vec3 diffuse;
-    float shininess;
-    int isMap; 	//using the last 4, ambient=8, diffuse=4, specular=2, opacity = 1
-};
-
 struct LightSource
 {
     mat4 shadowMatrices[6];
@@ -26,6 +19,22 @@ struct LightSource
     vec3 color;
     int type; //0 Directional, 1 point
 };
+
+layout (std140) uniform LightSourceBlock
+{
+    LightSource lights[NR_POINT_LIGHTS];
+} LightSources;
+
+layout (std140) uniform MaterialInformationBlock {
+    vec3 ambient;
+    float shininess;
+    vec3 diffuse;
+    int isMap; 	//using the last 4, ambient=8, diffuse=4, specular=2, opacity = 1
+} material;
+
+layout (std140) uniform ModelInformationBlock {
+    mat4 worldTransform;
+} model;
 
 in VS_FS {
     vec3 boneColor;
@@ -37,19 +46,13 @@ in VS_FS {
 
 out vec4 finalColor;
 
-uniform Material material;
+uniform sampler2DArray shadowSamplerDirectional;
+uniform samplerCubeArray shadowSamplerPoint;
+
 uniform sampler2D ambientSampler;
 uniform sampler2D diffuseSampler;
 uniform sampler2D specularSampler;
 uniform sampler2D opacitySampler;
-
-uniform sampler2DArray shadowSamplerDirectional;
-uniform samplerCubeArray shadowSamplerPoint;
-
-layout (std140) uniform LightSourceBlock
-{
-    LightSource lights[NR_POINT_LIGHTS];
-} LightSources;
 
 vec3 pointSampleOffsetDirections[20] = vec3[]
 (
@@ -120,7 +123,7 @@ void main(void)
             if((material.isMap & 0x0001)!=0) { //if there is a opacity map, and it with diffuse
                 vec4 opacity = texture(opacitySampler, from_vs.textureCoord);
                 objectColor = texture(diffuseSampler, from_vs.textureCoord);
-                objectColor.w =  opacity.x;
+                objectColor.w =  opacity.a;//FIXME some other textures used x
             } else {
                 objectColor = texture(diffuseSampler, from_vs.textureCoord);
             }

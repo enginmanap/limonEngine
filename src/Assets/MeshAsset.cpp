@@ -3,7 +3,7 @@
 //
 
 #include "MeshAsset.h"
-
+#include "../GLHelper.h"
 
 MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
                      const Material *material, const BoneNode *meshSkeleton, const glm::mat4 &parentTransform,
