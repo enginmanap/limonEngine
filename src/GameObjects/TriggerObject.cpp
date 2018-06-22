@@ -78,12 +78,11 @@ void TriggerObject::PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&trigg
         std::vector<std::string> triggerCodes = TriggerInterface::getTriggerNames();
 
         if (ImGui::BeginCombo(("Trigger action type##" + std::to_string(index)).c_str(), currentTriggerName.c_str())) {
-            for (auto it = triggerCodes.begin();
-                 it != triggerCodes.end(); it++) {
-                if (ImGui::Selectable(it->c_str())) {
-                    if (triggerCode == nullptr ||
-                        triggerCode->getName() != *it) {//ignore if same trigger selected
+            for (auto it = triggerCodes.begin(); it != triggerCodes.end(); it++) {
 
+                bool isThisCodeSelected =  (triggerCode != nullptr && triggerCode->getName() == *it);
+                if (ImGui::Selectable(it->c_str(), isThisCodeSelected)) {
+                    if (!isThisCodeSelected) {//if this is not the previously selected trigger code
                         if (triggerCode != nullptr) {
                             delete triggerCode;
                         }
@@ -92,6 +91,10 @@ void TriggerObject::PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&trigg
                         enabled = false;
                     }
                 }
+                if(isThisCodeSelected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+
             }
             ImGui::EndCombo();
         }

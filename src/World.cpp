@@ -744,8 +744,13 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 std::string selectedID = std::to_string(onLoadTriggerIndex);
                 if (ImGui::BeginCombo("Current Triggers", selectedID.c_str())) {
                     for(size_t i = 0; i < onLoadActions.size(); i++) {
-                        if (ImGui::Selectable(std::to_string(i).c_str())) {
+                        bool isTriggerSelected = selectedID == std::to_string(i);
+
+                        if (ImGui::Selectable(std::to_string(i).c_str(), isTriggerSelected)) {
                             onLoadTriggerIndex = i;
+                        }
+                        if(isTriggerSelected) {
+                            ImGui::SetItemDefaultFocus();
                         }
                     }
                     ImGui::EndCombo();
@@ -1128,11 +1133,20 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 }
                 if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
                                       currentObject.c_str())) {
-                    for (auto it = objects.begin();
-                         it != objects.end(); it++) {
-                        if (ImGui::Selectable(dynamic_cast<Model *>((it->second))->getName().c_str())) {
-                            parameter.value.longValue = static_cast<long>(dynamic_cast<Model *>((it->second))->getWorldObjectID());
+                    for (auto it = objects.begin(); it != objects.end(); it++) {
+                        Model* currentModel = dynamic_cast<Model *>(it->second);
+                        if(currentModel == nullptr) {
+                            std::cerr << "Object cast to model failed" << std::endl;
+                            continue;
+                        }
+                        bool isThisModelSelected =  (currentObject == currentModel->getName());
+
+                        if (ImGui::Selectable(currentModel->getName().c_str(), isThisModelSelected)) {
+                            parameter.value.longValue = static_cast<long>(currentModel->getWorldObjectID());
                             parameter.isSet = true;
+                        }
+                        if(isThisModelSelected) {
+                            ImGui::SetItemDefaultFocus();
                         }
                     }
                     ImGui::EndCombo();
@@ -1151,10 +1165,18 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
                                       currentAnimation.c_str())) {
                     for (uint32_t j = 0; j < loadedAnimations.size(); ++j) {
-                        if (ImGui::Selectable(loadedAnimations[j].getName().c_str())) {
+
+                        bool isThisAnimationSelected =  (currentAnimation == loadedAnimations[j].getName().c_str());
+
+                        if (ImGui::Selectable(loadedAnimations[j].getName().c_str(), isThisAnimationSelected)) {
                             parameter.value.longValue = static_cast<long>(j);
                             parameter.isSet = true;
                         }
+
+                        if(isThisAnimationSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+
                     }
                     ImGui::EndCombo();
                 }
@@ -1177,12 +1199,15 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 }
                 if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
                                       currentGUIText.c_str())) {
-                    //for (uint32_t j = 0; j < guiElements.size(); ++j) {
                     for(auto it = guiElements.begin(); it != guiElements.end(); it++) {
-                        //FIXME if the object is TEXT?
-                        if (ImGui::Selectable(it->second->getName().c_str())) {
+                        bool isThisGUITextSelected = currentGUIText == it->second->getName();
+                        if (ImGui::Selectable(it->second->getName().c_str(), isThisGUITextSelected)) {
                             parameter.value.longValue = static_cast<long>(it->first);
                             parameter.isSet = true;
+                        }
+
+                        if(isThisGUITextSelected) {
+                            ImGui::SetItemDefaultFocus();
                         }
                     }
                     ImGui::EndCombo();
@@ -1241,12 +1266,19 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 }
                 std::string label = parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index);
                 if (ImGui::BeginCombo(label.c_str(), currentObject.c_str())) {
-                    for (auto it = triggers.begin();
-                         it != triggers.end(); it++) {
-                        if (ImGui::Selectable(dynamic_cast<TriggerObject *>((it->second))->getName().c_str())) {
-                            parameter.value.longValues[1] = static_cast<long>(dynamic_cast<TriggerObject *>((it->second))->getWorldObjectID());
+                    for (auto it = triggers.begin(); it != triggers.end(); it++) {
+
+                        bool isThisTriggerSelected = currentObject == it->second->getName();
+
+                        if (ImGui::Selectable((it->second)->getName().c_str(), isThisTriggerSelected)) {
+                            parameter.value.longValues[1] = static_cast<long>((it->second)->getWorldObjectID());
                             parameter.isSet= true;
                         }
+
+                        if(isThisTriggerSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+
                     }
                     ImGui::EndCombo();
 
