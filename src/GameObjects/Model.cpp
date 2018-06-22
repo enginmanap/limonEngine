@@ -41,19 +41,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
             if(animatedProgram == nullptr) {
                 animatedProgram = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertexAnimated.glsl",
                                                  "./Data/Shaders/Model/fragment.glsl", true);
-                this->activateMaterial(meshMeta->mesh->getMaterial(), animatedProgram);
-
-                if (!animatedProgram->setUniform("shadowSamplerDirectional",
-                                         glHelper->getMaxTextureImageUnits() -
-                                         1)) { //even if shadow map cannot attach, we still render
-                    std::cerr << "Uniform \"shadowSamplerDirectional\" could not be set" << std::endl;
-                }
-                if (!animatedProgram->setUniform("shadowSamplerPoint",
-                                         glHelper->getMaxTextureImageUnits() -
-                                         2)) { //even if shadow map cannot attach, we still render
-                    std::cerr << "Uniform \"shadowSamplerPoint\" could not be set" << std::endl;
-                }
-
+                this->setSamplers(animatedProgram);
             }
             //set up the program to render object
             meshMeta->program = animatedProgram;
@@ -64,18 +52,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
             if(nonAnimatedProgram == nullptr) {
                 nonAnimatedProgram = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertex.glsl",
                                                      "./Data/Shaders/Model/fragment.glsl", true);
-                this->activateMaterial(meshMeta->mesh->getMaterial(), nonAnimatedProgram);
-
-                if (!nonAnimatedProgram->setUniform("shadowSamplerDirectional",
-                                         glHelper->getMaxTextureImageUnits() -
-                                         1)) { //even if shadow map cannot attach, we still render
-                    std::cerr << "Uniform \"shadowSamplerDirectional\" could not be set" << std::endl;
-                }
-                if (!nonAnimatedProgram->setUniform("shadowSamplerPoint",
-                                         glHelper->getMaxTextureImageUnits() -
-                                         2)) { //even if shadow map cannot attach, we still render
-                    std::cerr << "Uniform \"shadowSamplerPoint\" could not be set" << std::endl;
-                }
+                this->setSamplers(nonAnimatedProgram);
             }
             meshMeta->program = nonAnimatedProgram;
         }
@@ -182,42 +159,27 @@ void Model::activateTexturesOnly(const Material *material) {
     }
 }
 
-void Model::activateMaterial(const Material *material, GLSLProgram *program) {
-    if(material == nullptr ) {
-        return;
+void Model::setSamplers(GLSLProgram *program) {
+    if (!program->setUniform("diffuseSampler", diffuseMapAttachPoint)) {
+        std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
     }
-
-    if(material->hasDiffuseMap()) {
-        glHelper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
-        if (!program->setUniform("diffuseSampler",
-                                 diffuseMapAttachPoint)) { //even if diffuse map cannot attach, we still render
-            std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
-        }
+    if (!program->setUniform("ambientSampler", ambientMapAttachPoint)) {
+        std::cerr << "Uniform \"ambientSampler\" could not be set" << std::endl;
     }
-    if(material->hasAmbientMap()) {
-        glHelper->attachTexture(material->getAmbientTexture()->getID(), ambientMapAttachPoint);
-        if (!program->setUniform("ambientSampler",
-                                 ambientMapAttachPoint)) { //even if ambient map cannot attach, we still render
-            std::cerr << "Uniform \"ambientSampler\" could not be set" << std::endl;
-        }
+    if (!program->setUniform("specularSampler", specularMapAttachPoint)) {
+        std::cerr << "Uniform \"specularSampler\" could not be set" << std::endl;
     }
-
-    if(material->hasSpecularMap()) {
-        glHelper->attachTexture(material->getSpecularTexture()->getID(), specularMapAttachPoint);
-        if (!program->setUniform("specularSampler",
-                                 specularMapAttachPoint)) { //even if specular map cannot attach, we still render
-            std::cerr << "Uniform \"specularSampler\" could not be set" << std::endl;
-        }
-    }
-
-    if(material->hasOpacityMap()) {
-        glHelper->attachTexture(material->getOpacityTexture()->getID(), opacityMapAttachPoint);
-        if (!program->setUniform("opacitySampler",
-                                 opacityMapAttachPoint)) { //even if opacity map cannot attach, we still render
-            std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
-        }
+    if (!program->setUniform("opacitySampler", opacityMapAttachPoint)) {
+        std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
     }
     //TODO we should support multi texture on one pass
+
+    if (!program->setUniform("shadowSamplerDirectional", glHelper->getMaxTextureImageUnits() - 1)) {
+        std::cerr << "Uniform \"shadowSamplerDirectional\" could not be set" << std::endl;
+    }
+    if (!program->setUniform("shadowSamplerPoint", glHelper->getMaxTextureImageUnits() - 2)) {
+        std::cerr << "Uniform \"shadowSamplerPoint\" could not be set" << std::endl;
+    }
 }
 
 bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
