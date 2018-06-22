@@ -57,7 +57,7 @@ public:
 
     Model(const Model& otherModel, uint32_t objectID); //kind of copy constructor, except ID
 
-    void activateMaterial(const Material *material, GLSLProgram *program);
+    void setSamplers(GLSLProgram *program);
     void activateTexturesOnly(const Material *material);
 
     bool setupRenderVariables(MeshMeta *meshMetaData);
