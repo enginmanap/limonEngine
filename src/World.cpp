@@ -241,6 +241,7 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
         guiLayers[i]->setupForTime(gameTime);
     }
+    debugOutputGUI->setupForTime(gameTime);
 
     return isQuitRequest && isQuitVerified;
 }
