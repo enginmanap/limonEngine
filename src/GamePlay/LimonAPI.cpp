@@ -175,7 +175,7 @@ deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index) {
     } else if(strcmp(parameterAttribute->GetText(), "FreeNumber") == 0) {
         this->requestType = RequestParameterTypes::FREE_NUMBER;
     } else {
-        std::cerr << "Trigger parameter request type was unknown." << std::endl;
+        std::cerr << "Trigger parameter request type was unknown. " << parameterAttribute->GetText() << std::endl;
         return false;
     }
 
