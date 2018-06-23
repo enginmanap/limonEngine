@@ -36,6 +36,10 @@ SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {
         throw;
     }
 
+#ifdef NDEBUG
+    SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+#endif
+
     /* Create our opengl context and attach it to our window */
     context = SDL_GL_CreateContext(window);
 
