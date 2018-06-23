@@ -712,11 +712,13 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
             }
             if(pickedObject != nullptr && pickedObject->getTypeID() == GameObject::MODEL) {
+                static float copyOffsets[3] { 0.25f, 0.25f, 0.25f};
+                ImGui::DragFloat3("Copy position offsets", copyOffsets, 0.1f);
                 if (ImGui::Button("Copy Selected object")) {
 
                     Model* pickedModel = dynamic_cast<Model*>(pickedObject);
                     Model* newModel = new Model(*pickedModel, this->getNextObjectID());
-                    newModel->getTransformation()->addTranslate(glm::vec3(5.08f,0.0f,5.08f));
+                    newModel->getTransformation()->addTranslate(glm::vec3(copyOffsets[0], copyOffsets[1], copyOffsets[2]));
                     addModelToWorld(newModel);
                     //now we should apply the animations
 
