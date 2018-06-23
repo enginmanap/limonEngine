@@ -801,6 +801,9 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 ImGui::InputText("GUIText Name", GUITextName, sizeof(GUITextName), ImGuiInputTextFlags_CharsNoBlank);
 
                 static size_t selectedLayerIndex = 0;
+                if(this->guiLayers.size() == 0) {
+                    this->guiLayers.push_back(new GUILayer(glHelper, debugDrawer, 10));
+                }
                 if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
                     for (size_t i = 0; i < this->guiLayers.size(); ++i) {
                         bool isThisLayerSelected = selectedLayerIndex == i;
