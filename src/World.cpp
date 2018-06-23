@@ -765,6 +765,65 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
             }
 
+            if (ImGui::CollapsingHeader("Add GUI Elements")) {
+                /**
+                 * we need these set:
+                 * 1) font
+                 * 2) font size
+                 * 3) name
+                 *
+                 */
+
+                static int fontSize = 32;
+
+                std::set<std::pair<std::string, uint32_t>> loadedFonts = fontManager.getLoadedFonts();
+                auto it = loadedFonts.begin();
+                static std::string selectedFontName = it->first;
+                if (ImGui::BeginCombo("Font to use", it->first.c_str())) {
+                    for (; it != loadedFonts.end(); it++) {//first element already set
+
+                        bool isThisFontSelected = it->first == selectedFontName;
+                        if (ImGui::Selectable(it->first.c_str(), isThisFontSelected)) {
+                            selectedFontName = it->first;
+                        }
+                        if (isThisFontSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+
+
+                ImGui::DragInt("Font size", &fontSize, 1, 1, 128);
+                static char GUITextName[32];
+                ImGui::InputText("GUIText Name", GUITextName, sizeof(GUITextName), ImGuiInputTextFlags_CharsNoBlank);
+
+                static size_t selectedLayerIndex = 0;
+                if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
+                    for (size_t i = 0; i < this->guiLayers.size(); ++i) {
+                        bool isThisLayerSelected = selectedLayerIndex == i;
+                        if (ImGui::Selectable(std::to_string(i).c_str(), isThisLayerSelected)) {
+                            selectedLayerIndex = i;
+                        }
+                        if (isThisLayerSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                if (ImGui::Button("Add GUI Text")) {
+                    GUIText* guiText = new GUIText(glHelper, getNextObjectID(), GUITextName, fontManager.getFont(selectedFontName, fontSize), "New Text", glm::vec3(0,0,0));
+                    guiText->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), 0.0f);
+                    this->guiElements[guiText->getWorldObjectID()] = guiText;
+                    this->guiLayers[selectedLayerIndex]->addGuiElement(guiText);
+                    pickedObject = guiText;
+                }
+
+
+
+            }
+
+
             if (ImGui::CollapsingHeader("Custom Animations ")) {
                 //list loaded animations
                 int listbox_item_current = -1;//not static because I don't want user to select a item.

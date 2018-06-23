@@ -197,6 +197,15 @@ GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GLHelper 
 
 GameObject::ImGuiResult GUIText::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult result;
+
+
+    char GUINameBuffer[128];
+    strncpy(GUINameBuffer, this->name.c_str(), sizeof(GUINameBuffer));
+    //double # because I don't want to show it
+    ImGui::InputText("Name##SelectedGUITextNameField", GUINameBuffer, sizeof(GUINameBuffer));
+
+    this->name = GUINameBuffer;    
+    
     char GUITextBuffer[128];
     strncpy(GUITextBuffer, this->text.c_str(), sizeof(GUITextBuffer));
 
