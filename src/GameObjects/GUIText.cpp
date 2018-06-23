@@ -204,7 +204,7 @@ GameObject::ImGuiResult GUIText::addImGuiEditorElements(const ImGuiRequest &requ
     //double # because I don't want to show it
     ImGui::InputText("Name##SelectedGUITextNameField", GUINameBuffer, sizeof(GUINameBuffer));
 
-    this->name = GUINameBuffer;    
+    this->name = GUINameBuffer;
     
     char GUITextBuffer[128];
     strncpy(GUITextBuffer, this->text.c_str(), sizeof(GUITextBuffer));
@@ -212,8 +212,7 @@ GameObject::ImGuiResult GUIText::addImGuiEditorElements(const ImGuiRequest &requ
     //double # because I don't want to show it
     ImGui::InputText("Text##SelectedGUITextTextField", GUITextBuffer, sizeof(GUITextBuffer));
 
-    this->text = GUITextBuffer;
-
+    this->updateText(GUITextBuffer);
 
     glm::vec2 translate = getTranslate();
     result.updated = ImGui::DragFloat("Position X", &(translate.x), 0,request.screenWidth)   || result.updated;
