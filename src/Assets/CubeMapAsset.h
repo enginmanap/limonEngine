@@ -19,7 +19,7 @@ class CubeMapAsset : public Asset {
     std::string names[6];
     GLuint cubeMapBufferID;
 public:
-    CubeMapAsset(AssetManager* assetManager, const std::vector<std::string> &fileList);
+    CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
 
     ~CubeMapAsset() {
         assetManager->getGlHelper()->deleteTexture(cubeMapBufferID);

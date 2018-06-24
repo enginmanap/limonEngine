@@ -20,8 +20,9 @@ class AssetManager {
     enum AssetTypes { Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP };
     //second of the pair is how many times load requested. prework for unload
     std::map<const std::vector<std::string>, std::pair<Asset *, uint32_t>> assets;
+    uint32_t nextAssetIndex = 1;
 
-    std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be un predictable
+    std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
     GLHelper *glHelper;
 public:
 
@@ -63,8 +64,8 @@ public:
     template<class T>
     T *loadAsset(const std::vector<std::string> files) {
         if (assets.count(files) == 0) {
-
-            assets[files] = std::make_pair(new T(this, files), 0);
+            assets[files] = std::make_pair(new T(this, nextAssetIndex, files), 0);
+            nextAssetIndex++;
         }
 
         assets[files].second++;

@@ -59,7 +59,7 @@ class ModelAsset : public Asset {
     const aiNodeAnim *findNodeAnimation(aiAnimation *pAnimation, std::string basic_string) const;
 
 public:
-    ModelAsset(AssetManager *assetManager, const std::vector<std::string> &fileList);
+    ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
 
     bool isAnimated() const;
 
