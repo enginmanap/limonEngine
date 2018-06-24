@@ -187,6 +187,8 @@ private:
     GLuint allMaterialsUBOLocation;
     GLuint allModelsUBOLocation;
 
+    uint32_t activeMaterialIndex;
+
     GLuint depthOnlyFrameBufferDirectional;
     GLuint depthMapDirectional;
 
@@ -258,7 +260,7 @@ private:
 
     void fillUniformMap(const GLuint program, std::unordered_map<std::string, Uniform *> &uniformMap) const;
 
-    void attachGeneralUBOs(const GLuint program) const;
+    void attachGeneralUBOs(const GLuint program);
     void bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
                                const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
                                const uint_fast32_t attachPointer);
@@ -268,9 +270,9 @@ public:
 
     ~GLHelper();
 
-    void attachModelUBO(const uint32_t program, const uint32_t modelID) const;
+    void attachModelUBO(const uint32_t program, const uint32_t modelID);
 
-    void attachMaterialUBO(const uint32_t program, const uint32_t materialID) const;
+    void attachMaterialUBO(const uint32_t program, const uint32_t materialID);
 
     uint32_t getNextMaterialIndex() {
         return nextMaterialIndex++;

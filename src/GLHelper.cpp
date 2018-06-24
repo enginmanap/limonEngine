@@ -154,7 +154,7 @@ void GLHelper::fillUniformMap(const GLuint program, std::unordered_map<std::stri
     delete[] name;
 }
 
-void GLHelper::attachModelUBO(const uint32_t program, const uint32_t modelID) const {
+void GLHelper::attachModelUBO(const uint32_t program, const uint32_t modelID){
     GLuint allMaterialsAttachPoint = 4;
 
     int uniformIndex = glGetUniformBlockIndex(program, "ModelInformationBlock");
@@ -167,7 +167,11 @@ void GLHelper::attachModelUBO(const uint32_t program, const uint32_t modelID) co
     }
 }
 
-void GLHelper::attachMaterialUBO(const uint32_t program, const uint32_t materialID) const {
+void GLHelper::attachMaterialUBO(const uint32_t program, const uint32_t materialID){
+    if(activeMaterialIndex == materialID) {
+        return;
+    }
+
     GLuint allMaterialsAttachPoint = 3;
 
     int uniformIndex = glGetUniformBlockIndex(program, "MaterialInformationBlock");
@@ -178,9 +182,12 @@ void GLHelper::attachMaterialUBO(const uint32_t program, const uint32_t material
                           materialUniformSize);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
+
+    activeMaterialIndex = materialID;
+    checkErrors("attachMaterialUBO");
 }
 
-void GLHelper::attachGeneralUBOs(const GLuint program) const {//Attach the light block to our UBO
+void GLHelper::attachGeneralUBOs(const GLuint program){//Attach the light block to our UBO
 
     GLuint lightAttachPoint = 0, playerAttachPoint = 1;
 
