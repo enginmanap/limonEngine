@@ -9,10 +9,11 @@
 #include "Animations/AnimationAssimp.h"
 #include "../GLHelper.h"
 
-ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string> &fileList) : Asset(assetManager,
-                                                                                                     fileList),
-                                                                                               boneIDCounter(0),
-                                                                                               boneIDCounterPerMesh(0) {
+ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList)
+        : Asset(assetManager, assetID,
+                fileList),
+          boneIDCounter(0),
+          boneIDCounterPerMesh(0) {
     if (fileList.empty()) {
         std::cerr << "Model load failed because file name vector is empty." << std::endl;
         exit(-1);

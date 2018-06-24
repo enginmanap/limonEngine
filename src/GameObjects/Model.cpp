@@ -15,7 +15,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
     //set up the rigid body
     this->triangleCount = 0;
     this->vao = 0;
-    this->ebo = 0;//these are not per Model, but per Mesh
+    this->ebo = 0;//these are not per Model, but per Mesh, and comes from ModelAsset->MeshAsset, shared between instances
     this->centerOffset = modelAsset->getCenterOffset();
     this->centerOffsetMatrix = glm::translate(glm::mat4(1.0f), centerOffset);
 

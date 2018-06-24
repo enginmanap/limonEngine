@@ -5,8 +5,8 @@
 #include "TextureAsset.h"
 #include "../GLHelper.h"
 
-TextureAsset::TextureAsset(AssetManager* assetManager, const std::vector<std::string> &files) :
-        Asset(assetManager, files) {
+TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files) :
+        Asset(assetManager, assetID, files) {
     if (files.empty()) {
         std::cerr << "Texture load failed because file name vector is empty." << std::endl;
         exit(-1);

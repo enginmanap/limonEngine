@@ -17,7 +17,7 @@ protected:
     uint32_t textureBufferID;
 
 public:
-    TextureAsset(AssetManager* assetManager, const std::vector<std::string> &files);
+    TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files);
 
     ~TextureAsset();
 
