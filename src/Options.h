@@ -18,14 +18,14 @@ public:
 private:
     Logger *logger{};
 
-    glm::vec3 walkSpeed = glm::vec3(5, 0, 5);
-    glm::vec3 runSpeed = glm::vec3(8, 0, 8);
-    glm::vec3 moveSpeed = walkSpeed;
+    glm::vec3 walkSpeed = glm::vec3(8, 0, 8);
+    glm::vec3 runSpeed = glm::vec3(12, 0, 12);
+    glm::vec3& moveSpeed = walkSpeed;
     glm::vec3 freeMovementSpeed = glm::vec3(0.1f,0.1f,0.1f);
     float jumpFactor = 7.0f;
     float lookAroundSpeed = -2.5f;
-    unsigned int screenHeight = 1080;
-    unsigned int screenWidth = 1920;
+    uint32_t screenHeight = 1080;
+    uint32_t screenWidth = 1920;
 
     uint32_t shadowMapDirectionalWidth = 2048;
     uint32_t shadowMapDirectionalHeight = 2048; //TODO these values should be parameters
@@ -34,7 +34,9 @@ private:
     float lightOrthogonalProjectionNearPlane = 1.0f;
     float  lightOrthogonalProjectionFarPlane = 100.0f;
     glm::vec4 lightOrthogonalProjectionValues = glm::vec4(-100.0f, 100.0f, -100.0f, 100.0f);
-    glm::vec3 lightPerspectiveProjectionValues = glm::vec3((float)shadowMapDirectionalWidth/(float)shadowMapDirectionalHeight, 1.0f, 100.0f);
+    float lightPerspectiveProjectionNearPlane = 1.0f;
+    float  lightPerspectiveProjectionFarPlane = 100.0f;
+    glm::vec3 lightPerspectiveProjectionValues = glm::vec3((float)shadowMapPointWidth/(float)shadowMapPointHeight, lightPerspectiveProjectionNearPlane, lightPerspectiveProjectionFarPlane);
     //aspect,near,far
 
     uint32_t debugDrawBufferSize = 1000;
@@ -44,7 +46,13 @@ private:
     int drawableWidth, drawableHeight;
     int windowWidth, windowHeight;
     bool isWindowInFocus;
+
+    void loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec3&);
+    void loadVec4(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec4&);
 public:
+
+    bool loadOptions(const std::string& optionsFileName);
+
     void *getImeWindowHandle() const {
         return imeWindowHandle;
     }
