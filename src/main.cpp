@@ -30,6 +30,8 @@ int main(int argc, char *argv[]) {
     Uint32 worldUpdateTime = 1000 / 60;//This value is used to update world on a locked Timestep
     Options options;
 
+    options.loadOptions("./Data/Options.xml");
+
     SDL2Helper sdlHelper(PROGRAM_NAME.c_str(), &options);
 #ifdef _WIN32
     sdlHelper.loadSharedLibrary("libcustomTriggers.dll");
