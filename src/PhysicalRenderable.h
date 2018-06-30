@@ -16,7 +16,6 @@ protected:
     glm::vec3 aabbMax, aabbMin;
     const float mass;
     btRigidBody *rigidBody;
-    bool dirtyForWorldTransform = true;
     bool disconnected = false;
 
 public:
@@ -53,7 +52,7 @@ public:
 
     }
 
-    void updateTransformFromPhysics();
+    virtual void updateTransformFromPhysics();
 
     virtual void renderWithProgram(GLSLProgram &program) = 0;
 
@@ -95,7 +94,6 @@ public:
         this->aabbMin = GLMConverter::BltToGLM(abMin);
         this->aabbMax = GLMConverter::BltToGLM(abMax);
         this->dirtyForFrustum = true;
-        this->dirtyForWorldTransform = true;
     }
 };
 

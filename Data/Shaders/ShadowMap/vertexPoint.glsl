@@ -2,6 +2,8 @@
 
 #define NR_POINT_LIGHTS 4
 #define NR_BONE 128
+#define NR_MAX_MODELS 1000
+
 
 layout (location = 2) in vec4 position;
 layout (location = 5) in uvec4 boneIDs;
@@ -30,8 +32,12 @@ layout (std140) uniform MaterialInformationBlock {
 } material;
 
 layout (std140) uniform ModelInformationBlock {
-    mat4 worldTransform;
+    mat4 worldTransform[NR_MAX_MODELS];
 } model;
+
+layout (std140) uniform ModelIndexBlock {
+    uvec4 models[NR_MAX_MODELS];
+} instance;
 
 uniform mat4 boneTransformArray[NR_BONE];
 uniform int renderLightIndex;
@@ -48,7 +54,7 @@ void main() {
     }
     for(int i = 0; i < NR_POINT_LIGHTS; i++){
         if(i == renderLightIndex){
-            gl_Position = model.worldTransform * (BoneTransform * vec4(vec3(position), 1.0));
+            gl_Position = model.worldTransform[instance.models[gl_InstanceID].x] * (BoneTransform * vec4(vec3(position), 1.0));
         }
     }
 }

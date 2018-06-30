@@ -154,25 +154,35 @@ void GLHelper::fillUniformMap(const GLuint program, std::unordered_map<std::stri
     delete[] name;
 }
 
-void GLHelper::attachModelUBO(const uint32_t program, const uint32_t modelID){
-    GLuint allMaterialsAttachPoint = 4;
+void GLHelper::attachModelUBO(const uint32_t program) {
+    GLuint allModelsAttachPoint = 7;
 
     int uniformIndex = glGetUniformBlockIndex(program, "ModelInformationBlock");
     if (uniformIndex >= 0) {
         glBindBuffer(GL_UNIFORM_BUFFER, allModelsUBOLocation);
-        glUniformBlockBinding(program, uniformIndex, allMaterialsAttachPoint);
-        glBindBufferRange(GL_UNIFORM_BUFFER, allMaterialsAttachPoint, allModelsUBOLocation, modelID * modelUniformSize,
-                          modelUniformSize);
+        glUniformBlockBinding(program, uniformIndex, allModelsAttachPoint);
+        glBindBufferRange(GL_UNIFORM_BUFFER, allModelsAttachPoint, allModelsUBOLocation, 0,
+                          sizeof(glm::mat4)* NR_MAX_MODELS);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
+}
+
+void GLHelper::attachModelIndicesUBO(const uint32_t programID) {
+    GLuint allModelIndexesAttachPoint = 8;
+
+    int uniformIndex = glGetUniformBlockIndex(programID, "ModelIndexBlock");
+    if (uniformIndex >= 0) {
+        glBindBuffer(GL_UNIFORM_BUFFER, allModelIndexesUBOLocation);
+        glUniformBlockBinding(programID, uniformIndex, allModelIndexesAttachPoint);
+        glBindBufferRange(GL_UNIFORM_BUFFER, allModelIndexesAttachPoint, allModelIndexesUBOLocation, 0,
+                          sizeof(uint32_t) * NR_MAX_MODELS);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 }
 
 void GLHelper::attachMaterialUBO(const uint32_t program, const uint32_t materialID){
-    if(activeMaterialIndex == materialID) {
-        return;
-    }
 
-    GLuint allMaterialsAttachPoint = 3;
+    GLuint allMaterialsAttachPoint = 9;
 
     int uniformIndex = glGetUniformBlockIndex(program, "MaterialInformationBlock");
     if (uniformIndex >= 0) {
@@ -292,11 +302,13 @@ GLHelper::GLHelper(Options *options): options(options) {
         materialUniformSize = uniformBufferAlignSize;
     }
 
-    if(uniformBufferAlignSize > modelUniformSize) {
-        modelUniformSize = uniformBufferAlignSize;
-    }
 
     std::cout << "Uniform alignment size is " << uniformBufferAlignSize << std::endl;
+
+    GLint maxVertexUniformBlockCount = 0;
+    glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS, &maxVertexUniformBlockCount);
+
+    std::cout << "Uniform maxVertexUniformBlockCount size is " << maxVertexUniformBlockCount << std::endl;
 
 
     //create the Light Uniform Buffer Object for later usage
@@ -317,11 +329,18 @@ GLHelper::GLHelper(Options *options): options(options) {
     glBufferData(GL_UNIFORM_BUFFER, materialUniformSize * NR_MAX_MATERIALS, nullptr, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    //create material uniform buffer object
+    //create model uniform buffer object
     glGenBuffers(1, &allModelsUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, allModelsUBOLocation);
     glBufferData(GL_UNIFORM_BUFFER, modelUniformSize * NR_MAX_MODELS, nullptr, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    //create model index uniform buffer object
+    glGenBuffers(1, &allModelIndexesUBOLocation);
+    glBindBuffer(GL_UNIFORM_BUFFER, allModelIndexesUBOLocation);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(uint32_t) * NR_MAX_MODELS, nullptr, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
 
     //create depth buffer and texture for directional shadow map
     glGenFramebuffers(1, &depthOnlyFrameBufferDirectional);
@@ -586,6 +605,27 @@ void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, 
     //state->setProgram(0);
 
     checkErrors("render");
+}
+
+void GLHelper::renderInstanced(GLuint program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
+                               uint32_t instanceCount) {
+    if (program == 0) {
+        std::cerr << "No program render requested." << std::endl;
+        return;
+    }
+    state->setProgram(program);
+
+    // Set up for a glDrawElements call
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+
+    renderTriangleCount = renderTriangleCount + (triangleCount * instanceCount);
+    glDrawElementsInstanced(GL_TRIANGLES, triangleCount, GL_UNSIGNED_INT, nullptr, instanceCount);
+    glBindVertexArray(0);
+    //state->setProgram(0);
+
+    checkErrors("renderInstanced");
+
 }
 
 bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 &matrix) {
@@ -864,10 +904,20 @@ void GLHelper::setMaterial(const Material* material) {
 
 void GLHelper::setModel(const uint32_t modelID, const glm::mat4& worldTransform) {
     glBindBuffer(GL_UNIFORM_BUFFER, allModelsUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, modelID * modelUniformSize,
-                    sizeof(glm::mat4), glm::value_ptr(worldTransform));
+    glBufferSubData(GL_UNIFORM_BUFFER, modelID * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(worldTransform));
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setModel");
+}
+
+void GLHelper::setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) {
+    std::vector<glm::uvec4> temp;
+    for (uint32_t i = 0; i < modelIndicesList.size(); ++i) {
+        temp.push_back(glm::uvec4(modelIndicesList[i], 0,0,0));
+    }
+    glBindBuffer(GL_UNIFORM_BUFFER, allModelIndexesUBOLocation);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::uvec4) * modelIndicesList.size(), glm::value_ptr(temp.at(0)));
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    checkErrors("setModelIndexesUBO");
 }
 
 void GLHelper::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform) {

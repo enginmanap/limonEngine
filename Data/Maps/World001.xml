@@ -2,6 +2,26 @@
     <Name>./Data/Maps/CustomWorld001.xml</Name>
     <Objects>
         <Object>
+            <File>./Data/Models/ArmyPilot/ArmyPilot.mesh.xml</File>
+            <Mass>0</Mass>
+            <ID>21</ID>
+            <AI>True</AI>
+            <AI_ID>22</AI_ID>
+            <Animation>Idle</Animation>
+            <Transformation>
+                <Scale>
+                    <X>0.02</X>
+                    <Y>0.02</Y>
+                    <Z>0.02</Z>
+                </Scale>
+                <Translate>
+                    <X>10.0</X>
+                    <Y>1.0</Y>
+                    <Z>20.0</Z>
+                </Translate>
+            </Transformation>
+        </Object>
+        <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Disconnected>False</Disconnected>
             <Mass>0</Mass>

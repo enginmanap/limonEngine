@@ -32,10 +32,6 @@ layout (std140) uniform MaterialInformationBlock {
     int isMap; 	//using the last 4, ambient=8, diffuse=4, specular=2, opacity = 1
 } material;
 
-layout (std140) uniform ModelInformationBlock {
-    mat4 worldTransform;
-} model;
-
 in VS_FS {
     vec3 boneColor;
     vec2 textureCoord;

@@ -1,6 +1,7 @@
 #version 330
 
 #define NR_POINT_LIGHTS 4
+#define NR_MAX_MODELS 1000
 
 layout (location = 2) in vec4 position;
 layout (location = 3) in vec2 textureCoordinate;
@@ -31,16 +32,13 @@ struct LightSource
     int type; //0 Directional, 1 point
 };
 
-layout (std140) uniform MaterialInformationBlock {
-    vec3 ambient;
-    float shininess;
-    vec3 diffuse;
-    int isMap; 	//using the last 4, ambient=8, diffuse=4, specular=2, opacity = 1
-} material;
-
 layout (std140) uniform ModelInformationBlock {
-    mat4 worldTransform;
+    mat4 worldTransform[NR_MAX_MODELS];
 } model;
+
+layout (std140) uniform ModelIndexBlock {
+    uvec4 models[NR_MAX_MODELS];
+} instance;
 
 layout (std140) uniform LightSourceBlock
 {
@@ -50,12 +48,13 @@ layout (std140) uniform LightSourceBlock
 void main(void)
 {
     to_fs.textureCoord = textureCoordinate;
-    to_fs.normal = normalize(mat3(transpose(inverse(model.worldTransform))) * normal);
-    to_fs.fragPos = vec3(model.worldTransform * position);
+    mat4 currentWorldTransform = model.worldTransform[instance.models[gl_InstanceID].x];
+    to_fs.normal = normalize(mat3(transpose(inverse(currentWorldTransform))) * normal);
+    to_fs.fragPos = vec3(currentWorldTransform * position);
     for(int i = 0; i < NR_POINT_LIGHTS; i++){
         if(LightSources.lights[i].type == 0) {
             to_fs.fragPosLightSpace[i] = LightSources.lights[i].lightSpaceMatrix * vec4(to_fs.fragPos, 1.0);
         }
     }
-    gl_Position = playerTransforms.cameraProjection * (model.worldTransform * position);
+    gl_Position = playerTransforms.cameraProjection * (currentWorldTransform * position);
 }
