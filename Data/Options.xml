@@ -1,6 +1,6 @@
 <Options>
-    <screenHeight>1080</screenHeight>
     <screenWidth>1920</screenWidth>
+    <screenHeight>1080</screenHeight>
     <shadowMapDirectionalWidth>4096</shadowMapDirectionalWidth>
     <shadowMapDirectionalHeight>4096</shadowMapDirectionalHeight>
     <shadowMapPointWidth>512</shadowMapPointWidth>

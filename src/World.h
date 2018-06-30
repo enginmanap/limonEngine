@@ -79,10 +79,27 @@ class World {
     friend class WorldSaver; //Those classes require direct access to some of the internal data
 
     enum PlayerModes {DEBUG_MODE, EDITOR_MODE, PHYSICAL_MODE, PAUSED_MODE}; //PAUSED mode is used by quit logic
+
+    std::vector<uint32_t > modelIndicesBuffer;
     AssetManager* assetManager;
     Options* options;
     uint32_t nextWorldID = 1;
     std::map<uint32_t, PhysicalRenderable *> objects;
+
+
+    /*
+     * The variables below are redudant, but they allow instanced rendering, and saving frustum occlusion results.
+     */
+    std::vector<Model*> updatedModels;
+    std::vector<std::map<uint32_t , std::set<Model*>>> modelsInLightFrustum;
+    std::vector<std::set<Model*>> animatedModelsInLightFrustum; //since animated models can't be instanced, they don't need to be in a map etc.
+
+    std::map<uint32_t , std::set<Model*>> modelsInCameraFrustum;
+    std::set<Model*> animatedModelsInFrustum; //since animated models can't be instanced, they don't need to be in a map etc.
+    std::set<Model*> animatedModelsInAnyFrustum;
+
+    /************************* End of redudant variables ******************************************/
+
     std::map<uint32_t, GUIText*> guiElements;
     std::map<uint32_t, TriggerObject*> triggers;
     std::vector<ActionForOnload* > onLoadActions;
@@ -199,6 +216,8 @@ class World {
 
     void addModelToWorld(Model *xmlModel);
 
+    void fillVisibleObjects();
+
     GameObject * getPointedObject() const;
 
 
@@ -221,6 +240,10 @@ class World {
     void switchToDebugMode(InputHandler &inputHandler);
 
     void ImGuiFrameSetup();
+
+    void setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bool removePossible);
+
+    void setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRenderable *PhysicalRenderable, bool removePossible);
 
     //API methods
 

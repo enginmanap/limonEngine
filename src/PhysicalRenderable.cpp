@@ -11,5 +11,6 @@ void PhysicalRenderable::updateTransformFromPhysics() {
     rigidBody->getMotionState()->getWorldTransform(trans);
 
     transformation.setTransformationsNotPropagate(GLMConverter::BltToGLM(trans.getOrigin()), GLMConverter::BltToGLM(trans.getRotation()));
-    updateAABB();
+    //ATTENTION if the transform propagates, then the change will be send to physics, then this method will be called, infinite loop
+    this->updateAABB();
 }

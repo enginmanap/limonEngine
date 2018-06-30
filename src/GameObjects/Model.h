@@ -24,7 +24,6 @@ class Model : public PhysicalRenderable, public GameObject {
     struct MeshMeta {
         MeshAsset* mesh = nullptr;
         GLSLProgram* program = nullptr;
-        bool isSet = false;
     };
     Actor *AIActor = nullptr;
     AssetManager *assetManager;
@@ -57,7 +56,17 @@ public:
 
     Model(const Model& otherModel, uint32_t objectID); //kind of copy constructor, except ID
 
-    void setSamplers(GLSLProgram *program);
+    void transformChangeCallback() {
+        PhysicalRenderable::updatePhysicsFromTransform();
+        glHelper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
+    }
+
+    void updateTransformFromPhysics() override {
+        PhysicalRenderable::updateTransformFromPhysics();
+        glHelper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
+    }
+
+    void setSamplersAndUBOs(GLSLProgram *program);
     void activateTexturesOnly(const Material *material);
 
     bool setupRenderVariables(MeshMeta *meshMetaData);
@@ -67,6 +76,10 @@ public:
     void render();
 
     void renderWithProgram(GLSLProgram &program);
+
+    void renderInstanced(std::vector<uint32_t> &modelIndices);
+
+    void renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GLSLProgram &program);
 
     bool isAnimated() const { return animated;}
 
@@ -106,6 +119,11 @@ public:
     void detachAI() {
         this->AIActor = nullptr;
     }
+
+    uint32_t getAssetID() {
+        return modelAsset->getAssetID();
+    }
+
 };
 
 #endif //LIMONENGINE_MODEL_H

@@ -27,7 +27,7 @@
 #endif/*__APPLE__*/
 
 #define NR_POINT_LIGHTS 4
-#define NR_MAX_MODELS 1000
+#define NR_MAX_MODELS (1000)
 #define NR_MAX_MATERIALS 2000
 
 #include "Options.h"
@@ -186,6 +186,7 @@ private:
     GLuint playerUBOLocation;
     GLuint allMaterialsUBOLocation;
     GLuint allModelsUBOLocation;
+    GLuint allModelIndexesUBOLocation;
 
     uint32_t activeMaterialIndex;
 
@@ -270,7 +271,7 @@ public:
 
     ~GLHelper();
 
-    void attachModelUBO(const uint32_t program, const uint32_t modelID);
+    void attachModelUBO(const uint32_t program);
 
     void attachMaterialUBO(const uint32_t program, const uint32_t materialID);
 
@@ -401,6 +402,13 @@ public:
     void setMaterial(const Material *material);
 
     void setModel(const uint32_t modelID, const glm::mat4 &worldTransform);
+
+    void setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList);
+
+    void attachModelIndicesUBO(const uint32_t programID);
+
+    void renderInstanced(GLuint program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
+                         uint32_t instanceCount);
 };
 
 #endif //LIMONENGINE_GLHELPER_H

@@ -85,18 +85,26 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
 
         if (AI_SUCCESS == currentMaterial->Get(AI_MATKEY_COLOR_AMBIENT, color)) {
             newMaterial->setAmbientColor(GLMConverter::AssimpToGLM(color));
+        } else {
+            newMaterial->setAmbientColor(glm::vec3(0,0,0));
         }
 
         if (AI_SUCCESS == currentMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color)) {
             newMaterial->setDiffuseColor(GLMConverter::AssimpToGLM(color));
+        } else {
+            newMaterial->setDiffuseColor(glm::vec3(0,0,0));
         }
 
         if (AI_SUCCESS == currentMaterial->Get(AI_MATKEY_COLOR_SPECULAR, color)) {
             newMaterial->setSpecularColor(GLMConverter::AssimpToGLM(color));
+        } else {
+            newMaterial->setSpecularColor(glm::vec3(0,0,0));
         }
 
         if (AI_SUCCESS == currentMaterial->Get(AI_MATKEY_SHININESS, transferFloat)) {
             newMaterial->setSpecularExponent(transferFloat);
+        } else {
+            newMaterial->setSpecularExponent(0);
         }
 
         if ((currentMaterial->GetTextureCount(aiTextureType_AMBIENT) > 0)) {
