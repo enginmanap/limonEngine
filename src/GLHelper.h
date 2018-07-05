@@ -200,8 +200,8 @@ private:
 
     const uint_fast32_t lightUniformSize = (sizeof(glm::mat4) * 7) + (2 * sizeof(glm::vec4));
     const uint32_t playerUniformSize = 3 * sizeof(glm::mat4) + sizeof(glm::vec4);
-    uint_fast32_t materialUniformSize = 2 * sizeof(glm::vec3) + sizeof(float) + sizeof(GLuint);
-    uint_fast32_t modelUniformSize = sizeof(glm::mat4);
+    int32_t materialUniformSize = 2 * sizeof(glm::vec3) + sizeof(float) + sizeof(GLuint);
+    int32_t modelUniformSize = sizeof(glm::mat4);
 
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;
