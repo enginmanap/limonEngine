@@ -556,8 +556,6 @@ void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional, 0, index);
 
-    glClear(GL_DEPTH_BUFFER_BIT);
-
     glCullFace(GL_FRONT);
     //glDisable(GL_CULL_FACE);
 
@@ -579,7 +577,6 @@ void GLHelper::switchRenderToShadowMapPoint() {
 void GLHelper::switchRenderToDefault() {
     glViewport(0, 0, screenWidth, screenHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     //we bind shadow map to last texture unit
     state->attach2DTextureArray(depthMapDirectional, maxTextureImageUnits - 1);
     state->attachCubemapArray(depthCubemapPoint, maxTextureImageUnits - 2);
