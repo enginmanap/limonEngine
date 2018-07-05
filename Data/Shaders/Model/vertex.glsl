@@ -48,7 +48,9 @@ layout (std140) uniform LightSourceBlock
 void main(void)
 {
     to_fs.textureCoord = textureCoordinate;
-    mat4 currentWorldTransform = model.worldTransform[instance.models[gl_InstanceID].x];
+    int modelVectorIndex = gl_InstanceID / 4;
+    int modelVectorPosition = gl_InstanceID % 4;
+    mat4 currentWorldTransform = model.worldTransform[instance.models[modelVectorIndex][modelVectorPosition]];
     to_fs.normal = normalize(mat3(transpose(inverse(currentWorldTransform))) * normal);
     to_fs.fragPos = vec3(currentWorldTransform * position);
     for(int i = 0; i < NR_POINT_LIGHTS; i++){
