@@ -234,45 +234,9 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
              (*modelIt)->setupForTime(gameTime);
          }
 
-
-
-        /*
-        for (auto it = objects.begin(); it != objects.end(); ++it) {
-            if (!it->second->getRigidBody()->isStaticOrKinematicObject() && it->second->getRigidBody()->isActive()) {
-                it->second->updateTransformFromPhysics();
-            }
-            it->second->setIsInFrustum(glHelper->isInFrustum(it->second->getAabbMin(), it->second->getAabbMax()));
-            if(it->second->isIsInFrustum()) {
-                it->second->setupForTime(gameTime);
-            }
-            for(size_t i = 0; i < lights.size(); i++) {
-                if(it->second->isDirtyForFrustum() ||lights[i]->isFrustumChanged()) {
-                    it->second->setIsInLightFrustum(i, lights[i]->isShadowCaster(it->second->getAabbMin(),
-                                                                                 it->second->getAabbMax(),
-                                                                                 it->second->getTransformation()->getTranslate()));
-                    it->second->setCleanForFrustum();
-                }
-            }
-        }
-        for(size_t i = 0; i < lights.size(); i++) {
-            lights[i]->setFrustumChanged(false);
-        }
-         */
-
     } else {
 
          fillVisibleObjects();
-         /*
-        for (auto it = objects.begin(); it != objects.end(); ++it) {
-            it->second->setIsInFrustum(glHelper->isInFrustum(it->second->getAabbMin(), it->second->getAabbMax()));
-            for(size_t i = 0; i < lights.size(); i++) {
-                it->second->setIsInLightFrustum(i, lights[i]->isShadowCaster(it->second->getAabbMin(),
-                                                                             it->second->getAabbMax(),
-                                                                             it->second->getTransformation()->getTranslate()));
-            }
-        }
-            dynamicsWorld->updateAabbs();
-            */
     }
 
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
@@ -693,68 +657,6 @@ GameObject * World::getPointedObject() const {
 }
 
 void World::render() {
-/*
-    for (unsigned int i = 0; i < lights.size(); ++i) {
-        if(lights[i]->getLightType() != Light::DIRECTIONAL) {
-            continue;
-        }
-        //generate shadow map
-        glHelper->switchRenderToShadowMapDirectional(i);
-        //FIXME why are these set here?
-        shadowMapProgramDirectional->setUniform("renderLightIndex", (int)i);
-        for (auto it = objects.begin(); it != objects.end(); ++it) {
-            if(it->second->isInLightFrustum(i)) { // FIXME this should have " && it->second->isIsInFrustum()" but we are calculating the frustum planes without shadows
-                std::vector<uint32_t > indexes;
-                indexes.push_back(dynamic_cast<Model*>(it->second)->getWorldObjectID());
-                dynamic_cast<Model*>(it->second)->renderWithProgramInstanced(indexes, *shadowMapProgramDirectional);
-            }
-        }
-    }
- */
-
-/*
-    for (unsigned int i = 0; i < lights.size(); ++i) {
-        if(lights[i]->getLightType() != Light::DIRECTIONAL) {
-            continue;
-        }
-        //generate shadow map
-        glHelper->switchRenderToShadowMapDirectional(i);
-        //FIXME why are these set here?
-        shadowMapProgramDirectional->setUniform("renderLightIndex", (int)i);
-        for (auto modelIterator = modelsByAssetID.begin(); modelIterator != modelsByAssetID.end(); ++modelIterator) {
-            //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-            std::vector<Model*> modelList = modelIterator->second;
-            modelIndicesBuffer.clear();
-            uint32_t instanceCount = 0;
-            Model* firstModel = nullptr;
-            for (size_t currentModelIndex = 0; currentModelIndex < modelList.size(); ++currentModelIndex) {
-                if(modelList[currentModelIndex]->isAnimated()) {
-                    //Animated models can't be instanced as static ones, so I am rendering them directly
-                    if(modelList[currentModelIndex]->isInLightFrustum(i)) {
-                        std::vector<uint32_t > temp;
-                        temp.push_back(modelList[currentModelIndex]->getWorldObjectID());
-                        modelList[currentModelIndex]->renderWithProgramInstanced(temp,*shadowMapProgramDirectional);
-                    }
-                } else {
-                    //this is the instancing part. since only setting they have is world transform, build world transform array.
-                    if(modelList[currentModelIndex]->isInLightFrustum(i)) {
-                        if(firstModel == nullptr) {
-                            firstModel = modelList[currentModelIndex];
-                        }
-                        assert(instanceCount < NR_MAX_MODELS);
-                        modelIndicesBuffer.push_back(modelList[currentModelIndex]->getWorldObjectID());
-                        instanceCount++;
-                    }
-                }
-            }
-            //at this point, we should render instanced if not animated
-            if(instanceCount > 0) {
-                firstModel->renderWithProgramInstanced(modelIndicesBuffer, *shadowMapProgramDirectional);
-            }
-
-        }
-    }
-    */
 
     for (unsigned int i = 0; i < lights.size(); ++i) {
         if(lights[i]->getLightType() != Light::DIRECTIONAL) {
@@ -816,77 +718,10 @@ void World::render() {
         }
     }
 
-/*
-    for (unsigned int i = 0; i < lights.size(); ++i) {
-        if(lights[i]->getLightType() != Light::POINT) {
-            continue;
-        }
-        //generate shadow map
-        glHelper->switchRenderToShadowMapPoint();
-        //FIXME why are these set here?
-        shadowMapProgramPoint->setUniform("renderLightIndex", (int)i);
-        for (auto it = objects.begin(); it != objects.end(); ++it) {
-            (*it).second->renderWithProgram(*shadowMapProgramPoint);
-        }
-    }
-*/
-
-/*
-    for (unsigned int i = 0; i < lights.size(); ++i) {
-        if(lights[i]->getLightType() != Light::POINT) {
-            continue;
-        }
-        //generate shadow map
-        glHelper->switchRenderToShadowMapPoint();
-        //FIXME why are these set here?
-        shadowMapProgramDirectional->setUniform("renderLightIndex", (int)i);
-        for (auto modelIterator = modelsByAssetID.begin(); modelIterator != modelsByAssetID.end(); ++modelIterator) {
-            //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-            std::vector<Model*> modelList = modelIterator->second;
-            modelIndicesBuffer.clear();
-            uint32_t instanceCount = 0;
-            Model* firstModel = nullptr;
-            for (size_t currentModelIndex = 0; currentModelIndex < modelList.size(); ++currentModelIndex) {
-                if(modelList[currentModelIndex]->isAnimated()) {
-                    //Animated models can't be instanced as static ones, so I am rendering them directly
-                    if(modelList[currentModelIndex]->isInLightFrustum(i)) {
-                        std::vector<uint32_t > temp;
-                        temp.push_back(modelList[currentModelIndex]->getWorldObjectID());
-                        modelList[currentModelIndex]->renderWithProgramInstanced(temp, *shadowMapProgramPoint);
-                    }
-                } else {
-                    //this is the instancing part. since only setting they have is world transform, build world transform array.
-                    if(modelList[currentModelIndex]->isInLightFrustum(i)) {
-                        if(firstModel == nullptr) {
-                            firstModel = modelList[currentModelIndex];
-                        }
-                        assert(instanceCount < NR_MAX_MODELS);
-                        modelIndicesBuffer.push_back(modelList[currentModelIndex]->getWorldObjectID());
-                        instanceCount++;
-                    }
-                }
-            }
-            //at this point, we should render instanced if not animated
-            if(instanceCount > 0) {
-                firstModel->renderWithProgramInstanced(modelIndicesBuffer, *shadowMapProgramPoint);
-            }
-
-        }
-    }
-*/
     glHelper->switchRenderToDefault();
     if(sky!=nullptr) {
         sky->render();//this is moved to the top, because transparency can create issues if this is at the end
     }
-
-    /*
-    for (auto it = objects.begin(); it != objects.end(); ++it) {
-        if(it->second->isIsInFrustum()) {
-            (*it).second->render();
-        }
-    }
-*/
-
 
     for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
         //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
@@ -909,41 +744,6 @@ void World::render() {
         (*modelIterator)->renderInstanced(temp);
     }
 
-
-    /*
-    for (auto modelIterator = modelsByAssetID.begin(); modelIterator != modelsByAssetID.end(); ++modelIterator) {
-        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-        std::vector<Model*> modelList = modelIterator->second;
-        modelIndicesBuffer.clear();
-        uint32_t instanceCount = 0;
-        Model* firstModel = nullptr;
-        for (size_t i = 0; i < modelList.size(); ++i) {
-            if(modelList[i]->isAnimated()) {
-                //Animated models can't be instanced as static ones, so I am rendering them directly
-                if(modelList[i]->isIsInFrustum()) {
-                    std::vector<uint32_t > temp;
-                    temp.push_back(modelList[i]->getWorldObjectID());
-                    modelList[i]->renderInstanced(temp);
-                }
-            } else {
-                //this is the instancing part. since only setting they have is world transform, build world transform array.
-                if(modelList[i]->isIsInFrustum()) {
-                    if(firstModel == nullptr) {
-                        firstModel = modelList[i];
-                    }
-                    assert(instanceCount < NR_MAX_MODELS);
-                    modelIndicesBuffer.push_back(modelList[i]->getWorldObjectID());
-                    instanceCount++;
-                }
-            }
-        }
-        //at this point, we should render instanced if not animated
-        if(instanceCount > 0) {
-            firstModel->renderInstanced(modelIndicesBuffer);
-        }
-
-    }
-*/
     dynamicsWorld->debugDrawWorld();
     if (this->dynamicsWorld->getDebugDrawer()->getDebugMode() != btIDebugDraw::DBG_NoDebug) {
         debugDrawer->drawLine(btVector3(0, 0, 0), btVector3(0, 250, 0), btVector3(1, 1, 1));
