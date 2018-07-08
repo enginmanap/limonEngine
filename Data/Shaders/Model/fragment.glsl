@@ -17,7 +17,7 @@ struct LightSource
     vec3 position;
     float farPlanePoint;
     vec3 color;
-    int type; //0 Directional, 1 point
+    int type; //1 Directional, 2 point
 };
 
 layout (std140) uniform LightSourceBlock
@@ -134,27 +134,29 @@ void main(void)
 
         float shadow;
         for(int i=0; i < NR_POINT_LIGHTS; ++i){
-            // Diffuse Lighting
-            vec3 lightDirectory = normalize(LightSources.lights[i].position - from_vs.fragPos);
-            float diffuseRate = max(dot(from_vs.normal, lightDirectory), 0.0);
-            // Specular
-            vec3 viewDirectory = normalize(playerTransforms.position - from_vs.fragPos);
-            vec3 reflectDirectory = reflect(-lightDirectory, from_vs.normal);
-            float specularRate = max(dot(viewDirectory, reflectDirectory), 0.0);
-            if(specularRate != 0 && material.shininess != 0) {
-                specularRate = pow(specularRate, material.shininess);
-                //specularRate = specularRate * materialSpecular;//we should get specularMap to here
-            } else {
-                specularRate = 0;
+            if(LightSources.lights[i].type != 0) {
+                // Diffuse Lighting
+                vec3 lightDirectory = normalize(LightSources.lights[i].position - from_vs.fragPos);
+                float diffuseRate = max(dot(from_vs.normal, lightDirectory), 0.0);
+                // Specular
+                vec3 viewDirectory = normalize(playerTransforms.position - from_vs.fragPos);
+                vec3 reflectDirectory = reflect(-lightDirectory, from_vs.normal);
+                float specularRate = max(dot(viewDirectory, reflectDirectory), 0.0);
+                if(specularRate != 0 && material.shininess != 0) {
+                    specularRate = pow(specularRate, material.shininess);
+                    //specularRate = specularRate * materialSpecular;//we should get specularMap to here
+                } else {
+                    specularRate = 0;
+                }
+                float viewDistance = length(playerTransforms.position - from_vs.fragPos);
+                float bias = 0.0;
+                if(LightSources.lights[i].type == 1) {//directional light
+                    shadow = ShadowCalculationDirectional(from_vs.fragPosLightSpace[i], normalize(LightSources.lights[i].position - from_vs.fragPos), bias, viewDistance, i);
+                } else if (LightSources.lights[i].type == 2){//point light
+                    shadow = ShadowCalculationPoint(from_vs.fragPos, bias, viewDistance, i);
+                }
+                lightingColorFactor += ((1.0 - shadow) * (diffuseRate + specularRate) * LightSources.lights[i].color);
             }
-            float viewDistance = length(playerTransforms.position - from_vs.fragPos);
-            float bias = 0.0;
-            if(LightSources.lights[i].type == 0) {//directional light
-                shadow = ShadowCalculationDirectional(from_vs.fragPosLightSpace[i], normalize(LightSources.lights[i].position - from_vs.fragPos), bias, viewDistance, i);
-            } else {//point light
-                shadow = ShadowCalculationPoint(from_vs.fragPos, bias, viewDistance, i);
-            }
-            lightingColorFactor += ((1.0 - shadow) * (diffuseRate + specularRate) * LightSources.lights[i].color);
         }
 
         finalColor = vec4(

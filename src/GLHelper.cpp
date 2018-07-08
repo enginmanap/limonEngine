@@ -844,10 +844,10 @@ void GLHelper::setLight(const Light &light, const int i) {
     GLint lightType;
     switch (light.getLightType()) {
         case Light::DIRECTIONAL:
-            lightType = 0;
+            lightType = 1;
             break;
         case Light::POINT:
-            lightType = 1;
+            lightType = 2;
             break;
     }
 

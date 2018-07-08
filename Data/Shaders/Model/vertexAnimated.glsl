@@ -35,7 +35,7 @@ struct LightSource
     vec3 position;
     float farPlanePoint;
     vec3 color;
-    int type; //0 Directional, 1 point
+    int type; //1 Directional, 2 point
 };
 
 layout (std140) uniform ModelInformationBlock {
@@ -68,7 +68,7 @@ void main(void)
     to_fs.normal = vec3(normalize(transpose(inverse(currentWorldTransform)) * (BoneTransform * vec4(normal, 0.0))));
     to_fs.fragPos = vec3(currentWorldTransform * (BoneTransform * position));
     for(int i = 0; i < NR_POINT_LIGHTS; i++){
-        if(LightSources.lights[i].type == 0) {
+        if(LightSources.lights[i].type == 1) {
             to_fs.fragPosLightSpace[i] = LightSources.lights[i].lightSpaceMatrix * vec4(to_fs.fragPos, 1.0);
         }
     }
