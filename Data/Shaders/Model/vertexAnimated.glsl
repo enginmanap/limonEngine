@@ -62,9 +62,8 @@ void main(void)
     BoneTransform += boneTransformArray[boneIDs[3]] * boneWeights[3];
 
     to_fs.textureCoord = textureCoordinate;
-    int modelVectorIndex = gl_InstanceID / 4;
-    int modelVectorPosition = gl_InstanceID % 4;
-    mat4 currentWorldTransform = model.worldTransform[instance.models[modelVectorIndex][modelVectorPosition]];
+    mat4 currentWorldTransform = model.worldTransform[instance.models[gl_InstanceID].x];
+
 
     to_fs.normal = vec3(normalize(transpose(inverse(currentWorldTransform)) * (BoneTransform * vec4(normal, 0.0))));
     to_fs.fragPos = vec3(currentWorldTransform * (BoneTransform * position));

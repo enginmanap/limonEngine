@@ -907,8 +907,12 @@ void GLHelper::setModel(const uint32_t modelID, const glm::mat4& worldTransform)
 }
 
 void GLHelper::setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) {
+    std::vector<glm::uvec4> temp;
+    for (uint32_t i = 0; i < modelIndicesList.size(); ++i) {
+        temp.push_back(glm::uvec4(modelIndicesList[i], 0,0,0));
+    }
     glBindBuffer(GL_UNIFORM_BUFFER, allModelIndexesUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(uint32_t) * modelIndicesList.size(), modelIndicesList.data());
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::uvec4) * modelIndicesList.size(), glm::value_ptr(temp.at(0)));
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setModelIndexesUBO");
 }
