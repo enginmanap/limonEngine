@@ -54,10 +54,7 @@ void main() {
     }
     for(int i = 0; i < NR_POINT_LIGHTS; i++){
         if(i == renderLightIndex){
-            int modelVectorIndex = gl_InstanceID / 4;
-            int modelVectorPosition = gl_InstanceID % 4;
-            mat4 currentWorldTransform = model.worldTransform[instance.models[modelVectorIndex][modelVectorPosition]];
-            gl_Position = LightSources.lights[i].lightSpaceMatrix * (currentWorldTransform * (BoneTransform * vec4(vec3(position), 1.0)));
+            gl_Position = LightSources.lights[i].lightSpaceMatrix * (model.worldTransform[instance.models[gl_InstanceID].x] * (BoneTransform * vec4(vec3(position), 1.0)));
         }
     }
 }
