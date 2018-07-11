@@ -24,6 +24,7 @@ static const int STEPPING_TEST_COUNT = 5;
 class PhysicalPlayer : public Player, public CameraAttachment {
 
     const glm::vec3 startPosition = glm::vec3(0, 10, 15);
+    const float standingHeight = 2.0f;
 
     glm::vec3 center, up, right;
     glm::quat view;
