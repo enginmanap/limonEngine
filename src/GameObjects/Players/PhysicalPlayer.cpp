@@ -39,7 +39,7 @@ PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable* cursor) :
 
 
 void PhysicalPlayer::move(moveDirections direction) {
-    if (!positionSet && onAir) {
+    if (!positionSet && onAir) {//this is because, if player is just moved from editor etc, we need to process
         return;
     }
 
