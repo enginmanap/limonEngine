@@ -895,7 +895,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
                 TriggerObject* to = new TriggerObject(this->getNextObjectID(), this->apiInstance);
                 to->getTransformation()->setTranslate(newObjectPosition);
-                this->dynamicsWorld->addCollisionObject(to->getGhostObject(), COLLIDE_TRIGGER_VOLUME, COLLIDE_PLAYER | COLLIDE_EVERYTHING);
+                this->dynamicsWorld->addCollisionObject(to->getGhostObject(), COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, COLLIDE_PLAYER | COLLIDE_EVERYTHING);
                 triggers[to->getWorldObjectID()] = to;
 
                 pickedObject = static_cast<GameObject*>(to);
