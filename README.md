@@ -32,8 +32,8 @@ $ cmake ../
 
 ### Start up: 
 - Engine take a parameter as path of world to load
-- If no parameter passed, falls back to `/Data/Maps/World001.xml`
-Note: Save map button in editor mode saves the map to `/Data/Maps/CustomWorld001.xml`
+- If no parameter passed, falls back to `./Data/Maps/World001.xml`
+Note: Save map button in editor mode saves the map to `./Data/Maps/CustomWorld001.xml`
 
 ### In Application:
 - Pressing `0` switches to debug mode, renders physics collision meshes and disconnects player from physics (flying and passing trough objects)
