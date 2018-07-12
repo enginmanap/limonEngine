@@ -45,18 +45,11 @@ int main(int argc, char *argv[]) {
     InputHandler inputHandler(sdlHelper.getWindow(), &options);
     AssetManager assetManager(&glHelper);
 
-    ALHelper* sound;
+    ALHelper* alHelper;
 
-    sound = new ALHelper();
-    sound->play("ChillingMusic.wav");
-    //sound->play("cello.wav");
+    alHelper = new ALHelper();
 
-/*
-    alSourcei(alSourceID, AL_SOURCE_RELATIVE, AL_TRUE);
-    alSource3f(alSourceID, AL_POSITION, 0.0f, 0.0f, 0.0f);
-*/
-
-    WorldLoader* worldLoader = new WorldLoader(&assetManager, &glHelper, &options);
+    WorldLoader* worldLoader = new WorldLoader(&assetManager, &glHelper, alHelper, &options);
     World* world = worldLoader->loadWorld(worldName);
     if(world == nullptr) {
         std::cerr << "WorldLoader didn't hand out a valid world. exiting.." << std::endl;
@@ -83,7 +76,7 @@ int main(int argc, char *argv[]) {
         world->render();
         sdlHelper.swap();
     }
-    delete sound;
+    delete alHelper;
     return 0;
 }
 

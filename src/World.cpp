@@ -36,10 +36,11 @@
 #include "GUI/GUICursor.h"
 #include "GUI/GUILayer.h"
 #include "GameObjects/GUIText.h"
+#include "ALHelper.h"
 
 
-World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
-        : assetManager(assetManager),options(options), glHelper(glHelper), fontManager(glHelper) {
+World::World(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options)
+        : assetManager(assetManager),options(options), glHelper(glHelper), alHelper(alHelper), fontManager(glHelper) {
     // physics init
     broadphase = new btDbvtBroadphase();
     ghostPairCallback = new btGhostPairCallback();
@@ -1621,6 +1622,14 @@ void World::afterLoadFinished() {
             onLoadActions[i]->action->run(onLoadActions[i]->parameters);
         }
     }
+
+    alHelper->play("./Data/Sounds/Music/dungeon002.wav", true);
+    //alHelper->play("cello.wav");
+
+/*
+    alSourcei(alSourceID, AL_SOURCE_RELATIVE, AL_TRUE);
+    alSource3f(alSourceID, AL_POSITION, 0.0f, 0.0f, 0.0f);
+*/
 }
 
 bool World::disconnectObjectFromPhysics(uint32_t objectWorldID) {

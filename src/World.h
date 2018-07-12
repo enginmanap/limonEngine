@@ -15,7 +15,7 @@
 #include "GameObjects/SkyBox.h"
 #include "GamePlay/LimonAPI.h"
 #include "AI/Actor.h"
-
+#include "ALHelper.h"
 
 
 class btGhostPairCallback;
@@ -47,6 +47,9 @@ class AnimationCustom;
 class AnimationNode;
 class AnimationSequenceInterface;
 class LimonAPI;
+
+class GLHelper;
+class ALHelper;
 
 class World {
 
@@ -113,6 +116,7 @@ class World {
     AIMovementGrid *grid = nullptr;
     SkyBox *sky = nullptr;
     GLHelper *glHelper;
+    ALHelper *alHelper;
     long gameTime = 0;
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
@@ -229,7 +233,7 @@ class World {
 
     void addLight(Light *light);
 
-    World(AssetManager *assetManager, GLHelper *, Options *options);
+    World(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options);
 
     void afterLoadFinished();
 

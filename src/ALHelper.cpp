@@ -30,7 +30,50 @@ ALHelper::ALHelper() {
 
 }
 
-bool ALHelper::startPlay(const std::string &wavFileName, std::unique_ptr<PlayingSound>& sound) {
+int ALHelper::soundManager() {
+    while(running) {
+        SDL_AtomicLock(&playRequestLock);
+        for (size_t i = 0; i < playRequests.size(); ++i) {
+            auto sound = std::make_unique<PlayingSound>();
+            if(startPlay(playRequests.at(i).second, playRequests.at(i).first, sound)) {
+                playingSounds.push_back(std::move(sound));
+                std::cout << "Playing new sound" << std::endl;
+            }
+        }
+        playRequests.clear();
+        SDL_AtomicUnlock(&playRequestLock);
+        for (auto iterator = playingSounds.begin(); iterator != playingSounds.end(); ) {
+            if((*iterator)->isFinished()) {
+                if((*iterator)->looped) {
+                    std::unique_ptr<PlayingSound>& temp = (*iterator);
+
+                    temp->sampleCountToPlay = temp->totalSampleCount;
+                    temp->nextDataToBuffer = temp->data;
+                    alSourceQueueBuffers(temp->source, NUM_BUFFERS, temp->buffers);
+                    alSourcePlay(temp->source);
+
+                    ++iterator;
+                } else {
+                    iterator = playingSounds.erase(iterator);
+                }
+            } else {
+                refreshBuffers(*iterator);
+                ++iterator;
+            }
+        }
+        SDL_Delay(10);
+    }
+    return 0;
+}
+
+void ALHelper::play(const std::string &wavFileName, bool looped) {
+    SDL_AtomicLock(&playRequestLock);
+    this->playRequests.push_back(std::make_pair(looped,wavFileName));
+    SDL_AtomicUnlock(&playRequestLock);
+}
+
+
+bool ALHelper::startPlay(const std::string &wavFileName, bool looped, std::unique_ptr<PlayingSound> &sound) {
     unsigned int channels;
 
     alGenBuffers(NUM_BUFFERS, sound->buffers);
@@ -41,17 +84,21 @@ bool ALHelper::startPlay(const std::string &wavFileName, std::unique_ptr<Playing
     }
 
 
-
-    sound->data = drwav_open_and_read_file_s16(wavFileName.c_str(), &channels, &sound->sampleRate, &sound->sampleCountToPlay);
-    if (sound->data == NULL) {
+    int16_t * data;
+    data = drwav_open_and_read_file_s16(wavFileName.c_str(), &channels, &sound->sampleRate, &sound->totalSampleCount);
+    if (data == NULL) {
         // Error opening and reading WAV file.
         std::cerr << "failed to read wav file" << std::endl;
         return false;
     }
-    sound->nextDataToBuffer = sound->data;
 
+    sound->data = data;
+    sound->looped = looped;
     sound->format = to_al_format(channels, 16);
 
+
+    sound->nextDataToBuffer = sound->data;
+    sound->sampleCountToPlay = sound->totalSampleCount;
     for (uint32_t i = 0; i < NUM_BUFFERS; ++i) {
         uint32_t currentPlaySize = std::min((uint64_t)sound->sampleCountToPlay, (uint64_t)BUFFER_ELEMENT_COUNT);
         sound->sampleCountToPlay = sound->sampleCountToPlay - currentPlaySize;
@@ -76,39 +123,6 @@ bool ALHelper::startPlay(const std::string &wavFileName, std::unique_ptr<Playing
     return true;
 }
 
-int ALHelper::soundManager() {
-    while(running) {
-        SDL_AtomicLock(&playRequestLock);
-        for (size_t i = 0; i < playRequests.size(); ++i) {
-            auto sound = std::make_unique<PlayingSound>();
-            if(startPlay(playRequests.at(i), sound)) {
-                playingSounds.push_back(std::move(sound));
-                std::cout << "Playing new sound" << std::endl;
-            }
-        }
-        playRequests.clear();
-        SDL_AtomicUnlock(&playRequestLock);
-        for (auto iterator = playingSounds.begin(); iterator != playingSounds.end(); ) {
-            if((*iterator)->isFinished()) {
-                //iterator = playingSounds.erase(iterator);
-                //std::cout << "removing sound" << std::endl;
-                ++iterator;
-            } else {
-                refreshBuffers(*iterator);
-                ++iterator;
-            }
-        }
-        SDL_Delay(10);
-    }
-    return 0;
-}
-
-void ALHelper::play(const std::string &wavFileName) {
-    SDL_AtomicLock(&playRequestLock);
-    this->playRequests.push_back(wavFileName);
-    SDL_AtomicUnlock(&playRequestLock);
-
-}
 
 bool ALHelper::refreshBuffers(std::unique_ptr<ALHelper::PlayingSound> &sound) {
     if(sound->sampleCountToPlay > 0) {
