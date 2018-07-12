@@ -32,11 +32,11 @@ $ cmake ../
 
 ### Start up: 
 - Engine take a parameter as path of world to load
-- If no parameter passed, falls back to /Data/Maps/World001.xml
-Note: Save map button in editor mode saves the map to /Data/Maps/CustomWorld001.xml
+- If no parameter passed, falls back to `/Data/Maps/World001.xml`
+Note: Save map button in editor mode saves the map to `/Data/Maps/CustomWorld001.xml`
 
 ### In Application:
-- Pressing 0 switches to debug mode, renders physics collision meshes and disconnects player from physics ( flying and passing trough objects)
+- Pressing 0 switches to debug mode, renders physics collision meshes and disconnects player from physics (flying and passing trough objects)
 - Pressing " key switches to editor mode, which allows creating maps.
 - Pressing + and - changes mouse sensitivity.
 - wasd for walking around and mouse for looking around as usual.
@@ -48,8 +48,8 @@ Note: Save map button in editor mode saves the map to /Data/Maps/CustomWorld001.
 - When a new animation is created by animation editor, the object used to create the animation assumed to have this animation. You can remove by using the remove animation button.
 
 ### Extending with C++
-- Engine tries to load custom trigger extentions as "libcustomTriggers.dll" for windows and "libcustomTriggers.so" for linux. If you use a custom action in a map and library is missing, action won't run check this first.
-- Custom actions should implement TriggerInterface class.
-- and the list of actions should be returned with method "void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* triggerMap);", sample implementation in CoinPickUpOnTrigger
+- Engine tries to load custom trigger extentions as `libcustomTriggers.dll` for Windows and `libcustomTriggers.so` for GNU/Linux. If you use a custom action in a map and library is missing, action won't run check this first.
+- Custom actions should implement `TriggerInterface` class.
+- and the list of actions should be returned with method `void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* triggerMap);`, sample implementation in CoinPickUpOnTrigger
 - If you query a variable that never been set, it will be returned as 0.
 - Static values are saved when set in editor, other action results and variables are queried when action runs.
