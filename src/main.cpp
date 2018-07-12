@@ -9,6 +9,7 @@
 #include "World.h"
 #include "WorldLoader.h"
 #include "Assets/AssetManager.h"
+#include "ALHelper.h"
 
 const std::string PROGRAM_NAME = "LimonEngine";
 
@@ -43,6 +44,18 @@ int main(int argc, char *argv[]) {
     glHelper.reshape();
     InputHandler inputHandler(sdlHelper.getWindow(), &options);
     AssetManager assetManager(&glHelper);
+
+    ALHelper* sound;
+
+    sound = new ALHelper();
+    sound->play("ChillingMusic.wav");
+    //sound->play("cello.wav");
+
+/*
+    alSourcei(alSourceID, AL_SOURCE_RELATIVE, AL_TRUE);
+    alSource3f(alSourceID, AL_POSITION, 0.0f, 0.0f, 0.0f);
+*/
+
     WorldLoader* worldLoader = new WorldLoader(&assetManager, &glHelper, &options);
     World* world = worldLoader->loadWorld(worldName);
     if(world == nullptr) {
