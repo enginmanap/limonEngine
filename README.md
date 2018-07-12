@@ -13,19 +13,22 @@ For a demonstration, check out the video :
 [![Limon Engine New map and Editor](http://img.youtube.com/vi/2rBYDD6Z52Q/0.jpg)](https://youtu.be/2rBYDD6Z52Q)
 
 
-##Building
+## Building
 
 Dependencies can be installed on Ubuntu 17.10 using:
 
-sudo apt-get install libassimp-dev libbullet-dev libsdl2-dev libsdl2-image-dev libfreetype6-dev libtinyxml2-dev libglew-dev build-essential libglm-dev libtinyxml2-dev
+```bash
+$ sudo apt-get install libassimp-dev libbullet-dev libsdl2-dev libsdl2-image-dev libfreetype6-dev libtinyxml2-dev libglew-dev build-essential libglm-dev libtinyxml2-dev
+```
 
 After that, in repository directory
-mkdir build
-cd build
-cmake ../
+```bash
+$ mkdir build
+$ cd build
+$ cmake ../
+```
 
-
-##Running
+## Running
 
 ### Start up: 
 - Engine take a parameter as path of world to load
