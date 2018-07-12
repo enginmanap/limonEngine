@@ -83,6 +83,7 @@ int main(int argc, char *argv[]) {
         world->render();
         sdlHelper.swap();
     }
+    delete sound;
     return 0;
 }
 
