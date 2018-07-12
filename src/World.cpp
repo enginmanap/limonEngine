@@ -33,7 +33,7 @@
 #include "GamePlay/AnimateOnTrigger.h"
 #include "GamePlay/AddGuiTextOnTrigger.h"
 #include "AnimationSequencer.h"
-#include "GUI/Cursor.h"
+#include "GUI/GUICursor.h"
 #include "GUI/GUILayer.h"
 #include "GameObjects/GUIText.h"
 
@@ -73,7 +73,7 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
                                fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0", glm::vec3(204, 204, 0));
     renderCounts->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 170, options->getScreenHeight() - 36), 0);
 
-    cursor = new Cursor(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
+    cursor = new GUICursor(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
                         glm::vec3(255, 255, 255));
     cursor->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), -1 * options->PI / 4);
 

@@ -32,7 +32,7 @@ class GUILayer;
 class GUITextBase;
 class GUIFPSCounter;
 class GUITextDynamic;
-class Cursor;
+class GUICursor;
 
 
 class GameObject;
@@ -130,7 +130,7 @@ class World {
     GUILayer *apiGUILayer;
     GUIText* renderCounts;
     GUIFPSCounter* fpsCounter;
-    Cursor* cursor;
+    GUICursor* cursor;
     GUITextDynamic* debugOutputGUI;
 
     btGhostPairCallback *ghostPairCallback;

@@ -29,11 +29,11 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
         std::cout << "TextureAsset " << name << " loaded from disk successfully." << std::endl;
     }
     if (surface->format->BytesPerPixel == 4) {
-        if(surface->format->format != SDL_PIXELFORMAT_RGBA32) {
+        if(surface->format->format != SDL_PIXELFORMAT_ABGR8888) {
             //if the internal format is not rgba32, convert to it.
             SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(surface,
-                                                            SDL_PIXELFORMAT_RGBA32,
-                                                            0);
+                                                                SDL_PIXELFORMAT_ABGR8888,
+                                                                0);
             delete surface;
             surface = surfaceTemp;
         }

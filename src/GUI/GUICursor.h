@@ -9,9 +9,9 @@
 #include "GUITextBase.h"
 
 // TODO this class in current form is just a place holder
-class Cursor: public GUITextBase {
+class GUICursor: public GUITextBase {
 public:
-    Cursor(GLHelper *glHelper, Face *font, const std::string &text, const glm::vec3 &color) : GUITextBase(
+    GUICursor(GLHelper *glHelper, Face *font, const std::string &text, const glm::vec3 &color) : GUITextBase(
             glHelper, font, text, color) {}
 
 };
