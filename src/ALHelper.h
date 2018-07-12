@@ -18,6 +18,7 @@ class ALHelper {
     SDL_Thread *thread;
 
     struct PlayingSound {
+        uint64_t totalSampleCount;
         uint64_t sampleCountToPlay;
         ALuint source;
         unsigned int sampleRate;
@@ -25,6 +26,7 @@ class ALHelper {
         ALuint buffers[NUM_BUFFERS];
         int16_t *data;
         int16_t *nextDataToBuffer;
+        bool looped;
 
         bool isFinished();
 
@@ -37,7 +39,7 @@ class ALHelper {
     bool running;
 
     std::vector<std::unique_ptr<PlayingSound>> playingSounds;
-    std::vector<std::string> playRequests;
+    std::vector<std::pair<bool,std::string>> playRequests;
 
     static inline ALenum to_al_format(short channels, short samples)
     {
@@ -65,7 +67,7 @@ class ALHelper {
 
     int soundManager();
 
-    bool startPlay(const std::string &wavFileName, std::unique_ptr<PlayingSound>& sound);
+    bool startPlay(const std::string &wavFileName, bool looped, std::unique_ptr<PlayingSound> &sound);
 
     bool refreshBuffers(std::unique_ptr<PlayingSound>& sound);//this method updates some of the values of parameter
 
@@ -73,7 +75,7 @@ public:
     ALHelper();
     ~ALHelper();
 
-    void play(const std::string &wavFileName);
+    void play(const std::string &wavFileName, bool looped);
 };
 
 

@@ -17,16 +17,18 @@
 #include "GUI/GUITextBase.h"
 #include "GUI/GUILayer.h"
 #include "GameObjects/GUIText.h"
+#include "ALHelper.h"
 
 
-WorldLoader::WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options* options):
+WorldLoader::WorldLoader(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options) :
         options(options),
         glHelper(glHelper),
+        alHelper(alHelper),
         assetManager(assetManager)
 {}
 
 World* WorldLoader::loadWorld(const std::string& worldFile) const {
-    World* newWorld = new World(assetManager, glHelper, options);
+    World* newWorld = new World(assetManager, glHelper, alHelper, options);
 
 
     // Set api endpoints accordingly
