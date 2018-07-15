@@ -10,7 +10,7 @@ It is based on Opengl 3.3 + SDL2, but many other libraries are used.
 
 Here is the latest video of the engine:
 
-[![Limon Engine New map and Editor](http://img.youtube.com/vi/2rBYDD6Z52Q/0.jpg)](https://youtu.be/2rBYDD6Z52Q)
+[![Limon Engine New map and Editor](http://img.youtube.com/vi/SJOTsPcN1pM/0.jpg)](https://youtu.be/SJOTsPcN1pM)
 
 # Features (as of 01 June 2018)
 
