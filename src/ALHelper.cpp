@@ -3,6 +3,7 @@
 //
 
 #include "ALHelper.h"
+#include "Assets/SoundAsset.h"
 
 #define DR_WAV_IMPLEMENTATION
 #include "../libs/dr_wav.h"
@@ -35,7 +36,9 @@ int ALHelper::soundManager() {
         SDL_AtomicLock(&playRequestLock);
         for (size_t i = 0; i < playRequests.size(); ++i) {
             auto sound = std::make_unique<PlayingSound>();
-            if(startPlay(playRequests.at(i).second, playRequests.at(i).first, sound)) {
+            sound->asset = playRequests.at(i).second;
+            if(startPlay(playRequests.at(i).first, sound)) {
+
                 playingSounds.push_back(std::move(sound));
                 std::cout << "Playing new sound" << std::endl;
             }
@@ -47,8 +50,8 @@ int ALHelper::soundManager() {
                 if((*iterator)->looped) {
                     std::unique_ptr<PlayingSound>& temp = (*iterator);
 
-                    temp->sampleCountToPlay = temp->totalSampleCount;
-                    temp->nextDataToBuffer = temp->data;
+                    temp->sampleCountToPlay = temp->asset->getSampleCount();
+                    temp->nextDataToBuffer = temp->asset->getSoundData();
                     alSourceQueueBuffers(temp->source, NUM_BUFFERS, temp->buffers);
                     alSourcePlay(temp->source);
 
@@ -66,15 +69,14 @@ int ALHelper::soundManager() {
     return 0;
 }
 
-void ALHelper::play(const std::string &wavFileName, bool looped) {
+void ALHelper::play(const SoundAsset* soundAsset, bool looped) {
     SDL_AtomicLock(&playRequestLock);
-    this->playRequests.push_back(std::make_pair(looped,wavFileName));
+    this->playRequests.push_back(std::make_pair(looped,soundAsset));
     SDL_AtomicUnlock(&playRequestLock);
 }
 
 
-bool ALHelper::startPlay(const std::string &wavFileName, bool looped, std::unique_ptr<PlayingSound> &sound) {
-    unsigned int channels;
+bool ALHelper::startPlay(bool looped, std::unique_ptr<PlayingSound> &sound) {
 
     alGenBuffers(NUM_BUFFERS, sound->buffers);
     alGenSources(1, &sound->source);
@@ -83,31 +85,20 @@ bool ALHelper::startPlay(const std::string &wavFileName, bool looped, std::uniqu
         return false;
     }
 
-
-    int16_t * data;
-    data = drwav_open_and_read_file_s16(wavFileName.c_str(), &channels, &sound->sampleRate, &sound->totalSampleCount);
-    if (data == NULL) {
-        // Error opening and reading WAV file.
-        std::cerr << "failed to read wav file" << std::endl;
-        return false;
-    }
-
-    sound->data = data;
     sound->looped = looped;
-    sound->format = to_al_format(channels, 16);
+    sound->format = to_al_format(sound->asset->getChannels(), 16);
 
 
-    sound->nextDataToBuffer = sound->data;
-    sound->sampleCountToPlay = sound->totalSampleCount;
+    sound->nextDataToBuffer = sound->asset->getSoundData();
+    sound->sampleCountToPlay = sound->asset->getSampleCount();
     for (uint32_t i = 0; i < NUM_BUFFERS; ++i) {
         uint32_t currentPlaySize = std::min((uint64_t)sound->sampleCountToPlay, (uint64_t)BUFFER_ELEMENT_COUNT);
         sound->sampleCountToPlay = sound->sampleCountToPlay - currentPlaySize;
 
-        alBufferData(sound->buffers[i], sound->format, sound->nextDataToBuffer, currentPlaySize * sizeof(int16_t), sound->sampleRate);
+        alBufferData(sound->buffers[i], sound->format, sound->nextDataToBuffer, currentPlaySize * sizeof(int16_t), sound->asset->getSampleRate());
         sound->nextDataToBuffer = sound->nextDataToBuffer + currentPlaySize;
         if(alGetError() != AL_NO_ERROR) {
             std::cerr << "Audio buffer data failed!" << std::endl;
-            drwav_free(sound->data);
         }
     }
 
@@ -116,7 +107,6 @@ bool ALHelper::startPlay(const std::string &wavFileName, bool looped, std::uniqu
     if(alGetError() != AL_NO_ERROR)
     {
         fprintf(stderr, "Error starting :(\n");
-        drwav_free(sound->data);
         return false;
     }
 
@@ -150,7 +140,7 @@ bool ALHelper::refreshBuffers(std::unique_ptr<ALHelper::PlayingSound> &sound) {
             uint32_t currentPlaySize = std::min((uint64_t) sound->sampleCountToPlay, (uint64_t) BUFFER_ELEMENT_COUNT);
             sound->sampleCountToPlay = sound->sampleCountToPlay - currentPlaySize;
 
-            alBufferData(buffer, sound->format, sound->nextDataToBuffer, currentPlaySize * sizeof(int16_t), sound->sampleRate);
+            alBufferData(buffer, sound->format, sound->nextDataToBuffer, currentPlaySize * sizeof(int16_t), sound->asset->getSampleRate());
             if ((error = alGetError()) != AL_NO_ERROR) {
                 fprintf(stderr, "Error buffering alGenBuffers : %s", alGetString(error));
                 return 1;
@@ -176,13 +166,13 @@ bool ALHelper::PlayingSound::isFinished() {
 ALHelper::PlayingSound::~PlayingSound() {
         alDeleteBuffers(1, buffers);
         alDeleteSources(1, &source);
-        drwav_free(data);
 }
 
 ALHelper::~ALHelper() {
     this->running = false;
     int threadReturnValue;
     SDL_WaitThread(thread, &threadReturnValue);
+
     dev = alcGetContextsDevice(ctx);
     alcMakeContextCurrent(NULL);
     alcDestroyContext(ctx);

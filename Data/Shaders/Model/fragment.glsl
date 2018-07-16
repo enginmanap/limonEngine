@@ -50,7 +50,7 @@ uniform sampler2D diffuseSampler;
 uniform sampler2D specularSampler;
 uniform sampler2D opacitySampler;
 
-vec3 pointSampleOffsetDirections[20] = vec3[]
+uniform vec3 pointSampleOffsetDirections[20] = vec3[]
 (
    vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1),
    vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),

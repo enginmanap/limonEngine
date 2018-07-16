@@ -12,21 +12,23 @@
 #include <tinyxml2.h>
 
 #include "Asset.h"
+#include "../ALHelper.h"
 
 class GLHelper;
-
+class ALHelper;
 
 class AssetManager {
-    enum AssetTypes { Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP };
+    enum AssetTypes { Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND };
     //second of the pair is how many times load requested. prework for unload
     std::map<const std::vector<std::string>, std::pair<Asset *, uint32_t>> assets;
     uint32_t nextAssetIndex = 1;
 
     std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
     GLHelper *glHelper;
+    ALHelper *alHelper;
 public:
 
-    explicit AssetManager(GLHelper *glHelper) : glHelper(glHelper) {}
+    explicit AssetManager(GLHelper *glHelper, ALHelper *alHelper) : glHelper(glHelper), alHelper(alHelper) {}
 
     /**
      * This should be done not from file but file system. Best way is switch to c++17, but not sure
@@ -93,6 +95,10 @@ public:
 
     GLHelper *getGlHelper() const {
         return glHelper;
+    }
+
+    ALHelper *getAlHelper() const {
+        return alHelper;
     }
 
     ~AssetManager() {

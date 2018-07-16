@@ -10,22 +10,22 @@
 
 #include <memory>
 
+class SoundAsset;
+
 #define NUM_BUFFERS 3
 #define BUFFER_ELEMENT_COUNT 4096
 
 class ALHelper {
     SDL_SpinLock playRequestLock;
-    SDL_Thread *thread;
+    SDL_Thread *thread = nullptr;
 
     struct PlayingSound {
-        uint64_t totalSampleCount;
+        const SoundAsset* asset;
         uint64_t sampleCountToPlay;
         ALuint source;
-        unsigned int sampleRate;
         ALenum format;
         ALuint buffers[NUM_BUFFERS];
-        int16_t *data;
-        int16_t *nextDataToBuffer;
+        const int16_t *nextDataToBuffer;
         bool looped;
 
         bool isFinished();
@@ -39,7 +39,7 @@ class ALHelper {
     bool running;
 
     std::vector<std::unique_ptr<PlayingSound>> playingSounds;
-    std::vector<std::pair<bool,std::string>> playRequests;
+    std::vector<std::pair<bool,const SoundAsset*>> playRequests;
 
     static inline ALenum to_al_format(short channels, short samples)
     {
@@ -67,7 +67,7 @@ class ALHelper {
 
     int soundManager();
 
-    bool startPlay(const std::string &wavFileName, bool looped, std::unique_ptr<PlayingSound> &sound);
+    bool startPlay(bool looped, std::unique_ptr<PlayingSound> &sound);
 
     bool refreshBuffers(std::unique_ptr<PlayingSound>& sound);//this method updates some of the values of parameter
 
@@ -75,7 +75,7 @@ public:
     ALHelper();
     ~ALHelper();
 
-    void play(const std::string &wavFileName, bool looped);
+    void play(const SoundAsset* soundAsset, bool looped);
 };
 
 
