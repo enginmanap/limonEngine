@@ -37,6 +37,7 @@
 #include "GUI/GUILayer.h"
 #include "GameObjects/GUIText.h"
 #include "ALHelper.h"
+#include "GameObjects/Sound.h"
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options)
@@ -1623,9 +1624,12 @@ void World::afterLoadFinished() {
         }
     }
 
-    alHelper->play("./Data/Sounds/Music/dungeon002.wav", true);
-    //alHelper->play("cello.wav");
-
+    Sound* music = new Sound(this->getNextObjectID(), assetManager, "./Data/Sounds/Music/dungeon002.wav");
+    music->setLoop(true);
+    music->setStartPosition(10.5f);
+    music->setStopPosition(15.4f);
+    music->setWorldPosition(glm::vec3(0,0,0), true);
+    music->play();
 /*
     alSourcei(alSourceID, AL_SOURCE_RELATIVE, AL_TRUE);
     alSource3f(alSourceID, AL_POSITION, 0.0f, 0.0f, 0.0f);
