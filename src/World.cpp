@@ -1624,7 +1624,8 @@ void World::afterLoadFinished() {
         }
     }
 
-    Sound* music = new Sound(this->getNextObjectID(), assetManager, "./Data/Sounds/Music/dungeon002.wav");
+    //Sound* music = new Sound(this->getNextObjectID(), assetManager, "./Data/Sounds/Music/dungeon002.wav");
+    Sound* music = new Sound(this->getNextObjectID(), assetManager, "./Data/Sounds/celloMono.wav");
     music->setLoop(true);
     music->setStartPosition(10.5f);
     music->setStopPosition(15.4f);

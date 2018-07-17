@@ -12,7 +12,7 @@ class SoundAsset : public Asset {
     unsigned int channels;
     uint32_t sampleRate;
     uint64_t sampleCount;
-    int16_t* soundData; //PCM 16bit, prefer single channel
+    int16_t* soundData = nullptr; //PCM 16bit, prefer single channel
     std::string name;
 
 public:
