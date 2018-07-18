@@ -43,6 +43,7 @@ class FreeCursorPlayer;
 class ImGuiHelper;
 class AssetManager;
 class TriggerObject;
+class Sound;
 class AnimationCustom;
 class AnimationNode;
 class AnimationSequenceInterface;
@@ -60,6 +61,7 @@ class World {
         long startTime;
         Transformation originalTransformation;
         bool wasKinematic;
+        std::unique_ptr<Sound> sound;
     };
 
     struct ActionForOnload {
@@ -272,7 +274,13 @@ public:
     */
     bool generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest> &runParameters, uint32_t index);
 
-    uint32_t addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad = false);
+    uint32_t addAnimationToObjectWithSound(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad,
+                                           const std::string *soundToPlay);
+
+    uint32_t addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad) {
+        return addAnimationToObjectWithSound(modelID, animationID, looped, startOnLoad, nullptr);
+    };
+
     uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize,
                         const std::string &name, const std::string &text,
                         const glm::vec3 &color,

@@ -33,7 +33,7 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
 
     // Set api endpoints accordingly
     LimonAPI* api = new LimonAPI();
-    api->worldAddAnimationToObject = std::bind(&World::addAnimationToObject, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false);
+    api->worldAddAnimationToObject = std::bind(&World::addAnimationToObjectWithSound, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false, std::placeholders::_4);
     api->worldAddGuiText = std::bind(&World::addGuiText, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7);
     api->worldUpdateGuiText = std::bind(&World::updateGuiText, newWorld, std::placeholders::_1, std::placeholders::_2);
     api->worldGenerateEditorElementsForParameters = std::bind(&World::generateEditorElementsForParameters, newWorld, std::placeholders::_1, std::placeholders::_2);
@@ -571,7 +571,7 @@ bool WorldLoader::loadOnLoadAnimations(tinyxml2::XMLNode *worldNode, World *worl
                 } else {
                     uint32_t animationID = std::stoi(animationIDNode->GetText());
 
-                    world->addAnimationToObject(modelID,animationID,true,true);
+                    world->addAnimationToObject(modelID, animationID, true, true);
                 }
             }
             onloadAnimationNode = onloadAnimationNode->NextSiblingElement("OnLoadAnimation");
