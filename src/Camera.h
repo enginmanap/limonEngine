@@ -56,6 +56,10 @@ public:
         return center;
     }
 
+    const glm::vec3 &getUp() const {
+        return up;
+    }
+
 };
 
 

@@ -162,6 +162,7 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 
      if(camera->isDirty()) {
          glHelper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
+         alHelper->setListenerPositionAndOrientation(camera->getPosition(), camera->getCenter(), camera->getUp());
      }
 
 
