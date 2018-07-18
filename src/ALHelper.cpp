@@ -36,22 +36,19 @@ int ALHelper::soundManager() {
         if(playRequests.size() > 0) { //this might miss a request because not locking, but I am ok with 10ms delay at most
             SDL_AtomicLock(&playRequestLock);
             for (size_t i = 0; i < playRequests.size(); ++i) {
-                auto sound = std::make_unique<PlayingSound>();
-                sound->asset = playRequests.at(i).second;
-                if (startPlay(playRequests.at(i).first, sound)) {
-
-                    playingSounds.push_back(std::move(sound));
+                std::unique_ptr<PlayingSound>& sound = playRequests.at(i);
+                if (startPlay(sound)) {
+                    playingSounds[sound->soundID] = std::move(sound);
                     std::cout << "Playing new sound" << std::endl;
                 }
             }
         }
-        playRequests.clear();
+        playRequests.clear();//moving should invalidate, so I don't remove one by one
         SDL_AtomicUnlock(&playRequestLock);
         for (auto iterator = playingSounds.begin(); iterator != playingSounds.end(); ) {
-            if((*iterator)->isFinished()) {
-                if((*iterator)->looped) {
-                    std::unique_ptr<PlayingSound>& temp = (*iterator);
-
+            std::unique_ptr<PlayingSound>& temp = (*iterator).second;
+            if(temp->isFinished()) {
+                if(temp->looped) {
                     alSourceStop(temp->source);
                     ALuint buffers;
                     ALint val;
@@ -85,7 +82,7 @@ int ALHelper::soundManager() {
 
                 }
             } else {
-                refreshBuffers(*iterator);
+                refreshBuffers(temp);
                 ++iterator;
             }
         }
@@ -94,14 +91,20 @@ int ALHelper::soundManager() {
     return 0;
 }
 
-void ALHelper::play(const SoundAsset* soundAsset, bool looped) {
+uint32_t ALHelper::play(const SoundAsset* soundAsset, bool looped) {
+    uint32_t id = getNextRequestID();
+    auto sound = std::make_unique<PlayingSound>(id);
+    sound->asset = soundAsset;
+    sound->looped = looped;
+
     SDL_AtomicLock(&playRequestLock);
-    this->playRequests.push_back(std::make_pair(looped,soundAsset));
+    this->playRequests.push_back(std::move(sound));
     SDL_AtomicUnlock(&playRequestLock);
+    return id;
 }
 
 
-bool ALHelper::startPlay(bool looped, std::unique_ptr<PlayingSound> &sound) {
+bool ALHelper::startPlay(std::unique_ptr<PlayingSound> &sound) {
 
     alGenBuffers(NUM_BUFFERS, sound->buffers);
     alGenSources(1, &sound->source);
@@ -114,9 +117,7 @@ bool ALHelper::startPlay(bool looped, std::unique_ptr<PlayingSound> &sound) {
         return false;
     }
 
-    sound->looped = looped;
     sound->format = to_al_format(sound->asset->getChannels(), 16);
-
 
     sound->nextDataToBuffer = sound->asset->getSoundData();
     sound->sampleCountToPlay = sound->asset->getSampleCount();
@@ -212,4 +213,8 @@ ALHelper::~ALHelper() {
     alcDestroyContext(ctx);
     alcCloseDevice(dev);
 
+}
+
+uint32_t ALHelper::getNextRequestID() {
+    return soundRequestID++;
 }
