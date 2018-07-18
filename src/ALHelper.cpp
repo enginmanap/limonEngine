@@ -53,17 +53,6 @@ int ALHelper::soundManager() {
                     std::unique_ptr<PlayingSound>& temp = (*iterator);
 
                     alSourceStop(temp->source);
-
-                    const float xPos[]{0.0f, 15.0f, 15.0f, -15.0f, -15.0f};
-                    const float zPos[]{0.0f, 15.0f, -15.0f, -15.0f, 15.0f};
-                    //const float zPos[]{0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
-                    static int refreshCount = 0;
-
-                    alSourcei(temp->source, AL_SOURCE_RELATIVE, AL_FALSE);
-                    alSource3f(temp->source, AL_POSITION, xPos[refreshCount], 0.0f, zPos[refreshCount]);
-                    refreshCount = (refreshCount+1) %5;
-                    std::cout << "Position is " << refreshCount << std::endl;
-
                     ALuint buffers;
                     ALint val;
 
@@ -118,7 +107,7 @@ bool ALHelper::startPlay(bool looped, std::unique_ptr<PlayingSound> &sound) {
     alGenSources(1, &sound->source);
 
     alSourcei(sound->source, AL_SOURCE_RELATIVE, AL_FALSE);
-    alSource3f(sound->source, AL_POSITION, -15.0f, 0.0f, -15.0f);
+    alSource3f(sound->source, AL_POSITION, 0.0f, 0.0f, 15.0f);
 
     if(alGetError() != AL_NO_ERROR) {
         std::cerr << "Audio buffer setup failed!" << std::endl;
