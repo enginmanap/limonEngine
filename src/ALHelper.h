@@ -16,12 +16,9 @@ class SoundAsset;
 #define BUFFER_ELEMENT_COUNT 4096
 
 class ALHelper {
-    SDL_SpinLock playRequestLock;
-    SDL_Thread *thread = nullptr;
-
-    glm::vec3 position;
 
     struct PlayingSound {
+        uint32_t soundID;
         const SoundAsset *asset;
         uint64_t sampleCountToPlay;
         ALuint source;
@@ -31,17 +28,22 @@ class ALHelper {
         bool looped;
 
         bool isFinished();
+        PlayingSound(uint32_t id): soundID(id) {};
 
         ~PlayingSound();
     };
 
+    SDL_SpinLock playRequestLock;
+    SDL_Thread *thread = nullptr;
+
     ALCdevice *dev;
     ALCcontext *ctx;
 
+    glm::vec3 ListenerPosition;
     bool running;
-
-    std::vector<std::unique_ptr<PlayingSound>> playingSounds;
-    std::vector<std::pair<bool, const SoundAsset *>> playRequests;
+    uint32_t soundRequestID = 1;
+    std::unordered_map<uint32_t, std::unique_ptr<PlayingSound>> playingSounds;
+    std::vector<std::unique_ptr<PlayingSound>> playRequests;
 
     static inline ALenum to_al_format(short channels, short samples) {
         bool stereo = (channels > 1);
@@ -68,7 +70,7 @@ class ALHelper {
 
     int soundManager();
 
-    bool startPlay(bool looped, std::unique_ptr<PlayingSound> &sound);
+    bool startPlay(std::unique_ptr<PlayingSound> &sound);
 
     bool refreshBuffers(std::unique_ptr<PlayingSound> &sound);//this method updates some of the values of parameter
 
@@ -77,17 +79,17 @@ public:
 
     ~ALHelper();
 
-    void play(const SoundAsset *soundAsset, bool looped);
+    uint32_t play(const SoundAsset *soundAsset, bool looped);
 
     void setListenerPositionAndOrientation(const glm::vec3 &position, const glm::vec3 &front, const glm::vec3 &up) {
-        glm::vec3 velocity = this->position - position;
-        this->position = position;
+        glm::vec3 velocity = this->ListenerPosition - position;
+        this->ListenerPosition = position;
         ALfloat listenerOri[] = {front.x, front.y, front.z,
                                  up.x, up.y, up.z};
         ALenum error;
 
 // Position ...
-        alListenerfv(AL_POSITION, glm::value_ptr(this->position));
+        alListenerfv(AL_POSITION, glm::value_ptr(this->ListenerPosition));
         if ((error = alGetError()) != AL_NO_ERROR) {
             std::cerr << "Set listener position failed! " << alGetString(error) << std::endl;
 
@@ -107,6 +109,7 @@ public:
         }
     }
 
+    uint32_t getNextRequestID();
 };
 
 
