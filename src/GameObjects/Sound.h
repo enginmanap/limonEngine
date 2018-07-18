@@ -14,6 +14,7 @@ class AssetManager;
 class Sound : public GameObject {
     std::string name;
     uint32_t worldID;
+    uint32_t soundHandleID;
     AssetManager *assetManager;
     const SoundAsset* soundAsset;
 
@@ -33,6 +34,8 @@ public:
     void setStopPosition(float stopPosition);
 
     void play();
+
+    void stop();
 
     void setWorldPosition(glm::vec3 position, bool listenerRelative);
     void setWorldPosition(glm::vec3 position) { setWorldPosition(position, false);};

@@ -81,6 +81,8 @@ public:
 
     uint32_t play(const SoundAsset *soundAsset, bool looped);
 
+    uint32_t stop(uint32_t soundID);
+
     void setListenerPositionAndOrientation(const glm::vec3 &position, const glm::vec3 &front, const glm::vec3 &up) {
         glm::vec3 velocity = this->ListenerPosition - position;
         this->ListenerPosition = position;
@@ -92,7 +94,6 @@ public:
         alListenerfv(AL_POSITION, glm::value_ptr(this->ListenerPosition));
         if ((error = alGetError()) != AL_NO_ERROR) {
             std::cerr << "Set listener position failed! " << alGetString(error) << std::endl;
-
             return;
         }
 // Velocity ...
@@ -109,7 +110,29 @@ public:
         }
     }
 
-    uint32_t getNextRequestID();
+    void setSourcePosition(uint32_t soundID, bool isCameraRelative, const glm::vec3 &soundPosition) {
+        if(playingSounds.find(soundID) != playingSounds.end()) {
+            std::unique_ptr<PlayingSound>& sound =  playingSounds[soundID];
+
+            if(isCameraRelative) {
+                alSourcei(sound->source, AL_SOURCE_RELATIVE, AL_TRUE);
+            } else {
+                alSourcei(sound->source, AL_SOURCE_RELATIVE, AL_FALSE);
+            }
+            alSource3f(sound->source, AL_POSITION, soundPosition.x, soundPosition.y, soundPosition.z);
+
+            ALenum error;
+            if ((error = alGetError()) != AL_NO_ERROR) {
+                std::cerr << "Error setting source position! " << alGetString(error) << std::endl;
+
+                return;
+            }
+        }
+    }
+
+    uint32_t getNextRequestID(){
+        return soundRequestID++;
+    }
 };
 
 

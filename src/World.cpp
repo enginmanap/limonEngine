@@ -198,11 +198,19 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
                 animationStatus->object->getTransformation()->addOrientation(tf.getOrientation());
                 animationStatus->object->getTransformation()->addScale(tf.getScale());
                 animationStatus->object->getTransformation()->addTranslate(tf.getTranslate());
+                if(animationStatus->sound) {
+                    animationStatus->sound->setWorldPosition(
+                            animationStatus->object->getTransformation()->getTranslate());
+                }
                 animIt++;
             } else {
                 if(!animationStatus->wasKinematic) {
                     animationStatus->object->getRigidBody()->setCollisionFlags(animationStatus->object->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
                     animationStatus->object->getRigidBody()->setActivationState(ACTIVE_TAG);
+                }
+
+                if(animationStatus->sound) {
+                    animationStatus->sound->stop();
                 }
                 options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, "Animation " + animationCustom->getName() +" finished, removing. ");
                 animIt = activeAnimations.erase(animIt);
@@ -887,7 +895,8 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
                     if(onLoadAnimations.find(pickedModel) != onLoadAnimations.end() &&
                             activeAnimations.find(pickedModel) != activeAnimations.end()) {
-                        addAnimationToObject(newModel->getWorldObjectID(), activeAnimations[pickedModel].animationIndex, true, true);
+                        addAnimationToObject(newModel->getWorldObjectID(), activeAnimations[pickedModel].animationIndex,
+                                             true, true);
                     }
                     pickedObject = static_cast<GameObject*>(newModel);
                 }
@@ -1186,7 +1195,8 @@ void World::addAnimationDefinitionToEditor() {
                            static_cast<void *>(&loadedAnimations), loadedAnimations.size(), 10);
 
             if (ImGui::Button("Apply selected")) {
-                addAnimationToObject(dynamic_cast<Model *>(pickedObject)->getWorldObjectID(), listbox_item_current, true, true);
+                addAnimationToObject(dynamic_cast<Model *>(pickedObject)->getWorldObjectID(), listbox_item_current,
+                                     true, true);
             }
 
             ImGui::SameLine();
@@ -1308,7 +1318,8 @@ void World::addLight(Light *light) {
     this->lights.push_back(light);
 }
 
-uint32_t World::addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad) {
+uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad,
+                                              const std::string *soundToPlay) {
     AnimationStatus as;
     as.object = objects[modelID];
 
@@ -1330,7 +1341,14 @@ uint32_t World::addAnimationToObject(uint32_t modelID, uint32_t animationID, boo
         onLoadAnimations.insert(as.object);
         as.startTime = 0;
     }
-    activeAnimations[as.object] = as;
+
+    if(soundToPlay != nullptr) {
+        as.sound = std::make_unique<Sound>(this->getNextObjectID(), assetManager, *soundToPlay);
+        as.sound->setLoop(looped);
+        as.sound->setWorldPosition(as.object->getTransformation()->getTranslate());
+        as.sound->play();
+    }
+    activeAnimations[as.object] = std::move(as);
     return modelID;
 }
 
@@ -1626,16 +1644,13 @@ void World::afterLoadFinished() {
     }
 
     //Sound* music = new Sound(this->getNextObjectID(), assetManager, "./Data/Sounds/Music/dungeon002.wav");
-    Sound* music = new Sound(this->getNextObjectID(), assetManager, "./Data/Sounds/celloMono.wav");
+/*    Sound* music = new Sound(this->getNextObjectID(), assetManager, "./Data/Sounds/celloMono.wav");
     music->setLoop(true);
     music->setStartPosition(10.5f);
     music->setStopPosition(15.4f);
     music->setWorldPosition(glm::vec3(0,0,0), true);
-    music->play();
-/*
-    alSourcei(alSourceID, AL_SOURCE_RELATIVE, AL_TRUE);
-    alSource3f(alSourceID, AL_POSITION, 0.0f, 0.0f, 0.0f);
-*/
+    music->play();*/
+
 }
 
 bool World::disconnectObjectFromPhysics(uint32_t objectWorldID) {

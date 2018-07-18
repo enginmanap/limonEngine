@@ -24,10 +24,16 @@ void Sound::setStopPosition(float stopPosition) {
 }
 
 void Sound::play() {
-    assetManager->getAlHelper()->play(this->soundAsset, this->looped);
+    soundHandleID = assetManager->getAlHelper()->play(this->soundAsset, this->looped);
+}
+
+void Sound::stop() {
+    assetManager->getAlHelper()->stop(soundHandleID);
 }
 
 void Sound::setWorldPosition(glm::vec3 position, bool listenerRelative) {
     this->position = position;
     this->listenerRelative = listenerRelative;
+
+    assetManager->getAlHelper()->setSourcePosition(soundHandleID, this->listenerRelative, this->position);
 }

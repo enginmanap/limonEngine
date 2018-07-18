@@ -54,7 +54,6 @@ int ALHelper::soundManager() {
                     ALint val;
 
                     alGetSourcei(temp->source, AL_BUFFERS_PROCESSED, &val);
-                    std::cout << "processed buffers count is " << val << std::endl;
 
                     alSourceUnqueueBuffers(temp->source, val, &buffers);
 
@@ -91,6 +90,19 @@ int ALHelper::soundManager() {
     return 0;
 }
 
+uint32_t ALHelper::stop(uint32_t soundID) {
+    if(playingSounds.find(soundID) != playingSounds.end()) {
+        std::unique_ptr<PlayingSound>& sound = playingSounds[soundID];
+        alSourceStop(sound->source);
+        ALenum error;
+        if ((error = alGetError()) != AL_NO_ERROR) {
+            std::cerr << "Stop source failed! " << alGetString(error) << std::endl;
+        }
+
+    }
+    return 0;
+}
+
 uint32_t ALHelper::play(const SoundAsset* soundAsset, bool looped) {
     uint32_t id = getNextRequestID();
     auto sound = std::make_unique<PlayingSound>(id);
@@ -108,6 +120,8 @@ bool ALHelper::startPlay(std::unique_ptr<PlayingSound> &sound) {
 
     alGenBuffers(NUM_BUFFERS, sound->buffers);
     alGenSources(1, &sound->source);
+
+    alSourcef(sound->source,AL_GAIN,1000.0f);
 
     alSourcei(sound->source, AL_SOURCE_RELATIVE, AL_FALSE);
     alSource3f(sound->source, AL_POSITION, 0.0f, 0.0f, 15.0f);
@@ -146,13 +160,10 @@ bool ALHelper::startPlay(std::unique_ptr<PlayingSound> &sound) {
 
 
 bool ALHelper::refreshBuffers(std::unique_ptr<ALHelper::PlayingSound> &sound) {
-    //if(sound->sampleCountToPlay > 0) {
         ALuint buffer;
         ALint val;
 
         ALenum error;
-
-
 //        Check if OpenAL is done with any of the queued buffers
         alGetSourcei(sound->source, AL_BUFFERS_PROCESSED, &val);
         if (alGetError() != AL_NO_ERROR) {
@@ -167,7 +178,6 @@ bool ALHelper::refreshBuffers(std::unique_ptr<ALHelper::PlayingSound> &sound) {
 //            Read the next chunk of decoded data from the stream
 //            Pop the oldest queued buffer from the source, fill it with the new data, then requeue it
             alSourceUnqueueBuffers(sound->source, 1, &buffer);
-            //alBufferData(buffer, format, buf, ret, frequency);
             uint32_t currentPlaySize = std::min((uint64_t) sound->sampleCountToPlay, (uint64_t) BUFFER_ELEMENT_COUNT);
             sound->sampleCountToPlay = sound->sampleCountToPlay - currentPlaySize;
             if(currentPlaySize > 0) {
@@ -185,9 +195,6 @@ bool ALHelper::refreshBuffers(std::unique_ptr<ALHelper::PlayingSound> &sound) {
                 }
             }
         }
-//    } else {
-//        std::cout << "no more sample to play" << std::endl;
-//    }
 
     return true;
 }
@@ -195,12 +202,24 @@ bool ALHelper::refreshBuffers(std::unique_ptr<ALHelper::PlayingSound> &sound) {
 bool ALHelper::PlayingSound::isFinished() {
     ALint source_state;
     alGetSourcei(source, AL_SOURCE_STATE, &source_state);
+    ALenum error;
+    if ((error = alGetError()) != AL_NO_ERROR) {
+        std::cerr << "Error checking is finished! " << alGetString(error) << std::endl;
+    }
     return source_state != AL_PLAYING;
 }
 
 ALHelper::PlayingSound::~PlayingSound() {
-        alDeleteBuffers(1, buffers);
-        alDeleteSources(1, &source);
+    alSourceUnqueueBuffers(source, NUM_BUFFERS, buffers);
+    alDeleteBuffers(NUM_BUFFERS, buffers);
+    alDeleteSources(1, &source);
+
+    ALenum error;
+    if ((error = alGetError()) != AL_NO_ERROR) {
+        std::cerr << "Error deleting the playing source! " << alGetString(error) << std::endl;
+
+        return;
+    }
 }
 
 ALHelper::~ALHelper() {
@@ -213,8 +232,4 @@ ALHelper::~ALHelper() {
     alcDestroyContext(ctx);
     alcCloseDevice(dev);
 
-}
-
-uint32_t ALHelper::getNextRequestID() {
-    return soundRequestID++;
 }
