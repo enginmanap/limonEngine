@@ -39,7 +39,6 @@ int ALHelper::soundManager() {
                 std::unique_ptr<PlayingSound>& sound = playRequests.at(i);
                 if (startPlay(sound)) {
                     playingSounds[sound->soundID] = std::move(sound);
-                    std::cout << "Playing new sound" << std::endl;
                 }
             }
         }
@@ -93,6 +92,7 @@ int ALHelper::soundManager() {
 uint32_t ALHelper::stop(uint32_t soundID) {
     if(playingSounds.find(soundID) != playingSounds.end()) {
         std::unique_ptr<PlayingSound>& sound = playingSounds[soundID];
+        sound->looped = false;
         alSourceStop(sound->source);
         ALenum error;
         if ((error = alGetError()) != AL_NO_ERROR) {

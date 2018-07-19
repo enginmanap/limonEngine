@@ -101,8 +101,6 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper,
     modelsInLightFrustum.resize(NR_POINT_LIGHTS);
     animatedModelsInLightFrustum.resize(NR_POINT_LIGHTS);
 
-
-
     /************ ImGui *****************************/
     // Setup ImGui binding
     imgGuiHelper = new ImGuiHelper(glHelper, options);
@@ -938,6 +936,29 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     onLoadActions.push_back(new ActionForOnload());
                 }
             }
+            static char musicNameBuffer[128] = {};
+            static bool musicRefresh = true;
+            if(musicRefresh) {
+                if (this->music != nullptr) {
+                    if (this->music->getName().length() < 128) {
+                        strcpy(musicNameBuffer, this->music->getName().c_str());
+                    } else {
+                        strncpy(musicNameBuffer, this->music->getName().c_str(), 127);
+                    }
+                }
+                musicRefresh = false;
+            }
+            ImGui::InputText("OnLoad Music", musicNameBuffer, 128);
+            if(ImGui::Button("Change Music")) {
+                musicRefresh = true;
+                this->music->stop();
+                delete this->music;
+                this->music = new Sound(getNextObjectID(), assetManager, std::string(musicNameBuffer));
+                this->music->setLoop(true);
+                this->music->setWorldPosition(glm::vec3(0,0,0), true);
+                this->music->play();
+            }
+
 
             if (ImGui::CollapsingHeader("Add GUI Elements")) {
                 /**
@@ -1643,13 +1664,9 @@ void World::afterLoadFinished() {
         }
     }
 
-    //Sound* music = new Sound(this->getNextObjectID(), assetManager, "./Data/Sounds/Music/dungeon002.wav");
-/*    Sound* music = new Sound(this->getNextObjectID(), assetManager, "./Data/Sounds/celloMono.wav");
-    music->setLoop(true);
-    music->setStartPosition(10.5f);
-    music->setStopPosition(15.4f);
-    music->setWorldPosition(glm::vec3(0,0,0), true);
-    music->play();*/
+    if(music != nullptr) {
+        music->play();
+    }
 
 }
 

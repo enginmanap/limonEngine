@@ -18,7 +18,7 @@
 #include "GUI/GUILayer.h"
 #include "GameObjects/GUIText.h"
 #include "ALHelper.h"
-
+#include "GameObjects/Sound.h"
 
 WorldLoader::WorldLoader(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options) :
         options(options),
@@ -83,6 +83,21 @@ bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world)
         return false;
     }
     std::cout << "read name as " << worldName->GetText() << std::endl;
+
+    tinyxml2::XMLElement* musicNameNode =  worldNode->FirstChildElement("Music");
+    if (musicNameNode == nullptr) {
+        std::cout << "No music found." << std::endl;
+    } else {
+        std::string musicName = musicNameNode->GetText();
+        std::cout << "reading music as as " << musicName << std::endl;
+        world->music = new Sound(world->getNextObjectID(), assetManager, musicName);
+        world->music->setLoop(true);
+        world->music->setWorldPosition(glm::vec3(0,0,0), true);
+    }
+
+
+
+
 
     //load objects
     if(!loadObjectsFromXML(worldNode, world)) {
