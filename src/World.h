@@ -93,7 +93,7 @@ class World {
 
 
     /*
-     * The variables below are redudant, but they allow instanced rendering, and saving frustum occlusion results.
+     * The variables below are redundant, but they allow instanced rendering, and saving frustum occlusion results.
      */
     std::vector<Model*> updatedModels;
     std::vector<std::map<uint32_t , std::set<Model*>>> modelsInLightFrustum;
@@ -103,7 +103,7 @@ class World {
     std::set<Model*> animatedModelsInFrustum; //since animated models can't be instanced, they don't need to be in a map etc.
     std::set<Model*> animatedModelsInAnyFrustum;
 
-    /************************* End of redudant variables ******************************************/
+    /************************* End of redundant variables ******************************************/
 
     std::map<uint32_t, GUIText*> guiElements;
     std::map<uint32_t, TriggerObject*> triggers;
