@@ -16,7 +16,6 @@ class Sound : public GameObject {
     uint32_t worldID;
     uint32_t soundHandleID;
     AssetManager *assetManager;
-    const SoundAsset* soundAsset;
 
     glm::vec3 position = glm::vec3(0,0,0);
     bool listenerRelative = true; //by default plays at the listener position

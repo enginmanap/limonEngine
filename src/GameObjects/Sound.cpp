@@ -7,9 +7,7 @@
 #include "../ALHelper.h"
 #include "../Assets/SoundAsset.h"
 
-Sound::Sound(uint32_t worldID, AssetManager *assetManager, const std::string &filename) : name(filename), worldID(worldID), assetManager(assetManager) {
-    this->soundAsset = assetManager->loadAsset<SoundAsset>({filename});
-}
+Sound::Sound(uint32_t worldID, AssetManager *assetManager, const std::string &filename) : name(filename), worldID(worldID), assetManager(assetManager) {}
 
 void Sound::setLoop(bool looped) {
     this->looped = looped;
@@ -17,14 +15,16 @@ void Sound::setLoop(bool looped) {
 
 void Sound::setStartPosition(float startSecond) {
     this->startSecond = startSecond;
+    std::cerr << "This method [setStartPosition] is not implemented yet " << std::endl;
 }
 
 void Sound::setStopPosition(float stopPosition) {
     this->stopPosition = stopPosition;
+    std::cerr << "This method [setStopPosition] is not implemented yet " << std::endl;
 }
 
 void Sound::play() {
-    soundHandleID = assetManager->getAlHelper()->play(this->soundAsset, this->looped);
+    soundHandleID = assetManager->getAlHelper()->play(assetManager->loadAsset<SoundAsset>({this->name}), this->looped);
 }
 
 void Sound::stop() {

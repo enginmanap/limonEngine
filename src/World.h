@@ -90,7 +90,7 @@ class World {
     Options* options;
     uint32_t nextWorldID = 1;
     std::map<uint32_t, PhysicalRenderable *> objects;
-
+    Sound* music = nullptr;
 
     /*
      * The variables below are redundant, but they allow instanced rendering, and saving frustum occlusion results.

@@ -27,4 +27,5 @@ SoundAsset::SoundAsset(AssetManager *assetManager, uint32_t assetID, const std::
 
 SoundAsset::~SoundAsset() {
     drwav_free(soundData);
+    std::cout << "Sound asset " << this->name << " unloaded" << std::endl;
 }
