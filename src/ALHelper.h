@@ -26,7 +26,8 @@ class ALHelper {
         ALuint buffers[NUM_BUFFERS];
         const int16_t *nextDataToBuffer;
         bool looped;
-
+        glm::vec3 position = glm::vec3(0,0,0);
+        bool isPositionRelative = true;
         bool isFinished();
         PlayingSound(uint32_t id): soundID(id) {};
 
@@ -114,17 +115,27 @@ public:
         if(playingSounds.find(soundID) != playingSounds.end()) {
             std::unique_ptr<PlayingSound>& sound =  playingSounds[soundID];
 
-            if(isCameraRelative) {
-                alSourcei(sound->source, AL_SOURCE_RELATIVE, AL_TRUE);
-            } else {
-                alSourcei(sound->source, AL_SOURCE_RELATIVE, AL_FALSE);
+            if(isCameraRelative != sound->isPositionRelative) {
+                if (isCameraRelative) {
+                    alSourcei(sound->source, AL_SOURCE_RELATIVE, AL_TRUE);
+                } else {
+                    alSourcei(sound->source, AL_SOURCE_RELATIVE, AL_FALSE);
+                }
+                sound->isPositionRelative = isCameraRelative;
             }
-            alSource3f(sound->source, AL_POSITION, soundPosition.x, soundPosition.y, soundPosition.z);
+
+            if(sound->position != soundPosition) {
+                alSource3f(sound->source, AL_POSITION, soundPosition.x, soundPosition.y, soundPosition.z);
+
+                alSource3f(sound->source, AL_VELOCITY, soundPosition.x - sound->position.x,
+                           soundPosition.y - sound->position.y,
+                           soundPosition.z - sound->position.z);
+                sound->position = soundPosition;
+            }
 
             ALenum error;
             if ((error = alGetError()) != AL_NO_ERROR) {
                 std::cerr << "Error setting source position! " << alGetString(error) << std::endl;
-
                 return;
             }
         }

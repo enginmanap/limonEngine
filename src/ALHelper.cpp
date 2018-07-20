@@ -123,9 +123,6 @@ bool ALHelper::startPlay(std::unique_ptr<PlayingSound> &sound) {
 
     alSourcef(sound->source,AL_GAIN,1000.0f);
 
-    alSourcei(sound->source, AL_SOURCE_RELATIVE, AL_FALSE);
-    alSource3f(sound->source, AL_POSITION, 0.0f, 0.0f, 15.0f);
-
     if(alGetError() != AL_NO_ERROR) {
         std::cerr << "Audio buffer setup failed!" << std::endl;
         return false;

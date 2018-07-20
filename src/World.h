@@ -292,6 +292,12 @@ public:
     uint32_t removeTriggerObject(uint32_t triggerobjectID);
     uint32_t removeGuiText(uint32_t guiElementID);
 
+    bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath);
+
+    bool detachSoundFromObject(uint32_t objectWorldID);
+
+    bool playSound(const std::string &soundPath, const glm::vec3 &position, bool looped);
+
     std::vector<LimonAPI::ParameterRequest> getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID);
 
     bool disconnectObjectFromPhysics(uint32_t objectWorldID);

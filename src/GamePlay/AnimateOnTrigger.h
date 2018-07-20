@@ -25,7 +25,4 @@ public:
     }
 };
 
-
-
-
 #endif //LIMONENGINE_ANIMATONTRIGGER_H
