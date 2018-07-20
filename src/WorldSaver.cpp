@@ -70,8 +70,10 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     tinyxml2::XMLElement * currentElement = mapDocument.NewElement("Name");
     currentElement->SetText(mapName.c_str());
     rootNode->InsertEndChild(currentElement);
-    currentElement = mapDocument.NewElement("Music");
-    currentElement->SetText(world->music->getName().c_str());
+    if(world->music != nullptr) {
+        currentElement = mapDocument.NewElement("Music");
+        currentElement->SetText(world->music->getName().c_str());
+    }
     rootNode->InsertEndChild(currentElement);
     //after current element is inserted, we can reuse
     currentElement = mapDocument.NewElement("Objects");
