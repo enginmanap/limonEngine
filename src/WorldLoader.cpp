@@ -43,6 +43,9 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
     api->worldRemoveTriggerObject = std::bind(&World::removeTriggerObject, newWorld, std::placeholders::_1);
     api->worldDisconnectObjectFromPhysics = std::bind(&World::disconnectObjectFromPhysics, newWorld, std::placeholders::_1);
     api->worldReconnectObjectToPhysics= std::bind(&World::reconnectObjectToPhysics, newWorld, std::placeholders::_1);
+    api->worldAttachSoundToObjectAndPlay = std::bind(&World::attachSoundToObjectAndPlay, newWorld, std::placeholders::_1, std::placeholders::_2);
+    api->worldDetachSoundFromObject = std::bind(&World::detachSoundFromObject, newWorld, std::placeholders::_1);
+    api->worldPlaySound = std::bind(&World::playSound, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
 
     newWorld->apiInstance = api;

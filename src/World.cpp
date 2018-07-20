@@ -1695,3 +1695,27 @@ bool World::reconnectObjectToPhysics(uint32_t objectWorldID) {
     model->connectToPhysicsWorld(dynamicsWorld, COLLIDE_MODELS, COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
     return true;
 }
+
+bool World::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath) {
+    if(objects.find(objectWorldID) == objects.end()) {
+        return false;//fail
+    }
+    objects[objectWorldID]->setSoundAttachementAndPlay(std::move(std::make_unique<Sound>(getNextObjectID(), assetManager, soundPath)));
+    return true;
+}
+
+bool World::detachSoundFromObject(uint32_t objectWorldID) {
+    if(objects.find(objectWorldID) == objects.end()) {
+        return false;//fail
+    }
+    objects[objectWorldID]->detachSound();
+    return true;
+}
+
+bool World::playSound(const std::string &soundPath, const glm::vec3 &position, bool looped) {
+    std::unique_ptr<Sound> sound = std::make_unique<Sound>(getNextObjectID(), assetManager, soundPath);
+    sound->setLoop(looped);
+    sound->setWorldPosition(position, true);
+    sound->play();
+    return true;
+}

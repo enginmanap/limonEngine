@@ -61,6 +61,10 @@ public:
     bool disconnectObjectFromPhysics(uint32_t modelID);
     bool reconnectObjectToPhysics(uint32_t modelID);
 
+    bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath);
+    bool detachSoundFromObject(uint32_t objectWorldID);
+    bool playSound(const std::string &soundPath, const glm::vec3 &position, bool looped);
+
     std::vector<ParameterRequest> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
 
     /**
@@ -95,6 +99,11 @@ private:
     std::function<uint32_t (uint32_t)> worldRemoveTriggerObject;
     std::function<bool (uint32_t)> worldDisconnectObjectFromPhysics;
     std::function<bool (uint32_t)> worldReconnectObjectToPhysics;
+
+    std::function<bool (uint32_t, const std::string&)> worldAttachSoundToObjectAndPlay;
+    std::function<bool (uint32_t)> worldDetachSoundFromObject;
+    std::function<bool (const std::string&, const glm::vec3&, bool)> worldPlaySound;
+
 };
 
 
