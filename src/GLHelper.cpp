@@ -281,7 +281,6 @@ GLHelper::GLHelper(Options *options): options(options) {
     bool isCubeMapArraySupported = false;
     char extensionNameBuffer[100];
     for (i = 0; i < n; i++) {
-        glGetStringi(GL_EXTENSIONS, i);
         sprintf(extensionNameBuffer, "%s", glGetStringi(GL_EXTENSIONS, i));
         if(std::strcmp(extensionNameBuffer, "GL_ARB_texture_cube_map_array") == 0) {
             isCubeMapArraySupported = true;
