@@ -21,6 +21,9 @@ ALHelper::ALHelper() {
     }
     ctx = alcCreateContext(dev, NULL);
     alcMakeContextCurrent(ctx);
+
+    alDopplerFactor(0.5);
+
     if(!ctx) {
         throw("Audio context setup failed!");
     }
