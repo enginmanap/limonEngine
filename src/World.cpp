@@ -1712,10 +1712,12 @@ bool World::detachSoundFromObject(uint32_t objectWorldID) {
     return true;
 }
 
-bool World::playSound(const std::string &soundPath, const glm::vec3 &position, bool looped) {
+uint32_t World::playSound(const std::string &soundPath, const glm::vec3 &position, bool looped) {
     std::unique_ptr<Sound> sound = std::make_unique<Sound>(getNextObjectID(), assetManager, soundPath);
     sound->setLoop(looped);
     sound->setWorldPosition(position, true);
     sound->play();
-    return true;
+    uint32_t soundID = sound->getWorldObjectID();
+    sounds[soundID] = std::move(sound);
+    return soundID;
 }

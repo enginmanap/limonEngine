@@ -102,7 +102,7 @@ private:
 
     std::function<bool (uint32_t, const std::string&)> worldAttachSoundToObjectAndPlay;
     std::function<bool (uint32_t)> worldDetachSoundFromObject;
-    std::function<bool (const std::string&, const glm::vec3&, bool)> worldPlaySound;
+    std::function<uint32_t (const std::string&, const glm::vec3&, bool)> worldPlaySound;
 
 };
 
