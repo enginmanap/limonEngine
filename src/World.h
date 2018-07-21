@@ -111,6 +111,7 @@ class World {
     std::vector<AnimationCustom> loadedAnimations;
     std::set<PhysicalRenderable*> onLoadAnimations;//Those renderables animations should be loaded and started on load
     std::unordered_map<PhysicalRenderable*, AnimationStatus> activeAnimations;
+    std::unordered_map<uint32_t, std::unique_ptr<Sound>> sounds;
     AnimationSequenceInterface* animationInProgress = nullptr;
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
@@ -296,7 +297,7 @@ public:
 
     bool detachSoundFromObject(uint32_t objectWorldID);
 
-    bool playSound(const std::string &soundPath, const glm::vec3 &position, bool looped);
+    uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool looped);
 
     std::vector<LimonAPI::ParameterRequest> getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID);
 
