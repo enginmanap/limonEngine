@@ -91,10 +91,13 @@ bool MayanCoinPickup::run(std::vector<LimonAPI::ParameterRequest> parameters) {
 
 
     //move the stairs
-    std::string sound = "./Data/Sounds/rumble.wav";
-    limonAPI->animateModel(parameters[3].value.longValue, parameters[6].value.longValue, false, &sound);
+    std::string stairsMoveSound = "./Data/Sounds/rumble.wav";
+    limonAPI->animateModel(parameters[3].value.longValue, parameters[6].value.longValue, false, &stairsMoveSound);
     limonAPI->animateModel(parameters[4].value.longValue, parameters[6].value.longValue, false, nullptr);
     limonAPI->animateModel(parameters[5].value.longValue, parameters[6].value.longValue, false, nullptr);
+
+    std::string coinPickupSound = "./Data/Sounds/coinPickup.wav";
+    limonAPI->playSound(coinPickupSound, glm::vec3(0,0,0), false);
 
     if(parameters.size() == 8) {
         std::string text = parameters[7].value.stringValue;
