@@ -146,6 +146,9 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
     std::vector<Model*> notStaticObjects;
     bool isAIGridStartPointSet = false;
     glm::vec3 aiGridStartPoint;
+
+    std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds;
+
     while(objectNode != nullptr) {
         objectAttribute =  objectNode->FirstChildElement("File");
         if (objectAttribute == nullptr) {
@@ -187,6 +190,18 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
         }
 
         xmlModel = new Model(id, assetManager, modelMass, modelFile, disconnected);
+
+        objectAttribute =  objectNode->FirstChildElement("StepOnSound");
+
+        if (objectAttribute == nullptr) {
+            std::cerr << "Object does not have step on sound." << std::endl;
+        } else {
+            std::string stepOnSound = objectAttribute->GetText();
+            if(requiredSounds.find(stepOnSound) != requiredSounds.end()) {
+                requiredSounds[stepOnSound] = std::make_shared<Sound>(0, assetManager, stepOnSound);//since the step on is not managed by world, not feed world object ID
+            }
+            xmlModel->setPlayerStepOnSound(requiredSounds[stepOnSound]);
+        }
 
         objectAttribute =  objectNode->FirstChildElement("Transformation");
         if(objectAttribute == nullptr) {
