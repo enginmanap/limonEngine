@@ -13,6 +13,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <SDL_atomic.h>
+#include <SDL_thread.h>
+#include <iostream>
+#include <SDL_timer.h>
 
 ALHelper::ALHelper() {
     dev = alcOpenDevice(NULL);
@@ -44,40 +48,39 @@ int ALHelper::soundManager() {
                     playingSounds[sound->soundID] = std::move(sound);
                 }
             }
+            playRequests.clear();//moving should invalidate, so I don't remove one by one
+            SDL_AtomicUnlock(&playRequestLock);
         }
-        playRequests.clear();//moving should invalidate, so I don't remove one by one
-        SDL_AtomicUnlock(&playRequestLock);
         for (auto iterator = playingSounds.begin(); iterator != playingSounds.end(); ) {
             std::unique_ptr<PlayingSound>& temp = (*iterator).second;
             if(temp->isFinished()) {
                 if(temp->looped) {
                     alSourceStop(temp->source);
-                    ALuint buffers;
+                    ALuint buffers[NUM_BUFFERS];
                     ALint val;
+                    ALenum error;
 
                     alGetSourcei(temp->source, AL_BUFFERS_PROCESSED, &val);
-
-                    alSourceUnqueueBuffers(temp->source, val, &buffers);
+                    alSourceUnqueueBuffers(temp->source, val, buffers);
+                    if ((error = alGetError()) != AL_NO_ERROR) {
+                        std::cerr << "Loop audio buffer data failed!" << alGetString(error) << std::endl;
+                    }
 
                     temp->sampleCountToPlay = temp->asset->getSampleCount();
                     temp->nextDataToBuffer = temp->asset->getSoundData();
 
-
                     for (uint32_t i = 0; i < NUM_BUFFERS; ++i) {
                         uint32_t currentPlaySize = std::min((uint64_t)temp->sampleCountToPlay, (uint64_t)BUFFER_ELEMENT_COUNT);
                         temp->sampleCountToPlay = temp->sampleCountToPlay - currentPlaySize;
-
                         alBufferData(temp->buffers[i], temp->format, temp->nextDataToBuffer, currentPlaySize * sizeof(int16_t), temp->asset->getSampleRate());
                         temp->nextDataToBuffer = temp->nextDataToBuffer + currentPlaySize;
-                        ALenum error;
                         if ((error = alGetError()) != AL_NO_ERROR) {
                             std::cerr << "Loop audio buffer data failed!" << alGetString(error) << std::endl;
                         }
                     }
                     alSourceQueueBuffers(temp->source, NUM_BUFFERS, temp->buffers);
                     alSourcePlay(temp->source);
-
-                    ++iterator;
+                    iterator++;
                 } else {
                     iterator = playingSounds.erase(iterator);
 
@@ -101,14 +104,13 @@ uint32_t ALHelper::stop(uint32_t soundID) {
         if ((error = alGetError()) != AL_NO_ERROR) {
             std::cerr << "Stop source failed! " << alGetString(error) << std::endl;
         }
-
     }
     return 0;
 }
 
 uint32_t ALHelper::play(const SoundAsset* soundAsset, bool looped) {
     uint32_t id = getNextRequestID();
-    auto sound = std::make_unique<PlayingSound>(id);
+    auto sound = std::unique_ptr<PlayingSound>(new PlayingSound(id));
     sound->asset = soundAsset;
     sound->looped = looped;
 
@@ -210,16 +212,29 @@ bool ALHelper::PlayingSound::isFinished() {
 }
 
 ALHelper::PlayingSound::~PlayingSound() {
-    alSourceUnqueueBuffers(source, NUM_BUFFERS, buffers);
-    alDeleteBuffers(NUM_BUFFERS, buffers);
-    alDeleteSources(1, &source);
-
+    alSourceStop(source);
     ALenum error;
+    ALint val;
+    ALuint tempBuffers[NUM_BUFFERS];
+
+    alGetSourcei(source, AL_BUFFERS_PROCESSED, &val);
+
+
+    alSourceUnqueueBuffers(source, val, tempBuffers);
+    if ((error = alGetError()) != AL_NO_ERROR) {
+        std::cerr << "Error sound source unqueue before delete! " << alGetString(error) << std::endl;
+    }
+
+    alDeleteBuffers(NUM_BUFFERS, buffers);
+    if ((error = alGetError()) != AL_NO_ERROR) {
+        std::cerr << "Error sound source delete buffer ! " << alGetString(error) << std::endl;
+    }
+
+    alDeleteSources(1, &source);
     if ((error = alGetError()) != AL_NO_ERROR) {
         std::cerr << "Error deleting the playing source! " << alGetString(error) << std::endl;
-
-        return;
     }
+
 }
 
 ALHelper::~ALHelper() {
@@ -232,4 +247,12 @@ ALHelper::~ALHelper() {
     alcDestroyContext(ctx);
     alcCloseDevice(dev);
 
+}
+
+bool ALHelper::setLooped(uint32_t soundID, bool looped) {
+    if(playingSounds.find(soundID) != playingSounds.end()) {
+        playingSounds[soundID]->looped = looped;
+        return true;
+    }
+    return false;
 }

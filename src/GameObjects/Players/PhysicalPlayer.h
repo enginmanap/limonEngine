@@ -17,6 +17,7 @@
 #include "../../Utils/GLMConverter.h"
 #include "Player.h"
 #include "../../GUI/GUIRenderable.h"
+#include "../Sound.h"
 
 static const int STEPPING_TEST_COUNT = 5;
 
@@ -43,6 +44,8 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     bool onAir;
     bool positionSet = false;
     Options *options;
+    std::shared_ptr<Sound> currentSound = nullptr;
+
     bool dirty;
 
 public:
@@ -127,7 +130,7 @@ public:
         cursor->setTranslate(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f));
     };
 
-    PhysicalPlayer(Options *options, GUIRenderable* cursor);
+    PhysicalPlayer(Options *options, GUIRenderable *cursor);
 
     ~PhysicalPlayer() {
         delete player;

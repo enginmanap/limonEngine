@@ -75,12 +75,24 @@ class ALHelper {
 
     bool refreshBuffers(std::unique_ptr<PlayingSound> &sound);//this method updates some of the values of parameter
 
+    uint32_t getNextRequestID(){
+        return soundRequestID++;
+    }
+
+
 public:
     ALHelper();
 
     ~ALHelper();
 
     uint32_t play(const SoundAsset *soundAsset, bool looped);
+
+    bool isPlaying(uint32_t soundID) {
+        if(playingSounds.find(soundID) != playingSounds.end()) {
+            return playingSounds[soundID]->looped || !playingSounds[soundID]->isFinished();
+        }
+        return false;
+    }
 
     uint32_t stop(uint32_t soundID);
 
@@ -141,9 +153,7 @@ public:
         }
     }
 
-    uint32_t getNextRequestID(){
-        return soundRequestID++;
-    }
+    bool setLooped(uint32_t soundID, bool looped);
 };
 
 
