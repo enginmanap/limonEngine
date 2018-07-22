@@ -11,6 +11,9 @@ Sound::Sound(uint32_t worldID, AssetManager *assetManager, const std::string &fi
 
 void Sound::setLoop(bool looped) {
     this->looped = looped;
+    if(this->soundHandleID != 0) {
+        assetManager->getAlHelper()->setLooped(soundHandleID, this->looped);
+    }
 }
 
 void Sound::setStartPosition(float startSecond) {
@@ -24,11 +27,23 @@ void Sound::setStopPosition(float stopPosition) {
 }
 
 void Sound::play() {
-    soundHandleID = assetManager->getAlHelper()->play(assetManager->loadAsset<SoundAsset>({this->name}), this->looped);
+    if(soundHandleID != 0) {
+        if(!assetManager->getAlHelper()->isPlaying(soundHandleID)) {//don't play if already playing
+            soundHandleID = assetManager->getAlHelper()->play(assetManager->loadAsset<SoundAsset>({this->name}),
+                                                              this->looped);
+        }
+    } else {
+        soundHandleID = assetManager->getAlHelper()->play(assetManager->loadAsset<SoundAsset>({this->name}),
+                                                          this->looped);
+    }
 }
 
 void Sound::stop() {
     assetManager->getAlHelper()->stop(soundHandleID);
+}
+
+void Sound::stopAfterFinish() {
+    assetManager->getAlHelper()->setLooped(soundHandleID, false);
 }
 
 void Sound::setWorldPosition(glm::vec3 position, bool listenerRelative) {

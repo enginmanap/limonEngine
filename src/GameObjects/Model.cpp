@@ -123,6 +123,10 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
         //for animated bodies, setup the first frame
         this->setupForTime(0);
     }
+
+    this->playerStepOnSound = std::make_shared<Sound>(0, assetManager, "./Data/Sounds/stepstone_8.wav");
+    this->playerStepOnSound->setLoop(true);
+
 }
 
 void Model::setupForTime(long time) {
