@@ -206,8 +206,10 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                     currentSound = model->getPlayerStepOnSound();
                 }
             } else {
-                currentSound->stopAfterFinish();
-                currentSound = nullptr;
+                if(currentSound != nullptr) {
+                    currentSound->stopAfterFinish();
+                    currentSound = nullptr;
+                }
             }
 
 
