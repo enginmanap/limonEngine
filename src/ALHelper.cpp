@@ -31,7 +31,6 @@ ALHelper::ALHelper() {
     if(!ctx) {
         throw("Audio context setup failed!");
     }
-    this->running = true;
     SDL_AtomicUnlock(&playRequestLock);
 
     thread = SDL_CreateThread(&staticSoundManager, "soundManager", this);
@@ -39,55 +38,72 @@ ALHelper::ALHelper() {
 }
 
 int ALHelper::soundManager() {
-    while(running) {
-        if(playRequests.size() > 0) { //this might miss a request because not locking, but I am ok with 10ms delay at most
-            SDL_AtomicLock(&playRequestLock);
-            for (size_t i = 0; i < playRequests.size(); ++i) {
-                std::unique_ptr<PlayingSound>& sound = playRequests.at(i);
-                if (startPlay(sound)) {
-                    playingSounds[sound->soundID] = std::move(sound);
-                }
+    while(running || paused) {
+        if(paused && running) { //the first cycle after pause request
+            for (auto iterator = playingSounds.begin(); iterator != playingSounds.end();++iterator) {
+                alSourcePause(iterator->second->source);
             }
-            playRequests.clear();//moving should invalidate, so I don't remove one by one
-            SDL_AtomicUnlock(&playRequestLock);
-        }
-        for (auto iterator = playingSounds.begin(); iterator != playingSounds.end(); ) {
-            std::unique_ptr<PlayingSound>& temp = (*iterator).second;
-            if(temp->isFinished()) {
-                if(temp->looped) {
-                    alSourceStop(temp->source);
-                    ALuint buffers[NUM_BUFFERS];
-                    ALint val;
-                    ALenum error;
-
-                    alGetSourcei(temp->source, AL_BUFFERS_PROCESSED, &val);
-                    alSourceUnqueueBuffers(temp->source, val, buffers);
-                    if ((error = alGetError()) != AL_NO_ERROR) {
-                        std::cerr << "Loop audio buffer data failed!" << alGetString(error) << std::endl;
+            running = false;
+        } else if(resumed) {
+            for (auto iterator = playingSounds.begin(); iterator != playingSounds.end();++iterator) {
+                alSourcePlay(iterator->second->source);
+            }
+            running = true;
+            paused = false;
+            resumed = false;
+        } else if(running) {
+            if (playRequests.size() >
+                0) { //this might miss a request because not locking, but I am ok with 10ms delay at most
+                SDL_AtomicLock(&playRequestLock);
+                for (size_t i = 0; i < playRequests.size(); ++i) {
+                    std::unique_ptr<PlayingSound> &sound = playRequests.at(i);
+                    if (startPlay(sound)) {
+                        playingSounds[sound->soundID] = std::move(sound);
                     }
+                }
+                playRequests.clear();//moving should invalidate, so I don't remove one by one
+                SDL_AtomicUnlock(&playRequestLock);
+            }
+            for (auto iterator = playingSounds.begin(); iterator != playingSounds.end();) {
+                std::unique_ptr<PlayingSound> &temp = (*iterator).second;
+                if (temp->isFinished()) {
+                    if (temp->looped) {
+                        alSourceStop(temp->source);
+                        ALuint buffers[NUM_BUFFERS];
+                        ALint val;
+                        ALenum error;
 
-                    temp->sampleCountToPlay = temp->asset->getSampleCount();
-                    temp->nextDataToBuffer = temp->asset->getSoundData();
-
-                    for (uint32_t i = 0; i < NUM_BUFFERS; ++i) {
-                        uint32_t currentPlaySize = std::min((uint64_t)temp->sampleCountToPlay, (uint64_t)BUFFER_ELEMENT_COUNT);
-                        temp->sampleCountToPlay = temp->sampleCountToPlay - currentPlaySize;
-                        alBufferData(temp->buffers[i], temp->format, temp->nextDataToBuffer, currentPlaySize * sizeof(int16_t), temp->asset->getSampleRate());
-                        temp->nextDataToBuffer = temp->nextDataToBuffer + currentPlaySize;
+                        alGetSourcei(temp->source, AL_BUFFERS_PROCESSED, &val);
+                        alSourceUnqueueBuffers(temp->source, val, buffers);
                         if ((error = alGetError()) != AL_NO_ERROR) {
                             std::cerr << "Loop audio buffer data failed!" << alGetString(error) << std::endl;
                         }
-                    }
-                    alSourceQueueBuffers(temp->source, NUM_BUFFERS, temp->buffers);
-                    alSourcePlay(temp->source);
-                    iterator++;
-                } else {
-                    iterator = playingSounds.erase(iterator);
 
+                        temp->sampleCountToPlay = temp->asset->getSampleCount();
+                        temp->nextDataToBuffer = temp->asset->getSoundData();
+
+                        for (uint32_t i = 0; i < NUM_BUFFERS; ++i) {
+                            uint32_t currentPlaySize = std::min((uint64_t) temp->sampleCountToPlay,
+                                                                (uint64_t) BUFFER_ELEMENT_COUNT);
+                            temp->sampleCountToPlay = temp->sampleCountToPlay - currentPlaySize;
+                            alBufferData(temp->buffers[i], temp->format, temp->nextDataToBuffer,
+                                         currentPlaySize * sizeof(int16_t), temp->asset->getSampleRate());
+                            temp->nextDataToBuffer = temp->nextDataToBuffer + currentPlaySize;
+                            if ((error = alGetError()) != AL_NO_ERROR) {
+                                std::cerr << "Loop audio buffer data failed!" << alGetString(error) << std::endl;
+                            }
+                        }
+                        alSourceQueueBuffers(temp->source, NUM_BUFFERS, temp->buffers);
+                        alSourcePlay(temp->source);
+                        iterator++;
+                    } else {
+                        iterator = playingSounds.erase(iterator);
+
+                    }
+                } else {
+                    refreshBuffers(temp);
+                    ++iterator;
                 }
-            } else {
-                refreshBuffers(temp);
-                ++iterator;
             }
         }
         SDL_Delay(10);

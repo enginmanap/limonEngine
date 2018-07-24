@@ -562,6 +562,7 @@ void World::switchToDebugMode(InputHandler &inputHandler) {
     currentPlayer = debugPlayer;
     camera->setCameraAttachment(debugPlayer);
     inputHandler.setMouseModeRelative();
+    alHelper->resumePlay();
     beforeMode = currentMode;
     currentMode = DEBUG_MODE;
 }
@@ -576,7 +577,7 @@ void World::switchToPhysicalPlayer(InputHandler &inputHandler) {
     for (size_t i = 0; i < guiLayers.size(); ++i) {
         this->guiLayers[i]->setDebug(false);
     }
-
+    alHelper->resumePlay();
     beforeMode = currentMode;
     currentMode = PHYSICAL_MODE;
 }
@@ -592,7 +593,7 @@ void World::switchToEditorMode(InputHandler &inputHandler) {//switch control to 
     inputHandler.setMouseModeFree();
     beforeMode = currentMode;
     currentMode = EDITOR_MODE;
-
+    alHelper->pausePlay();
     //when switching to editor mode, return all objects that are custom animated without triggers
     //to original position
     for(auto it = onLoadAnimations.begin(); it != onLoadAnimations.end(); it++) {
