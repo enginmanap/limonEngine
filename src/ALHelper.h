@@ -13,7 +13,7 @@
 class SoundAsset;
 
 #define NUM_BUFFERS 3
-#define BUFFER_ELEMENT_COUNT 4096
+#define BUFFER_ELEMENT_COUNT 8192
 
 class ALHelper {
 
