@@ -16,6 +16,7 @@ class SoundAsset;
 #define BUFFER_ELEMENT_COUNT 8192
 
 class ALHelper {
+    friend class World;
 
     struct PlayingSound {
         uint32_t soundID;
@@ -41,7 +42,9 @@ class ALHelper {
     ALCcontext *ctx;
 
     glm::vec3 ListenerPosition;
-    bool running;
+    bool running = true;
+    bool paused = false;
+    bool resumed = false;
     uint32_t soundRequestID = 1;
     std::unordered_map<uint32_t, std::unique_ptr<PlayingSound>> playingSounds;
     std::vector<std::unique_ptr<PlayingSound>> playRequests;
@@ -79,6 +82,13 @@ class ALHelper {
         return soundRequestID++;
     }
 
+    void pausePlay() {
+        this->paused = true;
+    }
+
+    void resumePlay() {
+        this->resumed = true;
+    }
 
 public:
     ALHelper();
@@ -96,7 +106,7 @@ public:
 
     uint32_t stop(uint32_t soundID);
 
-    void setListenerPositionAndOrientation(const glm::vec3 &position, const glm::vec3 &front, const glm::vec3 &up) {
+    inline void setListenerPositionAndOrientation(const glm::vec3 &position, const glm::vec3 &front, const glm::vec3 &up) {
         glm::vec3 velocity = this->ListenerPosition - position;
         this->ListenerPosition = position;
         ALfloat listenerOri[] = {front.x, front.y, front.z,
