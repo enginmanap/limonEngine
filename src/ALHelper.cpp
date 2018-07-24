@@ -255,6 +255,7 @@ ALHelper::PlayingSound::~PlayingSound() {
 
 ALHelper::~ALHelper() {
     this->running = false;
+    this->paused = false;
     int threadReturnValue;
     SDL_WaitThread(thread, &threadReturnValue);
 
