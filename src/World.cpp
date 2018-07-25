@@ -33,13 +33,15 @@
 #include "GamePlay/AnimateOnTrigger.h"
 #include "GamePlay/AddGuiTextOnTrigger.h"
 #include "AnimationSequencer.h"
-#include "GUI/Cursor.h"
+#include "GUI/GUICursor.h"
 #include "GUI/GUILayer.h"
 #include "GameObjects/GUIText.h"
+#include "ALHelper.h"
+#include "GameObjects/Sound.h"
 
 
-World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
-        : assetManager(assetManager),options(options), glHelper(glHelper), fontManager(glHelper) {
+World::World(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options)
+        : assetManager(assetManager),options(options), glHelper(glHelper), alHelper(alHelper), fontManager(glHelper) {
     // physics init
     broadphase = new btDbvtBroadphase();
     ghostPairCallback = new btGhostPairCallback();
@@ -73,7 +75,7 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
                                fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0", glm::vec3(204, 204, 0));
     renderCounts->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 170, options->getScreenHeight() - 36), 0);
 
-    cursor = new Cursor(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
+    cursor = new GUICursor(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
                         glm::vec3(255, 255, 255));
     cursor->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), -1 * options->PI / 4);
 
@@ -98,8 +100,6 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, Options *options)
     modelIndicesBuffer.reserve(NR_MAX_MODELS);
     modelsInLightFrustum.resize(NR_POINT_LIGHTS);
     animatedModelsInLightFrustum.resize(NR_POINT_LIGHTS);
-
-
 
     /************ ImGui *****************************/
     // Setup ImGui binding
@@ -160,6 +160,7 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 
      if(camera->isDirty()) {
          glHelper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
+         alHelper->setListenerPositionAndOrientation(camera->getPosition(), camera->getCenter(), camera->getUp());
      }
 
 
@@ -195,11 +196,19 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
                 animationStatus->object->getTransformation()->addOrientation(tf.getOrientation());
                 animationStatus->object->getTransformation()->addScale(tf.getScale());
                 animationStatus->object->getTransformation()->addTranslate(tf.getTranslate());
+                if(animationStatus->sound) {
+                    animationStatus->sound->setWorldPosition(
+                            animationStatus->object->getTransformation()->getTranslate());
+                }
                 animIt++;
             } else {
                 if(!animationStatus->wasKinematic) {
                     animationStatus->object->getRigidBody()->setCollisionFlags(animationStatus->object->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
                     animationStatus->object->getRigidBody()->setActivationState(ACTIVE_TAG);
+                }
+
+                if(animationStatus->sound) {
+                    animationStatus->sound->stop();
                 }
                 options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, "Animation " + animationCustom->getName() +" finished, removing. ");
                 animIt = activeAnimations.erase(animIt);
@@ -553,6 +562,7 @@ void World::switchToDebugMode(InputHandler &inputHandler) {
     currentPlayer = debugPlayer;
     camera->setCameraAttachment(debugPlayer);
     inputHandler.setMouseModeRelative();
+    alHelper->resumePlay();
     beforeMode = currentMode;
     currentMode = DEBUG_MODE;
 }
@@ -567,7 +577,7 @@ void World::switchToPhysicalPlayer(InputHandler &inputHandler) {
     for (size_t i = 0; i < guiLayers.size(); ++i) {
         this->guiLayers[i]->setDebug(false);
     }
-
+    alHelper->resumePlay();
     beforeMode = currentMode;
     currentMode = PHYSICAL_MODE;
 }
@@ -583,7 +593,7 @@ void World::switchToEditorMode(InputHandler &inputHandler) {//switch control to 
     inputHandler.setMouseModeFree();
     beforeMode = currentMode;
     currentMode = EDITOR_MODE;
-
+    alHelper->pausePlay();
     //when switching to editor mode, return all objects that are custom animated without triggers
     //to original position
     for(auto it = onLoadAnimations.begin(); it != onLoadAnimations.end(); it++) {
@@ -884,7 +894,8 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
                     if(onLoadAnimations.find(pickedModel) != onLoadAnimations.end() &&
                             activeAnimations.find(pickedModel) != activeAnimations.end()) {
-                        addAnimationToObject(newModel->getWorldObjectID(), activeAnimations[pickedModel].animationIndex, true, true);
+                        addAnimationToObject(newModel->getWorldObjectID(), activeAnimations[pickedModel].animationIndex,
+                                             true, true);
                     }
                     pickedObject = static_cast<GameObject*>(newModel);
                 }
@@ -926,6 +937,29 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     onLoadActions.push_back(new ActionForOnload());
                 }
             }
+            static char musicNameBuffer[128] = {};
+            static bool musicRefresh = true;
+            if(musicRefresh) {
+                if (this->music != nullptr) {
+                    if (this->music->getName().length() < 128) {
+                        strcpy(musicNameBuffer, this->music->getName().c_str());
+                    } else {
+                        strncpy(musicNameBuffer, this->music->getName().c_str(), 127);
+                    }
+                }
+                musicRefresh = false;
+            }
+            ImGui::InputText("OnLoad Music", musicNameBuffer, 128);
+            if(ImGui::Button("Change Music")) {
+                musicRefresh = true;
+                this->music->stop();
+                delete this->music;
+                this->music = new Sound(getNextObjectID(), assetManager, std::string(musicNameBuffer));
+                this->music->setLoop(true);
+                this->music->setWorldPosition(glm::vec3(0,0,0), true);
+                this->music->play();
+            }
+
 
             if (ImGui::CollapsingHeader("Add GUI Elements")) {
                 /**
@@ -1183,7 +1217,8 @@ void World::addAnimationDefinitionToEditor() {
                            static_cast<void *>(&loadedAnimations), loadedAnimations.size(), 10);
 
             if (ImGui::Button("Apply selected")) {
-                addAnimationToObject(dynamic_cast<Model *>(pickedObject)->getWorldObjectID(), listbox_item_current, true, true);
+                addAnimationToObject(dynamic_cast<Model *>(pickedObject)->getWorldObjectID(), listbox_item_current,
+                                     true, true);
             }
 
             ImGui::SameLine();
@@ -1305,7 +1340,8 @@ void World::addLight(Light *light) {
     this->lights.push_back(light);
 }
 
-uint32_t World::addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad) {
+uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad,
+                                              const std::string *soundToPlay) {
     AnimationStatus as;
     as.object = objects[modelID];
 
@@ -1327,7 +1363,14 @@ uint32_t World::addAnimationToObject(uint32_t modelID, uint32_t animationID, boo
         onLoadAnimations.insert(as.object);
         as.startTime = 0;
     }
-    activeAnimations[as.object] = as;
+
+    if(soundToPlay != nullptr) {
+        as.sound = std::make_unique<Sound>(this->getNextObjectID(), assetManager, *soundToPlay);
+        as.sound->setLoop(looped);
+        as.sound->setWorldPosition(as.object->getTransformation()->getTranslate());
+        as.sound->play();
+    }
+    activeAnimations[as.object] = std::move(as);
     return modelID;
 }
 
@@ -1621,6 +1664,11 @@ void World::afterLoadFinished() {
             onLoadActions[i]->action->run(onLoadActions[i]->parameters);
         }
     }
+
+    if(music != nullptr) {
+        music->play();
+    }
+
 }
 
 bool World::disconnectObjectFromPhysics(uint32_t objectWorldID) {
@@ -1647,4 +1695,30 @@ bool World::reconnectObjectToPhysics(uint32_t objectWorldID) {
 
     model->connectToPhysicsWorld(dynamicsWorld, COLLIDE_MODELS, COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
     return true;
+}
+
+bool World::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath) {
+    if(objects.find(objectWorldID) == objects.end()) {
+        return false;//fail
+    }
+    objects[objectWorldID]->setSoundAttachementAndPlay(std::move(std::make_unique<Sound>(getNextObjectID(), assetManager, soundPath)));
+    return true;
+}
+
+bool World::detachSoundFromObject(uint32_t objectWorldID) {
+    if(objects.find(objectWorldID) == objects.end()) {
+        return false;//fail
+    }
+    objects[objectWorldID]->detachSound();
+    return true;
+}
+
+uint32_t World::playSound(const std::string &soundPath, const glm::vec3 &position, bool looped) {
+    std::unique_ptr<Sound> sound = std::make_unique<Sound>(getNextObjectID(), assetManager, soundPath);
+    sound->setLoop(looped);
+    sound->setWorldPosition(position, true);
+    sound->play();
+    uint32_t soundID = sound->getWorldObjectID();
+    sounds[soundID] = std::move(sound);
+    return soundID;
 }

@@ -5,7 +5,7 @@
 #include "PhysicalPlayer.h"
 #include "../Model.h"
 
-PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable* cursor) :
+PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor) :
         Player(cursor),
         center(glm::vec3(0,0,-1)),
         up(glm::vec3(0,1,0)),
@@ -50,6 +50,10 @@ void PhysicalPlayer::move(moveDirections direction) {
     if (direction == NONE) {
         inputMovementSpeed = inputMovementSpeed / slowDownFactor;
         player->setLinearVelocity(inputMovementSpeed + groundFrictionMovementSpeed);
+
+        if(currentSound != nullptr ) {
+            currentSound->stopAfterFinish();
+        }
         return;
     }
 
@@ -57,6 +61,9 @@ void PhysicalPlayer::move(moveDirections direction) {
         case UP:
             inputMovementSpeed = inputMovementSpeed + GLMConverter::GLMToBlt(up * options->getJumpFactor());
             spring->setEnabled(false);
+            if(currentSound != nullptr ) {
+                currentSound->stopAfterFinish();
+            }
             break;
         case LEFT_BACKWARD:
             inputMovementSpeed = GLMConverter::GLMToBlt(-1.0f * (right + center) * options->getMoveSpeed());
@@ -83,6 +90,9 @@ void PhysicalPlayer::move(moveDirections direction) {
             inputMovementSpeed = GLMConverter::GLMToBlt(center * options->getMoveSpeed());
             break;
         case NONE:break;//this is here because -Wall complaints if it is not
+    }
+    if(direction != UP && currentSound != nullptr) {
+        currentSound->play();
     }
     //this activates user rigidbody if it moves. Otherwise island management ignores movement.
     player->activate();
@@ -184,10 +194,32 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                 }
             }
             player->setLinearVelocity(inputMovementSpeed + groundFrictionMovementSpeed);
+                //check if the sound should change, if it does stop the old one
+            if (model->getPlayerStepOnSound() != nullptr) {
+                if (currentSound != nullptr) {
+                    if (currentSound->getName() != model->getPlayerStepOnSound()->getName()) {
+                        std::cout << "changing sound from " << currentSound->getName() << " to " << model->getPlayerStepOnSound()->getName() << std::endl;
+                        currentSound->stop();
+                        currentSound = model->getPlayerStepOnSound();
+                     }
+                } else {
+                    currentSound = model->getPlayerStepOnSound();
+                }
+            } else {
+                if(currentSound != nullptr) {
+                    currentSound->stopAfterFinish();
+                    currentSound = nullptr;
+                }
+            }
+
+
         } else {
             std::cerr << "The thing under Player is not a Model object, this violates the movement assumptions." << std::endl;
         }
     } else {
+        if (currentSound != nullptr) {
+            currentSound->stopAfterFinish();
+        }
         inputMovementSpeed = btVector3(0,0,0);
         groundFrictionMovementSpeed = btVector3(0,0,0);
         spring->setEnabled(false);

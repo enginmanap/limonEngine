@@ -11,11 +11,13 @@
 #include "Assets/Animations/AnimationCustom.h"
 #include "GameObjects/TriggerObject.h"
 #include "GUI/GUILayer.h"
+#include "GameObjects/Sound.h"
 
 /************************************************************************************
  * Map file spec
  * world
  *      Name
+ *      Music
  *      Objects
  *          Object (for each)
  *              File
@@ -67,6 +69,11 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     mapDocument.InsertFirstChild(rootNode);
     tinyxml2::XMLElement * currentElement = mapDocument.NewElement("Name");
     currentElement->SetText(mapName.c_str());
+    rootNode->InsertEndChild(currentElement);
+    if(world->music != nullptr) {
+        currentElement = mapDocument.NewElement("Music");
+        currentElement->SetText(world->music->getName().c_str());
+    }
     rootNode->InsertEndChild(currentElement);
     //after current element is inserted, we can reuse
     currentElement = mapDocument.NewElement("Objects");

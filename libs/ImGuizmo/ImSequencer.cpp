@@ -1,3 +1,4 @@
+#include <cmath>
 #include "ImSequencer.h"
 #include "../ImGui/imgui.h"
 #include "../ImGui/imgui_internal.h"

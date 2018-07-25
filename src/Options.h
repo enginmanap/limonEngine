@@ -23,7 +23,7 @@ private:
     glm::vec3& moveSpeed = walkSpeed;
     glm::vec3 freeMovementSpeed = glm::vec3(0.1f,0.1f,0.1f);
     float jumpFactor = 7.0f;
-    float lookAroundSpeed = -2.5f;
+    float lookAroundSpeed = -6.5f;
     uint32_t screenHeight = 1080;
     uint32_t screenWidth = 1920;
 

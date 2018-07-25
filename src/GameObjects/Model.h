@@ -17,6 +17,8 @@
 #include "../../libs/ImGui/imgui.h"
 #include "GameObject.h"
 
+#include "Sound.h"
+
 class Actor;
 
 class Model : public PhysicalRenderable, public GameObject {
@@ -38,6 +40,8 @@ class Model : public PhysicalRenderable, public GameObject {
     std::map<uint_fast32_t, uint_fast32_t> boneIdCompoundChildMap;
 
     std::vector<MeshMeta *> meshMetaData;
+    std::shared_ptr<Sound> stepOnSound = nullptr;
+    char stepOnSoundNameBuffer[128] = {};
 
     btCompoundShape *compoundShape;
     std::unordered_map<std::string, Material *> materialMap;
@@ -93,6 +97,24 @@ public:
     ~Model();
 
     void fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode) const;
+
+    std::shared_ptr<Sound> &getPlayerStepOnSound() {
+        return stepOnSound;
+    }
+
+    void setPlayerStepOnSound(std::shared_ptr<Sound> stepOnSound) {
+        this->stepOnSound = stepOnSound;
+
+        if (this->stepOnSound != nullptr) {
+            this->stepOnSound->setLoop(true);
+            if (this->stepOnSound->getName().length() < 128) {
+                strcpy(stepOnSoundNameBuffer, this->stepOnSound->getName().c_str());
+            } else {
+                strncpy(stepOnSoundNameBuffer, this->stepOnSound->getName().c_str(), 127);
+            }
+        }
+
+    }
 
     /************Game Object methods **************/
     uint32_t getWorldObjectID() {

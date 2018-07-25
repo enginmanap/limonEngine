@@ -6,8 +6,8 @@
 #include <tinyxml2.h>
 #include <iostream>
 
-uint32_t LimonAPI::animateModel(uint32_t modelID, uint32_t animationID, bool looped) {
-    return worldAddAnimationToObject(modelID, animationID, looped);
+uint32_t LimonAPI::animateModel(uint32_t modelID, uint32_t animationID, bool looped, const std::string *soundPath) {
+    return worldAddAnimationToObject(modelID, animationID, looped, soundPath);
 }
 
 bool LimonAPI::generateEditorElementsForParameters(std::vector<ParameterRequest> &runParameters, uint32_t index) {
@@ -47,6 +47,16 @@ bool LimonAPI::disconnectObjectFromPhysics(uint32_t modelID) {
 
 bool LimonAPI::reconnectObjectToPhysics(uint32_t modelID) {
     return worldReconnectObjectToPhysics(modelID);
+}
+
+bool LimonAPI::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath) {
+    return worldAttachSoundToObjectAndPlay(objectWorldID, soundPath);
+}
+bool LimonAPI::detachSoundFromObject(uint32_t objectWorldID){
+    return worldDetachSoundFromObject(objectWorldID);
+}
+bool LimonAPI::playSound(const std::string &soundPath, const glm::vec3 &position, bool looped){
+    return worldPlaySound(soundPath, position, looped);
 }
 
 bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *ParametersNode,

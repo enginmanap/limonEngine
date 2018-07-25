@@ -306,6 +306,13 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
     currentElement = document.NewElement("ID");
     currentElement->SetText(objectID);
     objectElement->InsertEndChild(currentElement);
+
+    if(stepOnSound) {
+        currentElement = document.NewElement("StepOnSound");
+        currentElement->SetText(stepOnSound->getName().c_str());
+        objectElement->InsertEndChild(currentElement);
+    }
+
     transformation.serialize(document, objectElement);
 }
 
@@ -358,6 +365,14 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
                 this->AIActor->IMGuiEditorView();
             }
         }
+    }
+    //Step on sound properties
+
+    ImGui::InputText("Step On Sound", stepOnSoundNameBuffer, 128);
+    if(ImGui::Button("Change Sound")) {
+        this->stepOnSound->stop();
+        this->stepOnSound = std::make_shared<Sound>(0, assetManager, std::string(stepOnSoundNameBuffer));
+        this->stepOnSound->setLoop(true);
     }
     return result;
 }
