@@ -15,7 +15,7 @@
 #include "GameObjects/SkyBox.h"
 #include "GamePlay/LimonAPI.h"
 #include "AI/Actor.h"
-
+#include "ALHelper.h"
 
 
 class btGhostPairCallback;
@@ -32,7 +32,7 @@ class GUILayer;
 class GUITextBase;
 class GUIFPSCounter;
 class GUITextDynamic;
-class Cursor;
+class GUICursor;
 
 
 class GameObject;
@@ -43,10 +43,14 @@ class FreeCursorPlayer;
 class ImGuiHelper;
 class AssetManager;
 class TriggerObject;
+class Sound;
 class AnimationCustom;
 class AnimationNode;
 class AnimationSequenceInterface;
 class LimonAPI;
+
+class GLHelper;
+class ALHelper;
 
 class World {
 
@@ -57,6 +61,7 @@ class World {
         long startTime;
         Transformation originalTransformation;
         bool wasKinematic;
+        std::unique_ptr<Sound> sound;
     };
 
     struct ActionForOnload {
@@ -85,10 +90,10 @@ class World {
     Options* options;
     uint32_t nextWorldID = 1;
     std::map<uint32_t, PhysicalRenderable *> objects;
-
+    Sound* music = nullptr;
 
     /*
-     * The variables below are redudant, but they allow instanced rendering, and saving frustum occlusion results.
+     * The variables below are redundant, but they allow instanced rendering, and saving frustum occlusion results.
      */
     std::vector<Model*> updatedModels;
     std::vector<std::map<uint32_t , std::set<Model*>>> modelsInLightFrustum;
@@ -98,7 +103,7 @@ class World {
     std::set<Model*> animatedModelsInFrustum; //since animated models can't be instanced, they don't need to be in a map etc.
     std::set<Model*> animatedModelsInAnyFrustum;
 
-    /************************* End of redudant variables ******************************************/
+    /************************* End of redundant variables ******************************************/
 
     std::map<uint32_t, GUIText*> guiElements;
     std::map<uint32_t, TriggerObject*> triggers;
@@ -106,6 +111,7 @@ class World {
     std::vector<AnimationCustom> loadedAnimations;
     std::set<PhysicalRenderable*> onLoadAnimations;//Those renderables animations should be loaded and started on load
     std::unordered_map<PhysicalRenderable*, AnimationStatus> activeAnimations;
+    std::unordered_map<uint32_t, std::unique_ptr<Sound>> sounds;
     AnimationSequenceInterface* animationInProgress = nullptr;
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
@@ -113,6 +119,7 @@ class World {
     AIMovementGrid *grid = nullptr;
     SkyBox *sky = nullptr;
     GLHelper *glHelper;
+    ALHelper *alHelper;
     long gameTime = 0;
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
@@ -130,7 +137,7 @@ class World {
     GUILayer *apiGUILayer;
     GUIText* renderCounts;
     GUIFPSCounter* fpsCounter;
-    Cursor* cursor;
+    GUICursor* cursor;
     GUITextDynamic* debugOutputGUI;
 
     btGhostPairCallback *ghostPairCallback;
@@ -229,7 +236,7 @@ class World {
 
     void addLight(Light *light);
 
-    World(AssetManager *assetManager, GLHelper *, Options *options);
+    World(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options);
 
     void afterLoadFinished();
 
@@ -268,7 +275,13 @@ public:
     */
     bool generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest> &runParameters, uint32_t index);
 
-    uint32_t addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad = false);
+    uint32_t addAnimationToObjectWithSound(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad,
+                                           const std::string *soundToPlay);
+
+    uint32_t addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad) {
+        return addAnimationToObjectWithSound(modelID, animationID, looped, startOnLoad, nullptr);
+    };
+
     uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize,
                         const std::string &name, const std::string &text,
                         const glm::vec3 &color,
@@ -279,6 +292,12 @@ public:
     uint32_t removeObject(uint32_t objectID);
     uint32_t removeTriggerObject(uint32_t triggerobjectID);
     uint32_t removeGuiText(uint32_t guiElementID);
+
+    bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath);
+
+    bool detachSoundFromObject(uint32_t objectWorldID);
+
+    uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool looped);
 
     std::vector<LimonAPI::ParameterRequest> getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID);
 

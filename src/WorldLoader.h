@@ -8,17 +8,20 @@
 #include <string>
 #include <vector>
 #include <tinyxml2.h>
+#include "ALHelper.h"
 
 class World;
 class Options;
 class GLHelper;
 class AssetManager;
 class GLHelper;
+class ALHelper;
 
 
 class WorldLoader {
     Options *options;
     GLHelper *glHelper;
+    ALHelper *alHelper;
     AssetManager *assetManager;
     std::vector<World*> loadedWorlds;
 
@@ -33,7 +36,7 @@ class WorldLoader {
     bool loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *world) const;
 
 public:
-    WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options* options);
+    WorldLoader(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options);
     World* loadWorld(const std::string& worldFile) const;
 
     ~WorldLoader();

@@ -17,21 +17,23 @@
 #include "GUI/GUITextBase.h"
 #include "GUI/GUILayer.h"
 #include "GameObjects/GUIText.h"
+#include "ALHelper.h"
+#include "GameObjects/Sound.h"
 
-
-WorldLoader::WorldLoader(AssetManager* assetManager, GLHelper* glHelper, Options* options):
+WorldLoader::WorldLoader(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options) :
         options(options),
         glHelper(glHelper),
+        alHelper(alHelper),
         assetManager(assetManager)
 {}
 
 World* WorldLoader::loadWorld(const std::string& worldFile) const {
-    World* newWorld = new World(assetManager, glHelper, options);
+    World* newWorld = new World(assetManager, glHelper, alHelper, options);
 
 
     // Set api endpoints accordingly
     LimonAPI* api = new LimonAPI();
-    api->worldAddAnimationToObject = std::bind(&World::addAnimationToObject, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false);
+    api->worldAddAnimationToObject = std::bind(&World::addAnimationToObjectWithSound, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false, std::placeholders::_4);
     api->worldAddGuiText = std::bind(&World::addGuiText, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7);
     api->worldUpdateGuiText = std::bind(&World::updateGuiText, newWorld, std::placeholders::_1, std::placeholders::_2);
     api->worldGenerateEditorElementsForParameters = std::bind(&World::generateEditorElementsForParameters, newWorld, std::placeholders::_1, std::placeholders::_2);
@@ -41,6 +43,9 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
     api->worldRemoveTriggerObject = std::bind(&World::removeTriggerObject, newWorld, std::placeholders::_1);
     api->worldDisconnectObjectFromPhysics = std::bind(&World::disconnectObjectFromPhysics, newWorld, std::placeholders::_1);
     api->worldReconnectObjectToPhysics= std::bind(&World::reconnectObjectToPhysics, newWorld, std::placeholders::_1);
+    api->worldAttachSoundToObjectAndPlay = std::bind(&World::attachSoundToObjectAndPlay, newWorld, std::placeholders::_1, std::placeholders::_2);
+    api->worldDetachSoundFromObject = std::bind(&World::detachSoundFromObject, newWorld, std::placeholders::_1);
+    api->worldPlaySound = std::bind(&World::playSound, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
 
     newWorld->apiInstance = api;
@@ -81,6 +86,21 @@ bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world)
         return false;
     }
     std::cout << "read name as " << worldName->GetText() << std::endl;
+
+    tinyxml2::XMLElement* musicNameNode =  worldNode->FirstChildElement("Music");
+    if (musicNameNode == nullptr) {
+        std::cout << "No music found." << std::endl;
+    } else {
+        std::string musicName = musicNameNode->GetText();
+        std::cout << "reading music as as " << musicName << std::endl;
+        world->music = new Sound(world->getNextObjectID(), assetManager, musicName);
+        world->music->setLoop(true);
+        world->music->setWorldPosition(glm::vec3(0,0,0), true);
+    }
+
+
+
+
 
     //load objects
     if(!loadObjectsFromXML(worldNode, world)) {
@@ -126,6 +146,9 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
     std::vector<Model*> notStaticObjects;
     bool isAIGridStartPointSet = false;
     glm::vec3 aiGridStartPoint;
+
+    std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds;
+
     while(objectNode != nullptr) {
         objectAttribute =  objectNode->FirstChildElement("File");
         if (objectAttribute == nullptr) {
@@ -167,6 +190,18 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
         }
 
         xmlModel = new Model(id, assetManager, modelMass, modelFile, disconnected);
+
+        objectAttribute =  objectNode->FirstChildElement("StepOnSound");
+
+        if (objectAttribute == nullptr) {
+            std::cerr << "Object does not have step on sound." << std::endl;
+        } else {
+            std::string stepOnSound = objectAttribute->GetText();
+            if(requiredSounds.find(stepOnSound) != requiredSounds.end()) {
+                requiredSounds[stepOnSound] = std::make_shared<Sound>(0, assetManager, stepOnSound);//since the step on is not managed by world, not feed world object ID
+            }
+            xmlModel->setPlayerStepOnSound(requiredSounds[stepOnSound]);
+        }
 
         objectAttribute =  objectNode->FirstChildElement("Transformation");
         if(objectAttribute == nullptr) {
@@ -569,7 +604,7 @@ bool WorldLoader::loadOnLoadAnimations(tinyxml2::XMLNode *worldNode, World *worl
                 } else {
                     uint32_t animationID = std::stoi(animationIDNode->GetText());
 
-                    world->addAnimationToObject(modelID,animationID,true,true);
+                    world->addAnimationToObject(modelID, animationID, true, true);
                 }
             }
             onloadAnimationNode = onloadAnimationNode->NextSiblingElement("OnLoadAnimation");

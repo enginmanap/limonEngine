@@ -61,12 +61,13 @@ bool MayanLever::run(std::vector<LimonAPI::ParameterRequest> parameters) {
     bool result;
 
     //animate the lever
-    result = limonAPI->animateModel(parameters[0].value.longValue, parameters[1].value.longValue, false) == 0;
+    result = limonAPI->animateModel(parameters[0].value.longValue, parameters[1].value.longValue, false, nullptr) == 0;
 
+    std::string coinPickupSound = "./Data/Sounds/castleDoor.wav";
     //move the door
-    result = limonAPI->animateModel(parameters[2].value.longValue, parameters[5].value.longValue, false) == 0 && result;
-    result = limonAPI->animateModel(parameters[3].value.longValue, parameters[5].value.longValue, false) == 0 && result;
-    result = limonAPI->animateModel(parameters[4].value.longValue, parameters[5].value.longValue, false) == 0 && result;
+    result = limonAPI->animateModel(parameters[2].value.longValue, parameters[5].value.longValue, false, &coinPickupSound) == 0 && result;
+    result = limonAPI->animateModel(parameters[3].value.longValue, parameters[5].value.longValue, false, nullptr) == 0 && result;
+    result = limonAPI->animateModel(parameters[4].value.longValue, parameters[5].value.longValue, false, nullptr) == 0 && result;
 
     return result;
 }

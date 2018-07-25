@@ -9,6 +9,7 @@
 #include "World.h"
 #include "WorldLoader.h"
 #include "Assets/AssetManager.h"
+#include "ALHelper.h"
 
 const std::string PROGRAM_NAME = "LimonEngine";
 
@@ -41,9 +42,15 @@ int main(int argc, char *argv[]) {
 
     GLHelper glHelper(&options);
     glHelper.reshape();
+
+    ALHelper* alHelper = new ALHelper();
+
     InputHandler inputHandler(sdlHelper.getWindow(), &options);
-    AssetManager assetManager(&glHelper);
-    WorldLoader* worldLoader = new WorldLoader(&assetManager, &glHelper, &options);
+    AssetManager assetManager(&glHelper, alHelper);
+
+
+
+    WorldLoader* worldLoader = new WorldLoader(&assetManager, &glHelper, alHelper, &options);
     World* world = worldLoader->loadWorld(worldName);
     if(world == nullptr) {
         std::cerr << "WorldLoader didn't hand out a valid world. exiting.." << std::endl;
@@ -70,6 +77,9 @@ int main(int argc, char *argv[]) {
         world->render();
         sdlHelper.swap();
     }
+    delete alHelper;
+    delete world;
+
     return 0;
 }
 

@@ -49,7 +49,7 @@ public:
 
     bool generateEditorElementsForParameters(std::vector<ParameterRequest> &runParameters, uint32_t index);
 
-    uint32_t animateModel(uint32_t modelID, uint32_t animationID, bool looped);
+    uint32_t animateModel(uint32_t modelID, uint32_t animationID, bool looped, const std::string *soundPath);
     uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize,
                         const std::string &name, const std::string &text,
                                const glm::vec3 &color,
@@ -60,6 +60,10 @@ public:
     uint32_t removeTriggerObject(uint32_t TriggerObjectID);
     bool disconnectObjectFromPhysics(uint32_t modelID);
     bool reconnectObjectToPhysics(uint32_t modelID);
+
+    bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath);
+    bool detachSoundFromObject(uint32_t objectWorldID);
+    bool playSound(const std::string &soundPath, const glm::vec3 &position, bool looped);
 
     std::vector<ParameterRequest> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
 
@@ -86,7 +90,7 @@ private:
     std::map<std::string, LimonAPI::ParameterRequest> variableStore;
 
     std::function<bool(std::vector<LimonAPI::ParameterRequest> &, uint32_t)> worldGenerateEditorElementsForParameters;
-    std::function<uint32_t(uint32_t , uint32_t , bool )> worldAddAnimationToObject;
+    std::function<uint32_t(uint32_t , uint32_t , bool, const std::string* )> worldAddAnimationToObject;
     std::function<uint32_t(const std::string &, uint32_t, const std::string &, const std::string &, const glm::vec3 &, const glm::vec2 &, float)> worldAddGuiText;
     std::function<uint32_t(uint32_t, const std::string &)> worldUpdateGuiText;
     std::function<uint32_t (uint32_t)> worldRemoveGuiText;
@@ -95,6 +99,11 @@ private:
     std::function<uint32_t (uint32_t)> worldRemoveTriggerObject;
     std::function<bool (uint32_t)> worldDisconnectObjectFromPhysics;
     std::function<bool (uint32_t)> worldReconnectObjectToPhysics;
+
+    std::function<bool (uint32_t, const std::string&)> worldAttachSoundToObjectAndPlay;
+    std::function<bool (uint32_t)> worldDetachSoundFromObject;
+    std::function<uint32_t (const std::string&, const glm::vec3&, bool)> worldPlaySound;
+
 };
 
 
