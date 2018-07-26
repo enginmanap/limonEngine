@@ -105,7 +105,7 @@ class World {
 
     /************************* End of redundant variables ******************************************/
 
-    std::map<uint32_t, GUIText*> guiElements;
+    std::map<uint32_t, GUIRenderable*> guiElements;
     std::map<uint32_t, TriggerObject*> triggers;
     std::vector<ActionForOnload* > onLoadActions;
     std::vector<AnimationCustom> loadedAnimations;
@@ -252,6 +252,10 @@ class World {
 
     void setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRenderable *PhysicalRenderable, bool removePossible);
 
+/********** Editor Methods *********************/
+    void addGUITextControls();
+    void addGUIImageControls();
+/********** Editor Methods *********************/
     //API methods
 
 public:

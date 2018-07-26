@@ -6,11 +6,11 @@
 #define LIMONENGINE_CURSOR_H
 
 
-#include "GUIImage.h"
+#include "GUIImageBase.h"
 
-class GUICursor: public GUIImage {
+class GUICursor: public GUIImageBase {
 public:
-    GUICursor(GLHelper *glHelper, AssetManager *assetManager, const std::string &imageFile) : GUIImage(glHelper,
+    GUICursor(GLHelper *glHelper, AssetManager *assetManager, const std::string &imageFile) : GUIImageBase(glHelper,
                                                                                                        assetManager,
                                                                                                        imageFile) {}
 

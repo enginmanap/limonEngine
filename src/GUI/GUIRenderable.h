@@ -57,6 +57,14 @@ public:
         transformation.setScale(glm::vec3(width, height, 0.0f));
     }
 
+    void setScale(glm::vec2 scale) {
+        transformation.setScale(glm::vec3(scale.x, scale.y, 0.0f));
+    }
+
+    glm::vec2 getScale() const {
+        return glm::vec2(transformation.getScale().x, transformation.getScale().y);
+    }
+
     virtual void renderDebug(BulletDebugDrawer *debugDrawer);
 
     virtual void setupForTime(long time __attribute__((unused))) {};//Most of the GUI elements shouldn't care about the time, so we can put an empty implementation

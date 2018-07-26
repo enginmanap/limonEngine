@@ -3,36 +3,67 @@
 //
 
 #include "GUILayer.h"
+#include "GUIRenderable.h"
 #include "../GameObjects/GUIText.h"
+#include "../GameObjects/GUIImage.h"
+
 
 class Options;
 
 void GUILayer::render() {
-    for (std::vector<GUIText *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
+    for (std::vector<GUIRenderable *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
         (*it)->render();
     }
     if (isDebug) {
-        for (std::vector<GUIText *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
+        for (std::vector<GUIRenderable *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
             (*it)->renderDebug(debugDrawer);
         }
     }
 }
 
 void GUILayer::setupForTime(long time){
-    for (std::vector<GUIText *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
+    for (std::vector<GUIRenderable *>::iterator it = guiElements.begin(); it != guiElements.end(); ++it) {
         (*it)->setupForTime(time);
     }
 }
 
-void GUILayer::addGuiElement(GUIText *guiElement) {
+void GUILayer::addGuiElement(GUIRenderable *guiElement) {
         guiElements.push_back(guiElement);
-        guiElement->addedToLayer(this);
+        GameObject* guiGameObject = dynamic_cast<GameObject*>(guiElement);
+        if(guiGameObject != nullptr) {
+            switch (guiGameObject->getTypeID()) {
+                case GameObject::ObjectTypes::GUI_TEXT:
+                    static_cast<GUIText*>(guiElement)->addedToLayer(this);
+                    break;
+                case GameObject::ObjectTypes::GUI_IMAGE:
+                    static_cast<GUIImage*>(guiElement)->addedToLayer(this);
+                    break;
+                default:
+                    break;//do nothing
+            }
+        }
 }
 
 void GUILayer::removeGuiElement(uint32_t guiElementID) {
     for (size_t i = 0; i < guiElements.size(); ++i) {
-        if(guiElements[i]->getWorldObjectID() == guiElementID) {
-            guiElements.erase(guiElements.begin() + i);
+        //for non game object elements, this operation is ignored
+        GameObject* guiGameObject = dynamic_cast<GameObject*>(guiElements[i]);
+        if(guiGameObject != nullptr) {
+            uint32_t worldObjectID = 0;
+            switch (guiGameObject->getTypeID()) {
+                case GameObject::ObjectTypes::GUI_TEXT:
+                    worldObjectID = static_cast<GUIText*>(guiElements[i])->getWorldObjectID();
+                    break;
+                case GameObject::ObjectTypes::GUI_IMAGE:
+                    worldObjectID = static_cast<GUIImage*>(guiElements[i])->getWorldObjectID();
+                    break;
+                default:
+                    break;//do nothing
+            }
+            if(worldObjectID == guiElementID) {
+                guiElements.erase(guiElements.begin() + i);
+                return;
+            }
         }
     }
 }
@@ -45,9 +76,21 @@ bool GUILayer::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
     tinyxml2::XMLElement *levelNode = document.NewElement("Level");
     levelNode->SetText(std::to_string(level).c_str());
     layerNode->InsertEndChild(levelNode);
-
     for (size_t i = 0; i < guiElements.size(); ++i) {
-        guiElements[i]->serialize(document, layerNode, options);
+        GameObject* guiGameObject = dynamic_cast<GameObject*>(guiElements[i]);
+        //for non game object elements, this operation is ignored
+        if(guiGameObject != nullptr) {
+            switch (guiGameObject->getTypeID()) {
+                case GameObject::ObjectTypes::GUI_TEXT:
+                    static_cast<GUIText*>(guiElements[i])->serialize(document, layerNode, options);
+                    break;
+                case GameObject::ObjectTypes::GUI_IMAGE:
+                    static_cast<GUIImage*>(guiElements[i])->serialize(document, layerNode, options);
+                    break;
+                default:
+                    break;//do nothing
+            }
+        }
     }
 
     return true;
@@ -62,7 +105,7 @@ bool GUILayer::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
  * @param coordinates
  * @return null if no element found.
  */
-GUIText *GUILayer::getRenderableFromCoordinate(const glm::vec2 &coordinates) {
+GUIRenderable *GUILayer::getRenderableFromCoordinate(const glm::vec2 &coordinates) {
     glm::vec2 aabbMin, aabbMax;
     for (size_t i = 0; i < guiElements.size(); ++i) {
         guiElements[i]->getAABB(aabbMin, aabbMax);
