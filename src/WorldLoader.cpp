@@ -145,7 +145,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
     float modelMass;
     std::vector<Model*> notStaticObjects;
     bool isAIGridStartPointSet = false;
-    glm::vec3 aiGridStartPoint;
+    glm::vec3 aiGridStartPoint = glm::vec3(0,0,0);
 
     std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds;
 
