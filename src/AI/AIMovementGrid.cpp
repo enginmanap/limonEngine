@@ -141,7 +141,6 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                 } else {
                     if (current->getPosition().x < 1.1 && current->getPosition().x > -1.1 &&
                         current->getPosition().z < 0.1 && current->getPosition().z > -0.1) {
-                        std::cout << "setting neigbours for 0,0 and y " << current->getPosition().y << std::endl;
                     }
                     int neighbourIndex = (i + 1) * 3 + (j + 1);
                     glm::vec3 neighbourPosition = current->getPosition() + glm::vec3(i, 0, j);
