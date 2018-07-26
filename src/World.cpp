@@ -75,9 +75,9 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper,
                                fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0", glm::vec3(204, 204, 0));
     renderCounts->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 170, options->getScreenHeight() - 36), 0);
 
-    cursor = new GUICursor(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "+",
-                        glm::vec3(255, 255, 255));
-    cursor->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), -1 * options->PI / 4);
+    cursor = new GUICursor(glHelper, assetManager, "./Data/Textures/crosshair.png");
+
+    cursor->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), 0);
 
     debugOutputGUI = new GUITextDynamic(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16),
                                         glm::vec3(0, 0, 0), 640, 380, options);

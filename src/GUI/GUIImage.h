@@ -21,7 +21,7 @@ class GUIImage : public GUIRenderable {
 
 public:
     GUIImage(GLHelper *glHelper, AssetManager *assetManager, const std::string &imageFile);
-    ~GUIImage();
+    virtual ~GUIImage();
 
     void render() override;
 

@@ -6,13 +6,15 @@
 #define LIMONENGINE_CURSOR_H
 
 
-#include "GUITextBase.h"
+#include "GUIImage.h"
 
-// TODO this class in current form is just a place holder
-class GUICursor: public GUITextBase {
+class GUICursor: public GUIImage {
 public:
-    GUICursor(GLHelper *glHelper, Face *font, const std::string &text, const glm::vec3 &color) : GUITextBase(
-            glHelper, font, text, color) {}
+    GUICursor(GLHelper *glHelper, AssetManager *assetManager, const std::string &imageFile) : GUIImage(glHelper,
+                                                                                                       assetManager,
+                                                                                                       imageFile) {}
+
+public:
 
 };
 
