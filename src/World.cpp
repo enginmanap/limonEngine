@@ -72,14 +72,14 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper,
     apiGUILayer->setDebug(false);
 
     renderCounts = new GUIText(glHelper, getNextObjectID(), "Render Counts",
-                               fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0", glm::vec3(204, 204, 0));
+                               fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0", glm::vec3(204, 204, 0));
     renderCounts->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 170, options->getScreenHeight() - 36), 0);
 
-    cursor = new GUICursor(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "+",
+    cursor = new GUICursor(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "+",
                         glm::vec3(255, 255, 255));
     cursor->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), -1 * options->PI / 4);
 
-    debugOutputGUI = new GUITextDynamic(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16),
+    debugOutputGUI = new GUITextDynamic(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16),
                                         glm::vec3(0, 0, 0), 640, 380, options);
     debugOutputGUI->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-200), 0.0f);
 
@@ -91,7 +91,7 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper,
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
 
 
-    fpsCounter = new GUIFPSCounter(glHelper, fontManager.getFont("Data/Fonts/Helvetica-Normal.ttf", 16), "0",
+    fpsCounter = new GUIFPSCounter(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                                    glm::vec3(204, 204, 0));
     fpsCounter->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, options->getScreenHeight() - 18), 0);
 

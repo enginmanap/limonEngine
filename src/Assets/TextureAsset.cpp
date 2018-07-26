@@ -52,6 +52,10 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
         std::cerr << "Format has undefined number of pixels:" << surface->format->BytesPerPixel << std::endl;
         exit(1);
     }
+
+    this->height = surface->h;
+    this->width = surface->w;
+
     delete surface;
 }
 

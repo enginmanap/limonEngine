@@ -15,6 +15,8 @@ class TextureAsset : public Asset {
 protected:
     std::string name;
     uint32_t textureBufferID;
+    uint32_t height = 0;
+    uint32_t width;
 
 public:
     TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files);
@@ -27,6 +29,14 @@ public:
 
     std::string getName() const {
         return name;
+    }
+
+    uint32_t getHeight() const {
+        return height;
+    }
+
+    uint32_t getWidth() const {
+        return width;
     }
 };
 
