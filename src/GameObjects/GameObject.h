@@ -38,7 +38,7 @@ public:
                   ortogonalMatrix(ortogonalMatrix), screenHeight(screenHeight), screenWidth(screenWidth) {}
     };
 
-    enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT, SOUND };
+    enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT, GUI_IMAGE, SOUND };
 
     virtual ObjectTypes getTypeID() const = 0;
     virtual std::string getName() const = 0;

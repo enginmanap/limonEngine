@@ -7,7 +7,6 @@
 #include "AI/HumanEnemy.h"
 
 #include "Camera.h"
-#include "GameObjects/SkyBox.h"
 #include "BulletDebugDrawer.h"
 #include "AI/AIMovementGrid.h"
 
@@ -16,28 +15,19 @@
 #include "GameObjects/Players/FreeMovingPlayer.h"
 #include "GameObjects/Players/PhysicalPlayer.h"
 #include "GameObjects/Light.h"
-#include "GameObjects/GameObject.h"
 #include "GUI/GUILayer.h"
-#include "GUI/GUIRenderable.h"
 #include "GUI/GUITextBase.h"
 #include "GUI/GUIFPSCounter.h"
 #include "GUI/GUITextDynamic.h"
 #include "ImGuiHelper.h"
 #include "WorldSaver.h"
-#include "../libs/ImGuizmo/ImGuizmo.h"
 #include "GameObjects/TriggerObject.h"
-#include "Assets/Animations/AnimationAssimp.h"
 #include "Assets/Animations/AnimationLoader.h"
-#include "Assets/Animations/AnimationNode.h"
 #include "Assets/Animations/AnimationCustom.h"
-#include "GamePlay/AnimateOnTrigger.h"
-#include "GamePlay/AddGuiTextOnTrigger.h"
 #include "AnimationSequencer.h"
 #include "GUI/GUICursor.h"
-#include "GUI/GUILayer.h"
 #include "GameObjects/GUIText.h"
-#include "ALHelper.h"
-#include "GameObjects/Sound.h"
+#include "GameObjects/GUIImage.h"
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options)
@@ -609,13 +599,13 @@ GameObject * World::getPointedObject() const {
     currentPlayer->getWhereCameraLooks(from, lookDirection);
 
     if(guiPickMode) {
-        GUIText* pickedGuiElement = nullptr;
+        GameObject* pickedGuiElement = nullptr;
         // TODO this should filter by level
         //then we don't need to rayTest. We can get the picked object directly by coordinate.
         for (size_t i = 0; i < guiLayers.size(); ++i) {
-            GUIText* pickedGuiTemp = dynamic_cast<GUIText*>(guiLayers[i]->getRenderableFromCoordinate(cursor->getTranslate()));
+            GameObject* pickedGuiTemp = dynamic_cast<GameObject*>(guiLayers[i]->getRenderableFromCoordinate(cursor->getTranslate()));
             if(pickedGuiTemp != nullptr) {
-                pickedGuiElement = pickedGuiTemp;
+                pickedGuiElement = pickedGuiTemp;//because we are iterating all the levels
             }
         }
         return pickedGuiElement;
@@ -961,65 +951,15 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             }
 
 
-            if (ImGui::CollapsingHeader("Add GUI Elements")) {
-                /**
-                 * we need these set:
-                 * 1) font
-                 * 2) font size
-                 * 3) name
-                 *
-                 */
-
-                static int fontSize = 32;
-
-                std::set<std::pair<std::string, uint32_t>> loadedFonts = fontManager.getLoadedFonts();
-                auto it = loadedFonts.begin();
-                static std::string selectedFontName = it->first;
-                if (ImGui::BeginCombo("Font to use", it->first.c_str())) {
-                    for (; it != loadedFonts.end(); it++) {//first element already set
-
-                        bool isThisFontSelected = it->first == selectedFontName;
-                        if (ImGui::Selectable(it->first.c_str(), isThisFontSelected)) {
-                            selectedFontName = it->first;
-                        }
-                        if (isThisFontSelected) {
-                            ImGui::SetItemDefaultFocus();
-                        }
-                    }
-                    ImGui::EndCombo();
+            if (ImGui::CollapsingHeader("Add GUI Elements##The header")) {
+                ImGui::Indent( 16.0f );
+                if (ImGui::CollapsingHeader("Add GUI Text##The header")) {
+                    addGUITextControls();
                 }
-
-
-                ImGui::DragInt("Font size", &fontSize, 1, 1, 128);
-                static char GUITextName[32];
-                ImGui::InputText("GUIText Name", GUITextName, sizeof(GUITextName), ImGuiInputTextFlags_CharsNoBlank);
-
-                static size_t selectedLayerIndex = 0;
-                if(this->guiLayers.size() == 0) {
-                    this->guiLayers.push_back(new GUILayer(glHelper, debugDrawer, 10));
+                if (ImGui::CollapsingHeader("Add GUI Image##The header")) {
+                    addGUIImageControls();
                 }
-                if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
-                    for (size_t i = 0; i < this->guiLayers.size(); ++i) {
-                        bool isThisLayerSelected = selectedLayerIndex == i;
-                        if (ImGui::Selectable(std::to_string(i).c_str(), isThisLayerSelected)) {
-                            selectedLayerIndex = i;
-                        }
-                        if (isThisLayerSelected) {
-                            ImGui::SetItemDefaultFocus();
-                        }
-                    }
-                    ImGui::EndCombo();
-                }
-                if (ImGui::Button("Add GUI Text")) {
-                    GUIText* guiText = new GUIText(glHelper, getNextObjectID(), GUITextName, fontManager.getFont(selectedFontName, fontSize), "New Text", glm::vec3(0,0,0));
-                    guiText->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), 0.0f);
-                    this->guiElements[guiText->getWorldObjectID()] = guiText;
-                    this->guiLayers[selectedLayerIndex]->addGuiElement(guiText);
-                    pickedObject = guiText;
-                }
-
-
-
+                ImGui::Unindent( 16.0f );
             }
 
 
@@ -1201,6 +1141,66 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
         /* window definitions */
         imgGuiHelper->RenderDrawLists();
+    }
+}
+
+void World::addGUITextControls() {
+    /**
+     * we need these set:
+     * 1) font
+     * 2) font size
+     * 3) name
+     *
+     */
+
+    static int fontSize = 32;
+
+    std::set<std::pair<std::string, uint32_t>> loadedFonts = fontManager.getLoadedFonts();
+    auto it = loadedFonts.begin();
+    static std::string selectedFontName = it->first;
+    if (ImGui::BeginCombo("Font to use", it->first.c_str())) {
+        for (; it != loadedFonts.end(); it++) {//first element already set
+
+            bool isThisFontSelected = it->first == selectedFontName;
+            if (ImGui::Selectable(it->first.c_str(), isThisFontSelected)) {
+                selectedFontName = it->first;
+            }
+            if (isThisFontSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+
+    ImGui::DragInt("Font size", &fontSize, 1, 1, 128);
+    static char GUITextName[32];
+    ImGui::InputText("GUIText Name", GUITextName, sizeof(GUITextName), ImGuiInputTextFlags_CharsNoBlank);
+
+    static size_t selectedLayerIndex = 0;
+    if (guiLayers.size() == 0) {
+        guiLayers.push_back(new GUILayer(glHelper, debugDrawer, 10));
+    }
+    if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
+        for (size_t i = 0; i < guiLayers.size(); ++i) {
+            bool isThisLayerSelected = selectedLayerIndex == i;
+            if (ImGui::Selectable(std::to_string(i).c_str(), isThisLayerSelected)) {
+                selectedLayerIndex = i;
+            }
+            if (isThisLayerSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+    if (ImGui::Button("Add GUI Text")) {
+        GUIText *guiText = new GUIText(glHelper, getNextObjectID(), GUITextName,
+                                       fontManager.getFont(selectedFontName, fontSize), "New Text", glm::vec3(0, 0, 0));
+        guiText->set2dWorldTransform(
+                glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
+        guiElements[guiText->getWorldObjectID()] = guiText;
+        guiLayers[selectedLayerIndex]->addGuiElement(guiText);
+        pickedObject = guiText;
     }
 }
 
@@ -1453,7 +1453,10 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 std::string currentGUIText;
                 if (parameter.isSet) {
                     if(guiElements.find(static_cast<uint32_t >(parameter.value.longValue)) != guiElements.end()) {
-                        currentGUIText = guiElements[static_cast<uint32_t >(parameter.value.longValue)]->getName();
+                        GameObject* guiGameObject = dynamic_cast<GameObject*>(guiElements[static_cast<uint32_t >(parameter.value.longValue)]);
+                        if(guiGameObject != nullptr && guiGameObject->getTypeID() == GameObject::ObjectTypes::GUI_TEXT) {
+                            currentGUIText = guiGameObject->getName();
+                        }
                     } else {
                         parameter.isSet = false;
                         currentGUIText = "Not selected";
@@ -1466,14 +1469,18 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
                                       currentGUIText.c_str())) {
                     for(auto it = guiElements.begin(); it != guiElements.end(); it++) {
-                        bool isThisGUITextSelected = currentGUIText == it->second->getName();
-                        if (ImGui::Selectable(it->second->getName().c_str(), isThisGUITextSelected)) {
-                            parameter.value.longValue = static_cast<long>(it->first);
-                            parameter.isSet = true;
-                        }
+                        bool isThisGUITextSelected = false;
+                        GameObject* guiGameObject = dynamic_cast<GameObject*>(it->second);
+                        if(guiGameObject != nullptr && guiGameObject->getTypeID() == GameObject::ObjectTypes::GUI_TEXT) {
+                            isThisGUITextSelected = currentGUIText == guiGameObject->getName();
+                            if (ImGui::Selectable(guiGameObject->getName().c_str(), isThisGUITextSelected)) {
+                                parameter.value.longValue = static_cast<long>(it->first);
+                                parameter.isSet = true;
+                            }
 
-                        if(isThisGUITextSelected) {
-                            ImGui::SetItemDefaultFocus();
+                            if(isThisGUITextSelected) {
+                                ImGui::SetItemDefaultFocus();
+                            }
                         }
                     }
                     ImGui::EndCombo();
@@ -1721,4 +1728,41 @@ uint32_t World::playSound(const std::string &soundPath, const glm::vec3 &positio
     uint32_t soundID = sound->getWorldObjectID();
     sounds[soundID] = std::move(sound);
     return soundID;
+}
+
+void World::addGUIImageControls() {
+    /**
+     * For a new GUI Image we need only name and filename
+     */
+    static char GUIImageName[32];
+    ImGui::InputText("GUI Image Name", GUIImageName, sizeof(GUIImageName), ImGuiInputTextFlags_CharsNoBlank);
+
+    static char GUIImageFileName[256];
+    ImGui::InputText("Image path", GUIImageFileName, sizeof(GUIImageFileName));
+
+    static size_t selectedLayerIndex = 0;
+    if (guiLayers.size() == 0) {
+        guiLayers.push_back(new GUILayer(glHelper, debugDrawer, 10));
+    }
+    if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
+        for (size_t i = 0; i < guiLayers.size(); ++i) {
+            bool isThisLayerSelected = selectedLayerIndex == i;
+            if (ImGui::Selectable(std::to_string(i).c_str(), isThisLayerSelected)) {
+                selectedLayerIndex = i;
+            }
+            if (isThisLayerSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+    if (ImGui::Button("Add GUI Image")) {
+        GUIImage *guiImage = new GUIImage(this->getNextObjectID(), glHelper, assetManager, std::string(GUIImageName),
+                                          std::string(GUIImageFileName));
+        guiImage->set2dWorldTransform(
+                glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
+        guiElements[guiImage->getWorldObjectID()] = guiImage;
+        guiLayers[selectedLayerIndex]->addGuiElement(guiImage);
+        pickedObject = guiImage;
+    }
 }
