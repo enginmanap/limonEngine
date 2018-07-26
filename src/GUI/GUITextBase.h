@@ -24,6 +24,8 @@ protected:
     int height, width;
     int bearingUp;
 
+    static GLSLProgram* textRenderProgram;
+
     //Don't allow constructing of this object itself
     GUITextBase(GLHelper *glHelper, Face *font, const std::string text, const glm::vec3 color);
     GUITextBase(GLHelper *glHelper, Face *font, const glm::vec3 color) : GUITextBase(glHelper, font, "",
