@@ -552,6 +552,7 @@ void World::switchToDebugMode(InputHandler &inputHandler) {
     currentPlayer = debugPlayer;
     camera->setCameraAttachment(debugPlayer);
     inputHandler.setMouseModeRelative();
+    cursor->unhide();
     alHelper->resumePlay();
     beforeMode = currentMode;
     currentMode = DEBUG_MODE;
@@ -563,6 +564,7 @@ void World::switchToPhysicalPlayer(InputHandler &inputHandler) {
     camera->setCameraAttachment(physicalPlayer);
     dynamicsWorld->updateAabbs();
     inputHandler.setMouseModeRelative();
+    cursor->unhide();
     this->dynamicsWorld->getDebugDrawer()->setDebugMode(this->dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
     for (size_t i = 0; i < guiLayers.size(); ++i) {
         this->guiLayers[i]->setDebug(false);
@@ -581,6 +583,7 @@ void World::switchToEditorMode(InputHandler &inputHandler) {//switch control to 
     currentPlayer = editorPlayer;
     camera->setCameraAttachment(editorPlayer);
     inputHandler.setMouseModeFree();
+    cursor->hide();
     beforeMode = currentMode;
     currentMode = EDITOR_MODE;
     alHelper->pausePlay();
