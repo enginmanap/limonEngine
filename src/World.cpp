@@ -1760,7 +1760,7 @@ void World::addGUIImageControls() {
         ImGui::EndCombo();
     }
     if (ImGui::Button("Add GUI Image")) {
-        GUIImage *guiImage = new GUIImage(this->getNextObjectID(), glHelper, assetManager, std::string(GUIImageName),
+        GUIImage *guiImage = new GUIImage(this->getNextObjectID(), options, assetManager, std::string(GUIImageName),
                                           std::string(GUIImageFileName));
         guiImage->set2dWorldTransform(
                 glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
