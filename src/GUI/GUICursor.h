@@ -9,6 +9,7 @@
 #include "GUIImageBase.h"
 
 class GUICursor: public GUIImageBase {
+    bool hidden=false;
 public:
     GUICursor(GLHelper *glHelper, AssetManager *assetManager, const std::string &imageFile) : GUIImageBase(glHelper,
                                                                                                        assetManager,
@@ -16,6 +17,20 @@ public:
 
 public:
 
+    void render() override;
+
+
+    bool isHidden() {
+        return hidden;
+    }
+
+    void hide() {
+        this->hidden = true;
+    }
+
+    void unhide() {
+        this->hidden = false;
+    }
 };
 
 
