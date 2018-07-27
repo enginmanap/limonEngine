@@ -19,6 +19,7 @@
 #include "GameObjects/GUIText.h"
 #include "ALHelper.h"
 #include "GameObjects/Sound.h"
+#include "GameObjects/GUIImage.h"
 
 WorldLoader::WorldLoader(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options) :
         options(options),
@@ -636,9 +637,20 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
         tinyxml2::XMLElement* GUIElementNode =  GUILayerNode->FirstChildElement("GUIElement");
         while(GUIElementNode != nullptr) {
             // TODO we should have a factory to create objects from parameters we collect, currently single type, GUITEXT
-            GUIText* element = GUIText::deserialize(GUIElementNode, glHelper, &world->fontManager, options);
-            world->guiElements[element->getWorldObjectID()] = element;
-            layer->addGuiElement(element);
+            tinyxml2::XMLElement* typeNode =  GUIElementNode->FirstChildElement("Type");
+            if(typeNode != nullptr) {
+                std::string typeName = typeNode->GetText();
+                if(typeName == "GUIText") {
+                    GUIText *element = GUIText::deserialize(GUIElementNode, glHelper, &world->fontManager, options);
+                    world->guiElements[element->getWorldObjectID()] = element;
+                    layer->addGuiElement(element);
+                } else if(typeName == "GUIImage") {
+                    GUIImage *element = GUIImage::deserialize(GUIElementNode, assetManager, options);
+                    world->guiElements[element->getWorldObjectID()] = element;
+                    layer->addGuiElement(element);
+                }
+
+            }
 
             GUIElementNode = GUIElementNode->NextSiblingElement("GUIElement");
         }// end of while (GUIElementNode)
