@@ -134,7 +134,7 @@ GameObject::ImGuiResult GUIImage::addImGuiEditorElements(const ImGuiRequest &req
     this->name = GUINameBuffer;
 
     //double # because I don't want to show it
-    ImGui::InputText("Text##SelectedGUIImageFileField", GUIfilenameBuffer, sizeof(GUIfilenameBuffer));
+    ImGui::InputText("Text##SelectedGUIImageFileField", GUIFileNameBuffer, sizeof(GUIFileNameBuffer));
     if(ImGui::Button("change image")) {
         TextureAsset *newAsset = assetManager->loadAsset<TextureAsset>({imageFile});
         if (newAsset != nullptr) {

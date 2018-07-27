@@ -16,7 +16,7 @@ class GUIImage : public GUIImageBase, public GameObject {
 
     //Editor variables
     char GUINameBuffer[128];
-    char GUIfilenameBuffer[256];
+    char GUIFileNameBuffer[256];
 
 public:
     GUIImage(uint32_t worldID, GLHelper *glHelper, AssetManager *assetManager, const std::string name,
@@ -24,7 +24,7 @@ public:
             : GUIImageBase(
             glHelper, assetManager, imageFile), worldID(worldID), name(name) {
         strncpy(GUINameBuffer, this->name.c_str(), sizeof(GUINameBuffer));
-        strncpy(GUIfilenameBuffer, this->imageFile.c_str(), sizeof(GUIfilenameBuffer));
+        strncpy(GUIFileNameBuffer, this->imageFile.c_str(), sizeof(GUIFileNameBuffer));
 
     }
 
