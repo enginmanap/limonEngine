@@ -9,24 +9,21 @@
 #include "../GUI/GUIImageBase.h"
 #include "GameObject.h"
 
+class Options;
 class GUIImage : public GUIImageBase, public GameObject {
     uint32_t worldID;
     std::string name;
+    Options* options;
     std::vector<GUILayer*> parentLayers;
 
+    bool fullScreen = false;
     //Editor variables
     char GUINameBuffer[128];
     char GUIFileNameBuffer[256];
 
 public:
-    GUIImage(uint32_t worldID, GLHelper *glHelper, AssetManager *assetManager, const std::string name,
-                 const std::string &imageFile)
-            : GUIImageBase(
-            glHelper, assetManager, imageFile), worldID(worldID), name(name) {
-        strncpy(GUINameBuffer, this->name.c_str(), sizeof(GUINameBuffer));
-        strncpy(GUIFileNameBuffer, this->imageFile.c_str(), sizeof(GUIFileNameBuffer));
-
-    }
+    GUIImage(uint32_t worldID, Options *options, AssetManager *assetManager, const std::string name,
+             const std::string &imageFile);
 
     ~GUIImage();
 
@@ -47,6 +44,7 @@ public:
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
 
 /******************** Game object methods ************************************/
+    void setFullScreen(bool fullScreen);
 };
 
 
