@@ -97,7 +97,7 @@ GUIImage *GUIImage::deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetMa
         return nullptr;
     }
     std::string type = GUIRenderableAttribute->GetText();
-    if(type == "GUIText") {
+    if(type == "GUIImage") {
         GUIRenderableAttribute = GUIRenderableNode->FirstChildElement("ID");
         if (GUIRenderableAttribute == nullptr) {
             std::cerr << "GUI renderable must have a ID. Skipping" << std::endl;
@@ -118,7 +118,7 @@ GUIImage *GUIImage::deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetMa
             std::cerr << "GUI Image must have a file. Skipping" << std::endl;
             return nullptr;
         }
-        std::string fileName = GUIRenderableAttribute->GetText();
+        std::string fileName = fileAttribute->GetText();
 
         bool fullScreen = false;
         tinyxml2::XMLElement* fullScreenAttribute =  GUIRenderableNode->FirstChildElement("FullScreen");
