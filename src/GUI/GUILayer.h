@@ -14,14 +14,14 @@ class GUIRenderable;
 class GUILayer {
     GLHelper *glHelper;
     BulletDebugDrawer* debugDrawer;
-    int level;
+    uint32_t level;
     bool isDebug;
     std::vector<GUIRenderable *> guiElements;
 
 public:
-    GUILayer(GLHelper *glHelper, BulletDebugDrawer* debugDrawer, int level) : glHelper(glHelper), debugDrawer(debugDrawer), level(level), isDebug(false) { };
+    GUILayer(GLHelper *glHelper, BulletDebugDrawer* debugDrawer, uint32_t level) : glHelper(glHelper), debugDrawer(debugDrawer), level(level), isDebug(false) { };
 
-    int getLevel() { return level; }
+    uint32_t getLevel() { return level; }
 
     bool getDebug() const {
         return isDebug;
