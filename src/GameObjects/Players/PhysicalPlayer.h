@@ -130,6 +130,10 @@ public:
         cursor->setTranslate(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f));
     };
 
+    CameraAttachment* getCameraAttachment() {
+        return this;
+    }
+
     PhysicalPlayer(Options *options, GUIRenderable *cursor);
 
     ~PhysicalPlayer() {
