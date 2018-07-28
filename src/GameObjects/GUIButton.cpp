@@ -75,7 +75,7 @@ bool GUIButton::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement 
     guiButtonNode->InsertEndChild(currentElement);
 
     for (size_t i = 0; i < imageFiles.size(); ++i) {
-        currentElement = document.NewElement(std::string("File-" + i).c_str());
+        currentElement = document.NewElement(std::string("File-" + std::to_string(i)).c_str());
         currentElement->SetText(this->imageFiles[i].c_str());
         guiButtonNode->InsertEndChild(currentElement);
     }
