@@ -643,16 +643,22 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
                 std::string typeName = typeNode->GetText();
                 if(typeName == "GUIText") {
                     GUIText *element = GUIText::deserialize(GUIElementNode, glHelper, &world->fontManager, options);
-                    world->guiElements[element->getWorldObjectID()] = element;
-                    layer->addGuiElement(element);
+                    if(element != nullptr) {
+                        world->guiElements[element->getWorldObjectID()] = element;
+                        layer->addGuiElement(element);
+                    }
                 } else if(typeName == "GUIImage") {
                     GUIImage *element = GUIImage::deserialize(GUIElementNode, assetManager, options);
-                    world->guiElements[element->getWorldObjectID()] = element;
-                    layer->addGuiElement(element);
+                    if(element != nullptr) {
+                        world->guiElements[element->getWorldObjectID()] = element;
+                        layer->addGuiElement(element);
+                    }
                 } else if(typeName == "GUIButton") {
                     GUIButton *element = GUIButton::deserialize(GUIElementNode, assetManager, options);
-                    world->guiElements[element->getWorldObjectID()] = element;
-                    layer->addGuiElement(element);
+                    if(element != nullptr) {
+                        world->guiElements[element->getWorldObjectID()] = element;
+                        layer->addGuiElement(element);
+                    }
                 }
 
             }
