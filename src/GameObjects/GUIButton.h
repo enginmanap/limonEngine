@@ -10,6 +10,10 @@
 #include "GameObject.h"
 
 class GUIButton : public GUIImageBase, public GameObject{
+
+    bool onHover = false;
+    bool onClick = false;
+    bool disabled = false;
     uint32_t worldID;
     std::string name;
     std::vector<GUILayer*> parentLayers;
@@ -27,6 +31,25 @@ class GUIButton : public GUIImageBase, public GameObject{
     char GUINameBuffer[128];
     char GUIFileNameBuffer[4][256] = {0};
 
+    void setImageFromFlags() {
+
+        if(this->disabled ) {
+            if(this->images.size() > 3) {
+                this->image = this->images[3];
+            }
+        } else if(this->onClick) {
+            if(this->images.size() > 2) {
+                this->image = this->images[2];
+            }
+        } else if(this->onHover) {
+            if(this->images.size() > 1) {
+                this->image = this->images[1];
+            }
+        } else {
+            this->image = this->images[0];
+        }
+    }
+
 public:
     GUIButton(uint32_t worldID, AssetManager *assetManager, const std::string name,
               const std::vector<std::string> &imageFiles);
@@ -39,6 +62,20 @@ public:
 
     static GUIButton *deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetManager *assetManager, Options *options); //will turn into factory class at some point
 
+    void setOnHover(bool hover) {
+        this->onHover = hover;
+        this->setImageFromFlags();
+    }
+
+    void setOnClick(bool click) {
+        this->onClick = click;
+        this->setImageFromFlags();
+    }
+
+    void setDisabled(bool disabled) {
+        this->disabled = disabled;
+        this->setImageFromFlags();
+    }
 
     /******************** Game object methods ************************************/
     ObjectTypes getTypeID() const override;

@@ -14,6 +14,7 @@
 #include "GameObjects/Players/FreeCursorPlayer.h"
 #include "GameObjects/Players/FreeMovingPlayer.h"
 #include "GameObjects/Players/PhysicalPlayer.h"
+#include "GameObjects/Players/MenuPlayer.h"
 #include "GameObjects/Light.h"
 #include "GUI/GUILayer.h"
 #include "GUI/GUITextBase.h"
@@ -28,6 +29,7 @@
 #include "GUI/GUICursor.h"
 #include "GameObjects/GUIText.h"
 #include "GameObjects/GUIImage.h"
+#include "GameObjects/GUIButton.h"
 
 
 World::World(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options)
@@ -244,6 +246,38 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
         guiLayers[i]->setupForTime(gameTime);
     }
     debugOutputGUI->setupForTime(gameTime);
+
+    if(currentPlayersSettings->menuInteraction) {
+        GUIButton* button = nullptr;
+
+        GameObject* pointed = this->getPointedObject();
+        if(pointed != nullptr && pointed->getTypeID() == GameObject::GUI_BUTTON) {
+            button = dynamic_cast<GUIButton*>(pointed);
+        }
+
+        if(button != nullptr) {
+            if(this->hoveringButton != button) {
+                if(this->hoveringButton != nullptr) {
+                    this->hoveringButton->setOnHover(false);
+                    this->hoveringButton->setOnClick(false);
+                }
+            }
+            this->hoveringButton = button;
+            button->setOnHover(true);
+            if(inputHandler.getInputStatus(InputHandler::MOUSE_BUTTON_LEFT)) {
+                if(inputHandler.getInputEvents(InputHandler::MOUSE_BUTTON_LEFT)) {
+                    button->setOnClick(true);
+                }
+            } else {
+                button->setOnClick(false);
+            }
+        } else {
+            if(this->hoveringButton != nullptr) {
+                this->hoveringButton->setOnHover(false);
+                this->hoveringButton->setOnClick(false);
+            }
+        }
+    }
 
     return isQuitRequest && isQuitVerified;
 }
@@ -506,10 +540,10 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
     currentPlayer->move(direction);
 
     if(inputHandler.getInputEvents(inputHandler.QUIT) &&  inputHandler.getInputStatus(inputHandler.QUIT)) {
-        if(debugPlayer == nullptr) {
-            debugPlayer = new FreeMovingPlayer(options, cursor);
+        if(menuPlayer == nullptr) {
+            menuPlayer = new MenuPlayer(options, cursor);
         }
-        switchPlayer(editorPlayer, inputHandler);
+        switchPlayer(menuPlayer, inputHandler);
         return true;
     } else {
         return false;
@@ -1724,6 +1758,12 @@ void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
                 (*(*it)->getTransformation()) = activeAnimations[*it].originalTransformation;
             }
         }
+    }
+
+    if(currentPlayersSettings->menuInteraction) {
+        guiPickMode = true;
+    } else {
+        guiPickMode = true;
     }
 
     //now all settings done, switch player

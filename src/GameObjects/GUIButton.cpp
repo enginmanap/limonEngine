@@ -20,13 +20,13 @@ GUIButton::GUIButton(uint32_t worldID, AssetManager *assetManager, const std::st
 
     if(this->imageFiles.size() > 1) {
         strncpy(GUIFileNameBuffer[1], this->imageFiles[1].c_str(), sizeof(GUIFileNameBuffer[1]));
-        this->images[1] = assetManager->loadAsset<TextureAsset>({imageFiles[1]});
+        this->images.push_back(assetManager->loadAsset<TextureAsset>({imageFiles[1]}));
         if (this->imageFiles.size() > 2) {
             strncpy(GUIFileNameBuffer[2], this->imageFiles[2].c_str(), sizeof(GUIFileNameBuffer[2]));
-            this->images[2] = assetManager->loadAsset<TextureAsset>({imageFiles[2]});
+            this->images.push_back(assetManager->loadAsset<TextureAsset>({imageFiles[2]}));
             if (this->imageFiles.size() > 3) {
                 strncpy(GUIFileNameBuffer[3], this->imageFiles[3].c_str(), sizeof(GUIFileNameBuffer[3]));
-                this->images[3] = assetManager->loadAsset<TextureAsset>({imageFiles[3]});
+                this->images.push_back(assetManager->loadAsset<TextureAsset>({imageFiles[3]}));
             }
         }
     }

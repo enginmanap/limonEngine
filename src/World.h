@@ -34,6 +34,7 @@ class GUITextBase;
 class GUIFPSCounter;
 class GUITextDynamic;
 class GUICursor;
+class GUIButton;
 
 
 class GameObject;
@@ -41,6 +42,7 @@ class Player;
 class PhysicalPlayer;
 class FreeMovingPlayer;
 class FreeCursorPlayer;
+class MenuPlayer;
 class ImGuiHelper;
 class AssetManager;
 class TriggerObject;
@@ -130,6 +132,7 @@ class World {
     PhysicalPlayer* physicalPlayer;
     FreeCursorPlayer* editorPlayer = nullptr;
     FreeMovingPlayer* debugPlayer = nullptr;
+    MenuPlayer* menuPlayer = nullptr;
     Player* currentPlayer;
     Player* beforePlayer;
     const Player::WorldSettings* currentPlayersSettings = nullptr;
@@ -142,6 +145,7 @@ class World {
     GUIText* renderCounts;
     GUIFPSCounter* fpsCounter;
     GUICursor* cursor;
+    GUIButton *hoveringButton = nullptr;
     GUITextDynamic* debugOutputGUI;
 
     btGhostPairCallback *ghostPairCallback;
