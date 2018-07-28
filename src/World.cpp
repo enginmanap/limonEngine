@@ -556,11 +556,11 @@ GameObject * World::getPointedObject() const {
 
     if(guiPickMode) {
         GameObject* pickedGuiElement = nullptr;
-        // TODO this should filter by level
+        uint32_t pickedLevel = 0;
         //then we don't need to rayTest. We can get the picked object directly by coordinate.
         for (size_t i = 0; i < guiLayers.size(); ++i) {
             GameObject* pickedGuiTemp = dynamic_cast<GameObject*>(guiLayers[i]->getRenderableFromCoordinate(cursor->getTranslate()));
-            if(pickedGuiTemp != nullptr) {
+            if(pickedGuiTemp != nullptr && guiLayers[i]->getLevel() >= pickedLevel) {
                 pickedGuiElement = pickedGuiTemp;//because we are iterating all the levels
             }
         }
