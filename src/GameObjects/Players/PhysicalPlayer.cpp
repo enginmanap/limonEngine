@@ -15,6 +15,14 @@ PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor) :
         onAir(true),
         options(options),
         dirty(true){
+    worldSettings.debugMode = DEBUG_DISABLED;
+    worldSettings.audioPlaying = true;
+    worldSettings.worldSimulation = true;
+    worldSettings.editorShown = false;
+    worldSettings.cursorFree = false;
+    worldSettings.resetAnimations = false;
+    worldSettings.menuInteraction = false;
+
 
     for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
         for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {

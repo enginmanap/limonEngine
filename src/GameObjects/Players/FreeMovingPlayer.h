@@ -73,6 +73,9 @@ public:
 
     void rotate(float xPosition, float yPosition, float xChange, float yChange);
 
+    CameraAttachment* getCameraAttachment() {
+        return this;
+    }
 };
 
 

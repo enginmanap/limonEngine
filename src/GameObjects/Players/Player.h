@@ -12,11 +12,23 @@
 
 class btDiscreteDynamicsWorld;
 class GUIRenderable;
+class CameraAttachment;
 
 class Player : public GameObject {
+public:
+    enum DebugModes { DEBUG_ENABLED, DEBUG_DISABLED, DEBUG_NOCHANGE };
+    struct WorldSettings {
+        DebugModes debugMode = DEBUG_DISABLED;
+        bool audioPlaying = true;
+        bool worldSimulation = true;
+        bool editorShown = false;
+        bool cursorFree = false;
+        bool resetAnimations = false;
+        bool menuInteraction  = false;
+    };
 protected:
     GUIRenderable* cursor;
-
+    WorldSettings worldSettings;
 public:
     enum moveDirections {
         NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD, UP
@@ -49,6 +61,12 @@ public:
 
     virtual void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const = 0;
 
+    const WorldSettings& getWorldSettings() const {
+        return this->worldSettings;
+    }
+
+    virtual CameraAttachment* getCameraAttachment() = 0;
+
     /************Game Object methods **************/
     uint32_t getWorldObjectID() {
         std::cerr << "Player doesn't have a world object ID, it shouldn't have been needed." << std::endl;
@@ -61,6 +79,7 @@ public:
     std::string getName() const {
         return "Player";//Players doesn't have specific names
     };
+
     /************Game Object methods **************/
 };
 

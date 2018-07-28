@@ -16,6 +16,7 @@
 #include "GamePlay/LimonAPI.h"
 #include "AI/Actor.h"
 #include "ALHelper.h"
+#include "GameObjects/Players/Player.h"
 
 
 class btGhostPairCallback;
@@ -130,6 +131,9 @@ class World {
     FreeCursorPlayer* editorPlayer = nullptr;
     FreeMovingPlayer* debugPlayer = nullptr;
     Player* currentPlayer;
+    Player* beforePlayer;
+    const Player::WorldSettings* currentPlayersSettings = nullptr;
+
     Camera* camera;
     BulletDebugDrawer *debugDrawer;
     GameObject::ImGuiRequest* request;
@@ -150,8 +154,6 @@ class World {
     btDefaultCollisionConfiguration *collisionConfiguration;
     btCollisionDispatcher *dispatcher;
     btSequentialImpulseConstraintSolver *solver;
-    PlayerModes currentMode = PHYSICAL_MODE;
-    PlayerModes beforeMode = PHYSICAL_MODE;
     ImGuiHelper *imgGuiHelper;
     GameObject* pickedObject = nullptr;
     bool availableAssetsLoaded = false;
@@ -240,11 +242,7 @@ class World {
 
     void afterLoadFinished();
 
-    void switchToEditorMode(InputHandler &inputHandler);
-
-    void switchToPhysicalPlayer(InputHandler &inputHandler);
-
-    void switchToDebugMode(InputHandler &inputHandler);
+    void switchPlayer(Player* targetPlayer, InputHandler &inputHandler);
 
     void ImGuiFrameSetup();
 

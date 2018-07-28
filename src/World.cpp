@@ -75,6 +75,8 @@ World::World(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper,
 
     physicalPlayer = new PhysicalPlayer(options, cursor);
     currentPlayer = physicalPlayer;
+    currentPlayersSettings = &(currentPlayer->getWorldSettings());
+
     camera = new Camera(options, physicalPlayer);//register is just below
 
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
@@ -142,7 +144,7 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
      // If not in editor mode, dont let imgGuiHelper get input
      // if in editor mode, but player press editor button, dont allow imgui to process input
      // if in editor mode, player did not press editor button, then check if imgui processed, if not use the input
-     if(currentMode != EDITOR_MODE || inputHandler.getInputEvents(InputHandler::EDITOR) || !imgGuiHelper->ProcessEvent(inputHandler)) {
+     if(!currentPlayersSettings->editorShown || inputHandler.getInputEvents(InputHandler::EDITOR) || !imgGuiHelper->ProcessEvent(inputHandler)) {
          if(handlePlayerInput(inputHandler)) {
              isQuitRequest = !isQuitRequest;
          }
@@ -155,7 +157,7 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 
 
 
-     if(currentMode != EDITOR_MODE && currentMode != PAUSED_MODE) {
+     if(currentPlayersSettings->worldSimulation) {
         //every time we call this method, we increase the time only by simulationTimeframe
         gameTime += simulationTimeFrame;
         dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
@@ -391,7 +393,7 @@ ActorInformation World::fillActorInformation(Actor *actor) {
     //now we need up and down. For that, normally we can remove z or x, but since camera is z alone at start, I will use x
     rayDir.x = 0;
     front.x = 0;
-    crossBetween = cross(normalize(front), normalize(rayDir));
+    crossBetween = glm::cross(normalize(front), normalize(rayDir));
     if(crossBetween.x > 0){
             information.isPlayerUp = false;
             information.isPlayerDown = true;
@@ -419,18 +421,7 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
     if(!isQuitRequest && isQuitVerified) {
         isQuitVerified = false;
         //means player selected stay, we should revert to last player type
-        switch (beforeMode) {
-            case DEBUG_MODE:
-                switchToDebugMode(inputHandler);
-                break;
-            case EDITOR_MODE:
-                switchToEditorMode(inputHandler);
-                break;
-            case PHYSICAL_MODE:
-            default:
-                switchToPhysicalPlayer(inputHandler);
-                break;
-        }
+        switchPlayer(beforePlayer, inputHandler);
     }
     if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT)) {
         if(inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
@@ -445,32 +436,24 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
 
 
     if (inputHandler.getInputEvents(inputHandler.EDITOR) && inputHandler.getInputStatus(inputHandler.EDITOR)) {
-        if(currentMode != EDITOR_MODE ) {
-            switchToEditorMode(inputHandler);
+        if(editorPlayer == nullptr) {
+            editorPlayer = new FreeCursorPlayer(options, cursor);
+        }
+        if(!currentPlayersSettings->editorShown) {
+            switchPlayer(editorPlayer, inputHandler);
         } else {
-            //if user is shown quit dialog, don't allow switching modes, user should say no
-            if(!isQuitRequest == true) {
-                switch (beforeMode) {
-                    case DEBUG_MODE: {
-                        switchToDebugMode(inputHandler);
-                        break;
-                    }
-                    case PHYSICAL_MODE:
-                    default: {
-                        switchToPhysicalPlayer(
-                                inputHandler);//if double editor, return to physical. This can happen when try to quit
-                    }
-                }
-            }
+            switchPlayer(beforePlayer, inputHandler);
         }
     }
     //if not in editor mode and press debug
-    if (currentMode != EDITOR_MODE && inputHandler.getInputEvents(inputHandler.DEBUG) && inputHandler.getInputStatus(inputHandler.DEBUG)) {
-        if(currentMode != DEBUG_MODE) {
-            switchToDebugMode(inputHandler);
+    if (!currentPlayersSettings->editorShown && inputHandler.getInputEvents(inputHandler.DEBUG) && inputHandler.getInputStatus(inputHandler.DEBUG)) {
+        if(currentPlayersSettings->debugMode != Player::DEBUG_ENABLED) {
+            if(debugPlayer == nullptr) {
+                debugPlayer = new FreeMovingPlayer(options, cursor);
+            }
+            switchPlayer(debugPlayer, inputHandler);
         } else {
-            //no matter what was the before, just return to player
-            switchToPhysicalPlayer(inputHandler);
+            switchPlayer(physicalPlayer, inputHandler);
         }
     }
 
@@ -523,78 +506,14 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
     currentPlayer->move(direction);
 
     if(inputHandler.getInputEvents(inputHandler.QUIT) &&  inputHandler.getInputStatus(inputHandler.QUIT)) {
-        if(currentMode != EDITOR_MODE) {
-            switchToEditorMode(inputHandler);
-
-        } else {
-            beforeMode = EDITOR_MODE;//you should return to editor mode after quitting
+        if(debugPlayer == nullptr) {
+            debugPlayer = new FreeMovingPlayer(options, cursor);
         }
+        switchPlayer(editorPlayer, inputHandler);
         return true;
     } else {
         return false;
     }
-}
-
-void World::switchToDebugMode(InputHandler &inputHandler) {
-    dynamicsWorld->getDebugDrawer()->setDebugMode(
-            dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE | dynamicsWorld->getDebugDrawer()->DBG_DrawAabb | dynamicsWorld->getDebugDrawer()->DBG_DrawConstraints | dynamicsWorld->getDebugDrawer()->DBG_DrawConstraintLimits);
-    options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_INFO, "Debug enabled");
-    for (size_t i = 0; i < guiLayers.size(); ++i) {
-        guiLayers[i]->setDebug(true);
-    }
-
-    //switch control to debug player
-    if(debugPlayer == nullptr) {
-                debugPlayer = new FreeMovingPlayer(options, cursor);
-        debugPlayer->registerToPhysicalWorld(dynamicsWorld, 0, 0, worldAABBMin, worldAABBMax);
-            }
-    debugPlayer->ownControl(currentPlayer->getPosition(), currentPlayer->getLookDirection());
-    currentPlayer = debugPlayer;
-    camera->setCameraAttachment(debugPlayer);
-    inputHandler.setMouseModeRelative();
-    cursor->unhide();
-    alHelper->resumePlay();
-    beforeMode = currentMode;
-    currentMode = DEBUG_MODE;
-}
-
-void World::switchToPhysicalPlayer(InputHandler &inputHandler) {
-    physicalPlayer->ownControl(currentPlayer->getPosition(), currentPlayer->getLookDirection());
-    currentPlayer = physicalPlayer;
-    camera->setCameraAttachment(physicalPlayer);
-    dynamicsWorld->updateAabbs();
-    inputHandler.setMouseModeRelative();
-    cursor->unhide();
-    this->dynamicsWorld->getDebugDrawer()->setDebugMode(this->dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
-    for (size_t i = 0; i < guiLayers.size(); ++i) {
-        this->guiLayers[i]->setDebug(false);
-    }
-    alHelper->resumePlay();
-    beforeMode = currentMode;
-    currentMode = PHYSICAL_MODE;
-}
-
-void World::switchToEditorMode(InputHandler &inputHandler) {//switch control to free cursor player
-    if(editorPlayer == nullptr) {
-                editorPlayer = new FreeCursorPlayer(options, cursor);
-        editorPlayer->registerToPhysicalWorld(dynamicsWorld, 0, 0, worldAABBMin, worldAABBMax);
-            }
-    editorPlayer->ownControl(currentPlayer->getPosition(), currentPlayer->getLookDirection());
-    currentPlayer = editorPlayer;
-    camera->setCameraAttachment(editorPlayer);
-    inputHandler.setMouseModeFree();
-    cursor->hide();
-    beforeMode = currentMode;
-    currentMode = EDITOR_MODE;
-    alHelper->pausePlay();
-    //when switching to editor mode, return all objects that are custom animated without triggers
-    //to original position
-    for(auto it = onLoadAnimations.begin(); it != onLoadAnimations.end(); it++) {
-         if(activeAnimations.find(*it) != activeAnimations.end()) {
-             (*(*it)->getTransformation()) = activeAnimations[*it].originalTransformation;
-         }
-    }
-
 }
 
 GameObject * World::getPointedObject() const {
@@ -754,7 +673,7 @@ void World::render() {
         grid->debugDraw(debugDrawer);
     }
 
-    if(currentMode == PlayerModes::EDITOR_MODE  && !isQuitRequest) {
+    if(currentPlayersSettings->editorShown && !isQuitRequest) {
         for (auto it = triggers.begin(); it != triggers.end(); ++it) {
             it->second->render(debugDrawer);
         }
@@ -781,7 +700,7 @@ void World::render() {
     uint32_t triangle, line;
     glHelper->getRenderTriangleAndLineCount(triangle, line);
     renderCounts->updateText("Tris: " + std::to_string(triangle) + ", lines: " + std::to_string(line));
-    if(currentMode == EDITOR_MODE) {
+    if(currentPlayersSettings->editorShown) {
         ImGuiFrameSetup();
     }
 }
@@ -814,7 +733,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             if(ImGui::Button("No, stay")) {
                 isQuitRequest = false;
                 isQuitVerified = true;
-                currentMode = PAUSED_MODE;//FIXME we are rendering more than we allow input. That causes a bit delay before we exit editor mode, which in turn creates a bit shutter.
+                //currentMode = PAUSED_MODE;//FIXME we are rendering more than we allow input. That causes a bit delay before we exit editor mode, which in turn creates a bit shutter.
                 //this line should have 0 effect because it will be overriden, but it will remove the shutter.
                 //return to the player we left off in next frame
             }
@@ -1768,4 +1687,50 @@ void World::addGUIImageControls() {
         guiLayers[selectedLayerIndex]->addGuiElement(guiImage);
         pickedObject = guiImage;
     }
+}
+
+void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
+    currentPlayersSettings = &(targetPlayer->getWorldSettings());
+    if(currentPlayersSettings->debugMode == Player::DEBUG_ENABLED) {
+        dynamicsWorld->getDebugDrawer()->setDebugMode(
+                dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE | dynamicsWorld->getDebugDrawer()->DBG_DrawAabb | dynamicsWorld->getDebugDrawer()->DBG_DrawConstraints | dynamicsWorld->getDebugDrawer()->DBG_DrawConstraintLimits);
+        for (size_t i = 0; i < guiLayers.size(); ++i) {
+            guiLayers[i]->setDebug(true);
+        }
+        options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_INFO, "Debug enabled");
+    } else if(currentPlayersSettings->debugMode == Player::DEBUG_DISABLED) {
+        this->dynamicsWorld->getDebugDrawer()->setDebugMode(this->dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
+        for (size_t i = 0; i < guiLayers.size(); ++i) {
+            this->guiLayers[i]->setDebug(false);
+        }
+    }
+    if(currentPlayersSettings->audioPlaying) {
+        this->alHelper->resumePlay();
+    } else {
+        this->alHelper->pausePlay();
+    }
+    if(currentPlayersSettings->cursorFree) {
+        inputHandler.setMouseModeFree();
+        cursor->hide();
+    } else {
+        inputHandler.setMouseModeRelative();
+        cursor->unhide();
+    }
+    if(currentPlayersSettings->resetAnimations) {
+        //when switching to editor mode, return all objects that are custom animated without triggers
+        //to original position
+        for(auto it = onLoadAnimations.begin(); it != onLoadAnimations.end(); it++) {
+            if(activeAnimations.find(*it) != activeAnimations.end()) {
+                (*(*it)->getTransformation()) = activeAnimations[*it].originalTransformation;
+            }
+        }
+    }
+
+    //now all settings done, switch player
+    beforePlayer = currentPlayer;
+    currentPlayer = targetPlayer;
+    targetPlayer->ownControl(beforePlayer->getPosition(), beforePlayer->getLookDirection());
+    dynamicsWorld->updateAabbs();
+    camera->setCameraAttachment(currentPlayer->getCameraAttachment());
+
 }
