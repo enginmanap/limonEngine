@@ -32,6 +32,11 @@ protected:
                                                                                                   color) {};
 
 public:
+    virtual ~GUITextBase(){
+        //delete renderProgram;// since the program is shared, don't remove
+    };
+
+
     virtual void render();
 
     virtual void renderDebug(BulletDebugDrawer *debugDrawer);

@@ -43,9 +43,6 @@ public:
         glHelper->freeBuffer(ebo);
         glHelper->freeVAO(vao);
 
-        //model renderable creates its own
-        delete renderProgram;
-
     }
 
     bool isIsInFrustum() const {
