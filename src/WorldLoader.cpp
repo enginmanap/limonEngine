@@ -20,6 +20,7 @@
 #include "ALHelper.h"
 #include "GameObjects/Sound.h"
 #include "GameObjects/GUIImage.h"
+#include "GameObjects/GUIButton.h"
 
 WorldLoader::WorldLoader(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options) :
         options(options),
@@ -646,6 +647,10 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
                     layer->addGuiElement(element);
                 } else if(typeName == "GUIImage") {
                     GUIImage *element = GUIImage::deserialize(GUIElementNode, assetManager, options);
+                    world->guiElements[element->getWorldObjectID()] = element;
+                    layer->addGuiElement(element);
+                } else if(typeName == "GUIButton") {
+                    GUIButton *element = GUIButton::deserialize(GUIElementNode, assetManager, options);
                     world->guiElements[element->getWorldObjectID()] = element;
                     layer->addGuiElement(element);
                 }
