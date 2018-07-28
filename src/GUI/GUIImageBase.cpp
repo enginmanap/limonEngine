@@ -21,6 +21,7 @@ GUIImageBase::GUIImageBase(GLHelper *glHelper, AssetManager *assetManager, const
 
 GUIImageBase::~GUIImageBase() {
     assetManager->freeAsset({imageFile});
+    //delete renderProgram;// since the program is shared, don't remove
 }
 
 void GUIImageBase::render() {
