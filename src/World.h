@@ -257,6 +257,8 @@ class World {
 /********** Editor Methods *********************/
     void addGUITextControls();
     void addGUIImageControls();
+    void addGUIButtonControls();
+    void addGUILayerControls();
 /********** Editor Methods *********************/
     //API methods
 
