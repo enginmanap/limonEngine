@@ -909,11 +909,17 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
             if (ImGui::CollapsingHeader("Add GUI Elements##The header")) {
                 ImGui::Indent( 16.0f );
+                if (ImGui::CollapsingHeader("Add GUI Layer##The header")) {
+                    addGUILayerControls();
+                }
                 if (ImGui::CollapsingHeader("Add GUI Text##The header")) {
                     addGUITextControls();
                 }
                 if (ImGui::CollapsingHeader("Add GUI Image##The header")) {
                     addGUIImageControls();
+                }
+                if (ImGui::CollapsingHeader("Add GUI Button##The header")) {
+                    addGUIButtonControls();
                 }
                 ImGui::Unindent( 16.0f );
             }
@@ -1773,4 +1779,77 @@ void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
     dynamicsWorld->updateAabbs();
     camera->setCameraAttachment(currentPlayer->getCameraAttachment());
 
+}
+
+void World::addGUIButtonControls() {
+    /**
+     * For a new GUI Image we need only name and filename
+     */
+    static char GUIButtonName[32];
+    ImGui::InputText("GUI Button Name", GUIButtonName, sizeof(GUIButtonName), ImGuiInputTextFlags_CharsNoBlank);
+
+    static char GUIButtonNormalFileName[256];
+    ImGui::InputText("Normal image path", GUIButtonNormalFileName, sizeof(GUIButtonNormalFileName));
+
+    static char GUIButtonOnHoverFileName[256];
+    ImGui::InputText("On hover image path", GUIButtonOnHoverFileName, sizeof(GUIButtonOnHoverFileName));
+
+    static char GUIButtonOnClicklFileName[256];
+    ImGui::InputText("On click image path", GUIButtonOnClicklFileName, sizeof(GUIButtonOnClicklFileName));
+
+    static char GUIButtonDisabledFileName[256];
+    ImGui::InputText("Disabled image path", GUIButtonDisabledFileName, sizeof(GUIButtonDisabledFileName));
+
+    static size_t selectedLayerIndex = 0;
+    if (guiLayers.size() == 0) {
+        guiLayers.push_back(new GUILayer(glHelper, debugDrawer, 10));
+    }
+    if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
+        for (size_t i = 0; i < guiLayers.size(); ++i) {
+            bool isThisLayerSelected = selectedLayerIndex == i;
+            if (ImGui::Selectable(std::to_string(i).c_str(), isThisLayerSelected)) {
+                selectedLayerIndex = i;
+            }
+            if (isThisLayerSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+    if (ImGui::Button("Add GUI Button")) {
+        std::vector<std::string> fileNames;
+        fileNames.push_back(std::string(GUIButtonNormalFileName));
+        if(strlen(GUIButtonOnHoverFileName) > 0) {
+            fileNames.push_back(std::string(GUIButtonOnHoverFileName));
+            if(strlen(GUIButtonOnClicklFileName) > 0) {
+                fileNames.push_back(std::string(GUIButtonOnClicklFileName));
+                if(strlen(GUIButtonDisabledFileName) > 0) {
+                    fileNames.push_back(std::string(GUIButtonDisabledFileName));
+                }
+            }
+        }
+
+        GUIButton *guiButton = new GUIButton(this->getNextObjectID(), assetManager, std::string(GUIButtonName), fileNames);
+        guiButton->set2dWorldTransform(
+                glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
+        guiElements[guiButton->getWorldObjectID()] = guiButton;
+        guiLayers[selectedLayerIndex]->addGuiElement(guiButton);
+        pickedObject = guiButton;
+    }
+}
+
+void World::addGUILayerControls() {
+    /**
+     * we need these set:
+     * 1) font
+     * 2) font size
+     * 3) name
+     *
+     */
+
+    static  int32_t levelSlider = 0;
+    ImGui::DragInt("Layer level", &levelSlider, 1, 1, 128);
+    if (ImGui::Button("Add GUI Layer")) {
+        this->guiLayers.push_back(new GUILayer(glHelper, debugDrawer, (uint32_t)levelSlider));
+    }
 }
