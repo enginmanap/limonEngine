@@ -6,6 +6,7 @@
 #include "GUIRenderable.h"
 #include "../GameObjects/GUIText.h"
 #include "../GameObjects/GUIImage.h"
+#include "../GameObjects/GUIButton.h"
 
 
 class Options;
@@ -86,6 +87,9 @@ bool GUILayer::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
                     break;
                 case GameObject::ObjectTypes::GUI_IMAGE:
                     static_cast<GUIImage*>(guiElements[i])->serialize(document, layerNode, options);
+                    break;
+                case GameObject::ObjectTypes::GUI_BUTTON:
+                    static_cast<GUIButton*>(guiElements[i])->serialize(document, layerNode, options);
                     break;
                 default:
                     break;//do nothing
