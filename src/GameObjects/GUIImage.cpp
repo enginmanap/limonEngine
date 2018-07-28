@@ -45,24 +45,24 @@ GUIImage::~GUIImage() {
 
 
 bool GUIImage::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options) {
-    tinyxml2::XMLElement *guiTextNode = document.NewElement("GUIElement");
-    parentNode->InsertEndChild(guiTextNode);
+    tinyxml2::XMLElement *guiImageNode = document.NewElement("GUIElement");
+    parentNode->InsertEndChild(guiImageNode);
 
     tinyxml2::XMLElement *currentElement = document.NewElement("Type");
     currentElement->SetText("GUIImage");
-    guiTextNode->InsertEndChild(currentElement);
+    guiImageNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("ID");
     currentElement->SetText(getWorldObjectID());
-    guiTextNode->InsertEndChild(currentElement);
+    guiImageNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("Name");
     currentElement->SetText(this->name.c_str());
-    guiTextNode->InsertEndChild(currentElement);
+    guiImageNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("File");
     currentElement->SetText(this->imageFile.c_str());
-    guiTextNode->InsertEndChild(currentElement);
+    guiImageNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("FullScreen");
     if(this->fullScreen) {
@@ -70,7 +70,7 @@ bool GUIImage::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
     } else {
         currentElement->SetText("False");
     }
-    guiTextNode->InsertEndChild(currentElement);
+    guiImageNode->InsertEndChild(currentElement);
 
 
     Transformation temp(transformation);//this is to save relative, so resolution change won't effect position
@@ -81,7 +81,7 @@ bool GUIImage::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
             temp.getTranslate().z
     ));
 
-    temp.serialize(document, guiTextNode);
+    temp.serialize(document, guiImageNode);
 
     return true;
 }
@@ -139,7 +139,7 @@ GUIImage *GUIImage::deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetMa
 
         GUIRenderableAttribute =  GUIRenderableNode->FirstChildElement("Transformation");
         if(GUIRenderableAttribute == nullptr) {
-            std::cerr << "GUI Text does not have transformation. Skipping" << std::endl;
+            std::cerr << "GUI Image does not have transformation. Skipping" << std::endl;
             return nullptr;
         }
         Transformation tr;
@@ -150,7 +150,7 @@ GUIImage *GUIImage::deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetMa
                 tr.getTranslate().y * options->getScreenHeight(),
                 tr.getTranslate().z
         ));
-        //now we have everything, create the GUI Text
+        //now we have everything, create the GUI Image
         GUIImage* element = new GUIImage(id, options, assetManager, name,
                                          fileName);
         element->setFullScreen(fullScreen);
@@ -173,7 +173,7 @@ GameObject::ImGuiResult GUIImage::addImGuiEditorElements(const ImGuiRequest &req
 
 
     //double # because I don't want to show it
-    ImGui::InputText("Text##SelectedGUIImageFileField", GUIFileNameBuffer, sizeof(GUIFileNameBuffer));
+    ImGui::InputText("File##SelectedGUIImageFileField", GUIFileNameBuffer, sizeof(GUIFileNameBuffer));
     if(ImGui::Button("change image")) {
         std::string enteredFileName = std::string(GUIFileNameBuffer);
         TextureAsset *newAsset = assetManager->loadAsset<TextureAsset>({enteredFileName});
