@@ -32,8 +32,8 @@
 #include "GameObjects/GUIButton.h"
 
 
-World::World(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options)
-        : assetManager(assetManager),options(options), glHelper(glHelper), alHelper(alHelper), fontManager(glHelper) {
+World::World(AssetManager *assetManager, Options *options)
+        : assetManager(assetManager),options(options), glHelper(assetManager->getGlHelper()), alHelper(assetManager->getAlHelper()), fontManager(glHelper) {
     // physics init
     broadphase = new btDbvtBroadphase();
     ghostPairCallback = new btGhostPairCallback();
