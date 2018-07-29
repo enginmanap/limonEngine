@@ -48,8 +48,6 @@ int main(int argc, char *argv[]) {
     InputHandler inputHandler(sdlHelper.getWindow(), &options);
     AssetManager assetManager(&glHelper, alHelper);
 
-
-
     WorldLoader* worldLoader = new WorldLoader(&assetManager, &glHelper, alHelper, &options);
     World* world = worldLoader->loadWorld(worldName);
     if(world == nullptr) {
