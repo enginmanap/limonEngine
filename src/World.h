@@ -129,7 +129,7 @@ class World {
 
     GLSLProgram *shadowMapProgramDirectional, *shadowMapProgramPoint;
     FontManager fontManager;
-    PhysicalPlayer* physicalPlayer;
+    PhysicalPlayer* physicalPlayer = nullptr;
     FreeCursorPlayer* editorPlayer = nullptr;
     FreeMovingPlayer* debugPlayer = nullptr;
     MenuPlayer* menuPlayer = nullptr;
