@@ -1249,9 +1249,10 @@ World::~World() {
     delete grid;
     delete camera;
     delete physicalPlayer;
-    if(debugPlayer!= nullptr) {
-        delete debugPlayer;
-    }
+    delete debugPlayer;
+    delete editorPlayer;
+    delete menuPlayer;
+
     delete imgGuiHelper;
 }
 
