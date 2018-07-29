@@ -30,8 +30,11 @@ WorldLoader::WorldLoader(AssetManager *assetManager, GLHelper *glHelper, ALHelpe
 {}
 
 World* WorldLoader::loadWorld(const std::string& worldFile) const {
-    World* newWorld = new World(assetManager, options);
-
+    World* newWorld = loadMapFromXML(worldFile);
+    if(newWorld == nullptr) {
+        std::cerr << "world load failed" << std::endl;
+        return nullptr;
+    }
 
     // Set api endpoints accordingly
     LimonAPI* api = new LimonAPI();
@@ -48,15 +51,8 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
     api->worldAttachSoundToObjectAndPlay = std::bind(&World::attachSoundToObjectAndPlay, newWorld, std::placeholders::_1, std::placeholders::_2);
     api->worldDetachSoundFromObject = std::bind(&World::detachSoundFromObject, newWorld, std::placeholders::_1);
     api->worldPlaySound = std::bind(&World::playSound, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-
-
     newWorld->apiInstance = api;
 
-    if(!loadMapFromXML(worldFile, newWorld)) {
-        std::cerr << "world load failed" << std::endl;
-        delete newWorld;
-        return nullptr;
-    }
     if(!(newWorld->verifyIDs())) {
         std::cerr << "world ID verification failed" << std::endl;
         delete newWorld;
@@ -68,7 +64,7 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
 }
 
 
-bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world) const {
+World* WorldLoader::loadMapFromXML(const std::string& worldFileName) const {
     tinyxml2::XMLDocument xmlDoc;
     tinyxml2::XMLError eResult = xmlDoc.LoadFile(worldFileName.c_str());
     if (eResult != tinyxml2::XML_SUCCESS) {
@@ -79,15 +75,36 @@ bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world)
     tinyxml2::XMLNode * worldNode = xmlDoc.FirstChild();
     if (worldNode == nullptr) {
         std::cerr << "World xml is not a valid XML." << std::endl;
-        return false;
+        return nullptr;
     }
 
     tinyxml2::XMLElement* worldName =  worldNode->FirstChildElement("Name");
     if (worldName == nullptr) {
         std::cerr << "World must have a name." << std::endl;
-        return false;
+        return nullptr;
     }
     std::cout << "read name as " << worldName->GetText() << std::endl;
+
+    tinyxml2::XMLElement* worldStartPlayer =  worldNode->FirstChildElement("StartingPlayer");
+    World::PlayerTypes startingPlayer = World::PlayerTypes::PHYSICAL_PLAYER;
+    if (worldStartPlayer == nullptr) {
+        std::cerr << "World starting player not found, will start with Physical player." << std::endl;
+    } else {
+        std::string playerType = worldStartPlayer->GetText();
+        if(playerType == "Physical") {
+            startingPlayer = World::PlayerTypes::PHYSICAL_PLAYER;
+        } else if(playerType == "Debug") {
+            startingPlayer = World::PlayerTypes::DEBUG_PLAYER;
+        } else if(playerType == "Editor") {
+            startingPlayer = World::PlayerTypes::EDITOR_PLAYER;
+        } else if(playerType == "Menu") {
+            startingPlayer = World::PlayerTypes::MENU_PLAYER;
+        } else {
+            std::cerr << "World starting player not match options, will start with Physical player." << std::endl;
+        }
+    }
+
+    World* world = new World(std::string(worldName->GetText()), startingPlayer, nullptr, assetManager, options);
 
     tinyxml2::XMLElement* musicNameNode =  worldNode->FirstChildElement("Music");
     if (musicNameNode == nullptr) {
@@ -100,13 +117,10 @@ bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world)
         world->music->setWorldPosition(glm::vec3(0,0,0), true);
     }
 
-
-
-
-
     //load objects
     if(!loadObjectsFromXML(worldNode, world)) {
-        return false;
+        delete world;
+        return nullptr;
     }
 
     loadAnimations(worldNode, world);
@@ -126,7 +140,7 @@ bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world)
 
     loadGUILayersAndElements(worldNode, world);
 
-    return true;
+    return world;
 }
 
 bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* world) const {

@@ -32,8 +32,9 @@
 #include "GameObjects/GUIButton.h"
 
 
-World::World(AssetManager *assetManager, Options *options)
-        : assetManager(assetManager),options(options), glHelper(assetManager->getGlHelper()), alHelper(assetManager->getAlHelper()), fontManager(glHelper) {
+World::World(const std::string &name, PlayerTypes startingPlayerType, InputHandler *inputHandler,
+             AssetManager *assetManager, Options *options)
+        : assetManager(assetManager),options(options), glHelper(assetManager->getGlHelper()), alHelper(assetManager->getAlHelper()), fontManager(glHelper), startingPlayer(startingPlayerType) {
     // physics init
     broadphase = new btDbvtBroadphase();
     ghostPairCallback = new btGhostPairCallback();
@@ -75,14 +76,31 @@ World::World(AssetManager *assetManager, Options *options)
                                         glm::vec3(0, 0, 0), 640, 380, options);
     debugOutputGUI->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-200), 0.0f);
 
-    physicalPlayer = new PhysicalPlayer(options, cursor);
-    currentPlayer = physicalPlayer;
-    currentPlayersSettings = &(currentPlayer->getWorldSettings());
-
-    camera = new Camera(options, physicalPlayer);//register is just below
+    switch(startingPlayer) {
+        case PHYSICAL_PLAYER:
+            physicalPlayer = new PhysicalPlayer(options, cursor);
+            currentPlayer = physicalPlayer;
+            break;
+        case DEBUG_PLAYER:
+            debugPlayer = new FreeMovingPlayer(options, cursor);
+            currentPlayer = debugPlayer;
+            break;
+        case EDITOR_PLAYER:
+            editorPlayer = new FreeCursorPlayer(options, cursor);
+            currentPlayer = editorPlayer;
+            break;
+        case MENU_PLAYER:
+            menuPlayer = new MenuPlayer(options, cursor);
+            currentPlayer = menuPlayer;
+            break;
+    }
 
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
+    camera = new Camera(options, currentPlayer->getCameraAttachment());//register is just below
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
+    switchPlayer(currentPlayer, *inputHandler); //switching to itself, to set the states properly. It uses camera so done after camera creation
+
+
 
 
     fpsCounter = new GUIFPSCounter(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
@@ -472,6 +490,8 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
     if (inputHandler.getInputEvents(inputHandler.EDITOR) && inputHandler.getInputStatus(inputHandler.EDITOR)) {
         if(editorPlayer == nullptr) {
             editorPlayer = new FreeCursorPlayer(options, cursor);
+            editorPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
+
         }
         if(!currentPlayersSettings->editorShown) {
             switchPlayer(editorPlayer, inputHandler);
@@ -484,9 +504,16 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
         if(currentPlayersSettings->debugMode != Player::DEBUG_ENABLED) {
             if(debugPlayer == nullptr) {
                 debugPlayer = new FreeMovingPlayer(options, cursor);
+                debugPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
+
             }
             switchPlayer(debugPlayer, inputHandler);
         } else {
+            if(physicalPlayer == nullptr) {
+                physicalPlayer = new PhysicalPlayer(options, cursor);
+                physicalPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
+
+            }
             switchPlayer(physicalPlayer, inputHandler);
         }
     }
@@ -542,6 +569,8 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
     if(inputHandler.getInputEvents(inputHandler.QUIT) &&  inputHandler.getInputStatus(inputHandler.QUIT)) {
         if(menuPlayer == nullptr) {
             menuPlayer = new MenuPlayer(options, cursor);
+            menuPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
+
         }
         switchPlayer(menuPlayer, inputHandler);
         return true;
@@ -1777,6 +1806,7 @@ void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
     beforePlayer = currentPlayer;
     currentPlayer = targetPlayer;
     targetPlayer->ownControl(beforePlayer->getPosition(), beforePlayer->getLookDirection());
+
     dynamicsWorld->updateAabbs();
     camera->setCameraAttachment(currentPlayer->getCameraAttachment());
 

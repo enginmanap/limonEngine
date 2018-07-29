@@ -56,7 +56,9 @@ class GLHelper;
 class ALHelper;
 
 class World {
-
+public:
+    enum PlayerTypes { PHYSICAL_PLAYER, DEBUG_PLAYER, EDITOR_PLAYER, MENU_PLAYER };
+private:
     struct AnimationStatus {
         PhysicalRenderable* object = nullptr;
         uint32_t animationIndex;
@@ -85,8 +87,6 @@ class World {
 
     friend class WorldLoader;
     friend class WorldSaver; //Those classes require direct access to some of the internal data
-
-    enum PlayerModes {DEBUG_MODE, EDITOR_MODE, PHYSICAL_MODE, PAUSED_MODE}; //PAUSED mode is used by quit logic
 
     std::vector<uint32_t > modelIndicesBuffer;
     AssetManager* assetManager;
@@ -129,12 +129,14 @@ class World {
 
     GLSLProgram *shadowMapProgramDirectional, *shadowMapProgramPoint;
     FontManager fontManager;
+
+    PlayerTypes startingPlayer = PlayerTypes::PHYSICAL_PLAYER;
     PhysicalPlayer* physicalPlayer = nullptr;
     FreeCursorPlayer* editorPlayer = nullptr;
     FreeMovingPlayer* debugPlayer = nullptr;
     MenuPlayer* menuPlayer = nullptr;
-    Player* currentPlayer;
-    Player* beforePlayer;
+    Player* currentPlayer = nullptr;
+    Player* beforePlayer = nullptr;
     const Player::WorldSettings* currentPlayersSettings = nullptr;
 
     Camera* camera;
@@ -242,7 +244,8 @@ class World {
 
     void addLight(Light *light);
 
-    World(AssetManager *assetManager, Options *options);
+    World(const std::string &name, PlayerTypes startingPlayerType, InputHandler *inputHandler,
+              AssetManager *assetManager, Options *options);
 
     void afterLoadFinished();
 
