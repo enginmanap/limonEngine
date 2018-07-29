@@ -25,7 +25,7 @@ class WorldLoader {
     AssetManager *assetManager;
     std::vector<World*> loadedWorlds;
 
-    bool loadMapFromXML(const std::string& worldFileName, World* world) const;
+    World* loadMapFromXML(const std::string& worldFileName) const;
     bool loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* world)const;
     bool loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const;
     bool loadLights(tinyxml2::XMLNode *lightsNode, World* world) const;

@@ -67,9 +67,29 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     tinyxml2::XMLDocument mapDocument;
     tinyxml2::XMLNode * rootNode = mapDocument.NewElement("World");
     mapDocument.InsertFirstChild(rootNode);
+
     tinyxml2::XMLElement * currentElement = mapDocument.NewElement("Name");
     currentElement->SetText(mapName.c_str());
     rootNode->InsertEndChild(currentElement);
+
+    currentElement = mapDocument.NewElement("StartingPlayer");
+    switch(world->startingPlayer) {
+        case World::PlayerTypes::PHYSICAL_PLAYER:
+            currentElement->SetText("Physical");
+            break;
+        case World::PlayerTypes::DEBUG_PLAYER:
+            currentElement->SetText("Debug");
+            break;
+        case World::PlayerTypes::EDITOR_PLAYER:
+            currentElement->SetText("Editor");
+            break;
+        case World::PlayerTypes::MENU_PLAYER:
+            currentElement->SetText("Menu");
+            break;
+    }
+
+    rootNode->InsertEndChild(currentElement);
+
     if(world->music != nullptr) {
         currentElement = mapDocument.NewElement("Music");
         currentElement->SetText(world->music->getName().c_str());
