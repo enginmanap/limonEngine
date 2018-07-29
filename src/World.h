@@ -242,7 +242,7 @@ class World {
 
     void addLight(Light *light);
 
-    World(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options);
+    World(AssetManager *assetManager, Options *options);
 
     void afterLoadFinished();
 

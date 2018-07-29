@@ -30,7 +30,7 @@ WorldLoader::WorldLoader(AssetManager *assetManager, GLHelper *glHelper, ALHelpe
 {}
 
 World* WorldLoader::loadWorld(const std::string& worldFile) const {
-    World* newWorld = new World(assetManager, glHelper, alHelper, options);
+    World* newWorld = new World(assetManager, options);
 
 
     // Set api endpoints accordingly
