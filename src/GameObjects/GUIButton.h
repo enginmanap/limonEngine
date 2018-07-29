@@ -8,6 +8,10 @@
 
 #include "../GUI/GUIImageBase.h"
 #include "GameObject.h"
+#include "../GamePlay/LimonAPI.h"
+#include "../GamePlay/TriggerInterface.h"
+
+class LimonAPI;
 
 class GUIButton : public GUIImageBase, public GameObject{
 
@@ -21,6 +25,12 @@ class GUIButton : public GUIImageBase, public GameObject{
     std::vector<std::string> imageFiles;
     //ATTENTION don't use image variable, use this one
     std::vector<TextureAsset *> images = {0};
+
+    LimonAPI* limonAPI;
+    TriggerInterface* onClickTriggerCode = nullptr;
+    std::vector<LimonAPI::ParameterRequest> onClickParameters;
+    bool isTriggerSet = false;
+
 
     const char editorFileNameFields[4][45] = {"Normal file##SelectedGUIButtonFileField", "On hover file##SelectedGUIButtonFileField", "On click file##SelectedGUIButtonFileField", "Disabled File##SelectedGUIButtonFileField"};
     const char editorApplyFields[4][40] = {"Update normal##UpdateGUIButtonField", "Update on hover##UpdateGUIButtonField", "Update on click##UpdateGUIButtonField", "Update disabled##UpdateGUIButtonField"};
@@ -51,8 +61,8 @@ class GUIButton : public GUIImageBase, public GameObject{
     }
 
 public:
-    GUIButton(uint32_t worldID, AssetManager *assetManager, const std::string name,
-              const std::vector<std::string> &imageFiles);
+    GUIButton(uint32_t worldID, AssetManager *assetManager, LimonAPI *limonAPI, const std::string name,
+                  const std::vector<std::string> &imageFiles);
 
     ~GUIButton();
 
@@ -60,7 +70,8 @@ public:
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
 
-    static GUIButton *deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetManager *assetManager, Options *options); //will turn into factory class at some point
+    static GUIButton *deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetManager *assetManager, Options *options,
+                                      LimonAPI *limonAPI); //will turn into factory class at some point
 
     void setOnHover(bool hover) {
         this->onHover = hover;
@@ -70,6 +81,9 @@ public:
     void setOnClick(bool click) {
         this->onClick = click;
         this->setImageFromFlags();
+        if(this->onClickTriggerCode != nullptr && click == true) {
+            this->onClickTriggerCode->run(onClickParameters);
+        }
     }
 
     void setDisabled(bool disabled) {

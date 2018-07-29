@@ -36,23 +36,6 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
         return nullptr;
     }
 
-    // Set api endpoints accordingly
-    LimonAPI* api = new LimonAPI();
-    api->worldAddAnimationToObject = std::bind(&World::addAnimationToObjectWithSound, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false, std::placeholders::_4);
-    api->worldAddGuiText = std::bind(&World::addGuiText, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7);
-    api->worldUpdateGuiText = std::bind(&World::updateGuiText, newWorld, std::placeholders::_1, std::placeholders::_2);
-    api->worldGenerateEditorElementsForParameters = std::bind(&World::generateEditorElementsForParameters, newWorld, std::placeholders::_1, std::placeholders::_2);
-    api->worldGetResultOfTrigger = std::bind(&World::getResultOfTrigger, newWorld, std::placeholders::_1, std::placeholders::_2);
-    api->worldRemoveGuiText = std::bind(&World::removeGuiText, newWorld, std::placeholders::_1);
-    api->worldRemoveObject = std::bind(&World::removeObject, newWorld, std::placeholders::_1);
-    api->worldRemoveTriggerObject = std::bind(&World::removeTriggerObject, newWorld, std::placeholders::_1);
-    api->worldDisconnectObjectFromPhysics = std::bind(&World::disconnectObjectFromPhysics, newWorld, std::placeholders::_1);
-    api->worldReconnectObjectToPhysics= std::bind(&World::reconnectObjectToPhysics, newWorld, std::placeholders::_1);
-    api->worldAttachSoundToObjectAndPlay = std::bind(&World::attachSoundToObjectAndPlay, newWorld, std::placeholders::_1, std::placeholders::_2);
-    api->worldDetachSoundFromObject = std::bind(&World::detachSoundFromObject, newWorld, std::placeholders::_1);
-    api->worldPlaySound = std::bind(&World::playSound, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    newWorld->apiInstance = api;
-
     if(!(newWorld->verifyIDs())) {
         std::cerr << "world ID verification failed" << std::endl;
         delete newWorld;
@@ -61,6 +44,24 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
 
     newWorld->afterLoadFinished();
     return newWorld;
+}
+
+void WorldLoader::attachedAPIMethodsToWorld(World *world) const {// Set api endpoints accordingly
+    LimonAPI* api = new LimonAPI();
+    api->worldAddAnimationToObject = bind(&World::addAnimationToObjectWithSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false, std::placeholders::_4);
+    api->worldAddGuiText = bind(&World::addGuiText, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7);
+    api->worldUpdateGuiText = bind(&World::updateGuiText, world, std::placeholders::_1, std::placeholders::_2);
+    api->worldGenerateEditorElementsForParameters = bind(&World::generateEditorElementsForParameters, world, std::placeholders::_1, std::placeholders::_2);
+    api->worldGetResultOfTrigger = bind(&World::getResultOfTrigger, world, std::placeholders::_1, std::placeholders::_2);
+    api->worldRemoveGuiText = bind(&World::removeGuiText, world, std::placeholders::_1);
+    api->worldRemoveObject = bind(&World::removeObject, world, std::placeholders::_1);
+    api->worldRemoveTriggerObject = bind(&World::removeTriggerObject, world, std::placeholders::_1);
+    api->worldDisconnectObjectFromPhysics = bind(&World::disconnectObjectFromPhysics, world, std::placeholders::_1);
+    api->worldReconnectObjectToPhysics= bind(&World::reconnectObjectToPhysics, world, std::placeholders::_1);
+    api->worldAttachSoundToObjectAndPlay = bind(&World::attachSoundToObjectAndPlay, world, std::placeholders::_1, std::placeholders::_2);
+    api->worldDetachSoundFromObject = bind(&World::detachSoundFromObject, world, std::placeholders::_1);
+    api->worldPlaySound = bind(&World::playSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    world->apiInstance = api;
 }
 
 
@@ -105,6 +106,8 @@ World* WorldLoader::loadMapFromXML(const std::string& worldFileName) const {
     }
 
     World* world = new World(std::string(worldName->GetText()), startingPlayer, nullptr, assetManager, options);
+
+    attachedAPIMethodsToWorld(world);
 
     tinyxml2::XMLElement* musicNameNode =  worldNode->FirstChildElement("Music");
     if (musicNameNode == nullptr) {
@@ -515,10 +518,9 @@ bool WorldLoader::loadTriggers(tinyxml2::XMLNode *worldNode, World *world) const
     tinyxml2::XMLElement* triggerNode =  triggerListNode->FirstChildElement("Trigger");
 
     while(triggerNode != nullptr) {
-        TriggerObject* triggerObject = new TriggerObject(0, world->apiInstance);//0 is place holder, deserialize sets real value;
-        if(!triggerObject->deserialize(triggerNode)) {
+        TriggerObject* triggerObject = triggerObject->deserialize(triggerNode, world->apiInstance);
+        if(triggerObject == nullptr) {
             //this trigger is now headless
-            delete triggerObject;
             return false;
         }
         world->triggers[triggerObject->getWorldObjectID()] = triggerObject;
@@ -668,7 +670,7 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
                         layer->addGuiElement(element);
                     }
                 } else if(typeName == "GUIButton") {
-                    GUIButton *element = GUIButton::deserialize(GUIElementNode, assetManager, options);
+                    GUIButton *element = GUIButton::deserialize(GUIElementNode, assetManager, options, world->apiInstance);
                     if(element != nullptr) {
                         world->guiElements[element->getWorldObjectID()] = element;
                         layer->addGuiElement(element);

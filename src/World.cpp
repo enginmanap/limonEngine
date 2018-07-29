@@ -1860,7 +1860,8 @@ void World::addGUIButtonControls() {
             }
         }
 
-        GUIButton *guiButton = new GUIButton(this->getNextObjectID(), assetManager, std::string(GUIButtonName), fileNames);
+        GUIButton *guiButton = new GUIButton(this->getNextObjectID(), assetManager, apiInstance, std::string(GUIButtonName),
+                                             fileNames);
         guiButton->set2dWorldTransform(
                 glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
         guiElements[guiButton->getWorldObjectID()] = guiButton;
