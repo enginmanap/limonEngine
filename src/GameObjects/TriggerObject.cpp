@@ -137,128 +137,71 @@ void TriggerObject::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
     transformation.serialize(document, triggerNode);
 
     // There are 3 trigger codes, put them all
-    serializeTriggerCode(document, triggerNode, firstEnterTriggerCode, "FirstEnterTriggerCode", firstEnterParameters);
-    serializeTriggerCode(document, triggerNode, enterTriggerCode, "EnterTriggerCode", enterParameters);
-    serializeTriggerCode(document, triggerNode, exitTriggerCode, "ExitTriggerCode", exitParameters);
-}
-
-void TriggerObject::serializeTriggerCode(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *triggerNode,
-                                         TriggerInterface *triggerCode, const std::string &triggerCodeNodeName,
-                                         const std::vector<LimonAPI::ParameterRequest> &parameters) const {
-    if(triggerCode != nullptr) {
-        tinyxml2::XMLElement *currentElement = document.NewElement(triggerCodeNodeName.c_str());
-
-        tinyxml2::XMLElement* codeElement = document.NewElement("Name");
-        codeElement->SetText(triggerCode->getName().c_str());
-        currentElement->InsertEndChild(codeElement);
-
-        //now serialize the parameters
-        codeElement = document.NewElement("parameters");
-        for (size_t i = 0; i < parameters.size(); ++i) {
-            parameters[i].serialize(document, codeElement, i);
-        }
-        currentElement->InsertEndChild(codeElement);
-
-        codeElement = document.NewElement("Enabled");
-        if(enabledAny) {
-            codeElement->SetText("True");
-        } else {
-            codeElement->SetText("False");
-        }
-        currentElement->InsertEndChild(codeElement);
-
-        triggerNode->InsertEndChild(currentElement);
+    if(firstEnterTriggerCode != nullptr) {
+        firstEnterTriggerCode->serializeTriggerCode(document, triggerNode, "FirstEnterTriggerCode",
+                                                    firstEnterParameters, enabledFirstTrigger);
+    }
+    if(enterTriggerCode != nullptr) {
+        enterTriggerCode->serializeTriggerCode(document, triggerNode, "EnterTriggerCode", enterParameters,
+                                               enabledEnterTrigger);
+    }
+    if(exitTriggerCode != nullptr) {
+        exitTriggerCode->serializeTriggerCode(document, triggerNode, "ExitTriggerCode", exitParameters,
+                                              enabledExitTrigger);
     }
 }
 
 
-bool TriggerObject::deserialize(tinyxml2::XMLElement *triggersNode) {
 
+
+TriggerObject * TriggerObject::deserialize(tinyxml2::XMLElement *triggersNode, LimonAPI *limonAPI) {
+
+    TriggerObject* triggerObject = new TriggerObject(0, limonAPI);//0 is place holder, deserialize sets real value;
     tinyxml2::XMLElement* triggerAttribute;
 
     triggerAttribute = triggersNode->FirstChildElement("Name");
     if (triggerAttribute == nullptr) {
         std::cerr << "Trigger must have a Name." << std::endl;
-        return false;
+        delete triggerObject;
+        return nullptr;
     }
-    this->name = triggerAttribute->GetText();
+    triggerObject->name = triggerAttribute->GetText();
 
     triggerAttribute = triggersNode->FirstChildElement("ID");
     if (triggerAttribute == nullptr) {
         std::cerr << "Trigger must have a ID." << std::endl;
-        return false;
+        delete triggerObject;
+        return nullptr;
     }
-    this->objectID = std::stoul(triggerAttribute->GetText());
+    triggerObject->objectID = std::stoul(triggerAttribute->GetText());
 
     triggerAttribute =  triggersNode->FirstChildElement("Transformation");
     if(triggerAttribute == nullptr) {
         std::cerr << "Object does not have transformation. Can't be loaded" << std::endl;
-        return false;
+        delete triggerObject;
+        return nullptr;
     }
-    this->transformation.deserialize(triggerAttribute);
+    triggerObject->transformation.deserialize(triggerAttribute);
 
-
-    if(!deserializeTriggerCode(triggersNode, triggerAttribute, "FirstEnterTriggerCode", firstEnterTriggerCode, firstEnterParameters, enabledFirstTrigger)) {
-        std::cerr << "First enter trigger code deserialization failed." << std::endl;
-        return false;
+    triggerObject->firstEnterTriggerCode = TriggerInterface::deserializeTriggerCode(triggersNode, triggerAttribute, "FirstEnterTriggerCode", triggerObject->limonAPI,
+                                                                                    triggerObject->firstEnterParameters, triggerObject->enabledFirstTrigger);
+    if(triggerObject->firstEnterTriggerCode == nullptr) {
+        std::cout << "First enter trigger code deserialization failed." << std::endl;
+    }
+    triggerObject->enterTriggerCode = TriggerInterface::deserializeTriggerCode(triggersNode, triggerAttribute, "EnterTriggerCode", triggerObject->limonAPI,
+                                                                               triggerObject->enterParameters, triggerObject->enabledEnterTrigger);
+    if(triggerObject->enterTriggerCode == nullptr) {
+        std::cout << "enter trigger code deserialization failed." << std::endl;
+    }
+    triggerObject->exitTriggerCode = TriggerInterface::deserializeTriggerCode(triggersNode, triggerAttribute, "ExitTriggerCode", triggerObject->limonAPI, triggerObject->exitParameters,
+                                                                              triggerObject->enabledExitTrigger);
+    if(triggerObject->exitTriggerCode == nullptr) {
+        std::cout << "Exit trigger code deserialization failed." << std::endl;
     }
 
-    if(!deserializeTriggerCode(triggersNode, triggerAttribute, "EnterTriggerCode", enterTriggerCode, enterParameters, enabledEnterTrigger)) {
-        std::cerr << "enter trigger code deserialization failed." << std::endl;
-        return false;
-    }
+    triggerObject->enabledAny = triggerObject->enabledFirstTrigger ||triggerObject->enabledEnterTrigger || triggerObject->enabledExitTrigger;
 
-    if(!deserializeTriggerCode(triggersNode, triggerAttribute, "ExitTriggerCode", exitTriggerCode, exitParameters, enabledExitTrigger)) {
-        std::cerr << "Exit trigger code deserialization failed." << std::endl;
-        return false;
-    }
-
-    enabledAny = enabledFirstTrigger ||enabledEnterTrigger || enabledExitTrigger;
-
-
-    return true;
-}
-
-bool TriggerObject::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxml2::XMLElement *triggerAttribute,
-                                           const std::string &nodeName, TriggerInterface *&triggerCode,
-                                           std::vector<LimonAPI::ParameterRequest> &parameters, bool &enabled) const {
-    enabled= false;
-    triggerAttribute = triggersNode->FirstChildElement(nodeName.c_str());
-    if (triggerAttribute != nullptr) {
-        tinyxml2::XMLElement* triggerCodeAttribute = triggerAttribute->FirstChildElement("Name");
-        triggerCode = TriggerInterface::createTrigger(triggerCodeAttribute->GetText(), limonAPI);
-
-        triggerCodeAttribute = triggerAttribute->FirstChildElement("parameters");
-
-        tinyxml2::XMLElement* triggerCodeParameter = triggerCodeAttribute->FirstChildElement("Parameter");
-
-        uint32_t index;
-        while(triggerCodeParameter != nullptr) {
-            LimonAPI::ParameterRequest request;
-
-            if(!request.deserialize(triggerCodeParameter, index)) {
-                return false;
-            }
-            parameters.insert(parameters.begin() + index, request);
-            triggerCodeParameter = triggerCodeParameter->NextSiblingElement("Parameter");
-        } // end of while (Trigger parameters)
-
-        triggerCodeAttribute = triggerAttribute->FirstChildElement("Enabled");
-        if (triggerCodeAttribute == nullptr) {
-            std::cerr << "Trigger Didn't have enabled set, defaulting to False." << std::endl;
-            enabled = false;
-        } else {
-            if(strcmp(triggerCodeAttribute->GetText(), "True") == 0) {
-                enabled = true;
-            } else if(strcmp(triggerCodeAttribute->GetText(), "False") == 0) {
-                enabled = false;
-            } else {
-                std::cerr << "Trigger enabled setting is unknown value [" << triggerCodeAttribute->GetText() << "], can't be loaded " << std::endl;
-                return false;
-            }
-        }
-    }
-    return true;
+    return triggerObject;
 }
 
 std::vector<LimonAPI::ParameterRequest> TriggerObject::getResultOfCode(uint32_t codeID) {

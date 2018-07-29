@@ -8,11 +8,12 @@
 #include "../../libs/ImGuizmo/ImGuizmo.h"
 #include "../Assets/AssetManager.h"
 #include "../Assets/TextureAsset.h"
+#include "TriggerObject.h"
 
-GUIButton::GUIButton(uint32_t worldID, AssetManager *assetManager, const std::string name,
+GUIButton::GUIButton(uint32_t worldID, AssetManager *assetManager, LimonAPI *limonAPI, const std::string name,
                      const std::vector<std::string> &imageFiles)
         : GUIImageBase(
-        assetManager->getGlHelper(), assetManager, imageFiles[0]), worldID(worldID), name(name) {
+        assetManager->getGlHelper(), assetManager, imageFiles[0]), worldID(worldID), name(name), limonAPI(limonAPI) {
     this->imageFiles = imageFiles;
     this->images[0] = this->image;
     strncpy(GUINameBuffer, this->name.c_str(), sizeof(GUINameBuffer));
@@ -90,11 +91,16 @@ bool GUIButton::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement 
 
     temp.serialize(document, guiButtonNode);
 
+    if(onClickTriggerCode != nullptr) {
+        onClickTriggerCode->serializeTriggerCode(document, guiButtonNode, "onClickTrigger", onClickParameters, !disabled);
+    }
+
     return true;
 }
 
 
-GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetManager *assetManager, Options *options) {
+GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetManager *assetManager, Options *options,
+                                  LimonAPI *limonAPI) {
 
     tinyxml2::XMLElement* GUIRenderableAttribute;
 
@@ -147,10 +153,18 @@ GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode, Asset
                 tr.getTranslate().z
         ));
         //now we have everything, create the GUI Button
-        GUIButton* element = new GUIButton(id, assetManager, name,
-                                         fileNames);
+        GUIButton* element = new GUIButton(id, assetManager, limonAPI, name,
+                                           fileNames);
         element->getTransformation()->setTranslate(tr.getTranslate());
         element->getTransformation()->setOrientation(tr.getOrientation());
+
+        element->onClickTriggerCode = TriggerInterface::deserializeTriggerCode(GUIRenderableNode, GUIRenderableAttribute, "onClickTrigger", element->limonAPI,
+                                                                         element->onClickParameters, element->disabled);
+        if(element->onClickTriggerCode == nullptr) {
+            std::cout << "Button On click trigger code deserialization failed." << std::endl;
+        }
+        element->disabled = !element->disabled;
+
         return element;
     }
 
@@ -239,6 +253,9 @@ GameObject::ImGuiResult GUIButton::addImGuiEditorElements(const ImGuiRequest &re
 
     this->setTranslate(glm::vec2(objectMatrix[3][0], objectMatrix[3][1]));
 
+    if (ImGui::CollapsingHeader("Enter Trigger")) {
+        TriggerObject::PutTriggerInGui(limonAPI, this->onClickTriggerCode, this->onClickParameters, isTriggerSet, 0);
+    }
 
     return result;
 }

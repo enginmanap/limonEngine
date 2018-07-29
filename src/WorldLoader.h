@@ -35,6 +35,8 @@ class WorldLoader {
     bool loadOnLoadAnimations(tinyxml2::XMLNode *worldNode, World *world) const;
     bool loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *world) const;
 
+    void attachedAPIMethodsToWorld(World *world) const;
+
 public:
     WorldLoader(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options);
     World* loadWorld(const std::string& worldFile) const;

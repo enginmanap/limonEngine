@@ -19,7 +19,7 @@ public:
 
     bool run(std::vector<LimonAPI::ParameterRequest> parameters) override;
 
-    std::string getName() override {
+    std::string getName() const override {
         return "RemoveGuiTextOnTrigger";
     }
 
