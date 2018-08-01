@@ -6,7 +6,7 @@
 #include "../../Options.h"
 #include "../../GUI/GUIRenderable.h"
 
-void MenuPlayer::move(moveDirections direction) {
+void MenuPlayer::move(moveDirections direction __attribute((unused))) {
     //menu player can't move
 }
 
