@@ -22,11 +22,12 @@
 #include "GameObjects/GUIImage.h"
 #include "GameObjects/GUIButton.h"
 
-WorldLoader::WorldLoader(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options) :
+WorldLoader::WorldLoader(AssetManager *assetManager, InputHandler *inputHandler, Options *options) :
         options(options),
-        glHelper(glHelper),
-        alHelper(alHelper),
-        assetManager(assetManager)
+        glHelper(assetManager->getGlHelper()),
+        alHelper(assetManager->getAlHelper()),
+        assetManager(assetManager),
+        inputHandler(inputHandler)
 {}
 
 World* WorldLoader::loadWorld(const std::string& worldFile) const {
@@ -95,7 +96,7 @@ World* WorldLoader::loadMapFromXML(const std::string& worldFileName) const {
         startingPlayer.setType(playerType);
     }
 
-    World* world = new World(std::string(worldName->GetText()), startingPlayer, nullptr, assetManager, options);
+    World* world = new World(std::string(worldName->GetText()), startingPlayer, inputHandler, assetManager, options);
 
     attachedAPIMethodsToWorld(world);
 
@@ -139,14 +140,14 @@ World* WorldLoader::loadMapFromXML(const std::string& worldFileName) const {
 bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* world) const {
     tinyxml2::XMLElement* objectsListNode =  objectsNode->FirstChildElement("Objects");
     if (objectsListNode == nullptr) {
-        std::cerr << "World Must have and Objects clause." << std::endl;
-        return false;
+        std::cerr << "World doesn't have Objects clause, this might be a mistake." << std::endl;
+        return true;
     }
 
     tinyxml2::XMLElement* objectNode =  objectsListNode->FirstChildElement("Object");
     if (objectNode == nullptr) {
-        std::cerr << "World Must have at least one object." << std::endl;
-        return false;
+        std::cout << "World doesn't have any objects, this might be a mistake." << std::endl;
+        return true;
     }
     Model *xmlModel;
     tinyxml2::XMLElement* objectAttribute;
