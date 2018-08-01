@@ -987,6 +987,20 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     }
                 }
             }
+            ImGui::Separator();
+
+            if (ImGui::BeginCombo("Starting Player Type", startingPlayer.toString().c_str())) {
+                for (auto iterator = PlayerTypes::typeNames.begin(); iterator != PlayerTypes::typeNames.end(); ++iterator) {
+                    bool isThisTypeSelected = iterator->second ==  startingPlayer.toString();
+                    if(ImGui::Selectable(iterator->second.c_str(), isThisTypeSelected)) {
+                        this->startingPlayer.setType(iterator->second);
+                    }
+                    if(isThisTypeSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
 
             ImGui::Separator();
             if(ImGui::Button("Save Map")) {
