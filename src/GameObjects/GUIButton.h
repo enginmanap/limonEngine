@@ -17,7 +17,7 @@ class GUIButton : public GUIImageBase, public GameObject{
 
     bool onHover = false;
     bool onClick = false;
-    bool disabled = false;
+    bool enabled = false;
     uint32_t worldID;
     std::string name;
     std::vector<GUILayer*> parentLayers;
@@ -29,7 +29,6 @@ class GUIButton : public GUIImageBase, public GameObject{
     LimonAPI* limonAPI;
     TriggerInterface* onClickTriggerCode = nullptr;
     std::vector<LimonAPI::ParameterRequest> onClickParameters;
-    bool isTriggerSet = false;
 
 
     const char editorFileNameFields[4][45] = {"Normal file##SelectedGUIButtonFileField", "On hover file##SelectedGUIButtonFileField", "On click file##SelectedGUIButtonFileField", "Disabled File##SelectedGUIButtonFileField"};
@@ -43,7 +42,7 @@ class GUIButton : public GUIImageBase, public GameObject{
 
     void setImageFromFlags() {
 
-        if(this->disabled ) {
+        if(!this->enabled ) {
             if(this->images.size() > 3) {
                 this->image = this->images[3];
             }
@@ -81,13 +80,13 @@ public:
     void setOnClick(bool click) {
         this->onClick = click;
         this->setImageFromFlags();
-        if(this->onClickTriggerCode != nullptr && click == true) {
+        if(this->onClickTriggerCode != nullptr && enabled == true && click == true) {
             this->onClickTriggerCode->run(onClickParameters);
         }
     }
 
-    void setDisabled(bool disabled) {
-        this->disabled = disabled;
+    void setEnabled(bool enabled) {
+        this->enabled = enabled;
         this->setImageFromFlags();
     }
 
