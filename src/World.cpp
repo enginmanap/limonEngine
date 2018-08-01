@@ -1075,22 +1075,23 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     } else {
                         addAnimationDefinitionToEditor();
                     }
-                }
 
-                if (objectEditorResult.removeAI) {
-                    //remove AI requested
-                    if (dynamic_cast<Model *>(pickedObject)->getAIID() != 0) {
-                        actors.erase(dynamic_cast<Model *>(pickedObject)->getAIID());
-                        dynamic_cast<Model *>(pickedObject)->detachAI();
+                    if (objectEditorResult.removeAI) {
+                        //remove AI requested
+                        if (dynamic_cast<Model *>(pickedObject)->getAIID() != 0) {
+                            actors.erase(dynamic_cast<Model *>(pickedObject)->getAIID());
+                            dynamic_cast<Model *>(pickedObject)->detachAI();
+                        }
                     }
-                }
 
-                if (objectEditorResult.addAI) {
-                    std::cout << "adding AI to model " << std::endl;
-                    HumanEnemy *newEnemy = new HumanEnemy(getNextObjectID());
-                    newEnemy->setModel(dynamic_cast<Model *>(pickedObject));
+                    if (objectEditorResult.addAI) {
+                        std::cout << "adding AI to model " << std::endl;
+                        HumanEnemy *newEnemy = new HumanEnemy(getNextObjectID());
+                        newEnemy->setModel(dynamic_cast<Model *>(pickedObject));
 
-                    addActor(newEnemy);
+                        addActor(newEnemy);
+                    }
+
                 }
                 ImGui::NewLine();
                 switch (pickedObject->getTypeID()) {
@@ -1120,6 +1121,16 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                         }
                     }
                     break;
+                    case GameObject::GUI_TEXT:
+                    case GameObject::GUI_IMAGE:
+                    case GameObject::GUI_BUTTON: {
+                        if(objectEditorResult.remove) {
+                            this->guiElements.erase(pickedObject->getWorldObjectID());
+                            delete pickedObject;
+                            pickedObject = nullptr;
+                        }
+                        }
+                        break;
                     default: {
                         //there is nothing for now
                     }

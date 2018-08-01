@@ -21,6 +21,7 @@ public:
         bool addAI = false;
         bool removeAI = false;
         bool updated = false;
+        bool remove = false; //If removal requested
     };
 
     struct ImGuiRequest {
