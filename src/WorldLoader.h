@@ -9,6 +9,7 @@
 #include <vector>
 #include <tinyxml2.h>
 #include "ALHelper.h"
+#include "InputHandler.h"
 
 class World;
 class Options;
@@ -16,13 +17,14 @@ class GLHelper;
 class AssetManager;
 class GLHelper;
 class ALHelper;
-
+class InputHandler;
 
 class WorldLoader {
     Options *options;
     GLHelper *glHelper;
     ALHelper *alHelper;
     AssetManager *assetManager;
+    InputHandler* inputHandler;
     std::vector<World*> loadedWorlds;
 
     World* loadMapFromXML(const std::string& worldFileName) const;
@@ -38,7 +40,7 @@ class WorldLoader {
     void attachedAPIMethodsToWorld(World *world) const;
 
 public:
-    WorldLoader(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options);
+    WorldLoader(AssetManager *assetManager, InputHandler *inputHandler, Options *options);
     World* loadWorld(const std::string& worldFile) const;
 
     ~WorldLoader();

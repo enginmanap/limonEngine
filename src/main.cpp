@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
     InputHandler inputHandler(sdlHelper.getWindow(), &options);
     AssetManager assetManager(&glHelper, alHelper);
 
-    WorldLoader* worldLoader = new WorldLoader(&assetManager, &glHelper, alHelper, &options);
+    WorldLoader* worldLoader = new WorldLoader(&assetManager, &inputHandler, &options);
     World* world = worldLoader->loadWorld(worldName);
     if(world == nullptr) {
         std::cerr << "WorldLoader didn't hand out a valid world. exiting.." << std::endl;
