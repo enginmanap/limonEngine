@@ -73,20 +73,7 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     rootNode->InsertEndChild(currentElement);
 
     currentElement = mapDocument.NewElement("StartingPlayer");
-    switch(world->startingPlayer) {
-        case World::PlayerTypes::PHYSICAL_PLAYER:
-            currentElement->SetText("Physical");
-            break;
-        case World::PlayerTypes::DEBUG_PLAYER:
-            currentElement->SetText("Debug");
-            break;
-        case World::PlayerTypes::EDITOR_PLAYER:
-            currentElement->SetText("Editor");
-            break;
-        case World::PlayerTypes::MENU_PLAYER:
-            currentElement->SetText("Menu");
-            break;
-    }
+    currentElement->SetText(world->startingPlayer.toString().c_str());
 
     rootNode->InsertEndChild(currentElement);
 

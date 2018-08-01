@@ -87,22 +87,12 @@ World* WorldLoader::loadMapFromXML(const std::string& worldFileName) const {
     std::cout << "read name as " << worldName->GetText() << std::endl;
 
     tinyxml2::XMLElement* worldStartPlayer =  worldNode->FirstChildElement("StartingPlayer");
-    World::PlayerTypes startingPlayer = World::PlayerTypes::PHYSICAL_PLAYER;
+    World::PlayerTypes startingPlayer;
     if (worldStartPlayer == nullptr) {
         std::cerr << "World starting player not found, will start with Physical player." << std::endl;
     } else {
         std::string playerType = worldStartPlayer->GetText();
-        if(playerType == "Physical") {
-            startingPlayer = World::PlayerTypes::PHYSICAL_PLAYER;
-        } else if(playerType == "Debug") {
-            startingPlayer = World::PlayerTypes::DEBUG_PLAYER;
-        } else if(playerType == "Editor") {
-            startingPlayer = World::PlayerTypes::EDITOR_PLAYER;
-        } else if(playerType == "Menu") {
-            startingPlayer = World::PlayerTypes::MENU_PLAYER;
-        } else {
-            std::cerr << "World starting player not match options, will start with Physical player." << std::endl;
-        }
+        startingPlayer.setType(playerType);
     }
 
     World* world = new World(std::string(worldName->GetText()), startingPlayer, nullptr, assetManager, options);
