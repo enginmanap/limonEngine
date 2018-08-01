@@ -32,6 +32,15 @@
 #include "GameObjects/GUIButton.h"
 
 
+
+const std::unordered_map<World::PlayerTypes::Types, std::string> World::PlayerTypes::typeNames =
+        {
+                { Types::PHYSICAL_PLAYER, "Physical"},
+                { Types::DEBUG_PLAYER, "Debug"},
+                { Types::EDITOR_PLAYER, "Editor"},
+                { Types::MENU_PLAYER, "Menu" }
+        };
+
 World::World(const std::string &name, PlayerTypes startingPlayerType, InputHandler *inputHandler,
              AssetManager *assetManager, Options *options)
         : assetManager(assetManager),options(options), glHelper(assetManager->getGlHelper()), alHelper(assetManager->getAlHelper()), fontManager(glHelper), startingPlayer(startingPlayerType) {
@@ -76,20 +85,21 @@ World::World(const std::string &name, PlayerTypes startingPlayerType, InputHandl
                                         glm::vec3(0, 0, 0), 640, 380, options);
     debugOutputGUI->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-200), 0.0f);
 
-    switch(startingPlayer) {
-        case PHYSICAL_PLAYER:
+
+    switch(startingPlayer.type) {
+        case PlayerTypes::Types::PHYSICAL_PLAYER:
             physicalPlayer = new PhysicalPlayer(options, cursor);
             currentPlayer = physicalPlayer;
             break;
-        case DEBUG_PLAYER:
+        case PlayerTypes::Types::DEBUG_PLAYER:
             debugPlayer = new FreeMovingPlayer(options, cursor);
             currentPlayer = debugPlayer;
             break;
-        case EDITOR_PLAYER:
+        case PlayerTypes::Types::EDITOR_PLAYER:
             editorPlayer = new FreeCursorPlayer(options, cursor);
             currentPlayer = editorPlayer;
             break;
-        case MENU_PLAYER:
+        case PlayerTypes::Types::MENU_PLAYER:
             menuPlayer = new MenuPlayer(options, cursor);
             currentPlayer = menuPlayer;
             break;

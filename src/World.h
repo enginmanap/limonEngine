@@ -57,7 +57,41 @@ class ALHelper;
 
 class World {
 public:
-    enum PlayerTypes { PHYSICAL_PLAYER, DEBUG_PLAYER, EDITOR_PLAYER, MENU_PLAYER };
+    struct PlayerTypes {
+        enum class Types {
+            //ATTENTION if another type is added, typeNames must be updated
+            PHYSICAL_PLAYER, DEBUG_PLAYER, EDITOR_PLAYER, MENU_PLAYER
+        };
+        Types type = Types::PHYSICAL_PLAYER;
+
+        static const std::unordered_map<Types, std::string> typeNames;
+
+        std::string toString() const {
+            assert(typeNames.find(type) != typeNames.end());
+            return typeNames.at(type);
+        }
+
+        PlayerTypes() {}
+
+        PlayerTypes(const std::string& name) {
+            setType(name);
+        }
+
+        bool setType(const std::string& name) {
+            bool isSet = false;
+            for (auto iterator = typeNames.begin(); iterator != typeNames.end(); ++iterator) {
+                if(iterator->second == name) {
+                    type = iterator->first;
+                    isSet = true;
+                }
+            }
+            if(!isSet) {
+                std::cerr << "World starting player not match options, will default to Physical player." << std::endl;
+            }
+            return isSet;
+        }
+
+    };
 private:
     struct AnimationStatus {
         PhysicalRenderable* object = nullptr;
@@ -130,7 +164,7 @@ private:
     GLSLProgram *shadowMapProgramDirectional, *shadowMapProgramPoint;
     FontManager fontManager;
 
-    PlayerTypes startingPlayer = PlayerTypes::PHYSICAL_PLAYER;
+    PlayerTypes startingPlayer;
     PhysicalPlayer* physicalPlayer = nullptr;
     FreeCursorPlayer* editorPlayer = nullptr;
     FreeMovingPlayer* debugPlayer = nullptr;
@@ -234,7 +268,6 @@ private:
     void fillVisibleObjects();
 
     GameObject * getPointedObject() const;
-
 
     void addActor(Actor *actor);
 
