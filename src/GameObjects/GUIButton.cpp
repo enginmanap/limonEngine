@@ -92,7 +92,7 @@ bool GUIButton::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement 
     temp.serialize(document, guiButtonNode);
 
     if(onClickTriggerCode != nullptr) {
-        onClickTriggerCode->serializeTriggerCode(document, guiButtonNode, "onClickTrigger", onClickParameters, !disabled);
+        onClickTriggerCode->serializeTriggerCode(document, guiButtonNode, "onClickTrigger", onClickParameters, enabled);
     }
 
     return true;
@@ -159,11 +159,11 @@ GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode, Asset
         element->getTransformation()->setOrientation(tr.getOrientation());
 
         element->onClickTriggerCode = TriggerInterface::deserializeTriggerCode(GUIRenderableNode, GUIRenderableAttribute, "onClickTrigger", element->limonAPI,
-                                                                         element->onClickParameters, element->disabled);
+                                                                         element->onClickParameters, element->enabled);
         if(element->onClickTriggerCode == nullptr) {
             std::cout << "Button On click trigger code deserialization failed." << std::endl;
         }
-        element->disabled = !element->disabled;
+        element->setImageFromFlags();
 
         return element;
     }
@@ -254,7 +254,7 @@ GameObject::ImGuiResult GUIButton::addImGuiEditorElements(const ImGuiRequest &re
     this->setTranslate(glm::vec2(objectMatrix[3][0], objectMatrix[3][1]));
 
     if (ImGui::CollapsingHeader("Enter Trigger")) {
-        TriggerObject::PutTriggerInGui(limonAPI, this->onClickTriggerCode, this->onClickParameters, isTriggerSet, 0);
+        TriggerObject::PutTriggerInGui(limonAPI, this->onClickTriggerCode, this->onClickParameters, enabled, 0);
     }
 
     if (ImGui::Button("Remove")) {
