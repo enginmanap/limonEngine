@@ -1830,16 +1830,16 @@ void World::addGUIButtonControls() {
     static char GUIButtonName[32];
     ImGui::InputText("GUI Button Name", GUIButtonName, sizeof(GUIButtonName), ImGuiInputTextFlags_CharsNoBlank);
 
-    static char GUIButtonNormalFileName[256];
+    static char GUIButtonNormalFileName[256] = "./Data/Textures/Menu/Buttons/";
     ImGui::InputText("Normal image path", GUIButtonNormalFileName, sizeof(GUIButtonNormalFileName));
 
-    static char GUIButtonOnHoverFileName[256];
+    static char GUIButtonOnHoverFileName[256] = "./Data/Textures/Menu/Buttons/";
     ImGui::InputText("On hover image path", GUIButtonOnHoverFileName, sizeof(GUIButtonOnHoverFileName));
 
-    static char GUIButtonOnClicklFileName[256];
+    static char GUIButtonOnClicklFileName[256] = "./Data/Textures/Menu/Buttons/";
     ImGui::InputText("On click image path", GUIButtonOnClicklFileName, sizeof(GUIButtonOnClicklFileName));
 
-    static char GUIButtonDisabledFileName[256];
+    static char GUIButtonDisabledFileName[256] = "./Data/Textures/Menu/Buttons/";
     ImGui::InputText("Disabled image path", GUIButtonDisabledFileName, sizeof(GUIButtonDisabledFileName));
 
     static size_t selectedLayerIndex = 0;
