@@ -257,5 +257,9 @@ GameObject::ImGuiResult GUIButton::addImGuiEditorElements(const ImGuiRequest &re
         TriggerObject::PutTriggerInGui(limonAPI, this->onClickTriggerCode, this->onClickParameters, isTriggerSet, 0);
     }
 
+    if (ImGui::Button("Remove")) {
+        result.remove = true;
+    }
+
     return result;
 }

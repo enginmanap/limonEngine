@@ -250,6 +250,10 @@ GameObject::ImGuiResult GUIImage::addImGuiEditorElements(const ImGuiRequest &req
         this->setTranslate(glm::vec2(objectMatrix[3][0], objectMatrix[3][1]));
     }
 
+    if (ImGui::Button("Remove")) {
+        result.remove = true;
+    }
+
     return result;
 }
 

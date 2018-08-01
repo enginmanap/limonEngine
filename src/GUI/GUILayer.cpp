@@ -39,6 +39,9 @@ void GUILayer::addGuiElement(GUIRenderable *guiElement) {
                 case GameObject::ObjectTypes::GUI_IMAGE:
                     static_cast<GUIImage*>(guiElement)->addedToLayer(this);
                     break;
+                case GameObject::ObjectTypes::GUI_BUTTON:
+                    static_cast<GUIButton*>(guiElement)->addedToLayer(this);
+                    break;
                 default:
                     break;//do nothing
             }
@@ -58,8 +61,11 @@ void GUILayer::removeGuiElement(uint32_t guiElementID) {
                 case GameObject::ObjectTypes::GUI_IMAGE:
                     worldObjectID = static_cast<GUIImage*>(guiElements[i])->getWorldObjectID();
                     break;
+                case GameObject::ObjectTypes::GUI_BUTTON:
+                    worldObjectID = static_cast<GUIButton*>(guiElements[i])->getWorldObjectID();
+                    break;
                 default:
-                    break;//do nothing
+                    break;
             }
             if(worldObjectID == guiElementID) {
                 guiElements.erase(guiElements.begin() + i);
