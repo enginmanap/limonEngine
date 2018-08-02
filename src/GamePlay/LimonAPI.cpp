@@ -220,8 +220,10 @@ deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index) {
         this->valueType = ValueTypes::STRING;
         if(this->isSet) {
             parameterAttribute = parameterNode->FirstChildElement("Value");
-            std::string temp = parameterAttribute->GetText();
-            snprintf(this->value.stringValue, 63, "%s", temp.c_str());
+            if(parameterAttribute != nullptr && parameterAttribute->GetText() != nullptr) {
+                std::string temp = parameterAttribute->GetText();
+                snprintf(this->value.stringValue, 63, "%s", temp.c_str());
+            }
         }
     } else if(strcmp(parameterAttribute->GetText(),"Double") == 0) {
         this->valueType = ValueTypes::DOUBLE;
