@@ -157,6 +157,7 @@ GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode, Asset
                                            fileNames);
         element->getTransformation()->setTranslate(tr.getTranslate());
         element->getTransformation()->setOrientation(tr.getOrientation());
+        element->getTransformation()->setScale(tr.getScale());
 
         element->onClickTriggerCode = TriggerInterface::deserializeTriggerCode(GUIRenderableNode, GUIRenderableAttribute, "onClickTrigger", element->limonAPI,
                                                                          element->onClickParameters, element->enabled);
