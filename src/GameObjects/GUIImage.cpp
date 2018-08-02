@@ -156,6 +156,8 @@ GUIImage *GUIImage::deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetMa
         element->setFullScreen(fullScreen);
         element->getTransformation()->setTranslate(tr.getTranslate());
         element->getTransformation()->setOrientation(tr.getOrientation());
+        element->getTransformation()->setScale(tr.getScale());
+
         return element;
     }
 
