@@ -273,7 +273,8 @@ private:
 
     void updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax);
 
-    void addModelToWorld(Model *xmlModel);
+    bool addModelToWorld(Model *xmlModel);
+    bool addGUIElementToWorld(GUIRenderable *guiRenderable, GUILayer *guiLayer);
 
     void fillVisibleObjects();
 

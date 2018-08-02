@@ -1320,7 +1320,11 @@ World::~World() {
     delete imgGuiHelper;
 }
 
-void World::addModelToWorld(Model *xmlModel) {
+bool World::addModelToWorld(Model *xmlModel) {
+    if(objects.find(xmlModel->getWorldObjectID()) != objects.end()) {
+        //the object is already registered. fail
+        return false;
+    }
     xmlModel->getTransformation()->getWorldTransform();
     objects[xmlModel->getWorldObjectID()] = xmlModel;
     rigidBodies.push_back(xmlModel->getRigidBody());
@@ -1335,8 +1339,23 @@ void World::addModelToWorld(Model *xmlModel) {
 
     updateWorldAABB(GLMConverter::BltToGLM(aabbMin), GLMConverter::BltToGLM(aabbMax));
 
-//    modelsByAssetID[xmlModel->getAssetID()].push_back(xmlModel);
+    return true;
 
+}
+
+bool World::addGUIElementToWorld(GUIRenderable *guiRenderable, GUILayer *guiLayer) {
+    GameObject* object = dynamic_cast<GameObject*>(guiRenderable);
+    if(object == nullptr) {
+        return false;
+    }
+
+    if (guiElements.find(object->getWorldObjectID()) != guiElements.end()) {
+        //the object is already registered. fail
+        return false;
+    }
+    guiElements[object->getWorldObjectID()] = guiRenderable;
+    guiLayer->addGuiElement(guiRenderable);
+    return true;
 }
 
 void World::updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax) {
