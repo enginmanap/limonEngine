@@ -648,25 +648,25 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
             tinyxml2::XMLElement* typeNode =  GUIElementNode->FirstChildElement("Type");
             if(typeNode != nullptr) {
                 std::string typeName = typeNode->GetText();
+                GUIRenderable *element;
+                std::string name;
                 if(typeName == "GUIText") {
-                    GUIText *element = GUIText::deserialize(GUIElementNode, glHelper, &world->fontManager, options);
-                    if(element != nullptr) {
-                        world->guiElements[element->getWorldObjectID()] = element;
-                        layer->addGuiElement(element);
-                    }
+                    element = GUIText::deserialize(GUIElementNode, glHelper, &world->fontManager, options);
+                    name = static_cast<GUIText*>(element)->getName();
                 } else if(typeName == "GUIImage") {
-                    GUIImage *element = GUIImage::deserialize(GUIElementNode, assetManager, options);
-                    if(element != nullptr) {
-                        world->guiElements[element->getWorldObjectID()] = element;
-                        layer->addGuiElement(element);
-                    }
+                    element = GUIImage::deserialize(GUIElementNode, assetManager, options);
+                    name = static_cast<GUIImage*>(element)->getName();
                 } else if(typeName == "GUIButton") {
-                    GUIButton *element = GUIButton::deserialize(GUIElementNode, assetManager, options, world->apiInstance);
-                    if(element != nullptr) {
-                        world->guiElements[element->getWorldObjectID()] = element;
-                        layer->addGuiElement(element);
+                    element = GUIButton::deserialize(GUIElementNode, assetManager, options, world->apiInstance);
+                    name = static_cast<GUIButton*>(element)->getName();
+                }
+
+                if(element != nullptr) {
+                    if(!world->addGUIElementToWorld(element, layer)) {
+                        std::cerr << "failed to add gui element [" << name << "] to world!" << std::endl;
                     }
                 }
+
 
             }
 
