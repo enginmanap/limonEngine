@@ -9,6 +9,7 @@
 #include "Renderable.h"
 #include "Utils/GLMConverter.h"
 #include "GameObjects/Sound.h"
+#include <memory>
 
 class PhysicalRenderable : public Renderable {
 protected:

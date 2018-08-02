@@ -8,6 +8,7 @@
 
 #include "../../CameraAttachment.h"
 #include "Player.h"
+#include <glm/gtx/quaternion.hpp>
 
 class Options;
 class GUIRenderable;
