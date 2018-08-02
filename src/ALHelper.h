@@ -9,6 +9,13 @@
 #include "../libs/OpenAL-Soft/include/AL/al.h"
 
 #include <memory>
+#include <glm/glm.hpp>
+#include <unordered_map>
+#include <vector>
+#include <glm/gtc/type_ptr.hpp>
+#include <SDL_atomic.h>
+#include <SDL_thread.h>
+#include <iostream>
 
 class SoundAsset;
 

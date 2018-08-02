@@ -8,7 +8,7 @@
 #include <glm/glm.hpp>
 #include <iostream>
 #include "Utils/Logger.h"
-
+#include <tinyxml2.h>
 class Options {
 public:
 

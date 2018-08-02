@@ -12,6 +12,7 @@
 #include <btBulletCollisionCommon.h>
 #include <vector>
 #include <BulletDynamics/Dynamics/btDynamicsWorld.h>
+#include <memory>
 #include "../../Options.h"
 #include "../../CameraAttachment.h"
 #include "../../Utils/GLMConverter.h"

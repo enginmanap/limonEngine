@@ -10,6 +10,7 @@
 #include <map>
 
 #include <freetype2/ft2build.h>
+#include <set>
 #include FT_FREETYPE_H
 #include "glm/detail/type_vec.hpp"
 #include "GLHelper.h"

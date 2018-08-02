@@ -2,6 +2,7 @@
 // Created by engin on 15.07.2018.
 //
 
+#include <iostream>
 #include "SoundAsset.h"
 #include "../../libs/dr_wav.h"
 
