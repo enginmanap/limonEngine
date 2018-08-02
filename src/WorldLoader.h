@@ -25,7 +25,6 @@ class WorldLoader {
     ALHelper *alHelper;
     AssetManager *assetManager;
     InputHandler* inputHandler;
-    std::vector<World*> loadedWorlds;
 
     World* loadMapFromXML(const std::string& worldFileName) const;
     bool loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* world)const;
@@ -42,10 +41,6 @@ class WorldLoader {
 public:
     WorldLoader(AssetManager *assetManager, InputHandler *inputHandler, Options *options);
     World* loadWorld(const std::string& worldFile) const;
-
-    ~WorldLoader();
-
-
 };
 
 
