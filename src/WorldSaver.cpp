@@ -194,6 +194,10 @@ bool WorldSaver::fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
 }
 
 bool WorldSaver::addSky(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *skyNode, const World *world) {
+
+    if(world->sky == nullptr) {
+        return true;
+    }
     //ImagesPath, Right, Left, Top, Bottom, Back, Front
 
     tinyxml2::XMLElement *currentElement = document.NewElement("ImagesPath");
