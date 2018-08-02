@@ -448,12 +448,6 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
     return true;
 }
 
-WorldLoader::~WorldLoader() {
-    for (unsigned int i = 0; i < loadedWorlds.size(); ++i) {
-        delete loadedWorlds[i];
-    }
-}
-
 bool WorldLoader::loadAnimations(tinyxml2::XMLNode *worldNode, World *world) const {
     tinyxml2::XMLElement* loadedAnimationsListNode =  worldNode->FirstChildElement("LoadedAnimations");
     if (loadedAnimationsListNode == nullptr) {
