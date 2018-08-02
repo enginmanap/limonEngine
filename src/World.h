@@ -208,15 +208,17 @@ private:
      */
     bool verifyIDs(){
         std::set<uint32_t > usedIDs;
-        uint32_t maxID;
+        uint32_t maxID = 0;
         /** there are 3 places that has IDs,
          * 1) sky
          * 2) objects
          * 3) AIs
          */
         //put sky first, since it is guaranteed to be single
-        usedIDs.insert(this->sky->getWorldObjectID());
-        maxID = this->sky->getWorldObjectID();
+        if(this->sky != nullptr) {
+            usedIDs.insert(this->sky->getWorldObjectID());
+            maxID = this->sky->getWorldObjectID();
+        }
 
         for(auto object = objects.begin(); object != objects.end(); object++) {
             auto result = usedIDs.insert(object->first);
@@ -242,6 +244,14 @@ private:
                 return false;
             }
             maxID = std::max(maxID,actor->first);
+        }
+
+        for (auto guiElement = guiElements.begin(); guiElement != guiElements.end(); ++guiElement) {
+            auto result = usedIDs.insert(guiElement->first);
+            if(result.second == false) {
+                return false;
+            }
+            maxID = std::max(maxID, guiElement->first);
         }
 
         for(uint32_t index = 1; index <= maxID; index++) {
