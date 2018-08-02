@@ -31,6 +31,7 @@ GUIButton::GUIButton(uint32_t worldID, AssetManager *assetManager, LimonAPI *lim
             }
         }
     }
+    this->setImageFromFlags();
 }
 
 
