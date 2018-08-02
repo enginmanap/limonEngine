@@ -38,7 +38,7 @@ class GUIButton : public GUIImageBase, public GameObject{
 
     //Editor variables
     char GUINameBuffer[128];
-    char GUIFileNameBuffer[4][256] = {0};
+    char GUIFileNameBuffer[4][256] = {{0}};
 
     void setImageFromFlags() {
 
