@@ -64,7 +64,7 @@ public:
         };
         Types type = Types::PHYSICAL_PLAYER;
 
-        static const std::unordered_map<Types, std::string> typeNames;
+        static const std::map<Types, std::string> typeNames;
 
         std::string toString() const {
             assert(typeNames.find(type) != typeNames.end());

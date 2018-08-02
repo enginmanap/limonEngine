@@ -33,7 +33,7 @@
 
 
 
-const std::unordered_map<World::PlayerTypes::Types, std::string> World::PlayerTypes::typeNames =
+const std::map<World::PlayerTypes::Types, std::string> World::PlayerTypes::typeNames =
         {
                 { Types::PHYSICAL_PLAYER, "Physical"},
                 { Types::DEBUG_PLAYER, "Debug"},
