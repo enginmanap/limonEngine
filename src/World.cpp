@@ -177,6 +177,7 @@ World::World(const std::string &name, PlayerTypes startingPlayerType, InputHandl
      if(!currentPlayersSettings->editorShown || inputHandler.getInputEvents(InputHandler::EDITOR) || !imgGuiHelper->ProcessEvent(inputHandler)) {
          if(handlePlayerInput(inputHandler)) {
              handleQuitRequest();
+             return;
          }
      }
 
@@ -1916,5 +1917,6 @@ void World::addGUILayerControls() {
 }
 
 bool World::handleQuitRequest() {
-    apiInstance->quitGame();
+    apiInstance->loadAndSwitchWorld("./Data/Maps/Mayan-main_menu.xml");
+    return true;
 }
