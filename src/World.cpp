@@ -168,7 +168,7 @@ World::World(const std::string &name, PlayerTypes startingPlayerType, InputHandl
   * @param inputHandler
   * @return
   */
-bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
+ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 
 
      // If not in editor mode, dont let imgGuiHelper get input
@@ -176,7 +176,7 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
      // if in editor mode, player did not press editor button, then check if imgui processed, if not use the input
      if(!currentPlayersSettings->editorShown || inputHandler.getInputEvents(InputHandler::EDITOR) || !imgGuiHelper->ProcessEvent(inputHandler)) {
          if(handlePlayerInput(inputHandler)) {
-             isQuitRequest = !isQuitRequest;
+             handleQuitRequest();
          }
      }
 
@@ -306,8 +306,6 @@ bool World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
             }
         }
     }
-
-    return isQuitRequest && isQuitVerified;
 }
 
 void World::fillVisibleObjects(){
@@ -480,11 +478,6 @@ ActorInformation World::fillActorInformation(Actor *actor) {
 }
 
 bool World::handlePlayerInput(InputHandler &inputHandler) {
-    if(!isQuitRequest && isQuitVerified) {
-        isQuitVerified = false;
-        //means player selected stay, we should revert to last player type
-        switchPlayer(beforePlayer, inputHandler);
-    }
     if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT)) {
         if(inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
             GameObject *gameObject = getPointedObject();
@@ -743,10 +736,12 @@ void World::render() {
     if (this->dynamicsWorld->getDebugDrawer()->getDebugMode() != btIDebugDraw::DBG_NoDebug) {
         debugDrawer->drawLine(btVector3(0, 0, 0), btVector3(0, 250, 0), btVector3(1, 1, 1));
         //draw the ai-grid
-        grid->debugDraw(debugDrawer);
+        if(grid != nullptr) {
+            grid->debugDraw(debugDrawer);
+        }
     }
 
-    if(currentPlayersSettings->editorShown && !isQuitRequest) {
+    if(currentPlayersSettings->editorShown) {
         for (auto it = triggers.begin(); it != triggers.end(); ++it) {
             it->second->render(debugDrawer);
         }
@@ -793,381 +788,361 @@ bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {
  * This method checks if we are in editor mode, and if we are, enables ImGui windows
  * It also fills the windows with relevant parameters.
  */
-void World::ImGuiFrameSetup() {//TODO not const because it removes the object. Should be seperated
-    if(this->isQuitRequest) {
-        if(isQuitRequest) {
-            //ask if wants to save
-            imgGuiHelper->NewFrame();
-            ImGui::Begin("Quitting, Are you sure?");
-            if(ImGui::Button("Yes, quit")) {
-                isQuitVerified = true;
+void World::ImGuiFrameSetup() {//TODO not const because it removes the object. Should be separated
+    if(!availableAssetsLoaded) {
+        assetManager->loadAssetList("./Data/AssetList.xml");
+        availableAssetsLoaded = true;
+    }
+    imgGuiHelper->NewFrame();
+
+    /* window definitions */
+    {
+        ImGui::Begin("Editor");
+        if(guiPickMode == false) {
+            if (ImGui::Button("Switch to GUI selection mode")) {
+                this->guiPickMode = true;
             }
-            ImGui::SameLine();
-            if(ImGui::Button("No, stay")) {
-                isQuitRequest = false;
-                isQuitVerified = true;
-                //currentMode = PAUSED_MODE;//FIXME we are rendering more than we allow input. That causes a bit delay before we exit editor mode, which in turn creates a bit shutter.
-                //this line should have 0 effect because it will be overriden, but it will remove the shutter.
-                //return to the player we left off in next frame
+        } else {
+            if (ImGui::Button("Switch to World selection mode")) {
+                this->guiPickMode = false;
             }
-            ImGui::End();
-            imgGuiHelper->RenderDrawLists();
         }
-    } else {
-        if(!availableAssetsLoaded) {
-            assetManager->loadAssetList("./Data/AssetList.xml");
-            availableAssetsLoaded = true;
-        }
-        imgGuiHelper->NewFrame();
 
-        /* window definitions */
-        {
-            ImGui::Begin("Editor");
-            if(guiPickMode == false) {
-                if (ImGui::Button("Switch to GUI selection mode")) {
-                    this->guiPickMode = true;
+        //list available elements
+        static std::string selectedAssetFile = "";
+        glm::vec3 newObjectPosition = camera->getPosition() + 10.0f * camera->getCenter();
+
+        if (ImGui::CollapsingHeader("Add New Object")) {
+            if (ImGui::BeginCombo("Available objects", selectedAssetFile.c_str())) {
+                for (auto it = assetManager->getAvailableAssetsList().begin();
+                     it != assetManager->getAvailableAssetsList().end(); it++) {
+                    bool selectedElement = selectedAssetFile == it->first;
+                    if (ImGui::Selectable(it->first.c_str(), selectedElement)) {
+                        selectedAssetFile = it->first;
+                    }
+                    if(selectedElement) {
+                        ImGui::SetItemDefaultFocus();
+                    }
                 }
-            } else {
-                if (ImGui::Button("Switch to World selection mode")) {
-                    this->guiPickMode = false;
-                }
+                ImGui::EndCombo();
             }
+            static float newObjectWeight;
+            ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
 
-            //list available elements
-            static std::string selectedAssetFile = "";
-            glm::vec3 newObjectPosition = camera->getPosition() + 10.0f * camera->getCenter();
-
-            if (ImGui::CollapsingHeader("Add New Object")) {
-                if (ImGui::BeginCombo("Available objects", selectedAssetFile.c_str())) {
-                    for (auto it = assetManager->getAvailableAssetsList().begin();
-                         it != assetManager->getAvailableAssetsList().end(); it++) {
-                        bool selectedElement = selectedAssetFile == it->first;
-                        if (ImGui::Selectable(it->first.c_str(), selectedElement)) {
-                            selectedAssetFile = it->first;
-                        }
-                        if(selectedElement) {
-                            ImGui::SetItemDefaultFocus();
-                        }
-                    }
-                    ImGui::EndCombo();
-                }
-                static float newObjectWeight;
-                ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
-
-                ImGui::NewLine();
-                if(selectedAssetFile != "") {
-                    if(ImGui::Button("Add Object")) {
-                        Model* newModel = new Model(this->getNextObjectID(), assetManager, newObjectWeight,
-                                                    selectedAssetFile, false);
-                        newModel->getTransformation()->setTranslate(newObjectPosition);
-                        this->addModelToWorld(newModel);
-                        newModel->getRigidBody()->activate();
-                        pickedObject = static_cast<GameObject*>(newModel);
-                    }
-                }
-            }
-            if(pickedObject != nullptr && pickedObject->getTypeID() == GameObject::MODEL) {
-                static float copyOffsets[3] { 0.25f, 0.25f, 0.25f};
-                ImGui::DragFloat3("Copy position offsets", copyOffsets, 0.1f);
-                if (ImGui::Button("Copy Selected object")) {
-
-                    Model* pickedModel = dynamic_cast<Model*>(pickedObject);
-                    Model* newModel = new Model(*pickedModel, this->getNextObjectID());
-                    newModel->getTransformation()->addTranslate(glm::vec3(copyOffsets[0], copyOffsets[1], copyOffsets[2]));
-                    addModelToWorld(newModel);
-                    //now we should apply the animations
-
-                    if(onLoadAnimations.find(pickedModel) != onLoadAnimations.end() &&
-                            activeAnimations.find(pickedModel) != activeAnimations.end()) {
-                        addAnimationToObject(newModel->getWorldObjectID(), activeAnimations[pickedModel].animationIndex,
-                                             true, true);
-                    }
+            ImGui::NewLine();
+            if(selectedAssetFile != "") {
+                if(ImGui::Button("Add Object")) {
+                    Model* newModel = new Model(this->getNextObjectID(), assetManager, newObjectWeight,
+                                                selectedAssetFile, false);
+                    newModel->getTransformation()->setTranslate(newObjectPosition);
+                    this->addModelToWorld(newModel);
+                    newModel->getRigidBody()->activate();
                     pickedObject = static_cast<GameObject*>(newModel);
                 }
             }
+        }
+        if(pickedObject != nullptr && pickedObject->getTypeID() == GameObject::MODEL) {
+            static float copyOffsets[3] { 0.25f, 0.25f, 0.25f};
+            ImGui::DragFloat3("Copy position offsets", copyOffsets, 0.1f);
+            if (ImGui::Button("Copy Selected object")) {
 
+                Model* pickedModel = dynamic_cast<Model*>(pickedObject);
+                Model* newModel = new Model(*pickedModel, this->getNextObjectID());
+                newModel->getTransformation()->addTranslate(glm::vec3(copyOffsets[0], copyOffsets[1], copyOffsets[2]));
+                addModelToWorld(newModel);
+                //now we should apply the animations
 
-            if(ImGui::Button("Add Trigger Volume")) {
-
-                TriggerObject* to = new TriggerObject(this->getNextObjectID(), this->apiInstance);
-                to->getTransformation()->setTranslate(newObjectPosition);
-                this->dynamicsWorld->addCollisionObject(to->getGhostObject(), COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, COLLIDE_PLAYER | COLLIDE_EVERYTHING);
-                triggers[to->getWorldObjectID()] = to;
-
-                pickedObject = static_cast<GameObject*>(to);
+                if(onLoadAnimations.find(pickedModel) != onLoadAnimations.end() &&
+                        activeAnimations.find(pickedModel) != activeAnimations.end()) {
+                    addAnimationToObject(newModel->getWorldObjectID(), activeAnimations[pickedModel].animationIndex,
+                                         true, true);
+                }
+                pickedObject = static_cast<GameObject*>(newModel);
             }
-
-            if (ImGui::CollapsingHeader("Add on load trigger")) {
-                static size_t onLoadTriggerIndex = 0;//maximum size
-                std::string selectedID = std::to_string(onLoadTriggerIndex);
-                if (ImGui::BeginCombo("Current Triggers", selectedID.c_str())) {
-                    for(size_t i = 0; i < onLoadActions.size(); i++) {
-                        bool isTriggerSelected = selectedID == std::to_string(i);
-
-                        if (ImGui::Selectable(std::to_string(i).c_str(), isTriggerSelected)) {
-                            onLoadTriggerIndex = i;
-                        }
-                        if(isTriggerSelected) {
-                            ImGui::SetItemDefaultFocus();
-                        }
-                    }
-                    ImGui::EndCombo();
-                }
-                //currently any trigger object can have 3 elements, so this should be >2 to avoid collision on imgui tags. I am assigning 100 just to be safe
-                TriggerObject::PutTriggerInGui(apiInstance, onLoadActions[onLoadTriggerIndex]->action, onLoadActions[onLoadTriggerIndex]->parameters,
-                                               onLoadActions[onLoadTriggerIndex]->enabled, 100+onLoadTriggerIndex);
-                if(onLoadActions[onLoadActions.size()-1]->enabled) {
-                    //when user presses the enable button, add another and select it
-                    onLoadTriggerIndex=onLoadActions.size();
-                    onLoadActions.push_back(new ActionForOnload());
-                }
-            }
-            static char musicNameBuffer[128] = {};
-            static bool musicRefresh = true;
-            if(musicRefresh) {
-                if (this->music != nullptr) {
-                    if (this->music->getName().length() < 128) {
-                        strcpy(musicNameBuffer, this->music->getName().c_str());
-                    } else {
-                        strncpy(musicNameBuffer, this->music->getName().c_str(), 127);
-                    }
-                }
-                musicRefresh = false;
-            }
-            ImGui::InputText("OnLoad Music", musicNameBuffer, 128);
-            if(ImGui::Button("Change Music")) {
-                musicRefresh = true;
-                this->music->stop();
-                delete this->music;
-                this->music = new Sound(getNextObjectID(), assetManager, std::string(musicNameBuffer));
-                this->music->setLoop(true);
-                this->music->setWorldPosition(glm::vec3(0,0,0), true);
-                this->music->play();
-            }
-
-
-            if (ImGui::CollapsingHeader("Add GUI Elements##The header")) {
-                ImGui::Indent( 16.0f );
-                if (ImGui::CollapsingHeader("Add GUI Layer##The header")) {
-                    addGUILayerControls();
-                }
-                if (ImGui::CollapsingHeader("Add GUI Text##The header")) {
-                    addGUITextControls();
-                }
-                if (ImGui::CollapsingHeader("Add GUI Image##The header")) {
-                    addGUIImageControls();
-                }
-                if (ImGui::CollapsingHeader("Add GUI Button##The header")) {
-                    addGUIButtonControls();
-                }
-                ImGui::Unindent( 16.0f );
-            }
-
-
-            if (ImGui::CollapsingHeader("Custom Animations ")) {
-                //list loaded animations
-                int listbox_item_current = -1;//not static because I don't want user to select a item.
-                ImGui::ListBox("Loaded animations", &listbox_item_current, getNameOfLoadedAnimation,
-                               static_cast<void *>(&loadedAnimations), loadedAnimations.size(), 10);
-                ImGui::Separator();
-
-
-                ImGui::NewLine();
-                static char loadAnimationNameBuffer[32];
-                ImGui::Text("Load animation from file:");
-                //double # because I don't want to show it
-                ImGui::InputText("##LoadAnimationNameField", loadAnimationNameBuffer, sizeof(loadAnimationNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
-                if (ImGui::Button("load animation")) {
-                    AnimationCustom *animation = AnimationLoader::loadAnimation("./Data/Animations/" + std::string(loadAnimationNameBuffer) + ".xml");
-                    if (animation == nullptr) {
-                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation load failed");
-                    } else {
-                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation loaded");
-                        loadedAnimations.push_back(*animation);
-                    }
-                }
-            }
-            ImGui::Separator();
-
-            if (ImGui::BeginCombo("Starting Player Type", startingPlayer.toString().c_str())) {
-                for (auto iterator = PlayerTypes::typeNames.begin(); iterator != PlayerTypes::typeNames.end(); ++iterator) {
-                    bool isThisTypeSelected = iterator->second ==  startingPlayer.toString();
-                    if(ImGui::Selectable(iterator->second.c_str(), isThisTypeSelected)) {
-                        this->startingPlayer.setType(iterator->second);
-                    }
-                    if(isThisTypeSelected) {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-                ImGui::EndCombo();
-            }
-
-            ImGui::Separator();
-            if(ImGui::Button("Save Map")) {
-                for(auto animIt = loadedAnimations.begin(); animIt != loadedAnimations.end(); animIt++) {
-                    if(animIt->serializeAnimation("./Data/Animations/")) {
-                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation saved");
-                    } else {
-                        options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation save failed");
-                    }
-
-                }
-
-                if(WorldSaver::saveWorld("./Data/Maps/CustomWorld001.xml", this)) {
-                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
-                } else {
-                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
-                }
-            }
-            ImGui::End();
-
-            ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
-
-            ImGui::Begin("Selected Object Properties");
-            std::string selectedName;
-            if(pickedObject == nullptr) {
-                selectedName = "No object selected";
-            } else {
-                selectedName = pickedObject->getName().c_str();
-            }
-            if (ImGui::BeginCombo("PickedGameObject", selectedName.c_str())) {
-                for (auto it = objects.begin(); it != objects.end(); it++) {
-                    GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
-                    bool selectedElement = gameObject->getName() == selectedName;
-                    if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
-                        pickedObject = gameObject;
-                    }
-                    if(selectedElement) {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-
-                for (auto it = guiElements.begin(); it != guiElements.end(); it++) {
-                    GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
-                    bool selectedElement = gameObject->getName() == selectedName;
-                    if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
-                        pickedObject = gameObject;
-                    }
-                    if(selectedElement) {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-
-                for (auto it = lights.begin(); it != lights.end(); it++) {
-                    GameObject* gameObject = dynamic_cast<GameObject *>(*it);
-                    bool selectedElement = gameObject->getName() == selectedName;
-                    if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
-                        pickedObject = (*it);
-                    }
-                    if(selectedElement) {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-
-                for (auto it = triggers.begin(); it != triggers.end(); it++) {
-                    GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
-                    bool selectedElement = gameObject->getName() == selectedName;
-                    if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
-                        pickedObject = it->second;
-                    }
-                    if(selectedElement) {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-                ImGui::EndCombo();
-            }
-            if(pickedObject != nullptr) {
-                GameObject::ImGuiResult objectEditorResult = pickedObject->addImGuiEditorElements(*request);
-                if(pickedObject->getTypeID() == GameObject::MODEL) {
-                    Model* selectedObject = dynamic_cast<Model*>(pickedObject);
-                    if(objectEditorResult.updated) {
-                        updatedModels.push_back(selectedObject);
-                    }
-                    if(activeAnimations.find(selectedObject) != activeAnimations.end()) {
-                        if(objectEditorResult.updated) {
-                            activeAnimations[selectedObject].originalTransformation = *selectedObject->getTransformation();
-                        }
-
-
-                        if(ImGui::Button(("Remove custom animation: " + loadedAnimations[activeAnimations[selectedObject].animationIndex].getName()).c_str())) {
-                            (*selectedObject->getTransformation()) = activeAnimations[selectedObject].originalTransformation;
-                            activeAnimations.erase(selectedObject);
-                            if(onLoadAnimations.find(selectedObject) != onLoadAnimations.end()) {
-                                onLoadAnimations.erase(selectedObject);
-                            }
-                         }
-                    } else {
-                        addAnimationDefinitionToEditor();
-                    }
-
-                    if (objectEditorResult.removeAI) {
-                        //remove AI requested
-                        if (dynamic_cast<Model *>(pickedObject)->getAIID() != 0) {
-                            actors.erase(dynamic_cast<Model *>(pickedObject)->getAIID());
-                            dynamic_cast<Model *>(pickedObject)->detachAI();
-                        }
-                    }
-
-                    if (objectEditorResult.addAI) {
-                        std::cout << "adding AI to model " << std::endl;
-                        HumanEnemy *newEnemy = new HumanEnemy(getNextObjectID());
-                        newEnemy->setModel(dynamic_cast<Model *>(pickedObject));
-
-                        addActor(newEnemy);
-                    }
-
-                }
-                ImGui::NewLine();
-                switch (pickedObject->getTypeID()) {
-                    case GameObject::MODEL: {
-                        if (static_cast<Model *>(pickedObject)->isDisconnected()) {
-                            if (ImGui::Button("reconnect to physics")) {
-                                reconnectObjectToPhysics(static_cast<Model *>(pickedObject)->getWorldObjectID());
-                            }
-                        } else {
-                            if (ImGui::Button("Disconnect from physics")) {
-                                disconnectObjectFromPhysics(static_cast<Model *>(pickedObject)->getWorldObjectID());
-                            }
-                            ImGui::Text(
-                                    "If object is placed in trigger volume, \ndisconnecting drastically improve performance.");
-                        }
-
-                        if (ImGui::Button("Remove This Object")) {
-                            removeObject(pickedObject->getWorldObjectID());
-                            pickedObject = nullptr;
-                        }
-                    }
-                        break;
-                    case GameObject::TRIGGER: {
-                        if (ImGui::Button("Remove This Trigger")) {
-                            removeTriggerObject(pickedObject->getWorldObjectID());
-                            pickedObject = nullptr;
-                        }
-                    }
-                    break;
-                    case GameObject::GUI_TEXT:
-                    case GameObject::GUI_IMAGE:
-                    case GameObject::GUI_BUTTON: {
-                        if(objectEditorResult.remove) {
-                            this->guiElements.erase(pickedObject->getWorldObjectID());
-                            delete pickedObject;
-                            pickedObject = nullptr;
-                        }
-                        }
-                        break;
-                    default: {
-                        //there is nothing for now
-                    }
-
-                }
-            }
-
-            ImGui::End();
         }
 
-        /* window definitions */
-        imgGuiHelper->RenderDrawLists();
+
+        if(ImGui::Button("Add Trigger Volume")) {
+
+            TriggerObject* to = new TriggerObject(this->getNextObjectID(), this->apiInstance);
+            to->getTransformation()->setTranslate(newObjectPosition);
+            this->dynamicsWorld->addCollisionObject(to->getGhostObject(), COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, COLLIDE_PLAYER | COLLIDE_EVERYTHING);
+            triggers[to->getWorldObjectID()] = to;
+
+            pickedObject = static_cast<GameObject*>(to);
+        }
+
+        if (ImGui::CollapsingHeader("Add on load trigger")) {
+            static size_t onLoadTriggerIndex = 0;//maximum size
+            std::string selectedID = std::to_string(onLoadTriggerIndex);
+            if (ImGui::BeginCombo("Current Triggers", selectedID.c_str())) {
+                for(size_t i = 0; i < onLoadActions.size(); i++) {
+                    bool isTriggerSelected = selectedID == std::to_string(i);
+
+                    if (ImGui::Selectable(std::to_string(i).c_str(), isTriggerSelected)) {
+                        onLoadTriggerIndex = i;
+                    }
+                    if(isTriggerSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+            //currently any trigger object can have 3 elements, so this should be >2 to avoid collision on imgui tags. I am assigning 100 just to be safe
+            TriggerObject::PutTriggerInGui(apiInstance, onLoadActions[onLoadTriggerIndex]->action, onLoadActions[onLoadTriggerIndex]->parameters,
+                                           onLoadActions[onLoadTriggerIndex]->enabled, 100+onLoadTriggerIndex);
+            if(onLoadActions[onLoadActions.size()-1]->enabled) {
+                //when user presses the enable button, add another and select it
+                onLoadTriggerIndex=onLoadActions.size();
+                onLoadActions.push_back(new ActionForOnload());
+            }
+        }
+        static char musicNameBuffer[128] = {};
+        static bool musicRefresh = true;
+        if(musicRefresh) {
+            if (this->music != nullptr) {
+                if (this->music->getName().length() < 128) {
+                    strcpy(musicNameBuffer, this->music->getName().c_str());
+                } else {
+                    strncpy(musicNameBuffer, this->music->getName().c_str(), 127);
+                }
+            }
+            musicRefresh = false;
+        }
+        ImGui::InputText("OnLoad Music", musicNameBuffer, 128);
+        if(ImGui::Button("Change Music")) {
+            musicRefresh = true;
+            this->music->stop();
+            delete this->music;
+            this->music = new Sound(getNextObjectID(), assetManager, std::string(musicNameBuffer));
+            this->music->setLoop(true);
+            this->music->setWorldPosition(glm::vec3(0,0,0), true);
+            this->music->play();
+        }
+
+
+        if (ImGui::CollapsingHeader("Add GUI Elements##The header")) {
+            ImGui::Indent( 16.0f );
+            if (ImGui::CollapsingHeader("Add GUI Layer##The header")) {
+                addGUILayerControls();
+            }
+            if (ImGui::CollapsingHeader("Add GUI Text##The header")) {
+                addGUITextControls();
+            }
+            if (ImGui::CollapsingHeader("Add GUI Image##The header")) {
+                addGUIImageControls();
+            }
+            if (ImGui::CollapsingHeader("Add GUI Button##The header")) {
+                addGUIButtonControls();
+            }
+            ImGui::Unindent( 16.0f );
+        }
+
+
+        if (ImGui::CollapsingHeader("Custom Animations ")) {
+            //list loaded animations
+            int listbox_item_current = -1;//not static because I don't want user to select a item.
+            ImGui::ListBox("Loaded animations", &listbox_item_current, getNameOfLoadedAnimation,
+                           static_cast<void *>(&loadedAnimations), loadedAnimations.size(), 10);
+            ImGui::Separator();
+
+
+            ImGui::NewLine();
+            static char loadAnimationNameBuffer[32];
+            ImGui::Text("Load animation from file:");
+            //double # because I don't want to show it
+            ImGui::InputText("##LoadAnimationNameField", loadAnimationNameBuffer, sizeof(loadAnimationNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
+            if (ImGui::Button("load animation")) {
+                AnimationCustom *animation = AnimationLoader::loadAnimation("./Data/Animations/" + std::string(loadAnimationNameBuffer) + ".xml");
+                if (animation == nullptr) {
+                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation load failed");
+                } else {
+                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation loaded");
+                    loadedAnimations.push_back(*animation);
+                }
+            }
+        }
+        ImGui::Separator();
+
+        if (ImGui::BeginCombo("Starting Player Type", startingPlayer.toString().c_str())) {
+            for (auto iterator = PlayerTypes::typeNames.begin(); iterator != PlayerTypes::typeNames.end(); ++iterator) {
+                bool isThisTypeSelected = iterator->second ==  startingPlayer.toString();
+                if(ImGui::Selectable(iterator->second.c_str(), isThisTypeSelected)) {
+                    this->startingPlayer.setType(iterator->second);
+                }
+                if(isThisTypeSelected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        ImGui::Separator();
+        if(ImGui::Button("Save Map")) {
+            for(auto animIt = loadedAnimations.begin(); animIt != loadedAnimations.end(); animIt++) {
+                if(animIt->serializeAnimation("./Data/Animations/")) {
+                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation saved");
+                } else {
+                    options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation save failed");
+                }
+
+            }
+
+            if(WorldSaver::saveWorld("./Data/Maps/CustomWorld001.xml", this)) {
+                options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
+            } else {
+                options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
+            }
+        }
+        ImGui::End();
+
+        ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
+
+        ImGui::Begin("Selected Object Properties");
+        std::string selectedName;
+        if(pickedObject == nullptr) {
+            selectedName = "No object selected";
+        } else {
+            selectedName = pickedObject->getName().c_str();
+        }
+        if (ImGui::BeginCombo("PickedGameObject", selectedName.c_str())) {
+            for (auto it = objects.begin(); it != objects.end(); it++) {
+                GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
+                bool selectedElement = gameObject->getName() == selectedName;
+                if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
+                    pickedObject = gameObject;
+                }
+                if(selectedElement) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+
+            for (auto it = guiElements.begin(); it != guiElements.end(); it++) {
+                GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
+                bool selectedElement = gameObject->getName() == selectedName;
+                if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
+                    pickedObject = gameObject;
+                }
+                if(selectedElement) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+
+            for (auto it = lights.begin(); it != lights.end(); it++) {
+                GameObject* gameObject = dynamic_cast<GameObject *>(*it);
+                bool selectedElement = gameObject->getName() == selectedName;
+                if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
+                    pickedObject = (*it);
+                }
+                if(selectedElement) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+
+            for (auto it = triggers.begin(); it != triggers.end(); it++) {
+                GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
+                bool selectedElement = gameObject->getName() == selectedName;
+                if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
+                    pickedObject = it->second;
+                }
+                if(selectedElement) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+        if(pickedObject != nullptr) {
+            GameObject::ImGuiResult objectEditorResult = pickedObject->addImGuiEditorElements(*request);
+            if(pickedObject->getTypeID() == GameObject::MODEL) {
+                Model* selectedObject = dynamic_cast<Model*>(pickedObject);
+                if(objectEditorResult.updated) {
+                    updatedModels.push_back(selectedObject);
+                }
+                if(activeAnimations.find(selectedObject) != activeAnimations.end()) {
+                    if(objectEditorResult.updated) {
+                        activeAnimations[selectedObject].originalTransformation = *selectedObject->getTransformation();
+                    }
+
+
+                    if(ImGui::Button(("Remove custom animation: " + loadedAnimations[activeAnimations[selectedObject].animationIndex].getName()).c_str())) {
+                        (*selectedObject->getTransformation()) = activeAnimations[selectedObject].originalTransformation;
+                        activeAnimations.erase(selectedObject);
+                        if(onLoadAnimations.find(selectedObject) != onLoadAnimations.end()) {
+                            onLoadAnimations.erase(selectedObject);
+                        }
+                     }
+                } else {
+                    addAnimationDefinitionToEditor();
+                }
+
+                if (objectEditorResult.removeAI) {
+                    //remove AI requested
+                    if (dynamic_cast<Model *>(pickedObject)->getAIID() != 0) {
+                        actors.erase(dynamic_cast<Model *>(pickedObject)->getAIID());
+                        dynamic_cast<Model *>(pickedObject)->detachAI();
+                    }
+                }
+
+                if (objectEditorResult.addAI) {
+                    std::cout << "adding AI to model " << std::endl;
+                    HumanEnemy *newEnemy = new HumanEnemy(getNextObjectID());
+                    newEnemy->setModel(dynamic_cast<Model *>(pickedObject));
+
+                    addActor(newEnemy);
+                }
+
+            }
+            ImGui::NewLine();
+            switch (pickedObject->getTypeID()) {
+                case GameObject::MODEL: {
+                    if (static_cast<Model *>(pickedObject)->isDisconnected()) {
+                        if (ImGui::Button("reconnect to physics")) {
+                            reconnectObjectToPhysics(static_cast<Model *>(pickedObject)->getWorldObjectID());
+                        }
+                    } else {
+                        if (ImGui::Button("Disconnect from physics")) {
+                            disconnectObjectFromPhysics(static_cast<Model *>(pickedObject)->getWorldObjectID());
+                        }
+                        ImGui::Text(
+                                "If object is placed in trigger volume, \ndisconnecting drastically improve performance.");
+                    }
+
+                    if (ImGui::Button("Remove This Object")) {
+                        removeObject(pickedObject->getWorldObjectID());
+                        pickedObject = nullptr;
+                    }
+                }
+                    break;
+                case GameObject::TRIGGER: {
+                    if (ImGui::Button("Remove This Trigger")) {
+                        removeTriggerObject(pickedObject->getWorldObjectID());
+                        pickedObject = nullptr;
+                    }
+                }
+                break;
+                case GameObject::GUI_TEXT:
+                case GameObject::GUI_IMAGE:
+                case GameObject::GUI_BUTTON: {
+                    if(objectEditorResult.remove) {
+                        this->guiElements.erase(pickedObject->getWorldObjectID());
+                        delete pickedObject;
+                        pickedObject = nullptr;
+                    }
+                    }
+                    break;
+                default: {
+                    //there is nothing for now
+                }
+
+            }
+        }
+
+        ImGui::End();
     }
+
+    /* window definitions */
+    imgGuiHelper->RenderDrawLists();
+
 }
 
 void World::addGUITextControls() {
@@ -1853,7 +1828,7 @@ void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
     if(currentPlayersSettings->menuInteraction) {
         guiPickMode = true;
     } else {
-        guiPickMode = true;
+        guiPickMode = false;
     }
 
     //now all settings done, switch player
@@ -1938,4 +1913,8 @@ void World::addGUILayerControls() {
     if (ImGui::Button("Add GUI Layer")) {
         this->guiLayers.push_back(new GUILayer(glHelper, debugDrawer, (uint32_t)levelSlider));
     }
+}
+
+bool World::handleQuitRequest() {
+    apiInstance->quitGame();
 }

@@ -65,6 +65,9 @@ public:
     bool detachSoundFromObject(uint32_t objectWorldID);
     bool playSound(const std::string &soundPath, const glm::vec3 &position, bool looped);
 
+    bool loadAndSwitchWorld(const std::string& worldFileName);
+    void quitGame();
+
     std::vector<ParameterRequest> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
 
     /**
@@ -83,6 +86,10 @@ public:
         return variableStore[variableName];
     }
 
+    LimonAPI(std::function<bool (const std::string&)> worldLoadMethod, std::function<void ()> worldQuitMethod) {
+        this->limonLoadWorld = worldLoadMethod;
+        this->limonExitGame = worldQuitMethod;
+    }
 
 private:
     friend class WorldLoader;
@@ -104,6 +111,10 @@ private:
     std::function<bool (uint32_t)> worldDetachSoundFromObject;
     std::function<uint32_t (const std::string&, const glm::vec3&, bool)> worldPlaySound;
 
+    /*** Non World API calls *******************************************************/
+    std::function<bool (const std::string&)> limonLoadWorld;
+    std::function<void ()> limonExitGame;
+    /*** Non World API calls *******************************************************/
 };
 
 

@@ -59,6 +59,14 @@ bool LimonAPI::playSound(const std::string &soundPath, const glm::vec3 &position
     return worldPlaySound(soundPath, position, looped);
 }
 
+bool LimonAPI::loadAndSwitchWorld(const std::string& worldFileName) {
+    return limonLoadWorld(worldFileName);
+}
+
+void LimonAPI::quitGame() {
+    limonExitGame();
+}
+
 bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *ParametersNode,
                                            uint32_t index) const {
 
