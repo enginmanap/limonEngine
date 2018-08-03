@@ -599,14 +599,14 @@ GameObject * World::getPointedObject() const {
         return pickedGuiElement;
     } else {
         //we want to extend to vector to world AABB limit
-        float maxFactor = 0;
+        float maxFactor = 1; //don't allow making ray smaller than unit by setting 1.
 
         if (lookDirection.x > 0) {
             //so we are looking at positive x. determine how many times the ray x we need
-            maxFactor = (worldAABBMax.x - from.x) / lookDirection.x;
+            maxFactor = std::max(maxFactor,(worldAABBMax.x - from.x) / lookDirection.x);
         } else {
-            maxFactor = (worldAABBMin.x - from.x) /
-                        lookDirection.x; //Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
+            maxFactor = std::max(maxFactor,(worldAABBMin.x - from.x) /
+                        lookDirection.x); //Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
         }
 
         if (lookDirection.y > 0) {
