@@ -197,8 +197,6 @@ private:
     ImGuiHelper *imgGuiHelper;
     GameObject* pickedObject = nullptr;
     bool availableAssetsLoaded = false;
-    bool isQuitRequest = false;//does the player requested a quit?
-    bool isQuitVerified = false;//does the player set it is sure?
     bool guiPickMode = false;
 
     /**
@@ -301,6 +299,8 @@ private:
 
     void setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRenderable *PhysicalRenderable, bool removePossible);
 
+    bool handleQuitRequest();
+
 /********** Editor Methods *********************/
     void addGUITextControls();
     void addGUIImageControls();
@@ -312,7 +312,7 @@ private:
 public:
     ~World();
 
-    bool play(Uint32, InputHandler &);
+    void play(Uint32, InputHandler &);
 
     void render();
 

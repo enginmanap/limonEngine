@@ -10,6 +10,7 @@
 #include <tinyxml2.h>
 #include "ALHelper.h"
 #include "InputHandler.h"
+#include "GamePlay/LimonAPI.h"
 
 class World;
 class Options;
@@ -26,7 +27,7 @@ class WorldLoader {
     AssetManager *assetManager;
     InputHandler* inputHandler;
 
-    World* loadMapFromXML(const std::string& worldFileName) const;
+    World *loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const;
     bool loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* world)const;
     bool loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const;
     bool loadLights(tinyxml2::XMLNode *lightsNode, World* world) const;
@@ -36,11 +37,11 @@ class WorldLoader {
     bool loadOnLoadAnimations(tinyxml2::XMLNode *worldNode, World *world) const;
     bool loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *world) const;
 
-    void attachedAPIMethodsToWorld(World *world) const;
+    void attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) const;
 
 public:
     WorldLoader(AssetManager *assetManager, InputHandler *inputHandler, Options *options);
-    World* loadWorld(const std::string& worldFile) const;
+    World *loadWorld(const std::string &worldFile, LimonAPI *limonAPI) const;
 };
 
 

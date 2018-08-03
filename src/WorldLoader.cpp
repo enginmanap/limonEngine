@@ -22,6 +22,8 @@
 #include "GameObjects/GUIImage.h"
 #include "GameObjects/GUIButton.h"
 
+#include "main.h"
+
 WorldLoader::WorldLoader(AssetManager *assetManager, InputHandler *inputHandler, Options *options) :
         options(options),
         glHelper(assetManager->getGlHelper()),
@@ -30,8 +32,8 @@ WorldLoader::WorldLoader(AssetManager *assetManager, InputHandler *inputHandler,
         inputHandler(inputHandler)
 {}
 
-World* WorldLoader::loadWorld(const std::string& worldFile) const {
-    World* newWorld = loadMapFromXML(worldFile);
+World * WorldLoader::loadWorld(const std::string &worldFile, LimonAPI *limonAPI) const {
+    World* newWorld = loadMapFromXML(worldFile, limonAPI);
     if(newWorld == nullptr) {
         std::cerr << "world load failed" << std::endl;
         return nullptr;
@@ -47,26 +49,26 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
     return newWorld;
 }
 
-void WorldLoader::attachedAPIMethodsToWorld(World *world) const {// Set api endpoints accordingly
-    LimonAPI* api = new LimonAPI();
-    api->worldAddAnimationToObject = bind(&World::addAnimationToObjectWithSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false, std::placeholders::_4);
-    api->worldAddGuiText = bind(&World::addGuiText, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7);
-    api->worldUpdateGuiText = bind(&World::updateGuiText, world, std::placeholders::_1, std::placeholders::_2);
-    api->worldGenerateEditorElementsForParameters = bind(&World::generateEditorElementsForParameters, world, std::placeholders::_1, std::placeholders::_2);
-    api->worldGetResultOfTrigger = bind(&World::getResultOfTrigger, world, std::placeholders::_1, std::placeholders::_2);
-    api->worldRemoveGuiText = bind(&World::removeGuiText, world, std::placeholders::_1);
-    api->worldRemoveObject = bind(&World::removeObject, world, std::placeholders::_1);
-    api->worldRemoveTriggerObject = bind(&World::removeTriggerObject, world, std::placeholders::_1);
-    api->worldDisconnectObjectFromPhysics = bind(&World::disconnectObjectFromPhysics, world, std::placeholders::_1);
-    api->worldReconnectObjectToPhysics= bind(&World::reconnectObjectToPhysics, world, std::placeholders::_1);
-    api->worldAttachSoundToObjectAndPlay = bind(&World::attachSoundToObjectAndPlay, world, std::placeholders::_1, std::placeholders::_2);
-    api->worldDetachSoundFromObject = bind(&World::detachSoundFromObject, world, std::placeholders::_1);
-    api->worldPlaySound = bind(&World::playSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    world->apiInstance = api;
+void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) const {// Set api endpoints accordingly
+
+    limonAPI->worldAddAnimationToObject = bind(&World::addAnimationToObjectWithSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false, std::placeholders::_4);
+    limonAPI->worldAddGuiText = bind(&World::addGuiText, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7);
+    limonAPI->worldUpdateGuiText = bind(&World::updateGuiText, world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGenerateEditorElementsForParameters = bind(&World::generateEditorElementsForParameters, world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGetResultOfTrigger = bind(&World::getResultOfTrigger, world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldRemoveGuiText = bind(&World::removeGuiText, world, std::placeholders::_1);
+    limonAPI->worldRemoveObject = bind(&World::removeObject, world, std::placeholders::_1);
+    limonAPI->worldRemoveTriggerObject = bind(&World::removeTriggerObject, world, std::placeholders::_1);
+    limonAPI->worldDisconnectObjectFromPhysics = bind(&World::disconnectObjectFromPhysics, world, std::placeholders::_1);
+    limonAPI->worldReconnectObjectToPhysics= bind(&World::reconnectObjectToPhysics, world, std::placeholders::_1);
+    limonAPI->worldAttachSoundToObjectAndPlay = bind(&World::attachSoundToObjectAndPlay, world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldDetachSoundFromObject = bind(&World::detachSoundFromObject, world, std::placeholders::_1);
+    limonAPI->worldPlaySound = bind(&World::playSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    world->apiInstance = limonAPI;
 }
 
 
-World* WorldLoader::loadMapFromXML(const std::string& worldFileName) const {
+World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const {
     tinyxml2::XMLDocument xmlDoc;
     tinyxml2::XMLError eResult = xmlDoc.LoadFile(worldFileName.c_str());
     if (eResult != tinyxml2::XML_SUCCESS) {
@@ -98,7 +100,7 @@ World* WorldLoader::loadMapFromXML(const std::string& worldFileName) const {
 
     World* world = new World(std::string(worldName->GetText()), startingPlayer, inputHandler, assetManager, options);
 
-    attachedAPIMethodsToWorld(world);
+    attachedAPIMethodsToWorld(world, limonAPI);
 
     tinyxml2::XMLElement* musicNameNode =  worldNode->FirstChildElement("Music");
     if (musicNameNode == nullptr) {
