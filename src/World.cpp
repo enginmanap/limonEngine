@@ -571,12 +571,6 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
     currentPlayer->move(direction);
 
     if(inputHandler.getInputEvents(inputHandler.QUIT) &&  inputHandler.getInputStatus(inputHandler.QUIT)) {
-        if(menuPlayer == nullptr) {
-            menuPlayer = new MenuPlayer(options, cursor);
-            menuPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
-
-        }
-        switchPlayer(menuPlayer, inputHandler);
         return true;
     } else {
         return false;
@@ -873,55 +867,6 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             pickedObject = static_cast<GameObject*>(to);
         }
 
-        if (ImGui::CollapsingHeader("Add on load trigger")) {
-            static size_t onLoadTriggerIndex = 0;//maximum size
-            std::string selectedID = std::to_string(onLoadTriggerIndex);
-            if (ImGui::BeginCombo("Current Triggers", selectedID.c_str())) {
-                for(size_t i = 0; i < onLoadActions.size(); i++) {
-                    bool isTriggerSelected = selectedID == std::to_string(i);
-
-                    if (ImGui::Selectable(std::to_string(i).c_str(), isTriggerSelected)) {
-                        onLoadTriggerIndex = i;
-                    }
-                    if(isTriggerSelected) {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-                ImGui::EndCombo();
-            }
-            //currently any trigger object can have 3 elements, so this should be >2 to avoid collision on imgui tags. I am assigning 100 just to be safe
-            TriggerObject::PutTriggerInGui(apiInstance, onLoadActions[onLoadTriggerIndex]->action, onLoadActions[onLoadTriggerIndex]->parameters,
-                                           onLoadActions[onLoadTriggerIndex]->enabled, 100+onLoadTriggerIndex);
-            if(onLoadActions[onLoadActions.size()-1]->enabled) {
-                //when user presses the enable button, add another and select it
-                onLoadTriggerIndex=onLoadActions.size();
-                onLoadActions.push_back(new ActionForOnload());
-            }
-        }
-        static char musicNameBuffer[128] = {};
-        static bool musicRefresh = true;
-        if(musicRefresh) {
-            if (this->music != nullptr) {
-                if (this->music->getName().length() < 128) {
-                    strcpy(musicNameBuffer, this->music->getName().c_str());
-                } else {
-                    strncpy(musicNameBuffer, this->music->getName().c_str(), 127);
-                }
-            }
-            musicRefresh = false;
-        }
-        ImGui::InputText("OnLoad Music", musicNameBuffer, 128);
-        if(ImGui::Button("Change Music")) {
-            musicRefresh = true;
-            this->music->stop();
-            delete this->music;
-            this->music = new Sound(getNextObjectID(), assetManager, std::string(musicNameBuffer));
-            this->music->setLoop(true);
-            this->music->setWorldPosition(glm::vec3(0,0,0), true);
-            this->music->play();
-        }
-
-
         if (ImGui::CollapsingHeader("Add GUI Elements##The header")) {
             ImGui::Indent( 16.0f );
             if (ImGui::CollapsingHeader("Add GUI Layer##The header")) {
@@ -940,7 +885,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
         }
 
 
-        if (ImGui::CollapsingHeader("Custom Animations ")) {
+        if (ImGui::CollapsingHeader("Custom Animations")) {
             //list loaded animations
             int listbox_item_current = -1;//not static because I don't want user to select a item.
             ImGui::ListBox("Loaded animations", &listbox_item_current, getNameOfLoadedAnimation,
@@ -964,18 +909,84 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             }
         }
         ImGui::Separator();
+        if(ImGui::CollapsingHeader("World properties")) {
+            ImGui::Indent( 16.0f );
 
-        if (ImGui::BeginCombo("Starting Player Type", startingPlayer.toString().c_str())) {
-            for (auto iterator = PlayerTypes::typeNames.begin(); iterator != PlayerTypes::typeNames.end(); ++iterator) {
-                bool isThisTypeSelected = iterator->second ==  startingPlayer.toString();
-                if(ImGui::Selectable(iterator->second.c_str(), isThisTypeSelected)) {
-                    this->startingPlayer.setType(iterator->second);
+            if (ImGui::CollapsingHeader("Add on load trigger")) {
+                static size_t onLoadTriggerIndex = 0;//maximum size
+                std::string selectedID = std::to_string(onLoadTriggerIndex);
+                if (ImGui::BeginCombo("Current Triggers", selectedID.c_str())) {
+                    for (size_t i = 0; i < onLoadActions.size(); i++) {
+                        bool isTriggerSelected = selectedID == std::to_string(i);
+
+                        if (ImGui::Selectable(std::to_string(i).c_str(), isTriggerSelected)) {
+                            onLoadTriggerIndex = i;
+                        }
+                        if (isTriggerSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
                 }
-                if(isThisTypeSelected) {
-                    ImGui::SetItemDefaultFocus();
+                //currently any trigger object can have 3 elements, so this should be >2 to avoid collision on imgui tags. I am assigning 100 just to be safe
+                TriggerObject::PutTriggerInGui(apiInstance, onLoadActions[onLoadTriggerIndex]->action,
+                                               onLoadActions[onLoadTriggerIndex]->parameters,
+                                               onLoadActions[onLoadTriggerIndex]->enabled, 100 + onLoadTriggerIndex);
+                if (onLoadActions[onLoadActions.size() - 1]->enabled) {
+                    //when user presses the enable button, add another and select it
+                    onLoadTriggerIndex = onLoadActions.size();
+                    onLoadActions.push_back(new ActionForOnload());
                 }
             }
-            ImGui::EndCombo();
+            static char musicNameBuffer[128] = {};
+            static bool musicRefresh = true;
+            if (musicRefresh) {
+                if (this->music != nullptr) {
+                    if (this->music->getName().length() < 128) {
+                        strcpy(musicNameBuffer, this->music->getName().c_str());
+                    } else {
+                        strncpy(musicNameBuffer, this->music->getName().c_str(), 127);
+                    }
+                }
+                musicRefresh = false;
+            }
+            ImGui::InputText("OnLoad Music", musicNameBuffer, 128);
+            if (ImGui::Button("Change Music")) {
+                musicRefresh = true;
+                this->music->stop();
+                delete this->music;
+                this->music = new Sound(getNextObjectID(), assetManager, std::string(musicNameBuffer));
+                this->music->setLoop(true);
+                this->music->setWorldPosition(glm::vec3(0, 0, 0), true);
+                this->music->play();
+            }
+
+
+            if (ImGui::BeginCombo("Starting Player Type", startingPlayer.toString().c_str())) {
+                for (auto iterator = PlayerTypes::typeNames.begin();
+                     iterator != PlayerTypes::typeNames.end(); ++iterator) {
+                    bool isThisTypeSelected = iterator->second == startingPlayer.toString();
+                    if (ImGui::Selectable(iterator->second.c_str(), isThisTypeSelected)) {
+                        this->startingPlayer.setType(iterator->second);
+                    }
+                    if (isThisTypeSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+
+            ImGui::Text("By default, esc returns previous world");
+            ImGui::Checkbox("Load Custom world", &returnCustomOnQuit);
+            if(returnCustomOnQuit) {
+                ImGui::InputText("Custom World file ", quitWorldNameBuffer, sizeof(quitWorldNameBuffer));
+                if(ImGui::Button("Apply##custom world file setting")) {
+                    quitWorldName = quitWorldNameBuffer;
+                }
+            }
+
+            ImGui::Unindent( 16.0f );
+
         }
 
         ImGui::Separator();
@@ -989,7 +1000,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
             }
 
-            if(WorldSaver::saveWorld("./Data/Maps/CustomWorld001.xml", this)) {
+            if(WorldSaver::saveWorld(this->name, this)) {
                 options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
             } else {
                 options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
@@ -1791,6 +1802,20 @@ void World::addGUIImageControls() {
 
 void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
     currentPlayersSettings = &(targetPlayer->getWorldSettings());
+
+    setupForPlay(inputHandler);
+
+    //now all settings done, switch player
+    beforePlayer = currentPlayer;
+    currentPlayer = targetPlayer;
+    targetPlayer->ownControl(beforePlayer->getPosition(), beforePlayer->getLookDirection());
+
+    dynamicsWorld->updateAabbs();
+    camera->setCameraAttachment(currentPlayer->getCameraAttachment());
+
+}
+
+void World::setupForPlay(InputHandler &inputHandler) {
     if(currentPlayersSettings->debugMode == Player::DEBUG_ENABLED) {
         dynamicsWorld->getDebugDrawer()->setDebugMode(
                 dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE | dynamicsWorld->getDebugDrawer()->DBG_DrawAabb | dynamicsWorld->getDebugDrawer()->DBG_DrawConstraints | dynamicsWorld->getDebugDrawer()->DBG_DrawConstraintLimits);
@@ -1799,16 +1824,17 @@ void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
         }
         options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_INFO, "Debug enabled");
     } else if(currentPlayersSettings->debugMode == Player::DEBUG_DISABLED) {
-        this->dynamicsWorld->getDebugDrawer()->setDebugMode(this->dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
+        dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
         for (size_t i = 0; i < guiLayers.size(); ++i) {
-            this->guiLayers[i]->setDebug(false);
+            guiLayers[i]->setDebug(false);
         }
     }
     if(currentPlayersSettings->audioPlaying) {
-        this->alHelper->resumePlay();
+        alHelper->resumePlay();
     } else {
-        this->alHelper->pausePlay();
+        alHelper->pausePlay();
     }
+
     if(currentPlayersSettings->cursorFree) {
         inputHandler.setMouseModeFree();
         cursor->hide();
@@ -1816,6 +1842,7 @@ void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
         inputHandler.setMouseModeRelative();
         cursor->unhide();
     }
+
     if(currentPlayersSettings->resetAnimations) {
         //when switching to editor mode, return all objects that are custom animated without triggers
         //to original position
@@ -1831,15 +1858,6 @@ void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
     } else {
         guiPickMode = false;
     }
-
-    //now all settings done, switch player
-    beforePlayer = currentPlayer;
-    currentPlayer = targetPlayer;
-    targetPlayer->ownControl(beforePlayer->getPosition(), beforePlayer->getLookDirection());
-
-    dynamicsWorld->updateAabbs();
-    camera->setCameraAttachment(currentPlayer->getCameraAttachment());
-
 }
 
 void World::addGUIButtonControls() {
@@ -1917,7 +1935,12 @@ void World::addGUILayerControls() {
 }
 
 bool World::handleQuitRequest() {
-    apiInstance->loadAndSwitchWorld("./Data/Maps/Mayan-main_menu.xml");
+    if(returnCustomOnQuit) {
+        apiInstance->returnToWorld(quitWorldName);
+    } else {
+        apiInstance->returnPreviousWorld();
+        
+    }
     return true;
 }
 

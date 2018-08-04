@@ -113,6 +113,23 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         world->music->setWorldPosition(glm::vec3(0,0,0), true);
     }
 
+    tinyxml2::XMLElement* returnCustomWorld =  worldNode->FirstChildElement("ReturnCustomWorldOnQuit");
+    if (returnCustomWorld == nullptr) {
+        std::cout << "Return custom world flag can't be read, assuming false." << std::endl;
+    } else {
+        std:: cout << "read return custom value " << returnCustomWorld->GetText() << std::endl;
+        if(!strcmp(returnCustomWorld->GetText(),"True")) {
+            world->returnCustomOnQuit = true;
+        }
+    }
+
+    tinyxml2::XMLElement* quitWorldName =  worldNode->FirstChildElement("QuitWorldName");
+    if (quitWorldName != nullptr) {
+        world->quitWorldName = quitWorldName->GetText();
+        strncpy(world->quitWorldNameBuffer, world->quitWorldName.c_str(), sizeof(world->quitWorldNameBuffer));
+    }
+
+
     //load objects
     if(!loadObjectsFromXML(worldNode, world)) {
         delete world;
