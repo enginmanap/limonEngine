@@ -22,6 +22,7 @@ bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
     currentWorld = newWorld;
     loadedWorlds[worldFile] = currentWorld;
     returnWorldStack.push_back(currentWorld);
+    previousTime = SDL_GetTicks();
     return true;
 }
 
@@ -37,6 +38,7 @@ bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
         loadedWorlds[worldFile] = currentWorld;
     }
     returnWorldStack.push_back(currentWorld);
+    previousTime = SDL_GetTicks();
     return true;
 }
 
@@ -46,6 +48,7 @@ bool GameEngine::LoadNewAndRemoveCurrent(const std::string &worldFile) {
     returnOrLoadMap(worldFile);
     returnWorldStack.clear();
     returnWorldStack.push_back(currentWorld);
+    previousTime = SDL_GetTicks();
     return true;
 }
 
@@ -54,6 +57,7 @@ void GameEngine::returnPreviousMap() {
     if(returnWorldStack.size() >1) {
         returnWorldStack.pop_back();
     }
+    previousTime = SDL_GetTicks();
 }
 
 GameEngine::GameEngine() {
@@ -96,7 +100,7 @@ void GameEngine::run() {
     Uint32 worldUpdateTime = 1000 / 60;//This value is used to update world on a locked Timestep
 
     glHelper->clearFrame();
-    Uint32 previousTime = SDL_GetTicks();
+    previousTime = SDL_GetTicks();
     Uint32 currentTime, frameTime, accumulatedTime = 0;
     while (!worldQuit) {
         currentTime = SDL_GetTicks();
