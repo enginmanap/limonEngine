@@ -20,6 +20,7 @@ bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
         delete loadedWorlds[worldFile];
     }
     currentWorld = newWorld;
+    currentWorld->setupForPlay(*inputHandler);
     loadedWorlds[worldFile] = currentWorld;
     returnWorldStack.push_back(currentWorld);
     previousTime = SDL_GetTicks();
@@ -37,6 +38,7 @@ bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
         currentWorld = newWorld;
         loadedWorlds[worldFile] = currentWorld;
     }
+    currentWorld->setupForPlay(*inputHandler);
     returnWorldStack.push_back(currentWorld);
     previousTime = SDL_GetTicks();
     return true;
@@ -56,6 +58,7 @@ void GameEngine::returnPreviousMap() {
     if(returnWorldStack.size() >1) {
         returnWorldStack.pop_back();
         currentWorld = returnWorldStack[returnWorldStack.size()-1];
+        currentWorld->setupForPlay(*inputHandler);
     }
     previousTime = SDL_GetTicks();
 }
