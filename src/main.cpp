@@ -53,9 +53,9 @@ bool GameEngine::LoadNewAndRemoveCurrent(const std::string &worldFile) {
 }
 
 void GameEngine::returnPreviousMap() {
-    currentWorld = returnWorldStack[returnWorldStack.size()-1];
     if(returnWorldStack.size() >1) {
         returnWorldStack.pop_back();
+        currentWorld = returnWorldStack[returnWorldStack.size()-1];
     }
     previousTime = SDL_GetTicks();
 }
