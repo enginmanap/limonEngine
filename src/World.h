@@ -158,6 +158,9 @@ private:
     GLHelper *glHelper;
     ALHelper *alHelper;
     std::string name;
+    char quitWorldNameBuffer[256] = {0};
+    std::string quitWorldName;
+
     long gameTime = 0;
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
@@ -199,6 +202,7 @@ private:
     GameObject* pickedObject = nullptr;
     bool availableAssetsLoaded = false;
     bool guiPickMode = false;
+    bool returnCustomOnQuit = false;
 
     /**
      * This method checks, if IDs assigned without any empty space, and any collision
@@ -364,6 +368,7 @@ public:
     bool reconnectObjectToPhysics(uint32_t objectWorldID);
 
     /************************************ Methods LimonAPI exposes *************/
+    void setupForPlay(InputHandler &inputHandler);
 };
 
 #endif //LIMONENGINE_WORLD_H

@@ -82,6 +82,19 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
         currentElement->SetText(world->music->getName().c_str());
     }
     rootNode->InsertEndChild(currentElement);
+
+    currentElement = mapDocument.NewElement("ReturnCustomWorldOnQuit");
+    if(world->returnCustomOnQuit) {
+       currentElement->SetText("True");
+    } else {
+        currentElement->SetText("False");
+    }
+    rootNode->InsertEndChild(currentElement);
+
+    currentElement = mapDocument.NewElement("QuitWorldName");
+    currentElement->SetText(world->quitWorldName.c_str());
+    rootNode->InsertEndChild(currentElement);
+
     //after current element is inserted, we can reuse
     currentElement = mapDocument.NewElement("Objects");
     if(!fillObjects(mapDocument, currentElement, world)) {
