@@ -7,6 +7,7 @@
 
 
 #include <string>
+#include <vector>
 
 class World;
 class WorldLoader;
@@ -20,7 +21,7 @@ class LimonAPI;
 
 class GameEngine {
     WorldLoader* worldLoader = nullptr;
-    World* world = nullptr;
+    World* currentWorld = nullptr;
     bool worldQuit = false;
 
     Options* options = nullptr;
@@ -31,25 +32,23 @@ class GameEngine {
     SDL2Helper* sdlHelper = nullptr;
     LimonAPI* limonAPI = nullptr;
 
+    std::unordered_map<std::string, World*> loadedWorlds;
+    std::vector<World*> returnWorldStack;//stack doesn't have clear, so I am using vector
 public:
 
     GameEngine();
     ~GameEngine();
 
-    World *getWorld() {
-        return world;
-    }
-
-    bool isWorldQuit() const {
-        return worldQuit;
-    }
-
     void setWorldQuit() {
         GameEngine::worldQuit = true;
     }
 
-    bool mainLoadAndChangeWorld(const std::string& worldFile);
+    bool loadAndChangeWorld(const std::string &worldFile);
 
+    void returnPreviousMap();
+
+    bool returnOrLoadMap(const std::string &worldFile);
+    bool LoadNewAndRemoveCurrent(const std::string &worldFile);
 
     void run();
 };

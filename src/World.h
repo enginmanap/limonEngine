@@ -157,6 +157,7 @@ private:
     SkyBox *sky = nullptr;
     GLHelper *glHelper;
     ALHelper *alHelper;
+    std::string name;
     long gameTime = 0;
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
@@ -321,6 +322,8 @@ public:
     }
 
     void addAnimationDefinitionToEditor();
+
+    std::string getName();
 
     /************************************ Methods LimonAPI exposes *************/
     /**

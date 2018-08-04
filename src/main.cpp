@@ -11,14 +11,49 @@
 
 const std::string PROGRAM_NAME = "LimonEngine";
 
-bool GameEngine::mainLoadAndChangeWorld(const std::string& worldFile) {
+bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
     World* newWorld = worldLoader->loadWorld(worldFile, limonAPI);
     if(newWorld == nullptr) {
         return false;
     }
-    delete world;
-    world = newWorld;
+    if(loadedWorlds.find(worldFile) != loadedWorlds.end()) {
+        delete loadedWorlds[worldFile];
+    }
+    currentWorld = newWorld;
+    loadedWorlds[worldFile] = currentWorld;
+    returnWorldStack.push_back(currentWorld);
     return true;
+}
+
+bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
+    if(loadedWorlds.find(worldFile) != loadedWorlds.end()) {
+        currentWorld = loadedWorlds[worldFile];
+    } else { //world is not in the map case
+        World* newWorld = worldLoader->loadWorld(worldFile, limonAPI);
+        if(newWorld == nullptr) {
+            return false;
+        }
+        currentWorld = newWorld;
+        loadedWorlds[worldFile] = currentWorld;
+    }
+    returnWorldStack.push_back(currentWorld);
+    return true;
+}
+
+bool GameEngine::LoadNewAndRemoveCurrent(const std::string &worldFile) {
+    World* temp = currentWorld;
+    loadedWorlds.erase(temp->getName());
+    returnOrLoadMap(worldFile);
+    returnWorldStack.clear();
+    returnWorldStack.push_back(currentWorld);
+    return true;
+}
+
+void GameEngine::returnPreviousMap() {
+    currentWorld = returnWorldStack[returnWorldStack.size()-1];
+    if(returnWorldStack.size() >1) {
+        returnWorldStack.pop_back();
+    }
 }
 
 GameEngine::GameEngine() {
@@ -36,18 +71,25 @@ GameEngine::GameEngine() {
     glHelper = new GLHelper(options);
     glHelper->reshape();
 
-    ALHelper* alHelper = new ALHelper();
+    ALHelper *alHelper = new ALHelper();
 
     inputHandler = new InputHandler(sdlHelper->getWindow(), options);
     assetManager = new AssetManager(glHelper, alHelper);
 
     worldLoader = new WorldLoader(assetManager, inputHandler, options);
 
-    std::function<bool (const std::string&)> limonLoadWorld = bind(&GameEngine::mainLoadAndChangeWorld, this, std::placeholders::_1);
-    std::function<void ()> limonExitGame = [&]{this->setWorldQuit();};
+    std::function<bool(const std::string &)> limonLoadWorld =
+            bind(&GameEngine::loadAndChangeWorld, this, std::placeholders::_1);
+    std::function<bool(const std::string &)> limonReturnOrLoadWorld =
+            bind(&GameEngine::returnOrLoadMap, this, std::placeholders::_1);
+    std::function<bool(const std::string &)> limonLoadNewAndRemoveCurrentWorld =
+            bind(&GameEngine::LoadNewAndRemoveCurrent, this, std::placeholders::_1);
+    std::function<void()> limonExitGame = [&] { this->setWorldQuit(); };
+    std::function<void()> limonReturnPrevious = [&] { this->returnPreviousMap(); };
 
-    limonAPI = new LimonAPI(limonLoadWorld, limonExitGame);
 
+    limonAPI = new LimonAPI(limonLoadWorld, limonReturnOrLoadWorld, limonLoadNewAndRemoveCurrentWorld, limonExitGame,
+                            limonReturnPrevious);
 }
 
 void GameEngine::run() {
@@ -66,17 +108,17 @@ void GameEngine::run() {
             inputHandler->mapInput();
 
             //FIXME this does not account for long operations/low framerate
-            world->play(worldUpdateTime, *inputHandler);
+            currentWorld->play(worldUpdateTime, *inputHandler);
             accumulatedTime -= worldUpdateTime;
         }
         glHelper->clearFrame();
-        world->render();
+        currentWorld->render();
         sdlHelper->swap();
     }
 }
 
 GameEngine::~GameEngine() {
-    delete world;
+    delete currentWorld;
 
     delete worldLoader;
     delete limonAPI;
@@ -108,7 +150,7 @@ int main(int argc, char *argv[]) {
 
     GameEngine game;
 
-    if(!game.mainLoadAndChangeWorld(worldName)) {
+    if(!game.loadAndChangeWorld(worldName)) {
         std::cerr << "WorldLoader didn't hand out a valid world. exiting.." << std::endl;
         exit(-1);
     }

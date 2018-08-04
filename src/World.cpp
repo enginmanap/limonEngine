@@ -43,7 +43,7 @@ const std::map<World::PlayerTypes::Types, std::string> World::PlayerTypes::typeN
 
 World::World(const std::string &name, PlayerTypes startingPlayerType, InputHandler *inputHandler,
              AssetManager *assetManager, Options *options)
-        : assetManager(assetManager),options(options), glHelper(assetManager->getGlHelper()), alHelper(assetManager->getAlHelper()), fontManager(glHelper), startingPlayer(startingPlayerType) {
+        : assetManager(assetManager),options(options), glHelper(assetManager->getGlHelper()), alHelper(assetManager->getAlHelper()), name(name), fontManager(glHelper), startingPlayer(startingPlayerType) {
     // physics init
     broadphase = new btDbvtBroadphase();
     ghostPairCallback = new btGhostPairCallback();
@@ -1919,4 +1919,8 @@ void World::addGUILayerControls() {
 bool World::handleQuitRequest() {
     apiInstance->loadAndSwitchWorld("./Data/Maps/Mayan-main_menu.xml");
     return true;
+}
+
+std::string World::getName() {
+    return this->name;
 }
