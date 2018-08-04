@@ -63,6 +63,18 @@ bool LimonAPI::loadAndSwitchWorld(const std::string& worldFileName) {
     return limonLoadWorld(worldFileName);
 }
 
+bool LimonAPI::returnToWorld(const std::string &worldFileName) {
+    return this->limonReturnOrLoadWorld(worldFileName);
+}
+
+bool LimonAPI::LoadAndRemove(const std::string &worldFileName) {
+    return this->limonLoadNewAndRemoveCurrentWorld(worldFileName);
+}
+
+void LimonAPI::returnPreviousWorld() {
+    this->limonReturnPrevious();
+}
+
 void LimonAPI::quitGame() {
     limonExitGame();
 }
