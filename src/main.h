@@ -34,6 +34,8 @@ class GameEngine {
 
     std::unordered_map<std::string, World*> loadedWorlds;
     std::vector<World*> returnWorldStack;//stack doesn't have clear, so I am using vector
+
+    Uint32 previousTime = 0;
 public:
 
     GameEngine();
