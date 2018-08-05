@@ -661,7 +661,7 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
             tinyxml2::XMLElement* typeNode =  GUIElementNode->FirstChildElement("Type");
             if(typeNode != nullptr) {
                 std::string typeName = typeNode->GetText();
-                GUIRenderable *element;
+                GUIRenderable *element = nullptr;
                 std::string name;
                 if(typeName == "GUIText") {
                     element = GUIText::deserialize(GUIElementNode, glHelper, &world->fontManager, options);
