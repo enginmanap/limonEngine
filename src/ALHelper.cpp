@@ -228,27 +228,29 @@ bool ALHelper::PlayingSound::isFinished() {
 }
 
 ALHelper::PlayingSound::~PlayingSound() {
-    alSourceStop(source);
-    ALenum error;
-    ALint val;
-    ALuint tempBuffers[NUM_BUFFERS];
+    if(source != 0) { //if 0 it means requested and removed before start playing
+        alSourceStop(source);
+        ALenum error;
+        ALint val;
+        ALuint tempBuffers[NUM_BUFFERS];
 
-    alGetSourcei(source, AL_BUFFERS_PROCESSED, &val);
+        alGetSourcei(source, AL_BUFFERS_PROCESSED, &val);
 
 
-    alSourceUnqueueBuffers(source, val, tempBuffers);
-    if ((error = alGetError()) != AL_NO_ERROR) {
-        std::cerr << "Error sound source unqueue before delete! " << alGetString(error) << std::endl;
-    }
+        alSourceUnqueueBuffers(source, val, tempBuffers);
+        if ((error = alGetError()) != AL_NO_ERROR) {
+            std::cerr << "Error sound source unqueue before delete! " << alGetString(error) << std::endl;
+        }
 
-    alDeleteBuffers(NUM_BUFFERS, buffers);
-    if ((error = alGetError()) != AL_NO_ERROR) {
-        std::cerr << "Error sound source delete buffer ! " << alGetString(error) << std::endl;
-    }
+        alDeleteBuffers(NUM_BUFFERS, buffers);
+        if ((error = alGetError()) != AL_NO_ERROR) {
+            std::cerr << "Error sound source delete buffer ! " << alGetString(error) << std::endl;
+        }
 
-    alDeleteSources(1, &source);
-    if ((error = alGetError()) != AL_NO_ERROR) {
-        std::cerr << "Error deleting the playing source! " << alGetString(error) << std::endl;
+        alDeleteSources(1, &source);
+        if ((error = alGetError()) != AL_NO_ERROR) {
+            std::cerr << "Error deleting the playing source! " << alGetString(error) << std::endl;
+        }
     }
 
 }
@@ -270,6 +272,17 @@ bool ALHelper::setLooped(uint32_t soundID, bool looped) {
     if(playingSounds.find(soundID) != playingSounds.end()) {
         playingSounds[soundID]->looped = looped;
         return true;
+    } else {
+        bool result = false;
+        SDL_AtomicLock(&playRequestLock);
+        for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
+            if((*request)->soundID == soundID) {
+                this->playRequests.erase(request);
+                result = true;
+                break;
+            }
+        }
+        SDL_AtomicUnlock(&playRequestLock);
+        return result;
     }
-    return false;
 }
