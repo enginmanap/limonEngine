@@ -945,10 +945,10 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             static bool musicRefresh = true;
             if (musicRefresh) {
                 if (this->music != nullptr) {
-                    if (this->music->getName().length() < 128) {
+                    if (this->music->getName().length() < sizeof(musicNameBuffer)) {
                         strcpy(musicNameBuffer, this->music->getName().c_str());
                     } else {
-                        strncpy(musicNameBuffer, this->music->getName().c_str(), 127);
+                        strncpy(musicNameBuffer, this->music->getName().c_str(), sizeof(musicNameBuffer) - 1);
                     }
                 }
                 musicRefresh = false;
