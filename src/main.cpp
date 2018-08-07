@@ -8,10 +8,13 @@
 #include "World.h"
 #include "WorldLoader.h"
 #include "ALHelper.h"
+#include "GameObjects/GUIImage.h"
 
 const std::string PROGRAM_NAME = "LimonEngine";
 
 bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
+    renderLoadingImage();
+
     World* newWorld = worldLoader->loadWorld(worldFile, limonAPI);
     if(newWorld == nullptr) {
         return false;
@@ -27,10 +30,18 @@ bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
     return true;
 }
 
+void GameEngine::renderLoadingImage() const {
+    loadingImage->setFullScreen(true);
+    sdlHelper->swap();
+    loadingImage->render();
+    sdlHelper->swap();
+}
+
 bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
     if(loadedWorlds.find(worldFile) != loadedWorlds.end()) {
         currentWorld = loadedWorlds[worldFile];
     } else { //world is not in the map case
+        renderLoadingImage();
         World* newWorld = worldLoader->loadWorld(worldFile, limonAPI);
         if(newWorld == nullptr) {
             return false;
@@ -45,6 +56,7 @@ bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
 }
 
 bool GameEngine::LoadNewAndRemoveCurrent(const std::string &worldFile) {
+    renderLoadingImage();
     World* temp = currentWorld;
     loadedWorlds.erase(temp->getName());
     returnOrLoadMap(worldFile);
@@ -98,6 +110,9 @@ GameEngine::GameEngine() {
 
     limonAPI = new LimonAPI(limonLoadWorld, limonReturnOrLoadWorld, limonLoadNewAndRemoveCurrentWorld, limonExitGame,
                             limonReturnPrevious);
+
+    //FIXME this image should not be hardcoded
+    loadingImage = new GUIImage(0, options, assetManager, "loadingImage", "./Data/Textures/Menu/mayanMap-loading.png");
 }
 
 void GameEngine::run() {
