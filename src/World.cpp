@@ -1270,6 +1270,11 @@ void World::addAnimationDefinitionToEditor() {
 World::~World() {
     delete dynamicsWorld;
     delete animationInProgress;
+
+    if(this->music != nullptr) {
+        delete this->music;
+    }
+
     //FIXME clear GUIlayer elements
     for (auto it = objects.begin(); it != objects.end(); ++it) {
         delete (*it).second;

@@ -59,3 +59,8 @@ void Sound::setWorldPosition(glm::vec3 position, bool listenerRelative) {
 
     assetManager->getAlHelper()->setSourcePosition(soundHandleID, this->listenerRelative, this->position);
 }
+
+Sound::~Sound() {
+    this->stop();
+    this->assetManager->freeAsset({this->name});
+}
