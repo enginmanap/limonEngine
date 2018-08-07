@@ -44,6 +44,9 @@ const std::map<World::PlayerTypes::Types, std::string> World::PlayerTypes::typeN
 World::World(const std::string &name, PlayerTypes startingPlayerType, InputHandler *inputHandler,
              AssetManager *assetManager, Options *options)
         : assetManager(assetManager),options(options), glHelper(assetManager->getGlHelper()), alHelper(assetManager->getAlHelper()), name(name), fontManager(glHelper), startingPlayer(startingPlayerType) {
+
+    strncpy(worldSaveNameBuffer, name.c_str(), sizeof(worldSaveNameBuffer) -1 );
+
     // physics init
     broadphase = new btDbvtBroadphase();
     ghostPairCallback = new btGhostPairCallback();
@@ -990,7 +993,10 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
         }
 
         ImGui::Separator();
-        if(ImGui::Button("Save Map")) {
+
+        ImGui::InputText("##save world name", worldSaveNameBuffer, sizeof(worldSaveNameBuffer));
+        ImGui::SameLine();
+        if(ImGui::Button("Save World")) {
             for(auto animIt = loadedAnimations.begin(); animIt != loadedAnimations.end(); animIt++) {
                 if(animIt->serializeAnimation("./Data/Animations/")) {
                     options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation saved");
@@ -1000,7 +1006,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
             }
 
-            if(WorldSaver::saveWorld(this->name, this)) {
+            if(WorldSaver::saveWorld(worldSaveNameBuffer, this)) {
                 options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
             } else {
                 options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
