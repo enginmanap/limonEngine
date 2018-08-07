@@ -16,15 +16,30 @@ std::vector<LimonAPI::ParameterRequest> ChangeWorldOnTrigger::getParameters() {
     pr.description = "World file path";
     parameters.push_back(pr);
 
+    LimonAPI::ParameterRequest pr2;
+    pr2.valueType = LimonAPI::ParameterRequest::ValueTypes::BOOLEAN;
+    pr2.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::SWITCH;
+    pr2.description = "Force new";
+    parameters.push_back(pr2);
+
     return parameters;
 }
 
 bool ChangeWorldOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters) {
-    if(limonAPI->loadAndSwitchWorld(parameters[0].value.stringValue)) {
-        worldChanged = true;
-        return true;
+    if(parameters[1].value.boolValue) {
+        if (limonAPI->loadAndSwitchWorld(parameters[0].value.stringValue)) {
+            worldChanged = true;
+            return true;
+        } else {
+            return false;
+        }
     } else {
-        return false;
+        if (limonAPI->returnToWorld(parameters[0].value.stringValue)) {
+            worldChanged = true;
+            return true;
+        } else {
+            return false;
+        }
     }
 }
 
