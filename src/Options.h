@@ -15,6 +15,7 @@ public:
     static constexpr float PI = 3.14159265358979f;
     static constexpr float PI_DOUBLE = 3.141592653589793238463;
     enum MoveModes {WALK, RUN};
+    enum class TextureFilteringModes { NEAREST, BILINEAR, TRILINEAR };
 private:
     Logger *logger{};
 
@@ -46,6 +47,7 @@ private:
     int drawableWidth, drawableHeight;
     int windowWidth, windowHeight;
     bool isWindowInFocus;
+    TextureFilteringModes currentTextureFilteringMode = TextureFilteringModes::TRILINEAR;
 
     void loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec3&);
     void loadVec4(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec4&);
@@ -218,6 +220,10 @@ public:
 
     Logger* getLogger() {
         return logger;
+    }
+
+    TextureFilteringModes getTextureFiltering() {
+        return currentTextureFilteringMode;
     }
 };
 
