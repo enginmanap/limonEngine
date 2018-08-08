@@ -126,10 +126,10 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     if (quitWorldName != nullptr) {
         if(quitWorldName->GetText() != nullptr) {
             world->quitWorldName =quitWorldName->GetText();
-            strncpy(world->quitWorldNameBuffer, world->quitWorldName.c_str(), sizeof(world->quitWorldNameBuffer));
+            strncpy(world->quitWorldNameBuffer, world->quitWorldName.c_str(), sizeof(world->quitWorldNameBuffer) - 1);
         } else {
             world->quitWorldName = "";
-            strncpy(world->quitWorldNameBuffer, world->quitWorldName.c_str(), sizeof(world->quitWorldNameBuffer));
+            strncpy(world->quitWorldNameBuffer, world->quitWorldName.c_str(), sizeof(world->quitWorldNameBuffer) - 1);
         }
     }
 
