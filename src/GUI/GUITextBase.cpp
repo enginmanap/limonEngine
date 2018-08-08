@@ -108,7 +108,7 @@ void GUITextBase::render() {
         glHelper->attachTexture(glyph->getTextureID(), glyphAttachPoint);
         glHelper->render(renderProgram->getID(), vao, ebo, (const GLuint) (faces.size() * 3));
 
-        totalAdvance += glyph->getAdvance() / 64;
+        totalAdvance += (glyph->getAdvance() / 64.0f) * this->getScale().x;
     }
 
 }
