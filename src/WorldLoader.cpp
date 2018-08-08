@@ -230,7 +230,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
             std::cerr << "Object does not have step on sound." << std::endl;
         } else {
             std::string stepOnSound = objectAttribute->GetText();
-            if(requiredSounds.find(stepOnSound) != requiredSounds.end()) {
+            if(requiredSounds.find(stepOnSound) == requiredSounds.end()) {
                 requiredSounds[stepOnSound] = std::make_shared<Sound>(0, assetManager, stepOnSound);//since the step on is not managed by world, not feed world object ID
             }
             xmlModel->setPlayerStepOnSound(requiredSounds[stepOnSound]);
