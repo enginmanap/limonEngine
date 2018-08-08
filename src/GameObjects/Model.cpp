@@ -370,7 +370,9 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
 
     ImGui::InputText("Step On Sound", stepOnSoundNameBuffer, 128);
     if(ImGui::Button("Change Sound")) {
-        this->stepOnSound->stop();
+        if(this->stepOnSound != nullptr) {
+            this->stepOnSound->stop();
+        }
         this->stepOnSound = std::make_shared<Sound>(0, assetManager, std::string(stepOnSoundNameBuffer));
         this->stepOnSound->setLoop(true);
     }
