@@ -141,6 +141,20 @@ bool Options::loadOptions(const std::string &optionsFileName) {
         lightPerspectiveProjectionFarPlane = std::stof(lightPerspectiveProjectionFarPlaneNode->GetText());
     }
 
+    tinyxml2::XMLElement *textureFilteringNode = optionsNode->FirstChildElement(
+            "TextureFiltering");
+    if (lightPerspectiveProjectionFarPlaneNode != nullptr) {
+        if(lightPerspectiveProjectionFarPlaneNode->GetText() == "Nearest") {
+            currentTextureFilteringMode = TextureFilteringModes::NEAREST;
+        } else if(lightPerspectiveProjectionFarPlaneNode->GetText() == "Bilinear") {
+            currentTextureFilteringMode = TextureFilteringModes::BILINEAR;
+        } else if(lightPerspectiveProjectionFarPlaneNode->GetText() == "Trilinear") {
+            currentTextureFilteringMode = TextureFilteringModes::TRILINEAR;
+        } else {
+          std::cerr << "Texture filtering mode can't be read, assuming Trilinear" << std::endl;
+        }
+    }
+
     loadVec3(optionsNode, "walkSpeed", walkSpeed);
     loadVec3(optionsNode, "runSpeed", runSpeed);
     loadVec3(optionsNode, "freeMovementSpeed", freeMovementSpeed);

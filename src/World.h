@@ -16,6 +16,7 @@
 #include "GamePlay/LimonAPI.h"
 #include "AI/Actor.h"
 #include "ALHelper.h"
+#include "GameObjects/Players/Player.h"
 
 
 class btGhostPairCallback;
@@ -33,6 +34,7 @@ class GUITextBase;
 class GUIFPSCounter;
 class GUITextDynamic;
 class GUICursor;
+class GUIButton;
 
 
 class GameObject;
@@ -40,6 +42,7 @@ class Player;
 class PhysicalPlayer;
 class FreeMovingPlayer;
 class FreeCursorPlayer;
+class MenuPlayer;
 class ImGuiHelper;
 class AssetManager;
 class TriggerObject;
@@ -53,7 +56,43 @@ class GLHelper;
 class ALHelper;
 
 class World {
+public:
+    struct PlayerTypes {
+        enum class Types {
+            //ATTENTION if another type is added, typeNames must be updated
+            PHYSICAL_PLAYER, DEBUG_PLAYER, EDITOR_PLAYER, MENU_PLAYER
+        };
+        Types type = Types::PHYSICAL_PLAYER;
 
+        static const std::map<Types, std::string> typeNames;
+
+        std::string toString() const {
+            assert(typeNames.find(type) != typeNames.end());
+            return typeNames.at(type);
+        }
+
+        PlayerTypes() {}
+
+        PlayerTypes(const std::string& name) {
+            setType(name);
+        }
+
+        bool setType(const std::string& name) {
+            bool isSet = false;
+            for (auto iterator = typeNames.begin(); iterator != typeNames.end(); ++iterator) {
+                if(iterator->second == name) {
+                    type = iterator->first;
+                    isSet = true;
+                }
+            }
+            if(!isSet) {
+                std::cerr << "World starting player not match options, will default to Physical player." << std::endl;
+            }
+            return isSet;
+        }
+
+    };
+private:
     struct AnimationStatus {
         PhysicalRenderable* object = nullptr;
         uint32_t animationIndex;
@@ -83,8 +122,6 @@ class World {
     friend class WorldLoader;
     friend class WorldSaver; //Those classes require direct access to some of the internal data
 
-    enum PlayerModes {DEBUG_MODE, EDITOR_MODE, PHYSICAL_MODE, PAUSED_MODE}; //PAUSED mode is used by quit logic
-
     std::vector<uint32_t > modelIndicesBuffer;
     AssetManager* assetManager;
     Options* options;
@@ -105,7 +142,7 @@ class World {
 
     /************************* End of redundant variables ******************************************/
 
-    std::map<uint32_t, GUIText*> guiElements;
+    std::map<uint32_t, GUIRenderable*> guiElements;
     std::map<uint32_t, TriggerObject*> triggers;
     std::vector<ActionForOnload* > onLoadActions;
     std::vector<AnimationCustom> loadedAnimations;
@@ -120,16 +157,27 @@ class World {
     SkyBox *sky = nullptr;
     GLHelper *glHelper;
     ALHelper *alHelper;
+    std::string name;
+    char worldSaveNameBuffer[256] = {0};
+    char quitWorldNameBuffer[256] = {0};
+    std::string quitWorldName;
+
     long gameTime = 0;
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
 
     GLSLProgram *shadowMapProgramDirectional, *shadowMapProgramPoint;
     FontManager fontManager;
-    PhysicalPlayer* physicalPlayer;
+
+    PlayerTypes startingPlayer;
+    PhysicalPlayer* physicalPlayer = nullptr;
     FreeCursorPlayer* editorPlayer = nullptr;
     FreeMovingPlayer* debugPlayer = nullptr;
-    Player* currentPlayer;
+    MenuPlayer* menuPlayer = nullptr;
+    Player* currentPlayer = nullptr;
+    Player* beforePlayer = nullptr;
+    const Player::WorldSettings* currentPlayersSettings = nullptr;
+
     Camera* camera;
     BulletDebugDrawer *debugDrawer;
     GameObject::ImGuiRequest* request;
@@ -138,6 +186,7 @@ class World {
     GUIText* renderCounts;
     GUIFPSCounter* fpsCounter;
     GUICursor* cursor;
+    GUIButton *hoveringButton = nullptr;
     GUITextDynamic* debugOutputGUI;
 
     btGhostPairCallback *ghostPairCallback;
@@ -150,14 +199,11 @@ class World {
     btDefaultCollisionConfiguration *collisionConfiguration;
     btCollisionDispatcher *dispatcher;
     btSequentialImpulseConstraintSolver *solver;
-    PlayerModes currentMode = PHYSICAL_MODE;
-    PlayerModes beforeMode = PHYSICAL_MODE;
     ImGuiHelper *imgGuiHelper;
     GameObject* pickedObject = nullptr;
     bool availableAssetsLoaded = false;
-    bool isQuitRequest = false;//does the player requested a quit?
-    bool isQuitVerified = false;//does the player set it is sure?
     bool guiPickMode = false;
+    bool returnCustomOnQuit = false;
 
     /**
      * This method checks, if IDs assigned without any empty space, and any collision
@@ -166,15 +212,17 @@ class World {
      */
     bool verifyIDs(){
         std::set<uint32_t > usedIDs;
-        uint32_t maxID;
+        uint32_t maxID = 0;
         /** there are 3 places that has IDs,
          * 1) sky
          * 2) objects
          * 3) AIs
          */
         //put sky first, since it is guaranteed to be single
-        usedIDs.insert(this->sky->getWorldObjectID());
-        maxID = this->sky->getWorldObjectID();
+        if(this->sky != nullptr) {
+            usedIDs.insert(this->sky->getWorldObjectID());
+            maxID = this->sky->getWorldObjectID();
+        }
 
         for(auto object = objects.begin(); object != objects.end(); object++) {
             auto result = usedIDs.insert(object->first);
@@ -197,9 +245,19 @@ class World {
         for(auto actor = actors.begin(); actor != actors.end(); actor++) {
             auto result = usedIDs.insert(actor->first);
             if(result.second == false) {
+                std::cerr << "world ID repetition on trigger detected! Actor with id " << actor->first << std::endl;
                 return false;
             }
             maxID = std::max(maxID,actor->first);
+        }
+
+        for (auto guiElement = guiElements.begin(); guiElement != guiElements.end(); ++guiElement) {
+            auto result = usedIDs.insert(guiElement->first);
+            if(result.second == false) {
+                std::cerr << "world ID repetition on trigger detected! gui element with id " << guiElement->first << std::endl;
+                return false;
+            }
+            maxID = std::max(maxID, guiElement->first);
         }
 
         for(uint32_t index = 1; index <= maxID; index++) {
@@ -221,12 +279,12 @@ class World {
 
     void updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax);
 
-    void addModelToWorld(Model *xmlModel);
+    bool addModelToWorld(Model *xmlModel);
+    bool addGUIElementToWorld(GUIRenderable *guiRenderable, GUILayer *guiLayer);
 
     void fillVisibleObjects();
 
     GameObject * getPointedObject() const;
-
 
     void addActor(Actor *actor);
 
@@ -236,15 +294,12 @@ class World {
 
     void addLight(Light *light);
 
-    World(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options);
+    World(const std::string &name, PlayerTypes startingPlayerType, InputHandler *inputHandler,
+              AssetManager *assetManager, Options *options);
 
     void afterLoadFinished();
 
-    void switchToEditorMode(InputHandler &inputHandler);
-
-    void switchToPhysicalPlayer(InputHandler &inputHandler);
-
-    void switchToDebugMode(InputHandler &inputHandler);
+    void switchPlayer(Player* targetPlayer, InputHandler &inputHandler);
 
     void ImGuiFrameSetup();
 
@@ -252,12 +307,20 @@ class World {
 
     void setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRenderable *PhysicalRenderable, bool removePossible);
 
+    bool handleQuitRequest();
+
+/********** Editor Methods *********************/
+    void addGUITextControls();
+    void addGUIImageControls();
+    void addGUIButtonControls();
+    void addGUILayerControls();
+/********** Editor Methods *********************/
     //API methods
 
 public:
     ~World();
 
-    bool play(Uint32, InputHandler &);
+    void play(Uint32, InputHandler &);
 
     void render();
 
@@ -266,6 +329,8 @@ public:
     }
 
     void addAnimationDefinitionToEditor();
+
+    std::string getName();
 
     /************************************ Methods LimonAPI exposes *************/
     /**
@@ -306,6 +371,7 @@ public:
     bool reconnectObjectToPhysics(uint32_t objectWorldID);
 
     /************************************ Methods LimonAPI exposes *************/
+    void setupForPlay(InputHandler &inputHandler);
 };
 
 #endif //LIMONENGINE_WORLD_H

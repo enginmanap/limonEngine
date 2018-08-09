@@ -88,7 +88,7 @@ SDL_Window *SDL2Helper::getWindow() {
 }
 
 bool SDL2Helper::loadSharedLibrary(const std::string &fileName) {
-
+        std::cout << "trying to load shared library " << fileName << std::endl;
         void* objectHandle = nullptr;
         const std::string registerFunctionName = "registerAsTrigger";
         void(*registerFunction)(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>*);

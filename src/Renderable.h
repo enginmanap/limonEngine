@@ -20,13 +20,13 @@ protected:
     std::vector<bool> inLightFrustum;
     uint_fast32_t vao, ebo;
     GLHelper *glHelper;
-    GLSLProgram *renderProgram;
+    GLSLProgram *renderProgram = nullptr;
     bool isInCameraFrustum = true;
     bool dirtyForFrustum = true;//is this object require a frustum recalculate
 
 
     explicit Renderable(GLHelper *glHelper) :
-            glHelper(glHelper), renderProgram(nullptr) {
+            glHelper(glHelper) {
         this->inLightFrustum.reserve(4);//FIXME 4 is current light max, it will require update
     }
 
@@ -42,9 +42,6 @@ public:
         }
         glHelper->freeBuffer(ebo);
         glHelper->freeVAO(vao);
-
-        //model renderable creates its own
-        delete renderProgram;
 
     }
 

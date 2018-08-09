@@ -4,4 +4,8 @@
 
 #include "GUICursor.h"
 
-
+void GUICursor::render() {
+    if(!this->hidden) {
+        GUIImageBase::render();
+    }
+}

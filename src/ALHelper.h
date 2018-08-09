@@ -9,6 +9,13 @@
 #include "../libs/OpenAL-Soft/include/AL/al.h"
 
 #include <memory>
+#include <glm/glm.hpp>
+#include <unordered_map>
+#include <vector>
+#include <glm/gtc/type_ptr.hpp>
+#include <SDL_atomic.h>
+#include <SDL_thread.h>
+#include <iostream>
 
 class SoundAsset;
 
@@ -22,7 +29,7 @@ class ALHelper {
         uint32_t soundID;
         const SoundAsset *asset;
         uint64_t sampleCountToPlay;
-        ALuint source;
+        ALuint source = 0;
         ALenum format;
         ALuint buffers[NUM_BUFFERS];
         const int16_t *nextDataToBuffer;

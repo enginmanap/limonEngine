@@ -23,8 +23,6 @@ GUIRenderable::GUIRenderable(GLHelper *glHelper) : Renderable(glHelper) {
     textureCoordinates.push_back(glm::vec2(1.0f, 0.0f));
     textureCoordinates.push_back(glm::vec2(0.0f, 0.0f));
     glHelper->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
-
-    renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/GUI/vertex.glsl", "./Data/Shaders/GUI/fragment.glsl", false);
 }
 
 void GUIRenderable::renderDebug(BulletDebugDrawer* debugDrawer) {

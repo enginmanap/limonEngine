@@ -21,7 +21,7 @@ public:
 
     std::vector<LimonAPI::ParameterRequest> getResults() override;
 
-    std::string getName() override {
+    std::string getName() const override {
         return "AddGuiTextOnTrigger";
     }
 };

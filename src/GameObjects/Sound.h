@@ -25,6 +25,7 @@ class Sound : public GameObject {
 
 public:
     Sound(uint32_t worldID, AssetManager *assetManager, const std::string &filename);
+    ~Sound();
 
     void setLoop(bool looped);
 

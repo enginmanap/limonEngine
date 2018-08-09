@@ -65,6 +65,14 @@ public:
     bool detachSoundFromObject(uint32_t objectWorldID);
     bool playSound(const std::string &soundPath, const glm::vec3 &position, bool looped);
 
+    bool loadAndSwitchWorld(const std::string& worldFileName);
+    bool returnToWorld(const std::string& worldFileName);//if world is not loaded, loads first
+    bool LoadAndRemove(const std::string& worldFileName); // removes current world after loading the new one
+
+    void returnPreviousWorld();
+    void quitGame();
+
+
     std::vector<ParameterRequest> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
 
     /**
@@ -83,6 +91,17 @@ public:
         return variableStore[variableName];
     }
 
+    LimonAPI(std::function<bool (const std::string&)> worldLoadMethod,
+             std::function<bool (const std::string&)> worldReturnOrLoadMethod,
+             std::function<bool (const std::string&)> worldLoadNewAndRemoveCurrentMethod,
+             std::function<void ()> worldExitMethod,
+             std::function<void ()> worldReturnPreviousMethod) {
+        limonLoadWorld = worldLoadMethod;
+        limonReturnOrLoadWorld = worldReturnOrLoadMethod;
+        limonLoadNewAndRemoveCurrentWorld = worldLoadNewAndRemoveCurrentMethod;
+        limonExitGame = worldExitMethod;
+        limonReturnPrevious = worldReturnPreviousMethod;
+    }
 
 private:
     friend class WorldLoader;
@@ -104,6 +123,14 @@ private:
     std::function<bool (uint32_t)> worldDetachSoundFromObject;
     std::function<uint32_t (const std::string&, const glm::vec3&, bool)> worldPlaySound;
 
+    /*** Non World API calls *******************************************************/
+    std::function<bool (const std::string&)> limonLoadWorld;
+    std::function<bool (const std::string&)> limonReturnOrLoadWorld;
+    std::function<bool (const std::string&)> limonLoadNewAndRemoveCurrentWorld;
+
+    std::function<void ()> limonExitGame;
+    std::function<void ()> limonReturnPrevious;
+    /*** Non World API calls *******************************************************/
 };
 
 

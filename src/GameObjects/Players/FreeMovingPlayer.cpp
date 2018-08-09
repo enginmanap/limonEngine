@@ -80,5 +80,13 @@ FreeMovingPlayer::FreeMovingPlayer(Options *options, GUIRenderable* cursor):
         center(glm::vec3(0,0,-1)),
         up(glm::vec3(0,1,0)),
         right(glm::vec3(-1,0,0)),
-        view(glm::quat(0,0,0,-1))
-{}
+        view(glm::quat(0,0,0,-1)) {
+    worldSettings.debugMode = DEBUG_ENABLED;
+    worldSettings.audioPlaying = true;
+    worldSettings.worldSimulation = true;
+    worldSettings.editorShown = false;
+    worldSettings.cursorFree = false;
+    worldSettings.resetAnimations = false;
+    worldSettings.menuInteraction = false;
+
+}

@@ -8,20 +8,20 @@
 #include <tinyxml2.h>
 #include "../GLHelper.h"
 
-class GUIText;
 class BulletDebugDrawer;
+class GUIRenderable;
 
 class GUILayer {
     GLHelper *glHelper;
     BulletDebugDrawer* debugDrawer;
-    int level;
+    uint32_t level;
     bool isDebug;
-    std::vector<GUIText *> guiElements;
+    std::vector<GUIRenderable *> guiElements;
 
 public:
-    GUILayer(GLHelper *glHelper, BulletDebugDrawer* debugDrawer, int level) : glHelper(glHelper), debugDrawer(debugDrawer), level(level), isDebug(false) { };
+    GUILayer(GLHelper *glHelper, BulletDebugDrawer* debugDrawer, uint32_t level) : glHelper(glHelper), debugDrawer(debugDrawer), level(level), isDebug(false) { };
 
-    int getLevel() { return level; }
+    uint32_t getLevel() { return level; }
 
     bool getDebug() const {
         return isDebug;
@@ -31,7 +31,7 @@ public:
         GUILayer::isDebug = isDebug;
     }
 
-    void addGuiElement(GUIText *guiElement);
+    void addGuiElement(GUIRenderable *guiElement);
 
     void removeGuiElement(uint32_t guiElementID);
 
@@ -42,7 +42,7 @@ public:
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *LayersListNode, Options *options);
 
-    GUIText* getRenderableFromCoordinate(const glm::vec2& coordinates);
+    GUIRenderable* getRenderableFromCoordinate(const glm::vec2& coordinates);
 };
 
 

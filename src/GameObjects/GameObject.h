@@ -21,6 +21,7 @@ public:
         bool addAI = false;
         bool removeAI = false;
         bool updated = false;
+        bool remove = false; //If removal requested
     };
 
     struct ImGuiRequest {
@@ -38,7 +39,7 @@ public:
                   ortogonalMatrix(ortogonalMatrix), screenHeight(screenHeight), screenWidth(screenWidth) {}
     };
 
-    enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT, SOUND };
+    enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT, GUI_IMAGE, GUI_BUTTON, SOUND };
 
     virtual ObjectTypes getTypeID() const = 0;
     virtual std::string getName() const = 0;

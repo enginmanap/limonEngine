@@ -19,42 +19,26 @@
 #include "GameObjects/GUIText.h"
 #include "ALHelper.h"
 #include "GameObjects/Sound.h"
+#include "GameObjects/GUIImage.h"
+#include "GameObjects/GUIButton.h"
 
-WorldLoader::WorldLoader(AssetManager *assetManager, GLHelper *glHelper, ALHelper *alHelper, Options *options) :
+#include "main.h"
+
+WorldLoader::WorldLoader(AssetManager *assetManager, InputHandler *inputHandler, Options *options) :
         options(options),
-        glHelper(glHelper),
-        alHelper(alHelper),
-        assetManager(assetManager)
+        glHelper(assetManager->getGlHelper()),
+        alHelper(assetManager->getAlHelper()),
+        assetManager(assetManager),
+        inputHandler(inputHandler)
 {}
 
-World* WorldLoader::loadWorld(const std::string& worldFile) const {
-    World* newWorld = new World(assetManager, glHelper, alHelper, options);
-
-
-    // Set api endpoints accordingly
-    LimonAPI* api = new LimonAPI();
-    api->worldAddAnimationToObject = std::bind(&World::addAnimationToObjectWithSound, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false, std::placeholders::_4);
-    api->worldAddGuiText = std::bind(&World::addGuiText, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7);
-    api->worldUpdateGuiText = std::bind(&World::updateGuiText, newWorld, std::placeholders::_1, std::placeholders::_2);
-    api->worldGenerateEditorElementsForParameters = std::bind(&World::generateEditorElementsForParameters, newWorld, std::placeholders::_1, std::placeholders::_2);
-    api->worldGetResultOfTrigger = std::bind(&World::getResultOfTrigger, newWorld, std::placeholders::_1, std::placeholders::_2);
-    api->worldRemoveGuiText = std::bind(&World::removeGuiText, newWorld, std::placeholders::_1);
-    api->worldRemoveObject = std::bind(&World::removeObject, newWorld, std::placeholders::_1);
-    api->worldRemoveTriggerObject = std::bind(&World::removeTriggerObject, newWorld, std::placeholders::_1);
-    api->worldDisconnectObjectFromPhysics = std::bind(&World::disconnectObjectFromPhysics, newWorld, std::placeholders::_1);
-    api->worldReconnectObjectToPhysics= std::bind(&World::reconnectObjectToPhysics, newWorld, std::placeholders::_1);
-    api->worldAttachSoundToObjectAndPlay = std::bind(&World::attachSoundToObjectAndPlay, newWorld, std::placeholders::_1, std::placeholders::_2);
-    api->worldDetachSoundFromObject = std::bind(&World::detachSoundFromObject, newWorld, std::placeholders::_1);
-    api->worldPlaySound = std::bind(&World::playSound, newWorld, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-
-
-    newWorld->apiInstance = api;
-
-    if(!loadMapFromXML(worldFile, newWorld)) {
+World * WorldLoader::loadWorld(const std::string &worldFile, LimonAPI *limonAPI) const {
+    World* newWorld = loadMapFromXML(worldFile, limonAPI);
+    if(newWorld == nullptr) {
         std::cerr << "world load failed" << std::endl;
-        delete newWorld;
         return nullptr;
     }
+
     if(!(newWorld->verifyIDs())) {
         std::cerr << "world ID verification failed" << std::endl;
         delete newWorld;
@@ -65,8 +49,26 @@ World* WorldLoader::loadWorld(const std::string& worldFile) const {
     return newWorld;
 }
 
+void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) const {// Set api endpoints accordingly
 
-bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world) const {
+    limonAPI->worldAddAnimationToObject = bind(&World::addAnimationToObjectWithSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false, std::placeholders::_4);
+    limonAPI->worldAddGuiText = bind(&World::addGuiText, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7);
+    limonAPI->worldUpdateGuiText = bind(&World::updateGuiText, world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGenerateEditorElementsForParameters = bind(&World::generateEditorElementsForParameters, world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGetResultOfTrigger = bind(&World::getResultOfTrigger, world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldRemoveGuiText = bind(&World::removeGuiText, world, std::placeholders::_1);
+    limonAPI->worldRemoveObject = bind(&World::removeObject, world, std::placeholders::_1);
+    limonAPI->worldRemoveTriggerObject = bind(&World::removeTriggerObject, world, std::placeholders::_1);
+    limonAPI->worldDisconnectObjectFromPhysics = bind(&World::disconnectObjectFromPhysics, world, std::placeholders::_1);
+    limonAPI->worldReconnectObjectToPhysics= bind(&World::reconnectObjectToPhysics, world, std::placeholders::_1);
+    limonAPI->worldAttachSoundToObjectAndPlay = bind(&World::attachSoundToObjectAndPlay, world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldDetachSoundFromObject = bind(&World::detachSoundFromObject, world, std::placeholders::_1);
+    limonAPI->worldPlaySound = bind(&World::playSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    world->apiInstance = limonAPI;
+}
+
+
+World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const {
     tinyxml2::XMLDocument xmlDoc;
     tinyxml2::XMLError eResult = xmlDoc.LoadFile(worldFileName.c_str());
     if (eResult != tinyxml2::XML_SUCCESS) {
@@ -77,15 +79,28 @@ bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world)
     tinyxml2::XMLNode * worldNode = xmlDoc.FirstChild();
     if (worldNode == nullptr) {
         std::cerr << "World xml is not a valid XML." << std::endl;
-        return false;
+        return nullptr;
     }
 
     tinyxml2::XMLElement* worldName =  worldNode->FirstChildElement("Name");
     if (worldName == nullptr) {
         std::cerr << "World must have a name." << std::endl;
-        return false;
+        return nullptr;
     }
     std::cout << "read name as " << worldName->GetText() << std::endl;
+
+    tinyxml2::XMLElement* worldStartPlayer =  worldNode->FirstChildElement("StartingPlayer");
+    World::PlayerTypes startingPlayer;
+    if (worldStartPlayer == nullptr) {
+        std::cerr << "World starting player not found, will start with Physical player." << std::endl;
+    } else {
+        std::string playerType = worldStartPlayer->GetText();
+        startingPlayer.setType(playerType);
+    }
+
+    World* world = new World(std::string(worldName->GetText()), startingPlayer, inputHandler, assetManager, options);
+
+    attachedAPIMethodsToWorld(world, limonAPI);
 
     tinyxml2::XMLElement* musicNameNode =  worldNode->FirstChildElement("Music");
     if (musicNameNode == nullptr) {
@@ -98,13 +113,31 @@ bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world)
         world->music->setWorldPosition(glm::vec3(0,0,0), true);
     }
 
+    tinyxml2::XMLElement* returnCustomWorld =  worldNode->FirstChildElement("ReturnCustomWorldOnQuit");
+    if (returnCustomWorld == nullptr) {
+        std::cout << "Return custom world flag can't be read, assuming false." << std::endl;
+    } else {
+        if(!strcmp(returnCustomWorld->GetText(),"True")) {
+            world->returnCustomOnQuit = true;
+        }
+    }
 
-
+    tinyxml2::XMLElement* quitWorldName =  worldNode->FirstChildElement("QuitWorldName");
+    if (quitWorldName != nullptr) {
+        if(quitWorldName->GetText() != nullptr) {
+            world->quitWorldName =quitWorldName->GetText();
+            strncpy(world->quitWorldNameBuffer, world->quitWorldName.c_str(), sizeof(world->quitWorldNameBuffer) - 1);
+        } else {
+            world->quitWorldName = "";
+            strncpy(world->quitWorldNameBuffer, world->quitWorldName.c_str(), sizeof(world->quitWorldNameBuffer) - 1);
+        }
+    }
 
 
     //load objects
     if(!loadObjectsFromXML(worldNode, world)) {
-        return false;
+        delete world;
+        return nullptr;
     }
 
     loadAnimations(worldNode, world);
@@ -124,20 +157,20 @@ bool WorldLoader::loadMapFromXML(const std::string& worldFileName, World* world)
 
     loadGUILayersAndElements(worldNode, world);
 
-    return true;
+    return world;
 }
 
 bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* world) const {
     tinyxml2::XMLElement* objectsListNode =  objectsNode->FirstChildElement("Objects");
     if (objectsListNode == nullptr) {
-        std::cerr << "World Must have and Objects clause." << std::endl;
-        return false;
+        std::cerr << "World doesn't have Objects clause, this might be a mistake." << std::endl;
+        return true;
     }
 
     tinyxml2::XMLElement* objectNode =  objectsListNode->FirstChildElement("Object");
     if (objectNode == nullptr) {
-        std::cerr << "World Must have at least one object." << std::endl;
-        return false;
+        std::cout << "World doesn't have any objects, this might be a mistake." << std::endl;
+        return true;
     }
     Model *xmlModel;
     tinyxml2::XMLElement* objectAttribute;
@@ -145,7 +178,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
     float modelMass;
     std::vector<Model*> notStaticObjects;
     bool isAIGridStartPointSet = false;
-    glm::vec3 aiGridStartPoint;
+    glm::vec3 aiGridStartPoint = glm::vec3(0,0,0);
 
     std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds;
 
@@ -197,7 +230,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
             std::cerr << "Object does not have step on sound." << std::endl;
         } else {
             std::string stepOnSound = objectAttribute->GetText();
-            if(requiredSounds.find(stepOnSound) != requiredSounds.end()) {
+            if(requiredSounds.find(stepOnSound) == requiredSounds.end()) {
                 requiredSounds[stepOnSound] = std::make_shared<Sound>(0, assetManager, stepOnSound);//since the step on is not managed by world, not feed world object ID
             }
             xmlModel->setPlayerStepOnSound(requiredSounds[stepOnSound]);
@@ -438,12 +471,6 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
     return true;
 }
 
-WorldLoader::~WorldLoader() {
-    for (unsigned int i = 0; i < loadedWorlds.size(); ++i) {
-        delete loadedWorlds[i];
-    }
-}
-
 bool WorldLoader::loadAnimations(tinyxml2::XMLNode *worldNode, World *world) const {
     tinyxml2::XMLElement* loadedAnimationsListNode =  worldNode->FirstChildElement("LoadedAnimations");
     if (loadedAnimationsListNode == nullptr) {
@@ -499,10 +526,9 @@ bool WorldLoader::loadTriggers(tinyxml2::XMLNode *worldNode, World *world) const
     tinyxml2::XMLElement* triggerNode =  triggerListNode->FirstChildElement("Trigger");
 
     while(triggerNode != nullptr) {
-        TriggerObject* triggerObject = new TriggerObject(0, world->apiInstance);//0 is place holder, deserialize sets real value;
-        if(!triggerObject->deserialize(triggerNode)) {
+        TriggerObject* triggerObject = triggerObject->deserialize(triggerNode, world->apiInstance);
+        if(triggerObject == nullptr) {
             //this trigger is now headless
-            delete triggerObject;
             return false;
         }
         world->triggers[triggerObject->getWorldObjectID()] = triggerObject;
@@ -636,9 +662,30 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
         tinyxml2::XMLElement* GUIElementNode =  GUILayerNode->FirstChildElement("GUIElement");
         while(GUIElementNode != nullptr) {
             // TODO we should have a factory to create objects from parameters we collect, currently single type, GUITEXT
-            GUIText* element = GUIText::deserialize(GUIElementNode, glHelper, &world->fontManager, options);
-            world->guiElements[element->getWorldObjectID()] = element;
-            layer->addGuiElement(element);
+            tinyxml2::XMLElement* typeNode =  GUIElementNode->FirstChildElement("Type");
+            if(typeNode != nullptr) {
+                std::string typeName = typeNode->GetText();
+                GUIRenderable *element = nullptr;
+                std::string name;
+                if(typeName == "GUIText") {
+                    element = GUIText::deserialize(GUIElementNode, glHelper, &world->fontManager, options);
+                    name = static_cast<GUIText*>(element)->getName();
+                } else if(typeName == "GUIImage") {
+                    element = GUIImage::deserialize(GUIElementNode, assetManager, options);
+                    name = static_cast<GUIImage*>(element)->getName();
+                } else if(typeName == "GUIButton") {
+                    element = GUIButton::deserialize(GUIElementNode, assetManager, options, world->apiInstance);
+                    name = static_cast<GUIButton*>(element)->getName();
+                }
+
+                if(element != nullptr) {
+                    if(!world->addGUIElementToWorld(element, layer)) {
+                        std::cerr << "failed to add gui element [" << name << "] to world!" << std::endl;
+                    }
+                }
+
+
+            }
 
             GUIElementNode = GUIElementNode->NextSiblingElement("GUIElement");
         }// end of while (GUIElementNode)

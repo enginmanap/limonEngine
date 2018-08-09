@@ -138,7 +138,12 @@ FreeCursorPlayer::FreeCursorPlayer(Options *options, GUIRenderable* cursor):
         center(glm::vec3(0,0,-1)),
         up(glm::vec3(0,1,0)),
         right(glm::vec3(-1,0,0)),
-        view(glm::quat(0,0,0,-1))
-{
-
+        view(glm::quat(0,0,0,-1)) {
+    worldSettings.debugMode = DEBUG_NOCHANGE;
+    worldSettings.audioPlaying = false;
+    worldSettings.worldSimulation = false;
+    worldSettings.editorShown = true;
+    worldSettings.cursorFree = true;
+    worldSettings.resetAnimations = true;
+    worldSettings.menuInteraction = false;
 }
