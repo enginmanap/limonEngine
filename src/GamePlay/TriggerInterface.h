@@ -19,7 +19,7 @@
 class TriggerInterface {
     static std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* typeMap;
 protected:
-    LimonAPI* limonAPI;
+    LimonAPI* limonAPI = nullptr;
     static std::map<std::string, TriggerInterface*(*)(LimonAPI*)> * getMap() {
         // never delete'ed. (exist until program termination)
         // because we can't guarantee correct destruction order
@@ -51,7 +51,7 @@ public:
 
     virtual ~TriggerInterface() = default;
 
-    virtual std::string getName() = 0;
+    virtual std::string getName() const = 0;
 
 
     static TriggerInterface * createTrigger(std::string const& s, LimonAPI* apiInstance) {
@@ -61,6 +61,15 @@ public:
         }
         return it->second(apiInstance);
     }
+
+    void serializeTriggerCode(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *triggerNode,
+                                  const std::string &triggerCodeNodeName,
+                                  const std::vector<LimonAPI::ParameterRequest> &parameters, bool enabled) const;
+
+    static TriggerInterface *deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxml2::XMLElement *triggerAttribute,
+                                                    const std::string &nodeName, LimonAPI *limonAPI,
+                                                    std::vector<LimonAPI::ParameterRequest> &parameters, bool &enabled);
+
 };
 
 template<typename T>
@@ -76,7 +85,7 @@ class TriggerRegister : TriggerInterface {
     virtual bool run(std::vector<LimonAPI::ParameterRequest> parameters __attribute((unused))) override {
         return false;
     };
-    std::string getName() override {
+    std::string getName() const override {
         return "This object is not meant to be used";
     }
 

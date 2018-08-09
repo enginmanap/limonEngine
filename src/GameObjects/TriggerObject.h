@@ -49,10 +49,6 @@ class TriggerObject : public GameObject {
         ghostObject->setWorldTransform(transform);
     }
 
-    void
-    serializeTriggerCode(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *triggerNode, TriggerInterface *triggerCode,
-                         const std::string &triggerCodeNodeName, const std::vector<LimonAPI::ParameterRequest> &parameters) const;
-
 public:
 
     static void PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&triggerCode, std::vector<LimonAPI::ParameterRequest> &parameters,
@@ -155,11 +151,7 @@ public:
 
 
     void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *triggersNode) const;
-    bool deserialize(tinyxml2::XMLElement * triggerNode);
-
-    bool deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxml2::XMLElement *triggerAttribute,
-                                const std::string &nodeName, TriggerInterface *&triggerCode,
-                                std::vector<LimonAPI::ParameterRequest> &parameters, bool &enabled) const;
+    static TriggerObject *deserialize(tinyxml2::XMLElement *triggerNode, LimonAPI *limonAPI);
 
     std::vector<LimonAPI::ParameterRequest> getResultOfCode(uint32_t codeID);
 };

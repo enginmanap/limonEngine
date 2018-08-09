@@ -6,14 +6,31 @@
 #define LIMONENGINE_CURSOR_H
 
 
-#include "GUITextBase.h"
+#include "GUIImageBase.h"
 
-// TODO this class in current form is just a place holder
-class GUICursor: public GUITextBase {
+class GUICursor: public GUIImageBase {
+    bool hidden=false;
 public:
-    GUICursor(GLHelper *glHelper, Face *font, const std::string &text, const glm::vec3 &color) : GUITextBase(
-            glHelper, font, text, color) {}
+    GUICursor(GLHelper *glHelper, AssetManager *assetManager, const std::string &imageFile) : GUIImageBase(glHelper,
+                                                                                                       assetManager,
+                                                                                                       imageFile) {}
 
+public:
+
+    void render() override;
+
+
+    bool isHidden() {
+        return hidden;
+    }
+
+    void hide() {
+        this->hidden = true;
+    }
+
+    void unhide() {
+        this->hidden = false;
+    }
 };
 
 

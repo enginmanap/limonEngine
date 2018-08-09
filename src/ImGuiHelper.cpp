@@ -310,6 +310,7 @@ void    ImGuiHelper::InvalidateDeviceObjects()
     //if (g_ShaderHandle) glDeleteProgram(g_ShaderHandle);
     //g_ShaderHandle = 0;
     delete program;
+    program = nullptr;
 
     if (g_FontTexture)
     {
@@ -317,10 +318,13 @@ void    ImGuiHelper::InvalidateDeviceObjects()
         ImGui::GetIO().Fonts->TexID = 0;
         g_FontTexture = 0;
     }
+
+
 }
 
 ImGuiHelper::ImGuiHelper(GLHelper* glHelper, Options* options) : options(options) {
     this->glHelper = glHelper;
+    ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.KeyMap[ImGuiKey_Tab] = SDLK_TAB;                     // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array.
     io.KeyMap[ImGuiKey_LeftArrow] = SDL_SCANCODE_LEFT;
@@ -358,12 +362,13 @@ ImGuiHelper::ImGuiHelper(GLHelper* glHelper, Options* options) : options(options
 ImGuiHelper::~ImGuiHelper()
 {
     InvalidateDeviceObjects();
-    ImGui::Shutdown();
+    ImGui::DestroyContext();
 }
 
 void ImGuiHelper::NewFrame() {
-    if (!g_FontTexture)
+    if (!g_FontTexture) {
         CreateDeviceObjects();
+    }
 
     ImGuiIO& io = ImGui::GetIO();
 

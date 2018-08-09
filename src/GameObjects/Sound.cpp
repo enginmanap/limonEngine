@@ -40,10 +40,17 @@ void Sound::play() {
 
 void Sound::stop() {
     assetManager->getAlHelper()->stop(soundHandleID);
+    soundHandleID = 0;
 }
 
 void Sound::stopAfterFinish() {
-    assetManager->getAlHelper()->setLooped(soundHandleID, false);
+    if(soundHandleID != 0) {
+        if (!assetManager->getAlHelper()->setLooped(soundHandleID, false)) {
+            std::cerr << "The stop after finish is failed for " << this->name << "with handle " << soundHandleID <<  std::endl;
+        }
+        soundHandleID = 0;//don't use same sound for further operations
+    }
+
 }
 
 void Sound::setWorldPosition(glm::vec3 position, bool listenerRelative) {
@@ -51,4 +58,9 @@ void Sound::setWorldPosition(glm::vec3 position, bool listenerRelative) {
     this->listenerRelative = listenerRelative;
 
     assetManager->getAlHelper()->setSourcePosition(soundHandleID, this->listenerRelative, this->position);
+}
+
+Sound::~Sound() {
+    this->stop();
+    this->assetManager->freeAsset({this->name});
 }

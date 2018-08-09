@@ -12,6 +12,7 @@
 #include <btBulletCollisionCommon.h>
 #include <vector>
 #include <BulletDynamics/Dynamics/btDynamicsWorld.h>
+#include <memory>
 #include "../../Options.h"
 #include "../../CameraAttachment.h"
 #include "../../Utils/GLMConverter.h"
@@ -129,6 +130,10 @@ public:
         spring->setEnabled(false);//don't enable until player is not on air
         cursor->setTranslate(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f));
     };
+
+    CameraAttachment* getCameraAttachment() {
+        return this;
+    }
 
     PhysicalPlayer(Options *options, GUIRenderable *cursor);
 

@@ -67,14 +67,34 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     tinyxml2::XMLDocument mapDocument;
     tinyxml2::XMLNode * rootNode = mapDocument.NewElement("World");
     mapDocument.InsertFirstChild(rootNode);
+
     tinyxml2::XMLElement * currentElement = mapDocument.NewElement("Name");
     currentElement->SetText(mapName.c_str());
     rootNode->InsertEndChild(currentElement);
+
+    currentElement = mapDocument.NewElement("StartingPlayer");
+    currentElement->SetText(world->startingPlayer.toString().c_str());
+
+    rootNode->InsertEndChild(currentElement);
+
     if(world->music != nullptr) {
         currentElement = mapDocument.NewElement("Music");
         currentElement->SetText(world->music->getName().c_str());
     }
     rootNode->InsertEndChild(currentElement);
+
+    currentElement = mapDocument.NewElement("ReturnCustomWorldOnQuit");
+    if(world->returnCustomOnQuit) {
+       currentElement->SetText("True");
+    } else {
+        currentElement->SetText("False");
+    }
+    rootNode->InsertEndChild(currentElement);
+
+    currentElement = mapDocument.NewElement("QuitWorldName");
+    currentElement->SetText(world->quitWorldName.c_str());
+    rootNode->InsertEndChild(currentElement);
+
     //after current element is inserted, we can reuse
     currentElement = mapDocument.NewElement("Objects");
     if(!fillObjects(mapDocument, currentElement, world)) {
@@ -187,6 +207,10 @@ bool WorldSaver::fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
 }
 
 bool WorldSaver::addSky(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *skyNode, const World *world) {
+
+    if(world->sky == nullptr) {
+        return true;
+    }
     //ImagesPath, Right, Left, Top, Bottom, Back, Front
 
     tinyxml2::XMLElement *currentElement = document.NewElement("ImagesPath");
