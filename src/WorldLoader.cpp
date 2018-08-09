@@ -113,12 +113,18 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         world->music->setWorldPosition(glm::vec3(0,0,0), true);
     }
 
-    tinyxml2::XMLElement* returnCustomWorld =  worldNode->FirstChildElement("ReturnCustomWorldOnQuit");
+    tinyxml2::XMLElement* returnCustomWorld =  worldNode->FirstChildElement("QuitResponse");
     if (returnCustomWorld == nullptr) {
-        std::cout << "Return custom world flag can't be read, assuming false." << std::endl;
+        std::cout << "Return custom world flag can't be read, assuming Quit." << std::endl;
     } else {
-        if(!strcmp(returnCustomWorld->GetText(),"True")) {
-            world->returnCustomOnQuit = true;
+        if(!strcmp(returnCustomWorld->GetText(),"LoadWorld")) {
+            world->currentQuitResponse = World::QuitResponse::LOAD_WORLD;
+        } else if(!strcmp(returnCustomWorld->GetText(),"ReturnPrevious")) {
+            world->currentQuitResponse = World::QuitResponse::RETURN_PREVIOUS;
+        } else if(!strcmp(returnCustomWorld->GetText(),"QuitGame")) {
+            world->currentQuitResponse = World::QuitResponse::QUIT_GAME;
+        } else {
+            std::cerr << "Return custom world flag found but value was unknown. Assuming Quit" << std::endl;
         }
     }
 

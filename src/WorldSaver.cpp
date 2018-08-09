@@ -83,11 +83,17 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     }
     rootNode->InsertEndChild(currentElement);
 
-    currentElement = mapDocument.NewElement("ReturnCustomWorldOnQuit");
-    if(world->returnCustomOnQuit) {
-       currentElement->SetText("True");
-    } else {
-        currentElement->SetText("False");
+    currentElement = mapDocument.NewElement("QuitResponse");
+    switch (world->currentQuitResponse) {
+        case World::QuitResponse::QUIT_GAME:
+            currentElement->SetText("QuitGame");
+            break;
+        case World::QuitResponse::RETURN_PREVIOUS:
+            currentElement->SetText("ReturnPrevious");
+            break;
+        case World::QuitResponse::LOAD_WORLD:
+            currentElement->SetText("LoadWorld");
+            break;
     }
     rootNode->InsertEndChild(currentElement);
 
