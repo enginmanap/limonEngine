@@ -19,14 +19,6 @@
 #include <SDL.h>
 #include <SDL_syswm.h>
 
-// Data
-static double       g_Time = 0.0f;
-static bool         g_MousePressed[3] = { false, false, false };
-static float        g_MouseWheel = 0.0f;
-static GLuint       g_FontTexture = 0;
-static int          g_VertHandle = 0, g_FragHandle = 0;
-static int          g_AttribLocationPosition = 0, g_AttribLocationUV = 0, g_AttribLocationColor = 0;
-static unsigned int g_VboHandle = 0, g_VaoHandle = 0, g_ElementsHandle = 0;
 
 // This is the main rendering function that you have to implement and provide to ImGui (via setting up 'RenderDrawListsFn' in the ImGuiIO structure)
 // Note that this implementation is little overcomplicated because we are saving/setting up/restoring every OpenGL state explicitly, in order to be able to run within any OpenGL engine that doesn't do so. 
@@ -324,7 +316,7 @@ void    ImGuiHelper::InvalidateDeviceObjects()
 
 ImGuiHelper::ImGuiHelper(GLHelper* glHelper, Options* options) : options(options) {
     this->glHelper = glHelper;
-    ImGui::CreateContext();
+    context = ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.KeyMap[ImGuiKey_Tab] = SDLK_TAB;                     // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array.
     io.KeyMap[ImGuiKey_LeftArrow] = SDL_SCANCODE_LEFT;
@@ -362,7 +354,7 @@ ImGuiHelper::ImGuiHelper(GLHelper* glHelper, Options* options) : options(options
 ImGuiHelper::~ImGuiHelper()
 {
     InvalidateDeviceObjects();
-    ImGui::DestroyContext();
+    ImGui::DestroyContext(context);
 }
 
 void ImGuiHelper::NewFrame() {
