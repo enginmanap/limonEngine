@@ -671,7 +671,7 @@
             </GUIElement>
             <GUIElement>
                 <Type>GUIText</Type>
-                <ID>3</ID>
+                <ID>23</ID>
                 <Name>VersionText</Name>
                 <Text>Version 0.4</Text>
                 <Font>
