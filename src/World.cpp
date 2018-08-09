@@ -979,9 +979,20 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 ImGui::EndCombo();
             }
 
-            ImGui::Text("By default, esc returns previous world");
-            ImGui::Checkbox("Load Custom world", &returnCustomOnQuit);
-            if(returnCustomOnQuit) {
+            ImGui::Text("By default, esc quits the game");
+
+            if (ImGui::RadioButton("Quit Game", currentQuitResponse == QuitResponse::QUIT_GAME)) {
+                currentQuitResponse = QuitResponse::QUIT_GAME;
+            }
+            ImGui::SameLine();
+            if (ImGui::RadioButton("Return Previous", currentQuitResponse == QuitResponse::RETURN_PREVIOUS)) {
+                currentQuitResponse = QuitResponse::RETURN_PREVIOUS;
+            }
+            ImGui::SameLine();
+            if (ImGui::RadioButton("Load World", currentQuitResponse == QuitResponse::LOAD_WORLD)) {
+                currentQuitResponse = QuitResponse::LOAD_WORLD;
+            }
+            if(currentQuitResponse == QuitResponse::LOAD_WORLD) {
                 ImGui::InputText("Custom World file ", quitWorldNameBuffer, sizeof(quitWorldNameBuffer));
                 if(ImGui::Button("Apply##custom world file setting")) {
                     quitWorldName = quitWorldNameBuffer;
@@ -1946,11 +1957,16 @@ void World::addGUILayerControls() {
 }
 
 bool World::handleQuitRequest() {
-    if(returnCustomOnQuit) {
-        apiInstance->returnToWorld(quitWorldName);
-    } else {
-        apiInstance->returnPreviousWorld();
-        
+    switch(currentQuitResponse) {
+        case QuitResponse::LOAD_WORLD:
+            apiInstance->returnToWorld(quitWorldName);
+            break;
+        case QuitResponse::RETURN_PREVIOUS:
+            apiInstance->returnPreviousWorld();
+            break;
+        case QuitResponse::QUIT_GAME:
+            apiInstance->quitGame();
+
     }
     return true;
 }

@@ -203,7 +203,13 @@ private:
     GameObject* pickedObject = nullptr;
     bool availableAssetsLoaded = false;
     bool guiPickMode = false;
-    bool returnCustomOnQuit = false;
+    enum class QuitResponse
+    {
+        QUIT_GAME,
+        RETURN_PREVIOUS,
+        LOAD_WORLD
+    };
+    QuitResponse currentQuitResponse = QuitResponse::QUIT_GAME;
 
     /**
      * This method checks, if IDs assigned without any empty space, and any collision
