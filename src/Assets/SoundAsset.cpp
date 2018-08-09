@@ -2,9 +2,11 @@
 // Created by engin on 15.07.2018.
 //
 
-#include <iostream>
 #include "SoundAsset.h"
 #include "../../libs/dr_wav.h"
+
+#include <iostream>
+#include <vector>
 
 SoundAsset::SoundAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList) : Asset(
         assetManager, assetID, fileList) {
