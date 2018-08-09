@@ -13,10 +13,11 @@
 #include <vector>
 #include <BulletDynamics/Dynamics/btDynamicsWorld.h>
 #include <memory>
+
+#include "Player.h"
 #include "../../Options.h"
 #include "../../CameraAttachment.h"
 #include "../../Utils/GLMConverter.h"
-#include "Player.h"
 #include "../../GUI/GUIRenderable.h"
 #include "../Sound.h"
 
