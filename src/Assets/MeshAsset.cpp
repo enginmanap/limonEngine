@@ -127,8 +127,9 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
             for (unsigned int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
                 normals.push_back(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]));
-                textureCoordinates.push_back(
-                        glm::vec2(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y));
+                glm::vec2 vectorsTextureCoordinates(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y);
+                normalizeTextureCoordinates(vectorsTextureCoordinates);
+                textureCoordinates.push_back(vectorsTextureCoordinates);
 
             }
         } else {
@@ -143,8 +144,9 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
             for (unsigned int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]), 1.0f)));
                 normals.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]), 1.0f)));
-                textureCoordinates.push_back(
-                        glm::vec2(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y));
+                glm::vec2 vectorsTextureCoordinates(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y);
+                normalizeTextureCoordinates(vectorsTextureCoordinates);
+                textureCoordinates.push_back(vectorsTextureCoordinates);
 
             }
         } else {
@@ -167,6 +169,28 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
         return true;
     }
     return false;
+}
+
+void MeshAsset::normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const {
+    float fractionPart = textureCoordinates.x;
+    if(fabs(textureCoordinates.x) > 1) {
+        float integerPart;
+        fractionPart = modf (textureCoordinates.x , &integerPart);
+    }
+    if(textureCoordinates.x < 0 ) {
+        fractionPart = fractionPart + 1;
+    }
+    textureCoordinates.x = fractionPart;
+
+    fractionPart = textureCoordinates.y;
+    if(fabs(textureCoordinates.y) > 1) {
+        float integerPart;
+        fractionPart = modf (textureCoordinates.y , &integerPart);
+    }
+    if(textureCoordinates.y < 0 ) {
+        fractionPart = fractionPart + 1;
+    }
+    textureCoordinates.y = fractionPart;
 }
 
 bool MeshAsset::addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, float weight) {

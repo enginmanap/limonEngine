@@ -49,6 +49,7 @@ class MeshAsset {
     std::vector<uint_fast32_t> bufferObjects;
     bool setTriangles(const aiMesh *currentMesh);
 
+    void normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const;
 
 public:
     MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
