@@ -49,7 +49,7 @@ $ cmake ../
 - When a new animation is created by animation editor, the object used to create the animation assumed to have this animation. You can remove by using the remove animation button.
 
 ### Extending with C++
-- Engine tries to load custom trigger extentions as `libcustomTriggers.dll` for Windows and `libcustomTriggers.so` for GNU/Linux. If you use a custom action in a map and library is missing, action won't run check this first.
+- Engine tries to load custom trigger extentions as `libcustomTriggers.dll` for Windows, `libcustomTriggers.so` for GNU/Linux and `libcustomTriggers.dylib` for macOS. If you use a custom action in a map and library is missing, action won't run check this first.
 - Custom actions should implement `TriggerInterface` class.
 - and the list of actions should be returned with method `void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* triggerMap);`, sample implementation in CoinPickUpOnTrigger
 - If you query a variable that never been set, it will be returned as 0.
