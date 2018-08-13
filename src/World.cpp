@@ -66,11 +66,11 @@ World::World(const std::string &name, PlayerTypes startingPlayerType, InputHandl
     //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
 
 
-    shadowMapProgramDirectional = new GLSLProgram(glHelper, "./Data/Shaders/ShadowMap/vertexDirectional.glsl",
-                                                  "./Data/Shaders/ShadowMap/fragmentDirectional.glsl", false);
-    shadowMapProgramPoint = new GLSLProgram(glHelper, "./Data/Shaders/ShadowMap/vertexPoint.glsl",
-                                            "./Data/Shaders/ShadowMap/geometryPoint.glsl",
-                                            "./Data/Shaders/ShadowMap/fragmentPoint.glsl", false);
+    shadowMapProgramDirectional = new GLSLProgram(glHelper, "./Engine/Shaders/ShadowMap/vertexDirectional.glsl",
+                                                  "./Engine/Shaders/ShadowMap/fragmentDirectional.glsl", false);
+    shadowMapProgramPoint = new GLSLProgram(glHelper, "./Engine/Shaders/ShadowMap/vertexPoint.glsl",
+                                            "./Engine/Shaders/ShadowMap/geometryPoint.glsl",
+                                            "./Engine/Shaders/ShadowMap/fragmentPoint.glsl", false);
 
 
     apiGUILayer = new GUILayer(glHelper, debugDrawer, 1);

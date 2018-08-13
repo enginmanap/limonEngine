@@ -12,7 +12,7 @@ GLSLProgram* GUIImageBase::imageRenderProgram = nullptr;
 GUIImageBase::GUIImageBase(GLHelper *glHelper, AssetManager *assetManager, const std::string &imageFile) : GUIRenderable(glHelper), assetManager(assetManager), imageFile(imageFile) {
     image = assetManager->loadAsset<TextureAsset>({imageFile});
     if(imageRenderProgram == nullptr) {
-        imageRenderProgram = new GLSLProgram(glHelper, "./Data/Shaders/GUI/vertexImage.glsl", "./Data/Shaders/GUI/fragmentImage.glsl", false);
+        imageRenderProgram = new GLSLProgram(glHelper, "./Engine/Shaders/GUI/vertexImage.glsl", "./Engine/Shaders/GUI/fragmentImage.glsl", false);
     }
     this->renderProgram = imageRenderProgram;
 

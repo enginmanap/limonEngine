@@ -42,8 +42,8 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
 
         if (this->animated) {//this was hasBones, but it turns out, there are models with bones, but no animation.
             if(animatedProgram == nullptr) {
-                animatedProgram = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertexAnimated.glsl",
-                                                 "./Data/Shaders/Model/fragment.glsl", true);
+                animatedProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertexAnimated.glsl",
+                                                 "./Engine/Shaders/Model/fragment.glsl", true);
                 this->setSamplersAndUBOs(animatedProgram);
             }
             //set up the program to render object
@@ -53,8 +53,8 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
         } else {
             //set up the program to render object without bones
             if(nonAnimatedProgram == nullptr) {
-                nonAnimatedProgram = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertex.glsl",
-                                                     "./Data/Shaders/Model/fragment.glsl", true);
+                nonAnimatedProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertex.glsl",
+                                                     "./Engine/Shaders/Model/fragment.glsl", true);
                 this->setSamplersAndUBOs(nonAnimatedProgram);
             }
             meshMeta->program = nonAnimatedProgram;
