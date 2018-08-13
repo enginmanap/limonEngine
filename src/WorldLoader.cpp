@@ -3,6 +3,7 @@
 //
 
 #include <algorithm>
+#include <sys/socket.h>
 
 #include "WorldLoader.h"
 #include "World.h"
@@ -51,19 +52,19 @@ World * WorldLoader::loadWorld(const std::string &worldFile, LimonAPI *limonAPI)
 
 void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) const {// Set api endpoints accordingly
 
-    limonAPI->worldAddAnimationToObject = bind(&World::addAnimationToObjectWithSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false, std::placeholders::_4);
-    limonAPI->worldAddGuiText = bind(&World::addGuiText, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7);
-    limonAPI->worldUpdateGuiText = bind(&World::updateGuiText, world, std::placeholders::_1, std::placeholders::_2);
-    limonAPI->worldGenerateEditorElementsForParameters = bind(&World::generateEditorElementsForParameters, world, std::placeholders::_1, std::placeholders::_2);
-    limonAPI->worldGetResultOfTrigger = bind(&World::getResultOfTrigger, world, std::placeholders::_1, std::placeholders::_2);
-    limonAPI->worldRemoveGuiText = bind(&World::removeGuiText, world, std::placeholders::_1);
-    limonAPI->worldRemoveObject = bind(&World::removeObject, world, std::placeholders::_1);
-    limonAPI->worldRemoveTriggerObject = bind(&World::removeTriggerObject, world, std::placeholders::_1);
-    limonAPI->worldDisconnectObjectFromPhysics = bind(&World::disconnectObjectFromPhysics, world, std::placeholders::_1);
-    limonAPI->worldReconnectObjectToPhysics= bind(&World::reconnectObjectToPhysics, world, std::placeholders::_1);
-    limonAPI->worldAttachSoundToObjectAndPlay = bind(&World::attachSoundToObjectAndPlay, world, std::placeholders::_1, std::placeholders::_2);
-    limonAPI->worldDetachSoundFromObject = bind(&World::detachSoundFromObject, world, std::placeholders::_1);
-    limonAPI->worldPlaySound = bind(&World::playSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    limonAPI->worldAddAnimationToObject = std::bind(&World::addAnimationToObjectWithSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false, std::placeholders::_4);
+    limonAPI->worldAddGuiText = std::bind(&World::addGuiText, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7);
+    limonAPI->worldUpdateGuiText = std::bind(&World::updateGuiText, world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGenerateEditorElementsForParameters = std::bind(&World::generateEditorElementsForParameters, world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGetResultOfTrigger = std::bind(&World::getResultOfTrigger, world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldRemoveGuiText = std::bind(&World::removeGuiText, world, std::placeholders::_1);
+    limonAPI->worldRemoveObject = std::bind(&World::removeObject, world, std::placeholders::_1);
+    limonAPI->worldRemoveTriggerObject = std::bind(&World::removeTriggerObject, world, std::placeholders::_1);
+    limonAPI->worldDisconnectObjectFromPhysics = std::bind(&World::disconnectObjectFromPhysics, world, std::placeholders::_1);
+    limonAPI->worldReconnectObjectToPhysics= std::bind(&World::reconnectObjectToPhysics, world, std::placeholders::_1);
+    limonAPI->worldAttachSoundToObjectAndPlay = std::bind(&World::attachSoundToObjectAndPlay, world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldDetachSoundFromObject = std::bind(&World::detachSoundFromObject, world, std::placeholders::_1);
+    limonAPI->worldPlaySound = std::bind(&World::playSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     world->apiInstance = limonAPI;
 }
 
