@@ -241,8 +241,8 @@ bool ImGuiHelper::CreateDeviceObjects()
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
 
-    program = new GLSLProgram(glHelper, "./Data/Shaders/ImGui/vertex.glsl",
-                              "./Data/Shaders/ImGui/fragment.glsl", true);
+    program = new GLSLProgram(glHelper, "./Engine/Shaders/ImGui/vertex.glsl",
+                              "./Engine/Shaders/ImGui/fragment.glsl", true);
 
     g_AttribLocationPosition = glGetAttribLocation(program->getID(), "Position");
     g_AttribLocationUV = glGetAttribLocation(program->getID(), "UV");

@@ -78,7 +78,7 @@ void GameEngine::returnPreviousMap() {
 GameEngine::GameEngine() {
     options = new Options();
 
-    options->loadOptions("./Data/Options.xml");
+    options->loadOptions("./Engine/Options.xml");
     std::cout << "Options loaded successfully" << std::endl;
 
     sdlHelper = new SDL2Helper(PROGRAM_NAME.c_str(), options);

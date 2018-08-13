@@ -24,8 +24,8 @@ class BulletDebugDrawer : public btIDebugDraw {
 
 public:
     BulletDebugDrawer(GLHelper *glHelper, Options* options) : glHelper(glHelper), vao(0), vbo(0), ebo(0), options(options) {
-        renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/Lines/vertex.glsl",
-                                        "./Data/Shaders/Lines/fragment.glsl", false);
+        renderProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Lines/vertex.glsl",
+                                        "./Engine/Shaders/Lines/fragment.glsl", false);
         std::cout << "Render program is ready with id " << renderProgram->getID() << std::endl;
         glHelper->createDebugVAOVBO(vao, vbo, options->getDebugDrawBufferSize());
     }
