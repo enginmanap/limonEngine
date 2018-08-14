@@ -242,7 +242,11 @@ namespace ImSequencer
 			{
 				ImGui::CaptureMouseFromApp();
 				int diffFrame = (cx - movingPos) / framePixelWidth;
-				if (std::abs(diffFrame) > 0)
+#ifdef __APPLE__
+				if (abs(diffFrame) > 0)
+#else
+                if (std::abs(diffFrame) > 0)
+#endif
 				{
 					int *start, *end;
 					sequence->Get(movingEntry, &start, &end, NULL, NULL);

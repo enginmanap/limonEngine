@@ -3,7 +3,6 @@
 //
 
 #include <algorithm>
-#include <sys/socket.h>
 
 #include "WorldLoader.h"
 #include "World.h"
