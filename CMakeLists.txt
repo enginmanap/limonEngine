@@ -67,6 +67,12 @@ if (NOT BULLET_FOUND)
     message(ERROR " Bullet not found!")
 endif (NOT BULLET_FOUND)
 
+find_package(glm REQUIRED)
+if (NOT glm_FOUND)
+    message(ERROR " GLM not found!")
+endif (NOT glm_FOUND)
+INCLUDE_DIRECTORIES(${GLM_INCLUDE_DIRS})
+
 find_package(assimp REQUIRED)
 if (NOT assimp_FOUND)
     message(ERROR " Assimp not found!")
