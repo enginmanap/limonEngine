@@ -87,7 +87,7 @@ GameEngine::GameEngine() {
 #elif __APPLE__
     sdlHelper->loadSharedLibrary("./libcustomTriggers.dylib");
 #else
-    sdlHelper.loadSharedLibrary("./libcustomTriggers.so");
+    sdlHelper->loadSharedLibrary("./libcustomTriggers.so");
 #endif
 
     glHelper = new GLHelper(options);
