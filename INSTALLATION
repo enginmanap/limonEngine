@@ -17,3 +17,6 @@ $ brew install bullet
 
 -- Install glm
 $ brew install glm
+
+-- Install tinyxml
+$ brew install tinyxml2

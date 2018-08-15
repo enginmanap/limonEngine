@@ -6,6 +6,7 @@
 #define LIMONENGINE_LIMONAPI_H
 
 #include <vector>
+#include <string>
 #include <map>
 #include <cstdint>
 #include <glm/glm.hpp>
