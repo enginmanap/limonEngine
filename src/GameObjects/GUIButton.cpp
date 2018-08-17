@@ -255,7 +255,7 @@ GameObject::ImGuiResult GUIButton::addImGuiEditorElements(const ImGuiRequest &re
 
     this->setTranslate(glm::vec2(objectMatrix[3][0], objectMatrix[3][1]));
 
-    if (ImGui::CollapsingHeader("Enter Trigger")) {
+    if (ImGui::CollapsingHeader("Click To Trigger")) {
         TriggerObject::PutTriggerInGui(limonAPI, this->onClickTriggerCode, this->onClickParameters, enabled, 0);
     }
 
