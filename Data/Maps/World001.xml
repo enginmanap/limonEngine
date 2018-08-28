@@ -673,7 +673,7 @@
                 <Type>GUIText</Type>
                 <ID>23</ID>
                 <Name>VersionText</Name>
-                <Text>Version 0.4</Text>
+                <Text>Version 0.6</Text>
                 <Font>
                     <Path>Data/Fonts/Helvetica-Normal.ttf</Path>
                     <Size>16</Size>
