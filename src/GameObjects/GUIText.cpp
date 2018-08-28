@@ -200,14 +200,14 @@ GameObject::ImGuiResult GUIText::addImGuiEditorElements(const ImGuiRequest &requ
 
 
     char GUINameBuffer[128];
-    strncpy(GUINameBuffer, this->name.c_str(), sizeof(GUINameBuffer));
+    strncpy(GUINameBuffer, this->name.c_str(), sizeof(GUINameBuffer) - 1);
     //double # because I don't want to show it
     ImGui::InputText("Name##SelectedGUITextNameField", GUINameBuffer, sizeof(GUINameBuffer));
 
     this->name = GUINameBuffer;
     
     char GUITextBuffer[128];
-    strncpy(GUITextBuffer, this->text.c_str(), sizeof(GUITextBuffer));
+    strncpy(GUITextBuffer, this->text.c_str(), sizeof(GUITextBuffer) - 1);
 
     //double # because I don't want to show it
     ImGui::InputText("Text##SelectedGUITextTextField", GUITextBuffer, sizeof(GUITextBuffer));
