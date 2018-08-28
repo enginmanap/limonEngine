@@ -1668,16 +1668,16 @@ uint32_t World::updateGuiText(uint32_t guiTextID, const std::string &newText) {
 }
 
 
-uint32_t World::removeTriggerObject(uint32_t triggerobjectID) {
+bool World::removeTriggerObject(uint32_t triggerobjectID) {
     if(triggers.find(triggerobjectID) != triggers.end()) {
         TriggerObject* objectToRemove = triggers[triggerobjectID];
         dynamicsWorld->removeCollisionObject(objectToRemove->getGhostObject());
         //delete object itself
         delete triggers[triggerobjectID];
         triggers.erase(triggerobjectID);
-        return 0;
+        return true;
     }
-    return 1;//not successful
+    return false;//not successful
 }
 
 uint32_t World::removeObject(uint32_t objectID) {
