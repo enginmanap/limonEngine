@@ -58,7 +58,7 @@ public:
     uint32_t updateGuiText(uint32_t guiTextID, const std::string &newText);
     uint32_t removeGuiElement(uint32_t guiElementID);
     uint32_t removeObject(uint32_t guiElementID);
-    uint32_t removeTriggerObject(uint32_t TriggerObjectID);
+    bool removeTriggerObject(uint32_t TriggerObjectID);
     bool disconnectObjectFromPhysics(uint32_t modelID);
     bool reconnectObjectToPhysics(uint32_t modelID);
 
@@ -116,7 +116,7 @@ private:
     std::function<uint32_t (uint32_t)> worldRemoveGuiText;
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t , uint32_t )> worldGetResultOfTrigger;
     std::function<uint32_t (uint32_t)> worldRemoveObject;
-    std::function<uint32_t (uint32_t)> worldRemoveTriggerObject;
+    std::function<bool (uint32_t)> worldRemoveTriggerObject;
     std::function<bool (uint32_t)> worldDisconnectObjectFromPhysics;
     std::function<bool (uint32_t)> worldReconnectObjectToPhysics;
 

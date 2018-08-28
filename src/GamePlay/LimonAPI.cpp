@@ -37,7 +37,7 @@ uint32_t LimonAPI::removeObject(uint32_t guiElementID) {
     return worldRemoveObject(guiElementID);
 }
 
-uint32_t LimonAPI::removeTriggerObject(uint32_t TriggerObjectID) {
+bool LimonAPI::removeTriggerObject(uint32_t TriggerObjectID) {
     return worldRemoveTriggerObject(TriggerObjectID);
 }
 
