@@ -62,6 +62,7 @@ bool GameEngine::LoadNewAndRemoveCurrent(const std::string &worldFile) {
     returnOrLoadMap(worldFile);
     returnWorldStack.clear();
     returnWorldStack.push_back(currentWorld);
+    delete temp;
     previousTime = SDL_GetTicks();
     return true;
 }
