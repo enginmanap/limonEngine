@@ -143,15 +143,18 @@ bool Options::loadOptions(const std::string &optionsFileName) {
 
     tinyxml2::XMLElement *textureFilteringNode = optionsNode->FirstChildElement(
             "TextureFiltering");
-    if (lightPerspectiveProjectionFarPlaneNode != nullptr) {
-        if(lightPerspectiveProjectionFarPlaneNode->GetText() == "Nearest") {
-            currentTextureFilteringMode = TextureFilteringModes::NEAREST;
-        } else if(lightPerspectiveProjectionFarPlaneNode->GetText() == "Bilinear") {
-            currentTextureFilteringMode = TextureFilteringModes::BILINEAR;
-        } else if(lightPerspectiveProjectionFarPlaneNode->GetText() == "Trilinear") {
-            currentTextureFilteringMode = TextureFilteringModes::TRILINEAR;
-        } else {
-          std::cerr << "Texture filtering mode can't be read, assuming Trilinear" << std::endl;
+    if (textureFilteringNode != nullptr) {
+        if(textureFilteringNode->GetText() != nullptr) {
+            std::string lightMode = textureFilteringNode->GetText();
+            if( lightMode == "Nearest") {
+                currentTextureFilteringMode = TextureFilteringModes::NEAREST;
+            } else if(lightMode == "Bilinear") {
+                currentTextureFilteringMode = TextureFilteringModes::BILINEAR;
+            } else if(lightMode  == "Trilinear") {
+                currentTextureFilteringMode = TextureFilteringModes::TRILINEAR;
+            } else {
+              std::cerr << "Texture filtering mode can't be read, assuming Trilinear" << std::endl;
+            }
         }
     }
 
