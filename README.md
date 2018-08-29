@@ -44,7 +44,7 @@ $ cmake ../
 
 ### In Application:
 - Pressing `0` switches to debug mode, renders physics collision meshes and disconnects player from physics (flying and passing trough objects)
-- Pressing `"` key switches to editor mode, which allows creating maps.
+- Pressing `F2` key switches to editor mode, which allows creating maps.
 - Pressing `+` and `-` changes mouse sensitivity.
 - `wasd` for walking around and mouse for looking around as usual.
 
