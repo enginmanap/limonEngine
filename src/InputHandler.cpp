@@ -181,7 +181,7 @@ void InputHandler::mapInput() {
                         }
                         inputStatus[DEBUG] = true;
                         break;
-                    case SDLK_QUOTEDBL:
+                    case SDLK_F2:
                         if(!inputStatus[EDITOR]) {
                             inputEvents[EDITOR] = true;
                         }
@@ -258,7 +258,7 @@ void InputHandler::mapInput() {
                         }
                         inputStatus[DEBUG] = false;
                         break;
-                    case SDLK_QUOTEDBL:
+                    case SDLK_F2:
                         if(!inputStatus[EDITOR]) {
                             inputEvents[EDITOR] = true;
                         }
