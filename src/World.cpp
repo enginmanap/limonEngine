@@ -1680,7 +1680,7 @@ bool World::removeTriggerObject(uint32_t triggerobjectID) {
     return false;//not successful
 }
 
-uint32_t World::removeObject(uint32_t objectID) {
+bool World::removeObject(uint32_t objectID) {
     if(objects.find(objectID) != objects.end()) {
         PhysicalRenderable* objectToRemove = objects[objectID];
         dynamicsWorld->removeRigidBody(objectToRemove->getRigidBody());
@@ -1714,9 +1714,9 @@ uint32_t World::removeObject(uint32_t objectID) {
         //delete object itself
         delete objects[objectID];
         objects.erase(objectID);
-        return 0;
+        return true;
     }
-    return 1;//not successful
+    return false;//not successful
 }
 
 void World::afterLoadFinished() {

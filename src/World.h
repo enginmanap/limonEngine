@@ -360,7 +360,7 @@ public:
 
     uint32_t updateGuiText(uint32_t guiTextID, const std::string &newText);
 
-    uint32_t removeObject(uint32_t objectID);
+    bool removeObject(uint32_t objectID);
     bool removeTriggerObject(uint32_t triggerobjectID);
     uint32_t removeGuiText(uint32_t guiElementID);
 

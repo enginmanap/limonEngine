@@ -33,7 +33,7 @@ std::vector<LimonAPI::ParameterRequest> LimonAPI::getResultOfTrigger(uint32_t Tr
     return results;
 }
 
-uint32_t LimonAPI::removeObject(uint32_t objectID) {
+bool LimonAPI::removeObject(uint32_t objectID) {
     return worldRemoveObject(objectID);
 }
 
