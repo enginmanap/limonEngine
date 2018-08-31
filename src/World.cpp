@@ -1660,11 +1660,12 @@ std::vector<LimonAPI::ParameterRequest> World::getResultOfTrigger(uint32_t trigg
     return result;
 }
 
-uint32_t World::updateGuiText(uint32_t guiTextID, const std::string &newText) {
+bool World::updateGuiText(uint32_t guiTextID, const std::string &newText) {
     if(guiElements.find(guiTextID) != guiElements.end()) {
         dynamic_cast<GUITextBase*>(guiElements[guiTextID])->updateText(newText);
+        return true;
     }
-    return 0;
+    return false;
 }
 
 
