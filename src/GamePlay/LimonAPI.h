@@ -64,7 +64,7 @@ public:
 
     bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath);
     bool detachSoundFromObject(uint32_t objectWorldID);
-    bool playSound(const std::string &soundPath, const glm::vec3 &position, bool looped);
+    uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool looped);
 
     bool loadAndSwitchWorld(const std::string& worldFileName);
     bool returnToWorld(const std::string& worldFileName);//if world is not loaded, loads first
