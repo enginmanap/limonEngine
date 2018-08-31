@@ -57,7 +57,7 @@ public:
                                const glm::vec2 &position, float rotation);
     uint32_t updateGuiText(uint32_t guiTextID, const std::string &newText);
     uint32_t removeGuiElement(uint32_t guiElementID);
-    uint32_t removeObject(uint32_t guiElementID);
+    uint32_t removeObject(uint32_t objectID);
     bool removeTriggerObject(uint32_t TriggerObjectID);
     bool disconnectObjectFromPhysics(uint32_t modelID);
     bool reconnectObjectToPhysics(uint32_t modelID);
