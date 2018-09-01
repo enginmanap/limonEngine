@@ -59,10 +59,16 @@ bool GameEngine::LoadNewAndRemoveCurrent(const std::string &worldFile) {
     renderLoadingImage();
     World* temp = currentWorld;
     loadedWorlds.erase(temp->getName());
-    returnOrLoadMap(worldFile);
-    returnWorldStack.clear();
-    returnWorldStack.push_back(currentWorld);
-    delete temp;
+    if(returnOrLoadMap(worldFile)) {
+        //means success
+        returnWorldStack.clear();
+        returnWorldStack.push_back(currentWorld);
+        delete temp;
+    } else {
+        //means new world load failed
+        std::cerr << "World load for file " << worldFile << " failed" << std::endl;
+        loadedWorlds[temp->getName()] = temp;
+    }
     previousTime = SDL_GetTicks();
     return true;
 }
