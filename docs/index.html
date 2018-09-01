@@ -29,10 +29,19 @@ layout: default
             {{ post.description }}
         </div>
 
+        <br>
+
         <div class="post-content">
             {{ post.excerpt }}
         </div>
 
+        <br>
+        
+        <div align="right">
+            <h2>
+                <a href="{{ site.baseurl }}{{ post.url }}"> read more </a>
+            </h2>
+        </div>
     </div>
 {% endfor %}
 
