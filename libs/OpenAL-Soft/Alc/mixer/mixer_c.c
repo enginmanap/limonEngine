@@ -6,17 +6,17 @@
 #include "alu.h"
 #include "alSource.h"
 #include "alAuxEffectSlot.h"
+#include "defs.h"
 
 
-static inline ALfloat point32(const ALfloat *restrict vals, ALsizei UNUSED(frac))
+static inline ALfloat do_point(const ALfloat *restrict vals, ALsizei UNUSED(frac))
 { return vals[0]; }
-static inline ALfloat lerp32(const ALfloat *restrict vals, ALsizei frac)
+static inline ALfloat do_lerp(const ALfloat *restrict vals, ALsizei frac)
 { return lerp(vals[0], vals[1], frac * (1.0f/FRACTIONONE)); }
-static inline ALfloat fir4_32(const ALfloat *restrict vals, ALsizei frac)
-{ return resample_fir4(vals[-1], vals[0], vals[1], vals[2], frac); }
+static inline ALfloat do_cubic(const ALfloat *restrict vals, ALsizei frac)
+{ return cubic(vals[0], vals[1], vals[2], vals[3], frac * (1.0f/FRACTIONONE)); }
 
-
-const ALfloat *Resample_copy32_C(const InterpState* UNUSED(state),
+const ALfloat *Resample_copy_C(const InterpState* UNUSED(state),
   const ALfloat *restrict src, ALsizei UNUSED(frac), ALint UNUSED(increment),
   ALfloat *restrict dst, ALsizei numsamples)
 {
@@ -29,12 +29,14 @@ const ALfloat *Resample_copy32_C(const InterpState* UNUSED(state),
     return dst;
 }
 
-#define DECL_TEMPLATE(Sampler)                                                \
-const ALfloat *Resample_##Sampler##_C(const InterpState* UNUSED(state),       \
+#define DECL_TEMPLATE(Tag, Sampler, O)                                        \
+const ALfloat *Resample_##Tag##_C(const InterpState* UNUSED(state),           \
   const ALfloat *restrict src, ALsizei frac, ALint increment,                 \
   ALfloat *restrict dst, ALsizei numsamples)                                  \
 {                                                                             \
     ALsizei i;                                                                \
+                                                                              \
+    src -= O;                                                                 \
     for(i = 0;i < numsamples;i++)                                             \
     {                                                                         \
         dst[i] = Sampler(src, frac);                                          \
@@ -46,21 +48,24 @@ const ALfloat *Resample_##Sampler##_C(const InterpState* UNUSED(state),       \
     return dst;                                                               \
 }
 
-DECL_TEMPLATE(point32)
-DECL_TEMPLATE(lerp32)
-DECL_TEMPLATE(fir4_32)
+DECL_TEMPLATE(point, do_point, 0)
+DECL_TEMPLATE(lerp, do_lerp, 0)
+DECL_TEMPLATE(cubic, do_cubic, 1)
 
 #undef DECL_TEMPLATE
 
-const ALfloat *Resample_bsinc32_C(const InterpState *state, const ALfloat *restrict src,
-                                  ALsizei frac, ALint increment, ALfloat *restrict dst,
-                                  ALsizei dstlen)
+const ALfloat *Resample_bsinc_C(const InterpState *state, const ALfloat *restrict src,
+                                ALsizei frac, ALint increment, ALfloat *restrict dst,
+                                ALsizei dstlen)
 {
     const ALfloat *fil, *scd, *phd, *spd;
+    const ALfloat *const filter = state->bsinc.filter;
     const ALfloat sf = state->bsinc.sf;
     const ALsizei m = state->bsinc.m;
     ALsizei j_f, pi, i;
     ALfloat pf, r;
+
+    ASSUME(m > 0);
 
     src += state->bsinc.l;
     for(i = 0;i < dstlen;i++)
@@ -71,10 +76,10 @@ const ALfloat *Resample_bsinc32_C(const InterpState *state, const ALfloat *restr
         pf = (frac & ((1<<FRAC_PHASE_BITDIFF)-1)) * (1.0f/(1<<FRAC_PHASE_BITDIFF));
 #undef FRAC_PHASE_BITDIFF
 
-        fil = ASSUME_ALIGNED(state->bsinc.coeffs[pi].filter, 16);
-        scd = ASSUME_ALIGNED(state->bsinc.coeffs[pi].scDelta, 16);
-        phd = ASSUME_ALIGNED(state->bsinc.coeffs[pi].phDelta, 16);
-        spd = ASSUME_ALIGNED(state->bsinc.coeffs[pi].spDelta, 16);
+        fil = ASSUME_ALIGNED(filter + m*pi*4, 16);
+        scd = ASSUME_ALIGNED(fil + m, 16);
+        phd = ASSUME_ALIGNED(scd + m, 16);
+        spd = ASSUME_ALIGNED(phd + m, 16);
 
         // Apply the scale and phase interpolated filter.
         r = 0.0f;
@@ -87,47 +92,6 @@ const ALfloat *Resample_bsinc32_C(const InterpState *state, const ALfloat *restr
         frac &= FRACTIONMASK;
     }
     return dst;
-}
-
-
-void ALfilterState_processC(ALfilterState *filter, ALfloat *restrict dst, const ALfloat *restrict src, ALsizei numsamples)
-{
-    ALsizei i;
-    if(numsamples > 1)
-    {
-        dst[0] = filter->b0 * src[0] +
-                 filter->b1 * filter->x[0] +
-                 filter->b2 * filter->x[1] -
-                 filter->a1 * filter->y[0] -
-                 filter->a2 * filter->y[1];
-        dst[1] = filter->b0 * src[1] +
-                 filter->b1 * src[0] +
-                 filter->b2 * filter->x[0] -
-                 filter->a1 * dst[0] -
-                 filter->a2 * filter->y[0];
-        for(i = 2;i < numsamples;i++)
-            dst[i] = filter->b0 * src[i] +
-                     filter->b1 * src[i-1] +
-                     filter->b2 * src[i-2] -
-                     filter->a1 * dst[i-1] -
-                     filter->a2 * dst[i-2];
-        filter->x[0] = src[i-1];
-        filter->x[1] = src[i-2];
-        filter->y[0] = dst[i-1];
-        filter->y[1] = dst[i-2];
-    }
-    else if(numsamples == 1)
-    {
-        dst[0] = filter->b0 * src[0] +
-                 filter->b1 * filter->x[0] +
-                 filter->b2 * filter->x[1] -
-                 filter->a1 * filter->y[0] -
-                 filter->a2 * filter->y[1];
-        filter->x[1] = filter->x[0];
-        filter->x[0] = src[0];
-        filter->y[1] = filter->y[0];
-        filter->y[0] = dst[0];
-    }
 }
 
 
@@ -148,8 +112,7 @@ static inline void ApplyCoeffs(ALsizei Offset, ALfloat (*restrict Values)[2],
 #define MixHrtf MixHrtf_C
 #define MixHrtfBlend MixHrtfBlend_C
 #define MixDirectHrtf MixDirectHrtf_C
-#include "mixer_inc.c"
-#undef MixHrtf
+#include "hrtf_inc.c"
 
 
 void Mix_C(const ALfloat *data, ALsizei OutChans, ALfloat (*restrict OutBuffer)[BUFFERSIZE],
@@ -159,6 +122,8 @@ void Mix_C(const ALfloat *data, ALsizei OutChans, ALfloat (*restrict OutBuffer)[
     ALfloat gain, delta, step;
     ALsizei c;
 
+    ASSUME(OutChans > 0);
+    ASSUME(BufferSize > 0);
     delta = (Counter > 0) ? 1.0f/(ALfloat)Counter : 0.0f;
 
     for(c = 0;c < OutChans;c++)
@@ -169,13 +134,16 @@ void Mix_C(const ALfloat *data, ALsizei OutChans, ALfloat (*restrict OutBuffer)[
         if(fabsf(step) > FLT_EPSILON)
         {
             ALsizei minsize = mini(BufferSize, Counter);
+            ALfloat step_count = 0.0f;
             for(;pos < minsize;pos++)
             {
-                OutBuffer[c][OutPos+pos] += data[pos]*gain;
-                gain += step;
+                OutBuffer[c][OutPos+pos] += data[pos] * (gain + step*step_count);
+                step_count += 1.0f;
             }
             if(pos == Counter)
                 gain = TargetGains[c];
+            else
+                gain += step*step_count;
             CurrentGains[c] = gain;
         }
 
@@ -195,6 +163,9 @@ void Mix_C(const ALfloat *data, ALsizei OutChans, ALfloat (*restrict OutBuffer)[
 void MixRow_C(ALfloat *OutBuffer, const ALfloat *Gains, const ALfloat (*restrict data)[BUFFERSIZE], ALsizei InChans, ALsizei InPos, ALsizei BufferSize)
 {
     ALsizei c, i;
+
+    ASSUME(InChans > 0);
+    ASSUME(BufferSize > 0);
 
     for(c = 0;c < InChans;c++)
     {

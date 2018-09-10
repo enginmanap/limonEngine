@@ -60,19 +60,38 @@
 
 #include "config.h"
 
+#define _UNICODE
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <string.h>
+#include <limits.h>
 #include <ctype.h>
 #include <math.h>
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
+#ifdef HAVE_GETOPT
+#include <unistd.h>
+#else
+#include "getopt.h"
+#endif
 
-// Rely (if naively) on OpenAL's header for the types used for serialization.
-#include "AL/al.h"
-#include "AL/alext.h"
+#include "win_main_utf8.h"
+
+/* Define int64_t and uint64_t types */
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#include <inttypes.h>
+#elif defined(_WIN32) && defined(__GNUC__)
+#include <stdint.h>
+#elif defined(_WIN32)
+typedef __int64 int64_t;
+typedef unsigned __int64 uint64_t;
+#else
+/* Fallback if nothing above works */
+#include <inttypes.h>
+#endif
 
 #ifndef M_PI
 #define M_PI                         (3.14159265358979323846)
@@ -81,6 +100,7 @@
 #ifndef HUGE_VAL
 #define HUGE_VAL                     (1.0 / 0.0)
 #endif
+
 
 // The epsilon used to maintain signal stability.
 #define EPSILON                      (1e-9)
@@ -109,6 +129,9 @@
 #define MIN_POINTS                   (16)
 #define MAX_POINTS                   (8192)
 
+// The limit to the number of 'distances' listed in the data set definition.
+#define MAX_FD_COUNT                 (16)
+
 // The limits to the number of 'azimuths' listed in the data set definition.
 #define MIN_EV_COUNT                 (5)
 #define MAX_EV_COUNT                 (128)
@@ -121,10 +144,10 @@
 #define MIN_RADIUS                   (0.05)
 #define MAX_RADIUS                   (0.15)
 
-// The limits for the 'distance' from source to listener in the definition
-// file.
-#define MIN_DISTANCE                 (0.5)
-#define MAX_DISTANCE                 (2.5)
+// The limits for the 'distance' from source to listener for each field in
+// the definition file.
+#define MIN_DISTANCE                 (0.05)
+#define MAX_DISTANCE                 (2.50)
 
 // The maximum number of channels that can be addressed for a WAVE file
 // source listed in the data set definition.
@@ -192,8 +215,21 @@
 #define MAX_HRTD                     (63.0)
 
 // The OpenAL Soft HRTF format marker.  It stands for minimum-phase head
-// response protocol 01.
-#define MHR_FORMAT                   ("MinPHR01")
+// response protocol 02.
+#define MHR_FORMAT                   ("MinPHR02")
+
+// Sample and channel type enum values.
+typedef enum SampleTypeT {
+    ST_S16 = 0,
+    ST_S24 = 1
+} SampleTypeT;
+
+// Certain iterations rely on these integer enum values.
+typedef enum ChannelTypeT {
+    CT_NONE   = -1,
+    CT_MONO   = 0,
+    CT_STEREO = 1
+} ChannelTypeT;
 
 // Byte order for the serialization routines.
 typedef enum ByteOrderT {
@@ -225,20 +261,14 @@ typedef enum HeadModelT {
     HM_SPHERE   // Calculate the onset using a spherical head model.
 } HeadModelT;
 
-// Desired output format from the command line.
-typedef enum OutputFormatT {
-    OF_NONE,
-    OF_MHR   // OpenAL Soft MHR data set file.
-} OutputFormatT;
-
 // Unsigned integer type.
 typedef unsigned int uint;
 
 // Serialization types.  The trailing digit indicates the number of bits.
-typedef ALubyte      uint8;
-typedef ALint        int32;
-typedef ALuint       uint32;
-typedef ALuint64SOFT uint64;
+typedef unsigned char uint8;
+typedef int           int32;
+typedef unsigned int  uint32;
+typedef uint64_t      uint64;
 
 // Token reader state for parsing the data set definition.
 typedef struct TokenReaderT {
@@ -263,23 +293,42 @@ typedef struct SourceRefT {
     char mPath[MAX_PATH_LEN+1];
 } SourceRefT;
 
+// Structured HRIR storage for stereo azimuth pairs, elevations, and fields.
+typedef struct HrirAzT {
+    double mAzimuth;
+    uint mIndex;
+    double mDelays[2];
+    double *mIrs[2];
+} HrirAzT;
+
+typedef struct HrirEvT {
+    double mElevation;
+    uint mIrCount;
+    uint mAzCount;
+    HrirAzT *mAzs;
+} HrirEvT;
+
+typedef struct HrirFdT {
+    double mDistance;
+    uint mIrCount;
+    uint mEvCount;
+    uint mEvStart;
+    HrirEvT *mEvs;
+} HrirFdT;
+
 // The HRIR metrics and data set used when loading, processing, and storing
 // the resulting HRTF.
 typedef struct HrirDataT {
     uint mIrRate;
-    uint mIrCount;
-    uint mIrSize;
+    SampleTypeT mSampleType;
+    ChannelTypeT mChannelType;
     uint mIrPoints;
     uint mFftSize;
-    uint mEvCount;
-    uint mEvStart;
-    uint mAzCount[MAX_EV_COUNT];
-    uint mEvOffset[MAX_EV_COUNT];
+    uint mIrSize;
     double mRadius;
-    double mDistance;
-    double *mHrirs;
-    double *mHrtds;
-    double  mMaxHrtd;
+    uint mIrCount;
+    uint mFdCount;
+    HrirFdT *mFds;
 } HrirDataT;
 
 // The resampler metrics and FIR filter.
@@ -288,6 +337,66 @@ typedef struct ResamplerT {
     double *mF;
 } ResamplerT;
 
+
+/****************************************
+ *** Complex number type and routines ***
+ ****************************************/
+
+typedef struct {
+    double Real, Imag;
+} Complex;
+
+static Complex MakeComplex(double r, double i)
+{
+    Complex c = { r, i };
+    return c;
+}
+
+static Complex c_add(Complex a, Complex b)
+{
+    Complex r;
+    r.Real = a.Real + b.Real;
+    r.Imag = a.Imag + b.Imag;
+    return r;
+}
+
+static Complex c_sub(Complex a, Complex b)
+{
+    Complex r;
+    r.Real = a.Real - b.Real;
+    r.Imag = a.Imag - b.Imag;
+    return r;
+}
+
+static Complex c_mul(Complex a, Complex b)
+{
+    Complex r;
+    r.Real = a.Real*b.Real - a.Imag*b.Imag;
+    r.Imag = a.Imag*b.Real + a.Real*b.Imag;
+    return r;
+}
+
+static Complex c_muls(Complex a, double s)
+{
+    Complex r;
+    r.Real = a.Real * s;
+    r.Imag = a.Imag * s;
+    return r;
+}
+
+static double c_abs(Complex a)
+{
+    return sqrt(a.Real*a.Real + a.Imag*a.Imag);
+}
+
+static Complex c_exp(Complex a)
+{
+    Complex r;
+    double e = exp(a.Real);
+    r.Real = e * cos(a.Imag);
+    r.Imag = e * sin(a.Imag);
+    return r;
+}
 
 /*****************************
  *** Token reader routines ***
@@ -444,6 +553,19 @@ static void TrIndication(TokenReaderT *tr, uint *line, uint *column)
     if(column) *column = tr->mColumn;
 }
 
+// Checks to see if a token is (likely to be) an identifier.  It does not
+// display any errors and will not proceed to the next token.
+static int TrIsIdent(TokenReaderT *tr)
+{
+    char ch;
+
+    if(!TrSkipWhitespace(tr))
+        return 0;
+    ch = tr->mRing[tr->mOut&TR_RING_MASK];
+    return ch == '_' || isalpha(ch);
+}
+
+
 // Checks to see if a token is the given operator.  It does not display any
 // errors and will not proceed to the next token.
 static int TrIsOperator(TokenReaderT *tr, const char *op)
@@ -552,9 +674,9 @@ static int TrReadInt(TokenReaderT *tr, const int loBound, const int hiBound, int
             if(*value < loBound || *value > hiBound)
             {
                 TrErrorAt(tr, tr->mLine, col, "Expected a value from %d to %d.\n", loBound, hiBound);
-                return (0);
+                return 0;
             }
-            return (1);
+            return 1;
         }
     }
     TrErrorAt(tr, tr->mLine, col, "Expected an integer.\n");
@@ -647,7 +769,7 @@ static int TrReadFloat(TokenReaderT *tr, const double loBound, const double hiBo
                 *value = strtod(temp, NULL);
                 if(*value < loBound || *value > hiBound)
                 {
-                    TrErrorAt (tr, tr->mLine, col, "Expected a value from %f to %f.\n", loBound, hiBound);
+                    TrErrorAt(tr, tr->mLine, col, "Expected a value from %f to %f.\n", loBound, hiBound);
                     return 0;
                 }
                 return 1;
@@ -683,7 +805,7 @@ static int TrReadString(TokenReaderT *tr, const uint maxLen, char *text)
                     break;
                 if(ch == '\n')
                 {
-                    TrErrorAt (tr, tr->mLine, col, "Unterminated string at end of line.\n");
+                    TrErrorAt(tr, tr->mLine, col, "Unterminated string at end of line.\n");
                     return 0;
                 }
                 if(len < maxLen)
@@ -699,7 +821,7 @@ static int TrReadString(TokenReaderT *tr, const uint maxLen, char *text)
             tr->mColumn += 2 + len;
             if(len > maxLen)
             {
-                TrErrorAt (tr, tr->mLine, col, "String is too long.\n");
+                TrErrorAt(tr, tr->mLine, col, "String is too long.\n");
                 return 0;
             }
             text[len] = '\0';
@@ -812,30 +934,38 @@ static double Clamp(const double val, const double lower, const double upper)
 // Performs linear interpolation.
 static double Lerp(const double a, const double b, const double f)
 {
-    return a + (f * (b - a));
+    return a + f * (b - a);
 }
 
-// Performs a high-passed triangular probability density function dither from
-// a double to an integer.  It assumes the input sample is already scaled.
-static int HpTpdfDither(const double in, int *hpHist)
+static inline uint dither_rng(uint *seed)
 {
-    static const double PRNG_SCALE = 1.0 / (RAND_MAX+1.0);
-    int prn;
-    double out;
+    *seed = *seed * 96314165 + 907633515;
+    return *seed;
+}
 
-    prn = rand();
-    out = round(in + (PRNG_SCALE * (prn - *hpHist)));
-    *hpHist = prn;
-    return (int)out;
+// Performs a triangular probability density function dither. The input samples
+// should be normalized (-1 to +1).
+static void TpdfDither(double *restrict out, const double *restrict in, const double scale,
+                       const int count, const int step, uint *seed)
+{
+    static const double PRNG_SCALE = 1.0 / UINT_MAX;
+    uint prn0, prn1;
+    int i;
+
+    for(i = 0;i < count;i++)
+    {
+        prn0 = dither_rng(seed);
+        prn1 = dither_rng(seed);
+        out[i*step] = round(in[i]*scale + (prn0*PRNG_SCALE - prn1*PRNG_SCALE));
+    }
 }
 
 // Allocates an array of doubles.
-static double *CreateArray(size_t n)
+static double *CreateDoubles(size_t n)
 {
     double *a;
 
-    if(n == 0) n = 1;
-    a = calloc(n, sizeof(double));
+    a = calloc(n?n:1, sizeof(*a));
     if(a == NULL)
     {
         fprintf(stderr, "Error:  Out of memory.\n");
@@ -844,146 +974,94 @@ static double *CreateArray(size_t n)
     return a;
 }
 
-// Frees an array of doubles.
-static void DestroyArray(double *a)
-{ free(a); }
-
-// Complex number routines.  All outputs must be non-NULL.
-
-// Magnitude/absolute value.
-static double ComplexAbs(const double r, const double i)
+// Allocates an array of complex numbers.
+static Complex *CreateComplexes(size_t n)
 {
-    return sqrt(r*r + i*i);
+    Complex *a;
+
+    a = calloc(n?n:1, sizeof(*a));
+    if(a == NULL)
+    {
+        fprintf(stderr, "Error:  Out of memory.\n");
+        exit(-1);
+    }
+    return a;
 }
 
-// Multiply.
-static void ComplexMul(const double aR, const double aI, const double bR, const double bI, double *outR, double *outI)
-{
-    *outR = (aR * bR) - (aI * bI);
-    *outI = (aI * bR) + (aR * bI);
-}
-
-// Base-e exponent.
-static void ComplexExp(const double inR, const double inI, double *outR, double *outI)
-{
-    double e = exp(inR);
-    *outR = e * cos(inI);
-    *outI = e * sin(inI);
-}
-
-/* Fast Fourier transform routines.  The number of points must be a power of
- * two.  In-place operation is possible only if both the real and imaginary
- * parts are in-place together.
+/* Fast Fourier transform routines. The number of points must be a power of
+ * two.
  */
 
 // Performs bit-reversal ordering.
-static void FftArrange(const uint n, const double *inR, const double *inI, double *outR, double *outI)
+static void FftArrange(const uint n, Complex *inout)
 {
     uint rk, k, m;
-    double tempR, tempI;
 
-    if(inR == outR && inI == outI)
+    // Handle in-place arrangement.
+    rk = 0;
+    for(k = 0;k < n;k++)
     {
-        // Handle in-place arrangement.
-        rk = 0;
-        for(k = 0;k < n;k++)
+        if(rk > k)
         {
-            if(rk > k)
-            {
-                tempR = inR[rk];
-                tempI = inI[rk];
-                outR[rk] = inR[k];
-                outI[rk] = inI[k];
-                outR[k] = tempR;
-                outI[k] = tempI;
-            }
-            m = n;
-            while(rk&(m >>= 1))
-                rk &= ~m;
-            rk |= m;
+            Complex temp = inout[rk];
+            inout[rk] = inout[k];
+            inout[k] = temp;
         }
-    }
-    else
-    {
-        // Handle copy arrangement.
-        rk = 0;
-        for(k = 0;k < n;k++)
-        {
-            outR[rk] = inR[k];
-            outI[rk] = inI[k];
-            m = n;
-            while(rk&(m >>= 1))
-                rk &= ~m;
-            rk |= m;
-        }
+
+        m = n;
+        while(rk&(m >>= 1))
+            rk &= ~m;
+        rk |= m;
     }
 }
 
 // Performs the summation.
-static void FftSummation(const uint n, const double s, double *re, double *im)
+static void FftSummation(const int n, const double s, Complex *cplx)
 {
     double pi;
-    uint m, m2;
-    double vR, vI, wR, wI;
-    uint i, k, mk;
-    double tR, tI;
+    int m, m2;
+    int i, k, mk;
 
     pi = s * M_PI;
     for(m = 1, m2 = 2;m < n; m <<= 1, m2 <<= 1)
     {
         // v = Complex (-2.0 * sin (0.5 * pi / m) * sin (0.5 * pi / m), -sin (pi / m))
-        vR = sin(0.5 * pi / m);
-        vR = -2.0 * vR * vR;
-        vI = -sin(pi / m);
-        // w = Complex (1.0, 0.0)
-        wR = 1.0;
-        wI = 0.0;
+        double sm = sin(0.5 * pi / m);
+        Complex v = MakeComplex(-2.0*sm*sm, -sin(pi / m));
+        Complex w = MakeComplex(1.0, 0.0);
         for(i = 0;i < m;i++)
         {
             for(k = i;k < n;k += m2)
             {
+                Complex t;
                 mk = k + m;
-                // t = ComplexMul(w, out[km2])
-                tR = (wR * re[mk]) - (wI * im[mk]);
-                tI = (wR * im[mk]) + (wI * re[mk]);
-                // out[mk] = ComplexSub (out [k], t)
-                re[mk] = re[k] - tR;
-                im[mk] = im[k] - tI;
-                // out[k] = ComplexAdd (out [k], t)
-                re[k] += tR;
-                im[k] += tI;
+                t = c_mul(w, cplx[mk]);
+                cplx[mk] = c_sub(cplx[k], t);
+                cplx[k] = c_add(cplx[k], t);
             }
-            // t = ComplexMul (v, w)
-            tR = (vR * wR) - (vI * wI);
-            tI = (vR * wI) + (vI * wR);
-            // w = ComplexAdd (w, t)
-            wR += tR;
-            wI += tI;
+            w = c_add(w, c_mul(v, w));
         }
     }
 }
 
 // Performs a forward FFT.
-static void FftForward(const uint n, const double *inR, const double *inI, double *outR, double *outI)
+static void FftForward(const uint n, Complex *inout)
 {
-    FftArrange(n, inR, inI, outR, outI);
-    FftSummation(n, 1.0, outR, outI);
+    FftArrange(n, inout);
+    FftSummation(n, 1.0, inout);
 }
 
 // Performs an inverse FFT.
-static void FftInverse(const uint n, const double *inR, const double *inI, double *outR, double *outI)
+static void FftInverse(const uint n, Complex *inout)
 {
     double f;
     uint i;
 
-    FftArrange(n, inR, inI, outR, outI);
-    FftSummation(n, -1.0, outR, outI);
+    FftArrange(n, inout);
+    FftSummation(n, -1.0, inout);
     f = 1.0 / n;
     for(i = 0;i < n;i++)
-    {
-        outR[i] *= f;
-        outI[i] *= f;
-    }
+        inout[i] = c_muls(inout[i], f);
 }
 
 /* Calculate the complex helical sequence (or discrete-time analytical signal)
@@ -991,39 +1069,22 @@ static void FftInverse(const uint n, const double *inR, const double *inI, doubl
  * of a signal's magnitude response, the imaginary components can be used as
  * the angles for minimum-phase reconstruction.
  */
-static void Hilbert(const uint n, const double *in, double *outR, double *outI)
+static void Hilbert(const uint n, Complex *inout)
 {
     uint i;
 
-    if(in == outR)
-    {
-        // Handle in-place operation.
-        for(i = 0;i < n;i++)
-            outI[i] = 0.0;
-    }
-    else
-    {
-        // Handle copy operation.
-        for(i = 0;i < n;i++)
-        {
-            outR[i] = in[i];
-            outI[i] = 0.0;
-        }
-    }
-    FftInverse(n, outR, outI, outR, outI);
+    // Handle in-place operation.
+    for(i = 0;i < n;i++)
+        inout[i].Imag = 0.0;
+
+    FftInverse(n, inout);
     for(i = 1;i < (n+1)/2;i++)
-    {
-        outR[i] *= 2.0;
-        outI[i] *= 2.0;
-    }
+        inout[i] = c_muls(inout[i], 2.0);
     /* Increment i if n is even. */
     i += (n&1)^1;
     for(;i < n;i++)
-    {
-        outR[i] = 0.0;
-        outI[i] = 0.0;
-    }
-    FftForward(n, outR, outI, outR, outI);
+        inout[i] = MakeComplex(0.0, 0.0);
+    FftForward(n, inout);
 }
 
 /* Calculate the magnitude response of the given input.  This is used in
@@ -1031,21 +1092,20 @@ static void Hilbert(const uint n, const double *in, double *outR, double *outI)
  * minimum phase reconstruction.  The mirrored half of the response is also
  * discarded.
  */
-static void MagnitudeResponse(const uint n, const double *inR, const double *inI, double *out)
+static void MagnitudeResponse(const uint n, const Complex *in, double *out)
 {
     const uint m = 1 + (n / 2);
     uint i;
     for(i = 0;i < m;i++)
-        out[i] = fmax(ComplexAbs(inR[i], inI[i]), EPSILON);
+        out[i] = fmax(c_abs(in[i]), EPSILON);
 }
 
 /* Apply a range limit (in dB) to the given magnitude response.  This is used
  * to adjust the effects of the diffuse-field average on the equalization
  * process.
  */
-static void LimitMagnitudeResponse(const uint n, const double limit, const double *in, double *out)
+static void LimitMagnitudeResponse(const uint n, const uint m, const double limit, const double *in, double *out)
 {
-    const uint m = 1 + (n / 2);
     double halfLim;
     uint i, lower, upper;
     double ave;
@@ -1074,33 +1134,32 @@ static void LimitMagnitudeResponse(const uint n, const double limit, const doubl
  * residuals (which were discarded).  The mirrored half of the response is
  * reconstructed.
  */
-static void MinimumPhase(const uint n, const double *in, double *outR, double *outI)
+static void MinimumPhase(const uint n, const double *in, Complex *out)
 {
     const uint m = 1 + (n / 2);
     double *mags;
-    double aR, aI;
     uint i;
 
-    mags = CreateArray(n);
+    mags = CreateDoubles(n);
     for(i = 0;i < m;i++)
     {
         mags[i] = fmax(EPSILON, in[i]);
-        outR[i] = log(mags[i]);
+        out[i] = MakeComplex(log(mags[i]), 0.0);
     }
     for(;i < n;i++)
     {
         mags[i] = mags[n - i];
-        outR[i] = outR[n - i];
+        out[i] = out[n - i];
     }
-    Hilbert(n, outR, outR, outI);
+    Hilbert(n, out);
     // Remove any DC offset the filter has.
     mags[0] = EPSILON;
     for(i = 0;i < n;i++)
     {
-        ComplexExp(0.0, outI[i], &aR, &aI);
-        ComplexMul(mags[i], 0.0, aR, aI, &outR[i], &outI[i]);
+        Complex a = c_exp(MakeComplex(0.0, out[i].Imag));
+        out[i] = c_mul(MakeComplex(mags[i], 0.0), a);
     }
-    DestroyArray(mags);
+    free(mags);
 }
 
 
@@ -1276,12 +1335,13 @@ static void ResamplerSetup(ResamplerT *rs, const uint srcRate, const uint dstRat
         cutoff = 0.475 / rs->mQ;
         width = 0.05 / rs->mQ;
     }
-    // A rejection of -180 dB is used for the stop band.
-    l = CalcKaiserOrder(180.0, width) / 2;
+    // A rejection of -180 dB is used for the stop band. Round up when
+    // calculating the left offset to avoid increasing the transition width.
+    l = (CalcKaiserOrder(180.0, width)+1) / 2;
     beta = CalcKaiserBeta(180.0);
-    rs->mM = (2 * l) + 1;
+    rs->mM = l*2 + 1;
     rs->mL = l;
-    rs->mF = CreateArray(rs->mM);
+    rs->mF = CreateDoubles(rs->mM);
     for(i = 0;i < ((int)rs->mM);i++)
         rs->mF[i] = SincFilter((int)l, beta, rs->mP, cutoff, i);
 }
@@ -1289,7 +1349,7 @@ static void ResamplerSetup(ResamplerT *rs, const uint srcRate, const uint dstRat
 // Clean up after the resampler.
 static void ResamplerClear(ResamplerT *rs)
 {
-    DestroyArray(rs->mF);
+    free(rs->mF);
     rs->mF = NULL;
 }
 
@@ -1308,7 +1368,7 @@ static void ResamplerRun(ResamplerT *rs, const uint inN, const double *in, const
 
     // Handle in-place operation.
     if(in == out)
-        work = CreateArray(outN);
+        work = CreateDoubles(outN);
     else
         work = out;
     // Resample the input.
@@ -1331,11 +1391,11 @@ static void ResamplerRun(ResamplerT *rs, const uint inN, const double *in, const
         work[i] = r;
     }
     // Clean up after in-place operation.
-    if(in == out)
+    if(work != out)
     {
         for(i = 0;i < outN;i++)
             out[i] = work[i];
-        DestroyArray(work);
+        free(work);
     }
 }
 
@@ -1498,18 +1558,18 @@ static int ReadWaveFormat(FILE *fp, const ByteOrderT order, const uint hrirRate,
 
     chunkSize = 0;
     do {
-        if (chunkSize > 0)
-        fseek (fp, (long) chunkSize, SEEK_CUR);
+        if(chunkSize > 0)
+            fseek (fp, (long) chunkSize, SEEK_CUR);
         if(!ReadBin4(fp, src->mPath, BO_LITTLE, 4, &fourCC) ||
            !ReadBin4(fp, src->mPath, order, 4, &chunkSize))
-        return 0;
+            return 0;
     } while(fourCC != FOURCC_FMT);
-    if(!ReadBin4(fp, src->mPath, order, 2, & format) ||
-       !ReadBin4(fp, src->mPath, order, 2, & channels) ||
-       !ReadBin4(fp, src->mPath, order, 4, & rate) ||
-       !ReadBin4(fp, src->mPath, order, 4, & dummy) ||
-       !ReadBin4(fp, src->mPath, order, 2, & block))
-        return (0);
+    if(!ReadBin4(fp, src->mPath, order, 2, &format) ||
+       !ReadBin4(fp, src->mPath, order, 2, &channels) ||
+       !ReadBin4(fp, src->mPath, order, 4, &rate) ||
+       !ReadBin4(fp, src->mPath, order, 4, &dummy) ||
+       !ReadBin4(fp, src->mPath, order, 2, &block))
+        return 0;
     block /= channels;
     if(chunkSize > 14)
     {
@@ -1616,10 +1676,11 @@ static int ReadWaveList(FILE *fp, const SourceRefT *src, const ByteOrderT order,
     uint block, skip, offset, i;
     double lastSample;
 
-    for (;;) {
-        if(!ReadBin4(fp, src->mPath, BO_LITTLE, 4, & fourCC) ||
-           !ReadBin4(fp, src->mPath, order, 4, & chunkSize))
-            return (0);
+    for(;;)
+    {
+        if(!ReadBin4(fp, src->mPath, BO_LITTLE, 4, &fourCC) ||
+           !ReadBin4(fp, src->mPath, order, 4, &chunkSize))
+            return 0;
 
         if(fourCC == FOURCC_DATA)
         {
@@ -1773,7 +1834,7 @@ static int LoadAsciiSource(FILE *fp, const SourceRefT *src, const uint n, double
     for(i = 0;i < src->mOffset;i++)
     {
         if(!ReadAsciiAsDouble(&tr, src->mPath, src->mType, (uint)src->mBits, &dummy))
-            return (0);
+            return 0;
     }
     for(i = 0;i < n;i++)
     {
@@ -1794,7 +1855,7 @@ static int LoadSource(SourceRefT *src, const uint hrirRate, const uint n, double
     int result;
     FILE *fp;
 
-    if (src->mFormat == SF_ASCII)
+    if(src->mFormat == SF_ASCII)
         fp = fopen(src->mPath, "r");
     else
         fp = fopen(src->mPath, "rb");
@@ -1866,9 +1927,11 @@ static int WriteBin4(const ByteOrderT order, const uint bytes, const uint32 in, 
 // Store the OpenAL Soft HRTF data set.
 static int StoreMhr(const HrirDataT *hData, const char *filename)
 {
-    uint e, step, end, n, j, i;
-    int hpHist, v;
+    uint channels = (hData->mChannelType == CT_STEREO) ? 2 : 1;
+    uint n = hData->mIrPoints;
     FILE *fp;
+    uint fi, ei, ai, i;
+    uint dither_seed = 22222;
 
     if((fp=fopen(filename, "wb")) == NULL)
     {
@@ -1879,34 +1942,73 @@ static int StoreMhr(const HrirDataT *hData, const char *filename)
         return 0;
     if(!WriteBin4(BO_LITTLE, 4, (uint32)hData->mIrRate, fp, filename))
         return 0;
+    if(!WriteBin4(BO_LITTLE, 1, (uint32)hData->mSampleType, fp, filename))
+        return 0;
+    if(!WriteBin4(BO_LITTLE, 1, (uint32)hData->mChannelType, fp, filename))
+        return 0;
     if(!WriteBin4(BO_LITTLE, 1, (uint32)hData->mIrPoints, fp, filename))
         return 0;
-    if(!WriteBin4(BO_LITTLE, 1, (uint32)hData->mEvCount, fp, filename))
+    if(!WriteBin4(BO_LITTLE, 1, (uint32)hData->mFdCount, fp, filename))
         return 0;
-    for(e = 0;e < hData->mEvCount;e++)
+    for(fi = 0;fi < hData->mFdCount;fi++)
     {
-        if(!WriteBin4(BO_LITTLE, 1, (uint32)hData->mAzCount[e], fp, filename))
+        if(!WriteBin4(BO_LITTLE, 2, (uint32)(1000.0 * hData->mFds[fi].mDistance), fp, filename))
             return 0;
-    }
-    step = hData->mIrSize;
-    end = hData->mIrCount * step;
-    n = hData->mIrPoints;
-    srand(0x31DF840C);
-    for(j = 0;j < end;j += step)
-    {
-        hpHist = 0;
-        for(i = 0;i < n;i++)
+        if(!WriteBin4(BO_LITTLE, 1, (uint32)hData->mFds[fi].mEvCount, fp, filename))
+            return 0;
+        for(ei = 0;ei < hData->mFds[fi].mEvCount;ei++)
         {
-            v = HpTpdfDither(32767.0 * hData->mHrirs[j+i], &hpHist);
-            if(!WriteBin4(BO_LITTLE, 2, (uint32)v, fp, filename))
+            if(!WriteBin4(BO_LITTLE, 1, (uint32)hData->mFds[fi].mEvs[ei].mAzCount, fp, filename))
                 return 0;
         }
     }
-    for(j = 0;j < hData->mIrCount;j++)
+
+    for(fi = 0;fi < hData->mFdCount;fi++)
     {
-        v = (int)fmin(round(hData->mIrRate * hData->mHrtds[j]), MAX_HRTD);
-        if(!WriteBin4(BO_LITTLE, 1, (uint32)v, fp, filename))
-            return 0;
+        const double scale = (hData->mSampleType == ST_S16) ? 32767.0 :
+                             ((hData->mSampleType == ST_S24) ? 8388607.0 : 0.0);
+        const int bps = (hData->mSampleType == ST_S16) ? 2 :
+                        ((hData->mSampleType == ST_S24) ? 3 : 0);
+
+        for(ei = 0;ei < hData->mFds[fi].mEvCount;ei++)
+        {
+            for(ai = 0;ai < hData->mFds[fi].mEvs[ei].mAzCount;ai++)
+            {
+                HrirAzT *azd = &hData->mFds[fi].mEvs[ei].mAzs[ai];
+                double out[2 * MAX_TRUNCSIZE];
+
+                TpdfDither(out, azd->mIrs[0], scale, n, channels, &dither_seed);
+                if(hData->mChannelType == CT_STEREO)
+                    TpdfDither(out+1, azd->mIrs[1], scale, n, channels, &dither_seed);
+                for(i = 0;i < (channels * n);i++)
+                {
+                    int v = (int)Clamp(out[i], -scale-1.0, scale);
+                    if(!WriteBin4(BO_LITTLE, bps, (uint32)v, fp, filename))
+                        return 0;
+                }
+            }
+        }
+    }
+    for(fi = 0;fi < hData->mFdCount;fi++)
+    {
+        for(ei = 0;ei < hData->mFds[fi].mEvCount;ei++)
+        {
+            for(ai = 0;ai < hData->mFds[fi].mEvs[ei].mAzCount;ai++)
+            {
+                HrirAzT *azd = &hData->mFds[fi].mEvs[ei].mAzs[ai];
+                int v = (int)fmin(round(hData->mIrRate * azd->mDelays[0]), MAX_HRTD);
+
+                if(!WriteBin4(BO_LITTLE, 1, (uint32)v, fp, filename))
+                    return 0;
+                if(hData->mChannelType == CT_STEREO)
+                {
+                    v = (int)fmin(round(hData->mIrRate * azd->mDelays[1]), MAX_HRTD);
+
+                    if(!WriteBin4(BO_LITTLE, 1, (uint32)v, fp, filename))
+                        return 0;
+                }
+            }
+        }
     }
     fclose(fp);
     return 1;
@@ -1918,14 +2020,12 @@ static int StoreMhr(const HrirDataT *hData, const char *filename)
  ***********************/
 
 // Calculate the onset time of an HRIR and average it with any existing
-// timing for its elevation and azimuth.
-static void AverageHrirOnset(const double *hrir, const double f, const uint ei, const uint ai, const HrirDataT *hData)
+// timing for its field, elevation, azimuth, and ear.
+static double AverageHrirOnset(const uint rate, const uint n, const double *hrir, const double f, const double onset)
 {
-    double mag;
-    uint n, i, j;
+    double mag = 0.0;
+    uint i;
 
-    mag = 0.0;
-    n = hData->mIrPoints;
     for(i = 0;i < n;i++)
         mag = fmax(fabs(hrir[i]), mag);
     mag *= 0.15;
@@ -1934,38 +2034,27 @@ static void AverageHrirOnset(const double *hrir, const double f, const uint ei, 
         if(fabs(hrir[i]) >= mag)
             break;
     }
-    j = hData->mEvOffset[ei] + ai;
-    hData->mHrtds[j] = Lerp(hData->mHrtds[j], ((double)i) / hData->mIrRate, f);
+    return Lerp(onset, (double)i / rate, f);
 }
 
 // Calculate the magnitude response of an HRIR and average it with any
-// existing responses for its elevation and azimuth.
-static void AverageHrirMagnitude(const double *hrir, const double f, const uint ei, const uint ai, const HrirDataT *hData)
+// existing responses for its field, elevation, azimuth, and ear.
+static void AverageHrirMagnitude(const uint points, const uint n, const double *hrir, const double f, double *mag)
 {
-    double *re, *im;
-    uint n, m, i, j;
+    uint m = 1 + (n / 2), i;
+    Complex *h = CreateComplexes(n);
+    double *r = CreateDoubles(n);
 
-    n = hData->mFftSize;
-    re = CreateArray(n);
-    im = CreateArray(n);
-    for(i = 0;i < hData->mIrPoints;i++)
-    {
-        re[i] = hrir[i];
-        im[i] = 0.0;
-    }
+    for(i = 0;i < points;i++)
+        h[i] = MakeComplex(hrir[i], 0.0);
     for(;i < n;i++)
-    {
-        re[i] = 0.0;
-        im[i] = 0.0;
-    }
-    FftForward(n, re, im, re, im);
-    MagnitudeResponse(n, re, im, re);
-    m = 1 + (n / 2);
-    j = (hData->mEvOffset[ei] + ai) * hData->mIrSize;
+        h[i] = MakeComplex(0.0, 0.0);
+    FftForward(n, h);
+    MagnitudeResponse(n, h, r);
     for(i = 0;i < m;i++)
-        hData->mHrirs[j+i] = Lerp(hData->mHrirs[j+i], re[i], f);
-    DestroyArray(im);
-    DestroyArray(re);
+        mag[i] = Lerp(mag[i], r[i], f);
+    free(r);
+    free(h);
 }
 
 /* Calculate the contribution of each HRIR to the diffuse-field average based
@@ -1974,34 +2063,39 @@ static void AverageHrirMagnitude(const double *hrir, const double f, const uint 
  */
 static void CalculateDfWeights(const HrirDataT *hData, double *weights)
 {
-    double evs, sum, ev, up_ev, down_ev, solidAngle;
-    uint ei;
+    double sum, evs, ev, upperEv, lowerEv, solidAngle;
+    uint fi, ei;
 
-    evs = 90.0 / (hData->mEvCount - 1);
     sum = 0.0;
-    for(ei = hData->mEvStart;ei < hData->mEvCount;ei++)
+    for(fi = 0;fi < hData->mFdCount;fi++)
     {
-        // For each elevation, calculate the upper and lower limits of the
-        // patch band.
-        ev = -90.0 + (ei * 2.0 * evs);
-        if(ei < (hData->mEvCount - 1))
-            up_ev = (ev + evs) * M_PI / 180.0;
-        else
-            up_ev = M_PI / 2.0;
-        if(ei > 0)
-            down_ev = (ev - evs) * M_PI / 180.0;
-        else
-            down_ev = -M_PI / 2.0;
-        // Calculate the area of the patch band.
-        solidAngle = 2.0 * M_PI * (sin(up_ev) - sin(down_ev));
-        // Each weight is the area of one patch.
-        weights[ei] = solidAngle / hData->mAzCount [ei];
-        // Sum the total surface area covered by the HRIRs.
-        sum += solidAngle;
+        evs = M_PI / 2.0 / (hData->mFds[fi].mEvCount - 1);
+        for(ei = hData->mFds[fi].mEvStart;ei < hData->mFds[fi].mEvCount;ei++)
+        {
+            // For each elevation, calculate the upper and lower limits of
+            // the patch band.
+            ev = hData->mFds[fi].mEvs[ei].mElevation;
+            lowerEv = fmax(-M_PI / 2.0, ev - evs);
+            upperEv = fmin(M_PI / 2.0, ev + evs);
+            // Calculate the area of the patch band.
+            solidAngle = 2.0 * M_PI * (sin(upperEv) - sin(lowerEv));
+            // Each weight is the area of one patch.
+            weights[(fi * MAX_EV_COUNT) + ei] = solidAngle / hData->mFds[fi].mEvs[ei].mAzCount;
+            // Sum the total surface area covered by the HRIRs of all fields.
+            sum += solidAngle;
+        }
     }
-    // Normalize the weights given the total surface coverage.
-    for(ei = hData->mEvStart;ei < hData->mEvCount;ei++)
-        weights[ei] /= sum;
+    /* TODO: It may be interesting to experiment with how a volume-based
+             weighting performs compared to the existing distance-indepenent
+             surface patches.
+     */
+    for(fi = 0;fi < hData->mFdCount;fi++)
+    {
+        // Normalize the weights given the total surface coverage for all
+        // fields.
+        for(ei = hData->mFds[fi].mEvStart;ei < hData->mFds[fi].mEvCount;ei++)
+            weights[(fi * MAX_EV_COUNT) + ei] /= sum;
+    }
 }
 
 /* Calculate the diffuse-field average from the given magnitude responses of
@@ -2009,12 +2103,11 @@ static void CalculateDfWeights(const HrirDataT *hData, double *weights)
  * surface area covered by each HRIR.  The final average can then be limited
  * by the specified magnitude range (in positive dB; 0.0 to skip).
  */
-static void CalculateDiffuseFieldAverage(const HrirDataT *hData, const int weighted, const double limit, double *dfa)
+static void CalculateDiffuseFieldAverage(const HrirDataT *hData, const uint channels, const uint m, const int weighted, const double limit, double *dfa)
 {
-    uint ei, ai, count, step, start, end, m, j, i;
-    double *weights;
+    double *weights = CreateDoubles(hData->mFdCount * MAX_EV_COUNT);
+    uint count, ti, fi, ei, i, ai;
 
-    weights = CreateArray(hData->mEvCount);
     if(weighted)
     {
         // Use coverage weighting to calculate the average.
@@ -2022,61 +2115,76 @@ static void CalculateDiffuseFieldAverage(const HrirDataT *hData, const int weigh
     }
     else
     {
+        double weight;
+
         // If coverage weighting is not used, the weights still need to be
-        // averaged by the number of HRIRs.
-        count = 0;
-        for(ei = hData->mEvStart;ei < hData->mEvCount;ei++)
-            count += hData->mAzCount [ei];
-        for(ei = hData->mEvStart;ei < hData->mEvCount;ei++)
-            weights[ei] = 1.0 / count;
-    }
-    ei = hData->mEvStart;
-    ai = 0;
-    step = hData->mIrSize;
-    start = hData->mEvOffset[ei] * step;
-    end = hData->mIrCount * step;
-    m = 1 + (hData->mFftSize / 2);
-    for(i = 0;i < m;i++)
-        dfa[i] = 0.0;
-    for(j = start;j < end;j += step)
-    {
-        // Get the weight for this HRIR's contribution.
-        double weight = weights[ei];
-        // Add this HRIR's weighted power average to the total.
-        for(i = 0;i < m;i++)
-            dfa[i] += weight * hData->mHrirs[j+i] * hData->mHrirs[j+i];
-        // Determine the next weight to use.
-        ai++;
-        if(ai >= hData->mAzCount[ei])
+        // averaged by the number of existing HRIRs.
+        count = hData->mIrCount;
+        for(fi = 0;fi < hData->mFdCount;fi++)
         {
-            ei++;
-            ai = 0;
+            for(ei = 0;ei < hData->mFds[fi].mEvStart;ei++)
+                count -= hData->mFds[fi].mEvs[ei].mAzCount;
+        }
+        weight = 1.0 / count;
+
+        for(fi = 0;fi < hData->mFdCount;fi++)
+        {
+            for(ei = hData->mFds[fi].mEvStart;ei < hData->mFds[fi].mEvCount;ei++)
+                weights[(fi * MAX_EV_COUNT) + ei] = weight;
         }
     }
-    // Finish the average calculation and keep it from being too small.
-    for(i = 0;i < m;i++)
-        dfa[i] = fmax(sqrt(dfa[i]), EPSILON);
-    // Apply a limit to the magnitude range of the diffuse-field average if
-    // desired.
-    if(limit > 0.0)
-        LimitMagnitudeResponse(hData->mFftSize, limit, dfa, dfa);
-    DestroyArray(weights);
+    for(ti = 0;ti < channels;ti++)
+    {
+        for(i = 0;i < m;i++)
+            dfa[(ti * m) + i] = 0.0;
+        for(fi = 0;fi < hData->mFdCount;fi++)
+        {
+            for(ei = hData->mFds[fi].mEvStart;ei < hData->mFds[fi].mEvCount;ei++)
+            {
+                for(ai = 0;ai < hData->mFds[fi].mEvs[ei].mAzCount;ai++)
+                {
+                    HrirAzT *azd = &hData->mFds[fi].mEvs[ei].mAzs[ai];
+                    // Get the weight for this HRIR's contribution.
+                    double weight = weights[(fi * MAX_EV_COUNT) + ei];
+
+                    // Add this HRIR's weighted power average to the total.
+                    for(i = 0;i < m;i++)
+                        dfa[(ti * m) + i] += weight * azd->mIrs[ti][i] * azd->mIrs[ti][i];
+                }
+            }
+        }
+        // Finish the average calculation and keep it from being too small.
+        for(i = 0;i < m;i++)
+            dfa[(ti * m) + i] = fmax(sqrt(dfa[(ti * m) + i]), EPSILON);
+        // Apply a limit to the magnitude range of the diffuse-field average
+        // if desired.
+        if(limit > 0.0)
+            LimitMagnitudeResponse(hData->mFftSize, m, limit, &dfa[ti * m], &dfa[ti * m]);
+    }
+    free(weights);
 }
 
 // Perform diffuse-field equalization on the magnitude responses of the HRIR
 // set using the given average response.
-static void DiffuseFieldEqualize(const double *dfa, const HrirDataT *hData)
+static void DiffuseFieldEqualize(const uint channels, const uint m, const double *dfa, const HrirDataT *hData)
 {
-    uint step, start, end, m, j, i;
+    uint ti, fi, ei, ai, i;
 
-    step = hData->mIrSize;
-    start = hData->mEvOffset[hData->mEvStart] * step;
-    end = hData->mIrCount * step;
-    m = 1 + (hData->mFftSize / 2);
-    for(j = start;j < end;j += step)
+    for(fi = 0;fi < hData->mFdCount;fi++)
     {
-        for(i = 0;i < m;i++)
-            hData->mHrirs[j+i] /= dfa[i];
+        for(ei = hData->mFds[fi].mEvStart;ei < hData->mFds[fi].mEvCount;ei++)
+        {
+            for(ai = 0;ai < hData->mFds[fi].mEvs[ei].mAzCount;ai++)
+            {
+                HrirAzT *azd = &hData->mFds[fi].mEvs[ei].mAzs[ai];
+
+                for(ti = 0;ti < channels;ti++)
+                {
+                    for(i = 0;i < m;i++)
+                        azd->mIrs[ti][i] /= dfa[(ti * m) + i];
+                }
+            }
+        }
     }
 }
 
@@ -2084,176 +2192,247 @@ static void DiffuseFieldEqualize(const double *dfa, const HrirDataT *hData)
 // HRIR set.
 static void ReconstructHrirs(const HrirDataT *hData)
 {
-    uint step, start, end, n, j, i;
-    double *re, *im;
+    uint channels = (hData->mChannelType == CT_STEREO) ? 2 : 1;
+    uint n = hData->mFftSize;
+    uint ti, fi, ei, ai, i;
+    Complex *h = CreateComplexes(n);
+    uint total, count, pcdone, lastpc;
 
-    step = hData->mIrSize;
-    start = hData->mEvOffset[hData->mEvStart] * step;
-    end = hData->mIrCount * step;
-    n = hData->mFftSize;
-    re = CreateArray(n);
-    im = CreateArray(n);
-    for(j = start;j < end;j += step)
+    total = hData->mIrCount;
+    for(fi = 0;fi < hData->mFdCount;fi++)
     {
-        MinimumPhase(n, &hData->mHrirs[j], re, im);
-        FftInverse(n, re, im, re, im);
-        for(i = 0;i < hData->mIrPoints;i++)
-            hData->mHrirs[j+i] = re[i];
+        for(ei = 0;ei < hData->mFds[fi].mEvStart;ei++)
+            total -= hData->mFds[fi].mEvs[ei].mAzCount;
     }
-    DestroyArray (im);
-    DestroyArray (re);
+    total *= channels;
+    count = pcdone = lastpc = 0;
+    printf("%3d%% done.", pcdone);
+    fflush(stdout);
+    for(fi = 0;fi < hData->mFdCount;fi++)
+    {
+        for(ei = hData->mFds[fi].mEvStart;ei < hData->mFds[fi].mEvCount;ei++)
+        {
+            for(ai = 0;ai < hData->mFds[fi].mEvs[ei].mAzCount;ai++)
+            {
+                HrirAzT *azd = &hData->mFds[fi].mEvs[ei].mAzs[ai];
+
+                for(ti = 0;ti < channels;ti++)
+                {
+                    MinimumPhase(n, azd->mIrs[ti], h);
+                    FftInverse(n, h);
+                    for(i = 0;i < hData->mIrPoints;i++)
+                        azd->mIrs[ti][i] = h[i].Real;
+                    pcdone = ++count * 100 / total;
+                    if(pcdone != lastpc)
+                    {
+                        lastpc = pcdone;
+                        printf("\r%3d%% done.", pcdone);
+                        fflush(stdout);
+                    }
+                }
+            }
+        }
+    }
+    printf("\n");
+    free(h);
 }
 
 // Resamples the HRIRs for use at the given sampling rate.
 static void ResampleHrirs(const uint rate, HrirDataT *hData)
 {
-    uint n, step, start, end, j;
+    uint channels = (hData->mChannelType == CT_STEREO) ? 2 : 1;
+    uint n = hData->mIrPoints;
+    uint ti, fi, ei, ai;
     ResamplerT rs;
 
     ResamplerSetup(&rs, hData->mIrRate, rate);
-    n = hData->mIrPoints;
-    step = hData->mIrSize;
-    start = hData->mEvOffset[hData->mEvStart] * step;
-    end = hData->mIrCount * step;
-    for(j = start;j < end;j += step)
-        ResamplerRun(&rs, n, &hData->mHrirs[j], n, &hData->mHrirs[j]);
-    ResamplerClear(&rs);
+    for(fi = 0;fi < hData->mFdCount;fi++)
+    {
+        for(ei = hData->mFds[fi].mEvStart;ei < hData->mFds[fi].mEvCount;ei++)
+        {
+            for(ai = 0;ai < hData->mFds[fi].mEvs[ei].mAzCount;ai++)
+            {
+                HrirAzT *azd = &hData->mFds[fi].mEvs[ei].mAzs[ai];
+
+                for(ti = 0;ti < channels;ti++)
+                    ResamplerRun(&rs, n, azd->mIrs[ti], n, azd->mIrs[ti]);
+            }
+        }
+    }
     hData->mIrRate = rate;
+    ResamplerClear(&rs);
 }
 
-/* Given an elevation index and an azimuth, calculate the indices of the two
- * HRIRs that bound the coordinate along with a factor for calculating the
- * continous HRIR using interpolation.
+/* Given field and elevation indices and an azimuth, calculate the indices of
+ * the two HRIRs that bound the coordinate along with a factor for
+ * calculating the continuous HRIR using interpolation.
  */
-static void CalcAzIndices(const HrirDataT *hData, const uint ei, const double az, uint *j0, uint *j1, double *jf)
+static void CalcAzIndices(const HrirDataT *hData, const uint fi, const uint ei, const double az, uint *a0, uint *a1, double *af)
 {
-    double af;
-    uint ai;
+    double f = (2.0*M_PI + az) * hData->mFds[fi].mEvs[ei].mAzCount / (2.0*M_PI);
+    uint i = (uint)f % hData->mFds[fi].mEvs[ei].mAzCount;
 
-    af = ((2.0*M_PI) + az) * hData->mAzCount[ei] / (2.0*M_PI);
-    ai = ((uint)af) % hData->mAzCount[ei];
-    af -= floor(af);
-
-    *j0 = hData->mEvOffset[ei] + ai;
-    *j1 = hData->mEvOffset[ei] + ((ai+1) % hData->mAzCount [ei]);
-    *jf = af;
+    f -= floor(f);
+    *a0 = i;
+    *a1 = (i + 1) % hData->mFds[fi].mEvs[ei].mAzCount;
+    *af = f;
 }
 
-// Synthesize any missing onset timings at the bottom elevations.  This just
-// blends between slightly exaggerated known onsets.  Not an accurate model.
+// Synthesize any missing onset timings at the bottom elevations of each
+// field.  This just blends between slightly exaggerated known onsets (not
+// an accurate model).
 static void SynthesizeOnsets(HrirDataT *hData)
 {
-    uint oi, e, a, j0, j1;
-    double t, of, jf;
+    uint channels = (hData->mChannelType == CT_STEREO) ? 2 : 1;
+    uint ti, fi, oi, ai, ei, a0, a1;
+    double t, of, af;
 
-    oi = hData->mEvStart;
-    t = 0.0;
-    for(a = 0;a < hData->mAzCount[oi];a++)
-        t += hData->mHrtds[hData->mEvOffset[oi] + a];
-    hData->mHrtds[0] = 1.32e-4 + (t / hData->mAzCount[oi]);
-    for(e = 1;e < hData->mEvStart;e++)
+    for(fi = 0;fi < hData->mFdCount;fi++)
     {
-        of = ((double)e) / hData->mEvStart;
-        for(a = 0;a < hData->mAzCount[e];a++)
+        if(hData->mFds[fi].mEvStart <= 0)
+            continue;
+        oi = hData->mFds[fi].mEvStart;
+
+        for(ti = 0;ti < channels;ti++)
         {
-            CalcAzIndices(hData, oi, a * 2.0 * M_PI / hData->mAzCount[e], &j0, &j1, &jf);
-            hData->mHrtds[hData->mEvOffset[e] + a] = Lerp(hData->mHrtds[0], Lerp(hData->mHrtds[j0], hData->mHrtds[j1], jf), of);
+            t = 0.0;
+            for(ai = 0;ai < hData->mFds[fi].mEvs[oi].mAzCount;ai++)
+                t += hData->mFds[fi].mEvs[oi].mAzs[ai].mDelays[ti];
+            hData->mFds[fi].mEvs[0].mAzs[0].mDelays[ti] = 1.32e-4 + (t / hData->mFds[fi].mEvs[oi].mAzCount);
+            for(ei = 1;ei < hData->mFds[fi].mEvStart;ei++)
+            {
+                of = (double)ei / hData->mFds[fi].mEvStart;
+                for(ai = 0;ai < hData->mFds[fi].mEvs[ei].mAzCount;ai++)
+                {
+                    CalcAzIndices(hData, fi, oi, hData->mFds[fi].mEvs[ei].mAzs[ai].mAzimuth, &a0, &a1, &af);
+                    hData->mFds[fi].mEvs[ei].mAzs[ai].mDelays[ti] = Lerp(
+                        hData->mFds[fi].mEvs[0].mAzs[0].mDelays[ti],
+                        Lerp(hData->mFds[fi].mEvs[oi].mAzs[a0].mDelays[ti],
+                             hData->mFds[fi].mEvs[oi].mAzs[a1].mDelays[ti], af),
+                        of
+                    );
+                }
+            }
         }
     }
 }
 
-/* Attempt to synthesize any missing HRIRs at the bottom elevations.  Right
- * now this just blends the lowest elevation HRIRs together and applies some
- * attenuation and high frequency damping.  It is a simple, if inaccurate
- * model.
+/* Attempt to synthesize any missing HRIRs at the bottom elevations of each
+ * field.  Right now this just blends the lowest elevation HRIRs together and
+ * applies some attenuation and high frequency damping.  It is a simple, if
+ * inaccurate model.
  */
-static void SynthesizeHrirs (HrirDataT *hData)
+static void SynthesizeHrirs(HrirDataT *hData)
 {
-    uint oi, a, e, step, n, i, j;
+    uint channels = (hData->mChannelType == CT_STEREO) ? 2 : 1;
+    uint n = hData->mIrPoints;
+    uint ti, fi, ai, ei, i;
     double lp[4], s0, s1;
     double of, b;
-    uint j0, j1;
-    double jf;
+    uint a0, a1;
+    double af;
 
-    if(hData->mEvStart <= 0)
-        return;
-    step = hData->mIrSize;
-    oi = hData->mEvStart;
-    n = hData->mIrPoints;
-    for(i = 0;i < n;i++)
-        hData->mHrirs[i] = 0.0;
-    for(a = 0;a < hData->mAzCount[oi];a++)
+    for(fi = 0;fi < hData->mFdCount;fi++)
     {
-        j = (hData->mEvOffset[oi] + a) * step;
-        for(i = 0;i < n;i++)
-            hData->mHrirs[i] += hData->mHrirs[j+i] / hData->mAzCount[oi];
-    }
-    for(e = 1;e < hData->mEvStart;e++)
-    {
-        of = ((double)e) / hData->mEvStart;
-        b = (1.0 - of) * (3.5e-6 * hData->mIrRate);
-        for(a = 0;a < hData->mAzCount[e];a++)
+        const uint oi = hData->mFds[fi].mEvStart;
+        if(oi <= 0) continue;
+
+        for(ti = 0;ti < channels;ti++)
         {
-            j = (hData->mEvOffset[e] + a) * step;
-            CalcAzIndices(hData, oi, a * 2.0 * M_PI / hData->mAzCount[e], &j0, &j1, &jf);
-            j0 *= step;
-            j1 *= step;
+            for(i = 0;i < n;i++)
+                hData->mFds[fi].mEvs[0].mAzs[0].mIrs[ti][i] = 0.0;
+            for(ai = 0;ai < hData->mFds[fi].mEvs[oi].mAzCount;ai++)
+            {
+                for(i = 0;i < n;i++)
+                    hData->mFds[fi].mEvs[0].mAzs[0].mIrs[ti][i] += hData->mFds[fi].mEvs[oi].mAzs[ai].mIrs[ti][i] /
+                                                                   hData->mFds[fi].mEvs[oi].mAzCount;
+            }
+            for(ei = 1;ei < hData->mFds[fi].mEvStart;ei++)
+            {
+                of = (double)ei / hData->mFds[fi].mEvStart;
+                b = (1.0 - of) * (3.5e-6 * hData->mIrRate);
+                for(ai = 0;ai < hData->mFds[fi].mEvs[ei].mAzCount;ai++)
+                {
+                    CalcAzIndices(hData, fi, oi, hData->mFds[fi].mEvs[ei].mAzs[ai].mAzimuth, &a0, &a1, &af);
+                    lp[0] = 0.0;
+                    lp[1] = 0.0;
+                    lp[2] = 0.0;
+                    lp[3] = 0.0;
+                    for(i = 0;i < n;i++)
+                    {
+                        s0 = hData->mFds[fi].mEvs[0].mAzs[0].mIrs[ti][i];
+                        s1 = Lerp(hData->mFds[fi].mEvs[oi].mAzs[a0].mIrs[ti][i],
+                                  hData->mFds[fi].mEvs[oi].mAzs[a1].mIrs[ti][i], af);
+                        s0 = Lerp(s0, s1, of);
+                        lp[0] = Lerp(s0, lp[0], b);
+                        lp[1] = Lerp(lp[0], lp[1], b);
+                        lp[2] = Lerp(lp[1], lp[2], b);
+                        lp[3] = Lerp(lp[2], lp[3], b);
+                        hData->mFds[fi].mEvs[ei].mAzs[ai].mIrs[ti][i] = lp[3];
+                    }
+                }
+            }
+            b = 3.5e-6 * hData->mIrRate;
             lp[0] = 0.0;
             lp[1] = 0.0;
             lp[2] = 0.0;
             lp[3] = 0.0;
             for(i = 0;i < n;i++)
             {
-                s0 = hData->mHrirs[i];
-                s1 = Lerp(hData->mHrirs[j0+i], hData->mHrirs[j1+i], jf);
-                s0 = Lerp(s0, s1, of);
+                s0 = hData->mFds[fi].mEvs[0].mAzs[0].mIrs[ti][i];
                 lp[0] = Lerp(s0, lp[0], b);
                 lp[1] = Lerp(lp[0], lp[1], b);
                 lp[2] = Lerp(lp[1], lp[2], b);
                 lp[3] = Lerp(lp[2], lp[3], b);
-                hData->mHrirs[j+i] = lp[3];
+                hData->mFds[fi].mEvs[0].mAzs[0].mIrs[ti][i] = lp[3];
             }
         }
+        hData->mFds[fi].mEvStart = 0;
     }
-    b = 3.5e-6 * hData->mIrRate;
-    lp[0] = 0.0;
-    lp[1] = 0.0;
-    lp[2] = 0.0;
-    lp[3] = 0.0;
-    for(i = 0;i < n;i++)
-    {
-        s0 = hData->mHrirs[i];
-        lp[0] = Lerp(s0, lp[0], b);
-        lp[1] = Lerp(lp[0], lp[1], b);
-        lp[2] = Lerp(lp[1], lp[2], b);
-        lp[3] = Lerp(lp[2], lp[3], b);
-        hData->mHrirs[i] = lp[3];
-    }
-    hData->mEvStart = 0;
 }
 
 // The following routines assume a full set of HRIRs for all elevations.
 
 // Normalize the HRIR set and slightly attenuate the result.
-static void NormalizeHrirs (const HrirDataT *hData)
+static void NormalizeHrirs(const HrirDataT *hData)
 {
-    uint step, end, n, j, i;
-    double maxLevel;
+    uint channels = (hData->mChannelType == CT_STEREO) ? 2 : 1;
+    uint n = hData->mIrPoints;
+    uint ti, fi, ei, ai, i;
+    double maxLevel = 0.0;
 
-    step = hData->mIrSize;
-    end = hData->mIrCount * step;
-    n = hData->mIrPoints;
-    maxLevel = 0.0;
-    for(j = 0;j < end;j += step)
+    for(fi = 0;fi < hData->mFdCount;fi++)
     {
-        for(i = 0;i < n;i++)
-            maxLevel = fmax(fabs(hData->mHrirs[j+i]), maxLevel);
+        for(ei = 0;ei < hData->mFds[fi].mEvCount;ei++)
+        {
+            for(ai = 0;ai < hData->mFds[fi].mEvs[ei].mAzCount;ai++)
+            {
+                HrirAzT *azd = &hData->mFds[fi].mEvs[ei].mAzs[ai];
+
+                for(ti = 0;ti < channels;ti++)
+                {
+                    for(i = 0;i < n;i++)
+                        maxLevel = fmax(fabs(azd->mIrs[ti][i]), maxLevel);
+                }
+            }
+        }
     }
     maxLevel = 1.01 * maxLevel;
-    for(j = 0;j < end;j += step)
+    for(fi = 0;fi < hData->mFdCount;fi++)
     {
-        for(i = 0;i < n;i++)
-            hData->mHrirs[j+i] /= maxLevel;
+        for(ei = 0;ei < hData->mFds[fi].mEvCount;ei++)
+        {
+            for(ai = 0;ai < hData->mFds[fi].mEvs[ei].mAzCount;ai++)
+            {
+                HrirAzT *azd = &hData->mFds[fi].mEvs[ei].mAzs[ai];
+
+                for(ti = 0;ti < channels;ti++)
+                {
+                    for(i = 0;i < n;i++)
+                        azd->mIrs[ti][i] /= maxLevel;
+                }
+            }
+        }
     }
 }
 
@@ -2268,93 +2447,261 @@ static double CalcLTD(const double ev, const double az, const double rad, const 
     al = (0.5 * M_PI) + azp;
     if(dlp > l)
         dlp = l + (rad * (al - acos(rad / dist)));
-    return (dlp / 343.3);
+    return dlp / 343.3;
 }
 
 // Calculate the effective head-related time delays for each minimum-phase
 // HRIR.
-static void CalculateHrtds (const HeadModelT model, const double radius, HrirDataT *hData)
+static void CalculateHrtds(const HeadModelT model, const double radius, HrirDataT *hData)
 {
-    double minHrtd, maxHrtd;
-    uint e, a, j;
+    uint channels = (hData->mChannelType == CT_STEREO) ? 2 : 1;
+    double minHrtd = INFINITY, maxHrtd = -INFINITY;
+    uint ti, fi, ei, ai;
     double t;
 
-    minHrtd = 1000.0;
-    maxHrtd = -1000.0;
-    for(e = 0;e < hData->mEvCount;e++)
+    if(model == HM_DATASET)
     {
-        for(a = 0;a < hData->mAzCount[e];a++)
+        for(fi = 0;fi < hData->mFdCount;fi++)
         {
-            j = hData->mEvOffset[e] + a;
-            if(model == HM_DATASET)
-                t = hData->mHrtds[j] * radius / hData->mRadius;
-            else
-                t = CalcLTD((-90.0 + (e * 180.0 / (hData->mEvCount - 1))) * M_PI / 180.0,
-                            (a * 360.0 / hData->mAzCount [e]) * M_PI / 180.0,
-                            radius, hData->mDistance);
-            hData->mHrtds[j] = t;
-            maxHrtd = fmax(t, maxHrtd);
-            minHrtd = fmin(t, minHrtd);
+            for(ei = 0;ei < hData->mFds[fi].mEvCount;ei++)
+            {
+                for(ai = 0;ai < hData->mFds[fi].mEvs[ei].mAzCount;ai++)
+                {
+                    HrirAzT *azd = &hData->mFds[fi].mEvs[ei].mAzs[ai];
+
+                    for(ti = 0;ti < channels;ti++)
+                    {
+                        t = azd->mDelays[ti] * radius / hData->mRadius;
+                        azd->mDelays[ti] = t;
+                        maxHrtd = fmax(t, maxHrtd);
+                        minHrtd = fmin(t, minHrtd);
+                    }
+                }
+            }
         }
     }
-    maxHrtd -= minHrtd;
-    for(j = 0;j < hData->mIrCount;j++)
-        hData->mHrtds[j] -= minHrtd;
-    hData->mMaxHrtd = maxHrtd;
+    else
+    {
+        for(fi = 0;fi < hData->mFdCount;fi++)
+        {
+            for(ei = 0;ei < hData->mFds[fi].mEvCount;ei++)
+            {
+                HrirEvT *evd = &hData->mFds[fi].mEvs[ei];
+
+                for(ai = 0;ai < evd->mAzCount;ai++)
+                {
+                    HrirAzT *azd = &evd->mAzs[ai];
+
+                    for(ti = 0;ti < channels;ti++)
+                    {
+                        t = CalcLTD(evd->mElevation, azd->mAzimuth, radius, hData->mFds[fi].mDistance);
+                        azd->mDelays[ti] = t;
+                        maxHrtd = fmax(t, maxHrtd);
+                        minHrtd = fmin(t, minHrtd);
+                    }
+                }
+            }
+        }
+    }
+    for(fi = 0;fi < hData->mFdCount;fi++)
+    {
+        for(ei = 0;ei < hData->mFds[fi].mEvCount;ei++)
+        {
+            for(ti = 0;ti < channels;ti++)
+            {
+                for(ai = 0;ai < hData->mFds[fi].mEvs[ei].mAzCount;ai++)
+                    hData->mFds[fi].mEvs[ei].mAzs[ai].mDelays[ti] -= minHrtd;
+            }
+        }
+    }
 }
 
+// Clear the initial HRIR data state.
+static void ResetHrirData(HrirDataT *hData)
+{
+    hData->mIrRate = 0;
+    hData->mSampleType = ST_S24;
+    hData->mChannelType = CT_NONE;
+    hData->mIrPoints = 0;
+    hData->mFftSize = 0;
+    hData->mIrSize = 0;
+    hData->mRadius = 0.0;
+    hData->mIrCount = 0;
+    hData->mFdCount = 0;
+    hData->mFds = NULL;
+}
+
+// Allocate and configure dynamic HRIR structures.
+static int PrepareHrirData(const uint fdCount, const double distances[MAX_FD_COUNT], const uint evCounts[MAX_FD_COUNT], const uint azCounts[MAX_FD_COUNT * MAX_EV_COUNT], HrirDataT *hData)
+{
+    uint evTotal = 0, azTotal = 0, fi, ei, ai;
+
+    for(fi = 0;fi < fdCount;fi++)
+    {
+        evTotal += evCounts[fi];
+        for(ei = 0;ei < evCounts[fi];ei++)
+            azTotal += azCounts[(fi * MAX_EV_COUNT) + ei];
+    }
+    if(!fdCount || !evTotal || !azTotal)
+        return 0;
+
+    hData->mFds = calloc(fdCount, sizeof(*hData->mFds));
+    if(hData->mFds == NULL)
+        return 0;
+    hData->mFds[0].mEvs = calloc(evTotal, sizeof(*hData->mFds[0].mEvs));
+    if(hData->mFds[0].mEvs == NULL)
+        return 0;
+    hData->mFds[0].mEvs[0].mAzs = calloc(azTotal, sizeof(*hData->mFds[0].mEvs[0].mAzs));
+    if(hData->mFds[0].mEvs[0].mAzs == NULL)
+        return 0;
+    hData->mIrCount = azTotal;
+    hData->mFdCount = fdCount;
+    evTotal = 0;
+    azTotal = 0;
+    for(fi = 0;fi < fdCount;fi++)
+    {
+        hData->mFds[fi].mDistance = distances[fi];
+        hData->mFds[fi].mEvCount = evCounts[fi];
+        hData->mFds[fi].mEvStart = 0;
+        hData->mFds[fi].mEvs = &hData->mFds[0].mEvs[evTotal];
+        evTotal += evCounts[fi];
+        for(ei = 0;ei < evCounts[fi];ei++)
+        {
+            uint azCount = azCounts[(fi * MAX_EV_COUNT) + ei];
+
+            hData->mFds[fi].mIrCount += azCount;
+            hData->mFds[fi].mEvs[ei].mElevation = -M_PI / 2.0 + M_PI * ei / (evCounts[fi] - 1);
+            hData->mFds[fi].mEvs[ei].mIrCount += azCount;
+            hData->mFds[fi].mEvs[ei].mAzCount = azCount;
+            hData->mFds[fi].mEvs[ei].mAzs = &hData->mFds[0].mEvs[0].mAzs[azTotal];
+            for(ai = 0;ai < azCount;ai++)
+            {
+                hData->mFds[fi].mEvs[ei].mAzs[ai].mAzimuth = 2.0 * M_PI * ai / azCount;
+                hData->mFds[fi].mEvs[ei].mAzs[ai].mIndex = azTotal + ai;
+                hData->mFds[fi].mEvs[ei].mAzs[ai].mDelays[0] = 0.0;
+                hData->mFds[fi].mEvs[ei].mAzs[ai].mDelays[1] = 0.0;
+                hData->mFds[fi].mEvs[ei].mAzs[ai].mIrs[0] = NULL;
+                hData->mFds[fi].mEvs[ei].mAzs[ai].mIrs[1] = NULL;
+            }
+            azTotal += azCount;
+        }
+    }
+    return 1;
+}
+
+// Clean up HRIR data.
+static void FreeHrirData(HrirDataT *hData)
+{
+    if(hData->mFds != NULL)
+    {
+        if(hData->mFds[0].mEvs != NULL)
+        {
+            if(hData->mFds[0].mEvs[0].mAzs)
+            {
+                free(hData->mFds[0].mEvs[0].mAzs[0].mIrs[0]);
+                free(hData->mFds[0].mEvs[0].mAzs);
+            }
+            free(hData->mFds[0].mEvs);
+        }
+        free(hData->mFds);
+        hData->mFds = NULL;
+    }
+}
+
+// Match the channel type from a given identifier.
+static ChannelTypeT MatchChannelType(const char *ident)
+{
+    if(strcasecmp(ident, "mono") == 0)
+        return CT_MONO;
+    if(strcasecmp(ident, "stereo") == 0)
+        return CT_STEREO;
+    return CT_NONE;
+}
 
 // Process the data set definition to read and validate the data set metrics.
 static int ProcessMetrics(TokenReaderT *tr, const uint fftSize, const uint truncSize, HrirDataT *hData)
 {
-    int hasRate = 0, hasPoints = 0, hasAzimuths = 0;
-    int hasRadius = 0, hasDistance = 0;
+    int hasRate = 0, hasType = 0, hasPoints = 0, hasRadius = 0;
+    int hasDistance = 0, hasAzimuths = 0;
     char ident[MAX_IDENT_LEN+1];
     uint line, col;
     double fpVal;
     uint points;
     int intVal;
+    double distances[MAX_FD_COUNT];
+    uint fdCount = 0;
+    uint evCounts[MAX_FD_COUNT];
+    uint *azCounts = calloc(MAX_FD_COUNT * MAX_EV_COUNT, sizeof(*azCounts));
 
-    while(!(hasRate && hasPoints && hasAzimuths && hasRadius && hasDistance))
+    if(azCounts == NULL)
     {
-        TrIndication(tr, & line, & col);
+        fprintf(stderr, "Error:  Out of memory.\n");
+        exit(-1);
+    }
+    TrIndication(tr, &line, &col);
+    while(TrIsIdent(tr))
+    {
+        TrIndication(tr, &line, &col);
         if(!TrReadIdent(tr, MAX_IDENT_LEN, ident))
-            return 0;
+            goto error;
         if(strcasecmp(ident, "rate") == 0)
         {
             if(hasRate)
             {
                 TrErrorAt(tr, line, col, "Redefinition of 'rate'.\n");
-                return 0;
+                goto error;
             }
             if(!TrReadOperator(tr, "="))
-                return 0;
+                goto error;
             if(!TrReadInt(tr, MIN_RATE, MAX_RATE, &intVal))
-                return 0;
+                goto error;
             hData->mIrRate = (uint)intVal;
             hasRate = 1;
         }
-        else if(strcasecmp(ident, "points") == 0)
+        else if(strcasecmp(ident, "type") == 0)
         {
-            if (hasPoints) {
-                TrErrorAt(tr, line, col, "Redefinition of 'points'.\n");
-                return 0;
+            char type[MAX_IDENT_LEN+1];
+
+            if(hasType)
+            {
+                TrErrorAt(tr, line, col, "Redefinition of 'type'.\n");
+                goto error;
             }
             if(!TrReadOperator(tr, "="))
-                return 0;
+                goto error;
+
+            if(!TrReadIdent(tr, MAX_IDENT_LEN, type))
+                goto error;
+            hData->mChannelType = MatchChannelType(type);
+            if(hData->mChannelType == CT_NONE)
+            {
+                TrErrorAt(tr, line, col, "Expected a channel type.\n");
+                goto error;
+            }
+            hasType = 1;
+        }
+        else if(strcasecmp(ident, "points") == 0)
+        {
+            if(hasPoints)
+            {
+                TrErrorAt(tr, line, col, "Redefinition of 'points'.\n");
+                goto error;
+            }
+            if(!TrReadOperator(tr, "="))
+                goto error;
             TrIndication(tr, &line, &col);
             if(!TrReadInt(tr, MIN_POINTS, MAX_POINTS, &intVal))
-                return 0;
+                goto error;
             points = (uint)intVal;
             if(fftSize > 0 && points > fftSize)
             {
                 TrErrorAt(tr, line, col, "Value exceeds the overridden FFT size.\n");
-                return 0;
+                goto error;
             }
             if(points < truncSize)
             {
                 TrErrorAt(tr, line, col, "Value is below the truncation size.\n");
-                return 0;
+                goto error;
             }
             hData->mIrPoints = points;
             if(fftSize <= 0)
@@ -2371,90 +2718,178 @@ static int ProcessMetrics(TokenReaderT *tr, const uint fftSize, const uint trunc
             }
             hasPoints = 1;
         }
-        else if(strcasecmp(ident, "azimuths") == 0)
-        {
-            if(hasAzimuths)
-            {
-                TrErrorAt(tr, line, col, "Redefinition of 'azimuths'.\n");
-                return 0;
-            }
-            if(!TrReadOperator(tr, "="))
-                return 0;
-            hData->mIrCount = 0;
-            hData->mEvCount = 0;
-            hData->mEvOffset[0] = 0;
-            for(;;)
-            {
-                if(!TrReadInt(tr, MIN_AZ_COUNT, MAX_AZ_COUNT, &intVal))
-                    return 0;
-                hData->mAzCount[hData->mEvCount] = (uint)intVal;
-                hData->mIrCount += (uint)intVal;
-                hData->mEvCount ++;
-                if(!TrIsOperator(tr, ","))
-                    break;
-                if(hData->mEvCount >= MAX_EV_COUNT)
-                {
-                    TrError(tr, "Exceeded the maximum of %d elevations.\n", MAX_EV_COUNT);
-                    return 0;
-                }
-                hData->mEvOffset[hData->mEvCount] = hData->mEvOffset[hData->mEvCount - 1] + ((uint)intVal);
-                TrReadOperator(tr, ",");
-            }
-            if(hData->mEvCount < MIN_EV_COUNT)
-            {
-                TrErrorAt(tr, line, col, "Did not reach the minimum of %d azimuth counts.\n", MIN_EV_COUNT);
-                return 0;
-            }
-            hasAzimuths = 1;
-        }
         else if(strcasecmp(ident, "radius") == 0)
         {
             if(hasRadius)
             {
                 TrErrorAt(tr, line, col, "Redefinition of 'radius'.\n");
-                return 0;
+                goto error;
             }
             if(!TrReadOperator(tr, "="))
-                return 0;
+                goto error;
             if(!TrReadFloat(tr, MIN_RADIUS, MAX_RADIUS, &fpVal))
-                return 0;
+                goto error;
             hData->mRadius = fpVal;
             hasRadius = 1;
         }
         else if(strcasecmp(ident, "distance") == 0)
         {
+            uint count = 0;
+
             if(hasDistance)
             {
                 TrErrorAt(tr, line, col, "Redefinition of 'distance'.\n");
-                return 0;
+                goto error;
             }
             if(!TrReadOperator(tr, "="))
-                return 0;
-            if(!TrReadFloat(tr, MIN_DISTANCE, MAX_DISTANCE, & fpVal))
-                return 0;
-            hData->mDistance = fpVal;
+                goto error;
+
+            for(;;)
+            {
+                if(!TrReadFloat(tr, MIN_DISTANCE, MAX_DISTANCE, &fpVal))
+                    goto error;
+                if(count > 0 && fpVal <= distances[count - 1])
+                {
+                    TrError(tr, "Distances are not ascending.\n");
+                    goto error;
+                }
+                distances[count++] = fpVal;
+                if(!TrIsOperator(tr, ","))
+                    break;
+                if(count >= MAX_FD_COUNT)
+                {
+                    TrError(tr, "Exceeded the maximum of %d fields.\n", MAX_FD_COUNT);
+                    goto error;
+                }
+                TrReadOperator(tr, ",");
+            }
+            if(fdCount != 0 && count != fdCount)
+            {
+                TrError(tr, "Did not match the specified number of %d fields.\n", fdCount);
+                goto error;
+            }
+            fdCount = count;
             hasDistance = 1;
+        }
+        else if(strcasecmp(ident, "azimuths") == 0)
+        {
+            uint count = 0;
+
+            if(hasAzimuths)
+            {
+                TrErrorAt(tr, line, col, "Redefinition of 'azimuths'.\n");
+                goto error;
+            }
+            if(!TrReadOperator(tr, "="))
+                goto error;
+
+            evCounts[0] = 0;
+            for(;;)
+            {
+                if(!TrReadInt(tr, MIN_AZ_COUNT, MAX_AZ_COUNT, &intVal))
+                    goto error;
+                azCounts[(count * MAX_EV_COUNT) + evCounts[count]++] = (uint)intVal;
+                if(TrIsOperator(tr, ","))
+                {
+                    if(evCounts[count] >= MAX_EV_COUNT)
+                    {
+                        TrError(tr, "Exceeded the maximum of %d elevations.\n", MAX_EV_COUNT);
+                        goto error;
+                    }
+                    TrReadOperator(tr, ",");
+                }
+                else
+                {
+                    if(evCounts[count] < MIN_EV_COUNT)
+                    {
+                        TrErrorAt(tr, line, col, "Did not reach the minimum of %d azimuth counts.\n", MIN_EV_COUNT);
+                        goto error;
+                    }
+                    if(azCounts[count * MAX_EV_COUNT] != 1 || azCounts[(count * MAX_EV_COUNT) + evCounts[count] - 1] != 1)
+                    {
+                        TrError(tr, "Poles are not singular for field %d.\n", count - 1);
+                        goto error;
+                    }
+                    count++;
+                    if(TrIsOperator(tr, ";"))
+                    {
+                        if(count >= MAX_FD_COUNT)
+                        {
+                            TrError(tr, "Exceeded the maximum number of %d fields.\n", MAX_FD_COUNT);
+                            goto error;
+                        }
+                        evCounts[count] = 0;
+                        TrReadOperator(tr, ";");
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+            if(fdCount != 0 && count != fdCount)
+            {
+                TrError(tr, "Did not match the specified number of %d fields.\n", fdCount);
+                goto error;
+            }
+            fdCount = count;
+            hasAzimuths = 1;
         }
         else
         {
             TrErrorAt(tr, line, col, "Expected a metric name.\n");
-            return 0;
+            goto error;
         }
-        TrSkipWhitespace (tr);
+        TrSkipWhitespace(tr);
     }
+    if(!(hasRate && hasPoints && hasRadius && hasDistance && hasAzimuths))
+    {
+        TrErrorAt(tr, line, col, "Expected a metric name.\n");
+        goto error;
+    }
+    if(distances[0] < hData->mRadius)
+    {
+        TrError(tr, "Distance cannot start below head radius.\n");
+        goto error;
+    }
+    if(hData->mChannelType == CT_NONE)
+        hData->mChannelType = CT_MONO;
+    if(!PrepareHrirData(fdCount, distances, evCounts, azCounts, hData))
+    {
+        fprintf(stderr, "Error:  Out of memory.\n");
+        exit(-1);
+    }
+    free(azCounts);
     return 1;
+
+error:
+    free(azCounts);
+    return 0;
 }
 
-// Parse an index pair from the data set definition.
-static int ReadIndexPair(TokenReaderT *tr, const HrirDataT *hData, uint *ei, uint *ai)
+// Parse an index triplet from the data set definition.
+static int ReadIndexTriplet(TokenReaderT *tr, const HrirDataT *hData, uint *fi, uint *ei, uint *ai)
 {
     int intVal;
-    if(!TrReadInt(tr, 0, (int)hData->mEvCount, &intVal))
+
+    if(hData->mFdCount > 1)
+    {
+        if(!TrReadInt(tr, 0, (int)hData->mFdCount - 1, &intVal))
+            return 0;
+        *fi = (uint)intVal;
+        if(!TrReadOperator(tr, ","))
+            return 0;
+    }
+    else
+    {
+        *fi = 0;
+    }
+    if(!TrReadInt(tr, 0, (int)hData->mFds[*fi].mEvCount - 1, &intVal))
         return 0;
     *ei = (uint)intVal;
     if(!TrReadOperator(tr, ","))
         return 0;
-    if(!TrReadInt(tr, 0, (int)hData->mAzCount[*ei], &intVal))
+    if(!TrReadInt(tr, 0, (int)hData->mFds[*fi].mEvs[*ei].mAzCount - 1, &intVal))
         return 0;
     *ai = (uint)intVal;
     return 1;
@@ -2540,7 +2975,7 @@ static int ReadSourceRef(TokenReaderT *tr, SourceRefT *src)
                     TrIndication(tr, &line, &col);
                     if(!TrReadInt(tr, -2147483647-1, 2147483647, &intVal))
                         return 0;
-                    if(abs(intVal) < MIN_BIN_BITS || ((uint)abs(intVal)) > (8*src->mSize))
+                    if(abs(intVal) < MIN_BIN_BITS || (uint)abs(intVal) > (8*src->mSize))
                     {
                         TrErrorAt(tr, line, col, "Expected a value of (+/-) %d to %d.\n", MIN_BIN_BITS, 8*src->mSize);
                         return 0;
@@ -2582,7 +3017,7 @@ static int ReadSourceRef(TokenReaderT *tr, SourceRefT *src)
         else
         {
             TrReadOperator(tr, ";");
-            if(!TrReadInt (tr, 0, 0x7FFFFFFF, &intVal))
+            if(!TrReadInt(tr, 0, 0x7FFFFFFF, &intVal))
                 return 0;
             src->mSkip = (uint)intVal;
         }
@@ -2605,27 +3040,41 @@ static int ReadSourceRef(TokenReaderT *tr, SourceRefT *src)
     return 1;
 }
 
+// Match the target ear (index) from a given identifier.
+static int MatchTargetEar(const char *ident)
+{
+    if(strcasecmp(ident, "left") == 0)
+        return 0;
+    if(strcasecmp(ident, "right") == 0)
+        return 1;
+    return -1;
+}
+
 // Process the list of sources in the data set definition.
 static int ProcessSources(const HeadModelT model, TokenReaderT *tr, HrirDataT *hData)
 {
-    uint *setCount, *setFlag;
-    uint line, col, ei, ai;
-    SourceRefT src;
-    double factor;
-    double *hrir;
+    uint channels = (hData->mChannelType == CT_STEREO) ? 2 : 1;
+    double *hrirs = CreateDoubles(channels * hData->mIrCount * hData->mIrSize);
+    double *hrir = CreateDoubles(hData->mIrPoints);
+    uint line, col, fi, ei, ai, ti;
+    int count;
 
-    setCount = (uint*)calloc(hData->mEvCount, sizeof(uint));
-    setFlag = (uint*)calloc(hData->mIrCount, sizeof(uint));
-    hrir = CreateArray(hData->mIrPoints);
+    printf("Loading sources...");
+    fflush(stdout);
+    count = 0;
     while(TrIsOperator(tr, "["))
     {
-        TrIndication(tr, & line, & col);
+        double factor[2] = { 1.0, 1.0 };
+
+        TrIndication(tr, &line, &col);
         TrReadOperator(tr, "[");
-        if(!ReadIndexPair(tr, hData, &ei, &ai))
+        if(!ReadIndexTriplet(tr, hData, &fi, &ei, &ai))
             goto error;
         if(!TrReadOperator(tr, "]"))
             goto error;
-        if(setFlag[hData->mEvOffset[ei] + ai])
+        HrirAzT *azd = &hData->mFds[fi].mEvs[ei].mAzs[ai];
+
+        if(azd->mIrs[0] != NULL)
         {
             TrErrorAt(tr, line, col, "Redefinition of source.\n");
             goto error;
@@ -2633,55 +3082,119 @@ static int ProcessSources(const HeadModelT model, TokenReaderT *tr, HrirDataT *h
         if(!TrReadOperator(tr, "="))
             goto error;
 
-        factor = 1.0;
         for(;;)
         {
+            SourceRefT src;
+            uint ti = 0;
+
             if(!ReadSourceRef(tr, &src))
                 goto error;
+
+            // TODO: Would be nice to display 'x of y files', but that would
+            // require preparing the source refs first to get a total count
+            // before loading them.
+            ++count;
+            printf("\rLoading sources... %d file%s", count, (count==1)?"":"s");
+            fflush(stdout);
+
             if(!LoadSource(&src, hData->mIrRate, hData->mIrPoints, hrir))
                 goto error;
 
+            if(hData->mChannelType == CT_STEREO)
+            {
+                char ident[MAX_IDENT_LEN+1];
+
+                if(!TrReadIdent(tr, MAX_IDENT_LEN, ident))
+                    goto error;
+                ti = MatchTargetEar(ident);
+                if((int)ti < 0)
+                {
+                    TrErrorAt(tr, line, col, "Expected a target ear.\n");
+                    goto error;
+                }
+            }
+            azd->mIrs[ti] = &hrirs[hData->mIrSize * (ti * hData->mIrCount + azd->mIndex)];
             if(model == HM_DATASET)
-                AverageHrirOnset(hrir, 1.0 / factor, ei, ai, hData);
-            AverageHrirMagnitude(hrir, 1.0 / factor, ei, ai, hData);
-            factor += 1.0;
+                azd->mDelays[ti] = AverageHrirOnset(hData->mIrRate, hData->mIrPoints, hrir, 1.0 / factor[ti], azd->mDelays[ti]);
+            AverageHrirMagnitude(hData->mIrPoints, hData->mFftSize, hrir, 1.0 / factor[ti], azd->mIrs[ti]);
+            factor[ti] += 1.0;
             if(!TrIsOperator(tr, "+"))
                 break;
             TrReadOperator(tr, "+");
         }
-        setFlag[hData->mEvOffset[ei] + ai] = 1;
-        setCount[ei]++;
-    }
-
-    ei = 0;
-    while(ei < hData->mEvCount && setCount[ei] < 1)
-        ei++;
-    if(ei < hData->mEvCount)
-    {
-        hData->mEvStart = ei;
-        while(ei < hData->mEvCount && setCount[ei] == hData->mAzCount[ei])
-            ei++;
-        if(ei >= hData->mEvCount)
+        if(hData->mChannelType == CT_STEREO)
         {
-            if(!TrLoad(tr))
+            if(azd->mIrs[0] == NULL)
             {
-                DestroyArray(hrir);
-                free(setFlag);
-                free(setCount);
-                return 1;
+                TrErrorAt(tr, line, col, "Missing left ear source reference(s).\n");
+                goto error;
             }
-            TrError(tr, "Errant data at end of source list.\n");
+            else if(azd->mIrs[1] == NULL)
+            {
+                TrErrorAt(tr, line, col, "Missing right ear source reference(s).\n");
+                goto error;
+            }
         }
-        else
-            TrError(tr, "Missing sources for elevation index %d.\n", ei);
     }
-    else
-        TrError(tr, "Missing source references.\n");
+    printf("\n");
+    for(fi = 0;fi < hData->mFdCount;fi++)
+    {
+        for(ei = 0;ei < hData->mFds[fi].mEvCount;ei++)
+        {
+            for(ai = 0;ai < hData->mFds[fi].mEvs[ei].mAzCount;ai++)
+            {
+                HrirAzT *azd = &hData->mFds[fi].mEvs[ei].mAzs[ai];
+
+                if(azd->mIrs[0] != NULL)
+                    break;
+            }
+            if(ai < hData->mFds[fi].mEvs[ei].mAzCount)
+                break;
+        }
+        if(ei >= hData->mFds[fi].mEvCount)
+        {
+            TrError(tr, "Missing source references [ %d, *, * ].\n", fi);
+            goto error;
+        }
+        hData->mFds[fi].mEvStart = ei;
+        for(;ei < hData->mFds[fi].mEvCount;ei++)
+        {
+            for(ai = 0;ai < hData->mFds[fi].mEvs[ei].mAzCount;ai++)
+            {
+                HrirAzT *azd = &hData->mFds[fi].mEvs[ei].mAzs[ai];
+
+                if(azd->mIrs[0] == NULL)
+                {
+                    TrError(tr, "Missing source reference [ %d, %d, %d ].\n", fi, ei, ai);
+                    goto error;
+                }
+            }
+        }
+    }
+    for(ti = 0;ti < channels;ti++)
+    {
+        for(fi = 0;fi < hData->mFdCount;fi++)
+        {
+            for(ei = 0;ei < hData->mFds[fi].mEvCount;ei++)
+            {
+                for(ai = 0;ai < hData->mFds[fi].mEvs[ei].mAzCount;ai++)
+                {
+                    HrirAzT *azd = &hData->mFds[fi].mEvs[ei].mAzs[ai];
+
+                    azd->mIrs[ti] = &hrirs[hData->mIrSize * (ti * hData->mIrCount + azd->mIndex)];
+                }
+            }
+        }
+    }
+    if(!TrLoad(tr))
+    {
+        free(hrir);
+        return 1;
+    }
+    TrError(tr, "Errant data at end of source list.\n");
 
 error:
-    DestroyArray(hrir);
-    free(setFlag);
-    free(setCount);
+    free(hrir);
     return 0;
 }
 
@@ -2689,23 +3202,16 @@ error:
  * resulting data set as desired.  If the input name is NULL it will read
  * from standard input.
  */
-static int ProcessDefinition(const char *inName, const uint outRate, const uint fftSize, const int equalize, const int surface, const double limit, const uint truncSize, const HeadModelT model, const double radius, const OutputFormatT outFormat, const char *outName)
+static int ProcessDefinition(const char *inName, const uint outRate, const uint fftSize, const int equalize, const int surface, const double limit, const uint truncSize, const HeadModelT model, const double radius, const char *outName)
 {
     char rateStr[8+1], expName[MAX_PATH_LEN];
     TokenReaderT tr;
     HrirDataT hData;
-    double *dfa;
     FILE *fp;
+    int ret;
 
-    hData.mIrRate = 0;
-    hData.mIrPoints = 0;
-    hData.mFftSize = 0;
-    hData.mIrSize = 0;
-    hData.mIrCount = 0;
-    hData.mEvCount = 0;
-    hData.mRadius = 0;
-    hData.mDistance = 0;
-    fprintf(stdout, "Reading HRIR definition...\n");
+    ResetHrirData(&hData);
+    fprintf(stdout, "Reading HRIR definition from %s...\n", inName?inName:"stdin");
     if(inName != NULL)
     {
         fp = fopen(inName, "r");
@@ -2727,26 +3233,26 @@ static int ProcessDefinition(const char *inName, const uint outRate, const uint 
             fclose(fp);
         return 0;
     }
-    hData.mHrirs = CreateArray(hData.mIrCount * hData.mIrSize);
-    hData.mHrtds = CreateArray(hData.mIrCount);
     if(!ProcessSources(model, &tr, &hData))
     {
-        DestroyArray(hData.mHrtds);
-        DestroyArray(hData.mHrirs);
+        FreeHrirData(&hData);
         if(inName != NULL)
             fclose(fp);
         return 0;
     }
-    if(inName != NULL)
+    if(fp != stdin)
         fclose(fp);
     if(equalize)
     {
-        dfa = CreateArray(1 + (hData.mFftSize/2));
+        uint c = (hData.mChannelType == CT_STEREO) ? 2 : 1;
+        uint m = 1 + hData.mFftSize / 2;
+        double *dfa = CreateDoubles(c * m);
+
         fprintf(stdout, "Calculating diffuse-field average...\n");
-        CalculateDiffuseFieldAverage(&hData, surface, limit, dfa);
+        CalculateDiffuseFieldAverage(&hData, c, m, surface, limit, dfa);
         fprintf(stdout, "Performing diffuse-field equalization...\n");
-        DiffuseFieldEqualize(dfa, &hData);
-        DestroyArray(dfa);
+        DiffuseFieldEqualize(c, m, dfa, &hData);
+        free(dfa);
     }
     fprintf(stdout, "Performing minimum phase reconstruction...\n");
     ReconstructHrirs(&hData);
@@ -2767,55 +3273,39 @@ static int ProcessDefinition(const char *inName, const uint outRate, const uint 
     CalculateHrtds(model, (radius > DEFAULT_CUSTOM_RADIUS) ? radius : hData.mRadius, &hData);
     snprintf(rateStr, 8, "%u", hData.mIrRate);
     StrSubst(outName, "%r", rateStr, MAX_PATH_LEN, expName);
-    switch(outFormat)
-    {
-        case OF_MHR:
-            fprintf(stdout, "Creating MHR data set file...\n");
-            if(!StoreMhr(&hData, expName))
-            {
-                DestroyArray(hData.mHrtds);
-                DestroyArray(hData.mHrirs);
-                return 0;
-            }
-            break;
-        default:
-            break;
-    }
-    DestroyArray(hData.mHrtds);
-    DestroyArray(hData.mHrirs);
-    return 1;
+    fprintf(stdout, "Creating MHR data set %s...\n", expName);
+    ret = StoreMhr(&hData, expName);
+
+    FreeHrirData(&hData);
+    return ret;
 }
 
 static void PrintHelp(const char *argv0, FILE *ofile)
 {
-    fprintf(ofile, "Usage:  %s <command> [<option>...]\n\n", argv0);
-    fprintf(ofile, "Commands:\n");
-    fprintf(ofile, " -m, --make-mhr  Makes an OpenAL Soft compatible HRTF data set.\n");
-    fprintf(ofile, "                 Defaults output to: ./oalsoft_hrtf_%%r.mhr\n");
-    fprintf(ofile, " -h, --help      Displays this help information.\n\n");
+    fprintf(ofile, "Usage:  %s [<option>...]\n\n", argv0);
     fprintf(ofile, "Options:\n");
-    fprintf(ofile, " -r=<rate>       Change the data set sample rate to the specified value and\n");
+    fprintf(ofile, " -m              Ignored for compatibility.\n");
+    fprintf(ofile, " -r <rate>       Change the data set sample rate to the specified value and\n");
     fprintf(ofile, "                 resample the HRIRs accordingly.\n");
-    fprintf(ofile, " -f=<points>     Override the FFT window size (default: %u).\n", DEFAULT_FFTSIZE);
-    fprintf(ofile, " -e={on|off}     Toggle diffuse-field equalization (default: %s).\n", (DEFAULT_EQUALIZE ? "on" : "off"));
-    fprintf(ofile, " -s={on|off}     Toggle surface-weighted diffuse-field average (default: %s).\n", (DEFAULT_SURFACE ? "on" : "off"));
-    fprintf(ofile, " -l={<dB>|none}  Specify a limit to the magnitude range of the diffuse-field\n");
+    fprintf(ofile, " -f <points>     Override the FFT window size (default: %u).\n", DEFAULT_FFTSIZE);
+    fprintf(ofile, " -e {on|off}     Toggle diffuse-field equalization (default: %s).\n", (DEFAULT_EQUALIZE ? "on" : "off"));
+    fprintf(ofile, " -s {on|off}     Toggle surface-weighted diffuse-field average (default: %s).\n", (DEFAULT_SURFACE ? "on" : "off"));
+    fprintf(ofile, " -l {<dB>|none}  Specify a limit to the magnitude range of the diffuse-field\n");
     fprintf(ofile, "                 average (default: %.2f).\n", DEFAULT_LIMIT);
-    fprintf(ofile, " -w=<points>     Specify the size of the truncation window that's applied\n");
+    fprintf(ofile, " -w <points>     Specify the size of the truncation window that's applied\n");
     fprintf(ofile, "                 after minimum-phase reconstruction (default: %u).\n", DEFAULT_TRUNCSIZE);
-    fprintf(ofile, " -d={dataset|    Specify the model used for calculating the head-delay timing\n");
+    fprintf(ofile, " -d {dataset|    Specify the model used for calculating the head-delay timing\n");
     fprintf(ofile, "     sphere}     values (default: %s).\n", ((DEFAULT_HEAD_MODEL == HM_DATASET) ? "dataset" : "sphere"));
-    fprintf(ofile, " -c=<size>       Use a customized head radius measured ear-to-ear in meters.\n");
-    fprintf(ofile, " -i=<filename>   Specify an HRIR definition file to use (defaults to stdin).\n");
-    fprintf(ofile, " -o=<filename>   Specify an output file.  Overrides command-selected default.\n");
-    fprintf(ofile, "                 Use of '%%r' will be substituted with the data set sample rate.\n");
+    fprintf(ofile, " -c <size>       Use a customized head radius measured ear-to-ear in meters.\n");
+    fprintf(ofile, " -i <filename>   Specify an HRIR definition file to use (defaults to stdin).\n");
+    fprintf(ofile, " -o <filename>   Specify an output file. Use of '%%r' will be substituted with\n");
+    fprintf(ofile, "                 the data set sample rate.\n");
 }
 
 // Standard command line dispatch.
-int main(const int argc, const char *argv[])
+int main(int argc, char *argv[])
 {
     const char *inName = NULL, *outName = NULL;
-    OutputFormatT outFormat;
     uint outRate, fftSize;
     int equalize, surface;
     char *end = NULL;
@@ -2823,27 +3313,18 @@ int main(const int argc, const char *argv[])
     uint truncSize;
     double radius;
     double limit;
-    int argi;
+    int opt;
 
-    if(argc < 2 || strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)
+    GET_UNICODE_ARGS(&argc, &argv);
+
+    if(argc < 2)
     {
         fprintf(stdout, "HRTF Processing and Composition Utility\n\n");
         PrintHelp(argv[0], stdout);
-        return 0;
+        exit(EXIT_SUCCESS);
     }
 
-    if(strcmp(argv[1], "--make-mhr") == 0 || strcmp(argv[1], "-m") == 0)
-    {
-        outName = "./oalsoft_hrtf_%r.mhr";
-        outFormat = OF_MHR;
-    }
-    else
-    {
-        fprintf(stderr, "Error: Invalid command '%s'.\n\n", argv[1]);
-        PrintHelp(argv[0], stderr);
-        return -1;
-    }
-
+    outName = "./oalsoft_hrtf_%r.mhr";
     outRate = 0;
     fftSize = 0;
     equalize = DEFAULT_EQUALIZE;
@@ -2853,108 +3334,122 @@ int main(const int argc, const char *argv[])
     model = DEFAULT_HEAD_MODEL;
     radius = DEFAULT_CUSTOM_RADIUS;
 
-    argi = 2;
-    while(argi < argc)
+    while((opt=getopt(argc, argv, "mr:f:e:s:l:w:d:c:e:i:o:h")) != -1)
     {
-        if(strncmp(argv[argi], "-r=", 3) == 0)
+        switch(opt)
         {
-            outRate = strtoul(&argv[argi][3], &end, 10);
+        case 'm':
+            fprintf(stderr, "Ignoring unused command '-m'.\n");
+            break;
+
+        case 'r':
+            outRate = strtoul(optarg, &end, 10);
             if(end[0] != '\0' || outRate < MIN_RATE || outRate > MAX_RATE)
             {
-                fprintf(stderr, "Error:  Expected a value from %u to %u for '-r'.\n", MIN_RATE, MAX_RATE);
-                return -1;
+                fprintf(stderr, "Error: Got unexpected value \"%s\" for option -%c, expected between %u to %u.\n", optarg, opt, MIN_RATE, MAX_RATE);
+                exit(EXIT_FAILURE);
             }
-        }
-        else if(strncmp(argv[argi], "-f=", 3) == 0)
-        {
-            fftSize = strtoul(&argv[argi][3], &end, 10);
+            break;
+
+        case 'f':
+            fftSize = strtoul(optarg, &end, 10);
             if(end[0] != '\0' || (fftSize&(fftSize-1)) || fftSize < MIN_FFTSIZE || fftSize > MAX_FFTSIZE)
             {
-                fprintf(stderr, "Error:  Expected a power-of-two value from %u to %u for '-f'.\n", MIN_FFTSIZE, MAX_FFTSIZE);
-                return -1;
+                fprintf(stderr, "Error: Got unexpected value \"%s\" for option -%c, expected a power-of-two between %u to %u.\n", optarg, opt, MIN_FFTSIZE, MAX_FFTSIZE);
+                exit(EXIT_FAILURE);
             }
-        }
-        else if(strncmp(argv[argi], "-e=", 3) == 0)
-        {
-            if(strcmp(&argv[argi][3], "on") == 0)
+            break;
+
+        case 'e':
+            if(strcmp(optarg, "on") == 0)
                 equalize = 1;
-            else if(strcmp(&argv[argi][3], "off") == 0)
+            else if(strcmp(optarg, "off") == 0)
                 equalize = 0;
             else
             {
-                fprintf(stderr, "Error:  Expected 'on' or 'off' for '-e'.\n");
-                return -1;
+                fprintf(stderr, "Error: Got unexpected value \"%s\" for option -%c, expected on or off.\n", optarg, opt);
+                exit(EXIT_FAILURE);
             }
-        }
-        else if(strncmp(argv[argi], "-s=", 3) == 0)
-        {
-            if(strcmp(&argv[argi][3], "on") == 0)
+            break;
+
+        case 's':
+            if(strcmp(optarg, "on") == 0)
                 surface = 1;
-            else if(strcmp(&argv[argi][3], "off") == 0)
+            else if(strcmp(optarg, "off") == 0)
                 surface = 0;
             else
             {
-                fprintf(stderr, "Error:  Expected 'on' or 'off' for '-s'.\n");
-                return -1;
+                fprintf(stderr, "Error: Got unexpected value \"%s\" for option -%c, expected on or off.\n", optarg, opt);
+                exit(EXIT_FAILURE);
             }
-        }
-        else if(strncmp(argv[argi], "-l=", 3) == 0)
-        {
-            if(strcmp(&argv[argi][3], "none") == 0)
+            break;
+
+        case 'l':
+            if(strcmp(optarg, "none") == 0)
                 limit = 0.0;
             else
             {
-                limit = strtod(&argv[argi] [3], &end);
+                limit = strtod(optarg, &end);
                 if(end[0] != '\0' || limit < MIN_LIMIT || limit > MAX_LIMIT)
                 {
-                    fprintf(stderr, "Error:  Expected 'none' or a value from %.2f to %.2f for '-l'.\n", MIN_LIMIT, MAX_LIMIT);
-                    return -1;
+                    fprintf(stderr, "Error: Got unexpected value \"%s\" for option -%c, expected between %.0f to %.0f.\n", optarg, opt, MIN_LIMIT, MAX_LIMIT);
+                    exit(EXIT_FAILURE);
                 }
             }
-        }
-        else if(strncmp(argv[argi], "-w=", 3) == 0)
-        {
-            truncSize = strtoul(&argv[argi][3], &end, 10);
+            break;
+
+        case 'w':
+            truncSize = strtoul(optarg, &end, 10);
             if(end[0] != '\0' || truncSize < MIN_TRUNCSIZE || truncSize > MAX_TRUNCSIZE || (truncSize%MOD_TRUNCSIZE))
             {
-                fprintf(stderr, "Error:  Expected a value from %u to %u in multiples of %u for '-w'.\n", MIN_TRUNCSIZE, MAX_TRUNCSIZE, MOD_TRUNCSIZE);
-                return -1;
+                fprintf(stderr, "Error: Got unexpected value \"%s\" for option -%c, expected multiple of %u between %u to %u.\n", optarg, opt, MOD_TRUNCSIZE, MIN_TRUNCSIZE, MAX_TRUNCSIZE);
+                exit(EXIT_FAILURE);
             }
-        }
-        else if(strncmp(argv[argi], "-d=", 3) == 0)
-        {
-            if(strcmp(&argv[argi][3], "dataset") == 0)
+            break;
+
+        case 'd':
+            if(strcmp(optarg, "dataset") == 0)
                 model = HM_DATASET;
-            else if(strcmp(&argv[argi][3], "sphere") == 0)
+            else if(strcmp(optarg, "sphere") == 0)
                 model = HM_SPHERE;
             else
             {
-                fprintf(stderr, "Error:  Expected 'dataset' or 'sphere' for '-d'.\n");
-                return -1;
+                fprintf(stderr, "Error: Got unexpected value \"%s\" for option -%c, expected dataset or sphere.\n", optarg, opt);
+                exit(EXIT_FAILURE);
             }
-        }
-        else if(strncmp(argv[argi], "-c=", 3) == 0)
-        {
-            radius = strtod(&argv[argi][3], &end);
+            break;
+
+        case 'c':
+            radius = strtod(optarg, &end);
             if(end[0] != '\0' || radius < MIN_CUSTOM_RADIUS || radius > MAX_CUSTOM_RADIUS)
             {
-                fprintf(stderr, "Error:  Expected a value from %.2f to %.2f for '-c'.\n", MIN_CUSTOM_RADIUS, MAX_CUSTOM_RADIUS);
-                return -1;
+                fprintf(stderr, "Error: Got unexpected value \"%s\" for option -%c, expected between %.2f to %.2f.\n", optarg, opt, MIN_CUSTOM_RADIUS, MAX_CUSTOM_RADIUS);
+                exit(EXIT_FAILURE);
             }
+            break;
+
+        case 'i':
+            inName = optarg;
+            break;
+
+        case 'o':
+            outName = optarg;
+            break;
+
+        case 'h':
+            PrintHelp(argv[0], stdout);
+            exit(EXIT_SUCCESS);
+
+        default: /* '?' */
+            PrintHelp(argv[0], stderr);
+            exit(EXIT_FAILURE);
         }
-        else if(strncmp(argv[argi], "-i=", 3) == 0)
-            inName = &argv[argi][3];
-        else if(strncmp(argv[argi], "-o=", 3) == 0)
-            outName = &argv[argi][3];
-        else
-        {
-            fprintf(stderr, "Error:  Invalid option '%s'.\n", argv[argi]);
-            return -1;
-        }
-        argi++;
     }
-    if(!ProcessDefinition(inName, outRate, fftSize, equalize, surface, limit, truncSize, model, radius, outFormat, outName))
+
+    if(!ProcessDefinition(inName, outRate, fftSize, equalize, surface, limit,
+                          truncSize, model, radius, outName))
         return -1;
     fprintf(stdout, "Operation completed.\n");
-    return 0;
+
+    return EXIT_SUCCESS;
 }

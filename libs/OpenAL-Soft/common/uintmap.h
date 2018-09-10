@@ -1,6 +1,8 @@
 #ifndef AL_UINTMAP_H
 #define AL_UINTMAP_H
 
+#include <limits.h>
+
 #include "AL/al.h"
 #include "rwlock.h"
 
@@ -23,22 +25,14 @@ typedef struct UIntMap {
 
 void InitUIntMap(UIntMap *map, ALsizei limit);
 void ResetUIntMap(UIntMap *map);
-void RelimitUIntMapNoLock(UIntMap *map, ALsizei limit);
 ALenum InsertUIntMapEntry(UIntMap *map, ALuint key, ALvoid *value);
-ALenum InsertUIntMapEntryNoLock(UIntMap *map, ALuint key, ALvoid *value);
 ALvoid *RemoveUIntMapKey(UIntMap *map, ALuint key);
-ALvoid *RemoveUIntMapKeyNoLock(UIntMap *map, ALuint key);
 ALvoid *LookupUIntMapKey(UIntMap *map, ALuint key);
-ALvoid *LookupUIntMapKeyNoLock(UIntMap *map, ALuint key);
 
-inline void LockUIntMapRead(UIntMap *map)
-{ ReadLock(&map->lock); }
-inline void UnlockUIntMapRead(UIntMap *map)
-{ ReadUnlock(&map->lock); }
-inline void LockUIntMapWrite(UIntMap *map)
-{ WriteLock(&map->lock); }
-inline void UnlockUIntMapWrite(UIntMap *map)
-{ WriteUnlock(&map->lock); }
+inline void LockUIntMapRead(UIntMap *map) { ReadLock(&map->lock); }
+inline void UnlockUIntMapRead(UIntMap *map) { ReadUnlock(&map->lock); }
+inline void LockUIntMapWrite(UIntMap *map) { WriteLock(&map->lock); }
+inline void UnlockUIntMapWrite(UIntMap *map) { WriteUnlock(&map->lock); }
 
 #ifdef __cplusplus
 }

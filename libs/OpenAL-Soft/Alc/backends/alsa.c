@@ -26,6 +26,8 @@
 
 #include "alMain.h"
 #include "alu.h"
+#include "alconfig.h"
+#include "ringbuffer.h"
 #include "threads.h"
 #include "compat.h"
 
@@ -436,7 +438,7 @@ typedef struct ALCplaybackAlsa {
     ALvoid *buffer;
     ALsizei size;
 
-    volatile int killNow;
+    ATOMIC(ALenum) killNow;
     althrd_t thread;
 } ALCplaybackAlsa;
 
@@ -444,9 +446,8 @@ static int ALCplaybackAlsa_mixerProc(void *ptr);
 static int ALCplaybackAlsa_mixerNoMMapProc(void *ptr);
 
 static void ALCplaybackAlsa_Construct(ALCplaybackAlsa *self, ALCdevice *device);
-static DECLARE_FORWARD(ALCplaybackAlsa, ALCbackend, void, Destruct)
+static void ALCplaybackAlsa_Destruct(ALCplaybackAlsa *self);
 static ALCenum ALCplaybackAlsa_open(ALCplaybackAlsa *self, const ALCchar *name);
-static void ALCplaybackAlsa_close(ALCplaybackAlsa *self);
 static ALCboolean ALCplaybackAlsa_reset(ALCplaybackAlsa *self);
 static ALCboolean ALCplaybackAlsa_start(ALCplaybackAlsa *self);
 static void ALCplaybackAlsa_stop(ALCplaybackAlsa *self);
@@ -464,6 +465,19 @@ static void ALCplaybackAlsa_Construct(ALCplaybackAlsa *self, ALCdevice *device)
 {
     ALCbackend_Construct(STATIC_CAST(ALCbackend, self), device);
     SET_VTABLE2(ALCplaybackAlsa, ALCbackend, self);
+
+    self->pcmHandle = NULL;
+    self->buffer = NULL;
+
+    ATOMIC_INIT(&self->killNow, AL_TRUE);
+}
+
+void ALCplaybackAlsa_Destruct(ALCplaybackAlsa *self)
+{
+    if(self->pcmHandle)
+        snd_pcm_close(self->pcmHandle);
+    self->pcmHandle = NULL;
+    ALCbackend_Destruct(STATIC_CAST(ALCbackend, self));
 }
 
 
@@ -483,14 +497,14 @@ static int ALCplaybackAlsa_mixerProc(void *ptr)
 
     update_size = device->UpdateSize;
     num_updates = device->NumUpdates;
-    while(!self->killNow)
+    while(!ATOMIC_LOAD(&self->killNow, almemory_order_acquire))
     {
         int state = verify_state(self->pcmHandle);
         if(state < 0)
         {
             ERR("Invalid state detected: %s\n", snd_strerror(state));
             ALCplaybackAlsa_lock(self);
-            aluHandleDisconnect(device);
+            aluHandleDisconnect(device, "Bad state: %s", snd_strerror(state));
             ALCplaybackAlsa_unlock(self);
             break;
         }
@@ -573,14 +587,14 @@ static int ALCplaybackAlsa_mixerNoMMapProc(void *ptr)
 
     update_size = device->UpdateSize;
     num_updates = device->NumUpdates;
-    while(!self->killNow)
+    while(!ATOMIC_LOAD(&self->killNow, almemory_order_acquire))
     {
         int state = verify_state(self->pcmHandle);
         if(state < 0)
         {
             ERR("Invalid state detected: %s\n", snd_strerror(state));
             ALCplaybackAlsa_lock(self);
-            aluHandleDisconnect(device);
+            aluHandleDisconnect(device, "Bad state: %s", snd_strerror(state));
             ALCplaybackAlsa_unlock(self);
             break;
         }
@@ -698,11 +712,6 @@ static ALCenum ALCplaybackAlsa_open(ALCplaybackAlsa *self, const ALCchar *name)
     alstr_copy_cstr(&device->DeviceName, name);
 
     return ALC_NO_ERROR;
-}
-
-static void ALCplaybackAlsa_close(ALCplaybackAlsa *self)
-{
-    snd_pcm_close(self->pcmHandle);
 }
 
 static ALCboolean ALCplaybackAlsa_reset(ALCplaybackAlsa *self)
@@ -903,7 +912,7 @@ static ALCboolean ALCplaybackAlsa_start(ALCplaybackAlsa *self)
         }
         thread_func = ALCplaybackAlsa_mixerProc;
     }
-    self->killNow = 0;
+    ATOMIC_STORE(&self->killNow, AL_FALSE, almemory_order_release);
     if(althrd_create(&self->thread, thread_func, self) != althrd_success)
     {
         ERR("Could not create playback thread\n");
@@ -924,10 +933,8 @@ static void ALCplaybackAlsa_stop(ALCplaybackAlsa *self)
 {
     int res;
 
-    if(self->killNow)
+    if(ATOMIC_EXCHANGE(&self->killNow, AL_TRUE, almemory_order_acq_rel))
         return;
-
-    self->killNow = 1;
     althrd_join(self->thread, &res);
 
     al_free(self->buffer);
@@ -971,9 +978,8 @@ typedef struct ALCcaptureAlsa {
 } ALCcaptureAlsa;
 
 static void ALCcaptureAlsa_Construct(ALCcaptureAlsa *self, ALCdevice *device);
-static DECLARE_FORWARD(ALCcaptureAlsa, ALCbackend, void, Destruct)
+static void ALCcaptureAlsa_Destruct(ALCcaptureAlsa *self);
 static ALCenum ALCcaptureAlsa_open(ALCcaptureAlsa *self, const ALCchar *name);
-static void ALCcaptureAlsa_close(ALCcaptureAlsa *self);
 static DECLARE_FORWARD(ALCcaptureAlsa, ALCbackend, ALCboolean, reset)
 static ALCboolean ALCcaptureAlsa_start(ALCcaptureAlsa *self);
 static void ALCcaptureAlsa_stop(ALCcaptureAlsa *self);
@@ -991,6 +997,25 @@ static void ALCcaptureAlsa_Construct(ALCcaptureAlsa *self, ALCdevice *device)
 {
     ALCbackend_Construct(STATIC_CAST(ALCbackend, self), device);
     SET_VTABLE2(ALCcaptureAlsa, ALCbackend, self);
+
+    self->pcmHandle = NULL;
+    self->buffer = NULL;
+    self->ring = NULL;
+}
+
+void ALCcaptureAlsa_Destruct(ALCcaptureAlsa *self)
+{
+    if(self->pcmHandle)
+        snd_pcm_close(self->pcmHandle);
+    self->pcmHandle = NULL;
+
+    al_free(self->buffer);
+    self->buffer = NULL;
+
+    ll_ringbuffer_free(self->ring);
+    self->ring = NULL;
+
+    ALCbackend_Destruct(STATIC_CAST(ALCbackend, self));
 }
 
 
@@ -1098,8 +1123,9 @@ static ALCenum ALCcaptureAlsa_open(ALCcaptureAlsa *self, const ALCchar *name)
     if(needring)
     {
         self->ring = ll_ringbuffer_create(
-            device->UpdateSize*device->NumUpdates + 1,
-            FrameSizeFromDevFmt(device->FmtChans, device->FmtType, device->AmbiOrder)
+            device->UpdateSize*device->NumUpdates,
+            FrameSizeFromDevFmt(device->FmtChans, device->FmtType, device->AmbiOrder),
+            false
         );
         if(!self->ring)
         {
@@ -1120,26 +1146,26 @@ error2:
     ll_ringbuffer_free(self->ring);
     self->ring = NULL;
     snd_pcm_close(self->pcmHandle);
+    self->pcmHandle = NULL;
 
     return ALC_INVALID_VALUE;
 }
 
-static void ALCcaptureAlsa_close(ALCcaptureAlsa *self)
-{
-    snd_pcm_close(self->pcmHandle);
-    ll_ringbuffer_free(self->ring);
-
-    al_free(self->buffer);
-    self->buffer = NULL;
-}
-
 static ALCboolean ALCcaptureAlsa_start(ALCcaptureAlsa *self)
 {
-    int err = snd_pcm_start(self->pcmHandle);
+    int err = snd_pcm_prepare(self->pcmHandle);
+    if(err < 0)
+        ERR("prepare failed: %s\n", snd_strerror(err));
+    else
+    {
+        err = snd_pcm_start(self->pcmHandle);
+        if(err < 0)
+            ERR("start failed: %s\n", snd_strerror(err));
+    }
     if(err < 0)
     {
-        ERR("start failed: %s\n", snd_strerror(err));
-        aluHandleDisconnect(STATIC_CAST(ALCbackend, self)->mDevice);
+        aluHandleDisconnect(STATIC_CAST(ALCbackend, self)->mDevice, "Capture state failure: %s",
+                            snd_strerror(err));
         return ALC_FALSE;
     }
 
@@ -1190,7 +1216,7 @@ static ALCenum ALCcaptureAlsa_captureSamples(ALCcaptureAlsa *self, ALCvoid *buff
     }
 
     self->last_avail -= samples;
-    while(device->Connected && samples > 0)
+    while(ATOMIC_LOAD(&device->Connected, almemory_order_acquire) && samples > 0)
     {
         snd_pcm_sframes_t amt = 0;
 
@@ -1233,7 +1259,7 @@ static ALCenum ALCcaptureAlsa_captureSamples(ALCcaptureAlsa *self, ALCvoid *buff
             if(amt < 0)
             {
                 ERR("restore error: %s\n", snd_strerror(amt));
-                aluHandleDisconnect(device);
+                aluHandleDisconnect(device, "Capture recovery failure: %s", snd_strerror(amt));
                 break;
             }
             /* If the amount available is less than what's asked, we lost it
@@ -1258,7 +1284,7 @@ static ALCuint ALCcaptureAlsa_availableSamples(ALCcaptureAlsa *self)
     ALCdevice *device = STATIC_CAST(ALCbackend, self)->mDevice;
     snd_pcm_sframes_t avail = 0;
 
-    if(device->Connected && self->doCapture)
+    if(ATOMIC_LOAD(&device->Connected, almemory_order_acquire) && self->doCapture)
         avail = snd_pcm_avail_update(self->pcmHandle);
     if(avail < 0)
     {
@@ -1274,7 +1300,7 @@ static ALCuint ALCcaptureAlsa_availableSamples(ALCcaptureAlsa *self)
         if(avail < 0)
         {
             ERR("restore error: %s\n", snd_strerror(avail));
-            aluHandleDisconnect(device);
+            aluHandleDisconnect(device, "Capture recovery failure: %s", snd_strerror(avail));
         }
     }
 
@@ -1313,7 +1339,7 @@ static ALCuint ALCcaptureAlsa_availableSamples(ALCcaptureAlsa *self)
             if(amt < 0)
             {
                 ERR("restore error: %s\n", snd_strerror(amt));
-                aluHandleDisconnect(device);
+                aluHandleDisconnect(device, "Capture recovery failure: %s", snd_strerror(amt));
                 break;
             }
             avail = amt;

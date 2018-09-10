@@ -45,6 +45,13 @@
 #endif
 
 
+#if defined(_MSC_VER) && (_MSC_VER < 1900)
+static float msvc_strtof(const char *str, char **end)
+{ return (float)strtod(str, end); }
+#define strtof msvc_strtof
+#endif
+
+
 static void fwrite16le(ALushort val, FILE *f)
 {
     ALubyte data[2] = { val&0xff, (val>>8)&0xff };
@@ -63,13 +70,13 @@ typedef struct Recorder {
 
     FILE *mFile;
     long mDataSizeOffset;
-    size_t mDataSize;
+    ALuint mDataSize;
     float mRecTime;
 
     int mChannels;
     int mBits;
     int mSampleRate;
-    size_t mFrameSize;
+    ALuint mFrameSize;
     ALbyte *mBuffer;
     ALsizei mBufferSize;
 } Recorder;
@@ -184,7 +191,7 @@ int main(int argc, char **argv)
                 return 1;
             }
 
-            recorder.mRecTime = strtod(argv[1], &end);
+            recorder.mRecTime = strtof(argv[1], &end);
             if(!(recorder.mRecTime >= 1.0f && recorder.mRecTime <= 10.0f) || (end && *end != '\0'))
             {
                 fprintf(stderr, "Invalid record time: %s\n", argv[1]);
@@ -314,7 +321,7 @@ int main(int argc, char **argv)
           (err=alcGetError(recorder.mDevice)) == ALC_NO_ERROR && !ferror(recorder.mFile))
     {
         ALCint count = 0;
-        fprintf(stderr, "\rCaptured "SZFMT" samples", recorder.mDataSize);
+        fprintf(stderr, "\rCaptured %u samples", recorder.mDataSize);
         alcGetIntegerv(recorder.mDevice, ALC_CAPTURE_SAMPLES, 1, &count);
         if(count < 1)
         {
@@ -357,10 +364,11 @@ int main(int argc, char **argv)
             }
         }
 #endif
-        recorder.mDataSize += fwrite(recorder.mBuffer, recorder.mFrameSize, count, recorder.mFile);
+        recorder.mDataSize += (ALuint)fwrite(recorder.mBuffer, recorder.mFrameSize, count,
+                                             recorder.mFile);
     }
     alcCaptureStop(recorder.mDevice);
-    fprintf(stderr, "\rCaptured "SZFMT" samples\n", recorder.mDataSize);
+    fprintf(stderr, "\rCaptured %u samples\n", recorder.mDataSize);
     if(err != ALC_NO_ERROR)
         fprintf(stderr, "Got device error 0x%04x: %s\n", err, alcGetString(recorder.mDevice, err));
 

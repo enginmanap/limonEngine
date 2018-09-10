@@ -149,10 +149,11 @@
 #  Selects the resampler used when mixing sources. Valid values are:
 #  point - nearest sample, no interpolation
 #  linear - extrapolates samples using a linear slope between samples
-#  sinc4 - extrapolates samples using a 4-point Sinc filter
-#  bsinc - extrapolates samples using a band-limited Sinc filter (varying
-#          between 12 and 24 points, with anti-aliasing)
-#  Specifying other values will result in using the default (linear).
+#  cubic - extrapolates samples using a Catmull-Rom spline
+#  bsinc12 - extrapolates samples using a band-limited Sinc filter (varying
+#            between 12 and 24 points, with anti-aliasing)
+#  bsinc24 - extrapolates samples using a band-limited Sinc filter (varying
+#            between 24 and 48 points, with anti-aliasing)
 #resampler = linear
 
 ## rt-prio: (global)
@@ -180,6 +181,14 @@
 #  Limits the number of auxiliary sends allowed per source. Setting this higher
 #  than the default has no effect.
 #sends = 16
+
+## front-stablizer:
+#  Applies filters to "stablize" front sound imaging. A psychoacoustic method
+#  is used to generate a front-center channel signal from the front-left and
+#  front-right channels, improving the front response by reducing the combing
+#  artifacts and phase errors. Consequently, it will only work with channel
+#  configurations that include front-left, front-right, and front-center.
+#front-stablizer = false
 
 ## output-limiter:
 #  Applies a gain limiter on the final mixed output. This reduces the volume
@@ -210,8 +219,9 @@
 ## excludefx: (global)
 #  Sets which effects to exclude, preventing apps from using them. This can
 #  help for apps that try to use effects which are too CPU intensive for the
-#  system to handle. Available effects are: eaxreverb,reverb,chorus,compressor,
-#  distortion,echo,equalizer,flanger,modulator,dedicated
+#  system to handle. Available effects are: eaxreverb,reverb,autowah,chorus,
+#  compressor,distortion,echo,equalizer,flanger,modulator,dedicated,pshifter,
+#  fshifter
 #excludefx =
 
 ## default-reverb: (global)
@@ -277,7 +287,7 @@ nfc = true
 nfc-ref-delay =
 
 ## quad:
-#  Decoder configuration file for Quadrophonic channel output. See
+#  Decoder configuration file for Quadraphonic channel output. See
 #  docs/ambdec.txt for a description of the file format.
 quad =
 
@@ -309,12 +319,6 @@ surround71 =
 #  scale of 4x, etc. Similarly, -6 will be about half, and -12 about 1/4th. A
 #  value of 0 means no change.
 #boost = 0
-
-## emulate-eax: (global)
-#  Allows the standard reverb effect to be used in place of EAX reverb. EAX
-#  reverb processing is a bit more CPU intensive than standard, so this option
-#  allows a simpler effect to be used at the loss of some quality.
-#emulate-eax = false
 
 ##
 ## PulseAudio backend stuff
@@ -441,9 +445,9 @@ surround71 =
 #buffer-size = 0
 
 ##
-## MMDevApi backend stuff
+## WASAPI backend stuff
 ##
-[mmdevapi]
+[wasapi]
 
 ##
 ## DirectSound backend stuff

@@ -27,6 +27,7 @@
 
 #include "alMain.h"
 #include "alu.h"
+#include "alconfig.h"
 #include "threads.h"
 #include "compat.h"
 
@@ -76,16 +77,15 @@ typedef struct ALCwaveBackend {
     ALvoid *mBuffer;
     ALuint mSize;
 
-    volatile int killNow;
+    ATOMIC(ALenum) killNow;
     althrd_t thread;
 } ALCwaveBackend;
 
 static int ALCwaveBackend_mixerProc(void *ptr);
 
 static void ALCwaveBackend_Construct(ALCwaveBackend *self, ALCdevice *device);
-static DECLARE_FORWARD(ALCwaveBackend, ALCbackend, void, Destruct)
+static void ALCwaveBackend_Destruct(ALCwaveBackend *self);
 static ALCenum ALCwaveBackend_open(ALCwaveBackend *self, const ALCchar *name);
-static void ALCwaveBackend_close(ALCwaveBackend *self);
 static ALCboolean ALCwaveBackend_reset(ALCwaveBackend *self);
 static ALCboolean ALCwaveBackend_start(ALCwaveBackend *self);
 static void ALCwaveBackend_stop(ALCwaveBackend *self);
@@ -110,9 +110,17 @@ static void ALCwaveBackend_Construct(ALCwaveBackend *self, ALCdevice *device)
     self->mBuffer = NULL;
     self->mSize = 0;
 
-    self->killNow = 1;
+    ATOMIC_INIT(&self->killNow, AL_TRUE);
 }
 
+static void ALCwaveBackend_Destruct(ALCwaveBackend *self)
+{
+    if(self->mFile)
+        fclose(self->mFile);
+    self->mFile = NULL;
+
+    ALCbackend_Destruct(STATIC_CAST(ALCbackend, self));
+}
 
 static int ALCwaveBackend_mixerProc(void *ptr)
 {
@@ -135,7 +143,8 @@ static int ALCwaveBackend_mixerProc(void *ptr)
         ERR("Failed to get starting time\n");
         return 1;
     }
-    while(!self->killNow && device->Connected)
+    while(!ATOMIC_LOAD(&self->killNow, almemory_order_acquire) &&
+          ATOMIC_LOAD(&device->Connected, almemory_order_acquire))
     {
         if(altimespec_get(&now, AL_TIME_UTC) != AL_TIME_UTC)
         {
@@ -196,7 +205,7 @@ static int ALCwaveBackend_mixerProc(void *ptr)
             {
                 ERR("Error writing to file\n");
                 ALCdevice_Lock(device);
-                aluHandleDisconnect(device);
+                aluHandleDisconnect(device, "Failed to write playback samples");
                 ALCdevice_Unlock(device);
                 break;
             }
@@ -231,13 +240,6 @@ static ALCenum ALCwaveBackend_open(ALCwaveBackend *self, const ALCchar *name)
     alstr_copy_cstr(&device->DeviceName, name);
 
     return ALC_NO_ERROR;
-}
-
-static void ALCwaveBackend_close(ALCwaveBackend *self)
-{
-    if(self->mFile)
-        fclose(self->mFile);
-    self->mFile = NULL;
 }
 
 static ALCboolean ALCwaveBackend_reset(ALCwaveBackend *self)
@@ -354,7 +356,7 @@ static ALCboolean ALCwaveBackend_start(ALCwaveBackend *self)
         return ALC_FALSE;
     }
 
-    self->killNow = 0;
+    ATOMIC_STORE(&self->killNow, AL_FALSE, almemory_order_release);
     if(althrd_create(&self->thread, ALCwaveBackend_mixerProc, self) != althrd_success)
     {
         free(self->mBuffer);
@@ -372,10 +374,8 @@ static void ALCwaveBackend_stop(ALCwaveBackend *self)
     long size;
     int res;
 
-    if(self->killNow)
+    if(ATOMIC_EXCHANGE(&self->killNow, AL_TRUE, almemory_order_acq_rel))
         return;
-
-    self->killNow = 1;
     althrd_join(self->thread, &res);
 
     free(self->mBuffer);

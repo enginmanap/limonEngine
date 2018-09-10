@@ -12,28 +12,27 @@
 
 #include "alMain.h"
 #include "alBuffer.h"
-#include "alFilter.h"
-#include "alAuxEffectSlot.h"
 
 #include "hrtf.h"
 #include "align.h"
-#include "nfcfilter.h"
 #include "math_defs.h"
+#include "filters/defs.h"
+#include "filters/nfc.h"
 
 
 #define MAX_PITCH  (255)
 
-/* Maximum number of buffer samples before the current pos needed for resampling. */
-#define MAX_PRE_SAMPLES 12
-
-/* Maximum number of buffer samples after the current pos needed for resampling. */
-#define MAX_POST_SAMPLES 12
+/* Maximum number of samples to pad on either end of a buffer for resampling.
+ * Note that both the beginning and end need padding!
+ */
+#define MAX_RESAMPLE_PADDING 24
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+struct BSincTable;
 struct ALsource;
 struct ALbufferlistitem;
 struct ALvoice;
@@ -53,13 +52,16 @@ enum Resampler {
     PointResampler,
     LinearResampler,
     FIR4Resampler,
-    BSincResampler,
+    BSinc12Resampler,
+    BSinc24Resampler,
 
-    ResamplerMax = BSincResampler
+    ResamplerMax = BSinc24Resampler
 };
 extern enum Resampler ResamplerDefault;
 
-/* The number of distinct scale and phase intervals within the filter table. */
+/* The number of distinct scale and phase intervals within the bsinc filter
+ * table.
+ */
 #define BSINC_SCALE_BITS  4
 #define BSINC_SCALE_COUNT (1<<BSINC_SCALE_BITS)
 #define BSINC_PHASE_BITS  4
@@ -71,26 +73,28 @@ extern enum Resampler ResamplerDefault;
  */
 typedef struct BsincState {
     ALfloat sf; /* Scale interpolation factor. */
-    ALuint m;   /* Coefficient count. */
+    ALsizei m;  /* Coefficient count. */
     ALint l;    /* Left coefficient offset. */
-    struct {
-        const ALfloat *filter;   /* Filter coefficients. */
-        const ALfloat *scDelta;  /* Scale deltas. */
-        const ALfloat *phDelta;  /* Phase deltas. */
-        const ALfloat *spDelta;  /* Scale-phase deltas. */
-    } coeffs[BSINC_PHASE_COUNT];
+    /* Filter coefficients, followed by the scale, phase, and scale-phase
+     * delta coefficients. Starting at phase index 0, each subsequent phase
+     * index follows contiguously.
+     */
+    const ALfloat *filter;
 } BsincState;
 
 typedef union InterpState {
     BsincState bsinc;
 } InterpState;
 
-ALboolean BsincPrepare(const ALuint increment, BsincState *state);
-
 typedef const ALfloat* (*ResamplerFunc)(const InterpState *state,
     const ALfloat *restrict src, ALsizei frac, ALint increment,
     ALfloat *restrict dst, ALsizei dstlen
 );
+
+void BsincPrepare(const ALuint increment, BsincState *state, const struct BSincTable *table);
+
+extern const struct BSincTable bsinc12;
+extern const struct BSincTable bsinc24;
 
 
 typedef union aluVector {
@@ -149,10 +153,10 @@ typedef struct MixHrtfParams {
 
 
 typedef struct DirectParams {
-    ALfilterState LowPass;
-    ALfilterState HighPass;
+    BiquadFilter LowPass;
+    BiquadFilter HighPass;
 
-    NfcFilter NFCtrlFilter[MAX_AMBI_ORDER];
+    NfcFilter NFCtrlFilter;
 
     struct {
         HrtfParams Old;
@@ -167,8 +171,8 @@ typedef struct DirectParams {
 } DirectParams;
 
 typedef struct SendParams {
-    ALfilterState LowPass;
-    ALfilterState HighPass;
+    BiquadFilter LowPass;
+    BiquadFilter HighPass;
 
     struct {
         ALfloat Current[MAX_OUTPUT_CHANNELS];
@@ -231,16 +235,15 @@ struct ALvoiceProps {
     } Send[];
 };
 
-/* If not 'fading', gain targets are used directly without fading. */
-#define VOICE_IS_FADING (1<<0)
-#define VOICE_HAS_HRTF  (1<<1)
-#define VOICE_HAS_NFC   (1<<2)
+#define VOICE_IS_STATIC (1<<0)
+#define VOICE_IS_FADING (1<<1) /* Fading sources use gain stepping for smooth transitions. */
+#define VOICE_HAS_HRTF  (1<<2)
+#define VOICE_HAS_NFC   (1<<3)
 
 typedef struct ALvoice {
     struct ALvoiceProps *Props;
 
     ATOMIC(struct ALvoiceProps*) Update;
-    ATOMIC(struct ALvoiceProps*) FreeList;
 
     ATOMIC(struct ALsource*) Source;
     ATOMIC(bool) Playing;
@@ -277,7 +280,7 @@ typedef struct ALvoice {
 
     ALuint Offset; /* Number of output samples mixed since starting. */
 
-    alignas(16) ALfloat PrevSamples[MAX_INPUT_CHANNELS][MAX_PRE_SAMPLES];
+    alignas(16) ALfloat PrevSamples[MAX_INPUT_CHANNELS][MAX_RESAMPLE_PADDING];
 
     InterpState ResampleState;
 
@@ -381,19 +384,26 @@ inline ALuint64 maxu64(ALuint64 a, ALuint64 b)
 inline ALuint64 clampu64(ALuint64 val, ALuint64 min, ALuint64 max)
 { return minu64(max, maxu64(min, val)); }
 
-
-extern alignas(16) const ALfloat bsincTab[18840];
-extern alignas(16) const ALfloat sinc4Tab[FRACTIONONE][4];
+inline size_t minz(size_t a, size_t b)
+{ return ((a > b) ? b : a); }
+inline size_t maxz(size_t a, size_t b)
+{ return ((a > b) ? a : b); }
+inline size_t clampz(size_t val, size_t min, size_t max)
+{ return minz(max, maxz(min, val)); }
 
 
 inline ALfloat lerp(ALfloat val1, ALfloat val2, ALfloat mu)
 {
     return val1 + (val2-val1)*mu;
 }
-inline ALfloat resample_fir4(ALfloat val0, ALfloat val1, ALfloat val2, ALfloat val3, ALsizei frac)
+inline ALfloat cubic(ALfloat val1, ALfloat val2, ALfloat val3, ALfloat val4, ALfloat mu)
 {
-    return sinc4Tab[frac][0]*val0 + sinc4Tab[frac][1]*val1 +
-           sinc4Tab[frac][2]*val2 + sinc4Tab[frac][3]*val3;
+    ALfloat mu2 = mu*mu, mu3 = mu2*mu;
+    ALfloat a0 = -0.5f*mu3 +       mu2 + -0.5f*mu;
+    ALfloat a1 =  1.5f*mu3 + -2.5f*mu2            + 1.0f;
+    ALfloat a2 = -1.5f*mu3 +  2.0f*mu2 +  0.5f*mu;
+    ALfloat a3 =  0.5f*mu3 + -0.5f*mu2;
+    return val1*a0 + val2*a1 + val3*a2 + val4*a3;
 }
 
 
@@ -403,10 +413,10 @@ enum HrtfRequestMode {
     Hrtf_Disable = 2,
 };
 
+void aluInit(void);
+
 void aluInitMixer(void);
 
-MixerFunc SelectMixer(void);
-RowMixerFunc SelectRowMixer(void);
 ResamplerFunc SelectResampler(enum Resampler resampler);
 
 /* aluInitRenderer
@@ -418,14 +428,37 @@ void aluInitRenderer(ALCdevice *device, ALint hrtf_id, enum HrtfRequestMode hrtf
 
 void aluInitEffectPanning(struct ALeffectslot *slot);
 
+void aluSelectPostProcess(ALCdevice *device);
+
+/**
+ * Calculates ambisonic encoder coefficients using the X, Y, and Z direction
+ * components, which must represent a normalized (unit length) vector, and the
+ * spread is the angular width of the sound (0...tau).
+ *
+ * NOTE: The components use ambisonic coordinates. As a result:
+ *
+ * Ambisonic Y = OpenAL -X
+ * Ambisonic Z = OpenAL Y
+ * Ambisonic X = OpenAL -Z
+ *
+ * The components are ordered such that OpenAL's X, Y, and Z are the first,
+ * second, and third parameters respectively -- simply negate X and Z.
+ */
+void CalcAmbiCoeffs(const ALfloat y, const ALfloat z, const ALfloat x, const ALfloat spread,
+                    ALfloat coeffs[MAX_AMBI_COEFFS]);
+
 /**
  * CalcDirectionCoeffs
  *
- * Calculates ambisonic coefficients based on a direction vector. The vector
- * must be normalized (unit length), and the spread is the angular width of the
- * sound (0...tau).
+ * Calculates ambisonic coefficients based on an OpenAL direction vector. The
+ * vector must be normalized (unit length), and the spread is the angular width
+ * of the sound (0...tau).
  */
-void CalcDirectionCoeffs(const ALfloat dir[3], ALfloat spread, ALfloat coeffs[MAX_AMBI_COEFFS]);
+inline void CalcDirectionCoeffs(const ALfloat dir[3], ALfloat spread, ALfloat coeffs[MAX_AMBI_COEFFS])
+{
+    /* Convert from OpenAL coords to Ambisonics. */
+    CalcAmbiCoeffs(-dir[0], dir[1], -dir[2], spread, coeffs);
+}
 
 /**
  * CalcAngleCoeffs
@@ -436,53 +469,47 @@ void CalcDirectionCoeffs(const ALfloat dir[3], ALfloat spread, ALfloat coeffs[MA
  */
 inline void CalcAngleCoeffs(ALfloat azimuth, ALfloat elevation, ALfloat spread, ALfloat coeffs[MAX_AMBI_COEFFS])
 {
-    ALfloat dir[3] = {
-        sinf(azimuth) * cosf(elevation),
-        sinf(elevation),
-        -cosf(azimuth) * cosf(elevation)
-    };
-    CalcDirectionCoeffs(dir, spread, coeffs);
+    ALfloat x = -sinf(azimuth) * cosf(elevation);
+    ALfloat y = sinf(elevation);
+    ALfloat z = cosf(azimuth) * cosf(elevation);
+
+    CalcAmbiCoeffs(x, y, z, spread, coeffs);
 }
 
 /**
- * CalcAnglePairwiseCoeffs
+ * ScaleAzimuthFront
  *
- * Calculates ambisonic coefficients based on azimuth and elevation. The
- * azimuth and elevation parameters are in radians, going right and up
- * respectively. This pairwise variant warps the result such that +30 azimuth
- * is full right, and -30 azimuth is full left.
+ * Scales the given azimuth toward the side (+/- pi/2 radians) for positions in
+ * front.
  */
-void CalcAnglePairwiseCoeffs(ALfloat azimuth, ALfloat elevation, ALfloat spread, ALfloat coeffs[MAX_AMBI_COEFFS]);
+inline float ScaleAzimuthFront(float azimuth, float scale)
+{
+    ALfloat sign = copysignf(1.0f, azimuth);
+    if(!(fabsf(azimuth) > F_PI_2))
+        return minf(fabsf(azimuth) * scale, F_PI_2) * sign;
+    return azimuth;
+}
 
-/**
- * ComputeAmbientGains
- *
- * Computes channel gains for ambient, omni-directional sounds.
- */
-#define ComputeAmbientGains(b, g, o) do {                                     \
-    if((b).CoeffCount > 0)                                                    \
-        ComputeAmbientGainsMC((b).Ambi.Coeffs, (b).NumChannels, g, o);        \
-    else                                                                      \
-        ComputeAmbientGainsBF((b).Ambi.Map, (b).NumChannels, g, o);           \
-} while (0)
-void ComputeAmbientGainsMC(const ChannelConfig *chancoeffs, ALsizei numchans, ALfloat ingain, ALfloat gains[MAX_OUTPUT_CHANNELS]);
-void ComputeAmbientGainsBF(const BFChannelConfig *chanmap, ALsizei numchans, ALfloat ingain, ALfloat gains[MAX_OUTPUT_CHANNELS]);
 
+void ComputePanningGainsMC(const ChannelConfig *chancoeffs, ALsizei numchans, ALsizei numcoeffs, const ALfloat coeffs[MAX_AMBI_COEFFS], ALfloat ingain, ALfloat gains[MAX_OUTPUT_CHANNELS]);
+void ComputePanningGainsBF(const BFChannelConfig *chanmap, ALsizei numchans, const ALfloat coeffs[MAX_AMBI_COEFFS], ALfloat ingain, ALfloat gains[MAX_OUTPUT_CHANNELS]);
 /**
- * ComputePanningGains
+ * ComputeDryPanGains
  *
  * Computes panning gains using the given channel decoder coefficients and the
  * pre-calculated direction or angle coefficients.
  */
-#define ComputePanningGains(b, c, g, o) do {                                  \
-    if((b).CoeffCount > 0)                                                    \
-        ComputePanningGainsMC((b).Ambi.Coeffs, (b).NumChannels, (b).CoeffCount, c, g, o);\
-    else                                                                      \
-        ComputePanningGainsBF((b).Ambi.Map, (b).NumChannels, c, g, o);        \
-} while (0)
-void ComputePanningGainsMC(const ChannelConfig *chancoeffs, ALsizei numchans, ALsizei numcoeffs, const ALfloat coeffs[MAX_AMBI_COEFFS], ALfloat ingain, ALfloat gains[MAX_OUTPUT_CHANNELS]);
-void ComputePanningGainsBF(const BFChannelConfig *chanmap, ALsizei numchans, const ALfloat coeffs[MAX_AMBI_COEFFS], ALfloat ingain, ALfloat gains[MAX_OUTPUT_CHANNELS]);
+inline void ComputeDryPanGains(const DryMixParams *dry, const ALfloat coeffs[MAX_AMBI_COEFFS], ALfloat ingain, ALfloat gains[MAX_OUTPUT_CHANNELS])
+{
+    if(dry->CoeffCount > 0)
+        ComputePanningGainsMC(dry->Ambi.Coeffs, dry->NumChannels, dry->CoeffCount,
+                              coeffs, ingain, gains);
+    else
+        ComputePanningGainsBF(dry->Ambi.Map, dry->NumChannels, coeffs, ingain, gains);
+}
 
+void ComputeFirstOrderGainsMC(const ChannelConfig *chancoeffs, ALsizei numchans, const ALfloat mtx[4], ALfloat ingain, ALfloat gains[MAX_OUTPUT_CHANNELS]);
+void ComputeFirstOrderGainsBF(const BFChannelConfig *chanmap, ALsizei numchans, const ALfloat mtx[4], ALfloat ingain, ALfloat gains[MAX_OUTPUT_CHANNELS]);
 /**
  * ComputeFirstOrderGains
  *
@@ -490,24 +517,29 @@ void ComputePanningGainsBF(const BFChannelConfig *chanmap, ALsizei numchans, con
  * a 1x4 'slice' of a transform matrix for the input channel, used to scale and
  * orient the sound samples.
  */
-#define ComputeFirstOrderGains(b, m, g, o) do {                               \
-    if((b).CoeffCount > 0)                                                    \
-        ComputeFirstOrderGainsMC((b).Ambi.Coeffs, (b).NumChannels, m, g, o);  \
-    else                                                                      \
-        ComputeFirstOrderGainsBF((b).Ambi.Map, (b).NumChannels, m, g, o);     \
-} while (0)
-void ComputeFirstOrderGainsMC(const ChannelConfig *chancoeffs, ALsizei numchans, const ALfloat mtx[4], ALfloat ingain, ALfloat gains[MAX_OUTPUT_CHANNELS]);
-void ComputeFirstOrderGainsBF(const BFChannelConfig *chanmap, ALsizei numchans, const ALfloat mtx[4], ALfloat ingain, ALfloat gains[MAX_OUTPUT_CHANNELS]);
+inline void ComputeFirstOrderGains(const BFMixParams *foa, const ALfloat mtx[4], ALfloat ingain, ALfloat gains[MAX_OUTPUT_CHANNELS])
+{
+    if(foa->CoeffCount > 0)
+        ComputeFirstOrderGainsMC(foa->Ambi.Coeffs, foa->NumChannels, mtx, ingain, gains);
+    else
+        ComputeFirstOrderGainsBF(foa->Ambi.Map, foa->NumChannels, mtx, ingain, gains);
+}
 
 
-ALboolean MixSource(struct ALvoice *voice, struct ALsource *Source, ALCdevice *Device, ALsizei SamplesToDo);
+ALboolean MixSource(struct ALvoice *voice, ALuint SourceID, ALCcontext *Context, ALsizei SamplesToDo);
 
 void aluMixData(ALCdevice *device, ALvoid *OutBuffer, ALsizei NumSamples);
-/* Caller must lock the device. */
-void aluHandleDisconnect(ALCdevice *device);
+/* Caller must lock the device, and the mixer must not be running. */
+void aluHandleDisconnect(ALCdevice *device, const char *msg, ...) DECL_FORMAT(printf, 2, 3);
+
+void UpdateContextProps(ALCcontext *context);
+
+extern MixerFunc MixSamples;
+extern RowMixerFunc MixRowSamples;
 
 extern ALfloat ConeScale;
 extern ALfloat ZScale;
+extern ALboolean OverrideReverbSpeedOfSound;
 
 #ifdef __cplusplus
 }

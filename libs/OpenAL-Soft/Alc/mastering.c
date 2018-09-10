@@ -2,37 +2,19 @@
 
 #include <math.h>
 
+#include "mastering.h"
 #include "alu.h"
 #include "almalloc.h"
+
+
+extern inline ALuint GetCompressorSampleRate(const Compressor *Comp);
 
 #define RMS_WINDOW_SIZE (1<<7)
 #define RMS_WINDOW_MASK (RMS_WINDOW_SIZE-1)
 #define RMS_VALUE_MAX  (1<<24)
 
-#define LOOKAHEAD_SIZE (1<<13)
-#define LOOKAHEAD_MASK (LOOKAHEAD_SIZE-1)
-
 static_assert(RMS_VALUE_MAX < (UINT_MAX / RMS_WINDOW_SIZE), "RMS_VALUE_MAX is too big");
 
-typedef struct Compressor {
-    ALfloat PreGain;
-    ALfloat PostGain;
-    ALboolean SummedLink;
-    ALfloat AttackMin;
-    ALfloat AttackMax;
-    ALfloat ReleaseMin;
-    ALfloat ReleaseMax;
-    ALfloat Ratio;
-    ALfloat Threshold;
-    ALfloat Knee;
-    ALuint SampleRate;
-
-    ALuint RmsSum;
-    ALuint *RmsWindow;
-    ALsizei RmsIndex;
-    ALfloat Envelope[BUFFERSIZE];
-    ALfloat EnvLast;
-} Compressor;
 
 /* Multichannel compression is linked via one of two modes:
  *
@@ -116,7 +98,7 @@ static void FollowEnvelope(Compressor *Comp, const ALsizei SamplesToDo)
 
     for(i = 0;i < SamplesToDo;i++)
     {
-        ALfloat env = maxf(-6.0f, log10f(Comp->Envelope[i]));
+        ALfloat env = log10f(maxf(Comp->Envelope[i], 0.000001f));
         ALfloat slope = minf(1.0f, fabsf(env - last) / 4.5f);
 
         if(env > last)
@@ -207,11 +189,6 @@ Compressor *CompressorInit(const ALfloat PreGainDb, const ALfloat PostGainDb,
     Comp->EnvLast = -6.0f;
 
     return Comp;
-}
-
-ALuint GetCompressorSampleRate(const Compressor *Comp)
-{
-    return Comp->SampleRate;
 }
 
 void ApplyCompression(Compressor *Comp, const ALsizei NumChans, const ALsizei SamplesToDo,

@@ -34,6 +34,7 @@
 
 #include "alMain.h"
 #include "alu.h"
+#include "alconfig.h"
 #include "threads.h"
 #include "compat.h"
 
@@ -59,7 +60,6 @@ static int ALCsolarisBackend_mixerProc(void *ptr);
 static void ALCsolarisBackend_Construct(ALCsolarisBackend *self, ALCdevice *device);
 static void ALCsolarisBackend_Destruct(ALCsolarisBackend *self);
 static ALCenum ALCsolarisBackend_open(ALCsolarisBackend *self, const ALCchar *name);
-static void ALCsolarisBackend_close(ALCsolarisBackend *self);
 static ALCboolean ALCsolarisBackend_reset(ALCsolarisBackend *self);
 static ALCboolean ALCsolarisBackend_start(ALCsolarisBackend *self);
 static void ALCsolarisBackend_stop(ALCsolarisBackend *self);
@@ -84,6 +84,7 @@ static void ALCsolarisBackend_Construct(ALCsolarisBackend *self, ALCdevice *devi
     SET_VTABLE2(ALCsolarisBackend, ALCbackend, self);
 
     self->fd = -1;
+    self->mix_data = NULL;
     ATOMIC_INIT(&self->killNow, AL_FALSE);
 }
 
@@ -119,7 +120,8 @@ static int ALCsolarisBackend_mixerProc(void *ptr)
     frame_size = FrameSizeFromDevFmt(device->FmtChans, device->FmtType, device->AmbiOrder);
 
     ALCsolarisBackend_lock(self);
-    while(!ATOMIC_LOAD_SEQ(&self->killNow) && device->Connected)
+    while(!ATOMIC_LOAD(&self->killNow, almemory_order_acquire) &&
+          ATOMIC_LOAD(&device->Connected, almemory_order_acquire))
     {
         FD_ZERO(&wfds);
         FD_SET(self->fd, &wfds);
@@ -134,7 +136,7 @@ static int ALCsolarisBackend_mixerProc(void *ptr)
             if(errno == EINTR)
                 continue;
             ERR("select failed: %s\n", strerror(errno));
-            aluHandleDisconnect(device);
+            aluHandleDisconnect(device, "Failed to wait for playback buffer: %s", strerror(errno));
             break;
         }
         else if(sret == 0)
@@ -154,7 +156,8 @@ static int ALCsolarisBackend_mixerProc(void *ptr)
                 if(errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
                     continue;
                 ERR("write failed: %s\n", strerror(errno));
-                aluHandleDisconnect(device);
+                aluHandleDisconnect(device, "Failed to write playback samples: %s",
+                                    strerror(errno));
                 break;
             }
 
@@ -188,12 +191,6 @@ static ALCenum ALCsolarisBackend_open(ALCsolarisBackend *self, const ALCchar *na
     alstr_copy_cstr(&device->DeviceName, name);
 
     return ALC_NO_ERROR;
-}
-
-static void ALCsolarisBackend_close(ALCsolarisBackend *self)
-{
-    close(self->fd);
-    self->fd = -1;
 }
 
 static ALCboolean ALCsolarisBackend_reset(ALCsolarisBackend *self)

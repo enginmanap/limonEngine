@@ -31,8 +31,9 @@
 #include "alError.h"
 #include "alSource.h"
 #include "alBuffer.h"
-#include "alThunk.h"
+#include "alFilter.h"
 #include "alAuxEffectSlot.h"
+#include "ringbuffer.h"
 
 #include "backends/base.h"
 
@@ -40,21 +41,72 @@
 #include "almalloc.h"
 
 
-extern inline void LockSourcesRead(ALCcontext *context);
-extern inline void UnlockSourcesRead(ALCcontext *context);
-extern inline void LockSourcesWrite(ALCcontext *context);
-extern inline void UnlockSourcesWrite(ALCcontext *context);
-extern inline struct ALsource *LookupSource(ALCcontext *context, ALuint id);
-extern inline struct ALsource *RemoveSource(ALCcontext *context, ALuint id);
-
+static ALsource *AllocSource(ALCcontext *context);
+static void FreeSource(ALCcontext *context, ALsource *source);
 static void InitSourceParams(ALsource *Source, ALsizei num_sends);
 static void DeinitSource(ALsource *source, ALsizei num_sends);
-static void UpdateSourceProps(ALsource *source, ALvoice *voice, ALsizei num_sends);
+static void UpdateSourceProps(ALsource *source, ALvoice *voice, ALsizei num_sends, ALCcontext *context);
 static ALint64 GetSourceSampleOffset(ALsource *Source, ALCcontext *context, ALuint64 *clocktime);
 static ALdouble GetSourceSecOffset(ALsource *Source, ALCcontext *context, ALuint64 *clocktime);
 static ALdouble GetSourceOffset(ALsource *Source, ALenum name, ALCcontext *context);
 static ALboolean GetSampleOffset(ALsource *Source, ALuint *offset, ALsizei *frac);
 static ALboolean ApplyOffset(ALsource *Source, ALvoice *voice);
+
+static inline void LockSourceList(ALCcontext *context)
+{ almtx_lock(&context->SourceLock); }
+static inline void UnlockSourceList(ALCcontext *context)
+{ almtx_unlock(&context->SourceLock); }
+
+static inline ALsource *LookupSource(ALCcontext *context, ALuint id)
+{
+    SourceSubList *sublist;
+    ALuint lidx = (id-1) >> 6;
+    ALsizei slidx = (id-1) & 0x3f;
+
+    if(UNLIKELY(lidx >= VECTOR_SIZE(context->SourceList)))
+        return NULL;
+    sublist = &VECTOR_ELEM(context->SourceList, lidx);
+    if(UNLIKELY(sublist->FreeMask & (U64(1)<<slidx)))
+        return NULL;
+    return sublist->Sources + slidx;
+}
+
+static inline ALbuffer *LookupBuffer(ALCdevice *device, ALuint id)
+{
+    BufferSubList *sublist;
+    ALuint lidx = (id-1) >> 6;
+    ALsizei slidx = (id-1) & 0x3f;
+
+    if(UNLIKELY(lidx >= VECTOR_SIZE(device->BufferList)))
+        return NULL;
+    sublist = &VECTOR_ELEM(device->BufferList, lidx);
+    if(UNLIKELY(sublist->FreeMask & (U64(1)<<slidx)))
+        return NULL;
+    return sublist->Buffers + slidx;
+}
+
+static inline ALfilter *LookupFilter(ALCdevice *device, ALuint id)
+{
+    FilterSubList *sublist;
+    ALuint lidx = (id-1) >> 6;
+    ALsizei slidx = (id-1) & 0x3f;
+
+    if(UNLIKELY(lidx >= VECTOR_SIZE(device->FilterList)))
+        return NULL;
+    sublist = &VECTOR_ELEM(device->FilterList, lidx);
+    if(UNLIKELY(sublist->FreeMask & (U64(1)<<slidx)))
+        return NULL;
+    return sublist->Filters + slidx;
+}
+
+static inline ALeffectslot *LookupEffectSlot(ALCcontext *context, ALuint id)
+{
+    id--;
+    if(UNLIKELY(id >= VECTOR_SIZE(context->EffectSlotList)))
+        return NULL;
+    return VECTOR_ELEM(context->EffectSlotList, id);
+}
+
 
 typedef enum SourceProp {
     srcPitch = AL_PITCH,
@@ -100,10 +152,6 @@ typedef enum SourceProp {
     /* AL_EXT_source_distance_model */
     srcDistanceModel = AL_DISTANCE_MODEL,
 
-    srcByteLengthSOFT = AL_BYTE_LENGTH_SOFT,
-    srcSampleLengthSOFT = AL_SAMPLE_LENGTH_SOFT,
-    srcSecLengthSOFT = AL_SEC_LENGTH_SOFT,
-
     /* AL_SOFT_source_latency */
     srcSampleOffsetLatencySOFT = AL_SAMPLE_OFFSET_LATENCY_SOFT,
     srcSecOffsetLatencySOFT = AL_SEC_OFFSET_LATENCY_SOFT,
@@ -122,6 +170,10 @@ typedef enum SourceProp {
 
     /* AL_SOFT_source_spatialize */
     srcSpatialize = AL_SOURCE_SPATIALIZE_SOFT,
+
+    /* ALC_SOFT_device_clock */
+    srcSampleOffsetClockSOFT = AL_SAMPLE_OFFSET_CLOCK_SOFT,
+    srcSecOffsetClockSOFT = AL_SEC_OFFSET_CLOCK_SOFT,
 } SourceProp;
 
 static ALboolean SetSourcefv(ALsource *Source, ALCcontext *Context, SourceProp prop, const ALfloat *values);
@@ -132,16 +184,16 @@ static ALboolean GetSourcedv(ALsource *Source, ALCcontext *Context, SourceProp p
 static ALboolean GetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp prop, ALint *values);
 static ALboolean GetSourcei64v(ALsource *Source, ALCcontext *Context, SourceProp prop, ALint64 *values);
 
-static inline ALvoice *GetSourceVoice(const ALsource *source, const ALCcontext *context)
+static inline ALvoice *GetSourceVoice(ALsource *source, ALCcontext *context)
 {
-    ALvoice **voice = context->Voices;
-    ALvoice **voice_end = voice + context->VoiceCount;
-    while(voice != voice_end)
+    ALint idx = source->VoiceIdx;
+    if(idx >= 0 && idx < context->VoiceCount)
     {
-        if(ATOMIC_LOAD(&(*voice)->Source, almemory_order_acquire) == source)
-            return *voice;
-        ++voice;
+        ALvoice *voice = context->Voices[idx];
+        if(ATOMIC_LOAD(&voice->Source, almemory_order_acquire) == source)
+            return voice;
     }
+    source->VoiceIdx = -1;
     return NULL;
 }
 
@@ -150,10 +202,7 @@ static inline ALvoice *GetSourceVoice(const ALsource *source, const ALCcontext *
  * not sync with the mixer voice.
  */
 static inline bool IsPlayingOrPaused(ALsource *source)
-{
-    ALenum state = ATOMIC_LOAD(&source->state, almemory_order_acquire);
-    return state == AL_PLAYING || state == AL_PAUSED;
-}
+{ return source->state == AL_PLAYING || source->state == AL_PAUSED; }
 
 /**
  * Returns an updated source state using the matching voice's status (or lack
@@ -161,15 +210,9 @@ static inline bool IsPlayingOrPaused(ALsource *source)
  */
 static inline ALenum GetSourceState(ALsource *source, ALvoice *voice)
 {
-    if(!voice)
-    {
-        ALenum state = AL_PLAYING;
-        if(ATOMIC_COMPARE_EXCHANGE_STRONG(&source->state, &state, AL_STOPPED,
-                                          almemory_order_acq_rel, almemory_order_acquire))
-            return AL_STOPPED;
-        return state;
-    }
-    return ATOMIC_LOAD(&source->state, almemory_order_acquire);
+    if(!voice && source->state == AL_PLAYING)
+        source->state = AL_STOPPED;
+    return source->state;
 }
 
 /**
@@ -181,6 +224,35 @@ static inline bool SourceShouldUpdate(ALsource *source, ALCcontext *context)
     return !ATOMIC_LOAD(&context->DeferUpdates, almemory_order_acquire) &&
            IsPlayingOrPaused(source);
 }
+
+
+/** Can only be called while the mixer is locked! */
+static void SendStateChangeEvent(ALCcontext *context, ALuint id, ALenum state)
+{
+    ALbitfieldSOFT enabledevt;
+    AsyncEvent evt;
+
+    enabledevt = ATOMIC_LOAD(&context->EnabledEvts, almemory_order_acquire);
+    if(!(enabledevt&EventType_SourceStateChange)) return;
+
+    evt.EnumType = EventType_SourceStateChange;
+    evt.Type = AL_EVENT_TYPE_SOURCE_STATE_CHANGED_SOFT;
+    evt.ObjectId = id;
+    evt.Param = state;
+    snprintf(evt.Message, sizeof(evt.Message), "Source ID %u state changed to %s", id,
+        (state==AL_INITIAL) ? "AL_INITIAL" :
+        (state==AL_PLAYING) ? "AL_PLAYING" :
+        (state==AL_PAUSED) ? "AL_PAUSED" :
+        (state==AL_STOPPED) ? "AL_STOPPED" : "<unknown>"
+    );
+    /* The mixer may have queued a state change that's not yet been processed,
+     * and we don't want state change messages to occur out of order, so send
+     * it through the async queue to ensure proper ordering.
+     */
+    if(ll_ringbuffer_write(context->AsyncEvents, (const char*)&evt, 1) == 1)
+        alsem_post(&context->EventSem);
+}
+
 
 static ALint FloatValsByProp(ALenum prop)
 {
@@ -216,9 +288,6 @@ static ALint FloatValsByProp(ALenum prop)
         case AL_BUFFERS_QUEUED:
         case AL_BUFFERS_PROCESSED:
         case AL_SOURCE_TYPE:
-        case AL_BYTE_LENGTH_SOFT:
-        case AL_SAMPLE_LENGTH_SOFT:
-        case AL_SEC_LENGTH_SOFT:
         case AL_SOURCE_RADIUS:
         case AL_SOURCE_RESAMPLER_SOFT:
         case AL_SOURCE_SPATIALIZE_SOFT:
@@ -236,6 +305,7 @@ static ALint FloatValsByProp(ALenum prop)
             return 6;
 
         case AL_SEC_OFFSET_LATENCY_SOFT:
+        case AL_SEC_OFFSET_CLOCK_SOFT:
             break; /* Double only */
 
         case AL_BUFFER:
@@ -243,6 +313,7 @@ static ALint FloatValsByProp(ALenum prop)
         case AL_AUXILIARY_SEND_FILTER:
             break; /* i/i64 only */
         case AL_SAMPLE_OFFSET_LATENCY_SOFT:
+        case AL_SAMPLE_OFFSET_CLOCK_SOFT:
             break; /* i64 only */
     }
     return 0;
@@ -281,15 +352,13 @@ static ALint DoubleValsByProp(ALenum prop)
         case AL_BUFFERS_QUEUED:
         case AL_BUFFERS_PROCESSED:
         case AL_SOURCE_TYPE:
-        case AL_BYTE_LENGTH_SOFT:
-        case AL_SAMPLE_LENGTH_SOFT:
-        case AL_SEC_LENGTH_SOFT:
         case AL_SOURCE_RADIUS:
         case AL_SOURCE_RESAMPLER_SOFT:
         case AL_SOURCE_SPATIALIZE_SOFT:
             return 1;
 
         case AL_SEC_OFFSET_LATENCY_SOFT:
+        case AL_SEC_OFFSET_CLOCK_SOFT:
         case AL_STEREO_ANGLES:
             return 2;
 
@@ -306,6 +375,7 @@ static ALint DoubleValsByProp(ALenum prop)
         case AL_AUXILIARY_SEND_FILTER:
             break; /* i/i64 only */
         case AL_SAMPLE_OFFSET_LATENCY_SOFT:
+        case AL_SAMPLE_OFFSET_CLOCK_SOFT:
             break; /* i64 only */
     }
     return 0;
@@ -347,9 +417,6 @@ static ALint IntValsByProp(ALenum prop)
         case AL_BUFFERS_PROCESSED:
         case AL_SOURCE_TYPE:
         case AL_DIRECT_FILTER:
-        case AL_BYTE_LENGTH_SOFT:
-        case AL_SAMPLE_LENGTH_SOFT:
-        case AL_SEC_LENGTH_SOFT:
         case AL_SOURCE_RADIUS:
         case AL_SOURCE_RESAMPLER_SOFT:
         case AL_SOURCE_SPATIALIZE_SOFT:
@@ -365,8 +432,10 @@ static ALint IntValsByProp(ALenum prop)
             return 6;
 
         case AL_SAMPLE_OFFSET_LATENCY_SOFT:
+        case AL_SAMPLE_OFFSET_CLOCK_SOFT:
             break; /* i64 only */
         case AL_SEC_OFFSET_LATENCY_SOFT:
+        case AL_SEC_OFFSET_CLOCK_SOFT:
             break; /* Double only */
         case AL_STEREO_ANGLES:
             break; /* Float/double only */
@@ -409,15 +478,13 @@ static ALint Int64ValsByProp(ALenum prop)
         case AL_BUFFERS_PROCESSED:
         case AL_SOURCE_TYPE:
         case AL_DIRECT_FILTER:
-        case AL_BYTE_LENGTH_SOFT:
-        case AL_SAMPLE_LENGTH_SOFT:
-        case AL_SEC_LENGTH_SOFT:
         case AL_SOURCE_RADIUS:
         case AL_SOURCE_RESAMPLER_SOFT:
         case AL_SOURCE_SPATIALIZE_SOFT:
             return 1;
 
         case AL_SAMPLE_OFFSET_LATENCY_SOFT:
+        case AL_SAMPLE_OFFSET_CLOCK_SOFT:
             return 2;
 
         case AL_POSITION:
@@ -430,6 +497,7 @@ static ALint Int64ValsByProp(ALenum prop)
             return 6;
 
         case AL_SEC_OFFSET_LATENCY_SOFT:
+        case AL_SEC_OFFSET_CLOCK_SOFT:
             break; /* Double only */
         case AL_STEREO_ANGLES:
             break; /* Float/double only */
@@ -440,14 +508,17 @@ static ALint Int64ValsByProp(ALenum prop)
 
 #define CHECKVAL(x) do {                                                      \
     if(!(x))                                                                  \
-        SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_VALUE, AL_FALSE);      \
+    {                                                                         \
+        alSetError(Context, AL_INVALID_VALUE, "Value out of range");          \
+        return AL_FALSE;                                                      \
+    }                                                                         \
 } while(0)
 
 #define DO_UPDATEPROPS() do {                                                 \
     ALvoice *voice;                                                           \
     if(SourceShouldUpdate(Source, Context) &&                                 \
        (voice=GetSourceVoice(Source, Context)) != NULL)                       \
-        UpdateSourceProps(Source, voice, device->NumAuxSends);                \
+        UpdateSourceProps(Source, voice, device->NumAuxSends, Context);       \
     else                                                                      \
         ATOMIC_FLAG_CLEAR(&Source->PropsClean, almemory_order_release);       \
 } while(0)
@@ -459,12 +530,11 @@ static ALboolean SetSourcefv(ALsource *Source, ALCcontext *Context, SourceProp p
 
     switch(prop)
     {
-        case AL_BYTE_LENGTH_SOFT:
-        case AL_SAMPLE_LENGTH_SOFT:
-        case AL_SEC_LENGTH_SOFT:
         case AL_SEC_OFFSET_LATENCY_SOFT:
+        case AL_SEC_OFFSET_CLOCK_SOFT:
             /* Query only */
-            SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_OPERATION, AL_FALSE);
+            SETERR_RETURN(Context, AL_INVALID_OPERATION, AL_FALSE,
+                          "Setting read-only source property 0x%04x", prop);
 
         case AL_PITCH:
             CHECKVAL(*values >= 0.0f);
@@ -583,14 +653,11 @@ static ALboolean SetSourcefv(ALsource *Source, ALCcontext *Context, SourceProp p
                 voice = GetSourceVoice(Source, Context);
                 if(voice)
                 {
-                    WriteLock(&Source->queue_lock);
                     if(ApplyOffset(Source, voice) == AL_FALSE)
                     {
-                        WriteUnlock(&Source->queue_lock);
                         ALCdevice_Unlock(Context->Device);
-                        SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_VALUE, AL_FALSE);
+                        SETERR_RETURN(Context, AL_INVALID_VALUE, AL_FALSE, "Invalid offset");
                     }
-                    WriteUnlock(&Source->queue_lock);
                 }
                 ALCdevice_Unlock(Context->Device);
             }
@@ -676,11 +743,12 @@ static ALboolean SetSourcefv(ALsource *Source, ALCcontext *Context, SourceProp p
         case AL_DIRECT_FILTER:
         case AL_AUXILIARY_SEND_FILTER:
         case AL_SAMPLE_OFFSET_LATENCY_SOFT:
+        case AL_SAMPLE_OFFSET_CLOCK_SOFT:
             break;
     }
 
     ERR("Unexpected property: 0x%04x\n", prop);
-    SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_ENUM, AL_FALSE);
+    SETERR_RETURN(Context, AL_INVALID_ENUM, AL_FALSE, "Invalid source float property 0x%04x", prop);
 }
 
 static ALboolean SetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp prop, const ALint *values)
@@ -698,11 +766,9 @@ static ALboolean SetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
         case AL_SOURCE_TYPE:
         case AL_BUFFERS_QUEUED:
         case AL_BUFFERS_PROCESSED:
-        case AL_BYTE_LENGTH_SOFT:
-        case AL_SAMPLE_LENGTH_SOFT:
-        case AL_SEC_LENGTH_SOFT:
             /* Query only */
-            SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_OPERATION, AL_FALSE);
+            SETERR_RETURN(Context, AL_INVALID_OPERATION, AL_FALSE,
+                          "Setting read-only source property 0x%04x", prop);
 
         case AL_SOURCE_RELATIVE:
             CHECKVAL(*values == AL_FALSE || *values == AL_TRUE);
@@ -714,7 +780,6 @@ static ALboolean SetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
         case AL_LOOPING:
             CHECKVAL(*values == AL_FALSE || *values == AL_TRUE);
 
-            WriteLock(&Source->queue_lock);
             Source->Looping = (ALboolean)*values;
             if(IsPlayingOrPaused(Source))
             {
@@ -734,25 +799,32 @@ static ALboolean SetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
                         althrd_yield();
                 }
             }
-            WriteUnlock(&Source->queue_lock);
             return AL_TRUE;
 
         case AL_BUFFER:
-            LockBuffersRead(device);
+            LockBufferList(device);
             if(!(*values == 0 || (buffer=LookupBuffer(device, *values)) != NULL))
             {
-                UnlockBuffersRead(device);
-                SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_VALUE, AL_FALSE);
+                UnlockBufferList(device);
+                SETERR_RETURN(Context, AL_INVALID_VALUE, AL_FALSE, "Invalid buffer ID %u",
+                              *values);
             }
 
-            WriteLock(&Source->queue_lock);
+            if(buffer && buffer->MappedAccess != 0 &&
+               !(buffer->MappedAccess&AL_MAP_PERSISTENT_BIT_SOFT))
+            {
+                UnlockBufferList(device);
+                SETERR_RETURN(Context, AL_INVALID_OPERATION, AL_FALSE,
+                              "Setting non-persistently mapped buffer %u", buffer->id);
+            }
+            else
             {
                 ALenum state = GetSourceState(Source, GetSourceVoice(Source, Context));
                 if(state == AL_PLAYING || state == AL_PAUSED)
                 {
-                    WriteUnlock(&Source->queue_lock);
-                    UnlockBuffersRead(device);
-                    SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_OPERATION, AL_FALSE);
+                    UnlockBufferList(device);
+                    SETERR_RETURN(Context, AL_INVALID_OPERATION, AL_FALSE,
+                                  "Setting buffer on playing or paused source %u", Source->id);
                 }
             }
 
@@ -760,9 +832,12 @@ static ALboolean SetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
             if(buffer != NULL)
             {
                 /* Add the selected buffer to a one-item queue */
-                ALbufferlistitem *newlist = al_calloc(DEF_ALIGN, sizeof(ALbufferlistitem));
-                newlist->buffer = buffer;
+                ALbufferlistitem *newlist = al_calloc(DEF_ALIGN,
+                    FAM_SIZE(ALbufferlistitem, buffers, 1));
                 ATOMIC_INIT(&newlist->next, NULL);
+                newlist->max_samples = buffer->SampleLen;
+                newlist->num_buffers = 1;
+                newlist->buffers[0] = buffer;
                 IncrementRef(&buffer->ref);
 
                 /* Source is now Static */
@@ -775,17 +850,20 @@ static ALboolean SetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
                 Source->SourceType = AL_UNDETERMINED;
                 Source->queue = NULL;
             }
-            WriteUnlock(&Source->queue_lock);
-            UnlockBuffersRead(device);
+            UnlockBufferList(device);
 
             /* Delete all elements in the previous queue */
             while(oldlist != NULL)
             {
+                ALsizei i;
                 ALbufferlistitem *temp = oldlist;
                 oldlist = ATOMIC_LOAD(&temp->next, almemory_order_relaxed);
 
-                if(temp->buffer)
-                    DecrementRef(&temp->buffer->ref);
+                for(i = 0;i < temp->num_buffers;i++)
+                {
+                    if(temp->buffers[i])
+                        DecrementRef(&temp->buffers[i]->ref);
+                }
                 al_free(temp);
             }
             return AL_TRUE;
@@ -806,25 +884,24 @@ static ALboolean SetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
                 voice = GetSourceVoice(Source, Context);
                 if(voice)
                 {
-                    WriteLock(&Source->queue_lock);
                     if(ApplyOffset(Source, voice) == AL_FALSE)
                     {
-                        WriteUnlock(&Source->queue_lock);
                         ALCdevice_Unlock(Context->Device);
-                        SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_VALUE, AL_FALSE);
+                        SETERR_RETURN(Context, AL_INVALID_VALUE, AL_FALSE,
+                                      "Invalid source offset");
                     }
-                    WriteUnlock(&Source->queue_lock);
                 }
                 ALCdevice_Unlock(Context->Device);
             }
             return AL_TRUE;
 
         case AL_DIRECT_FILTER:
-            LockFiltersRead(device);
+            LockFilterList(device);
             if(!(*values == 0 || (filter=LookupFilter(device, *values)) != NULL))
             {
-                UnlockFiltersRead(device);
-                SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_VALUE, AL_FALSE);
+                UnlockFilterList(device);
+                SETERR_RETURN(Context, AL_INVALID_VALUE, AL_FALSE, "Invalid filter ID %u",
+                              *values);
             }
 
             if(!filter)
@@ -843,7 +920,7 @@ static ALboolean SetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
                 Source->Direct.GainLF = filter->GainLF;
                 Source->Direct.LFReference = filter->LFReference;
             }
-            UnlockFiltersRead(device);
+            UnlockFilterList(device);
             DO_UPDATEPROPS();
             return AL_TRUE;
 
@@ -905,15 +982,25 @@ static ALboolean SetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
 
 
         case AL_AUXILIARY_SEND_FILTER:
-            LockEffectSlotsRead(Context);
-            LockFiltersRead(device);
-            if(!((ALuint)values[1] < (ALuint)device->NumAuxSends &&
-                 (values[0] == 0 || (slot=LookupEffectSlot(Context, values[0])) != NULL) &&
-                 (values[2] == 0 || (filter=LookupFilter(device, values[2])) != NULL)))
+            LockEffectSlotList(Context);
+            if(!(values[0] == 0 || (slot=LookupEffectSlot(Context, values[0])) != NULL))
             {
-                UnlockFiltersRead(device);
-                UnlockEffectSlotsRead(Context);
-                SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_VALUE, AL_FALSE);
+                UnlockEffectSlotList(Context);
+                SETERR_RETURN(Context, AL_INVALID_VALUE, AL_FALSE, "Invalid effect ID %u",
+                              values[0]);
+            }
+            if(!((ALuint)values[1] < (ALuint)device->NumAuxSends))
+            {
+                UnlockEffectSlotList(Context);
+                SETERR_RETURN(Context, AL_INVALID_VALUE, AL_FALSE, "Invalid send %u", values[1]);
+            }
+            LockFilterList(device);
+            if(!(values[2] == 0 || (filter=LookupFilter(device, values[2])) != NULL))
+            {
+                UnlockFilterList(device);
+                UnlockEffectSlotList(Context);
+                SETERR_RETURN(Context, AL_INVALID_VALUE, AL_FALSE, "Invalid filter ID %u",
+                              values[2]);
             }
 
             if(!filter)
@@ -933,7 +1020,7 @@ static ALboolean SetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
                 Source->Send[values[1]].GainLF = filter->GainLF;
                 Source->Send[values[1]].LFReference = filter->LFReference;
             }
-            UnlockFiltersRead(device);
+            UnlockFilterList(device);
 
             if(slot != Source->Send[values[1]].Slot && IsPlayingOrPaused(Source))
             {
@@ -948,7 +1035,7 @@ static ALboolean SetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
                  * active source, in case the slot is about to be deleted.
                  */
                 if((voice=GetSourceVoice(Source, Context)) != NULL)
-                    UpdateSourceProps(Source, voice, device->NumAuxSends);
+                    UpdateSourceProps(Source, voice, device->NumAuxSends, Context);
                 else
                     ATOMIC_FLAG_CLEAR(&Source->PropsClean, almemory_order_release);
             }
@@ -960,7 +1047,7 @@ static ALboolean SetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
                 Source->Send[values[1]].Slot = slot;
                 DO_UPDATEPROPS();
             }
-            UnlockEffectSlotsRead(Context);
+            UnlockEffectSlotList(Context);
 
             return AL_TRUE;
 
@@ -1005,12 +1092,15 @@ static ALboolean SetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
 
         case AL_SAMPLE_OFFSET_LATENCY_SOFT:
         case AL_SEC_OFFSET_LATENCY_SOFT:
+        case AL_SEC_OFFSET_CLOCK_SOFT:
+        case AL_SAMPLE_OFFSET_CLOCK_SOFT:
         case AL_STEREO_ANGLES:
             break;
     }
 
     ERR("Unexpected property: 0x%04x\n", prop);
-    SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_ENUM, AL_FALSE);
+    SETERR_RETURN(Context, AL_INVALID_ENUM, AL_FALSE, "Invalid source integer property 0x%04x",
+                  prop);
 }
 
 static ALboolean SetSourcei64v(ALsource *Source, ALCcontext *Context, SourceProp prop, const ALint64SOFT *values)
@@ -1025,12 +1115,10 @@ static ALboolean SetSourcei64v(ALsource *Source, ALCcontext *Context, SourceProp
         case AL_BUFFERS_PROCESSED:
         case AL_SOURCE_STATE:
         case AL_SAMPLE_OFFSET_LATENCY_SOFT:
-        case AL_BYTE_LENGTH_SOFT:
-        case AL_SAMPLE_LENGTH_SOFT:
-        case AL_SEC_LENGTH_SOFT:
+        case AL_SAMPLE_OFFSET_CLOCK_SOFT:
             /* Query only */
-            SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_OPERATION, AL_FALSE);
-
+            SETERR_RETURN(Context, AL_INVALID_OPERATION, AL_FALSE,
+                          "Setting read-only source property 0x%04x", prop);
 
         /* 1x int */
         case AL_SOURCE_RELATIVE:
@@ -1108,12 +1196,14 @@ static ALboolean SetSourcei64v(ALsource *Source, ALCcontext *Context, SourceProp
             return SetSourcefv(Source, Context, (int)prop, fvals);
 
         case AL_SEC_OFFSET_LATENCY_SOFT:
+        case AL_SEC_OFFSET_CLOCK_SOFT:
         case AL_STEREO_ANGLES:
             break;
     }
 
     ERR("Unexpected property: 0x%04x\n", prop);
-    SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_ENUM, AL_FALSE);
+    SETERR_RETURN(Context, AL_INVALID_ENUM, AL_FALSE, "Invalid source integer64 property 0x%04x",
+                  prop);
 }
 
 #undef CHECKVAL
@@ -1122,7 +1212,6 @@ static ALboolean SetSourcei64v(ALsource *Source, ALCcontext *Context, SourceProp
 static ALboolean GetSourcedv(ALsource *Source, ALCcontext *Context, SourceProp prop, ALdouble *values)
 {
     ALCdevice *device = Context->Device;
-    ALbufferlistitem *BufferList;
     ClockLatency clocktime;
     ALuint64 srcclock;
     ALint ivals[3];
@@ -1192,28 +1281,6 @@ static ALboolean GetSourcedv(ALsource *Source, ALCcontext *Context, SourceProp p
             *values = Source->DopplerFactor;
             return AL_TRUE;
 
-        case AL_SEC_LENGTH_SOFT:
-            ReadLock(&Source->queue_lock);
-            if(!(BufferList=Source->queue))
-                *values = 0;
-            else
-            {
-                ALint length = 0;
-                ALsizei freq = 1;
-                do {
-                    ALbuffer *buffer = BufferList->buffer;
-                    if(buffer && buffer->SampleLen > 0)
-                    {
-                        freq = buffer->Frequency;
-                        length += buffer->SampleLen;
-                    }
-                    BufferList = ATOMIC_LOAD(&BufferList->next, almemory_order_relaxed);
-                } while(BufferList != NULL);
-                *values = (ALdouble)length / (ALdouble)freq;
-            }
-            ReadUnlock(&Source->queue_lock);
-            return AL_TRUE;
-
         case AL_SOURCE_RADIUS:
             *values = Source->Radius;
             return AL_TRUE;
@@ -1228,7 +1295,9 @@ static ALboolean GetSourcedv(ALsource *Source, ALCcontext *Context, SourceProp p
              * clock time with the device latency. Order is important.
              */
             values[0] = GetSourceSecOffset(Source, Context, &srcclock);
+            almtx_lock(&device->BackendLock);
             clocktime = V0(device->Backend,getClockLatency)();
+            almtx_unlock(&device->BackendLock);
             if(srcclock == (ALuint64)clocktime.ClockTime)
                 values[1] = (ALdouble)clocktime.Latency / 1000000000.0;
             else
@@ -1241,6 +1310,11 @@ static ALboolean GetSourcedv(ALsource *Source, ALCcontext *Context, SourceProp p
                 values[1] = (ALdouble)(clocktime.Latency - minu64(clocktime.Latency, diff)) /
                             1000000000.0;
             }
+            return AL_TRUE;
+
+        case AL_SEC_OFFSET_CLOCK_SOFT:
+            values[0] = GetSourceSecOffset(Source, Context, &srcclock);
+            values[1] = srcclock / 1000000000.0;
             return AL_TRUE;
 
         case AL_POSITION:
@@ -1281,8 +1355,6 @@ static ALboolean GetSourcedv(ALsource *Source, ALCcontext *Context, SourceProp p
         case AL_AUXILIARY_SEND_FILTER_GAIN_AUTO:
         case AL_AUXILIARY_SEND_FILTER_GAINHF_AUTO:
         case AL_DIRECT_CHANNELS_SOFT:
-        case AL_BYTE_LENGTH_SOFT:
-        case AL_SAMPLE_LENGTH_SOFT:
         case AL_DISTANCE_MODEL:
         case AL_SOURCE_RESAMPLER_SOFT:
         case AL_SOURCE_SPATIALIZE_SOFT:
@@ -1294,11 +1366,13 @@ static ALboolean GetSourcedv(ALsource *Source, ALCcontext *Context, SourceProp p
         case AL_DIRECT_FILTER:
         case AL_AUXILIARY_SEND_FILTER:
         case AL_SAMPLE_OFFSET_LATENCY_SOFT:
+        case AL_SAMPLE_OFFSET_CLOCK_SOFT:
             break;
     }
 
     ERR("Unexpected property: 0x%04x\n", prop);
-    SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_ENUM, AL_FALSE);
+    SETERR_RETURN(Context, AL_INVALID_ENUM, AL_FALSE, "Invalid source double property 0x%04x",
+                  prop);
 }
 
 static ALboolean GetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp prop, ALint *values)
@@ -1318,91 +1392,30 @@ static ALboolean GetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
             return AL_TRUE;
 
         case AL_BUFFER:
-            ReadLock(&Source->queue_lock);
             BufferList = (Source->SourceType == AL_STATIC) ? Source->queue : NULL;
-            *values = (BufferList && BufferList->buffer) ? BufferList->buffer->id : 0;
-            ReadUnlock(&Source->queue_lock);
+            *values = (BufferList && BufferList->num_buffers >= 1 && BufferList->buffers[0]) ?
+                      BufferList->buffers[0]->id : 0;
             return AL_TRUE;
 
         case AL_SOURCE_STATE:
             *values = GetSourceState(Source, GetSourceVoice(Source, Context));
             return AL_TRUE;
 
-        case AL_BYTE_LENGTH_SOFT:
-            ReadLock(&Source->queue_lock);
-            if(!(BufferList=Source->queue))
-                *values = 0;
-            else
-            {
-                ALint length = 0;
-                do {
-                    ALbuffer *buffer = BufferList->buffer;
-                    if(buffer && buffer->SampleLen > 0)
-                    {
-                        ALuint byte_align, sample_align;
-                        if(buffer->OriginalType == UserFmtIMA4)
-                        {
-                            ALsizei align = (buffer->OriginalAlign-1)/2 + 4;
-                            byte_align = align * ChannelsFromFmt(buffer->FmtChannels);
-                            sample_align = buffer->OriginalAlign;
-                        }
-                        else if(buffer->OriginalType == UserFmtMSADPCM)
-                        {
-                            ALsizei align = (buffer->OriginalAlign-2)/2 + 7;
-                            byte_align = align * ChannelsFromFmt(buffer->FmtChannels);
-                            sample_align = buffer->OriginalAlign;
-                        }
-                        else
-                        {
-                            ALsizei align = buffer->OriginalAlign;
-                            byte_align = align * ChannelsFromFmt(buffer->FmtChannels);
-                            sample_align = buffer->OriginalAlign;
-                        }
-
-                        length += buffer->SampleLen / sample_align * byte_align;
-                    }
-                    BufferList = ATOMIC_LOAD(&BufferList->next, almemory_order_relaxed);
-                } while(BufferList != NULL);
-                *values = length;
-            }
-            ReadUnlock(&Source->queue_lock);
-            return AL_TRUE;
-
-        case AL_SAMPLE_LENGTH_SOFT:
-            ReadLock(&Source->queue_lock);
-            if(!(BufferList=Source->queue))
-                *values = 0;
-            else
-            {
-                ALint length = 0;
-                do {
-                    ALbuffer *buffer = BufferList->buffer;
-                    if(buffer) length += buffer->SampleLen;
-                    BufferList = ATOMIC_LOAD(&BufferList->next, almemory_order_relaxed);
-                } while(BufferList != NULL);
-                *values = length;
-            }
-            ReadUnlock(&Source->queue_lock);
-            return AL_TRUE;
-
         case AL_BUFFERS_QUEUED:
-            ReadLock(&Source->queue_lock);
             if(!(BufferList=Source->queue))
                 *values = 0;
             else
             {
                 ALsizei count = 0;
                 do {
-                    ++count;
+                    count += BufferList->num_buffers;
                     BufferList = ATOMIC_LOAD(&BufferList->next, almemory_order_relaxed);
                 } while(BufferList != NULL);
                 *values = count;
             }
-            ReadUnlock(&Source->queue_lock);
             return AL_TRUE;
 
         case AL_BUFFERS_PROCESSED:
-            ReadLock(&Source->queue_lock);
             if(Source->Looping || Source->SourceType != AL_STREAMING)
             {
                 /* Buffers on a looping source are in a perpetual state of
@@ -1417,19 +1430,18 @@ static ALboolean GetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
                 ALvoice *voice;
 
                 if((voice=GetSourceVoice(Source, Context)) != NULL)
-                    Current = ATOMIC_LOAD_SEQ(&voice->current_buffer);
-                else if(ATOMIC_LOAD_SEQ(&Source->state) == AL_INITIAL)
+                    Current = ATOMIC_LOAD(&voice->current_buffer, almemory_order_relaxed);
+                else if(Source->state == AL_INITIAL)
                     Current = BufferList;
 
                 while(BufferList && BufferList != Current)
                 {
-                    played++;
+                    played += BufferList->num_buffers;
                     BufferList = ATOMIC_LOAD(&CONST_CAST(ALbufferlistitem*,BufferList)->next,
                                              almemory_order_relaxed);
                 }
                 *values = played;
             }
-            ReadUnlock(&Source->queue_lock);
             return AL_TRUE;
 
         case AL_SOURCE_TYPE:
@@ -1482,7 +1494,6 @@ static ALboolean GetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
         case AL_AIR_ABSORPTION_FACTOR:
         case AL_ROOM_ROLLOFF_FACTOR:
         case AL_CONE_OUTER_GAINHF:
-        case AL_SEC_LENGTH_SOFT:
         case AL_SOURCE_RADIUS:
             if((err=GetSourcedv(Source, Context, prop, dvals)) != AL_FALSE)
                 *values = (ALint)dvals[0];
@@ -1514,8 +1525,10 @@ static ALboolean GetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
             return err;
 
         case AL_SAMPLE_OFFSET_LATENCY_SOFT:
+        case AL_SAMPLE_OFFSET_CLOCK_SOFT:
             break; /* i64 only */
         case AL_SEC_OFFSET_LATENCY_SOFT:
+        case AL_SEC_OFFSET_CLOCK_SOFT:
             break; /* Double only */
         case AL_STEREO_ANGLES:
             break; /* Float/double only */
@@ -1526,7 +1539,8 @@ static ALboolean GetSourceiv(ALsource *Source, ALCcontext *Context, SourceProp p
     }
 
     ERR("Unexpected property: 0x%04x\n", prop);
-    SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_ENUM, AL_FALSE);
+    SETERR_RETURN(Context, AL_INVALID_ENUM, AL_FALSE, "Invalid source integer property 0x%04x",
+                  prop);
 }
 
 static ALboolean GetSourcei64v(ALsource *Source, ALCcontext *Context, SourceProp prop, ALint64 *values)
@@ -1545,7 +1559,9 @@ static ALboolean GetSourcei64v(ALsource *Source, ALCcontext *Context, SourceProp
              * clock time with the device latency. Order is important.
              */
             values[0] = GetSourceSampleOffset(Source, Context, &srcclock);
+            almtx_lock(&device->BackendLock);
             clocktime = V0(device->Backend,getClockLatency)();
+            almtx_unlock(&device->BackendLock);
             if(srcclock == (ALuint64)clocktime.ClockTime)
                 values[1] = clocktime.Latency;
             else
@@ -1557,6 +1573,11 @@ static ALboolean GetSourcei64v(ALsource *Source, ALCcontext *Context, SourceProp
                 ALuint64 diff = clocktime.ClockTime - srcclock;
                 values[1] = clocktime.Latency - minu64(clocktime.Latency, diff);
             }
+            return AL_TRUE;
+
+        case AL_SAMPLE_OFFSET_CLOCK_SOFT:
+            values[0] = GetSourceSampleOffset(Source, Context, &srcclock);
+            values[1] = srcclock;
             return AL_TRUE;
 
         /* 1x float/double */
@@ -1577,7 +1598,6 @@ static ALboolean GetSourcei64v(ALsource *Source, ALCcontext *Context, SourceProp
         case AL_AIR_ABSORPTION_FACTOR:
         case AL_ROOM_ROLLOFF_FACTOR:
         case AL_CONE_OUTER_GAINHF:
-        case AL_SEC_LENGTH_SOFT:
         case AL_SOURCE_RADIUS:
             if((err=GetSourcedv(Source, Context, prop, dvals)) != AL_FALSE)
                 *values = (ALint64)dvals[0];
@@ -1614,8 +1634,6 @@ static ALboolean GetSourcei64v(ALsource *Source, ALCcontext *Context, SourceProp
         case AL_SOURCE_STATE:
         case AL_BUFFERS_QUEUED:
         case AL_BUFFERS_PROCESSED:
-        case AL_BYTE_LENGTH_SOFT:
-        case AL_SAMPLE_LENGTH_SOFT:
         case AL_SOURCE_TYPE:
         case AL_DIRECT_FILTER_GAINHF_AUTO:
         case AL_AUXILIARY_SEND_FILTER_GAIN_AUTO:
@@ -1646,63 +1664,45 @@ static ALboolean GetSourcei64v(ALsource *Source, ALCcontext *Context, SourceProp
             return err;
 
         case AL_SEC_OFFSET_LATENCY_SOFT:
+        case AL_SEC_OFFSET_CLOCK_SOFT:
             break; /* Double only */
         case AL_STEREO_ANGLES:
             break; /* Float/double only */
     }
 
     ERR("Unexpected property: 0x%04x\n", prop);
-    SET_ERROR_AND_RETURN_VALUE(Context, AL_INVALID_ENUM, AL_FALSE);
+    SETERR_RETURN(Context, AL_INVALID_ENUM, AL_FALSE, "Invalid source integer64 property 0x%04x",
+                  prop);
 }
 
 
 AL_API ALvoid AL_APIENTRY alGenSources(ALsizei n, ALuint *sources)
 {
-    ALCdevice *device;
     ALCcontext *context;
     ALsizei cur = 0;
-    ALenum err;
 
     context = GetContextRef();
     if(!context) return;
 
     if(!(n >= 0))
-        SET_ERROR_AND_GOTO(context, AL_INVALID_VALUE, done);
-    device = context->Device;
-    for(cur = 0;cur < n;cur++)
+        alSetError(context, AL_INVALID_VALUE, "Generating %d sources", n);
+    else for(cur = 0;cur < n;cur++)
     {
-        ALsource *source = al_calloc(16, sizeof(ALsource));
+        ALsource *source = AllocSource(context);
         if(!source)
         {
             alDeleteSources(cur, sources);
-            SET_ERROR_AND_GOTO(context, AL_OUT_OF_MEMORY, done);
+            break;
         }
-        InitSourceParams(source, device->NumAuxSends);
-
-        err = NewThunkEntry(&source->id);
-        if(err == AL_NO_ERROR)
-            err = InsertUIntMapEntry(&context->SourceMap, source->id, source);
-        if(err != AL_NO_ERROR)
-        {
-            FreeThunkEntry(source->id);
-            memset(source, 0, sizeof(ALsource));
-            al_free(source);
-
-            alDeleteSources(cur, sources);
-            SET_ERROR_AND_GOTO(context, err, done);
-        }
-
         sources[cur] = source->id;
     }
 
-done:
     ALCcontext_DecRef(context);
 }
 
 
 AL_API ALvoid AL_APIENTRY alDeleteSources(ALsizei n, const ALuint *sources)
 {
-    ALCdevice *device;
     ALCcontext *context;
     ALsource *Source;
     ALsizei i;
@@ -1710,41 +1710,24 @@ AL_API ALvoid AL_APIENTRY alDeleteSources(ALsizei n, const ALuint *sources)
     context = GetContextRef();
     if(!context) return;
 
-    LockSourcesWrite(context);
+    LockSourceList(context);
     if(!(n >= 0))
-        SET_ERROR_AND_GOTO(context, AL_INVALID_VALUE, done);
+        SETERR_GOTO(context, AL_INVALID_VALUE, done, "Deleting %d sources", n);
 
     /* Check that all Sources are valid */
     for(i = 0;i < n;i++)
     {
         if(LookupSource(context, sources[i]) == NULL)
-            SET_ERROR_AND_GOTO(context, AL_INVALID_NAME, done);
+            SETERR_GOTO(context, AL_INVALID_NAME, done, "Invalid source ID %u", sources[i]);
     }
-    device = context->Device;
     for(i = 0;i < n;i++)
     {
-        ALvoice *voice;
-
-        if((Source=RemoveSource(context, sources[i])) == NULL)
-            continue;
-        FreeThunkEntry(Source->id);
-
-        ALCdevice_Lock(device);
-        if((voice=GetSourceVoice(Source, context)) != NULL)
-        {
-            ATOMIC_STORE(&voice->Source, NULL, almemory_order_relaxed);
-            ATOMIC_STORE(&voice->Playing, false, almemory_order_release);
-        }
-        ALCdevice_Unlock(device);
-
-        DeinitSource(Source, device->NumAuxSends);
-
-        memset(Source, 0, sizeof(*Source));
-        al_free(Source);
+        if((Source=LookupSource(context, sources[i])) != NULL)
+            FreeSource(context, Source);
     }
 
 done:
-    UnlockSourcesWrite(context);
+    UnlockSourceList(context);
     ALCcontext_DecRef(context);
 }
 
@@ -1757,9 +1740,9 @@ AL_API ALboolean AL_APIENTRY alIsSource(ALuint source)
     context = GetContextRef();
     if(!context) return AL_FALSE;
 
-    LockSourcesRead(context);
+    LockSourceList(context);
     ret = (LookupSource(context, source) ? AL_TRUE : AL_FALSE);
-    UnlockSourcesRead(context);
+    UnlockSourceList(context);
 
     ALCcontext_DecRef(context);
 
@@ -1775,16 +1758,16 @@ AL_API ALvoid AL_APIENTRY alSourcef(ALuint source, ALenum param, ALfloat value)
     Context = GetContextRef();
     if(!Context) return;
 
-    WriteLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    almtx_lock(&Context->PropLock);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!(FloatValsByProp(param) == 1))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid float property 0x%04x", param);
     else
         SetSourcefv(Source, Context, param, &value);
-    UnlockSourcesRead(Context);
-    WriteUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
+    almtx_unlock(&Context->PropLock);
 
     ALCcontext_DecRef(Context);
 }
@@ -1797,19 +1780,19 @@ AL_API ALvoid AL_APIENTRY alSource3f(ALuint source, ALenum param, ALfloat value1
     Context = GetContextRef();
     if(!Context) return;
 
-    WriteLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    almtx_lock(&Context->PropLock);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!(FloatValsByProp(param) == 3))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid 3-float property 0x%04x", param);
     else
     {
         ALfloat fvals[3] = { value1, value2, value3 };
         SetSourcefv(Source, Context, param, fvals);
     }
-    UnlockSourcesRead(Context);
-    WriteUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
+    almtx_unlock(&Context->PropLock);
 
     ALCcontext_DecRef(Context);
 }
@@ -1822,18 +1805,18 @@ AL_API ALvoid AL_APIENTRY alSourcefv(ALuint source, ALenum param, const ALfloat 
     Context = GetContextRef();
     if(!Context) return;
 
-    WriteLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    almtx_lock(&Context->PropLock);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!values)
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!(FloatValsByProp(param) > 0))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid float-vector property 0x%04x", param);
     else
         SetSourcefv(Source, Context, param, values);
-    UnlockSourcesRead(Context);
-    WriteUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
+    almtx_unlock(&Context->PropLock);
 
     ALCcontext_DecRef(Context);
 }
@@ -1847,19 +1830,19 @@ AL_API ALvoid AL_APIENTRY alSourcedSOFT(ALuint source, ALenum param, ALdouble va
     Context = GetContextRef();
     if(!Context) return;
 
-    WriteLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    almtx_lock(&Context->PropLock);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!(DoubleValsByProp(param) == 1))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid double property 0x%04x", param);
     else
     {
         ALfloat fval = (ALfloat)value;
         SetSourcefv(Source, Context, param, &fval);
     }
-    UnlockSourcesRead(Context);
-    WriteUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
+    almtx_unlock(&Context->PropLock);
 
     ALCcontext_DecRef(Context);
 }
@@ -1872,19 +1855,19 @@ AL_API ALvoid AL_APIENTRY alSource3dSOFT(ALuint source, ALenum param, ALdouble v
     Context = GetContextRef();
     if(!Context) return;
 
-    WriteLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    almtx_lock(&Context->PropLock);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!(DoubleValsByProp(param) == 3))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid 3-double property 0x%04x", param);
     else
     {
         ALfloat fvals[3] = { (ALfloat)value1, (ALfloat)value2, (ALfloat)value3 };
         SetSourcefv(Source, Context, param, fvals);
     }
-    UnlockSourcesRead(Context);
-    WriteUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
+    almtx_unlock(&Context->PropLock);
 
     ALCcontext_DecRef(Context);
 }
@@ -1898,14 +1881,14 @@ AL_API ALvoid AL_APIENTRY alSourcedvSOFT(ALuint source, ALenum param, const ALdo
     Context = GetContextRef();
     if(!Context) return;
 
-    WriteLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    almtx_lock(&Context->PropLock);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!values)
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!((count=DoubleValsByProp(param)) > 0 && count <= 6))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid double-vector property 0x%04x", param);
     else
     {
         ALfloat fvals[6];
@@ -1915,8 +1898,8 @@ AL_API ALvoid AL_APIENTRY alSourcedvSOFT(ALuint source, ALenum param, const ALdo
             fvals[i] = (ALfloat)values[i];
         SetSourcefv(Source, Context, param, fvals);
     }
-    UnlockSourcesRead(Context);
-    WriteUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
+    almtx_unlock(&Context->PropLock);
 
     ALCcontext_DecRef(Context);
 }
@@ -1930,16 +1913,16 @@ AL_API ALvoid AL_APIENTRY alSourcei(ALuint source, ALenum param, ALint value)
     Context = GetContextRef();
     if(!Context) return;
 
-    WriteLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    almtx_lock(&Context->PropLock);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!(IntValsByProp(param) == 1))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid integer property 0x%04x", param);
     else
         SetSourceiv(Source, Context, param, &value);
-    UnlockSourcesRead(Context);
-    WriteUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
+    almtx_unlock(&Context->PropLock);
 
     ALCcontext_DecRef(Context);
 }
@@ -1952,19 +1935,19 @@ AL_API void AL_APIENTRY alSource3i(ALuint source, ALenum param, ALint value1, AL
     Context = GetContextRef();
     if(!Context) return;
 
-    WriteLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    almtx_lock(&Context->PropLock);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!(IntValsByProp(param) == 3))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid 3-integer property 0x%04x", param);
     else
     {
         ALint ivals[3] = { value1, value2, value3 };
         SetSourceiv(Source, Context, param, ivals);
     }
-    UnlockSourcesRead(Context);
-    WriteUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
+    almtx_unlock(&Context->PropLock);
 
     ALCcontext_DecRef(Context);
 }
@@ -1977,18 +1960,18 @@ AL_API void AL_APIENTRY alSourceiv(ALuint source, ALenum param, const ALint *val
     Context = GetContextRef();
     if(!Context) return;
 
-    WriteLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    almtx_lock(&Context->PropLock);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!values)
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!(IntValsByProp(param) > 0))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid integer-vector property 0x%04x", param);
     else
         SetSourceiv(Source, Context, param, values);
-    UnlockSourcesRead(Context);
-    WriteUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
+    almtx_unlock(&Context->PropLock);
 
     ALCcontext_DecRef(Context);
 }
@@ -2002,16 +1985,16 @@ AL_API ALvoid AL_APIENTRY alSourcei64SOFT(ALuint source, ALenum param, ALint64SO
     Context = GetContextRef();
     if(!Context) return;
 
-    WriteLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    almtx_lock(&Context->PropLock);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!(Int64ValsByProp(param) == 1))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid integer64 property 0x%04x", param);
     else
         SetSourcei64v(Source, Context, param, &value);
-    UnlockSourcesRead(Context);
-    WriteUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
+    almtx_unlock(&Context->PropLock);
 
     ALCcontext_DecRef(Context);
 }
@@ -2024,19 +2007,19 @@ AL_API void AL_APIENTRY alSource3i64SOFT(ALuint source, ALenum param, ALint64SOF
     Context = GetContextRef();
     if(!Context) return;
 
-    WriteLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    almtx_lock(&Context->PropLock);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!(Int64ValsByProp(param) == 3))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid 3-integer64 property 0x%04x", param);
     else
     {
         ALint64SOFT i64vals[3] = { value1, value2, value3 };
         SetSourcei64v(Source, Context, param, i64vals);
     }
-    UnlockSourcesRead(Context);
-    WriteUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
+    almtx_unlock(&Context->PropLock);
 
     ALCcontext_DecRef(Context);
 }
@@ -2049,18 +2032,18 @@ AL_API void AL_APIENTRY alSourcei64vSOFT(ALuint source, ALenum param, const ALin
     Context = GetContextRef();
     if(!Context) return;
 
-    WriteLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    almtx_lock(&Context->PropLock);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!values)
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!(Int64ValsByProp(param) > 0))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid integer64-vector property 0x%04x", param);
     else
         SetSourcei64v(Source, Context, param, values);
-    UnlockSourcesRead(Context);
-    WriteUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
+    almtx_unlock(&Context->PropLock);
 
     ALCcontext_DecRef(Context);
 }
@@ -2074,22 +2057,20 @@ AL_API ALvoid AL_APIENTRY alGetSourcef(ALuint source, ALenum param, ALfloat *val
     Context = GetContextRef();
     if(!Context) return;
 
-    ReadLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!value)
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!(FloatValsByProp(param) == 1))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid float property 0x%04x", param);
     else
     {
         ALdouble dval;
         if(GetSourcedv(Source, Context, param, &dval))
             *value = (ALfloat)dval;
     }
-    UnlockSourcesRead(Context);
-    ReadUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
 
     ALCcontext_DecRef(Context);
 }
@@ -2103,14 +2084,13 @@ AL_API ALvoid AL_APIENTRY alGetSource3f(ALuint source, ALenum param, ALfloat *va
     Context = GetContextRef();
     if(!Context) return;
 
-    ReadLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!(value1 && value2 && value3))
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!(FloatValsByProp(param) == 3))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid 3-float property 0x%04x", param);
     else
     {
         ALdouble dvals[3];
@@ -2121,8 +2101,7 @@ AL_API ALvoid AL_APIENTRY alGetSource3f(ALuint source, ALenum param, ALfloat *va
             *value3 = (ALfloat)dvals[2];
         }
     }
-    UnlockSourcesRead(Context);
-    ReadUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
 
     ALCcontext_DecRef(Context);
 }
@@ -2137,14 +2116,13 @@ AL_API ALvoid AL_APIENTRY alGetSourcefv(ALuint source, ALenum param, ALfloat *va
     Context = GetContextRef();
     if(!Context) return;
 
-    ReadLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!values)
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!((count=FloatValsByProp(param)) > 0 && count <= 6))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid float-vector property 0x%04x", param);
     else
     {
         ALdouble dvals[6];
@@ -2155,8 +2133,7 @@ AL_API ALvoid AL_APIENTRY alGetSourcefv(ALuint source, ALenum param, ALfloat *va
                 values[i] = (ALfloat)dvals[i];
         }
     }
-    UnlockSourcesRead(Context);
-    ReadUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
 
     ALCcontext_DecRef(Context);
 }
@@ -2170,18 +2147,16 @@ AL_API void AL_APIENTRY alGetSourcedSOFT(ALuint source, ALenum param, ALdouble *
     Context = GetContextRef();
     if(!Context) return;
 
-    ReadLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!value)
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!(DoubleValsByProp(param) == 1))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid double property 0x%04x", param);
     else
         GetSourcedv(Source, Context, param, value);
-    UnlockSourcesRead(Context);
-    ReadUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
 
     ALCcontext_DecRef(Context);
 }
@@ -2194,14 +2169,13 @@ AL_API void AL_APIENTRY alGetSource3dSOFT(ALuint source, ALenum param, ALdouble 
     Context = GetContextRef();
     if(!Context) return;
 
-    ReadLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!(value1 && value2 && value3))
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!(DoubleValsByProp(param) == 3))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid 3-double property 0x%04x", param);
     else
     {
         ALdouble dvals[3];
@@ -2212,8 +2186,7 @@ AL_API void AL_APIENTRY alGetSource3dSOFT(ALuint source, ALenum param, ALdouble 
             *value3 = dvals[2];
         }
     }
-    UnlockSourcesRead(Context);
-    ReadUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
 
     ALCcontext_DecRef(Context);
 }
@@ -2226,18 +2199,16 @@ AL_API void AL_APIENTRY alGetSourcedvSOFT(ALuint source, ALenum param, ALdouble 
     Context = GetContextRef();
     if(!Context) return;
 
-    ReadLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!values)
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!(DoubleValsByProp(param) > 0))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid double-vector property 0x%04x", param);
     else
         GetSourcedv(Source, Context, param, values);
-    UnlockSourcesRead(Context);
-    ReadUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
 
     ALCcontext_DecRef(Context);
 }
@@ -2251,18 +2222,16 @@ AL_API ALvoid AL_APIENTRY alGetSourcei(ALuint source, ALenum param, ALint *value
     Context = GetContextRef();
     if(!Context) return;
 
-    ReadLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!value)
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!(IntValsByProp(param) == 1))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid integer property 0x%04x", param);
     else
         GetSourceiv(Source, Context, param, value);
-    UnlockSourcesRead(Context);
-    ReadUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
 
     ALCcontext_DecRef(Context);
 }
@@ -2276,14 +2245,13 @@ AL_API void AL_APIENTRY alGetSource3i(ALuint source, ALenum param, ALint *value1
     Context = GetContextRef();
     if(!Context) return;
 
-    ReadLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!(value1 && value2 && value3))
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!(IntValsByProp(param) == 3))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid 3-integer property 0x%04x", param);
     else
     {
         ALint ivals[3];
@@ -2294,8 +2262,7 @@ AL_API void AL_APIENTRY alGetSource3i(ALuint source, ALenum param, ALint *value1
             *value3 = ivals[2];
         }
     }
-    UnlockSourcesRead(Context);
-    ReadUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
 
     ALCcontext_DecRef(Context);
 }
@@ -2309,18 +2276,16 @@ AL_API void AL_APIENTRY alGetSourceiv(ALuint source, ALenum param, ALint *values
     Context = GetContextRef();
     if(!Context) return;
 
-    ReadLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!values)
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!(IntValsByProp(param) > 0))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid integer-vector property 0x%04x", param);
     else
         GetSourceiv(Source, Context, param, values);
-    UnlockSourcesRead(Context);
-    ReadUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
 
     ALCcontext_DecRef(Context);
 }
@@ -2334,18 +2299,16 @@ AL_API void AL_APIENTRY alGetSourcei64SOFT(ALuint source, ALenum param, ALint64S
     Context = GetContextRef();
     if(!Context) return;
 
-    ReadLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!value)
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!(Int64ValsByProp(param) == 1))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid integer64 property 0x%04x", param);
     else
         GetSourcei64v(Source, Context, param, value);
-    UnlockSourcesRead(Context);
-    ReadUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
 
     ALCcontext_DecRef(Context);
 }
@@ -2358,14 +2321,13 @@ AL_API void AL_APIENTRY alGetSource3i64SOFT(ALuint source, ALenum param, ALint64
     Context = GetContextRef();
     if(!Context) return;
 
-    ReadLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!(value1 && value2 && value3))
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!(Int64ValsByProp(param) == 3))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid 3-integer64 property 0x%04x", param);
     else
     {
         ALint64 i64vals[3];
@@ -2376,8 +2338,7 @@ AL_API void AL_APIENTRY alGetSource3i64SOFT(ALuint source, ALenum param, ALint64
             *value3 = i64vals[2];
         }
     }
-    UnlockSourcesRead(Context);
-    ReadUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
 
     ALCcontext_DecRef(Context);
 }
@@ -2390,18 +2351,16 @@ AL_API void AL_APIENTRY alGetSourcei64vSOFT(ALuint source, ALenum param, ALint64
     Context = GetContextRef();
     if(!Context) return;
 
-    ReadLock(&Context->PropLock);
-    LockSourcesRead(Context);
+    LockSourceList(Context);
     if((Source=LookupSource(Context, source)) == NULL)
-        alSetError(Context, AL_INVALID_NAME);
+        alSetError(Context, AL_INVALID_NAME, "Invalid source ID %u", source);
     else if(!values)
-        alSetError(Context, AL_INVALID_VALUE);
+        alSetError(Context, AL_INVALID_VALUE, "NULL pointer");
     else if(!(Int64ValsByProp(param) > 0))
-        alSetError(Context, AL_INVALID_ENUM);
+        alSetError(Context, AL_INVALID_ENUM, "Invalid integer64-vector property 0x%04x", param);
     else
         GetSourcei64v(Source, Context, param, values);
-    UnlockSourcesRead(Context);
-    ReadUnlock(&Context->PropLock);
+    UnlockSourceList(Context);
 
     ALCcontext_DecRef(Context);
 }
@@ -2422,24 +2381,27 @@ AL_API ALvoid AL_APIENTRY alSourcePlayv(ALsizei n, const ALuint *sources)
     context = GetContextRef();
     if(!context) return;
 
-    LockSourcesRead(context);
+    LockSourceList(context);
     if(!(n >= 0))
-        SET_ERROR_AND_GOTO(context, AL_INVALID_VALUE, done);
+        SETERR_GOTO(context, AL_INVALID_VALUE, done, "Playing %d sources", n);
     for(i = 0;i < n;i++)
     {
         if(!LookupSource(context, sources[i]))
-            SET_ERROR_AND_GOTO(context, AL_INVALID_NAME, done);
+            SETERR_GOTO(context, AL_INVALID_NAME, done, "Invalid source ID %u", sources[i]);
     }
 
     device = context->Device;
     ALCdevice_Lock(device);
     /* If the device is disconnected, go right to stopped. */
-    if(!device->Connected)
+    if(!ATOMIC_LOAD(&device->Connected, almemory_order_acquire))
     {
+        /* TODO: Send state change event? */
         for(i = 0;i < n;i++)
         {
             source = LookupSource(context, sources[i]);
-            ATOMIC_STORE(&source->state, AL_STOPPED, almemory_order_relaxed);
+            source->OffsetType = AL_NONE;
+            source->Offset = 0.0;
+            source->state = AL_STOPPED;
         }
         ALCdevice_Unlock(device);
         goto done;
@@ -2451,7 +2413,8 @@ AL_API ALvoid AL_APIENTRY alSourcePlayv(ALsizei n, const ALuint *sources)
         if(context->MaxVoices >= newcount)
         {
             ALCdevice_Unlock(device);
-            SET_ERROR_AND_GOTO(context, AL_OUT_OF_MEMORY, done);
+            SETERR_GOTO(context, AL_OUT_OF_MEMORY, done,
+                        "Overflow increasing voice count %d -> %d", context->MaxVoices, newcount);
         }
         AllocateVoices(context, newcount, device->NumAuxSends);
     }
@@ -2459,34 +2422,33 @@ AL_API ALvoid AL_APIENTRY alSourcePlayv(ALsizei n, const ALuint *sources)
     for(i = 0;i < n;i++)
     {
         ALbufferlistitem *BufferList;
-        ALbuffer *buffer = NULL;
         bool start_fading = false;
-        ALsizei s;
+        ALint vidx = -1;
 
         source = LookupSource(context, sources[i]);
-        WriteLock(&source->queue_lock);
         /* Check that there is a queue containing at least one valid, non zero
-         * length Buffer.
+         * length buffer.
          */
         BufferList = source->queue;
-        while(BufferList)
-        {
-            if((buffer=BufferList->buffer) != NULL && buffer->SampleLen > 0)
-                break;
+        while(BufferList && BufferList->max_samples == 0)
             BufferList = ATOMIC_LOAD(&BufferList->next, almemory_order_relaxed);
-        }
 
         /* If there's nothing to play, go right to stopped. */
-        if(!BufferList)
+        if(UNLIKELY(!BufferList))
         {
             /* NOTE: A source without any playable buffers should not have an
              * ALvoice since it shouldn't be in a playing or paused state. So
              * there's no need to look up its voice and clear the source.
              */
-            ATOMIC_STORE(&source->state, AL_STOPPED, almemory_order_relaxed);
+            ALenum oldstate = GetSourceState(source, NULL);
             source->OffsetType = AL_NONE;
             source->Offset = 0.0;
-            goto finish_play;
+            if(oldstate != AL_STOPPED)
+            {
+                source->state = AL_STOPPED;
+                SendStateChangeEvent(context, source->id, AL_STOPPED);
+            }
+            continue;
         }
 
         voice = GetSourceVoice(source, context);
@@ -2498,37 +2460,37 @@ AL_API ALvoid AL_APIENTRY alSourcePlayv(ALsizei n, const ALuint *sources)
                 ATOMIC_STORE(&voice->current_buffer, BufferList, almemory_order_relaxed);
                 ATOMIC_STORE(&voice->position, 0, almemory_order_relaxed);
                 ATOMIC_STORE(&voice->position_fraction, 0, almemory_order_release);
-                goto finish_play;
+                continue;
 
             case AL_PAUSED:
                 assert(voice != NULL);
                 /* A source that's paused simply resumes. */
                 ATOMIC_STORE(&voice->Playing, true, almemory_order_release);
-                ATOMIC_STORE(&source->state, AL_PLAYING, almemory_order_release);
-                goto finish_play;
+                source->state = AL_PLAYING;
+                SendStateChangeEvent(context, source->id, AL_PLAYING);
+                continue;
 
             default:
                 break;
         }
 
-        /* Make sure this source isn't already active, and if not, look for an
-         * unused voice to put it in.
-         */
+        /* Look for an unused voice to play this source with. */
         assert(voice == NULL);
         for(j = 0;j < context->VoiceCount;j++)
         {
             if(ATOMIC_LOAD(&context->Voices[j]->Source, almemory_order_acquire) == NULL)
             {
-                voice = context->Voices[j];
+                vidx = j;
                 break;
             }
         }
-        if(voice == NULL)
-            voice = context->Voices[context->VoiceCount++];
+        if(vidx == -1)
+            vidx = context->VoiceCount++;
+        voice = context->Voices[vidx];
         ATOMIC_STORE(&voice->Playing, false, almemory_order_release);
 
         ATOMIC_FLAG_TEST_AND_SET(&source->PropsClean, almemory_order_acquire);
-        UpdateSourceProps(source, voice, device->NumAuxSends);
+        UpdateSourceProps(source, voice, device->NumAuxSends, context);
 
         /* A source that's not playing or paused has any offset applied when it
          * starts playing.
@@ -2540,16 +2502,21 @@ AL_API ALvoid AL_APIENTRY alSourcePlayv(ALsizei n, const ALuint *sources)
         ATOMIC_STORE(&voice->current_buffer, BufferList, almemory_order_relaxed);
         ATOMIC_STORE(&voice->position, 0, almemory_order_relaxed);
         ATOMIC_STORE(&voice->position_fraction, 0, almemory_order_relaxed);
-        if(source->OffsetType != AL_NONE)
-        {
-            ApplyOffset(source, voice);
+        if(ApplyOffset(source, voice) != AL_FALSE)
             start_fading = ATOMIC_LOAD(&voice->position, almemory_order_relaxed) != 0 ||
                 ATOMIC_LOAD(&voice->position_fraction, almemory_order_relaxed) != 0 ||
                 ATOMIC_LOAD(&voice->current_buffer, almemory_order_relaxed) != BufferList;
-        }
 
-        voice->NumChannels = ChannelsFromFmt(buffer->FmtChannels);
-        voice->SampleSize  = BytesFromFmt(buffer->FmtType);
+        for(j = 0;j < BufferList->num_buffers;j++)
+        {
+            ALbuffer *buffer = BufferList->buffers[j];
+            if(buffer)
+            {
+                voice->NumChannels = ChannelsFromFmt(buffer->FmtChannels);
+                voice->SampleSize  = BytesFromFmt(buffer->FmtType);
+                break;
+            }
+        }
 
         /* Clear previous samples. */
         memset(voice->PrevSamples, 0, sizeof(voice->PrevSamples));
@@ -2560,31 +2527,29 @@ AL_API ALvoid AL_APIENTRY alSourcePlayv(ALsizei n, const ALuint *sources)
         voice->Step = 0;
 
         voice->Flags = start_fading ? VOICE_IS_FADING : 0;
+        if(source->SourceType == AL_STATIC) voice->Flags |= VOICE_IS_STATIC;
         memset(voice->Direct.Params, 0, sizeof(voice->Direct.Params[0])*voice->NumChannels);
-        for(s = 0;s < device->NumAuxSends;s++)
-            memset(voice->Send[s].Params, 0, sizeof(voice->Send[s].Params[0])*voice->NumChannels);
+        for(j = 0;j < device->NumAuxSends;j++)
+            memset(voice->Send[j].Params, 0, sizeof(voice->Send[j].Params[0])*voice->NumChannels);
         if(device->AvgSpeakerDist > 0.0f)
         {
             ALfloat w1 = SPEEDOFSOUNDMETRESPERSEC /
-                        (device->AvgSpeakerDist * device->Frequency);
+                         (device->AvgSpeakerDist * device->Frequency);
             for(j = 0;j < voice->NumChannels;j++)
-            {
-                NfcFilterCreate1(&voice->Direct.Params[j].NFCtrlFilter[0], 0.0f, w1);
-                NfcFilterCreate2(&voice->Direct.Params[j].NFCtrlFilter[1], 0.0f, w1);
-                NfcFilterCreate3(&voice->Direct.Params[j].NFCtrlFilter[2], 0.0f, w1);
-            }
+                NfcFilterCreate(&voice->Direct.Params[j].NFCtrlFilter, 0.0f, w1);
         }
 
         ATOMIC_STORE(&voice->Source, source, almemory_order_relaxed);
         ATOMIC_STORE(&voice->Playing, true, almemory_order_release);
-        ATOMIC_STORE(&source->state, AL_PLAYING, almemory_order_release);
-    finish_play:
-        WriteUnlock(&source->queue_lock);
+        source->state = AL_PLAYING;
+        source->VoiceIdx = vidx;
+
+        SendStateChangeEvent(context, source->id, AL_PLAYING);
     }
     ALCdevice_Unlock(device);
 
 done:
-    UnlockSourcesRead(context);
+    UnlockSourceList(context);
     ALCcontext_DecRef(context);
 }
 
@@ -2603,13 +2568,13 @@ AL_API ALvoid AL_APIENTRY alSourcePausev(ALsizei n, const ALuint *sources)
     context = GetContextRef();
     if(!context) return;
 
-    LockSourcesRead(context);
+    LockSourceList(context);
     if(!(n >= 0))
-        SET_ERROR_AND_GOTO(context, AL_INVALID_VALUE, done);
+        SETERR_GOTO(context, AL_INVALID_VALUE, done, "Pausing %d sources", n);
     for(i = 0;i < n;i++)
     {
         if(!LookupSource(context, sources[i]))
-            SET_ERROR_AND_GOTO(context, AL_INVALID_NAME, done);
+            SETERR_GOTO(context, AL_INVALID_NAME, done, "Invalid source ID %u", sources[i]);
     }
 
     device = context->Device;
@@ -2617,21 +2582,18 @@ AL_API ALvoid AL_APIENTRY alSourcePausev(ALsizei n, const ALuint *sources)
     for(i = 0;i < n;i++)
     {
         source = LookupSource(context, sources[i]);
-        WriteLock(&source->queue_lock);
         if((voice=GetSourceVoice(source, context)) != NULL)
-        {
             ATOMIC_STORE(&voice->Playing, false, almemory_order_release);
-            while((ATOMIC_LOAD(&device->MixCount, almemory_order_acquire)&1))
-                althrd_yield();
-        }
         if(GetSourceState(source, voice) == AL_PLAYING)
-            ATOMIC_STORE(&source->state, AL_PAUSED, almemory_order_release);
-        WriteUnlock(&source->queue_lock);
+        {
+            source->state = AL_PAUSED;
+            SendStateChangeEvent(context, source->id, AL_PAUSED);
+        }
     }
     ALCdevice_Unlock(device);
 
 done:
-    UnlockSourcesRead(context);
+    UnlockSourceList(context);
     ALCcontext_DecRef(context);
 }
 
@@ -2650,38 +2612,40 @@ AL_API ALvoid AL_APIENTRY alSourceStopv(ALsizei n, const ALuint *sources)
     context = GetContextRef();
     if(!context) return;
 
-    LockSourcesRead(context);
+    LockSourceList(context);
     if(!(n >= 0))
-        SET_ERROR_AND_GOTO(context, AL_INVALID_VALUE, done);
+        SETERR_GOTO(context, AL_INVALID_VALUE, done, "Stopping %d sources", n);
     for(i = 0;i < n;i++)
     {
         if(!LookupSource(context, sources[i]))
-            SET_ERROR_AND_GOTO(context, AL_INVALID_NAME, done);
+            SETERR_GOTO(context, AL_INVALID_NAME, done, "Invalid source ID %u", sources[i]);
     }
 
     device = context->Device;
     ALCdevice_Lock(device);
     for(i = 0;i < n;i++)
     {
+        ALenum oldstate;
         source = LookupSource(context, sources[i]);
-        WriteLock(&source->queue_lock);
         if((voice=GetSourceVoice(source, context)) != NULL)
         {
             ATOMIC_STORE(&voice->Source, NULL, almemory_order_relaxed);
             ATOMIC_STORE(&voice->Playing, false, almemory_order_release);
-            while((ATOMIC_LOAD(&device->MixCount, almemory_order_acquire)&1))
-                althrd_yield();
+            voice = NULL;
         }
-        if(ATOMIC_LOAD(&source->state, almemory_order_acquire) != AL_INITIAL)
-            ATOMIC_STORE(&source->state, AL_STOPPED, almemory_order_relaxed);
+        oldstate = GetSourceState(source, voice);
+        if(oldstate != AL_INITIAL && oldstate != AL_STOPPED)
+        {
+            source->state = AL_STOPPED;
+            SendStateChangeEvent(context, source->id, AL_STOPPED);
+        }
         source->OffsetType = AL_NONE;
         source->Offset = 0.0;
-        WriteUnlock(&source->queue_lock);
     }
     ALCdevice_Unlock(device);
 
 done:
-    UnlockSourcesRead(context);
+    UnlockSourceList(context);
     ALCcontext_DecRef(context);
 }
 
@@ -2700,13 +2664,13 @@ AL_API ALvoid AL_APIENTRY alSourceRewindv(ALsizei n, const ALuint *sources)
     context = GetContextRef();
     if(!context) return;
 
-    LockSourcesRead(context);
+    LockSourceList(context);
     if(!(n >= 0))
-        SET_ERROR_AND_GOTO(context, AL_INVALID_VALUE, done);
+        SETERR_GOTO(context, AL_INVALID_VALUE, done, "Rewinding %d sources", n);
     for(i = 0;i < n;i++)
     {
         if(!LookupSource(context, sources[i]))
-            SET_ERROR_AND_GOTO(context, AL_INVALID_NAME, done);
+            SETERR_GOTO(context, AL_INVALID_NAME, done, "Invalid source ID %u", sources[i]);
     }
 
     device = context->Device;
@@ -2714,24 +2678,24 @@ AL_API ALvoid AL_APIENTRY alSourceRewindv(ALsizei n, const ALuint *sources)
     for(i = 0;i < n;i++)
     {
         source = LookupSource(context, sources[i]);
-        WriteLock(&source->queue_lock);
         if((voice=GetSourceVoice(source, context)) != NULL)
         {
             ATOMIC_STORE(&voice->Source, NULL, almemory_order_relaxed);
             ATOMIC_STORE(&voice->Playing, false, almemory_order_release);
-            while((ATOMIC_LOAD(&device->MixCount, almemory_order_acquire)&1))
-                althrd_yield();
+            voice = NULL;
         }
-        if(ATOMIC_LOAD(&source->state, almemory_order_acquire) != AL_INITIAL)
-            ATOMIC_STORE(&source->state, AL_INITIAL, almemory_order_relaxed);
+        if(GetSourceState(source, voice) != AL_INITIAL)
+        {
+            source->state = AL_INITIAL;
+            SendStateChangeEvent(context, source->id, AL_INITIAL);
+        }
         source->OffsetType = AL_NONE;
         source->Offset = 0.0;
-        WriteUnlock(&source->queue_lock);
     }
     ALCdevice_Unlock(device);
 
 done:
-    UnlockSourcesRead(context);
+    UnlockSourceList(context);
     ALCcontext_DecRef(context);
 }
 
@@ -2754,73 +2718,73 @@ AL_API ALvoid AL_APIENTRY alSourceQueueBuffers(ALuint src, ALsizei nb, const ALu
 
     device = context->Device;
 
-    LockSourcesRead(context);
+    LockSourceList(context);
     if(!(nb >= 0))
-        SET_ERROR_AND_GOTO(context, AL_INVALID_VALUE, done);
+        SETERR_GOTO(context, AL_INVALID_VALUE, done, "Queueing %d buffers", nb);
     if((source=LookupSource(context, src)) == NULL)
-        SET_ERROR_AND_GOTO(context, AL_INVALID_NAME, done);
+        SETERR_GOTO(context, AL_INVALID_NAME, done, "Invalid source ID %u", src);
 
-    WriteLock(&source->queue_lock);
     if(source->SourceType == AL_STATIC)
     {
-        WriteUnlock(&source->queue_lock);
         /* Can't queue on a Static Source */
-        SET_ERROR_AND_GOTO(context, AL_INVALID_OPERATION, done);
+        SETERR_GOTO(context, AL_INVALID_OPERATION, done, "Queueing onto static source %u", src);
     }
 
     /* Check for a valid Buffer, for its frequency and format */
     BufferList = source->queue;
     while(BufferList)
     {
-        if(BufferList->buffer)
+        for(i = 0;i < BufferList->num_buffers;i++)
         {
-            BufferFmt = BufferList->buffer;
-            break;
+            if((BufferFmt=BufferList->buffers[i]) != NULL)
+                break;
         }
+        if(BufferFmt) break;
         BufferList = ATOMIC_LOAD(&BufferList->next, almemory_order_relaxed);
     }
 
-    LockBuffersRead(device);
+    LockBufferList(device);
     BufferListStart = NULL;
     BufferList = NULL;
     for(i = 0;i < nb;i++)
     {
         ALbuffer *buffer = NULL;
         if(buffers[i] && (buffer=LookupBuffer(device, buffers[i])) == NULL)
-        {
-            WriteUnlock(&source->queue_lock);
-            SET_ERROR_AND_GOTO(context, AL_INVALID_NAME, buffer_error);
-        }
+            SETERR_GOTO(context, AL_INVALID_NAME, buffer_error, "Queueing invalid buffer ID %u",
+                        buffers[i]);
 
         if(!BufferListStart)
         {
-            BufferListStart = al_calloc(DEF_ALIGN, sizeof(ALbufferlistitem));
+            BufferListStart = al_calloc(DEF_ALIGN,
+                FAM_SIZE(ALbufferlistitem, buffers, 1));
             BufferList = BufferListStart;
         }
         else
         {
-            ALbufferlistitem *item = al_calloc(DEF_ALIGN, sizeof(ALbufferlistitem));
+            ALbufferlistitem *item = al_calloc(DEF_ALIGN,
+                FAM_SIZE(ALbufferlistitem, buffers, 1));
             ATOMIC_STORE(&BufferList->next, item, almemory_order_relaxed);
             BufferList = item;
         }
-        BufferList->buffer = buffer;
         ATOMIC_INIT(&BufferList->next, NULL);
+        BufferList->max_samples = buffer ? buffer->SampleLen : 0;
+        BufferList->num_buffers = 1;
+        BufferList->buffers[0] = buffer;
         if(!buffer) continue;
 
-        /* Hold a read lock on each buffer being queued while checking all
-         * provided buffers. This is done so other threads don't see an extra
-         * reference on some buffers if this operation ends up failing. */
-        ReadLock(&buffer->lock);
         IncrementRef(&buffer->ref);
+
+        if(buffer->MappedAccess != 0 && !(buffer->MappedAccess&AL_MAP_PERSISTENT_BIT_SOFT))
+            SETERR_GOTO(context, AL_INVALID_OPERATION, buffer_error,
+                        "Queueing non-persistently mapped buffer %u", buffer->id);
 
         if(BufferFmt == NULL)
             BufferFmt = buffer;
         else if(BufferFmt->Frequency != buffer->Frequency ||
-                BufferFmt->OriginalChannels != buffer->OriginalChannels ||
+                BufferFmt->FmtChannels != buffer->FmtChannels ||
                 BufferFmt->OriginalType != buffer->OriginalType)
         {
-            WriteUnlock(&source->queue_lock);
-            SET_ERROR_AND_GOTO(context, AL_INVALID_OPERATION, buffer_error);
+            alSetError(context, AL_INVALID_OPERATION, "Queueing buffer with mismatched format");
 
         buffer_error:
             /* A buffer failed (invalid ID or format), so unlock and release
@@ -2829,27 +2793,20 @@ AL_API ALvoid AL_APIENTRY alSourceQueueBuffers(ALuint src, ALsizei nb, const ALu
             {
                 ALbufferlistitem *next = ATOMIC_LOAD(&BufferListStart->next,
                                                      almemory_order_relaxed);
-                if((buffer=BufferListStart->buffer) != NULL)
+                for(i = 0;i < BufferListStart->num_buffers;i++)
                 {
-                    DecrementRef(&buffer->ref);
-                    ReadUnlock(&buffer->lock);
+                    if((buffer=BufferListStart->buffers[i]) != NULL)
+                        DecrementRef(&buffer->ref);
                 }
                 al_free(BufferListStart);
                 BufferListStart = next;
             }
-            UnlockBuffersRead(device);
+            UnlockBufferList(device);
             goto done;
         }
     }
-    /* All buffers good, unlock them now. */
-    BufferList = BufferListStart;
-    while(BufferList != NULL)
-    {
-        ALbuffer *buffer = BufferList->buffer;
-        if(buffer) ReadUnlock(&buffer->lock);
-        BufferList = ATOMIC_LOAD(&BufferList->next, almemory_order_relaxed);
-    }
-    UnlockBuffersRead(device);
+    /* All buffers good. */
+    UnlockBufferList(device);
 
     /* Source is now streaming */
     source->SourceType = AL_STREAMING;
@@ -2863,10 +2820,124 @@ AL_API ALvoid AL_APIENTRY alSourceQueueBuffers(ALuint src, ALsizei nb, const ALu
             BufferList = next;
         ATOMIC_STORE(&BufferList->next, BufferListStart, almemory_order_release);
     }
-    WriteUnlock(&source->queue_lock);
 
 done:
-    UnlockSourcesRead(context);
+    UnlockSourceList(context);
+    ALCcontext_DecRef(context);
+}
+
+AL_API void AL_APIENTRY alSourceQueueBufferLayersSOFT(ALuint src, ALsizei nb, const ALuint *buffers)
+{
+    ALCdevice *device;
+    ALCcontext *context;
+    ALbufferlistitem *BufferListStart;
+    ALbufferlistitem *BufferList;
+    ALbuffer *BufferFmt = NULL;
+    ALsource *source;
+    ALsizei i;
+
+    if(nb == 0)
+        return;
+
+    context = GetContextRef();
+    if(!context) return;
+
+    device = context->Device;
+
+    LockSourceList(context);
+    if(!(nb >= 0 && nb < 16))
+        SETERR_GOTO(context, AL_INVALID_VALUE, done, "Queueing %d buffer layers", nb);
+    if((source=LookupSource(context, src)) == NULL)
+        SETERR_GOTO(context, AL_INVALID_NAME, done, "Invalid source ID %u", src);
+
+    if(source->SourceType == AL_STATIC)
+    {
+        /* Can't queue on a Static Source */
+        SETERR_GOTO(context, AL_INVALID_OPERATION, done, "Queueing onto static source %u", src);
+    }
+
+    /* Check for a valid Buffer, for its frequency and format */
+    BufferList = source->queue;
+    while(BufferList)
+    {
+        for(i = 0;i < BufferList->num_buffers;i++)
+        {
+            if((BufferFmt=BufferList->buffers[i]) != NULL)
+                break;
+        }
+        if(BufferFmt) break;
+        BufferList = ATOMIC_LOAD(&BufferList->next, almemory_order_relaxed);
+    }
+
+    LockBufferList(device);
+    BufferListStart = al_calloc(DEF_ALIGN, FAM_SIZE(ALbufferlistitem, buffers, nb));
+    BufferList = BufferListStart;
+    ATOMIC_INIT(&BufferList->next, NULL);
+    BufferList->max_samples = 0;
+    BufferList->num_buffers = 0;
+    for(i = 0;i < nb;i++)
+    {
+        ALbuffer *buffer = NULL;
+        if(buffers[i] && (buffer=LookupBuffer(device, buffers[i])) == NULL)
+            SETERR_GOTO(context, AL_INVALID_NAME, buffer_error, "Queueing invalid buffer ID %u",
+                        buffers[i]);
+
+        BufferList->buffers[BufferList->num_buffers++] = buffer;
+        if(!buffer) continue;
+
+        IncrementRef(&buffer->ref);
+
+        BufferList->max_samples = maxi(BufferList->max_samples, buffer->SampleLen);
+
+        if(buffer->MappedAccess != 0 && !(buffer->MappedAccess&AL_MAP_PERSISTENT_BIT_SOFT))
+            SETERR_GOTO(context, AL_INVALID_OPERATION, buffer_error,
+                        "Queueing non-persistently mapped buffer %u", buffer->id);
+
+        if(BufferFmt == NULL)
+            BufferFmt = buffer;
+        else if(BufferFmt->Frequency != buffer->Frequency ||
+                BufferFmt->FmtChannels != buffer->FmtChannels ||
+                BufferFmt->OriginalType != buffer->OriginalType)
+        {
+            alSetError(context, AL_INVALID_OPERATION, "Queueing buffer with mismatched format");
+
+        buffer_error:
+            /* A buffer failed (invalid ID or format), so unlock and release
+             * each buffer we had. */
+            while(BufferListStart)
+            {
+                ALbufferlistitem *next = ATOMIC_LOAD(&BufferListStart->next,
+                                                     almemory_order_relaxed);
+                for(i = 0;i < BufferListStart->num_buffers;i++)
+                {
+                    if((buffer=BufferListStart->buffers[i]) != NULL)
+                        DecrementRef(&buffer->ref);
+                }
+                al_free(BufferListStart);
+                BufferListStart = next;
+            }
+            UnlockBufferList(device);
+            goto done;
+        }
+    }
+    /* All buffers good. */
+    UnlockBufferList(device);
+
+    /* Source is now streaming */
+    source->SourceType = AL_STREAMING;
+
+    if(!(BufferList=source->queue))
+        source->queue = BufferListStart;
+    else
+    {
+        ALbufferlistitem *next;
+        while((next=ATOMIC_LOAD(&BufferList->next, almemory_order_relaxed)) != NULL)
+            BufferList = next;
+        ATOMIC_STORE(&BufferList->next, BufferListStart, almemory_order_release);
+    }
+
+done:
+    UnlockSourceList(context);
     ALCcontext_DecRef(context);
 }
 
@@ -2874,80 +2945,95 @@ AL_API ALvoid AL_APIENTRY alSourceUnqueueBuffers(ALuint src, ALsizei nb, ALuint 
 {
     ALCcontext *context;
     ALsource *source;
-    ALbufferlistitem *OldHead;
-    ALbufferlistitem *OldTail;
+    ALbufferlistitem *BufferList;
     ALbufferlistitem *Current;
     ALvoice *voice;
-    ALsizei i = 0;
+    ALsizei i;
 
     context = GetContextRef();
     if(!context) return;
 
-    LockSourcesRead(context);
+    LockSourceList(context);
     if(!(nb >= 0))
-        SET_ERROR_AND_GOTO(context, AL_INVALID_VALUE, done);
-
+        SETERR_GOTO(context, AL_INVALID_VALUE, done, "Unqueueing %d buffers", nb);
     if((source=LookupSource(context, src)) == NULL)
-        SET_ERROR_AND_GOTO(context, AL_INVALID_NAME, done);
+        SETERR_GOTO(context, AL_INVALID_NAME, done, "Invalid source ID %u", src);
 
     /* Nothing to unqueue. */
     if(nb == 0) goto done;
 
-    WriteLock(&source->queue_lock);
-    if(source->Looping || source->SourceType != AL_STREAMING)
-    {
-        WriteUnlock(&source->queue_lock);
-        /* Trying to unqueue buffers on a looping or non-streaming source. */
-        SET_ERROR_AND_GOTO(context, AL_INVALID_VALUE, done);
-    }
+    if(source->Looping)
+        SETERR_GOTO(context, AL_INVALID_VALUE, done, "Unqueueing from looping source %u", src);
+    if(source->SourceType != AL_STREAMING)
+        SETERR_GOTO(context, AL_INVALID_VALUE, done, "Unqueueing from a non-streaming source %u",
+                    src);
 
-    /* Find the new buffer queue head */
-    OldTail = source->queue;
+    /* Make sure enough buffers have been processed to unqueue. */
+    BufferList = source->queue;
     Current = NULL;
     if((voice=GetSourceVoice(source, context)) != NULL)
-        Current = ATOMIC_LOAD_SEQ(&voice->current_buffer);
-    else if(ATOMIC_LOAD_SEQ(&source->state) == AL_INITIAL)
-        Current = OldTail;
-    if(OldTail != Current)
+        Current = ATOMIC_LOAD(&voice->current_buffer, almemory_order_relaxed);
+    else if(source->state == AL_INITIAL)
+        Current = BufferList;
+    if(BufferList == Current)
+        SETERR_GOTO(context, AL_INVALID_VALUE, done, "Unqueueing pending buffers");
+
+    i = BufferList->num_buffers;
+    while(i < nb)
     {
-        for(i = 1;i < nb;i++)
-        {
-            ALbufferlistitem *next = ATOMIC_LOAD(&OldTail->next, almemory_order_relaxed);
-            if(!next || next == Current) break;
-            OldTail = next;
-        }
+        /* If the next bufferlist to check is NULL or is the current one, it's
+         * trying to unqueue pending buffers.
+         */
+        ALbufferlistitem *next = ATOMIC_LOAD(&BufferList->next, almemory_order_relaxed);
+        if(!next || next == Current)
+            SETERR_GOTO(context, AL_INVALID_VALUE, done, "Unqueueing pending buffers");
+        BufferList = next;
+
+        i += BufferList->num_buffers;
     }
-    if(i != nb)
+
+    while(nb > 0)
     {
-        WriteUnlock(&source->queue_lock);
-        /* Trying to unqueue pending buffers. */
-        SET_ERROR_AND_GOTO(context, AL_INVALID_VALUE, done);
-    }
-
-    /* Swap it, and cut the new head from the old. */
-    OldHead = source->queue;
-    source->queue = ATOMIC_EXCHANGE_PTR(&OldTail->next, NULL, almemory_order_acq_rel);
-    WriteUnlock(&source->queue_lock);
-
-    while(OldHead != NULL)
-    {
-        ALbufferlistitem *next = ATOMIC_LOAD(&OldHead->next, almemory_order_relaxed);
-        ALbuffer *buffer = OldHead->buffer;
-
-        if(!buffer)
-            *(buffers++) = 0;
-        else
+        ALbufferlistitem *head = source->queue;
+        ALbufferlistitem *next = ATOMIC_LOAD(&head->next, almemory_order_relaxed);
+        for(i = 0;i < head->num_buffers && nb > 0;i++,nb--)
         {
-            *(buffers++) = buffer->id;
-            DecrementRef(&buffer->ref);
+            ALbuffer *buffer = head->buffers[i];
+            if(!buffer)
+                *(buffers++) = 0;
+            else
+            {
+                *(buffers++) = buffer->id;
+                DecrementRef(&buffer->ref);
+            }
+        }
+        if(i < head->num_buffers)
+        {
+            /* This head has some buffers left over, so move them to the front
+             * and update the sample and buffer count.
+             */
+            ALsizei max_length = 0;
+            ALsizei j = 0;
+            while(i < head->num_buffers)
+            {
+                ALbuffer *buffer = head->buffers[i++];
+                if(buffer) max_length = maxi(max_length, buffer->SampleLen);
+                head->buffers[j++] = buffer;
+            }
+            head->max_samples = max_length;
+            head->num_buffers = j;
+            break;
         }
 
-        al_free(OldHead);
-        OldHead = next;
+        /* Otherwise, free this item and set the source queue head to the next
+         * one.
+         */
+        al_free(head);
+        source->queue = next;
     }
 
 done:
-    UnlockSourcesRead(context);
+    UnlockSourceList(context);
     ALCcontext_DecRef(context);
 }
 
@@ -2955,8 +3041,6 @@ done:
 static void InitSourceParams(ALsource *Source, ALsizei num_sends)
 {
     ALsizei i;
-
-    RWLockInit(&Source->queue_lock);
 
     Source->InnerAngle = 360.0f;
     Source->OuterAngle = 360.0f;
@@ -3022,7 +3106,7 @@ static void InitSourceParams(ALsource *Source, ALsizei num_sends)
     Source->Offset = 0.0;
     Source->OffsetType = AL_NONE;
     Source->SourceType = AL_UNDETERMINED;
-    ATOMIC_INIT(&Source->state, AL_INITIAL);
+    Source->state = AL_INITIAL;
 
     Source->queue = NULL;
 
@@ -3030,6 +3114,8 @@ static void InitSourceParams(ALsource *Source, ALsizei num_sends)
      * ignore the test.
      */
     ATOMIC_FLAG_TEST_AND_SET(&Source->PropsClean, almemory_order_relaxed);
+
+    Source->VoiceIdx = -1;
 }
 
 static void DeinitSource(ALsource *source, ALsizei num_sends)
@@ -3041,8 +3127,11 @@ static void DeinitSource(ALsource *source, ALsizei num_sends)
     while(BufferList != NULL)
     {
         ALbufferlistitem *next = ATOMIC_LOAD(&BufferList->next, almemory_order_relaxed);
-        if(BufferList->buffer != NULL)
-            DecrementRef(&BufferList->buffer->ref);
+        for(i = 0;i < BufferList->num_buffers;i++)
+        {
+            if(BufferList->buffers[i] != NULL)
+                DecrementRef(&BufferList->buffers[i]->ref);
+        }
         al_free(BufferList);
         BufferList = next;
     }
@@ -3061,13 +3150,13 @@ static void DeinitSource(ALsource *source, ALsizei num_sends)
     }
 }
 
-static void UpdateSourceProps(ALsource *source, ALvoice *voice, ALsizei num_sends)
+static void UpdateSourceProps(ALsource *source, ALvoice *voice, ALsizei num_sends, ALCcontext *context)
 {
     struct ALvoiceProps *props;
     ALsizei i;
 
     /* Get an unused property container, or allocate a new one as needed. */
-    props = ATOMIC_LOAD(&voice->FreeList, almemory_order_acquire);
+    props = ATOMIC_LOAD(&context->FreeVoiceProps, almemory_order_acquire);
     if(!props)
         props = al_calloc(16, FAM_SIZE(struct ALvoiceProps, Send, num_sends));
     else
@@ -3075,7 +3164,7 @@ static void UpdateSourceProps(ALsource *source, ALvoice *voice, ALsizei num_send
         struct ALvoiceProps *next;
         do {
             next = ATOMIC_LOAD(&props->next, almemory_order_relaxed);
-        } while(ATOMIC_COMPARE_EXCHANGE_PTR_WEAK(&voice->FreeList, &props, next,
+        } while(ATOMIC_COMPARE_EXCHANGE_PTR_WEAK(&context->FreeVoiceProps, &props, next,
                 almemory_order_acq_rel, almemory_order_acquire) == 0);
     }
 
@@ -3145,7 +3234,7 @@ static void UpdateSourceProps(ALsource *source, ALvoice *voice, ALsizei num_send
         /* If there was an unused update container, put it back in the
          * freelist.
          */
-        ATOMIC_REPLACE_HEAD(struct ALvoiceProps*, &voice->FreeList, props);
+        ATOMIC_REPLACE_HEAD(struct ALvoiceProps*, &context->FreeVoiceProps, props);
     }
 }
 
@@ -3159,7 +3248,7 @@ void UpdateAllSourceProps(ALCcontext *context)
         ALvoice *voice = context->Voices[pos];
         ALsource *source = ATOMIC_LOAD(&voice->Source, almemory_order_acquire);
         if(source && !ATOMIC_FLAG_TEST_AND_SET(&source->PropsClean, almemory_order_acq_rel))
-            UpdateSourceProps(source, voice, num_sends);
+            UpdateSourceProps(source, voice, num_sends, context);
     }
 }
 
@@ -3178,7 +3267,6 @@ static ALint64 GetSourceSampleOffset(ALsource *Source, ALCcontext *context, ALui
     ALuint refcount;
     ALvoice *voice;
 
-    ReadLock(&Source->queue_lock);
     do {
         Current = NULL;
         readPos = 0;
@@ -3203,15 +3291,13 @@ static ALint64 GetSourceSampleOffset(ALsource *Source, ALCcontext *context, ALui
         const ALbufferlistitem *BufferList = Source->queue;
         while(BufferList && BufferList != Current)
         {
-            if(BufferList->buffer)
-                readPos += (ALuint64)BufferList->buffer->SampleLen << 32;
+            readPos += (ALuint64)BufferList->max_samples << 32;
             BufferList = ATOMIC_LOAD(&CONST_CAST(ALbufferlistitem*,BufferList)->next,
                                      almemory_order_relaxed);
         }
         readPos = minu64(readPos, U64(0x7fffffffffffffff));
     }
 
-    ReadUnlock(&Source->queue_lock);
     return (ALint64)readPos;
 }
 
@@ -3229,7 +3315,6 @@ static ALdouble GetSourceSecOffset(ALsource *Source, ALCcontext *context, ALuint
     ALdouble offset;
     ALvoice *voice;
 
-    ReadLock(&Source->queue_lock);
     do {
         Current = NULL;
         readPos = 0;
@@ -3256,19 +3341,19 @@ static ALdouble GetSourceSecOffset(ALsource *Source, ALCcontext *context, ALuint
         const ALbuffer *BufferFmt = NULL;
         while(BufferList && BufferList != Current)
         {
-            const ALbuffer *buffer = BufferList->buffer;
-            if(buffer != NULL)
-            {
-                if(!BufferFmt) BufferFmt = buffer;
-                readPos += (ALuint64)buffer->SampleLen << FRACTIONBITS;
-            }
+            ALsizei i = 0;
+            while(!BufferFmt && i < BufferList->num_buffers)
+                BufferFmt = BufferList->buffers[i++];
+            readPos += (ALuint64)BufferList->max_samples << FRACTIONBITS;
             BufferList = ATOMIC_LOAD(&CONST_CAST(ALbufferlistitem*,BufferList)->next,
                                      almemory_order_relaxed);
         }
 
         while(BufferList && !BufferFmt)
         {
-            BufferFmt = BufferList->buffer;
+            ALsizei i = 0;
+            while(!BufferFmt && i < BufferList->num_buffers)
+                BufferFmt = BufferList->buffers[i++];
             BufferList = ATOMIC_LOAD(&CONST_CAST(ALbufferlistitem*,BufferList)->next,
                                      almemory_order_relaxed);
         }
@@ -3278,7 +3363,6 @@ static ALdouble GetSourceSecOffset(ALsource *Source, ALCcontext *context, ALuint
                  (ALdouble)BufferFmt->Frequency;
     }
 
-    ReadUnlock(&Source->queue_lock);
     return offset;
 }
 
@@ -3298,7 +3382,6 @@ static ALdouble GetSourceOffset(ALsource *Source, ALenum name, ALCcontext *conte
     ALdouble offset;
     ALvoice *voice;
 
-    ReadLock(&Source->queue_lock);
     do {
         Current = NULL;
         readPos = readPosFrac = 0;
@@ -3325,14 +3408,14 @@ static ALdouble GetSourceOffset(ALsource *Source, ALenum name, ALCcontext *conte
 
         while(BufferList != NULL)
         {
-            const ALbuffer *buffer;
-            readFin = readFin || (BufferList == Current);
-            if((buffer=BufferList->buffer) != NULL)
-            {
-                if(!BufferFmt) BufferFmt = buffer;
-                totalBufferLen += buffer->SampleLen;
-                if(!readFin) readPos += buffer->SampleLen;
-            }
+            ALsizei i = 0;
+            while(!BufferFmt && i < BufferList->num_buffers)
+                BufferFmt = BufferList->buffers[i++];
+
+            readFin |= (BufferList == Current);
+            totalBufferLen += BufferList->max_samples;
+            if(!readFin) readPos += BufferList->max_samples;
+
             BufferList = ATOMIC_LOAD(&CONST_CAST(ALbufferlistitem*,BufferList)->next,
                                      almemory_order_relaxed);
         }
@@ -3379,15 +3462,14 @@ static ALdouble GetSourceOffset(ALsource *Source, ALenum name, ALCcontext *conte
                 }
                 else
                 {
-                    ALuint FrameSize = FrameSizeFromUserFmt(BufferFmt->OriginalChannels,
-                                                            BufferFmt->OriginalType);
+                    ALuint FrameSize = FrameSizeFromFmt(BufferFmt->FmtChannels,
+                                                        BufferFmt->FmtType);
                     offset = (ALdouble)(readPos * FrameSize);
                 }
                 break;
         }
     }
 
-    ReadUnlock(&Source->queue_lock);
     return offset;
 }
 
@@ -3400,8 +3482,7 @@ static ALdouble GetSourceOffset(ALsource *Source, ALenum name, ALCcontext *conte
 static ALboolean ApplyOffset(ALsource *Source, ALvoice *voice)
 {
     ALbufferlistitem *BufferList;
-    const ALbuffer *Buffer;
-    ALuint bufferLen, totalBufferLen;
+    ALuint totalBufferLen;
     ALuint offset = 0;
     ALsizei frac = 0;
 
@@ -3413,10 +3494,7 @@ static ALboolean ApplyOffset(ALsource *Source, ALvoice *voice)
     BufferList = Source->queue;
     while(BufferList && totalBufferLen <= offset)
     {
-        Buffer = BufferList->buffer;
-        bufferLen = Buffer ? Buffer->SampleLen : 0;
-
-        if(bufferLen > offset-totalBufferLen)
+        if((ALuint)BufferList->max_samples > offset-totalBufferLen)
         {
             /* Offset is in this buffer */
             ATOMIC_STORE(&voice->position, offset - totalBufferLen, almemory_order_relaxed);
@@ -3424,8 +3502,7 @@ static ALboolean ApplyOffset(ALsource *Source, ALvoice *voice)
             ATOMIC_STORE(&voice->current_buffer, BufferList, almemory_order_release);
             return AL_TRUE;
         }
-
-        totalBufferLen += bufferLen;
+        totalBufferLen += BufferList->max_samples;
 
         BufferList = ATOMIC_LOAD(&BufferList->next, almemory_order_relaxed);
     }
@@ -3451,8 +3528,10 @@ static ALboolean GetSampleOffset(ALsource *Source, ALuint *offset, ALsizei *frac
     BufferList = Source->queue;
     while(BufferList)
     {
-        if((BufferFmt=BufferList->buffer) != NULL)
-            break;
+        ALsizei i;
+        for(i = 0;i < BufferList->num_buffers && !BufferFmt;i++)
+            BufferFmt = BufferList->buffers[i];
+        if(BufferFmt) break;
         BufferList = ATOMIC_LOAD(&CONST_CAST(ALbufferlistitem*,BufferList)->next,
                                  almemory_order_relaxed);
     }
@@ -3471,18 +3550,17 @@ static ALboolean GetSampleOffset(ALsource *Source, ALuint *offset, ALsizei *frac
         if(BufferFmt->OriginalType == UserFmtIMA4)
         {
             ALsizei align = (BufferFmt->OriginalAlign-1)/2 + 4;
-            *offset /= align * ChannelsFromUserFmt(BufferFmt->OriginalChannels);
+            *offset /= align * ChannelsFromFmt(BufferFmt->FmtChannels);
             *offset *= BufferFmt->OriginalAlign;
         }
         else if(BufferFmt->OriginalType == UserFmtMSADPCM)
         {
             ALsizei align = (BufferFmt->OriginalAlign-2)/2 + 7;
-            *offset /= align * ChannelsFromUserFmt(BufferFmt->OriginalChannels);
+            *offset /= align * ChannelsFromFmt(BufferFmt->FmtChannels);
             *offset *= BufferFmt->OriginalAlign;
         }
         else
-            *offset /= FrameSizeFromUserFmt(BufferFmt->OriginalChannels,
-                                            BufferFmt->OriginalType);
+            *offset /= FrameSizeFromFmt(BufferFmt->FmtChannels, BufferFmt->FmtType);
         *frac = 0;
         break;
 
@@ -3505,23 +3583,124 @@ static ALboolean GetSampleOffset(ALsource *Source, ALuint *offset, ALsizei *frac
 }
 
 
+static ALsource *AllocSource(ALCcontext *context)
+{
+    ALCdevice *device = context->Device;
+    SourceSubList *sublist, *subend;
+    ALsource *source = NULL;
+    ALsizei lidx = 0;
+    ALsizei slidx;
+
+    almtx_lock(&context->SourceLock);
+    if(context->NumSources >= device->SourcesMax)
+    {
+        almtx_unlock(&context->SourceLock);
+        alSetError(context, AL_OUT_OF_MEMORY, "Exceeding %u source limit", device->SourcesMax);
+        return NULL;
+    }
+    sublist = VECTOR_BEGIN(context->SourceList);
+    subend = VECTOR_END(context->SourceList);
+    for(;sublist != subend;++sublist)
+    {
+        if(sublist->FreeMask)
+        {
+            slidx = CTZ64(sublist->FreeMask);
+            source = sublist->Sources + slidx;
+            break;
+        }
+        ++lidx;
+    }
+    if(UNLIKELY(!source))
+    {
+        const SourceSubList empty_sublist = { 0, NULL };
+        /* Don't allocate so many list entries that the 32-bit ID could
+         * overflow...
+         */
+        if(UNLIKELY(VECTOR_SIZE(context->SourceList) >= 1<<25))
+        {
+            almtx_unlock(&device->BufferLock);
+            alSetError(context, AL_OUT_OF_MEMORY, "Too many sources allocated");
+            return NULL;
+        }
+        lidx = (ALsizei)VECTOR_SIZE(context->SourceList);
+        VECTOR_PUSH_BACK(context->SourceList, empty_sublist);
+        sublist = &VECTOR_BACK(context->SourceList);
+        sublist->FreeMask = ~U64(0);
+        sublist->Sources = al_calloc(16, sizeof(ALsource)*64);
+        if(UNLIKELY(!sublist->Sources))
+        {
+            VECTOR_POP_BACK(context->SourceList);
+            almtx_unlock(&context->SourceLock);
+            alSetError(context, AL_OUT_OF_MEMORY, "Failed to allocate source batch");
+            return NULL;
+        }
+
+        slidx = 0;
+        source = sublist->Sources + slidx;
+    }
+
+    memset(source, 0, sizeof(*source));
+    InitSourceParams(source, device->NumAuxSends);
+
+    /* Add 1 to avoid source ID 0. */
+    source->id = ((lidx<<6) | slidx) + 1;
+
+    context->NumSources++;
+    sublist->FreeMask &= ~(U64(1)<<slidx);
+    almtx_unlock(&context->SourceLock);
+
+    return source;
+}
+
+static void FreeSource(ALCcontext *context, ALsource *source)
+{
+    ALCdevice *device = context->Device;
+    ALuint id = source->id - 1;
+    ALsizei lidx = id >> 6;
+    ALsizei slidx = id & 0x3f;
+    ALvoice *voice;
+
+    ALCdevice_Lock(device);
+    if((voice=GetSourceVoice(source, context)) != NULL)
+    {
+        ATOMIC_STORE(&voice->Source, NULL, almemory_order_relaxed);
+        ATOMIC_STORE(&voice->Playing, false, almemory_order_release);
+    }
+    ALCdevice_Unlock(device);
+
+    DeinitSource(source, device->NumAuxSends);
+    memset(source, 0, sizeof(*source));
+
+    VECTOR_ELEM(context->SourceList, lidx).FreeMask |= U64(1) << slidx;
+    context->NumSources--;
+}
+
 /* ReleaseALSources
  *
  * Destroys all sources in the source map.
  */
-ALvoid ReleaseALSources(ALCcontext *Context)
+ALvoid ReleaseALSources(ALCcontext *context)
 {
-    ALCdevice *device = Context->Device;
-    ALsizei pos;
-    for(pos = 0;pos < Context->SourceMap.size;pos++)
+    ALCdevice *device = context->Device;
+    SourceSubList *sublist = VECTOR_BEGIN(context->SourceList);
+    SourceSubList *subend = VECTOR_END(context->SourceList);
+    size_t leftover = 0;
+    for(;sublist != subend;++sublist)
     {
-        ALsource *temp = Context->SourceMap.values[pos];
-        Context->SourceMap.values[pos] = NULL;
+        ALuint64 usemask = ~sublist->FreeMask;
+        while(usemask)
+        {
+            ALsizei idx = CTZ64(usemask);
+            ALsource *source = sublist->Sources + idx;
 
-        DeinitSource(temp, device->NumAuxSends);
+            DeinitSource(source, device->NumAuxSends);
+            memset(source, 0, sizeof(*source));
+            ++leftover;
 
-        FreeThunkEntry(temp->id);
-        memset(temp, 0, sizeof(*temp));
-        al_free(temp);
+            usemask &= ~(U64(1) << idx);
+        }
+        sublist->FreeMask = ~usemask;
     }
+    if(leftover > 0)
+        WARN("(%p) Deleted "SZFMT" Source%s\n", device, leftover, (leftover==1)?"":"s");
 }

@@ -19,8 +19,10 @@ struct ALsource;
 
 
 typedef struct ALbufferlistitem {
-    struct ALbuffer *buffer;
     ATOMIC(struct ALbufferlistitem*) next;
+    ALsizei max_samples;
+    ALsizei num_buffers;
+    struct ALbuffer *buffers[];
 } ALbufferlistitem;
 
 
@@ -91,31 +93,21 @@ typedef struct ALsource {
     ALint SourceType;
 
     /** Source state (initial, playing, paused, or stopped) */
-    ATOMIC(ALenum) state;
+    ALenum state;
 
     /** Source Buffer Queue head. */
-    RWLock queue_lock;
     ALbufferlistitem *queue;
 
     ATOMIC_FLAG PropsClean;
 
+    /* Index into the context's Voices array. Lazily updated, only checked and
+     * reset when looking up the voice.
+     */
+    ALint VoiceIdx;
+
     /** Self ID */
     ALuint id;
 } ALsource;
-
-inline void LockSourcesRead(ALCcontext *context)
-{ LockUIntMapRead(&context->SourceMap); }
-inline void UnlockSourcesRead(ALCcontext *context)
-{ UnlockUIntMapRead(&context->SourceMap); }
-inline void LockSourcesWrite(ALCcontext *context)
-{ LockUIntMapWrite(&context->SourceMap); }
-inline void UnlockSourcesWrite(ALCcontext *context)
-{ UnlockUIntMapWrite(&context->SourceMap); }
-
-inline struct ALsource *LookupSource(ALCcontext *context, ALuint id)
-{ return (struct ALsource*)LookupUIntMapKeyNoLock(&context->SourceMap, id); }
-inline struct ALsource *RemoveSource(ALCcontext *context, ALuint id)
-{ return (struct ALsource*)RemoveUIntMapKeyNoLock(&context->SourceMap, id); }
 
 void UpdateAllSourceProps(ALCcontext *context);
 
