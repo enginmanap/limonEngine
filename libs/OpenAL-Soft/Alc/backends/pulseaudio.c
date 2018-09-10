@@ -25,6 +25,7 @@
 
 #include "alMain.h"
 #include "alu.h"
+#include "alconfig.h"
 #include "threads.h"
 #include "compat.h"
 
@@ -333,18 +334,20 @@ static void wait_for_operation(pa_operation *op, pa_threaded_mainloop *loop)
 static pa_context *connect_context(pa_threaded_mainloop *loop, ALboolean silent)
 {
     const char *name = "OpenAL Soft";
-    char path_name[PATH_MAX];
+    al_string binname = AL_STRING_INIT_STATIC();
     pa_context_state_t state;
     pa_context *context;
     int err;
 
-    if(pa_get_binary_name(path_name, sizeof(path_name)))
-        name = pa_path_get_filename(path_name);
+    GetProcBinary(NULL, &binname);
+    if(!alstr_empty(binname))
+        name = alstr_get_cstr(binname);
 
     context = pa_context_new(pa_threaded_mainloop_get_api(loop), name);
     if(!context)
     {
         ERR("pa_context_new() failed\n");
+        alstr_reset(&binname);
         return NULL;
     }
 
@@ -371,9 +374,10 @@ static pa_context *connect_context(pa_threaded_mainloop *loop, ALboolean silent)
         if(!silent)
             ERR("Context did not connect: %s\n", pa_strerror(err));
         pa_context_unref(context);
-        return NULL;
+        context = NULL;
     }
 
+    alstr_reset(&binname);
     return context;
 }
 
@@ -468,7 +472,7 @@ typedef struct ALCpulsePlayback {
     pa_stream *stream;
     pa_context *context;
 
-    volatile ALboolean killNow;
+    ATOMIC(ALenum) killNow;
     althrd_t thread;
 } ALCpulsePlayback;
 
@@ -491,7 +495,6 @@ static int ALCpulsePlayback_mixerProc(void *ptr);
 static void ALCpulsePlayback_Construct(ALCpulsePlayback *self, ALCdevice *device);
 static void ALCpulsePlayback_Destruct(ALCpulsePlayback *self);
 static ALCenum ALCpulsePlayback_open(ALCpulsePlayback *self, const ALCchar *name);
-static void ALCpulsePlayback_close(ALCpulsePlayback *self);
 static ALCboolean ALCpulsePlayback_reset(ALCpulsePlayback *self);
 static ALCboolean ALCpulsePlayback_start(ALCpulsePlayback *self);
 static void ALCpulsePlayback_stop(ALCpulsePlayback *self);
@@ -510,11 +513,20 @@ static void ALCpulsePlayback_Construct(ALCpulsePlayback *self, ALCdevice *device
     ALCbackend_Construct(STATIC_CAST(ALCbackend, self), device);
     SET_VTABLE2(ALCpulsePlayback, ALCbackend, self);
 
+    self->loop = NULL;
     AL_STRING_INIT(self->device_name);
+    ATOMIC_INIT(&self->killNow, AL_TRUE);
 }
 
 static void ALCpulsePlayback_Destruct(ALCpulsePlayback *self)
 {
+    if(self->loop)
+    {
+        pulse_close(self->loop, self->context, self->stream);
+        self->loop = NULL;
+        self->context = NULL;
+        self->stream = NULL;
+    }
     AL_STRING_DEINIT(self->device_name);
     ALCbackend_Destruct(STATIC_CAST(ALCbackend, self));
 }
@@ -639,7 +651,7 @@ static void ALCpulsePlayback_contextStateCallback(pa_context *context, void *pda
     if(pa_context_get_state(context) == PA_CONTEXT_FAILED)
     {
         ERR("Received context failure!\n");
-        aluHandleDisconnect(STATIC_CAST(ALCbackend,self)->mDevice);
+        aluHandleDisconnect(STATIC_CAST(ALCbackend,self)->mDevice, "Playback state failure");
     }
     pa_threaded_mainloop_signal(self->loop, 0);
 }
@@ -650,7 +662,7 @@ static void ALCpulsePlayback_streamStateCallback(pa_stream *stream, void *pdata)
     if(pa_stream_get_state(stream) == PA_STREAM_FAILED)
     {
         ERR("Received stream failure!\n");
-        aluHandleDisconnect(STATIC_CAST(ALCbackend,self)->mDevice);
+        aluHandleDisconnect(STATIC_CAST(ALCbackend,self)->mDevice, "Playback stream failure");
     }
     pa_threaded_mainloop_signal(self->loop, 0);
 }
@@ -818,13 +830,17 @@ static int ALCpulsePlayback_mixerProc(void *ptr)
     pa_threaded_mainloop_lock(self->loop);
     frame_size = pa_frame_size(&self->spec);
 
-    while(!self->killNow && device->Connected)
+    while(!ATOMIC_LOAD(&self->killNow, almemory_order_acquire) &&
+          ATOMIC_LOAD(&device->Connected, almemory_order_acquire))
     {
+        void *buf;
+        int ret;
+
         len = pa_stream_writable_size(self->stream);
         if(len < 0)
         {
             ERR("Failed to get writable size: %ld", (long)len);
-            aluHandleDisconnect(device);
+            aluHandleDisconnect(device, "Failed to get writable size: %ld", (long)len);
             break;
         }
 
@@ -850,31 +866,16 @@ static int ALCpulsePlayback_mixerProc(void *ptr)
             pa_threaded_mainloop_wait(self->loop);
             continue;
         }
+
         len -= len%self->attr.minreq;
+        len -= len%frame_size;
 
-        while(len > 0)
-        {
-            size_t newlen = len;
-            int ret;
-            void *buf;
-            pa_free_cb_t free_func = NULL;
+        buf = pa_xmalloc(len);
 
-            if(pa_stream_begin_write(self->stream, &buf, &newlen) < 0)
-            {
-                buf = pa_xmalloc(newlen);
-                free_func = pa_xfree;
-            }
+        aluMixData(device, buf, len/frame_size);
 
-            aluMixData(device, buf, newlen/frame_size);
-
-            ret = pa_stream_write(self->stream, buf, newlen, free_func, 0, PA_SEEK_RELATIVE);
-            if(ret != PA_OK)
-            {
-                ERR("Failed to write to stream: %d, %s\n", ret, pa_strerror(ret));
-                break;
-            }
-            len -= newlen;
-        }
+        ret = pa_stream_write(self->stream, buf, len, pa_xfree, 0, PA_SEEK_RELATIVE);
+        if(ret != PA_OK) ERR("Failed to write to stream: %d, %s\n", ret, pa_strerror(ret));
     }
     pa_threaded_mainloop_unlock(self->loop);
 
@@ -950,16 +951,6 @@ static ALCenum ALCpulsePlayback_open(ALCpulsePlayback *self, const ALCchar *name
     pa_threaded_mainloop_unlock(self->loop);
 
     return ALC_NO_ERROR;
-}
-
-static void ALCpulsePlayback_close(ALCpulsePlayback *self)
-{
-    pulse_close(self->loop, self->context, self->stream);
-    self->loop = NULL;
-    self->context = NULL;
-    self->stream = NULL;
-
-    alstr_clear(&self->device_name);
 }
 
 static ALCboolean ALCpulsePlayback_reset(ALCpulsePlayback *self)
@@ -1138,7 +1129,7 @@ static ALCboolean ALCpulsePlayback_reset(ALCpulsePlayback *self)
 
 static ALCboolean ALCpulsePlayback_start(ALCpulsePlayback *self)
 {
-    self->killNow = AL_FALSE;
+    ATOMIC_STORE(&self->killNow, AL_FALSE, almemory_order_release);
     if(althrd_create(&self->thread, ALCpulsePlayback_mixerProc, self) != althrd_success)
         return ALC_FALSE;
     return ALC_TRUE;
@@ -1149,10 +1140,9 @@ static void ALCpulsePlayback_stop(ALCpulsePlayback *self)
     pa_operation *o;
     int res;
 
-    if(!self->stream || self->killNow)
+    if(!self->stream || ATOMIC_EXCHANGE(&self->killNow, AL_TRUE, almemory_order_acq_rel))
         return;
 
-    self->killNow = AL_TRUE;
     /* Signal the main loop in case PulseAudio isn't sending us audio requests
      * (e.g. if the device is suspended). We need to lock the mainloop in case
      * the mixer is between checking the killNow flag but before waiting for
@@ -1174,13 +1164,16 @@ static void ALCpulsePlayback_stop(ALCpulsePlayback *self)
 
 static ClockLatency ALCpulsePlayback_getClockLatency(ALCpulsePlayback *self)
 {
-    pa_usec_t latency = 0;
     ClockLatency ret;
+    pa_usec_t latency;
     int neg, err;
 
     pa_threaded_mainloop_lock(self->loop);
     ret.ClockTime = GetDeviceClockTime(STATIC_CAST(ALCbackend,self)->mDevice);
-    if((err=pa_stream_get_latency(self->stream, &latency, &neg)) != 0)
+    err = pa_stream_get_latency(self->stream, &latency, &neg);
+    pa_threaded_mainloop_unlock(self->loop);
+
+    if(UNLIKELY(err != 0))
     {
         /* FIXME: if err = -PA_ERR_NODATA, it means we were called too soon
          * after starting the stream and no timing info has been received from
@@ -1191,9 +1184,9 @@ static ClockLatency ALCpulsePlayback_getClockLatency(ALCpulsePlayback *self)
         latency = 0;
         neg = 0;
     }
-    if(neg) latency = 0;
-    ret.Latency = minu64(latency, U64(0xffffffffffffffff)/1000) * 1000;
-    pa_threaded_mainloop_unlock(self->loop);
+    else if(UNLIKELY(neg))
+        latency = 0;
+    ret.Latency = (ALint64)minu64(latency, U64(0x7fffffffffffffff)/1000) * 1000;
 
     return ret;
 }
@@ -1245,7 +1238,6 @@ static pa_stream *ALCpulseCapture_connectStream(const char *device_name,
 static void ALCpulseCapture_Construct(ALCpulseCapture *self, ALCdevice *device);
 static void ALCpulseCapture_Destruct(ALCpulseCapture *self);
 static ALCenum ALCpulseCapture_open(ALCpulseCapture *self, const ALCchar *name);
-static void ALCpulseCapture_close(ALCpulseCapture *self);
 static DECLARE_FORWARD(ALCpulseCapture, ALCbackend, ALCboolean, reset)
 static ALCboolean ALCpulseCapture_start(ALCpulseCapture *self);
 static void ALCpulseCapture_stop(ALCpulseCapture *self);
@@ -1264,11 +1256,19 @@ static void ALCpulseCapture_Construct(ALCpulseCapture *self, ALCdevice *device)
     ALCbackend_Construct(STATIC_CAST(ALCbackend, self), device);
     SET_VTABLE2(ALCpulseCapture, ALCbackend, self);
 
+    self->loop = NULL;
     AL_STRING_INIT(self->device_name);
 }
 
 static void ALCpulseCapture_Destruct(ALCpulseCapture *self)
 {
+    if(self->loop)
+    {
+        pulse_close(self->loop, self->context, self->stream);
+        self->loop = NULL;
+        self->context = NULL;
+        self->stream = NULL;
+    }
     AL_STRING_DEINIT(self->device_name);
     ALCbackend_Destruct(STATIC_CAST(ALCbackend, self));
 }
@@ -1380,7 +1380,7 @@ static void ALCpulseCapture_contextStateCallback(pa_context *context, void *pdat
     if(pa_context_get_state(context) == PA_CONTEXT_FAILED)
     {
         ERR("Received context failure!\n");
-        aluHandleDisconnect(STATIC_CAST(ALCbackend,self)->mDevice);
+        aluHandleDisconnect(STATIC_CAST(ALCbackend,self)->mDevice, "Capture state failure");
     }
     pa_threaded_mainloop_signal(self->loop, 0);
 }
@@ -1391,7 +1391,7 @@ static void ALCpulseCapture_streamStateCallback(pa_stream *stream, void *pdata)
     if(pa_stream_get_state(stream) == PA_STREAM_FAILED)
     {
         ERR("Received stream failure!\n");
-        aluHandleDisconnect(STATIC_CAST(ALCbackend,self)->mDevice);
+        aluHandleDisconnect(STATIC_CAST(ALCbackend,self)->mDevice, "Capture stream failure");
     }
     pa_threaded_mainloop_signal(self->loop, 0);
 }
@@ -1615,16 +1615,6 @@ fail:
     return ALC_INVALID_VALUE;
 }
 
-static void ALCpulseCapture_close(ALCpulseCapture *self)
-{
-    pulse_close(self->loop, self->context, self->stream);
-    self->loop = NULL;
-    self->context = NULL;
-    self->stream = NULL;
-
-    alstr_clear(&self->device_name);
-}
-
 static ALCboolean ALCpulseCapture_start(ALCpulseCapture *self)
 {
     pa_operation *o;
@@ -1664,14 +1654,15 @@ static ALCenum ALCpulseCapture_captureSamples(ALCpulseCapture *self, ALCvoid *bu
             state = pa_stream_get_state(self->stream);
             if(!PA_STREAM_IS_GOOD(state))
             {
-                aluHandleDisconnect(device);
+                aluHandleDisconnect(device, "Bad capture state: %u", state);
                 break;
             }
             if(pa_stream_peek(self->stream, &self->cap_store, &self->cap_len) < 0)
             {
                 ERR("pa_stream_peek() failed: %s\n",
                     pa_strerror(pa_context_errno(self->context)));
-                aluHandleDisconnect(device);
+                aluHandleDisconnect(device, "Failed retrieving capture samples: %s",
+                                    pa_strerror(pa_context_errno(self->context)));
                 break;
             }
             self->cap_remain = self->cap_len;
@@ -1704,7 +1695,7 @@ static ALCuint ALCpulseCapture_availableSamples(ALCpulseCapture *self)
     ALCdevice *device = STATIC_CAST(ALCbackend,self)->mDevice;
     size_t readable = self->cap_remain;
 
-    if(device->Connected)
+    if(ATOMIC_LOAD(&device->Connected, almemory_order_acquire))
     {
         ssize_t got;
         pa_threaded_mainloop_lock(self->loop);
@@ -1712,7 +1703,7 @@ static ALCuint ALCpulseCapture_availableSamples(ALCpulseCapture *self)
         if(got < 0)
         {
             ERR("pa_stream_readable_size() failed: %s\n", pa_strerror(got));
-            aluHandleDisconnect(device);
+            aluHandleDisconnect(device, "Failed getting readable size: %s", pa_strerror(got));
         }
         else if((size_t)got > self->cap_len)
             readable += got - self->cap_len;
@@ -1727,21 +1718,24 @@ static ALCuint ALCpulseCapture_availableSamples(ALCpulseCapture *self)
 
 static ClockLatency ALCpulseCapture_getClockLatency(ALCpulseCapture *self)
 {
-    pa_usec_t latency = 0;
     ClockLatency ret;
+    pa_usec_t latency;
     int neg, err;
 
     pa_threaded_mainloop_lock(self->loop);
     ret.ClockTime = GetDeviceClockTime(STATIC_CAST(ALCbackend,self)->mDevice);
-    if((err=pa_stream_get_latency(self->stream, &latency, &neg)) != 0)
+    err = pa_stream_get_latency(self->stream, &latency, &neg);
+    pa_threaded_mainloop_unlock(self->loop);
+
+    if(UNLIKELY(err != 0))
     {
         ERR("Failed to get stream latency: 0x%x\n", err);
         latency = 0;
         neg = 0;
     }
-    if(neg) latency = 0;
-    ret.Latency = minu64(latency, U64(0xffffffffffffffff)/1000) * 1000;
-    pa_threaded_mainloop_unlock(self->loop);
+    else if(UNLIKELY(neg))
+        latency = 0;
+    ret.Latency = (ALint64)minu64(latency, U64(0x7fffffffffffffff)/1000) * 1000;
 
     return ret;
 }

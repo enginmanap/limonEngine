@@ -23,10 +23,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <alloca.h>
 
 #include "alMain.h"
 #include "alu.h"
+#include "ringbuffer.h"
 
 #include <CoreServices/CoreServices.h>
 #include <unistd.h>
@@ -36,54 +36,7 @@
 #include "backends/base.h"
 
 
-typedef struct {
-    AudioUnit audioUnit;
-
-    ALuint frameSize;
-    ALdouble sampleRateRatio;              // Ratio of hardware sample rate / requested sample rate
-    AudioStreamBasicDescription format;    // This is the OpenAL format as a CoreAudio ASBD
-
-    AudioConverterRef audioConverter;      // Sample rate converter if needed
-    AudioBufferList *bufferList;           // Buffer for data coming from the input device
-    ALCvoid *resampleBuffer;               // Buffer for returned RingBuffer data when resampling
-
-    ll_ringbuffer_t *ring;
-} ca_data;
-
 static const ALCchar ca_device[] = "CoreAudio Default";
-
-
-static AudioBufferList* allocate_buffer_list(UInt32 channelCount, UInt32 byteSize)
-{
-    AudioBufferList *list;
-
-    list = calloc(1, sizeof(AudioBufferList) + sizeof(AudioBuffer));
-    if(list)
-    {
-        list->mNumberBuffers = 1;
-
-        list->mBuffers[0].mNumberChannels = channelCount;
-        list->mBuffers[0].mDataByteSize = byteSize;
-        list->mBuffers[0].mData = malloc(byteSize);
-        if(list->mBuffers[0].mData == NULL)
-        {
-            free(list);
-            list = NULL;
-        }
-    }
-    return list;
-}
-
-static void destroy_buffer_list(AudioBufferList* list)
-{
-    if(list)
-    {
-        UInt32 i;
-        for(i = 0;i < list->mNumberBuffers;i++)
-            free(list->mBuffers[i].mData);
-        free(list);
-    }
-}
 
 
 typedef struct ALCcoreAudioPlayback {
@@ -98,7 +51,6 @@ typedef struct ALCcoreAudioPlayback {
 static void ALCcoreAudioPlayback_Construct(ALCcoreAudioPlayback *self, ALCdevice *device);
 static void ALCcoreAudioPlayback_Destruct(ALCcoreAudioPlayback *self);
 static ALCenum ALCcoreAudioPlayback_open(ALCcoreAudioPlayback *self, const ALCchar *name);
-static void ALCcoreAudioPlayback_close(ALCcoreAudioPlayback *self);
 static ALCboolean ALCcoreAudioPlayback_reset(ALCcoreAudioPlayback *self);
 static ALCboolean ALCcoreAudioPlayback_start(ALCcoreAudioPlayback *self);
 static void ALCcoreAudioPlayback_stop(ALCcoreAudioPlayback *self);
@@ -123,6 +75,9 @@ static void ALCcoreAudioPlayback_Construct(ALCcoreAudioPlayback *self, ALCdevice
 
 static void ALCcoreAudioPlayback_Destruct(ALCcoreAudioPlayback *self)
 {
+    AudioUnitUninitialize(self->audioUnit);
+    AudioComponentInstanceDispose(self->audioUnit);
+
     ALCbackend_Destruct(STATIC_CAST(ALCbackend, self));
 }
 
@@ -134,10 +89,10 @@ static OSStatus ALCcoreAudioPlayback_MixerProc(void *inRefCon,
     ALCcoreAudioPlayback *self = inRefCon;
     ALCdevice *device = STATIC_CAST(ALCbackend,self)->mDevice;
 
-    ALCdevice_Lock(device);
+    ALCcoreAudioPlayback_lock(self);
     aluMixData(device, ioData->mBuffers[0].mData,
                ioData->mBuffers[0].mDataByteSize / self->frameSize);
-    ALCdevice_Unlock(device);
+    ALCcoreAudioPlayback_unlock(self);
 
     return noErr;
 }
@@ -187,12 +142,6 @@ static ALCenum ALCcoreAudioPlayback_open(ALCcoreAudioPlayback *self, const ALCch
 
     alstr_copy_cstr(&device->DeviceName, name);
     return ALC_NO_ERROR;
-}
-
-static void ALCcoreAudioPlayback_close(ALCcoreAudioPlayback *self)
-{
-    AudioUnitUninitialize(self->audioUnit);
-    AudioComponentInstanceDispose(self->audioUnit);
 }
 
 static ALCboolean ALCcoreAudioPlayback_reset(ALCcoreAudioPlayback *self)
@@ -382,7 +331,6 @@ typedef struct ALCcoreAudioCapture {
 static void ALCcoreAudioCapture_Construct(ALCcoreAudioCapture *self, ALCdevice *device);
 static void ALCcoreAudioCapture_Destruct(ALCcoreAudioCapture *self);
 static ALCenum ALCcoreAudioCapture_open(ALCcoreAudioCapture *self, const ALCchar *name);
-static void ALCcoreAudioCapture_close(ALCcoreAudioCapture *self);
 static DECLARE_FORWARD(ALCcoreAudioCapture, ALCbackend, ALCboolean, reset)
 static ALCboolean ALCcoreAudioCapture_start(ALCcoreAudioCapture *self);
 static void ALCcoreAudioCapture_stop(ALCcoreAudioCapture *self);
@@ -396,15 +344,59 @@ DECLARE_DEFAULT_ALLOCATORS(ALCcoreAudioCapture)
 DEFINE_ALCBACKEND_VTABLE(ALCcoreAudioCapture);
 
 
+static AudioBufferList *allocate_buffer_list(UInt32 channelCount, UInt32 byteSize)
+{
+    AudioBufferList *list;
+
+    list = calloc(1, FAM_SIZE(AudioBufferList, mBuffers, 1) + byteSize);
+    if(list)
+    {
+        list->mNumberBuffers = 1;
+
+        list->mBuffers[0].mNumberChannels = channelCount;
+        list->mBuffers[0].mDataByteSize = byteSize;
+        list->mBuffers[0].mData = &list->mBuffers[1];
+    }
+    return list;
+}
+
+static void destroy_buffer_list(AudioBufferList *list)
+{
+    free(list);
+}
+
+
 static void ALCcoreAudioCapture_Construct(ALCcoreAudioCapture *self, ALCdevice *device)
 {
     ALCbackend_Construct(STATIC_CAST(ALCbackend, self), device);
     SET_VTABLE2(ALCcoreAudioCapture, ALCbackend, self);
 
+    self->audioUnit = 0;
+    self->audioConverter = NULL;
+    self->bufferList = NULL;
+    self->resampleBuffer = NULL;
+    self->ring = NULL;
 }
 
 static void ALCcoreAudioCapture_Destruct(ALCcoreAudioCapture *self)
 {
+    ll_ringbuffer_free(self->ring);
+    self->ring = NULL;
+
+    free(self->resampleBuffer);
+    self->resampleBuffer = NULL;
+
+    destroy_buffer_list(self->bufferList);
+    self->bufferList = NULL;
+
+    if(self->audioConverter)
+        AudioConverterDispose(self->audioConverter);
+    self->audioConverter = NULL;
+
+    if(self->audioUnit)
+        AudioComponentInstanceDispose(self->audioUnit);
+    self->audioUnit = 0;
+
     ALCbackend_Destruct(STATIC_CAST(ALCbackend, self));
 }
 
@@ -667,8 +659,8 @@ static ALCenum ALCcoreAudioCapture_open(ALCcoreAudioCapture *self, const ALCchar
         goto error;
 
     self->ring = ll_ringbuffer_create(
-        device->UpdateSize*self->sampleRateRatio*device->NumUpdates + 1,
-        self->frameSize
+        (size_t)ceil(device->UpdateSize*self->sampleRateRatio*device->NumUpdates),
+        self->frameSize, false
     );
     if(!self->ring) goto error;
 
@@ -680,29 +672,20 @@ error:
     ll_ringbuffer_free(self->ring);
     self->ring = NULL;
     free(self->resampleBuffer);
+    self->resampleBuffer = NULL;
     destroy_buffer_list(self->bufferList);
+    self->bufferList = NULL;
 
     if(self->audioConverter)
         AudioConverterDispose(self->audioConverter);
+    self->audioConverter = NULL;
     if(self->audioUnit)
         AudioComponentInstanceDispose(self->audioUnit);
+    self->audioUnit = 0;
 
     return ALC_INVALID_VALUE;
 }
 
-
-static void ALCcoreAudioCapture_close(ALCcoreAudioCapture *self)
-{
-    ll_ringbuffer_free(self->ring);
-    self->ring = NULL;
-
-    free(self->resampleBuffer);
-
-    destroy_buffer_list(self->bufferList);
-
-    AudioConverterDispose(self->audioConverter);
-    AudioComponentInstanceDispose(self->audioUnit);
-}
 
 static ALCboolean ALCcoreAudioCapture_start(ALCcoreAudioCapture *self)
 {
@@ -724,27 +707,26 @@ static void ALCcoreAudioCapture_stop(ALCcoreAudioCapture *self)
 
 static ALCenum ALCcoreAudioCapture_captureSamples(ALCcoreAudioCapture *self, ALCvoid *buffer, ALCuint samples)
 {
-    AudioBufferList *list;
+    union {
+        ALbyte _[sizeof(AudioBufferList) + sizeof(AudioBuffer)];
+        AudioBufferList list;
+    } audiobuf = { { 0 } };
     UInt32 frameCount;
     OSStatus err;
 
     // If no samples are requested, just return
-    if(samples == 0)
-        return ALC_NO_ERROR;
-
-    // Allocate a temporary AudioBufferList to use as the return resamples data
-    list = alloca(sizeof(AudioBufferList) + sizeof(AudioBuffer));
+    if(samples == 0) return ALC_NO_ERROR;
 
     // Point the resampling buffer to the capture buffer
-    list->mNumberBuffers = 1;
-    list->mBuffers[0].mNumberChannels = self->format.mChannelsPerFrame;
-    list->mBuffers[0].mDataByteSize = samples * self->frameSize;
-    list->mBuffers[0].mData = buffer;
+    audiobuf.list.mNumberBuffers = 1;
+    audiobuf.list.mBuffers[0].mNumberChannels = self->format.mChannelsPerFrame;
+    audiobuf.list.mBuffers[0].mDataByteSize = samples * self->frameSize;
+    audiobuf.list.mBuffers[0].mData = buffer;
 
     // Resample into another AudioBufferList
     frameCount = samples;
     err = AudioConverterFillComplexBuffer(self->audioConverter,
-        ALCcoreAudioCapture_ConvertCallback, self, &frameCount, list, NULL
+        ALCcoreAudioCapture_ConvertCallback, self, &frameCount, &audiobuf.list, NULL
     );
     if(err != noErr)
     {

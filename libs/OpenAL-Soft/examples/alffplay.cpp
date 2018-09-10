@@ -14,9 +14,12 @@
 #include <thread>
 #include <chrono>
 #include <atomic>
+#include <vector>
 #include <mutex>
 #include <deque>
 #include <array>
+#include <cmath>
+#include <string>
 
 extern "C" {
 #include "libavcodec/avcodec.h"
@@ -36,23 +39,82 @@ extern "C" {
 #include "AL/al.h"
 #include "AL/alext.h"
 
-namespace
-{
+extern "C" {
+#ifndef AL_SOFT_map_buffer
+#define AL_SOFT_map_buffer 1
+typedef unsigned int ALbitfieldSOFT;
+#define AL_MAP_READ_BIT_SOFT                     0x00000001
+#define AL_MAP_WRITE_BIT_SOFT                    0x00000002
+#define AL_MAP_PERSISTENT_BIT_SOFT               0x00000004
+#define AL_PRESERVE_DATA_BIT_SOFT                0x00000008
+typedef void (AL_APIENTRY*LPALBUFFERSTORAGESOFT)(ALuint buffer, ALenum format, const ALvoid *data, ALsizei size, ALsizei freq, ALbitfieldSOFT flags);
+typedef void* (AL_APIENTRY*LPALMAPBUFFERSOFT)(ALuint buffer, ALsizei offset, ALsizei length, ALbitfieldSOFT access);
+typedef void (AL_APIENTRY*LPALUNMAPBUFFERSOFT)(ALuint buffer);
+typedef void (AL_APIENTRY*LPALFLUSHMAPPEDBUFFERSOFT)(ALuint buffer, ALsizei offset, ALsizei length);
+#endif
 
-static const std::string AppName("alffplay");
+#ifndef AL_SOFT_events
+#define AL_SOFT_events 1
+#define AL_EVENT_CALLBACK_FUNCTION_SOFT          0x1220
+#define AL_EVENT_CALLBACK_USER_PARAM_SOFT        0x1221
+#define AL_EVENT_TYPE_BUFFER_COMPLETED_SOFT      0x1222
+#define AL_EVENT_TYPE_SOURCE_STATE_CHANGED_SOFT  0x1223
+#define AL_EVENT_TYPE_ERROR_SOFT                 0x1224
+#define AL_EVENT_TYPE_PERFORMANCE_SOFT           0x1225
+#define AL_EVENT_TYPE_DEPRECATED_SOFT            0x1226
+#define AL_EVENT_TYPE_DISCONNECTED_SOFT          0x1227
+typedef void (AL_APIENTRY*ALEVENTPROCSOFT)(ALenum eventType, ALuint object, ALuint param,
+                                           ALsizei length, const ALchar *message,
+                                           void *userParam);
+typedef void (AL_APIENTRY*LPALEVENTCONTROLSOFT)(ALsizei count, const ALenum *types, ALboolean enable);
+typedef void (AL_APIENTRY*LPALEVENTCALLBACKSOFT)(ALEVENTPROCSOFT callback, void *userParam);
+typedef void* (AL_APIENTRY*LPALGETPOINTERSOFT)(ALenum pname);
+typedef void (AL_APIENTRY*LPALGETPOINTERVSOFT)(ALenum pname, void **values);
+#endif
+}
 
-static bool do_direct_out = false;
-static bool has_latency_check = false;
-static LPALGETSOURCEDVSOFT alGetSourcedvSOFT;
+namespace {
 
-#define AUDIO_BUFFER_TIME 100 /* In milliseconds, per-buffer */
-#define AUDIO_BUFFER_QUEUE_SIZE 8 /* Number of buffers to queue */
-#define MAX_QUEUE_SIZE (15 * 1024 * 1024) /* Bytes of compressed data to keep queued */
-#define AV_SYNC_THRESHOLD 0.01
-#define AV_NOSYNC_THRESHOLD 10.0
-#define SAMPLE_CORRECTION_MAX_DIFF 0.05
-#define AUDIO_DIFF_AVG_NB 20
+#ifndef M_PI
+#define M_PI (3.14159265358979323846)
+#endif
+
+using nanoseconds = std::chrono::nanoseconds;
+using microseconds = std::chrono::microseconds;
+using milliseconds = std::chrono::milliseconds;
+using seconds = std::chrono::seconds;
+using seconds_d64 = std::chrono::duration<double>;
+
+const std::string AppName("alffplay");
+
+bool EnableDirectOut = false;
+bool EnableWideStereo = false;
+LPALGETSOURCEI64VSOFT alGetSourcei64vSOFT;
+LPALCGETINTEGER64VSOFT alcGetInteger64vSOFT;
+
+LPALBUFFERSTORAGESOFT alBufferStorageSOFT;
+LPALMAPBUFFERSOFT alMapBufferSOFT;
+LPALUNMAPBUFFERSOFT alUnmapBufferSOFT;
+
+LPALEVENTCONTROLSOFT alEventControlSOFT;
+LPALEVENTCALLBACKSOFT alEventCallbackSOFT;
+
+const seconds AVNoSyncThreshold(10);
+
+const milliseconds VideoSyncThreshold(10);
 #define VIDEO_PICTURE_QUEUE_SIZE 16
+
+const seconds_d64 AudioSyncThreshold(0.03);
+const milliseconds AudioSampleCorrectionMax(50);
+/* Averaging filter coefficient for audio sync. */
+#define AUDIO_DIFF_AVG_NB 20
+const double AudioAvgFilterCoeff = std::pow(0.01, 1.0/AUDIO_DIFF_AVG_NB);
+/* Per-buffer size, in time */
+const milliseconds AudioBufferTime(20);
+/* Buffer total size, in time (should be divisible by the buffer time) */
+const milliseconds AudioBufferTotalTime(800);
+
+#define MAX_QUEUE_SIZE (15 * 1024 * 1024) /* Bytes of compressed data to keep queued */
 
 enum {
     FF_UPDATE_EVENT = SDL_USEREVENT,
@@ -60,143 +122,195 @@ enum {
     FF_MOVIE_DONE_EVENT
 };
 
-enum {
-    AV_SYNC_AUDIO_MASTER,
-    AV_SYNC_VIDEO_MASTER,
-    AV_SYNC_EXTERNAL_MASTER,
+enum class SyncMaster {
+    Audio,
+    Video,
+    External,
 
-    DEFAULT_AV_SYNC_TYPE = AV_SYNC_EXTERNAL_MASTER
+    Default = External
 };
 
 
-struct PacketQueue {
+inline microseconds get_avtime()
+{ return microseconds(av_gettime()); }
+
+/* Define unique_ptrs to auto-cleanup associated ffmpeg objects. */
+struct AVIOContextDeleter {
+    void operator()(AVIOContext *ptr) { avio_closep(&ptr); }
+};
+using AVIOContextPtr = std::unique_ptr<AVIOContext,AVIOContextDeleter>;
+
+struct AVFormatCtxDeleter {
+    void operator()(AVFormatContext *ptr) { avformat_close_input(&ptr); }
+};
+using AVFormatCtxPtr = std::unique_ptr<AVFormatContext,AVFormatCtxDeleter>;
+
+struct AVCodecCtxDeleter {
+    void operator()(AVCodecContext *ptr) { avcodec_free_context(&ptr); }
+};
+using AVCodecCtxPtr = std::unique_ptr<AVCodecContext,AVCodecCtxDeleter>;
+
+struct AVFrameDeleter {
+    void operator()(AVFrame *ptr) { av_frame_free(&ptr); }
+};
+using AVFramePtr = std::unique_ptr<AVFrame,AVFrameDeleter>;
+
+struct SwrContextDeleter {
+    void operator()(SwrContext *ptr) { swr_free(&ptr); }
+};
+using SwrContextPtr = std::unique_ptr<SwrContext,SwrContextDeleter>;
+
+struct SwsContextDeleter {
+    void operator()(SwsContext *ptr) { sws_freeContext(ptr); }
+};
+using SwsContextPtr = std::unique_ptr<SwsContext,SwsContextDeleter>;
+
+
+class PacketQueue {
     std::deque<AVPacket> mPackets;
-    std::atomic<int> mTotalSize;
-    std::atomic<bool> mFinished;
-    std::mutex mMutex;
-    std::condition_variable mCond;
+    size_t mTotalSize{0};
 
-    PacketQueue() : mTotalSize(0), mFinished(false)
-    { }
-    ~PacketQueue()
-    { clear(); }
+public:
+    ~PacketQueue() { clear(); }
 
-    int put(const AVPacket *pkt);
-    int peek(AVPacket *pkt, std::atomic<bool> &quit_var);
-    void pop();
+    bool empty() const noexcept { return mPackets.empty(); }
+    size_t totalSize() const noexcept { return mTotalSize; }
 
-    void clear();
-    void finish();
+    void put(const AVPacket *pkt)
+    {
+        mPackets.push_back(AVPacket{});
+        if(av_packet_ref(&mPackets.back(), pkt) != 0)
+            mPackets.pop_back();
+        else
+            mTotalSize += mPackets.back().size;
+    }
+
+    AVPacket *front() noexcept
+    { return &mPackets.front(); }
+
+    void pop()
+    {
+        AVPacket *pkt = &mPackets.front();
+        mTotalSize -= pkt->size;
+        av_packet_unref(pkt);
+        mPackets.pop_front();
+    }
+
+    void clear()
+    {
+        for(AVPacket &pkt : mPackets)
+            av_packet_unref(&pkt);
+        mPackets.clear();
+        mTotalSize = 0;
+    }
 };
 
 
 struct MovieState;
 
 struct AudioState {
-    MovieState *mMovie;
+    MovieState &mMovie;
 
-    AVStream *mStream;
-    AVCodecContext *mCodecCtx;
+    AVStream *mStream{nullptr};
+    AVCodecCtxPtr mCodecCtx;
 
-    PacketQueue mQueue;
+    std::mutex mQueueMtx;
+    std::condition_variable mQueueCond;
 
     /* Used for clock difference average computation */
-    struct {
-        std::atomic<int> Clocks; /* In microseconds */
-        double Accum;
-        double AvgCoeff;
-        double Threshold;
-        int AvgCount;
-    } mDiff;
+    seconds_d64 mClockDiffAvg{0};
 
-    /* Time (in seconds) of the next sample to be buffered */
-    double mCurrentPts;
+    /* Time of the next sample to be buffered */
+    nanoseconds mCurrentPts{0};
+
+    /* Device clock time that the stream started at. */
+    nanoseconds mDeviceStartTime{nanoseconds::min()};
 
     /* Decompressed sample frame, and swresample context for conversion */
-    AVFrame           *mDecodedFrame;
-    struct SwrContext *mSwresCtx;
+    AVFramePtr    mDecodedFrame;
+    SwrContextPtr mSwresCtx;
 
-    /* Conversion format, for what gets fed to Alure */
-    int                 mDstChanLayout;
-    enum AVSampleFormat mDstSampleFmt;
+    /* Conversion format, for what gets fed to OpenAL */
+    int            mDstChanLayout{0};
+    AVSampleFormat mDstSampleFmt{AV_SAMPLE_FMT_NONE};
 
     /* Storage of converted samples */
-    uint8_t *mSamples;
-    int mSamplesLen; /* In samples */
-    int mSamplesPos;
-    int mSamplesMax;
+    uint8_t *mSamples{nullptr};
+    int mSamplesLen{0}; /* In samples */
+    int mSamplesPos{0};
+    int mSamplesMax{0};
 
     /* OpenAL format */
-    ALenum mFormat;
-    ALsizei mFrameSize;
+    ALenum mFormat{AL_NONE};
+    ALsizei mFrameSize{0};
 
-    std::recursive_mutex mSrcMutex;
-    ALuint mSource;
-    ALuint mBuffers[AUDIO_BUFFER_QUEUE_SIZE];
-    ALsizei mBufferIdx;
+    std::mutex mSrcMutex;
+    std::condition_variable mSrcCond;
+    std::atomic_flag mConnected;
+    ALuint mSource{0};
+    std::vector<ALuint> mBuffers;
+    ALsizei mBufferIdx{0};
 
-    AudioState(MovieState *movie)
-      : mMovie(movie), mStream(nullptr), mCodecCtx(nullptr)
-      , mDiff{{0}, 0.0, 0.0, 0.0, 0}, mCurrentPts(0.0), mDecodedFrame(nullptr)
-      , mSwresCtx(nullptr), mDstChanLayout(0), mDstSampleFmt(AV_SAMPLE_FMT_NONE)
-      , mSamples(nullptr), mSamplesLen(0), mSamplesPos(0), mSamplesMax(0)
-      , mFormat(AL_NONE), mFrameSize(0), mSource(0), mBufferIdx(0)
-    {
-        for(auto &buf : mBuffers)
-            buf = 0;
-    }
+    AudioState(MovieState &movie) : mMovie(movie)
+    { mConnected.test_and_set(std::memory_order_relaxed); }
     ~AudioState()
     {
         if(mSource)
             alDeleteSources(1, &mSource);
-        alDeleteBuffers(AUDIO_BUFFER_QUEUE_SIZE, mBuffers);
-
-        av_frame_free(&mDecodedFrame);
-        swr_free(&mSwresCtx);
+        if(!mBuffers.empty())
+            alDeleteBuffers(mBuffers.size(), mBuffers.data());
 
         av_freep(&mSamples);
-
-        avcodec_free_context(&mCodecCtx);
     }
 
-    double getClock();
+    static void AL_APIENTRY EventCallback(ALenum eventType, ALuint object, ALuint param,
+                                          ALsizei length, const ALchar *message,
+                                          void *userParam);
+
+    nanoseconds getClockNoLock();
+    nanoseconds getClock()
+    {
+        std::lock_guard<std::mutex> lock(mSrcMutex);
+        return getClockNoLock();
+    }
+
+    bool isBufferFilled();
+    void startPlayback();
 
     int getSync();
     int decodeFrame();
-    int readAudio(uint8_t *samples, int length);
+    bool readAudio(uint8_t *samples, int length);
 
     int handler();
 };
 
 struct VideoState {
-    MovieState *mMovie;
+    MovieState &mMovie;
 
-    AVStream *mStream;
-    AVCodecContext *mCodecCtx;
+    AVStream *mStream{nullptr};
+    AVCodecCtxPtr mCodecCtx;
 
-    PacketQueue mQueue;
+    std::mutex mQueueMtx;
+    std::condition_variable mQueueCond;
 
-    double  mClock;
-    double  mFrameTimer;
-    double  mFrameLastPts;
-    double  mFrameLastDelay;
-    double  mCurrentPts;
+    nanoseconds mClock{0};
+    nanoseconds mFrameTimer{0};
+    nanoseconds mFrameLastPts{0};
+    nanoseconds mFrameLastDelay{0};
+    nanoseconds mCurrentPts{0};
     /* time (av_gettime) at which we updated mCurrentPts - used to have running video pts */
-    int64_t mCurrentPtsTime;
+    microseconds mCurrentPtsTime{0};
 
     /* Decompressed video frame, and swscale context for conversion */
-    AVFrame           *mDecodedFrame;
-    struct SwsContext *mSwscaleCtx;
+    AVFramePtr    mDecodedFrame;
+    SwsContextPtr mSwscaleCtx;
 
     struct Picture {
-        SDL_Texture *mImage;
-        int mWidth, mHeight; /* Logical image size (actual size may be larger) */
-        std::atomic<bool> mUpdated;
-        double mPts;
+        SDL_Texture *mImage{nullptr};
+        int mWidth{0}, mHeight{0}; /* Logical image size (actual size may be larger) */
+        std::atomic<bool> mUpdated{false};
+        nanoseconds mPts{0};
 
-        Picture()
-          : mImage(nullptr), mWidth(0), mHeight(0), mUpdated(false), mPts(0.0)
-        { }
         ~Picture()
         {
             if(mImage)
@@ -205,49 +319,42 @@ struct VideoState {
         }
     };
     std::array<Picture,VIDEO_PICTURE_QUEUE_SIZE> mPictQ;
-    size_t mPictQSize, mPictQRead, mPictQWrite;
+    size_t mPictQSize{0}, mPictQRead{0}, mPictQWrite{0};
     std::mutex mPictQMutex;
     std::condition_variable mPictQCond;
-    bool mFirstUpdate;
-    std::atomic<bool> mEOS;
-    std::atomic<bool> mFinalUpdate;
+    bool mFirstUpdate{true};
+    std::atomic<bool> mEOS{false};
+    std::atomic<bool> mFinalUpdate{false};
 
-    VideoState(MovieState *movie)
-      : mMovie(movie), mStream(nullptr), mCodecCtx(nullptr), mClock(0.0)
-      , mFrameTimer(0.0), mFrameLastPts(0.0), mFrameLastDelay(0.0)
-      , mCurrentPts(0.0), mCurrentPtsTime(0), mDecodedFrame(nullptr)
-      , mSwscaleCtx(nullptr), mPictQSize(0), mPictQRead(0), mPictQWrite(0)
-      , mFirstUpdate(true), mEOS(false), mFinalUpdate(false)
-    { }
-    ~VideoState()
-    {
-        sws_freeContext(mSwscaleCtx);
-        mSwscaleCtx = nullptr;
-        av_frame_free(&mDecodedFrame);
-        avcodec_free_context(&mCodecCtx);
-    }
+    VideoState(MovieState &movie) : mMovie(movie) { }
 
-    double getClock();
+    nanoseconds getClock();
+    bool isBufferFilled();
 
     static Uint32 SDLCALL sdl_refresh_timer_cb(Uint32 interval, void *opaque);
-    void schedRefresh(int delay);
+    void schedRefresh(milliseconds delay);
     void display(SDL_Window *screen, SDL_Renderer *renderer);
     void refreshTimer(SDL_Window *screen, SDL_Renderer *renderer);
     void updatePicture(SDL_Window *screen, SDL_Renderer *renderer);
-    int queuePicture(double pts);
-    double synchronize(double pts);
+    int queuePicture(nanoseconds pts);
     int handler();
 };
 
 struct MovieState {
-    AVFormatContext *mFormatCtx;
-    int mVideoStream, mAudioStream;
+    AVIOContextPtr mIOContext;
+    AVFormatCtxPtr mFormatCtx;
 
-    int mAVSyncType;
+    SyncMaster mAVSyncType{SyncMaster::Default};
 
-    int64_t mExternalClockBase;
+    microseconds mClockBase{0};
+    std::atomic<bool> mPlaying{false};
 
-    std::atomic<bool> mQuit;
+    std::mutex mSendMtx;
+    std::condition_variable mSendCond;
+    /* NOTE: false/clear = need data, true/set = no data needed */
+    std::atomic_flag mSendDataGood;
+
+    std::atomic<bool> mQuit{false};
 
     AudioState mAudio;
     VideoState mVideo;
@@ -259,136 +366,87 @@ struct MovieState {
     std::string mFilename;
 
     MovieState(std::string fname)
-      : mFormatCtx(nullptr), mVideoStream(0), mAudioStream(0)
-      , mAVSyncType(DEFAULT_AV_SYNC_TYPE), mExternalClockBase(0), mQuit(false)
-      , mAudio(this), mVideo(this), mFilename(std::move(fname))
+      : mAudio(*this), mVideo(*this), mFilename(std::move(fname))
     { }
     ~MovieState()
     {
         mQuit = true;
         if(mParseThread.joinable())
             mParseThread.join();
-        avformat_close_input(&mFormatCtx);
     }
 
     static int decode_interrupt_cb(void *ctx);
     bool prepare();
     void setTitle(SDL_Window *window);
 
-    double getClock();
+    nanoseconds getClock();
 
-    double getMasterClock();
+    nanoseconds getMasterClock();
+
+    nanoseconds getDuration();
 
     int streamComponentOpen(int stream_index);
     int parse_handler();
 };
 
 
-int PacketQueue::put(const AVPacket *pkt)
+nanoseconds AudioState::getClockNoLock()
 {
-    std::unique_lock<std::mutex> lock(mMutex);
-    mPackets.push_back(AVPacket{});
-    if(av_packet_ref(&mPackets.back(), pkt) != 0)
+    // The audio clock is the timestamp of the sample currently being heard.
+    if(alcGetInteger64vSOFT)
     {
-        mPackets.pop_back();
-        return -1;
+        // If device start time = min, we aren't playing yet.
+        if(mDeviceStartTime == nanoseconds::min())
+            return nanoseconds::zero();
+
+        // Get the current device clock time and latency.
+        auto device = alcGetContextsDevice(alcGetCurrentContext());
+        ALCint64SOFT devtimes[2] = {0,0};
+        alcGetInteger64vSOFT(device, ALC_DEVICE_CLOCK_LATENCY_SOFT, 2, devtimes);
+        auto latency = nanoseconds(devtimes[1]);
+        auto device_time = nanoseconds(devtimes[0]);
+
+        // The clock is simply the current device time relative to the recorded
+        // start time. We can also subtract the latency to get more a accurate
+        // position of where the audio device actually is in the output stream.
+        return device_time - mDeviceStartTime - latency;
     }
-    mTotalSize += mPackets.back().size;
-    lock.unlock();
 
-    mCond.notify_one();
-    return 0;
-}
-
-int PacketQueue::peek(AVPacket *pkt, std::atomic<bool> &quit_var)
-{
-    std::unique_lock<std::mutex> lock(mMutex);
-    while(!quit_var.load())
-    {
-        if(!mPackets.empty())
-        {
-            if(av_packet_ref(pkt, &mPackets.front()) != 0)
-                return -1;
-            return 1;
-        }
-
-        if(mFinished.load())
-            return 0;
-        mCond.wait(lock);
-    }
-    return -1;
-}
-
-void PacketQueue::pop()
-{
-    std::unique_lock<std::mutex> lock(mMutex);
-    AVPacket *pkt = &mPackets.front();
-    mTotalSize -= pkt->size;
-    av_packet_unref(pkt);
-    mPackets.pop_front();
-}
-
-void PacketQueue::clear()
-{
-    std::unique_lock<std::mutex> lock(mMutex);
-    std::for_each(mPackets.begin(), mPackets.end(),
-        [](AVPacket &pkt) { av_packet_unref(&pkt); }
-    );
-    mPackets.clear();
-    mTotalSize = 0;
-}
-void PacketQueue::finish()
-{
-    std::unique_lock<std::mutex> lock(mMutex);
-    mFinished = true;
-    lock.unlock();
-    mCond.notify_all();
-}
-
-
-double AudioState::getClock()
-{
-    double pts;
-
-    std::unique_lock<std::recursive_mutex> lock(mSrcMutex);
-    /* The audio clock is the timestamp of the sample currently being heard.
-     * It's based on 4 components:
-     * 1 - The timestamp of the next sample to buffer (state->current_pts)
+    /* The source-based clock is based on 4 components:
+     * 1 - The timestamp of the next sample to buffer (mCurrentPts)
      * 2 - The length of the source's buffer queue
+     *     (AudioBufferTime*AL_BUFFERS_QUEUED)
      * 3 - The offset OpenAL is currently at in the source (the first value
-     *     from AL_SEC_OFFSET_LATENCY_SOFT)
+     *     from AL_SAMPLE_OFFSET_LATENCY_SOFT)
      * 4 - The latency between OpenAL and the DAC (the second value from
-     *     AL_SEC_OFFSET_LATENCY_SOFT)
+     *     AL_SAMPLE_OFFSET_LATENCY_SOFT)
      *
      * Subtracting the length of the source queue from the next sample's
-     * timestamp gives the timestamp of the sample at start of the source
-     * queue. Adding the source offset to that results in the timestamp for
-     * OpenAL's current position, and subtracting the source latency from that
-     * gives the timestamp of the sample currently at the DAC.
+     * timestamp gives the timestamp of the sample at the start of the source
+     * queue. Adding the source offset to that results in the timestamp for the
+     * sample at OpenAL's current position, and subtracting the source latency
+     * from that gives the timestamp of the sample currently at the DAC.
      */
-    pts = mCurrentPts;
+    nanoseconds pts = mCurrentPts;
     if(mSource)
     {
-        ALdouble offset[2];
-        ALint queue_size;
+        ALint64SOFT offset[2];
+        ALint queued;
         ALint status;
 
         /* NOTE: The source state must be checked last, in case an underrun
          * occurs and the source stops between retrieving the offset+latency
          * and getting the state. */
-        if(has_latency_check)
-        {
-            alGetSourcedvSOFT(mSource, AL_SEC_OFFSET_LATENCY_SOFT, offset);
-            alGetSourcei(mSource, AL_BUFFERS_QUEUED, &queue_size);
-        }
+        if(alGetSourcei64vSOFT)
+            alGetSourcei64vSOFT(mSource, AL_SAMPLE_OFFSET_LATENCY_SOFT, offset);
         else
         {
             ALint ioffset;
             alGetSourcei(mSource, AL_SAMPLE_OFFSET, &ioffset);
-            alGetSourcei(mSource, AL_BUFFERS_QUEUED, &queue_size);
-            offset[0] = (double)ioffset / (double)mCodecCtx->sample_rate;
-            offset[1] = 0.0f;
+            offset[0] = (ALint64SOFT)ioffset << 32;
+            offset[1] = 0;
         }
+        alGetSourcei(mSource, AL_BUFFERS_QUEUED, &queued);
         alGetSourcei(mSource, AL_SOURCE_STATE, &status);
 
         /* If the source is AL_STOPPED, then there was an underrun and all
@@ -396,73 +454,105 @@ double AudioState::getClock()
          * will put the source into an AL_INITIAL state and clear the queue
          * when it starts recovery. */
         if(status != AL_STOPPED)
-            pts -= queue_size*((double)AUDIO_BUFFER_TIME/1000.0) - offset[0];
-        if(status == AL_PLAYING)
-            pts -= offset[1];
-    }
-    lock.unlock();
+        {
+            using fixed32 = std::chrono::duration<int64_t,std::ratio<1,(1ll<<32)>>;
 
-    return std::max(pts, 0.0);
+            pts -= AudioBufferTime*queued;
+            pts += std::chrono::duration_cast<nanoseconds>(
+                fixed32(offset[0] / mCodecCtx->sample_rate)
+            );
+        }
+        /* Don't offset by the latency if the source isn't playing. */
+        if(status == AL_PLAYING)
+            pts -= nanoseconds(offset[1]);
+    }
+
+    return std::max(pts, nanoseconds::zero());
+}
+
+bool AudioState::isBufferFilled()
+{
+    /* All of OpenAL's buffer queueing happens under the mSrcMutex lock, as
+     * does the source gen. So when we're able to grab the lock and the source
+     * is valid, the queue must be full.
+     */
+    std::lock_guard<std::mutex> lock(mSrcMutex);
+    return mSource != 0;
+}
+
+void AudioState::startPlayback()
+{
+    alSourcePlay(mSource);
+    if(alcGetInteger64vSOFT)
+    {
+        using fixed32 = std::chrono::duration<int64_t,std::ratio<1,(1ll<<32)>>;
+
+        // Subtract the total buffer queue time from the current pts to get the
+        // pts of the start of the queue.
+        nanoseconds startpts = mCurrentPts - AudioBufferTotalTime;
+        int64_t srctimes[2]={0,0};
+        alGetSourcei64vSOFT(mSource, AL_SAMPLE_OFFSET_CLOCK_SOFT, srctimes);
+        auto device_time = nanoseconds(srctimes[1]);
+        auto src_offset = std::chrono::duration_cast<nanoseconds>(fixed32(srctimes[0])) /
+                          mCodecCtx->sample_rate;
+
+        // The mixer may have ticked and incremented the device time and sample
+        // offset, so subtract the source offset from the device time to get
+        // the device time the source started at. Also subtract startpts to get
+        // the device time the stream would have started at to reach where it
+        // is now.
+        mDeviceStartTime = device_time - src_offset - startpts;
+    }
 }
 
 int AudioState::getSync()
 {
-    double diff, avg_diff, ref_clock;
-
-    if(mMovie->mAVSyncType == AV_SYNC_AUDIO_MASTER)
+    if(mMovie.mAVSyncType == SyncMaster::Audio)
         return 0;
 
-    ref_clock = mMovie->getMasterClock();
-    diff = ref_clock - getClock();
+    auto ref_clock = mMovie.getMasterClock();
+    auto diff = ref_clock - getClockNoLock();
 
-    if(!(fabs(diff) < AV_NOSYNC_THRESHOLD))
+    if(!(diff < AVNoSyncThreshold && diff > -AVNoSyncThreshold))
     {
-        /* Difference is TOO big; reset diff stuff */
-        mDiff.Accum = 0.0;
+        /* Difference is TOO big; reset accumulated average */
+        mClockDiffAvg = seconds_d64::zero();
         return 0;
     }
 
     /* Accumulate the diffs */
-    mDiff.Accum = mDiff.Accum*mDiff.AvgCoeff + diff;
-    avg_diff = mDiff.Accum*(1.0 - mDiff.AvgCoeff);
-    if(fabs(avg_diff) < mDiff.Threshold)
+    mClockDiffAvg = mClockDiffAvg*AudioAvgFilterCoeff + diff;
+    auto avg_diff = mClockDiffAvg*(1.0 - AudioAvgFilterCoeff);
+    if(avg_diff < AudioSyncThreshold/2.0 && avg_diff > -AudioSyncThreshold)
         return 0;
 
     /* Constrain the per-update difference to avoid exceedingly large skips */
-    if(!(diff <= SAMPLE_CORRECTION_MAX_DIFF))
-        diff = SAMPLE_CORRECTION_MAX_DIFF;
-    else if(!(diff >= -SAMPLE_CORRECTION_MAX_DIFF))
-        diff = -SAMPLE_CORRECTION_MAX_DIFF;
-    return (int)(diff*mCodecCtx->sample_rate);
+    diff = std::min<nanoseconds>(std::max<nanoseconds>(diff, -AudioSampleCorrectionMax),
+                                 AudioSampleCorrectionMax);
+    return (int)std::chrono::duration_cast<seconds>(diff*mCodecCtx->sample_rate).count();
 }
 
 int AudioState::decodeFrame()
 {
-    while(!mMovie->mQuit.load())
+    while(!mMovie.mQuit.load(std::memory_order_relaxed))
     {
-        while(!mMovie->mQuit.load())
-        {
-            /* Get the next packet */
-            AVPacket pkt{};
-            if(mQueue.peek(&pkt, mMovie->mQuit) <= 0)
-                return -1;
-
-            int ret = avcodec_send_packet(mCodecCtx, &pkt);
-            if(ret != AVERROR(EAGAIN))
-            {
-                if(ret < 0)
-                    std::cerr<< "Failed to send encoded packet: 0x"<<std::hex<<ret<<std::dec <<std::endl;
-                mQueue.pop();
-            }
-            av_packet_unref(&pkt);
-            if(ret == 0 || ret == AVERROR(EAGAIN))
-                break;
-        }
-
-        int ret = avcodec_receive_frame(mCodecCtx, mDecodedFrame);
+        std::unique_lock<std::mutex> lock(mQueueMtx);
+        int ret = avcodec_receive_frame(mCodecCtx.get(), mDecodedFrame.get());
         if(ret == AVERROR(EAGAIN))
-            continue;
-        if(ret == AVERROR_EOF || ret < 0)
+        {
+            mMovie.mSendDataGood.clear(std::memory_order_relaxed);
+            std::unique_lock<std::mutex>(mMovie.mSendMtx).unlock();
+            mMovie.mSendCond.notify_one();
+            do {
+                mQueueCond.wait(lock);
+                ret = avcodec_receive_frame(mCodecCtx.get(), mDecodedFrame.get());
+            } while(ret == AVERROR(EAGAIN));
+        }
+        lock.unlock();
+        if(ret == AVERROR_EOF) break;
+        mMovie.mSendDataGood.clear(std::memory_order_relaxed);
+        mMovie.mSendCond.notify_one();
+        if(ret < 0)
         {
             std::cerr<< "Failed to decode frame: "<<ret <<std::endl;
             return 0;
@@ -470,14 +560,15 @@ int AudioState::decodeFrame()
 
         if(mDecodedFrame->nb_samples <= 0)
         {
-            av_frame_unref(mDecodedFrame);
+            av_frame_unref(mDecodedFrame.get());
             continue;
         }
 
         /* If provided, update w/ pts */
-        int64_t pts = av_frame_get_best_effort_timestamp(mDecodedFrame);
-        if(pts != AV_NOPTS_VALUE)
-            mCurrentPts = av_q2d(mStream->time_base)*pts;
+        if(mDecodedFrame->best_effort_timestamp != AV_NOPTS_VALUE)
+            mCurrentPts = std::chrono::duration_cast<nanoseconds>(
+                seconds_d64(av_q2d(mStream->time_base)*mDecodedFrame->best_effort_timestamp)
+            );
 
         if(mDecodedFrame->nb_samples > mSamplesMax)
         {
@@ -489,11 +580,11 @@ int AudioState::decodeFrame()
             mSamplesMax = mDecodedFrame->nb_samples;
         }
         /* Return the amount of sample frames converted */
-        int data_size = swr_convert(mSwresCtx, &mSamples, mDecodedFrame->nb_samples,
+        int data_size = swr_convert(mSwresCtx.get(), &mSamples, mDecodedFrame->nb_samples,
             (const uint8_t**)mDecodedFrame->data, mDecodedFrame->nb_samples
         );
 
-        av_frame_unref(mDecodedFrame);
+        av_frame_unref(mDecodedFrame.get());
         return data_size;
     }
 
@@ -527,7 +618,7 @@ static void sample_dup(uint8_t *out, const uint8_t *in, int count, int frame_siz
 }
 
 
-int AudioState::readAudio(uint8_t *samples, int length)
+bool AudioState::readAudio(uint8_t *samples, int length)
 {
     int sample_skip = getSync();
     int audio_size = 0;
@@ -546,7 +637,12 @@ int AudioState::readAudio(uint8_t *samples, int length)
             mSamplesPos = std::min(mSamplesLen, sample_skip);
             sample_skip -= mSamplesPos;
 
-            mCurrentPts += (double)mSamplesPos / (double)mCodecCtx->sample_rate;
+            // Adjust the device start time and current pts by the amount we're
+            // skipping/duplicating, so that the clock remains correct for the
+            // current stream position.
+            auto skip = nanoseconds(seconds(mSamplesPos)) / mCodecCtx->sample_rate;
+            mDeviceStartTime -= skip;
+            mCurrentPts += skip;
             continue;
         }
 
@@ -573,30 +669,88 @@ int AudioState::readAudio(uint8_t *samples, int length)
         }
 
         mSamplesPos += rem;
-        mCurrentPts += (double)rem / mCodecCtx->sample_rate;
+        mCurrentPts += nanoseconds(seconds(rem)) / mCodecCtx->sample_rate;
         samples += rem*mFrameSize;
         audio_size += rem;
     }
+    if(audio_size <= 0)
+        return false;
 
-    if(audio_size < length && audio_size > 0)
+    if(audio_size < length)
     {
         int rem = length - audio_size;
         std::fill_n(samples, rem*mFrameSize,
                     (mDstSampleFmt == AV_SAMPLE_FMT_U8) ? 0x80 : 0x00);
-        mCurrentPts += (double)rem / mCodecCtx->sample_rate;
+        mCurrentPts += nanoseconds(seconds(rem)) / mCodecCtx->sample_rate;
         audio_size += rem;
     }
-
-    return audio_size * mFrameSize;
+    return true;
 }
 
 
+void AL_APIENTRY AudioState::EventCallback(ALenum eventType, ALuint object, ALuint param,
+                                           ALsizei length, const ALchar *message,
+                                           void *userParam)
+{
+    AudioState *self = reinterpret_cast<AudioState*>(userParam);
+
+    if(eventType == AL_EVENT_TYPE_BUFFER_COMPLETED_SOFT)
+    {
+        /* Temporarily lock the source mutex to ensure it's not between
+         * checking the processed count and going to sleep.
+         */
+        std::unique_lock<std::mutex>(self->mSrcMutex).unlock();
+        self->mSrcCond.notify_one();
+        return;
+    }
+
+    std::cout<< "\n---- AL Event on AudioState "<<self<<" ----\nEvent: ";
+    switch(eventType)
+    {
+        case AL_EVENT_TYPE_BUFFER_COMPLETED_SOFT: std::cout<< "Buffer completed"; break;
+        case AL_EVENT_TYPE_SOURCE_STATE_CHANGED_SOFT: std::cout<< "Source state changed"; break;
+        case AL_EVENT_TYPE_ERROR_SOFT: std::cout<< "API error"; break;
+        case AL_EVENT_TYPE_PERFORMANCE_SOFT: std::cout<< "Performance"; break;
+        case AL_EVENT_TYPE_DEPRECATED_SOFT: std::cout<< "Deprecated"; break;
+        case AL_EVENT_TYPE_DISCONNECTED_SOFT: std::cout<< "Disconnected"; break;
+        default: std::cout<< "0x"<<std::hex<<std::setw(4)<<std::setfill('0')<<eventType<<
+                             std::dec<<std::setw(0)<<std::setfill(' '); break;
+    }
+    std::cout<< "\n"
+        "Object ID: "<<object<<"\n"
+        "Parameter: "<<param<<"\n"
+        "Message: "<<std::string(message, length)<<"\n----"<<
+        std::endl;
+
+    if(eventType == AL_EVENT_TYPE_DISCONNECTED_SOFT)
+    {
+        { std::lock_guard<std::mutex> lock(self->mSrcMutex);
+            self->mConnected.clear(std::memory_order_release);
+        }
+        std::unique_lock<std::mutex>(self->mSrcMutex).unlock();
+        self->mSrcCond.notify_one();
+    }
+}
+
 int AudioState::handler()
 {
-    std::unique_lock<std::recursive_mutex> lock(mSrcMutex);
+    const std::array<ALenum,6> types{{
+        AL_EVENT_TYPE_BUFFER_COMPLETED_SOFT, AL_EVENT_TYPE_SOURCE_STATE_CHANGED_SOFT,
+        AL_EVENT_TYPE_ERROR_SOFT, AL_EVENT_TYPE_PERFORMANCE_SOFT, AL_EVENT_TYPE_DEPRECATED_SOFT,
+        AL_EVENT_TYPE_DISCONNECTED_SOFT
+    }};
+    std::unique_lock<std::mutex> lock(mSrcMutex);
+    milliseconds sleep_time = AudioBufferTime / 3;
     ALenum fmt;
 
-    /* Find a suitable format for Alure. */
+    if(alEventControlSOFT)
+    {
+        alEventControlSOFT(types.size(), types.data(), AL_TRUE);
+        alEventCallbackSOFT(EventCallback, this);
+        sleep_time = AudioBufferTotalTime;
+    }
+
+    /* Find a suitable format for OpenAL. */
     mDstChanLayout = 0;
     if(mCodecCtx->sample_fmt == AV_SAMPLE_FMT_U8 || mCodecCtx->sample_fmt == AV_SAMPLE_FMT_U8P)
     {
@@ -701,77 +855,102 @@ int AudioState::handler()
             mFormat = AL_FORMAT_STEREO16;
         }
     }
-    ALsizei buffer_len = mCodecCtx->sample_rate * AUDIO_BUFFER_TIME / 1000 *
-            mFrameSize;
-    void *samples = av_malloc(buffer_len);
+    void *samples = nullptr;
+    ALsizei buffer_len = std::chrono::duration_cast<std::chrono::duration<int>>(
+        mCodecCtx->sample_rate * AudioBufferTime).count() * mFrameSize;
 
     mSamples = NULL;
     mSamplesMax = 0;
     mSamplesPos = 0;
     mSamplesLen = 0;
 
-    if(!(mDecodedFrame=av_frame_alloc()))
+    mDecodedFrame.reset(av_frame_alloc());
+    if(!mDecodedFrame)
     {
         std::cerr<< "Failed to allocate audio frame" <<std::endl;
         goto finish;
     }
 
-    mSwresCtx = swr_alloc_set_opts(nullptr,
+    mSwresCtx.reset(swr_alloc_set_opts(nullptr,
         mDstChanLayout, mDstSampleFmt, mCodecCtx->sample_rate,
         mCodecCtx->channel_layout ? mCodecCtx->channel_layout :
             (uint64_t)av_get_default_channel_layout(mCodecCtx->channels),
         mCodecCtx->sample_fmt, mCodecCtx->sample_rate,
         0, nullptr
-    );
-    if(!mSwresCtx || swr_init(mSwresCtx) != 0)
+    ));
+    if(!mSwresCtx || swr_init(mSwresCtx.get()) != 0)
     {
         std::cerr<< "Failed to initialize audio converter" <<std::endl;
         goto finish;
     }
 
-    alGenBuffers(AUDIO_BUFFER_QUEUE_SIZE, mBuffers);
+    mBuffers.assign(AudioBufferTotalTime / AudioBufferTime, 0);
+    alGenBuffers(mBuffers.size(), mBuffers.data());
     alGenSources(1, &mSource);
 
-    if(do_direct_out)
+    if(EnableDirectOut)
+        alSourcei(mSource, AL_DIRECT_CHANNELS_SOFT, AL_TRUE);
+    if(EnableWideStereo)
     {
-        if(!alIsExtensionPresent("AL_SOFT_direct_channels"))
-            std::cerr<< "AL_SOFT_direct_channels not supported for direct output" <<std::endl;
-        else
+        ALfloat angles[2] = { (ALfloat)(M_PI/3.0), (ALfloat)(-M_PI/3.0) };
+        alSourcefv(mSource, AL_STEREO_ANGLES, angles);
+    }
+
+    if(alGetError() != AL_NO_ERROR)
+        goto finish;
+
+    if(!alBufferStorageSOFT)
+        samples = av_malloc(buffer_len);
+    else
+    {
+        for(ALuint bufid : mBuffers)
+            alBufferStorageSOFT(bufid, mFormat, nullptr, buffer_len, mCodecCtx->sample_rate,
+                                AL_MAP_WRITE_BIT_SOFT);
+        if(alGetError() != AL_NO_ERROR)
         {
-            alSourcei(mSource, AL_DIRECT_CHANNELS_SOFT, AL_TRUE);
-            std::cout<< "Direct out enabled" <<std::endl;
+            fprintf(stderr, "Failed to use mapped buffers\n");
+            samples = av_malloc(buffer_len);
         }
     }
 
-    while(alGetError() == AL_NO_ERROR && !mMovie->mQuit.load())
+    while(alGetError() == AL_NO_ERROR && !mMovie.mQuit.load(std::memory_order_relaxed) &&
+          mConnected.test_and_set(std::memory_order_relaxed))
     {
         /* First remove any processed buffers. */
         ALint processed;
         alGetSourcei(mSource, AL_BUFFERS_PROCESSED, &processed);
-        if(processed > 0)
+        while(processed > 0)
         {
-            std::array<ALuint,AUDIO_BUFFER_QUEUE_SIZE> tmp;
-            alSourceUnqueueBuffers(mSource, processed, tmp.data());
+            std::array<ALuint,4> bids;
+            alSourceUnqueueBuffers(mSource, std::min<ALsizei>(bids.size(), processed),
+                                   bids.data());
+            processed -= std::min<ALsizei>(bids.size(), processed);
         }
 
         /* Refill the buffer queue. */
         ALint queued;
         alGetSourcei(mSource, AL_BUFFERS_QUEUED, &queued);
-        while(queued < AUDIO_BUFFER_QUEUE_SIZE)
+        while((ALuint)queued < mBuffers.size())
         {
-            int audio_size;
+            ALuint bufid = mBuffers[mBufferIdx];
 
-            /* Read the next chunk of data, fill the buffer, and queue it on
+            uint8_t *ptr = reinterpret_cast<uint8_t*>(
+                samples ? samples : alMapBufferSOFT(bufid, 0, buffer_len, AL_MAP_WRITE_BIT_SOFT)
+            );
+            if(!ptr) break;
+
+            /* Read the next chunk of data, filling the buffer, and queue it on
              * the source */
-            audio_size = readAudio(reinterpret_cast<uint8_t*>(samples), buffer_len);
-            if(audio_size <= 0) break;
+            bool got_audio = readAudio(ptr, buffer_len);
+            if(!samples) alUnmapBufferSOFT(bufid);
+            if(!got_audio) break;
 
-            ALuint bufid = mBuffers[mBufferIdx++];
-            mBufferIdx %= AUDIO_BUFFER_QUEUE_SIZE;
+            if(samples)
+                alBufferData(bufid, mFormat, samples, buffer_len, mCodecCtx->sample_rate);
 
-            alBufferData(bufid, mFormat, samples, audio_size, mCodecCtx->sample_rate);
             alSourceQueueBuffers(mSource, 1, &bufid);
-            queued++;
+            mBufferIdx = (mBufferIdx+1) % mBuffers.size();
+            ++queued;
         }
         if(queued == 0)
             break;
@@ -781,40 +960,50 @@ int AudioState::handler()
         alGetSourcei(mSource, AL_SOURCE_STATE, &state);
         if(state == AL_STOPPED)
         {
-            /* AL_STOPPED means there was an underrun. Rewind the source to get
+            /* AL_STOPPED means there was an underrun. Clear the buffer queue
+             * since this likely means we're late, and rewind the source to get
              * it back into an AL_INITIAL state.
              */
             alSourceRewind(mSource);
+            alSourcei(mSource, AL_BUFFER, 0);
             continue;
         }
 
-        lock.unlock();
-
         /* (re)start the source if needed, and wait for a buffer to finish */
-        if(state != AL_PLAYING && state != AL_PAUSED)
-            alSourcePlay(mSource);
-        SDL_Delay(AUDIO_BUFFER_TIME / 3);
+        if(state != AL_PLAYING && state != AL_PAUSED &&
+           mMovie.mPlaying.load(std::memory_order_relaxed))
+            startPlayback();
 
-        lock.lock();
+        mSrcCond.wait_for(lock, sleep_time);
     }
 
-finish:
     alSourceRewind(mSource);
     alSourcei(mSource, AL_BUFFER, 0);
 
-    av_frame_free(&mDecodedFrame);
-    swr_free(&mSwresCtx);
+finish:
+    av_freep(&samples);
 
-    av_freep(&mSamples);
+    if(alEventControlSOFT)
+    {
+        alEventControlSOFT(types.size(), types.data(), AL_FALSE);
+        alEventCallbackSOFT(nullptr, nullptr);
+    }
 
     return 0;
 }
 
 
-double VideoState::getClock()
+nanoseconds VideoState::getClock()
 {
-    double delta = (av_gettime() - mCurrentPtsTime) / 1000000.0;
+    /* NOTE: This returns incorrect times while not playing. */
+    auto delta = get_avtime() - mCurrentPtsTime;
     return mCurrentPts + delta;
+}
+
+bool VideoState::isBufferFilled()
+{
+    std::unique_lock<std::mutex> lock(mPictQMutex);
+    return mPictQSize >= mPictQ.size();
 }
 
 Uint32 SDLCALL VideoState::sdl_refresh_timer_cb(Uint32 /*interval*/, void *opaque)
@@ -827,9 +1016,9 @@ Uint32 SDLCALL VideoState::sdl_refresh_timer_cb(Uint32 /*interval*/, void *opaqu
 }
 
 /* Schedules an FF_REFRESH_EVENT event to occur in 'delay' ms. */
-void VideoState::schedRefresh(int delay)
+void VideoState::schedRefresh(milliseconds delay)
 {
-    SDL_AddTimer(delay, sdl_refresh_timer_cb, this);
+    SDL_AddTimer(delay.count(), sdl_refresh_timer_cb, this);
 }
 
 /* Called by VideoState::refreshTimer to display the next video frame. */
@@ -886,7 +1075,12 @@ void VideoState::refreshTimer(SDL_Window *screen, SDL_Renderer *renderer)
             mPictQCond.notify_all();
             return;
         }
-        schedRefresh(100);
+        schedRefresh(milliseconds(100));
+        return;
+    }
+    if(!mMovie.mPlaying.load(std::memory_order_relaxed))
+    {
+        schedRefresh(milliseconds(1));
         return;
     }
 
@@ -897,7 +1091,7 @@ retry:
         if(mEOS)
             mFinalUpdate = true;
         else
-            schedRefresh(1);
+            schedRefresh(milliseconds(1));
         lock.unlock();
         mPictQCond.notify_all();
         return;
@@ -905,11 +1099,11 @@ retry:
 
     Picture *vp = &mPictQ[mPictQRead];
     mCurrentPts = vp->mPts;
-    mCurrentPtsTime = av_gettime();
+    mCurrentPtsTime = get_avtime();
 
     /* Get delay using the frame pts and the pts from last frame. */
-    double delay = vp->mPts - mFrameLastPts;
-    if(delay <= 0 || delay >= 1.0)
+    auto delay = vp->mPts - mFrameLastPts;
+    if(delay <= seconds::zero() || delay >= seconds(1))
     {
         /* If incorrect delay, use previous one. */
         delay = mFrameLastDelay;
@@ -919,33 +1113,33 @@ retry:
     mFrameLastPts = vp->mPts;
 
     /* Update delay to sync to clock if not master source. */
-    if(mMovie->mAVSyncType != AV_SYNC_VIDEO_MASTER)
+    if(mMovie.mAVSyncType != SyncMaster::Video)
     {
-        double ref_clock = mMovie->getMasterClock();
-        double diff = vp->mPts - ref_clock;
+        auto ref_clock = mMovie.getMasterClock();
+        auto diff = vp->mPts - ref_clock;
 
         /* Skip or repeat the frame. Take delay into account. */
-        double sync_threshold = std::min(delay, AV_SYNC_THRESHOLD);
-        if(fabs(diff) < AV_NOSYNC_THRESHOLD)
+        auto sync_threshold = std::min<nanoseconds>(delay, VideoSyncThreshold);
+        if(!(diff < AVNoSyncThreshold && diff > -AVNoSyncThreshold))
         {
             if(diff <= -sync_threshold)
-                delay = 0;
+                delay = nanoseconds::zero();
             else if(diff >= sync_threshold)
-                delay *= 2.0;
+                delay *= 2;
         }
     }
 
     mFrameTimer += delay;
     /* Compute the REAL delay. */
-    double actual_delay = mFrameTimer - (av_gettime() / 1000000.0);
-    if(!(actual_delay >= 0.010))
+    auto actual_delay = mFrameTimer - get_avtime();
+    if(!(actual_delay >= VideoSyncThreshold))
     {
         /* We don't have time to handle this picture, just skip to the next one. */
         mPictQRead = (mPictQRead+1)%mPictQ.size();
         mPictQSize--;
         goto retry;
     }
-    schedRefresh((int)(actual_delay*1000.0 + 0.5));
+    schedRefresh(std::chrono::duration_cast<milliseconds>(actual_delay));
 
     /* Show the picture! */
     display(screen, renderer);
@@ -1001,7 +1195,7 @@ void VideoState::updatePicture(SDL_Window *screen, SDL_Renderer *renderer)
 
     if(vp->mImage)
     {
-        AVFrame *frame = mDecodedFrame;
+        AVFrame *frame = mDecodedFrame.get();
         void *pixels = nullptr;
         int pitch = 0;
 
@@ -1022,12 +1216,11 @@ void VideoState::updatePicture(SDL_Window *screen, SDL_Renderer *renderer)
             int h = mCodecCtx->height;
             if(!mSwscaleCtx || fmt_updated)
             {
-                sws_freeContext(mSwscaleCtx);
-                mSwscaleCtx = sws_getContext(
+                mSwscaleCtx.reset(sws_getContext(
                     w, h, mCodecCtx->pix_fmt,
                     w, h, AV_PIX_FMT_YUV420P, 0,
                     nullptr, nullptr, nullptr
-                );
+                ));
             }
 
             /* point pict at the queue */
@@ -1041,33 +1234,32 @@ void VideoState::updatePicture(SDL_Window *screen, SDL_Renderer *renderer)
             pict_linesize[1] = pitch / 2;
             pict_linesize[2] = pitch / 2;
 
-            sws_scale(mSwscaleCtx, (const uint8_t**)frame->data,
+            sws_scale(mSwscaleCtx.get(), (const uint8_t**)frame->data,
                       frame->linesize, 0, h, pict_data, pict_linesize);
             SDL_UnlockTexture(vp->mImage);
         }
     }
 
-    std::unique_lock<std::mutex> lock(mPictQMutex);
-    vp->mUpdated = true;
-    lock.unlock();
+    vp->mUpdated.store(true, std::memory_order_release);
+    std::unique_lock<std::mutex>(mPictQMutex).unlock();
     mPictQCond.notify_one();
 }
 
-int VideoState::queuePicture(double pts)
+int VideoState::queuePicture(nanoseconds pts)
 {
     /* Wait until we have space for a new pic */
     std::unique_lock<std::mutex> lock(mPictQMutex);
-    while(mPictQSize >= mPictQ.size() && !mMovie->mQuit.load())
+    while(mPictQSize >= mPictQ.size() && !mMovie.mQuit.load(std::memory_order_relaxed))
         mPictQCond.wait(lock);
     lock.unlock();
 
-    if(mMovie->mQuit.load())
+    if(mMovie.mQuit.load(std::memory_order_relaxed))
         return -1;
 
     Picture *vp = &mPictQ[mPictQWrite];
 
     /* We have to create/update the picture in the main thread  */
-    vp->mUpdated = false;
+    vp->mUpdated.store(false, std::memory_order_relaxed);
     SDL_Event evt{};
     evt.user.type = FF_UPDATE_EVENT;
     evt.user.data1 = this;
@@ -1075,9 +1267,13 @@ int VideoState::queuePicture(double pts)
 
     /* Wait until the picture is updated. */
     lock.lock();
-    while(!vp->mUpdated && !mMovie->mQuit.load())
+    while(!vp->mUpdated.load(std::memory_order_relaxed))
+    {
+        if(mMovie.mQuit.load(std::memory_order_relaxed))
+            return -1;
         mPictQCond.wait(lock);
-    if(mMovie->mQuit.load())
+    }
+    if(mMovie.mQuit.load(std::memory_order_relaxed))
         return -1;
     vp->mPts = pts;
 
@@ -1088,69 +1284,55 @@ int VideoState::queuePicture(double pts)
     return 0;
 }
 
-double VideoState::synchronize(double pts)
-{
-    double frame_delay;
-
-    if(pts == 0.0) /* if we aren't given a pts, set it to the clock */
-        pts = mClock;
-    else /* if we have pts, set video clock to it */
-        mClock = pts;
-
-    /* update the video clock */
-    frame_delay = av_q2d(mCodecCtx->time_base);
-    /* if we are repeating a frame, adjust clock accordingly */
-    frame_delay += mDecodedFrame->repeat_pict * (frame_delay * 0.5);
-    mClock += frame_delay;
-    return pts;
-}
-
 int VideoState::handler()
 {
-    mDecodedFrame = av_frame_alloc();
-    while(!mMovie->mQuit)
+    mDecodedFrame.reset(av_frame_alloc());
+    while(!mMovie.mQuit.load(std::memory_order_relaxed))
     {
-        while(!mMovie->mQuit)
-        {
-            AVPacket packet{};
-            if(mQueue.peek(&packet, mMovie->mQuit) <= 0)
-                goto finish;
-
-            int ret = avcodec_send_packet(mCodecCtx, &packet);
-            if(ret != AVERROR(EAGAIN))
-            {
-                if(ret < 0)
-                    std::cerr<< "Failed to send encoded packet: 0x"<<std::hex<<ret<<std::dec <<std::endl;
-                mQueue.pop();
-            }
-            av_packet_unref(&packet);
-            if(ret == 0 || ret == AVERROR(EAGAIN))
-                break;
-        }
-
+        std::unique_lock<std::mutex> lock(mQueueMtx);
         /* Decode video frame */
-        int ret = avcodec_receive_frame(mCodecCtx, mDecodedFrame);
+        int ret = avcodec_receive_frame(mCodecCtx.get(), mDecodedFrame.get());
         if(ret == AVERROR(EAGAIN))
-            continue;
+        {
+            mMovie.mSendDataGood.clear(std::memory_order_relaxed);
+            std::unique_lock<std::mutex>(mMovie.mSendMtx).unlock();
+            mMovie.mSendCond.notify_one();
+            do {
+                mQueueCond.wait(lock);
+                ret = avcodec_receive_frame(mCodecCtx.get(), mDecodedFrame.get());
+            } while(ret == AVERROR(EAGAIN));
+        }
+        lock.unlock();
+        if(ret == AVERROR_EOF) break;
+        mMovie.mSendDataGood.clear(std::memory_order_relaxed);
+        mMovie.mSendCond.notify_one();
         if(ret < 0)
         {
             std::cerr<< "Failed to decode frame: "<<ret <<std::endl;
-            break;
+            continue;
         }
 
-        double pts = synchronize(
-            av_q2d(mStream->time_base) * av_frame_get_best_effort_timestamp(mDecodedFrame)
-        );
+        /* Get the PTS for this frame. */
+        nanoseconds pts;
+        if(mDecodedFrame->best_effort_timestamp != AV_NOPTS_VALUE)
+            mClock = std::chrono::duration_cast<nanoseconds>(
+                seconds_d64(av_q2d(mStream->time_base)*mDecodedFrame->best_effort_timestamp)
+            );
+        pts = mClock;
+
+        /* Update the video clock to the next expected PTS. */
+        auto frame_delay = av_q2d(mCodecCtx->time_base);
+        frame_delay += mDecodedFrame->repeat_pict * (frame_delay * 0.5);
+        mClock += std::chrono::duration_cast<nanoseconds>(seconds_d64(frame_delay));
+
         if(queuePicture(pts) < 0)
             break;
-        av_frame_unref(mDecodedFrame);
+        av_frame_unref(mDecodedFrame.get());
     }
-finish:
     mEOS = true;
-    av_frame_free(&mDecodedFrame);
 
     std::unique_lock<std::mutex> lock(mPictQMutex);
-    if(mMovie->mQuit)
+    if(mMovie.mQuit.load(std::memory_order_relaxed))
     {
         mPictQRead = 0;
         mPictQWrite = 0;
@@ -1165,36 +1347,41 @@ finish:
 
 int MovieState::decode_interrupt_cb(void *ctx)
 {
-    return reinterpret_cast<MovieState*>(ctx)->mQuit;
+    return reinterpret_cast<MovieState*>(ctx)->mQuit.load(std::memory_order_relaxed);
 }
 
 bool MovieState::prepare()
 {
-    mFormatCtx = avformat_alloc_context();
-    mFormatCtx->interrupt_callback.callback = decode_interrupt_cb;
-    mFormatCtx->interrupt_callback.opaque = this;
-    if(avio_open2(&mFormatCtx->pb, mFilename.c_str(), AVIO_FLAG_READ,
-                  &mFormatCtx->interrupt_callback, nullptr))
+    AVIOContext *avioctx = nullptr;
+    AVIOInterruptCB intcb = { decode_interrupt_cb, this };
+    if(avio_open2(&avioctx, mFilename.c_str(), AVIO_FLAG_READ, &intcb, nullptr))
     {
         std::cerr<< "Failed to open "<<mFilename <<std::endl;
         return false;
     }
+    mIOContext.reset(avioctx);
 
-    /* Open movie file */
-    if(avformat_open_input(&mFormatCtx, mFilename.c_str(), nullptr, nullptr) != 0)
+    /* Open movie file. If avformat_open_input fails it will automatically free
+     * this context, so don't set it onto a smart pointer yet.
+     */
+    AVFormatContext *fmtctx = avformat_alloc_context();
+    fmtctx->pb = mIOContext.get();
+    fmtctx->interrupt_callback = intcb;
+    if(avformat_open_input(&fmtctx, mFilename.c_str(), nullptr, nullptr) != 0)
     {
         std::cerr<< "Failed to open "<<mFilename <<std::endl;
         return false;
     }
+    mFormatCtx.reset(fmtctx);
 
     /* Retrieve stream information */
-    if(avformat_find_stream_info(mFormatCtx, nullptr) < 0)
+    if(avformat_find_stream_info(mFormatCtx.get(), nullptr) < 0)
     {
         std::cerr<< mFilename<<": failed to find stream info" <<std::endl;
         return false;
     }
 
-    mVideo.schedRefresh(40);
+    mVideo.schedRefresh(milliseconds(40));
 
     mParseThread = std::thread(std::mem_fn(&MovieState::parse_handler), this);
     return true;
@@ -1210,19 +1397,24 @@ void MovieState::setTitle(SDL_Window *window)
     SDL_SetWindowTitle(window, (mFilename.substr(fpos)+" - "+AppName).c_str());
 }
 
-double MovieState::getClock()
+nanoseconds MovieState::getClock()
 {
-    return (av_gettime()-mExternalClockBase) / 1000000.0;
+    if(!mPlaying.load(std::memory_order_relaxed))
+        return nanoseconds::zero();
+    return get_avtime() - mClockBase;
 }
 
-double MovieState::getMasterClock()
+nanoseconds MovieState::getMasterClock()
 {
-    if(mAVSyncType == AV_SYNC_VIDEO_MASTER)
+    if(mAVSyncType == SyncMaster::Video)
         return mVideo.getClock();
-    if(mAVSyncType == AV_SYNC_AUDIO_MASTER)
+    if(mAVSyncType == SyncMaster::Audio)
         return mAudio.getClock();
     return getClock();
 }
+
+nanoseconds MovieState::getDuration()
+{ return std::chrono::duration<int64_t,std::ratio<1,AV_TIME_BASE>>(mFormatCtx->duration); }
 
 int MovieState::streamComponentOpen(int stream_index)
 {
@@ -1232,21 +1424,17 @@ int MovieState::streamComponentOpen(int stream_index)
     /* Get a pointer to the codec context for the stream, and open the
      * associated codec.
      */
-    AVCodecContext *avctx = avcodec_alloc_context3(nullptr);
+    AVCodecCtxPtr avctx(avcodec_alloc_context3(nullptr));
     if(!avctx) return -1;
 
-    if(avcodec_parameters_to_context(avctx, mFormatCtx->streams[stream_index]->codecpar))
-    {
-        avcodec_free_context(&avctx);
+    if(avcodec_parameters_to_context(avctx.get(), mFormatCtx->streams[stream_index]->codecpar))
         return -1;
-    }
 
     AVCodec *codec = avcodec_find_decoder(avctx->codec_id);
-    if(!codec || avcodec_open2(avctx, codec, nullptr) < 0)
+    if(!codec || avcodec_open2(avctx.get(), codec, nullptr) < 0)
     {
         std::cerr<< "Unsupported codec: "<<avcodec_get_name(avctx->codec_id)
                  << " (0x"<<std::hex<<avctx->codec_id<<std::dec<<")" <<std::endl;
-        avcodec_free_context(&avctx);
         return -1;
     }
 
@@ -1254,36 +1442,24 @@ int MovieState::streamComponentOpen(int stream_index)
     switch(avctx->codec_type)
     {
         case AVMEDIA_TYPE_AUDIO:
-            mAudioStream = stream_index;
             mAudio.mStream = mFormatCtx->streams[stream_index];
-            mAudio.mCodecCtx = avctx;
-
-            /* Averaging filter for audio sync */
-            mAudio.mDiff.AvgCoeff = exp(log(0.01) / AUDIO_DIFF_AVG_NB);
-            /* Correct audio only if larger error than this */
-            mAudio.mDiff.Threshold = 0.050/* 50 ms */;
+            mAudio.mCodecCtx = std::move(avctx);
 
             mAudioThread = std::thread(std::mem_fn(&AudioState::handler), &mAudio);
             break;
 
         case AVMEDIA_TYPE_VIDEO:
-            mVideoStream = stream_index;
             mVideo.mStream = mFormatCtx->streams[stream_index];
-            mVideo.mCodecCtx = avctx;
-
-            mVideo.mCurrentPtsTime = av_gettime();
-            mVideo.mFrameTimer = (double)mVideo.mCurrentPtsTime / 1000000.0;
-            mVideo.mFrameLastDelay = 40e-3;
+            mVideo.mCodecCtx = std::move(avctx);
 
             mVideoThread = std::thread(std::mem_fn(&VideoState::handler), &mVideo);
             break;
 
         default:
-            avcodec_free_context(&avctx);
-            break;
+            return -1;
     }
 
-    return 0;
+    return stream_index;
 }
 
 int MovieState::parse_handler()
@@ -1291,57 +1467,114 @@ int MovieState::parse_handler()
     int video_index = -1;
     int audio_index = -1;
 
-    mVideoStream = -1;
-    mAudioStream = -1;
-
     /* Dump information about file onto standard error */
-    av_dump_format(mFormatCtx, 0, mFilename.c_str(), 0);
+    av_dump_format(mFormatCtx.get(), 0, mFilename.c_str(), 0);
 
     /* Find the first video and audio streams */
     for(unsigned int i = 0;i < mFormatCtx->nb_streams;i++)
     {
-        if(mFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO && video_index < 0)
-            video_index = i;
-        else if(mFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO && audio_index < 0)
-            audio_index = i;
+        auto codecpar = mFormatCtx->streams[i]->codecpar;
+        if(codecpar->codec_type == AVMEDIA_TYPE_VIDEO && video_index < 0)
+            video_index = streamComponentOpen(i);
+        else if(codecpar->codec_type == AVMEDIA_TYPE_AUDIO && audio_index < 0)
+            audio_index = streamComponentOpen(i);
     }
-    /* Start the external clock in 50ms, to give the audio and video
-     * components time to start without needing to skip ahead.
-     */
-    mExternalClockBase = av_gettime() + 50000;
-    if(audio_index >= 0)
-        streamComponentOpen(audio_index);
-    if(video_index >= 0)
-        streamComponentOpen(video_index);
 
-    if(mVideoStream < 0 && mAudioStream < 0)
+    if(video_index < 0 && audio_index < 0)
     {
         std::cerr<< mFilename<<": could not open codecs" <<std::endl;
         mQuit = true;
     }
 
-    /* Main packet handling loop */
-    while(!mQuit.load())
+    PacketQueue audio_queue, video_queue;
+    bool input_finished = false;
+
+    /* Main packet reading/dispatching loop */
+    while(!mQuit.load(std::memory_order_relaxed) && !input_finished)
     {
-        if(mAudio.mQueue.mTotalSize + mVideo.mQueue.mTotalSize >= MAX_QUEUE_SIZE)
+        AVPacket packet;
+        if(av_read_frame(mFormatCtx.get(), &packet) < 0)
+            input_finished = true;
+        else
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            continue;
+            /* Copy the packet into the queue it's meant for. */
+            if(packet.stream_index == video_index)
+                video_queue.put(&packet);
+            else if(packet.stream_index == audio_index)
+                audio_queue.put(&packet);
+            av_packet_unref(&packet);
         }
 
-        AVPacket packet;
-        if(av_read_frame(mFormatCtx, &packet) < 0)
-            break;
+        do {
+            /* Send whatever queued packets we have. */
+            if(!audio_queue.empty())
+            {
+                std::unique_lock<std::mutex> lock(mAudio.mQueueMtx);
+                int ret;
+                do {
+                    ret = avcodec_send_packet(mAudio.mCodecCtx.get(), audio_queue.front());
+                    if(ret != AVERROR(EAGAIN)) audio_queue.pop();
+                } while(ret != AVERROR(EAGAIN) && !audio_queue.empty());
+                lock.unlock();
+                mAudio.mQueueCond.notify_one();
+            }
+            if(!video_queue.empty())
+            {
+                std::unique_lock<std::mutex> lock(mVideo.mQueueMtx);
+                int ret;
+                do {
+                    ret = avcodec_send_packet(mVideo.mCodecCtx.get(), video_queue.front());
+                    if(ret != AVERROR(EAGAIN)) video_queue.pop();
+                } while(ret != AVERROR(EAGAIN) && !video_queue.empty());
+                lock.unlock();
+                mVideo.mQueueCond.notify_one();
+            }
+            /* If the queues are completely empty, or it's not full and there's
+             * more input to read, go get more.
+             */
+            size_t queue_size = audio_queue.totalSize() + video_queue.totalSize();
+            if(queue_size == 0 || (queue_size < MAX_QUEUE_SIZE && !input_finished))
+                break;
 
-        /* Copy the packet in the queue it's meant for. */
-        if(packet.stream_index == mVideoStream)
-            mVideo.mQueue.put(&packet);
-        else if(packet.stream_index == mAudioStream)
-            mAudio.mQueue.put(&packet);
-        av_packet_unref(&packet);
+            if(!mPlaying.load(std::memory_order_relaxed))
+            {
+                if((!mAudio.mCodecCtx || mAudio.isBufferFilled()) &&
+                   (!mVideo.mCodecCtx || mVideo.isBufferFilled()))
+                {
+                    /* Set the base time 50ms ahead of the current av time. */
+                    mClockBase = get_avtime() + milliseconds(50);
+                    mVideo.mCurrentPtsTime = mClockBase;
+                    mVideo.mFrameTimer = mVideo.mCurrentPtsTime;
+                    mAudio.startPlayback();
+                    mPlaying.store(std::memory_order_release);
+                }
+            }
+            /* Nothing to send or get for now, wait a bit and try again. */
+            { std::unique_lock<std::mutex> lock(mSendMtx);
+                if(mSendDataGood.test_and_set(std::memory_order_relaxed))
+                    mSendCond.wait_for(lock, milliseconds(10));
+            }
+        } while(!mQuit.load(std::memory_order_relaxed));
     }
-    mVideo.mQueue.finish();
-    mAudio.mQueue.finish();
+    /* Pass a null packet to finish the send buffers (the receive functions
+     * will get AVERROR_EOF when emptied).
+     */
+    if(mVideo.mCodecCtx)
+    {
+        { std::lock_guard<std::mutex> lock(mVideo.mQueueMtx);
+            avcodec_send_packet(mVideo.mCodecCtx.get(), nullptr);
+        }
+        mVideo.mQueueCond.notify_one();
+    }
+    if(mAudio.mCodecCtx)
+    {
+        { std::lock_guard<std::mutex> lock(mAudio.mQueueMtx);
+            avcodec_send_packet(mAudio.mCodecCtx.get(), nullptr);
+        }
+        mAudio.mQueueCond.notify_one();
+    }
+    video_queue.clear();
+    audio_queue.clear();
 
     /* all done - wait for it */
     if(mVideoThread.joinable())
@@ -1360,6 +1593,35 @@ int MovieState::parse_handler()
     SDL_PushEvent(&evt);
 
     return 0;
+}
+
+
+// Helper class+method to print the time with human-readable formatting.
+struct PrettyTime {
+    seconds mTime;
+};
+inline std::ostream &operator<<(std::ostream &os, const PrettyTime &rhs)
+{
+    using hours = std::chrono::hours;
+    using minutes = std::chrono::minutes;
+    using std::chrono::duration_cast;
+
+    seconds t = rhs.mTime;
+    if(t.count() < 0)
+    {
+        os << '-';
+        t *= -1;
+    }
+
+    // Only handle up to hour formatting
+    if(t >= hours(1))
+        os << duration_cast<hours>(t).count() << 'h' << std::setfill('0') << std::setw(2)
+           << (duration_cast<minutes>(t).count() % 60) << 'm';
+    else
+        os << duration_cast<minutes>(t).count() << 'm' << std::setfill('0');
+    os << std::setw(2) << (duration_cast<seconds>(t).count() % 60) << 's' << std::setw(0)
+       << std::setfill(' ');
+    return os;
 }
 
 } // namespace
@@ -1393,7 +1655,8 @@ int main(int argc, char *argv[])
         return 1;
     }
     /* Make a renderer to handle the texture image surface and rendering. */
-    SDL_Renderer *renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_ACCELERATED);
+    Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC;
+    SDL_Renderer *renderer = SDL_CreateRenderer(screen, -1, render_flags);
     if(renderer)
     {
         SDL_RendererInfo rinf{};
@@ -1414,7 +1677,10 @@ int main(int argc, char *argv[])
         }
     }
     if(!renderer)
-        renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_SOFTWARE);
+    {
+        render_flags = SDL_RENDERER_SOFTWARE | SDL_RENDERER_PRESENTVSYNC;
+        renderer = SDL_CreateRenderer(screen, -1, render_flags);
+    }
     if(!renderer)
     {
         std::cerr<< "SDL: could not create renderer - exiting" <<std::endl;
@@ -1454,10 +1720,64 @@ int main(int argc, char *argv[])
         name = alcGetString(device, ALC_DEVICE_SPECIFIER);
     std::cout<< "Opened \""<<name<<"\"" <<std::endl;
 
-    if(fileidx < argc && strcmp(argv[fileidx], "-direct") == 0)
+    if(alcIsExtensionPresent(device, "ALC_SOFT_device_clock"))
     {
-        ++fileidx;
-        do_direct_out = true;
+        std::cout<< "Found ALC_SOFT_device_clock" <<std::endl;
+        alcGetInteger64vSOFT = reinterpret_cast<LPALCGETINTEGER64VSOFT>(
+            alcGetProcAddress(device, "alcGetInteger64vSOFT")
+        );
+    }
+
+    if(alIsExtensionPresent("AL_SOFT_source_latency"))
+    {
+        std::cout<< "Found AL_SOFT_source_latency" <<std::endl;
+        alGetSourcei64vSOFT = reinterpret_cast<LPALGETSOURCEI64VSOFT>(
+            alGetProcAddress("alGetSourcei64vSOFT")
+        );
+    }
+    if(alIsExtensionPresent("AL_SOFTX_map_buffer"))
+    {
+        std::cout<< "Found AL_SOFT_map_buffer" <<std::endl;
+        alBufferStorageSOFT = reinterpret_cast<LPALBUFFERSTORAGESOFT>(
+            alGetProcAddress("alBufferStorageSOFT"));
+        alMapBufferSOFT = reinterpret_cast<LPALMAPBUFFERSOFT>(
+            alGetProcAddress("alMapBufferSOFT"));
+        alUnmapBufferSOFT = reinterpret_cast<LPALUNMAPBUFFERSOFT>(
+            alGetProcAddress("alUnmapBufferSOFT"));
+    }
+    if(alIsExtensionPresent("AL_SOFTX_events"))
+    {
+        std::cout<< "Found AL_SOFT_events" <<std::endl;
+        alEventControlSOFT = reinterpret_cast<LPALEVENTCONTROLSOFT>(
+            alGetProcAddress("alEventControlSOFT"));
+        alEventCallbackSOFT = reinterpret_cast<LPALEVENTCALLBACKSOFT>(
+            alGetProcAddress("alEventCallbackSOFT"));
+    }
+
+    for(;fileidx < argc;++fileidx)
+    {
+        if(strcmp(argv[fileidx], "-direct") == 0)
+        {
+            if(!alIsExtensionPresent("AL_SOFT_direct_channels"))
+                std::cerr<< "AL_SOFT_direct_channels not supported for direct output" <<std::endl;
+            else
+            {
+                std::cout<< "Found AL_SOFT_direct_channels" <<std::endl;
+                EnableDirectOut = true;
+            }
+        }
+        else if(strcmp(argv[fileidx], "-wide") == 0)
+        {
+            if(!alIsExtensionPresent("AL_EXT_STEREO_ANGLES"))
+                std::cerr<< "AL_EXT_STEREO_ANGLES not supported for wide stereo" <<std::endl;
+            else
+            {
+                std::cout<< "Found AL_EXT_STEREO_ANGLES" <<std::endl;
+                EnableWideStereo = true;
+            }
+        }
+        else
+            break;
     }
 
     while(fileidx < argc && !movState)
@@ -1476,9 +1796,21 @@ int main(int argc, char *argv[])
     enum class EomAction {
         Next, Quit
     } eom_action = EomAction::Next;
+    seconds last_time(-1);
     SDL_Event event;
-    while(SDL_WaitEvent(&event) == 1)
+    while(1)
     {
+        int have_evt = SDL_WaitEventTimeout(&event, 10);
+
+        auto cur_time = std::chrono::duration_cast<seconds>(movState->getMasterClock());
+        if(cur_time != last_time)
+        {
+            auto end_time = std::chrono::duration_cast<seconds>(movState->getDuration());
+            std::cout<< "\r "<<PrettyTime{cur_time}<<" / "<<PrettyTime{end_time} <<std::flush;
+            last_time = cur_time;
+        }
+        if(!have_evt) continue;
+
         switch(event.type)
         {
             case SDL_KEYDOWN:
@@ -1530,6 +1862,8 @@ int main(int argc, char *argv[])
                 break;
 
             case FF_MOVIE_DONE_EVENT:
+                std::cout<<'\n';
+                last_time = seconds(-1);
                 if(eom_action != EomAction::Quit)
                 {
                     movState = nullptr;

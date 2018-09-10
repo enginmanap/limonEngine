@@ -27,6 +27,13 @@
 #include "alu.h"
 
 
+#define AMP_ENVELOPE_MIN  0.5f
+#define AMP_ENVELOPE_MAX  2.0f
+
+#define ATTACK_TIME  0.1f /* 100ms to rise from min to max */
+#define RELEASE_TIME 0.2f /* 200ms to drop from max to min */
+
+
 typedef struct ALcompressorState {
     DERIVE_FROM_TYPE(ALeffectState);
 
@@ -35,14 +42,14 @@ typedef struct ALcompressorState {
 
     /* Effect parameters */
     ALboolean Enabled;
-    ALfloat AttackRate;
-    ALfloat ReleaseRate;
-    ALfloat GainCtrl;
+    ALfloat AttackMult;
+    ALfloat ReleaseMult;
+    ALfloat EnvFollower;
 } ALcompressorState;
 
 static ALvoid ALcompressorState_Destruct(ALcompressorState *state);
 static ALboolean ALcompressorState_deviceUpdate(ALcompressorState *state, ALCdevice *device);
-static ALvoid ALcompressorState_update(ALcompressorState *state, const ALCdevice *device, const ALeffectslot *slot, const ALeffectProps *props);
+static ALvoid ALcompressorState_update(ALcompressorState *state, const ALCcontext *context, const ALeffectslot *slot, const ALeffectProps *props);
 static ALvoid ALcompressorState_process(ALcompressorState *state, ALsizei SamplesToDo, const ALfloat (*restrict SamplesIn)[BUFFERSIZE], ALfloat (*restrict SamplesOut)[BUFFERSIZE], ALsizei NumChannels);
 DECLARE_DEFAULT_ALLOCATORS(ALcompressorState)
 
@@ -55,9 +62,9 @@ static void ALcompressorState_Construct(ALcompressorState *state)
     SET_VTABLE2(ALcompressorState, ALeffectState, state);
 
     state->Enabled = AL_TRUE;
-    state->AttackRate = 0.0f;
-    state->ReleaseRate = 0.0f;
-    state->GainCtrl = 1.0f;
+    state->AttackMult = 1.0f;
+    state->ReleaseMult = 1.0f;
+    state->EnvFollower = 1.0f;
 }
 
 static ALvoid ALcompressorState_Destruct(ALcompressorState *state)
@@ -67,17 +74,24 @@ static ALvoid ALcompressorState_Destruct(ALcompressorState *state)
 
 static ALboolean ALcompressorState_deviceUpdate(ALcompressorState *state, ALCdevice *device)
 {
-    const ALfloat attackTime = device->Frequency * 0.2f; /* 200ms Attack */
-    const ALfloat releaseTime = device->Frequency * 0.4f; /* 400ms Release */
+    /* Number of samples to do a full attack and release (non-integer sample
+     * counts are okay).
+     */
+    const ALfloat attackCount  = (ALfloat)device->Frequency * ATTACK_TIME;
+    const ALfloat releaseCount = (ALfloat)device->Frequency * RELEASE_TIME;
 
-    state->AttackRate = 1.0f / attackTime;
-    state->ReleaseRate = 1.0f / releaseTime;
+    /* Calculate per-sample multipliers to attack and release at the desired
+     * rates.
+     */
+    state->AttackMult  = powf(AMP_ENVELOPE_MAX/AMP_ENVELOPE_MIN, 1.0f/attackCount);
+    state->ReleaseMult = powf(AMP_ENVELOPE_MIN/AMP_ENVELOPE_MAX, 1.0f/releaseCount);
 
     return AL_TRUE;
 }
 
-static ALvoid ALcompressorState_update(ALcompressorState *state, const ALCdevice *device, const ALeffectslot *slot, const ALeffectProps *props)
+static ALvoid ALcompressorState_update(ALcompressorState *state, const ALCcontext *context, const ALeffectslot *slot, const ALeffectProps *props)
 {
+    const ALCdevice *device = context->Device;
     ALuint i;
 
     state->Enabled = props->Compressor.OnOff;
@@ -85,7 +99,7 @@ static ALvoid ALcompressorState_update(ALcompressorState *state, const ALCdevice
     STATIC_CAST(ALeffectState,state)->OutBuffer = device->FOAOut.Buffer;
     STATIC_CAST(ALeffectState,state)->OutChannels = device->FOAOut.NumChannels;
     for(i = 0;i < 4;i++)
-        ComputeFirstOrderGains(device->FOAOut, IdentityMatrixf.m[i],
+        ComputeFirstOrderGains(&device->FOAOut, IdentityMatrixf.m[i],
                                slot->Params.Gain, state->Gain[i]);
 }
 
@@ -96,71 +110,52 @@ static ALvoid ALcompressorState_process(ALcompressorState *state, ALsizei Sample
 
     for(base = 0;base < SamplesToDo;)
     {
-        ALfloat temps[64][4];
-        ALsizei td = mini(64, SamplesToDo-base);
+        ALfloat gains[256];
+        ALsizei td = mini(256, SamplesToDo-base);
+        ALfloat env = state->EnvFollower;
 
-        /* Load samples into the temp buffer first. */
-        for(j = 0;j < 4;j++)
-        {
-            for(i = 0;i < td;i++)
-                temps[i][j] = SamplesIn[j][i+base];
-        }
-
+        /* Generate the per-sample gains from the signal envelope. */
         if(state->Enabled)
         {
-            ALfloat gain = state->GainCtrl;
-            ALfloat output, amplitude;
-
-            for(i = 0;i < td;i++)
+            for(i = 0;i < td;++i)
             {
-                /* Roughly calculate the maximum amplitude from the 4-channel
-                 * signal, and attack or release the gain control to reach it.
+                /* Clamp the absolute amplitude to the defined envelope limits,
+                 * then attack or release the envelope to reach it.
                  */
-                amplitude = fabsf(temps[i][0]);
-                amplitude = maxf(amplitude + fabsf(temps[i][1]),
-                                 maxf(amplitude + fabsf(temps[i][2]),
-                                      amplitude + fabsf(temps[i][3])));
-                if(amplitude > gain)
-                    gain = minf(gain+state->AttackRate, amplitude);
-                else if(amplitude < gain)
-                    gain = maxf(gain-state->ReleaseRate, amplitude);
+                ALfloat amplitude = clampf(fabsf(SamplesIn[0][base+i]),
+                                           AMP_ENVELOPE_MIN, AMP_ENVELOPE_MAX);
+                if(amplitude > env)
+                    env = minf(env*state->AttackMult, amplitude);
+                else if(amplitude < env)
+                    env = maxf(env*state->ReleaseMult, amplitude);
 
-                /* Apply the inverse of the gain control to normalize/compress
-                 * the volume. */
-                output = 1.0f / clampf(gain, 0.5f, 2.0f);
-                for(j = 0;j < 4;j++)
-                    temps[i][j] *= output;
+                /* Apply the reciprocal of the envelope to normalize the volume
+                 * (compress the dynamic range).
+                 */
+                gains[i] = 1.0f / env;
             }
-
-            state->GainCtrl = gain;
         }
         else
         {
-            ALfloat gain = state->GainCtrl;
-            ALfloat output, amplitude;
-
-            for(i = 0;i < td;i++)
+            /* Same as above, except the amplitude is forced to 1. This helps
+             * ensure smooth gain changes when the compressor is turned on and
+             * off.
+             */
+            for(i = 0;i < td;++i)
             {
-                /* Same as above, except the amplitude is forced to 1. This
-                 * helps ensure smooth gain changes when the compressor is
-                 * turned on and off.
-                 */
-                amplitude = 1.0f;
-                if(amplitude > gain)
-                    gain = minf(gain+state->AttackRate, amplitude);
-                else if(amplitude < gain)
-                    gain = maxf(gain-state->ReleaseRate, amplitude);
+                ALfloat amplitude = 1.0f;
+                if(amplitude > env)
+                    env = minf(env*state->AttackMult, amplitude);
+                else if(amplitude < env)
+                    env = maxf(env*state->ReleaseMult, amplitude);
 
-                output = 1.0f / clampf(gain, 0.5f, 2.0f);
-                for(j = 0;j < 4;j++)
-                    temps[i][j] *= output;
+                gains[i] = 1.0f / env;
             }
-
-            state->GainCtrl = gain;
         }
+        state->EnvFollower = env;
 
-        /* Now mix to the output. */
-        for(j = 0;j < 4;j++)
+        /* Now compress the signal amplitude to output. */
+        for(j = 0;j < MAX_EFFECT_CHANNELS;j++)
         {
             for(k = 0;k < NumChannels;k++)
             {
@@ -169,7 +164,7 @@ static ALvoid ALcompressorState_process(ALcompressorState *state, ALsizei Sample
                     continue;
 
                 for(i = 0;i < td;i++)
-                    SamplesOut[k][base+i] += gain * temps[i][j];
+                    SamplesOut[k][base+i] += SamplesIn[j][base+i] * gains[i] * gain;
             }
         }
 
@@ -178,11 +173,11 @@ static ALvoid ALcompressorState_process(ALcompressorState *state, ALsizei Sample
 }
 
 
-typedef struct ALcompressorStateFactory {
-    DERIVE_FROM_TYPE(ALeffectStateFactory);
-} ALcompressorStateFactory;
+typedef struct CompressorStateFactory {
+    DERIVE_FROM_TYPE(EffectStateFactory);
+} CompressorStateFactory;
 
-static ALeffectState *ALcompressorStateFactory_create(ALcompressorStateFactory *UNUSED(factory))
+static ALeffectState *CompressorStateFactory_create(CompressorStateFactory *UNUSED(factory))
 {
     ALcompressorState *state;
 
@@ -192,13 +187,13 @@ static ALeffectState *ALcompressorStateFactory_create(ALcompressorStateFactory *
     return STATIC_CAST(ALeffectState, state);
 }
 
-DEFINE_ALEFFECTSTATEFACTORY_VTABLE(ALcompressorStateFactory);
+DEFINE_EFFECTSTATEFACTORY_VTABLE(CompressorStateFactory);
 
-ALeffectStateFactory *ALcompressorStateFactory_getFactory(void)
+EffectStateFactory *CompressorStateFactory_getFactory(void)
 {
-    static ALcompressorStateFactory CompressorFactory = { { GET_VTABLE2(ALcompressorStateFactory, ALeffectStateFactory) } };
+    static CompressorStateFactory CompressorFactory = { { GET_VTABLE2(CompressorStateFactory, EffectStateFactory) } };
 
-    return STATIC_CAST(ALeffectStateFactory, &CompressorFactory);
+    return STATIC_CAST(EffectStateFactory, &CompressorFactory);
 }
 
 
@@ -209,24 +204,21 @@ void ALcompressor_setParami(ALeffect *effect, ALCcontext *context, ALenum param,
     {
         case AL_COMPRESSOR_ONOFF:
             if(!(val >= AL_COMPRESSOR_MIN_ONOFF && val <= AL_COMPRESSOR_MAX_ONOFF))
-                SET_ERROR_AND_RETURN(context, AL_INVALID_VALUE);
+                SETERR_RETURN(context, AL_INVALID_VALUE,, "Compressor state out of range");
             props->Compressor.OnOff = val;
             break;
 
-    default:
-        SET_ERROR_AND_RETURN(context, AL_INVALID_ENUM);
+        default:
+            alSetError(context, AL_INVALID_ENUM, "Invalid compressor integer property 0x%04x",
+                       param);
     }
 }
 void ALcompressor_setParamiv(ALeffect *effect, ALCcontext *context, ALenum param, const ALint *vals)
-{
-    ALcompressor_setParami(effect, context, param, vals[0]);
-}
-void ALcompressor_setParamf(ALeffect *UNUSED(effect), ALCcontext *context, ALenum UNUSED(param), ALfloat UNUSED(val))
-{ SET_ERROR_AND_RETURN(context, AL_INVALID_ENUM); }
-void ALcompressor_setParamfv(ALeffect *effect, ALCcontext *context, ALenum param, const ALfloat *vals)
-{
-    ALcompressor_setParamf(effect, context, param, vals[0]);
-}
+{ ALcompressor_setParami(effect, context, param, vals[0]); }
+void ALcompressor_setParamf(ALeffect *UNUSED(effect), ALCcontext *context, ALenum param, ALfloat UNUSED(val))
+{ alSetError(context, AL_INVALID_ENUM, "Invalid compressor float property 0x%04x", param); }
+void ALcompressor_setParamfv(ALeffect *UNUSED(effect), ALCcontext *context, ALenum param, const ALfloat *UNUSED(vals))
+{ alSetError(context, AL_INVALID_ENUM, "Invalid compressor float-vector property 0x%04x", param); }
 
 void ALcompressor_getParami(const ALeffect *effect, ALCcontext *context, ALenum param, ALint *val)
 { 
@@ -236,19 +228,17 @@ void ALcompressor_getParami(const ALeffect *effect, ALCcontext *context, ALenum 
         case AL_COMPRESSOR_ONOFF:
             *val = props->Compressor.OnOff;
             break;
+
         default:
-            SET_ERROR_AND_RETURN(context, AL_INVALID_ENUM);
+            alSetError(context, AL_INVALID_ENUM, "Invalid compressor integer property 0x%04x",
+                       param);
     }
 }
 void ALcompressor_getParamiv(const ALeffect *effect, ALCcontext *context, ALenum param, ALint *vals)
-{
-    ALcompressor_getParami(effect, context, param, vals);
-}
-void ALcompressor_getParamf(const ALeffect *UNUSED(effect), ALCcontext *context, ALenum UNUSED(param), ALfloat *UNUSED(val))
-{ SET_ERROR_AND_RETURN(context, AL_INVALID_ENUM); }
-void ALcompressor_getParamfv(const ALeffect *effect, ALCcontext *context, ALenum param, ALfloat *vals)
-{
-    ALcompressor_getParamf(effect, context, param, vals);
-}
+{ ALcompressor_getParami(effect, context, param, vals); }
+void ALcompressor_getParamf(const ALeffect *UNUSED(effect), ALCcontext *context, ALenum param, ALfloat *UNUSED(val))
+{ alSetError(context, AL_INVALID_ENUM, "Invalid compressor float property 0x%04x", param); }
+void ALcompressor_getParamfv(const ALeffect *UNUSED(effect), ALCcontext *context, ALenum param, ALfloat *UNUSED(vals))
+{ alSetError(context, AL_INVALID_ENUM, "Invalid compressor float-vector property 0x%04x", param); }
 
 DEFINE_ALEFFECT_VTABLE(ALcompressor);

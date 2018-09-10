@@ -34,6 +34,7 @@
 
 #include "alMain.h"
 #include "alu.h"
+#include "ringbuffer.h"
 #include "threads.h"
 #include "compat.h"
 #include "alstring.h"
@@ -184,16 +185,15 @@ typedef struct ALCdsoundPlayback {
     IDirectSoundNotify *Notifies;
     HANDLE             NotifyEvent;
 
-    volatile int killNow;
+    ATOMIC(ALenum) killNow;
     althrd_t thread;
 } ALCdsoundPlayback;
 
 static int ALCdsoundPlayback_mixerProc(void *ptr);
 
 static void ALCdsoundPlayback_Construct(ALCdsoundPlayback *self, ALCdevice *device);
-static DECLARE_FORWARD(ALCdsoundPlayback, ALCbackend, void, Destruct)
+static void ALCdsoundPlayback_Destruct(ALCdsoundPlayback *self);
 static ALCenum ALCdsoundPlayback_open(ALCdsoundPlayback *self, const ALCchar *name);
-static void ALCdsoundPlayback_close(ALCdsoundPlayback *self);
 static ALCboolean ALCdsoundPlayback_reset(ALCdsoundPlayback *self);
 static ALCboolean ALCdsoundPlayback_start(ALCdsoundPlayback *self);
 static void ALCdsoundPlayback_stop(ALCdsoundPlayback *self);
@@ -211,6 +211,35 @@ static void ALCdsoundPlayback_Construct(ALCdsoundPlayback *self, ALCdevice *devi
 {
     ALCbackend_Construct(STATIC_CAST(ALCbackend, self), device);
     SET_VTABLE2(ALCdsoundPlayback, ALCbackend, self);
+
+    self->DS = NULL;
+    self->PrimaryBuffer = NULL;
+    self->Buffer = NULL;
+    self->Notifies = NULL;
+    self->NotifyEvent = NULL;
+    ATOMIC_INIT(&self->killNow, AL_TRUE);
+}
+
+static void ALCdsoundPlayback_Destruct(ALCdsoundPlayback *self)
+{
+    if(self->Notifies)
+        IDirectSoundNotify_Release(self->Notifies);
+    self->Notifies = NULL;
+    if(self->Buffer)
+        IDirectSoundBuffer_Release(self->Buffer);
+    self->Buffer = NULL;
+    if(self->PrimaryBuffer != NULL)
+        IDirectSoundBuffer_Release(self->PrimaryBuffer);
+    self->PrimaryBuffer = NULL;
+
+    if(self->DS)
+        IDirectSound_Release(self->DS);
+    self->DS = NULL;
+    if(self->NotifyEvent)
+        CloseHandle(self->NotifyEvent);
+    self->NotifyEvent = NULL;
+
+    ALCbackend_Destruct(STATIC_CAST(ALCbackend, self));
 }
 
 
@@ -239,7 +268,7 @@ FORCE_ALIGN static int ALCdsoundPlayback_mixerProc(void *ptr)
     {
         ERR("Failed to get buffer caps: 0x%lx\n", err);
         ALCdevice_Lock(device);
-        aluHandleDisconnect(device);
+        aluHandleDisconnect(device, "Failure retrieving playback buffer info: 0x%lx", err);
         ALCdevice_Unlock(device);
         return 1;
     }
@@ -248,7 +277,8 @@ FORCE_ALIGN static int ALCdsoundPlayback_mixerProc(void *ptr)
     FragSize = device->UpdateSize * FrameSize;
 
     IDirectSoundBuffer_GetCurrentPosition(self->Buffer, &LastCursor, NULL);
-    while(!self->killNow)
+    while(!ATOMIC_LOAD(&self->killNow, almemory_order_acquire) &&
+          ATOMIC_LOAD(&device->Connected, almemory_order_acquire))
     {
         // Get current play cursor
         IDirectSoundBuffer_GetCurrentPosition(self->Buffer, &PlayCursor, NULL);
@@ -263,7 +293,7 @@ FORCE_ALIGN static int ALCdsoundPlayback_mixerProc(void *ptr)
                 {
                     ERR("Failed to play buffer: 0x%lx\n", err);
                     ALCdevice_Lock(device);
-                    aluHandleDisconnect(device);
+                    aluHandleDisconnect(device, "Failure starting playback: 0x%lx", err);
                     ALCdevice_Unlock(device);
                     return 1;
                 }
@@ -311,7 +341,7 @@ FORCE_ALIGN static int ALCdsoundPlayback_mixerProc(void *ptr)
         {
             ERR("Buffer lock error: %#lx\n", err);
             ALCdevice_Lock(device);
-            aluHandleDisconnect(device);
+            aluHandleDisconnect(device, "Failed to lock output buffer: 0x%lx", err);
             ALCdevice_Unlock(device);
             return 1;
         }
@@ -384,24 +414,6 @@ static ALCenum ALCdsoundPlayback_open(ALCdsoundPlayback *self, const ALCchar *de
     alstr_copy_cstr(&device->DeviceName, deviceName);
 
     return ALC_NO_ERROR;
-}
-
-static void ALCdsoundPlayback_close(ALCdsoundPlayback *self)
-{
-    if(self->Notifies)
-        IDirectSoundNotify_Release(self->Notifies);
-    self->Notifies = NULL;
-    if(self->Buffer)
-        IDirectSoundBuffer_Release(self->Buffer);
-    self->Buffer = NULL;
-    if(self->PrimaryBuffer != NULL)
-        IDirectSoundBuffer_Release(self->PrimaryBuffer);
-    self->PrimaryBuffer = NULL;
-
-    IDirectSound_Release(self->DS);
-    self->DS = NULL;
-    CloseHandle(self->NotifyEvent);
-    self->NotifyEvent = NULL;
 }
 
 static ALCboolean ALCdsoundPlayback_reset(ALCdsoundPlayback *self)
@@ -626,7 +638,7 @@ retry_open:
 
 static ALCboolean ALCdsoundPlayback_start(ALCdsoundPlayback *self)
 {
-    self->killNow = 0;
+    ATOMIC_STORE(&self->killNow, AL_FALSE, almemory_order_release);
     if(althrd_create(&self->thread, ALCdsoundPlayback_mixerProc, self) != althrd_success)
         return ALC_FALSE;
 
@@ -637,10 +649,8 @@ static void ALCdsoundPlayback_stop(ALCdsoundPlayback *self)
 {
     int res;
 
-    if(self->killNow)
+    if(ATOMIC_EXCHANGE(&self->killNow, AL_TRUE, almemory_order_acq_rel))
         return;
-
-    self->killNow = 1;
     althrd_join(self->thread, &res);
 
     IDirectSoundBuffer_Stop(self->Buffer);
@@ -660,9 +670,8 @@ typedef struct ALCdsoundCapture {
 } ALCdsoundCapture;
 
 static void ALCdsoundCapture_Construct(ALCdsoundCapture *self, ALCdevice *device);
-static DECLARE_FORWARD(ALCdsoundCapture, ALCbackend, void, Destruct)
+static void ALCdsoundCapture_Destruct(ALCdsoundCapture *self);
 static ALCenum ALCdsoundCapture_open(ALCdsoundCapture *self, const ALCchar *name);
-static void ALCdsoundCapture_close(ALCdsoundCapture *self);
 static DECLARE_FORWARD(ALCdsoundCapture, ALCbackend, ALCboolean, reset)
 static ALCboolean ALCdsoundCapture_start(ALCdsoundCapture *self);
 static void ALCdsoundCapture_stop(ALCdsoundCapture *self);
@@ -679,6 +688,29 @@ static void ALCdsoundCapture_Construct(ALCdsoundCapture *self, ALCdevice *device
 {
     ALCbackend_Construct(STATIC_CAST(ALCbackend, self), device);
     SET_VTABLE2(ALCdsoundCapture, ALCbackend, self);
+
+    self->DSC = NULL;
+    self->DSCbuffer = NULL;
+    self->Ring = NULL;
+}
+
+static void ALCdsoundCapture_Destruct(ALCdsoundCapture *self)
+{
+    ll_ringbuffer_free(self->Ring);
+    self->Ring = NULL;
+
+    if(self->DSCbuffer != NULL)
+    {
+        IDirectSoundCaptureBuffer_Stop(self->DSCbuffer);
+        IDirectSoundCaptureBuffer_Release(self->DSCbuffer);
+        self->DSCbuffer = NULL;
+    }
+
+    if(self->DSC)
+        IDirectSoundCapture_Release(self->DSC);
+    self->DSC = NULL;
+
+    ALCbackend_Destruct(STATIC_CAST(ALCbackend, self));
 }
 
 
@@ -824,8 +856,8 @@ static ALCenum ALCdsoundCapture_open(ALCdsoundCapture *self, const ALCchar *devi
         hr = IDirectSoundCapture_CreateCaptureBuffer(self->DSC, &DSCBDescription, &self->DSCbuffer, NULL);
     if(SUCCEEDED(hr))
     {
-         self->Ring = ll_ringbuffer_create(device->UpdateSize*device->NumUpdates + 1,
-                                           InputType.Format.nBlockAlign);
+         self->Ring = ll_ringbuffer_create(device->UpdateSize*device->NumUpdates,
+                                           InputType.Format.nBlockAlign, false);
          if(self->Ring == NULL)
              hr = DSERR_OUTOFMEMORY;
     }
@@ -854,22 +886,6 @@ static ALCenum ALCdsoundCapture_open(ALCdsoundCapture *self, const ALCchar *devi
     return ALC_NO_ERROR;
 }
 
-static void ALCdsoundCapture_close(ALCdsoundCapture *self)
-{
-    ll_ringbuffer_free(self->Ring);
-    self->Ring = NULL;
-
-    if(self->DSCbuffer != NULL)
-    {
-        IDirectSoundCaptureBuffer_Stop(self->DSCbuffer);
-        IDirectSoundCaptureBuffer_Release(self->DSCbuffer);
-        self->DSCbuffer = NULL;
-    }
-
-    IDirectSoundCapture_Release(self->DSC);
-    self->DSC = NULL;
-}
-
 static ALCboolean ALCdsoundCapture_start(ALCdsoundCapture *self)
 {
     HRESULT hr;
@@ -878,7 +894,8 @@ static ALCboolean ALCdsoundCapture_start(ALCdsoundCapture *self)
     if(FAILED(hr))
     {
         ERR("start failed: 0x%08lx\n", hr);
-        aluHandleDisconnect(STATIC_CAST(ALCbackend, self)->mDevice);
+        aluHandleDisconnect(STATIC_CAST(ALCbackend, self)->mDevice,
+                            "Failure starting capture: 0x%lx", hr);
         return ALC_FALSE;
     }
 
@@ -893,7 +910,8 @@ static void ALCdsoundCapture_stop(ALCdsoundCapture *self)
     if(FAILED(hr))
     {
         ERR("stop failed: 0x%08lx\n", hr);
-        aluHandleDisconnect(STATIC_CAST(ALCbackend, self)->mDevice);
+        aluHandleDisconnect(STATIC_CAST(ALCbackend, self)->mDevice,
+                            "Failure stopping capture: 0x%lx", hr);
     }
 }
 
@@ -912,7 +930,7 @@ static ALCuint ALCdsoundCapture_availableSamples(ALCdsoundCapture *self)
     DWORD FrameSize;
     HRESULT hr;
 
-    if(!device->Connected)
+    if(!ATOMIC_LOAD(&device->Connected, almemory_order_acquire))
         goto done;
 
     FrameSize = FrameSizeFromDevFmt(device->FmtChans, device->FmtType, device->AmbiOrder);
@@ -943,11 +961,11 @@ static ALCuint ALCdsoundCapture_availableSamples(ALCdsoundCapture *self)
     if(FAILED(hr))
     {
         ERR("update failed: 0x%08lx\n", hr);
-        aluHandleDisconnect(device);
+        aluHandleDisconnect(device, "Failure retrieving capture data: 0x%lx", hr);
     }
 
 done:
-    return ll_ringbuffer_read_space(self->Ring);
+    return (ALCuint)ll_ringbuffer_read_space(self->Ring);
 }
 
 

@@ -3,7 +3,7 @@
 
 #include "bformatdec.h"
 #include "ambdec.h"
-#include "mixer_defs.h"
+#include "filters/splitter.h"
 #include "alu.h"
 
 #include "bool.h"
@@ -11,114 +11,14 @@
 #include "almalloc.h"
 
 
-void bandsplit_init(BandSplitter *splitter, ALfloat freq_mult)
-{
-    ALfloat w = freq_mult * F_TAU;
-    ALfloat cw = cosf(w);
-    if(cw > FLT_EPSILON)
-        splitter->coeff = (sinf(w) - 1.0f) / cw;
-    else
-        splitter->coeff = cw * -0.5f;
-
-    splitter->lp_z1 = 0.0f;
-    splitter->lp_z2 = 0.0f;
-    splitter->hp_z1 = 0.0f;
-}
-
-void bandsplit_clear(BandSplitter *splitter)
-{
-    splitter->lp_z1 = 0.0f;
-    splitter->lp_z2 = 0.0f;
-    splitter->hp_z1 = 0.0f;
-}
-
-void bandsplit_process(BandSplitter *splitter, ALfloat *restrict hpout, ALfloat *restrict lpout,
-                       const ALfloat *input, ALsizei count)
-{
-    ALfloat coeff, d, x;
-    ALfloat z1, z2;
-    ALsizei i;
-
-    coeff = splitter->coeff*0.5f + 0.5f;
-    z1 = splitter->lp_z1;
-    z2 = splitter->lp_z2;
-    for(i = 0;i < count;i++)
-    {
-        x = input[i];
-
-        d = (x - z1) * coeff;
-        x = z1 + d;
-        z1 = x + d;
-
-        d = (x - z2) * coeff;
-        x = z2 + d;
-        z2 = x + d;
-
-        lpout[i] = x;
-    }
-    splitter->lp_z1 = z1;
-    splitter->lp_z2 = z2;
-
-    coeff = splitter->coeff;
-    z1 = splitter->hp_z1;
-    for(i = 0;i < count;i++)
-    {
-        x = input[i];
-
-        d = x - coeff*z1;
-        x = z1 + coeff*d;
-        z1 = d;
-
-        hpout[i] = x - lpout[i];
-    }
-    splitter->hp_z1 = z1;
-}
-
-
-void splitterap_init(SplitterAllpass *splitter, ALfloat freq_mult)
-{
-    ALfloat w = freq_mult * F_TAU;
-    ALfloat cw = cosf(w);
-    if(cw > FLT_EPSILON)
-        splitter->coeff = (sinf(w) - 1.0f) / cw;
-    else
-        splitter->coeff = cw * -0.5f;
-
-    splitter->z1 = 0.0f;
-}
-
-void splitterap_clear(SplitterAllpass *splitter)
-{
-    splitter->z1 = 0.0f;
-}
-
-void splitterap_process(SplitterAllpass *splitter, ALfloat *restrict samples, ALsizei count)
-{
-    ALfloat coeff, d, x;
-    ALfloat z1;
-    ALsizei i;
-
-    coeff = splitter->coeff;
-    z1 = splitter->z1;
-    for(i = 0;i < count;i++)
-    {
-        x = samples[i];
-
-        d = x - coeff*z1;
-        x = z1 + coeff*d;
-        z1 = d;
-
-        samples[i] = x;
-    }
-    splitter->z1 = z1;
-}
-
-
-static const ALfloat UnitScale[MAX_AMBI_COEFFS] = {
+/* NOTE: These are scale factors as applied to Ambisonics content. Decoder
+ * coefficients should be divided by these values to get proper N3D scalings.
+ */
+const ALfloat N3D2N3DScale[MAX_AMBI_COEFFS] = {
     1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
     1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f
 };
-static const ALfloat SN3D2N3DScale[MAX_AMBI_COEFFS] = {
+const ALfloat SN3D2N3DScale[MAX_AMBI_COEFFS] = {
     1.000000000f, /* ACN  0 (W), sqrt(1) */
     1.732050808f, /* ACN  1 (Y), sqrt(3) */
     1.732050808f, /* ACN  2 (Z), sqrt(3) */
@@ -136,7 +36,7 @@ static const ALfloat SN3D2N3DScale[MAX_AMBI_COEFFS] = {
     2.645751311f, /* ACN 14 (N), sqrt(7) */
     2.645751311f, /* ACN 15 (P), sqrt(7) */
 };
-static const ALfloat FuMa2N3DScale[MAX_AMBI_COEFFS] = {
+const ALfloat FuMa2N3DScale[MAX_AMBI_COEFFS] = {
     1.414213562f, /* ACN  0 (W), sqrt(2) */
     1.732050808f, /* ACN  1 (Y), sqrt(3) */
     1.732050808f, /* ACN  2 (Z), sqrt(3) */
@@ -156,11 +56,9 @@ static const ALfloat FuMa2N3DScale[MAX_AMBI_COEFFS] = {
 };
 
 
-enum FreqBand {
-    FB_HighFreq,
-    FB_LowFreq,
-    FB_Max
-};
+#define HF_BAND 0
+#define LF_BAND 1
+#define NUM_BANDS 2
 
 /* These points are in AL coordinates! */
 static const ALfloat Ambi3DPoints[8][3] = {
@@ -173,35 +71,28 @@ static const ALfloat Ambi3DPoints[8][3] = {
     { -0.577350269f, -0.577350269f,  0.577350269f },
     {  0.577350269f, -0.577350269f,  0.577350269f },
 };
-static const ALfloat Ambi3DDecoder[8][FB_Max][MAX_AMBI_COEFFS] = {
-    { { 0.25f,  0.1443375672f,  0.1443375672f,  0.1443375672f }, { 0.125f,  0.125f,  0.125f,  0.125f } },
-    { { 0.25f, -0.1443375672f,  0.1443375672f,  0.1443375672f }, { 0.125f, -0.125f,  0.125f,  0.125f } },
-    { { 0.25f,  0.1443375672f,  0.1443375672f, -0.1443375672f }, { 0.125f,  0.125f,  0.125f, -0.125f } },
-    { { 0.25f, -0.1443375672f,  0.1443375672f, -0.1443375672f }, { 0.125f, -0.125f,  0.125f, -0.125f } },
-    { { 0.25f,  0.1443375672f, -0.1443375672f,  0.1443375672f }, { 0.125f,  0.125f, -0.125f,  0.125f } },
-    { { 0.25f, -0.1443375672f, -0.1443375672f,  0.1443375672f }, { 0.125f, -0.125f, -0.125f,  0.125f } },
-    { { 0.25f,  0.1443375672f, -0.1443375672f, -0.1443375672f }, { 0.125f,  0.125f, -0.125f, -0.125f } },
-    { { 0.25f, -0.1443375672f, -0.1443375672f, -0.1443375672f }, { 0.125f, -0.125f, -0.125f, -0.125f } },
+static const ALfloat Ambi3DDecoder[8][MAX_AMBI_COEFFS] = {
+    { 0.125f,  0.125f,  0.125f,  0.125f },
+    { 0.125f, -0.125f,  0.125f,  0.125f },
+    { 0.125f,  0.125f,  0.125f, -0.125f },
+    { 0.125f, -0.125f,  0.125f, -0.125f },
+    { 0.125f,  0.125f, -0.125f,  0.125f },
+    { 0.125f, -0.125f, -0.125f,  0.125f },
+    { 0.125f,  0.125f, -0.125f, -0.125f },
+    { 0.125f, -0.125f, -0.125f, -0.125f },
 };
-
-
-static RowMixerFunc MixMatrixRow = MixRow_C;
-
-
-static alonce_flag bformatdec_inited = AL_ONCE_FLAG_INIT;
-
-static void init_bformatdec(void)
-{
-    MixMatrixRow = SelectRowMixer();
-}
+static const ALfloat Ambi3DDecoderHFScale[MAX_AMBI_COEFFS] = {
+    2.0f,
+    1.15470054f, 1.15470054f, 1.15470054f
+};
 
 
 /* NOTE: BandSplitter filters are unused with single-band decoding */
 typedef struct BFormatDec {
-    ALboolean Enabled[MAX_OUTPUT_CHANNELS];
+    ALuint Enabled; /* Bitfield of enabled channels. */
 
     union {
-        alignas(16) ALfloat Dual[MAX_OUTPUT_CHANNELS][FB_Max][MAX_AMBI_COEFFS];
+        alignas(16) ALfloat Dual[MAX_OUTPUT_CHANNELS][NUM_BANDS][MAX_AMBI_COEFFS];
         alignas(16) ALfloat Single[MAX_OUTPUT_CHANNELS][MAX_AMBI_COEFFS];
     } Matrix;
 
@@ -216,7 +107,7 @@ typedef struct BFormatDec {
 
     struct {
         BandSplitter XOver;
-        ALfloat Gains[FB_Max];
+        ALfloat Gains[NUM_BANDS];
     } UpSampler[4];
 
     ALsizei NumChannels;
@@ -225,21 +116,20 @@ typedef struct BFormatDec {
 
 BFormatDec *bformatdec_alloc()
 {
-    alcall_once(&bformatdec_inited, init_bformatdec);
     return al_calloc(16, sizeof(BFormatDec));
 }
 
-void bformatdec_free(BFormatDec *dec)
+void bformatdec_free(BFormatDec **dec)
 {
-    if(dec)
+    if(dec && *dec)
     {
-        al_free(dec->Samples);
-        dec->Samples = NULL;
-        dec->SamplesHF = NULL;
-        dec->SamplesLF = NULL;
+        al_free((*dec)->Samples);
+        (*dec)->Samples = NULL;
+        (*dec)->SamplesHF = NULL;
+        (*dec)->SamplesLF = NULL;
 
-        memset(dec, 0, sizeof(*dec));
-        al_free(dec);
+        al_free(*dec);
+        *dec = NULL;
     }
 }
 
@@ -248,7 +138,7 @@ void bformatdec_reset(BFormatDec *dec, const AmbDecConf *conf, ALsizei chancount
     static const ALsizei map2DTo3D[MAX_AMBI2D_COEFFS] = {
         0,  1, 3,  4, 8,  9, 15
     };
-    const ALfloat *coeff_scale = UnitScale;
+    const ALfloat *coeff_scale = N3D2N3DScale;
     bool periphonic;
     ALfloat ratio;
     ALsizei i;
@@ -263,10 +153,9 @@ void bformatdec_reset(BFormatDec *dec, const AmbDecConf *conf, ALsizei chancount
     dec->SamplesHF = dec->Samples;
     dec->SamplesLF = dec->SamplesHF + dec->NumChannels;
 
-    for(i = 0;i < MAX_OUTPUT_CHANNELS;i++)
-        dec->Enabled[i] = AL_FALSE;
+    dec->Enabled = 0;
     for(i = 0;i < conf->NumSpeakers;i++)
-        dec->Enabled[chanmap[i]] = AL_TRUE;
+        dec->Enabled |= 1 << chanmap[i];
 
     if(conf->CoeffScale == ADS_SN3D)
         coeff_scale = SN3D2N3DScale;
@@ -281,31 +170,31 @@ void bformatdec_reset(BFormatDec *dec, const AmbDecConf *conf, ALsizei chancount
     {
         periphonic = true;
 
-        dec->UpSampler[0].Gains[FB_HighFreq] = (dec->NumChannels > 9) ? W_SCALE3D_THIRD :
-                                               (dec->NumChannels > 4) ? W_SCALE3D_SECOND : 1.0f;
-        dec->UpSampler[0].Gains[FB_LowFreq] = 1.0f;
+        dec->UpSampler[0].Gains[HF_BAND] = (conf->ChanMask > 0x1ff) ? W_SCALE_3H3P :
+                                           (conf->ChanMask > 0xf) ? W_SCALE_2H2P : 1.0f;
+        dec->UpSampler[0].Gains[LF_BAND] = 1.0f;
         for(i = 1;i < 4;i++)
         {
-            dec->UpSampler[i].Gains[FB_HighFreq] = (dec->NumChannels > 9) ? XYZ_SCALE3D_THIRD :
-                                                   (dec->NumChannels > 4) ? XYZ_SCALE3D_SECOND : 1.0f;
-            dec->UpSampler[i].Gains[FB_LowFreq] = 1.0f;
+            dec->UpSampler[i].Gains[HF_BAND] = (conf->ChanMask > 0x1ff) ? XYZ_SCALE_3H3P :
+                                               (conf->ChanMask > 0xf) ? XYZ_SCALE_2H2P : 1.0f;
+            dec->UpSampler[i].Gains[LF_BAND] = 1.0f;
         }
     }
     else
     {
         periphonic = false;
 
-        dec->UpSampler[0].Gains[FB_HighFreq] = (dec->NumChannels > 5) ? W_SCALE2D_THIRD :
-                                               (dec->NumChannels > 3) ? W_SCALE2D_SECOND : 1.0f;
-        dec->UpSampler[0].Gains[FB_LowFreq] = 1.0f;
+        dec->UpSampler[0].Gains[HF_BAND] = (conf->ChanMask > 0x1ff) ? W_SCALE_3H0P :
+                                           (conf->ChanMask > 0xf) ? W_SCALE_2H0P : 1.0f;
+        dec->UpSampler[0].Gains[LF_BAND] = 1.0f;
         for(i = 1;i < 3;i++)
         {
-            dec->UpSampler[i].Gains[FB_HighFreq] = (dec->NumChannels > 5) ? XYZ_SCALE2D_THIRD :
-                                                   (dec->NumChannels > 3) ? XYZ_SCALE2D_SECOND : 1.0f;
-            dec->UpSampler[i].Gains[FB_LowFreq] = 1.0f;
+            dec->UpSampler[i].Gains[HF_BAND] = (conf->ChanMask > 0x1ff) ? XYZ_SCALE_3H0P :
+                                               (conf->ChanMask > 0xf) ? XYZ_SCALE_2H0P : 1.0f;
+            dec->UpSampler[i].Gains[LF_BAND] = 1.0f;
         }
-        dec->UpSampler[3].Gains[FB_HighFreq] = 0.0f;
-        dec->UpSampler[3].Gains[FB_LowFreq] = 0.0f;
+        dec->UpSampler[3].Gains[HF_BAND] = 0.0f;
+        dec->UpSampler[3].Gains[LF_BAND] = 0.0f;
     }
 
     memset(&dec->Matrix, 0, sizeof(dec->Matrix));
@@ -372,8 +261,8 @@ void bformatdec_reset(BFormatDec *dec, const AmbDecConf *conf, ALsizei chancount
                     else if(j == 3) gain = conf->HFOrderGain[2] * ratio;
                     else if(j == 5) gain = conf->HFOrderGain[3] * ratio;
                     if((conf->ChanMask&(1<<l)))
-                        dec->Matrix.Dual[chan][FB_HighFreq][j] = conf->HFMatrix[i][k++] /
-                                                                 coeff_scale[l] * gain;
+                        dec->Matrix.Dual[chan][HF_BAND][j] = conf->HFMatrix[i][k++] /
+                                                             coeff_scale[l] * gain;
                 }
                 for(j = 0,k = 0;j < MAX_AMBI2D_COEFFS;j++)
                 {
@@ -383,8 +272,8 @@ void bformatdec_reset(BFormatDec *dec, const AmbDecConf *conf, ALsizei chancount
                     else if(j == 3) gain = conf->LFOrderGain[2] / ratio;
                     else if(j == 5) gain = conf->LFOrderGain[3] / ratio;
                     if((conf->ChanMask&(1<<l)))
-                        dec->Matrix.Dual[chan][FB_LowFreq][j] = conf->LFMatrix[i][k++] /
-                                                                coeff_scale[l] * gain;
+                        dec->Matrix.Dual[chan][LF_BAND][j] = conf->LFMatrix[i][k++] /
+                                                             coeff_scale[l] * gain;
                 }
             }
             else
@@ -396,8 +285,8 @@ void bformatdec_reset(BFormatDec *dec, const AmbDecConf *conf, ALsizei chancount
                     else if(j == 4) gain = conf->HFOrderGain[2] * ratio;
                     else if(j == 9) gain = conf->HFOrderGain[3] * ratio;
                     if((conf->ChanMask&(1<<j)))
-                        dec->Matrix.Dual[chan][FB_HighFreq][j] = conf->HFMatrix[i][k++] /
-                                                                 coeff_scale[j] * gain;
+                        dec->Matrix.Dual[chan][HF_BAND][j] = conf->HFMatrix[i][k++] /
+                                                             coeff_scale[j] * gain;
                 }
                 for(j = 0,k = 0;j < MAX_AMBI_COEFFS;j++)
                 {
@@ -406,8 +295,8 @@ void bformatdec_reset(BFormatDec *dec, const AmbDecConf *conf, ALsizei chancount
                     else if(j == 4) gain = conf->LFOrderGain[2] / ratio;
                     else if(j == 9) gain = conf->LFOrderGain[3] / ratio;
                     if((conf->ChanMask&(1<<j)))
-                        dec->Matrix.Dual[chan][FB_LowFreq][j] = conf->LFMatrix[i][k++] /
-                                                                coeff_scale[j] * gain;
+                        dec->Matrix.Dual[chan][LF_BAND][j] = conf->LFMatrix[i][k++] /
+                                                             coeff_scale[j] * gain;
                 }
             }
         }
@@ -428,17 +317,15 @@ void bformatdec_process(struct BFormatDec *dec, ALfloat (*restrict OutBuffer)[BU
 
         for(chan = 0;chan < OutChannels;chan++)
         {
-            if(!dec->Enabled[chan])
+            if(!(dec->Enabled&(1<<chan)))
                 continue;
 
             memset(dec->ChannelMix, 0, SamplesToDo*sizeof(ALfloat));
-            MixMatrixRow(dec->ChannelMix, dec->Matrix.Dual[chan][FB_HighFreq],
-                SAFE_CONST(ALfloatBUFFERSIZE*,dec->SamplesHF), dec->NumChannels, 0,
-                SamplesToDo
+            MixRowSamples(dec->ChannelMix, dec->Matrix.Dual[chan][HF_BAND],
+                dec->SamplesHF, dec->NumChannels, 0, SamplesToDo
             );
-            MixMatrixRow(dec->ChannelMix, dec->Matrix.Dual[chan][FB_LowFreq],
-                SAFE_CONST(ALfloatBUFFERSIZE*,dec->SamplesLF), dec->NumChannels, 0,
-                SamplesToDo
+            MixRowSamples(dec->ChannelMix, dec->Matrix.Dual[chan][LF_BAND],
+                dec->SamplesLF, dec->NumChannels, 0, SamplesToDo
             );
 
             for(i = 0;i < SamplesToDo;i++)
@@ -449,12 +336,12 @@ void bformatdec_process(struct BFormatDec *dec, ALfloat (*restrict OutBuffer)[BU
     {
         for(chan = 0;chan < OutChannels;chan++)
         {
-            if(!dec->Enabled[chan])
+            if(!(dec->Enabled&(1<<chan)))
                 continue;
 
             memset(dec->ChannelMix, 0, SamplesToDo*sizeof(ALfloat));
-            MixMatrixRow(dec->ChannelMix, dec->Matrix.Single[chan], InSamples,
-                         dec->NumChannels, 0, SamplesToDo);
+            MixRowSamples(dec->ChannelMix, dec->Matrix.Single[chan], InSamples,
+                          dec->NumChannels, 0, SamplesToDo);
 
             for(i = 0;i < SamplesToDo;i++)
                 OutBuffer[chan][i] += dec->ChannelMix[i];
@@ -483,14 +370,13 @@ void bformatdec_upSample(struct BFormatDec *dec, ALfloat (*restrict OutBuffer)[B
          * bands.
          */
         bandsplit_process(&dec->UpSampler[i].XOver,
-            dec->Samples[FB_HighFreq], dec->Samples[FB_LowFreq],
+            dec->Samples[HF_BAND], dec->Samples[LF_BAND],
             InSamples[i], SamplesToDo
         );
 
         /* Now write each band to the output. */
-        MixMatrixRow(OutBuffer[i], dec->UpSampler[i].Gains,
-            SAFE_CONST(ALfloatBUFFERSIZE*,dec->Samples), FB_Max, 0,
-            SamplesToDo
+        MixRowSamples(OutBuffer[i], dec->UpSampler[i].Gains,
+            dec->Samples, NUM_BANDS, 0, SamplesToDo
         );
     }
 }
@@ -511,28 +397,31 @@ static ALsizei GetACNIndex(const BFChannelConfig *chans, ALsizei numchans, ALsiz
 #define GetChannelForACN(b, a) GetACNIndex((b).Ambi.Map, (b).NumChannels, (a))
 
 typedef struct AmbiUpsampler {
-    alignas(16) ALfloat Samples[FB_Max][BUFFERSIZE];
+    alignas(16) ALfloat Samples[NUM_BANDS][BUFFERSIZE];
 
     BandSplitter XOver[4];
 
-    ALfloat Gains[4][MAX_OUTPUT_CHANNELS][FB_Max];
+    ALfloat Gains[4][MAX_OUTPUT_CHANNELS][NUM_BANDS];
 } AmbiUpsampler;
 
 AmbiUpsampler *ambiup_alloc()
 {
-    alcall_once(&bformatdec_inited, init_bformatdec);
     return al_calloc(16, sizeof(AmbiUpsampler));
 }
 
-void ambiup_free(struct AmbiUpsampler *ambiup)
+void ambiup_free(struct AmbiUpsampler **ambiup)
 {
-    al_free(ambiup);
+    if(ambiup)
+    {
+        al_free(*ambiup);
+        *ambiup = NULL;
+    }
 }
 
-void ambiup_reset(struct AmbiUpsampler *ambiup, const ALCdevice *device)
+void ambiup_reset(struct AmbiUpsampler *ambiup, const ALCdevice *device, ALfloat w_scale, ALfloat xyz_scale)
 {
     ALfloat ratio;
-    size_t i;
+    ALsizei i;
 
     ratio = 400.0f / (ALfloat)device->Frequency;
     for(i = 0;i < 4;i++)
@@ -545,11 +434,11 @@ void ambiup_reset(struct AmbiUpsampler *ambiup, const ALCdevice *device)
         ALsizei j;
         size_t k;
 
-        for(i = 0;i < COUNTOF(Ambi3DPoints);i++)
+        for(k = 0;k < COUNTOF(Ambi3DPoints);k++)
         {
             ALfloat coeffs[MAX_AMBI_COEFFS] = { 0.0f };
-            CalcDirectionCoeffs(Ambi3DPoints[i], 0.0f, coeffs);
-            ComputePanningGains(device->Dry, coeffs, 1.0f, encgains[i]);
+            CalcDirectionCoeffs(Ambi3DPoints[k], 0.0f, coeffs);
+            ComputeDryPanGains(&device->Dry, coeffs, 1.0f, encgains[k]);
         }
 
         /* Combine the matrices that do the in->virt and virt->out conversions
@@ -561,32 +450,24 @@ void ambiup_reset(struct AmbiUpsampler *ambiup, const ALCdevice *device)
         {
             for(j = 0;j < device->Dry.NumChannels;j++)
             {
-                ALfloat hfgain=0.0f, lfgain=0.0f;
+                ALdouble gain = 0.0;
                 for(k = 0;k < COUNTOF(Ambi3DDecoder);k++)
-                {
-                    hfgain += Ambi3DDecoder[k][FB_HighFreq][i]*encgains[k][j];
-                    lfgain += Ambi3DDecoder[k][FB_LowFreq][i]*encgains[k][j];
-                }
-                ambiup->Gains[i][j][FB_HighFreq] = hfgain;
-                ambiup->Gains[i][j][FB_LowFreq] = lfgain;
+                    gain += (ALdouble)Ambi3DDecoder[k][i] * encgains[k][j];
+                ambiup->Gains[i][j][HF_BAND] = (ALfloat)(gain * Ambi3DDecoderHFScale[i]);
+                ambiup->Gains[i][j][LF_BAND] = (ALfloat)gain;
             }
         }
     }
     else
     {
-        /* Assumes full 3D/periphonic on the input and output mixes! */
-        ALfloat w_scale = (device->Dry.NumChannels > 9) ? W_SCALE3D_THIRD :
-                          (device->Dry.NumChannels > 4) ? W_SCALE3D_SECOND : 1.0f;
-        ALfloat xyz_scale = (device->Dry.NumChannels > 9) ? XYZ_SCALE3D_THIRD :
-                            (device->Dry.NumChannels > 4) ? XYZ_SCALE3D_SECOND : 1.0f;
         for(i = 0;i < 4;i++)
         {
             ALsizei index = GetChannelForACN(device->Dry, i);
             if(index != INVALID_UPSAMPLE_INDEX)
             {
                 ALfloat scale = device->Dry.Ambi.Map[index].Scale;
-                ambiup->Gains[i][index][FB_HighFreq] = scale * ((i==0) ? w_scale : xyz_scale);
-                ambiup->Gains[i][index][FB_LowFreq] = scale;
+                ambiup->Gains[i][index][HF_BAND] = scale * ((i==0) ? w_scale : xyz_scale);
+                ambiup->Gains[i][index][LF_BAND] = scale;
             }
         }
     }
@@ -599,14 +480,13 @@ void ambiup_process(struct AmbiUpsampler *ambiup, ALfloat (*restrict OutBuffer)[
     for(i = 0;i < 4;i++)
     {
         bandsplit_process(&ambiup->XOver[i],
-            ambiup->Samples[FB_HighFreq], ambiup->Samples[FB_LowFreq],
+            ambiup->Samples[HF_BAND], ambiup->Samples[LF_BAND],
             InSamples[i], SamplesToDo
         );
 
         for(j = 0;j < OutChannels;j++)
-            MixMatrixRow(OutBuffer[j], ambiup->Gains[i][j],
-                SAFE_CONST(ALfloatBUFFERSIZE*,ambiup->Samples), FB_Max, 0,
-                SamplesToDo
+            MixRowSamples(OutBuffer[j], ambiup->Gains[i][j],
+                ambiup->Samples, NUM_BANDS, 0, SamplesToDo
             );
     }
 }

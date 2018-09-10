@@ -35,6 +35,8 @@
 
 #include "alMain.h"
 #include "alu.h"
+#include "alconfig.h"
+#include "ringbuffer.h"
 #include "threads.h"
 #include "compat.h"
 
@@ -250,9 +252,8 @@ typedef struct ALCplaybackOSS {
 static int ALCplaybackOSS_mixerProc(void *ptr);
 
 static void ALCplaybackOSS_Construct(ALCplaybackOSS *self, ALCdevice *device);
-static DECLARE_FORWARD(ALCplaybackOSS, ALCbackend, void, Destruct)
+static void ALCplaybackOSS_Destruct(ALCplaybackOSS *self);
 static ALCenum ALCplaybackOSS_open(ALCplaybackOSS *self, const ALCchar *name);
-static void ALCplaybackOSS_close(ALCplaybackOSS *self);
 static ALCboolean ALCplaybackOSS_reset(ALCplaybackOSS *self);
 static ALCboolean ALCplaybackOSS_start(ALCplaybackOSS *self);
 static void ALCplaybackOSS_stop(ALCplaybackOSS *self);
@@ -283,7 +284,8 @@ static int ALCplaybackOSS_mixerProc(void *ptr)
     frame_size = FrameSizeFromDevFmt(device->FmtChans, device->FmtType, device->AmbiOrder);
 
     ALCplaybackOSS_lock(self);
-    while(!ATOMIC_LOAD_SEQ(&self->killNow) && device->Connected)
+    while(!ATOMIC_LOAD(&self->killNow, almemory_order_acquire) &&
+          ATOMIC_LOAD(&device->Connected, almemory_order_acquire))
     {
         FD_ZERO(&wfds);
         FD_SET(self->fd, &wfds);
@@ -298,7 +300,7 @@ static int ALCplaybackOSS_mixerProc(void *ptr)
             if(errno == EINTR)
                 continue;
             ERR("select failed: %s\n", strerror(errno));
-            aluHandleDisconnect(device);
+            aluHandleDisconnect(device, "Failed waiting for playback buffer: %s", strerror(errno));
             break;
         }
         else if(sret == 0)
@@ -318,7 +320,8 @@ static int ALCplaybackOSS_mixerProc(void *ptr)
                 if(errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
                     continue;
                 ERR("write failed: %s\n", strerror(errno));
-                aluHandleDisconnect(device);
+                aluHandleDisconnect(device, "Failed writing playback samples: %s",
+                                    strerror(errno));
                 break;
             }
 
@@ -337,7 +340,17 @@ static void ALCplaybackOSS_Construct(ALCplaybackOSS *self, ALCdevice *device)
     ALCbackend_Construct(STATIC_CAST(ALCbackend, self), device);
     SET_VTABLE2(ALCplaybackOSS, ALCbackend, self);
 
+    self->fd = -1;
     ATOMIC_INIT(&self->killNow, AL_FALSE);
+}
+
+static void ALCplaybackOSS_Destruct(ALCplaybackOSS *self)
+{
+    if(self->fd != -1)
+        close(self->fd);
+    self->fd = -1;
+
+    ALCbackend_Destruct(STATIC_CAST(ALCbackend, self));
 }
 
 static ALCenum ALCplaybackOSS_open(ALCplaybackOSS *self, const ALCchar *name)
@@ -377,12 +390,6 @@ static ALCenum ALCplaybackOSS_open(ALCplaybackOSS *self, const ALCchar *name)
     alstr_copy_cstr(&device->DeviceName, name);
 
     return ALC_NO_ERROR;
-}
-
-static void ALCplaybackOSS_close(ALCplaybackOSS *self)
-{
-    close(self->fd);
-    self->fd = -1;
 }
 
 static ALCboolean ALCplaybackOSS_reset(ALCplaybackOSS *self)
@@ -517,9 +524,8 @@ typedef struct ALCcaptureOSS {
 static int ALCcaptureOSS_recordProc(void *ptr);
 
 static void ALCcaptureOSS_Construct(ALCcaptureOSS *self, ALCdevice *device);
-static DECLARE_FORWARD(ALCcaptureOSS, ALCbackend, void, Destruct)
+static void ALCcaptureOSS_Destruct(ALCcaptureOSS *self);
 static ALCenum ALCcaptureOSS_open(ALCcaptureOSS *self, const ALCchar *name);
-static void ALCcaptureOSS_close(ALCcaptureOSS *self);
 static DECLARE_FORWARD(ALCcaptureOSS, ALCbackend, ALCboolean, reset)
 static ALCboolean ALCcaptureOSS_start(ALCcaptureOSS *self);
 static void ALCcaptureOSS_stop(ALCcaptureOSS *self);
@@ -562,7 +568,7 @@ static int ALCcaptureOSS_recordProc(void *ptr)
             if(errno == EINTR)
                 continue;
             ERR("select failed: %s\n", strerror(errno));
-            aluHandleDisconnect(device);
+            aluHandleDisconnect(device, "Failed to check capture samples: %s", strerror(errno));
             break;
         }
         else if(sret == 0)
@@ -579,7 +585,7 @@ static int ALCcaptureOSS_recordProc(void *ptr)
             {
                 ERR("read failed: %s\n", strerror(errno));
                 ALCcaptureOSS_lock(self);
-                aluHandleDisconnect(device);
+                aluHandleDisconnect(device, "Failed reading capture samples: %s", strerror(errno));
                 ALCcaptureOSS_unlock(self);
                 break;
             }
@@ -596,7 +602,20 @@ static void ALCcaptureOSS_Construct(ALCcaptureOSS *self, ALCdevice *device)
     ALCbackend_Construct(STATIC_CAST(ALCbackend, self), device);
     SET_VTABLE2(ALCcaptureOSS, ALCbackend, self);
 
+    self->fd = -1;
+    self->ring = NULL;
     ATOMIC_INIT(&self->killNow, AL_FALSE);
+}
+
+static void ALCcaptureOSS_Destruct(ALCcaptureOSS *self)
+{
+    if(self->fd != -1)
+        close(self->fd);
+    self->fd = -1;
+
+    ll_ringbuffer_free(self->ring);
+    self->ring = NULL;
+    ALCbackend_Destruct(STATIC_CAST(ALCbackend, self));
 }
 
 static ALCenum ALCcaptureOSS_open(ALCcaptureOSS *self, const ALCchar *name)
@@ -710,7 +729,7 @@ static ALCenum ALCcaptureOSS_open(ALCcaptureOSS *self, const ALCchar *name)
         return ALC_INVALID_VALUE;
     }
 
-    self->ring = ll_ringbuffer_create(device->UpdateSize*device->NumUpdates + 1, frameSize);
+    self->ring = ll_ringbuffer_create(device->UpdateSize*device->NumUpdates, frameSize, false);
     if(!self->ring)
     {
         ERR("Ring buffer create failed\n");
@@ -722,15 +741,6 @@ static ALCenum ALCcaptureOSS_open(ALCcaptureOSS *self, const ALCchar *name)
     alstr_copy_cstr(&device->DeviceName, name);
 
     return ALC_NO_ERROR;
-}
-
-static void ALCcaptureOSS_close(ALCcaptureOSS *self)
-{
-    close(self->fd);
-    self->fd = -1;
-
-    ll_ringbuffer_free(self->ring);
-    self->ring = NULL;
 }
 
 static ALCboolean ALCcaptureOSS_start(ALCcaptureOSS *self)

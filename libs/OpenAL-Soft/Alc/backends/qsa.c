@@ -46,7 +46,7 @@ typedef struct {
     ALvoid* buffer;
     ALsizei size;
 
-    volatile int killNow;
+    ATOMIC(ALenum) killNow;
     althrd_t thread;
 } qsa_data;
 
@@ -166,9 +166,8 @@ typedef struct PlaybackWrapper {
 } PlaybackWrapper;
 
 static void PlaybackWrapper_Construct(PlaybackWrapper *self, ALCdevice *device);
-static DECLARE_FORWARD(PlaybackWrapper, ALCbackend, void, Destruct)
+static void PlaybackWrapper_Destruct(PlaybackWrapper *self);
 static ALCenum PlaybackWrapper_open(PlaybackWrapper *self, const ALCchar *name);
-static void PlaybackWrapper_close(PlaybackWrapper *self);
 static ALCboolean PlaybackWrapper_reset(PlaybackWrapper *self);
 static ALCboolean PlaybackWrapper_start(PlaybackWrapper *self);
 static void PlaybackWrapper_stop(PlaybackWrapper *self);
@@ -207,7 +206,7 @@ FORCE_ALIGN static int qsa_proc_playback(void *ptr)
     );
 
     V0(device->Backend,lock)();
-    while(!data->killNow)
+    while(!ATOMIC_LOAD(&data->killNow, almemory_order_acquire))
     {
         FD_ZERO(&wfds);
         FD_SET(data->audio_fd, &wfds);
@@ -221,7 +220,7 @@ FORCE_ALIGN static int qsa_proc_playback(void *ptr)
         if(sret == -1)
         {
             ERR("select error: %s\n", strerror(errno));
-            aluHandleDisconnect(device);
+            aluHandleDisconnect(device, "Failed waiting for playback buffer: %s", strerror(errno));
             break;
         }
         if(sret == 0)
@@ -233,7 +232,7 @@ FORCE_ALIGN static int qsa_proc_playback(void *ptr)
         len = data->size;
         write_ptr = data->buffer;
         aluMixData(device, write_ptr, len/frame_size);
-        while(len>0 && !data->killNow)
+        while(len>0 && !ATOMIC_LOAD(&data->killNow, almemory_order_acquire))
         {
             int wrote = snd_pcm_plugin_write(data->pcmHandle, write_ptr, len);
             if(wrote <= 0)
@@ -252,7 +251,7 @@ FORCE_ALIGN static int qsa_proc_playback(void *ptr)
                 {
                     if(snd_pcm_plugin_prepare(data->pcmHandle, SND_PCM_CHANNEL_PLAYBACK) < 0)
                     {
-                        aluHandleDisconnect(device);
+                        aluHandleDisconnect(device, "Playback recovery failed");
                         break;
                     }
                 }
@@ -283,6 +282,7 @@ static ALCenum qsa_open_playback(PlaybackWrapper *self, const ALCchar* deviceNam
     data = (qsa_data*)calloc(1, sizeof(qsa_data));
     if(data == NULL)
         return ALC_OUT_OF_MEMORY;
+    ATOMIC_INIT(&data->killNow, AL_TRUE);
 
     if(!deviceName)
         deviceName = qsaDevice;
@@ -596,7 +596,7 @@ static ALCboolean qsa_start_playback(PlaybackWrapper *self)
 {
     qsa_data *data = self->ExtraData;
 
-    data->killNow = 0;
+    ATOMIC_STORE(&data->killNow, AL_FALSE, almemory_order_release);
     if(althrd_create(&data->thread, qsa_proc_playback, self) != althrd_success)
         return ALC_FALSE;
 
@@ -608,10 +608,8 @@ static void qsa_stop_playback(PlaybackWrapper *self)
     qsa_data *data = self->ExtraData;
     int res;
 
-    if(data->killNow)
+    if(ATOMIC_EXCHANGE(&data->killNow, AL_TRUE, almemory_order_acq_rel))
         return;
-
-    data->killNow = 1;
     althrd_join(data->thread, &res);
 }
 
@@ -624,14 +622,17 @@ static void PlaybackWrapper_Construct(PlaybackWrapper *self, ALCdevice *device)
     self->ExtraData = NULL;
 }
 
+static void PlaybackWrapper_Destruct(PlaybackWrapper *self)
+{
+    if(self->ExtraData)
+        qsa_close_playback(self);
+
+    ALCbackend_Destruct(STATIC_CAST(ALCbackend, self));
+}
+
 static ALCenum PlaybackWrapper_open(PlaybackWrapper *self, const ALCchar *name)
 {
     return qsa_open_playback(self, name);
-}
-
-static void PlaybackWrapper_close(PlaybackWrapper *self)
-{
-    qsa_close_playback(self);
 }
 
 static ALCboolean PlaybackWrapper_reset(PlaybackWrapper *self)
@@ -661,9 +662,8 @@ typedef struct CaptureWrapper {
 } CaptureWrapper;
 
 static void CaptureWrapper_Construct(CaptureWrapper *self, ALCdevice *device);
-static DECLARE_FORWARD(CaptureWrapper, ALCbackend, void, Destruct)
+static void CaptureWrapper_Destruct(CaptureWrapper *self);
 static ALCenum CaptureWrapper_open(CaptureWrapper *self, const ALCchar *name);
-static void CaptureWrapper_close(CaptureWrapper *self);
 static DECLARE_FORWARD(CaptureWrapper, ALCbackend, ALCboolean, reset)
 static ALCboolean CaptureWrapper_start(CaptureWrapper *self);
 static void CaptureWrapper_stop(CaptureWrapper *self);
@@ -846,7 +846,7 @@ static ALCuint qsa_available_samples(CaptureWrapper *self)
         if ((rstatus=snd_pcm_plugin_prepare(data->pcmHandle, SND_PCM_CHANNEL_CAPTURE))<0)
         {
             ERR("capture prepare failed: %s\n", snd_strerror(rstatus));
-            aluHandleDisconnect(device);
+            aluHandleDisconnect(device, "Failed capture recovery: %s", snd_strerror(rstatus));
             return 0;
         }
 
@@ -889,7 +889,7 @@ static ALCenum qsa_capture_samples(CaptureWrapper *self, ALCvoid *buffer, ALCuin
         switch (selectret)
         {
             case -1:
-                 aluHandleDisconnect(device);
+                 aluHandleDisconnect(device, "Failed to check capture samples");
                  return ALC_INVALID_DEVICE;
             case 0:
                  break;
@@ -920,7 +920,8 @@ static ALCenum qsa_capture_samples(CaptureWrapper *self, ALCvoid *buffer, ALCuin
                 if ((rstatus=snd_pcm_plugin_prepare(data->pcmHandle, SND_PCM_CHANNEL_CAPTURE))<0)
                 {
                     ERR("capture prepare failed: %s\n", snd_strerror(rstatus));
-                    aluHandleDisconnect(device);
+                    aluHandleDisconnect(device, "Failed capture recovery: %s",
+                                        snd_strerror(rstatus));
                     return ALC_INVALID_DEVICE;
                 }
                 snd_pcm_capture_go(data->pcmHandle);
@@ -945,14 +946,17 @@ static void CaptureWrapper_Construct(CaptureWrapper *self, ALCdevice *device)
     self->ExtraData = NULL;
 }
 
+static void CaptureWrapper_Destruct(CaptureWrapper *self)
+{
+    if(self->ExtraData)
+        qsa_close_capture(self);
+
+    ALCbackend_Destruct(STATIC_CAST(ALCbackend, self));
+}
+
 static ALCenum CaptureWrapper_open(CaptureWrapper *self, const ALCchar *name)
 {
     return qsa_open_capture(self, name);
-}
-
-static void CaptureWrapper_close(CaptureWrapper *self)
-{
-    qsa_close_capture(self);
 }
 
 static ALCboolean CaptureWrapper_start(CaptureWrapper *self)
