@@ -8,8 +8,9 @@
 
 #include "AnimationNode.h"
 #include "../../Transformation.h"
+#include "AnimationInterface.h"
 
-class AnimationCustom {
+class AnimationCustom : public AnimationInterface {
     friend class AnimationLoader;
     friend struct AnimationSequenceInterface;
 

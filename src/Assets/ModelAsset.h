@@ -20,6 +20,7 @@
 #include "MeshAsset.h"
 #include "../Utils/GLMConverter.h"
 #include "BoneNode.h"
+#include "Animations/AnimationInterface.h"
 
 
 class AnimationAssimp;
@@ -33,7 +34,7 @@ class ModelAsset : public Asset {
     };
 
     std::string name;
-    std::unordered_map<std::string, AnimationAssimp*> animations;//FIXME these should be removed
+    std::unordered_map<std::string, AnimationInterface*> animations;
     BoneNode *rootNode;
     int_fast32_t boneIDCounter, boneIDCounterPerMesh;
 
@@ -59,7 +60,7 @@ class ModelAsset : public Asset {
 
     bool findNode(const std::string &nodeName, BoneNode** foundNode, BoneNode* searchRoot) const;
 
-    void traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform, const AnimationAssimp *animation,
+    void traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform, const AnimationInterface *animation,
                                  float timeInTicks,
                                  std::vector<glm::mat4> &transforms) const;
 
@@ -67,6 +68,9 @@ class ModelAsset : public Asset {
 
 public:
     ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
+
+    bool addAnimationAsSubSequence(const std::string &baseAnimationName, const std::string newAnimationName,
+                                   float startTime, float endTime);
 
     bool isAnimated() const;
 
@@ -126,7 +130,7 @@ public:
 
     void fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimations);
 
-    const std::unordered_map<std::string, AnimationAssimp*> &getAnimations() const {
+    const std::unordered_map<std::string, AnimationInterface*> &getAnimations() const {
         return animations;
     }
 

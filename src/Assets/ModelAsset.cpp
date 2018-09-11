@@ -8,6 +8,7 @@
 #include "../Utils/GLMUtils.h"
 #include "Animations/AnimationAssimp.h"
 #include "../GLHelper.h"
+#include "Animations/AnimationAssimpSection.h"
 
 ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList)
         : Asset(assetManager, assetID,
@@ -262,7 +263,7 @@ void ModelAsset::getTransform(long time, std::string animationName, std::vector<
         return;
     }
 
-    const AnimationAssimp *currentAnimation;
+    const AnimationInterface *currentAnimation;
     if(animations.find(animationName) != animations.end()) {
         currentAnimation = animations.at(animationName);
     } else {
@@ -285,7 +286,7 @@ void ModelAsset::getTransform(long time, std::string animationName, std::vector<
 
 void
 ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform,
-                                    const AnimationAssimp *animation,
+                                    const AnimationInterface *animation,
                                     float timeInTicks,
                                     std::vector<glm::mat4> &transforms) const {
 /*
@@ -331,5 +332,17 @@ void ModelAsset::fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnim
     }
 
     //validate
+}
+
+bool ModelAsset::addAnimationAsSubSequence(const std::string &baseAnimationName, const std::string newAnimationName,
+                                           float startTime, float endTime) {
+    if(this->animations.find(baseAnimationName) == this->animations.end()) {
+        //base animation not found
+        return false;
+    }
+    AnimationInterface* animationAssimp = this->animations[baseAnimationName];
+    AnimationInterface* animation = new AnimationAssimpSection(animationAssimp, startTime, endTime);
+    this->animations[newAnimationName] = animation;
+    return true;
 }
 

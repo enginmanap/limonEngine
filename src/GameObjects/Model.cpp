@@ -345,6 +345,16 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
                 ImGui::EndCombo();
             }
             ImGui::SliderFloat("Animation time scale", &(this->animationTimeScale), 0.01f, 2.0f);
+
+            ImGui::Text("Seperate selected animation by time");
+            static char newAnimationName[256] = {0};
+            static float times[2] = {0};
+            ImGui::InputText("New animation Name", newAnimationName, sizeof(newAnimationName) - 1 );
+            ImGui::InputFloat2("Animation start and end times", times);
+            if(ImGui::Button("CreateSection")){
+                this->modelAsset->addAnimationAsSubSequence(this->animationName, std::string(newAnimationName), times[0], times[1]);
+            }
+
         }
     }
     if (isAnimated()) { //in animated objects can't have AI, can they?
