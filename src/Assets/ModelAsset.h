@@ -25,6 +25,13 @@
 class AnimationAssimp;
 
 class ModelAsset : public Asset {
+
+    struct BoneInformation {
+        glm::mat4 offset;
+        glm::mat4 parentOffset;
+        glm::mat4 globalMeshInverse;
+    };
+
     std::string name;
     std::unordered_map<std::string, AnimationAssimp*> animations;//FIXME these should be removed
     BoneNode *rootNode;
@@ -37,9 +44,9 @@ class ModelAsset : public Asset {
     std::unordered_map<std::string, Material *> materialMap;
     std::vector<btConvexShape *> shapeCopies;
     std::vector<MeshAsset *> meshes;
+
     std::unordered_map<std::string, MeshAsset *> simplifiedMeshes;
-    std::unordered_map<std::string, glm::mat4> meshOffsetmap;
-    glm::mat4 globalInverseTransform;
+    std::unordered_map<std::string, BoneInformation> boneInformationMap;
 
     bool hasAnimation;
 
