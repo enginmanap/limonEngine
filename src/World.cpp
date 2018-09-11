@@ -214,8 +214,8 @@ World::World(const std::string &name, PlayerTypes startingPlayerType, InputHandl
                     ticksPerSecond = 60.0f;
                 }
                 float animationTime = fmod(((gameTime - animationStatus->startTime) / 1000.0f) * ticksPerSecond, animationCustom->getDuration());
-
-                Transformation tf = animationCustom->calculateTransform(animationTime);
+                bool isFound;
+                Transformation tf = animationCustom->calculateTransform("", animationTime, isFound);
 
                 //FIXME this is not an acceptable animating technique, I need a transform stack, but not implemented it yet.
                 (*animationStatus->object->getTransformation()) = animationStatus->originalTransformation;

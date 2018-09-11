@@ -10,7 +10,7 @@ AnimationAssimpSection::AnimationAssimpSection(AnimationInterface* base, float s
     this->endTime = endTime;
 }
 
-glm::mat4 AnimationAssimpSection::calculateTransform(const std::string &nodeName, float time, bool &isFound) const {
+Transformation AnimationAssimpSection::calculateTransform(const std::string &nodeName, float time, bool &isFound) const {
     time = startTime + time;
     return baseAnimation->calculateTransform(nodeName, time, isFound);
 }

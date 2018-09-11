@@ -40,7 +40,7 @@ public:
         this->animationNode = new AnimationNode(*(otherAnimation.animationNode));//default copy constructor used
     }
 
-    Transformation calculateTransform(float time) const;
+    Transformation calculateTransform(const std::string& nodeName __attribute((unused)), float time __attribute((unused)), bool &isFound) const;
 
     float getTicksPerSecond() const {
         return ticksPerSecond;

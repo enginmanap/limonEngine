@@ -139,8 +139,9 @@ AnimationCustom* AnimationSequenceInterface::buildAnimationFromCurrentItems() {
                     itemIndex++;
                 }
             }
-            Transformation totalTr = animationBase->calculateTransform(time);
-            Transformation animTr = itemsAnimation->calculateTransform(time);
+            bool isFound;
+            Transformation totalTr = animationBase->calculateTransform("", time, isFound);
+            Transformation animTr = itemsAnimation->calculateTransform("", time, isFound);
             totalTr.combine(animTr);
             pushTransformToAnimationTime(animationInProgress->animationNode, time, totalTr);
         }
@@ -148,18 +149,20 @@ AnimationCustom* AnimationSequenceInterface::buildAnimationFromCurrentItems() {
         AnimationCustom* longerAnimation;
         Transformation shortAnimationLastTr;
         uint32_t longerStartIndex;
+        bool isFound;
+
         if(itemsAnimation->getDuration() > animationBase->getDuration()) {
             longerAnimation = itemsAnimation;
-            shortAnimationLastTr = animationBase->calculateTransform(animationBase->getDuration());
+            shortAnimationLastTr = animationBase->calculateTransform("", animationBase->getDuration(), isFound);
             longerStartIndex = itemIndex;
         } else {
             longerAnimation = animationBase;
-            shortAnimationLastTr = itemsAnimation->calculateTransform(itemsAnimation->getDuration());
+            shortAnimationLastTr = itemsAnimation->calculateTransform("", itemsAnimation->getDuration(), isFound);
             longerStartIndex = baseIndex;
         }
         for (size_t j = longerStartIndex; j < longerAnimation->animationNode->rotationTimes.size(); ++j) {
             float time = longerAnimation->animationNode->rotationTimes[j];
-            Transformation longerTr = longerAnimation->calculateTransform(time);
+            Transformation longerTr = longerAnimation->calculateTransform("", time, isFound);
             longerTr.combine(shortAnimationLastTr);
             pushTransformToAnimationTime(animationInProgress->animationNode, time, longerTr);
         }

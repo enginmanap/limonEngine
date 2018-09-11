@@ -16,7 +16,7 @@ class AnimationAssimpSection : public AnimationInterface {
 public:
     AnimationAssimpSection(AnimationInterface *base, float startTime, float endTime);
 
-    glm::mat4 calculateTransform(const std::string &nodeName, float time, bool &isFound) const;
+    Transformation calculateTransform(const std::string &nodeName, float time, bool &isFound) const;
 
     float getTicksPerSecond() const {
         return baseAnimation->getTicksPerSecond();
