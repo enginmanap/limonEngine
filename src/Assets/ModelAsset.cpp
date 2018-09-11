@@ -33,11 +33,6 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
         exit(-1);
     }
 
-    aiMatrix4x4 m_GlobalInverseTransform = scene->mRootNode->mTransformation;
-    m_GlobalInverseTransform.Inverse();
-
-    globalInverseTransform = GLMConverter::AssimpToGLM(m_GlobalInverseTransform);
-
     this->hasAnimation = (scene->mNumAnimations != 0);
 
     std::cout << "ASSIMP::success::" << name << std::endl;
@@ -177,21 +172,15 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
         aiMesh *currentMesh;
         currentMesh = scene->mMeshes[aiNode->mMeshes[i]];
         for (unsigned int j = 0; j < currentMesh->mNumBones; ++j) {
-            meshOffsetmap[currentMesh->mBones[j]->mName.C_Str()] = GLMConverter::AssimpToGLM(
-                    currentMesh->mBones[j]->mOffsetMatrix);
-            std::string boneName =  currentMesh->mBones[j]->mName.C_Str();
-            boneName += "_parent";
-            meshOffsetmap[boneName] = parentTransform;
+            boneInformationMap[currentMesh->mBones[j]->mName.C_Str()].globalMeshInverse = glm::inverse(parentTransform);
+            boneInformationMap[currentMesh->mBones[j]->mName.C_Str()].offset = GLMConverter::AssimpToGLM(currentMesh->mBones[j]->mOffsetMatrix);
+            boneInformationMap[currentMesh->mBones[j]->mName.C_Str()].parentOffset = parentTransform;
         }
         if(currentMesh->mNumBones == 0 && hasAnimation) {
             //If animated, but a mesh without any bone exits, we should process that mesh specially
-            //meshOffsetmap[aiNode->mName.C_Str()] = GLMConverter::AssimpToGLM(aiNode->mTransformation);
-            //meshOffsetmap[aiNode->mName.C_Str()] = parentTransform;
-            meshOffsetmap[aiNode->mName.C_Str()] = glm::mat4(1.0f);
-            std::string boneName =  aiNode->mName.C_Str();
-            boneName += "_parent";
-            //meshOffsetmap[boneName] = GLMConverter::AssimpToGLM(aiNode->mTransformation);
-            meshOffsetmap[boneName] = glm::mat4(1.0f);
+            boneInformationMap[aiNode->mName.C_Str()].offset = glm::mat4(1.0f);
+            boneInformationMap[aiNode->mName.C_Str()].parentOffset = glm::mat4(1.0f);
+            boneInformationMap[aiNode->mName.C_Str()].globalMeshInverse = glm::mat4(1.0f);
         }
 
         Material *meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
@@ -261,11 +250,11 @@ void ModelAsset::getTransform(long time, std::string animationName, std::vector<
         //this means return to bind pose
         //FIXME calculating bind pose for each frame is wrong, but I am assuming this part will be removed, and idle pose
         //will be used instead. If bind pose requirement arises, it should set once, and reused.
-        for(std::unordered_map<std::string, glm::mat4>::const_iterator it = meshOffsetmap.begin(); it != meshOffsetmap.end(); it++){
+        for(std::unordered_map<std::string, BoneInformation>::const_iterator it = boneInformationMap.begin(); it != boneInformationMap.end(); it++){
             BoneNode* node;
             std::string name = it->first;
             if(findNode(name, &node, rootNode)) {
-                transformMatrix[node->boneID] = meshOffsetmap.at(node->name + "_parent");
+                transformMatrix[node->boneID] = boneInformationMap.at(node->name).parentOffset;
                 //parent above means parent transform of the mesh node, not the parent of bone.
             }
         }
@@ -314,9 +303,9 @@ ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &p
 
     nodeTransform = parentTransform * nodeTransform;
 
-    if(meshOffsetmap.find(boneNode->name) != meshOffsetmap.end()) {
+    if(boneInformationMap.find(boneNode->name) != boneInformationMap.end()) {
         transforms[boneNode->boneID] =
-                globalInverseTransform * meshOffsetmap.at(boneNode->name + "_parent") * nodeTransform * meshOffsetmap.at(boneNode->name);
+                boneInformationMap.at(boneNode->name).globalMeshInverse * boneInformationMap.at(boneNode->name).parentOffset * nodeTransform * boneInformationMap.at(boneNode->name).offset;
         //parent above means parent transform of the mesh node, not the parent of bone.
     }
 
