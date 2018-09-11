@@ -42,16 +42,30 @@ protected:
     bool isDirty = true;
     bool rotated = false;
 
+    //ATTENTION These 2 method pointers are not set when copy constructed
+    std::function<glm::mat4()> generateWorldTransform;
+    std::function<void()> updateCallback = nullptr;
+
     glm::mat4 generateWorldTransformDefault(){
         return glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation) *
                                glm::scale(glm::mat4(1.0f), scale);
     }
 
-    std::function<glm::mat4()> generateWorldTransform;
-    std::function<void()> updateCallback;
+
 public:
 
     Transformation() {
+        generateWorldTransform = std::bind(&Transformation::generateWorldTransformDefault, this);
+    }
+
+    Transformation(const Transformation& otherTransformation) {
+        translate      = otherTransformation.translate;
+        scale          = otherTransformation.scale;
+        orientation    = otherTransformation.orientation;
+        isDirty        = otherTransformation.isDirty;
+        rotated        = otherTransformation.rotated;
+        worldTransform = otherTransformation.worldTransform;
+
         generateWorldTransform = std::bind(&Transformation::generateWorldTransformDefault, this);
     }
 

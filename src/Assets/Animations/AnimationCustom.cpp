@@ -8,17 +8,15 @@
 #include <iostream>
 #include "AnimationNode.h"
 
-
-
-Transformation AnimationCustom::calculateTransform(float time) const {
+Transformation AnimationCustom::calculateTransform(const std::string& nodeName __attribute((unused)), float time, bool &isFound) const {
     Transformation resultTransformation;
 
     resultTransformation.setScale( animationNode->getScalingVector(time));
     resultTransformation.setTranslate( animationNode->getPositionVector(time));
     resultTransformation.setOrientation(animationNode->getRotationQuat(time));
 
+    isFound = true;
     // there is no default propagation in Transformation
-
     return resultTransformation;
 }
 

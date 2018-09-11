@@ -11,14 +11,8 @@
 
 class AnimationInterface {
 public:
-    virtual glm::mat4 calculateTransform(const std::string& nodeName __attribute((unused)), float time __attribute((unused)), bool &isFound) const {
-        isFound = false;
-        return glm::mat4(1.0f);
-    };
-
-    virtual Transformation calculateTransform(float time __attribute((unused))) const {
-        return Transformation();
-    }
+    //FIXME return isFound, get transformation as parameter
+    virtual Transformation calculateTransform(const std::string& nodeName, float time, bool &isFound) const = 0;
 
     virtual float getTicksPerSecond() const = 0;
 

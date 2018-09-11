@@ -296,7 +296,8 @@ ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &p
 */
     glm::mat4 nodeTransform;
     bool isFound;
-    nodeTransform = animation->calculateTransform(boneNode->name, timeInTicks, isFound);
+    Transformation tf = animation->calculateTransform(boneNode->name, timeInTicks, isFound);
+    nodeTransform = tf.getWorldTransform();
 
     if(!isFound) {
         nodeTransform = boneNode->transformation;
