@@ -99,4 +99,4 @@ TARGET_LINK_LIBRARIES(customTriggers ${TinyXML2_LIBRARIES})
 set_target_properties(customTriggers PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(customTriggers PROPERTIES SOVERSION 1)
 
-cotire(LimonEngine)
+#cotire(LimonEngine)
