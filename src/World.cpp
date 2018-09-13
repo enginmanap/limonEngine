@@ -1380,7 +1380,7 @@ void World::createGridFrom(const glm::vec3 &aiGridStartPoint) {
     if(grid != nullptr) {
         delete grid;
     }
-    grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax);
+    grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING);
 }
 
 void World::setSky(SkyBox *skyBox) {

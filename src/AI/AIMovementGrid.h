@@ -59,7 +59,8 @@ class AIMovementGrid {
     AIMovementNode *isAlreadyVisited(const AIMovementNode *node);
 
     AIMovementNode *
-    walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min, const glm::vec3 &max);
+    walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
+                    const glm::vec3 &max, uint32_t collisionGroup, uint32_t collisionMask);
 
     const AIMovementNode *
     aStarPath(const AIMovementNode *start, const glm::vec3 &destination, std::vector<glm::vec3> *route);
@@ -69,7 +70,8 @@ class AIMovementGrid {
 public:
     static constexpr float floatingHeight = 2.0f;
 
-    AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *staticOnlyPhysicsWorld, glm::vec3 min, glm::vec3 max);
+    AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *staticOnlyPhysicsWorld, glm::vec3 min,
+                       glm::vec3 max, uint32_t collisionGroup, uint32_t collisionMask);
 
     ~AIMovementGrid() {
         delete rayCallback;
