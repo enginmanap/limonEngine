@@ -109,15 +109,15 @@ bool AIMovementGrid::setProperHeight(glm::vec3 *position, float floatingHeight, 
 
 AIMovementNode *
 AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
-                            const glm::vec3 &max) {
+                            const glm::vec3 &max, uint32_t collisionGroup, uint32_t collisionMask) {
     std::queue<AIMovementNode *> frontier;
     if (!setProperHeight(&walkPoint, floatingHeight, 0.0f, staticWorld)) {
         std::cerr << "Root node has nothing underneath, grid generation failed. " << std::endl;
         return root;
     }
+
     AIMovementNode *root = new AIMovementNode(walkPoint);
-    staticWorld->addCollisionObject(sharedGhostObject, btBroadphaseProxy::SensorTrigger,
-                                    btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger);
+    staticWorld->addCollisionObject(sharedGhostObject, collisionGroup, collisionMask);
     sharedGhostObject->setWorldTransform(
             btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(root->getPosition())));
     bool isMovable = !isThereCollision(staticWorld);
@@ -163,9 +163,7 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                         delete neighbour;
                     } else {
 //                        std::cout << "adding new node with position " << GLMUtils::vectorToString(neighbourPosition) << std::endl;
-                        staticWorld->addCollisionObject(sharedGhostObject, btBroadphaseProxy::SensorTrigger,
-                                                        btBroadphaseProxy::AllFilter &
-                                                        ~btBroadphaseProxy::SensorTrigger);
+                        staticWorld->addCollisionObject(sharedGhostObject, collisionGroup, collisionMask);
                         sharedGhostObject->setWorldTransform(
                                 btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(neighbourPosition)));
                         isMovable = !isThereCollision(staticWorld);
@@ -216,16 +214,17 @@ bool AIMovementGrid::isThereCollision(btDiscreteDynamicsWorld *staticWorld) {
 }
 
 AIMovementGrid::AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *staticOnlyPhysicsWorld, glm::vec3 min,
-                               glm::vec3 max) {
+                               glm::vec3 max, uint32_t collisionGroup, uint32_t collisionMask) {
     //sharedGhostObject->setCollisionShape(new btBoxShape(btVector3(1.0f,1.0f,1.0f)));
     //sharedGhostObject->setCollisionShape(new btCapsuleShape(1,1));
     ghostShape = new btCapsuleShape(capsuleRadius, capsuleHeight);
+
     sharedGhostObject->setCollisionShape(ghostShape);
     sharedGhostObject->setCollisionFlags(
-            sharedGhostObject->getCollisionFlags() & btCollisionObject::CF_NO_CONTACT_RESPONSE);
+            sharedGhostObject->getCollisionFlags());
     sharedGhostObject->setWorldTransform(btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(startPoint)));
     std::cout << "Start generating AI walk grid" << std::endl;
-    root = walkMonster(startPoint, staticOnlyPhysicsWorld, min, max);
+    root = walkMonster(startPoint, staticOnlyPhysicsWorld, min, max, collisionGroup, collisionMask);
     std::cout << "Finished generating AI walk grid, created " << visited.size() << " nodes, checked for collision "
               << isThereCollisionCounter << " times." << std::endl;
     staticOnlyPhysicsWorld->removeCollisionObject(sharedGhostObject);
