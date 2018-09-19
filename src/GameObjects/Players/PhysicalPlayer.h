@@ -49,7 +49,7 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     std::shared_ptr<Sound> currentSound = nullptr;
 
     bool dirty;
-
+    bool skipSpringByJump = false;
 public:
     glm::vec3 getPosition() const {
         return GLMConverter::BltToGLM(player->getCenterOfMassPosition()) + glm::vec3(0.0f, 1.0f, 0.0f);
