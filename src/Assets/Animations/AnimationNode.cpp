@@ -22,6 +22,10 @@ glm::vec3 AnimationNode::getPositionVector(const float timeInTicks) const {
             return translates[translateTimes.size()-1];
         }
 
+        if(timeInTicks < translateTimes[0]) {
+            return translates[0];
+        }
+
         unsigned int NextPositionIndex = (positionIndex + 1);
         assert(NextPositionIndex < translates.size());
         float DeltaTime = (float) (translateTimes[NextPositionIndex] -
@@ -53,6 +57,10 @@ glm::vec3 AnimationNode::getScalingVector(const float timeInTicks) const {
         if(timeInTicks == scaleTimes[scaleTimes.size()-1]) {
             //this is the case were we request last transformation, and it doesn't require interpolation
             return scales[scaleTimes.size()-1];
+        }
+
+        if(timeInTicks < scaleTimes[0]) {
+            return scales[0];
         }
 
         unsigned int NextScalingIndex = (ScalingIndex + 1);
@@ -89,6 +97,10 @@ glm::quat AnimationNode::getRotationQuat(const float timeInTicks) const {
         if(timeInTicks == rotationTimes[rotationTimes.size()-1]) {
             //this is the case were we request last transformation, and it doesn't require interpolation
             return rotations[rotationTimes.size()-1];
+        }
+
+        if(timeInTicks < rotationTimes[0]) {
+            return rotations[0];
         }
 
         unsigned int NextRotationIndex = (rotationIndex + 1);
