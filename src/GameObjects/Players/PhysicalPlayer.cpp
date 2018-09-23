@@ -288,7 +288,6 @@ void PhysicalPlayer::calculateAndSetAttachedModelRotation() const {
     temp2.z = 0;
     temp2.w = 1 * cos(angle2/2);
 
-    std::cout << "temp1: " << glm::to_string(temp) << " temp2: " << glm::to_string(temp2) << std::endl;
     attachedModel->getTransformation()->addOrientation(temp2);//this part sets up/down axis rotation, it is not set, but add orientation.
 }
 
