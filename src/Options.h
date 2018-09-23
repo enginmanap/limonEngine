@@ -49,6 +49,8 @@ private:
     bool isWindowInFocus;
     TextureFilteringModes currentTextureFilteringMode = TextureFilteringModes::TRILINEAR;
 
+    bool fullScreen = false;
+
     void loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec3&);
     void loadVec4(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec4&);
 public:
@@ -224,6 +226,14 @@ public:
 
     TextureFilteringModes getTextureFiltering() {
         return currentTextureFilteringMode;
+    }
+
+    bool isFullScreen() const {
+        return fullScreen;
+    }
+
+    void setFullScreen(bool isFullScreen) {
+        this->fullScreen = isFullScreen;
     }
 };
 
