@@ -184,13 +184,6 @@ World::World(const std::string &name, PlayerTypes startingPlayerType, InputHandl
          }
      }
 
-     if(camera->isDirty()) {
-         glHelper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
-         alHelper->setListenerPositionAndOrientation(camera->getPosition(), camera->getCenter(), camera->getUp());
-     }
-
-
-
      if(currentPlayersSettings->worldSimulation) {
         //every time we call this method, we increase the time only by simulationTimeframe
         gameTime += simulationTimeFrame;
@@ -273,6 +266,11 @@ World::World(const std::string &name, PlayerTypes startingPlayerType, InputHandl
 
          fillVisibleObjects();
     }
+
+     if(camera->isDirty()) {
+         glHelper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
+         alHelper->setListenerPositionAndOrientation(camera->getPosition(), camera->getCenter(), camera->getUp());
+     }
 
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
         guiLayers[i]->setupForTime(gameTime);
