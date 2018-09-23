@@ -21,6 +21,8 @@
 #include "../../GUI/GUIRenderable.h"
 #include "../Sound.h"
 
+class Model;
+
 static const int STEPPING_TEST_COUNT = 5;
 
 
@@ -50,6 +52,12 @@ class PhysicalPlayer : public Player, public CameraAttachment {
 
     bool dirty;
     bool skipSpringByJump = false;
+    Model* attachedModel = nullptr;
+    glm::vec3 attachedModelOffset = glm::vec3(0,0,0);
+
+    void calculateAndSetAttachedModelRotation() const;
+
+
 public:
     glm::vec3 getPosition() const {
         return GLMConverter::BltToGLM(player->getCenterOfMassPosition()) + glm::vec3(0.0f, 1.0f, 0.0f);
@@ -136,12 +144,16 @@ public:
         return this;
     }
 
-    PhysicalPlayer(Options *options, GUIRenderable *cursor);
+    PhysicalPlayer(Options *options, GUIRenderable *cursor, Model *attachedModel = nullptr);
 
     ~PhysicalPlayer() {
         delete player;
         delete spring;
     }
+
+    void setAttachedModelOffset(const glm::vec3 &attachedModelOffset);
+
+    void setAttachedModel(Model *attachedModel);
 };
 
 

@@ -6,7 +6,7 @@
 #include "../Model.h"
 #include "../../Utils/GLMUtils.h"
 
-PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor) :
+PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor, Model *attachedModel ) :
         Player(cursor),
         center(glm::vec3(0,0,-1)),
         up(glm::vec3(0,1,0)),
@@ -15,7 +15,8 @@ PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor) :
         spring(nullptr),
         onAir(true),
         options(options),
-        dirty(true){
+        dirty(true),
+        attachedModel(attachedModel){
     worldSettings.debugMode = DEBUG_DISABLED;
     worldSettings.audioPlaying = true;
     worldSettings.worldSimulation = true;
@@ -44,6 +45,10 @@ PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor) :
     player->setAngularFactor(0);
     player->setFriction(1);
     player->setUserPointer(static_cast<GameObject *>(this));
+
+    if(attachedModel != nullptr) {
+        calculateAndSetAttachedModelRotation();
+    }
 }
 
 
@@ -136,19 +141,31 @@ void PhysicalPlayer::rotate(float   xPosition __attribute__((unused)), float yPo
     center.z = view.z;
     center = glm::normalize(center);
     right = glm::normalize(glm::cross(center, up));
+
+    if(attachedModel != nullptr) {
+        calculateAndSetAttachedModelRotation();
+    }
 }
 
 void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
     onAir = true;//base assumption is we are flying
     player->getMotionState()->getWorldTransform(worldTransformHolder);
 
+    if(attachedModel != nullptr) {
+
+        attachedModel->getTransformation()->setTranslate(GLMConverter::BltToGLM(this->getRigidBody()->getWorldTransform().getOrigin()) + attachedModelOffset);
+
+    }
+
+    float highestPoint = std::numeric_limits<float>::lowest();
+    GameObject *hitObject = nullptr;
+
     //we will test for STEPPING_TEST_COUNT^2 times
-    float requiredDelta = 1.0f / (STEPPING_TEST_COUNT-1);
-    float highestPoint =  std::numeric_limits<float>::lowest();
-    GameObject* hitObject = nullptr;
+    float requiredDelta = 1.0f / (STEPPING_TEST_COUNT - 1);
+
     for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
         for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
-            btCollisionWorld::ClosestRayResultCallback *rayCallback = &rayCallbackArray[i*STEPPING_TEST_COUNT + j];
+            btCollisionWorld::ClosestRayResultCallback *rayCallback = &rayCallbackArray[i * STEPPING_TEST_COUNT + j];
             //set raycallback for downward raytest
             rayCallback->m_closestHitFraction = 1;
             rayCallback->m_collisionObject = nullptr;
@@ -247,6 +264,34 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
     }
 }
 
+void PhysicalPlayer::calculateAndSetAttachedModelRotation() const {
+    glm::quat temp, temp2;
+    //since we want not right, but front, it is not (right.x, right.z), instead of the following
+    float angle = atan2(right.z, -1 * right.x );
+    temp.x = 0;
+    temp.y = 1 * sin( angle/2 );
+    temp.z = 0;
+    temp.w = 1 * cos( angle/2 );
+
+    if(angle == 0) { //ATTENTION for some reason, GLM is assuming 0,0,0,1 is something else than no rotation
+        temp.w = 0;
+        temp.y = 1;
+    }
+
+    attachedModel->getTransformation()->setOrientation(temp);//this part sets left/right axis rotation
+
+    float angle2 = acos(dot(up, center)) - 0.5f * options->PI;
+    //angle2 = angle2 / 8;
+
+    temp2.x = 1 * sin(angle2/2);
+    temp2.y = 0;
+    temp2.z = 0;
+    temp2.w = 1 * cos(angle2/2);
+
+    std::cout << "temp1: " << glm::to_string(temp) << " temp2: " << glm::to_string(temp2) << std::endl;
+    attachedModel->getTransformation()->addOrientation(temp2);//this part sets up/down axis rotation, it is not set, but add orientation.
+}
+
 btGeneric6DofSpring2Constraint * PhysicalPlayer::getSpring(float minY) {
     spring = new btGeneric6DofSpring2Constraint(
             *player,
@@ -263,4 +308,15 @@ btGeneric6DofSpring2Constraint * PhysicalPlayer::getSpring(float minY) {
     spring->setParam(BT_CONSTRAINT_STOP_CFM, 1.0e-5f, 5);
     spring->setEnabled(false);//don't enable until player is not on air
     return spring;
+}
+
+void PhysicalPlayer::setAttachedModelOffset(const glm::vec3 &attachedModelOffset) {
+    PhysicalPlayer::attachedModelOffset = attachedModelOffset;
+}
+
+void PhysicalPlayer::setAttachedModel(Model *attachedModel) {
+    PhysicalPlayer::attachedModel = attachedModel;
+    if(attachedModel != nullptr) {
+        calculateAndSetAttachedModelRotation();
+    }
 }
