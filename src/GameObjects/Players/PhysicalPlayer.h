@@ -84,7 +84,7 @@ public:
         return dirty;//FIXME this always returns true because nothing sets it false;
     }
     void getCameraVariables(glm::vec3& position, glm::vec3 &center, glm::vec3& up, glm::vec3& right) {
-        position = GLMConverter::BltToGLM(this->getRigidBody()->getCenterOfMassPosition());
+        position = GLMConverter::BltToGLM(this->getRigidBody()->getWorldTransform().getOrigin());
         position.y += 1.0f;//for putting the camera up portion of capsule
         center = this->center;
         up = this->up;
