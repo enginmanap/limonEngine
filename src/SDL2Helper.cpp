@@ -36,9 +36,7 @@ SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {
         throw;
     }
 
-#ifdef NDEBUG
-    SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
-#endif
+    setFullScreen(options->isFullScreen());
 
     /* Create our opengl context and attach it to our window */
     context = SDL_GL_CreateContext(window);
@@ -108,4 +106,13 @@ bool SDL2Helper::loadSharedLibrary(const std::string &fileName) {
             std::cerr << "function load failed" << std::endl;
             return false;
         }
+}
+
+void SDL2Helper::setFullScreen(bool isFullScreen) {
+    if(isFullScreen == true) {
+        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+    } else {
+        SDL_SetWindowFullscreen(window, SDL_WINDOW_OPENGL);
+    }
+
 }

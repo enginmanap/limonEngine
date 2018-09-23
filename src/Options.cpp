@@ -158,6 +158,24 @@ bool Options::loadOptions(const std::string &optionsFileName) {
         }
     }
 
+    tinyxml2::XMLElement *fullScreenNode = optionsNode->FirstChildElement("fullScreen");
+    if (fullScreenNode != nullptr) {
+        if(fullScreenNode->GetText() != nullptr) {
+            std::string fullScreenText = fullScreenNode->GetText();
+            if(fullScreenText == "True") {
+                fullScreen = true;
+            } else if(fullScreenText == "False") {
+                fullScreen = false;
+            } else {
+                std::cerr << "\"fullScreen\" setting found but value is unknown, defaulting to false";
+            }
+        } else {
+            std::cout << "\"fullScreen\" setting not found, defaulting to false";
+        }
+    } else {
+        std::cout << "\"fullScreen\" setting not found, defaulting to false";
+    }
+
     loadVec3(optionsNode, "walkSpeed", walkSpeed);
     loadVec3(optionsNode, "runSpeed", runSpeed);
     loadVec3(optionsNode, "freeMovementSpeed", freeMovementSpeed);

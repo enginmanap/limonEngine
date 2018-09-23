@@ -17,6 +17,8 @@ class SDL2Helper {
     Options* options;
 public:
 
+    void setFullScreen(bool isFullScreen);
+
     SDL2Helper(const char *, Options* options);
 
     ~SDL2Helper();
