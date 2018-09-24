@@ -211,6 +211,11 @@ private:
     };
     QuitResponse currentQuitResponse = QuitResponse::QUIT_GAME;
 
+    glm::vec3 tempPlayerPosition = glm::vec3(-15, 7,25);
+    glm::vec3 tempPlayerLookDirection = glm::vec3(1, 0, 0);
+//    glm::vec3 tempPlayerPosition = glm::vec3(0, 10, 15);
+//    glm::vec3 tempPlayerLookDirection = glm::vec3(0, 0, -1);
+
     /**
      * This method checks, if IDs assigned without any empty space, and any collision
      * and sets the totalObjectCount accordingly.

@@ -26,7 +26,8 @@ class FreeCursorPlayer : public Player, public CameraAttachment {
     glm::quat view;
 public:
 
-    FreeCursorPlayer(Options* options, GUIRenderable* cursor);
+    FreeCursorPlayer(Options *options, GUIRenderable *cursor, const glm::vec3 &position,
+                         const glm::vec3 &lookDirection);
 
     bool isDirty() {
         return dirty;

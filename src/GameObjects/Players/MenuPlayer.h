@@ -23,7 +23,8 @@ class MenuPlayer: public Player, public CameraAttachment {
     glm::quat view;
 public:
 
-    MenuPlayer(Options* options, GUIRenderable* cursor);
+    MenuPlayer(Options* options, GUIRenderable* cursor, const glm::vec3 &position,
+               const glm::vec3 &lookDirection);
 
     bool isDirty() {
         return dirty;
