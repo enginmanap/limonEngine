@@ -130,15 +130,16 @@ void FreeCursorPlayer::getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &t
     toPosition = glm::normalize(glm::vec3(worldSpaceRay.x, worldSpaceRay.y, worldSpaceRay.z));
 }
 
-FreeCursorPlayer::FreeCursorPlayer(Options *options, GUIRenderable* cursor):
-        Player(cursor),
+FreeCursorPlayer::FreeCursorPlayer(Options *options, GUIRenderable *cursor, const glm::vec3 &position,
+                                   const glm::vec3 &lookDirection) :
+        Player(cursor, position, lookDirection),
         options(options),
         dirty(true),
-        position(),
-        center(glm::vec3(0,0,-1)),
+        position(position),
+        center(lookDirection),
         up(glm::vec3(0,1,0)),
-        right(glm::vec3(-1,0,0)),
         view(glm::quat(0,0,0,-1)) {
+    right = glm::normalize(glm::cross(center, up));
     worldSettings.debugMode = DEBUG_NOCHANGE;
     worldSettings.audioPlaying = false;
     worldSettings.worldSimulation = false;

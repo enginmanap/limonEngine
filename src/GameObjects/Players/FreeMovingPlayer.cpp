@@ -72,15 +72,16 @@ void FreeMovingPlayer::rotate(float xPosition __attribute__((unused)), float yPo
     right = glm::normalize(glm::cross(center, up));
 }
 
-FreeMovingPlayer::FreeMovingPlayer(Options *options, GUIRenderable* cursor):
-        Player(cursor),
+FreeMovingPlayer::FreeMovingPlayer(Options *options, GUIRenderable* cursor, const glm::vec3 &position,
+                                   const glm::vec3 &lookDirection):
+        Player(cursor, position, lookDirection),
         options(options),
         dirty(true),
-        position(),
-        center(glm::vec3(0,0,-1)),
+        position(position),
+        center(lookDirection),
         up(glm::vec3(0,1,0)),
-        right(glm::vec3(-1,0,0)),
         view(glm::quat(0,0,0,-1)) {
+    right = glm::normalize(glm::cross(center, up));
     worldSettings.debugMode = DEBUG_ENABLED;
     worldSettings.audioPlaying = true;
     worldSettings.worldSimulation = true;

@@ -91,19 +91,19 @@ World::World(const std::string &name, PlayerTypes startingPlayerType, InputHandl
 
     switch(startingPlayer.type) {
         case PlayerTypes::Types::PHYSICAL_PLAYER:
-            physicalPlayer = new PhysicalPlayer(options, cursor);
+            physicalPlayer = new PhysicalPlayer(options, cursor, tempPlayerPosition, tempPlayerLookDirection);
             currentPlayer = physicalPlayer;
             break;
         case PlayerTypes::Types::DEBUG_PLAYER:
-            debugPlayer = new FreeMovingPlayer(options, cursor);
+            debugPlayer = new FreeMovingPlayer(options, cursor, tempPlayerPosition, tempPlayerLookDirection);
             currentPlayer = debugPlayer;
             break;
         case PlayerTypes::Types::EDITOR_PLAYER:
-            editorPlayer = new FreeCursorPlayer(options, cursor);
+            editorPlayer = new FreeCursorPlayer(options, cursor, tempPlayerPosition, tempPlayerLookDirection);
             currentPlayer = editorPlayer;
             break;
         case PlayerTypes::Types::MENU_PLAYER:
-            menuPlayer = new MenuPlayer(options, cursor);
+            menuPlayer = new MenuPlayer(options, cursor, tempPlayerPosition, tempPlayerLookDirection);
             currentPlayer = menuPlayer;
             break;
     }
@@ -494,7 +494,7 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
 
     if (inputHandler.getInputEvents(inputHandler.EDITOR) && inputHandler.getInputStatus(inputHandler.EDITOR)) {
         if(editorPlayer == nullptr) {
-            editorPlayer = new FreeCursorPlayer(options, cursor);
+            editorPlayer = new FreeCursorPlayer(options, cursor, tempPlayerPosition, tempPlayerLookDirection);
             editorPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
 
         }
@@ -508,14 +508,14 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
     if (!currentPlayersSettings->editorShown && inputHandler.getInputEvents(inputHandler.DEBUG) && inputHandler.getInputStatus(inputHandler.DEBUG)) {
         if(currentPlayersSettings->debugMode != Player::DEBUG_ENABLED) {
             if(debugPlayer == nullptr) {
-                debugPlayer = new FreeMovingPlayer(options, cursor);
+                debugPlayer = new FreeMovingPlayer(options, cursor, tempPlayerPosition, tempPlayerLookDirection);
                 debugPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
 
             }
             switchPlayer(debugPlayer, inputHandler);
         } else {
             if(physicalPlayer == nullptr) {
-                physicalPlayer = new PhysicalPlayer(options, cursor);
+                physicalPlayer = new PhysicalPlayer(options, cursor, tempPlayerPosition, tempPlayerLookDirection);
                 physicalPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
 
             }

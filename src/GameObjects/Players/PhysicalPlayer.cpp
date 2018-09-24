@@ -6,17 +6,19 @@
 #include "../Model.h"
 #include "../../Utils/GLMUtils.h"
 
-PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor, Model *attachedModel ) :
-        Player(cursor),
-        center(glm::vec3(0,0,-1)),
+PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor, const glm::vec3 &position,
+                               const glm::vec3 &lookDirection, Model *attachedModel ) :
+        Player(cursor, position, lookDirection),
+        center(lookDirection),
         up(glm::vec3(0,1,0)),
-        right(glm::vec3(-1,0,0)),
         view(glm::quat(0,0,0,-1)),
         spring(nullptr),
         onAir(true),
         options(options),
         dirty(true),
         attachedModel(attachedModel){
+    right = glm::normalize(glm::cross(center, up));
+    startingHeight = position.y;
     worldSettings.debugMode = DEBUG_DISABLED;
     worldSettings.audioPlaying = true;
     worldSettings.worldSimulation = true;
@@ -29,14 +31,14 @@ PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor, Model *a
     for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
         for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
             rayCallbackArray.push_back(btCollisionWorld::ClosestRayResultCallback(
-                    GLMConverter::GLMToBlt(startPosition + glm::vec3(0, -1.1f, 0)),
-                    GLMConverter::GLMToBlt(startPosition + glm::vec3(0, -3.1f, 0))));
+                    GLMConverter::GLMToBlt(position + glm::vec3(0, -1.1f, 0)),
+                    GLMConverter::GLMToBlt(position + glm::vec3(0, -3.1f, 0))));
         }
     }
 
     btCollisionShape *capsuleShape = new btCapsuleShape(1, 1);
     btDefaultMotionState *boxMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1),
-                                                                                GLMConverter::GLMToBlt(startPosition)));
+                                                                                GLMConverter::GLMToBlt(position)));
     btVector3 fallInertia(0, 0, 0);
     capsuleShape->calculateLocalInertia(1, fallInertia);
     btRigidBody::btRigidBodyConstructionInfo
@@ -192,7 +194,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
             }
         } else {
             if (!onAir) {
-                springStandPoint = highestPoint + standingHeight - startPosition.y;
+                springStandPoint = highestPoint + standingHeight - startingHeight;
                 spring->setLimit(1, springStandPoint + 1.0f, springStandPoint + 1.0f + standingHeight);
                 spring->setEnabled(true);
                 Model *model = dynamic_cast<Model *>(hitObject);
