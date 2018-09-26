@@ -5,6 +5,9 @@
 #ifndef LIMONENGINE_WORLDSAVER_H
 #define LIMONENGINE_WORLDSAVER_H
 
+#include <glm/vec3.hpp>
+#include <tinyxml2.h>
+
 class World;
 
 class WorldSaver {
@@ -18,6 +21,7 @@ private:
     static bool fillOnloadAnimations(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *onloadAnimationsNode, const World *world);
     static bool fillGUILayersAndElements(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *GUILayersListNode, const World *world);
 
+    static void serializeVec3(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, const glm::vec3& vector);
 public:
     static bool saveWorld(const std::string& mapName, const World* world);
 };

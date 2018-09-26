@@ -89,13 +89,46 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     }
     std::cout << "read name as " << worldName->GetText() << std::endl;
 
-    tinyxml2::XMLElement* worldStartPlayer =  worldNode->FirstChildElement("StartingPlayer");
-    World::PlayerTypes startingPlayer;
+    tinyxml2::XMLElement* worldStartPlayer =  worldNode->FirstChildElement("Player");
+    World::PlayerInfo startingPlayer;
     if (worldStartPlayer == nullptr) {
-        std::cerr << "World starting player not found, will start with Physical player." << std::endl;
+        std::cerr << "World starting player not found, will start with Physical player at 0,0,0." << std::endl;
     } else {
-        std::string playerType = worldStartPlayer->GetText();
-        startingPlayer.setType(playerType);
+        //load player
+        tinyxml2::XMLElement* playerType =  worldStartPlayer->FirstChildElement("Type");
+        if (playerType == nullptr) {
+            std::cerr << "World starting player type not found, will start with Physical player." << std::endl;
+        } else {
+            std::string playerTypeName = playerType->GetText();
+            startingPlayer.setType(playerTypeName);
+        }
+
+        tinyxml2::XMLElement* playerStartPosition =  worldStartPlayer->FirstChildElement("Position");
+        if(playerStartPosition != nullptr) {
+            loadVec3(playerStartPosition, startingPlayer.position);
+        }
+        tinyxml2::XMLElement* playerStartOrientation =  worldStartPlayer->FirstChildElement("Orientation");
+        if(playerStartPosition != nullptr) {
+            loadVec3(playerStartOrientation, startingPlayer.orientation);
+        }
+
+        tinyxml2::XMLElement* playerAttachementModel =  worldStartPlayer->FirstChildElement("Attachement");
+        if(playerAttachementModel != nullptr) {
+            tinyxml2::XMLElement* objectNode =  playerAttachementModel->FirstChildElement("Object");
+            if (objectNode != nullptr) {
+                std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds; //required. Should not be used normally.
+
+                std::unique_ptr<ObjectInformation> objectInfo = loadObject(objectNode,
+                                                                           requiredSounds);//this map is used to load all the sounds, while sharing same objects.
+                if (objectInfo) { //if not null
+                    if (objectInfo->modelActor != nullptr) {
+                        std::cerr << "There was an AI attached to player model, this shouldn't happen. Ignoring" << std::endl;
+                        delete objectInfo->modelActor;
+                    }
+                    startingPlayer.attachedModel = objectInfo->model;
+                }
+            }
+        }
     }
 
     World* world = new World(std::string(worldName->GetText()), startingPlayer, inputHandler, assetManager, options);
@@ -178,42 +211,75 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
         std::cout << "World doesn't have any objects, this might be a mistake." << std::endl;
         return true;
     }
-    Model *xmlModel;
-    tinyxml2::XMLElement* objectAttribute;
-    std::string modelFile;
-    float modelMass;
     std::vector<Model*> notStaticObjects;
+
     bool isAIGridStartPointSet = false;
     glm::vec3 aiGridStartPoint = glm::vec3(0,0,0);
-
     std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds;
 
     while(objectNode != nullptr) {
-        objectAttribute =  objectNode->FirstChildElement("File");
-        if (objectAttribute == nullptr) {
-            std::cerr << "Object must have a source file." << std::endl;
-            return false;
+
+        std::unique_ptr<ObjectInformation> objectInfo = loadObject(objectNode,
+                                                                   requiredSounds);//this map is used to load all the sounds, while sharing same objects.
+
+        if(objectInfo) { //if not null
+            if(objectInfo->modelActor != nullptr) {
+                world->addActor(objectInfo->modelActor);
+            }
+            if(!isAIGridStartPointSet && objectInfo->isAIGridStartPointSet ) { //if this is the first actor to set AI grid start point
+                aiGridStartPoint = objectInfo->aiGridStartPoint;
+            }
         }
-        modelFile = objectAttribute->GetText();
-        objectAttribute =  objectNode->FirstChildElement("Mass");
-        if (objectAttribute == nullptr) {
+
+        //ADD NEW ATTRIBUTES GOES UP FROM HERE
+        // We will add static objects first, build AI grid, then add other objects
+        if(objectInfo->model->getMass() == 0 && !objectInfo->model->isAnimated()) {
+            world->addModelToWorld(objectInfo->model);
+        } else {
+            notStaticObjects.push_back(objectInfo->model);
+        }
+        objectNode = objectNode->NextSiblingElement("Object");
+    } // end of while (objects)
+
+    world->createGridFrom(aiGridStartPoint);
+
+    for (unsigned int i = 0; i < notStaticObjects.size(); ++i) {
+        world->addModelToWorld(notStaticObjects[i]);
+    }
+    return true;
+}
+
+std::unique_ptr<WorldLoader::ObjectInformation> WorldLoader::loadObject(tinyxml2::XMLElement *objectNode,
+                                                                        std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds) const {
+    std::unique_ptr<ObjectInformation> loadedObjectInformation = std::make_unique<ObjectInformation>();
+
+
+    tinyxml2::XMLElement *objectAttribute =  objectNode->FirstChildElement("File");
+    if (objectAttribute == nullptr) {
+            std::cerr << "Object must have a source file." << std::endl;
+        return std::unique_ptr<ObjectInformation>(nullptr);
+        }
+    std::string modelFile = objectAttribute->GetText();
+    objectAttribute =  objectNode->FirstChildElement("Mass");
+    float modelMass;
+    if (objectAttribute == nullptr) {
             std::cout << "Object does not have mass, assume 0." << std::endl;
             modelMass = 0;
         } else {
             modelMass = std::stof(objectAttribute->GetText());
         }
-        int id;
-        objectAttribute =  objectNode->FirstChildElement("ID");
-        if (objectAttribute == nullptr) {
+    int id;
+    objectAttribute =  objectNode->FirstChildElement("ID");
+    if (objectAttribute == nullptr) {
             std::cerr << "Object does not have ID. Can't be loaded" << std::endl;
-            return false;
+            return std::unique_ptr<ObjectInformation>(nullptr);
         } else {
             id = std::stoi(objectAttribute->GetText());
         }
 
-        bool disconnected = false;
-        objectAttribute =  objectNode->FirstChildElement("Disconnected");
-        if (objectAttribute == nullptr) {
+    bool disconnected = false;
+    objectAttribute =  objectNode->FirstChildElement("Disconnected");
+    if (objectAttribute == nullptr) {
 #ifndef NDEBUG
             std::cout << "Object disconnect status is not set. defaulting to False" << std::endl;
 #endif
@@ -228,30 +294,31 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
             }
         }
 
-        xmlModel = new Model(id, assetManager, modelMass, modelFile, disconnected);
+    loadedObjectInformation->model = new Model(id, assetManager, modelMass, modelFile, disconnected);
 
-        objectAttribute =  objectNode->FirstChildElement("StepOnSound");
+    objectAttribute =  objectNode->FirstChildElement("StepOnSound");
 
-        if (objectAttribute == nullptr) {
+    if (objectAttribute == nullptr) {
             std::cerr << "Object does not have step on sound." << std::endl;
         } else {
             std::string stepOnSound = objectAttribute->GetText();
             if(requiredSounds.find(stepOnSound) == requiredSounds.end()) {
                 requiredSounds[stepOnSound] = std::make_shared<Sound>(0, assetManager, stepOnSound);//since the step on is not managed by world, not feed world object ID
             }
-            xmlModel->setPlayerStepOnSound(requiredSounds[stepOnSound]);
+            loadedObjectInformation->model->setPlayerStepOnSound(requiredSounds[stepOnSound]);
         }
 
-        objectAttribute =  objectNode->FirstChildElement("Transformation");
-        if(objectAttribute == nullptr) {
+    objectAttribute =  objectNode->FirstChildElement("Transformation");
+    if(objectAttribute == nullptr) {
             std::cerr << "Object does not have transformation. Can't be loaded" << std::endl;
-            return false;
-        }
-        xmlModel->getTransformation()->deserialize(objectAttribute);
+            delete loadedObjectInformation->model;
+        return std::unique_ptr<ObjectInformation>(nullptr);
+    }
+    loadedObjectInformation->model->getTransformation()->deserialize(objectAttribute);
 
-        //Since we are not loading objects recursively, these can be set here safely
-        objectAttribute =  objectNode->FirstChildElement("AI");
-        if (objectAttribute == nullptr) {
+    //Since we are not loading objects recursively, these can be set here safely
+    objectAttribute =  objectNode->FirstChildElement("AI");
+    if (objectAttribute == nullptr) {
 #ifndef NDEBUG
             std::cout << "Object does not have AI." << std::endl;
 #endif
@@ -260,46 +327,30 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
             objectAttribute =  objectNode->FirstChildElement("AI_ID");
             if (objectAttribute == nullptr) {
                 std::cerr << "Object AI does not have ID. Can't be loaded" << std::endl;
-                return false;
+                delete loadedObjectInformation->model;
+                return std::unique_ptr<ObjectInformation>(nullptr);
             } else {
                 ai_id = std::stoi(objectAttribute->GetText());
             }
-            if (!isAIGridStartPointSet) {
-                aiGridStartPoint = GLMConverter::BltToGLM(xmlModel->getRigidBody()->getCenterOfMassPosition()) +
-                                   glm::vec3(0, 2.0f, 0);
-                isAIGridStartPointSet = true;
-            }
+            loadedObjectInformation->aiGridStartPoint = GLMConverter::BltToGLM(loadedObjectInformation->model->getRigidBody()->getCenterOfMassPosition()) +
+                               glm::vec3(0, 2.0f, 0);
+            loadedObjectInformation->isAIGridStartPointSet = true;
             std::cout << "Object has AI." << std::endl;
-            HumanEnemy* newEnemy = new HumanEnemy(ai_id);
-            newEnemy->setModel(xmlModel);
-            world->addActor(newEnemy);
+
+            loadedObjectInformation->modelActor = new HumanEnemy(ai_id);
+            loadedObjectInformation->modelActor->setModel(loadedObjectInformation->model);
         }
 
-        objectAttribute =  objectNode->FirstChildElement("Animation");
-        if (objectAttribute == nullptr) {
+    objectAttribute =  objectNode->FirstChildElement("Animation");
+    if (objectAttribute == nullptr) {
 #ifndef NDEBUG
             std::cout << "Object does not have default animation." << std::endl;
 #endif
         } else {
-            xmlModel->setAnimation(objectAttribute->GetText());
+            loadedObjectInformation->model->setAnimation(objectAttribute->GetText());
         }
 
-        //ADD NEW ATTRIBUTES GOES UP FROM HERE
-        // We will add static objects first, build AI grid, then add other objects
-        if(xmlModel->getMass() == 0 && !xmlModel->isAnimated()) {
-            world->addModelToWorld(xmlModel);
-        } else {
-            notStaticObjects.push_back(xmlModel);
-        }
-        objectNode = objectNode->NextSiblingElement("Object");
-    } // end of while (objects)
-
-    world->createGridFrom(aiGridStartPoint);
-
-    for (unsigned int i = 0; i < notStaticObjects.size(); ++i) {
-        world->addModelToWorld(notStaticObjects[i]);
-    }
-    return true;
+    return loadedObjectInformation;
 }
 
 bool WorldLoader::loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const {
@@ -698,5 +749,30 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
 
         GUILayerNode = GUILayerNode->NextSiblingElement("GUILayer");
     } // end of while (GUILayer)
+    return true;
+}
+
+bool WorldLoader::loadVec3(tinyxml2::XMLNode *vectorNode, glm::vec3& vector) {
+    tinyxml2::XMLElement *vectorAttributeNode = vectorNode->FirstChildElement("X");
+    if (vectorAttributeNode != nullptr) {
+        vector.x = std::stof(vectorAttributeNode->GetText());
+    } else {
+        std::cerr << "Vector is missing x." << std::endl;
+        return false;
+    }
+    vectorAttributeNode = vectorNode->FirstChildElement("Y");
+    if (vectorAttributeNode != nullptr) {
+        vector.y = std::stof(vectorAttributeNode->GetText());
+    } else {
+        std::cerr << "Vector is missing y." << std::endl;
+        return false;
+    }
+    vectorAttributeNode = vectorNode->FirstChildElement("Z");
+    if (vectorAttributeNode != nullptr) {
+        vector.z = std::stof(vectorAttributeNode->GetText());
+    } else {
+        std::cerr << "Vector is missing z." << std::endl;
+        return false;
+    }
     return true;
 }

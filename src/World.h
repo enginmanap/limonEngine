@@ -57,24 +57,34 @@ class ALHelper;
 
 class World {
 public:
-    struct PlayerTypes {
+    struct PlayerInfo {
         enum class Types {
             //ATTENTION if another type is added, typeNames must be updated
             PHYSICAL_PLAYER, DEBUG_PLAYER, EDITOR_PLAYER, MENU_PLAYER
         };
-        Types type = Types::PHYSICAL_PLAYER;
 
         static const std::map<Types, std::string> typeNames;
 
-        std::string toString() const {
-            assert(typeNames.find(type) != typeNames.end());
-            return typeNames.at(type);
+        Types type = Types::PHYSICAL_PLAYER;
+        glm::vec3 position = glm::vec3(0,0,0);
+        glm::vec3 orientation = glm::vec3(0,0,-1);
+        Model* attachedModel = nullptr;
+
+        PlayerInfo() {
+            position = glm::vec3(-15, 7,25);
+            orientation = glm::vec3(1, 0, 0);
+
         }
 
-        PlayerTypes() {}
-
-        PlayerTypes(const std::string& name) {
+        PlayerInfo(const std::string& name) {
+            position = glm::vec3(-15, 7,25);
+            orientation = glm::vec3(1, 0, 0);
             setType(name);
+        }
+
+        std::string typeToString() const {
+            assert(typeNames.find(type) != typeNames.end());
+            return typeNames.at(type);
         }
 
         bool setType(const std::string& name) {
@@ -169,7 +179,7 @@ private:
     GLSLProgram *shadowMapProgramDirectional, *shadowMapProgramPoint;
     FontManager fontManager;
 
-    PlayerTypes startingPlayer;
+    PlayerInfo startingPlayer;
     PhysicalPlayer* physicalPlayer = nullptr;
     FreeCursorPlayer* editorPlayer = nullptr;
     FreeMovingPlayer* debugPlayer = nullptr;
@@ -210,11 +220,6 @@ private:
         LOAD_WORLD
     };
     QuitResponse currentQuitResponse = QuitResponse::QUIT_GAME;
-
-    glm::vec3 tempPlayerPosition = glm::vec3(-15, 7,25);
-    glm::vec3 tempPlayerLookDirection = glm::vec3(1, 0, 0);
-//    glm::vec3 tempPlayerPosition = glm::vec3(0, 10, 15);
-//    glm::vec3 tempPlayerLookDirection = glm::vec3(0, 0, -1);
 
     /**
      * This method checks, if IDs assigned without any empty space, and any collision
@@ -305,7 +310,7 @@ private:
 
     void addLight(Light *light);
 
-    World(const std::string &name, PlayerTypes startingPlayerType, InputHandler *inputHandler,
+    World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
               AssetManager *assetManager, Options *options);
 
     void afterLoadFinished();

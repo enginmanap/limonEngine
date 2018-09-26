@@ -33,7 +33,7 @@
 
 
 
-const std::map<World::PlayerTypes::Types, std::string> World::PlayerTypes::typeNames =
+const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
         {
                 { Types::PHYSICAL_PLAYER, "Physical"},
                 { Types::DEBUG_PLAYER, "Debug"},
@@ -41,7 +41,7 @@ const std::map<World::PlayerTypes::Types, std::string> World::PlayerTypes::typeN
                 { Types::MENU_PLAYER, "Menu" }
         };
 
-World::World(const std::string &name, PlayerTypes startingPlayerType, InputHandler *inputHandler,
+World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
              AssetManager *assetManager, Options *options)
         : assetManager(assetManager),options(options), glHelper(assetManager->getGlHelper()), alHelper(assetManager->getAlHelper()), name(name), fontManager(glHelper), startingPlayer(startingPlayerType) {
 
@@ -90,20 +90,20 @@ World::World(const std::string &name, PlayerTypes startingPlayerType, InputHandl
 
 
     switch(startingPlayer.type) {
-        case PlayerTypes::Types::PHYSICAL_PLAYER:
-            physicalPlayer = new PhysicalPlayer(options, cursor, tempPlayerPosition, tempPlayerLookDirection);
+        case PlayerInfo::Types::PHYSICAL_PLAYER:
+            physicalPlayer = new PhysicalPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
             currentPlayer = physicalPlayer;
             break;
-        case PlayerTypes::Types::DEBUG_PLAYER:
-            debugPlayer = new FreeMovingPlayer(options, cursor, tempPlayerPosition, tempPlayerLookDirection);
+        case PlayerInfo::Types::DEBUG_PLAYER:
+            debugPlayer = new FreeMovingPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
             currentPlayer = debugPlayer;
             break;
-        case PlayerTypes::Types::EDITOR_PLAYER:
-            editorPlayer = new FreeCursorPlayer(options, cursor, tempPlayerPosition, tempPlayerLookDirection);
+        case PlayerInfo::Types::EDITOR_PLAYER:
+            editorPlayer = new FreeCursorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
             currentPlayer = editorPlayer;
             break;
-        case PlayerTypes::Types::MENU_PLAYER:
-            menuPlayer = new MenuPlayer(options, cursor, tempPlayerPosition, tempPlayerLookDirection);
+        case PlayerInfo::Types::MENU_PLAYER:
+            menuPlayer = new MenuPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
             currentPlayer = menuPlayer;
             break;
     }
@@ -494,7 +494,7 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
 
     if (inputHandler.getInputEvents(inputHandler.EDITOR) && inputHandler.getInputStatus(inputHandler.EDITOR)) {
         if(editorPlayer == nullptr) {
-            editorPlayer = new FreeCursorPlayer(options, cursor, tempPlayerPosition, tempPlayerLookDirection);
+            editorPlayer = new FreeCursorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
             editorPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
 
         }
@@ -508,14 +508,14 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
     if (!currentPlayersSettings->editorShown && inputHandler.getInputEvents(inputHandler.DEBUG) && inputHandler.getInputStatus(inputHandler.DEBUG)) {
         if(currentPlayersSettings->debugMode != Player::DEBUG_ENABLED) {
             if(debugPlayer == nullptr) {
-                debugPlayer = new FreeMovingPlayer(options, cursor, tempPlayerPosition, tempPlayerLookDirection);
+                debugPlayer = new FreeMovingPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
                 debugPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
 
             }
             switchPlayer(debugPlayer, inputHandler);
         } else {
             if(physicalPlayer == nullptr) {
-                physicalPlayer = new PhysicalPlayer(options, cursor, tempPlayerPosition, tempPlayerLookDirection);
+                physicalPlayer = new PhysicalPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
                 physicalPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
 
             }
@@ -963,10 +963,10 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             }
 
 
-            if (ImGui::BeginCombo("Starting Player Type", startingPlayer.toString().c_str())) {
-                for (auto iterator = PlayerTypes::typeNames.begin();
-                     iterator != PlayerTypes::typeNames.end(); ++iterator) {
-                    bool isThisTypeSelected = iterator->second == startingPlayer.toString();
+            if (ImGui::BeginCombo("Starting Player Type", startingPlayer.typeToString().c_str())) {
+                for (auto iterator = PlayerInfo::typeNames.begin();
+                     iterator != PlayerInfo::typeNames.end(); ++iterator) {
+                    bool isThisTypeSelected = iterator->second == startingPlayer.typeToString();
                     if (ImGui::Selectable(iterator->second.c_str(), isThisTypeSelected)) {
                         this->startingPlayer.setType(iterator->second);
                     }
