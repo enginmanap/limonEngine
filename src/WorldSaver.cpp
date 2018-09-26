@@ -2,7 +2,7 @@
 // Created by engin on 24.03.2018.
 //
 
-#include <tinyxml2.h>
+
 #include <string>
 
 #include "WorldSaver.h"
@@ -72,9 +72,25 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     currentElement->SetText(mapName.c_str());
     rootNode->InsertEndChild(currentElement);
 
-    currentElement = mapDocument.NewElement("StartingPlayer");
-    currentElement->SetText(world->startingPlayer.toString().c_str());
+    currentElement = mapDocument.NewElement("Player");
+        tinyxml2::XMLElement *playerType = mapDocument.NewElement("Type");
+        playerType->SetText(world->startingPlayer.typeToString().c_str());
+        currentElement->InsertEndChild(playerType);
 
+        tinyxml2::XMLElement *playerPosition = mapDocument.NewElement("Position");
+        serializeVec3(mapDocument, playerPosition, world->startingPlayer.position);
+        currentElement->InsertEndChild(playerPosition);
+
+        tinyxml2::XMLElement *playerOrientation = mapDocument.NewElement("Orientation");
+        serializeVec3(mapDocument, playerOrientation, world->startingPlayer.orientation);
+        currentElement->InsertEndChild(playerOrientation);
+
+        tinyxml2::XMLElement *playerAttachement = mapDocument.NewElement("Attachement");
+        if(world->startingPlayer.attachedModel != nullptr) {
+            world->startingPlayer.attachedModel->fillObjects(mapDocument, playerAttachement);
+        }
+        currentElement->InsertEndChild(playerAttachement);
+    //currentElement->SetText(world->startingPlayer.toString().c_str());
     rootNode->InsertEndChild(currentElement);
 
     if(world->music != nullptr) {
@@ -347,3 +363,16 @@ bool WorldSaver::fillGUILayersAndElements(tinyxml2::XMLDocument &document, tinyx
     }
     return true;
 }
+
+void WorldSaver::serializeVec3(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, const glm::vec3& vector){
+    tinyxml2::XMLElement *currentElement = document.NewElement("X");
+    currentElement->SetText(vector.x);
+    parentNode->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Y");
+    currentElement->SetText(vector.y);
+    parentNode->InsertEndChild(currentElement);
+    currentElement = document.NewElement("Z");
+    currentElement->SetText(vector.z);
+    parentNode->InsertEndChild(currentElement);
+}
+
