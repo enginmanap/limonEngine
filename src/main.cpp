@@ -100,7 +100,7 @@ GameEngine::GameEngine() {
     glHelper = new GLHelper(options);
     glHelper->reshape();
 
-    ALHelper *alHelper = new ALHelper();
+    alHelper = new ALHelper();
 
     inputHandler = new InputHandler(sdlHelper->getWindow(), options);
     assetManager = new AssetManager(glHelper, alHelper);
