@@ -910,6 +910,22 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             }
         }
         ImGui::Separator();
+        if(ImGui::CollapsingHeader("Player properties")) {
+            if (ImGui::BeginCombo("Starting Type", startingPlayer.typeToString().c_str())) {
+                for (auto iterator = PlayerInfo::typeNames.begin();
+                     iterator != PlayerInfo::typeNames.end(); ++iterator) {
+                    bool isThisTypeSelected = iterator->second == startingPlayer.typeToString();
+                    if (ImGui::Selectable(iterator->second.c_str(), isThisTypeSelected)) {
+                        this->startingPlayer.setType(iterator->second);
+                    }
+                    if (isThisTypeSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+        }
+        ImGui::Separator();
         if(ImGui::CollapsingHeader("World properties")) {
             ImGui::Indent( 16.0f );
 
@@ -960,21 +976,6 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 this->music->setLoop(true);
                 this->music->setWorldPosition(glm::vec3(0, 0, 0), true);
                 this->music->play();
-            }
-
-
-            if (ImGui::BeginCombo("Starting Player Type", startingPlayer.typeToString().c_str())) {
-                for (auto iterator = PlayerInfo::typeNames.begin();
-                     iterator != PlayerInfo::typeNames.end(); ++iterator) {
-                    bool isThisTypeSelected = iterator->second == startingPlayer.typeToString();
-                    if (ImGui::Selectable(iterator->second.c_str(), isThisTypeSelected)) {
-                        this->startingPlayer.setType(iterator->second);
-                    }
-                    if (isThisTypeSelected) {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-                ImGui::EndCombo();
             }
 
             ImGui::Text("By default, esc quits the game");
