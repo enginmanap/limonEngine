@@ -483,7 +483,7 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
     if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT)) {
         if(inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
             GameObject *gameObject = getPointedObject();
-            if (gameObject != nullptr) {
+            if (gameObject != nullptr) {//FIXME this looks like a left over
                 pickedObject = gameObject;
             } else {
                 pickedObject = nullptr;
@@ -737,9 +737,27 @@ void World::render() {
         }
     }
 
-    if(currentPlayersSettings->editorShown) {
+    if(currentPlayersSettings->editorShown) { //if editor is shown, render wireframe of the triggers
         for (auto it = triggers.begin(); it != triggers.end(); ++it) {
             it->second->render(debugDrawer);
+        }
+        if(physicalPlayer != nullptr) {
+            if(playerPlaceHolder == nullptr) {
+                std::string assetFile;
+                glm::vec3 scale;
+                physicalPlayer->getRenderProperties(assetFile, scale);
+                playerPlaceHolder = new Model(this->getNextObjectID(), assetManager, 0, assetFile, true);
+                playerPlaceHolder->getTransformation()->setScale(scale);
+            }
+
+            startingPlayer.orientation = physicalPlayer->getLookDirection();
+            startingPlayer.position = physicalPlayer->getPosition();
+
+            playerPlaceHolder->getTransformation()->setTranslate(physicalPlayer->getPosition());
+            playerPlaceHolder->getTransformation()->setOrientation(physicalPlayer->getLookDirectionQuaternion());
+            std::vector<uint32_t > temp;
+            temp.push_back(playerPlaceHolder->getWorldObjectID());
+            playerPlaceHolder->renderInstanced(temp);
         }
     }
 
