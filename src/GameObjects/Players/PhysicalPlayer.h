@@ -27,9 +27,6 @@ static const int STEPPING_TEST_COUNT = 5;
 
 
 class PhysicalPlayer : public Player, public CameraAttachment {
-
-    const float standingHeight = 2.0f;
-
     glm::vec3 center, up, right;
     glm::quat view;
     btVector3 inputMovementSpeed;
@@ -55,8 +52,11 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     Model* attachedModel = nullptr;
     glm::vec3 attachedModelOffset = glm::vec3(0,0,0);
 
-    void calculateAndSetAttachedModelRotation() const;
+    glm::quat calculatePlayerRotation() const;
 
+    static const float CAPSULE_HEIGHT;
+    static const float CAPSULE_RADIUS;
+    static const float STANDING_HEIGHT;
 
 public:
     glm::vec3 getPosition() const {
@@ -69,6 +69,19 @@ public:
 
     btRigidBody* getRigidBody() {
         return player;
+    }
+
+    /**
+     * This method is used to render the placeholder in editor mode
+     * all parameters are references.
+     *
+     * I should/could build a model here, but then it whould be harder to extract this class with the API
+     */
+
+
+    void getRenderProperties(std::string& assetPath, glm::vec3& scale) {
+        assetPath = "./Engine/Models/Capsule/Capsule.obj"; //since this file is required by the engine itself.
+        scale = glm::vec3(1,1,1);
     }
 
     void registerToPhysicalWorld(btDiscreteDynamicsWorld *world, int collisionGroup, int collisionMask,
@@ -113,6 +126,10 @@ public:
         return this->center;
     };
 
+    glm::quat getLookDirectionQuaternion() const {
+        return calculatePlayerRotation();
+    }
+
     void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const {
         fromPosition = this->getPosition();
         lookDirection = this->center;
@@ -151,6 +168,8 @@ public:
         delete player;
         delete spring;
     }
+
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
 
     void setAttachedModelOffset(const glm::vec3 &attachedModelOffset);
 

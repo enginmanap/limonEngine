@@ -6,6 +6,11 @@
 #include "../Model.h"
 #include "../../Utils/GLMUtils.h"
 
+
+const float PhysicalPlayer::CAPSULE_HEIGHT = 1.0f;
+const float PhysicalPlayer::CAPSULE_RADIUS = 1.0f;
+const float PhysicalPlayer::STANDING_HEIGHT = 2.0f;
+
 PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor, const glm::vec3 &position,
                                const glm::vec3 &lookDirection, Model *attachedModel ) :
         Player(cursor, position, lookDirection),
@@ -31,12 +36,12 @@ PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor, const gl
     for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
         for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
             rayCallbackArray.push_back(btCollisionWorld::ClosestRayResultCallback(
-                    GLMConverter::GLMToBlt(position + glm::vec3(0, -1.1f, 0)),
-                    GLMConverter::GLMToBlt(position + glm::vec3(0, -3.1f, 0))));
+                    GLMConverter::GLMToBlt(position + glm::vec3(0, -1 * (CAPSULE_HEIGHT + 0.1f), 0)),
+                    GLMConverter::GLMToBlt(position + glm::vec3(0, -1 * (CAPSULE_HEIGHT + 0.1f + STANDING_HEIGHT), 0))));
         }
     }
 
-    btCollisionShape *capsuleShape = new btCapsuleShape(1, 1);
+    btCollisionShape *capsuleShape = new btCapsuleShape(CAPSULE_RADIUS, CAPSULE_HEIGHT);
     btDefaultMotionState *boxMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1),
                                                                                 GLMConverter::GLMToBlt(position)));
     btVector3 fallInertia(0, 0, 0);
@@ -49,7 +54,7 @@ PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor, const gl
     player->setUserPointer(static_cast<GameObject *>(this));
 
     if(attachedModel != nullptr) {
-        calculateAndSetAttachedModelRotation();
+        attachedModel->getTransformation()->setOrientation(calculatePlayerRotation());
     }
 }
 
@@ -145,7 +150,7 @@ void PhysicalPlayer::rotate(float   xPosition __attribute__((unused)), float yPo
     right = glm::normalize(glm::cross(center, up));
 
     if(attachedModel != nullptr) {
-        calculateAndSetAttachedModelRotation();
+        attachedModel->getTransformation()->setOrientation(calculatePlayerRotation());
     }
 }
 
@@ -174,7 +179,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
             rayCallback->m_rayFromWorld = worldTransformHolder.getOrigin() +
                                           btVector3(-0.5f + i*requiredDelta, -1.1f,
                                                     -0.5f + j*requiredDelta);//the second vector is preventing hitting player capsule
-            rayCallback->m_rayToWorld = rayCallback->m_rayFromWorld + btVector3(0, -1 *standingHeight, 0);
+            rayCallback->m_rayToWorld = rayCallback->m_rayFromWorld + btVector3(0, -1 *STANDING_HEIGHT, 0);
             world->rayTest(rayCallback->m_rayFromWorld, rayCallback->m_rayToWorld, *rayCallback);
 
             if (rayCallback->hasHit()) {
@@ -194,8 +199,8 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
             }
         } else {
             if (!onAir) {
-                springStandPoint = highestPoint + standingHeight - startingHeight;
-                spring->setLimit(1, springStandPoint + 1.0f, springStandPoint + 1.0f + standingHeight);
+                springStandPoint = highestPoint + STANDING_HEIGHT - startingHeight;
+                spring->setLimit(1, springStandPoint + 1.0f, springStandPoint + 1.0f + STANDING_HEIGHT);
                 spring->setEnabled(true);
                 Model *model = dynamic_cast<Model *>(hitObject);
                 if (model != nullptr) {
@@ -266,7 +271,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
     }
 }
 
-void PhysicalPlayer::calculateAndSetAttachedModelRotation() const {
+glm::quat PhysicalPlayer::calculatePlayerRotation() const {
     glm::quat temp, temp2;
     //since we want not right, but front, it is not (right.x, right.z), instead of the following
     float angle = atan2(right.z, -1 * right.x );
@@ -279,8 +284,7 @@ void PhysicalPlayer::calculateAndSetAttachedModelRotation() const {
         temp.w = 0;
         temp.y = 1;
     }
-
-    attachedModel->getTransformation()->setOrientation(temp);//this part sets left/right axis rotation
+    //this point temp has left/right axis rotation
 
     float angle2 = acos(dot(up, center)) - 0.5f * options->PI;
     //angle2 = angle2 / 8;
@@ -290,13 +294,16 @@ void PhysicalPlayer::calculateAndSetAttachedModelRotation() const {
     temp2.z = 0;
     temp2.w = 1 * cos(angle2/2);
 
-    attachedModel->getTransformation()->addOrientation(temp2);//this part sets up/down axis rotation, it is not set, but add orientation.
+    //at this point temp2 has up/down axis rotation
+
+    return glm::normalize(temp * temp2);
+
 }
 
 btGeneric6DofSpring2Constraint * PhysicalPlayer::getSpring(float minY) {
     spring = new btGeneric6DofSpring2Constraint(
             *player,
-            btTransform(btQuaternion::getIdentity(), { 0.0f, -1 * standingHeight, 0.0f })
+            btTransform(btQuaternion::getIdentity(), { 0.0f, -1 * STANDING_HEIGHT, 0.0f })
     );
     //don't enable the spring, player might be at some height, waiting for falling.
     spring->setStiffness(1,  35.0f);
@@ -318,6 +325,29 @@ void PhysicalPlayer::setAttachedModelOffset(const glm::vec3 &attachedModelOffset
 void PhysicalPlayer::setAttachedModel(Model *attachedModel) {
     PhysicalPlayer::attachedModel = attachedModel;
     if(attachedModel != nullptr) {
-        calculateAndSetAttachedModelRotation();
+        attachedModel->getTransformation()->setOrientation(calculatePlayerRotation());
     }
+}
+
+GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
+    ImGuiResult imGuiResult;
+
+    Transformation tr;
+    tr.setTranslate(GLMConverter::BltToGLM(player->getCenterOfMassPosition()));
+    tr.setOrientation(getLookDirectionQuaternion());
+    //tr.setOrientation(calculatePlayerRotation());
+    if(tr.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix)) {
+        //true means transformation changed, activate rigid body
+        imGuiResult.updated = true;
+    }
+
+    this->player->activate(true);
+    this->player->setCenterOfMassTransform(btTransform(btQuaternion(), GLMConverter::GLMToBlt(tr.getTranslate())));
+
+    //orientation update
+    center = glm::normalize(tr.getOrientation() * glm::vec3(0,0,1));
+    right = glm::normalize(glm::cross(center, up));
+
+
+    return imGuiResult;
 }

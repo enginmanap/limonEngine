@@ -181,6 +181,7 @@ private:
 
     PlayerInfo startingPlayer;
     PhysicalPlayer* physicalPlayer = nullptr;
+    Model* playerPlaceHolder = nullptr;
     FreeCursorPlayer* editorPlayer = nullptr;
     FreeMovingPlayer* debugPlayer = nullptr;
     MenuPlayer* menuPlayer = nullptr;
