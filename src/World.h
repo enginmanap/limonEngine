@@ -212,7 +212,6 @@ private:
     btSequentialImpulseConstraintSolver *solver;
     ImGuiHelper *imgGuiHelper;
     GameObject* pickedObject = nullptr;
-    bool availableAssetsLoaded = false;
     bool guiPickMode = false;
     enum class QuitResponse
     {
