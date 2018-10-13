@@ -91,7 +91,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     switch(startingPlayer.type) {
         case PlayerInfo::Types::PHYSICAL_PLAYER:
-            physicalPlayer = new PhysicalPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
+            physicalPlayer = new PhysicalPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, startingPlayerType.attachedModel);
             currentPlayer = physicalPlayer;
             break;
         case PlayerInfo::Types::DEBUG_PLAYER:
@@ -515,7 +515,7 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
             switchPlayer(debugPlayer, inputHandler);
         } else {
             if(physicalPlayer == nullptr) {
-                physicalPlayer = new PhysicalPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
+                physicalPlayer = new PhysicalPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, startingPlayer.attachedModel);
                 physicalPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
 
             }
