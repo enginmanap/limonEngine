@@ -803,10 +803,6 @@ bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {
  * It also fills the windows with relevant parameters.
  */
 void World::ImGuiFrameSetup() {//TODO not const because it removes the object. Should be separated
-    if(!availableAssetsLoaded) {
-        assetManager->loadAssetList("./Data/AssetList.xml");
-        availableAssetsLoaded = true;
-    }
     imgGuiHelper->NewFrame();
 
     /* window definitions */
