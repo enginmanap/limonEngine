@@ -53,11 +53,8 @@ PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor, const gl
     player->setFriction(1);
     player->setUserPointer(static_cast<GameObject *>(this));
 
-    if(attachedModel != nullptr) {
-        attachedModel->getTransformation()->setOrientation(calculatePlayerRotation());
-    }
+        setAttachedModelTransformation(attachedModel);
 }
-
 
 void PhysicalPlayer::move(moveDirections direction) {
     if (!positionSet && onAir) {//this is because, if player is just moved from editor etc, we need to process
@@ -158,11 +155,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
     onAir = true;//base assumption is we are flying
     player->getMotionState()->getWorldTransform(worldTransformHolder);
 
-    if(attachedModel != nullptr) {
-
-        attachedModel->getTransformation()->setTranslate(GLMConverter::BltToGLM(this->getRigidBody()->getWorldTransform().getOrigin()) + attachedModelOffset);
-
-    }
+    setAttachedModelTransformation(attachedModel);
 
     float highestPoint = std::numeric_limits<float>::lowest();
     GameObject *hitObject = nullptr;
