@@ -139,9 +139,10 @@ AnimationCustom* AnimationSequenceInterface::buildAnimationFromCurrentItems() {
                     itemIndex++;
                 }
             }
-            bool isFound;
-            Transformation totalTr = animationBase->calculateTransform("", time, isFound);
-            Transformation animTr = itemsAnimation->calculateTransform("", time, isFound);
+            Transformation totalTr;
+            Transformation animTr;
+            animationBase->calculateTransform("", time, totalTr);
+            itemsAnimation->calculateTransform("", time, animTr);
             totalTr.combine(animTr);
             pushTransformToAnimationTime(animationInProgress->animationNode, time, totalTr);
         }
@@ -149,24 +150,23 @@ AnimationCustom* AnimationSequenceInterface::buildAnimationFromCurrentItems() {
         AnimationCustom* longerAnimation;
         Transformation shortAnimationLastTr;
         uint32_t longerStartIndex;
-        bool isFound;
 
         if(itemsAnimation->getDuration() > animationBase->getDuration()) {
             longerAnimation = itemsAnimation;
-            shortAnimationLastTr = animationBase->calculateTransform("", animationBase->getDuration(), isFound);
+            animationBase->calculateTransform("", animationBase->getDuration(), shortAnimationLastTr);
             longerStartIndex = itemIndex;
         } else {
             longerAnimation = animationBase;
-            shortAnimationLastTr = itemsAnimation->calculateTransform("", itemsAnimation->getDuration(), isFound);
+            itemsAnimation->calculateTransform("", itemsAnimation->getDuration(), shortAnimationLastTr);
             longerStartIndex = baseIndex;
         }
         for (size_t j = longerStartIndex; j < longerAnimation->animationNode->rotationTimes.size(); ++j) {
             float time = longerAnimation->animationNode->rotationTimes[j];
-            Transformation longerTr = longerAnimation->calculateTransform("", time, isFound);
+            Transformation longerTr;
+            longerAnimation->calculateTransform("", time, longerTr);
             longerTr.combine(shortAnimationLastTr);
             pushTransformToAnimationTime(animationInProgress->animationNode, time, longerTr);
         }
-
 
         maxDuration = std::max(maxDuration, item.mFrameEnd);
         animationInProgress->duration = maxDuration;
