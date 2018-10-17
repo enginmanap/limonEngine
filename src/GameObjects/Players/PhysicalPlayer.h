@@ -20,8 +20,7 @@
 #include "../../Utils/GLMConverter.h"
 #include "../../GUI/GUIRenderable.h"
 #include "../Sound.h"
-
-class Model;
+#include "../Model.h"
 
 static const int STEPPING_TEST_COUNT = 5;
 
@@ -174,6 +173,12 @@ public:
     void setAttachedModelOffset(const glm::vec3 &attachedModelOffset);
 
     void setAttachedModel(Model *attachedModel);
+
+    inline void setAttachedModelTransformation(Model *attachedModel) {
+        if(attachedModel != nullptr) {
+            attachedModel->getTransformation()->setTranslate( GLMConverter::BltToGLM(getRigidBody()->getWorldTransform().getOrigin()) + getLookDirectionQuaternion() * attachedModelOffset);
+        }
+    }
 };
 
 
