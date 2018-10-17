@@ -12,19 +12,18 @@
 
 //FIXME there must be a better way then is found.
 //FIXME requiring node name should not be a thing
-Transformation AnimationAssimp::calculateTransform(const std::string &nodeName, float time, bool &isFound) const {
-    Transformation transformation;
-    if (nodes.find(nodeName) == nodes.end()) {//if the bone has no animation, it can happen
-        isFound = false;
-        return Transformation();
+bool AnimationAssimp::calculateTransform(const std::string& nodeName, float time, Transformation& transformation) const {
+    bool status = false;
+    if (nodes.find(nodeName) == nodes.end()) { //if the bone has no animation, it can happen
+        return status;
     }
-    isFound = true;
+    status = true;
     AnimationNode *nodeAnimation = nodes.at(nodeName);
 
     transformation.setScale(nodeAnimation->getScalingVector(time));
     transformation.setOrientation(nodeAnimation->getRotationQuat(time));
     transformation.setTranslate(nodeAnimation->getPositionVector(time));
-    return transformation;
+    return status;
 }
 
 AnimationAssimp::AnimationAssimp(aiAnimation *assimpAnimation) {

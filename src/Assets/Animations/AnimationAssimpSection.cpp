@@ -10,7 +10,7 @@ AnimationAssimpSection::AnimationAssimpSection(AnimationInterface* base, float s
     this->endTime = endTime;
 }
 
-Transformation AnimationAssimpSection::calculateTransform(const std::string &nodeName, float time, bool &isFound) const {
+bool AnimationAssimpSection::calculateTransform(const std::string& nodeName, float time, Transformation& transformation) const {
     time = startTime + time;
-    return baseAnimation->calculateTransform(nodeName, time, isFound);
+    return baseAnimation->calculateTransform(nodeName, time, transformation);
 }

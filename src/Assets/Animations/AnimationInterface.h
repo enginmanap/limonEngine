@@ -11,8 +11,7 @@
 
 class AnimationInterface {
 public:
-    //FIXME return isFound, get transformation as parameter
-    virtual Transformation calculateTransform(const std::string& nodeName, float time, bool &isFound) const = 0;
+    virtual bool calculateTransform(const std::string& nodeName, float time, Transformation& transformation) const = 0;
 
     virtual float getTicksPerSecond() const = 0;
 
