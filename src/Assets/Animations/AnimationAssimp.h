@@ -23,7 +23,7 @@ class AnimationAssimp : public AnimationInterface {
 public:
     AnimationAssimp(aiAnimation *assimpAnimation);
 
-    Transformation calculateTransform(const std::string& nodeName, float time, bool &isFound) const;
+    bool calculateTransform(const std::string& nodeName, float time, Transformation& transformation) const;
 
     float getTicksPerSecond() const {
         return ticksPerSecond;
