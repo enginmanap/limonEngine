@@ -16,7 +16,7 @@ class AnimationAssimpSection : public AnimationInterface {
 public:
     AnimationAssimpSection(AnimationInterface *base, float startTime, float endTime);
 
-    Transformation calculateTransform(const std::string &nodeName, float time, bool &isFound) const;
+    bool calculateTransform(const std::string& nodeName, float time, Transformation& transformation) const;
 
     float getTicksPerSecond() const {
         return baseAnimation->getTicksPerSecond();
