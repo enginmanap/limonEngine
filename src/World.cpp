@@ -737,6 +737,13 @@ void World::render() {
         }
     }
 
+    if(startingPlayer.attachedModel != nullptr) {
+        startingPlayer.attachedModel->setupForTime(gameTime);
+        std::vector<uint32_t> temp;
+        temp.push_back(startingPlayer.attachedModel->getWorldObjectID());
+        startingPlayer.attachedModel->renderInstanced(temp);
+    }
+
     if(currentPlayersSettings->editorShown) { //if editor is shown, render wireframe of the triggers
         for (auto it = triggers.begin(); it != triggers.end(); ++it) {
             it->second->render(debugDrawer);
