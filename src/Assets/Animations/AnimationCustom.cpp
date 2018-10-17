@@ -9,17 +9,10 @@
 #include "AnimationNode.h"
 
 bool AnimationCustom::calculateTransform(const std::string& nodeName __attribute((unused)), float time, Transformation& transformation) const {
-    bool status = false;
-    if (nodes.find(nodeName) == nodes.end()) {
-        return status;
-    }
-    status = true;
-    AnimationNode *nodeAnimation = nodes.at(nodeName);
-
-    transformation.setScale(nodeAnimation->getScalingVector(time));
-    transformation.setOrientation(nodeAnimation->getRotationQuat(time));
-    transformation.setTranslate(nodeAnimation->getPositionVector(time));
-    return status;
+    transformation.setScale(animationNode->getScalingVector(time));
+    transformation.setOrientation(animationNode->getRotationQuat(time));
+    transformation.setTranslate(animationNode->getPositionVector(time));
+    return true;
 }
 
 /**
