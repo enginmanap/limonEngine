@@ -1,4 +1,4 @@
-//
+   //
 // Created by Engin Manap on 13.02.2016.
 //
 
@@ -208,7 +208,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                 }
                 float animationTime = fmod(((gameTime - animationStatus->startTime) / 1000.0f) * ticksPerSecond, animationCustom->getDuration());
                 Transformation tf;
-                bool status = animationCustom->calculateTransform("", animationTime, tf);
+                animationCustom->calculateTransform("", animationTime, tf);
 
                 //FIXME this is not an acceptable animating technique, I need a transform stack, but not implemented it yet.
                 (*animationStatus->object->getTransformation()) = animationStatus->originalTransformation;
