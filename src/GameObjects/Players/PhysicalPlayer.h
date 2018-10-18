@@ -59,7 +59,7 @@ class PhysicalPlayer : public Player, public CameraAttachment {
 
 public:
     glm::vec3 getPosition() const {
-        return GLMConverter::BltToGLM(player->getCenterOfMassPosition()) + glm::vec3(0.0f, 1.0f, 0.0f);
+        return GLMConverter::BltToGLM(player->getCenterOfMassPosition());
     }
 
     void move(moveDirections);
@@ -105,7 +105,6 @@ public:
     }
     void getCameraVariables(glm::vec3& position, glm::vec3 &center, glm::vec3& up, glm::vec3& right) {
         position = GLMConverter::BltToGLM(this->getRigidBody()->getWorldTransform().getOrigin());
-        position.y += 1.0f;//for putting the camera up portion of capsule
         center = this->center;
         up = this->up;
         right = this->right;
@@ -143,7 +142,7 @@ public:
         this->right = glm::normalize(glm::cross(center, up));
 
         btTransform transform = this->player->getCenterOfMassTransform();
-        transform.setOrigin(btVector3(position.x, position.y - 1.0f, position.z));// -1 because the capsule is lower by 1 then camera
+        transform.setOrigin(btVector3(position.x, position.y, position.z));
         this->player->setWorldTransform(transform);
         this->player->getMotionState()->setWorldTransform(transform);
         this->player->activate();
