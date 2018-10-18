@@ -328,11 +328,27 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
     Transformation tr;
     tr.setTranslate(GLMConverter::BltToGLM(player->getCenterOfMassPosition()));
     tr.setOrientation(getLookDirectionQuaternion());
-    //tr.setOrientation(calculatePlayerRotation());
+
     if(tr.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix)) {
         //true means transformation changed, activate rigid body
         imGuiResult.updated = true;
     }
+
+
+    if(attachedModel != nullptr) {
+        attachedModel->addImGuiEditorElements(request);
+    }
+
+    static float offsets[3];
+
+    ImGui::DragFloat3("Offsets", offsets);
+
+    this->attachedModelOffset.x = offsets[0];
+    this->attachedModelOffset.y = offsets[1];
+    this->attachedModelOffset.z = offsets[2];
+
+    setAttachedModelTransformation(attachedModel);
+
 
     this->player->activate(true);
     this->player->setCenterOfMassTransform(btTransform(btQuaternion(), GLMConverter::GLMToBlt(tr.getTranslate())));
