@@ -52,8 +52,10 @@ PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor, const gl
     player->setAngularFactor(0);
     player->setFriction(1);
     player->setUserPointer(static_cast<GameObject *>(this));
-
+    if(attachedModel != nullptr) {
+        this->attachedModelOffset = attachedModel->getTransformation()->getTranslate();
         setAttachedModelTransformation(attachedModel);
+    }
 }
 
 void PhysicalPlayer::move(moveDirections direction) {

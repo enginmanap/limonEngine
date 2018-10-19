@@ -171,6 +171,10 @@ public:
 
     void setAttachedModelOffset(const glm::vec3 &attachedModelOffset);
 
+    const glm::vec3& getAttachedModelOffset() const {
+        return attachedModelOffset;
+    }
+
     void setAttachedModel(Model *attachedModel);
 
     inline void setAttachedModelTransformation(Model *attachedModel) {
