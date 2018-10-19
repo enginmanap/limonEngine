@@ -68,6 +68,7 @@ std::vector<std::string> AssetManager::loadAssetExtensionList() {
         }
         currentAssetNode = currentAssetNode->NextSiblingElement("Asset");
     }
+    return extensionList;
 }
 
 bool AssetManager::loadAssetList() {
