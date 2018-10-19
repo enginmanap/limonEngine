@@ -12,6 +12,7 @@
 #include "GameObjects/TriggerObject.h"
 #include "GUI/GUILayer.h"
 #include "GameObjects/Sound.h"
+#include "GameObjects/Players/PhysicalPlayer.h"
 
 /************************************************************************************
  * Map file spec
@@ -87,7 +88,16 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
 
         tinyxml2::XMLElement *playerAttachement = mapDocument.NewElement("Attachement");
         if(world->startingPlayer.attachedModel != nullptr) {
-            world->startingPlayer.attachedModel->fillObjects(mapDocument, playerAttachement);
+            if(world->physicalPlayer != nullptr) {
+                glm::vec3 attachmentPositionBackup = world->startingPlayer.attachedModel->getTransformation()->getTranslate();
+                world->startingPlayer.attachedModel->getTransformation()->setTranslate(
+                        world->physicalPlayer->getAttachedModelOffset());
+                world->startingPlayer.attachedModel->fillObjects(mapDocument, playerAttachement);
+                world->startingPlayer.attachedModel->getTransformation()->setTranslate(attachmentPositionBackup);
+            } else {
+                //if physical player doesn't exists, but attached model does. This should not happen now, but this line is here as future proofing.
+                world->startingPlayer.attachedModel->fillObjects(mapDocument, playerAttachement);
+            }
         }
         currentElement->InsertEndChild(playerAttachement);
     //currentElement->SetText(world->startingPlayer.toString().c_str());
