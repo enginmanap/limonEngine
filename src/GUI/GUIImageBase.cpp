@@ -36,7 +36,7 @@ void GUIImageBase::render() {
             std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
         }
         glHelper->attachTexture(image->getID(), imageAttachPoint);
-        glHelper->render(renderProgram->getID(), vao, ebo, (const GLuint) (faces.size() * 3));
+        glHelper->render(renderProgram->getID(), vao, ebo, (GLuint) (faces.size() * 3));
 }
 
 void GUIImageBase::getAABB(glm::vec2 &aabbMin, glm::vec2 &aabbMax) const {
