@@ -61,7 +61,7 @@ std::vector<std::string> AssetManager::loadAssetExtensionList() {
         typeName = currentAssetNode->Attribute("type");
         if(!strcmp(typeName, "Model")) {// if type Model
             extensionList.push_back(currentAssetNode->GetText());
-            std::cout << "adding available asset extension" << currentAssetNode->GetText() << std::endl;
+            std::cout << "adding available asset extension " << currentAssetNode->GetText() << std::endl;
         } else {
             std::cerr << "Type " << typeName << " Not implemented yet" << std::endl;
             exit(-1);
