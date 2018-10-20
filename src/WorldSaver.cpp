@@ -179,7 +179,7 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
 
     tinyxml2::XMLError eResult = mapDocument.SaveFile(mapName.c_str());
     if(eResult != tinyxml2::XML_SUCCESS) {
-        std::cout << "ERROR " << eResult << std::endl;
+        std::cerr  << "ERROR " << eResult << std::endl;
     }
 
     return true;
