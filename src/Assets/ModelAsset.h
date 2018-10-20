@@ -33,6 +33,17 @@ class ModelAsset : public Asset {
         glm::mat4 globalMeshInverse;
     };
 
+    struct AnimationSection {
+        std::string baseAnimationName;
+        std::string animationName;
+        float startTime;
+        float endTime;
+
+        AnimationSection(const std::string &sourceAnimationName, const std::string &animationName,
+                         float startTime, float endTime) : baseAnimationName(
+                sourceAnimationName), animationName(animationName), startTime(startTime), endTime(endTime) {}
+    };
+
     std::string name;
     std::unordered_map<std::string, AnimationInterface*> animations;
     BoneNode *rootNode;
@@ -45,11 +56,13 @@ class ModelAsset : public Asset {
     std::unordered_map<std::string, Material *> materialMap;
     std::vector<btConvexShape *> shapeCopies;
     std::vector<MeshAsset *> meshes;
+    std::vector<AnimationSection> animationSections;
 
     std::unordered_map<std::string, MeshAsset *> simplifiedMeshes;
     std::unordered_map<std::string, BoneInformation> boneInformationMap;
 
     bool hasAnimation;
+    bool customizationAfterSave = false;
 
     Material *loadMaterials(const aiScene *scene, unsigned int materialIndex);
 
@@ -65,6 +78,8 @@ class ModelAsset : public Asset {
                                  std::vector<glm::mat4> &transforms) const;
 
     const aiNodeAnim *findNodeAnimation(aiAnimation *pAnimation, std::string basic_string) const;
+
+    void deserializeCustomizations();
 
 public:
     ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
@@ -102,7 +117,6 @@ public:
             delete iter->second;
         }
         //FIXME GPU side is not freed
-
     }
 
     std::vector<MeshAsset *> getMeshes() const {
@@ -133,6 +147,8 @@ public:
     const std::unordered_map<std::string, AnimationInterface*> &getAnimations() const {
         return animations;
     }
+
+    void serializeCustomizations();
 
 };
 

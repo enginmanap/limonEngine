@@ -58,6 +58,8 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     centerOffset = glm::vec3((max.x + min.x) / 2, (max.y + min.y) / 2, (max.z + min.z) / 2);
     std::cout << "Model asset: " << name << "Assimp bounding box is " << GLMUtils::vectorToString(boundingBoxMin) << ", " <<  GLMUtils::vectorToString(boundingBoxMax) << std::endl;
     //Implicit call to import.FreeScene(), and removal of scene.
+
+    this->deserializeCustomizations();
 }
 
 
@@ -342,8 +344,114 @@ bool ModelAsset::addAnimationAsSubSequence(const std::string &baseAnimationName,
         return false;
     }
     AnimationInterface* animationAssimp = this->animations[baseAnimationName];
-    AnimationInterface* animation = new AnimationAssimpSection(animationAssimp, startTime, endTime);
+    AnimationAssimpSection* animation = new AnimationAssimpSection(animationAssimp, startTime, endTime);
+
     this->animations[newAnimationName] = animation;
+
+    this->animationSections.push_back(AnimationSection(baseAnimationName, newAnimationName, startTime, endTime));
+    std::cout << "animation created and added to sections" << std::endl;
+    this->customizationAfterSave = true;
     return true;
 }
 
+void ModelAsset::serializeCustomizations() {
+    if(!customizationAfterSave) {
+        //Since assets are shared, serialize will be called multiple times. This flag is just a block for that.
+        return;
+    }
+    tinyxml2::XMLDocument customizationDocument;
+    tinyxml2::XMLNode * rootNode = customizationDocument.NewElement("ModelCustomizations");
+    customizationDocument.InsertFirstChild(rootNode);
+
+    tinyxml2::XMLElement * animationsSectionsNode = customizationDocument.NewElement("Animation");
+    rootNode->InsertEndChild(animationsSectionsNode);
+    for(auto it=this->animationSections.begin(); it != this->animationSections.end(); it++) {
+        tinyxml2::XMLElement *sectionElement = customizationDocument.NewElement("Section");
+        animationsSectionsNode->InsertEndChild(sectionElement);
+
+        tinyxml2::XMLElement *currentElement = customizationDocument.NewElement("BaseName");
+        currentElement->SetText(it->baseAnimationName.c_str());
+        sectionElement->InsertEndChild(currentElement);
+
+        currentElement = customizationDocument.NewElement("Name");
+        currentElement->SetText(it->animationName.c_str());
+        sectionElement->InsertEndChild(currentElement);
+
+        currentElement = customizationDocument.NewElement("StartTime");
+        currentElement->SetText(std::to_string(it->startTime).c_str());
+        sectionElement->InsertEndChild(currentElement);
+
+        currentElement = customizationDocument.NewElement("EndTime");
+        currentElement->SetText(std::to_string(it->endTime).c_str());
+        sectionElement->InsertEndChild(currentElement);
+    }
+
+    tinyxml2::XMLError eResult = customizationDocument.SaveFile((name + ".limon").c_str());
+    if(eResult != tinyxml2::XML_SUCCESS) {
+        std::cerr << "ERROR saving model customization: " << eResult << std::endl;
+    } else {
+        customizationAfterSave = false;
+    }
+}
+
+void ModelAsset::deserializeCustomizations() {
+    tinyxml2::XMLDocument xmlDoc;
+    tinyxml2::XMLError eResult = xmlDoc.LoadFile((name + ".limon").c_str());
+    if (eResult != tinyxml2::XML_SUCCESS) {
+        if(eResult == tinyxml2::XML_ERROR_FILE_NOT_FOUND) {
+            //if no customization, this happens.
+            return;
+        } else {
+            std::cerr << "Error loading XML " << (name + ".limon") << ": " << xmlDoc.ErrorName() << ". Customizations not loaded." << std::endl;
+            return;
+        }
+    }
+
+    tinyxml2::XMLNode * rootNode = xmlDoc.FirstChild();
+    if (rootNode == nullptr) {
+        std::cerr << "customization xml " << (name + ".limon") << " is not a valid XML." << std::endl;
+        return;
+    }
+
+    tinyxml2::XMLElement* animationsNode =  rootNode->FirstChildElement("Animation");
+    if (animationsNode == nullptr) {
+        std::cerr << "Customizations must have a Animation field." << std::endl;
+        return;
+    }
+    tinyxml2::XMLElement* sectionNode =  animationsNode->FirstChildElement("Section");
+
+    while(sectionNode != nullptr) {
+        tinyxml2::XMLElement* baseNameNode = sectionNode->FirstChildElement("BaseName");
+        if(baseNameNode == nullptr) {
+            std::cerr << "Animation section without a base animation name can't be read. Animation loading not possible, skipping" << std::endl;
+        } else {
+            std::string baseName = baseNameNode->GetText();
+
+            tinyxml2::XMLElement *animationNameNode = sectionNode->FirstChildElement("Name");
+            if (animationNameNode == nullptr) {
+                std::cerr << "Animation section name can't be read. Animation loading not possible, skipping"  << std::endl;
+            } else {
+                std::string animationSectionName = animationNameNode->GetText();
+                tinyxml2::XMLElement *startTimeNode = sectionNode->FirstChildElement("StartTime");
+                if (startTimeNode == nullptr) {
+                    std::cerr << "Animation section start time can't be read. Animation loading not possible, skipping"  << std::endl;
+                } else {
+                    float startTime = std::stof(startTimeNode->GetText());
+
+                    tinyxml2::XMLElement *endTimeNode = sectionNode->FirstChildElement("EndTime");
+                    if (endTimeNode == nullptr) {
+                        std::cerr << "Animation section end timecan't be read. Animation loading not possible, skipping"  << std::endl;
+                    } else {
+                        float endTime = std::stof(endTimeNode->GetText());
+                        this->addAnimationAsSubSequence(baseName, animationSectionName, startTime, endTime);
+                    }
+                }
+            }
+        }
+        sectionNode = sectionNode->NextSiblingElement("Section");
+    } // end of while (Section)
+
+
+
+
+}
