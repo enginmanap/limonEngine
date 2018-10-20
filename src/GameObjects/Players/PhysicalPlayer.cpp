@@ -341,13 +341,8 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
         attachedModel->addImGuiEditorElements(request);
     }
 
-    static float offsets[3];
+    ImGui::DragFloat3("Offsets", glm::value_ptr(attachedModelOffset));
 
-    ImGui::DragFloat3("Offsets", offsets);
-
-    this->attachedModelOffset.x = offsets[0];
-    this->attachedModelOffset.y = offsets[1];
-    this->attachedModelOffset.z = offsets[2];
 
     setAttachedModelTransformation(attachedModel);
 
