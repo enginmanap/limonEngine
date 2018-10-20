@@ -314,6 +314,8 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
     }
 
     transformation.serialize(document, objectElement);
+
+    modelAsset->serializeCustomizations();
 }
 
 uint32_t Model::getAIID() {
