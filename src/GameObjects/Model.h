@@ -99,6 +99,10 @@ public:
         this->animationLastFramePlayed = false;
     }
 
+    std::string getAnimationName() {
+        return this->animationName;
+    }
+
     bool isAnimationFinished() {
         return animationLastFramePlayed;
     }
