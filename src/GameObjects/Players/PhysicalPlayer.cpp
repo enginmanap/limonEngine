@@ -366,28 +366,59 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler) {
     //
 
     if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT) && inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
-        attachedModel->setAnimation("Melee", false);
+        if((attachedModel->getAnimationName() != "Melee" ||  attachedModel->isAnimationFinished())) {
+            attachedModel->setAnimation("Melee", false);
+        }
     } else {
-        if (inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_RIGHT) && inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_RIGHT)) {
-            attachedModel->setAnimation("AimPose", false);
-        } else {
-
-            if(!inputHandler.getInputStatus(inputHandler.MOVE_FORWARD) &&
-               !inputHandler.getInputStatus(inputHandler.MOVE_BACKWARD) &&
-               !inputHandler.getInputStatus(inputHandler.MOVE_LEFT) &&
-               !inputHandler.getInputStatus(inputHandler.MOVE_RIGHT)) {
-                //standing still
-                attachedModel->setAnimation("Idle", false);
+        if (inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_RIGHT)) {
+            glm::vec3 newOffset = glm::vec3(-0.03f, 0.03f,-0.05f);
+            if(inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_RIGHT)) {
+                attachedModel->setAnimation("AimPose", true);
+                attachedModelOffset = attachedModelOffset + newOffset;
             } else {
+                attachedModel->setAnimation("AimPose", false);
+                attachedModelOffset = attachedModelOffset - newOffset;
+            }
+        }
+        if(!inputHandler.getInputStatus(inputHandler.MOVE_FORWARD) &&
+           !inputHandler.getInputStatus(inputHandler.MOVE_BACKWARD) &&
+           !inputHandler.getInputStatus(inputHandler.MOVE_LEFT) &&
+           !inputHandler.getInputStatus(inputHandler.MOVE_RIGHT)) {
+            //standing still
+            std::string finishedStr = " not finished";
+            if(attachedModel->isAnimationFinished()) {
+                finishedStr = " finished";
+            }
+            if((attachedModel->getAnimationName() == "Run" ||
+                attachedModel->getAnimationName() == "Walk") ||
+                attachedModel->isAnimationFinished()) {
+                attachedModel->setAnimation("Idle", true);
+            }
+        } else {
+            //we are moving. Set only if we just started.
+            if(attachedModel->getAnimationName() == "Run" ||
+               attachedModel->getAnimationName() == "Walk") {
+                //we were already moving, handle if player run state changed
                 if (inputHandler.getInputEvents(inputHandler.RUN)) {
                     if (inputHandler.getInputStatus(inputHandler.RUN)) {
-                        attachedModel->setAnimation("Run", false);
+                        attachedModel->setAnimation("Run", true);
                     } else {
-                        attachedModel->setAnimation("Walk", false);
+                        attachedModel->setAnimation("Walk", true);
+                    }
+                }
+            } else {
+                if(attachedModel->getAnimationName() == "Idle" ||
+                attachedModel->isAnimationFinished()) {
+                    //we were standing or some other animation. handle accordingly
+                    if (inputHandler.getInputStatus(inputHandler.RUN)) {
+                        attachedModel->setAnimation("Run", true);
+                    } else {
+                        attachedModel->setAnimation("Walk", true);
                     }
                 }
             }
         }
+
     }
 
 }
