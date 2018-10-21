@@ -18,6 +18,8 @@ InputHandler::InputHandler(SDL_Window *window, Options *options) :
     inputStatus[MOVE_RIGHT] = false;
     inputStatus[JUMP] = false;
     inputEvents[JUMP] = false;
+    inputStatus[RUN] = false;
+    inputEvents[RUN] = false;
     inputStatus[DEBUG] = false;
     inputEvents[DEBUG] = false;
     inputStatus[EDITOR] = false;
@@ -94,12 +96,21 @@ void InputHandler::mapInput() {
             case SDL_MOUSEBUTTONUP:
                 switch (event.button.button) {
                     case SDL_BUTTON_LEFT:
+                        if(inputStatus[MOUSE_BUTTON_LEFT]) {
+                            inputEvents[MOUSE_BUTTON_LEFT] = true;
+                        }
                         inputStatus[MOUSE_BUTTON_LEFT] = false;
                         break;
                     case SDL_BUTTON_MIDDLE:
+                        if(inputStatus[MOUSE_BUTTON_MIDDLE]) {
+                            inputEvents[MOUSE_BUTTON_MIDDLE] = true;
+                        }
                         inputStatus[MOUSE_BUTTON_MIDDLE] = false;
                         break;
                     case SDL_BUTTON_RIGHT:
+                        if(inputStatus[MOUSE_BUTTON_RIGHT]) {
+                            inputEvents[MOUSE_BUTTON_RIGHT] = true;
+                        }
                         inputStatus[MOUSE_BUTTON_RIGHT] = false;
                         break;
                 }
