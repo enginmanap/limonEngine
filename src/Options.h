@@ -21,7 +21,7 @@ private:
 
     glm::vec3 walkSpeed = glm::vec3(8, 0, 8);
     glm::vec3 runSpeed = glm::vec3(12, 0, 12);
-    glm::vec3& moveSpeed = walkSpeed;
+    glm::vec3 moveSpeed = walkSpeed;
     glm::vec3 freeMovementSpeed = glm::vec3(0.1f,0.1f,0.1f);
     float jumpFactor = 7.0f;
     float lookAroundSpeed = -6.5f;
