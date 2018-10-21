@@ -33,6 +33,7 @@ class Model : public PhysicalRenderable, public GameObject {
     std::string animationName;
     long animationTime = 0;
     bool animationLooped = true;
+    bool animationLastFramePlayed = false;
     long lastSetupTime = 0;
     float animationTimeScale = 1.0f;
     std::string name;
@@ -95,6 +96,11 @@ public:
         this->animationTime = 0;
 
         this->animationLooped = looped;
+        this->animationLastFramePlayed = false;
+    }
+
+    bool isAnimationFinished() {
+        return animationLastFramePlayed;
     }
 
     ~Model();
