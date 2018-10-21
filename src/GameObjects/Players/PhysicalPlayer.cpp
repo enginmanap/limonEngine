@@ -75,7 +75,6 @@ void PhysicalPlayer::move(moveDirections direction) {
         }
         return;
     }
-    options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, "walk speed is " + GLMUtils::vectorToString(options->getMoveSpeed()));
 
     switch (direction) {
         case UP:
