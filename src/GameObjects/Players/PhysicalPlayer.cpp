@@ -366,10 +366,10 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler) {
     //
 
     if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT) && inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
-        attachedModel->setAnimation("Melee");
+        attachedModel->setAnimation("Melee", false);
     } else {
         if (inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_RIGHT) && inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_RIGHT)) {
-            attachedModel->setAnimation("AimPose");
+            attachedModel->setAnimation("AimPose", false);
         } else {
 
             if(!inputHandler.getInputStatus(inputHandler.MOVE_FORWARD) &&
@@ -377,13 +377,13 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler) {
                !inputHandler.getInputStatus(inputHandler.MOVE_LEFT) &&
                !inputHandler.getInputStatus(inputHandler.MOVE_RIGHT)) {
                 //standing still
-                attachedModel->setAnimation("Idle");
+                attachedModel->setAnimation("Idle", false);
             } else {
                 if (inputHandler.getInputEvents(inputHandler.RUN)) {
                     if (inputHandler.getInputStatus(inputHandler.RUN)) {
-                        attachedModel->setAnimation("Run");
+                        attachedModel->setAnimation("Run", false);
                     } else {
-                        attachedModel->setAnimation("Walk");
+                        attachedModel->setAnimation("Walk", false);
                     }
                 }
             }
