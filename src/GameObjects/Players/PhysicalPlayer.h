@@ -182,7 +182,7 @@ public:
         }
     }
 
-    void processInput(InputHandler &handler) override;
+    void processInput(InputHandler &inputHandler) override;
 };
 
 

@@ -357,6 +357,37 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
     return imGuiResult;
 }
 
-void PhysicalPlayer::processInput(InputHandler &handler) {
-    Player::processInput(handler);
+void PhysicalPlayer::processInput(InputHandler &inputHandler) {
+    Player::processInput(inputHandler);
+    if (this->attachedModel == nullptr) {
+        return;
+    }
+
+    //
+
+    if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT) && inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
+        attachedModel->setAnimation("Melee");
+    } else {
+        if (inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_RIGHT) && inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_RIGHT)) {
+            attachedModel->setAnimation("AimPose");
+        } else {
+
+            if(!inputHandler.getInputStatus(inputHandler.MOVE_FORWARD) &&
+               !inputHandler.getInputStatus(inputHandler.MOVE_BACKWARD) &&
+               !inputHandler.getInputStatus(inputHandler.MOVE_LEFT) &&
+               !inputHandler.getInputStatus(inputHandler.MOVE_RIGHT)) {
+                //standing still
+                attachedModel->setAnimation("Idle");
+            } else {
+                if (inputHandler.getInputEvents(inputHandler.RUN)) {
+                    if (inputHandler.getInputStatus(inputHandler.RUN)) {
+                        attachedModel->setAnimation("Run");
+                    } else {
+                        attachedModel->setAnimation("Walk");
+                    }
+                }
+            }
+        }
+    }
+
 }
