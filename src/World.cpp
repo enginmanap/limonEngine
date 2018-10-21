@@ -523,53 +523,7 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
         }
     }
 
-    float xPosition, yPosition, xChange, yChange;
-    if (inputHandler.getMouseChange(xPosition, yPosition, xChange, yChange)) {
-        currentPlayer->rotate(xPosition, yPosition, xChange, yChange);
-    }
-
-    if (inputHandler.getInputEvents(inputHandler.RUN)) {
-        if(inputHandler.getInputStatus(inputHandler.RUN)) {
-            options->setMoveSpeed(Options::RUN);
-        } else {
-            options->setMoveSpeed(Options::WALK);
-        }
-    }
-
-    PhysicalPlayer::moveDirections direction = PhysicalPlayer::NONE;
-    //ignore if both are pressed.
-    if (inputHandler.getInputStatus(inputHandler.MOVE_FORWARD) !=
-        inputHandler.getInputStatus(inputHandler.MOVE_BACKWARD)) {
-        if (inputHandler.getInputStatus(inputHandler.MOVE_FORWARD)) {
-            direction = Player::FORWARD;
-        } else {
-            direction = Player::BACKWARD;
-        }
-    }
-    if (inputHandler.getInputStatus(inputHandler.MOVE_LEFT) != inputHandler.getInputStatus(inputHandler.MOVE_RIGHT)) {
-        if (inputHandler.getInputStatus(inputHandler.MOVE_LEFT)) {
-            if (direction == Player::FORWARD) {
-                direction = Player::LEFT_FORWARD;
-            } else if (direction == Player::BACKWARD) {
-                direction = Player::LEFT_BACKWARD;
-            } else {
-                direction = Player::LEFT;
-            }
-        } else if (direction == Player::FORWARD) {
-            direction = Player::RIGHT_FORWARD;
-        } else if (direction == Player::BACKWARD) {
-            direction = Player::RIGHT_BACKWARD;
-        } else {
-            direction = Player::RIGHT;
-        }
-    }
-
-    if (inputHandler.getInputStatus(inputHandler.JUMP) && inputHandler.getInputEvents(inputHandler.JUMP)) {
-        direction = Player::UP;
-    }
-
-    //if none, camera should handle how to get slower.
-    currentPlayer->move(direction);
+    currentPlayer->processInput(inputHandler);
 
     if(inputHandler.getInputEvents(inputHandler.QUIT) &&  inputHandler.getInputStatus(inputHandler.QUIT)) {
         return true;

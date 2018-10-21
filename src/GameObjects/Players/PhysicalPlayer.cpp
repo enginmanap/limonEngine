@@ -13,13 +13,12 @@ const float PhysicalPlayer::STANDING_HEIGHT = 2.0f;
 
 PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor, const glm::vec3 &position,
                                const glm::vec3 &lookDirection, Model *attachedModel ) :
-        Player(cursor, position, lookDirection),
+        Player(cursor, options, position, lookDirection),
         center(lookDirection),
         up(glm::vec3(0,1,0)),
         view(glm::quat(0,0,0,-1)),
         spring(nullptr),
         onAir(true),
-        options(options),
         dirty(true),
         attachedModel(attachedModel){
     right = glm::normalize(glm::cross(center, up));
@@ -76,6 +75,7 @@ void PhysicalPlayer::move(moveDirections direction) {
         }
         return;
     }
+    options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, "walk speed is " + GLMUtils::vectorToString(options->getMoveSpeed()));
 
     switch (direction) {
         case UP:
@@ -356,4 +356,8 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
 
 
     return imGuiResult;
+}
+
+void PhysicalPlayer::processInput(InputHandler &handler) {
+    Player::processInput(handler);
 }

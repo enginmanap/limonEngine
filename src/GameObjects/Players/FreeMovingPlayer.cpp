@@ -74,8 +74,7 @@ void FreeMovingPlayer::rotate(float xPosition __attribute__((unused)), float yPo
 
 FreeMovingPlayer::FreeMovingPlayer(Options *options, GUIRenderable* cursor, const glm::vec3 &position,
                                    const glm::vec3 &lookDirection):
-        Player(cursor, position, lookDirection),
-        options(options),
+        Player(cursor, options, position, lookDirection),
         dirty(true),
         position(position),
         center(lookDirection),
