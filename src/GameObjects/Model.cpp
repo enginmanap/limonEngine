@@ -128,7 +128,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
 void Model::setupForTime(long time) {
     if(animated) {
         animationTime = animationTime + (time - lastSetupTime) * animationTimeScale;
-        modelAsset->getTransform(animationTime, animationName, boneTransforms);
+        modelAsset->getTransform(animationTime, animationLooped, animationName, boneTransforms);
         btVector3 scale = this->getRigidBody()->getCollisionShape()->getLocalScaling();
         this->getRigidBody()->getCollisionShape()->setLocalScaling(btVector3(1, 1, 1));
         for (unsigned int i = 0; i < boneTransforms.size(); ++i) {
@@ -341,7 +341,7 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
             if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {
                 for (auto it = modelAsset->getAnimations().begin(); it != modelAsset->getAnimations().end(); it++) {
                     if (ImGui::Selectable(it->first.c_str())) {
-                        setAnimation(it->first);
+                        setAnimation(it->first, true);
                     }
                 }
                 ImGui::EndCombo();

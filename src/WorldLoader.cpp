@@ -347,7 +347,7 @@ std::unique_ptr<WorldLoader::ObjectInformation> WorldLoader::loadObject(tinyxml2
             std::cout << "Object does not have default animation." << std::endl;
 #endif
         } else {
-            loadedObjectInformation->model->setAnimation(objectAttribute->GetText());
+        loadedObjectInformation->model->setAnimation(objectAttribute->GetText());
         }
 
     return loadedObjectInformation;

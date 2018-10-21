@@ -32,6 +32,7 @@ class Model : public PhysicalRenderable, public GameObject {
     ModelAsset *modelAsset;
     std::string animationName;
     long animationTime = 0;
+    bool animationLooped = true;
     long lastSetupTime = 0;
     float animationTimeScale = 1.0f;
     std::string name;
@@ -89,9 +90,11 @@ public:
 
     float getMass() const { return mass;}
 
-    void setAnimation(const std::string& animationName) {
+    void setAnimation(const std::string &animationName, bool looped = true) {
         this->animationName = animationName;
         this->animationTime = 0;
+
+        this->animationLooped = looped;
     }
 
     ~Model();

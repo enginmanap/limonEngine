@@ -243,7 +243,7 @@ bool ModelAsset::findNode(const std::string &nodeName, BoneNode** foundNode, Bon
     return false;
 }
 
-void ModelAsset::getTransform(long time, std::string animationName, std::vector<glm::mat4> &transformMatrix) const {
+void ModelAsset::getTransform(long time, bool looped, std::string animationName, std::vector<glm::mat4> &transformMatrix) const {
 /*
     for(auto it = animations.begin(); it != animations.end(); it++) {
         std::cout << "Animations name: " << it->first << " size " << animations.size() <<std::endl;
@@ -273,7 +273,7 @@ void ModelAsset::getTransform(long time, std::string animationName, std::vector<
         currentAnimation = animations.begin()->second;
     }
 
-
+    float animationTime;
     float ticksPerSecond;
     if (currentAnimation->getTicksPerSecond() != 0) {
         ticksPerSecond = currentAnimation->getTicksPerSecond();
@@ -281,7 +281,17 @@ void ModelAsset::getTransform(long time, std::string animationName, std::vector<
         ticksPerSecond = 60.0f;
     }
 
-    float animationTime = fmod((time / 1000.0f) * ticksPerSecond, currentAnimation->getDuration());
+    float requestedTime = (time / 1000.0f) * ticksPerSecond;
+    if(requestedTime < currentAnimation->getDuration()) {
+        animationTime = requestedTime;
+    } else {
+        if (looped) {
+            animationTime = fmod(requestedTime, currentAnimation->getDuration());
+        } else {
+            animationTime = currentAnimation->getDuration();
+        }
+    }
+
     glm::mat4 parentTransform(1.0f);
     traverseAndSetTransform(rootNode, parentTransform, currentAnimation, animationTime, transformMatrix);
 }

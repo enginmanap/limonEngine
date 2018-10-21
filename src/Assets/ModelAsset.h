@@ -89,7 +89,7 @@ public:
 
     bool isAnimated() const;
 
-    void getTransform(long time, std::string animationName, std::vector<glm::mat4> &transformMatrix) const; //this method takes vector to avoid copying it
+    void getTransform(long time, bool looped, std::string animationName, std::vector<glm::mat4> &transformMatrix) const; //this method takes vector to avoid copying it
 
     const glm::vec3 &getBoundingBoxMin() const { return boundingBoxMin; }
 
