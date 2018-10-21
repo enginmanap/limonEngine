@@ -243,7 +243,18 @@ bool ModelAsset::findNode(const std::string &nodeName, BoneNode** foundNode, Bon
     return false;
 }
 
-void ModelAsset::getTransform(long time, bool looped, std::string animationName, std::vector<glm::mat4> &transformMatrix) const {
+/**
+ * This method is used to request a specific animations transform array for a specific time. If looped is false,
+ * it will return if the given time was after or equals final frame. It interpolates by time automatically.
+ *
+ * @param time Requested animation time in miliseconds.
+ * @param looped if animation should loop or not. Effects return.
+ * @param animationName name of animation to seek.
+ * @param transformMatrix transform matrix list for bones
+ *
+ * @return if last frame of animation is played for not looped animation. Always false for looped ones.
+ */
+bool ModelAsset::getTransform(long time, bool looped, std::string animationName, std::vector<glm::mat4> &transformMatrix) const {
 /*
     for(auto it = animations.begin(); it != animations.end(); it++) {
         std::cout << "Animations name: " << it->first << " size " << animations.size() <<std::endl;
@@ -262,7 +273,7 @@ void ModelAsset::getTransform(long time, bool looped, std::string animationName,
             }
         }
         std::cout << "bind pose returned. for animation name [" << animationName << "]"<< std::endl;
-        return;
+        return true;
     }
 
     const AnimationInterface *currentAnimation;
@@ -281,6 +292,7 @@ void ModelAsset::getTransform(long time, bool looped, std::string animationName,
         ticksPerSecond = 60.0f;
     }
 
+    bool result = false;
     float requestedTime = (time / 1000.0f) * ticksPerSecond;
     if(requestedTime < currentAnimation->getDuration()) {
         animationTime = requestedTime;
@@ -289,11 +301,13 @@ void ModelAsset::getTransform(long time, bool looped, std::string animationName,
             animationTime = fmod(requestedTime, currentAnimation->getDuration());
         } else {
             animationTime = currentAnimation->getDuration();
+            result = true;
         }
     }
 
     glm::mat4 parentTransform(1.0f);
     traverseAndSetTransform(rootNode, parentTransform, currentAnimation, animationTime, transformMatrix);
+    return result;
 }
 
 void

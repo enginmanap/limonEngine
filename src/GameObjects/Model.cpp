@@ -126,9 +126,9 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
 }
 
 void Model::setupForTime(long time) {
-    if(animated) {
+    if(animated && !animationLastFramePlayed) {
         animationTime = animationTime + (time - lastSetupTime) * animationTimeScale;
-        modelAsset->getTransform(animationTime, animationLooped, animationName, boneTransforms);
+        animationLastFramePlayed = modelAsset->getTransform(animationTime, animationLooped, animationName, boneTransforms);
         btVector3 scale = this->getRigidBody()->getCollisionShape()->getLocalScaling();
         this->getRigidBody()->getCollisionShape()->setLocalScaling(btVector3(1, 1, 1));
         for (unsigned int i = 0; i < boneTransforms.size(); ++i) {

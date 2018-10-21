@@ -89,7 +89,18 @@ public:
 
     bool isAnimated() const;
 
-    void getTransform(long time, bool looped, std::string animationName, std::vector<glm::mat4> &transformMatrix) const; //this method takes vector to avoid copying it
+    /**
+     * This method is used to request a specific animations transform array for a specific time. If looped is false,
+     * it will return if the given time was after or equals final frame. It interpolates by time automatically.
+     *
+     * @param time Requested animation time in miliseconds.
+     * @param looped if animation should loop or not. Effects return.
+     * @param animationName name of animation to seek.
+     * @param transformMatrix transform matrix list for bones
+     *
+     * @return if last frame of animation is played for not looped animation. Always true for looped ones.
+     */
+    bool getTransform(long time, bool looped, std::string animationName, std::vector<glm::mat4> &transformMatrix) const; //this method takes vector to avoid copying it
 
     const glm::vec3 &getBoundingBoxMin() const { return boundingBoxMin; }
 
