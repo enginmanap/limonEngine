@@ -43,7 +43,6 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     btTransform worldTransformHolder;
     bool onAir;
     bool positionSet = false;
-    Options *options;
     std::shared_ptr<Sound> currentSound = nullptr;
 
     bool dirty;
@@ -182,6 +181,8 @@ public:
             attachedModel->getTransformation()->setTranslate( GLMConverter::BltToGLM(getRigidBody()->getWorldTransform().getOrigin()) + getLookDirectionQuaternion() * attachedModelOffset);
         }
     }
+
+    void processInput(InputHandler &handler) override;
 };
 
 

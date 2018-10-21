@@ -14,7 +14,6 @@ class Options;
 class GUIRenderable;
 
 class MenuPlayer: public Player, public CameraAttachment {
-    Options* options;
     bool dirty;
     glm::vec3 position;
     glm::vec3 center;
