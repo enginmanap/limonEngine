@@ -30,9 +30,18 @@ class Model : public PhysicalRenderable, public GameObject {
     Actor *AIActor = nullptr;
     AssetManager *assetManager;
     ModelAsset *modelAsset;
+
     std::string animationName;
     long animationTime = 0;
     bool animationLooped = true;
+
+    std::string animationNameOld;
+    long animationTimeOld = 0;
+    bool animationLoopedOld = true;
+
+    bool animationBlend = false;
+    long animationBlendTime = 1000;
+
     bool animationLastFramePlayed = false;
     long lastSetupTime = 0;
     float animationTimeScale = 1.0f;
@@ -99,6 +108,21 @@ public:
         this->animationLastFramePlayed = false;
     }
 
+    void setAnimationWithBlend(const std::string &animationName, bool looped = true, long blendTime = 100) {
+        this->animationNameOld = this->animationName;
+        this->animationTimeOld = this->animationTime;
+        this->animationLoopedOld = this->animationLooped;
+
+        this->animationName = animationName;
+        this->animationTime = 0;
+        this->animationLooped = looped;
+
+        this->animationBlendTime = blendTime;
+        this->animationBlend = true;
+
+        this->animationLastFramePlayed = false;
+    }
+
     std::string getAnimationName() {
         return this->animationName;
     }
@@ -158,7 +182,6 @@ public:
     uint32_t getAssetID() {
         return modelAsset->getAssetID();
     }
-
 };
 
 #endif //LIMONENGINE_MODEL_H

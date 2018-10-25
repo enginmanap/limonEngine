@@ -244,6 +244,63 @@ bool ModelAsset::findNode(const std::string &nodeName, BoneNode** foundNode, Bon
 }
 
 /**
+ * Blends two animations to generate transform matrix vector
+ *
+ * @param animationName1
+ * @param time1
+ * @param looped1
+ * @param animationName2
+ * @param time2
+ * @param looped2
+ * @param blendFactor
+ * @param transformMatrixVector
+ * @return returns true if both of the animations set their last frames. If any were looped, never returns true.
+ */
+bool ModelAsset::getTransformBlended(std::string animationName1, long time1, bool looped1,
+                                         std::string animationName2, long time2, bool looped2,
+                                         float blendFactor, std::vector<glm::mat4> &transformMatrixVector) const {
+    bool lastElementPlayed;
+    std::vector<glm::mat4> transformMatrixVector2;
+    transformMatrixVector2.resize(transformMatrixVector.size());
+    //first build the first transform matrix vector
+    lastElementPlayed = this->getTransform(time1, looped1, animationName1, transformMatrixVector);
+    //get the second one
+    lastElementPlayed = this->getTransform(time2, looped2, animationName2, transformMatrixVector2) && lastElementPlayed;//avoid short circuit
+
+    //now blend
+    for (size_t i = 0; i < transformMatrixVector.size(); ++i) {
+        transformMatrixVector[i] = blendMatrices(transformMatrixVector[i], transformMatrixVector2[i], blendFactor);
+    }
+    return lastElementPlayed;
+}
+
+glm::mat4 ModelAsset::blendMatrices(const glm::mat4 &matrix1, const glm::mat4 &Matrix2,
+                          float blendFactor) const {
+    glm::vec3 scale1, translate1, skew1;
+    glm::vec4 perspective1;
+    glm::quat orientation1;
+    decompose(matrix1, scale1, orientation1, translate1, skew1, perspective1);
+
+    glm::vec3 scale2, translate2, skew2;
+    glm::vec4 perspective2;
+    glm::quat orientation2;
+
+    decompose(Matrix2, scale2, orientation2, translate2, skew2, perspective2);
+
+
+    glm::vec3 scaleDelta = scale2 - scale1;
+    glm::vec3 scaleB = scale1 + blendFactor * scaleDelta;
+
+    glm::vec3 translateDelta = translate2 - translate1;
+    glm::vec3 translateB = translate1 + blendFactor * translateDelta;
+    glm::quat orientationB =  glm::normalize(slerp(orientation1, orientation2, blendFactor));
+
+    return translate(glm::mat4(1.0f), translateB) * mat4_cast(orientationB) *
+                 scale(glm::mat4(1.0f), scaleB);
+}
+
+
+/**
  * This method is used to request a specific animations transform array for a specific time. If looped is false,
  * it will return if the given time was after or equals final frame. It interpolates by time automatically.
  *
@@ -315,11 +372,7 @@ ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &p
                                     const AnimationInterface *animation,
                                     float timeInTicks,
                                     std::vector<glm::mat4> &transforms) const {
-/*
-    for(auto it = animation->nodes.begin(); it != animation->nodes.end(); it++) {
-        std::cout << "Animation node name: " << it->first << std::endl;
-    }
-*/
+
     glm::mat4 nodeTransform;
     Transformation tf;
     bool status = animation->calculateTransform(boneNode->name, timeInTicks, tf);

@@ -367,16 +367,16 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler) {
 
     if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT) && inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
         if((attachedModel->getAnimationName() != "Melee" ||  attachedModel->isAnimationFinished())) {
-            attachedModel->setAnimation("Melee", false);
+            attachedModel->setAnimationWithBlend("Melee", false);
         }
     } else {
         if (inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_RIGHT)) {
-            glm::vec3 newOffset = glm::vec3(-0.03f, 0.03f,-0.05f);
+            glm::vec3 newOffset = glm::vec3(0.075f, 0.03f,-0.045f);
             if(inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_RIGHT)) {
-                attachedModel->setAnimation("AimPose", true);
+                attachedModel->setAnimationWithBlend("AimPose", true);
                 attachedModelOffset = attachedModelOffset + newOffset;
             } else {
-                attachedModel->setAnimation("AimPose", false);
+                attachedModel->setAnimationWithBlend("AimPose", false);
                 attachedModelOffset = attachedModelOffset - newOffset;
             }
         }
@@ -392,7 +392,7 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler) {
             if((attachedModel->getAnimationName() == "Run" ||
                 attachedModel->getAnimationName() == "Walk") ||
                 attachedModel->isAnimationFinished()) {
-                attachedModel->setAnimation("Idle", true);
+                attachedModel->setAnimationWithBlend("Idle", true);
             }
         } else {
             //we are moving. Set only if we just started.
@@ -401,9 +401,9 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler) {
                 //we were already moving, handle if player run state changed
                 if (inputHandler.getInputEvents(inputHandler.RUN)) {
                     if (inputHandler.getInputStatus(inputHandler.RUN)) {
-                        attachedModel->setAnimation("Run", true);
+                        attachedModel->setAnimationWithBlend("Run", true);
                     } else {
-                        attachedModel->setAnimation("Walk", true);
+                        attachedModel->setAnimationWithBlend("Walk", true);
                     }
                 }
             } else {
@@ -411,9 +411,9 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler) {
                 attachedModel->isAnimationFinished()) {
                     //we were standing or some other animation. handle accordingly
                     if (inputHandler.getInputStatus(inputHandler.RUN)) {
-                        attachedModel->setAnimation("Run", true);
+                        attachedModel->setAnimationWithBlend("Run", true);
                     } else {
-                        attachedModel->setAnimation("Walk", true);
+                        attachedModel->setAnimationWithBlend("Walk", true);
                     }
                 }
             }
