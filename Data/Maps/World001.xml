@@ -1,26 +1,22 @@
 <World>
-    <Name>./Data/Maps/CustomWorld001.xml</Name>
+    <Name>./Data/Maps/World001.xml</Name>
+    <Player>
+        <Type>Physical</Type>
+        <Position>
+            <X>-15</X>
+            <Y>7</Y>
+            <Z>25</Z>
+        </Position>
+        <Orientation>
+            <X>1</X>
+            <Y>0</Y>
+            <Z>0</Z>
+        </Orientation>
+        <Attachement/>
+    </Player>
+    <QuitResponse>QuitGame</QuitResponse>
+    <QuitWorldName></QuitWorldName>
     <Objects>
-        <Object>
-            <File>./Data/Models/ArmyPilot/ArmyPilot.mesh.xml</File>
-            <Mass>0</Mass>
-            <ID>21</ID>
-            <AI>True</AI>
-            <AI_ID>22</AI_ID>
-            <Animation>Idle</Animation>
-            <Transformation>
-                <Scale>
-                    <X>0.02</X>
-                    <Y>0.02</Y>
-                    <Z>0.02</Z>
-                </Scale>
-                <Translate>
-                    <X>10.0</X>
-                    <Y>1.0</Y>
-                    <Z>20.0</Z>
-                </Translate>
-            </Transformation>
-        </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Disconnected>False</Disconnected>
@@ -57,15 +53,15 @@
                     <Z>1</Z>
                 </Scale>
                 <Translate>
-                    <X>2</X>
-                    <Y>19</Y>
-                    <Z>-3</Z>
+                    <X>8.7356644</X>
+                    <Y>2.0396943</Y>
+                    <Z>-6.4643297</Z>
                 </Translate>
                 <Rotate>
-                    <X>-3.2994016e-008</X>
-                    <Y>-3.0516759e-015</Y>
-                    <Z>-6.941976e-029</Z>
-                    <W>1</W>
+                    <X>0.60354108</X>
+                    <Y>0.36824554</Y>
+                    <Z>-0.36838669</Z>
+                    <W>0.60367602</W>
                 </Rotate>
             </Transformation>
         </Object>
@@ -81,15 +77,15 @@
                     <Z>1</Z>
                 </Scale>
                 <Translate>
-                    <X>-2</X>
-                    <Y>17</Y>
-                    <Z>-3</Z>
+                    <X>2.7527478</X>
+                    <Y>2.0399997</Y>
+                    <Z>-8.8009605</Z>
                 </Translate>
                 <Rotate>
-                    <X>-0.00011716161</X>
-                    <Y>4.4408921e-016</Y>
-                    <Z>-4.9010203e-005</Z>
-                    <W>1</W>
+                    <X>-1.8619134e-07</X>
+                    <Y>0.68724322</Y>
+                    <Z>2.1932705e-07</Z>
+                    <W>0.72642738</W>
                 </Rotate>
             </Transformation>
         </Object>
@@ -105,15 +101,15 @@
                     <Z>1</Z>
                 </Scale>
                 <Translate>
-                    <X>2</X>
-                    <Y>12</Y>
-                    <Z>-3</Z>
+                    <X>2.6197982</X>
+                    <Y>2.0399995</Y>
+                    <Z>-2.4239166</Z>
                 </Translate>
                 <Rotate>
-                    <X>0</X>
-                    <Y>0</Y>
-                    <Z>0</Z>
-                    <W>1</W>
+                    <X>8.7031076e-09</X>
+                    <Y>-0.16721651</Y>
+                    <Z>3.1495496e-08</Z>
+                    <W>0.98592019</W>
                 </Rotate>
             </Transformation>
         </Object>
@@ -225,15 +221,15 @@
                     <Z>1</Z>
                 </Scale>
                 <Translate>
-                    <X>2</X>
-                    <Y>15</Y>
-                    <Z>-3</Z>
+                    <X>5.0453348</X>
+                    <Y>2.0399992</Y>
+                    <Z>-4.9478483</Z>
                 </Translate>
                 <Rotate>
-                    <X>0</X>
-                    <Y>0</Y>
-                    <Z>0</Z>
-                    <W>1</W>
+                    <X>0.66890287</X>
+                    <Y>0.66890401</Y>
+                    <Z>-0.22927736</Z>
+                    <W>-0.22927785</W>
                 </Rotate>
             </Transformation>
         </Object>
@@ -358,6 +354,33 @@
                 </Rotate>
             </Transformation>
         </Object>
+        <Object>
+            <File>./Data/Models/ArmyPilot/ArmyPilot.mesh.xml</File>
+            <Animation>Idle</Animation>
+            <Disconnected>False</Disconnected>
+            <AI>True</AI>
+            <AI_ID>22</AI_ID>
+            <Mass>0</Mass>
+            <ID>21</ID>
+            <Transformation>
+                <Scale>
+                    <X>0.02</X>
+                    <Y>0.02</Y>
+                    <Z>0.02</Z>
+                </Scale>
+                <Translate>
+                    <X>10</X>
+                    <Y>1</Y>
+                    <Z>20</Z>
+                </Translate>
+                <Rotate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
+                </Rotate>
+            </Transformation>
+        </Object>
     </Objects>
     <Lights>
         <Light>
@@ -425,28 +448,6 @@
                     <W>1</W>
                 </Rotate>
             </Transformation>
-            <FirstEnterTriggerCode>
-                <Name>UpdateGuiTextOnTrigger</Name>
-                <parameters>
-                    <Parameter>
-                        <RequestType>GUIText</RequestType>
-                        <Description>GUI Text element</Description>
-                        <Value>1</Value>
-                        <valueType>Long</valueType>
-                        <IsSet>True</IsSet>
-                        <Index>0</Index>
-                    </Parameter>
-                    <Parameter>
-                        <RequestType>FreeText</RequestType>
-                        <Description>New Text</Description>
-                        <Value>Limonation Engine</Value>
-                        <valueType>String</valueType>
-                        <IsSet>True</IsSet>
-                        <Index>1</Index>
-                    </Parameter>
-                </parameters>
-                <Enabled>True</Enabled>
-            </FirstEnterTriggerCode>
             <EnterTriggerCode>
                 <Name>AddGuiTextOnTrigger</Name>
                 <parameters>
@@ -505,36 +506,6 @@
                     <W>1</W>
                 </Rotate>
             </Transformation>
-            <FirstEnterTriggerCode>
-                <Name>CoinPickUpOnTrigger</Name>
-                <parameters>
-                    <Parameter>
-                        <RequestType>GUIText</RequestType>
-                        <Description>Counter GUI Element</Description>
-                        <Value>2</Value>
-                        <valueType>Long</valueType>
-                        <IsSet>True</IsSet>
-                        <Index>0</Index>
-                    </Parameter>
-                    <Parameter>
-                        <RequestType>Model</RequestType>
-                        <Description>Model to remove</Description>
-                        <Value>17</Value>
-                        <valueType>Long</valueType>
-                        <IsSet>True</IsSet>
-                        <Index>1</Index>
-                    </Parameter>
-                    <Parameter>
-                        <RequestType>FreeNumber</RequestType>
-                        <Description>Count to finish</Description>
-                        <Value>2</Value>
-                        <valueType>Long</valueType>
-                        <IsSet>True</IsSet>
-                        <Index>2</Index>
-                    </Parameter>
-                </parameters>
-                <Enabled>True</Enabled>
-            </FirstEnterTriggerCode>
         </Trigger>
         <Trigger>
             <Name>TRIGGER-20</Name>
@@ -557,36 +528,6 @@
                     <W>1</W>
                 </Rotate>
             </Transformation>
-            <FirstEnterTriggerCode>
-                <Name>CoinPickUpOnTrigger</Name>
-                <parameters>
-                    <Parameter>
-                        <RequestType>GUIText</RequestType>
-                        <Description>Counter GUI Element</Description>
-                        <Value>2</Value>
-                        <valueType>Long</valueType>
-                        <IsSet>True</IsSet>
-                        <Index>0</Index>
-                    </Parameter>
-                    <Parameter>
-                        <RequestType>Model</RequestType>
-                        <Description>Model to remove</Description>
-                        <Value>18</Value>
-                        <valueType>Long</valueType>
-                        <IsSet>True</IsSet>
-                        <Index>1</Index>
-                    </Parameter>
-                    <Parameter>
-                        <RequestType>FreeNumber</RequestType>
-                        <Description>Count to finish</Description>
-                        <Value>2</Value>
-                        <valueType>Long</valueType>
-                        <IsSet>True</IsSet>
-                        <Index>2</Index>
-                    </Parameter>
-                </parameters>
-                <Enabled>True</Enabled>
-            </FirstEnterTriggerCode>
         </Trigger>
     </Triggers>
     <OnloadActions/>
@@ -673,7 +614,7 @@
                 <Type>GUIText</Type>
                 <ID>23</ID>
                 <Name>VersionText</Name>
-                <Text>Version 0.6</Text>
+                <Text>Version 0.4</Text>
                 <Font>
                     <Path>Data/Fonts/Helvetica-Normal.ttf</Path>
                     <Size>16</Size>
@@ -690,7 +631,7 @@
                         <Z>1</Z>
                     </Scale>
                     <Translate>
-                        <X>0.98260313</X>
+                        <X>0.98260319</X>
                         <Y>0.070924282</Y>
                         <Z>0</Z>
                     </Translate>

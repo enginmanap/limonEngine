@@ -102,6 +102,10 @@ public:
      */
     bool getTransform(long time, bool looped, std::string animationName, std::vector<glm::mat4> &transformMatrix) const; //this method takes vector to avoid copying it
 
+    bool getTransformBlended(std::string animationName1, long time1, bool looped1,
+                                         std::string animationName2, long time2, bool looped2,
+                                         float blendFactor, std::vector<glm::mat4> &transformMatrixVector) const;
+
     const glm::vec3 &getBoundingBoxMin() const { return boundingBoxMin; }
 
     const glm::vec3 &getBoundingBoxMax() const { return boundingBoxMax; }
@@ -161,6 +165,7 @@ public:
 
     void serializeCustomizations();
 
+    glm::mat4 blendMatrices(const glm::mat4 &matrix1, const glm::mat4 &Matrix2, float blendFactor) const;
 };
 
 

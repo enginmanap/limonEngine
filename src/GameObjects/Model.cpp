@@ -127,8 +127,29 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
 
 void Model::setupForTime(long time) {
     if(animated && !animationLastFramePlayed) {
-        animationTime = animationTime + (time - lastSetupTime) * animationTimeScale;
-        animationLastFramePlayed = modelAsset->getTransform(animationTime, animationLooped, animationName, boneTransforms);
+        //check if we need to blend
+        if(animationBlend) {
+            //we need 2 animation times, and a factor
+            animationTime = animationTime + (time - lastSetupTime) * animationTimeScale;
+
+            animationTimeOld = animationTimeOld + (time - lastSetupTime) * animationTimeScale;
+
+            float blendFactor = std::min(1.0f, (float)animationTime / (float)animationBlendTime);//don't blend after 1.0
+
+            if(blendFactor == 1) {
+                animationBlend = false; // no need to blend anymore.
+            }
+            animationLastFramePlayed = modelAsset->getTransformBlended(animationNameOld, animationTimeOld, animationLoopedOld,
+                                                                       animationName, animationTime, animationLooped,
+                                                                       blendFactor, boneTransforms);
+            //std::cout << "blend " << animationNameOld << " with " << animationName << " for " << blendFactor << " factor" << std::endl;
+        } else {
+            animationTime = animationTime + (time - lastSetupTime) * animationTimeScale;
+            animationLastFramePlayed = modelAsset->getTransform(animationTime, animationLooped, animationName, boneTransforms);
+        }
+
+
+
         btVector3 scale = this->getRigidBody()->getCollisionShape()->getLocalScaling();
         this->getRigidBody()->getCollisionShape()->setLocalScaling(btVector3(1, 1, 1));
         for (unsigned int i = 0; i < boneTransforms.size(); ++i) {
