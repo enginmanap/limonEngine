@@ -582,7 +582,7 @@ typedef struct DistanceComp {
  */
 #define BUFFERSIZE 2048
 
-typedef struct DryMixParams {
+typedef struct MixParams {
     AmbiConfig Ambi;
     /* Number of coefficients in each Ambi.Coeffs to mix together (4 for first-
      * order, 9 for second-order, etc). If the count is 0, Ambi.Map is used
@@ -592,17 +592,7 @@ typedef struct DryMixParams {
 
     ALfloat (*Buffer)[BUFFERSIZE];
     ALsizei NumChannels;
-    ALsizei NumChannelsPerOrder[MAX_AMBI_ORDER+1];
-} DryMixParams;
-
-typedef struct BFMixParams {
-    AmbiConfig Ambi;
-    /* Will only be 4 or 0. */
-    ALsizei CoeffCount;
-
-    ALfloat (*Buffer)[BUFFERSIZE];
-    ALsizei NumChannels;
-} BFMixParams;
+} MixParams;
 
 typedef struct RealMixParams {
     enum Channel ChannelName[MAX_OUTPUT_CHANNELS];
@@ -631,6 +621,8 @@ struct ALCdevice_struct {
      */
     enum AmbiLayout AmbiLayout;
     enum AmbiNorm   AmbiScale;
+
+    ALCenum LimiterState;
 
     al_string DeviceName;
 
@@ -686,15 +678,17 @@ struct ALCdevice_struct {
 
     ALuint64 ClockBase;
     ALuint SamplesDone;
+    ALuint FixedLatency;
 
     /* Temp storage used for mixer processing. */
     alignas(16) ALfloat TempBuffer[4][BUFFERSIZE];
 
     /* The "dry" path corresponds to the main output. */
-    DryMixParams Dry;
+    MixParams Dry;
+    ALsizei NumChannelsPerOrder[MAX_AMBI_ORDER+1];
 
     /* First-order ambisonics output, to be upsampled to the dry buffer if different. */
-    BFMixParams FOAOut;
+    MixParams FOAOut;
 
     /* "Real" output, which will be written to the device buffer. May alias the
      * dry buffer.
@@ -759,21 +753,35 @@ struct ALCdevice_struct {
 
 
 enum {
+    /* End event thread processing. */
+    EventType_KillThread = 0,
+
+    /* User event types. */
     EventType_SourceStateChange = 1<<0,
     EventType_BufferCompleted   = 1<<1,
     EventType_Error             = 1<<2,
     EventType_Performance       = 1<<3,
     EventType_Deprecated        = 1<<4,
     EventType_Disconnected      = 1<<5,
+
+    /* Internal events. */
+    EventType_ReleaseEffectState = 65536,
 };
 
 typedef struct AsyncEvent {
     unsigned int EnumType;
-    ALenum Type;
-    ALuint ObjectId;
-    ALuint Param;
-    ALchar Message[1008];
+    union {
+        char dummy;
+        struct {
+            ALenum type;
+            ALuint id;
+            ALuint param;
+            ALchar msg[1008];
+        } user;
+        struct ALeffectState *EffectState;
+    } u;
 } AsyncEvent;
+#define ASYNC_EVENT(t) { t, { 0 } }
 
 struct ALCcontext_struct {
     RefCount ref;
@@ -826,7 +834,6 @@ struct ALCcontext_struct {
 
     ATOMIC(struct ALeffectslotArray*) ActiveAuxSlots;
 
-    almtx_t EventThrdLock;
     althrd_t EventThread;
     alsem_t EventSem;
     struct ll_ringbuffer *AsyncEvents;
@@ -855,9 +862,6 @@ void ALCcontext_DeferUpdates(ALCcontext *context);
 void ALCcontext_ProcessUpdates(ALCcontext *context);
 
 void AllocateVoices(ALCcontext *context, ALsizei num_voices, ALsizei old_sends);
-
-void AppendAllDevicesList(const ALCchar *name);
-void AppendCaptureDeviceList(const ALCchar *name);
 
 
 extern ALint RTPrioLevel;
@@ -902,6 +906,9 @@ inline void LockEffectSlotList(ALCcontext *context)
 { almtx_lock(&context->EffectSlotLock); }
 inline void UnlockEffectSlotList(ALCcontext *context)
 { almtx_unlock(&context->EffectSlotLock); }
+
+
+int EventThread(void *arg);
 
 
 vector_al_string SearchDataFiles(const char *match, const char *subdir);
