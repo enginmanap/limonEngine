@@ -17,8 +17,7 @@ const ALfloat *Resample_lerp_Neon(const InterpState* UNUSED(state),
     const int32x4_t increment4 = vdupq_n_s32(increment*4);
     const float32x4_t fracOne4 = vdupq_n_f32(1.0f/FRACTIONONE);
     const int32x4_t fracMask4 = vdupq_n_s32(FRACTIONMASK);
-    alignas(16) ALint pos_[4];
-    alignas(16) ALsizei frac_[4];
+    alignas(16) ALsizei pos_[4], frac_[4];
     int32x4_t pos4, frac4;
     ALsizei todo, pos, i;
 
@@ -82,7 +81,7 @@ const ALfloat *Resample_bsinc_Neon(const InterpState *state,
     ASSUME(m > 0);
     ASSUME(dstlen > 0);
 
-    src += state->bsinc.l;
+    src -= state->bsinc.l;
     for(i = 0;i < dstlen;i++)
     {
         // Calculate the phase index and factor.
@@ -180,11 +179,12 @@ void Mix_Neon(const ALfloat *data, ALsizei OutChans, ALfloat (*restrict OutBuffe
     {
         ALsizei pos = 0;
         ALfloat gain = CurrentGains[c];
-        const ALfloat step = (TargetGains[c] - gain) * delta;
+        const ALfloat diff = TargetGains[c] - gain;
 
-        if(fabsf(step) > FLT_EPSILON)
+        if(fabsf(diff) > FLT_EPSILON)
         {
             ALsizei minsize = mini(BufferSize, Counter);
+            const ALfloat step = diff * delta;
             ALfloat step_count = 0.0f;
             /* Mix with applying gain steps in aligned multiples of 4. */
             if(LIKELY(minsize > 3))
@@ -261,7 +261,7 @@ void MixRow_Neon(ALfloat *OutBuffer, const ALfloat *Gains, const ALfloat (*restr
     for(c = 0;c < InChans;c++)
     {
         ALsizei pos = 0;
-        ALfloat gain = Gains[c];
+        const ALfloat gain = Gains[c];
         if(!(fabsf(gain) > GAIN_SILENCE_THRESHOLD))
             continue;
 

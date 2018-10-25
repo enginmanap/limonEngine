@@ -229,17 +229,16 @@ static inline bool SourceShouldUpdate(ALsource *source, ALCcontext *context)
 /** Can only be called while the mixer is locked! */
 static void SendStateChangeEvent(ALCcontext *context, ALuint id, ALenum state)
 {
+    AsyncEvent evt = ASYNC_EVENT(EventType_SourceStateChange);
     ALbitfieldSOFT enabledevt;
-    AsyncEvent evt;
 
     enabledevt = ATOMIC_LOAD(&context->EnabledEvts, almemory_order_acquire);
     if(!(enabledevt&EventType_SourceStateChange)) return;
 
-    evt.EnumType = EventType_SourceStateChange;
-    evt.Type = AL_EVENT_TYPE_SOURCE_STATE_CHANGED_SOFT;
-    evt.ObjectId = id;
-    evt.Param = state;
-    snprintf(evt.Message, sizeof(evt.Message), "Source ID %u state changed to %s", id,
+    evt.u.user.type = AL_EVENT_TYPE_SOURCE_STATE_CHANGED_SOFT;
+    evt.u.user.id = id;
+    evt.u.user.param = state;
+    snprintf(evt.u.user.msg, sizeof(evt.u.user.msg), "Source ID %u state changed to %s", id,
         (state==AL_INITIAL) ? "AL_INITIAL" :
         (state==AL_PLAYING) ? "AL_PLAYING" :
         (state==AL_PAUSED) ? "AL_PAUSED" :
@@ -1296,7 +1295,7 @@ static ALboolean GetSourcedv(ALsource *Source, ALCcontext *Context, SourceProp p
              */
             values[0] = GetSourceSecOffset(Source, Context, &srcclock);
             almtx_lock(&device->BackendLock);
-            clocktime = V0(device->Backend,getClockLatency)();
+            clocktime = GetClockLatency(device);
             almtx_unlock(&device->BackendLock);
             if(srcclock == (ALuint64)clocktime.ClockTime)
                 values[1] = (ALdouble)clocktime.Latency / 1000000000.0;
@@ -1560,7 +1559,7 @@ static ALboolean GetSourcei64v(ALsource *Source, ALCcontext *Context, SourceProp
              */
             values[0] = GetSourceSampleOffset(Source, Context, &srcclock);
             almtx_lock(&device->BackendLock);
-            clocktime = V0(device->Backend,getClockLatency)();
+            clocktime = GetClockLatency(device);
             almtx_unlock(&device->BackendLock);
             if(srcclock == (ALuint64)clocktime.ClockTime)
                 values[1] = clocktime.Latency;
