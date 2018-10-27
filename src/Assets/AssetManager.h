@@ -18,9 +18,11 @@ class GLHelper;
 class ALHelper;
 
 class AssetManager {
-
-    const std::string ASSET_EXTENSIONS_FILE = "./engine/assetExtensions.xml";
+public:
     enum AssetTypes { Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND };
+private:
+    const std::string ASSET_EXTENSIONS_FILE = "./engine/assetExtensions.xml";
+
     //second of the pair is how many times load requested. prework for unload
     std::map<const std::vector<std::string>, std::pair<Asset *, uint32_t>> assets;
     uint32_t nextAssetIndex = 1;
@@ -29,13 +31,15 @@ class AssetManager {
     GLHelper *glHelper;
     ALHelper *alHelper;
 
-    void addAssetsRecursively(const std::string &directoryPath, const std::vector<std::string> &fileExtensions);
+    void addAssetsRecursively(const std::string &directoryPath, const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions);
 
-    std::vector<std::string> loadAssetExtensionList();
+    std::vector<std::pair<std::string, AssetTypes>> loadAssetExtensionList();
 
     bool loadAssetList();
 
-    bool isExtensionInList(const std::string &name, const std::vector<std::string> &vector);
+    bool isExtensionInList(const std::string &name, const std::vector<std::pair<std::string, AssetTypes>> &vector,
+                               AssetTypes &elementAssetType);
+
     static bool isEnding(std::string const &fullString, std::string const &ending) {
         if (fullString.length() >= ending.length()) {
             return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
@@ -48,9 +52,6 @@ public:
     explicit AssetManager(GLHelper *glHelper, ALHelper *alHelper) : glHelper(glHelper), alHelper(alHelper) {
         loadAssetList();
     }
-
-
-
 
     template<class T>
     T *loadAsset(const std::vector<std::string> files) {
