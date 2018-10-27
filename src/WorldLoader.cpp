@@ -23,6 +23,7 @@
 #include "GameObjects/GUIButton.h"
 
 #include "main.h"
+#include "GameObjects/GUIAnimation.h"
 
 WorldLoader::WorldLoader(AssetManager *assetManager, InputHandler *inputHandler, Options *options) :
         options(options),
@@ -733,6 +734,9 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
                 } else if(typeName == "GUIButton") {
                     element = GUIButton::deserialize(GUIElementNode, assetManager, options, world->apiInstance);
                     name = static_cast<GUIButton*>(element)->getName();
+                } else if(typeName == "GUIAnimation") {
+                    element = GUIAnimation::deserialize(GUIElementNode, assetManager, options);
+                    name = static_cast<GUIAnimation*>(element)->getName();
                 }
 
                 if(element != nullptr) {

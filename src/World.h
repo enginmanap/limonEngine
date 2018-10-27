@@ -329,6 +329,7 @@ private:
     void addGUITextControls();
     void addGUIImageControls();
     void addGUIButtonControls();
+    void addGUIAnimationControls();
     void addGUILayerControls();
 /********** Editor Methods *********************/
     //API methods

@@ -30,10 +30,10 @@
 #include "GameObjects/GUIText.h"
 #include "GameObjects/GUIImage.h"
 #include "GameObjects/GUIButton.h"
+#include "GameObjects/GUIAnimation.h"
 
 
-
-const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
+   const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
         {
                 { Types::PHYSICAL_PLAYER, "Physical"},
                 { Types::DEBUG_PLAYER, "Debug"},
@@ -859,6 +859,9 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             }
             if (ImGui::CollapsingHeader("Add GUI Button##The header")) {
                 addGUIButtonControls();
+            }
+            if (ImGui::CollapsingHeader("Add GUI Animation##The header")) {
+                addGUIAnimationControls();
             }
             ImGui::Unindent( 16.0f );
         }
@@ -1917,6 +1920,70 @@ void World::addGUIButtonControls() {
         pickedObject = guiButton;
     }
 }
+
+   void World::addGUIAnimationControls() {
+
+       /**
+        * For a new GUI Image we need only name and filename
+        */
+
+       static char GUIAnimationName[32];
+       ImGui::InputText("GUI Animation Name", GUIAnimationName, sizeof(GUIAnimationName), ImGuiInputTextFlags_CharsNoBlank);
+
+       static int32_t newAnimationFrameSpeed = 60;
+       ImGui::DragInt("FrameSpeed", &newAnimationFrameSpeed, 1.0f, 60.0f);
+
+       static bool isLooped = false;
+       ImGui::Checkbox("Is Animation Looped", &isLooped);
+
+       static std::string selectedGUIAnimationTextureAssetFile = "";
+       if (ImGui::BeginCombo("Available Images", selectedGUIAnimationTextureAssetFile.c_str())) {
+           for (auto it = assetManager->getAvailableAssetsList().begin();
+                it != assetManager->getAvailableAssetsList().end(); it++) {
+
+               if(it->second == AssetManager::Asset_type_TEXTURE) {
+                   bool selectedElement = selectedGUIAnimationTextureAssetFile == it->first;
+                   if (ImGui::Selectable(it->first.c_str(), selectedElement)) {
+                       selectedGUIAnimationTextureAssetFile = it->first;
+                   }
+                   if (selectedElement) {
+                       ImGui::SetItemDefaultFocus();
+                   }
+               }
+           }
+           ImGui::EndCombo();
+       }
+
+       static size_t selectedLayerIndex = 0;
+       if (guiLayers.size() == 0) {
+           guiLayers.push_back(new GUILayer(glHelper, debugDrawer, 10));
+       }
+       if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
+           for (size_t i = 0; i < guiLayers.size(); ++i) {
+               bool isThisLayerSelected = selectedLayerIndex == i;
+               if (ImGui::Selectable(std::to_string(i).c_str(), isThisLayerSelected)) {
+                   selectedLayerIndex = i;
+               }
+               if (isThisLayerSelected) {
+                   ImGui::SetItemDefaultFocus();
+               }
+           }
+           ImGui::EndCombo();
+       }
+       if (ImGui::Button("Add GUI Animation")) {
+           std::vector<std::string> fileNames;
+           fileNames.push_back(std::string(selectedGUIAnimationTextureAssetFile));
+
+           GUIAnimation *guiAnimation = new GUIAnimation(this->getNextObjectID(), assetManager,
+                                                         std::string(GUIAnimationName),
+                                                         fileNames, gameTime, newAnimationFrameSpeed, isLooped);
+           guiAnimation->set2dWorldTransform(
+                   glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
+           guiElements[guiAnimation->getWorldObjectID()] = guiAnimation;
+           guiLayers[selectedLayerIndex]->addGuiElement(guiAnimation);
+           pickedObject = guiAnimation;
+       }
+   }
 
 void World::addGUILayerControls() {
     /**

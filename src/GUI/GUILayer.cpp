@@ -7,6 +7,7 @@
 #include "../GameObjects/GUIText.h"
 #include "../GameObjects/GUIImage.h"
 #include "../GameObjects/GUIButton.h"
+#include "../GameObjects/GUIAnimation.h"
 
 
 class Options;
@@ -96,6 +97,9 @@ bool GUILayer::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
                     break;
                 case GameObject::ObjectTypes::GUI_BUTTON:
                     static_cast<GUIButton*>(guiElements[i])->serialize(document, layerNode, options);
+                    break;
+                case GameObject::ObjectTypes::GUI_ANIMATION:
+                    static_cast<GUIAnimation*>(guiElements[i])->serialize(document, layerNode, options);
                     break;
                 default:
                     break;//do nothing
