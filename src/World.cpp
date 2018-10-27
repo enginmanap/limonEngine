@@ -523,7 +523,7 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
         }
     }
 
-    currentPlayer->processInput(inputHandler);
+    currentPlayer->processInput(inputHandler, apiInstance);
 
     if(inputHandler.getInputEvents(inputHandler.QUIT) &&  inputHandler.getInputStatus(inputHandler.QUIT)) {
         return true;
