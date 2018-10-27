@@ -9,7 +9,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
-void AssetManager::addAssetsRecursively(const std::string &directoryPath, const std::vector<std::string> &fileExtensions)
+void AssetManager::addAssetsRecursively(const std::string &directoryPath, const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions)
 {
     DIR *directory;
     struct dirent *entry;
@@ -28,9 +28,10 @@ void AssetManager::addAssetsRecursively(const std::string &directoryPath, const 
                     continue;
                 addAssetsRecursively(filePath, fileExtensions);
             } else {
-                if(isExtensionInList(entry->d_name, fileExtensions)) {
-                    availableAssetsList[filePath] = AssetTypes::Asset_type_MODEL;
-                    std::cout << entry->d_name << " added as asset." << std::endl;
+                AssetTypes assetType;
+                if(isExtensionInList(entry->d_name, fileExtensions, assetType)) {
+                    availableAssetsList[filePath] = assetType;
+                    std::cout << entry->d_name << " added as asset. with type " << assetType << std::endl;
                 } else {
                     //file found but not added because extension is not in list
                 }
@@ -42,8 +43,8 @@ void AssetManager::addAssetsRecursively(const std::string &directoryPath, const 
 }
 
 
-std::vector<std::string> AssetManager::loadAssetExtensionList() {
-    std::vector<std::string> extensionList;
+std::vector<std::pair<std::string, AssetManager::AssetTypes>> AssetManager::loadAssetExtensionList() {
+    std::vector<std::pair<std::string, AssetTypes>> extensionList;
     tinyxml2::XMLDocument xmlDoc;
     tinyxml2::XMLError eResult = xmlDoc.LoadFile(ASSET_EXTENSIONS_FILE.c_str());
     if (eResult != tinyxml2::XML_SUCCESS) {
@@ -55,16 +56,26 @@ std::vector<std::string> AssetManager::loadAssetExtensionList() {
         std::cerr << "Asset list xml is not a valid XML." << std::endl;
         return extensionList;
     }
-    const char* typeName;
+    const char* typeNameRaw;
     tinyxml2::XMLElement* currentAssetNode =  assetsNode->FirstChildElement("Asset");
     while(currentAssetNode != nullptr) {
-        typeName = currentAssetNode->Attribute("type");
-        if(!strcmp(typeName, "Model")) {// if type Model
-            extensionList.push_back(currentAssetNode->GetText());
+        typeNameRaw = currentAssetNode->Attribute("type");
+
+        if (typeNameRaw != nullptr) {
+            std::string typeName = typeNameRaw;
+            AssetManager::AssetTypes currentAssetType;
+            if (typeName == "Model") {
+                currentAssetType = Asset_type_MODEL;
+            } else if (typeName == "Texture") {
+                currentAssetType = Asset_type_TEXTURE;
+            } else {
+                std::cerr << "Requested asset type is not implemented yet. exiting.." << std::endl;
+                exit(1);
+            }
+            extensionList.push_back(std::pair<std::string, AssetTypes>(currentAssetNode->GetText(), currentAssetType));
             std::cout << "adding available asset extension " << currentAssetNode->GetText() << std::endl;
         } else {
-            std::cerr << "Type " << typeName << " Not implemented yet" << std::endl;
-            exit(-1);
+            std::cerr << "Asset extension without a type is invalid, skipping" << std::endl;
         }
         currentAssetNode = currentAssetNode->NextSiblingElement("Asset");
     }
@@ -72,18 +83,20 @@ std::vector<std::string> AssetManager::loadAssetExtensionList() {
 }
 
 bool AssetManager::loadAssetList() {
-    std::vector<std::string> fileExtensions = loadAssetExtensionList();
-    addAssetsRecursively("./Data/Models", fileExtensions);
+    std::vector<std::pair<std::string, AssetTypes>> fileExtensions = loadAssetExtensionList();
+    addAssetsRecursively("./Data", fileExtensions);
     return true;
 }
 
-bool AssetManager::isExtensionInList(const std::string &name, const std::vector<std::string> &vector) {
+bool AssetManager::isExtensionInList(const std::string &name, const std::vector<std::pair<std::string, AssetTypes>> &vector,
+                                     AssetTypes &elementAssetType) {
     //lowercase the string:
     std::string lowerCaseName = name;
     std::transform(lowerCaseName.begin(), lowerCaseName.end(), lowerCaseName.begin(), ::tolower);
 
     for (uint32_t i = 0; i < vector.size(); ++i) {
-        if(isEnding(lowerCaseName, vector[i])) {
+        if(isEnding(lowerCaseName, vector[i].first)) {
+            elementAssetType = vector[i].second;
             return true;
         }
     }
