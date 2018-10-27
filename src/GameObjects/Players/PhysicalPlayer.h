@@ -182,7 +182,7 @@ public:
         }
     }
 
-    void processInput(InputHandler &inputHandler) override;
+    void processInput(InputHandler &inputHandler, LimonAPI *limonAPI) override;
 };
 
 

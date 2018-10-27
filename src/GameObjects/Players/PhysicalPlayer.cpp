@@ -357,8 +357,8 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
     return imGuiResult;
 }
 
-void PhysicalPlayer::processInput(InputHandler &inputHandler) {
-    Player::processInput(inputHandler);
+void PhysicalPlayer::processInput(InputHandler &inputHandler, LimonAPI *limonAPI) {
+    Player::processInput(inputHandler, limonAPI);
     if (this->attachedModel == nullptr) {
         return;
     }
@@ -366,8 +366,9 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler) {
     //
 
     if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT) && inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
-        if((attachedModel->getAnimationName() != "Melee" ||  attachedModel->isAnimationFinished())) {
-            attachedModel->setAnimationWithBlend("Melee", false);
+        if((attachedModel->getAnimationName() != "Shoot" ||  attachedModel->isAnimationFinished())) {
+            attachedModel->setAnimation("Shoot", false);
+            limonAPI->playSound("./Data/Sounds/EasyFPS/shot.wav", glm::vec3(0,0,0), false);
         }
     } else {
         if (inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_RIGHT)) {

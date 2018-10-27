@@ -7,6 +7,7 @@
 
 #include "../GameObject.h"
 #include "../../InputHandler.h"
+#include "../../GamePlay/LimonAPI.h"
 #include <glm/glm.hpp>
 #include <string>
 #include <iostream>
@@ -84,7 +85,7 @@ public:
     };
 
     /************Game Object methods **************/
-    virtual void processInput(InputHandler &inputHandler) {
+    virtual void processInput(InputHandler &inputHandler, LimonAPI *limonAPI) {
 
         float xPosition, yPosition, xChange, yChange;
         if (inputHandler.getMouseChange(xPosition, yPosition, xChange, yChange)) {
