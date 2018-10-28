@@ -340,6 +340,8 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
         attachedModel->addImGuiEditorElements(request);
     }
 
+    ImGui::DragFloat("Muzzle flash distance", &muzzleFlashDistance);
+    ImGui::DragFloat3("Muzzle flash offsets", glm::value_ptr(muzzleFlashOffset));
     ImGui::DragFloat3("Offsets", glm::value_ptr(attachedModelOffset));
 
 
@@ -359,16 +361,32 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
 
 void PhysicalPlayer::processInput(InputHandler &inputHandler, LimonAPI *limonAPI) {
     Player::processInput(inputHandler, limonAPI);
+
+    static uint32_t removeCounter = 0;
+    static uint32_t addedElement = 0;
     if (this->attachedModel == nullptr) {
         return;
     }
 
-    //
+    if(removeCounter <= 0 ) {
+        limonAPI->removeObject(addedElement);
+    } else {
+        removeCounter--;
+    }
 
     if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT) && inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
         if((attachedModel->getAnimationName() != "Shoot" ||  attachedModel->isAnimationFinished())) {
             attachedModel->setAnimation("Shoot", false);
             limonAPI->playSound("./Data/Sounds/EasyFPS/shot.wav", glm::vec3(0,0,0), false);
+            glm::vec3 scale(0.1f,0.1f,0.1f);
+
+            if(removeCounter!=0) {
+                limonAPI->removeObject(addedElement);
+            }
+
+            glm::quat direction = glm::quatLookAt(center, up);
+            addedElement = limonAPI->addModel("./Data/Models/Muzzle/Muzzle.obj", 0, false, (calculatePlayerRotation() * muzzleFlashOffset) + this->getPosition()+ this->center * muzzleFlashDistance, scale, direction);
+            removeCounter = 1;
         }
     } else {
         if (inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_RIGHT)) {

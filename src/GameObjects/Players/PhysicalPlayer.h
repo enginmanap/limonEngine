@@ -32,6 +32,9 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     btVector3 groundFrictionMovementSpeed; //this is for emulating ground friction
     float groundFrictionFactor = 10.0f;
     btVector3 slowDownFactor = btVector3(2.5f, 1.0f, 2.5f);
+
+    glm::vec3 muzzleFlashOffset = glm::vec3(-0.075f,-0.071f,0.0f);
+    float muzzleFlashDistance = 0.735f;
     btRigidBody *player;
     btGeneric6DofSpring2Constraint *spring;
     float springStandPoint;
