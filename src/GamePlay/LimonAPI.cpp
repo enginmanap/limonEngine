@@ -19,6 +19,12 @@ uint32_t LimonAPI::addGuiText(const std::string &fontFilePath, uint32_t fontSize
     return worldAddGuiText(fontFilePath, fontSize, name, text, color, position,rotation);
 }
 
+uint32_t LimonAPI::addModel(const std::string &modelFilePath, float modelWeight, bool physical, const glm::vec3 &position,
+                     const glm::vec3 &scale, const glm::quat &orientation) {
+    return worldAddModel(modelFilePath, modelWeight, physical, position, scale, orientation);
+}
+
+
 bool LimonAPI::updateGuiText(uint32_t guiTextID, const std::string &newText) {
     return worldUpdateGuiText(guiTextID, newText);
 }

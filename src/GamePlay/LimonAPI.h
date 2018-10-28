@@ -55,6 +55,10 @@ public:
                         const std::string &name, const std::string &text,
                                const glm::vec3 &color,
                                const glm::vec2 &position, float rotation);
+
+    uint32_t addModel(const std::string &modelFilePath, float modelWeight, bool physical, const glm::vec3 &position,
+                      const glm::vec3 &scale, const glm::quat &orientation);
+
     bool updateGuiText(uint32_t guiTextID, const std::string &newText);
     uint32_t removeGuiElement(uint32_t guiElementID);
     bool removeObject(uint32_t objectID);
@@ -112,6 +116,7 @@ private:
     std::function<bool(std::vector<LimonAPI::ParameterRequest> &, uint32_t)> worldGenerateEditorElementsForParameters;
     std::function<uint32_t(uint32_t , uint32_t , bool, const std::string* )> worldAddAnimationToObject;
     std::function<uint32_t(const std::string &, uint32_t, const std::string &, const std::string &, const glm::vec3 &, const glm::vec2 &, float)> worldAddGuiText;
+    std::function<uint32_t(const std::string &, float, bool, const glm::vec3 &, const glm::vec3 &, const glm::quat &)> worldAddModel;
     std::function<bool(uint32_t, const std::string &)> worldUpdateGuiText;
     std::function<uint32_t (uint32_t)> worldRemoveGuiText;
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t , uint32_t )> worldGetResultOfTrigger;

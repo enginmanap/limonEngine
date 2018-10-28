@@ -691,13 +691,6 @@ void World::render() {
         }
     }
 
-    if(startingPlayer.attachedModel != nullptr) {
-        startingPlayer.attachedModel->setupForTime(gameTime);
-        std::vector<uint32_t> temp;
-        temp.push_back(startingPlayer.attachedModel->getWorldObjectID());
-        startingPlayer.attachedModel->renderInstanced(temp);
-    }
-
     if(currentPlayersSettings->editorShown) { //if editor is shown, render wireframe of the triggers
         for (auto it = triggers.begin(); it != triggers.end(); ++it) {
             it->second->render(debugDrawer);
@@ -720,6 +713,13 @@ void World::render() {
             temp.push_back(playerPlaceHolder->getWorldObjectID());
             playerPlaceHolder->renderInstanced(temp);
         }
+    }
+
+    if(startingPlayer.attachedModel != nullptr) {
+        startingPlayer.attachedModel->setupForTime(gameTime);
+        std::vector<uint32_t> temp;
+        temp.push_back(startingPlayer.attachedModel->getWorldObjectID());
+        startingPlayer.attachedModel->renderInstanced(temp);
     }
 
     debugDrawer->flushDraws();
@@ -2020,3 +2020,18 @@ bool World::handleQuitRequest() {
 std::string World::getName() {
     return this->name;
 }
+
+uint32_t World::addModelApi(const std::string &modelFilePath, float modelWeight, bool physical,
+                            const glm::vec3 &position,
+                            const glm::vec3 &scale, const glm::quat &orientation) {
+    uint32_t objectID = this->getNextObjectID();
+
+    Model* newModel = new Model(objectID, assetManager, modelWeight, modelFilePath, !physical);//the physical is reversed because parameter here is "disconnected"
+    newModel->getTransformation()->setTranslate(position);
+    newModel->getTransformation()->setScale(scale);
+    newModel->getTransformation()->setOrientation(orientation);
+
+    this->addModelToWorld(newModel);
+
+    return objectID;
+   }
