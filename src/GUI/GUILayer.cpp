@@ -43,8 +43,12 @@ void GUILayer::addGuiElement(GUIRenderable *guiElement) {
                 case GameObject::ObjectTypes::GUI_BUTTON:
                     static_cast<GUIButton*>(guiElement)->addedToLayer(this);
                     break;
+                case GameObject::ObjectTypes::GUI_ANIMATION:
+                    static_cast<GUIAnimation*>(guiElement)->addedToLayer(this);
+                    break;
                 default:
-                    break;//do nothing
+                    std::cerr << "A GUI Element add failed to layer because of unknown type!" << std::endl;
+
             }
         }
 }
@@ -65,8 +69,11 @@ void GUILayer::removeGuiElement(uint32_t guiElementID) {
                 case GameObject::ObjectTypes::GUI_BUTTON:
                     worldObjectID = static_cast<GUIButton*>(guiElements[i])->getWorldObjectID();
                     break;
-                default:
+                case GameObject::ObjectTypes::GUI_ANIMATION:
+                    worldObjectID = static_cast<GUIButton*>(guiElements[i])->getWorldObjectID();
                     break;
+                default:
+                    std::cerr << "A GUI Element remove failed to layer because of unknown type!" << std::endl;
             }
             if(worldObjectID == guiElementID) {
                 guiElements.erase(guiElements.begin() + i);
