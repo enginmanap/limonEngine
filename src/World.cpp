@@ -1131,7 +1131,8 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 break;
                 case GameObject::GUI_TEXT:
                 case GameObject::GUI_IMAGE:
-                case GameObject::GUI_BUTTON: {
+                case GameObject::GUI_BUTTON:
+                case GameObject::GUI_ANIMATION: {
                     if(objectEditorResult.remove) {
                         this->guiElements.erase(pickedObject->getWorldObjectID());
                         delete pickedObject;
