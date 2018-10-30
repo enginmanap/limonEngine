@@ -1058,6 +1058,15 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     ImGui::SetItemDefaultFocus();
                 }
             }
+            GameObject* gameObject = dynamic_cast<GameObject *>(physicalPlayer);
+            bool selectedElement = gameObject->getName() == selectedName;
+            if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
+                pickedObject = physicalPlayer;
+            }
+            if(selectedElement) {
+                ImGui::SetItemDefaultFocus();
+            }
+
             ImGui::EndCombo();
         }
         if(pickedObject != nullptr) {
