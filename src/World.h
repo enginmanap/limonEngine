@@ -434,6 +434,9 @@ public:
      */
     std::vector<LimonAPI::ParameterRequest> rayCastToCursorAPI();
 
+
+    std::vector<LimonAPI::ParameterRequest> getObjectTransformationAPI(uint32_t objectID) const;
+
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);
 };
