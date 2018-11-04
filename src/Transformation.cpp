@@ -13,7 +13,7 @@
 
 bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const glm::mat4& perspectiveMatrix) {
     static ImGuizmoState editorState;
-    static glm::vec3 preciseTranslatePoint = translate;
+    static glm::vec3 preciseTranslatePoint = translateSingle;
 
     bool updated = false;
     bool crudeUpdated = false;
@@ -42,7 +42,12 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
 
     switch (editorState.mode) {
         case TRANSLATE_MODE: {
-            glm::vec3 tempTranslate = translate;
+            if(this->parentTransform != nullptr ) {
+                ImGui::Text((std::string("Current Total Translate X") + std::to_string(translate.x)).c_str());
+                ImGui::Text((std::string("Current Total Translate Y") + std::to_string(translate.y)).c_str());
+                ImGui::Text((std::string("Current Total Translate Z") + std::to_string(translate.z)).c_str());
+            }
+            glm::vec3 tempTranslate = translateSingle;
             updated =
                     ImGui::DragFloat("Precise Position X", &(tempTranslate.x), 0.01f, preciseTranslatePoint.x - 5.0f,
                                      preciseTranslatePoint.x + 5.0f) || updated;
@@ -63,7 +68,7 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
                 setTranslate(tempTranslate);
             }
             if (crudeUpdated) {
-                preciseTranslatePoint = translate;
+                preciseTranslatePoint = translateSingle;
             }
             ImGui::NewLine();
             ImGui::Checkbox("", &(editorState.useSnap));
@@ -72,7 +77,7 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
             break;
         }
         case ROTATE_MODE: {
-            glm::quat tempOrientation = orientation;
+            glm::quat tempOrientation = orientationSingle;
             updated = ImGui::DragFloat("Rotate X", &(tempOrientation.x), -1.0f, 1.0f) || updated;
             updated = ImGui::DragFloat("Rotate Y", &(tempOrientation.y), -1.0f, 1.0f) || updated;
             updated = ImGui::DragFloat("Rotate Z", &(tempOrientation.z), -1.0f, 1.0f) || updated;
@@ -87,7 +92,13 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
             break;
         }
         case SCALE_MODE: {
-            glm::vec3 tempScale = scale;
+            if(this->parentTransform != nullptr ) {
+                ImGui::Text((std::string("Current Total Scale X") + std::to_string(scale.x)).c_str());
+                ImGui::Text((std::string("Current Total Scale Y") + std::to_string(scale.y)).c_str());
+                ImGui::Text((std::string("Current Total Scale Z") + std::to_string(scale.z)).c_str());
+            }
+
+            glm::vec3 tempScale = scaleSingle;
             updated = ImGui::DragFloat("Scale X", &(tempScale.x), 0.01, 0.01f, 10.0f) || updated;
             updated = ImGui::DragFloat("Scale Y", &(tempScale.y), 0.01, 0.01f, 10.0f) || updated;
             updated = ImGui::DragFloat("Scale Z", &(tempScale.z), 0.01, 0.01f, 10.0f) || updated;
@@ -142,17 +153,20 @@ void Transformation::addImGuizmoElements(const ImGuizmoState& editorState, const
     float tempSnap[3] = {editorState.snap[0], editorState.snap[1], editorState.snap[2] };
     ImGuizmo::Manipulate(glm::value_ptr(cameraMatrix), glm::value_ptr(perspectiveMatrix), mCurrentGizmoOperation, mCurrentGizmoMode, glm::value_ptr(objectMatrix), NULL, editorState.useSnap ? &(tempSnap[0]) : NULL);
 
+    if(this->parentTransform != nullptr) {
+        //first calculate the difference from parent if there is
+        objectMatrix = glm::inverse(parentTransform->getWorldTransform()) * objectMatrix;
+
+    }
     //now we should have object matrix updated, update the object
-    glm::vec3 scale, translate;
-    glm::quat rotation;
     ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(objectMatrix), glm::value_ptr(translate), glm::value_ptr(eulerRotation), glm::value_ptr(scale));
-    rotation = glm::quat(eulerRotation / 57.2957795f);
+    glm::quat orientationTemp = glm::quat(eulerRotation / 57.2957795f);
     switch (mCurrentGizmoOperation) {
         case ImGuizmo::TRANSLATE:
             setTranslate(translate);
             break;
         case ImGuizmo::ROTATE:
-            setOrientation(rotation);
+            setOrientation(orientationTemp);
             break;
         case ImGuizmo::SCALE:
             setScale(scale);
@@ -177,40 +191,40 @@ bool Transformation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLEle
 
     tinyxml2::XMLElement *parent = document.NewElement("Scale");
     currentElement = document.NewElement("X");
-    currentElement->SetText(scale.x);
+    currentElement->SetText(scaleSingle.x);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Y");
-    currentElement->SetText(scale.y);
+    currentElement->SetText(scaleSingle.y);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Z");
-    currentElement->SetText(scale.z);
+    currentElement->SetText(scaleSingle.z);
     parent->InsertEndChild(currentElement);
     classNode->InsertEndChild(parent);
 
     parent = document.NewElement("Translate");
     currentElement = document.NewElement("X");
-    currentElement->SetText(translate.x);
+    currentElement->SetText(translateSingle.x);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Y");
-    currentElement->SetText(translate.y);
+    currentElement->SetText(translateSingle.y);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Z");
-    currentElement->SetText(translate.z);
+    currentElement->SetText(translateSingle.z);
     parent->InsertEndChild(currentElement);
     classNode->InsertEndChild(parent);
 
     parent = document.NewElement("Rotate");
     currentElement = document.NewElement("X");
-    currentElement->SetText(orientation.x);
+    currentElement->SetText(orientationSingle.x);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Y");
-    currentElement->SetText(orientation.y);
+    currentElement->SetText(orientationSingle.y);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("Z");
-    currentElement->SetText(orientation.z);
+    currentElement->SetText(orientationSingle.z);
     parent->InsertEndChild(currentElement);
     currentElement = document.NewElement("W");
-    currentElement->SetText(orientation.w);
+    currentElement->SetText(orientationSingle.w);
     parent->InsertEndChild(currentElement);
     classNode->InsertEndChild(parent);
 
@@ -224,48 +238,52 @@ bool Transformation::deserialize(tinyxml2::XMLElement *transformationNode) {
     if (transformationAttribute == nullptr) {
         std::cout << "Transformation does not have scale." << std::endl;
     } else {
+        glm::vec3 scale;
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("X");
         if(transformationAttributeAttribute != nullptr) {
-            this->scale.x = std::stof(transformationAttributeAttribute->GetText());
+            scale.x = std::stof(transformationAttributeAttribute->GetText());
         } else {
-            this->scale.x = 1.0;
+            scale.x = 1.0;
         }
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Y");
         if(transformationAttributeAttribute != nullptr) {
-            this->scale.y = std::stof(transformationAttributeAttribute->GetText());
+            scale.y = std::stof(transformationAttributeAttribute->GetText());
         } else {
-            this->scale.y = 1.0;
+            scale.y = 1.0;
         }
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Z");
         if(transformationAttributeAttribute != nullptr) {
-            this->scale.z = std::stof(transformationAttributeAttribute->GetText());
+            scale.z = std::stof(transformationAttributeAttribute->GetText());
         } else {
-            this->scale.z = 1.0;
+            scale.z = 1.0;
         }
+        setScale(scale);
     }
 
     transformationAttribute =  transformationNode->FirstChildElement("Translate");
     if (transformationAttribute == nullptr) {
         std::cout << "Transformation does not have translate." << std::endl;
     } else {
+        glm::vec3 translate;
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("X");
         if(transformationAttributeAttribute != nullptr) {
-            this->translate.x = std::stof(transformationAttributeAttribute->GetText());
+            translate.x = std::stof(transformationAttributeAttribute->GetText());
         } else {
-            this->translate.x = 0.0;
+            translate.x = 0.0;
         }
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Y");
         if(transformationAttributeAttribute != nullptr) {
-            this->translate.y = std::stof(transformationAttributeAttribute->GetText());
+            translate.y = std::stof(transformationAttributeAttribute->GetText());
         } else {
-            this->translate.y = 0.0;
+            translate.y = 0.0;
         }
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Z");
         if(transformationAttributeAttribute != nullptr) {
-            this->translate.z = std::stof(transformationAttributeAttribute->GetText());
+            translate.z = std::stof(transformationAttributeAttribute->GetText());
         } else {
-            this->translate.z = 0.0;
+            translate.z = 0.0;
         }
+        setTranslate(translate);
     }
 
     transformationAttribute =  transformationNode->FirstChildElement("Rotate");
@@ -273,30 +291,31 @@ bool Transformation::deserialize(tinyxml2::XMLElement *transformationNode) {
         std::cout << "Transformation does not have Rotation." << std::endl;
     } else {
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("X");
+        glm::quat orientation;
         if(transformationAttributeAttribute != nullptr) {
-            this->orientation.x = std::stof(transformationAttributeAttribute->GetText());
+            orientation.x = std::stof(transformationAttributeAttribute->GetText());
         } else {
-            this->orientation.x = 0.0;
+            orientation.x = 0.0;
         }
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Y");
         if(transformationAttributeAttribute != nullptr) {
-            this->orientation.y = std::stof(transformationAttributeAttribute->GetText());
+            orientation.y = std::stof(transformationAttributeAttribute->GetText());
         } else {
-            this->orientation.y = 0.0;
+            orientation.y = 0.0;
         }
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("Z");
         if(transformationAttributeAttribute != nullptr) {
-            this->orientation.z = std::stof(transformationAttributeAttribute->GetText());
+            orientation.z = std::stof(transformationAttributeAttribute->GetText());
         } else {
-            this->orientation.z = 0.0;
+            orientation.z = 0.0;
         }
         transformationAttributeAttribute =  transformationAttribute->FirstChildElement("W");
         if(transformationAttributeAttribute != nullptr) {
-            this->orientation.w = std::stof(transformationAttributeAttribute->GetText());
+            orientation.w = std::stof(transformationAttributeAttribute->GetText());
         } else {
-            this->orientation.w = 0.0;
+            orientation.w = 0.0;
         }
-        this->orientation = glm::normalize(this->orientation);
+        setOrientation(orientation);
     }
     //now propagate the load
     propagateUpdate();

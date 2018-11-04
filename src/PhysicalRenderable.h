@@ -14,7 +14,7 @@
 class PhysicalRenderable : public Renderable {
 protected:
     glm::mat4 centerOffsetMatrix;
-    glm::vec3 centerOffset;
+    glm::vec3 centerOffset;//init by list for constructor
     glm::vec3 aabbMax, aabbMin;
     const float mass;
     btRigidBody *rigidBody;
@@ -50,8 +50,16 @@ public:
      */
     glm::mat4 processTransformForPyhsics() {
         //if animated, then the transform information will be updated according to bone transforms. Then we apply current center offset
-        return glm::translate(glm::mat4(1.0f), transformation.getTranslate()) * glm::mat4_cast(transformation.getOrientation()) *
-               glm::scale(glm::mat4(1.0f), transformation.getScale()) * glm::translate(glm::mat4(1.0f), -1.0f * centerOffset);
+        if(centerOffset.x == 0.0f && centerOffset.y == 0.0f && centerOffset.z == 0.0f) {
+            return glm::translate(glm::mat4(1.0f), transformation.getTranslateSingle()) * glm::mat4_cast(transformation.getOrientationSingle()) *
+                   glm::scale(glm::mat4(1.0f), transformation.getScaleSingle());
+        } else {
+            //difference is the center offset
+            return glm::translate(glm::mat4(1.0f), transformation.getTranslateSingle()) *
+                   glm::mat4_cast(transformation.getOrientationSingle()) *
+                   glm::scale(glm::mat4(1.0f), transformation.getScaleSingle()) *
+                   glm::translate(glm::mat4(1.0f), -1.0f * centerOffset);
+        }
 
     }
 
