@@ -15,6 +15,10 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
     static ImGuizmoState editorState;
     static glm::vec3 preciseTranslatePoint = translateSingle;
 
+    if(this->parentTransform != nullptr) {
+        ImGui::Text("Parent indicator", "This transform has a parent, and it is relative.");
+    }
+
     bool updated = false;
     bool crudeUpdated = false;
 
