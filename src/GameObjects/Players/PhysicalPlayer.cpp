@@ -342,7 +342,7 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
 
     ImGui::DragFloat("Muzzle flash distance", &muzzleFlashDistance);
     ImGui::DragFloat3("Muzzle flash offsets", glm::value_ptr(muzzleFlashOffset));
-    ImGui::DragFloat3("Offsets", glm::value_ptr(attachedModelOffset));
+    ImGui::DragFloat3("Attached Model Offsets", glm::value_ptr(attachedModelOffset));
 
 
     setAttachedModelTransformation(attachedModel);
@@ -360,6 +360,7 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
 }
 
 void PhysicalPlayer::processInput(InputHandler &inputHandler, LimonAPI *limonAPI) {
+
     Player::processInput(inputHandler, limonAPI);
 
     static uint32_t removeCounter = 0;
@@ -368,27 +369,32 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler, LimonAPI *limonAPI
         return;
     }
 
-    if(removeCounter <= 0 ) {
+    if(removeCounter <= 0 && addedElement != 0 ) {
         limonAPI->removeObject(addedElement);
+        addedElement = 0;
+        std::cout << "removed by counter" << std::endl;
     } else {
         removeCounter--;
     }
 
     if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT) && inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
+        std::cerr << "input call " << std::endl;
         if((attachedModel->getAnimationName() != "Shoot" ||  attachedModel->isAnimationFinished())) {
             attachedModel->setAnimation("Shoot", false);
             limonAPI->playSound("./Data/Sounds/EasyFPS/shot.wav", glm::vec3(0,0,0), false);
-            glm::vec3 scale(0.1f,0.1f,0.1f);
-
+            glm::vec3 scale(10.0f,10.0f,10.0f);//it is actually 0,1 * 1/baseScale
             if(removeCounter!=0) {
                 limonAPI->removeObject(addedElement);
+                std::cout << "removed by reshoot" << std::endl;
             }
+            glm::quat direction = glm::quat(0.0f, 0.0f, 1.0f, 0.0f);
 
-            glm::quat direction = glm::quatLookAt(center, up);
-            addedElement = limonAPI->addObject("./Data/Models/Muzzle/Muzzle.obj", 0, false,
-                                               (calculatePlayerRotation() * muzzleFlashOffset) + this->getPosition() +
-                                               this->center * muzzleFlashDistance, scale, direction);
-            removeCounter = 1;
+            addedElement = limonAPI->addObject("./Data/Models/Muzzle/Muzzle.obj", 0, false, muzzleFlashOffset * 100, scale, direction);
+            bool isAttached = limonAPI->attachObjectToObject(addedElement, this->attachedModel->getWorldObjectID());
+            if(!isAttached) {
+                std::cerr << "attachment failed!" << std::endl;
+            }
+            removeCounter = 2;
         }
     } else {
         if (inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_RIGHT)) {
