@@ -148,6 +148,9 @@ public:
             transformation->updateCallback = std::bind(&Transformation::updateCallbackWithChild, transformation);
         }
         transformation->childTransforms.push_back(this);
+
+        generateWorldTransformWithParent();
+        updateCallback();
     }
 
     void removeParentTransform() {
