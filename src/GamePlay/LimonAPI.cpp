@@ -308,3 +308,8 @@ deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index) {
     index = std::stol(parameterAttribute->GetText());
     return true;
 }
+
+
+std::vector<LimonAPI::ParameterRequest> LimonAPI::rayCastToCursor() {
+    return worldRayCastToCursor();
+}
