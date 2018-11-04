@@ -385,7 +385,9 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler, LimonAPI *limonAPI
             }
 
             glm::quat direction = glm::quatLookAt(center, up);
-            addedElement = limonAPI->addModel("./Data/Models/Muzzle/Muzzle.obj", 0, false, (calculatePlayerRotation() * muzzleFlashOffset) + this->getPosition()+ this->center * muzzleFlashDistance, scale, direction);
+            addedElement = limonAPI->addObject("./Data/Models/Muzzle/Muzzle.obj", 0, false,
+                                               (calculatePlayerRotation() * muzzleFlashOffset) + this->getPosition() +
+                                               this->center * muzzleFlashDistance, scale, direction);
             removeCounter = 1;
         }
     } else {

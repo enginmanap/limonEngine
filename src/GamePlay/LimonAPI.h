@@ -56,8 +56,8 @@ public:
                                const glm::vec3 &color,
                                const glm::vec2 &position, float rotation);
 
-    uint32_t addModel(const std::string &modelFilePath, float modelWeight, bool physical, const glm::vec3 &position,
-                      const glm::vec3 &scale, const glm::quat &orientation);
+    uint32_t addObject(const std::string &modelFilePath, float modelWeight, bool physical, const glm::vec3 &position,
+                       const glm::vec3 &scale, const glm::quat &orientation);
 
     bool updateGuiText(uint32_t guiTextID, const std::string &newText);
     uint32_t removeGuiElement(uint32_t guiElementID);
