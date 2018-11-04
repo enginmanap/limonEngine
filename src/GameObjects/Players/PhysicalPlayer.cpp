@@ -395,6 +395,30 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler, LimonAPI *limonAPI
                 std::cerr << "attachment failed!" << std::endl;
             }
             removeCounter = 2;
+
+
+            //now put bullet hole to the hit position:
+
+            std::vector<LimonAPI::ParameterRequest>rayResult = limonAPI->rayCastToCursor();
+            if(rayResult.size() > 0 ) {
+                //means we hit something, put the bullet hole to place:
+                glm::vec3 hitPos(rayResult[1].value.doubleValue, rayResult[2].value.doubleValue, rayResult[3].value.doubleValue);
+                glm::vec3 hitNormal(rayResult[4].value.doubleValue, rayResult[5].value.doubleValue, rayResult[6].value.doubleValue);
+
+                std::cout << "hit something, with position " << glm::to_string(hitPos) << ", and normal " << glm::to_string(hitNormal) << "." << std::endl;
+                glm::quat orientation;
+                    if(hitNormal.x < 0.001 && hitNormal.x > -0.001 &&
+                       hitNormal.y < 1.001 && hitNormal.y >  0.999 &&
+                       hitNormal.z < 0.001 && hitNormal.z > -0.001) {
+                        //means the normal is up
+                        orientation = glm::quat(0.707f, -0.707f, 0.0f, 0.0f);
+                    } else {
+                        orientation = glm::quatLookAt(-1.0 * hitNormal, glm::vec3(0,1,0));
+                    }
+                limonAPI->addObject("./Data/Models/BulletHole/BulletHole.obj", 0, false, hitPos+ hitNormal * 0.002f, glm::vec3(0.2f, 0.2f, 0.2f), orientation);
+            } else {
+                std::cout << "hit nothing!" << std::endl;
+            }
         }
     } else {
         if (inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_RIGHT)) {

@@ -300,7 +300,8 @@ private:
 
     void fillVisibleObjects();
 
-    GameObject * getPointedObject() const;
+    GameObject *getPointedObject(int collisionType, int filterMask,
+                                 glm::vec3 *collisionPosition = nullptr, glm::vec3 *collisionNormal = nullptr) const;
 
     void addActor(Actor *actor);
 
@@ -422,6 +423,16 @@ public:
     bool disconnectObjectFromPhysics(uint32_t objectWorldID);
 
     bool reconnectObjectToPhysics(uint32_t objectWorldID);
+
+    /**
+     * If nothing is hit, returns empty vector
+     * returns these values:
+     * 1) objectID for what is under the cursor
+     * 2,3,4) hit coordinates
+     * 5,6,7) hit normal
+     *
+     */
+    std::vector<LimonAPI::ParameterRequest> rayCastToCursorAPI();
 
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);

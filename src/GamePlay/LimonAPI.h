@@ -71,12 +71,24 @@ public:
     bool detachSoundFromObject(uint32_t objectWorldID);
     uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool looped);
 
+
+    /**
+     * * If nothing is hit, returns empty vector
+     * returns these values:
+     * 1) objectID for what is under the cursor
+     * 2,3,4) hit coordinates
+     * 5,6,7) hit normal
+     */
+    std::vector<ParameterRequest> rayCastToCursor();
+
     bool loadAndSwitchWorld(const std::string& worldFileName);
     bool returnToWorld(const std::string& worldFileName);//if world is not loaded, loads first
     bool LoadAndRemove(const std::string& worldFileName); // removes current world after loading the new one
 
     void returnPreviousWorld();
     void quitGame();
+
+
 
 
     std::vector<ParameterRequest> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
@@ -130,6 +142,8 @@ private:
     std::function<bool (uint32_t, const std::string&)> worldAttachSoundToObjectAndPlay;
     std::function<bool (uint32_t)> worldDetachSoundFromObject;
     std::function<uint32_t (const std::string&, const glm::vec3&, bool)> worldPlaySound;
+
+    std::function<std::vector<ParameterRequest>()> worldRayCastToCursor;
 
     /*** Non World API calls *******************************************************/
     std::function<bool (const std::string&)> limonLoadWorld;

@@ -280,7 +280,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     if(currentPlayersSettings->menuInteraction) {
         GUIButton* button = nullptr;
 
-        GameObject* pointed = this->getPointedObject();
+        GameObject* pointed = this->getPointedObject(COLLIDE_EVERYTHING, ~(COLLIDE_NOTHING));
         if(pointed != nullptr && pointed->getTypeID() == GameObject::GUI_BUTTON) {
             button = dynamic_cast<GUIButton*>(pointed);
         }
@@ -482,7 +482,7 @@ ActorInformation World::fillActorInformation(Actor *actor) {
 bool World::handlePlayerInput(InputHandler &inputHandler) {
     if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT)) {
         if(inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
-            GameObject *gameObject = getPointedObject();
+            GameObject *gameObject = getPointedObject(COLLIDE_EVERYTHING, ~(COLLIDE_NOTHING));
             if (gameObject != nullptr) {//FIXME this looks like a left over
                 pickedObject = gameObject;
             } else {
@@ -529,68 +529,6 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
         return true;
     } else {
         return false;
-    }
-}
-
-GameObject * World::getPointedObject() const {
-    glm::vec3 from, lookDirection;
-    currentPlayer->getWhereCameraLooks(from, lookDirection);
-
-    if(guiPickMode) {
-        GameObject* pickedGuiElement = nullptr;
-        uint32_t pickedLevel = 0;
-        //then we don't need to rayTest. We can get the picked object directly by coordinate.
-        for (size_t i = 0; i < guiLayers.size(); ++i) {
-            GameObject* pickedGuiTemp = dynamic_cast<GameObject*>(guiLayers[i]->getRenderableFromCoordinate(cursor->getTranslate()));
-            if(pickedGuiTemp != nullptr && guiLayers[i]->getLevel() >= pickedLevel) {
-                pickedGuiElement = pickedGuiTemp;//because we are iterating all the levels
-            }
-        }
-        return pickedGuiElement;
-    } else {
-        //we want to extend to vector to world AABB limit
-        float maxFactor = 1; //don't allow making ray smaller than unit by setting 1.
-
-        if (lookDirection.x > 0) {
-            //so we are looking at positive x. determine how many times the ray x we need
-            maxFactor = std::max(maxFactor,(worldAABBMax.x - from.x) / lookDirection.x);
-        } else {
-            maxFactor = std::max(maxFactor,(worldAABBMin.x - from.x) /
-                        lookDirection.x); //Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
-        }
-
-        if (lookDirection.y > 0) {
-            std::max(maxFactor, (worldAABBMax.y - from.y) / lookDirection.y);
-        } else {
-            std::max(maxFactor, (worldAABBMin.y - from.y) /
-                                lookDirection.y);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
-        }
-
-        if (lookDirection.z > 0) {
-            std::max(maxFactor, (worldAABBMax.z - from.z) / lookDirection.z);
-        } else {
-            std::max(maxFactor, (worldAABBMin.z - from.z) /
-                                lookDirection.z);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
-        }
-        lookDirection = lookDirection * maxFactor;
-        glm::vec3 to = lookDirection + from;
-        btCollisionWorld::ClosestRayResultCallback RayCallback(GLMConverter::GLMToBlt(from),
-                                                               GLMConverter::GLMToBlt(to));
-        RayCallback.m_collisionFilterGroup = COLLIDE_EVERYTHING;
-        RayCallback.m_collisionFilterMask = ~(COLLIDE_NOTHING);
-
-        dynamicsWorld->rayTest(
-                GLMConverter::GLMToBlt(from),
-                GLMConverter::GLMToBlt(to),
-                RayCallback
-        );
-
-        //debugDrawer->flushDraws();
-        if (RayCallback.hasHit()) {
-            return static_cast<GameObject *>(RayCallback.m_collisionObject->getUserPointer());
-        } else {
-            return nullptr;
-        }
     }
 }
 
@@ -2044,3 +1982,136 @@ uint32_t World::addModelApi(const std::string &modelFilePath, float modelWeight,
 
     return objectID;
    }
+
+   std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
+       /**
+        * * If nothing is hit, returns empty vector
+        * returns these values:
+        * 1) objectID for what is under the cursor
+        * 2,3,4) hit coordinates
+        * 5,6,7) hit normal
+        *
+        */
+       std::vector<LimonAPI::ParameterRequest>result;
+       glm::vec3 position, normal;
+       GameObject* gameObject = this->getPointedObject(COLLIDE_MODELS, COLLIDE_MODELS | COLLIDE_EVERYTHING, &position, &normal);
+
+       if(gameObject == nullptr) {
+           return result;
+       }
+       LimonAPI::ParameterRequest objectIDParam;
+       objectIDParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+       objectIDParam.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
+       objectIDParam.value.longValue = gameObject->getWorldObjectID();
+       //objectIDParam.description; intentionally not set
+       result.push_back(objectIDParam);
+
+       LimonAPI::ParameterRequest positionXParam;
+       positionXParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+       positionXParam.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
+       positionXParam.value.doubleValue = position.x;
+       //positionXParam.description; intentionally not set
+       result.push_back(positionXParam);
+       LimonAPI::ParameterRequest positionYParam;
+       positionYParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+       positionYParam.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
+       positionYParam.value.doubleValue = position.y;
+       //positionYParam.description; intentionally not set
+       result.push_back(positionYParam);
+       LimonAPI::ParameterRequest positionZParam;
+       positionZParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+       positionZParam.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
+       positionZParam.value.doubleValue = position.z;
+       //positionZParam.description; intentionally not set
+       result.push_back(positionZParam);
+
+       LimonAPI::ParameterRequest normalXParam;
+       normalXParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+       normalXParam.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
+       normalXParam.value.doubleValue = normal.x;
+       //objectIDParam.description; intentionally not set
+       result.push_back(normalXParam);
+       LimonAPI::ParameterRequest normalYParam;
+       normalYParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+       normalYParam.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
+       normalYParam.value.doubleValue = normal.y;
+       //normalYParam.description; intentionally not set
+       result.push_back(normalYParam);
+       LimonAPI::ParameterRequest normalZParam;
+       normalZParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+       normalZParam.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
+       normalZParam.value.doubleValue = normal.z;
+       //normalZParam.description; intentionally not set
+       result.push_back(normalZParam);
+
+       return result;
+   }
+
+GameObject * World::getPointedObject(int collisionType, int filterMask,
+                                     glm::vec3 *collisionPosition, glm::vec3 *collisionNormal) const {
+    glm::vec3 from, lookDirection;
+    currentPlayer->getWhereCameraLooks(from, lookDirection);
+
+    if(guiPickMode) {
+        GameObject* pickedGuiElement = nullptr;
+        uint32_t pickedLevel = 0;
+        //then we don't need to rayTest. We can get the picked object directly by coordinate.
+        for (size_t i = 0; i < guiLayers.size(); ++i) {
+            GameObject* pickedGuiTemp = dynamic_cast<GameObject*>(guiLayers[i]->getRenderableFromCoordinate(cursor->getTranslate()));
+            if(pickedGuiTemp != nullptr && guiLayers[i]->getLevel() >= pickedLevel) {
+                pickedGuiElement = pickedGuiTemp;//because we are iterating all the levels
+            }
+        }
+        return pickedGuiElement;
+    } else {
+        //we want to extend to vector to world AABB limit
+        float maxFactor = 1; //don't allow making ray smaller than unit by setting 1.
+
+        if (lookDirection.x > 0) {
+            //so we are looking at positive x. determine how many times the ray x we need
+            maxFactor = std::max(maxFactor,(worldAABBMax.x - from.x) / lookDirection.x);
+        } else {
+            maxFactor = std::max(maxFactor,(worldAABBMin.x - from.x) /
+                                           lookDirection.x); //Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
+        }
+
+        if (lookDirection.y > 0) {
+            std::max(maxFactor, (worldAABBMax.y - from.y) / lookDirection.y);
+        } else {
+            std::max(maxFactor, (worldAABBMin.y - from.y) /
+                                lookDirection.y);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
+        }
+
+        if (lookDirection.z > 0) {
+            std::max(maxFactor, (worldAABBMax.z - from.z) / lookDirection.z);
+        } else {
+            std::max(maxFactor, (worldAABBMin.z - from.z) /
+                                lookDirection.z);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
+        }
+        lookDirection = lookDirection * maxFactor;
+        glm::vec3 to = lookDirection + from;
+        btCollisionWorld::ClosestRayResultCallback RayCallback(GLMConverter::GLMToBlt(from),
+                                                               GLMConverter::GLMToBlt(to));
+        RayCallback.m_collisionFilterGroup = collisionType;
+        RayCallback.m_collisionFilterMask = filterMask;
+
+        dynamicsWorld->rayTest(
+                GLMConverter::GLMToBlt(from),
+                GLMConverter::GLMToBlt(to),
+                RayCallback
+        );
+
+        //debugDrawer->flushDraws();
+        if (RayCallback.hasHit()) {
+            if(collisionPosition != nullptr) {
+                *collisionPosition = GLMConverter::BltToGLM(RayCallback.m_hitPointWorld);
+            }
+            if(collisionNormal != nullptr) {
+                *collisionNormal = GLMConverter::BltToGLM(RayCallback.m_hitNormalWorld);
+            }
+            return static_cast<GameObject *>(RayCallback.m_collisionObject->getUserPointer());
+        } else {
+            return nullptr;
+        }
+    }
+}
