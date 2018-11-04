@@ -163,17 +163,18 @@ void Transformation::addImGuizmoElements(const ImGuizmoState& editorState, const
 
     }
     //now we should have object matrix updated, update the object
-    ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(objectMatrix), glm::value_ptr(translate), glm::value_ptr(eulerRotation), glm::value_ptr(scale));
-    glm::quat orientationTemp = glm::quat(eulerRotation / 57.2957795f);
+    glm::vec3 tempTranslate, tempScale;
+    ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(objectMatrix), glm::value_ptr(tempTranslate), glm::value_ptr(eulerRotation), glm::value_ptr(tempScale));
+    glm::quat tempOrientation = glm::quat(eulerRotation / 57.2957795f);
     switch (mCurrentGizmoOperation) {
         case ImGuizmo::TRANSLATE:
-            setTranslate(translate);
+            setTranslate(tempTranslate);
             break;
         case ImGuizmo::ROTATE:
-            setOrientation(orientationTemp);
+            setOrientation(tempOrientation);
             break;
         case ImGuizmo::SCALE:
-            setScale(scale);
+            setScale(tempScale);
             break;
         case ImGuizmo::BOUNDS://not used
             break;
