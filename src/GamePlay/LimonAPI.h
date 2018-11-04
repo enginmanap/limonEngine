@@ -55,16 +55,17 @@ public:
                         const std::string &name, const std::string &text,
                                const glm::vec3 &color,
                                const glm::vec2 &position, float rotation);
+    bool updateGuiText(uint32_t guiTextID, const std::string &newText);
+    uint32_t removeGuiElement(uint32_t guiElementID);
 
     uint32_t addObject(const std::string &modelFilePath, float modelWeight, bool physical, const glm::vec3 &position,
                        const glm::vec3 &scale, const glm::quat &orientation);
-
-    bool updateGuiText(uint32_t guiTextID, const std::string &newText);
-    uint32_t removeGuiElement(uint32_t guiElementID);
     bool removeObject(uint32_t objectID);
+    bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID);//second one is
     bool removeTriggerObject(uint32_t TriggerObjectID);
     bool disconnectObjectFromPhysics(uint32_t modelID);
     bool reconnectObjectToPhysics(uint32_t modelID);
+
 
     bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath);
     bool detachSoundFromObject(uint32_t objectWorldID);
@@ -121,6 +122,7 @@ private:
     std::function<uint32_t (uint32_t)> worldRemoveGuiText;
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t , uint32_t )> worldGetResultOfTrigger;
     std::function<bool (uint32_t)> worldRemoveObject;
+    std::function<bool (uint32_t, uint32_t)> worldAttachObjectToObject;
     std::function<bool (uint32_t)> worldRemoveTriggerObject;
     std::function<bool (uint32_t)> worldDisconnectObjectFromPhysics;
     std::function<bool (uint32_t)> worldReconnectObjectToPhysics;
