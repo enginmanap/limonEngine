@@ -81,6 +81,16 @@ public:
      */
     std::vector<ParameterRequest> rayCastToCursor();
 
+    /**
+     * If object not found, returns empty vector
+     *
+     * Returns these values:
+     * 1,2,3) translate
+     * 4,5,6) scale
+     * 7,8,9,10) orientation
+     */
+    std::vector<LimonAPI::ParameterRequest> getObjectTransformation(uint32_t objectID);
+
     bool loadAndSwitchWorld(const std::string& worldFileName);
     bool returnToWorld(const std::string& worldFileName);//if world is not loaded, loads first
     bool LoadAndRemove(const std::string& worldFileName); // removes current world after loading the new one
@@ -134,6 +144,7 @@ private:
     std::function<uint32_t (uint32_t)> worldRemoveGuiText;
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t , uint32_t )> worldGetResultOfTrigger;
     std::function<bool (uint32_t)> worldRemoveObject;
+    std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t)> worldGetObjectTransformation;
     std::function<bool (uint32_t, uint32_t)> worldAttachObjectToObject;
     std::function<bool (uint32_t)> worldRemoveTriggerObject;
     std::function<bool (uint32_t)> worldDisconnectObjectFromPhysics;
@@ -144,6 +155,7 @@ private:
     std::function<uint32_t (const std::string&, const glm::vec3&, bool)> worldPlaySound;
 
     std::function<std::vector<ParameterRequest>()> worldRayCastToCursor;
+
 
     /*** Non World API calls *******************************************************/
     std::function<bool (const std::string&)> limonLoadWorld;

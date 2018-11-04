@@ -1983,69 +1983,109 @@ uint32_t World::addModelApi(const std::string &modelFilePath, float modelWeight,
     return objectID;
    }
 
-   std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
-       /**
-        * * If nothing is hit, returns empty vector
-        * returns these values:
-        * 1) objectID for what is under the cursor
-        * 2,3,4) hit coordinates
-        * 5,6,7) hit normal
-        *
-        */
-       std::vector<LimonAPI::ParameterRequest>result;
-       glm::vec3 position, normal;
-       GameObject* gameObject = this->getPointedObject(COLLIDE_MODELS, COLLIDE_MODELS | COLLIDE_EVERYTHING, &position, &normal);
+std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
+   /**
+    * * If nothing is hit, returns empty vector
+    * returns these values:
+    * 1) objectID for what is under the cursor
+    * 2,3,4) hit coordinates
+    * 5,6,7) hit normal
+    *
+    */
+   std::vector<LimonAPI::ParameterRequest>result;
+   glm::vec3 position, normal;
+   GameObject* gameObject = this->getPointedObject(COLLIDE_MODELS, COLLIDE_MODELS | COLLIDE_EVERYTHING, &position, &normal);
 
-       if(gameObject == nullptr) {
-           return result;
-       }
-       LimonAPI::ParameterRequest objectIDParam;
-       objectIDParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-       objectIDParam.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
-       objectIDParam.value.longValue = gameObject->getWorldObjectID();
-       //objectIDParam.description; intentionally not set
-       result.push_back(objectIDParam);
-
-       LimonAPI::ParameterRequest positionXParam;
-       positionXParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-       positionXParam.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
-       positionXParam.value.doubleValue = position.x;
-       //positionXParam.description; intentionally not set
-       result.push_back(positionXParam);
-       LimonAPI::ParameterRequest positionYParam;
-       positionYParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-       positionYParam.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
-       positionYParam.value.doubleValue = position.y;
-       //positionYParam.description; intentionally not set
-       result.push_back(positionYParam);
-       LimonAPI::ParameterRequest positionZParam;
-       positionZParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-       positionZParam.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
-       positionZParam.value.doubleValue = position.z;
-       //positionZParam.description; intentionally not set
-       result.push_back(positionZParam);
-
-       LimonAPI::ParameterRequest normalXParam;
-       normalXParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-       normalXParam.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
-       normalXParam.value.doubleValue = normal.x;
-       //objectIDParam.description; intentionally not set
-       result.push_back(normalXParam);
-       LimonAPI::ParameterRequest normalYParam;
-       normalYParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-       normalYParam.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
-       normalYParam.value.doubleValue = normal.y;
-       //normalYParam.description; intentionally not set
-       result.push_back(normalYParam);
-       LimonAPI::ParameterRequest normalZParam;
-       normalZParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-       normalZParam.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
-       normalZParam.value.doubleValue = normal.z;
-       //normalZParam.description; intentionally not set
-       result.push_back(normalZParam);
-
+   if(gameObject == nullptr) {
        return result;
    }
+   LimonAPI::ParameterRequest objectIDParam;
+   objectIDParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+   objectIDParam.value.longValue = gameObject->getWorldObjectID();
+   result.push_back(objectIDParam);
+
+   LimonAPI::ParameterRequest positionXParam;
+   positionXParam.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+   positionXParam.value.doubleValue = position.x;
+   result.push_back(positionXParam);
+   LimonAPI::ParameterRequest positionYParam;
+   positionYParam.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+   positionYParam.value.doubleValue = position.y;
+   result.push_back(positionYParam);
+   LimonAPI::ParameterRequest positionZParam;
+   positionZParam.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+   positionZParam.value.doubleValue = position.z;
+   result.push_back(positionZParam);
+
+   LimonAPI::ParameterRequest normalXParam;
+   normalXParam.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+   normalXParam.value.doubleValue = normal.x;
+   result.push_back(normalXParam);
+   LimonAPI::ParameterRequest normalYParam;
+   normalYParam.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+   normalYParam.value.doubleValue = normal.y;
+   result.push_back(normalYParam);
+   LimonAPI::ParameterRequest normalZParam;
+   normalZParam.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+   normalZParam.value.doubleValue = normal.z;
+
+   result.push_back(normalZParam);
+
+   return result;
+}
+
+std::vector<LimonAPI::ParameterRequest> World::getObjectTransformationAPI(uint32_t objectID) const {
+    std::vector<LimonAPI::ParameterRequest> result;
+    if(objects.find(objectID) == objects.end()) {
+        return result;
+    }
+    const Transformation* transformation = objects.at(objectID)->getTransformation();
+
+    LimonAPI::ParameterRequest translateX;
+    translateX.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+    translateX.value.doubleValue = transformation->getTranslate().x;
+    result.push_back(translateX);
+    LimonAPI::ParameterRequest translateY;
+    translateY.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+    translateY.value.doubleValue = transformation->getTranslate().y;
+    result.push_back(translateY);
+    LimonAPI::ParameterRequest translateZ;
+    translateZ.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+    translateZ.value.doubleValue = transformation->getTranslate().z;
+    result.push_back(translateZ);
+
+    LimonAPI::ParameterRequest scaleX;
+    scaleX.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+    scaleX.value.doubleValue = transformation->getScale().x;
+    result.push_back(scaleX);
+    LimonAPI::ParameterRequest scaleY;
+    scaleY.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+    scaleY.value.doubleValue = transformation->getScale().y;
+    result.push_back(scaleY);
+    LimonAPI::ParameterRequest scaleZ;
+    scaleZ.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+    scaleZ.value.doubleValue = transformation->getScale().z;
+    result.push_back(scaleZ);
+
+    LimonAPI::ParameterRequest orientationX;
+    orientationX.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+    orientationX.value.doubleValue = transformation->getOrientation().x;
+    result.push_back(orientationX);
+    LimonAPI::ParameterRequest orientationY;
+    orientationY.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+    orientationY.value.doubleValue = transformation->getOrientation().y;
+    result.push_back(orientationY);
+    LimonAPI::ParameterRequest orientationZ;
+    orientationZ.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+    orientationZ.value.doubleValue = transformation->getOrientation().z;
+    result.push_back(orientationZ);
+    LimonAPI::ParameterRequest orientationW;
+    orientationW.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+    orientationW.value.doubleValue = transformation->getOrientation().w;
+    result.push_back(orientationW);
+
+    return result;
+}
 
 GameObject * World::getPointedObject(int collisionType, int filterMask,
                                      glm::vec3 *collisionPosition, glm::vec3 *collisionNormal) const {

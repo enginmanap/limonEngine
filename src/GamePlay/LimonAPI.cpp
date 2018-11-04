@@ -313,3 +313,7 @@ deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index) {
 std::vector<LimonAPI::ParameterRequest> LimonAPI::rayCastToCursor() {
     return worldRayCastToCursor();
 }
+
+std::vector<LimonAPI::ParameterRequest> LimonAPI::getObjectTransformation(uint32_t objectID) {
+    return worldGetObjectTransformation(objectID);
+}
