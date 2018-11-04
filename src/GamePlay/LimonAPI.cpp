@@ -25,6 +25,9 @@ uint32_t LimonAPI::addObject(const std::string &modelFilePath, float modelWeight
     return worldAddModel(modelFilePath, modelWeight, physical, position, scale, orientation);
 }
 
+bool LimonAPI::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID) {
+    return worldAttachObjectToObject(objectID, objectToAttachToID);
+}
 
 bool LimonAPI::updateGuiText(uint32_t guiTextID, const std::string &newText) {
     return worldUpdateGuiText(guiTextID, newText);

@@ -371,6 +371,39 @@ public:
 
     uint32_t addModelApi(const std::string &modelFilePath, float modelWeight, bool physical, const glm::vec3 &position,
                          const glm::vec3 &scale, const glm::quat &orientation);
+    bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID) {
+        if(objectID == objectToAttachToID) {
+            //can't attach to self
+            return false;
+        }
+
+        Transformation* transform1,* transform2;
+        //there is another possibility, that is the player attachment
+        if(objects.find(objectID) == objects.end() ) {
+            if(objectID != startingPlayer.attachedModel->getWorldObjectID()) {
+                return false;
+            } else {
+                transform1 = startingPlayer.attachedModel->getTransformation();
+            }
+        } else {
+            transform1 = objects[objectID]->getTransformation();
+        }
+
+        //there is another possibility, that is the player attachment
+        if(objects.find(objectToAttachToID) == objects.end() ) {
+            if(objectToAttachToID != startingPlayer.attachedModel->getWorldObjectID()) {
+                return false;
+            } else {
+                transform2 = startingPlayer.attachedModel->getTransformation();
+            }
+        } else {
+            transform2 = objects[objectToAttachToID]->getTransformation();
+        }
+
+        transform1->setParentTransform(transform2);
+        return true;
+    }
+
 
     bool updateGuiText(uint32_t guiTextID, const std::string &newText);
 
