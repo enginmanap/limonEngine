@@ -3,9 +3,10 @@
 //
 
 #include "TextureAsset.h"
+#include "../GLHelper.h"
 
-TextureAsset::TextureAsset(AssetManager* assetManager, const std::vector<std::string> &files) :
-        Asset(assetManager, files) {
+TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files) :
+        Asset(assetManager, assetID, files) {
     if (files.empty()) {
         std::cerr << "Texture load failed because file name vector is empty." << std::endl;
         exit(-1);
@@ -28,13 +29,33 @@ TextureAsset::TextureAsset(AssetManager* assetManager, const std::vector<std::st
         std::cout << "TextureAsset " << name << " loaded from disk successfully." << std::endl;
     }
     if (surface->format->BytesPerPixel == 4) {
+        if(surface->format->format != SDL_PIXELFORMAT_ABGR8888) {
+            //if the internal format is not rgba32, convert to it.
+            SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(surface,
+                                                                SDL_PIXELFORMAT_ABGR8888,
+                                                                0);
+            delete surface;
+            surface = surfaceTemp;
+        }
         textureBufferID = assetManager->getGlHelper()->loadTexture(surface->h, surface->w, GL_RGBA, surface->pixels);
     } else if (surface->format->BytesPerPixel == 3) {
+        if(surface->format->format != SDL_PIXELFORMAT_RGB24) {
+            //if the internal format is not rgb24, convert to it.
+            SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(surface,
+                                                                SDL_PIXELFORMAT_RGB24,
+                                                                0);
+            delete surface;
+            surface = surfaceTemp;
+        }
         textureBufferID = assetManager->getGlHelper()->loadTexture(surface->h, surface->w, GL_RGB, surface->pixels);
     } else {
         std::cerr << "Format has undefined number of pixels:" << surface->format->BytesPerPixel << std::endl;
         exit(1);
     }
+
+    this->height = surface->h;
+    this->width = surface->w;
+
     delete surface;
 }
 

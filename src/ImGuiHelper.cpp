@@ -19,14 +19,6 @@
 #include <SDL.h>
 #include <SDL_syswm.h>
 
-// Data
-static double       g_Time = 0.0f;
-static bool         g_MousePressed[3] = { false, false, false };
-static float        g_MouseWheel = 0.0f;
-static GLuint       g_FontTexture = 0;
-static int          g_VertHandle = 0, g_FragHandle = 0;
-static int          g_AttribLocationPosition = 0, g_AttribLocationUV = 0, g_AttribLocationColor = 0;
-static unsigned int g_VboHandle = 0, g_VaoHandle = 0, g_ElementsHandle = 0;
 
 // This is the main rendering function that you have to implement and provide to ImGui (via setting up 'RenderDrawListsFn' in the ImGuiIO structure)
 // Note that this implementation is little overcomplicated because we are saving/setting up/restoring every OpenGL state explicitly, in order to be able to run within any OpenGL engine that doesn't do so. 
@@ -249,51 +241,9 @@ bool ImGuiHelper::CreateDeviceObjects()
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
 
-    program = new GLSLProgram(glHelper, "./Data/Shaders/ImGui/vertex.glsl",
-                              "./Data/Shaders/ImGui/fragment.glsl", true);
+    program = new GLSLProgram(glHelper, "./Engine/Shaders/ImGui/vertex.glsl",
+                              "./Engine/Shaders/ImGui/fragment.glsl", true);
 
-/*
-    const GLchar *vertex_shader =
-        "#version 330\n"
-        "uniform mat4 ProjMtx;\n"
-        "in vec2 Position;\n"
-        "in vec2 UV;\n"
-        "in vec4 Color;\n"
-        "out vec2 Frag_UV;\n"
-        "out vec4 Frag_Color;\n"
-        "void main()\n"
-        "{\n"
-        "	Frag_UV = UV;\n"
-        "	Frag_Color = Color;\n"
-        "	gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
-        "}\n";
-
-    const GLchar* fragment_shader =
-        "#version 330\n"
-        "uniform sampler2D Texture;\n"
-        "in vec2 Frag_UV;\n"
-        "in vec4 Frag_Color;\n"
-        "out vec4 Out_Color;\n"
-        "void main()\n"
-        "{\n"
-        "	Out_Color = Frag_Color * texture( Texture, Frag_UV.st);\n"
-        "}\n";
-
-    g_ShaderHandle = glCreateProgram();
-    g_VertHandle = glCreateShader(GL_VERTEX_SHADER);
-    g_FragHandle = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(g_VertHandle, 1, &vertex_shader, 0);
-    glShaderSource(g_FragHandle, 1, &fragment_shader, 0);
-    glCompileShader(g_VertHandle);
-    glCompileShader(g_FragHandle);
-    glAttachShader(g_ShaderHandle, g_VertHandle);
-    glAttachShader(g_ShaderHandle, g_FragHandle);
-    glLinkProgram(g_ShaderHandle);
-*/
-
-//    g_AttribLocationTex = glGetUniformLocation(g_ShaderHandle, "Texture");
-//    g_AttribLocationProjMtx = glGetUniformLocation(g_ShaderHandle, "ProjMtx");
-//
     g_AttribLocationPosition = glGetAttribLocation(program->getID(), "Position");
     g_AttribLocationUV = glGetAttribLocation(program->getID(), "UV");
     g_AttribLocationColor = glGetAttribLocation(program->getID(), "Color");
@@ -352,6 +302,7 @@ void    ImGuiHelper::InvalidateDeviceObjects()
     //if (g_ShaderHandle) glDeleteProgram(g_ShaderHandle);
     //g_ShaderHandle = 0;
     delete program;
+    program = nullptr;
 
     if (g_FontTexture)
     {
@@ -359,10 +310,13 @@ void    ImGuiHelper::InvalidateDeviceObjects()
         ImGui::GetIO().Fonts->TexID = 0;
         g_FontTexture = 0;
     }
+
+
 }
 
 ImGuiHelper::ImGuiHelper(GLHelper* glHelper, Options* options) : options(options) {
     this->glHelper = glHelper;
+    context = ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.KeyMap[ImGuiKey_Tab] = SDLK_TAB;                     // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array.
     io.KeyMap[ImGuiKey_LeftArrow] = SDL_SCANCODE_LEFT;
@@ -400,12 +354,13 @@ ImGuiHelper::ImGuiHelper(GLHelper* glHelper, Options* options) : options(options
 ImGuiHelper::~ImGuiHelper()
 {
     InvalidateDeviceObjects();
-    ImGui::Shutdown();
+    ImGui::DestroyContext(context);
 }
 
 void ImGuiHelper::NewFrame() {
-    if (!g_FontTexture)
+    if (!g_FontTexture) {
         CreateDeviceObjects();
+    }
 
     ImGuiIO& io = ImGui::GetIO();
 

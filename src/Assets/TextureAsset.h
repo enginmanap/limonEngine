@@ -9,25 +9,34 @@
 #include <iostream>
 #include <SDL2/SDL_image.h>
 #include "Asset.h"
-#include "../GLHelper.h"
 #include "AssetManager.h"
 
 class TextureAsset : public Asset {
 protected:
     std::string name;
-    GLuint textureBufferID;
+    uint32_t textureBufferID;
+    uint32_t height = 0;
+    uint32_t width;
 
 public:
-    TextureAsset(AssetManager* assetManager, const std::vector<std::string> &files);
+    TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files);
 
     ~TextureAsset();
 
-    GLuint getID() const {
+    uint32_t getID() const {
         return textureBufferID;
     }
 
     std::string getName() const {
         return name;
+    }
+
+    uint32_t getHeight() const {
+        return height;
+    }
+
+    uint32_t getWidth() const {
+        return width;
     }
 };
 

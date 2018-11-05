@@ -1,3 +1,4 @@
+#include <cmath>
 #include "ImSequencer.h"
 #include "../ImGui/imgui.h"
 #include "../ImGui/imgui_internal.h"
@@ -58,7 +59,7 @@ namespace ImSequencer
 			ImGui::InvisibleButton("canvas", ImVec2(canvas_size.x - canvas_pos.x, (float)ItemHeight));
 			draw_list->AddRectFilled(canvas_pos, ImVec2(canvas_size.x + canvas_pos.x, canvas_pos.y + ItemHeight), 0xFF3D3837, 0);
 			char tmps[512];
-			sprintf_s(tmps, sizeof(tmps), "%d Frames / %d entries", frameCount, sequenceCount);
+			sprintf(tmps, "%d Frames / %d entries", frameCount, sequenceCount);
 			draw_list->AddText(ImVec2(canvas_pos.x + 26, canvas_pos.y + 2), 0xFFFFFFFF, tmps);
 		}
 		else
@@ -94,8 +95,14 @@ namespace ImSequencer
 			draw_list->AddRectFilled(canvas_pos, ImVec2(canvas_size.x + canvas_pos.x, canvas_pos.y + ItemHeight), 0xFF3D3837, 0);
 			if (sequenceOptions&SEQUENCER_ADD)
 			{
-				if (SequencerAddDelButton(draw_list, ImVec2(canvas_pos.x + legendWidth - ItemHeight, canvas_pos.y + 2), true) && io.MouseReleased[0])
-					ImGui::OpenPopup("addEntry");
+				if (SequencerAddDelButton(draw_list, ImVec2(canvas_pos.x + legendWidth - ItemHeight, canvas_pos.y + 2), true) && io.MouseReleased[0]) {
+					//if only one type, don't bother with type selection pop up and add directly
+					if(sequence->GetItemTypeCount() == 1) {
+						sequence->Add(0);
+					} else {
+						ImGui::OpenPopup("addEntry");
+					}
+				}
 
 				if (ImGui::BeginPopup("addEntry"))
 				{
@@ -104,6 +111,7 @@ namespace ImSequencer
 						{
 							sequence->Add(i);
 							*selectedEntry = sequence->GetItemCount() - 1;
+							ret = true;
 						}
 
 					ImGui::EndPopup();
@@ -166,7 +174,7 @@ namespace ImSequencer
 				if (baseIndex)
 				{
 					char tmps[512];
-					sprintf_s(tmps, sizeof(tmps), "%d", (i == frameCount) ? i : (i / 10));
+					sprintf(tmps, "%d", (i == frameCount) ? i : (i / 10));
 					draw_list->AddText(ImVec2((float)px + 3.f, canvas_pos.y), 0xFFBBBBBB, tmps);
 				}
 			}
@@ -234,7 +242,11 @@ namespace ImSequencer
 			{
 				ImGui::CaptureMouseFromApp();
 				int diffFrame = (cx - movingPos) / framePixelWidth;
+#ifdef __APPLE__
 				if (abs(diffFrame) > 0)
+#else
+                if (std::abs(diffFrame) > 0)
+#endif
 				{
 					int *start, *end;
 					sequence->Get(movingEntry, &start, &end, NULL, NULL);
@@ -341,8 +353,10 @@ namespace ImSequencer
 		if (delEntry != -1)
 		{
 			sequence->Del(delEntry);
-			if (selectedEntry && (*selectedEntry == delEntry || *selectedEntry >= sequence->GetItemCount()))
+			if (selectedEntry && (*selectedEntry == delEntry || *selectedEntry >= sequence->GetItemCount())) {
 				*selectedEntry = -1;
+				ret = true;
+			}
 		}
 
 		if (dupEntry != -1)

@@ -46,6 +46,7 @@ public:
 
     ~SkyBox() {
         assetManager->freeAsset(cubeMap->getNames());
+        delete renderProgram;
     }
 
     /************Game Object methods **************/

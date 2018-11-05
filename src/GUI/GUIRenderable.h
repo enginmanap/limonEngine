@@ -9,24 +9,28 @@
 #include "../Renderable.h"
 #include "../BulletDebugDrawer.h"
 
+class GUILayer;
+
 class GUIRenderable : public Renderable {
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec2> textureCoordinates;
+
 protected:
     //TODO maybe this should not be protected, but private
     std::vector<glm::mediump_uvec3> faces;
     GLuint textureID;
+
 public:
     explicit GUIRenderable(GLHelper *glHelper);
 
+
+    virtual ~GUIRenderable() {}
     /**
      * the position on x,y coordinates, and clockwise rotation as radian
      */
     void set2dWorldTransform(const glm::vec2 &position, const float rotation) {
-        translate = glm::vec3(position, 0);
-        orientation = glm::quat(cos(rotation / 2), 0, 0, -1 * sin(rotation / 2));
-        isRotated = this->orientation.w < cos(0.1f / 2); //if the total rotation is less than 0.1 rad
-        isDirty = true;
+        transformation.setTranslate(glm::vec3(position, 0));
+        transformation.setOrientation(glm::quat(cos(rotation / 2), 0, 0, -1 * sin(rotation / 2)));
     }
 
     /**
@@ -34,8 +38,7 @@ public:
      * @param translate
      */
     void addTranslate(const glm::vec2 &translate) {
-        this->translate = this->translate + glm::vec3(translate, 0);
-        isDirty = true;
+        transformation.addTranslate(glm::vec3(translate, 0));
     }
 
     /**
@@ -43,26 +46,35 @@ public:
      * @param translate
      */
     void setTranslate(const glm::vec2 &translate) {
-        this->translate = glm::vec3(translate, 0);
-        isDirty = true;
+        transformation.setTranslate(glm::vec3(translate, 0));
     }
 
     glm::vec2 getTranslate() const {
-        return glm::vec2(this->translate.x, this->translate.y);
+        return glm::vec2(transformation.getTranslate().x, transformation.getTranslate().y);
     }
 
     void setScale(float height, float width) {
-        scale.x *= width;
-        scale.y *= height;
+        transformation.setScale(glm::vec3(width, height, 0.0f));
+    }
+
+    void setScale(glm::vec2 scale) {
+        transformation.setScale(glm::vec3(scale.x, scale.y, 0.0f));
+    }
+
+    glm::vec2 getScale() const {
+        return glm::vec2(transformation.getScale().x, transformation.getScale().y);
     }
 
     virtual void renderDebug(BulletDebugDrawer *debugDrawer);
 
     virtual void setupForTime(long time __attribute__((unused))) {};//Most of the GUI elements shouldn't care about the time, so we can put an empty implementation
 
-    float getWidth() { return scale.x; }
+    float getWidth() { return transformation.getScale().x; }
 
-    float getHeight() { return scale.y; }
+    float getHeight() { return transformation.getScale().y; }
+
+    virtual void getAABB(glm::vec2 &aabbMin, glm::vec2 &aabbMax) const = 0;
+
 };
 
 

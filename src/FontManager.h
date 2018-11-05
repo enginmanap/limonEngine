@@ -10,8 +10,8 @@
 #include <map>
 
 #include <freetype2/ft2build.h>
+#include <set>
 #include FT_FREETYPE_H
-#include "glm/detail/type_vec.hpp"
 #include "GLHelper.h"
 
 
@@ -83,6 +83,14 @@ public:
         return maxCharWidth;
     }
 
+    const std::string &getPath() const {
+        return path;
+    }
+
+    unsigned int getSize() const {
+        return size;
+    }
+
     ~Face() {
         for (std::map<const char, Glyph *>::iterator iter = glyphs.begin(); iter != glyphs.end(); ++iter) {
             delete iter->second;
@@ -94,14 +102,22 @@ public:
 
 class FontManager {
     GLHelper *glHelper;
-    std::map<std::string, Face *> fonts;
+    std::map<std::pair<std::string, uint32_t>, Face *> fonts;
     static const std::string DEFAULT_FONT_PATH;
     static const int DEFAULT_FONT_SIZE = 32;
     FT_Library ft;
 public:
     explicit FontManager(GLHelper *glHelper);
 
-    Face *getFont(const std::string fontPath, const int size);
+    Face *getFont(const std::string &fontPath, const uint32_t size);
+
+    std::set<std::pair<std::string, uint32_t>> getLoadedFonts() {
+        std::set<std::pair<std::string, uint32_t>> result;
+        for(auto it = fonts.begin(); it != fonts.end(); ++it) {
+            result.insert(it->first);
+        }
+        return result;
+    }
 
     ~FontManager();
 };

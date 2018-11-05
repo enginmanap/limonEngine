@@ -5,16 +5,20 @@
 #include "Model.h"
 #include "../AI/Actor.h"
 
-Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile) :
-        PhysicalRenderable(assetManager->getGlHelper(), mass), objectID(objectID), assetManager(assetManager),
+Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile,
+             bool disconnected = false) :
+        PhysicalRenderable(assetManager->getGlHelper(), mass, disconnected), objectID(objectID), assetManager(assetManager),
         name(modelFile) {
+
+    transformation.setUpdateCallback(std::bind(&Model::transformChangeCallback, this));
+
     //this is required because the shader has fixed size arrays
     boneTransforms.resize(128);
     modelAsset = assetManager->loadAsset<ModelAsset>({modelFile});
     //set up the rigid body
     this->triangleCount = 0;
     this->vao = 0;
-    this->ebo = 0;//these are not per Model, but per Mesh
+    this->ebo = 0;//these are not per Model, but per Mesh, and comes from ModelAsset->MeshAsset, shared between instances
     this->centerOffset = modelAsset->getCenterOffset();
     this->centerOffsetMatrix = glm::translate(glm::mat4(1.0f), centerOffset);
 
@@ -29,21 +33,31 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
 
     MeshMeta *meshMeta;
     std::vector<MeshAsset *> assetMeshes = modelAsset->getMeshes();
+    static GLSLProgram* animatedProgram = nullptr;
+    static GLSLProgram* nonAnimatedProgram = nullptr;
 
     for (std::vector<MeshAsset *>::iterator iter = assetMeshes.begin(); iter != assetMeshes.end(); ++iter) {
         meshMeta = new MeshMeta();
         meshMeta->mesh = (*iter);
 
         if (this->animated) {//this was hasBones, but it turns out, there are models with bones, but no animation.
+            if(animatedProgram == nullptr) {
+                animatedProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertexAnimated.glsl",
+                                                 "./Engine/Shaders/Model/fragment.glsl", true);
+                this->setSamplersAndUBOs(animatedProgram);
+            }
             //set up the program to render object
-            meshMeta->program = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertexAnimated.glsl",
-                                                "./Data/Shaders/Model/fragment.glsl", true);
+            meshMeta->program = animatedProgram;
             //Now we should find out about bone tree
 
         } else {
             //set up the program to render object without bones
-            meshMeta->program = new GLSLProgram(glHelper, "./Data/Shaders/Model/vertex.glsl",
-                                                "./Data/Shaders/Model/fragment.glsl", true);
+            if(nonAnimatedProgram == nullptr) {
+                nonAnimatedProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertex.glsl",
+                                                     "./Engine/Shaders/Model/fragment.glsl", true);
+                this->setSamplersAndUBOs(nonAnimatedProgram);
+            }
+            meshMeta->program = nonAnimatedProgram;
         }
         meshMetaData.push_back(meshMeta);
     }
@@ -109,14 +123,33 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
         //for animated bodies, setup the first frame
         this->setupForTime(0);
     }
-
-    isDirty = true;
 }
 
 void Model::setupForTime(long time) {
-    if(animated) {
-        animationTime = animationTime + (time - lastSetupTime) * animationTimeScale;
-        modelAsset->getTransform(animationTime, animationName, boneTransforms);
+    if(animated && !animationLastFramePlayed) {
+        //check if we need to blend
+        if(animationBlend) {
+            //we need 2 animation times, and a factor
+            animationTime = animationTime + (time - lastSetupTime) * animationTimeScale;
+
+            animationTimeOld = animationTimeOld + (time - lastSetupTime) * animationTimeScale;
+
+            float blendFactor = std::min(1.0f, (float)animationTime / (float)animationBlendTime);//don't blend after 1.0
+
+            if(blendFactor == 1) {
+                animationBlend = false; // no need to blend anymore.
+            }
+            animationLastFramePlayed = modelAsset->getTransformBlended(animationNameOld, animationTimeOld, animationLoopedOld,
+                                                                       animationName, animationTime, animationLooped,
+                                                                       blendFactor, boneTransforms);
+            //std::cout << "blend " << animationNameOld << " with " << animationName << " for " << blendFactor << " factor" << std::endl;
+        } else {
+            animationTime = animationTime + (time - lastSetupTime) * animationTimeScale;
+            animationLastFramePlayed = modelAsset->getTransform(animationTime, animationLooped, animationName, boneTransforms);
+        }
+
+
+
         btVector3 scale = this->getRigidBody()->getCollisionShape()->getLocalScaling();
         this->getRigidBody()->getCollisionShape()->setLocalScaling(btVector3(1, 1, 1));
         for (unsigned int i = 0; i < boneTransforms.size(); ++i) {
@@ -133,108 +166,64 @@ void Model::setupForTime(long time) {
     lastSetupTime = time;
 }
 
-void Model::activateMaterial(const Material *material, GLSLProgram *program) {
-    if(material == nullptr ) {
-        return;
-    }
-    if (!program->setUniform("material.ambient", material->getAmbientColor() + glm::vec3(0.15f,0.15f,0.15f))) {
-        std::cerr << "Uniform \"material.ambient\" could not be set for program " << program->getProgramName()  << std::endl;
-    }
-
-    if (!program->setUniform("material.diffuse", material->getDiffuseColor())) {
-        std::cerr << "Uniform \"material.diffuse\" could not be set for program "  << program->getProgramName() << std::endl;
-    }
-
-    if (!program->setUniform("material.shininess", material->getSpecularExponent())) {
-        std::cerr << "Uniform \"material.shininess\" could not be set for program "  << program->getProgramName() << std::endl;
-    }
-
+void Model::activateTexturesOnly(const Material *material) {
     if(material->hasDiffuseMap()) {
         glHelper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
-        if (!program->setUniform("diffuseSampler",
-                                 diffuseMapAttachPoint)) { //even if diffuse map cannot attach, we still render
-            std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
-        }
-    } else {
-        //FIXME why is this here?
     }
-
     if(material->hasAmbientMap()) {
         glHelper->attachTexture(material->getAmbientTexture()->getID(), ambientMapAttachPoint);
-        if (!program->setUniform("ambientSampler",
-                                 ambientMapAttachPoint)) { //even if ambient map cannot attach, we still render
-            std::cerr << "Uniform \"ambientSampler\" could not be set" << std::endl;
-        }
     }
 
     if(material->hasSpecularMap()) {
         glHelper->attachTexture(material->getSpecularTexture()->getID(), specularMapAttachPoint);
-        if (!program->setUniform("specularSampler",
-                                 specularMapAttachPoint)) { //even if specular map cannot attach, we still render
-            std::cerr << "Uniform \"specularSampler\" could not be set" << std::endl;
-        }
     }
 
     if(material->hasOpacityMap()) {
         glHelper->attachTexture(material->getOpacityTexture()->getID(), opacityMapAttachPoint);
-        if (!program->setUniform("opacitySampler",
-                                 opacityMapAttachPoint)) { //even if opacity map cannot attach, we still render
-            std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
-        }
     }
+}
 
-    int maps = 0;
-    if(material->hasAmbientMap()) {
-        maps +=8;
+void Model::setSamplersAndUBOs(GLSLProgram *program) {
+    if (!program->setUniform("diffuseSampler", diffuseMapAttachPoint)) {
+        std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
     }
-    if(material->hasDiffuseMap()) {
-        maps +=4;
+    if (!program->setUniform("ambientSampler", ambientMapAttachPoint)) {
+        std::cerr << "Uniform \"ambientSampler\" could not be set" << std::endl;
     }
-    if(material->hasSpecularMap()) {
-        maps +=2;
+    if (!program->setUniform("specularSampler", specularMapAttachPoint)) {
+        std::cerr << "Uniform \"specularSampler\" could not be set" << std::endl;
     }
-    if(material->hasOpacityMap()) {
-        maps +=1;
+    if (!program->setUniform("opacitySampler", opacityMapAttachPoint)) {
+        std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
     }
-
-    if (!program->setUniform("material.isMap", maps)) {
-        std::cerr << "Uniform \"material.isMap\" could not be set for program "  << program->getProgramName() << std::endl;
-    }
-
     //TODO we should support multi texture on one pass
+
+    if (!program->setUniform("shadowSamplerDirectional", glHelper->getMaxTextureImageUnits() - 1)) {
+        std::cerr << "Uniform \"shadowSamplerDirectional\" could not be set" << std::endl;
+    }
+    if (!program->setUniform("shadowSamplerPoint", glHelper->getMaxTextureImageUnits() - 2)) {
+        std::cerr << "Uniform \"shadowSamplerPoint\" could not be set" << std::endl;
+    }
+
+    glHelper->attachModelUBO(program->getID());
+    glHelper->attachModelIndicesUBO(program->getID());
 }
 
 bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
     GLSLProgram* program  = meshMetaData->program;
-    if (program->setUniform("worldTransformMatrix", getWorldTransform())) {
-            if (meshMetaData->mesh != nullptr && meshMetaData->mesh->getMaterial() != nullptr) {
-                this->activateMaterial(meshMetaData->mesh->getMaterial(), program);
-            } else {
-                std::cerr << "No material setup, passing rendering. " << std::endl;
-            }
-            if (!program->setUniform("shadowSamplerDirectional",
-                                           glHelper->getMaxTextureImageUnits() -
-                                           1)) { //even if shadow map cannot attach, we still render
-                std::cerr << "Uniform \"shadowSamplerDirectional\" could not be set" << std::endl;
-            }
-            if (!program->setUniform("shadowSamplerPoint",
-                                     glHelper->getMaxTextureImageUnits() -
-                                     2)) { //even if shadow map cannot attach, we still render
-                std::cerr << "Uniform \"shadowSamplerPoint\" could not be set" << std::endl;
-            }
-            if (!program->setUniform("farPlanePoint",100.0f)) { //even if far plane cannot attach, we still render
-                std::cerr << "Uniform \"farPlanePoint\" could not be set" << std::endl;
-            }
 
-            if (animated) {
-                //set all of the bones to unitTransform for testing
-                program->setUniformArray("boneTransformArray[0]", boneTransforms);
-            }
-            return true;
+    if (meshMetaData->mesh != nullptr && meshMetaData->mesh->getMaterial() != nullptr) {
+        glHelper->attachMaterialUBO(program->getID(), meshMetaData->mesh->getMaterial()->getMaterialIndex());
     } else {
-        std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
+        std::cerr << "No material setup, passing rendering. " << std::endl;
+        return false;
     }
-    return false;
+
+    if (animated) {
+        //set all of the bones to unitTransform for testing
+        program->setUniformArray("boneTransformArray[0]", boneTransforms);
+    }
+    return true;
 }
 
 void Model::render() {
@@ -246,24 +235,58 @@ void Model::render() {
     }
 }
 
-void Model::renderWithProgram(GLSLProgram &program) {
-    if (program.setUniform("worldTransformMatrix", getWorldTransform())) {
-        std::vector<MeshAsset *> meshes = modelAsset->getMeshes();
-        for (std::vector<MeshAsset *>::iterator iter = meshes.begin(); iter != meshes.end(); ++iter) {//FIXME why this uses meshes, while normal render doesn't?
-            if (animated) {
-                //set all of the bones to unitTransform for testing
-                program.setUniformArray("boneTransformArray[0]", boneTransforms);
-                program.setUniform("isAnimated", true);
-            } else {
-                program.setUniform("isAnimated", false);
-            }
-            if(program.IsMaterialRequired()) {
-                this->activateMaterial((*iter)->getMaterial(), &program);
-            }
-            glHelper->render(program.getID(), (*iter)->getVao(), (*iter)->getEbo(), (*iter)->getTriangleCount() * 3);
+void Model::renderInstanced(std::vector<uint32_t> &modelIndices) {
+    glHelper->setModelIndexesUBO(modelIndices);
+    for (std::vector<MeshMeta *>::iterator iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
+        MeshMeta* meshMetaData = *iter;
+
+        this->setupRenderVariables(meshMetaData);
+
+        if (meshMetaData->mesh != nullptr && meshMetaData->mesh->getMaterial() != nullptr) {
+            this->activateTexturesOnly(meshMetaData->mesh->getMaterial());
+
+            glHelper->renderInstanced((*iter)->program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(),
+                             (*iter)->mesh->getTriangleCount() * 3, modelIndices.size());
         }
-    } else {
-        std::cerr << "Uniform \"worldTransformMatrix\" could not be set, passing rendering." << std::endl;
+    }
+}
+
+
+void Model::renderWithProgram(GLSLProgram &program) {
+    glHelper->attachModelUBO(program.getID());
+    for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
+
+        if (animated) {
+            //set all of the bones to unitTransform for testing
+            program.setUniformArray("boneTransformArray[0]", boneTransforms);
+            program.setUniform("isAnimated", true);
+        } else {
+            program.setUniform("isAnimated", false);
+        }
+        if(program.IsMaterialRequired()) {
+            glHelper->attachMaterialUBO(program.getID(), (*iter)->mesh->getMaterial()->getMaterialIndex());
+        }
+        glHelper->render(program.getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount() * 3);
+    }
+}
+
+void Model::renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GLSLProgram &program) {
+    glHelper->setModelIndexesUBO(modelIndices);
+
+    glHelper->attachModelUBO(program.getID());
+    glHelper->attachModelIndicesUBO(program.getID());
+    for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
+        if (animated) {
+            //set all of the bones to unitTransform for testing
+            program.setUniformArray("boneTransformArray[0]", boneTransforms);
+            program.setUniform("isAnimated", true);
+        } else {
+            program.setUniform("isAnimated", false);
+        }
+        if(program.IsMaterialRequired()) {
+            glHelper->attachMaterialUBO(program.getID(), (*iter)->mesh->getMaterial()->getMaterialIndex());
+        }
+        glHelper->renderInstanced(program.getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount() * 3, modelIndices.size());
     }
 }
 
@@ -280,10 +303,20 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
         currentElement->SetText(animationName.c_str());
         objectElement->InsertEndChild(currentElement);
     }
-
+    currentElement = document.NewElement("Disconnected");
+    if(disconnected) {
+        currentElement->SetText("True");
+    } else {
+        currentElement->SetText("False");
+    }
+    objectElement->InsertEndChild(currentElement);
     if(AIActor != nullptr) {
         currentElement = document.NewElement("AI");
         currentElement->SetText("True");
+        objectElement->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("AI_ID");
+        currentElement->SetText(this->AIActor->getWorldID());
         objectElement->InsertEndChild(currentElement);
     }
 
@@ -291,44 +324,19 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
     currentElement->SetText(mass);
     objectElement->InsertEndChild(currentElement);
 
-    tinyxml2::XMLElement *parent = document.NewElement("Scale");
-    currentElement = document.NewElement("X");
-    currentElement->SetText(scale.x);
-    parent->InsertEndChild(currentElement);
-    currentElement = document.NewElement("Y");
-    currentElement->SetText(scale.y);
-    parent->InsertEndChild(currentElement);
-    currentElement = document.NewElement("Z");
-    currentElement->SetText(scale.z);
-    parent->InsertEndChild(currentElement);
-    objectElement->InsertEndChild(parent);
+    currentElement = document.NewElement("ID");
+    currentElement->SetText(objectID);
+    objectElement->InsertEndChild(currentElement);
 
-    parent = document.NewElement("Translate");
-    currentElement = document.NewElement("X");
-    currentElement->SetText(translate.x);
-    parent->InsertEndChild(currentElement);
-    currentElement = document.NewElement("Y");
-    currentElement->SetText(translate.y);
-    parent->InsertEndChild(currentElement);
-    currentElement = document.NewElement("Z");
-    currentElement->SetText(translate.z);
-    parent->InsertEndChild(currentElement);
-    objectElement->InsertEndChild(parent);
+    if(stepOnSound) {
+        currentElement = document.NewElement("StepOnSound");
+        currentElement->SetText(stepOnSound->getName().c_str());
+        objectElement->InsertEndChild(currentElement);
+    }
 
-    parent = document.NewElement("Rotate");
-    currentElement = document.NewElement("X");
-    currentElement->SetText(orientation.x);
-    parent->InsertEndChild(currentElement);
-    currentElement = document.NewElement("Y");
-    currentElement->SetText(orientation.y);
-    parent->InsertEndChild(currentElement);
-    currentElement = document.NewElement("Z");
-    currentElement->SetText(orientation.z);
-    parent->InsertEndChild(currentElement);
-    currentElement = document.NewElement("W");
-    currentElement->SetText(orientation.w);
-    parent->InsertEndChild(currentElement);
-    objectElement->InsertEndChild(parent);
+    transformation.serialize(document, objectElement);
+
+    modelAsset->serializeCustomizations();
 }
 
 uint32_t Model::getAIID() {
@@ -338,112 +346,38 @@ uint32_t Model::getAIID() {
     return this->AIActor->getWorldID();
 }
 
-GameObject::ImGuiResult Model::addImGuiEditorElements() {
-    static ImGuiResult request;
-    static glm::vec3 preciseTranslatePoint = this->translate;
+GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
+    static ImGuiResult result;
 
-    bool updated = false;
-    bool crudeUpdated = false;
-
-    if (ImGui::IsKeyPressed(83)) {
-        request.useSnap = !request.useSnap;
+    //Allow transformation editing.
+    if(transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix)) {
+        //true means transformation changed, activate rigid body
+        rigidBody->activate();
+        result.updated = true;
     }
 
-/*
- * at first we decide whether we are in rotation, scale or translate mode.
- */
-
-    if (ImGui::RadioButton("Translate", request.mode == EditorModes::TRANSLATE_MODE)) {
-        request.mode = EditorModes::TRANSLATE_MODE;
-    }
-
-    ImGui::SameLine();
-    if (ImGui::RadioButton("Rotate", request.mode == EditorModes::ROTATE_MODE)) {
-        request.mode = EditorModes::ROTATE_MODE;
-    }
-
-    ImGui::SameLine();
-    if (ImGui::RadioButton("Scale", request.mode == EditorModes::SCALE_MODE)) {
-        request.mode = EditorModes::SCALE_MODE;
-    }
-
-    switch (request.mode) {
-        case TRANSLATE_MODE:
-            updated =
-                    ImGui::DragFloat("Precise Position X", &(this->translate.x), 0.01f, preciseTranslatePoint.x - 5.0f,
-                                     preciseTranslatePoint.x + 5.0f) || updated;
-            updated =
-                    ImGui::DragFloat("Precise Position Y", &(this->translate.y), 0.01f, preciseTranslatePoint.y - 5.0f,
-                                     preciseTranslatePoint.y + 5.0f) || updated;
-            updated =
-                    ImGui::DragFloat("Precise Position Z", &(this->translate.z), 0.01f, preciseTranslatePoint.z - 5.0f,
-                                     preciseTranslatePoint.z + 5.0f) || updated;
-            ImGui::NewLine();
-            crudeUpdated =
-                    ImGui::SliderFloat("Crude Position X", &(this->translate.x), -100.0f, 100.0f) || crudeUpdated;
-            crudeUpdated =
-                    ImGui::SliderFloat("Crude Position Y", &(this->translate.y), -100.0f, 100.0f) || crudeUpdated;
-            crudeUpdated =
-                    ImGui::SliderFloat("Crude Position Z", &(this->translate.z), -100.0f, 100.0f) || crudeUpdated;
-            if (updated || crudeUpdated) {
-                this->setTranslate(translate);
-                this->rigidBody->activate();
-            }
-            if (crudeUpdated) {
-                preciseTranslatePoint = this->translate;
-            }
-            ImGui::NewLine();
-            ImGui::Checkbox("", &(request.useSnap));
-            ImGui::SameLine();
-            ImGui::InputFloat3("Snap", &(request.snap[0]));
-            break;
-        case ROTATE_MODE:
-            updated = ImGui::SliderFloat("Rotate X", &(this->orientation.x), -1.0f, 1.0f) || updated;
-            updated = ImGui::SliderFloat("Rotate Y", &(this->orientation.y), -1.0f, 1.0f) || updated;
-            updated = ImGui::SliderFloat("Rotate Z", &(this->orientation.z), -1.0f, 1.0f) || updated;
-            updated = ImGui::SliderFloat("Rotate W", &(this->orientation.w), -1.0f, 1.0f) || updated;
-            if (updated || crudeUpdated) {
-                this->setOrientation(orientation);
-                this->rigidBody->activate();
-            }
-            ImGui::NewLine();
-            ImGui::Checkbox("", &(request.useSnap));
-            ImGui::SameLine();
-            ImGui::InputFloat("Angle Snap", &(request.snap[0]));
-            break;
-        case SCALE_MODE:
-            glm::vec3 tempScale = scale;
-            updated = ImGui::DragFloat("Scale X", &(tempScale.x), 0.01, 0.01f, 10.0f) || updated;
-            updated = ImGui::DragFloat("Scale Y", &(tempScale.y), 0.01, 0.01f, 10.0f) || updated;
-            updated = ImGui::DragFloat("Scale Z", &(tempScale.z), 0.01, 0.01f, 10.0f) || updated;
-            ImGui::NewLine();
-            updated = ImGui::SliderFloat("Massive Scale X", &(tempScale.x), 0.01f, 100.0f) || updated;
-            updated = ImGui::SliderFloat("Massive Scale Y", &(tempScale.y), 0.01f, 100.0f) || updated;
-            updated = ImGui::SliderFloat("Massive Scale Z", &(tempScale.z), 0.01f, 100.0f) || updated;
-            if ((updated || crudeUpdated) && (tempScale.x != 0.0f && tempScale.y != 0.0f && tempScale.z != 0.0f)) {
-//it is possible to enter any scale now. If user enters 0, don't update
-                this->setScale(tempScale);
-                this->rigidBody->activate();
-            }
-            ImGui::NewLine();
-            ImGui::Checkbox("", &(request.useSnap));
-            ImGui::SameLine();
-            ImGui::InputFloat("Scale Snap", &(request.snap[0]));
-            break;
-    }
-    ImGui::NewLine();
+        ImGui::NewLine();
     if (isAnimated()) {
-        if (ImGui::CollapsingHeader("Animation properties")) {
+        if (ImGui::CollapsingHeader("Model animation properties")) {
             if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {
-//ImGui::Combo();
                 for (auto it = modelAsset->getAnimations().begin(); it != modelAsset->getAnimations().end(); it++) {
                     if (ImGui::Selectable(it->first.c_str())) {
-                        setAnimation(it->first);
+                        setAnimation(it->first, true);
                     }
                 }
                 ImGui::EndCombo();
             }
             ImGui::SliderFloat("Animation time scale", &(this->animationTimeScale), 0.01f, 2.0f);
+
+            ImGui::Text("Seperate selected animation by time");
+            static char newAnimationName[256] = {0};
+            static float times[2] = {0};
+            ImGui::InputText("New animation Name", newAnimationName, sizeof(newAnimationName) - 1 );
+            ImGui::InputFloat2("Animation start and end times", times);
+            if(ImGui::Button("CreateSection")){
+                this->modelAsset->addAnimationAsSubSequence(this->animationName, std::string(newAnimationName), times[0], times[1]);
+            }
+
         }
     }
     if (isAnimated()) { //in animated objects can't have AI, can they?
@@ -451,13 +385,13 @@ GameObject::ImGuiResult Model::addImGuiEditorElements() {
             bool isAIDriven = this->AIActor != nullptr;
             if (ImGui::Checkbox("AI Driven", &isAIDriven)) {
                 if (isAIDriven == true) {
-                    request.addAI = true;
+                    result.addAI = true;
                 } else {
-                    request.removeAI = true;
+                    result.removeAI = true;
                 }
             } else {
-                request.addAI = false;
-                request.removeAI = false;
+                result.addAI = false;
+                result.removeAI = false;
 
             }
             if (this->AIActor != nullptr) {
@@ -465,11 +399,19 @@ GameObject::ImGuiResult Model::addImGuiEditorElements() {
             }
         }
     }
-    request.isGizmoRequired = true;
-    return request;
+    //Step on sound properties
+
+    ImGui::InputText("Step On Sound", stepOnSoundNameBuffer, 128);
+    if(ImGui::Button("Change Sound")) {
+        if(this->stepOnSound != nullptr) {
+            this->stepOnSound->stop();
+        }
+        this->stepOnSound = std::make_shared<Sound>(0, assetManager, std::string(stepOnSoundNameBuffer));
+        this->stepOnSound->setLoop(true);
+    }
+    return result;
 }
 
-//TODO we need to free the texture. Destructor needed.
 Model::~Model() {
     delete rigidBody->getMotionState();
     delete rigidBody;
@@ -480,4 +422,20 @@ Model::~Model() {
         delete meshMetaData[i];
     }
     assetManager->freeAsset({name});
+}
+
+Model::Model(const Model &otherModel, uint32_t objectID) :
+        Model(objectID, otherModel.assetManager, otherModel.mass, otherModel.name, otherModel.disconnected) {
+    //we have constructed the object, now set the properties that might have been changed
+    this->transformation.setTransformationsNotPropagate(
+            otherModel.transformation.getTranslate(),
+            otherModel.transformation.getOrientation(),
+            otherModel.transformation.getScale()
+            );
+    this->updateAABB();
+    transformation.setUpdateCallback(std::bind(&Model::transformChangeCallback, this));
+
+    this->animationName = otherModel.animationName;
+    this->animationTimeScale = otherModel.animationTimeScale;
+    this->animationTime = otherModel.animationTime;
 }

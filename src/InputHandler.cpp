@@ -18,6 +18,8 @@ InputHandler::InputHandler(SDL_Window *window, Options *options) :
     inputStatus[MOVE_RIGHT] = false;
     inputStatus[JUMP] = false;
     inputEvents[JUMP] = false;
+    inputStatus[RUN] = false;
+    inputEvents[RUN] = false;
     inputStatus[DEBUG] = false;
     inputEvents[DEBUG] = false;
     inputStatus[EDITOR] = false;
@@ -94,12 +96,21 @@ void InputHandler::mapInput() {
             case SDL_MOUSEBUTTONUP:
                 switch (event.button.button) {
                     case SDL_BUTTON_LEFT:
+                        if(inputStatus[MOUSE_BUTTON_LEFT]) {
+                            inputEvents[MOUSE_BUTTON_LEFT] = true;
+                        }
                         inputStatus[MOUSE_BUTTON_LEFT] = false;
                         break;
                     case SDL_BUTTON_MIDDLE:
+                        if(inputStatus[MOUSE_BUTTON_MIDDLE]) {
+                            inputEvents[MOUSE_BUTTON_MIDDLE] = true;
+                        }
                         inputStatus[MOUSE_BUTTON_MIDDLE] = false;
                         break;
                     case SDL_BUTTON_RIGHT:
+                        if(inputStatus[MOUSE_BUTTON_RIGHT]) {
+                            inputEvents[MOUSE_BUTTON_RIGHT] = true;
+                        }
                         inputStatus[MOUSE_BUTTON_RIGHT] = false;
                         break;
                 }
@@ -181,7 +192,7 @@ void InputHandler::mapInput() {
                         }
                         inputStatus[DEBUG] = true;
                         break;
-                    case SDLK_QUOTEDBL:
+                    case SDLK_F2:
                         if(!inputStatus[EDITOR]) {
                             inputEvents[EDITOR] = true;
                         }
@@ -226,7 +237,7 @@ void InputHandler::mapInput() {
                         if(inputStatus[RUN]) {
                             inputEvents[RUN] = true;
                         }
-                        inputStatus[RUN] = true;
+                        inputStatus[RUN] = false;
                         if(inputStatus[KEY_SHIFT]) {
                             inputEvents[KEY_SHIFT] = true;
                         }
@@ -258,7 +269,7 @@ void InputHandler::mapInput() {
                         }
                         inputStatus[DEBUG] = false;
                         break;
-                    case SDLK_QUOTEDBL:
+                    case SDLK_F2:
                         if(!inputStatus[EDITOR]) {
                             inputEvents[EDITOR] = true;
                         }

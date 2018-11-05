@@ -49,7 +49,7 @@ void GUITextDynamic::render() {
             textList.erase(test);
         } else {
             for (unsigned int character = 0; character < lineIt->text.length(); ++character) {
-                glm::vec3 lineTranslate = translate + glm::vec3(0, height - (lineCount * lineHeight), 0);
+                glm::vec3 lineTranslate = transformation.getTranslate() + glm::vec3(0, height - (lineCount * lineHeight), 0);
 
                 glyph = face->getGlyph(lineIt->text.at(character));
                 quadSizeX = glyph->getSize().x / 2.0f;
@@ -68,22 +68,22 @@ void GUITextDynamic::render() {
                  *
                  * The double translate is because we want to rotate from center of the text.
                  */
-                if (isRotated) {
+                if (transformation.isRotated()) {
                     currentTransform = glm::scale(
                             glm::translate(
-                                    (glm::translate(glm::mat4(1.0f), lineTranslate) * glm::mat4_cast(orientation)),
+                                    (glm::translate(glm::mat4(1.0f), lineTranslate) * glm::mat4_cast(transformation.getOrientation())),
                                     glm::vec3(quadPositionX, quadPositionY, 0) -
-                                    glm::vec3(width * scale.x / 2.0f, height * scale.y / 2.0f, 0.0f)),
-                            this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
+                                    glm::vec3(width * transformation.getScale().x / 2.0f, height * transformation.getScale().y / 2.0f, 0.0f)),
+                            this->transformation.getScale() * glm::vec3(quadSizeX, quadSizeY, 1.0f)
                     );
                 } else {
                     //this branch removes quaternion cast, so double translate is not necessary.
                     currentTransform = glm::scale(
                             glm::translate(glm::mat4(1.0f), lineTranslate +
                                                             glm::vec3(quadPositionX, quadPositionY, 0) -
-                                                            glm::vec3(width * scale.x / 2.0f, height * scale.y / 2.0f,
+                                                            glm::vec3(width * transformation.getScale().x / 2.0f, height * transformation.getScale().y / 2.0f,
                                                                       0.0f)),
-                            this->scale * glm::vec3(quadSizeX, quadSizeY, 1.0f)
+                            this->transformation.getScale() * glm::vec3(quadSizeX, quadSizeY, 1.0f)
                     );
                 }
 
@@ -95,7 +95,7 @@ void GUITextDynamic::render() {
                     std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
                 }
                 glHelper->attachTexture(glyph->getTextureID(), glyphAttachPoint);
-                glHelper->render(renderProgram->getID(), vao, ebo, (const GLuint) (faces.size() * 3));
+                glHelper->render(renderProgram->getID(), vao, ebo, (GLuint) (faces.size() * 3));
 
                 totalAdvance += glyph->getAdvance() / 64;
                 if(totalAdvance + maxCharWidth >= width) {

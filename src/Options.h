@@ -6,32 +6,38 @@
 #define LIMONENGINE_OPTIONS_H
 
 #include <glm/glm.hpp>
+#include <iostream>
 #include "Utils/Logger.h"
-
+#include <tinyxml2.h>
 class Options {
 public:
 
     static constexpr float PI = 3.14159265358979f;
     static constexpr float PI_DOUBLE = 3.141592653589793238463;
     enum MoveModes {WALK, RUN};
+    enum class TextureFilteringModes { NEAREST, BILINEAR, TRILINEAR };
 private:
     Logger *logger{};
 
-    glm::vec3 walkSpeed = glm::vec3(5, 0, 5);
-    glm::vec3 runSpeed = glm::vec3(8, 0, 8);
+    glm::vec3 walkSpeed = glm::vec3(8, 0, 8);
+    glm::vec3 runSpeed = glm::vec3(12, 0, 12);
     glm::vec3 moveSpeed = walkSpeed;
     glm::vec3 freeMovementSpeed = glm::vec3(0.1f,0.1f,0.1f);
     float jumpFactor = 7.0f;
-    float lookAroundSpeed = -2.5f;
-    unsigned int screenHeight = 1080;
-    unsigned int screenWidth = 1920;
+    float lookAroundSpeed = -6.5f;
+    uint32_t screenHeight = 1080;
+    uint32_t screenWidth = 1920;
 
-    uint32_t shadowWidth = 2048;
-    uint32_t shadowHeight = 2048; //TODO these values should be parameters
+    uint32_t shadowMapDirectionalWidth = 2048;
+    uint32_t shadowMapDirectionalHeight = 2048; //TODO these values should be parameters
+    uint32_t shadowMapPointWidth = 512;
+    uint32_t shadowMapPointHeight = 512; //TODO these values should be parameters
     float lightOrthogonalProjectionNearPlane = 1.0f;
     float  lightOrthogonalProjectionFarPlane = 100.0f;
     glm::vec4 lightOrthogonalProjectionValues = glm::vec4(-100.0f, 100.0f, -100.0f, 100.0f);
-    glm::vec3 lightPerspectiveProjectionValues = glm::vec3((float)shadowWidth/(float)shadowHeight, 1.0f, 100.0f);
+    float lightPerspectiveProjectionNearPlane = 1.0f;
+    float  lightPerspectiveProjectionFarPlane = 100.0f;
+    glm::vec3 lightPerspectiveProjectionValues = glm::vec3((float)shadowMapPointWidth/(float)shadowMapPointHeight, lightPerspectiveProjectionNearPlane, lightPerspectiveProjectionFarPlane);
     //aspect,near,far
 
     uint32_t debugDrawBufferSize = 1000;
@@ -41,7 +47,16 @@ private:
     int drawableWidth, drawableHeight;
     int windowWidth, windowHeight;
     bool isWindowInFocus;
+    TextureFilteringModes currentTextureFilteringMode = TextureFilteringModes::TRILINEAR;
+
+    bool fullScreen = false;
+
+    void loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec3&);
+    void loadVec4(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec4&);
 public:
+
+    bool loadOptions(const std::string& optionsFileName);
+
     void *getImeWindowHandle() const {
         return imeWindowHandle;
     }
@@ -100,20 +115,20 @@ public:
         std::cerr << "Setting debugDrawBufferSize(" << debugDrawBufferSize << ") is not implemented." << std::endl;
     }
 
-    uint32_t getShadowWidth() const {
-        return shadowWidth;
+    uint32_t getShadowMapDirectionalWidth() const {
+        return shadowMapDirectionalWidth;
     }
 
-    void setShadowWidth(uint32_t shadowWidth) {
-        Options::shadowWidth = shadowWidth;
+    uint32_t getShadowMapDirectionalHeight() const {
+        return shadowMapDirectionalHeight;
     }
 
-    uint32_t getShadowHeight() const {
-        return shadowHeight;
+    uint32_t getShadowMapPointWidth() const {
+        return shadowMapPointWidth;
     }
 
-    void setShadowHeight(uint32_t shadowHeight) {
-        Options::shadowHeight = shadowHeight;
+    uint32_t getShadowMapPointHeight() const {
+        return shadowMapPointHeight;
     }
 
     float getLightOrthogonalProjectionNearPlane() const {
@@ -148,7 +163,7 @@ public:
         Options::lightPerspectiveProjectionValues = lightPerspectiveProjectionValues;
     }
 
-    unsigned int getScreenHeight() const {
+    const uint32_t& getScreenHeight() const {
         return screenHeight;
     }
 
@@ -156,7 +171,7 @@ public:
         Options::screenHeight = height;
     }
 
-    unsigned int getScreenWidth() const {
+    const uint32_t& getScreenWidth() const {
         return screenWidth;
     }
 
@@ -207,6 +222,18 @@ public:
 
     Logger* getLogger() {
         return logger;
+    }
+
+    TextureFilteringModes getTextureFiltering() {
+        return currentTextureFilteringMode;
+    }
+
+    bool isFullScreen() const {
+        return fullScreen;
+    }
+
+    void setFullScreen(bool isFullScreen) {
+        this->fullScreen = isFullScreen;
     }
 };
 

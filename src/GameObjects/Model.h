@@ -15,23 +15,34 @@
 #include "../Material.h"
 #include "../Assets/ModelAsset.h"
 #include "../../libs/ImGui/imgui.h"
+#include "GameObject.h"
+
+#include "Sound.h"
 
 class Actor;
 
 class Model : public PhysicalRenderable, public GameObject {
     uint32_t objectID;
     struct MeshMeta {
-        MeshAsset* mesh;
-        BoneNode* skeleton;
-        GLSLProgram* program;
-
-        MeshMeta() : mesh(nullptr), skeleton(nullptr), program(nullptr) {}
+        MeshAsset* mesh = nullptr;
+        GLSLProgram* program = nullptr;
     };
     Actor *AIActor = nullptr;
     AssetManager *assetManager;
     ModelAsset *modelAsset;
+
     std::string animationName;
     long animationTime = 0;
+    bool animationLooped = true;
+
+    std::string animationNameOld;
+    long animationTimeOld = 0;
+    bool animationLoopedOld = true;
+
+    bool animationBlend = false;
+    long animationBlendTime = 1000;
+
+    bool animationLastFramePlayed = false;
     long lastSetupTime = 0;
     float animationTimeScale = 1.0f;
     std::string name;
@@ -40,6 +51,8 @@ class Model : public PhysicalRenderable, public GameObject {
     std::map<uint_fast32_t, uint_fast32_t> boneIdCompoundChildMap;
 
     std::vector<MeshMeta *> meshMetaData;
+    std::shared_ptr<Sound> stepOnSound = nullptr;
+    char stepOnSoundNameBuffer[128] = {};
 
     btCompoundShape *compoundShape;
     std::unordered_map<std::string, Material *> materialMap;
@@ -49,21 +62,27 @@ class Model : public PhysicalRenderable, public GameObject {
     int opacityMapAttachPoint = 4;
     uint_fast32_t triangleCount;
 
-    void generateWorldTransform() {
-        this->oldWorldTransform = this->worldTransform;
-        //if animated, then the transform information will be updated according to bone transforms. Then ve apply current center offset
-            this->worldTransform = glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation) *
-                                   glm::scale(glm::mat4(1.0f), scale) * glm::translate(glm::mat4(1.0f), -1.0f * centerOffset);
-        isDirty = false;
-    }
-
 public:
     Model(uint32_t objectID, AssetManager *assetManager, const std::string &modelFile) : Model(objectID, assetManager,
-                                                                                               0, modelFile) {};
+                                                                                               0, modelFile, false) {};
 
-    Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile);
+    Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile,
+              bool disconnected);
 
-    void activateMaterial(const Material *material, GLSLProgram *program);
+    Model(const Model& otherModel, uint32_t objectID); //kind of copy constructor, except ID
+
+    void transformChangeCallback() {
+        PhysicalRenderable::updatePhysicsFromTransform();
+        glHelper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
+    }
+
+    void updateTransformFromPhysics() override {
+        PhysicalRenderable::updateTransformFromPhysics();
+        glHelper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
+    }
+
+    void setSamplersAndUBOs(GLSLProgram *program);
+    void activateTexturesOnly(const Material *material);
 
     bool setupRenderVariables(MeshMeta *meshMetaData);
 
@@ -73,18 +92,66 @@ public:
 
     void renderWithProgram(GLSLProgram &program);
 
+    void renderInstanced(std::vector<uint32_t> &modelIndices);
+
+    void renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GLSLProgram &program);
+
     bool isAnimated() const { return animated;}
 
     float getMass() const { return mass;}
 
-    void setAnimation(const std::string& animationName) {
+    void setAnimation(const std::string &animationName, bool looped = true) {
         this->animationName = animationName;
         this->animationTime = 0;
+
+        this->animationLooped = looped;
+        this->animationLastFramePlayed = false;
+    }
+
+    void setAnimationWithBlend(const std::string &animationName, bool looped = true, long blendTime = 100) {
+        this->animationNameOld = this->animationName;
+        this->animationTimeOld = this->animationTime;
+        this->animationLoopedOld = this->animationLooped;
+
+        this->animationName = animationName;
+        this->animationTime = 0;
+        this->animationLooped = looped;
+
+        this->animationBlendTime = blendTime;
+        this->animationBlend = true;
+
+        this->animationLastFramePlayed = false;
+    }
+
+    std::string getAnimationName() {
+        return this->animationName;
+    }
+
+    bool isAnimationFinished() {
+        return animationLastFramePlayed;
     }
 
     ~Model();
 
     void fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode) const;
+
+    std::shared_ptr<Sound> &getPlayerStepOnSound() {
+        return stepOnSound;
+    }
+
+    void setPlayerStepOnSound(std::shared_ptr<Sound> stepOnSound) {
+        this->stepOnSound = stepOnSound;
+
+        if (this->stepOnSound != nullptr) {
+            this->stepOnSound->setLoop(true);
+            if (this->stepOnSound->getName().length() < 128) {
+                strcpy(stepOnSoundNameBuffer, this->stepOnSound->getName().c_str());
+            } else {
+                strncpy(stepOnSoundNameBuffer, this->stepOnSound->getName().c_str(), 127);
+            }
+        }
+
+    }
 
     /************Game Object methods **************/
     uint32_t getWorldObjectID() {
@@ -98,7 +165,7 @@ public:
         return name + "_" + std::to_string(objectID);
     };
 
-    ImGuiResult addImGuiEditorElements() ;
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
     /************Game Object methods **************/
 
     void attachAI(Actor *AIActor) {
@@ -110,6 +177,10 @@ public:
 
     void detachAI() {
         this->AIActor = nullptr;
+    }
+
+    uint32_t getAssetID() {
+        return modelAsset->getAssetID();
     }
 };
 

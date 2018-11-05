@@ -6,7 +6,7 @@
 #define LIMONENGINE_GUITEXTDYNAMIC_H
 
 
-#include "GUIText.h"
+#include "GUITextBase.h"
 #include "../Utils/Logger.h"
 #include "../Options.h"
 #include <list>
@@ -22,7 +22,7 @@ struct TextLine {
     }
 };
 
-class GUITextDynamic: public GUIText {
+class GUITextDynamic: public GUITextBase {
     int lineHeight;
     int maxCharWidth;
     int totalExtraLines = 0;
@@ -37,7 +37,8 @@ class GUITextDynamic: public GUIText {
 
 
 public:
-    GUITextDynamic(GLHelper *glHelper, Face *font, const glm::vec3 color, int width, int height, Options* options) : GUIText(glHelper, font, color) {
+    GUITextDynamic(GLHelper *glHelper, Face *font, const glm::vec3 color, int width, int height, Options *options)
+            : GUITextBase(glHelper, font, color) {
         lineHeight = face->getLineHeight()/64;
         maxCharWidth = face->getMaxCharWidth()/64;
         this->height = height;
@@ -59,6 +60,7 @@ public:
     }
 
     void render();
+
 };
 
 

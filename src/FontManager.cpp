@@ -15,8 +15,9 @@ FontManager::FontManager(GLHelper *glHelper) : glHelper(glHelper) {
     }
 }
 
-Face *FontManager::getFont(const std::string fontPath, const int size) {
-    if (fonts.count(fontPath + std::to_string(size)) == 0) {
+Face *FontManager::getFont(const std::string &fontPath, const uint32_t size) {
+    std::pair<std::string, uint32_t> fontDescription = std::make_pair(fontPath, size);
+    if (fonts.find(fontDescription) == fonts.end()) {
         FT_Face face;
         if (FT_New_Face(ft, fontPath.c_str(), 0, &face)) {
             std::cerr << "Could not create font with path=[" << fontPath << "]" << std::endl
@@ -26,7 +27,7 @@ Face *FontManager::getFont(const std::string fontPath, const int size) {
             FT_New_Face(ft, DEFAULT_FONT_PATH.c_str(), 0, &face);
         }
 
-        fonts[fontPath + std::to_string(size)] = new Face(glHelper, fontPath, size, face);
+        fonts[fontDescription] = new Face(glHelper, fontPath, size, face);
         FT_Set_Pixel_Sizes(face, 0, size);
         //now we should calculate what we have
 
@@ -50,11 +51,11 @@ Face *FontManager::getFont(const std::string fontPath, const int size) {
         //now we have maximum size of the textures
     }
 
-    return fonts[fontPath + std::to_string(size)];
+    return fonts[fontDescription];
 }
 
 FontManager::~FontManager() {
-    for (std::map<std::string, Face *>::iterator iter = fonts.begin(); iter != fonts.end(); ++iter) {
+    for (auto iter = fonts.begin(); iter != fonts.end(); ++iter) {
         delete iter->second;
     }
     FT_Done_FreeType(ft);

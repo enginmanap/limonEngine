@@ -20,26 +20,32 @@
 #include "MeshAsset.h"
 #include "../Utils/GLMConverter.h"
 #include "BoneNode.h"
+#include "Animations/AnimationInterface.h"
 
 
-struct AnimationNode {
-    std::vector<glm::vec3> translates;
-    std::vector<float>translateTimes;
-    std::vector<glm::vec3> scales;
-    std::vector<float>scaleTimes;
-    std::vector<glm::quat> rotations;
-    std::vector<float>rotationTimes;
-};
-
-struct AnimationSet {
-    float ticksPerSecond;
-    float duration;
-    std::unordered_map<std::string, AnimationNode*> nodes;//FIXME these should be removed
-};
+class AnimationAssimp;
 
 class ModelAsset : public Asset {
+
+    struct BoneInformation {
+        glm::mat4 offset;
+        glm::mat4 parentOffset;
+        glm::mat4 globalMeshInverse;
+    };
+
+    struct AnimationSection {
+        std::string baseAnimationName;
+        std::string animationName;
+        float startTime;
+        float endTime;
+
+        AnimationSection(const std::string &sourceAnimationName, const std::string &animationName,
+                         float startTime, float endTime) : baseAnimationName(
+                sourceAnimationName), animationName(animationName), startTime(startTime), endTime(endTime) {}
+    };
+
     std::string name;
-    std::unordered_map<std::string, AnimationSet*> animations;//FIXME these should be removed
+    std::unordered_map<std::string, AnimationInterface*> animations;
     BoneNode *rootNode;
     int_fast32_t boneIDCounter, boneIDCounterPerMesh;
 
@@ -50,11 +56,13 @@ class ModelAsset : public Asset {
     std::unordered_map<std::string, Material *> materialMap;
     std::vector<btConvexShape *> shapeCopies;
     std::vector<MeshAsset *> meshes;
+    std::vector<AnimationSection> animationSections;
+
     std::unordered_map<std::string, MeshAsset *> simplifiedMeshes;
-    std::unordered_map<std::string, glm::mat4> meshOffsetmap;
-    glm::mat4 globalInverseTransform;
+    std::unordered_map<std::string, BoneInformation> boneInformationMap;
 
     bool hasAnimation;
+    bool customizationAfterSave = false;
 
     Material *loadMaterials(const aiScene *scene, unsigned int materialIndex);
 
@@ -65,31 +73,44 @@ class ModelAsset : public Asset {
 
     bool findNode(const std::string &nodeName, BoneNode** foundNode, BoneNode* searchRoot) const;
 
-    void traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform, const AnimationSet *animation, float timeInTicks,
+    void traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform, const AnimationInterface *animation,
+                                 float timeInTicks,
                                  std::vector<glm::mat4> &transforms) const;
 
     const aiNodeAnim *findNodeAnimation(aiAnimation *pAnimation, std::string basic_string) const;
 
-
-    glm::quat getRotationQuat(const float timeInTicks, const AnimationNode *nodeAnimation) const;
-
-    glm::vec3 getScalingVector(const float timeInTicks, const AnimationNode *nodeAnimation) const;
-
-    glm::vec3 getPositionVector(const float timeInTicks, const AnimationNode *nodeAnimation) const;
+    void deserializeCustomizations();
 
 public:
-    ModelAsset(AssetManager *assetManager, const std::vector<std::string> &fileList);
+    ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
+
+    bool addAnimationAsSubSequence(const std::string &baseAnimationName, const std::string newAnimationName,
+                                   float startTime, float endTime);
 
     bool isAnimated() const;
 
-    void getTransform(long time, std::string animationName, std::vector<glm::mat4> &transformMatrix) const; //this method takes vector to avoid copying it
+    /**
+     * This method is used to request a specific animations transform array for a specific time. If looped is false,
+     * it will return if the given time was after or equals final frame. It interpolates by time automatically.
+     *
+     * @param time Requested animation time in miliseconds.
+     * @param looped if animation should loop or not. Effects return.
+     * @param animationName name of animation to seek.
+     * @param transformMatrix transform matrix list for bones
+     *
+     * @return if last frame of animation is played for not looped animation. Always true for looped ones.
+     */
+    bool getTransform(long time, bool looped, std::string animationName, std::vector<glm::mat4> &transformMatrix) const; //this method takes vector to avoid copying it
+
+    bool getTransformBlended(std::string animationName1, long time1, bool looped1,
+                                         std::string animationName2, long time2, bool looped2,
+                                         float blendFactor, std::vector<glm::mat4> &transformMatrixVector) const;
 
     const glm::vec3 &getBoundingBoxMin() const { return boundingBoxMin; }
 
     const glm::vec3 &getBoundingBoxMax() const { return boundingBoxMax; }
 
     const glm::vec3 &getCenterOffset() const { return centerOffset; }
-
 
     /*
      * FIXME: the materials should be const too
@@ -111,7 +132,6 @@ public:
             delete iter->second;
         }
         //FIXME GPU side is not freed
-
     }
 
     std::vector<MeshAsset *> getMeshes() const {
@@ -139,13 +159,13 @@ public:
 
     void fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimations);
 
-    std::unordered_map<float, glm::mat4> createTransformsForAllTimes(aiNodeAnim *animation);
-
-    glm::mat4 calculateTransform(AnimationNode *animation, float time) const;
-
-    const std::unordered_map<std::string, AnimationSet *> &getAnimations() const {
+    const std::unordered_map<std::string, AnimationInterface*> &getAnimations() const {
         return animations;
     }
+
+    void serializeCustomizations();
+
+    glm::mat4 blendMatrices(const glm::mat4 &matrix1, const glm::mat4 &Matrix2, float blendFactor) const;
 };
 
 

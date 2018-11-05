@@ -2,11 +2,11 @@
 // Created by Engin Manap on 8.03.2016.
 //
 
-#ifndef LIMONENGINE_BULLETGLMCONVERTER_H
-#define LIMONENGINE_BULLETGLMCONVERTER_H
+#ifndef LIMONENGINE_GLMCONVERTER_H
+#define LIMONENGINE_GLMCONVERTER_H
 
 #include <btBulletDynamicsCommon.h>
-#include "../glm/gtx/quaternion.hpp" //TODO check why is this include required?
+#include "../glm/gtx/quaternion.hpp"
 #include "../glm/glm.hpp"
 
 
@@ -25,6 +25,10 @@ public:
         return btVector3(vector.x, vector.y, vector.z);
     }
 
+    static glm::quat BltToGLM(const btQuaternion &quaternion) {
+        return glm::quat(quaternion.getW(), quaternion.getX(), quaternion.getY(), quaternion.getZ());
+    }
+
     static btQuaternion GLMToBlt(const glm::quat &quaternion) {
         return btQuaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
     }
@@ -34,8 +38,8 @@ public:
     }
 
     static glm::quat AssimpToGLM(const aiQuaternion &quaternion) {
-        glm::quat newQuat(quaternion.w, quaternion.x, quaternion.y, quaternion.z);
-        return newQuat;
+        return glm::quat(quaternion.w, quaternion.x, quaternion.y, quaternion.z);
+
     }
 
     static glm::vec3 AssimpToGLM(const aiColor3D &color) {
@@ -64,4 +68,4 @@ public:
 };
 
 
-#endif //LIMONENGINE_BULLETGLMCONVERTER_H
+#endif //LIMONENGINE_GLMCONVERTER_H

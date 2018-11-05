@@ -6,6 +6,9 @@
 #include "GLSLProgram.h"
 
 #include "GameObjects/Light.h"
+#include "Material.h"
+#include "GameObjects/Model.h"
+#include "Utils/GLMUtils.h"
 
 GLuint GLHelper::createShader(GLenum eShaderType, const std::string &strShaderFile) {
     GLuint shader = glCreateShader(eShaderType);
@@ -115,7 +118,7 @@ GLuint GLHelper::initializeProgram(const std::string &vertexShaderFile, const st
     std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
 
     fillUniformMap(program, uniformMap);
-    attachUBOs(program);
+    attachGeneralUBOs(program);
 
     checkErrors("initializeProgram");
     return program;
@@ -151,7 +154,51 @@ void GLHelper::fillUniformMap(const GLuint program, std::unordered_map<std::stri
     delete[] name;
 }
 
-void GLHelper::attachUBOs(const GLuint program) const {//Attach the light block to our UBO
+void GLHelper::attachModelUBO(const uint32_t program) {
+    GLuint allModelsAttachPoint = 7;
+
+    int uniformIndex = glGetUniformBlockIndex(program, "ModelInformationBlock");
+    if (uniformIndex >= 0) {
+        glBindBuffer(GL_UNIFORM_BUFFER, allModelsUBOLocation);
+        glUniformBlockBinding(program, uniformIndex, allModelsAttachPoint);
+        glBindBufferRange(GL_UNIFORM_BUFFER, allModelsAttachPoint, allModelsUBOLocation, 0,
+                          sizeof(glm::mat4)* NR_MAX_MODELS);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
+}
+
+void GLHelper::attachModelIndicesUBO(const uint32_t programID) {
+    GLuint allModelIndexesAttachPoint = 8;
+
+    int uniformIndex = glGetUniformBlockIndex(programID, "ModelIndexBlock");
+    if (uniformIndex >= 0) {
+        glBindBuffer(GL_UNIFORM_BUFFER, allModelIndexesUBOLocation);
+        glUniformBlockBinding(programID, uniformIndex, allModelIndexesAttachPoint);
+        glBindBufferRange(GL_UNIFORM_BUFFER, allModelIndexesAttachPoint, allModelIndexesUBOLocation, 0,
+                          sizeof(uint32_t) * NR_MAX_MODELS);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
+}
+
+void GLHelper::attachMaterialUBO(const uint32_t program, const uint32_t materialID){
+
+    GLuint allMaterialsAttachPoint = 9;
+
+    int uniformIndex = glGetUniformBlockIndex(program, "MaterialInformationBlock");
+    if (uniformIndex >= 0) {
+        glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
+        glUniformBlockBinding(program, uniformIndex, allMaterialsAttachPoint);
+        glBindBufferRange(GL_UNIFORM_BUFFER, allMaterialsAttachPoint, allMaterialsUBOLocation, materialID * materialUniformSize,
+                          materialUniformSize);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
+
+    activeMaterialIndex = materialID;
+    checkErrors("attachMaterialUBO");
+}
+
+void GLHelper::attachGeneralUBOs(const GLuint program){//Attach the light block to our UBO
+
     GLuint lightAttachPoint = 0, playerAttachPoint = 1;
 
     int uniformIndex = glGetUniformBlockIndex(program, "LightSourceBlock");
@@ -168,11 +215,9 @@ void GLHelper::attachUBOs(const GLuint program) const {//Attach the light block 
         glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
         glUniformBlockBinding(program, uniformIndex2, playerAttachPoint);
         glBindBufferRange(GL_UNIFORM_BUFFER, playerAttachPoint, playerUBOLocation, 0,
-                          3 * sizeof(glm::mat4) + sizeof(glm::vec4));
+                          playerUniformSize);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
-
-
 }
 
 
@@ -236,7 +281,6 @@ GLHelper::GLHelper(Options *options): options(options) {
     bool isCubeMapArraySupported = false;
     char extensionNameBuffer[100];
     for (i = 0; i < n; i++) {
-        glGetStringi(GL_EXTENSIONS, i);
         sprintf(extensionNameBuffer, "%s", glGetStringi(GL_EXTENSIONS, i));
         if(std::strcmp(extensionNameBuffer, "GL_ARB_texture_cube_map_array") == 0) {
             isCubeMapArraySupported = true;
@@ -250,26 +294,59 @@ GLHelper::GLHelper(Options *options): options(options) {
 
     std::cout << "Cubemap array support is present. " << std::endl;
 
+    GLint uniformBufferAlignSize = 0;
+    glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformBufferAlignSize);
+
+    if(uniformBufferAlignSize > materialUniformSize) {
+        materialUniformSize = uniformBufferAlignSize;
+    }
+
+
+    std::cout << "Uniform alignment size is " << uniformBufferAlignSize << std::endl;
+
+    GLint maxVertexUniformBlockCount = 0;
+    glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS, &maxVertexUniformBlockCount);
+
+    std::cout << "Uniform maxVertexUniformBlockCount size is " << maxVertexUniformBlockCount << std::endl;
+
+
     //create the Light Uniform Buffer Object for later usage
     glGenBuffers(1, &lightUBOLocation);
-
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * NR_POINT_LIGHTS, nullptr,
-                 GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * NR_POINT_LIGHTS, nullptr, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //create player transforms uniform buffer object
     glGenBuffers(1, &playerUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
-    //FIXME the value below should be a constant at header
-    glBufferData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4) + sizeof(glm::vec4), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, playerUniformSize, nullptr, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    //create material uniform buffer object
+    glGenBuffers(1, &allMaterialsUBOLocation);
+    glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
+    glBufferData(GL_UNIFORM_BUFFER, materialUniformSize * NR_MAX_MATERIALS, nullptr, GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    //create model uniform buffer object
+    glGenBuffers(1, &allModelsUBOLocation);
+    glBindBuffer(GL_UNIFORM_BUFFER, allModelsUBOLocation);
+    glBufferData(GL_UNIFORM_BUFFER, modelUniformSize * NR_MAX_MODELS, nullptr, GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    //create model index uniform buffer object
+    glGenBuffers(1, &allModelIndexesUBOLocation);
+    glBindBuffer(GL_UNIFORM_BUFFER, allModelIndexesUBOLocation);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(uint32_t) * NR_MAX_MODELS, nullptr, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
 
     //create depth buffer and texture for directional shadow map
     glGenFramebuffers(1, &depthOnlyFrameBufferDirectional);
     glGenTextures(1, &depthMapDirectional);
     glBindTexture(GL_TEXTURE_2D_ARRAY, depthMapDirectional);
-    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT, options->getShadowWidth(), options->getShadowHeight(), NR_POINT_LIGHTS, 0,
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT, options->getShadowMapDirectionalWidth(),
+                 options->getShadowMapDirectionalHeight(), NR_POINT_LIGHTS, 0,
                  GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -291,7 +368,8 @@ GLHelper::GLHelper(Options *options): options(options) {
     // create depth cubemap texture
     glGenTextures(1, &depthCubemapPoint);
     glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, depthCubemapPoint);
-    glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, GL_DEPTH_COMPONENT, options->getShadowWidth(), options->getShadowHeight(), NR_POINT_LIGHTS*6, 0,
+    glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, GL_DEPTH_COMPONENT, options->getShadowMapPointWidth(),
+                 options->getShadowMapPointHeight(), NR_POINT_LIGHTS*6, 0,
                  GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -311,6 +389,9 @@ GLHelper::GLHelper(Options *options): options(options) {
     glReadBuffer(GL_NONE);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    frustumPlanes.resize(6);
+
     checkErrors("Constructor");
 }
 
@@ -470,22 +551,23 @@ void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &text
 }
 
 void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
-    glViewport(0, 0, options->getShadowWidth(), options->getShadowHeight());
+    glViewport(0, 0, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight());
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional, 0, index);
 
-    glClear(GL_DEPTH_BUFFER_BIT);
-
     glCullFace(GL_FRONT);
+    //glDisable(GL_CULL_FACE);
+
     checkErrors("switchRenderToShadowMapDirectional");
 }
 
 void GLHelper::switchRenderToShadowMapPoint() {
     checkErrors("switchRenderToShadowMapPointBefore");
-    glViewport(0, 0, options->getShadowWidth(), options->getShadowHeight());
+    glViewport(0, 0, options->getShadowMapPointWidth(), options->getShadowMapPointHeight());
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
 
     glCullFace(GL_FRONT);
+    //glDisable(GL_CULL_FACE);
 
     checkErrors("switchRenderToShadowMapPoint");
 }
@@ -494,11 +576,11 @@ void GLHelper::switchRenderToShadowMapPoint() {
 void GLHelper::switchRenderToDefault() {
     glViewport(0, 0, screenWidth, screenHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     //we bind shadow map to last texture unit
     state->attach2DTextureArray(depthMapDirectional, maxTextureImageUnits - 1);
     state->attachCubemapArray(depthCubemapPoint, maxTextureImageUnits - 2);
     glCullFace(GL_BACK);
+    //glEnable(GL_CULL_FACE);
     checkErrors("switchRenderToDefault");
 }
 
@@ -513,11 +595,33 @@ void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, 
     glBindVertexArray(vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
+    renderTriangleCount = renderTriangleCount + elementCount;
     glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, nullptr);
     glBindVertexArray(0);
     //state->setProgram(0);
 
     checkErrors("render");
+}
+
+void GLHelper::renderInstanced(GLuint program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
+                               uint32_t instanceCount) {
+    if (program == 0) {
+        std::cerr << "No program render requested." << std::endl;
+        return;
+    }
+    state->setProgram(program);
+
+    // Set up for a glDrawElements call
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+
+    renderTriangleCount = renderTriangleCount + (triangleCount * instanceCount);
+    glDrawElementsInstanced(GL_TRIANGLES, triangleCount, GL_UNSIGNED_INT, nullptr, instanceCount);
+    glBindVertexArray(0);
+    //state->setProgram(0);
+
+    checkErrors("renderInstanced");
+
 }
 
 bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 &matrix) {
@@ -528,6 +632,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         state->setProgram(programID);
         glUniformMatrix4fv(uniformID, 1, GL_FALSE, glm::value_ptr(matrix));
         //state->setProgram(0);
+        uniformSetCount++;
         checkErrors("setUniformMatrix");
         return true;
     }
@@ -544,6 +649,7 @@ GLHelper::setUniformArray(const GLuint programID, const GLuint uniformID, const 
         int elementCount = matrixArray.size();
         glUniformMatrix4fv(uniformID, elementCount, GL_FALSE, glm::value_ptr(matrixArray.at(0)));
         //state->setProgram(0);
+        uniformSetCount++;
         checkErrors("setUniformMatrixArray");
         return true;
     }
@@ -557,6 +663,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         state->setProgram(programID);
         glUniform3fv(uniformID, 1, glm::value_ptr(vector));
         //state->setProgram(0);
+        uniformSetCount++;
         checkErrors("setUniformVector");
         return true;
     }
@@ -570,6 +677,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         state->setProgram(programID);
         glUniform1f(uniformID, value);
         //state->setProgram(0);
+        uniformSetCount++;
         checkErrors("setUniformFloat");
         return true;
     }
@@ -583,6 +691,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
         state->setProgram(programID);
         glUniform1i(uniformID, value);
         //state->setProgram(0);
+        uniformSetCount++;
         checkErrors("setUniformInt");
         return true;
     }
@@ -596,6 +705,7 @@ GLHelper::~GLHelper() {
 
     deleteBuffer(1, lightUBOLocation);
     deleteBuffer(1, playerUBOLocation);
+    deleteBuffer(1, allMaterialsUBOLocation);
     deleteBuffer(1, depthMapDirectional);
     glDeleteFramebuffers(1, &depthOnlyFrameBufferDirectional); //maybe we should wrap this up too
     //state->setProgram(0);
@@ -607,7 +717,7 @@ void GLHelper::reshape() {
     this->screenWidth = options->getScreenWidth();
     glViewport(0, 0, options->getScreenWidth(), options->getScreenHeight());
     aspect = float(options->getScreenHeight()) / float(options->getScreenWidth());
-    perspectiveProjectionMatrix = glm::perspective(options->PI/3.0f, 1.0f / aspect, 0.1f, 1000.0f);
+    perspectiveProjectionMatrix = glm::perspective(options->PI/3.0f, 1.0f / aspect, 0.01f, 1000.0f);
     orthogonalProjectionMatrix = glm::ortho(0.0f, (float) options->getScreenWidth(), 0.0f, (float) options->getScreenHeight());
     checkErrors("reshape");
 }
@@ -618,6 +728,22 @@ GLuint GLHelper::loadTexture(int height, int width, GLenum format, void *data) {
     state->activateTextureUnit(0);//this is the default working texture
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    switch (options->getTextureFiltering()) {
+        case Options::TextureFilteringModes::NEAREST:
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            break;
+        case Options::TextureFilteringModes::BILINEAR:
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            break;
+        case Options::TextureFilteringModes::TRILINEAR:
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            break;
+    }
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
     checkErrors("loadTexture");
@@ -656,8 +782,20 @@ GLuint GLHelper::loadCubeMap(int height, int width, void *right, void *left, voi
     glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, bottom);
     glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, back);
     glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, front);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    switch (options->getTextureFiltering()) {
+        case Options::TextureFilteringModes::NEAREST:
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            break;
+        case Options::TextureFilteringModes::BILINEAR:
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            break;
+        case Options::TextureFilteringModes::TRILINEAR:
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            break;
+    }
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -716,6 +854,7 @@ void GLHelper::drawLines(GLSLProgram &program, uint32_t vao, uint32_t vbo, const
     glBufferSubData(GL_ARRAY_BUFFER, 0, lines.size() * sizeof(Line), lines.data());
     program.setUniform("cameraTransformMatrix", perspectiveProjectionMatrix * cameraMatrix);
 
+    renderLineCount = renderLineCount + lines.size();
     glDrawArrays(GL_LINES, 0, lines.size()*2);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -732,15 +871,16 @@ void GLHelper::setLight(const Light &light, const int i) {
     GLint lightType;
     switch (light.getLightType()) {
         case Light::DIRECTIONAL:
-            lightType = 0;
+            lightType = 1;
             break;
         case Light::POINT:
-            lightType = 1;
+            lightType = 2;
             break;
     }
 
     //std::cout << "light type is " << lightType << std::endl;
     //std::cout << "size is " << sizeof(GLint) << std::endl;
+    float farPlane = 100;
 
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
     glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize,
@@ -749,12 +889,59 @@ void GLHelper::setLight(const Light &light, const int i) {
                     sizeof(glm::mat4), glm::value_ptr(lightSpaceMatrix));
     glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7,
                     sizeof(glm::vec3), &light.getPosition());
+    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec3),
+                    sizeof(GLfloat), &farPlane);
     glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec4),
                     sizeof(glm::vec3), &light.getColor());
     glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec4) + sizeof(glm::vec3),
                     sizeof(GLint), &lightType);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setLight");
+}
+
+void GLHelper::setMaterial(const Material* material) {
+    /*
+     * this buffer has 2 objects, model has mat4 and then the material below:
+     *
+    layout (std140) uniform MaterialInformationBlock {
+            vec3 ambient;
+            float shininess;
+            vec3 diffuse;
+            int isMap;
+    } material;
+    */
+    float shininess = material->getSpecularExponent();
+    uint32_t maps = material->getMaps();
+
+    glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
+    glBufferSubData(GL_UNIFORM_BUFFER, material->getMaterialIndex() * materialUniformSize,
+                    sizeof(glm::vec3), glm::value_ptr(material->getAmbientColor()));
+    glBufferSubData(GL_UNIFORM_BUFFER, material->getMaterialIndex() * materialUniformSize + sizeof(glm::vec3),
+                    sizeof(GLfloat), &shininess);
+    glBufferSubData(GL_UNIFORM_BUFFER, material->getMaterialIndex() * materialUniformSize + sizeof(glm::vec3) + sizeof(GLfloat),
+                    sizeof(glm::vec3), glm::value_ptr(material->getDiffuseColor()));
+    glBufferSubData(GL_UNIFORM_BUFFER, material->getMaterialIndex() * materialUniformSize + 2 *sizeof(glm::vec3) + sizeof(GLfloat),
+                    sizeof(GLint), &maps);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    checkErrors("setMaterial");
+}
+
+void GLHelper::setModel(const uint32_t modelID, const glm::mat4& worldTransform) {
+    glBindBuffer(GL_UNIFORM_BUFFER, allModelsUBOLocation);
+    glBufferSubData(GL_UNIFORM_BUFFER, modelID * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(worldTransform));
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    checkErrors("setModel");
+}
+
+void GLHelper::setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) {
+    std::vector<glm::uvec4> temp;
+    for (uint32_t i = 0; i < modelIndicesList.size(); ++i) {
+        temp.push_back(glm::uvec4(modelIndicesList[i], 0,0,0));
+    }
+    glBindBuffer(GL_UNIFORM_BUFFER, allModelIndexesUBOLocation);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::uvec4) * modelIndicesList.size(), glm::value_ptr(temp.at(0)));
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    checkErrors("setModelIndexesUBO");
 }
 
 void GLHelper::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform) {
@@ -767,64 +954,60 @@ void GLHelper::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat
     glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), sizeof(glm::vec3), &cameraPosition);//changes with camera
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    calculateFrustumPlanes();
+    calculateFrustumPlanes(cameraMatrix, perspectiveProjectionMatrix, frustumPlanes);
     checkErrors("setPlayerMatrices");
 }
 
-const glm::mat4 &GLHelper::getLightProjectionMatrixPoint() const {
-    return lightProjectionMatrixPoint;
-}
-
-void GLHelper::calculateFrustumPlanes() {
+void GLHelper::calculateFrustumPlanes(const glm::mat4 &cameraMatrix,
+                                      const glm::mat4 &projectionMatrix, std::vector<glm::vec4> &planes) const {
+    assert(planes.size() == 6);
     glm::mat4 clipMat;
 
     for(int i = 0; i < 4; i++) {
         glm::vec4 cameraRow = cameraMatrix[i];
-        clipMat[i].x = cameraRow.x * perspectiveProjectionMatrix[0].x + cameraRow.y * perspectiveProjectionMatrix[1].x +
-                        cameraRow.z * perspectiveProjectionMatrix[2].x + cameraRow.w * perspectiveProjectionMatrix[3].x;
-        clipMat[i].y = cameraRow.x * perspectiveProjectionMatrix[0].y + cameraRow.y * perspectiveProjectionMatrix[1].y +
-                        cameraRow.z * perspectiveProjectionMatrix[2].y + cameraRow.w * perspectiveProjectionMatrix[3].y;
-        clipMat[i].z = cameraRow.x * perspectiveProjectionMatrix[0].z + cameraRow.y * perspectiveProjectionMatrix[1].z +
-                        cameraRow.z * perspectiveProjectionMatrix[2].z + cameraRow.w * perspectiveProjectionMatrix[3].z;
-        clipMat[i].w = cameraRow.x * perspectiveProjectionMatrix[0].w + cameraRow.y * perspectiveProjectionMatrix[1].w +
-                        cameraRow.z * perspectiveProjectionMatrix[2].w + cameraRow.w * perspectiveProjectionMatrix[3].w;
+        clipMat[i].x =  cameraRow.x * projectionMatrix[0].x + cameraRow.y * projectionMatrix[1].x +
+                        cameraRow.z * projectionMatrix[2].x + cameraRow.w * projectionMatrix[3].x;
+        clipMat[i].y =  cameraRow.x * projectionMatrix[0].y + cameraRow.y * projectionMatrix[1].y +
+                        cameraRow.z * projectionMatrix[2].y + cameraRow.w * projectionMatrix[3].y;
+        clipMat[i].z =  cameraRow.x * projectionMatrix[0].z + cameraRow.y * projectionMatrix[1].z +
+                        cameraRow.z * projectionMatrix[2].z + cameraRow.w * projectionMatrix[3].z;
+        clipMat[i].w =  cameraRow.x * projectionMatrix[0].w + cameraRow.y * projectionMatrix[1].w +
+                        cameraRow.z * projectionMatrix[2].w + cameraRow.w * projectionMatrix[3].w;
     }
 
-    frustumPlanes[RIGHT].x = clipMat[0].w - clipMat[0].x;
-    frustumPlanes[RIGHT].y = clipMat[1].w - clipMat[1].x;
-    frustumPlanes[RIGHT].z = clipMat[2].w - clipMat[2].x;
-    frustumPlanes[RIGHT].w = clipMat[3].w - clipMat[3].x;
-    frustumPlanes[RIGHT] = glm::normalize(frustumPlanes[RIGHT]);
+    planes[RIGHT].x = clipMat[0].w - clipMat[0].x;
+    planes[RIGHT].y = clipMat[1].w - clipMat[1].x;
+    planes[RIGHT].z = clipMat[2].w - clipMat[2].x;
+    planes[RIGHT].w = clipMat[3].w - clipMat[3].x;
+    planes[RIGHT] = glm::normalize(planes[RIGHT]);
 
-    frustumPlanes[LEFT].x = clipMat[0].w + clipMat[0].x;
-    frustumPlanes[LEFT].y = clipMat[1].w + clipMat[1].x;
-    frustumPlanes[LEFT].z = clipMat[2].w + clipMat[2].x;
-    frustumPlanes[LEFT].w = clipMat[3].w + clipMat[3].x;
-    frustumPlanes[LEFT] = glm::normalize(frustumPlanes[LEFT]);
+    planes[LEFT].x = clipMat[0].w + clipMat[0].x;
+    planes[LEFT].y = clipMat[1].w + clipMat[1].x;
+    planes[LEFT].z = clipMat[2].w + clipMat[2].x;
+    planes[LEFT].w = clipMat[3].w + clipMat[3].x;
+    planes[LEFT] = glm::normalize(planes[LEFT]);
 
-    frustumPlanes[BOTTOM].x = clipMat[0].w + clipMat[0].y;
-    frustumPlanes[BOTTOM].y = clipMat[1].w + clipMat[1].y;
-    frustumPlanes[BOTTOM].z = clipMat[2].w + clipMat[2].y;
-    frustumPlanes[BOTTOM].w = clipMat[3].w + clipMat[3].y;
-    frustumPlanes[BOTTOM] = glm::normalize(frustumPlanes[BOTTOM]);
+    planes[BOTTOM].x = clipMat[0].w + clipMat[0].y;
+    planes[BOTTOM].y = clipMat[1].w + clipMat[1].y;
+    planes[BOTTOM].z = clipMat[2].w + clipMat[2].y;
+    planes[BOTTOM].w = clipMat[3].w + clipMat[3].y;
+    planes[BOTTOM] = glm::normalize(planes[BOTTOM]);
 
-    frustumPlanes[TOP].x = clipMat[0].w - clipMat[0].y;
-    frustumPlanes[TOP].y = clipMat[1].w - clipMat[1].y;
-    frustumPlanes[TOP].z = clipMat[2].w - clipMat[2].y;
-    frustumPlanes[TOP].w = clipMat[3].w - clipMat[3].y;
-    frustumPlanes[TOP] = glm::normalize(frustumPlanes[TOP]);
+    planes[TOP].x = clipMat[0].w - clipMat[0].y;
+    planes[TOP].y = clipMat[1].w - clipMat[1].y;
+    planes[TOP].z = clipMat[2].w - clipMat[2].y;
+    planes[TOP].w = clipMat[3].w - clipMat[3].y;
+    planes[TOP] = glm::normalize(planes[TOP]);
 
-    frustumPlanes[BACK].x = clipMat[0].w - clipMat[0].z;
-    frustumPlanes[BACK].y = clipMat[1].w - clipMat[1].z;
-    frustumPlanes[BACK].z = clipMat[2].w - clipMat[2].z;
-    frustumPlanes[BACK].w = clipMat[3].w - clipMat[3].z;
-    frustumPlanes[BACK] = glm::normalize(frustumPlanes[BACK]);
+    planes[BACK].x = clipMat[0].w - clipMat[0].z;
+    planes[BACK].y = clipMat[1].w - clipMat[1].z;
+    planes[BACK].z = clipMat[2].w - clipMat[2].z;
+    planes[BACK].w = clipMat[3].w - clipMat[3].z;
+    planes[BACK] = glm::normalize(planes[BACK]);
 
-    frustumPlanes[FRONT].x = clipMat[0].w + clipMat[0].z;
-    frustumPlanes[FRONT].y = clipMat[1].w + clipMat[1].z;
-    frustumPlanes[FRONT].z = clipMat[2].w + clipMat[2].z;
-    frustumPlanes[FRONT].w = clipMat[3].w + clipMat[3].z;
-    frustumPlanes[FRONT] = glm::normalize(frustumPlanes[FRONT]);
+    planes[FRONT].x = clipMat[0].w + clipMat[0].z;
+    planes[FRONT].y = clipMat[1].w + clipMat[1].z;
+    planes[FRONT].z = clipMat[2].w + clipMat[2].z;
+    planes[FRONT].w = clipMat[3].w + clipMat[3].z;
+    planes[FRONT] = glm::normalize(planes[FRONT]);
 }
-
-

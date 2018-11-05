@@ -1,0 +1,35 @@
+<Options>
+    <screenWidth>1920</screenWidth>
+    <screenHeight>1080</screenHeight>
+    <shadowMapDirectionalWidth>4096</shadowMapDirectionalWidth>
+    <shadowMapDirectionalHeight>4096</shadowMapDirectionalHeight>
+    <shadowMapPointWidth>512</shadowMapPointWidth>
+    <shadowMapPointHeight>512</shadowMapPointHeight>
+    <debugDrawBufferSize>1000</debugDrawBufferSize>
+
+    <lightOrthogonalProjectionNearPlane>1.0</lightOrthogonalProjectionNearPlane>
+    <lightOrthogonalProjectionFarPlane>100</lightOrthogonalProjectionFarPlane>
+    <lightPerspectiveProjectionNearPlane>1.0</lightPerspectiveProjectionNearPlane>
+    <lightPerspectiveProjectionFarPlane>100</lightPerspectiveProjectionFarPlane>
+    <walkSpeed>
+        <X>8</X>
+        <Y>0</Y>
+        <Z>8</Z>
+    </walkSpeed>
+    <runSpeed>
+        <X>12</X>
+        <Y>0</Y>
+        <Z>12</Z>
+    </runSpeed>
+    <freeMovementSpeed>
+        <X>0.1</X>
+        <Y>0.1</Y>
+        <Z>0.1</Z>
+    </freeMovementSpeed>
+    <lightOrthogonalProjectionValues>
+        <X>-100.0</X>
+        <Y>100.0</Y>
+        <Z>-100.0</Z>
+        <W>100.0</W>
+    </lightOrthogonalProjectionValues>
+</Options>

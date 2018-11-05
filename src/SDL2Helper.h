@@ -17,6 +17,8 @@ class SDL2Helper {
     Options* options;
 public:
 
+    void setFullScreen(bool isFullScreen);
+
     SDL2Helper(const char *, Options* options);
 
     ~SDL2Helper();
@@ -25,6 +27,8 @@ public:
         SDL_GL_SwapWindow(window);
         options->setIsWindowInFocus(SDL_GetWindowFlags(window) & SDL_WINDOW_MOUSE_FOCUS);
     };
+
+    bool loadSharedLibrary(const std::string& fileName);
 
     SDL_Window *getWindow();
 };

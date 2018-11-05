@@ -15,7 +15,6 @@
 class Options;
 
 class FreeMovingPlayer : public Player, public CameraAttachment {
-    Options* options;
     bool dirty;
     glm::vec3 position;
     glm::vec3 center;
@@ -24,13 +23,14 @@ class FreeMovingPlayer : public Player, public CameraAttachment {
     glm::quat view;
 public:
 
-    FreeMovingPlayer(Options* options, GUIRenderable* cursor);
+    FreeMovingPlayer(Options* options, GUIRenderable* cursor, const glm::vec3 &position,
+                     const glm::vec3 &lookDirection);
 
     bool isDirty() {
         return dirty;
     }
 
-    void getCameraVariables(glm::vec3& position, glm::vec3 &center, glm::vec3& up, glm::vec3 right) {
+    void getCameraVariables(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right) {
         position = this->position;
         center = this->center;
         up = this->up;
@@ -65,13 +65,17 @@ public:
         cursor->setTranslate(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f));
     };
 
-    void registerToPhysicalWorld(btDiscreteDynamicsWorld* world __attribute__((unused)), const glm::vec3& worldAABBMin __attribute__((unused)), const glm::vec3& worldAABBMax __attribute__((unused))) {}
+    void registerToPhysicalWorld(btDiscreteDynamicsWorld *world __attribute((unused)), int collisionGroup __attribute((unused)), int collisionMask __attribute((unused)),
+                                     const glm::vec3 &worldAABBMin __attribute((unused)), const glm::vec3 &worldAABBMax __attribute((unused))) {}
 
 
     void processPhysicsWorld(const btDiscreteDynamicsWorld *world __attribute__((unused))) {};
 
     void rotate(float xPosition, float yPosition, float xChange, float yChange);
 
+    CameraAttachment* getCameraAttachment() {
+        return this;
+    }
 };
 
 

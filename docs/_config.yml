@@ -11,6 +11,7 @@ url: https://enginmanap.github.io/
 # *** IMPORTANT: If your local "jekyll serve" throws errors change this to '' or
 #     run it like so: jekyll serve --baseurl=''
 baseurl: '/limonEngine'
+github_comments_repository: enginmanap/limonEngine
 ## default date_format
 date_format: 
   title: "%B-%-d-%Y"

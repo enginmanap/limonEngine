@@ -3,7 +3,7 @@
 //
 
 #include "MeshAsset.h"
-
+#include "../GLHelper.h"
 
 MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
                      const Material *material, const BoneNode *meshSkeleton, const glm::mat4 &parentTransform,
@@ -15,7 +15,9 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
     }
 
     vertexCount = currentMesh->mNumVertices;
-    setTriangles(currentMesh);
+    if(!setTriangles(currentMesh)) {
+        throw "No triangle found";
+    }
 
     uint_fast32_t vbo;
     assetManager->getGlHelper()->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
@@ -117,7 +119,7 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
     }
 }
 
-void MeshAsset::setTriangles(const aiMesh *currentMesh) {
+bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
     //In this part, the "if"s can be put in for, but then we will check them for each iteration. I am
     // not sure if that creates enough performance difference, it can be checked.
     if(isPartOfAnimated) {
@@ -125,8 +127,9 @@ void MeshAsset::setTriangles(const aiMesh *currentMesh) {
             for (unsigned int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]));
                 normals.push_back(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]));
-                textureCoordinates.push_back(
-                        glm::vec2(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y));
+                glm::vec2 vectorsTextureCoordinates(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y);
+                normalizeTextureCoordinates(vectorsTextureCoordinates);
+                textureCoordinates.push_back(vectorsTextureCoordinates);
 
             }
         } else {
@@ -141,8 +144,9 @@ void MeshAsset::setTriangles(const aiMesh *currentMesh) {
             for (unsigned int j = 0; j < currentMesh->mNumVertices; ++j) {
                 vertices.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mVertices[j]), 1.0f)));
                 normals.push_back(glm::vec3(parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mNormals[j]), 1.0f)));
-                textureCoordinates.push_back(
-                        glm::vec2(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y));
+                glm::vec2 vectorsTextureCoordinates(currentMesh->mTextureCoords[0][j].x, currentMesh->mTextureCoords[0][j].y);
+                normalizeTextureCoordinates(vectorsTextureCoordinates);
+                textureCoordinates.push_back(vectorsTextureCoordinates);
 
             }
         } else {
@@ -154,11 +158,39 @@ void MeshAsset::setTriangles(const aiMesh *currentMesh) {
     }
 
     for (unsigned int j = 0; j < currentMesh->mNumFaces; ++j) {
-        faces.push_back(glm::vec3(currentMesh->mFaces[j].mIndices[0],
-                                  currentMesh->mFaces[j].mIndices[1],
-                                  currentMesh->mFaces[j].mIndices[2]));
+        if(currentMesh->mFaces[j].mNumIndices == 3) {
+            faces.push_back(glm::vec3(currentMesh->mFaces[j].mIndices[0],
+                                      currentMesh->mFaces[j].mIndices[1],
+                                      currentMesh->mFaces[j].mIndices[2]));
+        }
     }
 
+    if(faces.size() > 0) {
+        return true;
+    }
+    return false;
+}
+
+void MeshAsset::normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const {
+    float fractionPart = textureCoordinates.x;
+    if(fabs(textureCoordinates.x) > 1) {
+        double integerPart;
+        fractionPart = modf (textureCoordinates.x , &integerPart);
+    }
+    if(textureCoordinates.x < 0 ) {
+        fractionPart = fractionPart + 1;
+    }
+    textureCoordinates.x = fractionPart;
+
+    fractionPart = textureCoordinates.y;
+    if(fabs(textureCoordinates.y) > 1) {
+        double integerPart;
+        fractionPart = modf (textureCoordinates.y , &integerPart);
+    }
+    if(textureCoordinates.y < 0 ) {
+        fractionPart = fractionPart + 1;
+    }
+    textureCoordinates.y = fractionPart;
 }
 
 bool MeshAsset::addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, float weight) {

@@ -5,8 +5,8 @@
 #include "CubeMapAsset.h"
 
 
-CubeMapAsset::CubeMapAsset(AssetManager* assetManager, const std::vector<std::string> &fileList) :
-        Asset(assetManager, fileList) {
+CubeMapAsset::CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList) :
+        Asset(assetManager, assetID, fileList) {
     if (fileList.size() < 7) {
         std::cerr << "CubeMap load failed because file name vector does not have 7 elements." << std::endl;
         exit(-1);

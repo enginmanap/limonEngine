@@ -6,11 +6,15 @@
 #include "ModelAsset.h"
 #include "../glm/gtx/matrix_decompose.hpp"
 #include "../Utils/GLMUtils.h"
+#include "Animations/AnimationAssimp.h"
+#include "../GLHelper.h"
+#include "Animations/AnimationAssimpSection.h"
 
-ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string> &fileList) : Asset(assetManager,
-                                                                                                     fileList),
-                                                                                               boneIDCounter(0),
-                                                                                               boneIDCounterPerMesh(0) {
+ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList)
+        : Asset(assetManager, assetID,
+                fileList),
+          boneIDCounter(0),
+          boneIDCounterPerMesh(0) {
     if (fileList.empty()) {
         std::cerr << "Model load failed because file name vector is empty." << std::endl;
         exit(-1);
@@ -29,11 +33,6 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
         std::cerr << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
         exit(-1);
     }
-
-    aiMatrix4x4 m_GlobalInverseTransform = scene->mRootNode->mTransformation;
-    m_GlobalInverseTransform.Inverse();
-
-    globalInverseTransform = GLMConverter::AssimpToGLM(m_GlobalInverseTransform);
 
     this->hasAnimation = (scene->mNumAnimations != 0);
 
@@ -59,6 +58,8 @@ ModelAsset::ModelAsset(AssetManager *assetManager, const std::vector<std::string
     centerOffset = glm::vec3((max.x + min.x) / 2, (max.y + min.y) / 2, (max.z + min.z) / 2);
     std::cout << "Model asset: " << name << "Assimp bounding box is " << GLMUtils::vectorToString(boundingBoxMin) << ", " <<  GLMUtils::vectorToString(boundingBoxMax) << std::endl;
     //Implicit call to import.FreeScene(), and removal of scene.
+
+    this->deserializeCustomizations();
 }
 
 
@@ -76,24 +77,32 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
     Material *newMaterial;
     if (materialMap.find(property.C_Str()) == materialMap.end()) {//search for the name
         //if the material is not loaded before
-        newMaterial = new Material(assetManager, property.C_Str());
+        newMaterial = new Material(assetManager, property.C_Str(), assetManager->getGlHelper()->getNextMaterialIndex());
         aiColor3D color(0.f, 0.f, 0.f);
         float transferFloat;
 
         if (AI_SUCCESS == currentMaterial->Get(AI_MATKEY_COLOR_AMBIENT, color)) {
             newMaterial->setAmbientColor(GLMConverter::AssimpToGLM(color));
+        } else {
+            newMaterial->setAmbientColor(glm::vec3(0,0,0));
         }
 
         if (AI_SUCCESS == currentMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, color)) {
             newMaterial->setDiffuseColor(GLMConverter::AssimpToGLM(color));
+        } else {
+            newMaterial->setDiffuseColor(glm::vec3(0,0,0));
         }
 
         if (AI_SUCCESS == currentMaterial->Get(AI_MATKEY_COLOR_SPECULAR, color)) {
             newMaterial->setSpecularColor(GLMConverter::AssimpToGLM(color));
+        } else {
+            newMaterial->setSpecularColor(glm::vec3(0,0,0));
         }
 
         if (AI_SUCCESS == currentMaterial->Get(AI_MATKEY_SHININESS, transferFloat)) {
             newMaterial->setSpecularExponent(transferFloat);
+        } else {
+            newMaterial->setSpecularExponent(0);
         }
 
         if ((currentMaterial->GetTextureCount(aiTextureType_AMBIENT) > 0)) {
@@ -135,6 +144,23 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
             }
         }
 
+        uint32_t maps = 0;
+        if(newMaterial->hasAmbientMap()) {
+            maps +=8;
+        }
+        if(newMaterial->hasDiffuseMap()) {
+            maps +=4;
+        }
+        if(newMaterial->hasSpecularMap()) {
+            maps +=2;
+        }
+        if(newMaterial->hasOpacityMap()) {
+            maps +=1;
+        }
+        newMaterial->setMaps(maps);
+
+        assetManager->getGlHelper()->setMaterial(newMaterial);
+
         materialMap[newMaterial->getName()] = newMaterial;
     } else {
         newMaterial = materialMap[property.C_Str()];
@@ -149,27 +175,25 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
         aiMesh *currentMesh;
         currentMesh = scene->mMeshes[aiNode->mMeshes[i]];
         for (unsigned int j = 0; j < currentMesh->mNumBones; ++j) {
-            meshOffsetmap[currentMesh->mBones[j]->mName.C_Str()] = GLMConverter::AssimpToGLM(
-                    currentMesh->mBones[j]->mOffsetMatrix);
-            std::string boneName =  currentMesh->mBones[j]->mName.C_Str();
-            boneName += "_parent";
-            meshOffsetmap[boneName] = parentTransform;
+            boneInformationMap[currentMesh->mBones[j]->mName.C_Str()].globalMeshInverse = glm::inverse(parentTransform);
+            boneInformationMap[currentMesh->mBones[j]->mName.C_Str()].offset = GLMConverter::AssimpToGLM(currentMesh->mBones[j]->mOffsetMatrix);
+            boneInformationMap[currentMesh->mBones[j]->mName.C_Str()].parentOffset = parentTransform;
         }
         if(currentMesh->mNumBones == 0 && hasAnimation) {
             //If animated, but a mesh without any bone exits, we should process that mesh specially
-            //meshOffsetmap[aiNode->mName.C_Str()] = GLMConverter::AssimpToGLM(aiNode->mTransformation);
-            //meshOffsetmap[aiNode->mName.C_Str()] = parentTransform;
-            meshOffsetmap[aiNode->mName.C_Str()] = glm::mat4(1.0f);
-            std::string boneName =  aiNode->mName.C_Str();
-            boneName += "_parent";
-            //meshOffsetmap[boneName] = GLMConverter::AssimpToGLM(aiNode->mTransformation);
-            meshOffsetmap[boneName] = glm::mat4(1.0f);
+            boneInformationMap[aiNode->mName.C_Str()].offset = glm::mat4(1.0f);
+            boneInformationMap[aiNode->mName.C_Str()].parentOffset = glm::mat4(1.0f);
+            boneInformationMap[aiNode->mName.C_Str()].globalMeshInverse = glm::mat4(1.0f);
         }
 
         Material *meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
-        MeshAsset *mesh = new MeshAsset(assetManager, currentMesh,aiNode->mName.C_Str(), meshMaterial, rootNode,
-                                        parentTransform, hasAnimation);
-        //FIXME the exception thrown from new is not catch
+        MeshAsset *mesh;
+        try {
+            mesh = new MeshAsset(assetManager, currentMesh, aiNode->mName.C_Str(), meshMaterial, rootNode,
+                                            parentTransform, hasAnimation);
+        } catch(...) {
+            continue;
+        }
 
         if(!strncmp(aiNode->mName.C_Str(), "UCX_", strlen("UCX_"))) {
             //if starts with "UCX_"
@@ -219,7 +243,75 @@ bool ModelAsset::findNode(const std::string &nodeName, BoneNode** foundNode, Bon
     return false;
 }
 
-void ModelAsset::getTransform(long time, std::string animationName, std::vector<glm::mat4> &transformMatrix) const {
+/**
+ * Blends two animations to generate transform matrix vector
+ *
+ * @param animationName1
+ * @param time1
+ * @param looped1
+ * @param animationName2
+ * @param time2
+ * @param looped2
+ * @param blendFactor
+ * @param transformMatrixVector
+ * @return returns true if both of the animations set their last frames. If any were looped, never returns true.
+ */
+bool ModelAsset::getTransformBlended(std::string animationName1, long time1, bool looped1,
+                                         std::string animationName2, long time2, bool looped2,
+                                         float blendFactor, std::vector<glm::mat4> &transformMatrixVector) const {
+    bool lastElementPlayed;
+    std::vector<glm::mat4> transformMatrixVector2;
+    transformMatrixVector2.resize(transformMatrixVector.size());
+    //first build the first transform matrix vector
+    lastElementPlayed = this->getTransform(time1, looped1, animationName1, transformMatrixVector);
+    //get the second one
+    lastElementPlayed = this->getTransform(time2, looped2, animationName2, transformMatrixVector2) && lastElementPlayed;//avoid short circuit
+
+    //now blend
+    for (size_t i = 0; i < transformMatrixVector.size(); ++i) {
+        transformMatrixVector[i] = blendMatrices(transformMatrixVector[i], transformMatrixVector2[i], blendFactor);
+    }
+    return lastElementPlayed;
+}
+
+glm::mat4 ModelAsset::blendMatrices(const glm::mat4 &matrix1, const glm::mat4 &Matrix2,
+                          float blendFactor) const {
+    glm::vec3 scale1, translate1, skew1;
+    glm::vec4 perspective1;
+    glm::quat orientation1;
+    decompose(matrix1, scale1, orientation1, translate1, skew1, perspective1);
+
+    glm::vec3 scale2, translate2, skew2;
+    glm::vec4 perspective2;
+    glm::quat orientation2;
+
+    decompose(Matrix2, scale2, orientation2, translate2, skew2, perspective2);
+
+
+    glm::vec3 scaleDelta = scale2 - scale1;
+    glm::vec3 scaleB = scale1 + blendFactor * scaleDelta;
+
+    glm::vec3 translateDelta = translate2 - translate1;
+    glm::vec3 translateB = translate1 + blendFactor * translateDelta;
+    glm::quat orientationB =  glm::normalize(slerp(orientation1, orientation2, blendFactor));
+
+    return translate(glm::mat4(1.0f), translateB) * mat4_cast(orientationB) *
+                 scale(glm::mat4(1.0f), scaleB);
+}
+
+
+/**
+ * This method is used to request a specific animations transform array for a specific time. If looped is false,
+ * it will return if the given time was after or equals final frame. It interpolates by time automatically.
+ *
+ * @param time Requested animation time in miliseconds.
+ * @param looped if animation should loop or not. Effects return.
+ * @param animationName name of animation to seek.
+ * @param transformMatrix transform matrix list for bones
+ *
+ * @return if last frame of animation is played for not looped animation. Always false for looped ones.
+ */
+bool ModelAsset::getTransform(long time, bool looped, std::string animationName, std::vector<glm::mat4> &transformMatrix) const {
 /*
     for(auto it = animations.begin(); it != animations.end(); it++) {
         std::cout << "Animations name: " << it->first << " size " << animations.size() <<std::endl;
@@ -229,63 +321,72 @@ void ModelAsset::getTransform(long time, std::string animationName, std::vector<
         //this means return to bind pose
         //FIXME calculating bind pose for each frame is wrong, but I am assuming this part will be removed, and idle pose
         //will be used instead. If bind pose requirement arises, it should set once, and reused.
-        for(std::unordered_map<std::string, glm::mat4>::const_iterator it = meshOffsetmap.begin(); it != meshOffsetmap.end(); it++){
+        for(std::unordered_map<std::string, BoneInformation>::const_iterator it = boneInformationMap.begin(); it != boneInformationMap.end(); it++){
             BoneNode* node;
             std::string name = it->first;
             if(findNode(name, &node, rootNode)) {
-                transformMatrix[node->boneID] = meshOffsetmap.at(node->name + "_parent");
+                transformMatrix[node->boneID] = boneInformationMap.at(node->name).parentOffset;
                 //parent above means parent transform of the mesh node, not the parent of bone.
             }
         }
         std::cout << "bind pose returned. for animation name [" << animationName << "]"<< std::endl;
-        return;
+        return true;
     }
 
-    const AnimationSet *currentAnimation;
+    const AnimationInterface *currentAnimation;
     if(animations.find(animationName) != animations.end()) {
         currentAnimation = animations.at(animationName);
     } else {
         std::cerr << "Animation " << animationName << " not found, playing first animation. " << std::endl;
         currentAnimation = animations.begin()->second;
     }
-    
-    
+
+    float animationTime;
     float ticksPerSecond;
-    if (currentAnimation->ticksPerSecond != 0) {
-        ticksPerSecond = currentAnimation->ticksPerSecond;
+    if (currentAnimation->getTicksPerSecond() != 0) {
+        ticksPerSecond = currentAnimation->getTicksPerSecond();
     } else {
         ticksPerSecond = 60.0f;
     }
 
-    float animationTime = fmod((time / 1000.0f) * ticksPerSecond, currentAnimation->duration);
+    bool result = false;
+    float requestedTime = (time / 1000.0f) * ticksPerSecond;
+    if(requestedTime < currentAnimation->getDuration()) {
+        animationTime = requestedTime;
+    } else {
+        if (looped) {
+            animationTime = fmod(requestedTime, currentAnimation->getDuration());
+        } else {
+            animationTime = currentAnimation->getDuration();
+            result = true;
+        }
+    }
+
     glm::mat4 parentTransform(1.0f);
     traverseAndSetTransform(rootNode, parentTransform, currentAnimation, animationTime, transformMatrix);
+    return result;
 }
 
 void
-ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform, const AnimationSet *animation,
+ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform,
+                                    const AnimationInterface *animation,
                                     float timeInTicks,
                                     std::vector<glm::mat4> &transforms) const {
-/*
-    for(auto it = animation->nodes.begin(); it != animation->nodes.end(); it++) {
-        std::cout << "Animation node name: " << it->first << std::endl;
-    }
-*/
-    glm::mat4 nodeTransform;
 
-    if (animation->nodes.find(boneNode->name) == animation->nodes.end()) {//if the bone has no animation, it can happen
+    glm::mat4 nodeTransform;
+    Transformation tf;
+    bool status = animation->calculateTransform(boneNode->name, timeInTicks, tf);
+    nodeTransform = tf.getWorldTransform();
+
+    if(!status) {
         nodeTransform = boneNode->transformation;
-    } else {
-        // Interpolate scaling and generate scaling transformation matrix
-        AnimationNode *nodeAnimation = animation->nodes.at(boneNode->name);
-        nodeTransform = calculateTransform(nodeAnimation, timeInTicks);
     }
 
     nodeTransform = parentTransform * nodeTransform;
 
-    if(meshOffsetmap.find(boneNode->name) != meshOffsetmap.end()) {
+    if(boneInformationMap.find(boneNode->name) != boneInformationMap.end()) {
         transforms[boneNode->boneID] =
-                globalInverseTransform * meshOffsetmap.at(boneNode->name + "_parent") * nodeTransform * meshOffsetmap.at(boneNode->name);
+                boneInformationMap.at(boneNode->name).globalMeshInverse * boneInformationMap.at(boneNode->name).parentOffset * nodeTransform * boneInformationMap.at(boneNode->name).offset;
         //parent above means parent transform of the mesh node, not the parent of bone.
     }
 
@@ -293,92 +394,6 @@ ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &p
     for (unsigned int i = 0; i < boneNode->children.size(); ++i) {
         traverseAndSetTransform(boneNode->children[i], nodeTransform, animation, timeInTicks, transforms);
     }
-}
-
-glm::vec3 ModelAsset::getPositionVector(const float timeInTicks, const AnimationNode *nodeAnimation) const {
-    glm::vec3 transformVector;
-    if (nodeAnimation->translates.size() == 1) {
-            transformVector = nodeAnimation->translates[0];
-        } else {
-            unsigned int positionIndex = 0;
-            for (unsigned int i = 0; i < nodeAnimation->translates.size(); i++) {
-                if (timeInTicks < nodeAnimation->translateTimes[i + 1]) {
-                    positionIndex = i;
-                    break;
-                }
-            }
-
-            unsigned int NextPositionIndex = (positionIndex + 1);
-            assert(NextPositionIndex < nodeAnimation->translates.size());
-            float DeltaTime = (float) (nodeAnimation->translateTimes[NextPositionIndex] -
-                                       nodeAnimation->translateTimes[positionIndex]);
-            float Factor = (timeInTicks - (float) nodeAnimation->translateTimes[positionIndex]) / DeltaTime;
-            assert(Factor >= 0.0f && Factor <= 1.0f);
-            const glm::vec3 &Start = nodeAnimation->translates[positionIndex];
-            const glm::vec3 &End = nodeAnimation->translates[NextPositionIndex];
-            glm::vec3 Delta = End - Start;
-            transformVector = Start + Factor * Delta;
-        }
-    return transformVector;
-}
-
-glm::vec3 ModelAsset::getScalingVector(const float timeInTicks, const AnimationNode *nodeAnimation) const {
-    glm::vec3 scalingTransformVector;
-    if (nodeAnimation->scales.size() == 1) {
-            scalingTransformVector = nodeAnimation->scales[0];
-        } else {
-            unsigned int ScalingIndex = 0;
-            assert(nodeAnimation->scales.size() > 0);
-            for (unsigned int i = 0; i < nodeAnimation->scales.size(); i++) {
-                if (timeInTicks < nodeAnimation->scaleTimes[i + 1]) {
-                    ScalingIndex = i;
-                    break;
-                }
-            }
-
-
-            unsigned int NextScalingIndex = (ScalingIndex + 1);
-            assert(NextScalingIndex < nodeAnimation->scales.size());
-            float DeltaTime = (nodeAnimation->scaleTimes[NextScalingIndex] -
-                                       nodeAnimation->scaleTimes[ScalingIndex]);
-            float Factor = (timeInTicks - (float) nodeAnimation->scaleTimes[ScalingIndex]) / DeltaTime;
-            assert(Factor >= 0.0f && Factor <= 1.0f);
-            const glm::vec3 &Start = nodeAnimation->scales[ScalingIndex];
-            const glm::vec3 &End = nodeAnimation->scales[NextScalingIndex];
-            glm::vec3 Delta = End - Start;
-            scalingTransformVector = Start + Factor * Delta;
-        }
-    return scalingTransformVector;
-}
-
-glm::quat ModelAsset::getRotationQuat(const float timeInTicks, const AnimationNode *nodeAnimation) const {
-    glm::quat rotationTransformQuaternion;
-    if (nodeAnimation->rotations.size() == 1) {
-        rotationTransformQuaternion = nodeAnimation->rotations[0];
-        } else {
-
-            int rotationIndex = 0;
-
-            assert(nodeAnimation->rotations.size() > 0);
-
-            for (unsigned int i = 0; i < nodeAnimation->rotations.size(); i++) {
-                if (timeInTicks < (float) nodeAnimation->rotationTimes[i + 1]) {
-                    rotationIndex = i;
-                    break;
-                }
-            }
-
-            unsigned int NextRotationIndex = (rotationIndex + 1);
-            assert(NextRotationIndex < nodeAnimation->rotations.size());
-            float DeltaTime = (nodeAnimation->rotationTimes[NextRotationIndex] -
-                                       nodeAnimation->rotationTimes[rotationIndex]);
-            float Factor = (timeInTicks - (float) nodeAnimation->rotationTimes[rotationIndex]) / DeltaTime;
-            assert(Factor >= 0.0f && Factor <= 1.0f);
-            const glm::quat &StartRotationQ = nodeAnimation->rotations[rotationIndex];
-            const glm::quat &EndRotationQ = nodeAnimation->rotations[NextRotationIndex];
-            rotationTransformQuaternion = glm::normalize(glm::slerp(StartRotationQ, EndRotationQ, Factor));
-        }
-    return rotationTransformQuaternion;
 }
 
 bool ModelAsset::isAnimated() const {
@@ -392,56 +407,128 @@ void ModelAsset::fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnim
         std::string animationName = currentAnimation->mName.C_Str();
         std::cout << "add animation with name " << animationName << std::endl;
 
-        AnimationSet* animationSet = new AnimationSet();
-        animationSet->duration = currentAnimation->mDuration;
-        animationSet->ticksPerSecond = currentAnimation->mTicksPerSecond;
-        //create and attach AnimationNodes
-        for (unsigned int j = 0; j < currentAnimation->mNumChannels; ++j) {
-            AnimationNode* node = new AnimationNode();
-            for (unsigned int k = 0; k < currentAnimation->mChannels[j]->mNumPositionKeys; ++k) {
-                node->translates.push_back(glm::vec3(
-                        currentAnimation->mChannels[j]->mPositionKeys[k].mValue.x,
-                        currentAnimation->mChannels[j]->mPositionKeys[k].mValue.y,
-                        currentAnimation->mChannels[j]->mPositionKeys[k].mValue.z));
-                node->translateTimes.push_back(currentAnimation->mChannels[j]->mPositionKeys[k].mTime);
-            }
-
-            for (unsigned int k = 0; k < currentAnimation->mChannels[j]->mNumScalingKeys; ++k) {
-                node->scales.push_back(glm::vec3(
-                        currentAnimation->mChannels[j]->mScalingKeys[k].mValue.x,
-                        currentAnimation->mChannels[j]->mScalingKeys[k].mValue.y,
-                        currentAnimation->mChannels[j]->mScalingKeys[k].mValue.z));
-                node->scaleTimes.push_back(currentAnimation->mChannels[j]->mScalingKeys[k].mTime);
-            }
-
-            for (unsigned int k = 0; k < currentAnimation->mChannels[j]->mNumRotationKeys; ++k) {
-                node->rotations.push_back(glm::quat(
-                        currentAnimation->mChannels[j]->mRotationKeys[k].mValue.w,
-                        currentAnimation->mChannels[j]->mRotationKeys[k].mValue.x,
-                        currentAnimation->mChannels[j]->mRotationKeys[k].mValue.y,
-                        currentAnimation->mChannels[j]->mRotationKeys[k].mValue.z));
-                node->rotationTimes.push_back(currentAnimation->mChannels[j]->mRotationKeys[k].mTime);
-            }
-            animationSet->nodes[currentAnimation->mChannels[j]->mNodeName.C_Str()] = node;
-        }
-        animations[animationName] = animationSet;
+        AnimationAssimp* animationObject = new AnimationAssimp(currentAnimation);
+        animations[animationName] = animationObject;
     }
 
     //validate
 }
 
+bool ModelAsset::addAnimationAsSubSequence(const std::string &baseAnimationName, const std::string newAnimationName,
+                                           float startTime, float endTime) {
+    if(this->animations.find(baseAnimationName) == this->animations.end()) {
+        //base animation not found
+        return false;
+    }
+    AnimationInterface* animationAssimp = this->animations[baseAnimationName];
+    AnimationAssimpSection* animation = new AnimationAssimpSection(animationAssimp, startTime, endTime);
 
-glm::mat4 ModelAsset::calculateTransform(AnimationNode *animation, float time) const {
-//this method can benefit from move and also reusing the intermediate matrices
-    glm::vec3 scalingTransformVector, transformVector;
-    glm::quat rotationTransformQuaternion;
+    this->animations[newAnimationName] = animation;
 
-    scalingTransformVector = getScalingVector(time, animation);
-    rotationTransformQuaternion = getRotationQuat(time, animation);
-    transformVector = getPositionVector(time, animation);
+    this->animationSections.push_back(AnimationSection(baseAnimationName, newAnimationName, startTime, endTime));
+    std::cout << "animation created and added to sections" << std::endl;
+    this->customizationAfterSave = true;
+    return true;
+}
 
-    glm::mat4 rotationMatrix = glm::mat4_cast(rotationTransformQuaternion);
-    glm::mat4 translateMatrix = glm::translate(glm::mat4(1.0f), transformVector);
-    glm::mat4 scaleTransform = glm::scale(glm::mat4(1.0f), scalingTransformVector);
-    return translateMatrix * rotationMatrix * scaleTransform;
+void ModelAsset::serializeCustomizations() {
+    if(!customizationAfterSave) {
+        //Since assets are shared, serialize will be called multiple times. This flag is just a block for that.
+        return;
+    }
+    tinyxml2::XMLDocument customizationDocument;
+    tinyxml2::XMLNode * rootNode = customizationDocument.NewElement("ModelCustomizations");
+    customizationDocument.InsertFirstChild(rootNode);
+
+    tinyxml2::XMLElement * animationsSectionsNode = customizationDocument.NewElement("Animation");
+    rootNode->InsertEndChild(animationsSectionsNode);
+    for(auto it=this->animationSections.begin(); it != this->animationSections.end(); it++) {
+        tinyxml2::XMLElement *sectionElement = customizationDocument.NewElement("Section");
+        animationsSectionsNode->InsertEndChild(sectionElement);
+
+        tinyxml2::XMLElement *currentElement = customizationDocument.NewElement("BaseName");
+        currentElement->SetText(it->baseAnimationName.c_str());
+        sectionElement->InsertEndChild(currentElement);
+
+        currentElement = customizationDocument.NewElement("Name");
+        currentElement->SetText(it->animationName.c_str());
+        sectionElement->InsertEndChild(currentElement);
+
+        currentElement = customizationDocument.NewElement("StartTime");
+        currentElement->SetText(std::to_string(it->startTime).c_str());
+        sectionElement->InsertEndChild(currentElement);
+
+        currentElement = customizationDocument.NewElement("EndTime");
+        currentElement->SetText(std::to_string(it->endTime).c_str());
+        sectionElement->InsertEndChild(currentElement);
+    }
+
+    tinyxml2::XMLError eResult = customizationDocument.SaveFile((name + ".limon").c_str());
+    if(eResult != tinyxml2::XML_SUCCESS) {
+        std::cerr << "ERROR saving model customization: " << eResult << std::endl;
+    } else {
+        customizationAfterSave = false;
+    }
+}
+
+void ModelAsset::deserializeCustomizations() {
+    tinyxml2::XMLDocument xmlDoc;
+    tinyxml2::XMLError eResult = xmlDoc.LoadFile((name + ".limon").c_str());
+    if (eResult != tinyxml2::XML_SUCCESS) {
+        if(eResult == tinyxml2::XML_ERROR_FILE_NOT_FOUND) {
+            //if no customization, this happens.
+            return;
+        } else {
+            std::cerr << "Error loading XML " << (name + ".limon") << ": " << xmlDoc.ErrorName() << ". Customizations not loaded." << std::endl;
+            return;
+        }
+    }
+
+    tinyxml2::XMLNode * rootNode = xmlDoc.FirstChild();
+    if (rootNode == nullptr) {
+        std::cerr << "customization xml " << (name + ".limon") << " is not a valid XML." << std::endl;
+        return;
+    }
+
+    tinyxml2::XMLElement* animationsNode =  rootNode->FirstChildElement("Animation");
+    if (animationsNode == nullptr) {
+        std::cerr << "Customizations must have a Animation field." << std::endl;
+        return;
+    }
+    tinyxml2::XMLElement* sectionNode =  animationsNode->FirstChildElement("Section");
+
+    while(sectionNode != nullptr) {
+        tinyxml2::XMLElement* baseNameNode = sectionNode->FirstChildElement("BaseName");
+        if(baseNameNode == nullptr) {
+            std::cerr << "Animation section without a base animation name can't be read. Animation loading not possible, skipping" << std::endl;
+        } else {
+            std::string baseName = baseNameNode->GetText();
+
+            tinyxml2::XMLElement *animationNameNode = sectionNode->FirstChildElement("Name");
+            if (animationNameNode == nullptr) {
+                std::cerr << "Animation section name can't be read. Animation loading not possible, skipping"  << std::endl;
+            } else {
+                std::string animationSectionName = animationNameNode->GetText();
+                tinyxml2::XMLElement *startTimeNode = sectionNode->FirstChildElement("StartTime");
+                if (startTimeNode == nullptr) {
+                    std::cerr << "Animation section start time can't be read. Animation loading not possible, skipping"  << std::endl;
+                } else {
+                    float startTime = std::stof(startTimeNode->GetText());
+
+                    tinyxml2::XMLElement *endTimeNode = sectionNode->FirstChildElement("EndTime");
+                    if (endTimeNode == nullptr) {
+                        std::cerr << "Animation section end timecan't be read. Animation loading not possible, skipping"  << std::endl;
+                    } else {
+                        float endTime = std::stof(endTimeNode->GetText());
+                        this->addAnimationAsSubSequence(baseName, animationSectionName, startTime, endTime);
+                    }
+                }
+            }
+        }
+        sectionNode = sectionNode->NextSiblingElement("Section");
+    } // end of while (Section)
+
+
+
+
 }

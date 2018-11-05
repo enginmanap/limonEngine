@@ -3,6 +3,7 @@
 //
 
 #include "GUIRenderable.h"
+#include "GUILayer.h"
 
 GUIRenderable::GUIRenderable(GLHelper *glHelper) : Renderable(glHelper) {
     vertices.push_back(glm::vec3(-1.0f, -1.0f, 0.0f));
@@ -22,16 +23,14 @@ GUIRenderable::GUIRenderable(GLHelper *glHelper) : Renderable(glHelper) {
     textureCoordinates.push_back(glm::vec2(1.0f, 0.0f));
     textureCoordinates.push_back(glm::vec2(0.0f, 0.0f));
     glHelper->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
-
-    renderProgram = new GLSLProgram(glHelper, "./Data/Shaders/GUI/vertex.glsl", "./Data/Shaders/GUI/fragment.glsl", false);
 }
 
 void GUIRenderable::renderDebug(BulletDebugDrawer* debugDrawer) {
-    float up = translate.y + scale.y;
-    float down = translate.y - scale.y;
+    float up    = transformation.getTranslate().y + transformation.getScale().y;
+    float down  = transformation.getTranslate().y - transformation.getScale().y;
 
-    float right = translate.x + scale.x;
-    float left = translate.x - scale.x;
+    float right = transformation.getTranslate().x + transformation.getScale().x;
+    float left  = transformation.getTranslate().x - transformation.getScale().x;
 
     //now build 4 lines;
     debugDrawer->drawLine(glm::vec3(left, up, 0.0f), glm::vec3(left, down, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f),

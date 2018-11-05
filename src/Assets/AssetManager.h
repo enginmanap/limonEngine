@@ -12,57 +12,52 @@
 #include <tinyxml2.h>
 
 #include "Asset.h"
+#include "../ALHelper.h"
 
+class GLHelper;
+class ALHelper;
 
 class AssetManager {
-    enum AssetTypes { Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP };
+public:
+    enum AssetTypes { Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND };
+private:
+    const std::string ASSET_EXTENSIONS_FILE = "./engine/assetExtensions.xml";
+
     //second of the pair is how many times load requested. prework for unload
     std::map<const std::vector<std::string>, std::pair<Asset *, uint32_t>> assets;
+    uint32_t nextAssetIndex = 1;
 
-    std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be un predictable
+    std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
     GLHelper *glHelper;
+    ALHelper *alHelper;
+
+    void addAssetsRecursively(const std::string &directoryPath, const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions);
+
+    std::vector<std::pair<std::string, AssetTypes>> loadAssetExtensionList();
+
+    bool loadAssetList();
+
+    bool isExtensionInList(const std::string &name, const std::vector<std::pair<std::string, AssetTypes>> &vector,
+                               AssetTypes &elementAssetType);
+
+    static bool isEnding(std::string const &fullString, std::string const &ending) {
+        if (fullString.length() >= ending.length()) {
+            return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+        } else {
+            return false;
+        }
+    }
 public:
 
-    explicit AssetManager(GLHelper *glHelper) : glHelper(glHelper) {}
-
-    /**
-     * This should be done not from file but file system. Best way is switch to c++17, but not sure
-     *
-     * @param assetListFile
-     */
-    bool loadAssetList(const std::string& assetListFile) {
-        tinyxml2::XMLDocument xmlDoc;
-        tinyxml2::XMLError eResult = xmlDoc.LoadFile(assetListFile.c_str());
-        if (eResult != tinyxml2::XML_SUCCESS) {
-            std::cerr << "Error loading Asset file list XML: " <<  xmlDoc.ErrorName() << std::endl;
-            return false;
-        }
-        tinyxml2::XMLNode * assetsNode = xmlDoc.FirstChild();
-        if (assetsNode == nullptr) {
-            std::cerr << "Asset list xml is not a valid XML." << std::endl;
-            return false;
-        }
-        const char* typeName;
-        tinyxml2::XMLElement* currentAssetNode =  assetsNode->FirstChildElement("Asset");
-        while(currentAssetNode != nullptr) {
-            typeName = currentAssetNode->Attribute("type");
-            if(!strcmp(typeName, "Model")) {// if type Model
-                availableAssetsList[currentAssetNode->GetText()] = AssetTypes::Asset_type_MODEL;
-                std::cout << "adding available asset " << currentAssetNode->GetText() << std::endl;
-            } else {
-                std::cerr << "Not implemented yet" << std::endl;
-                exit(-1);
-            }
-            currentAssetNode = currentAssetNode->NextSiblingElement("Asset");
-        }
-        return true;
+    explicit AssetManager(GLHelper *glHelper, ALHelper *alHelper) : glHelper(glHelper), alHelper(alHelper) {
+        loadAssetList();
     }
 
     template<class T>
     T *loadAsset(const std::vector<std::string> files) {
         if (assets.count(files) == 0) {
-
-            assets[files] = std::make_pair(new T(this, files), 0);
+            assets[files] = std::make_pair(new T(this, nextAssetIndex, files), 0);
+            nextAssetIndex++;
         }
 
         assets[files].second++;
@@ -92,6 +87,10 @@ public:
         return glHelper;
     }
 
+    ALHelper *getAlHelper() const {
+        return alHelper;
+    }
+
     ~AssetManager() {
         //free all the assets
         for (std::map<const std::vector<std::string>, std::pair<Asset *, uint32_t>>::iterator it = assets.begin();
@@ -99,7 +98,6 @@ public:
             delete it->second.first;
         }
     }
-
 };
 
 

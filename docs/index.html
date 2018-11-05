@@ -3,33 +3,46 @@ layout: default
 ---
 {% assign trans = site.data.values[site.lan] %}
 {% for post in paginator.posts %}
-<div class="well article">
+    <div class="well article">
 
-    <span class="post-date">
-        <!--
-        {% assign d = post.date | date: "%d" | plus:'0' %}
-        {{ post.date | date: "%B" }}
-        {% case d %}
-        {% when 1 or 21 or 31 %}{{ d }}st,
-        {% when 2 or 22 %}{{ d }}nd,
-        {% when 3 or 23 %}{{ d }}rd,
-        {% else %}{{ d }}th,
-        {% endcase %}
-        {{ post.date | date: "%Y" }}
-        -->
-        {% assign date_format = site.date_format.title %}
-        {{ post.date | date: date_format }}
-    </span>
-    
-    <h2>
-        <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
-    </h2>
-    
-    <div class="post-description">
-        {{ post.description }}
+        <span class="post-date">
+            <!--
+            {% assign d = post.date | date: "%d" | plus:'0' %}
+            {{ post.date | date: "%B" }}
+            {% case d %}
+            {% when 1 or 21 or 31 %}{{ d }}st,
+            {% when 2 or 22 %}{{ d }}nd,
+            {% when 3 or 23 %}{{ d }}rd,
+            {% else %}{{ d }}th,
+            {% endcase %}
+            {{ post.date | date: "%Y" }}
+            -->
+            {% assign date_format = site.date_format.title %}
+            {{ post.date | date: date_format }}
+        </span>
+
+        <h2>
+            <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
+        </h2>
+
+        <div class="post-description">
+            {{ post.description }}
+        </div>
+
+        <br>
+
+        <div class="post-content">
+            {{ post.excerpt }}
+        </div>
+
+        <br>
+        
+        <div align="right">
+            <h2>
+                <a href="{{ site.baseurl }}{{ post.url }}"> read more </a>
+            </h2>
+        </div>
     </div>
-    
-</div>
 {% endfor %}
 
 <div class="pagination">

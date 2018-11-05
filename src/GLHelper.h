@@ -27,8 +27,12 @@
 #endif/*__APPLE__*/
 
 #define NR_POINT_LIGHTS 4
+#define NR_MAX_MODELS (1000)
+#define NR_MAX_MATERIALS 2000
 
 #include "Options.h"
+class Material;
+
 class Light;
 
 class GLSLProgram;
@@ -63,6 +67,8 @@ class GLHelper {
         }
 
     public:
+        uint32_t programChangeCount=0;
+
         explicit OpenglState(GLint textureUnitCount) : activeProgram(0) {
             textures = new unsigned int[textureUnitCount];
             memset(textures, 0, textureUnitCount * sizeof(int));
@@ -97,6 +103,7 @@ class GLHelper {
 
         void setProgram(GLuint program) {
             if (program != this->activeProgram) {
+                programChangeCount++;
                 glUseProgram(program);
                 this->activeProgram = program;
             }
@@ -165,6 +172,7 @@ public:
 
 private:
     GLenum error;
+    uint32_t nextMaterialIndex = 0;//this is used to keep each material in the  GPU memory. imagine it like size of vector
     GLint maxTextureImageUnits;
     OpenglState *state;
 
@@ -176,6 +184,11 @@ private:
 
     GLuint lightUBOLocation;
     GLuint playerUBOLocation;
+    GLuint allMaterialsUBOLocation;
+    GLuint allModelsUBOLocation;
+    GLuint allModelIndexesUBOLocation;
+
+    uint32_t activeMaterialIndex;
 
     GLuint depthOnlyFrameBufferDirectional;
     GLuint depthMapDirectional;
@@ -186,15 +199,34 @@ private:
     Options *options;
 
     const uint_fast32_t lightUniformSize = (sizeof(glm::mat4) * 7) + (2 * sizeof(glm::vec4));
+    const uint32_t playerUniformSize = 3 * sizeof(glm::mat4) + sizeof(glm::vec4);
+    int32_t materialUniformSize = 2 * sizeof(glm::vec3) + sizeof(float) + sizeof(GLuint);
+    int32_t modelUniformSize = sizeof(glm::mat4);
+
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;
-    glm::vec4 frustumPlanes[6];
+    std::vector<glm::vec4>frustumPlanes;
     glm::mat4 orthogonalProjectionMatrix;
     glm::mat4 lightProjectionMatrixDirectional;
     glm::mat4 lightProjectionMatrixPoint;
+    uint32_t renderTriangleCount;
+    uint32_t renderLineCount;
+    uint32_t uniformSetCount=0;
+
 
 public:
-    const glm::mat4 &getLightProjectionMatrixPoint() const;
+    void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) {
+        triangleCount = renderTriangleCount;
+        lineCount = renderLineCount;
+    }
+
+    const glm::mat4 &getLightProjectionMatrixPoint() const {
+        return lightProjectionMatrixPoint;
+    }
+
+    const glm::mat4 &getLightProjectionMatrixDirectional() const {
+        return lightProjectionMatrixDirectional;
+    }
 
 private:
     inline bool checkErrors(const std::string &callerFunc __attribute((unused))) {
@@ -229,18 +261,24 @@ private:
 
     void fillUniformMap(const GLuint program, std::unordered_map<std::string, Uniform *> &uniformMap) const;
 
-    void attachUBOs(const GLuint program) const;
-
+    void attachGeneralUBOs(const GLuint program);
     void bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
                                const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
                                const uint_fast32_t attachPointer);
-
-    void calculateFrustumPlanes();
 
 public:
     explicit GLHelper(Options *options);
 
     ~GLHelper();
+
+    void attachModelUBO(const uint32_t program);
+
+    void attachMaterialUBO(const uint32_t program, const uint32_t materialID);
+
+    uint32_t getNextMaterialIndex() {
+        return nextMaterialIndex++;
+    }
+
     GLuint initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
                                  std::unordered_map<std::string, Uniform *> &);
 
@@ -273,6 +311,14 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
         glClear(GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        renderTriangleCount = 0;
+        renderLineCount = 0;
+        //std::cout << "program change count was : " << state->programChangeCount << std::endl;
+        state->programChangeCount = 0;
+
+        //std::cout << "uniform set count was : " << uniformSetCount << std::endl;
+        uniformSetCount = 0;
     }
 
     void render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount);
@@ -292,11 +338,11 @@ public:
 
     bool getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location);
 
-    glm::mat4 getCameraMatrix() const { return cameraMatrix; };
+    const glm::mat4& getCameraMatrix() const { return cameraMatrix; };
 
-    glm::mat4 getProjectionMatrix() const { return perspectiveProjectionMatrix; };
+    const glm::mat4& getProjectionMatrix() const { return perspectiveProjectionMatrix; };
 
-    glm::mat4 getOrthogonalProjectionMatrix() const { return orthogonalProjectionMatrix; }
+    const glm::mat4& getOrthogonalProjectionMatrix() const { return orthogonalProjectionMatrix; }
 
     void createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize);
 
@@ -330,21 +376,39 @@ public:
         return maxTextureImageUnits;
     }
 
+    void calculateFrustumPlanes(const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix,
+                                std::vector<glm::vec4> &planes) const;
+
     inline bool isInFrustum(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const {
+        return isInFrustum(aabbMin, aabbMax, frustumPlanes);
+    }
+
+    inline bool isInFrustum(const glm::vec3& aabbMin, const glm::vec3& aabbMax, const std::vector<glm::vec4>& frustumPlaneVector) const {
         bool inside = true;
         //test all 6 frustum planes
         for (int i = 0; i<6; i++) {
             //pick closest point to plane and check if it behind the plane
             //if yes - object outside frustum
-            float d = std::fmax(aabbMin.x * frustumPlanes[i].x, aabbMax.x * frustumPlanes[i].x)
-                      + std::fmax(aabbMin.y * frustumPlanes[i].y, aabbMax.y * frustumPlanes[i].y)
-                      + std::fmax(aabbMin.z * frustumPlanes[i].z, aabbMax.z * frustumPlanes[i].z)
-                      + frustumPlanes[i].w;
+            float d =   std::fmax(aabbMin.x * frustumPlaneVector[i].x, aabbMax.x * frustumPlaneVector[i].x)
+                      + std::fmax(aabbMin.y * frustumPlaneVector[i].y, aabbMax.y * frustumPlaneVector[i].y)
+                      + std::fmax(aabbMin.z * frustumPlaneVector[i].z, aabbMax.z * frustumPlaneVector[i].z)
+                      + frustumPlaneVector[i].w;
             inside &= d > 0;
             //return false; //with flag works faster
         }
         return inside;
     }
+
+    void setMaterial(const Material *material);
+
+    void setModel(const uint32_t modelID, const glm::mat4 &worldTransform);
+
+    void setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList);
+
+    void attachModelIndicesUBO(const uint32_t programID);
+
+    void renderInstanced(GLuint program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
+                         uint32_t instanceCount);
 };
 
 #endif //LIMONENGINE_GLHELPER_H
