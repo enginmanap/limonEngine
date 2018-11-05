@@ -1,24 +1,9 @@
-dist: trusty
-sudo: false
+sudo: required
+
 language: cpp
 
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - build-essential
-      - g++-5
-      - libassimp-dev
-      - libbullet-dev
-      - libsdl2-dev
-      - libsdl2-image-dev
-      - libfreetype6-dev
-      - libtinyxml2-dev
-      - libglew-dev
-      - libglm-dev
-      - libtinyxml2-dev
+services:
+  - docker
 
-script:
-  - CXX=/usr/bin/g++-5 CC=/usr/bin/gcc-5 cmake .
-  - cmake --build . -- -j2
+before_install:
+  - docker build -t enginmanap/limonengine .
