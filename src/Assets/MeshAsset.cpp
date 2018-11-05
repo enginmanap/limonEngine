@@ -174,7 +174,7 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
 void MeshAsset::normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const {
     float fractionPart = textureCoordinates.x;
     if(fabs(textureCoordinates.x) > 1) {
-        float integerPart;
+        double integerPart;
         fractionPart = modf (textureCoordinates.x , &integerPart);
     }
     if(textureCoordinates.x < 0 ) {
@@ -184,7 +184,7 @@ void MeshAsset::normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const
 
     fractionPart = textureCoordinates.y;
     if(fabs(textureCoordinates.y) > 1) {
-        float integerPart;
+        double integerPart;
         fractionPart = modf (textureCoordinates.y , &integerPart);
     }
     if(textureCoordinates.y < 0 ) {
