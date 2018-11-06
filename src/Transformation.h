@@ -111,8 +111,8 @@ public:
     }
 
     ~Transformation() {
-
-        for (auto iterator = childTransforms.begin(); iterator != childTransforms.end(); ++iterator) {
+        std::vector<Transformation*> childTransformsBackup = childTransforms;//why backup? because remove parent invalidates
+        for (auto iterator = childTransformsBackup.begin(); iterator != childTransformsBackup.end(); ++iterator) {
             (*iterator)->removeParentTransform();
         }
         removeParentTransform();
