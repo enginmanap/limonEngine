@@ -69,7 +69,7 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldPlaySound = std::bind(&World::playSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     limonAPI->worldRayCastToCursor = std::bind(&World::rayCastToCursorAPI, world);
     limonAPI->worldGetObjectTransformation = std::bind(&World::getObjectTransformationAPI, world, std::placeholders::_1);
-
+    limonAPI->worldGetObjectTransformationMatrix = std::bind(&World::getObjectTransformationMatrixAPI, world, std::placeholders::_1);
 
     world->apiInstance = limonAPI;
 }

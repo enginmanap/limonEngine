@@ -1550,6 +1550,12 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 ImGui::EndGroup();
                 parameter.value.longValues[2] = RadioButtonValue;
             }
+            break;
+
+            case LimonAPI::ParameterRequest::RequestParameterTypes::COORDINATE:
+            case LimonAPI::ParameterRequest::RequestParameterTypes::TRANSFORM:
+                std::cerr << "These parameter types are not handled!" << std::endl;
+
         }
     }
     return isAllSet;
@@ -2052,6 +2058,20 @@ std::vector<LimonAPI::ParameterRequest> World::getObjectTransformationAPI(uint32
     result.push_back(orientation);
 
     return result;
+}
+
+std::vector<LimonAPI::ParameterRequest> World::getObjectTransformationMatrixAPI(uint32_t objectID) const {
+   std::vector<LimonAPI::ParameterRequest> result;
+   if(objects.find(objectID) == objects.end()) {
+       return result;
+   }
+
+   LimonAPI::ParameterRequest transform;
+   transform.valueType = LimonAPI::ParameterRequest::ValueTypes::MAT4;
+   transform.value.matrixValue = GLMConverter::GLMToLimon(objects.at(objectID)->getTransformation()->getWorldTransform());
+
+   result.push_back(transform);
+   return result;
 }
 
 GameObject * World::getPointedObject(int collisionType, int filterMask,

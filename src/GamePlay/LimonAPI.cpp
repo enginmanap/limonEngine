@@ -317,3 +317,7 @@ std::vector<LimonAPI::ParameterRequest> LimonAPI::rayCastToCursor() {
 std::vector<LimonAPI::ParameterRequest> LimonAPI::getObjectTransformation(uint32_t objectID) {
     return worldGetObjectTransformation(objectID);
 }
+
+std::vector<LimonAPI::ParameterRequest> LimonAPI::getObjectTransformationMatrix(uint32_t objectID) {
+    return worldGetObjectTransformationMatrix(objectID);
+}

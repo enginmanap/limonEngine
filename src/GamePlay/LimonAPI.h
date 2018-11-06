@@ -130,6 +130,15 @@ public:
      */
     std::vector<LimonAPI::ParameterRequest> getObjectTransformation(uint32_t objectID);
 
+    /**
+     * Returns mat4 with objects transform
+     *
+     * It might be required for object that has custom matrix generation
+     * @param objectID
+     * @return
+     */
+    std::vector<LimonAPI::ParameterRequest> getObjectTransformationMatrix(uint32_t objectID);
+
     bool loadAndSwitchWorld(const std::string& worldFileName);
     bool returnToWorld(const std::string& worldFileName);//if world is not loaded, loads first
     bool LoadAndRemove(const std::string& worldFileName); // removes current world after loading the new one
@@ -184,6 +193,7 @@ private:
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t , uint32_t )> worldGetResultOfTrigger;
     std::function<bool (uint32_t)> worldRemoveObject;
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t)> worldGetObjectTransformation;
+    std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t)> worldGetObjectTransformationMatrix;
     std::function<bool (uint32_t, uint32_t)> worldAttachObjectToObject;
     std::function<bool (uint32_t)> worldRemoveTriggerObject;
     std::function<bool (uint32_t)> worldDisconnectObjectFromPhysics;
