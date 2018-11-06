@@ -378,7 +378,6 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler, LimonAPI *limonAPI
     }
 
     if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT) && inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
-        std::cerr << "input call " << std::endl;
         if((attachedModel->getAnimationName() != "Shoot" ||  attachedModel->isAnimationFinished())) {
             attachedModel->setAnimation("Shoot", false);
             limonAPI->playSound("./Data/Sounds/EasyFPS/shot.wav", glm::vec3(0,0,0), false);
@@ -420,29 +419,23 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler, LimonAPI *limonAPI
                 }
 
 
-                std::vector<LimonAPI::ParameterRequest>modelTransformation = limonAPI->getObjectTransformation(rayResult[0].value.longValue);
-                if(modelTransformation.size() == 0) {
+                std::vector<LimonAPI::ParameterRequest>modelTransformationMat = limonAPI->getObjectTransformationMatrix(rayResult[0].value.longValue);
+                if(modelTransformationMat.size() == 0) {
                     std::cerr << "Hit an object, but its ID "<< (uint32_t)rayResult[0].value.longValue << " is invalid!" << std::endl;
 
                     limonAPI->addObject("./Data/Models/BulletHole/BulletHole.obj", 0, false, hitPos, scale, orientation);//add with default values
                 } else {
-                     glm::vec3 hitObjectPosition(   modelTransformation[0].value.vectorValue.x, modelTransformation[0].value.vectorValue.y, modelTransformation[0].value.vectorValue.z);
-                     glm::vec3 hitObjectScale(      modelTransformation[1].value.vectorValue.x, modelTransformation[1].value.vectorValue.y, modelTransformation[1].value.vectorValue.z);
-                     glm::quat hitObjectOrientation(modelTransformation[2].value.vectorValue.w, modelTransformation[2].value.vectorValue.x, modelTransformation[2].value.vectorValue.y, modelTransformation[2].value.vectorValue.z);//starts with w
-
-                     //at this point, we will attach the bullet hole to the object, to do so, we need to update the scale, translate and orientation
+                    //at this point, we will attach the bullet hole to the object, to do so, we need to update the scale, translate and orientation
 
                      // using the dirty method
                      glm::mat4 currentDesiredTransformMatrix = glm::translate(glm::mat4(1.0f), hitPos) * glm::mat4_cast(orientation) *
                                                                glm::scale(glm::mat4(1.0f), scale);
 
-                     glm::mat4 currentParentTransform  = glm::translate(glm::mat4(1.0f), hitObjectPosition) * glm::mat4_cast(hitObjectOrientation) *
-                                                         glm::scale(glm::mat4(1.0f), hitObjectScale);
+                    glm::mat4 currentParentTransform = GLMConverter::LimonToGLM(modelTransformationMat[0].value.matrixValue);
 
                      //what is needed to get parent to child?
                      // currentDesired = currentParent * x
                      // x = 'currentParent * currentDesired
-
 
                      glm::mat4 delta = glm::inverse(currentParentTransform) * currentDesiredTransformMatrix;
                      glm::vec3 temp1;//these are not used

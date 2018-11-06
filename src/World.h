@@ -437,6 +437,8 @@ public:
 
     std::vector<LimonAPI::ParameterRequest> getObjectTransformationAPI(uint32_t objectID) const;
 
+    std::vector<LimonAPI::ParameterRequest> getObjectTransformationMatrixAPI(uint32_t objectID) const;
+
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);
 };
