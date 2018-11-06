@@ -40,9 +40,9 @@ public:
 
     static glm::mat4 LimonToGLM (const LimonAPI::Mat4 &matrix) {
         return glm::mat4(LimonToGLM(matrix[0]),
-                              LimonToGLM(matrix[1]),
-                              LimonToGLM(matrix[2]),
-                              LimonToGLM(matrix[3]));
+                         LimonToGLM(matrix[1]),
+                         LimonToGLM(matrix[2]),
+                         LimonToGLM(matrix[3]));
     }
 
     static glm::vec3 BltToGLM(const btVector3 &vector) {
