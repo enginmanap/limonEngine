@@ -52,7 +52,7 @@ public:
             rows[0] = row0;
             rows[1] = row1;
             rows[2] = row2;
-            rows[0] = row3;
+            rows[3] = row3;
         }
 
         Vec4 operator [] (int i) const {return rows[i];}
