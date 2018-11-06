@@ -404,8 +404,8 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler, LimonAPI *limonAPI
 
                 //means we hit something, put the bullet hole to place:
                 glm::vec3 scale(0.2f, 0.2f, 0.2f);
-                glm::vec3 hitPos(rayResult[1].value.doubleValue, rayResult[2].value.doubleValue, rayResult[3].value.doubleValue);
-                glm::vec3 hitNormal(rayResult[4].value.doubleValue, rayResult[5].value.doubleValue, rayResult[6].value.doubleValue);
+                glm::vec3 hitPos(rayResult[1].value.vectorValue.x, rayResult[1].value.vectorValue.y, rayResult[1].value.vectorValue.z);
+                glm::vec3 hitNormal(rayResult[2].value.vectorValue.x, rayResult[2].value.vectorValue.y, rayResult[2].value.vectorValue.z);
                 std::cout << "hit something, with position " << glm::to_string(hitPos) << ", and normal " << glm::to_string(hitNormal) << "." << std::endl;
 
                 hitPos +=hitNormal * 0.002f; //move hit position a bit towards the normal to prevent zfight
@@ -426,9 +426,9 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler, LimonAPI *limonAPI
 
                     limonAPI->addObject("./Data/Models/BulletHole/BulletHole.obj", 0, false, hitPos, scale, orientation);//add with default values
                 } else {
-                     glm::vec3 hitObjectPosition(modelTransformation[0].value.doubleValue, modelTransformation[1].value.doubleValue, modelTransformation[2].value.doubleValue);
-                     glm::vec3 hitObjectScale(modelTransformation[3].value.doubleValue, modelTransformation[4].value.doubleValue, modelTransformation[5].value.doubleValue);
-                     glm::quat hitObjectOrientation(modelTransformation[9].value.doubleValue, modelTransformation[6].value.doubleValue, modelTransformation[7].value.doubleValue, modelTransformation[8].value.doubleValue);//starts with w
+                     glm::vec3 hitObjectPosition(   modelTransformation[0].value.vectorValue.x, modelTransformation[0].value.vectorValue.y, modelTransformation[0].value.vectorValue.z);
+                     glm::vec3 hitObjectScale(      modelTransformation[1].value.vectorValue.x, modelTransformation[1].value.vectorValue.y, modelTransformation[1].value.vectorValue.z);
+                     glm::quat hitObjectOrientation(modelTransformation[2].value.vectorValue.w, modelTransformation[2].value.vectorValue.x, modelTransformation[2].value.vectorValue.y, modelTransformation[2].value.vectorValue.z);//starts with w
 
                      //at this point, we will attach the bullet hole to the object, to do so, we need to update the scale, translate and orientation
 

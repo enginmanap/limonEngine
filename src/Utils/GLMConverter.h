@@ -8,6 +8,7 @@
 #include <btBulletDynamicsCommon.h>
 #include "../glm/gtx/quaternion.hpp"
 #include "../glm/glm.hpp"
+#include "../GamePlay/LimonAPI.h"
 
 
 #include <assimp/vector3.h>
@@ -17,6 +18,33 @@
 
 class GLMConverter {
 public:
+
+    static LimonAPI::Vec4 GLMToLimon(const glm::vec4 &vector) {
+        return LimonAPI::Vec4(vector.x, vector.y, vector.z, vector.w);
+    }
+
+    static LimonAPI::Vec4 GLMToLimon(const glm::vec3 &vector) {
+        return LimonAPI::Vec4(vector.x, vector.y, vector.z);
+    }
+
+    static glm::vec4 LimonToGLM(const LimonAPI::Vec4 &vector) {
+        return glm::vec4(vector.x, vector.y, vector.z, vector.w);
+    }
+
+    static LimonAPI::Mat4 GLMToLimon(const glm::mat4 &matrix) {
+        return LimonAPI::Mat4(GLMToLimon(matrix[0]),
+                              GLMToLimon(matrix[1]),
+                              GLMToLimon(matrix[2]),
+                              GLMToLimon(matrix[3]));
+    }
+
+    static glm::mat4 LimonToGLM (const LimonAPI::Mat4 &matrix) {
+        return glm::mat4(LimonToGLM(matrix[0]),
+                              LimonToGLM(matrix[1]),
+                              LimonToGLM(matrix[2]),
+                              LimonToGLM(matrix[3]));
+    }
+
     static glm::vec3 BltToGLM(const btVector3 &vector) {
         return glm::vec3(vector.getX(), vector.getY(), vector.getZ());
     }

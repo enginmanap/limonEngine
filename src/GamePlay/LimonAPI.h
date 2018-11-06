@@ -24,11 +24,46 @@ class PhysicalRenderable;
 
 class LimonAPI {
 public:
+    struct Vec4 {
+        float x,y,z,w;
+
+        Vec4() = default;
+        Vec4(float x, float y, float z, float w): x(x), y(y), z(z), w(w) {}
+        Vec4(float x, float y, float z): x(x), y(y), z(z), w(0) {}
+
+        float operator [] (int i) const {switch (i) {
+                case 1: return x;
+                case 2: return y;
+                case 3: return z;
+                case 4: return w;
+        }}
+        float& operator [] (int i) {switch (i) {
+                case 1: return x;
+                case 2: return y;
+                case 3: return z;
+                case 4: return w;
+            }}
+    };
+    struct Mat4 {
+        Vec4 rows[4];
+
+        Mat4() = default;
+        Mat4(Vec4 row0, Vec4 row1, Vec4 row2, Vec4 row3) {
+            rows[0] = row0;
+            rows[1] = row1;
+            rows[2] = row2;
+            rows[0] = row3;
+        }
+
+        Vec4 operator [] (int i) const {return rows[i];}
+        Vec4& operator [] (int i) {return rows[i];}
+    };
+
     struct ParameterRequest {
-        enum RequestParameterTypes { MODEL, ANIMATION, SWITCH, FREE_TEXT, TRIGGER, GUI_TEXT, FREE_NUMBER};
+        enum RequestParameterTypes { MODEL, ANIMATION, SWITCH, FREE_TEXT, TRIGGER, GUI_TEXT, FREE_NUMBER, COORDINATE, TRANSFORM };
         RequestParameterTypes requestType;
         std::string description;
-        enum ValueTypes { STRING, DOUBLE, LONG, LONG_ARRAY, BOOLEAN };
+        enum ValueTypes { STRING, DOUBLE, LONG, LONG_ARRAY, BOOLEAN, VEC4, MAT4 };
         ValueTypes valueType;
         //Up part used for requesting parameter, down part used as values of that request.
         union Value {
@@ -36,11 +71,15 @@ public:
             long longValue;
             long longValues[16];//first element is the size
             double doubleValue;
+            Vec4 vectorValue;
+            Mat4 matrixValue;
             bool boolValue;
         };
 
         Value value;
         bool isSet = false;
+
+        ParameterRequest() {}
 
         bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *ParametersNode,
                        uint32_t index) const;
@@ -76,8 +115,8 @@ public:
      * * If nothing is hit, returns empty vector
      * returns these values:
      * 1) objectID for what is under the cursor
-     * 2,3,4) hit coordinates
-     * 5,6,7) hit normal
+     * 2) hit coordinates
+     * 3) hit normal
      */
     std::vector<ParameterRequest> rayCastToCursor();
 
@@ -85,9 +124,9 @@ public:
      * If object not found, returns empty vector
      *
      * Returns these values:
-     * 1,2,3) translate
-     * 4,5,6) scale
-     * 7,8,9,10) orientation
+     * 1) translate
+     * 2) scale
+     * 3) orientation
      */
     std::vector<LimonAPI::ParameterRequest> getObjectTransformation(uint32_t objectID);
 

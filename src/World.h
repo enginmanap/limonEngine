@@ -428,8 +428,8 @@ public:
      * If nothing is hit, returns empty vector
      * returns these values:
      * 1) objectID for what is under the cursor
-     * 2,3,4) hit coordinates
-     * 5,6,7) hit normal
+     * 2) hit coordinates
+     * 3) hit normal
      *
      */
     std::vector<LimonAPI::ParameterRequest> rayCastToCursorAPI();

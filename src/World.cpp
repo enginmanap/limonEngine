@@ -1992,8 +1992,8 @@ std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
     * * If nothing is hit, returns empty vector
     * returns these values:
     * 1) objectID for what is under the cursor
-    * 2,3,4) hit coordinates
-    * 5,6,7) hit normal
+    * 2) hit coordinates
+    * 3) hit normal
     *
     */
    std::vector<LimonAPI::ParameterRequest>result;
@@ -2008,32 +2008,20 @@ std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
    objectIDParam.value.longValue = gameObject->getWorldObjectID();
    result.push_back(objectIDParam);
 
-   LimonAPI::ParameterRequest positionXParam;
-   positionXParam.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-   positionXParam.value.doubleValue = position.x;
-   result.push_back(positionXParam);
-   LimonAPI::ParameterRequest positionYParam;
-   positionYParam.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-   positionYParam.value.doubleValue = position.y;
-   result.push_back(positionYParam);
-   LimonAPI::ParameterRequest positionZParam;
-   positionZParam.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-   positionZParam.value.doubleValue = position.z;
-   result.push_back(positionZParam);
+   LimonAPI::ParameterRequest positionParam;
+   positionParam.valueType = LimonAPI::ParameterRequest::ValueTypes::VEC4;
+   positionParam.value.vectorValue.x = position.x;
+   positionParam.value.vectorValue.y = position.y;
+   positionParam.value.vectorValue.z = position.z;
+   result.push_back(positionParam);
 
-   LimonAPI::ParameterRequest normalXParam;
-   normalXParam.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-   normalXParam.value.doubleValue = normal.x;
-   result.push_back(normalXParam);
-   LimonAPI::ParameterRequest normalYParam;
-   normalYParam.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-   normalYParam.value.doubleValue = normal.y;
-   result.push_back(normalYParam);
-   LimonAPI::ParameterRequest normalZParam;
-   normalZParam.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-   normalZParam.value.doubleValue = normal.z;
+   LimonAPI::ParameterRequest normalParam;
+   normalParam.valueType = LimonAPI::ParameterRequest::ValueTypes::VEC4;
+   normalParam.value.vectorValue.x = normal.x;
+   normalParam.value.vectorValue.y = normal.y;
+   normalParam.value.vectorValue.z = normal.z;
+   result.push_back(normalParam);
 
-   result.push_back(normalZParam);
 
    return result;
 }
@@ -2045,48 +2033,23 @@ std::vector<LimonAPI::ParameterRequest> World::getObjectTransformationAPI(uint32
     }
     const Transformation* transformation = objects.at(objectID)->getTransformation();
 
-    LimonAPI::ParameterRequest translateX;
-    translateX.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-    translateX.value.doubleValue = transformation->getTranslate().x;
-    result.push_back(translateX);
-    LimonAPI::ParameterRequest translateY;
-    translateY.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-    translateY.value.doubleValue = transformation->getTranslate().y;
-    result.push_back(translateY);
-    LimonAPI::ParameterRequest translateZ;
-    translateZ.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-    translateZ.value.doubleValue = transformation->getTranslate().z;
-    result.push_back(translateZ);
+    LimonAPI::ParameterRequest translate;
+    translate.valueType = LimonAPI::ParameterRequest::ValueTypes::VEC4;
+    translate.value.vectorValue = GLMConverter::GLMToLimon(transformation->getTranslate());
+    result.push_back(translate);
 
-    LimonAPI::ParameterRequest scaleX;
-    scaleX.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-    scaleX.value.doubleValue = transformation->getScale().x;
-    result.push_back(scaleX);
-    LimonAPI::ParameterRequest scaleY;
-    scaleY.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-    scaleY.value.doubleValue = transformation->getScale().y;
-    result.push_back(scaleY);
-    LimonAPI::ParameterRequest scaleZ;
-    scaleZ.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-    scaleZ.value.doubleValue = transformation->getScale().z;
-    result.push_back(scaleZ);
+    LimonAPI::ParameterRequest scale;
+    scale.valueType = LimonAPI::ParameterRequest::ValueTypes::VEC4;
+    scale.value.vectorValue = GLMConverter::GLMToLimon(transformation->getScale());
+    result.push_back(scale);
 
-    LimonAPI::ParameterRequest orientationX;
-    orientationX.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-    orientationX.value.doubleValue = transformation->getOrientation().x;
-    result.push_back(orientationX);
-    LimonAPI::ParameterRequest orientationY;
-    orientationY.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-    orientationY.value.doubleValue = transformation->getOrientation().y;
-    result.push_back(orientationY);
-    LimonAPI::ParameterRequest orientationZ;
-    orientationZ.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-    orientationZ.value.doubleValue = transformation->getOrientation().z;
-    result.push_back(orientationZ);
-    LimonAPI::ParameterRequest orientationW;
-    orientationW.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
-    orientationW.value.doubleValue = transformation->getOrientation().w;
-    result.push_back(orientationW);
+    LimonAPI::ParameterRequest orientation;
+    orientation.valueType = LimonAPI::ParameterRequest::ValueTypes::VEC4;
+    orientation.value.vectorValue.x = transformation->getOrientation().x;
+    orientation.value.vectorValue.y = transformation->getOrientation().y;
+    orientation.value.vectorValue.z = transformation->getOrientation().z;
+    orientation.value.vectorValue.w = transformation->getOrientation().w;
+    result.push_back(orientation);
 
     return result;
 }
