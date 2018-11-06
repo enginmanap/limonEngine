@@ -15,11 +15,29 @@ class HumanEnemy: public Actor {
     bool returnToPosition = false;
     glm::vec3 initialPosition;
     glm::vec3 lastWalkDirection;
+    std::string currentAnimation;
+    bool hitAnimationAwaiting = false;
+    long dieAnimationStartTime = 0;
+    long hitAnimationStartTime = 0;
+    long lastSetupTime;
+    uint32_t hitPoints = 100;
 
 public:
     HumanEnemy(uint32_t id) : Actor(id) {}
 
     void play(long time, ActorInformation &information, Options* options __attribute__((unused))) {//FIXME unused attribute is temporary
+        lastSetupTime = time;
+
+        //first check if we just died
+        if(hitPoints <= 0 && dieAnimationStartTime == 0) {
+            model->setAnimationWithBlend("Run_Forwards", false);
+            dieAnimationStartTime = time;
+        }
+
+        if(hitPoints <= 0) {
+            return;//if already dead, don't do anything
+        }
+
         //check if the player can be seen
         if(information.canSeePlayerDirectly && information.isPlayerFront) {
             if (playerPursuitStartTime == 0) {
@@ -42,6 +60,22 @@ public:
             }
         } else {
             //if player pursuit mode
+
+            //first check if we are hit
+            if(hitAnimationAwaiting) {
+                model->setAnimationWithBlend("Run_backwards", false);
+                hitAnimationStartTime = time;
+                hitAnimationAwaiting = false;//don't request another hit again
+            }
+
+            //now check if hit animation should be finished
+            if(hitAnimationStartTime != 0 && time - hitAnimationStartTime > 500) { //play hit animation for 500 ms only
+                model->setAnimationWithBlend("Walk");
+                initialPosition = GLMConverter::BltToGLM(model->getRigidBody()->getCenterOfMassPosition());
+                returnToPosition = true;
+                hitAnimationStartTime = 0;
+            }
+
             if (information.canGoToPlayer) {
                 //keep the last known direction, if player is at a unknown place.
                 //FIXME this is a hack, normally this should not be necessary but sometimes even player is a valid place,
@@ -70,6 +104,25 @@ public:
                 //std::cout << "Down." << std::endl;
             }
         }
+    }
+
+    bool interaction(std::vector<LimonAPI::ParameterRequest> &interactionInformation) override {
+        if(interactionInformation.size() < 1) {
+            return false;
+        }
+
+        if(interactionInformation[0].valueType == LimonAPI::ParameterRequest::ValueTypes::STRING && std::string(interactionInformation[0].value.stringValue) == "GOT_HIT") {
+            std::cout << "Enemy get hit!" << std::endl;
+            playerPursuitStartTime = lastSetupTime;
+            hitAnimationAwaiting = true;
+            if(hitPoints < 20) {
+                hitPoints =0;
+            } else {
+                hitPoints = hitPoints - 20;
+            }
+            return true;
+        }
+        return false;
     }
 
     virtual void IMGuiEditorView() {

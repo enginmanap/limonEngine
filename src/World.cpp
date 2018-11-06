@@ -2000,7 +2000,7 @@ std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
     * 1) objectID for what is under the cursor
     * 2) hit coordinates
     * 3) hit normal
-    *
+    * 4) If object has AI, id of that AI
     */
    std::vector<LimonAPI::ParameterRequest>result;
    glm::vec3 position, normal;
@@ -2028,6 +2028,15 @@ std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
    normalParam.value.vectorValue.z = normal.z;
    result.push_back(normalParam);
 
+   if(gameObject->getTypeID() == GameObject::MODEL) {
+       Model * foundModel = dynamic_cast<Model *>(gameObject);
+       if (foundModel != nullptr && foundModel->getAIID() != 0) {
+           LimonAPI::ParameterRequest aiIDParam;
+           aiIDParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+           aiIDParam.value.longValue = foundModel->getAIID();
+           result.push_back(aiIDParam);
+       }
+   }
 
    return result;
 }
@@ -2141,4 +2150,11 @@ GameObject * World::getPointedObject(int collisionType, int filterMask,
             return nullptr;
         }
     }
+}
+
+bool World::interactWithAIAPI(uint32_t AIID, std::vector<LimonAPI::ParameterRequest> &interactionInformation) const {
+   if(actors.find(AIID) == actors.end()) {
+       return false;
+   }
+   return actors.at(AIID)->interaction(interactionInformation);
 }

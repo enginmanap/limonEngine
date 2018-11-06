@@ -29,6 +29,8 @@ public:
 
     virtual void play(long time, ActorInformation &information, Options* options) = 0;
 
+    virtual bool interaction(std::vector<LimonAPI::ParameterRequest> &interactionInformation) = 0;
+
     uint32_t getWorldID() {
         return worldID;
     }

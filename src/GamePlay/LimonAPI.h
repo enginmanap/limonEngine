@@ -110,6 +110,9 @@ public:
     bool detachSoundFromObject(uint32_t objectWorldID);
     uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool looped);
 
+    bool interactWithAI(uint32_t AIID, std::vector<LimonAPI::ParameterRequest> &interactionInformation);
+
+
 
     /**
      * * If nothing is hit, returns empty vector
@@ -117,6 +120,7 @@ public:
      * 1) objectID for what is under the cursor
      * 2) hit coordinates
      * 3) hit normal
+     * 4) If object has AI, id of that AI
      */
     std::vector<ParameterRequest> rayCastToCursor();
 
@@ -204,7 +208,7 @@ private:
     std::function<uint32_t (const std::string&, const glm::vec3&, bool)> worldPlaySound;
 
     std::function<std::vector<ParameterRequest>()> worldRayCastToCursor;
-
+    std::function<bool (uint32_t, std::vector<ParameterRequest>&)> worldInteractWithAI;
 
     /*** Non World API calls *******************************************************/
     std::function<bool (const std::string&)> limonLoadWorld;
