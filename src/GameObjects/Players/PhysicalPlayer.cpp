@@ -401,59 +401,70 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler, LimonAPI *limonAPI
             std::vector<LimonAPI::ParameterRequest>rayResult = limonAPI->rayCastToCursor();
             if(rayResult.size() > 0 ) {
 
-                //means we hit something, put the bullet hole to place:
-                glm::vec3 scale(0.2f, 0.2f, 0.2f);
-                glm::vec3 hitPos(rayResult[1].value.vectorValue.x, rayResult[1].value.vectorValue.y, rayResult[1].value.vectorValue.z);
-                glm::vec3 hitNormal(rayResult[2].value.vectorValue.x, rayResult[2].value.vectorValue.y, rayResult[2].value.vectorValue.z);
-                std::cout << "hit something, with position " << glm::to_string(hitPos) << ", and normal " << glm::to_string(hitNormal) << "." << std::endl;
-
-                hitPos +=hitNormal * 0.002f; //move hit position a bit towards the normal to prevent zfight
-                glm::quat orientation;
-                if(hitNormal.x < 0.001 && hitNormal.x > -0.001 &&
-                   hitNormal.y < 1.001 && hitNormal.y >  0.999 &&
-                   hitNormal.z < 0.001 && hitNormal.z > -0.001) {
-                    //means the normal is up
-                    orientation = glm::quat(0.707f, -0.707f, 0.0f, 0.0f);
+                //means we hit something
+                if(rayResult.size() == 4) {
+                    std::cout << "hit AI" << std::endl;
+                    // means we hit something with AI, handle AI interaction
+                    LimonAPI::ParameterRequest parameterRequest;
+                    parameterRequest.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+                    strncpy(parameterRequest.value.stringValue, "GOT_HIT", 63);
+                    std::vector<LimonAPI::ParameterRequest> prList;
+                    prList.push_back(parameterRequest);
+                    limonAPI->interactWithAI(rayResult[3].value.longValue, prList);
                 } else {
-                    orientation = glm::quatLookAt(-1.0 * hitNormal, glm::vec3(0,1,0));
+                    std::cout << "hit non AI" << std::endl;
+                    //means we hit something that doesn't have AI, put a hole
+                    glm::vec3 scale(0.2f, 0.2f, 0.2f);
+                    glm::vec3 hitPos(rayResult[1].value.vectorValue.x, rayResult[1].value.vectorValue.y, rayResult[1].value.vectorValue.z);
+                    glm::vec3 hitNormal(rayResult[2].value.vectorValue.x, rayResult[2].value.vectorValue.y, rayResult[2].value.vectorValue.z);
+                    std::cout << "hit something, with position " << glm::to_string(hitPos) << ", and normal " << glm::to_string(hitNormal) << "." << std::endl;
+
+                    hitPos +=hitNormal * 0.002f; //move hit position a bit towards the normal to prevent zfight
+                    glm::quat orientation;
+                    if(hitNormal.x < 0.001 && hitNormal.x > -0.001 &&
+                       hitNormal.y < 1.001 && hitNormal.y >  0.999 &&
+                       hitNormal.z < 0.001 && hitNormal.z > -0.001) {
+                        //means the normal is up
+                        orientation = glm::quat(0.707f, -0.707f, 0.0f, 0.0f);
+                    } else {
+                        orientation = glm::quatLookAt(-1.0 * hitNormal, glm::vec3(0,1,0));
+                    }
+
+
+                    std::vector<LimonAPI::ParameterRequest>modelTransformationMat = limonAPI->getObjectTransformationMatrix(rayResult[0].value.longValue);
+                    if(modelTransformationMat.size() == 0) {
+                        std::cerr << "Hit an object, but its ID "<< (uint32_t)rayResult[0].value.longValue << " is invalid!" << std::endl;
+
+                        limonAPI->addObject("./Data/Models/BulletHole/BulletHole.obj", 0, false, hitPos, scale, orientation);//add with default values
+                    } else {
+                        //at this point, we will attach the bullet hole to the object, to do so, we need to update the scale, translate and orientation
+
+                        // using the dirty method
+                        glm::mat4 currentDesiredTransformMatrix = glm::translate(glm::mat4(1.0f), hitPos) * glm::mat4_cast(orientation) *
+                                                                  glm::scale(glm::mat4(1.0f), scale);
+
+                        glm::mat4 currentParentTransform = GLMConverter::LimonToGLM(modelTransformationMat[0].value.matrixValue);
+
+                        //what is needed to get parent to child?
+                        // currentDesired = currentParent * x
+                        // x = 'currentParent * currentDesired
+
+                        glm::mat4 delta = glm::inverse(currentParentTransform) * currentDesiredTransformMatrix;
+                        glm::vec3 temp1;//these are not used
+                        glm::vec4 temp2;
+                        glm::vec3 posdif;
+                        glm::vec3 scaledif;
+                        glm::quat orientDif;
+                        glm::decompose(delta, scaledif, orientDif, posdif, temp1, temp2);
+
+                        //now
+
+                        uint32_t bulletHoleID = limonAPI->addObject("./Data/Models/BulletHole/BulletHole.obj", 0, false, posdif, scaledif, orientDif);
+
+                        limonAPI->attachObjectToObject(bulletHoleID, rayResult[0].value.longValue);
+
+                    }
                 }
-
-
-                std::vector<LimonAPI::ParameterRequest>modelTransformationMat = limonAPI->getObjectTransformationMatrix(rayResult[0].value.longValue);
-                if(modelTransformationMat.size() == 0) {
-                    std::cerr << "Hit an object, but its ID "<< (uint32_t)rayResult[0].value.longValue << " is invalid!" << std::endl;
-
-                    limonAPI->addObject("./Data/Models/BulletHole/BulletHole.obj", 0, false, hitPos, scale, orientation);//add with default values
-                } else {
-                    //at this point, we will attach the bullet hole to the object, to do so, we need to update the scale, translate and orientation
-
-                     // using the dirty method
-                     glm::mat4 currentDesiredTransformMatrix = glm::translate(glm::mat4(1.0f), hitPos) * glm::mat4_cast(orientation) *
-                                                               glm::scale(glm::mat4(1.0f), scale);
-
-                    glm::mat4 currentParentTransform = GLMConverter::LimonToGLM(modelTransformationMat[0].value.matrixValue);
-
-                     //what is needed to get parent to child?
-                     // currentDesired = currentParent * x
-                     // x = 'currentParent * currentDesired
-
-                     glm::mat4 delta = glm::inverse(currentParentTransform) * currentDesiredTransformMatrix;
-                     glm::vec3 temp1;//these are not used
-                     glm::vec4 temp2;
-                     glm::vec3 posdif;
-                     glm::vec3 scaledif;
-                     glm::quat orientDif;
-                     glm::decompose(delta, scaledif, orientDif, posdif, temp1, temp2);
-
-                     //now
-
-                    uint32_t bulletHoleID = limonAPI->addObject("./Data/Models/BulletHole/BulletHole.obj", 0, false, posdif, scaledif, orientDif);
-
-                    limonAPI->attachObjectToObject(bulletHoleID, rayResult[0].value.longValue);
-
-                }
-
-
 
             } else {
                 std::cout << "hit nothing!" << std::endl;
