@@ -211,7 +211,9 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                 animationCustom->calculateTransform("", animationTime, tf);
 
                 //FIXME this is not an acceptable animating technique, I need a transform stack, but not implemented it yet.
-                (*animationStatus->object->getTransformation()) = animationStatus->originalTransformation;
+                animationStatus->object->getTransformation()->setTranslate(animationStatus->originalTransformation.getTranslate());
+                animationStatus->object->getTransformation()->setScale(animationStatus->originalTransformation.getScale());
+                animationStatus->object->getTransformation()->setOrientation(animationStatus->originalTransformation.getOrientation());
                 animationStatus->object->getTransformation()->addOrientation(tf.getOrientation());
                 animationStatus->object->getTransformation()->addScale(tf.getScale());
                 animationStatus->object->getTransformation()->addTranslate(tf.getTranslate());
@@ -1799,7 +1801,9 @@ void World::setupForPlay(InputHandler &inputHandler) {
         //to original position
         for(auto it = onLoadAnimations.begin(); it != onLoadAnimations.end(); it++) {
             if(activeAnimations.find(*it) != activeAnimations.end()) {
-                (*(*it)->getTransformation()) = activeAnimations[*it].originalTransformation;
+                (*it)->getTransformation()->setTranslate(activeAnimations[*it].originalTransformation.getTranslate());
+                (*it)->getTransformation()->setScale(activeAnimations[*it].originalTransformation.getScale());
+                (*it)->getTransformation()->setOrientation(activeAnimations[*it].originalTransformation.getOrientation());
             }
         }
     }
