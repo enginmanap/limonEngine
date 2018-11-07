@@ -34,6 +34,28 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
         exit(-1);
     }
 
+    std::vector<AssetManager::EmbeddedTexture> textures;
+    for (size_t i = 0; i < scene->mNumTextures; ++i) {
+        aiTexture* currentTexture = scene->mTextures[i];
+        AssetManager::EmbeddedTexture eTexture;
+
+        eTexture.height = currentTexture->mHeight;
+        eTexture.width = currentTexture->mWidth;
+        memcpy(&eTexture.format, &currentTexture->achFormatHint, sizeof(eTexture.format));
+        if(eTexture.height != 0) {
+            eTexture.texelData = new uint8_t[currentTexture->mHeight * currentTexture->mWidth];
+            memcpy(eTexture.texelData, currentTexture->pcData, currentTexture->mHeight * currentTexture->mWidth);
+        } else {
+            //compressed data
+            eTexture.texelData = new uint8_t[currentTexture->mWidth];
+            memcpy(eTexture.texelData, currentTexture->pcData, currentTexture->mWidth);
+        }
+        textures.push_back(eTexture);
+    }
+    if(textures.size() > 0 ) {
+        assetManager->addEmbeddedTextures(this->name, textures);
+    }
+
     this->hasAnimation = (scene->mNumAnimations != 0);
 
     std::cout << "ASSIMP::success::" << name << std::endl;
@@ -107,8 +129,15 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
 
         if ((currentMaterial->GetTextureCount(aiTextureType_AMBIENT) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_AMBIENT, 0, &property)) {
-                newMaterial->setAmbientTexture(property.C_Str());
-                std::cout << "set ambient texture " << property.C_Str() << std::endl;
+                if(property.data[0] != '*') {
+                    newMaterial->setAmbientTexture(property.C_Str());
+                    std::cout << "set ambient texture " << property.C_Str() << std::endl;
+                } else {
+                    //embeddedTexture handling
+                    newMaterial->setAmbientTexture(property.C_Str(), &this->name);
+                    std::cout << "set (embedded) ambient texture " << property.C_Str() << "|" << this->name<< std::endl;
+                }
+
             } else {
                 std::cerr << "The model contained ambient texture information, but texture loading failed. \n" <<
                           "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
@@ -116,8 +145,14 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
         }
         if ((currentMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &property)) {
-                newMaterial->setDiffuseTexture(property.C_Str());
-                std::cout << "set diffuse texture " << property.C_Str() << std::endl;
+                if(property.data[0] != '*') {
+                    newMaterial->setDiffuseTexture(property.C_Str());
+                    std::cout << "set diffuse texture " << property.C_Str() << std::endl;
+                } else {
+                    //embeddedTexture handling
+                    newMaterial->setDiffuseTexture(property.C_Str(), &this->name);
+                    std::cout << "set (embedded) setDiffuseTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
+                }
             } else {
                 std::cerr << "The model contained diffuse texture information, but texture loading failed. \n" <<
                           "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
@@ -126,8 +161,14 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
 
         if ((currentMaterial->GetTextureCount(aiTextureType_SPECULAR) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_SPECULAR, 0, &property)) {
-                newMaterial->setSpecularTexture(property.C_Str());
-                std::cout << "set specular texture " << property.C_Str() << std::endl;
+                if(property.data[0] != '*') {
+                    newMaterial->setSpecularTexture(property.C_Str());
+                    std::cout << "set specular texture " << property.C_Str() << std::endl;
+                } else {
+                    //embeddedTexture handling
+                    newMaterial->setSpecularTexture(property.C_Str(), &this->name);
+                    std::cout << "set (embedded) setSpecularTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
+                }
             } else {
                 std::cerr << "The model contained specular texture information, but texture loading failed. \n" <<
                           "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
@@ -136,8 +177,14 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
 
         if ((currentMaterial->GetTextureCount(aiTextureType_OPACITY) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_OPACITY, 0, &property)) {
-                newMaterial->setOpacityTexture(property.C_Str());
-                std::cout << "set opacity texture " << property.C_Str() << std::endl;
+                if(property.data[0] != '*') {
+                    newMaterial->setOpacityTexture(property.C_Str());
+                    std::cout << "set opacity texture " << property.C_Str() << std::endl;
+                } else {
+                    //embeddedTexture handling
+                    newMaterial->setOpacityTexture(property.C_Str(), &this->name);
+                    std::cout << "set (embedded) setOpacityTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
+                }
             } else {
                 std::cerr << "The model contained opacity texture information, but texture loading failed. \n" <<
                           "TextureAsset path: [" << property.C_Str() << "]" << std::endl;

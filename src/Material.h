@@ -96,8 +96,13 @@ public:
         return ambientTexture;
     }
 
-    void setAmbientTexture(std::string ambientTexture) {
-        this->ambientTexture = assetManager->loadAsset<TextureAsset>({ambientTexture});
+    void setAmbientTexture(const std::string &ambientTexture, std::string* sourceAsset = nullptr) {
+        std::vector<std::string> textureFiles;
+        textureFiles.push_back(ambientTexture);
+        if(sourceAsset != nullptr) {
+            textureFiles.push_back(*sourceAsset);
+        }
+        this->ambientTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
         this->isAmbientMap = true;
     }
 
@@ -109,8 +114,13 @@ public:
         return diffuseTexture;
     }
 
-    void setDiffuseTexture(std::string diffuseTexture) {
-        this->diffuseTexture = assetManager->loadAsset<TextureAsset>({diffuseTexture});
+    void setDiffuseTexture(const std::string &diffuseTexture, std::string* sourceAsset = nullptr) {
+        std::vector<std::string> textureFiles;
+        textureFiles.push_back(diffuseTexture);
+        if(sourceAsset != nullptr) {
+            textureFiles.push_back(*sourceAsset);
+        }
+        this->diffuseTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
         this->isDiffuseMap = true;
     }
 
@@ -118,14 +128,25 @@ public:
         return specularTexture;
     }
 
-    void setSpecularTexture(std::string specularTexture) {
-        this->specularTexture = assetManager->loadAsset<TextureAsset>({specularTexture});
+    void setSpecularTexture(const std::string &specularTexture, std::string* sourceAsset = nullptr) {
+        std::vector<std::string> textureFiles;
+        textureFiles.push_back(specularTexture);
+        if(sourceAsset != nullptr) {
+            textureFiles.push_back(*sourceAsset);
+        }
+        this->specularTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
         this->isSpecularMap = true;
     }
 
 
-    void setOpacityTexture(std::string opacityTexture) {
-        this->opacityTexture = assetManager->loadAsset<TextureAsset>({opacityTexture});
+    void setOpacityTexture(const std::string &opacityTexture, std::string* sourceAsset = nullptr) {
+        std::vector<std::string> textureFiles;
+        textureFiles.push_back(opacityTexture);
+        if(sourceAsset != nullptr) {
+            textureFiles.push_back(*sourceAsset);
+        }
+
+        this->opacityTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
         this->isOpacityMap = true;
     }
 

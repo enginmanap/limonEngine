@@ -12,14 +12,36 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
         exit(-1);
     }
     name = files[0];
-    if (files.size() > 1) {
+    if (files.size() > 2) {
         std::cerr << "multiple files are sent to Texture constructor, extra elements ignored." << std::endl;
     }
-    /**
-     * FIXME: This takes full path, which is not acceptable,
-     * we need to work with relative path to model for textures
-     */
-    SDL_Surface *surface = IMG_Load(name.data());
+
+    SDL_Surface *surface = nullptr;
+    if (files.size() == 2) {//If embedded texture is needed, first element is the index, second is the owner asset file
+        //index is a string, first char is * second char is the index
+        std::cout << "Texture request has 2 elements. Attempting to extract embedded texture. " << std::endl;
+        int textureID = std::atoi(&files[0][1]);
+        const AssetManager::EmbeddedTexture* embeddedTexture = assetManager->getEmbeddedTextures(files[1], textureID);
+        if(embeddedTexture != nullptr) {
+            SDL_RWops* rwop = nullptr;
+            if(embeddedTexture->height == 0) {
+                rwop = SDL_RWFromMem( embeddedTexture->texelData, embeddedTexture->width);
+            } else {
+                rwop = SDL_RWFromMem(embeddedTexture->texelData, embeddedTexture->width * embeddedTexture->height);
+            }
+            surface = IMG_Load_RW(rwop, 0);
+        }
+    } else {
+        /**
+         * FIXME: This takes full path, which is not acceptable,
+         * we need to work with relative path to model for textures
+         */
+        surface = IMG_Load(name.data());
+    }
+
+
+
+
 
     if (!surface) {
         std::cerr << "TextureAsset Load from disk failed for " << name << ". Error:" << std::endl << IMG_GetError()
