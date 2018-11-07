@@ -22,10 +22,10 @@ public:
     enum AssetTypes { Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND };
 
     struct EmbeddedTexture {
-        char format[9];
-        uint32_t height;
-        uint32_t width;
-        uint8_t * texelData;
+        char format[9] = "\0";
+        uint32_t height = 0;
+        uint32_t width = 0;
+        uint8_t * texelData = nullptr;
 
         bool checkFormat(const char* s) const {
             if (nullptr == s) {
@@ -33,6 +33,24 @@ public:
             }
             return (0 == ::strncmp(format, s, sizeof(format)));
         }
+
+        EmbeddedTexture() = default;
+
+        EmbeddedTexture(const EmbeddedTexture& texture2) {
+            memcpy(this->format, texture2.format, 9);
+            this->height = texture2.height;
+            this->width = texture2.width;
+            if(this->height != 0) {
+                this->texelData = new uint8_t[this->height * this->width];
+                memcpy(this->texelData, texture2.texelData, this->height* this->width);
+            } else {
+                //compressed data
+                this->texelData = new uint8_t[this->width];
+                memcpy(this->texelData, texture2.texelData, this->width);
+            }
+
+        }
+
         ~EmbeddedTexture() {
             delete texelData;
         }
