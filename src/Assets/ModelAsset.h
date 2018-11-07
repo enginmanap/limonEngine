@@ -157,7 +157,7 @@ public:
         return meshAssets;
     }
 
-    void fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimations);
+    void fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimations, const std::string &animationNamePrefix = "");
 
     const std::unordered_map<std::string, AnimationInterface*> &getAnimations() const {
         return animations;

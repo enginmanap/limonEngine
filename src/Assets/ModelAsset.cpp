@@ -81,6 +81,44 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     std::cout << "Model asset: " << name << "Assimp bounding box is " << GLMUtils::vectorToString(boundingBoxMin) << ", " <<  GLMUtils::vectorToString(boundingBoxMax) << std::endl;
     //Implicit call to import.FreeScene(), and removal of scene.
 
+    //it is possible that there are mixamo animation files, chech if they do, add them too if needed
+    const std::map<std::string, AssetManager::AssetTypes> availableAssetsList = assetManager->getAvailableAssetsList();
+
+    const char* SEPERATOR = "/";
+
+    size_t found=name.find_last_of(SEPERATOR);
+    std::string folderPath = name.substr(0,found) + SEPERATOR + "Mixamo";
+
+    std::cout << "searching mixamo animations at path: " << folderPath << std::endl;
+    Assimp::Importer importer2;
+    const aiScene *mixamoScene = nullptr;
+    for (auto assetIt = availableAssetsList.begin(); assetIt != availableAssetsList.end(); ++assetIt) {
+        if(folderPath == assetIt->first.substr(0,folderPath.size()) && assetIt->second == AssetManager::AssetTypes::Asset_type_MODEL) {
+            //this asset is in Mixamo directory under the one currently being loaded, meaning it is an animation. load it
+            mixamoScene = importer2.ReadFile(assetIt->first.c_str(), 0);
+
+            if (!mixamoScene || !mixamoScene->mRootNode) {//it might have mixamoScene->mFlags == AI_SCENE_FLAGS_INCOMPLETE, but that is expected
+                std::cerr << "ERROR::ASSIMP::MIXAMO" << importer2.GetErrorString() << std::endl;
+                //delete mixamoScene; don't delete, importer deletes
+                continue;
+            }
+            if (mixamoScene->mNumAnimations != 0) {
+                //get the file name
+                size_t extensionPosition=assetIt->first.find_last_of(".") - (folderPath.size()+1);
+                fillAnimationSet(mixamoScene->mNumAnimations, mixamoScene->mAnimations, assetIt->first.substr(folderPath.size()+1, extensionPosition)+ "|");
+            } else {
+                std::cout << "No animation in Mixamo file, it won't effect anyting." << std::endl;
+            }
+
+            //delete mixamoScene; don't delete, importer deletes
+        }
+    }
+
+
+
+
+
+
     this->deserializeCustomizations();
 }
 
@@ -447,17 +485,17 @@ bool ModelAsset::isAnimated() const {
     return hasAnimation;
 }
 
-void ModelAsset::fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimations) {
+void
+ModelAsset::fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimations, const std::string &animationNamePrefix) {
     aiAnimation* currentAnimation;
     for (unsigned int i = 0; i < numAnimation; ++i) {
         currentAnimation = pAnimations[i];
-        std::string animationName = currentAnimation->mName.C_Str();
-        std::cout << "add animation with name " << animationName << std::endl;
+        std::string animationName = animationNamePrefix + currentAnimation->mName.C_Str();
+        std::cout << "add animation with name " << animationNamePrefix << animationName << std::endl;
 
         AnimationAssimp* animationObject = new AnimationAssimp(currentAnimation);
         animations[animationName] = animationObject;
     }
-
     //validate
 }
 
