@@ -77,6 +77,14 @@ class ModelAsset : public Asset {
                                  float timeInTicks,
                                  std::vector<glm::mat4> &transforms) const;
 
+    void traverseAndSetTransformBlended(const BoneNode *boneNode, const glm::mat4 &parentTransform,
+                                                    const AnimationInterface *animationOld,
+                                                    float timeInTicksOld,
+                                                    const AnimationInterface *animationNew,
+                                                    float timeInTicksNew,
+                                                    float blendFactor,
+                                                    std::vector<glm::mat4> &transforms) const;
+
     const aiNodeAnim *findNodeAnimation(aiAnimation *pAnimation, std::string basic_string) const;
 
     void deserializeCustomizations();
@@ -164,8 +172,6 @@ public:
     }
 
     void serializeCustomizations();
-
-    glm::mat4 blendMatrices(const glm::mat4 &matrix1, const glm::mat4 &Matrix2, float blendFactor) const;
 };
 
 
