@@ -131,6 +131,14 @@ public:
         return animationLastFramePlayed;
     }
 
+    float getAnimationTimeScale() const {
+        return animationTimeScale;
+    }
+
+    void setAnimationTimeScale(float animationTimeScale) {
+        Model::animationTimeScale = animationTimeScale;
+    }
+
     ~Model();
 
     void fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode) const;
