@@ -30,7 +30,7 @@ public:
 
         //first check if we just died
         if(hitPoints <= 0 && dieAnimationStartTime == 0) {
-            model->setAnimationWithBlend("Run_Forwards", false);
+            model->setAnimationWithBlend("death from the front|mixamo.com", false);
             dieAnimationStartTime = time;
         }
 
@@ -41,7 +41,7 @@ public:
         //check if the player can be seen
         if(information.canSeePlayerDirectly && information.isPlayerFront) {
             if (playerPursuitStartTime == 0) {
-                model->setAnimation("Walk");
+                model->setAnimationWithBlend("run forward|mixamo.com");
                 //means we will just start pursuit, mark the position so we can return.
                 initialPosition = GLMConverter::BltToGLM(model->getRigidBody()->getCenterOfMassPosition());
                 returnToPosition = true;
@@ -63,14 +63,14 @@ public:
 
             //first check if we are hit
             if(hitAnimationAwaiting) {
-                model->setAnimationWithBlend("Run_backwards", false);
+                model->setAnimationWithBlend("Hit Reaction|mixamo.com", false);
                 hitAnimationStartTime = time;
                 hitAnimationAwaiting = false;//don't request another hit again
             }
 
             //now check if hit animation should be finished
             if(hitAnimationStartTime != 0 && time - hitAnimationStartTime > 500) { //play hit animation for 500 ms only
-                model->setAnimationWithBlend("Walk");
+                model->setAnimationWithBlend("run forward|mixamo.com");
                 initialPosition = GLMConverter::BltToGLM(model->getRigidBody()->getCenterOfMassPosition());
                 returnToPosition = true;
                 hitAnimationStartTime = 0;
@@ -133,7 +133,7 @@ public:
             ImGui::Text("Status: Player pursuit");
             if(ImGui::Button("Stop pursuit")) {
                 playerPursuitStartTime = 0;
-                model->setAnimation("Idle");
+                model->setAnimationWithBlend("idle|mixamo.com");
             }
         }
 
