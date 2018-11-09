@@ -341,47 +341,108 @@ bool ModelAsset::findNode(const std::string &nodeName, BoneNode** foundNode, Bon
  * @param transformMatrixVector
  * @return returns true if both of the animations set their last frames. If any were looped, never returns true.
  */
-bool ModelAsset::getTransformBlended(std::string animationName1, long time1, bool looped1,
-                                         std::string animationName2, long time2, bool looped2,
-                                         float blendFactor, std::vector<glm::mat4> &transformMatrixVector) const {
-    bool lastElementPlayed;
-    std::vector<glm::mat4> transformMatrixVector2;
-    transformMatrixVector2.resize(transformMatrixVector.size());
-    //first build the first transform matrix vector
-    lastElementPlayed = this->getTransform(time1, looped1, animationName1, transformMatrixVector);
-    //get the second one
-    lastElementPlayed = this->getTransform(time2, looped2, animationName2, transformMatrixVector2) && lastElementPlayed;//avoid short circuit
+bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld, bool loopedOld,
+                                     std::string animationNameNew, long timeNew, bool loopedNew,
+                                                float blendFactor,
+                                                std::vector<glm::mat4> &transformMatrix) const {
 
-    //now blend
-    for (size_t i = 0; i < transformMatrixVector.size(); ++i) {
-        transformMatrixVector[i] = blendMatrices(transformMatrixVector[i], transformMatrixVector2[i], blendFactor);
+/*
+    for(auto it = animations.begin(); it != animations.end(); it++) {
+        std::cout << "Animations name: " << it->first << " size " << animations.size() <<std::endl;
     }
-    return lastElementPlayed;
-}
+    */
+    if((animationNameOld.empty() || animationNameOld == "") &&
+      (animationNameNew.empty() || animationNameNew == "")) {
+        //if no animation name is provided, we return bind pose by default
+        for(std::unordered_map<std::string, BoneInformation>::const_iterator it = boneInformationMap.begin(); it != boneInformationMap.end(); it++){
+            BoneNode* node;
+            std::string name = it->first;
+            if(findNode(name, &node, rootNode)) {
+                transformMatrix[node->boneID] = boneInformationMap.at(node->name).parentOffset;
+                //parent above means parent transform of the mesh node, not the parent of bone.
+            }
+        }
+        std::cout << "bind pose returned. for animation name [" << animationNameOld << "]"<< std::endl;
+        return true;
+    }
 
-glm::mat4 ModelAsset::blendMatrices(const glm::mat4 &matrix1, const glm::mat4 &Matrix2,
-                          float blendFactor) const {
-    glm::vec3 scale1, translate1, skew1;
-    glm::vec4 perspective1;
-    glm::quat orientation1;
-    decompose(matrix1, scale1, orientation1, translate1, skew1, perspective1);
+    const AnimationInterface *currentAnimationOld = nullptr;
+    float animationTimeOld;
+    bool isFinishedOld = false;
+    if(!(animationNameOld.empty() ||animationNameOld == "")) {
+        if (animations.find(animationNameOld) != animations.end()) {
+            currentAnimationOld = animations.at(animationNameOld);
+        } else {
+            std::cerr << "Animation " << animationNameOld << " not found, playing first animation. " << std::endl;
+            currentAnimationOld = animations.begin()->second;
+        }
 
-    glm::vec3 scale2, translate2, skew2;
-    glm::vec4 perspective2;
-    glm::quat orientation2;
+        float ticksPerSecond;
+        if (currentAnimationOld->getTicksPerSecond() != 0) {
+            ticksPerSecond = currentAnimationOld->getTicksPerSecond();
+        } else {
+            ticksPerSecond = 60.0f;
+        }
 
-    decompose(Matrix2, scale2, orientation2, translate2, skew2, perspective2);
+        float requestedTime = (timeOld / 1000.0f) * ticksPerSecond;
+        if (requestedTime < currentAnimationOld->getDuration()) {
+            animationTimeOld = requestedTime;
+        } else {
+            if (loopedOld) {
+                animationTimeOld = fmod(requestedTime, currentAnimationOld->getDuration());
+            } else {
+                animationTimeOld = currentAnimationOld->getDuration();
+                isFinishedOld = true;
+            }
+        }
+    }
 
+    const AnimationInterface *currentAnimationNew = nullptr;
+    float animationTimeNew;
+    bool isFinishedNew = false;
+    if(!(animationNameNew.empty() ||animationNameNew == "")) {
+        if (animations.find(animationNameNew) != animations.end()) {
+            currentAnimationNew = animations.at(animationNameNew);
+        } else {
+            std::cerr << "Animation " << animationNameNew << " not found, playing first animation. " << std::endl;
+            currentAnimationNew = animations.begin()->second;
+        }
 
-    glm::vec3 scaleDelta = scale2 - scale1;
-    glm::vec3 scaleB = scale1 + blendFactor * scaleDelta;
+        float ticksPerSecond;
+        if (currentAnimationNew->getTicksPerSecond() != 0) {
+            ticksPerSecond = currentAnimationNew->getTicksPerSecond();
+        } else {
+            ticksPerSecond = 60.0f;
+        }
 
-    glm::vec3 translateDelta = translate2 - translate1;
-    glm::vec3 translateB = translate1 + blendFactor * translateDelta;
-    glm::quat orientationB =  glm::normalize(slerp(orientation1, orientation2, blendFactor));
+        float requestedTime = (timeNew / 1000.0f) * ticksPerSecond;
+        if (requestedTime < currentAnimationNew->getDuration()) {
+            animationTimeNew = requestedTime;
+        } else {
+            if (loopedNew) {
+                animationTimeNew = fmod(requestedTime, currentAnimationNew->getDuration());
+            } else {
+                animationTimeNew = currentAnimationNew->getDuration();
+                isFinishedNew = true;
+            }
+        }
+    }
 
-    return translate(glm::mat4(1.0f), translateB) * mat4_cast(orientationB) *
-                 scale(glm::mat4(1.0f), scaleB);
+    //at this point, it is possible one of the animations doesn't exists, if both didn't we would have returned bind pose.
+    //if one of them is not found, return single animation, and log the issue
+    glm::mat4 parentTransform(1.0f);
+
+    if(currentAnimationOld == nullptr) {
+        std::cerr << "Animation blend fail, old animation "<< animationNameOld <<" not found" << std::endl;
+        traverseAndSetTransform(rootNode, parentTransform, currentAnimationNew, animationTimeNew, transformMatrix);
+    } else if(currentAnimationNew == nullptr) {
+        std::cerr << "Animation blend fail, new animation "<< animationNameNew <<" not found" << std::endl;
+        traverseAndSetTransform(rootNode, parentTransform, currentAnimationOld, animationTimeOld, transformMatrix);
+    } else {
+        traverseAndSetTransformBlended(rootNode, parentTransform, currentAnimationOld, animationTimeOld,
+                                       currentAnimationNew, animationTimeNew, blendFactor, transformMatrix);
+    }
+    return isFinishedOld && isFinishedNew;
 }
 
 
@@ -452,8 +513,56 @@ bool ModelAsset::getTransform(long time, bool looped, std::string animationName,
     return result;
 }
 
-void
-ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform,
+void ModelAsset::traverseAndSetTransformBlended(const BoneNode *boneNode, const glm::mat4 &parentTransform,
+                                         const AnimationInterface *animationOld,
+                                         float timeInTicksOld,
+                                         const AnimationInterface *animationNew,
+                                         float timeInTicksNew,
+                                         float blendFactor,
+                                         std::vector<glm::mat4> &transforms) const {
+
+    glm::mat4 nodeTransform;
+    Transformation tf1, tf2;
+    bool status = animationOld->calculateTransform(boneNode->name, timeInTicksOld, tf1);
+    bool status2 = animationNew->calculateTransform(boneNode->name, timeInTicksNew, tf2);
+
+    if(!status && !status2) {
+        nodeTransform = boneNode->transformation;//if both failed
+    } else if(!status) {
+        nodeTransform = tf2.getWorldTransform();//if only first failed(only by else)
+    } else if(!status2) {
+        nodeTransform = tf1.getWorldTransform();//if only second failed(only by else)
+    } else {//if both succeed
+        //now blend tf1 and tf2
+        Transformation blended;
+
+        glm::vec3 scaleDelta = tf2.getScale() - tf1.getScale();
+        blended.setScale(tf1.getScale() + blendFactor * scaleDelta);
+
+        glm::vec3 translateDelta = tf2.getTranslate() - tf1.getTranslate();
+        blended.setTranslate(tf1.getTranslate() + blendFactor * translateDelta);
+
+        blended.setOrientation(glm::normalize(slerp(tf1.getOrientation(), tf2.getOrientation(), blendFactor)));
+
+        nodeTransform = blended.getWorldTransform();
+    }
+
+    nodeTransform = parentTransform * nodeTransform;
+
+    if(boneInformationMap.find(boneNode->name) != boneInformationMap.end()) {
+        transforms[boneNode->boneID] =
+                boneInformationMap.at(boneNode->name).globalMeshInverse * boneInformationMap.at(boneNode->name).parentOffset * nodeTransform * boneInformationMap.at(boneNode->name).offset;
+        //parent above means parent transform of the mesh node, not the parent of bone.
+    }
+
+    //Call children even if parent does not have animation attached.
+    for (unsigned int i = 0; i < boneNode->children.size(); ++i) {
+        traverseAndSetTransformBlended(boneNode->children[i], nodeTransform, animationOld, timeInTicksOld, animationNew,
+                timeInTicksNew, blendFactor, transforms);
+    }
+}
+
+void ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform,
                                     const AnimationInterface *animation,
                                     float timeInTicks,
                                     std::vector<glm::mat4> &transforms) const {
