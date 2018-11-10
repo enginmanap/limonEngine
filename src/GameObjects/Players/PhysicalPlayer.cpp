@@ -523,3 +523,12 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler, LimonAPI *limonAPI
     }
 
 }
+
+void PhysicalPlayer::interact(std::vector<LimonAPI::ParameterRequest> &interactionData) {
+    if(interactionData.size() == 0 ) {
+        return;
+    }
+    if(interactionData[0].valueType == LimonAPI::ParameterRequest::ValueTypes::STRING && std::string(interactionData[0].value.stringValue) == "SHOOT_PLAYER") {
+        std::cout << "SOMEONE shoot the Player!" << std::endl;
+    }
+}
