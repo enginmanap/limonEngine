@@ -1729,8 +1729,24 @@ void World::addGUIImageControls() {
     static char GUIImageName[32];
     ImGui::InputText("GUI Image Name", GUIImageName, sizeof(GUIImageName), ImGuiInputTextFlags_CharsNoBlank);
 
-    static char GUIImageFileName[256];
-    ImGui::InputText("Image path", GUIImageFileName, sizeof(GUIImageFileName));
+    static std::string GUIImageFileName;
+
+    if (ImGui::BeginCombo("Selected Texture", GUIImageFileName.c_str())) {
+        for (auto it = assetManager->getAvailableAssetsList().begin();
+             it != assetManager->getAvailableAssetsList().end(); it++) {
+
+            if(it->second == AssetManager::Asset_type_TEXTURE) {
+                bool selectedElement = GUIImageFileName == it->first;
+                if (ImGui::Selectable(it->first.c_str(), selectedElement)) {
+                    GUIImageFileName = it->first;
+                }
+                if (selectedElement) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+        }
+        ImGui::EndCombo();
+    }
 
     static size_t selectedLayerIndex = 0;
     if (guiLayers.size() == 0) {
@@ -1750,7 +1766,7 @@ void World::addGUIImageControls() {
     }
     if (ImGui::Button("Add GUI Image")) {
         GUIImage *guiImage = new GUIImage(this->getNextObjectID(), options, assetManager, std::string(GUIImageName),
-                                          std::string(GUIImageFileName));
+                                          GUIImageFileName);
         guiImage->set2dWorldTransform(
                 glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
         guiElements[guiImage->getWorldObjectID()] = guiImage;
