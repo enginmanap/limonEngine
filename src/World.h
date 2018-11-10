@@ -441,6 +441,8 @@ public:
 
     bool interactWithAIAPI(uint32_t AIID, std::vector<LimonAPI::ParameterRequest> &interactionInformation) const;
 
+    void interactWithPlayerAPI(std::vector<LimonAPI::ParameterRequest> &interactionInformation) const;
+
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);
 };

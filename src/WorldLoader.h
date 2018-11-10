@@ -40,7 +40,7 @@ class WorldLoader {
     InputHandler* inputHandler;
 
     World *loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const;
-    bool loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* world)const;
+    bool loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI) const;
     bool loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const;
     bool loadLights(tinyxml2::XMLNode *lightsNode, World* world) const;
     bool loadAnimations(tinyxml2::XMLNode *worldNode, World *world) const;
@@ -58,7 +58,8 @@ public:
     World *loadWorld(const std::string &worldFile, LimonAPI *limonAPI) const;
 
     std::unique_ptr<WorldLoader::ObjectInformation> loadObject(tinyxml2::XMLElement *objectNode,
-                                                                   std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds) const;
+                                                                   std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
+                                                                   LimonAPI *limonAPI) const;
 };
 
 

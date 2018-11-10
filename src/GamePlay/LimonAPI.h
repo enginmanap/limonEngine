@@ -143,6 +143,8 @@ public:
      */
     std::vector<LimonAPI::ParameterRequest> getObjectTransformationMatrix(uint32_t objectID);
 
+    void interactWithPlayer(std::vector<ParameterRequest>& input);
+
     bool loadAndSwitchWorld(const std::string& worldFileName);
     bool returnToWorld(const std::string& worldFileName);//if world is not loaded, loads first
     bool LoadAndRemove(const std::string& worldFileName); // removes current world after loading the new one
@@ -209,6 +211,7 @@ private:
 
     std::function<std::vector<ParameterRequest>()> worldRayCastToCursor;
     std::function<bool (uint32_t, std::vector<ParameterRequest>&)> worldInteractWithAI;
+    std::function<void (std::vector<ParameterRequest>&)> worldInteractWithPlayer;
 
     /*** Non World API calls *******************************************************/
     std::function<bool (const std::string&)> limonLoadWorld;

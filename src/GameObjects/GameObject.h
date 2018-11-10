@@ -8,6 +8,7 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "../GamePlay/LimonAPI.h"
 
 /**
  * This class is used to provide a polymorphic way of determining type and name of the object.
@@ -44,6 +45,8 @@ public:
     virtual ObjectTypes getTypeID() const = 0;
     virtual std::string getName() const = 0;
     virtual ImGuiResult addImGuiEditorElements(const ImGuiRequest &request __attribute((unused))) {ImGuiResult imGuiResult; return imGuiResult;};
+
+    virtual void interact(std::vector<LimonAPI::ParameterRequest> &interactionData __attribute((unused))) {};
 
     virtual uint32_t getWorldObjectID() = 0;
     virtual ~GameObject() {};

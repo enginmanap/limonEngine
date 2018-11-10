@@ -325,3 +325,7 @@ std::vector<LimonAPI::ParameterRequest> LimonAPI::getObjectTransformationMatrix(
 bool LimonAPI::interactWithAI(uint32_t AIID, std::vector<LimonAPI::ParameterRequest> &interactionInformation) {
     return worldInteractWithAI(AIID, interactionInformation);
 }
+
+void LimonAPI::interactWithPlayer(std::vector<LimonAPI::ParameterRequest> &input) {
+    return this->worldInteractWithPlayer(input);
+}

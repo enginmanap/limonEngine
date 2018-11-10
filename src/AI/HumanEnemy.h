@@ -10,6 +10,7 @@
 #include "../Utils/GLMUtils.h"
 
 class HumanEnemy: public Actor {
+    const long PLAYER_SHOOT_TIMEOUT = 1000;
     long playerPursuitStartTime = 0L;
     long playerPursuitTimeout = 500000L; //if not see player for this amount, return.
     bool returnToPosition = false;
@@ -20,10 +21,11 @@ class HumanEnemy: public Actor {
     long dieAnimationStartTime = 0;
     long hitAnimationStartTime = 0;
     long lastSetupTime;
+    long shootPlayerTimer = 0;
     uint32_t hitPoints = 100;
 
 public:
-    HumanEnemy(uint32_t id) : Actor(id) {}
+    HumanEnemy(uint32_t id, LimonAPI *limonAPI) : Actor(id, limonAPI) {}
 
     void play(long time, ActorInformation &information, Options* options __attribute__((unused))) {//FIXME unused attribute is temporary
         lastSetupTime = time;
@@ -38,6 +40,11 @@ public:
             return;//if already dead, don't do anything
         }
 
+        if(model->getAnimationName() == "Shoot Rifle|mixamo.com"  && model->isAnimationFinished()) {
+
+            model->setAnimationWithBlend("run forward|mixamo.com");
+        }
+
         //check if the player can be seen
         if(information.canSeePlayerDirectly && information.isPlayerFront) {
             if (playerPursuitStartTime == 0) {
@@ -47,6 +54,20 @@ public:
                 returnToPosition = true;
             }
             playerPursuitStartTime = time;
+            if(shootPlayerTimer == 0) {
+                shootPlayerTimer = time;
+            } else {
+                if(time - shootPlayerTimer > PLAYER_SHOOT_TIMEOUT) {
+                    model->setAnimationWithBlend("Shoot Rifle|mixamo.com", false);
+                    std::vector<LimonAPI::ParameterRequest> prList;
+                    LimonAPI::ParameterRequest pr;
+                    pr.valueType = pr.STRING;
+                    strncpy(pr.value.stringValue, "SHOOT_PLAYER", 63);
+                    prList.push_back(pr);
+                    limonAPI->interactWithPlayer(prList);
+                    shootPlayerTimer = time;
+                }
+            }
         }
 
         if(time - playerPursuitStartTime >= playerPursuitTimeout) {

@@ -1043,7 +1043,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
                 if (objectEditorResult.addAI) {
                     std::cout << "adding AI to model " << std::endl;
-                    HumanEnemy *newEnemy = new HumanEnemy(getNextObjectID());
+                    HumanEnemy *newEnemy = new HumanEnemy(getNextObjectID(), apiInstance);
                     newEnemy->setModel(dynamic_cast<Model *>(pickedObject));
 
                     addActor(newEnemy);
@@ -2158,3 +2158,9 @@ bool World::interactWithAIAPI(uint32_t AIID, std::vector<LimonAPI::ParameterRequ
    }
    return actors.at(AIID)->interaction(interactionInformation);
 }
+
+   void World::interactWithPlayerAPI(std::vector<LimonAPI::ParameterRequest> &interactionInformation) const {
+       if(this->physicalPlayer != nullptr) {
+           this->physicalPlayer->interact(interactionInformation);
+       }
+   }

@@ -71,6 +71,7 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldGetObjectTransformation = std::bind(&World::getObjectTransformationAPI, world, std::placeholders::_1);
     limonAPI->worldGetObjectTransformationMatrix = std::bind(&World::getObjectTransformationMatrixAPI, world, std::placeholders::_1);
     limonAPI->worldInteractWithAI = std::bind(&World::interactWithAIAPI, world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldInteractWithPlayer = std::bind(&World::interactWithPlayerAPI, world, std::placeholders::_1);
 
     world->apiInstance = limonAPI;
 }
@@ -127,7 +128,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
                 std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds; //required. Should not be used normally.
 
                 std::unique_ptr<ObjectInformation> objectInfo = loadObject(objectNode,
-                                                                           requiredSounds);//this map is used to load all the sounds, while sharing same objects.
+                                                                           requiredSounds, limonAPI);//this map is used to load all the sounds, while sharing same objects.
                 if (objectInfo) { //if not null
                     if (objectInfo->modelActor != nullptr) {
                         std::cerr << "There was an AI attached to player model, this shouldn't happen. Ignoring" << std::endl;
@@ -182,7 +183,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
 
 
     //load objects
-    if(!loadObjectsFromXML(worldNode, world)) {
+    if(!loadObjectsFromXML(worldNode, world, limonAPI)) {
         delete world;
         return nullptr;
     }
@@ -207,7 +208,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     return world;
 }
 
-bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* world) const {
+bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI) const {
     tinyxml2::XMLElement* objectsListNode =  objectsNode->FirstChildElement("Objects");
     if (objectsListNode == nullptr) {
         std::cerr << "World doesn't have Objects clause, this might be a mistake." << std::endl;
@@ -228,7 +229,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
     while(objectNode != nullptr) {
 
         std::unique_ptr<ObjectInformation> objectInfo = loadObject(objectNode,
-                                                                   requiredSounds);//this map is used to load all the sounds, while sharing same objects.
+                                                                   requiredSounds, limonAPI);//this map is used to load all the sounds, while sharing same objects.
 
         if(objectInfo) { //if not null
             if(objectInfo->modelActor != nullptr) {
@@ -258,7 +259,8 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World* worl
 }
 
 std::unique_ptr<WorldLoader::ObjectInformation> WorldLoader::loadObject(tinyxml2::XMLElement *objectNode,
-                                                                        std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds) const {
+                                                                        std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
+                                                                        LimonAPI *limonAPI) const {
     std::unique_ptr<ObjectInformation> loadedObjectInformation = std::make_unique<ObjectInformation>();
 
 
@@ -345,7 +347,7 @@ std::unique_ptr<WorldLoader::ObjectInformation> WorldLoader::loadObject(tinyxml2
             loadedObjectInformation->isAIGridStartPointSet = true;
             std::cout << "Object has AI." << std::endl;
 
-            loadedObjectInformation->modelActor = new HumanEnemy(ai_id);
+            loadedObjectInformation->modelActor = new HumanEnemy(ai_id, limonAPI);
             loadedObjectInformation->modelActor->setModel(loadedObjectInformation->model);
         }
 

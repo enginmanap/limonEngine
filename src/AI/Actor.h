@@ -23,9 +23,10 @@ class Actor {
 protected:
     uint32_t worldID;
     Model* model = nullptr;
+    LimonAPI* limonAPI;
 public:
 
-    Actor(uint32_t id): worldID(id) {}
+    Actor(uint32_t id, LimonAPI *limonAPI) : worldID(id), limonAPI(limonAPI) {}
 
     virtual void play(long time, ActorInformation &information, Options* options) = 0;
 
