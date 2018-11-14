@@ -54,6 +54,8 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
 
     limonAPI->worldAddAnimationToObject = std::bind(&World::addAnimationToObjectWithSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, false, std::placeholders::_4);
     limonAPI->worldAddGuiText = std::bind(&World::addGuiText, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7);
+    limonAPI->worldAddGuiImage = std::bind(&World::addGuiImageAPI, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5);
+
     limonAPI->worldAddModel = std::bind(&World::addModelApi, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6);
     limonAPI->worldUpdateGuiText = std::bind(&World::updateGuiText, world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGenerateEditorElementsForParameters = std::bind(&World::generateEditorElementsForParameters, world, std::placeholders::_1, std::placeholders::_2);
