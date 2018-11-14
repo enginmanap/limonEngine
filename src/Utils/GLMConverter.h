@@ -27,8 +27,16 @@ public:
         return LimonAPI::Vec4(vector.x, vector.y, vector.z);
     }
 
+    static LimonAPI::Vec2 GLMToLimon(const glm::vec2 &vector) {
+        return LimonAPI::Vec2(vector.x, vector.y);
+    }
+
     static glm::vec4 LimonToGLM(const LimonAPI::Vec4 &vector) {
         return glm::vec4(vector.x, vector.y, vector.z, vector.w);
+    }
+
+    static glm::vec2 LimonToGLM(const LimonAPI::Vec2 &vector) {
+        return glm::vec2(vector.x, vector.y);
     }
 
     static LimonAPI::Mat4 GLMToLimon(const glm::mat4 &matrix) {
