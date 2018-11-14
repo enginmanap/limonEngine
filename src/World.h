@@ -370,6 +370,9 @@ public:
                         const glm::vec3 &color,
                         const glm::vec2 &position, float rotation);
 
+    uint32_t addGuiImageAPI(const std::string &imageFilePath, const std::string &name,
+                                   const LimonAPI::Vec2 &position, const LimonAPI::Vec2 &scale, float rotation);
+
     uint32_t addModelApi(const std::string &modelFilePath, float modelWeight, bool physical, const glm::vec3 &position,
                          const glm::vec3 &scale, const glm::quat &orientation);
     bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID) {

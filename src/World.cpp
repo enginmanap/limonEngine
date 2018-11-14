@@ -1574,7 +1574,25 @@ uint32_t World::addGuiText(const std::string &fontFilePath, uint32_t fontSize, c
     guiElements[tr->getWorldObjectID()] = tr;
     apiGUILayer->addGuiElement(tr);
     return tr->getWorldObjectID();
+}
 
+uint32_t World::addGuiImageAPI(const std::string &imageFilePath, const std::string &name,
+                            const LimonAPI::Vec2 &position, const LimonAPI::Vec2 &scale, float rotation) {
+    GUIImage* guiImage = new GUIImage(getNextObjectID(), options, assetManager, name, imageFilePath);
+
+    glm::vec2 screenPosition;
+    screenPosition.x = position.x * this->options->getScreenWidth();
+    screenPosition.y = position.y * this->options->getScreenHeight();
+
+    glm::vec2 screenScale;
+    screenScale.x = scale.x * this->options->getScreenWidth() /2;
+    screenScale.y = scale.y * this->options->getScreenHeight() /2;
+
+    guiImage->setScale(screenScale);
+    guiImage->set2dWorldTransform(screenPosition, rotation);
+    guiElements[guiImage->getWorldObjectID()] = guiImage;
+    apiGUILayer->addGuiElement(guiImage);
+    return guiImage->getWorldObjectID();
 }
 
 uint32_t World::removeGuiText(uint32_t guiElementID) {
@@ -2177,6 +2195,6 @@ bool World::interactWithAIAPI(uint32_t AIID, std::vector<LimonAPI::ParameterRequ
 
    void World::interactWithPlayerAPI(std::vector<LimonAPI::ParameterRequest> &interactionInformation) const {
        if(this->physicalPlayer != nullptr) {
-           this->physicalPlayer->interact(interactionInformation);
+           this->physicalPlayer->interact(apiInstance, interactionInformation);
        }
    }
