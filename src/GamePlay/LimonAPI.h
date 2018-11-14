@@ -24,6 +24,24 @@ class PhysicalRenderable;
 
 class LimonAPI {
 public:
+
+    struct Vec2 {
+        float x,y;
+
+        Vec2() = default;
+        Vec2(float x, float y): x(x), y(y){}
+
+        float operator [] (int i) const { switch (i) {
+                case 0: return x;
+                case 1: return y;
+            }}
+        float& operator [] (int i) {switch (i) {
+                case 0: return x;
+                case 1: return y;
+            }}
+        };
+
+
     struct Vec4 {
         float x,y,z,w;
 
