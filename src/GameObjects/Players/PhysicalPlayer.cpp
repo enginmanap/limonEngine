@@ -525,10 +525,31 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler, LimonAPI *limonAPI
 }
 
 void PhysicalPlayer::interact(LimonAPI *limonAPI, std::vector<LimonAPI::ParameterRequest> &interactionData) {
+
+    static uint32_t removeCounter = 0;
+    static uint32_t addedElement = 0;
+
     if(interactionData.size() == 0 ) {
         return;
     }
     if(interactionData[0].valueType == LimonAPI::ParameterRequest::ValueTypes::STRING && std::string(interactionData[0].value.stringValue) == "SHOOT_PLAYER") {
+        if(addedElement == 0) {
+            addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicator.png", "damageIndicator", LimonAPI::Vec2(0.5f, 0.5f),
+                                                 LimonAPI::Vec2(0.7f, 0.8f), 0);
+            std::cout << "add gui image by API" << std::endl;
+        }
         std::cout << "SOMEONE shoot the Player!" << std::endl;
+        removeCounter = 7;
     }
+
+    if(addedElement !=0) {
+        if(removeCounter == 0) {
+            //limonAPI->removeGuiElement(addedElement);
+            addedElement = 0;
+        } else {
+            removeCounter--;
+        }
+    }
+
+
 }
