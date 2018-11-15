@@ -9,6 +9,8 @@
 #include <tinyxml2.h>
 #include <unordered_map>
 #include <set>
+#include <queue>
+
 #include "glm/glm.hpp"
 #include "InputHandler.h"
 #include "FontManager.h"
@@ -103,6 +105,28 @@ public:
 
     };
 private:
+
+    struct TimedEvent {
+        long callTime;
+        std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall;
+        std::vector<LimonAPI::ParameterRequest> parameters;
+
+        TimedEvent(long callTime, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall,
+                   std::vector<LimonAPI::ParameterRequest> parameters) :
+        callTime(callTime), methodToCall(std::move(methodToCall)), parameters(std::move(parameters)) {}
+
+        bool operator>(const TimedEvent &timedEventRight) const {
+            return callTime > timedEventRight.callTime;
+        }
+        void run() const {
+            if(this->methodToCall != nullptr) {
+                this->methodToCall(parameters);
+            } else {
+                std::cerr << "Timed method call failed, because method is null" << std::endl;
+            }
+        }
+    };
+
     struct AnimationStatus {
         PhysicalRenderable* object = nullptr;
         uint32_t animationIndex;
@@ -151,6 +175,8 @@ private:
     std::set<Model*> animatedModelsInAnyFrustum;
 
     /************************* End of redundant variables ******************************************/
+    std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<TimedEvent>> timedEvents;
+
 
     std::map<uint32_t, GUIRenderable*> guiElements;
     std::map<uint32_t, TriggerObject*> triggers;
@@ -446,8 +472,13 @@ public:
 
     void interactWithPlayerAPI(std::vector<LimonAPI::ParameterRequest> &interactionInformation) const;
 
+    void addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall,
+                              std::vector<LimonAPI::ParameterRequest> parameters);
+
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);
+
+    void checkAndRunTimedEvents();
 };
 
 #endif //LIMONENGINE_WORLD_H
