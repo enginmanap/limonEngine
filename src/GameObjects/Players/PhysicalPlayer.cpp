@@ -524,7 +524,7 @@ void PhysicalPlayer::processInput(InputHandler &inputHandler, LimonAPI *limonAPI
 
 }
 
-void PhysicalPlayer::interact(std::vector<LimonAPI::ParameterRequest> &interactionData) {
+void PhysicalPlayer::interact(LimonAPI *limonAPI, std::vector<LimonAPI::ParameterRequest> &interactionData) {
     if(interactionData.size() == 0 ) {
         return;
     }
