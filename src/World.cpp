@@ -173,7 +173,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
   */
  void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
 
-
      // If not in editor mode, dont let imgGuiHelper get input
      // if in editor mode, but player press editor button, dont allow imgui to process input
      // if in editor mode, player did not press editor button, then check if imgui processed, if not use the input
@@ -184,11 +183,24 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          }
      }
 
+     //Seperating physics step and visibility, because physics is used by camera, and camera is used by visibility
      if(currentPlayersSettings->worldSimulation) {
-        //every time we call this method, we increase the time only by simulationTimeframe
-        gameTime += simulationTimeFrame;
-        dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
-        currentPlayer->processPhysicsWorld(dynamicsWorld);
+         //every time we call this method, we increase the time only by simulationTimeframe
+         gameTime += simulationTimeFrame;
+         dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
+         currentPlayer->processPhysicsWorld(dynamicsWorld);
+     }
+
+     if(camera->isDirty()) {
+         glHelper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
+         alHelper->setListenerPositionAndOrientation(camera->getPosition(), camera->getCenter(), camera->getUp());
+     }
+
+
+
+     checkAndRunTimedEvents();
+
+     if(currentPlayersSettings->worldSimulation) {
 
         for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
             trigger->second->checkAndTrigger();
@@ -268,11 +280,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
          fillVisibleObjects();
     }
-
-     if(camera->isDirty()) {
-         glHelper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
-         alHelper->setListenerPositionAndOrientation(camera->getPosition(), camera->getCenter(), camera->getUp());
-     }
 
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
         guiLayers[i]->setupForTime(gameTime);
@@ -2197,4 +2204,18 @@ bool World::interactWithAIAPI(uint32_t AIID, std::vector<LimonAPI::ParameterRequ
        if(this->physicalPlayer != nullptr) {
            this->physicalPlayer->interact(apiInstance, interactionInformation);
        }
+   }
+
+   void
+   World::addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall,
+                              std::vector<LimonAPI::ParameterRequest> parameters) {
+        timedEvents.push(TimedEvent(waitTime + gameTime, methodToCall, parameters));
+   }
+
+   void World::checkAndRunTimedEvents() {
+
+    while (timedEvents.size() > 0 && timedEvents.top().callTime <= gameTime) {
+        timedEvents.top().run();
+        timedEvents.pop();
+    }
    }

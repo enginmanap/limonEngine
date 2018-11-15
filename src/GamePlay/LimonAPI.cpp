@@ -334,3 +334,9 @@ bool LimonAPI::interactWithAI(uint32_t AIID, std::vector<LimonAPI::ParameterRequ
 void LimonAPI::interactWithPlayer(std::vector<LimonAPI::ParameterRequest> &input) {
     return this->worldInteractWithPlayer(input);
 }
+
+void LimonAPI::addTimedEvent(long waitTime,
+                             std::function<void(const std::vector<LimonAPI::ParameterRequest> &)> methodToCall,
+                             std::vector<LimonAPI::ParameterRequest> parameters) {
+    worldaddTimedEvent(waitTime, methodToCall, parameters);
+}

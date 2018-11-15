@@ -194,6 +194,8 @@ public:
         return variableStore[variableName];
     }
 
+    void addTimedEvent(long waitTime, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall, std::vector<LimonAPI::ParameterRequest> parameters);
+
     LimonAPI(std::function<bool (const std::string&)> worldLoadMethod,
              std::function<bool (const std::string&)> worldReturnOrLoadMethod,
              std::function<bool (const std::string&)> worldLoadNewAndRemoveCurrentMethod,
@@ -234,6 +236,8 @@ private:
     std::function<std::vector<ParameterRequest>()> worldRayCastToCursor;
     std::function<bool (uint32_t, std::vector<ParameterRequest>&)> worldInteractWithAI;
     std::function<void (std::vector<ParameterRequest>&)> worldInteractWithPlayer;
+
+    std::function<void (long, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)>, std::vector<LimonAPI::ParameterRequest>)> worldaddTimedEvent;
 
     /*** Non World API calls *******************************************************/
     std::function<bool (const std::string&)> limonLoadWorld;
