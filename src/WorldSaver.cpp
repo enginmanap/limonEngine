@@ -74,33 +74,36 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     rootNode->InsertEndChild(currentElement);
 
     currentElement = mapDocument.NewElement("Player");
-        tinyxml2::XMLElement *playerType = mapDocument.NewElement("Type");
-        playerType->SetText(world->startingPlayer.typeToString().c_str());
-        currentElement->InsertEndChild(playerType);
+    tinyxml2::XMLElement *playerType = mapDocument.NewElement("Type");
+    playerType->SetText(world->startingPlayer.typeToString().c_str());
+    currentElement->InsertEndChild(playerType);
 
-        tinyxml2::XMLElement *playerPosition = mapDocument.NewElement("Position");
-        serializeVec3(mapDocument, playerPosition, world->startingPlayer.position);
-        currentElement->InsertEndChild(playerPosition);
+    tinyxml2::XMLElement *playerPosition = mapDocument.NewElement("Position");
+    serializeVec3(mapDocument, playerPosition, world->startingPlayer.position);
+    currentElement->InsertEndChild(playerPosition);
 
-        tinyxml2::XMLElement *playerOrientation = mapDocument.NewElement("Orientation");
-        serializeVec3(mapDocument, playerOrientation, world->startingPlayer.orientation);
-        currentElement->InsertEndChild(playerOrientation);
+    tinyxml2::XMLElement *playerOrientation = mapDocument.NewElement("Orientation");
+    serializeVec3(mapDocument, playerOrientation, world->startingPlayer.orientation);
+    currentElement->InsertEndChild(playerOrientation);
 
-        tinyxml2::XMLElement *playerAttachement = mapDocument.NewElement("Attachement");
-        if(world->startingPlayer.attachedModel != nullptr) {
-            if(world->physicalPlayer != nullptr) {
-                glm::vec3 attachmentPositionBackup = world->startingPlayer.attachedModel->getTransformation()->getTranslate();
-                world->startingPlayer.attachedModel->getTransformation()->setTranslate(
-                        world->physicalPlayer->getAttachedModelOffset());
-                world->startingPlayer.attachedModel->fillObjects(mapDocument, playerAttachement);
-                world->startingPlayer.attachedModel->getTransformation()->setTranslate(attachmentPositionBackup);
-            } else {
-                //if physical player doesn't exists, but attached model does. This should not happen now, but this line is here as future proofing.
-                world->startingPlayer.attachedModel->fillObjects(mapDocument, playerAttachement);
-            }
+    tinyxml2::XMLElement *playerExtension = mapDocument.NewElement("ExtensionName");
+    playerExtension->SetText(world->startingPlayer.extensionName.c_str());
+    currentElement->InsertEndChild(playerExtension);
+
+    tinyxml2::XMLElement *playerAttachement = mapDocument.NewElement("Attachement");
+    if(world->startingPlayer.attachedModel != nullptr) {
+        if(world->physicalPlayer != nullptr) {
+            glm::vec3 attachmentPositionBackup = world->startingPlayer.attachedModel->getTransformation()->getTranslate();
+            world->startingPlayer.attachedModel->getTransformation()->setTranslate(
+                    world->physicalPlayer->getAttachedModelOffset());
+            world->startingPlayer.attachedModel->fillObjects(mapDocument, playerAttachement);
+            world->startingPlayer.attachedModel->getTransformation()->setTranslate(attachmentPositionBackup);
+        } else {
+            //if physical player doesn't exists, but attached model does. This should not happen now, but this line is here as future proofing.
+            world->startingPlayer.attachedModel->fillObjects(mapDocument, playerAttachement);
         }
-        currentElement->InsertEndChild(playerAttachement);
-    //currentElement->SetText(world->startingPlayer.toString().c_str());
+    }
+    currentElement->InsertEndChild(playerAttachement);
     rootNode->InsertEndChild(currentElement);
 
     if(world->music != nullptr) {

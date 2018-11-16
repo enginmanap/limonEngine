@@ -852,6 +852,37 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
                 ImGui::EndCombo();
             }
+            static char extensionNameBuffer[32];
+            static bool showError = false;
+            if(ImGui::InputText("Custom Extension name", extensionNameBuffer, 31, ImGuiInputTextFlags_CharsNoBlank)) {
+                showError = false;
+            }
+
+            if(ImGui::Button("Apply##PlayerExtensionUpdate")) {
+                std::string tempName = extensionNameBuffer;
+                //find the starting player, and apply this change to it:
+                Player* playerToUpdate = nullptr;
+                switch (startingPlayer.type) {
+                    case PlayerInfo::Types::DEBUG_PLAYER: playerToUpdate = debugPlayer; break;
+                    case PlayerInfo::Types::EDITOR_PLAYER: playerToUpdate = editorPlayer; break;
+                    case PlayerInfo::Types::PHYSICAL_PLAYER: playerToUpdate = physicalPlayer; break;
+                    case PlayerInfo::Types::MENU_PLAYER: playerToUpdate = menuPlayer; break;
+                }
+                if(playerToUpdate != nullptr && tempName != "") {
+                    PlayerExtensionInterface* extension = PlayerExtensionInterface::createExtension(tempName, apiInstance);
+                    if(extension != nullptr) {
+                        this->startingPlayer.extensionName = tempName;
+                        playerToUpdate->setPlayerExtension(extension);
+                    } else {
+                        showError = true;
+                    }
+                }
+            }
+            if(showError) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+                ImGui::Text("The name didn't match an extension. The info won't be saved!");
+                ImGui::PopStyleColor();
+            }
         }
         ImGui::Separator();
         if(ImGui::CollapsingHeader("World properties")) {
@@ -1693,10 +1724,10 @@ void World::afterLoadFinished() {
         music->play();
     }
 
-    if(this->physicalPlayer != nullptr) {
-        this->physicalPlayer->setPlayerExtension(PlayerExtensionInterface::createExtension("ShooterPlayerExtension", apiInstance));
+    if(startingPlayer.extensionName != "") {
+        this->currentPlayer->setPlayerExtension(
+                PlayerExtensionInterface::createExtension(startingPlayer.extensionName, apiInstance));
     }
-
 }
 
 bool World::disconnectObjectFromPhysics(uint32_t objectWorldID) {

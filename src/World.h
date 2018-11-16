@@ -71,6 +71,7 @@ public:
         glm::vec3 position = glm::vec3(0,0,0);
         glm::vec3 orientation = glm::vec3(0,0,-1);
         Model* attachedModel = nullptr;
+        std::string extensionName;
 
         PlayerInfo() {
             position = glm::vec3(-15, 7,25);

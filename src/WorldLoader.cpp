@@ -133,6 +133,13 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
             loadVec3(playerStartOrientation, startingPlayer.orientation);
         }
 
+        tinyxml2::XMLElement* playerExtension =  worldStartPlayer->FirstChildElement("ExtensionName");
+        if(playerExtension != nullptr) {
+            if(playerExtension->GetText() != nullptr) {
+                startingPlayer.extensionName = playerExtension->GetText();
+            }
+        }
+
         tinyxml2::XMLElement* playerAttachementModel =  worldStartPlayer->FirstChildElement("Attachement");
         if(playerAttachementModel != nullptr) {
             tinyxml2::XMLElement* objectNode =  playerAttachementModel->FirstChildElement("Object");
