@@ -2269,3 +2269,13 @@ LimonAPI::Vec4 World::getPlayerModelOffsetAPI() {
    }
    return LimonAPI::Vec4(0,0,0);
 }
+
+bool World::setPlayerModelOffsetAPI(LimonAPI::Vec4 newOffset) {
+    if(this->startingPlayer.attachedModel != nullptr) {
+        if(physicalPlayer != nullptr) {
+            physicalPlayer->setAttachedModelOffset(GLMConverter::LimonToGLM(newOffset));
+            return true;
+        }
+    }
+    return false;
+}

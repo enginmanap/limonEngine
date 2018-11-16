@@ -448,7 +448,6 @@ public:
         return true;
     }
 
-
     bool updateGuiText(uint32_t guiTextID, const std::string &newText);
 
     bool removeObject(uint32_t objectID);
@@ -497,6 +496,8 @@ public:
     bool setModelAnimationWithBlendAPI(uint32_t modelID, std::string animationName, bool isLooped, long blendTime);
 
     LimonAPI::Vec4 getPlayerModelOffsetAPI();
+    bool setPlayerModelOffsetAPI(LimonAPI::Vec4 newOffset);
+
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);
 

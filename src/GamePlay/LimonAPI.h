@@ -184,6 +184,8 @@ public:
 
     uint32_t getPlayerAttachedModel();
     LimonAPI::Vec4 getPlayerAttachedModelOffset();
+    bool setPlayerAttachedModelOffset(LimonAPI::Vec4 newOffset);
+
     std::string getModelAnimationName(uint32_t modelID);
     bool getModelAnimationFinished(uint32_t modelID);
     bool setModelAnimation(uint32_t modelID, std::string animationName, bool isLooped = true);
