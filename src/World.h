@@ -496,6 +496,7 @@ public:
     bool setModelAnimationAPI(uint32_t modelID, std::string animationName, bool isLooped);
     bool setModelAnimationWithBlendAPI(uint32_t modelID, std::string animationName, bool isLooped, long blendTime);
 
+    LimonAPI::Vec4 getPlayerModelOffsetAPI();
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);
 
