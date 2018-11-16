@@ -362,4 +362,7 @@ std::string LimonAPI::getModelAnimationName(uint32_t modelID) {
 bool LimonAPI::getModelAnimationFinished(uint32_t modelID) {
     return worldGetModelAnimationFinished(modelID);
 }
+
+bool LimonAPI::setModelAnimationWithBlend(uint32_t modelID, std::string animationName, bool isLooped, long blendTime) {
+    return worldSetAnimationOfModelWithBlend(modelID, animationName, isLooped, blendTime);
 }

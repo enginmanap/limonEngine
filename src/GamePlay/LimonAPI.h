@@ -185,6 +185,8 @@ public:
     uint32_t getPlayerAttachedModel();
     std::string getModelAnimationName(uint32_t modelID);
     bool getModelAnimationFinished(uint32_t modelID);
+    bool setModelAnimationWithBlend(uint32_t modelID, std::string animationName, bool isLooped = true, long blendTime = 100);
+
     void interactWithPlayer(std::vector<ParameterRequest>& input);
 
     bool loadAndSwitchWorld(const std::string& worldFileName);

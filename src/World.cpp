@@ -2249,4 +2249,14 @@ bool World::setModelAnimationAPI(uint32_t modelID, std::string animationName, bo
     }
     return false;
 }
+
+bool World::setModelAnimationWithBlendAPI(uint32_t modelID, std::string animationName, bool isLooped, long blendTime) {
+    Model* model = findModelByID(modelID);
+    if(model != nullptr) {
+        model->setAnimationWithBlend(animationName, isLooped, blendTime);
+        return true;
+    }
+    return false;
+}
+
    }
