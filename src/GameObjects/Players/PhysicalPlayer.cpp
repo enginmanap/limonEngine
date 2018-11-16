@@ -340,8 +340,6 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
         attachedModel->addImGuiEditorElements(request);
     }
 
-    ImGui::DragFloat("Muzzle flash distance", &muzzleFlashDistance);
-    ImGui::DragFloat3("Muzzle flash offsets", glm::value_ptr(muzzleFlashOffset));
     ImGui::DragFloat3("Attached Model Offsets", glm::value_ptr(attachedModelOffset));
 
 
