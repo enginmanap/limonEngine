@@ -2222,4 +2222,13 @@ uint32_t World::getPlayerAttachedModelAPI() {
     }
     return 0;
 }
+
+std::string World::getModelAnimationNameAPI(uint32_t modelID) {
+    Model* model = findModelByID(modelID);
+        if(model != nullptr) {
+            return model->getAnimationName();
+        }
+
+    return "";
+}
    }

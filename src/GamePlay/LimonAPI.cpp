@@ -342,4 +342,8 @@ void LimonAPI::addTimedEvent(long waitTime,
 uint32_t LimonAPI::getPlayerAttachedModel() {
     return worldGetPlayerAttachedModel();
 }
+
+std::string LimonAPI::getModelAnimationName(uint32_t modelID) {
+    return worldGetModelAnimationName(modelID);
+}
 }
