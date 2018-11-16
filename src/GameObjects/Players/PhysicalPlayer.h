@@ -59,8 +59,6 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     static const float CAPSULE_RADIUS;
     static const float STANDING_HEIGHT;
 
-    PlayerExtensionInterface* playerExtension = nullptr;
-
 public:
     glm::vec3 getPosition() const {
         return GLMConverter::BltToGLM(player->getCenterOfMassPosition());
@@ -190,14 +188,6 @@ public:
     void processInput(InputHandler &inputHandler) override;
 
     void interact(LimonAPI *limonAPI, std::vector<LimonAPI::ParameterRequest> &interactionData) override;
-
-    PlayerExtensionInterface *getPlayerExtension() const {
-        return playerExtension;
-    }
-
-    void setPlayerExtension(PlayerExtensionInterface *playerExtension) {
-        PhysicalPlayer::playerExtension = playerExtension;
-    }
 };
 
 

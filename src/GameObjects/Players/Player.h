@@ -11,10 +11,12 @@
 #include <glm/glm.hpp>
 #include <string>
 #include <iostream>
+#include "../../GamePlay/PlayerExtensionInterface.h"
 
 class btDiscreteDynamicsWorld;
 class GUIRenderable;
 class CameraAttachment;
+
 
 class Player : public GameObject {
 public:
@@ -32,6 +34,7 @@ protected:
     GUIRenderable* cursor = nullptr;
     WorldSettings worldSettings;
     Options *options = nullptr;
+    PlayerExtensionInterface* playerExtension = nullptr;
 public:
     enum moveDirections {
         NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD, UP
@@ -136,6 +139,16 @@ public:
         move(direction);
 
     }
+
+    PlayerExtensionInterface *getPlayerExtension() const {
+        return playerExtension;
+    }
+
+    void setPlayerExtension(PlayerExtensionInterface *playerExtension) {
+        delete this->playerExtension;
+        this->playerExtension = playerExtension;
+    }
+
 };
 
 
