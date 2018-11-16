@@ -35,8 +35,6 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     float groundFrictionFactor = 10.0f;
     btVector3 slowDownFactor = btVector3(2.5f, 1.0f, 2.5f);
 
-    glm::vec3 muzzleFlashOffset = glm::vec3(-0.18f,2.85f,0.5750f);
-    float muzzleFlashDistance = 0.735f;
     btRigidBody *player;
     btGeneric6DofSpring2Constraint *spring;
     float springStandPoint;
