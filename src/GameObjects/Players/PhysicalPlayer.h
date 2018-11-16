@@ -21,9 +21,11 @@
 #include "../../GUI/GUIRenderable.h"
 #include "../Sound.h"
 #include "../Model.h"
+#include "../../GamePlay/PlayerExtensionInterface.h"
 
 static const int STEPPING_TEST_COUNT = 5;
 
+class LimonAPI;
 
 class PhysicalPlayer : public Player, public CameraAttachment {
     glm::vec3 center, up, right;
@@ -58,6 +60,8 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     static const float CAPSULE_HEIGHT;
     static const float CAPSULE_RADIUS;
     static const float STANDING_HEIGHT;
+
+    PlayerExtensionInterface* playerExtension = nullptr;
 
 public:
     glm::vec3 getPosition() const {
@@ -188,6 +192,14 @@ public:
     void processInput(InputHandler &inputHandler, LimonAPI *limonAPI) override;
 
     void interact(LimonAPI *limonAPI, std::vector<LimonAPI::ParameterRequest> &interactionData) override;
+
+    PlayerExtensionInterface *getPlayerExtension() const {
+        return playerExtension;
+    }
+
+    void setPlayerExtension(PlayerExtensionInterface *playerExtension) {
+        PhysicalPlayer::playerExtension = playerExtension;
+    }
 };
 
 

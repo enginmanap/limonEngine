@@ -31,6 +31,10 @@ public:
     bool loadSharedLibrary(const std::string& fileName);
 
     SDL_Window *getWindow();
+
+    bool loadTriggers(void *objectHandle) const;
+    bool loadPlayerExtensions(void *objectHandle) const;
+
 };
 
 #endif //LIMONENGINE_SDL2HELPER_CPP_H

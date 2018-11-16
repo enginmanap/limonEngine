@@ -1693,6 +1693,10 @@ void World::afterLoadFinished() {
         music->play();
     }
 
+    if(this->physicalPlayer != nullptr) {
+        this->physicalPlayer->setPlayerExtension(PlayerExtensionInterface::createExtension("ShooterPlayerExtension", apiInstance));
+    }
+
 }
 
 bool World::disconnectObjectFromPhysics(uint32_t objectWorldID) {
