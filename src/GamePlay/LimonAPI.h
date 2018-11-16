@@ -184,6 +184,7 @@ public:
 
     uint32_t getPlayerAttachedModel();
     std::string getModelAnimationName(uint32_t modelID);
+    bool getModelAnimationFinished(uint32_t modelID);
     void interactWithPlayer(std::vector<ParameterRequest>& input);
 
     bool loadAndSwitchWorld(const std::string& worldFileName);
@@ -260,6 +261,7 @@ private:
     std::function<void (long, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)>, std::vector<LimonAPI::ParameterRequest>)> worldaddTimedEvent;
     std::function<uint32_t ()> worldGetPlayerAttachedModel;
     std::function<std::string(uint32_t)> worldGetModelAnimationName;
+    std::function<bool(uint32_t)> worldGetModelAnimationFinished;
 
     /*** Non World API calls *******************************************************/
     std::function<bool (const std::string&)> limonLoadWorld;

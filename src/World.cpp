@@ -2231,4 +2231,13 @@ std::string World::getModelAnimationNameAPI(uint32_t modelID) {
 
     return "";
 }
+
+bool World::getModelAnimationFinishedAPI(uint32_t modelID) {
+    Model* model = findModelByID(modelID);
+    if(model != nullptr) {
+        return model->isAnimationFinished();
+    }
+
+    return false;
+}
    }
