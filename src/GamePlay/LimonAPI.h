@@ -50,17 +50,17 @@ public:
         Vec4(float x, float y, float z): x(x), y(y), z(z), w(0) {}
 
         float operator [] (int i) const {switch (i) {
-                case 0: return x;
-                case 1: return y;
-                case 2: return z;
-                case 3: return w;
+            case 0: return x;
+            case 1: return y;
+            case 2: return z;
+            case 3: return w;
         }}
         float& operator [] (int i) {switch (i) {
-                case 0: return x;
-                case 1: return y;
-                case 2: return z;
-                case 3: return w;
-            }}
+            case 0: return x;
+            case 1: return y;
+            case 2: return z;
+            case 3: return w;
+        }}
     };
     struct Mat4 {
         Vec4 rows[4];
