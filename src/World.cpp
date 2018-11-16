@@ -2216,6 +2216,8 @@ void World::checkAndRunTimedEvents() {
         timedEvents.top().run();
         timedEvents.pop();
     }
+}
+
 uint32_t World::getPlayerAttachedModelAPI() {
     if(this->startingPlayer.attachedModel != nullptr) {
         return this->startingPlayer.attachedModel->getWorldObjectID();
@@ -2259,4 +2261,11 @@ bool World::setModelAnimationWithBlendAPI(uint32_t modelID, std::string animatio
     return false;
 }
 
+LimonAPI::Vec4 World::getPlayerModelOffsetAPI() {
+   if(this->startingPlayer.attachedModel != nullptr) {
+       if(physicalPlayer != nullptr) {
+           return GLMConverter::GLMToLimon(physicalPlayer->getAttachedModelOffset());
+       }
    }
+   return LimonAPI::Vec4(0,0,0);
+}

@@ -183,6 +183,7 @@ public:
     std::vector<LimonAPI::ParameterRequest> getObjectTransformationMatrix(uint32_t objectID);
 
     uint32_t getPlayerAttachedModel();
+    LimonAPI::Vec4 getPlayerAttachedModelOffset();
     std::string getModelAnimationName(uint32_t modelID);
     bool getModelAnimationFinished(uint32_t modelID);
     bool setModelAnimation(uint32_t modelID, std::string animationName, bool isLooped = true);
