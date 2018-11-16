@@ -475,6 +475,7 @@ public:
     void addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall,
                               std::vector<LimonAPI::ParameterRequest> parameters);
 
+    uint32_t getPlayerAttachedModelAPI();
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);
 

@@ -339,4 +339,7 @@ void LimonAPI::addTimedEvent(long waitTime,
                              std::function<void(const std::vector<LimonAPI::ParameterRequest> &)> methodToCall,
                              std::vector<LimonAPI::ParameterRequest> parameters) {
     worldaddTimedEvent(waitTime, methodToCall, parameters);
+uint32_t LimonAPI::getPlayerAttachedModel() {
+    return worldGetPlayerAttachedModel();
+}
 }
