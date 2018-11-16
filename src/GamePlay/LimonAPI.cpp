@@ -346,4 +346,8 @@ uint32_t LimonAPI::getPlayerAttachedModel() {
 std::string LimonAPI::getModelAnimationName(uint32_t modelID) {
     return worldGetModelAnimationName(modelID);
 }
+
+bool LimonAPI::getModelAnimationFinished(uint32_t modelID) {
+    return worldGetModelAnimationFinished(modelID);
+}
 }

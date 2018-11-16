@@ -478,6 +478,7 @@ public:
     uint32_t getPlayerAttachedModelAPI();
 
     std::string getModelAnimationNameAPI(uint32_t modelID);
+    bool getModelAnimationFinishedAPI(uint32_t modelID);
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);
 
