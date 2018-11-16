@@ -476,6 +476,8 @@ public:
                               std::vector<LimonAPI::ParameterRequest> parameters);
 
     uint32_t getPlayerAttachedModelAPI();
+
+    std::string getModelAnimationNameAPI(uint32_t modelID);
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);
 
