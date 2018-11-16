@@ -61,6 +61,24 @@ public:
             case 2: return z;
             case 3: return w;
         }}
+
+        const Vec4 operator+(const Vec4 &second) {
+            Vec4 result;
+            result.x = this->x + second.x;
+            result.y = this->y + second.y;
+            result.z = this->z + second.z;
+            result.w = this->w + second.w;
+            return result;
+        }
+
+        const Vec4 operator-(const Vec4 &second) {
+            Vec4 result;
+            result.x = this->x - second.x;
+            result.y = this->y - second.y;
+            result.z = this->z - second.z;
+            result.w = this->w - second.w;
+            return result;
+        }
     };
     struct Mat4 {
         Vec4 rows[4];
