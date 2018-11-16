@@ -164,6 +164,7 @@ public:
      */
     std::vector<LimonAPI::ParameterRequest> getObjectTransformationMatrix(uint32_t objectID);
 
+    uint32_t getPlayerAttachedModel();
     void interactWithPlayer(std::vector<ParameterRequest>& input);
 
     bool loadAndSwitchWorld(const std::string& worldFileName);
@@ -238,6 +239,7 @@ private:
     std::function<void (std::vector<ParameterRequest>&)> worldInteractWithPlayer;
 
     std::function<void (long, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)>, std::vector<LimonAPI::ParameterRequest>)> worldaddTimedEvent;
+    std::function<uint32_t ()> worldGetPlayerAttachedModel;
 
     /*** Non World API calls *******************************************************/
     std::function<bool (const std::string&)> limonLoadWorld;

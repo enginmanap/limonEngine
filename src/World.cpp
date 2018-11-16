@@ -2216,4 +2216,10 @@ void World::checkAndRunTimedEvents() {
         timedEvents.top().run();
         timedEvents.pop();
     }
+uint32_t World::getPlayerAttachedModelAPI() {
+    if(this->startingPlayer.attachedModel != nullptr) {
+        return this->startingPlayer.attachedModel->getWorldObjectID();
+    }
+    return 0;
+}
    }
