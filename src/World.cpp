@@ -2200,20 +2200,18 @@ bool World::interactWithAIAPI(uint32_t AIID, std::vector<LimonAPI::ParameterRequ
    return actors.at(AIID)->interaction(interactionInformation);
 }
 
-   void World::interactWithPlayerAPI(std::vector<LimonAPI::ParameterRequest> &interactionInformation) const {
-       if(this->physicalPlayer != nullptr) {
-           this->physicalPlayer->interact(apiInstance, interactionInformation);
-       }
-   }
+void World::interactWithPlayerAPI(std::vector<LimonAPI::ParameterRequest> &interactionInformation) const {
+    if(this->physicalPlayer != nullptr) {
+       this->physicalPlayer->interact(apiInstance, interactionInformation);
+    }
+}
 
-   void
-   World::addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall,
+void World::addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall,
                               std::vector<LimonAPI::ParameterRequest> parameters) {
-        timedEvents.push(TimedEvent(waitTime + gameTime, methodToCall, parameters));
-   }
+    timedEvents.push(TimedEvent(waitTime + gameTime, methodToCall, parameters));
+}
 
-   void World::checkAndRunTimedEvents() {
-
+void World::checkAndRunTimedEvents() {
     while (timedEvents.size() > 0 && timedEvents.top().callTime <= gameTime) {
         timedEvents.top().run();
         timedEvents.pop();
