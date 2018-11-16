@@ -258,10 +258,15 @@ private:
     std::function<bool (uint32_t, std::vector<ParameterRequest>&)> worldInteractWithAI;
     std::function<void (std::vector<ParameterRequest>&)> worldInteractWithPlayer;
 
-    std::function<void (long, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)>, std::vector<LimonAPI::ParameterRequest>)> worldaddTimedEvent;
+    std::function<void (long, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)>, std::vector<LimonAPI::ParameterRequest>)> worldAddTimedEvent;
+
+    std::function<LimonAPI::Vec4 ()> worldGetPlayerAttachmentOffset;
+    std::function<bool (LimonAPI::Vec4)> worldSetPlayerAttachmentOffset;
     std::function<uint32_t ()> worldGetPlayerAttachedModel;
     std::function<std::string(uint32_t)> worldGetModelAnimationName;
     std::function<bool(uint32_t)> worldGetModelAnimationFinished;
+    std::function<bool(uint32_t,std::string, bool)> worldSetAnimationOfModel;
+    std::function<bool(uint32_t,std::string, bool, long)> worldSetAnimationOfModelWithBlend;
 
     /*** Non World API calls *******************************************************/
     std::function<bool (const std::string&)> limonLoadWorld;

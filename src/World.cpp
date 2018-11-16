@@ -2240,4 +2240,13 @@ bool World::getModelAnimationFinishedAPI(uint32_t modelID) {
 
     return false;
 }
+
+bool World::setModelAnimationAPI(uint32_t modelID, std::string animationName, bool isLooped) {
+    Model* model = findModelByID(modelID);
+    if(model != nullptr) {
+        model->setAnimation(animationName, isLooped);
+        return true;
+    }
+    return false;
+}
    }
