@@ -7,6 +7,7 @@
 #include "Options.h"
 #include "GamePlay/LimonAPI.h"
 #include "GamePlay/TriggerInterface.h"
+#include "GamePlay/PlayerExtensionInterface.h"
 
 SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {
 
@@ -86,26 +87,53 @@ SDL_Window *SDL2Helper::getWindow() {
 }
 
 bool SDL2Helper::loadSharedLibrary(const std::string &fileName) {
-        std::cout << "trying to load shared library " << fileName << std::endl;
-        void* objectHandle = nullptr;
-        const std::string registerFunctionName = "registerAsTrigger";
-        void(*registerFunction)(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>*);
-        objectHandle = SDL_LoadObject(fileName.c_str());
-        registerFunction = (void(*)(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
-        if(registerFunction != nullptr) {
-            std::cout << "function load successful" << std::endl;
-            //register requires parameter
-            std::map<std::string, TriggerInterface*(*)(LimonAPI*)> elements;
-            registerFunction(&elements);
-            //now add this elements to registered map
-            for (auto it = elements.begin(); it != elements.end(); it++) {
-                TriggerInterface::registerType(it->first, it->second);
-            }
-            return true;
-        } else {
-            std::cerr << "function load failed" << std::endl;
-            return false;
+    std::cout << "trying to load shared library " << fileName << std::endl;
+    void* objectHandle = nullptr;
+    objectHandle = SDL_LoadObject(fileName.c_str());
+    bool result = loadTriggers(objectHandle);
+    return loadPlayerExtensions(objectHandle) && result;
+}
+
+bool SDL2Helper::loadPlayerExtensions(void *objectHandle) const {
+    const std::string registerFunctionName = "registerPlayerExtensions";
+    void(*registerFunction)(std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>*);
+    registerFunction = (void(*)(
+            std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
+    if(registerFunction != nullptr) {
+        std::cout << "Player extension register method found " << std::endl;
+        //register requires parameter
+        std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)> elements;
+        registerFunction(&elements);
+        //now add this elements to registered map
+        for (auto it = elements.begin(); it != elements.end(); it++) {
+            PlayerExtensionInterface::registerType(it->first, it->second);
         }
+        return true;
+    } else {
+        std::cerr << "Custom Player extension load failed!" << std::endl;
+        return false;
+    }
+}
+
+bool SDL2Helper::loadTriggers(void *objectHandle) const {
+    const std::string registerFunctionName = "registerAsTrigger";
+    void(*registerFunction)(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>*);
+    registerFunction = (void(*)(
+            std::map<std::string, TriggerInterface*(*)(LimonAPI*)>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
+    if(registerFunction != nullptr) {
+        std::cout << "Trigger register method found" << std::endl;
+        //register requires parameter
+        std::map<std::string, TriggerInterface*(*)(LimonAPI*)> elements;
+        registerFunction(&elements);
+        //now add this elements to registered map
+        for (auto it = elements.begin(); it != elements.end(); it++) {
+            TriggerInterface::registerType(it->first, it->second);
+        }
+        return true;
+    } else {
+        std::cerr << "Custom Trigger load failed!" << std::endl;
+        return false;
+    }
 }
 
 void SDL2Helper::setFullScreen(bool isFullScreen) {
