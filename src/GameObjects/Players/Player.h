@@ -85,7 +85,7 @@ public:
     };
 
     /************Game Object methods **************/
-    virtual void processInput(InputHandler &inputHandler, LimonAPI *limonAPI __attribute__((unused))) {
+    virtual void processInput(InputHandler &inputHandler) {
 
         float xPosition, yPosition, xChange, yChange;
         if (inputHandler.getMouseChange(xPosition, yPosition, xChange, yChange)) {
