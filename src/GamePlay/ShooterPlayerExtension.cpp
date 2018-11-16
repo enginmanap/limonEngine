@@ -11,6 +11,8 @@
 
 PlayerExtensionRegister<ShooterPlayerExtension> ShooterPlayerExtension::reg("ShooterPlayerExtension");
 
+const glm::quat ShooterPlayerExtension::direction = glm::quat(0.0f, 0.0f, 1.0f, 0.0f);//this is used to reverse hit normal
+
 void ShooterPlayerExtension::processInput(InputHandler &inputHandler) {
     if (playerAttachedModelID == 0) {
         return;
@@ -33,8 +35,6 @@ void ShooterPlayerExtension::processInput(InputHandler &inputHandler) {
                 limonAPI->removeObject(addedElement);
                 std::cout << "removed by reshoot" << std::endl;
             }
-            glm::quat direction = glm::quat(0.0f, 0.0f, 1.0f, 0.0f);
-            glm::vec3 muzzleFlashOffset = glm::vec3(-0.18f,2.85f,0.5750f);
 
             addedElement = limonAPI->addObject("./Data/Models/Muzzle/Muzzle.obj", 0, false, muzzleFlashOffset * 100.0f, scale, direction);
             bool isAttached = limonAPI->attachObjectToObject(addedElement, playerAttachedModelID);
