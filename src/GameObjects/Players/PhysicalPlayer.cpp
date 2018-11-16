@@ -359,8 +359,8 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
     return imGuiResult;
 }
 
-void PhysicalPlayer::processInput(InputHandler &inputHandler, LimonAPI *limonAPI) {
-    Player::processInput(inputHandler, limonAPI);
+void PhysicalPlayer::processInput(InputHandler &inputHandler) {
+    Player::processInput(inputHandler);
 
     if(playerExtension != nullptr) {
         playerExtension->processInput(inputHandler);
