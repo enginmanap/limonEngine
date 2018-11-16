@@ -146,19 +146,32 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
              RayCallback
      );
 
-     //debugDrawer->flushDraws();
+
      if (RayCallback.hasHit()) {
+         btVector3 closestDistance = btVector3(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
          bool hasSeen = false;
-         for (int i = 0; i < RayCallback.m_collisionObjects.size(); ++i) {
-             GameObject *gameObject = static_cast<GameObject *>(RayCallback.m_collisionObjects[i]->getUserPointer());
-             if (gameObject->getTypeID() != GameObject::PLAYER && gameObject->getTypeID() != GameObject::TRIGGER && //trigger is ghost, so it should not block
-                 gameObject->getName() != fromName) {
-                 return false;
-             }
-             if(gameObject->getTypeID() == GameObject::PLAYER) {
-                 hasSeen = true;
+         for (int i = 0; i < RayCallback.m_collisionObjects.size(); ++i) {//it turns out, the hits are not ordered, so keep what we see
+             btVector3 distance = RayCallback.m_hitPointWorld[i] - RayCallback.m_rayFromWorld;
+             if(distance.length2() < closestDistance.length2()) {//length2 doesn't invoke sqtr, so it should be faster
+                 GameObject *gameObject = static_cast<GameObject *>(RayCallback.m_collisionObjects[i]->getUserPointer());
+                 if(gameObject->getName() == fromName) {
+                     continue; //self should not change closest hit
+                 }
+                 closestDistance = distance;
+                 if (gameObject->getTypeID() != GameObject::PLAYER && gameObject->getTypeID() != GameObject::TRIGGER ) { //trigger is ghost, so it should not block
+                     if(hasSeen) {
+                         //means we saw the player, and this is closer than player
+                         return false;
+                     }
+                 }
+                 if (gameObject->getTypeID() == GameObject::PLAYER) {
+                     hasSeen = true;
+                 }
+             } else {
+                 GameObject *gameObject = static_cast<GameObject *>(RayCallback.m_collisionObjects[i]->getUserPointer());
              }
          }
+
          return hasSeen;
      }
      return false;//if ray did not hit anything, return false. This should never happen
@@ -432,7 +445,7 @@ void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bo
 
 ActorInformation World::fillActorInformation(Actor *actor) {
     ActorInformation information;
-    information.canSeePlayerDirectly = checkPlayerVisibility(actor->getPosition()+ AIMovementGrid::floatingHeight, actor->getModel()->getName());
+    information.canSeePlayerDirectly = checkPlayerVisibility(actor->getPosition()+ glm::vec3(0, AIMovementGrid::floatingHeight, 0), actor->getModel()->getName());
     glm::vec3 front = actor->getFrontVector();
     glm::vec3 rayDir = currentPlayer->getPosition() - actor->getPosition();
     float cosBetween = glm::dot(normalize(front), normalize(rayDir));
