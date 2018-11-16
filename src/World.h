@@ -479,6 +479,7 @@ public:
 
     std::string getModelAnimationNameAPI(uint32_t modelID);
     bool getModelAnimationFinishedAPI(uint32_t modelID);
+    bool setModelAnimationAPI(uint32_t modelID, std::string animationName, bool isLooped);
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);
 

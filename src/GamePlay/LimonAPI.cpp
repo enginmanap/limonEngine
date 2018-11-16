@@ -338,7 +338,19 @@ void LimonAPI::interactWithPlayer(std::vector<LimonAPI::ParameterRequest> &input
 void LimonAPI::addTimedEvent(long waitTime,
                              std::function<void(const std::vector<LimonAPI::ParameterRequest> &)> methodToCall,
                              std::vector<LimonAPI::ParameterRequest> parameters) {
-    worldaddTimedEvent(waitTime, methodToCall, parameters);
+    worldAddTimedEvent(waitTime, methodToCall, parameters);
+}
+
+
+
+LimonAPI::Vec4 LimonAPI::getPlayerAttachedModelOffset() {
+    return worldGetPlayerAttachmentOffset();
+}
+
+bool LimonAPI::setPlayerAttachedModelOffset(LimonAPI::Vec4 newOffset) {
+    return worldSetPlayerAttachmentOffset(newOffset);
+}
+
 uint32_t LimonAPI::getPlayerAttachedModel() {
     return worldGetPlayerAttachedModel();
 }
