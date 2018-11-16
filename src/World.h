@@ -361,6 +361,20 @@ private:
 /********** Editor Methods *********************/
     //API methods
 
+    Model* findModelByID(uint32_t modelID) {
+        if(startingPlayer.attachedModel != nullptr && startingPlayer.attachedModel->getWorldObjectID() == modelID) {
+            return startingPlayer.attachedModel;
+        }
+
+        if(objects.find(modelID) != objects.end()) {
+            Model* model = dynamic_cast<Model*>(objects[modelID]);
+            if(model != nullptr) {
+                return model;
+            }
+        }
+        return nullptr;
+    }
+
 public:
     ~World();
 
