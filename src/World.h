@@ -498,6 +498,7 @@ public:
 
     LimonAPI::Vec4 getPlayerModelOffsetAPI();
     bool setPlayerModelOffsetAPI(LimonAPI::Vec4 newOffset);
+    void killPlayerAPI();
 
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);

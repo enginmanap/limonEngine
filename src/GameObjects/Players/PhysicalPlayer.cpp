@@ -44,7 +44,7 @@ PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor, const gl
     btDefaultMotionState *boxMotionState = new btDefaultMotionState(btTransform(btQuaternion(0, 0, 0, 1),
                                                                                 GLMConverter::GLMToBlt(position)));
     btVector3 fallInertia(0, 0, 0);
-    capsuleShape->calculateLocalInertia(1, fallInertia);
+    capsuleShape->calculateLocalInertia(75, fallInertia);
     btRigidBody::btRigidBodyConstructionInfo
             boxRigidBodyCI(75, boxMotionState, capsuleShape, fallInertia);
     player = new btRigidBody(boxRigidBodyCI);
@@ -58,6 +58,9 @@ PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor, const gl
 }
 
 void PhysicalPlayer::move(moveDirections direction) {
+    if(dead) {
+        return;
+    }
     if (!positionSet && onAir) {//this is because, if player is just moved from editor etc, we need to process
         return;
     }
@@ -119,6 +122,9 @@ void PhysicalPlayer::move(moveDirections direction) {
 }
 
 void PhysicalPlayer::rotate(float   xPosition __attribute__((unused)), float yPosition __attribute__((unused)), float xChange, float yChange) {
+    if(this->dead) {
+        return;
+    }
     glm::quat viewChange;
     viewChange = glm::quat(cos(yChange * options->getLookAroundSpeed() / 2),
                            right.x * sin(yChange * options->getLookAroundSpeed() / 2),
@@ -161,59 +167,64 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
     float highestPoint = std::numeric_limits<float>::lowest();
     GameObject *hitObject = nullptr;
 
-    //we will test for STEPPING_TEST_COUNT^2 times
-    float requiredDelta = 1.0f / (STEPPING_TEST_COUNT - 1);
+    if(!dead) { //if dead, no need to check on air. This data is used for 2 things: 1) Spring adjustment, 2) step sound
+        //we will test for STEPPING_TEST_COUNT^2 times
+        float requiredDelta = 1.0f / (STEPPING_TEST_COUNT - 1);
 
-    for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
-        for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
-            btCollisionWorld::ClosestRayResultCallback *rayCallback = &rayCallbackArray[i * STEPPING_TEST_COUNT + j];
-            //set raycallback for downward raytest
-            rayCallback->m_closestHitFraction = 1;
-            rayCallback->m_collisionObject = nullptr;
-            rayCallback->m_rayFromWorld = worldTransformHolder.getOrigin() +
-                                          btVector3(-0.5f + i*requiredDelta, -1.1f,
-                                                    -0.5f + j*requiredDelta);//the second vector is preventing hitting player capsule
-            rayCallback->m_rayToWorld = rayCallback->m_rayFromWorld + btVector3(0, -1 *STANDING_HEIGHT, 0);
-            world->rayTest(rayCallback->m_rayFromWorld, rayCallback->m_rayToWorld, *rayCallback);
+        for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
+            for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
+                btCollisionWorld::ClosestRayResultCallback *rayCallback = &rayCallbackArray[i * STEPPING_TEST_COUNT +
+                                                                                            j];
+                //set raycallback for downward raytest
+                rayCallback->m_closestHitFraction = 1;
+                rayCallback->m_collisionObject = nullptr;
+                rayCallback->m_rayFromWorld = worldTransformHolder.getOrigin() +
+                                              btVector3(-0.5f + i * requiredDelta, -1.1f,
+                                                        -0.5f + j *
+                                                                requiredDelta);//the second vector is preventing hitting player capsule
+                rayCallback->m_rayToWorld = rayCallback->m_rayFromWorld + btVector3(0, -1 * STANDING_HEIGHT, 0);
+                world->rayTest(rayCallback->m_rayFromWorld, rayCallback->m_rayToWorld, *rayCallback);
 
-            if (rayCallback->hasHit()) {
-                highestPoint = std::max(rayCallback->m_hitPointWorld.getY(), highestPoint);
-                hitObject = static_cast<GameObject*>(rayCallback->m_collisionObject->getUserPointer());
+                if (rayCallback->hasHit()) {
+                    highestPoint = std::max(rayCallback->m_hitPointWorld.getY(), highestPoint);
+                    hitObject = static_cast<GameObject *>(rayCallback->m_collisionObject->getUserPointer());
                     onAir = false;
                 }
             }
         }
+    }
 
 
-        if(skipSpringByJump) {
-            player->setLinearVelocity(inputMovementSpeed + groundFrictionMovementSpeed);
-            if(onAir) {
-                //until player is onAir, don't remove the flag
-                skipSpringByJump = false;
-            }
-        } else {
-            if (!onAir) {
-                springStandPoint = highestPoint + STANDING_HEIGHT - startingHeight;
-                spring->setLimit(1, springStandPoint + 1.0f, springStandPoint + 1.0f + STANDING_HEIGHT);
-                spring->setEnabled(true);
-                Model *model = dynamic_cast<Model *>(hitObject);
-                if (model != nullptr) {
-                    btVector3 groundSpeed = model->getRigidBody()->getLinearVelocity();
-                    groundFrictionMovementSpeed = groundFrictionMovementSpeed + groundSpeed / groundFrictionFactor;
-                    // cap the speed of friction to ground speed
-                    if (groundSpeed.getX() > 0) {
-                        if (groundFrictionMovementSpeed.getX() > groundSpeed.getX()) {
-                            groundFrictionMovementSpeed.setX(groundSpeed.getX());
-                        }
-                    } else {
-                        if (groundFrictionMovementSpeed.getX() < groundSpeed.getX()) {
-                            groundFrictionMovementSpeed.setX(groundSpeed.getX());
-                        }
+    if(skipSpringByJump) {
+        player->setLinearVelocity(inputMovementSpeed + groundFrictionMovementSpeed);
+        if(onAir) {
+            //until player is onAir, don't remove the flag
+            skipSpringByJump = false;
+        }
+    } else {
+        if (!onAir) {
+            springStandPoint = highestPoint + STANDING_HEIGHT - startingHeight;
+            spring->setLimit(1, springStandPoint + 1.0f, springStandPoint + 1.0f + STANDING_HEIGHT);
+            spring->setEnabled(true);
+
+            Model *model = dynamic_cast<Model *>(hitObject);
+            if (model != nullptr) {
+                btVector3 groundSpeed = model->getRigidBody()->getLinearVelocity();
+                groundFrictionMovementSpeed = groundFrictionMovementSpeed + groundSpeed / groundFrictionFactor;
+                // cap the speed of friction to ground speed
+                if (groundSpeed.getX() > 0) {
+                    if (groundFrictionMovementSpeed.getX() > groundSpeed.getX()) {
+                        groundFrictionMovementSpeed.setX(groundSpeed.getX());
                     }
-                    if (groundSpeed.getY() > 0) {
-                        if (groundFrictionMovementSpeed.getY() > groundSpeed.getY()) {
-                            groundFrictionMovementSpeed.setY(groundSpeed.getY());
-                        }
+                } else {
+                    if (groundFrictionMovementSpeed.getX() < groundSpeed.getX()) {
+                        groundFrictionMovementSpeed.setX(groundSpeed.getX());
+                    }
+                }
+                if (groundSpeed.getY() > 0) {
+                    if (groundFrictionMovementSpeed.getY() > groundSpeed.getY()) {
+                        groundFrictionMovementSpeed.setY(groundSpeed.getY());
+                    }
                 } else {
                     if (groundFrictionMovementSpeed.getY() < groundSpeed.getY()) {
                         groundFrictionMovementSpeed.setY(groundSpeed.getY());
@@ -248,11 +259,9 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                         currentSound = nullptr;
                     }
                 }
-
-
             } else {
                 std::cerr << "The thing under Player is not a Model object, this violates the movement assumptions."
-                          << std::endl;
+                      << std::endl;
             }
         } else {
             if (currentSound != nullptr) {
@@ -360,6 +369,12 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
 void PhysicalPlayer::processInput(InputHandler &inputHandler) {
     Player::processInput(inputHandler);
 
+    if(inputHandler.getInputEvents(InputHandler::MOUSE_BUTTON_RIGHT)) {
+        this->setDead();
+    }
+    if(dead) {
+        return;
+    }
     if(playerExtension != nullptr) {
         playerExtension->processInput(inputHandler);
     }
@@ -369,4 +384,12 @@ void PhysicalPlayer::interact(LimonAPI *limonAPI, std::vector<LimonAPI::Paramete
     if(playerExtension != nullptr) {
         playerExtension->interact(interactionData);
     }
+}
+
+void PhysicalPlayer::setDead() {
+    player->setAngularFactor(1);
+    spring->setEnabled(false);
+    this->dead = true;
+    player->activate(true);
+    std::cout << "Player died!" << std::endl;
 }

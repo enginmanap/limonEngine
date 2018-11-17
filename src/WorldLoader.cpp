@@ -76,7 +76,7 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldInteractWithPlayer = std::bind(&World::interactWithPlayerAPI, world, std::placeholders::_1);
     limonAPI->worldAddTimedEvent = std::bind(&World::addTimedEventAPI, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
-
+    limonAPI->worldKillPlayer = std::bind(&World::killPlayerAPI, world);
     limonAPI->worldGetPlayerAttachedModel = std::bind(&World::getPlayerAttachedModelAPI, world);
     limonAPI->worldGetModelAnimationName = std::bind(&World::getModelAnimationNameAPI, world, std::placeholders::_1);
     limonAPI->worldGetModelAnimationFinished = std::bind(&World::getModelAnimationFinishedAPI, world, std::placeholders::_1);
