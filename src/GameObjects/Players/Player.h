@@ -35,6 +35,7 @@ protected:
     WorldSettings worldSettings;
     Options *options = nullptr;
     PlayerExtensionInterface* playerExtension = nullptr;
+    bool dead = false;
 public:
     enum moveDirections {
         NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD, UP
@@ -147,6 +148,12 @@ public:
     void setPlayerExtension(PlayerExtensionInterface *playerExtension) {
         delete this->playerExtension;
         this->playerExtension = playerExtension;
+    }
+
+    virtual void setDead() {};
+
+    bool isDead() {
+        return dead;
     }
 
 };

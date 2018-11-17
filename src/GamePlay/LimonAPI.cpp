@@ -370,3 +370,7 @@ bool LimonAPI::setModelAnimation(uint32_t modelID, std::string animationName, bo
 bool LimonAPI::setModelAnimationWithBlend(uint32_t modelID, std::string animationName, bool isLooped, long blendTime) {
     return worldSetAnimationOfModelWithBlend(modelID, animationName, isLooped, blendTime);
 }
+
+void LimonAPI::killPlayer() {
+    worldKillPlayer();
+}

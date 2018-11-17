@@ -167,8 +167,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                  if (gameObject->getTypeID() == GameObject::PLAYER) {
                      hasSeen = true;
                  }
-             } else {
-                 GameObject *gameObject = static_cast<GameObject *>(RayCallback.m_collisionObjects[i]->getUserPointer());
              }
          }
 
@@ -445,7 +443,10 @@ void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bo
 
 ActorInformation World::fillActorInformation(Actor *actor) {
     ActorInformation information;
-    information.canSeePlayerDirectly = checkPlayerVisibility(actor->getPosition()+ glm::vec3(0, AIMovementGrid::floatingHeight, 0), actor->getModel()->getName());
+    information.canSeePlayerDirectly = checkPlayerVisibility(actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0), actor->getModel()->getName());
+    if(currentPlayer->isDead()) {
+        information.playerDead = true;
+    }
     glm::vec3 front = actor->getFrontVector();
     glm::vec3 rayDir = currentPlayer->getPosition() - actor->getPosition();
     float cosBetween = glm::dot(normalize(front), normalize(rayDir));
@@ -675,7 +676,7 @@ void World::render() {
         }
     }
 
-    if(startingPlayer.attachedModel != nullptr) {
+    if(startingPlayer.attachedModel != nullptr && !currentPlayer->isDead()) {//don't render attched model if dead
         startingPlayer.attachedModel->setupForTime(gameTime);
         std::vector<uint32_t> temp;
         temp.push_back(startingPlayer.attachedModel->getWorldObjectID());
@@ -2326,4 +2327,8 @@ bool World::setPlayerModelOffsetAPI(LimonAPI::Vec4 newOffset) {
         }
     }
     return false;
+}
+
+void World::killPlayerAPI() {
+    this->currentPlayer->setDead();
 }

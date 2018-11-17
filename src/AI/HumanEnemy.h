@@ -30,23 +30,31 @@ public:
     void play(long time, ActorInformation &information, Options* options __attribute__((unused))) {//FIXME unused attribute is temporary
         lastSetupTime = time;
 
+        if(hitPoints <= 0) {
+            return;//if already dead, don't do anything
+        }
+
+        if(information.playerDead) {
+            if(model->getAnimationName() !="idle|mixamo.com") {
+                model->setAnimationWithBlend("idle|mixamo.com");
+                playerPursuitStartTime = 0L;
+            }
+        }
+
         //first check if we just died
         if(hitPoints <= 0 && dieAnimationStartTime == 0) {
             model->setAnimationWithBlend("death from the front|mixamo.com", false);
             dieAnimationStartTime = time;
         }
 
-        if(hitPoints <= 0) {
-            return;//if already dead, don't do anything
-        }
+
 
         if(model->getAnimationName() == "Shoot Rifle|mixamo.com"  && model->isAnimationFinished()) {
-
             model->setAnimationWithBlend("run forward|mixamo.com");
         }
 
         //check if the player can be seen
-        if(information.canSeePlayerDirectly && information.isPlayerFront) {
+        if(information.canSeePlayerDirectly && information.isPlayerFront && !information.playerDead) {
             if (playerPursuitStartTime == 0) {
                 model->setAnimationWithBlend("run forward|mixamo.com");
                 //means we will just start pursuit, mark the position so we can return.
@@ -66,6 +74,7 @@ public:
                     prList.push_back(pr);
                     limonAPI->interactWithPlayer(prList);
                     shootPlayerTimer = time;
+                    limonAPI->playSound("./Data/Sounds/shotgun.wav", this->getPosition(), false);
                 }
             }
         }

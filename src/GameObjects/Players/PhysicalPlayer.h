@@ -188,6 +188,9 @@ public:
     void processInput(InputHandler &inputHandler) override;
 
     void interact(LimonAPI *limonAPI, std::vector<LimonAPI::ParameterRequest> &interactionData) override;
+
+    void setDead() override;
+
 };
 
 

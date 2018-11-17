@@ -185,6 +185,7 @@ public:
     uint32_t getPlayerAttachedModel();
     LimonAPI::Vec4 getPlayerAttachedModelOffset();
     bool setPlayerAttachedModelOffset(LimonAPI::Vec4 newOffset);
+    void killPlayer();
 
     std::string getModelAnimationName(uint32_t modelID);
     bool getModelAnimationFinished(uint32_t modelID);
@@ -269,6 +270,8 @@ private:
     std::function<LimonAPI::Vec4 ()> worldGetPlayerAttachmentOffset;
     std::function<bool (LimonAPI::Vec4)> worldSetPlayerAttachmentOffset;
     std::function<uint32_t ()> worldGetPlayerAttachedModel;
+    std::function<void ()> worldKillPlayer;
+
     std::function<std::string(uint32_t)> worldGetModelAnimationName;
     std::function<bool(uint32_t)> worldGetModelAnimationFinished;
     std::function<bool(uint32_t,std::string, bool)> worldSetAnimationOfModel;

@@ -194,7 +194,10 @@ void ShooterPlayerExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
     if(interactionData.size() == 0 ) {
         return;
     }
+
     if(interactionData[0].valueType == LimonAPI::ParameterRequest::ValueTypes::STRING && std::string(interactionData[0].value.stringValue) == "SHOOT_PLAYER") {
+        limonAPI->killPlayer();
+        return;
         if(addedElement == 0) {
             addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicator.png", "damageIndicator", LimonAPI::Vec2(0.5f, 0.5f),
                                                  LimonAPI::Vec2(0.7f, 0.8f), 0);
