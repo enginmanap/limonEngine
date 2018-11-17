@@ -192,6 +192,10 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                 }
             }
         }
+    } else {
+        //if dead, we should change the up vector to the capsules.
+        glm::quat capsuleRotation = GLMConverter::BltToGLM(worldTransformHolder.getRotation());
+        this->up = capsuleRotation * glm::vec3(0,1,0);
     }
 
 
@@ -387,9 +391,8 @@ void PhysicalPlayer::interact(LimonAPI *limonAPI, std::vector<LimonAPI::Paramete
 }
 
 void PhysicalPlayer::setDead() {
-    player->setAngularFactor(1);
+    player->setAngularFactor(0.1);
     spring->setEnabled(false);
     this->dead = true;
     player->activate(true);
-    std::cout << "Player died!" << std::endl;
 }
