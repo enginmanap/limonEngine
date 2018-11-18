@@ -441,7 +441,7 @@ void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bo
     }
 }
 
-ActorInformation World::fillActorInformation(Actor *actor) {
+ActorInformation World::fillActorInformation(ActorInterface *actor) {
     ActorInformation information;
     Model* actorModel = dynamic_cast<Model*>(objects[actor->getModelID()]);
     if(actorModel != nullptr) {
@@ -1109,7 +1109,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                         newEnemy->setModel(model->getWorldObjectID());
                         model->attachAI(newEnemy);
                     } else {
-                        std::cerr << "Actor Model setting failed, because picked object is not a model." << std::endl;
+                        std::cerr << "ActorInterface Model setting failed, because picked object is not a model." << std::endl;
 
                     }
                     addActor(newEnemy);
@@ -1368,7 +1368,7 @@ void World::updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax) {
     worldAABBMax = glm::vec3(std::max(aabbMax.x, worldAABBMax.x), std::max(aabbMax.y, worldAABBMax.y), std::max(aabbMax.z, worldAABBMax.z));
 }
 
-void World::addActor(Actor *actor) {
+void World::addActor(ActorInterface *actor) {
     this->actors[actor->getWorldID()] = actor;
 }
 

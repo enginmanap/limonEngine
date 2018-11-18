@@ -19,7 +19,7 @@
 
 #include "Sound.h"
 
-class Actor;
+class ActorInterface;
 
 class Model : public PhysicalRenderable, public GameObject {
     uint32_t objectID;
@@ -27,7 +27,7 @@ class Model : public PhysicalRenderable, public GameObject {
         MeshAsset* mesh = nullptr;
         GLSLProgram* program = nullptr;
     };
-    Actor *AIActor = nullptr;
+    ActorInterface *AIActor = nullptr;
     AssetManager *assetManager;
     ModelAsset *modelAsset;
 
@@ -176,7 +176,7 @@ public:
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
     /************Game Object methods **************/
 
-    void attachAI(Actor *AIActor) {
+    void attachAI(ActorInterface *AIActor) {
         //after this, clearing the AI is job of the model.
         this->AIActor = AIActor;
     }

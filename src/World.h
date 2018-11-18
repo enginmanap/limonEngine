@@ -16,7 +16,7 @@
 #include "FontManager.h"
 #include "GameObjects/SkyBox.h"
 #include "GamePlay/LimonAPI.h"
-#include "AI/Actor.h"
+#include "AI/ActorInterface.h"
 #include "ALHelper.h"
 #include "GameObjects/Players/Player.h"
 
@@ -189,7 +189,7 @@ private:
     AnimationSequenceInterface* animationInProgress = nullptr;
     std::vector<Light *> lights;
     std::vector<GUILayer *> guiLayers;
-    std::unordered_map<uint32_t, Actor*> actors;
+    std::unordered_map<uint32_t, ActorInterface*> actors;
     AIMovementGrid *grid = nullptr;
     SkyBox *sky = nullptr;
     GLHelper *glHelper;
@@ -288,7 +288,7 @@ private:
         for(auto actor = actors.begin(); actor != actors.end(); actor++) {
             auto result = usedIDs.insert(actor->first);
             if(result.second == false) {
-                std::cerr << "world ID repetition on trigger detected! Actor with id " << actor->first << std::endl;
+                std::cerr << "world ID repetition on trigger detected! ActorInterface with id " << actor->first << std::endl;
                 return false;
             }
             maxID = std::max(maxID,actor->first);
@@ -318,7 +318,7 @@ private:
 
     bool checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName);
 
-    ActorInformation fillActorInformation(Actor *actor);
+    ActorInformation fillActorInformation(ActorInterface *actor);
 
     void updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax);
 
@@ -330,7 +330,7 @@ private:
     GameObject *getPointedObject(int collisionType, int filterMask,
                                  glm::vec3 *collisionPosition = nullptr, glm::vec3 *collisionNormal = nullptr) const;
 
-    void addActor(Actor *actor);
+    void addActor(ActorInterface *actor);
 
     void createGridFrom(const glm::vec3 &aiGridStartPoint);
 

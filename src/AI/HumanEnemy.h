@@ -6,12 +6,11 @@
 #define LIMONENGINE_HUMANENEMY_H
 
 
-#include "Actor.h"
-#include "../Utils/GLMUtils.h"
+#include "ActorInterface.h"
 #include "../../libs/imgui/imgui.h"
 #include "../Utils/LimonConverter.h"
 
-class HumanEnemy: public Actor {
+class HumanEnemy: public ActorInterface {
     const long PLAYER_SHOOT_TIMEOUT = 1000;
     long playerPursuitStartTime = 0L;
     long playerPursuitTimeout = 500000L; //if not see player for this amount, return.
@@ -27,7 +26,7 @@ class HumanEnemy: public Actor {
     uint32_t hitPoints = 100;
 
 public:
-    HumanEnemy(uint32_t id, LimonAPI *limonAPI) : Actor(id, limonAPI) {}
+    HumanEnemy(uint32_t id, LimonAPI *limonAPI) : ActorInterface(id, limonAPI) {}
 
     void play(long time, ActorInformation &information, Options* options __attribute__((unused))) {//FIXME unused attribute is temporary
         lastSetupTime = time;

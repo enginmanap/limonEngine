@@ -3,7 +3,7 @@
 //
 
 #include "Model.h"
-#include "../AI/Actor.h"
+#include "../AI/ActorInterface.h"
 
 Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile,
              bool disconnected = false) :

@@ -13,7 +13,7 @@
 #include "InputHandler.h"
 #include "GamePlay/LimonAPI.h"
 #include "GameObjects/Sound.h"
-#include "AI/Actor.h"
+#include "AI/ActorInterface.h"
 
 class World;
 class Options;
@@ -28,7 +28,7 @@ class WorldLoader {
 
     struct ObjectInformation {
         Model* model = nullptr;
-        Actor* modelActor = nullptr;
+        ActorInterface* modelActor = nullptr;
         bool isAIGridStartPointSet = false;
         glm::vec3 aiGridStartPoint = glm::vec3(0,0,0);
     };
