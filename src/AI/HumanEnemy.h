@@ -9,6 +9,7 @@
 #include "Actor.h"
 #include "../Utils/GLMUtils.h"
 #include "../../libs/imgui/imgui.h"
+#include "../Utils/LimonConverter.h"
 
 class HumanEnemy: public Actor {
     const long PLAYER_SHOOT_TIMEOUT = 1000;
@@ -115,18 +116,19 @@ public:
                 lastWalkDirection = information.toPlayerRoute;
             }
             glm::vec3 moveDirection = 0.1f * lastWalkDirection;
-            //model->getTransformation()->addTranslate(moveDirection);
+
+            limonAPI->addObjectTranslate(modelID, LimonConverter::GLMToLimon(moveDirection));
             if(information.isPlayerLeft) {
                 if(information.cosineBetweenPlayerForSide < 0.95) {
-                    glm::quat rotateLeft(1.0f, 0.0f, 0.015f, 0.0f);
-                    //model->getTransformation()->addOrientation(rotateLeft);
+                    LimonAPI::Vec4 rotateLeft(0.0f, 0.015f, 0.0f, 1.0f);
+                    limonAPI->addObjectOrientation(modelID, rotateLeft);
                 }
             }
             if(information.isPlayerRight) {
                 //turn just a little bit to right
                 if(information.cosineBetweenPlayerForSide < 0.95) {
-                    glm::quat rotateRight(1.0f, 0.0f, -0.015f, 0.0f);
-                    //model->getTransformation()->addOrientation(rotateRight);
+                    LimonAPI::Vec4 rotateRight(0.0f, -0.015f, 0.0f, 1.0f);
+                    limonAPI->addObjectOrientation(modelID, rotateRight);
                 }
             }
             if(information.isPlayerUp) {
