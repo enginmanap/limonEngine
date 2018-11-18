@@ -31,8 +31,13 @@ public:
     void play(long time, ActorInformation &information, Options* options __attribute__((unused))) {//FIXME unused attribute is temporary
         lastSetupTime = time;
 
+        //first check if we just died
         if(hitPoints <= 0) {
-            return;//if already dead, don't do anything
+            if(dieAnimationStartTime == 0) {
+                limonAPI->setModelAnimationWithBlend(modelID, "death from the front|mixamo.com", false);
+                dieAnimationStartTime = time;
+            }
+            return;
         }
 
         if(information.playerDead) {
@@ -41,12 +46,6 @@ public:
                 
                 playerPursuitStartTime = 0L;
             }
-        }
-
-        //first check if we just died
-        if(hitPoints <= 0 && dieAnimationStartTime == 0) {
-            limonAPI->setModelAnimationWithBlend(modelID,"death from the front|mixamo.com", false);
-            dieAnimationStartTime = time;
         }
 
 
