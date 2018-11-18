@@ -443,60 +443,68 @@ void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bo
 
 ActorInformation World::fillActorInformation(Actor *actor) {
     ActorInformation information;
-    information.canSeePlayerDirectly = checkPlayerVisibility(actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0), actor->getModel()->getName());
-    if(currentPlayer->isDead()) {
-        information.playerDead = true;
-    }
-    glm::vec3 front = actor->getFrontVector();
-    glm::vec3 rayDir = currentPlayer->getPosition() - actor->getPosition();
-    float cosBetween = glm::dot(normalize(front), normalize(rayDir));
-    information.cosineBetweenPlayer = cosBetween;
-    information.playerDirection = normalize(rayDir);
-    if(cosBetween > 0) {
+    Model* actorModel = dynamic_cast<Model*>(objects[actor->getModelID()]);
+    if(actorModel != nullptr) {
+        information.canSeePlayerDirectly = checkPlayerVisibility(
+                actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0),
+                actorModel->getName());
+        if (currentPlayer->isDead()) {
+            information.playerDead = true;
+        }
+        glm::vec3 front = actor->getFrontVector();
+        glm::vec3 rayDir = currentPlayer->getPosition() - actor->getPosition();
+        float cosBetween = glm::dot(normalize(front), normalize(rayDir));
+        information.cosineBetweenPlayer = cosBetween;
+        information.playerDirection = normalize(rayDir);
+        if (cosBetween > 0) {
             information.isPlayerFront = true;
             information.isPlayerBack = false;
         } else {
             information.isPlayerFront = false;
             information.isPlayerBack = true;
         }
-    //now we know if it is front or back. we can check up, down, left, right
-    //remove the y component, and test for left, right
-    glm::vec3 rayDirWithoutY = rayDir;
-    rayDirWithoutY.y = 0;
-    glm::vec3 frontWithoutY = front;
-    frontWithoutY.y = 0;
-    glm::vec3 crossBetween = cross(normalize(frontWithoutY), normalize(rayDirWithoutY));
-    float cosineForSide = glm::dot(normalize(frontWithoutY), normalize(rayDirWithoutY));
-    information.cosineBetweenPlayerForSide = cosineForSide;
-    if(crossBetween.y > 0){
+        //now we know if it is front or back. we can check up, down, left, right
+        //remove the y component, and test for left, right
+        glm::vec3 rayDirWithoutY = rayDir;
+        rayDirWithoutY.y = 0;
+        glm::vec3 frontWithoutY = front;
+        frontWithoutY.y = 0;
+        glm::vec3 crossBetween = cross(normalize(frontWithoutY), normalize(rayDirWithoutY));
+        float cosineForSide = glm::dot(normalize(frontWithoutY), normalize(rayDirWithoutY));
+        information.cosineBetweenPlayerForSide = cosineForSide;
+        if (crossBetween.y > 0) {
             information.isPlayerRight = false;
             information.isPlayerLeft = true;
         } else {
             information.isPlayerRight = true;
             information.isPlayerLeft = false;
         }
-    //now we need up and down. For that, normally we can remove z or x, but since camera is z alone at start, I will use x
-    rayDir.x = 0;
-    front.x = 0;
-    crossBetween = glm::cross(normalize(front), normalize(rayDir));
-    if(crossBetween.x > 0){
+        //now we need up and down. For that, normally we can remove z or x, but since camera is z alone at start, I will use x
+        rayDir.x = 0;
+        front.x = 0;
+        crossBetween = glm::cross(normalize(front), normalize(rayDir));
+        if (crossBetween.x > 0) {
             information.isPlayerUp = false;
             information.isPlayerDown = true;
         } else {
             information.isPlayerUp = true;
             information.isPlayerDown = false;
         }
-    std::vector<glm::vec3> route;
-    glm::vec3 playerPosWithGrid = currentPlayer->getPosition();
-    bool isPlayerReachable = grid->setProperHeight(&playerPosWithGrid, AIMovementGrid::floatingHeight, 0.0f, dynamicsWorld);
-    if(isPlayerReachable && grid->coursePath(actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0), playerPosWithGrid, actor->getWorldID(), &route)) {
-        if (route.empty()) {
-            information.toPlayerRoute = glm::vec3(0, 0, 0);
-            information.canGoToPlayer = false;
-        } else {
-            //Normally, this information should be used for straightening the path, but not yet.
-            information.toPlayerRoute = route[route.size() - 1] - actor->getPosition() - glm::vec3(0, 2.0f, 0);
-            information.canGoToPlayer = true;
+        std::vector<glm::vec3> route;
+        glm::vec3 playerPosWithGrid = currentPlayer->getPosition();
+        bool isPlayerReachable = grid->setProperHeight(&playerPosWithGrid, AIMovementGrid::floatingHeight, 0.0f,
+                                                       dynamicsWorld);
+        if (isPlayerReachable &&
+            grid->coursePath(actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0), playerPosWithGrid,
+                             actor->getWorldID(), &route)) {
+            if (route.empty()) {
+                information.toPlayerRoute = glm::vec3(0, 0, 0);
+                information.canGoToPlayer = false;
+            } else {
+                //Normally, this information should be used for straightening the path, but not yet.
+                information.toPlayerRoute = route[route.size() - 1] - actor->getPosition() - glm::vec3(0, 2.0f, 0);
+                information.canGoToPlayer = true;
+            }
         }
     }
     return information;
@@ -1096,8 +1104,14 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 if (objectEditorResult.addAI) {
                     std::cout << "adding AI to model " << std::endl;
                     HumanEnemy *newEnemy = new HumanEnemy(getNextObjectID(), apiInstance);
-                    newEnemy->setModel(dynamic_cast<Model *>(pickedObject));
+                    Model* model = dynamic_cast<Model *>(pickedObject);
+                    if(model != nullptr) {
+                        newEnemy->setModel(model->getWorldObjectID());
+                        model->attachAI(newEnemy);
+                    } else {
+                        std::cerr << "Actor Model setting failed, because picked object is not a model." << std::endl;
 
+                    }
                     addActor(newEnemy);
                 }
 
@@ -2331,4 +2345,52 @@ bool World::setPlayerModelOffsetAPI(LimonAPI::Vec4 newOffset) {
 
 void World::killPlayerAPI() {
     this->currentPlayer->setDead();
+}
+
+Model *World::findModelByID(uint32_t modelID) const {
+    if(startingPlayer.attachedModel != nullptr && startingPlayer.attachedModel->getWorldObjectID() == modelID) {
+        return startingPlayer.attachedModel;
+    }
+
+    if(objects.find(modelID) != objects.end()) {
+        Model* model = dynamic_cast<Model*>(objects.at(modelID));
+        if(model != nullptr) {
+            return model;
+        }
+    }
+    return nullptr;
+}
+
+bool World::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID) {
+    if(objectID == objectToAttachToID) {
+        //can't attach to self
+        return false;
+    }
+
+    Transformation* transform1,* transform2;
+    //there is another possibility, that is the player attachment
+    if(objects.find(objectID) == objects.end() ) {
+        if(objectID != startingPlayer.attachedModel->getWorldObjectID()) {
+            return false;
+        } else {
+            transform1 = startingPlayer.attachedModel->getTransformation();
+        }
+    } else {
+        transform1 = objects[objectID]->getTransformation();
+    }
+
+    //there is another possibility, that is the player attachment
+    if(objects.find(objectToAttachToID) == objects.end() ) {
+        if(objectToAttachToID != startingPlayer.attachedModel->getWorldObjectID()) {
+            return false;
+        } else {
+            transform2 = startingPlayer.attachedModel->getTransformation();
+        }
+    } else {
+        transform2 = objects[objectToAttachToID]->getTransformation();
+    }
+
+    transform1->setParentTransform(transform2);
+    return true;
+
 }

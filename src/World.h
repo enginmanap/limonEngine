@@ -362,19 +362,7 @@ private:
 /********** Editor Methods *********************/
     //API methods
 
-    Model* findModelByID(uint32_t modelID) {
-        if(startingPlayer.attachedModel != nullptr && startingPlayer.attachedModel->getWorldObjectID() == modelID) {
-            return startingPlayer.attachedModel;
-        }
-
-        if(objects.find(modelID) != objects.end()) {
-            Model* model = dynamic_cast<Model*>(objects[modelID]);
-            if(model != nullptr) {
-                return model;
-            }
-        }
-        return nullptr;
-    }
+    Model* findModelByID(uint32_t modelID) const;
 
 public:
     ~World();
@@ -416,38 +404,7 @@ public:
 
     uint32_t addModelApi(const std::string &modelFilePath, float modelWeight, bool physical, const glm::vec3 &position,
                          const glm::vec3 &scale, const glm::quat &orientation);
-    bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID) {
-        if(objectID == objectToAttachToID) {
-            //can't attach to self
-            return false;
-        }
-
-        Transformation* transform1,* transform2;
-        //there is another possibility, that is the player attachment
-        if(objects.find(objectID) == objects.end() ) {
-            if(objectID != startingPlayer.attachedModel->getWorldObjectID()) {
-                return false;
-            } else {
-                transform1 = startingPlayer.attachedModel->getTransformation();
-            }
-        } else {
-            transform1 = objects[objectID]->getTransformation();
-        }
-
-        //there is another possibility, that is the player attachment
-        if(objects.find(objectToAttachToID) == objects.end() ) {
-            if(objectToAttachToID != startingPlayer.attachedModel->getWorldObjectID()) {
-                return false;
-            } else {
-                transform2 = startingPlayer.attachedModel->getTransformation();
-            }
-        } else {
-            transform2 = objects[objectToAttachToID]->getTransformation();
-        }
-
-        transform1->setParentTransform(transform2);
-        return true;
-    }
+    bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID);
 
     bool updateGuiText(uint32_t guiTextID, const std::string &newText);
 

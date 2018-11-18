@@ -5,9 +5,9 @@
 #ifndef LIMONENGINE_ACTOR_H
 #define LIMONENGINE_ACTOR_H
 
-
-#include "../GameObjects/Model.h"
+#include <glm/detail/type_quat.hpp>
 #include "../Options.h"
+#include "../GamePlay/LimonAPI.h"
 
 struct ActorInformation{
     bool canSeePlayerDirectly = false;
@@ -23,7 +23,7 @@ struct ActorInformation{
 class Actor {
 protected:
     uint32_t worldID;
-    Model* model = nullptr;
+    uint32_t modelID = 0;
     LimonAPI* limonAPI;
 public:
 
@@ -37,27 +37,44 @@ public:
         return worldID;
     }
 
-    void setModel(Model *model) {
-        this->model = model;
-        model->attachAI(this);
+    void setModel(uint32_t modelID) {
+        this->modelID = modelID;
     }
 
-    const Model * getModel() const {
-        return model;
+    uint32_t getModelID() const {
+        return modelID;
     }
 
-    glm::vec3 getPosition(){
-        return GLMConverter::BltToGLM(this->model->getRigidBody()->getCenterOfMassPosition());
+    glm::vec3 getPosition() const {
+        std::vector<LimonAPI::ParameterRequest> parameters = limonAPI->getObjectTransformation(modelID);
+        glm::vec3 position(0,0,0);
+        if(parameters.size() >= 1) {
+            position = glm::vec3(parameters[0].value.vectorValue.x,
+                                 parameters[0].value.vectorValue.y,
+                                 parameters[0].value.vectorValue.z);
+        } else {
+            std::cerr << "Actor Model transform can't be found for actor " << this->getModelID() << " and model " << modelID << std::endl;
+        }
+        return position;
     }
 
-    glm::vec3 getFrontVector(){
-        btTransform transform = this->model->getRigidBody()->getWorldTransform();
-        btQuaternion rotation = transform.getRotation();
+    glm::vec3 getFrontVector() const {
+        std::vector<LimonAPI::ParameterRequest> parameters = limonAPI->getObjectTransformation(modelID);
+        glm::quat rotation(0,0,1,0);
+        if(parameters.size() >= 3) {
+            rotation = glm::quat(parameters[2].value.vectorValue.x,
+                                 parameters[2].value.vectorValue.y,
+                                 parameters[2].value.vectorValue.z,
+                                 parameters[2].value.vectorValue.w);
+        } else {
+            std::cerr << "Actor Model transform can't be found for actor " << this->getModelID() << " and model " << modelID << std::endl;
+        }
+
         // Extract the vector part of the quaternion
-        glm::vec3 u(rotation.getX(), rotation.getY(), rotation.getZ());
+        glm::vec3 u(rotation.x, rotation.y, rotation.z);
         glm::vec3 forward(0.0f,0.0f,1.0f);
         // Extract the scalar part of the quaternion
-        float s = rotation.getW();
+        float s = rotation.w;
 
         // Do the math
         glm::vec3 vprime = 2.0f * glm::dot(u, forward) * u
