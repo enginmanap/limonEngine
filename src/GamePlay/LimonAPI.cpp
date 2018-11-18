@@ -374,3 +374,7 @@ bool LimonAPI::setModelAnimationWithBlend(uint32_t modelID, std::string animatio
 void LimonAPI::killPlayer() {
     worldKillPlayer();
 }
+
+bool LimonAPI::setObjectTranslate(uint32_t objectID, const LimonAPI::Vec4 &position) {
+    return worldSetObjectTranslate(objectID, position);
+}
