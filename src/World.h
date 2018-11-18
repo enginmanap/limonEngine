@@ -318,7 +318,7 @@ private:
 
     bool checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName);
 
-    ActorInformation fillActorInformation(ActorInterface *actor);
+    ActorInterface::ActorInformation fillActorInformation(ActorInterface *actor);
 
     void updateWorldAABB(glm::vec3 aabbMin, glm::vec3 aabbMax);
 

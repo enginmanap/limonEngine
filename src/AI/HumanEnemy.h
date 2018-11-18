@@ -28,7 +28,7 @@ class HumanEnemy: public ActorInterface {
 public:
     HumanEnemy(uint32_t id, LimonAPI *limonAPI) : ActorInterface(id, limonAPI) {}
 
-    void play(long time, ActorInformation &information, Options* options __attribute__((unused))) {//FIXME unused attribute is temporary
+    void play(long time, ActorInterface::ActorInformation &information, Options* options __attribute__((unused))) {//FIXME unused attribute is temporary
         lastSetupTime = time;
 
         //first check if we just died

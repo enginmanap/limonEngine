@@ -9,16 +9,7 @@
 #include "../Options.h"
 #include "../GamePlay/LimonAPI.h"
 
-struct ActorInformation{
-    bool canSeePlayerDirectly = false;
-    bool isPlayerLeft = false, isPlayerRight = false, isPlayerUp = false, isPlayerDown = false, isPlayerFront = false, isPlayerBack = false;
-    float cosineBetweenPlayer = 0.0f;
-    glm::vec3 playerDirection;
-    float cosineBetweenPlayerForSide;
-    glm::vec3 toPlayerRoute;
-    bool canGoToPlayer = false;
-    bool playerDead = false;
-};
+
 
 class ActorInterface {
 protected:
@@ -27,9 +18,20 @@ protected:
     LimonAPI* limonAPI;
 public:
 
+    struct ActorInformation{
+        bool canSeePlayerDirectly = false;
+        bool isPlayerLeft = false, isPlayerRight = false, isPlayerUp = false, isPlayerDown = false, isPlayerFront = false, isPlayerBack = false;
+        float cosineBetweenPlayer = 0.0f;
+        glm::vec3 playerDirection;
+        float cosineBetweenPlayerForSide;
+        glm::vec3 toPlayerRoute;
+        bool canGoToPlayer = false;
+        bool playerDead = false;
+    };
+
     ActorInterface(uint32_t id, LimonAPI *limonAPI) : worldID(id), limonAPI(limonAPI) {}
 
-    virtual void play(long time, ActorInformation &information, Options* options) = 0;
+    virtual void play(long time, ActorInterface::ActorInformation &information, Options* options) = 0;
 
     virtual bool interaction(std::vector<LimonAPI::ParameterRequest> &interactionInformation) = 0;
 
