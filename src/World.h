@@ -444,6 +444,7 @@ public:
     bool setObjectOrientationAPI(uint32_t objectID, const LimonAPI::Vec4& orientation);
 
     bool addObjectTranslateAPI(uint32_t objectID, const LimonAPI::Vec4& position);
+    bool addObjectScaleAPI(uint32_t objectID, const LimonAPI::Vec4& scale);
     bool interactWithAIAPI(uint32_t AIID, std::vector<LimonAPI::ParameterRequest> &interactionInformation) const;
 
     void interactWithPlayerAPI(std::vector<LimonAPI::ParameterRequest> &interactionInformation) const;
