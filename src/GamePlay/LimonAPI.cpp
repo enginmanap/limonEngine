@@ -378,3 +378,7 @@ void LimonAPI::killPlayer() {
 bool LimonAPI::setObjectTranslate(uint32_t objectID, const LimonAPI::Vec4 &position) {
     return worldSetObjectTranslate(objectID, position);
 }
+
+bool LimonAPI::setObjectScale(uint32_t objectID, const LimonAPI::Vec4 &scale) {
+    return worldSetObjectScale(objectID, scale);
+}
