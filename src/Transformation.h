@@ -119,12 +119,20 @@ public:
     }
 
     Transformation(const Transformation& otherTransformation) {
-        translate      = otherTransformation.translate;
-        scale          = otherTransformation.scale;
-        orientation    = otherTransformation.orientation;
-        isDirty        = otherTransformation.isDirty;
-        rotated        = otherTransformation.rotated;
-        worldTransform = otherTransformation.worldTransform;
+        translate         = otherTransformation.translate;
+        scale             = otherTransformation.scale;
+        orientation       = otherTransformation.orientation;
+
+        translateSingle   = otherTransformation.translateSingle;
+        scaleSingle       = otherTransformation.scaleSingle;
+        orientationSingle = otherTransformation.orientationSingle;
+
+        isDirty           = otherTransformation.isDirty;
+        rotated           = otherTransformation.rotated;
+        worldTransform    = otherTransformation.worldTransform;
+        if(otherTransformation.parentTransform != nullptr) {
+            this->setParentTransform(otherTransformation.parentTransform);
+        }
 
         generateWorldTransform = std::bind(&Transformation::generateWorldTransformDefault, this);
     }
