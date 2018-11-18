@@ -261,7 +261,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
         }
 
         for (auto actorIt = actors.begin(); actorIt != actors.end(); ++actorIt) {
-            ActorInformation information = fillActorInformation(actorIt->second);
+            ActorInterface::ActorInformation information = fillActorInformation(actorIt->second);
             actorIt->second->play(gameTime, information, options);
         }
         for (auto it = objects.begin(); it != objects.end(); ++it) {
@@ -441,8 +441,8 @@ void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bo
     }
 }
 
-ActorInformation World::fillActorInformation(ActorInterface *actor) {
-    ActorInformation information;
+ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *actor) {
+    ActorInterface::ActorInformation information;
     Model* actorModel = dynamic_cast<Model*>(objects[actor->getModelID()]);
     if(actorModel != nullptr) {
         information.canSeePlayerDirectly = checkPlayerVisibility(
