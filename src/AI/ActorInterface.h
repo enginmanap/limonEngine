@@ -20,14 +20,14 @@ struct ActorInformation{
     bool playerDead = false;
 };
 
-class Actor {
+class ActorInterface {
 protected:
     uint32_t worldID;
     uint32_t modelID = 0;
     LimonAPI* limonAPI;
 public:
 
-    Actor(uint32_t id, LimonAPI *limonAPI) : worldID(id), limonAPI(limonAPI) {}
+    ActorInterface(uint32_t id, LimonAPI *limonAPI) : worldID(id), limonAPI(limonAPI) {}
 
     virtual void play(long time, ActorInformation &information, Options* options) = 0;
 
@@ -53,7 +53,7 @@ public:
                                  parameters[0].value.vectorValue.y,
                                  parameters[0].value.vectorValue.z);
         } else {
-            std::cerr << "Actor Model transform can't be found for actor " << this->getModelID() << " and model " << modelID << std::endl;
+            std::cerr << "ActorInterface Model transform can't be found for actor " << this->getModelID() << " and model " << modelID << std::endl;
         }
         return position;
     }
@@ -67,7 +67,7 @@ public:
                                  parameters[2].value.vectorValue.z,
                                  parameters[2].value.vectorValue.w);
         } else {
-            std::cerr << "Actor Model transform can't be found for actor " << this->getModelID() << " and model " << modelID << std::endl;
+            std::cerr << "ActorInterface Model transform can't be found for actor " << this->getModelID() << " and model " << modelID << std::endl;
         }
 
         // Extract the vector part of the quaternion
@@ -85,7 +85,7 @@ public:
 
     virtual void IMGuiEditorView() {};
 
-    virtual ~Actor() {};
+    virtual ~ActorInterface() {};
 };
 
 
