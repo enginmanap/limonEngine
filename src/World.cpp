@@ -2428,3 +2428,13 @@ bool World::setObjectOrientationAPI(uint32_t objectID, const LimonAPI::Vec4 &ori
     model->getTransformation()->setOrientation(orientationQuat);
     return true;
 }
+
+bool World::addObjectTranslateAPI(uint32_t objectID, const LimonAPI::Vec4 &position) {
+   Model* model = findModelByID(objectID);
+   if(model == nullptr) {
+       return false;
+   }
+
+   model->getTransformation()->addTranslate(GLMConverter::LimonToGLM(position));
+   return true;
+}
