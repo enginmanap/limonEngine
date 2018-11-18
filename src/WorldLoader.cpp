@@ -7,7 +7,6 @@
 #include "WorldLoader.h"
 #include "GameObjects/Model.h"
 #include "World.h"
-#include "AI/HumanEnemy.h"
 #include "GameObjects/SkyBox.h"
 #include "GameObjects/Light.h"
 #include "GameObjects/TriggerObject.h"
@@ -375,7 +374,7 @@ std::unique_ptr<WorldLoader::ObjectInformation> WorldLoader::loadObject(tinyxml2
             loadedObjectInformation->isAIGridStartPointSet = true;
             std::cout << "Object has AI." << std::endl;
 
-            loadedObjectInformation->modelActor = new HumanEnemy(ai_id, limonAPI);
+            loadedObjectInformation->modelActor = ActorInterface::createActor("ENEMY_AI_SWAT", ai_id, limonAPI);
             loadedObjectInformation->modelActor->setModel(loadedObjectInformation->model->getWorldObjectID());
             loadedObjectInformation->model->attachAI(loadedObjectInformation->modelActor);
 

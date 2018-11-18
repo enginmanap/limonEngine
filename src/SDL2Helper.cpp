@@ -8,6 +8,7 @@
 #include "GamePlay/LimonAPI.h"
 #include "GamePlay/TriggerInterface.h"
 #include "GamePlay/PlayerExtensionInterface.h"
+#include "AI/ActorInterface.h"
 
 SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {
 
@@ -91,6 +92,7 @@ bool SDL2Helper::loadSharedLibrary(const std::string &fileName) {
     void* objectHandle = nullptr;
     objectHandle = SDL_LoadObject(fileName.c_str());
     bool result = loadTriggers(objectHandle);
+    result = loadActors(objectHandle) && result;
     return loadPlayerExtensions(objectHandle) && result;
 }
 
@@ -132,6 +134,27 @@ bool SDL2Helper::loadTriggers(void *objectHandle) const {
         return true;
     } else {
         std::cerr << "Custom Trigger load failed!" << std::endl;
+        return false;
+    }
+}
+
+bool SDL2Helper::loadActors(void *objectHandle) const {
+    const std::string registerFunctionName = "registerActors";
+    void(*registerFunction)(std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>*);
+    registerFunction = (void(*)(
+            std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
+    if(registerFunction != nullptr) {
+        std::cout << "Actor register method found" << std::endl;
+        //register requires parameter
+        std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)> elements;
+        registerFunction(&elements);
+        //now add this elements to registered map
+        for (auto it = elements.begin(); it != elements.end(); it++) {
+            ActorInterface::registerType(it->first, it->second);
+        }
+        return true;
+    } else {
+        std::cerr << "Custom Actor load failed!" << std::endl;
         return false;
     }
 }

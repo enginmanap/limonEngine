@@ -4,7 +4,6 @@
 
 
 #include "World.h"
-#include "AI/HumanEnemy.h"
 
 #include "Camera.h"
 #include "BulletDebugDrawer.h"
@@ -262,7 +261,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
         for (auto actorIt = actors.begin(); actorIt != actors.end(); ++actorIt) {
             ActorInterface::ActorInformation information = fillActorInformation(actorIt->second);
-            actorIt->second->play(gameTime, information, options);
+            actorIt->second->play(gameTime, information);
         }
         for (auto it = objects.begin(); it != objects.end(); ++it) {
             if (!it->second->getRigidBody()->isStaticOrKinematicObject() && it->second->getRigidBody()->isActive()) {
@@ -1103,7 +1102,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
                 if (objectEditorResult.addAI) {
                     std::cout << "adding AI to model " << std::endl;
-                    HumanEnemy *newEnemy = new HumanEnemy(getNextObjectID(), apiInstance);
+                    ActorInterface *newEnemy = ActorInterface::createActor("ENEMY_AI_SWAT", getNextObjectID(), apiInstance);
                     Model* model = dynamic_cast<Model *>(pickedObject);
                     if(model != nullptr) {
                         newEnemy->setModel(model->getWorldObjectID());
