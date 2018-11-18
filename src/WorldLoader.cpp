@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "WorldLoader.h"
+#include "GameObjects/Model.h"
 #include "World.h"
 #include "AI/HumanEnemy.h"
 #include "GameObjects/SkyBox.h"
@@ -367,8 +368,10 @@ std::unique_ptr<WorldLoader::ObjectInformation> WorldLoader::loadObject(tinyxml2
             std::cout << "Object has AI." << std::endl;
 
             loadedObjectInformation->modelActor = new HumanEnemy(ai_id, limonAPI);
-            loadedObjectInformation->modelActor->setModel(loadedObjectInformation->model);
-        }
+            loadedObjectInformation->modelActor->setModel(loadedObjectInformation->model->getWorldObjectID());
+            loadedObjectInformation->model->attachAI(loadedObjectInformation->modelActor);
+
+    }
 
     objectAttribute =  objectNode->FirstChildElement("Animation");
     if (objectAttribute == nullptr) {
