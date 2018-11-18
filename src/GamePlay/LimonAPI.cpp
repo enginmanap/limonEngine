@@ -394,3 +394,7 @@ bool LimonAPI::addObjectTranslate(uint32_t objectID, const LimonAPI::Vec4 &posit
 bool LimonAPI::addObjectScale(uint32_t objectID, const LimonAPI::Vec4 &scale) {
     return worldAddObjectScale(objectID, scale);
 }
+
+bool LimonAPI::addObjectOrientation(uint32_t objectID, const LimonAPI::Vec4 &orientation) {
+    return worldAddObjectOrientation(objectID, orientation);
+}

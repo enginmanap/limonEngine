@@ -2448,3 +2448,17 @@ bool World::addObjectScaleAPI(uint32_t objectID, const LimonAPI::Vec4 &scale) {
    model->getTransformation()->addScale(GLMConverter::LimonToGLM(scale));
    return true;
 }
+
+bool World::addObjectOrientationAPI(uint32_t objectID, const LimonAPI::Vec4 &orientation) {
+   Model* model = findModelByID(objectID);
+   if(model == nullptr) {
+       return false;
+   }
+
+   glm::quat orientationQuat(orientation.w,
+                             orientation.x,
+                             orientation.y,
+                             orientation.z);
+   model->getTransformation()->addOrientation(orientationQuat);
+   return true;
+}
