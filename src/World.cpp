@@ -2404,3 +2404,13 @@ bool World::setObjectTranslateAPI(uint32_t objectID, const LimonAPI::Vec4 &posit
     model->getTransformation()->setTranslate(GLMConverter::LimonToGLM(position));
     return true;
 }
+
+bool World::setObjectScaleAPI(uint32_t objectID, const LimonAPI::Vec4 &scale) {
+    Model* model = findModelByID(objectID);
+    if(model == nullptr) {
+        return false;
+    }
+
+    model->getTransformation()->setScale(GLMConverter::LimonToGLM(scale));
+    return true;
+}

@@ -440,6 +440,7 @@ public:
     std::vector<LimonAPI::ParameterRequest> getObjectTransformationMatrixAPI(uint32_t objectID) const;
 
     bool setObjectTranslateAPI(uint32_t objectID, const LimonAPI::Vec4& position);
+    bool setObjectScaleAPI(uint32_t objectID, const LimonAPI::Vec4& scale);
     bool interactWithAIAPI(uint32_t AIID, std::vector<LimonAPI::ParameterRequest> &interactionInformation) const;
 
     void interactWithPlayerAPI(std::vector<LimonAPI::ParameterRequest> &interactionInformation) const;
