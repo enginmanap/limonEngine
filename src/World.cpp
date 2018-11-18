@@ -2394,3 +2394,13 @@ bool World::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID)
     return true;
 
 }
+
+bool World::setObjectTranslateAPI(uint32_t objectID, const LimonAPI::Vec4 &position) {
+    Model* model = findModelByID(objectID);
+    if(model == nullptr) {
+        return false;
+    }
+
+    model->getTransformation()->setTranslate(GLMConverter::LimonToGLM(position));
+    return true;
+}

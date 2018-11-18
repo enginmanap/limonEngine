@@ -173,6 +173,7 @@ public:
      */
     std::vector<LimonAPI::ParameterRequest> getObjectTransformation(uint32_t objectID);
 
+    bool setObjectTranslate(uint32_t objectID, const LimonAPI::Vec4& position);
     /**
      * Returns mat4 with objects transform
      *
@@ -251,6 +252,7 @@ private:
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t , uint32_t )> worldGetResultOfTrigger;
     std::function<bool (uint32_t)> worldRemoveObject;
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t)> worldGetObjectTransformation;
+    std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldSetObjectTranslate;
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t)> worldGetObjectTransformationMatrix;
     std::function<bool (uint32_t, uint32_t)> worldAttachObjectToObject;
     std::function<bool (uint32_t)> worldRemoveTriggerObject;
