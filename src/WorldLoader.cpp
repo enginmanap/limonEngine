@@ -79,6 +79,8 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldSetObjectOrientation = std::bind(&World::setObjectOrientationAPI, world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldAddObjectTranslate =   std::bind(&World::addObjectTranslateAPI,   world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldAddObjectScale =       std::bind(&World::addObjectScaleAPI,       world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldAddObjectOrientation = std::bind(&World::addObjectOrientationAPI, world, std::placeholders::_1, std::placeholders::_2);
+
     limonAPI->worldInteractWithAI = std::bind(&World::interactWithAIAPI, world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldInteractWithPlayer = std::bind(&World::interactWithPlayerAPI, world, std::placeholders::_1);
     limonAPI->worldAddTimedEvent = std::bind(&World::addTimedEventAPI, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
