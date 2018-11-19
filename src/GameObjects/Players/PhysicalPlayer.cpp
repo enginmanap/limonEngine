@@ -372,10 +372,7 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
 
 void PhysicalPlayer::processInput(InputHandler &inputHandler) {
     Player::processInput(inputHandler);
-
-    if(inputHandler.getInputEvents(InputHandler::MOUSE_BUTTON_RIGHT)) {
-        this->setDead();
-    }
+    
     if(dead) {
         return;
     }
