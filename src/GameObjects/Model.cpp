@@ -181,6 +181,10 @@ void Model::activateTexturesOnly(const Material *material) {
     if(material->hasOpacityMap()) {
         glHelper->attachTexture(material->getOpacityTexture()->getID(), opacityMapAttachPoint);
     }
+
+    if(material->hasNormalMap()) {
+        glHelper->attachTexture(material->getNormalTexture()->getID(), normalMapAttachPoint);
+    }
 }
 
 void Model::setSamplersAndUBOs(GLSLProgram *program) {
@@ -194,6 +198,9 @@ void Model::setSamplersAndUBOs(GLSLProgram *program) {
         std::cerr << "Uniform \"specularSampler\" could not be set" << std::endl;
     }
     if (!program->setUniform("opacitySampler", opacityMapAttachPoint)) {
+        std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
+    }
+    if (!program->setUniform("normalSampler", normalMapAttachPoint)) {
         std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
     }
     //TODO we should support multi texture on one pass

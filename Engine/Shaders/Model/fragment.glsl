@@ -49,6 +49,7 @@ uniform sampler2D ambientSampler;
 uniform sampler2D diffuseSampler;
 uniform sampler2D specularSampler;
 uniform sampler2D opacitySampler;
+uniform sampler2D normalSampler;
 
 uniform vec3 pointSampleOffsetDirections[20] = vec3[]
 (
@@ -132,15 +133,20 @@ void main(void)
             lightingColorFactor = vec3(texture(ambientSampler, from_vs.textureCoord));
         }
 
+        vec3 normal = from_vs.normal;
+        if((material.isMap & 0x0010) != 0) {
+            normal = -1 * vec3(texture(normalSampler, from_vs.textureCoord));
+        }
+
         float shadow;
         for(int i=0; i < NR_POINT_LIGHTS; ++i){
             if(LightSources.lights[i].type != 0) {
                 // Diffuse Lighting
                 vec3 lightDirectory = normalize(LightSources.lights[i].position - from_vs.fragPos);
-                float diffuseRate = max(dot(from_vs.normal, lightDirectory), 0.0);
+                float diffuseRate = max(dot(normal, lightDirectory), 0.0);
                 // Specular
                 vec3 viewDirectory = normalize(playerTransforms.position - from_vs.fragPos);
-                vec3 reflectDirectory = reflect(-lightDirectory, from_vs.normal);
+                vec3 reflectDirectory = reflect(-lightDirectory, normal);
                 float specularRate = max(dot(viewDirectory, reflectDirectory), 0.0);
                 if(specularRate != 0 && material.shininess != 0) {
                     specularRate = pow(specularRate, material.shininess);

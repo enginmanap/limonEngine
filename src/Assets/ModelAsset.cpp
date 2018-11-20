@@ -213,6 +213,23 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
             }
         }
 
+        if ((currentMaterial->GetTextureCount(aiTextureType_NORMALS) > 0)) {
+            if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_NORMALS, 0, &property)) {
+                if(property.data[0] != '*') {
+                    newMaterial->setNormalTexture(property.C_Str());
+                    std::cout << "set normal texture " << property.C_Str() << std::endl;
+                } else {
+                    //embeddedTexture handling
+                    newMaterial->setNormalTexture(property.C_Str(), &this->name);
+                    std::cout << "set (embedded) setNormalTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
+                }
+            } else {
+                std::cerr << "The model contained normal texture information, but texture loading failed. \n" <<
+                          "TextureAsset path: [" << property.C_Str() << "]" << std::endl;
+            }
+        }
+
+
         if ((currentMaterial->GetTextureCount(aiTextureType_OPACITY) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_OPACITY, 0, &property)) {
                 if(property.data[0] != '*') {
@@ -230,6 +247,10 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
         }
 
         uint32_t maps = 0;
+
+        if(newMaterial->hasNormalMap()) {
+            maps +=16;
+        }
         if(newMaterial->hasAmbientMap()) {
             maps +=8;
         }
@@ -242,6 +263,7 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
         if(newMaterial->hasOpacityMap()) {
             maps +=1;
         }
+
         newMaterial->setMaps(maps);
 
         assetManager->getGlHelper()->setMaterial(newMaterial);
