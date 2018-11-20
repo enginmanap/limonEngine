@@ -22,10 +22,11 @@ private:
     bool isAmbientMap = false;
     bool isDiffuseMap = false;
     bool isSpecularMap = false;
+    bool isNormalMap = false;
     bool isOpacityMap = false;
     float refractionIndex;
 
-    TextureAsset *ambientTexture = nullptr, *diffuseTexture = nullptr, *specularTexture = nullptr, *opacityTexture = nullptr;
+    TextureAsset *ambientTexture = nullptr, *diffuseTexture = nullptr, *specularTexture = nullptr, *normalTexture = nullptr, *opacityTexture = nullptr;
 
 public:
     Material(AssetManager *assetManager, const std::string &name, uint32_t materialIndex, float specularExponent, const glm::vec3 &ambientColor,
@@ -138,6 +139,21 @@ public:
         this->isSpecularMap = true;
     }
 
+    void setNormalTexture(const std::string &normalTexture, std::string* sourceAsset = nullptr) {
+        std::vector<std::string> textureFiles;
+        textureFiles.push_back(normalTexture);
+        if(sourceAsset != nullptr) {
+            textureFiles.push_back(*sourceAsset);
+        }
+
+        this->normalTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
+        this->isNormalMap = true;
+
+    }
+
+    TextureAsset *getNormalTexture() const {
+        return normalTexture;
+    }
 
     void setOpacityTexture(const std::string &opacityTexture, std::string* sourceAsset = nullptr) {
         std::vector<std::string> textureFiles;
@@ -167,6 +183,9 @@ public:
         if (opacityTexture != nullptr) {
             assetManager->freeAsset({opacityTexture->getName()});
         }
+        if (normalTexture != nullptr) {
+            assetManager->freeAsset({normalTexture->getName()});
+        }
     }
 
     bool hasAmbientMap() const {
@@ -179,6 +198,10 @@ public:
 
     bool hasSpecularMap() const {
         return isSpecularMap;
+    }
+
+    bool hasNormalMap() const {
+        return isNormalMap;
     }
 
     bool hasOpacityMap() const {

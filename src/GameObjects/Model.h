@@ -60,6 +60,7 @@ class Model : public PhysicalRenderable, public GameObject {
     int ambientMapAttachPoint = 2;
     int specularMapAttachPoint = 3;
     int opacityMapAttachPoint = 4;
+    int normalMapAttachPoint = 5;
     uint_fast32_t triangleCount;
 
 public:
