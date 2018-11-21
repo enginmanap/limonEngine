@@ -119,10 +119,16 @@ void main(void)
         if((material.isMap & 0x0004)!=0) {
             if((material.isMap & 0x0001)!=0) { //if there is a opacity map, and it with diffuse
                 vec4 opacity = texture(opacitySampler, from_vs.textureCoord);
+                if(opacity.a < 0.05) {
+                    discard;
+                }
                 objectColor = texture(diffuseSampler, from_vs.textureCoord);
                 objectColor.w =  opacity.a;//FIXME some other textures used x
             } else {
                 objectColor = texture(diffuseSampler, from_vs.textureCoord);
+                if(objectColor.a < 0.05) {
+                    discard;
+                }
             }
         } else {
             objectColor = vec4(material.diffuse, 1.0);
