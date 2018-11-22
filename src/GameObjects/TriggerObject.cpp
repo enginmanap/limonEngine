@@ -115,10 +115,7 @@ void TriggerObject::PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&trigg
                     ImGui::PopStyleVar();
                 }
             }
-
-
         }
-
 }
 
 void TriggerObject::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *triggersNode) const {

@@ -137,18 +137,26 @@ bool HumanEnemy::interaction(std::vector<LimonAPI::ParameterRequest> &interactio
     return false;
 }
 
-void HumanEnemy::IMGuiEditorView() {/*
-    ImGui::Text("Human Enemy AI");
-    if(playerPursuitStartTime == 0) {
-        ImGui::Text("Status: Awaiting Player detection");
-    } else {
-        ImGui::Text("Status: Player pursuit");
-        if(ImGui::Button("Stop pursuit")) {
-            playerPursuitStartTime = 0;
-            limonAPI->setModelAnimation(modelID,"idle|mixamo.com");
+std::vector<LimonAPI::ParameterRequest> HumanEnemy::getParameters() {
+    std::vector<LimonAPI::ParameterRequest> parameters;
+
+    LimonAPI::ParameterRequest hitPointParameter;
+    hitPointParameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+    hitPointParameter.description = "Hit points";
+    hitPointParameter.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+    hitPointParameter.value.longValue = (long) this->hitPoints;
+    hitPointParameter.isSet = true;//don't force change
+    parameters.push_back(hitPointParameter);
+    return parameters;
+}
+
+void HumanEnemy::setParameters(std::vector<LimonAPI::ParameterRequest> parameters) {
+    if(parameters.size() > 0) {
+        if(parameters[0].description == "Hit points" && parameters[0].valueType == LimonAPI::ParameterRequest::ValueTypes::LONG) {
+            this->hitPoints = parameters[0].value.longValue;
         }
+
     }
-*/
 }
 
 extern "C" void registerActors(std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>* actorMap) {

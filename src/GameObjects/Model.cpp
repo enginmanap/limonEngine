@@ -354,7 +354,7 @@ uint32_t Model::getAIID() {
 }
 
 GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
-    static ImGuiResult result;
+    ImGuiResult result;
 
     //Allow transformation editing.
     if(transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix)) {
@@ -389,21 +389,11 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
     }
     if (isAnimated()) { //in animated objects can't have AI, can they?
         if (ImGui::CollapsingHeader("AI properties")) {
-            bool isAIDriven = this->AIActor != nullptr;
-            if (ImGui::Checkbox("AI Driven", &isAIDriven)) {
-                if (isAIDriven == true) {
-                    result.addAI = true;
-                } else {
-                    result.removeAI = true;
-                }
-            } else {
-                result.addAI = false;
-                result.removeAI = false;
-
+            if(isAIParametersDirty && this->AIActor != nullptr) {
+                this->aiParameters = this->AIActor->getParameters();
+                isAIParametersDirty = false;
             }
-            if (this->AIActor != nullptr) {
-                this->AIActor->IMGuiEditorView();
-            }
+            result = putAIonGUI(this->AIActor, this->aiParameters, request, lastSelectedAIName);//ATTENTION is somehow user manages to update transform and AI at the same frame, this will override transform.
         }
     }
     //Step on sound properties
@@ -445,4 +435,69 @@ Model::Model(const Model &otherModel, uint32_t objectID) :
     this->animationName = otherModel.animationName;
     this->animationTimeScale = otherModel.animationTimeScale;
     this->animationTime = otherModel.animationTime;
+}
+
+GameObject::ImGuiResult Model::putAIonGUI(ActorInterface *actorInterface,
+                                          std::vector<LimonAPI::ParameterRequest> &parameters,
+                                          const ImGuiRequest &request, std::string &lastSelectedAIName) {
+    GameObject::ImGuiResult result;
+    std::string currentAIName;
+    if (actorInterface == nullptr && lastSelectedAIName == "") {
+        currentAIName = "Not selected";
+    } else {
+        if(lastSelectedAIName == "") {
+            currentAIName = actorInterface->getName();
+        } else {
+            currentAIName = lastSelectedAIName;
+        }
+    }
+    //let user select what kind of Actor required
+    std::vector<std::string> actorNames = ActorInterface::getActorNames();
+
+    if (ImGui::BeginCombo("Actor type##AI", currentAIName.c_str())) {
+        for (auto it = actorNames.begin(); it != actorNames.end(); it++) {
+            bool isThisActorSelected = (lastSelectedAIName == *it);
+            if (ImGui::Selectable(it->c_str(), isThisActorSelected)) {
+                if (!isThisActorSelected) {//if this is not the previously selected Actor type
+                    lastSelectedAIName = *it;
+                }
+            }
+            if(isThisActorSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+
+        }
+        ImGui::EndCombo();
+    }
+    if (actorInterface != nullptr) {
+        if(actorInterface->getName() != lastSelectedAIName) {
+            if(ImGui::Button("Change Actor type##AI")) {
+                result.addAI = true;
+                result.removeAI = true;
+                result.actorTypeName = lastSelectedAIName;
+            }
+
+        } else {//if actor is set, and not modified
+            bool isSet = request.limonAPI->generateEditorElementsForParameters(parameters, 0);
+            if(isSet) {
+                if(ImGui::Button("Apply changes##AI")) {
+                    actorInterface->setParameters(parameters);
+
+                }
+            }
+        }
+        ImGui::SameLine();
+        if(ImGui::Button("Remove AI##AI")) {
+            result.removeAI = true;
+        }
+    } else {//if no actor is set
+        if(lastSelectedAIName != "") {
+            if(ImGui::Button("Add AI##AI")) {
+                result.addAI = true;
+                result.actorTypeName = lastSelectedAIName;
+            }
+        }
+    }
+
+    return result;
 }

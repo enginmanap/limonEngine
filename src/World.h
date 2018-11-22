@@ -218,7 +218,7 @@ private:
 
     Camera* camera;
     BulletDebugDrawer *debugDrawer;
-    GameObject::ImGuiRequest* request;
+    GameObject::ImGuiRequest* request = nullptr;
 
     GUILayer *apiGUILayer;
     GUIText* renderCounts;

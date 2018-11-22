@@ -45,6 +45,15 @@ public:
         bool playerDead = false;
     };
 
+    // Not virtual
+    static std::vector<std::string> getActorNames() {
+        std::vector<std::string> names;
+        for (auto it = typeMap->begin(); it != typeMap->end(); it++) {
+            names.push_back(it->first);
+        }
+        return names;
+    }
+
     ActorInterface(uint32_t id, LimonAPI *limonAPI) : worldID(id), limonAPI(limonAPI) {}
 
     static void registerType(const std::string& typeName, ActorInterface*(*constructor)(uint32_t, LimonAPI*)) {
@@ -57,7 +66,8 @@ public:
 
     virtual bool interaction(std::vector<LimonAPI::ParameterRequest> &interactionInformation) = 0;
 
-    virtual void IMGuiEditorView() {};
+    virtual std::vector<LimonAPI::ParameterRequest> getParameters() { return std::vector<LimonAPI::ParameterRequest>();};
+    virtual void setParameters(std::vector<LimonAPI::ParameterRequest> parameters __attribute__((unused))) {};
 
     virtual ~ActorInterface() {};
 
