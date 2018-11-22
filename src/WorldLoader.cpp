@@ -366,10 +366,11 @@ std::unique_ptr<WorldLoader::ObjectInformation> WorldLoader::loadObject(tinyxml2
                            glm::vec3(0, 2.0f, 0);
         loadedObjectInformation->isAIGridStartPointSet = true;
         std::cout << "Object has AI." << std::endl;
-
-        loadedObjectInformation->modelActor = actor;
-        loadedObjectInformation->modelActor->setModel(loadedObjectInformation->model->getWorldObjectID());
-        loadedObjectInformation->model->attachAI(loadedObjectInformation->modelActor);
+        if(actor != nullptr) {//most likely shared library not found, but in general possible.
+            loadedObjectInformation->modelActor = actor;
+            loadedObjectInformation->modelActor->setModel(loadedObjectInformation->model->getWorldObjectID());
+            loadedObjectInformation->model->attachAI(loadedObjectInformation->modelActor);
+        }
     }
 
     objectAttribute =  objectNode->FirstChildElement("Animation");
