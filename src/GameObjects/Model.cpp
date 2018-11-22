@@ -396,15 +396,16 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
             result = putAIonGUI(this->AIActor, this->aiParameters, request, lastSelectedAIName);//ATTENTION is somehow user manages to update transform and AI at the same frame, this will override transform.
         }
     }
-    //Step on sound properties
-
-    ImGui::InputText("Step On Sound", stepOnSoundNameBuffer, 128);
-    if(ImGui::Button("Change Sound")) {
-        if(this->stepOnSound != nullptr) {
-            this->stepOnSound->stop();
+    if (ImGui::CollapsingHeader("Sound properties")) {
+        //Step on sound properties
+        ImGui::InputText("Step On Sound", stepOnSoundNameBuffer, 128);
+        if (ImGui::Button("Change Sound")) {
+            if (this->stepOnSound != nullptr) {
+                this->stepOnSound->stop();
+            }
+            this->stepOnSound = std::make_shared<Sound>(0, assetManager, std::string(stepOnSoundNameBuffer));
+            this->stepOnSound->setLoop(true);
         }
-        this->stepOnSound = std::make_shared<Sound>(0, assetManager, std::string(stepOnSoundNameBuffer));
-        this->stepOnSound->setLoop(true);
     }
     return result;
 }
