@@ -87,7 +87,10 @@ ActorInterface::deserializeActorInterface(tinyxml2::XMLElement *actorNode, Limon
         }
 
         actor = ActorInterface::createActor(typeName, id, limonAPI);
-
+        if(actor == nullptr) {
+            std::cerr << "Actor with given name " << typeName << " can't be created. Please check if extensions loaded successfully." << std::endl;
+            return nullptr;
+        }
         tinyxml2::XMLElement* allParametersNode = actorNode->FirstChildElement("parameters");
 
         tinyxml2::XMLElement* parameterNode = allParametersNode->FirstChildElement("Parameter");
