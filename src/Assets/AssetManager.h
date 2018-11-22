@@ -102,7 +102,12 @@ public:
 
     void freeAsset(const std::vector<std::string> files) {
         if (assets.count(files) == 0) {
-            std::cerr << "Unloading an asset that was not loaded. skipping" << std::endl;
+            std::cerr << "Unloading an asset [";
+            for (int i = 0; i < files.size() -1; ++i) {
+                std::cerr << files[i] << ", ";
+            }
+
+            std::cerr << files[files.size()-1] << "] that was not loaded. skipping." << std::endl;
             return;
         }
         assets[files].second--;
