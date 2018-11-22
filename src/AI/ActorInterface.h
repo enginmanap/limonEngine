@@ -66,12 +66,12 @@ public:
 
     virtual bool interaction(std::vector<LimonAPI::ParameterRequest> &interactionInformation) = 0;
 
-    virtual std::vector<LimonAPI::ParameterRequest> getParameters() { return std::vector<LimonAPI::ParameterRequest>();};
+    virtual std::vector<LimonAPI::ParameterRequest> getParameters() const { return std::vector<LimonAPI::ParameterRequest>();};
     virtual void setParameters(std::vector<LimonAPI::ParameterRequest> parameters __attribute__((unused))) {};
 
     virtual ~ActorInterface() {};
 
-    uint32_t getWorldID() {
+    uint32_t getWorldID() const {
         return worldID;
     }
 
@@ -94,6 +94,10 @@ public:
         }
         return it->second(id, apiInstance);
     }
+
+    void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) const;
+
+    static ActorInterface *deserializeActorInterface(tinyxml2::XMLElement *actorNode, LimonAPI *limonAPI);
 };
 
 

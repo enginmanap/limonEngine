@@ -137,7 +137,7 @@ bool HumanEnemy::interaction(std::vector<LimonAPI::ParameterRequest> &interactio
     return false;
 }
 
-std::vector<LimonAPI::ParameterRequest> HumanEnemy::getParameters() {
+std::vector<LimonAPI::ParameterRequest> HumanEnemy::getParameters() const {
     std::vector<LimonAPI::ParameterRequest> parameters;
 
     LimonAPI::ParameterRequest hitPointParameter;
