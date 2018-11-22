@@ -44,3 +44,70 @@ glm::vec3 ActorInterface::getPosition() const {
     }
     return position;
 }
+
+void ActorInterface::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) const {
+    tinyxml2::XMLElement *AINode = document.NewElement("Actor");
+    parentNode->InsertEndChild(AINode);
+
+    tinyxml2::XMLElement *idNode = document.NewElement("ID");
+    idNode->SetText(std::to_string(this->getWorldID()).c_str());
+    AINode->InsertEndChild(idNode);
+
+    tinyxml2::XMLElement *nameNode = document.NewElement("TypeName");
+    nameNode->SetText(this->getName().c_str());
+    AINode->InsertEndChild(nameNode);
+
+    tinyxml2::XMLElement *parametersNode = document.NewElement("parameters");
+    std::vector<LimonAPI::ParameterRequest> parameters = this->getParameters();
+    for (size_t i = 0; i < parameters.size(); ++i) {
+        parameters[i].serialize(document, parametersNode, i);
+    }
+    AINode->InsertEndChild(parametersNode);
+}
+
+ActorInterface *
+ActorInterface::deserializeActorInterface(tinyxml2::XMLElement *actorNode, LimonAPI *limonAPI) {
+    ActorInterface* actor = nullptr;
+    if (actorNode != nullptr) {
+        std::string typeName;
+        tinyxml2::XMLElement* nameNode = actorNode->FirstChildElement("TypeName");
+        if(nameNode != nullptr && nameNode->GetText() != nullptr){
+            typeName = nameNode->GetText();
+        } else {
+            std::cerr << "Name can't be found for Actor load, failed." << std::endl;
+            return nullptr;
+        }
+        uint32_t id;
+        tinyxml2::XMLElement* idNode = actorNode->FirstChildElement("ID");
+        if(idNode != nullptr && idNode->GetText() != nullptr){
+            id = std::atoi(idNode->GetText());
+        } else {
+            std::cerr << "ID can't be found for Actor load, failed." << std::endl;
+            return nullptr;
+        }
+
+        actor = ActorInterface::createActor(typeName, id, limonAPI);
+
+        tinyxml2::XMLElement* allParametersNode = actorNode->FirstChildElement("parameters");
+
+        tinyxml2::XMLElement* parameterNode = allParametersNode->FirstChildElement("Parameter");
+        uint32_t index;
+        std::vector<LimonAPI::ParameterRequest> parameters;
+        bool parameterLoadSuccess = true;
+        while(parameterNode != nullptr) {
+            LimonAPI::ParameterRequest request;
+
+            if(!request.deserialize(parameterNode, index)) {
+                std::cerr << "Parameter load failed for Actor, it will be using default values." << std::endl;
+                parameterLoadSuccess = false;
+                break;
+            }
+            parameters.insert(parameters.begin() + index, request);
+            parameterNode = parameterNode->NextSiblingElement("Parameter");
+        } // end of while (Trigger parameters)
+        if(parameterLoadSuccess) {
+            actor->setParameters(parameters);
+        }
+    }
+    return actor;
+}

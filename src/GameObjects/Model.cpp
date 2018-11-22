@@ -318,13 +318,7 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
     }
     objectElement->InsertEndChild(currentElement);
     if(AIActor != nullptr) {
-        currentElement = document.NewElement("AI");
-        currentElement->SetText("True");
-        objectElement->InsertEndChild(currentElement);
-
-        currentElement = document.NewElement("AI_ID");
-        currentElement->SetText(this->AIActor->getWorldID());
-        objectElement->InsertEndChild(currentElement);
+        AIActor->serialize(document, objectElement);
     }
 
     currentElement = document.NewElement("Mass");

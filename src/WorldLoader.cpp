@@ -354,30 +354,22 @@ std::unique_ptr<WorldLoader::ObjectInformation> WorldLoader::loadObject(tinyxml2
     loadedObjectInformation->model->getTransformation()->deserialize(objectAttribute);
 
     //Since we are not loading objects recursively, these can be set here safely
-    objectAttribute =  objectNode->FirstChildElement("AI");
+    objectAttribute =  objectNode->FirstChildElement("Actor");
     if (objectAttribute == nullptr) {
 #ifndef NDEBUG
-            std::cout << "Object does not have AI." << std::endl;
+        std::cout << "Object does not have AI." << std::endl;
 #endif
-        } else {
-            int ai_id;
-            objectAttribute =  objectNode->FirstChildElement("AI_ID");
-            if (objectAttribute == nullptr) {
-                std::cerr << "Object AI does not have ID. Can't be loaded" << std::endl;
-                delete loadedObjectInformation->model;
-                return std::unique_ptr<ObjectInformation>(nullptr);
-            } else {
-                ai_id = std::stoi(objectAttribute->GetText());
-            }
-            loadedObjectInformation->aiGridStartPoint = GLMConverter::BltToGLM(loadedObjectInformation->model->getRigidBody()->getCenterOfMassPosition()) +
-                               glm::vec3(0, 2.0f, 0);
-            loadedObjectInformation->isAIGridStartPointSet = true;
-            std::cout << "Object has AI." << std::endl;
+    } else {
+        ActorInterface* actor = ActorInterface::deserializeActorInterface(objectAttribute, limonAPI);
 
-            loadedObjectInformation->modelActor = ActorInterface::createActor("ENEMY_AI_SWAT", ai_id, limonAPI);
-            loadedObjectInformation->modelActor->setModel(loadedObjectInformation->model->getWorldObjectID());
-            loadedObjectInformation->model->attachAI(loadedObjectInformation->modelActor);
+        loadedObjectInformation->aiGridStartPoint = GLMConverter::BltToGLM(loadedObjectInformation->model->getRigidBody()->getCenterOfMassPosition()) +
+                           glm::vec3(0, 2.0f, 0);
+        loadedObjectInformation->isAIGridStartPointSet = true;
+        std::cout << "Object has AI." << std::endl;
 
+        loadedObjectInformation->modelActor = actor;
+        loadedObjectInformation->modelActor->setModel(loadedObjectInformation->model->getWorldObjectID());
+        loadedObjectInformation->model->attachAI(loadedObjectInformation->modelActor);
     }
 
     objectAttribute =  objectNode->FirstChildElement("Animation");

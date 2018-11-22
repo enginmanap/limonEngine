@@ -34,7 +34,7 @@ public:
 
     bool interaction(std::vector<LimonAPI::ParameterRequest> &interactionInformation) override;
 
-    std::vector<LimonAPI::ParameterRequest> getParameters() override;
+    std::vector<LimonAPI::ParameterRequest> getParameters() const override;
 
     void setParameters(std::vector<LimonAPI::ParameterRequest> parameters) override;
 
