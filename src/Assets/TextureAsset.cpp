@@ -11,7 +11,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
         std::cerr << "Texture load failed because file name vector is empty." << std::endl;
         exit(-1);
     }
-    name = files[0];
+    name = files;
     if (files.size() > 2) {
         std::cerr << "multiple files are sent to Texture constructor, extra elements ignored." << std::endl;
     }
@@ -36,7 +36,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
          * FIXME: This takes full path, which is not acceptable,
          * we need to work with relative path to model for textures
          */
-        surface = IMG_Load(name.data());
+        surface = IMG_Load(name[0].data());
     }
 
 
@@ -44,11 +44,11 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
 
 
     if (!surface) {
-        std::cerr << "TextureAsset Load from disk failed for " << name << ". Error:" << std::endl << IMG_GetError()
+        std::cerr << "TextureAsset Load from disk failed for " << name[0] << ". Error:" << std::endl << IMG_GetError()
                   << std::endl;
         exit(1);
     } else {
-        std::cout << "TextureAsset " << name << " loaded from disk successfully." << std::endl;
+        std::cout << "TextureAsset " << name[0] << " loaded from disk successfully." << std::endl;
     }
     if (surface->format->BytesPerPixel == 4) {
         if(surface->format->format != SDL_PIXELFORMAT_ABGR8888) {
@@ -83,5 +83,5 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
 
 TextureAsset::~TextureAsset() {
     assetManager->getGlHelper()->deleteTexture(textureBufferID);
-    std::cout << "Texture asset deleted: " << name << std::endl;
+    std::cout << "Texture asset deleted: " << name[0] << std::endl;
 }

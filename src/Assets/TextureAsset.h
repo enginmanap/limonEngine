@@ -13,7 +13,7 @@
 
 class TextureAsset : public Asset {
 protected:
-    std::string name;
+    std::vector<std::string> name;//1) single element filename, 2) First element embedded texture ID, second element model.
     uint32_t textureBufferID;
     uint32_t height = 0;
     uint32_t width;
@@ -27,7 +27,7 @@ public:
         return textureBufferID;
     }
 
-    std::string getName() const {
+    std::vector<std::string> getName() const {
         return name;
     }
 
