@@ -389,11 +389,18 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
     }
     if (isAnimated()) { //in animated objects can't have AI, can they?
         if (ImGui::CollapsingHeader("AI properties")) {
-            if(isAIParametersDirty && this->AIActor != nullptr) {
-                this->aiParameters = this->AIActor->getParameters();
+            if(isAIParametersDirty) {
+                if(this->AIActor != nullptr) {
+                    this->aiParameters = this->AIActor->getParameters();
+                } else {
+                    this->aiParameters.clear();
+                }
                 isAIParametersDirty = false;
             }
             result = putAIonGUI(this->AIActor, this->aiParameters, request, lastSelectedAIName);//ATTENTION is somehow user manages to update transform and AI at the same frame, this will override transform.
+            if(result.removeAI || result.addAI) {
+                isAIParametersDirty = true;
+            }
         }
     }
     if (ImGui::CollapsingHeader("Sound properties")) {
