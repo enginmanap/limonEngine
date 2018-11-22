@@ -34,7 +34,10 @@ public:
 
     bool interaction(std::vector<LimonAPI::ParameterRequest> &interactionInformation) override;
 
-    void IMGuiEditorView() override;
+    std::vector<LimonAPI::ParameterRequest> getParameters() override;
+
+    void setParameters(std::vector<LimonAPI::ParameterRequest> parameters) override;
+
 
     std::string getName() const override {
         return "ENEMY_AI_SWAT";

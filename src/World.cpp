@@ -128,10 +128,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     /************ ImGui *****************************/
     // Setup ImGui binding
     imgGuiHelper = new ImGuiHelper(glHelper, options);
-
-    //setup request
-    request = new GameObject::ImGuiRequest(glHelper->getCameraMatrix(), glHelper->getProjectionMatrix(),
-            glHelper->getOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth());
 }
 
  bool World::checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName) {
@@ -1092,9 +1088,11 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     addAnimationDefinitionToEditor();
                 }
 
+                uint32_t removedActorID = 0;
                 if (objectEditorResult.removeAI) {
                     //remove AI requested
                     if (dynamic_cast<Model *>(pickedObject)->getAIID() != 0) {
+                        removedActorID = dynamic_cast<Model *>(pickedObject)->getAIID();
                         actors.erase(dynamic_cast<Model *>(pickedObject)->getAIID());
                         dynamic_cast<Model *>(pickedObject)->detachAI();
                     }
@@ -1102,7 +1100,11 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
                 if (objectEditorResult.addAI) {
                     std::cout << "adding AI to model " << std::endl;
-                    ActorInterface *newEnemy = ActorInterface::createActor("ENEMY_AI_SWAT", getNextObjectID(), apiInstance);
+                    if(removedActorID == 0) {
+                        removedActorID = getNextObjectID();
+                    }
+                    //if remove and add is called in same frame, it means the type is changed, reuse the ID
+                    ActorInterface *newEnemy = ActorInterface::createActor(objectEditorResult.actorTypeName, removedActorID, apiInstance);
                     Model* model = dynamic_cast<Model *>(pickedObject);
                     if(model != nullptr) {
                         newEnemy->setModel(model->getWorldObjectID());
@@ -1750,6 +1752,10 @@ void World::afterLoadFinished() {
     if(music != nullptr) {
         music->play();
     }
+
+    //setup request
+    request = new GameObject::ImGuiRequest(glHelper->getCameraMatrix(), glHelper->getProjectionMatrix(),
+                                           glHelper->getOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), apiInstance);
 
     if(startingPlayer.extensionName != "") {
         this->currentPlayer->setPlayerExtension(

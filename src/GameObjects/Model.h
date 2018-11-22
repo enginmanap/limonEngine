@@ -47,6 +47,9 @@ class Model : public PhysicalRenderable, public GameObject {
     float animationTimeScale = 1.0f;
     std::string name;
     bool animated = false;
+    bool isAIParametersDirty = true;
+    std::vector<LimonAPI::ParameterRequest> aiParameters;
+    std::string lastSelectedAIName;
     std::vector<glm::mat4> boneTransforms;
     std::map<uint_fast32_t, uint_fast32_t> boneIdCompoundChildMap;
 
@@ -62,6 +65,9 @@ class Model : public PhysicalRenderable, public GameObject {
     int opacityMapAttachPoint = 4;
     int normalMapAttachPoint = 5;
     uint_fast32_t triangleCount;
+
+    static ImGuiResult putAIonGUI(ActorInterface *actorInterface, std::vector<LimonAPI::ParameterRequest> &parameters,
+                                  const ImGuiRequest &request, std::string &lastSelectedAIName);
 
 public:
     Model(uint32_t objectID, AssetManager *assetManager, const std::string &modelFile) : Model(objectID, assetManager,
