@@ -101,9 +101,13 @@ public:
     }
 
     void freeAsset(const std::vector<std::string> files) {
+        if(files.size() == 0) {
+            std::cerr << "Free asset call with empty file list, this is invalid!" << std::endl;
+            return;
+        }
         if (assets.count(files) == 0) {
             std::cerr << "Unloading an asset [";
-            for (int i = 0; i < files.size() -1; ++i) {
+            for (uint32_t i = 0; i < files.size() -1; ++i) {
                 std::cerr << files[i] << ", ";
             }
 
