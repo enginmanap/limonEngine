@@ -19,7 +19,7 @@ class ALHelper;
 
 class AssetManager {
 public:
-    enum AssetTypes { Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND };
+    enum AssetTypes { Asset_type_DIRECTORY, Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND, Asset_type_UNKNOWN };
 
     struct EmbeddedTexture {
         char format[9] = "\0";
@@ -55,6 +55,27 @@ public:
             delete texelData;
         }
     };
+
+    struct AvailableAssetsNode {
+        std::string name;
+        std::string fullPath;
+        AssetTypes assetType = Asset_type_UNKNOWN;
+        AvailableAssetsNode* parent = nullptr;
+        std::vector<AvailableAssetsNode> children;
+
+        AvailableAssetsNode* findNode(const std::string& requestedPath) {
+            if(this->fullPath == requestedPath) {
+                return this;
+            }
+            for (auto child = children.begin(); child != children.end(); ++child) {
+                AvailableAssetsNode* result = child->findNode(requestedPath);
+                if(result != nullptr) {
+                    return result;
+                }
+            }
+            return nullptr;
+        }
+    };
 private:
     const std::string ASSET_EXTENSIONS_FILE = "./engine/assetExtensions.xml";
 
@@ -63,11 +84,14 @@ private:
     std::unordered_map<std::string, std::vector<EmbeddedTexture>> embeddedTextures;
     uint32_t nextAssetIndex = 1;
 
-    std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
+    //std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
+    AvailableAssetsNode availableAssetsRootNode;
     GLHelper *glHelper;
     ALHelper *alHelper;
 
-    void addAssetsRecursively(const std::string &directoryPath, const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions);
+    void addAssetsRecursively(const std::string &directoryPath, const std::string &fileName,
+                                  const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions,
+                                  AvailableAssetsNode &nodeToProcess);
 
     std::vector<std::pair<std::string, AssetTypes>> loadAssetExtensionList();
 
@@ -126,8 +150,8 @@ public:
         }
     }
 
-    const std::map<std::string, AssetTypes>& getAvailableAssetsList() {
-        return availableAssetsList;
+    const AvailableAssetsNode& getAvailableAssetsTree() {
+        return availableAssetsRootNode;
     };
 
     void addEmbeddedTextures(const std::string& ownerAsset, std::vector<EmbeddedTexture> textures) {

@@ -728,8 +728,8 @@ bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {
  * It also fills the windows with relevant parameters.
  */
 void World::ImGuiFrameSetup() {//TODO not const because it removes the object. Should be separated
-    imgGuiHelper->NewFrame();
 
+    imgGuiHelper->NewFrame();
     /* window definitions */
     {
         ImGui::Begin("Editor");
@@ -744,34 +744,25 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
         }
 
         //list available elements
-        static std::string selectedAssetFile = "";
+        static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
         glm::vec3 newObjectPosition = camera->getPosition() + 10.0f * camera->getCenter();
 
         if (ImGui::CollapsingHeader("Add New Object")) {
-            if (ImGui::BeginCombo("Available objects", selectedAssetFile.c_str())) {
-                for (auto it = assetManager->getAvailableAssetsList().begin();
-                     it != assetManager->getAvailableAssetsList().end(); it++) {
+            imgGuiHelper->buildTreeFromAssets(assetManager->getAvailableAssetsTree(), AssetManager::Asset_type_MODEL, "Model",
+                                              &selectedAsset);
 
-                    if(it->second == AssetManager::Asset_type_MODEL) {
-                        bool selectedElement = selectedAssetFile == it->first;
-                        if (ImGui::Selectable(it->first.c_str(), selectedElement)) {
-                            selectedAssetFile = it->first;
-                        }
-                        if (selectedElement) {
-                            ImGui::SetItemDefaultFocus();
-                        }
-                    }
-                }
-                ImGui::EndCombo();
-            }
             static float newObjectWeight;
             ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
 
             ImGui::NewLine();
-            if(selectedAssetFile != "") {
+            if(selectedAsset == nullptr) {
+                ImGui::Button("Add Object");
+                ImGui::SameLine();
+                ImGuiHelper::ShowHelpMarker("No Asset Selected!");
+            } else {
                 if(ImGui::Button("Add Object")) {
                     Model* newModel = new Model(this->getNextObjectID(), assetManager, newObjectWeight,
-                                                selectedAssetFile, false);
+                                                selectedAsset->fullPath, false);
                     newModel->getTransformation()->setTranslate(newObjectPosition);
                     this->addModelToWorld(newModel);
                     newModel->getRigidBody()->activate();
@@ -1819,32 +1810,16 @@ void World::addGUIImageControls() {
     /**
      * For a new GUI Image we need only name and filename
      */
-    static char GUIImageName[32];
-    ImGui::InputText("GUI Image Name", GUIImageName, sizeof(GUIImageName), ImGuiInputTextFlags_CharsNoBlank);
-
-    static std::string GUIImageFileName;
-
-    if (ImGui::BeginCombo("Selected Texture", GUIImageFileName.c_str())) {
-        for (auto it = assetManager->getAvailableAssetsList().begin();
-             it != assetManager->getAvailableAssetsList().end(); it++) {
-
-            if(it->second == AssetManager::Asset_type_TEXTURE) {
-                bool selectedElement = GUIImageFileName == it->first;
-                if (ImGui::Selectable(it->first.c_str(), selectedElement)) {
-                    GUIImageFileName = it->first;
-                }
-                if (selectedElement) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-        }
-        ImGui::EndCombo();
-    }
+    static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
+    imgGuiHelper->buildTreeFromAssets(assetManager->getAvailableAssetsTree(), AssetManager::Asset_type_TEXTURE, "GUIImage",
+                                      &selectedAsset);
 
     static size_t selectedLayerIndex = 0;
     if (guiLayers.size() == 0) {
         guiLayers.push_back(new GUILayer(glHelper, debugDrawer, 10));
     }
+    static char GUIImageName[32];
+    ImGui::InputText("GUI Image Name", GUIImageName, sizeof(GUIImageName), ImGuiInputTextFlags_CharsNoBlank);
     if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
         for (size_t i = 0; i < guiLayers.size(); ++i) {
             bool isThisLayerSelected = selectedLayerIndex == i;
@@ -1857,14 +1832,20 @@ void World::addGUIImageControls() {
         }
         ImGui::EndCombo();
     }
-    if (ImGui::Button("Add GUI Image")) {
-        GUIImage *guiImage = new GUIImage(this->getNextObjectID(), options, assetManager, std::string(GUIImageName),
-                                          GUIImageFileName);
-        guiImage->set2dWorldTransform(
-                glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
-        guiElements[guiImage->getWorldObjectID()] = guiImage;
-        guiLayers[selectedLayerIndex]->addGuiElement(guiImage);
-        pickedObject = guiImage;
+    if(selectedAsset == nullptr) {
+        ImGui::Button("Add GUI Image");
+        ImGui::SameLine();
+        ImGuiHelper::ShowHelpMarker("No Asset Selected!");
+    } else {
+        if (ImGui::Button("Add GUI Image")) {
+            GUIImage *guiImage = new GUIImage(this->getNextObjectID(), options, assetManager, std::string(GUIImageName),
+                                              selectedAsset->fullPath);
+            guiImage->set2dWorldTransform(
+                    glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
+            guiElements[guiImage->getWorldObjectID()] = guiImage;
+            guiLayers[selectedLayerIndex]->addGuiElement(guiImage);
+            pickedObject = guiImage;
+        }
     }
 }
 
@@ -2003,23 +1984,9 @@ void World::addGUIButtonControls() {
        static bool isLooped = false;
        ImGui::Checkbox("Is Animation Looped", &isLooped);
 
-       static std::string selectedGUIAnimationTextureAssetFile = "";
-       if (ImGui::BeginCombo("Available Images", selectedGUIAnimationTextureAssetFile.c_str())) {
-           for (auto it = assetManager->getAvailableAssetsList().begin();
-                it != assetManager->getAvailableAssetsList().end(); it++) {
-
-               if(it->second == AssetManager::Asset_type_TEXTURE) {
-                   bool selectedElement = selectedGUIAnimationTextureAssetFile == it->first;
-                   if (ImGui::Selectable(it->first.c_str(), selectedElement)) {
-                       selectedGUIAnimationTextureAssetFile = it->first;
-                   }
-                   if (selectedElement) {
-                       ImGui::SetItemDefaultFocus();
-                   }
-               }
-           }
-           ImGui::EndCombo();
-       }
+       static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
+       imgGuiHelper->buildTreeFromAssets(assetManager->getAvailableAssetsTree(), AssetManager::AssetTypes::Asset_type_TEXTURE, "GUIAnimation",
+                                         &selectedAsset);
 
        static size_t selectedLayerIndex = 0;
        if (guiLayers.size() == 0) {
@@ -2036,20 +2003,27 @@ void World::addGUIButtonControls() {
                }
            }
            ImGui::EndCombo();
-       }
-       if (ImGui::Button("Add GUI Animation")) {
-           std::vector<std::string> fileNames;
-           fileNames.push_back(std::string(selectedGUIAnimationTextureAssetFile));
+        }
+        if(selectedAsset == nullptr) {
+            ImGui::Button("Add GUI Animation");
+            ImGui::SameLine();
+            ImGuiHelper::ShowHelpMarker("No Asset Selected");
+        } else {
 
-           GUIAnimation *guiAnimation = new GUIAnimation(this->getNextObjectID(), assetManager,
-                                                         std::string(GUIAnimationName),
-                                                         fileNames, gameTime, newAnimationFrameSpeed, isLooped);
-           guiAnimation->set2dWorldTransform(
-                   glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
-           guiElements[guiAnimation->getWorldObjectID()] = guiAnimation;
-           guiLayers[selectedLayerIndex]->addGuiElement(guiAnimation);
-           pickedObject = guiAnimation;
-       }
+            if (ImGui::Button("Add GUI Animation")) {
+
+                std::vector<std::string> fileNames;
+                fileNames.push_back(selectedAsset->fullPath);
+
+                GUIAnimation *guiAnimation = new GUIAnimation(this->getNextObjectID(), assetManager,
+                                                             std::string(GUIAnimationName),
+                                                             fileNames, gameTime, newAnimationFrameSpeed, isLooped);
+                guiAnimation->set2dWorldTransform(glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
+                guiElements[guiAnimation->getWorldObjectID()] = guiAnimation;
+                guiLayers[selectedLayerIndex]->addGuiElement(guiAnimation);
+                pickedObject = guiAnimation;
+            }
+        }
    }
 
 void World::addGUILayerControls() {
