@@ -109,6 +109,7 @@ bool SDL2Helper::loadPlayerExtensions(void *objectHandle) const {
         //now add this elements to registered map
         for (auto it = elements.begin(); it != elements.end(); it++) {
             PlayerExtensionInterface::registerType(it->first, it->second);
+            std::cout << "registered Player extension: " << it->first << std::endl;
         }
         return true;
     } else {
@@ -130,6 +131,7 @@ bool SDL2Helper::loadTriggers(void *objectHandle) const {
         //now add this elements to registered map
         for (auto it = elements.begin(); it != elements.end(); it++) {
             TriggerInterface::registerType(it->first, it->second);
+            std::cout << "registered Trigger: " << it->first << std::endl;
         }
         return true;
     } else {
@@ -151,6 +153,7 @@ bool SDL2Helper::loadActors(void *objectHandle) const {
         //now add this elements to registered map
         for (auto it = elements.begin(); it != elements.end(); it++) {
             ActorInterface::registerType(it->first, it->second);
+            std::cout << "registered Actor: " << it->first << std::endl;
         }
         return true;
     } else {
