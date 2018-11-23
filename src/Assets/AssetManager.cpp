@@ -9,28 +9,48 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
-void AssetManager::addAssetsRecursively(const std::string &directoryPath, const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions)
-{
+void AssetManager::addAssetsRecursively(const std::string &directoryPath, const std::string &fileName,
+                                        const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions,
+                                        AvailableAssetsNode &nodeToProcess) {
     DIR *directory;
     struct dirent *entry;
+
+    nodeToProcess.name = fileName;
+    nodeToProcess.fullPath = directoryPath;
 
     if (!(directory = opendir(directoryPath.c_str()))) {
         return;
     }
+
+    nodeToProcess.assetType = Asset_type_DIRECTORY;
+
     while ((entry = readdir(directory)) != NULL) {
         struct stat fileStat;
         std::string filePath = directoryPath + "/" + std::string(entry->d_name);
+
         if(stat(filePath.c_str(),&fileStat) < 0) {
             std::cout << "stat failed for entry " << entry->d_name << std::endl;
         } else {
             if(S_ISDIR(fileStat.st_mode)) {
-                if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
                     continue;
-                addAssetsRecursively(filePath, fileExtensions);
+                }
+                //we found a child, and it is a directory. Create a node and recurse
+                AvailableAssetsNode newNode;
+                newNode.parent = &nodeToProcess;
+                nodeToProcess.children.push_back(newNode);
+                addAssetsRecursively(filePath, std::string(entry->d_name), fileExtensions, nodeToProcess.children[nodeToProcess.children.size()-1]);
+
             } else {
                 AssetTypes assetType;
                 if(isExtensionInList(entry->d_name, fileExtensions, assetType)) {
-                    availableAssetsList[filePath] = assetType;
+                    //we found a element that is an asset create and add to children
+                    AvailableAssetsNode newNode;
+                    newNode.fullPath = filePath;
+                    newNode.name = std::string(entry->d_name);
+                    newNode.assetType = assetType;
+                    newNode.parent = &nodeToProcess;
+                    nodeToProcess.children.push_back(newNode);
                     std::cout << entry->d_name << " added as asset. with type " << assetType << std::endl;
                 } else {
                     //file found but not added because extension is not in list
@@ -84,7 +104,7 @@ std::vector<std::pair<std::string, AssetManager::AssetTypes>> AssetManager::load
 
 bool AssetManager::loadAssetList() {
     std::vector<std::pair<std::string, AssetTypes>> fileExtensions = loadAssetExtensionList();
-    addAssetsRecursively("./Data", fileExtensions);
+    addAssetsRecursively("./Data", "Data", fileExtensions, availableAssetsRootNode);
     return true;
 }
 
