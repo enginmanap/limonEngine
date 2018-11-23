@@ -60,8 +60,7 @@ uniform vec3 pointSampleOffsetDirections[20] = vec3[]
    vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
 
-float ShadowCalculationDirectional(vec4 fragPosLightSpace, vec3 lightDirection, float bias, float viewDistance, float lightIndex)
-{
+float ShadowCalculationDirectional(vec4 fragPosLightSpace, float bias, float lightIndex){
     // perform perspective divide
     vec3 projectedCoordinates = fragPosLightSpace.xyz / fragPosLightSpace.w;
     // Transform to [0,1] range
@@ -148,7 +147,12 @@ void main(void)
         for(int i=0; i < NR_POINT_LIGHTS; ++i){
             if(LightSources.lights[i].type != 0) {
                 // Diffuse Lighting
-                vec3 lightDirectory = normalize(LightSources.lights[i].position - from_vs.fragPos);
+                vec3 lightDirectory;
+                if(LightSources.lights[i].type == 1) {
+                    lightDirectory = normalize(LightSources.lights[i].position);
+                } else if(LightSources.lights[i].type == 2) {
+                    lightDirectory = normalize(LightSources.lights[i].position - from_vs.fragPos);
+                }
                 float diffuseRate = max(dot(normal, lightDirectory), 0.0);
                 // Specular
                 vec3 viewDirectory = normalize(playerTransforms.position - from_vs.fragPos);
@@ -163,14 +167,13 @@ void main(void)
                 float viewDistance = length(playerTransforms.position - from_vs.fragPos);
                 float bias = 0.0;
                 if(LightSources.lights[i].type == 1) {//directional light
-                    shadow = ShadowCalculationDirectional(from_vs.fragPosLightSpace[i], normalize(LightSources.lights[i].position - from_vs.fragPos), bias, viewDistance, i);
+                    shadow = ShadowCalculationDirectional(from_vs.fragPosLightSpace[i], bias, i);
                 } else if (LightSources.lights[i].type == 2){//point light
                     shadow = ShadowCalculationPoint(from_vs.fragPos, bias, viewDistance, i);
                 }
                 lightingColorFactor += ((1.0 - shadow) * (diffuseRate + specularRate) * LightSources.lights[i].color);
             }
         }
-
         finalColor = vec4(
         min(lightingColorFactor.x, 1.0),
         min(lightingColorFactor.y, 1.0),
