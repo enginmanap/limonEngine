@@ -313,7 +313,8 @@ GLHelper::GLHelper(Options *options): options(options) {
     //create the Light Uniform Buffer Object for later usage
     glGenBuffers(1, &lightUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * NR_POINT_LIGHTS, nullptr, GL_STATIC_DRAW);
+    std::vector<GLubyte> emptyData(lightUniformSize * NR_POINT_LIGHTS, 0);
+    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * NR_POINT_LIGHTS, &emptyData[0], GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //create player transforms uniform buffer object
