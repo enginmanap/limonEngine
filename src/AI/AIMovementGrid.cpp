@@ -2,6 +2,7 @@
 // Created by engin on 1.01.2018.
 //
 
+#include <glm/ext.hpp>
 #include "AIMovementGrid.h"
 
 constexpr float AIMovementGrid::floatingHeight;
@@ -90,9 +91,9 @@ AIMovementGrid::aStarPath(const AIMovementNode *start, const glm::vec3 &destinat
 bool AIMovementGrid::setProperHeight(glm::vec3 *position, float floatingHeight, float checkHeight,
                                      btDiscreteDynamicsWorld *staticWorld) {
     rayCallback->m_rayFromWorld = GLMConverter::GLMToBlt(*position);
-    if (checkHeight < 0.01) {
+    if (checkHeight == 0.0) {
         rayCallback->m_rayToWorld = GLMConverter::GLMToBlt(
-                *position - glm::vec3(0, 9999999, 0));//FIXME this number is for testing only
+                *position - glm::vec3(0, 9999999, 0));//Normally, we expect world aabb min y here, but it is not passed.
     } else {
         rayCallback->m_rayToWorld = GLMConverter::GLMToBlt(*position - glm::vec3(0, checkHeight, 0));
     }
@@ -111,7 +112,7 @@ AIMovementNode *
 AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
                             const glm::vec3 &max, uint32_t collisionGroup, uint32_t collisionMask) {
     std::queue<AIMovementNode *> frontier;
-    if (!setProperHeight(&walkPoint, floatingHeight, 0.0f, staticWorld)) {
+    if (!setProperHeight(&walkPoint, floatingHeight, -1 * min.y, staticWorld)) {
         std::cerr << "Root node has nothing underneath, grid generation failed. " << std::endl;
         return root;
     }
@@ -126,6 +127,7 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
         root->setIsMovable(isMovable);
         frontier.push(root);
         visited.push_back(root);
+        std::cerr << "Root node " << GLMUtils::vectorToString(walkPoint) << "is movable, AI walk grid generation starts." << std::endl;
     } else {
         std::cerr << "Root node " << GLMUtils::vectorToString(walkPoint) << "is not movable, AI walk grid generation failed. Please check map." << std::endl;
         return root;
@@ -134,6 +136,11 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
     while (!frontier.empty()) {
         current = frontier.front();
         frontier.pop();
+#ifndef NDEBUG
+        if(visited.size() %100 == 0) {
+            std::cout << "current walk node " << visited.size() << " last node: " << glm::to_string(current->getPosition()) << std::endl;
+        }
+#endif
         for (int i = -1; i <= 1; ++i) {
             for (int j = -1; j <= 1; ++j) {
                 if (i == 0 && j == 0) {
