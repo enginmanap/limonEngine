@@ -61,14 +61,20 @@ public:
         std::string fullPath;
         AssetTypes assetType = Asset_type_UNKNOWN;
         AvailableAssetsNode* parent = nullptr;
-        std::vector<AvailableAssetsNode> children;
+        std::vector<AvailableAssetsNode*> children;
 
-        AvailableAssetsNode* findNode(const std::string& requestedPath) {
+        ~AvailableAssetsNode() {
+            for (size_t i = 0; i < children.size(); ++i) {
+                delete children[i];
+            }
+        }
+
+        const AvailableAssetsNode* findNode(const std::string& requestedPath) const {
             if(this->fullPath == requestedPath) {
                 return this;
             }
             for (auto child = children.begin(); child != children.end(); ++child) {
-                AvailableAssetsNode* result = child->findNode(requestedPath);
+                const AvailableAssetsNode* result = (*child)->findNode(requestedPath);
                 if(result != nullptr) {
                     return result;
                 }
@@ -85,13 +91,13 @@ private:
     uint32_t nextAssetIndex = 1;
 
     //std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
-    AvailableAssetsNode availableAssetsRootNode;
+    AvailableAssetsNode* availableAssetsRootNode = nullptr;
     GLHelper *glHelper;
     ALHelper *alHelper;
 
     void addAssetsRecursively(const std::string &directoryPath, const std::string &fileName,
                                   const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions,
-                                  AvailableAssetsNode &nodeToProcess);
+                                  AvailableAssetsNode* nodeToProcess);
 
     std::vector<std::pair<std::string, AssetTypes>> loadAssetExtensionList();
 
@@ -150,7 +156,7 @@ public:
         }
     }
 
-    const AvailableAssetsNode& getAvailableAssetsTree() {
+    const AvailableAssetsNode* getAvailableAssetsTree() {
         return availableAssetsRootNode;
     };
 

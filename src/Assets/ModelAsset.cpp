@@ -82,23 +82,23 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     //Implicit call to import.FreeScene(), and removal of scene.
 
     //it is possible that there are mixamo animation files, chech if they do, add them too if needed
-    AssetManager::AvailableAssetsNode availableAssetsTree = assetManager->getAvailableAssetsTree();
+    const AssetManager::AvailableAssetsNode* availableAssetsTree = assetManager->getAvailableAssetsTree();
 
     //first find node of the object itself
-    AssetManager::AvailableAssetsNode* thisAssetsNode = availableAssetsTree.findNode(this->name);
+    const AssetManager::AvailableAssetsNode* thisAssetsNode = availableAssetsTree->findNode(this->name);
 
     if(thisAssetsNode == nullptr) {
         std::cerr << "The asset " << this->name << " is not in asset tree, skipping Mixamo search" << std::endl;
     } else {
         AssetManager::AvailableAssetsNode* parentNode = thisAssetsNode->parent;
         for (auto child = parentNode->children.begin(); child != parentNode->children.end(); ++child) {
-            if(child->name == "Mixamo") {
-                std::cout << "searching mixamo animations at path: " << child->fullPath << std::endl;
+            if((*child)->name == "Mixamo") {
+                std::cout << "searching mixamo animations at path: " << (*child)->fullPath << std::endl;
                 Assimp::Importer importer2;
                 const aiScene *mixamoScene = nullptr;
-                for (auto mixamoFile = child->children.begin(); mixamoFile != child->children.end(); ++mixamoFile) {
-                    if(mixamoFile->assetType == AssetManager::AssetTypes::Asset_type_MODEL) {
-                        mixamoScene = importer2.ReadFile(mixamoFile->fullPath, 0);
+                for (auto mixamoFile = (*child)->children.begin(); mixamoFile != (*child)->children.end(); ++mixamoFile) {
+                    if((*mixamoFile)->assetType == AssetManager::AssetTypes::Asset_type_MODEL) {
+                        mixamoScene = importer2.ReadFile((*mixamoFile)->fullPath, 0);
                         if (!mixamoScene || !mixamoScene->mRootNode) {//it might have mixamoScene->mFlags == AI_SCENE_FLAGS_INCOMPLETE, but that is expected
                             std::cerr << "ERROR::ASSIMP::MIXAMO" << importer2.GetErrorString() << std::endl;
                             //delete mixamoScene; don't delete, importer deletes
@@ -106,7 +106,7 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
                         }
                         if (mixamoScene->mNumAnimations != 0) {
                             //get the file name
-                            fillAnimationSet(mixamoScene->mNumAnimations, mixamoScene->mAnimations, mixamoFile->name.substr(0, mixamoFile->name.find_last_of("."))+ "|");
+                            fillAnimationSet(mixamoScene->mNumAnimations, mixamoScene->mAnimations, (*mixamoFile)->name.substr(0, (*mixamoFile)->name.find_last_of("."))+ "|");
                         } else {
                             std::cout << "No animation in Mixamo file, it won't effect anyting." << std::endl;
                         }
