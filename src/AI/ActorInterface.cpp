@@ -3,6 +3,7 @@
 //
 
 #include <iostream>
+#include <glm/gtc/quaternion.hpp>
 #include "ActorInterface.h"
 
 std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>* ActorInterface::typeMap;
