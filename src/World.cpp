@@ -2315,7 +2315,7 @@ LimonAPI::Vec4 World::getPlayerModelOffsetAPI() {
 bool World::setPlayerModelOffsetAPI(LimonAPI::Vec4 newOffset) {
     if(this->startingPlayer.attachedModel != nullptr) {
         if(physicalPlayer != nullptr) {
-            physicalPlayer->setAttachedModelOffset(GLMConverter::LimonToGLM(newOffset));
+            physicalPlayer->setAttachedModelOffset(glm::vec3(GLMConverter::LimonToGLM(newOffset)));
             return true;
         }
     }
@@ -2380,7 +2380,7 @@ bool World::setObjectTranslateAPI(uint32_t objectID, const LimonAPI::Vec4 &posit
         return false;
     }
 
-    model->getTransformation()->setTranslate(GLMConverter::LimonToGLM(position));
+    model->getTransformation()->setTranslate(glm::vec3(GLMConverter::LimonToGLM(position)));
     return true;
 }
 
@@ -2390,7 +2390,7 @@ bool World::setObjectScaleAPI(uint32_t objectID, const LimonAPI::Vec4 &scale) {
         return false;
     }
 
-    model->getTransformation()->setScale(GLMConverter::LimonToGLM(scale));
+    model->getTransformation()->setScale(glm::vec3(GLMConverter::LimonToGLM(scale)));
     return true;
 }
 
@@ -2414,7 +2414,7 @@ bool World::addObjectTranslateAPI(uint32_t objectID, const LimonAPI::Vec4 &posit
        return false;
    }
 
-   model->getTransformation()->addTranslate(GLMConverter::LimonToGLM(position));
+   model->getTransformation()->addTranslate(glm::vec3(GLMConverter::LimonToGLM(position)));
    return true;
 }
 
@@ -2424,7 +2424,7 @@ bool World::addObjectScaleAPI(uint32_t objectID, const LimonAPI::Vec4 &scale) {
        return false;
    }
 
-   model->getTransformation()->addScale(GLMConverter::LimonToGLM(scale));
+   model->getTransformation()->addScale(glm::vec3(GLMConverter::LimonToGLM(scale)));
    return true;
 }
 

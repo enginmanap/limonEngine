@@ -5,7 +5,6 @@
 #ifndef LIMONENGINE_ACTOR_H
 #define LIMONENGINE_ACTOR_H
 
-#include <glm/detail/type_quat.hpp>
 #include "../GamePlay/LimonAPI.h"
 
 
