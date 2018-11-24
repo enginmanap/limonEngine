@@ -7,7 +7,7 @@
 
 
 #include "ActorInterface.h"
-#include "../../libs/imgui/imgui.h"
+#include "../../libs/ImGui/imgui.h"
 #include "../Utils/LimonConverter.h"
 
 class HumanEnemy: public ActorInterface {
