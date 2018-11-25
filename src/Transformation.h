@@ -339,7 +339,8 @@ public:
 
     bool addImGuiEditorElements(const glm::mat4& cameraMatrix, const glm::mat4& perspectiveMatrix);
 
-    void addImGuizmoElements(const ImGuizmoState& editorState, const glm::mat4& cameraMatrix, const glm::mat4& perspectiveMatrix);
+    bool addImGuizmoElements(const ImGuizmoState &editorState, const glm::mat4 &cameraMatrix,
+                             const glm::mat4 &perspectiveMatrix);
 
     void combine(const Transformation &otherTransformation);
 

@@ -6,6 +6,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <glm/ext.hpp>
 #include "Transformation.h"
 #include "../libs/ImGui/imgui.h"
 #include "../libs/ImGuizmo/ImGuizmo.h"
@@ -121,12 +122,13 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
             break;
         }
     }
-    addImGuizmoElements(editorState, cameraMatrix, perspectiveMatrix);
+    updated = addImGuizmoElements(editorState, cameraMatrix, perspectiveMatrix) || updated;
     return updated || crudeUpdated;
 }
 
 
-void Transformation::addImGuizmoElements(const ImGuizmoState& editorState, const glm::mat4& cameraMatrix, const glm::mat4& perspectiveMatrix) {
+bool Transformation::addImGuizmoElements(const ImGuizmoState &editorState, const glm::mat4 &cameraMatrix,
+                                         const glm::mat4 &perspectiveMatrix) {
     ImGuizmo::OPERATION mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
 
     switch (editorState.mode) {
@@ -142,6 +144,9 @@ void Transformation::addImGuizmoElements(const ImGuizmoState& editorState, const
     }
     glm::mat4 objectMatrix;
     ImGuizmo::BeginFrame();
+    //before doing anything, make sure the values are actual.
+    this->getWorldTransform();
+    
     glm::vec3 eulerRotation = glm::eulerAngles(orientation);
 
     eulerRotation = eulerRotation * 57.2957795f;
@@ -155,30 +160,36 @@ void Transformation::addImGuizmoElements(const ImGuizmoState& editorState, const
     ImGuiIO& io = ImGui::GetIO();
     ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
     float tempSnap[3] = {editorState.snap[0], editorState.snap[1], editorState.snap[2] };
-    ImGuizmo::Manipulate(glm::value_ptr(cameraMatrix), glm::value_ptr(perspectiveMatrix), mCurrentGizmoOperation, mCurrentGizmoMode, glm::value_ptr(objectMatrix), NULL, editorState.useSnap ? &(tempSnap[0]) : NULL);
-
-    if(this->parentTransform != nullptr) {
-        //first calculate the difference from parent if there is
-        objectMatrix = glm::inverse(parentTransform->getWorldTransform()) * objectMatrix;
-
-    }
+    glm::mat4 deltaMatrix;
+    ImGuizmo::Manipulate(glm::value_ptr(cameraMatrix), glm::value_ptr(perspectiveMatrix), mCurrentGizmoOperation, mCurrentGizmoMode, glm::value_ptr(objectMatrix), glm::value_ptr(deltaMatrix), editorState.useSnap ? &(tempSnap[0]) : NULL);
     //now we should have object matrix updated, update the object
-    glm::vec3 tempTranslate, tempScale;
-    ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(objectMatrix), glm::value_ptr(tempTranslate), glm::value_ptr(eulerRotation), glm::value_ptr(tempScale));
-    glm::quat tempOrientation = glm::quat(eulerRotation / 57.2957795f);
+    glm::vec3 tempTranslate, tempScale, tempSkew;
+    glm::vec4 tempPerspective;
+    glm::quat tempOrientation;
+    glm::decompose(deltaMatrix, tempScale, tempOrientation, tempTranslate, tempSkew, tempPerspective);
     switch (mCurrentGizmoOperation) {
         case ImGuizmo::TRANSLATE:
-            setTranslate(tempTranslate);
+            if(tempTranslate != glm::vec3(0,0,0)) {
+                addTranslate(tempTranslate);
+                return true;
+            }
             break;
         case ImGuizmo::ROTATE:
-            setOrientation(tempOrientation);
+            if(tempOrientation != glm::quat(1,0,0,0)) {
+                addOrientation(tempOrientation);
+                return true;
+            }
             break;
         case ImGuizmo::SCALE:
-            setScale(tempScale);
+            if(tempScale != glm::vec3(1,1,1)) {
+                addScale(tempScale);
+                return true;
+            }
             break;
         case ImGuizmo::BOUNDS://not used
             break;
     }
+    return false;
 }
 
 void Transformation::getDifference(const Transformation& otherTransformation, glm::vec3 &translateOut, glm::vec3 &scaleOut, glm::quat &rotationOut) const {
