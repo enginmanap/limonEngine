@@ -211,51 +211,9 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
         for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
             trigger->second->checkAndTrigger();
         }
+         animateCustomAnimations();
 
-        // ATTENTION iterator is not increased in for, it is done manually.
-        for(auto animIt = activeAnimations.begin(); animIt != activeAnimations.end();) {
-            AnimationStatus* animationStatus = &(animIt->second);
-            const AnimationCustom* animationCustom = &loadedAnimations[animationStatus->animationIndex];
-            if((animationStatus->loop ) || animationCustom->getDuration() / animationCustom->getTicksPerSecond() * 1000  + animationStatus->startTime > gameTime) {
-
-                float ticksPerSecond;
-                if (animationCustom->getTicksPerSecond() != 0) {
-                    ticksPerSecond = animationCustom->getTicksPerSecond();
-                } else {
-                    ticksPerSecond = 60.0f;
-                }
-                float animationTime = fmod(((gameTime - animationStatus->startTime) / 1000.0f) * ticksPerSecond, animationCustom->getDuration());
-                Transformation tf;
-                animationCustom->calculateTransform("", animationTime, tf);
-
-                //FIXME this is not an acceptable animating technique, I need a transform stack, but not implemented it yet.
-                animationStatus->object->getTransformation()->setTranslate(animationStatus->originalTransformation.getTranslate());
-                animationStatus->object->getTransformation()->setScale(animationStatus->originalTransformation.getScale());
-                animationStatus->object->getTransformation()->setOrientation(animationStatus->originalTransformation.getOrientation());
-                animationStatus->object->getTransformation()->addOrientation(tf.getOrientation());
-                animationStatus->object->getTransformation()->addScale(tf.getScale());
-                animationStatus->object->getTransformation()->addTranslate(tf.getTranslate());
-                if(animationStatus->sound) {
-                    animationStatus->sound->setWorldPosition(
-                            animationStatus->object->getTransformation()->getTranslate());
-                }
-                animIt++;
-            } else {
-                if(!animationStatus->wasKinematic) {
-                    animationStatus->object->getRigidBody()->setCollisionFlags(animationStatus->object->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
-                    animationStatus->object->getRigidBody()->setActivationState(ACTIVE_TAG);
-                }
-
-                if(animationStatus->sound) {
-                    animationStatus->sound->stop();
-                }
-                options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, "Animation " + animationCustom->getName() +" finished, removing. ");
-                animIt = activeAnimations.erase(animIt);
-
-            }
-        }
-
-        for (auto actorIt = actors.begin(); actorIt != actors.end(); ++actorIt) {
+         for (auto actorIt = actors.begin(); actorIt != actors.end(); ++actorIt) {
             ActorInterface::ActorInformation information = fillActorInformation(actorIt->second);
             actorIt->second->play(gameTime, information);
         }
@@ -325,7 +283,59 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     }
 }
 
-void World::fillVisibleObjects(){
+   void World::animateCustomAnimations() {
+     // ATTENTION iterator is not increased in for, it is done manually.
+       for(auto animIt = activeAnimations.begin(); animIt != activeAnimations.end();) {
+              AnimationStatus* animationStatus = animIt->second;
+              const AnimationCustom* animationCustom = &loadedAnimations[animationStatus->animationIndex];
+              if((animationStatus->loop ) || animationCustom->getDuration() / animationCustom->getTicksPerSecond() * 1000  + animationStatus->startTime >
+                                             gameTime) {
+
+                  float ticksPerSecond;
+                  if (animationCustom->getTicksPerSecond() != 0) {
+                      ticksPerSecond = animationCustom->getTicksPerSecond();
+                  } else {
+                      ticksPerSecond = 60.0f;
+                  }
+                  float animationTime = fmod(((gameTime - animationStatus->startTime) / 1000.0f) * ticksPerSecond, animationCustom->getDuration());
+                  animationCustom->calculateTransform("", animationTime, *animationStatus->object->getTransformation());
+
+                  if(animationStatus->sound) {
+                      animationStatus->sound->setWorldPosition(
+                              animationStatus->object->getTransformation()->getTranslate());
+                  }
+                  animIt++;
+              } else {
+                  if(!animationStatus->wasKinematic) {
+                      animationStatus->object->getRigidBody()->setCollisionFlags(animationStatus->object->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
+                      animationStatus->object->getRigidBody()->setActivationState(ACTIVE_TAG);
+                  }
+
+                  if(animationStatus->sound) {
+                      animationStatus->sound->stop();
+                  }
+
+                  //now before deleting the animation, separate parent/child animations
+                  glm::vec3 tempScale, tempTranslate;
+                  glm::quat tempOrientation;
+                  tempScale       = animationStatus->object->getTransformation()->getScale();
+                  tempTranslate   = animationStatus->object->getTransformation()->getTranslate();
+                  tempOrientation = animationStatus->object->getTransformation()->getOrientation();
+
+                  animationStatus->object->getTransformation()->removeParentTransform();
+                  animationStatus->object->getTransformation()->setTranslate(tempTranslate);
+                  animationStatus->object->getTransformation()->setScale(tempScale);
+                  animationStatus->object->getTransformation()->setOrientation(tempOrientation);
+
+                  options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, "Animation " + animationCustom->getName() + " finished, removing. ");
+                  delete animIt->second;
+                  animIt = activeAnimations.erase(animIt);
+
+              }
+          }
+   }
+
+   void World::fillVisibleObjects(){
     if(camera->isDirty()) {
         modelsInCameraFrustum.clear();
         animatedModelsInFrustum.clear();
@@ -783,7 +793,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
                 if(onLoadAnimations.find(pickedModel) != onLoadAnimations.end() &&
                         activeAnimations.find(pickedModel) != activeAnimations.end()) {
-                    addAnimationToObject(newModel->getWorldObjectID(), activeAnimations[pickedModel].animationIndex,
+                    addAnimationToObject(newModel->getWorldObjectID(), activeAnimations[pickedModel]->animationIndex,
                                          true, true);
                 }
                 pickedObject = static_cast<GameObject*>(newModel);
@@ -1064,12 +1074,17 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
                 if(activeAnimations.find(selectedObject) != activeAnimations.end()) {
                     if(objectEditorResult.updated) {
-                        activeAnimations[selectedObject].originalTransformation = *selectedObject->getTransformation();
+                        activeAnimations[selectedObject]->originalTransformation = *selectedObject->getTransformation();
                     }
 
 
-                    if(ImGui::Button(("Remove custom animation: " + loadedAnimations[activeAnimations[selectedObject].animationIndex].getName()).c_str())) {
-                        (*selectedObject->getTransformation()) = activeAnimations[selectedObject].originalTransformation;
+                    if(ImGui::Button(("Remove custom animation: " + loadedAnimations[activeAnimations[selectedObject]->animationIndex].getName()).c_str())) {
+                        selectedObject->getTransformation()->removeParentTransform();
+                        selectedObject->getTransformation()->setTranslate(activeAnimations[selectedObject]->originalTransformation.getTranslate());
+                        selectedObject->getTransformation()->setScale(activeAnimations[selectedObject]->originalTransformation.getScale());
+                        selectedObject->getTransformation()->setOrientation(activeAnimations[selectedObject]->originalTransformation.getOrientation());
+
+                        delete activeAnimations[selectedObject];
                         activeAnimations.erase(selectedObject);
                         if(onLoadAnimations.find(selectedObject) != onLoadAnimations.end()) {
                             onLoadAnimations.erase(selectedObject);
@@ -1385,35 +1400,45 @@ void World::addLight(Light *light) {
 
 uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad,
                                               const std::string *soundToPlay) {
-    AnimationStatus as;
-    as.object = objects[modelID];
+    AnimationStatus* as = new AnimationStatus;
+    as->object = objects[modelID];
 
-    as.animationIndex = animationID;
-    as.loop = looped;
-    as.wasKinematic = as.object->getRigidBody()->getCollisionFlags() & btCollisionObject::CF_KINEMATIC_OBJECT;
-    as.startTime = gameTime;
-    if(activeAnimations.count(as.object) != 0) {
+    as->animationIndex = animationID;
+    as->loop = looped;
+    as->wasKinematic = as->object->getRigidBody()->getCollisionFlags() & btCollisionObject::CF_KINEMATIC_OBJECT;
+    as->startTime = gameTime;
+    if(activeAnimations.count(as->object) != 0) {
         options->getLogger()->log(Logger::log_Subsystem_ANIMATION, Logger::log_level_WARN, "Model had custom animation, overriding.");
-        as.originalTransformation = activeAnimations[as.object].originalTransformation;
+        as->originalTransformation = activeAnimations[as->object]->originalTransformation;
+        delete activeAnimations[as->object];
     } else {
-        as.originalTransformation = *(as.object->getTransformation());
+        as->originalTransformation = *(as->object->getTransformation());
     }
+    //we should animate child, and keep parent, so we should attach to the object itself
+    as->object->getTransformation()->setScale(glm::vec3(1.0f,1.0f,1.0f));
+    as->object->getTransformation()->setTranslate(glm::vec3(0.0f,0.0f,0.0f));
+    as->object->getTransformation()->setOrientation(glm::quat(1.0f,0.0f,0.0f, 0.0f));
 
-    as.object->getRigidBody()->setCollisionFlags(as.object->getRigidBody()->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-    as.object->getRigidBody()->setActivationState(DISABLE_DEACTIVATION);
+    //now set the parent/child
+    as->object->getTransformation()->setParentTransform(&as->originalTransformation);
+
+    as->object->getRigidBody()->setCollisionFlags(as->object->getRigidBody()->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+    as->object->getRigidBody()->setActivationState(DISABLE_DEACTIVATION);
 
     if(startOnLoad) {
-        onLoadAnimations.insert(as.object);
-        as.startTime = 0;
+        onLoadAnimations.insert(as->object);
+        as->startTime = 0;
+    } else {
+        as->startTime = gameTime;
     }
 
     if(soundToPlay != nullptr) {
-        as.sound = std::make_unique<Sound>(this->getNextObjectID(), assetManager, *soundToPlay);
-        as.sound->setLoop(looped);
-        as.sound->setWorldPosition(as.object->getTransformation()->getTranslate());
-        as.sound->play();
+        as->sound = std::make_unique<Sound>(this->getNextObjectID(), assetManager, *soundToPlay);
+        as->sound->setLoop(looped);
+        as->sound->setWorldPosition(as->object->getTransformation()->getTranslate());
+        as->sound->play();
     }
-    activeAnimations[as.object] = std::move(as);
+    activeAnimations[as->object] = as;
     return modelID;
 }
 
@@ -1702,7 +1727,10 @@ bool World::removeObject(uint32_t objectID) {
             actors.erase(dynamic_cast<Model *>(objectToRemove)->getAIID());
         }
         //remove any active animations
-        activeAnimations.erase(objectToRemove);
+        if(activeAnimations.find(objectToRemove) != activeAnimations.end()) {
+            delete activeAnimations[objectToRemove];
+            activeAnimations.erase(objectToRemove);
+        }
         onLoadAnimations.erase(objectToRemove);
 
 
@@ -1897,9 +1925,9 @@ void World::setupForPlay(InputHandler &inputHandler) {
         //to original position
         for(auto it = onLoadAnimations.begin(); it != onLoadAnimations.end(); it++) {
             if(activeAnimations.find(*it) != activeAnimations.end()) {
-                (*it)->getTransformation()->setTranslate(activeAnimations[*it].originalTransformation.getTranslate());
-                (*it)->getTransformation()->setScale(activeAnimations[*it].originalTransformation.getScale());
-                (*it)->getTransformation()->setOrientation(activeAnimations[*it].originalTransformation.getOrientation());
+                (*it)->getTransformation()->setTranslate(glm::vec3(0.0f, 0.0f, 0.0f));
+                (*it)->getTransformation()->setScale(glm::vec3(1.0f, 1.0f, 1.0f));
+                (*it)->getTransformation()->setOrientation(glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
             }
         }
     }

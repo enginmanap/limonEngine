@@ -348,8 +348,8 @@ bool WorldSaver::fillOnloadAnimations(tinyxml2::XMLDocument &document, tinyxml2:
          * we need only 2 information, model ID and loaded animation ID.
          */
 
-        uint32_t objectID = dynamic_cast<Model*>(world->activeAnimations.at(*it).object)->getWorldObjectID();
-        uint32_t loadedAnimationID = world->activeAnimations.at(*it).animationIndex;
+        uint32_t objectID = dynamic_cast<Model*>(world->activeAnimations.at(*it)->object)->getWorldObjectID();
+        uint32_t loadedAnimationID = world->activeAnimations.at(*it)->animationIndex;
 
         //we need to save parameters, and trigger code
         tinyxml2::XMLElement *onloadActionNode= document.NewElement("OnLoadAnimation");
