@@ -1715,7 +1715,27 @@ namespace ImGuizmo
 
          if (deltaMatrix)
          {
-            deltaMatrixScale.Scale(gContext.mScale);
+            vec_t deltaScale = gContext.mScale * gContext.mScaleValueOrigin;//mScale holds current scale of the guizmo.
+            //mModelScaleOrigin holds current scale of the object
+            //the original scale value. delta is the delta of these tree
+            //gContext.mScale * gContext.mScaleValueOrigin is the total scale for this frame
+            //
+
+            //lets say we started at 1.5, the new lenght is 0.5, and it has been hold, so
+            //now the element is at 7.5, which has which?
+            //1) 1.5 is at mScaleValueOrigin
+            //2) 0.5 is at mScale
+            //3) 0.75 is at mModelScaleOrigin
+            // what is the diff?
+
+            vec_t secondPart;
+            secondPart.x = 1 / gContext.mModelScaleOrigin.x;
+            secondPart.y = 1 / gContext.mModelScaleOrigin.y;
+            secondPart.z = 1 / gContext.mModelScaleOrigin.z;
+
+            deltaScale = deltaScale * secondPart;
+
+            deltaMatrixScale.Scale(deltaScale);
             memcpy(deltaMatrix, deltaMatrixScale.m16, sizeof(float) * 16);
          }
 
