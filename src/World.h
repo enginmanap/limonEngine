@@ -132,6 +132,7 @@ private:
         PhysicalRenderable* object = nullptr;
         uint32_t animationIndex;
         bool loop;
+        bool originChange = false;
         long startTime;
         Transformation originalTransformation;
         bool wasKinematic;
