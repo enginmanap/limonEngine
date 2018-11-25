@@ -287,6 +287,14 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
      // ATTENTION iterator is not increased in for, it is done manually.
        for(auto animIt = activeAnimations.begin(); animIt != activeAnimations.end();) {
               AnimationStatus* animationStatus = animIt->second;
+              if(animationStatus->originChange) {
+                  //this means the origin has changed in editor mode, so we should update our origin of transformation.
+                  animationStatus->originalTransformation = *animationStatus->object->getTransformation();//first override the original transform
+                  animationStatus->object->getTransformation()->setScale(glm::vec3(1.0f,1.0f,1.0f));//then remove the change from object transform.
+                  animationStatus->object->getTransformation()->setTranslate(glm::vec3(0.0f,0.0f,0.0f));
+                  animationStatus->object->getTransformation()->setOrientation(glm::quat(1.0f,0.0f,0.0f, 0.0f));
+                  animationStatus->originChange = false;
+              }
               const AnimationCustom* animationCustom = &loadedAnimations[animationStatus->animationIndex];
               if((animationStatus->loop ) || animationCustom->getDuration() / animationCustom->getTicksPerSecond() * 1000  + animationStatus->startTime >
                                              gameTime) {
@@ -1074,7 +1082,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
                 if(activeAnimations.find(selectedObject) != activeAnimations.end()) {
                     if(objectEditorResult.updated) {
-                        activeAnimations[selectedObject]->originalTransformation = *selectedObject->getTransformation();
+                        activeAnimations[selectedObject]->originChange = true;
                     }
 
 
