@@ -184,7 +184,7 @@ private:
     std::vector<ActionForOnload* > onLoadActions;
     std::vector<AnimationCustom> loadedAnimations;
     std::set<PhysicalRenderable*> onLoadAnimations;//Those renderables animations should be loaded and started on load
-    std::unordered_map<PhysicalRenderable*, AnimationStatus> activeAnimations;
+    std::unordered_map<PhysicalRenderable*, AnimationStatus*> activeAnimations;
     std::unordered_map<uint32_t, std::unique_ptr<Sound>> sounds;
     AnimationSequenceInterface* animationInProgress = nullptr;
     std::vector<Light *> lights;
@@ -469,6 +469,8 @@ public:
     void setupForPlay(InputHandler &inputHandler);
 
     void checkAndRunTimedEvents();
+
+    void animateCustomAnimations();
 };
 
 #endif //LIMONENGINE_WORLD_H
