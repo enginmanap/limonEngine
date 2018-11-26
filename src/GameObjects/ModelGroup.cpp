@@ -3,6 +3,7 @@
 //
 
 #include "ModelGroup.h"
+#include "../../libs/imgui/imgui.h"
 
 void ModelGroup::renderWithProgram(GLSLProgram &program) {
     for (auto renderable = renderables.begin(); renderable != renderables.end(); ++renderable) {
@@ -50,10 +51,13 @@ uint32_t ModelGroup::getWorldObjectID() {
 
 GameObject::ImGuiResult ModelGroup::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
     ImGuiResult result;
-
-    //Allow transformation editing.
-    if(transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix)) {
-        result.updated = true;
+    if(this->renderables.size() == 0) {
+        ImGui::Text("This group is empty");
+    } else {
+        //Allow transformation editing.
+        if (transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix)) {
+            result.updated = true;
+        }
     }
     return result;
 }
