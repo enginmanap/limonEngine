@@ -195,9 +195,9 @@ bool Transformation::addImGuizmoElements(const ImGuizmoState &editorState, const
 void Transformation::getDifference(const Transformation& otherTransformation, glm::vec3 &translateOut, glm::vec3 &scaleOut, glm::quat &rotationOut) const {
     translateOut = otherTransformation.translate - this->translate;
     scaleOut = otherTransformation.scale / this->scale;
-    rotationOut = otherTransformation.orientation;
+    rotationOut = this->orientation;
     rotationOut = glm::inverse(rotationOut);
-    rotationOut = rotationOut * this->orientation;
+    rotationOut = rotationOut * otherTransformation.orientation;
 }
 
 bool Transformation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) const {
