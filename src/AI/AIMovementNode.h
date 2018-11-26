@@ -34,6 +34,10 @@ public:
 
     void setNeighbour(int index, AIMovementNode *neighbour) {
         neighbours[index] = neighbour;
+        if(neighbour != nullptr) {
+            neighbour->neighbours[8-index] = this;
+        }
+
     }
 
     const glm::vec3 &getPosition() const {
