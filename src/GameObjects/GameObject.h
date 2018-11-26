@@ -43,7 +43,7 @@ public:
                   ortogonalMatrix(ortogonalMatrix), screenHeight(screenHeight), screenWidth(screenWidth), limonAPI(limonAPI) {}
     };
 
-    enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT, GUI_IMAGE, GUI_BUTTON, GUI_ANIMATION, SOUND };
+    enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT, GUI_IMAGE, GUI_BUTTON, GUI_ANIMATION, SOUND, MODEL_GROUP };
 
     virtual ObjectTypes getTypeID() const = 0;
     virtual std::string getName() const = 0;

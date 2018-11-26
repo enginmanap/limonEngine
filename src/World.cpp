@@ -30,6 +30,7 @@
 #include "GameObjects/GUIImage.h"
 #include "GameObjects/GUIButton.h"
 #include "GameObjects/GUIAnimation.h"
+#include "GameObjects/ModelGroup.h"
 
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
@@ -788,6 +789,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
             }
         }
+        ImGui::Separator();
         if(pickedObject != nullptr && pickedObject->getTypeID() == GameObject::MODEL) {
             static float copyOffsets[3] { 0.25f, 0.25f, 0.25f};
             ImGui::DragFloat3("Copy position offsets", copyOffsets, 0.1f);
@@ -808,7 +810,54 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             }
         }
 
+        ImGui::Separator();
+        if (ImGui::CollapsingHeader("Model Groups")) {
+            static uint32_t selectedModelGroup = 0;
 
+            if (ImGui::BeginCombo("Model Group#combobox", (selectedModelGroup == 0? "No Group Selected." : std::to_string(selectedModelGroup).c_str()))) {
+                for (auto iterator = modelGroups.begin();
+                     iterator != modelGroups.end(); ++iterator) {
+                    bool isThisTypeSelected = iterator->first == selectedModelGroup;
+                    if (ImGui::Selectable(std::to_string(iterator->first).c_str(), isThisTypeSelected)) {
+                        selectedModelGroup = iterator->first;
+                    }
+                    if (isThisTypeSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+            Model* pickedModel = dynamic_cast<Model*>(pickedObject);
+            if(pickedModel != nullptr && selectedModelGroup != 0) {
+                if(ImGui::Button("Add model to group")) {
+                    modelGroups[selectedModelGroup]->addToGroup(pickedModel);
+                }
+            } else {
+                ImGui::Button("Add model to group");
+                ImGui::SameLine();
+                if(pickedModel == nullptr) {
+                    ImGuiHelper::ShowHelpMarker("Selected object is not a Model");
+                }
+                if(selectedModelGroup == 0) {
+                    ImGuiHelper::ShowHelpMarker("No model group set to add.");
+                }
+            }
+            ImGui::Separator();
+            static char modelGroupNameBuffer[32] = {0};
+            ImGui::InputText("Name of the Model Group: ", modelGroupNameBuffer, sizeof(modelGroupNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
+            if(modelGroupNameBuffer[0] != 0 ) {
+                if(ImGui::Button("Create Group")) {
+                    ModelGroup* modelGroup = new ModelGroup(glHelper, this->getNextObjectID(), std::string(modelGroupNameBuffer));
+                    this->modelGroups[modelGroup->getWorldObjectID()] = modelGroup;
+
+                }
+            } else {
+                ImGui::Button("Create Group");
+                ImGui::SameLine();
+                ImGuiHelper::ShowHelpMarker("Name is mandatory!");
+
+            }
+        }
         if(ImGui::Button("Add Trigger Volume")) {
 
             TriggerObject* to = new TriggerObject(this->getNextObjectID(), this->apiInstance);
@@ -1019,6 +1068,17 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             selectedName = pickedObject->getName().c_str();
         }
         if (ImGui::BeginCombo("PickedGameObject", selectedName.c_str())) {
+            for (auto it = modelGroups.begin(); it != modelGroups.end(); it++) {
+                GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
+                bool selectedElement = gameObject->getName() == selectedName;
+                if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
+                    pickedObject = gameObject;
+                }
+                if(selectedElement) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+
             for (auto it = objects.begin(); it != objects.end(); it++) {
                 GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
                 bool selectedElement = gameObject->getName() == selectedName;
