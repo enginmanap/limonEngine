@@ -834,11 +834,12 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
             } else {
                 ImGui::Button("Add model to group");
-                ImGui::SameLine();
                 if(pickedModel == nullptr) {
+                    ImGui::SameLine();
                     ImGuiHelper::ShowHelpMarker("Selected object is not a Model");
                 }
                 if(selectedModelGroup == 0) {
+                    ImGui::SameLine();
                     ImGuiHelper::ShowHelpMarker("No model group set to add.");
                 }
             }
