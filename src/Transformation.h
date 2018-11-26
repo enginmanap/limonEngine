@@ -78,17 +78,17 @@ protected:
     std::function<void()> updateCallbackSingle = nullptr; //these are backups, in case of stacking
 
     glm::mat4 generateWorldTransformDefault(){
-        return glm::translate(glm::mat4(1.0f), translate) * glm::mat4_cast(orientation) *
-                               glm::scale(glm::mat4(1.0f), scale);
+        return glm::translate(glm::mat4(1.0f), translateSingle) * glm::mat4_cast(orientationSingle) *
+                               glm::scale(glm::mat4(1.0f), scaleSingle);
     }
 
     glm::mat4 generateWorldTransformWithParent(){
         glm::mat4 totalTransform = parentTransform->getWorldTransform() * this->generateWorldTransformSingle();
-
+        glm::mat4 rawTotalTransform = parentTransform->generateWorldTransformDefault() * this->generateWorldTransformDefault();
         glm::vec3 temp1;//these are not used
         glm::vec4 temp2;
 
-        glm::decompose(totalTransform, scale, orientation, translate, temp1, temp2);//update the current of these
+        glm::decompose(rawTotalTransform, scale, orientation, translate, temp1, temp2);//update the current of these
         return totalTransform;
     }
 
