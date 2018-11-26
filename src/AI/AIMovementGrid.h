@@ -22,7 +22,8 @@
 #include "../BulletDebugDrawer.h"
 
 //bigger than sqrt(3)/2
-#define GRID_SNAP_DISTANCE 0.86f
+//avoiding sqrt
+#define GRID_SNAP_DISTANCE (0.86f * 0.86f)
 
 class AIMovementGrid {
 
@@ -37,8 +38,13 @@ class AIMovementGrid {
         }
     };
 
+    bool inline isPositionCloseEnoughYOnly(const glm::vec3 &position1, const glm::vec3 &position2) const {
+        return (position1.x == position2.x && position1.z == position2.z &&
+            (position1.y - position2.y) * (position1.y - position2.y) < GRID_SNAP_DISTANCE);
+    }
+
     bool inline isPositionCloseEnough(const glm::vec3 &position1, const glm::vec3 &position2) const {
-        return (glm::length(position1 - position2) < GRID_SNAP_DISTANCE);
+        return (glm::length2(position1 - position2) < GRID_SNAP_DISTANCE);
     }
 
     AIMovementNode *root = nullptr;
@@ -56,7 +62,7 @@ class AIMovementGrid {
 
     std::vector<AIMovementNode *> visited;
 
-    AIMovementNode *isAlreadyVisited(const AIMovementNode *node);
+    AIMovementNode *isAlreadyVisited(const glm::vec3 &position);
 
     AIMovementNode *
     walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,

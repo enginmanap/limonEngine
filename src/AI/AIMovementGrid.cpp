@@ -8,9 +8,9 @@
 constexpr float AIMovementGrid::floatingHeight;
 
 //FIXME: this must be the worst way to check for a node in a graph, when you already implemented a*
-AIMovementNode *AIMovementGrid::isAlreadyVisited(const AIMovementNode *node) {
+AIMovementNode *AIMovementGrid::isAlreadyVisited(const glm::vec3 &position) {
     for (int i = visited.size() - 1; i >= 0; --i) {
-        if (isPositionCloseEnough(node->getPosition(), visited[i]->getPosition())) {
+        if (isPositionCloseEnoughYOnly(position, visited[i]->getPosition())) {
             return visited[i];
         }
     }
@@ -136,11 +136,11 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
     while (!frontier.empty()) {
         current = frontier.front();
         frontier.pop();
-#ifndef NDEBUG
+
         if(visited.size() %100 == 0) {
-            std::cout << "current walk node " << visited.size() << " last node: " << glm::to_string(current->getPosition()) << std::endl;
+            std::cout << "After "<< SDL_GetTicks() << " current walk node " << visited.size() << " last node: " << glm::to_string(current->getPosition()) << std::endl;
         }
-#endif
+
         for (int i = -1; i <= 1; ++i) {
             for (int j = -1; j <= 1; ++j) {
                 if (i == 0 && j == 0) {
@@ -150,6 +150,9 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                         current->getPosition().z < 0.1 && current->getPosition().z > -0.1) {
                     }
                     int neighbourIndex = (i + 1) * 3 + (j + 1);
+                    if(current->getNeighbour(neighbourIndex) != nullptr) {
+                        continue;//already set
+                    }
                     glm::vec3 neighbourPosition = current->getPosition() + glm::vec3(i, 0, j);
                     if (!setProperHeight(&neighbourPosition, floatingHeight, floatingHeight + 1.0f, staticWorld)) {
                         current->setNeighbour(neighbourIndex, nullptr);
@@ -161,13 +164,12 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                         //this means this position is out of whole world AABB, skip
                         continue;
                     }
-                    AIMovementNode *neighbour = new AIMovementNode(neighbourPosition);
-                    AIMovementNode *visitedNode = isAlreadyVisited(neighbour);
+
+                    AIMovementNode *visitedNode = isAlreadyVisited(neighbourPosition);
                     if (visitedNode != nullptr) {
                         //std::cout << "already visited node at " << GLMUtils::vectorToString(neighbourPosition) << std::endl;
                         //std::cout << "already visited node position is " << GLMUtils::vectorToString(visitedNode->getPosition()) << std::endl;
                         current->setNeighbour(neighbourIndex, visitedNode);
-                        delete neighbour;
                     } else {
 //                        std::cout << "adding new node with position " << GLMUtils::vectorToString(neighbourPosition) << std::endl;
                         staticWorld->addCollisionObject(sharedGhostObject, collisionGroup, collisionMask);
@@ -175,8 +177,10 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                                 btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(neighbourPosition)));
                         isMovable = !isThereCollision(staticWorld);
                         staticWorld->removeCollisionObject(sharedGhostObject);
+                        AIMovementNode *neighbour = new AIMovementNode(neighbourPosition);
                         neighbour->setIsMovable(isMovable);
                         current->setNeighbour(neighbourIndex, neighbour);
+
                         frontier.push(neighbour);
                         visited.push_back(neighbour);
                     }
