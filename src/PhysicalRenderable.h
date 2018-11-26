@@ -17,7 +17,7 @@ protected:
     glm::vec3 centerOffset;//init by list for constructor
     glm::vec3 aabbMax, aabbMin;
     const float mass;
-    btRigidBody *rigidBody;
+    btRigidBody *rigidBody = nullptr;
     bool disconnected = false;
     std::unique_ptr<Sound> soundAttachment2 = nullptr;
 

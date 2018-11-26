@@ -28,8 +28,8 @@ class BulletDebugDrawer;
 class Light;
 class AIMovementGrid;
 class TriggerInterface;
-class GUIText;
 
+class GUIText;
 class GUIRenderable;
 class GUILayer;
 class GUITextBase;
@@ -53,6 +53,7 @@ class AnimationCustom;
 class AnimationNode;
 class AnimationSequenceInterface;
 class LimonAPI;
+class ModelGroup;
 
 class GLHelper;
 class ALHelper;
@@ -163,6 +164,8 @@ private:
     Options* options;
     uint32_t nextWorldID = 1;
     std::map<uint32_t, PhysicalRenderable *> objects;
+    std::map<uint32_t, ModelGroup*> modelGroups;
+
     Sound* music = nullptr;
 
     /*
