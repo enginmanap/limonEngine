@@ -814,11 +814,11 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
         if (ImGui::CollapsingHeader("Model Groups")) {
             static uint32_t selectedModelGroup = 0;
 
-            if (ImGui::BeginCombo("Model Group#combobox", (selectedModelGroup == 0? "No Group Selected." : std::to_string(selectedModelGroup).c_str()))) {
+            if (ImGui::BeginCombo("Model Group#combobox", (selectedModelGroup == 0? "No Group Selected." : modelGroups[selectedModelGroup]->getName().c_str()))) {
                 for (auto iterator = modelGroups.begin();
                      iterator != modelGroups.end(); ++iterator) {
                     bool isThisTypeSelected = iterator->first == selectedModelGroup;
-                    if (ImGui::Selectable(std::to_string(iterator->first).c_str(), isThisTypeSelected)) {
+                    if (ImGui::Selectable(iterator->second->getName().c_str(), isThisTypeSelected)) {
                         selectedModelGroup = iterator->first;
                     }
                     if (isThisTypeSelected) {
