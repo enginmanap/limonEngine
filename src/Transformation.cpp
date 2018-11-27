@@ -83,10 +83,10 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
         }
         case ROTATE_MODE: {
             glm::quat tempOrientation = orientationSingle;
-            updated = ImGui::DragFloat("Rotate X", &(tempOrientation.x), -1.0f, 1.0f) || updated;
-            updated = ImGui::DragFloat("Rotate Y", &(tempOrientation.y), -1.0f, 1.0f) || updated;
-            updated = ImGui::DragFloat("Rotate Z", &(tempOrientation.z), -1.0f, 1.0f) || updated;
-            updated = ImGui::DragFloat("Rotate W", &(tempOrientation.w), -1.0f, 1.0f) || updated;
+            updated = ImGui::DragFloat("Rotate X", &(tempOrientation.x), 0.001f, -1.0f, 1.0f) || updated;
+            updated = ImGui::DragFloat("Rotate Y", &(tempOrientation.y), 0.001f, -1.0f, 1.0f) || updated;
+            updated = ImGui::DragFloat("Rotate Z", &(tempOrientation.z), 0.001f, -1.0f, 1.0f) || updated;
+            updated = ImGui::DragFloat("Rotate W", &(tempOrientation.w), 0.001f, -1.0f, 1.0f) || updated;
             if (updated || crudeUpdated) {
                 setOrientation(tempOrientation);
             }
