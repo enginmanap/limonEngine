@@ -475,6 +475,8 @@ public:
     void checkAndRunTimedEvents();
 
     void animateCustomAnimations();
+
+    void buildTreeFromAllGameObjects();
 };
 
 #endif //LIMONENGINE_WORLD_H
