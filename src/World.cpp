@@ -1068,72 +1068,9 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
         } else {
             selectedName = pickedObject->getName().c_str();
         }
-        if (ImGui::BeginCombo("PickedGameObject", selectedName.c_str())) {
-            for (auto it = modelGroups.begin(); it != modelGroups.end(); it++) {
-                GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
-                bool selectedElement = gameObject->getName() == selectedName;
-                if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
-                    pickedObject = gameObject;
-                }
-                if(selectedElement) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
 
-            for (auto it = objects.begin(); it != objects.end(); it++) {
-                GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
-                bool selectedElement = gameObject->getName() == selectedName;
-                if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
-                    pickedObject = gameObject;
-                }
-                if(selectedElement) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
+        buildTreeFromAllGameObjects();
 
-            for (auto it = guiElements.begin(); it != guiElements.end(); it++) {
-                GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
-                bool selectedElement = gameObject->getName() == selectedName;
-                if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
-                    pickedObject = gameObject;
-                }
-                if(selectedElement) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-
-            for (auto it = lights.begin(); it != lights.end(); it++) {
-                GameObject* gameObject = dynamic_cast<GameObject *>(*it);
-                bool selectedElement = gameObject->getName() == selectedName;
-                if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
-                    pickedObject = (*it);
-                }
-                if(selectedElement) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-
-            for (auto it = triggers.begin(); it != triggers.end(); it++) {
-                GameObject* gameObject = dynamic_cast<GameObject *>(it->second);
-                bool selectedElement = gameObject->getName() == selectedName;
-                if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
-                    pickedObject = it->second;
-                }
-                if(selectedElement) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            GameObject* gameObject = dynamic_cast<GameObject *>(physicalPlayer);
-            bool selectedElement = gameObject->getName() == selectedName;
-            if (ImGui::Selectable(gameObject->getName().c_str(), selectedElement)) {
-                pickedObject = physicalPlayer;
-            }
-            if(selectedElement) {
-                ImGui::SetItemDefaultFocus();
-            }
-
-            ImGui::EndCombo();
-        }
         if(pickedObject != nullptr) {
             GameObject::ImGuiResult objectEditorResult = pickedObject->addImGuiEditorElements(*request);
             if(pickedObject->getTypeID() == GameObject::MODEL) {
@@ -2537,4 +2474,98 @@ bool World::addObjectOrientationAPI(uint32_t objectID, const LimonAPI::Vec4 &ori
                              orientation.z);
    model->getTransformation()->addOrientation(orientationQuat);
    return true;
+}
+
+void World::buildTreeFromAllGameObjects() {
+
+    ImGui::BeginChild("Game Object Selector##treeMode", ImVec2(400, 200), true, ImGuiWindowFlags_HorizontalScrollbar);
+
+    uint32_t pickedObjectID = 0xFFFFFFFF;
+    if(pickedObject != nullptr) {
+        pickedObjectID = pickedObject->getWorldObjectID();
+    }
+
+    ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick |
+            ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+    //objects
+    if (ImGui::TreeNode("Objects##ObjectsTreeRoot")) {
+        for (auto iterator = objects.begin(); iterator != objects.end(); ++iterator) {
+            GameObject* currentObject = dynamic_cast<GameObject*>(iterator->second);
+            if(currentObject != nullptr) {
+                ImGui::TreeNodeEx(currentObject->getName().c_str(), node_flags | ((currentObject->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+                if (ImGui::IsItemClicked()) {
+                    pickedObject = currentObject;
+                }
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    //ModelGroups
+    if (ImGui::TreeNode("ModelGroups##ModelGroupsTreeRoot")) {
+        for (auto iterator = modelGroups.begin(); iterator != modelGroups.end(); ++iterator) {
+            GameObject* currentObject = dynamic_cast<GameObject*>(iterator->second);
+            if(currentObject != nullptr) {
+                ImGui::TreeNodeEx(currentObject->getName().c_str(), node_flags | ((currentObject->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+                if (ImGui::IsItemClicked()) {
+                    pickedObject = currentObject;
+                }
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    //GUI elements
+    if (ImGui::TreeNode("GUI Elements##guiElementsTreeRoot")) {
+        for (auto iterator = guiLayers.begin(); iterator != guiLayers.end(); ++iterator) {
+            if (ImGui::TreeNode((std::to_string((*iterator)->getLevel()) + "##guiLayerLevelTreeNode").c_str())) {
+                std::vector<GameObject*> thisLayersElements = (*iterator)->getGuiElements();
+                for (auto guiElement = thisLayersElements.begin(); guiElement != thisLayersElements.end(); ++guiElement) {
+                    ImGui::TreeNodeEx((*guiElement)->getName().c_str(), node_flags | (((*guiElement)->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+                    if (ImGui::IsItemClicked()) {
+                        pickedObject = *guiElement;
+                    }
+
+                }
+                ImGui::TreePop();
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    //Lights
+    if (ImGui::TreeNode("Lights##LightsTreeRoot")) {
+        for (auto iterator = lights.begin(); iterator != lights.end(); ++iterator) {
+            GameObject* currentObject = dynamic_cast<GameObject*>(*iterator);
+            if(currentObject != nullptr) {
+                ImGui::TreeNodeEx(currentObject->getName().c_str(), node_flags | ((currentObject->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+                if (ImGui::IsItemClicked()) {
+                    pickedObject = currentObject;
+                }
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    //Triggers
+    if (ImGui::TreeNode("Trigger Volumes##TriggersTreeRoot")) {
+        for (auto iterator = triggers.begin(); iterator != triggers.end(); ++iterator) {
+            GameObject* currentObject = dynamic_cast<GameObject*>(iterator->second);
+            if(currentObject != nullptr) {
+                ImGui::TreeNodeEx(currentObject->getName().c_str(), node_flags | ((currentObject->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+                if (ImGui::IsItemClicked()) {
+                    pickedObject = currentObject;
+                }
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    //player
+    ImGui::TreeNodeEx(this->physicalPlayer->getName().c_str(), node_flags | ((this->physicalPlayer->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+    if (ImGui::IsItemClicked()) {
+        pickedObject = this->physicalPlayer;
+    }
+
+    ImGui::EndChild();
 }
