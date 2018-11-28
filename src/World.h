@@ -307,6 +307,15 @@ private:
             maxID = std::max(maxID, guiElement->first);
         }
 
+        for (auto modelGroup = modelGroups.begin(); modelGroup != modelGroups.end(); ++modelGroup) {
+            auto result = usedIDs.insert(modelGroup->first);
+            if(result.second == false) {
+                std::cerr << "world ID repetition on trigger detected! gui element with id " << modelGroup->first << std::endl;
+                return false;
+            }
+            maxID = std::max(maxID, modelGroup->first);
+        }
+
         for(uint32_t index = 1; index <= maxID; index++) {
             if(usedIDs.count(index) != 1) {
                 //TODO this should be ok, logging just to check. Can be removed in the future
