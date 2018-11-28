@@ -53,7 +53,7 @@ public:
         renderable->getTransformation()->setScale(scale);
         renderable->getTransformation()->setOrientation(orientation);
         renderable->getTransformation()->setParentTransform(&this->transformation);
-
+        renderable->setParentObject(this);
 
         renderables.push_back(renderable);
     }
@@ -66,6 +66,7 @@ public:
                 renderable->getTransformation()->addTranslate(this->getTransformation()->getTranslateSingle());
                 renderable->getTransformation()->addScale(this->getTransformation()->getScale());
                 renderable->getTransformation()->addOrientation(this->getTransformation()->getOrientation());
+                renderable->setParentObject(nullptr);
                 return true;
             }
         }
@@ -81,6 +82,8 @@ public:
     void setupForTime(long time) override;
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
+
+    const std::vector<PhysicalRenderable *> &getRenderables() const;
 };
 
 

@@ -61,3 +61,7 @@ GameObject::ImGuiResult ModelGroup::addImGuiEditorElements(const GameObject::ImG
     }
     return result;
 }
+
+const std::vector<PhysicalRenderable *> &ModelGroup::getRenderables() const {
+    return renderables;
+}
