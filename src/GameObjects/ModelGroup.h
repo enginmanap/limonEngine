@@ -27,7 +27,7 @@ public:
         return name;
     }
 
-    uint32_t getWorldObjectID() override {
+    uint32_t getWorldObjectID() const override {
         return worldObjectID;
     }
 

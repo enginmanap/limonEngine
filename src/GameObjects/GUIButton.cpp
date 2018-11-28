@@ -44,10 +44,6 @@ std::string GUIButton::getName() const {
     return this->name;
 }
 
-uint32_t GUIButton::getWorldObjectID() {
-    return worldID;
-}
-
 void GUIButton::addedToLayer(GUILayer *layer) {
     parentLayers.push_back(layer);
 }

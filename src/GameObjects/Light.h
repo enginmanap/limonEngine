@@ -119,7 +119,7 @@ public:
 
     /************Game Object methods **************/
 
-    uint32_t getWorldObjectID() {
+    uint32_t getWorldObjectID() const override {
         return objectID;
     };
 
