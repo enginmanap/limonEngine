@@ -19,11 +19,21 @@ public:
         transformation.setUpdateCallback(nullptr);
     }
 
-    ObjectTypes getTypeID() const override;
+    GameObject::ObjectTypes getTypeID() const {
+        return MODEL_GROUP;
+    }
 
-    std::string getName() const override;
+    std::string getName() const {
+        return name;
+    }
 
-    uint32_t getWorldObjectID() override;
+    uint32_t getWorldObjectID() override {
+        return worldObjectID;
+    }
+
+    const std::vector<PhysicalRenderable *> &getRenderables() const {
+        return renderables;
+    }
 
     void addToGroup(PhysicalRenderable* renderable) {
         glm::vec3 averageTranslateDifference(0.0f, 0.0f, 0.0f);
@@ -83,7 +93,6 @@ public:
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
 
-    const std::vector<PhysicalRenderable *> &getRenderables() const;
 };
 
 

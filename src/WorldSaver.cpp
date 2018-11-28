@@ -10,6 +10,7 @@
 #include "GameObjects/Light.h"
 #include "Assets/Animations/AnimationCustom.h"
 #include "GameObjects/TriggerObject.h"
+#include "GameObjects/ModelGroup.h"
 #include "GUI/GUILayer.h"
 #include "GameObjects/Sound.h"
 #include "GameObjects/Players/PhysicalPlayer.h"
@@ -137,6 +138,12 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     };
     rootNode->InsertEndChild(currentElement);//add objects
 
+    currentElement = mapDocument.NewElement("ObjectGroups");
+    if(!fillObjectGroups(mapDocument, currentElement, world)) {
+        return false;
+    };
+    rootNode->InsertEndChild(currentElement);//add objects
+
     currentElement = mapDocument.NewElement("Lights");
     if(!fillLights(mapDocument, currentElement, world)) {
         return false;
@@ -185,6 +192,13 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
         std::cerr  << "ERROR " << eResult << std::endl;
     }
 
+    return true;
+}
+
+bool WorldSaver::fillObjectGroups(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectGroupsNode, const World *world){
+    for(auto it=world->modelGroups.begin(); it != world->modelGroups.end(); it++) {//object ids are not constant, so they can be removed.
+        (it->second)->fillObjects(document, objectGroupsNode);
+    }
     return true;
 }
 
