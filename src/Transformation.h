@@ -82,9 +82,17 @@ protected:
                                glm::scale(glm::mat4(1.0f), scaleSingle);
     }
 
+
     glm::mat4 generateWorldTransformWithParent(){
         glm::mat4 totalTransform = parentTransform->getWorldTransform() * this->generateWorldTransformSingle();
-        glm::mat4 rawTotalTransform = parentTransform->generateWorldTransformDefault() * this->generateWorldTransformDefault();
+        Transformation* parent = this->parentTransform;
+        glm::mat4 rawTotalTransform = this->generateWorldTransformDefault();
+        while(parent != nullptr) {
+            rawTotalTransform = parent->generateWorldTransformDefault() * rawTotalTransform;
+            parent = parent->parentTransform;
+        }
+
+        //glm::mat4 rawTotalTransform = TotalRawTransform * this->generateWorldTransformDefault();
         glm::vec3 temp1;//these are not used
         glm::vec4 temp2;
 
