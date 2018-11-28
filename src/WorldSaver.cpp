@@ -204,7 +204,9 @@ bool WorldSaver::fillObjectGroups(tinyxml2::XMLDocument &document, tinyxml2::XML
 
 bool WorldSaver::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode, const World* world ) {
     for(auto it=world->objects.begin(); it != world->objects.end(); it++) {//object ids are not constant, so they can be removed.
-        (it->second)->fillObjects(document, objectsNode);
+        if((it->second)->getParentObject() == nullptr) {//if part of group, group object serializes
+            (it->second)->fillObjects(document, objectsNode);
+        }
     }
     return true;
 }

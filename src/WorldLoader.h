@@ -25,13 +25,15 @@ class InputHandler;
 class Model;
 
 class WorldLoader {
-
+public:
     struct ObjectInformation {
         Model* model = nullptr;
         ActorInterface* modelActor = nullptr;
         bool isAIGridStartPointSet = false;
         glm::vec3 aiGridStartPoint = glm::vec3(0,0,0);
     };
+
+private:
 
     Options *options;
     GLHelper *glHelper;
@@ -40,6 +42,8 @@ class WorldLoader {
     InputHandler* inputHandler;
 
     World *loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const;
+    bool loadObjectGroupsFromXML(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI,
+            std::vector<Model*> &notStaticObjects, bool &isAIGridStartPointSet, glm::vec3 &aiGridStartPoint) const;
     bool loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI) const;
     bool loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const;
     bool loadLights(tinyxml2::XMLNode *lightsNode, World* world) const;
@@ -57,9 +61,9 @@ public:
     WorldLoader(AssetManager *assetManager, InputHandler *inputHandler, Options *options);
     World *loadWorld(const std::string &worldFile, LimonAPI *limonAPI) const;
 
-    std::unique_ptr<WorldLoader::ObjectInformation> loadObject(tinyxml2::XMLElement *objectNode,
-                                                                   std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
-                                                                   LimonAPI *limonAPI) const;
+    static std::unique_ptr<ObjectInformation> loadObject(AssetManager *assetManager, tinyxml2::XMLElement *objectNode,
+                                                         std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
+                                                         LimonAPI *limonAPI);
 };
 
 
