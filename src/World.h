@@ -477,6 +477,8 @@ public:
     void animateCustomAnimations();
 
     void buildTreeFromAllGameObjects();
+
+    void createObjectTreeRecursive(ModelGroup *modelGroup, uint32_t pickedObjectID, int nodeFlags, int leafFlags);
 };
 
 #endif //LIMONENGINE_WORLD_H
