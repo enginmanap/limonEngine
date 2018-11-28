@@ -3,6 +3,7 @@
 //
 
 #include "ModelGroup.h"
+#include "Model.h"
 #include "../../libs/imgui/imgui.h"
 
 void ModelGroup::renderWithProgram(GLSLProgram &program) {
@@ -74,7 +75,8 @@ GameObject::ImGuiResult ModelGroup::addImGuiEditorElements(const GameObject::ImG
 ModelGroup *ModelGroup::deserialize(GLHelper *glHelper, AssetManager *assetManager, tinyxml2::XMLElement *ModelGroupsNode,
                                     std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
                                     std::map<uint32_t, ModelGroup *> &childGroups,
-                                    std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> &childObjects, LimonAPI *limonAPI) {
+                                    std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> &childObjects, LimonAPI *limonAPI,
+                                    ModelGroup *parentGroup) {
     ModelGroup* modelGroup = nullptr;
 
     tinyxml2::XMLElement* groupAttribute;
@@ -95,6 +97,8 @@ ModelGroup *ModelGroup::deserialize(GLHelper *glHelper, AssetManager *assetManag
     readID = std::stoul(groupAttribute->GetText());
 
     modelGroup = new ModelGroup(glHelper, readID, readName);
+
+    modelGroup->setParentObject(parentGroup);
 
     groupAttribute =  ModelGroupsNode->FirstChildElement("Transformation");
     if(groupAttribute == nullptr) {
@@ -135,14 +139,17 @@ ModelGroup *ModelGroup::deserialize(GLHelper *glHelper, AssetManager *assetManag
             if(childNode->FirstChildElement("Object")) {
                 childObjects.push_back(WorldLoader::loadObject(assetManager,childNode->FirstChildElement("Object"), requiredSounds, limonAPI));
                 Model* model = childObjects.at(childObjects.size()-1)->model;
-                modelGroup->renderables[childIndex] = (PhysicalRenderable*)model;
+                model->setParentObject(modelGroup);
+                modelGroup->renderables[childIndex] = model;
 
                 modelGroup->renderables[childIndex]->getTransformation()->setParentTransform(modelGroup->getTransformation());
             } else if(childNode->FirstChildElement("ObjectGroup")) {
                 ModelGroup* newModelGroup = ModelGroup::deserialize(glHelper, assetManager,
                                                                     childNode->FirstChildElement("ObjectGroup"),
-                                                                    requiredSounds, childGroups, childObjects, limonAPI);
+                                                                    requiredSounds, childGroups, childObjects, limonAPI,
+                                                                    nullptr);
                 childGroups[newModelGroup->getWorldObjectID()] = newModelGroup;
+                newModelGroup->setParentObject(modelGroup);
                 modelGroup->renderables[childIndex] = newModelGroup;
                 modelGroup->renderables[childIndex]->getTransformation()->setParentTransform(modelGroup->getTransformation());
             } else {

@@ -256,7 +256,8 @@ bool WorldLoader::loadObjectGroupsFromXML(tinyxml2::XMLNode *worldNode, World *w
     std::vector<std::unique_ptr<ObjectInformation>> innerModels;
 
     while(objectGroupNode != nullptr) {
-        ModelGroup* modelGroup = ModelGroup::deserialize(glHelper, assetManager, objectGroupNode, requiredSounds, modelGroups, innerModels, limonAPI);
+        ModelGroup* modelGroup = ModelGroup::deserialize(glHelper, assetManager, objectGroupNode, requiredSounds,
+                                                         modelGroups, innerModels, limonAPI, nullptr);
         world->modelGroups[modelGroup->getWorldObjectID()] = modelGroup;
         objectGroupNode = objectGroupNode->NextSiblingElement("ObjectGroup");
     } // end of while (objects)
