@@ -13,6 +13,7 @@ class World;
 class WorldSaver {
 private:
     static bool fillObjects(tinyxml2::XMLDocument& mapFile, tinyxml2::XMLElement * objectsNode, const World* world );
+    static bool fillObjectGroups(tinyxml2::XMLDocument& mapFile, tinyxml2::XMLElement * objectGroupsNode, const World* world );
     static bool fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *lightsNode, const World *world);
     static bool addSky(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *skyNode, const World *world);
     static bool fillLoadedAnimations(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *loadedAnimationsNode, const World *world);
