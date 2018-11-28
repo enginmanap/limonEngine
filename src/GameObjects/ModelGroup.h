@@ -89,9 +89,10 @@ public:
     void fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const override;
 
     static ModelGroup *deserialize(GLHelper *glHelper, AssetManager *assetManager, tinyxml2::XMLElement *ModelGroupsNode,
-                            std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
-                            std::map<uint32_t, ModelGroup *> &childGroups,
-                            std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> &childObjects, LimonAPI *limonAPI);
+                                       std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
+                                       std::map<uint32_t, ModelGroup *> &childGroups,
+                                       std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> &childObjects, LimonAPI *limonAPI,
+                                       ModelGroup *parentGroup = nullptr);
 
     void render() override;
 
