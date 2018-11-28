@@ -76,7 +76,7 @@ public:
     virtual CameraAttachment* getCameraAttachment() = 0;
 
     /************Game Object methods **************/
-    uint32_t getWorldObjectID() {
+    uint32_t getWorldObjectID() const override {
         std::cerr << "Player doesn't have a world object ID, it shouldn't have been needed." << std::endl;
         return 0;
     }

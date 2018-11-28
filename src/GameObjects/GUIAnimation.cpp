@@ -39,10 +39,6 @@ std::string GUIAnimation::getName() const {
     return this->name;
 }
 
-uint32_t GUIAnimation::getWorldObjectID() {
-    return worldID;
-}
-
 void GUIAnimation::addedToLayer(GUILayer *layer) {
     parentLayers.push_back(layer);
 }
