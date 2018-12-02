@@ -107,6 +107,9 @@ ModelGroup *ModelGroup::deserialize(GLHelper *glHelper, AssetManager *assetManag
         return nullptr;
     }
     modelGroup->transformation.deserialize(groupAttribute);
+    if(parentGroup != nullptr) {
+        modelGroup->getTransformation()->setParentTransform(parentGroup->getTransformation());
+    }
 
     //now fill the children
 
@@ -147,11 +150,9 @@ ModelGroup *ModelGroup::deserialize(GLHelper *glHelper, AssetManager *assetManag
                 ModelGroup* newModelGroup = ModelGroup::deserialize(glHelper, assetManager,
                                                                     childNode->FirstChildElement("ObjectGroup"),
                                                                     requiredSounds, childGroups, childObjects, limonAPI,
-                                                                    nullptr);
+                                                                    modelGroup);
                 childGroups[newModelGroup->getWorldObjectID()] = newModelGroup;
-                newModelGroup->setParentObject(modelGroup);
                 modelGroup->renderables[childIndex] = newModelGroup;
-                modelGroup->renderables[childIndex]->getTransformation()->setParentTransform(modelGroup->getTransformation());
             } else {
                 std::cerr << "The child is not Object, or Object group. Can't load unknown type, skipping." << std::endl;
             }

@@ -165,8 +165,8 @@ public:
         }
         transformation->childTransforms.push_back(this);
 
-        generateWorldTransformWithParent();
-        updateCallback();
+        this->getWorldTransform();
+        this->propagateUpdate();
     }
 
     void removeParentTransform() {
