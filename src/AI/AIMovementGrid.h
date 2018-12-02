@@ -23,7 +23,7 @@
 
 //bigger than sqrt(3)/2
 //avoiding sqrt
-#define GRID_SNAP_DISTANCE (0.86f * 0.86f)
+#define GRID_SNAP_DISTANCE (0.707f * 0.707f)
 
 class AIMovementGrid {
 
@@ -56,13 +56,15 @@ class AIMovementGrid {
     std::map<int, const AIMovementNode *> actorLastNodeMap;
 
     int isThereCollisionCounter = 0;//this is only meaninful for debug
-    float capsuleHeight = 0.5f;
+    float capsuleHeight = 2.0f + 0.1f;
     float capsuleRadius = 0.5f;//FIXME these should be configurable
     bool isThereCollision(btDiscreteDynamicsWorld *staticWorld);
 
+    glm::vec3 max,min;
     std::vector<AIMovementNode *> visited;
+    std::vector<AIMovementNode *> doneNodes;
 
-    AIMovementNode *isAlreadyVisited(const glm::vec3 &position);
+    AIMovementNode *isAlreadyVisited(const glm::vec3 &position, size_t &indexOf);
 
     AIMovementNode *
     walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
@@ -71,7 +73,6 @@ class AIMovementGrid {
     const AIMovementNode *
     aStarPath(const AIMovementNode *start, const glm::vec3 &destination, std::vector<glm::vec3> *route);
 
-    std::vector<const AIMovementNode *> calculatedNodes;
 
 public:
     static constexpr float floatingHeight = 2.0f;
