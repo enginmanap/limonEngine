@@ -11,8 +11,6 @@ layout (location = 4) in vec3 normal;
 layout (location = 5) in uvec4 boneIDs;
 layout (location = 6) in vec4 boneWeights;
 
-
-
 out VS_FS {
     vec3 boneColor;
     vec2 textureCoord;
@@ -53,9 +51,7 @@ layout (std140) uniform LightSourceBlock
 
 uniform mat4 boneTransformArray[NR_BONE];
 
-void main(void)
-{
-
+void main(void) {
     mat4 BoneTransform = boneTransformArray[boneIDs[0]] * boneWeights[0];
     BoneTransform += boneTransformArray[boneIDs[1]] * boneWeights[1];
     BoneTransform += boneTransformArray[boneIDs[2]] * boneWeights[2];
@@ -63,10 +59,8 @@ void main(void)
 
     to_fs.textureCoord = textureCoordinate;
     mat4 currentWorldTransform = model.worldTransform[instance.models[gl_InstanceID].x];
-
-
-    to_fs.normal = vec3(normalize(transpose(inverse(currentWorldTransform)) * (BoneTransform * vec4(normal, 0.0))));
-    to_fs.fragPos = vec3(currentWorldTransform * (BoneTransform * position));
+    to_fs.normal = normalize(mat3(transpose(inverse(currentWorldTransform))) * vec3(BoneTransform * vec4(normal, 0.0)));
+        to_fs.fragPos = vec3(currentWorldTransform * (BoneTransform * position));
     for(int i = 0; i < NR_POINT_LIGHTS; i++){
         if(LightSources.lights[i].type == 1) {
             to_fs.fragPosLightSpace[i] = LightSources.lights[i].lightSpaceMatrix * vec4(to_fs.fragPos, 1.0);
