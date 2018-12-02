@@ -95,7 +95,6 @@ AIMovementGrid::aStarPath(const AIMovementNode *start, const glm::vec3 &destinat
  */
 bool AIMovementGrid::setProperHeight(glm::vec3 *position, float floatingHeight, float checkHeight,
                                      btDiscreteDynamicsWorld *staticWorld) {
-    float positionY = position->y;
     rayCallback->m_rayFromWorld = GLMConverter::GLMToBlt(*position);
     if (checkHeight == 0.0) {
         rayCallback->m_rayToWorld = GLMConverter::GLMToBlt(
