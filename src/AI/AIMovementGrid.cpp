@@ -153,7 +153,6 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
             std::cout << "After "<< SDL_GetTicks() << " current done " << doneNodes.size() << " nodes, partial " << visited.size() << " last node: " << glm::to_string(current->getPosition()) << std::endl;
         }
 
-        bool filled = true;
         for (int i = -1; i <= 1; ++i) {
             for (int j = -1; j <= 1; ++j) {
                 if (i == 0 && j == 0) {
@@ -166,7 +165,6 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                     glm::vec3 neighbourPosition = current->getPosition() + glm::vec3(i, 0, j);
                     if (!setProperHeight(&neighbourPosition, floatingHeight, floatingHeight + 1.0f, staticWorld)) {
                         current->setNeighbour(neighbourIndex, nullptr);
-                        filled = false;
                         continue;// if there is nothing under for 1.5f, than don't process this node.
                     }
 
@@ -196,16 +194,15 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
 
                             frontier.push(neighbour);
                             visited.push_back(neighbour);
-                        } else {
-                            filled = false;
                         }
                     }
                 }
             }
         }
-        if(filled && isAlreadyVisited(current->getPosition(), indexOfFoundNode)) {
+        if(isAlreadyVisited(current->getPosition(), indexOfFoundNode)) {
             visited.erase(visited.begin() + indexOfFoundNode);
         }
+
         doneNodes.push_back(current);
         if(current->getPosition().x > this->max.x) { this->max.x = current->getPosition().x;}
         if(current->getPosition().y > this->max.y) { this->max.y = current->getPosition().y;}

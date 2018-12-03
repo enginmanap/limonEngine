@@ -25,6 +25,9 @@
 //avoiding sqrt
 #define GRID_SNAP_DISTANCE (0.707f * 0.707f)
 
+#define X_Z_DISTANCE 0.01
+#define Y_DISTANCE_SQ 0.25
+
 class AIMovementGrid {
 
     struct AINodeWithPriority {
@@ -39,8 +42,11 @@ class AIMovementGrid {
     };
 
     bool inline isPositionCloseEnoughYOnly(const glm::vec3 &position1, const glm::vec3 &position2) const {
-        return (position1.x == position2.x && position1.z == position2.z &&
-            (position1.y - position2.y) * (position1.y - position2.y) < GRID_SNAP_DISTANCE);
+
+
+        return ((fabs(position1.x - position2.x) < X_Z_DISTANCE) &&
+                (fabs(position1.z - position2.z) < X_Z_DISTANCE) &&
+                ((position1.y - position2.y) * (position1.y - position2.y) <= Y_DISTANCE_SQ));
     }
 
     bool inline isPositionCloseEnough(const glm::vec3 &position1, const glm::vec3 &position2) const {
