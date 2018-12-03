@@ -208,12 +208,12 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
         }
         doneNodes.push_back(current);
         if(current->getPosition().x > this->max.x) { this->max.x = current->getPosition().x;}
-        if(current->getPosition().x > this->max.y) { this->max.y = current->getPosition().y;}
-        if(current->getPosition().x > this->max.z) { this->max.z = current->getPosition().z;}
+        if(current->getPosition().y > this->max.y) { this->max.y = current->getPosition().y;}
+        if(current->getPosition().z > this->max.z) { this->max.z = current->getPosition().z;}
 
         if(current->getPosition().x < this->min.x) { this->min.x = current->getPosition().x;}
-        if(current->getPosition().x < this->min.y) { this->min.y = current->getPosition().y;}
-        if(current->getPosition().x < this->min.z) { this->min.z = current->getPosition().z;}
+        if(current->getPosition().y < this->min.y) { this->min.y = current->getPosition().y;}
+        if(current->getPosition().z < this->min.z) { this->min.z = current->getPosition().z;}
 
     }
 
