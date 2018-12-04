@@ -24,6 +24,7 @@
 
 #include "main.h"
 #include "GameObjects/GUIAnimation.h"
+#include "GameObjects/ModelGroup.h"
 
 WorldLoader::WorldLoader(AssetManager *assetManager, InputHandler *inputHandler, Options *options) :
         options(options),
@@ -154,7 +155,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
             if (objectNode != nullptr) {
                 std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds; //required. Should not be used normally.
 
-                std::unique_ptr<ObjectInformation> objectInfo = loadObject(objectNode,
+                std::unique_ptr<ObjectInformation> objectInfo = loadObject(assetManager, objectNode,
                                                                            requiredSounds, limonAPI);//this map is used to load all the sounds, while sharing same objects.
                 if (objectInfo) { //if not null
                     if (objectInfo->modelActor != nullptr) {
@@ -235,7 +236,73 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     return world;
 }
 
+bool WorldLoader::loadObjectGroupsFromXML(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI,
+        std::vector<Model*> &notStaticObjects, bool &isAIGridStartPointSet, glm::vec3 &aiGridStartPoint) const {
+
+    tinyxml2::XMLElement* objectGroupsListNode =  worldNode->FirstChildElement("ObjectGroups");
+    if (objectGroupsListNode == nullptr) {
+        std::cout << "World doesn't have Object Groups clause." << std::endl;
+        return true;
+    }
+
+    tinyxml2::XMLElement* objectGroupNode =  objectGroupsListNode->FirstChildElement("ObjectGroup");
+    if (objectGroupNode == nullptr) {
+        std::cout << "World doesn't have any object Groups." << std::endl;
+        return true;
+    }
+
+    std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds;
+    std::map<uint32_t , ModelGroup*> modelGroups;
+    std::vector<std::unique_ptr<ObjectInformation>> innerModels;
+
+    while(objectGroupNode != nullptr) {
+        ModelGroup* modelGroup = ModelGroup::deserialize(glHelper, assetManager, objectGroupNode, requiredSounds,
+                                                         modelGroups, innerModels, limonAPI, nullptr);
+        world->modelGroups[modelGroup->getWorldObjectID()] = modelGroup;
+        objectGroupNode = objectGroupNode->NextSiblingElement("ObjectGroup");
+    } // end of while (objects)
+
+    //now we have 2 more lists to handle
+
+    // 1) Model groups
+    for (auto iterator = modelGroups.begin(); iterator != modelGroups.end(); ++iterator) {
+        world->modelGroups[iterator->first] = iterator->second;
+    }
+
+    //2) ObjectInformations
+
+    for (auto modelIterator = innerModels.begin(); modelIterator != innerModels.end(); ++modelIterator) {
+        ObjectInformation* objectInfo = modelIterator->get();
+        if(objectInfo) { //if not null
+            if(objectInfo->modelActor != nullptr) {
+                world->addActor(objectInfo->modelActor);
+            }
+            if(!isAIGridStartPointSet && objectInfo->isAIGridStartPointSet ) { //if this is the first actor to set AI grid start point
+                aiGridStartPoint = objectInfo->aiGridStartPoint;
+            }
+        }
+
+        //ADD NEW ATTRIBUTES GOES UP FROM HERE
+        // We will add static objects first, build AI grid, then add other objects
+        if(objectInfo->model->getMass() == 0 && !objectInfo->model->isAnimated()) {
+            world->addModelToWorld(objectInfo->model);
+        } else {
+            notStaticObjects.push_back(objectInfo->model);
+        }
+    }
+
+
+    return true;
+}
+
 bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI) const {
+    std::vector<Model*> notStaticObjects;
+    bool isAIGridStartPointSet = false;
+    glm::vec3 aiGridStartPoint = glm::vec3(0,0,0);
+
+    //first load the groups
+    loadObjectGroupsFromXML(objectsNode, world, limonAPI, notStaticObjects, isAIGridStartPointSet, aiGridStartPoint);
+
     tinyxml2::XMLElement* objectsListNode =  objectsNode->FirstChildElement("Objects");
     if (objectsListNode == nullptr) {
         std::cerr << "World doesn't have Objects clause, this might be a mistake." << std::endl;
@@ -247,15 +314,13 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
         std::cout << "World doesn't have any objects, this might be a mistake." << std::endl;
         return true;
     }
-    std::vector<Model*> notStaticObjects;
 
-    bool isAIGridStartPointSet = false;
-    glm::vec3 aiGridStartPoint = glm::vec3(0,0,0);
+
     std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds;
 
     while(objectNode != nullptr) {
 
-        std::unique_ptr<ObjectInformation> objectInfo = loadObject(objectNode,
+        std::unique_ptr<ObjectInformation> objectInfo = loadObject(assetManager, objectNode,
                                                                    requiredSounds, limonAPI);//this map is used to load all the sounds, while sharing same objects.
 
         if(objectInfo) { //if not null
@@ -285,9 +350,10 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
     return true;
 }
 
-std::unique_ptr<WorldLoader::ObjectInformation> WorldLoader::loadObject(tinyxml2::XMLElement *objectNode,
+std::unique_ptr<WorldLoader::ObjectInformation> WorldLoader::loadObject(AssetManager *assetManager,
+                                                                        tinyxml2::XMLElement *objectNode,
                                                                         std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
-                                                                        LimonAPI *limonAPI) const {
+                                                                        LimonAPI *limonAPI) {
     std::unique_ptr<ObjectInformation> loadedObjectInformation = std::make_unique<ObjectInformation>();
 
 

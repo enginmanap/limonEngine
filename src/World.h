@@ -28,8 +28,8 @@ class BulletDebugDrawer;
 class Light;
 class AIMovementGrid;
 class TriggerInterface;
-class GUIText;
 
+class GUIText;
 class GUIRenderable;
 class GUILayer;
 class GUITextBase;
@@ -53,6 +53,7 @@ class AnimationCustom;
 class AnimationNode;
 class AnimationSequenceInterface;
 class LimonAPI;
+class ModelGroup;
 
 class GLHelper;
 class ALHelper;
@@ -163,6 +164,8 @@ private:
     Options* options;
     uint32_t nextWorldID = 1;
     std::map<uint32_t, PhysicalRenderable *> objects;
+    std::map<uint32_t, ModelGroup*> modelGroups;
+
     Sound* music = nullptr;
 
     /*
@@ -302,6 +305,15 @@ private:
                 return false;
             }
             maxID = std::max(maxID, guiElement->first);
+        }
+
+        for (auto modelGroup = modelGroups.begin(); modelGroup != modelGroups.end(); ++modelGroup) {
+            auto result = usedIDs.insert(modelGroup->first);
+            if(result.second == false) {
+                std::cerr << "world ID repetition on trigger detected! gui element with id " << modelGroup->first << std::endl;
+                return false;
+            }
+            maxID = std::max(maxID, modelGroup->first);
         }
 
         for(uint32_t index = 1; index <= maxID; index++) {
@@ -472,6 +484,10 @@ public:
     void checkAndRunTimedEvents();
 
     void animateCustomAnimations();
+
+    void buildTreeFromAllGameObjects();
+
+    void createObjectTreeRecursive(ModelGroup *modelGroup, uint32_t pickedObjectID, int nodeFlags, int leafFlags);
 };
 
 #endif //LIMONENGINE_WORLD_H

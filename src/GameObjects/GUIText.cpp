@@ -19,9 +19,6 @@ std::string GUIText::getName() const {
     return this->name;
 }
 
-uint32_t GUIText::getWorldObjectID() {
-    return worldID;
-}
 
 void GUIText::addedToLayer(GUILayer *layer) {
     parentLayers.push_back(layer);

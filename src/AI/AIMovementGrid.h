@@ -23,7 +23,10 @@
 
 //bigger than sqrt(3)/2
 //avoiding sqrt
-#define GRID_SNAP_DISTANCE (0.86f * 0.86f)
+#define GRID_SNAP_DISTANCE (0.707f * 0.707f)
+
+#define X_Z_DISTANCE 0.01
+#define Y_DISTANCE_SQ 0.25
 
 class AIMovementGrid {
 
@@ -39,8 +42,11 @@ class AIMovementGrid {
     };
 
     bool inline isPositionCloseEnoughYOnly(const glm::vec3 &position1, const glm::vec3 &position2) const {
-        return (position1.x == position2.x && position1.z == position2.z &&
-            (position1.y - position2.y) * (position1.y - position2.y) < GRID_SNAP_DISTANCE);
+
+
+        return ((fabs(position1.x - position2.x) < X_Z_DISTANCE) &&
+                (fabs(position1.z - position2.z) < X_Z_DISTANCE) &&
+                ((position1.y - position2.y) * (position1.y - position2.y) <= Y_DISTANCE_SQ));
     }
 
     bool inline isPositionCloseEnough(const glm::vec3 &position1, const glm::vec3 &position2) const {
@@ -56,13 +62,15 @@ class AIMovementGrid {
     std::map<int, const AIMovementNode *> actorLastNodeMap;
 
     int isThereCollisionCounter = 0;//this is only meaninful for debug
-    float capsuleHeight = 0.5f;
+    float capsuleHeight = 2.0f + 0.1f;
     float capsuleRadius = 0.5f;//FIXME these should be configurable
     bool isThereCollision(btDiscreteDynamicsWorld *staticWorld);
 
+    glm::vec3 max,min;
     std::vector<AIMovementNode *> visited;
+    std::vector<AIMovementNode *> doneNodes;
 
-    AIMovementNode *isAlreadyVisited(const glm::vec3 &position);
+    AIMovementNode *isAlreadyVisited(const glm::vec3 &position, size_t &indexOf);
 
     AIMovementNode *
     walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
@@ -71,7 +79,6 @@ class AIMovementGrid {
     const AIMovementNode *
     aStarPath(const AIMovementNode *start, const glm::vec3 &destination, std::vector<glm::vec3> *route);
 
-    std::vector<const AIMovementNode *> calculatedNodes;
 
 public:
     static constexpr float floatingHeight = 2.0f;

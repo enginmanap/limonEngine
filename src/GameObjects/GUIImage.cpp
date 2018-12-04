@@ -28,10 +28,6 @@ std::string GUIImage::getName() const {
     return this->name;
 }
 
-uint32_t GUIImage::getWorldObjectID() {
-    return worldID;
-}
-
 void GUIImage::addedToLayer(GUILayer *layer) {
     parentLayers.push_back(layer);
 }

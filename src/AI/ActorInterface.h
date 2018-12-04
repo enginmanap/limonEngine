@@ -47,6 +47,10 @@ public:
     // Not virtual
     static std::vector<std::string> getActorNames() {
         std::vector<std::string> names;
+        if(typeMap == nullptr) {
+            return names;
+        }
+
         for (auto it = typeMap->begin(); it != typeMap->end(); it++) {
             names.push_back(it->first);
         }

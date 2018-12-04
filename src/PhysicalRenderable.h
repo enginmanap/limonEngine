@@ -17,7 +17,9 @@ protected:
     glm::vec3 centerOffset;//init by list for constructor
     glm::vec3 aabbMax, aabbMin;
     const float mass;
-    btRigidBody *rigidBody;
+    btRigidBody *rigidBody = nullptr;
+    PhysicalRenderable* parentObject = nullptr; //this points to ModelGroup if this is part of a group.
+protected:
     bool disconnected = false;
     std::unique_ptr<Sound> soundAttachment2 = nullptr;
 
@@ -123,6 +125,15 @@ public:
         this->soundAttachment2.reset(nullptr);
     }
 
+    PhysicalRenderable *getParentObject() const {
+        return parentObject;
+
+    }
+
+    void setParentObject(PhysicalRenderable *parentObject){
+        this->parentObject = parentObject;
+
+    }
 };
 
 

@@ -8,9 +8,10 @@
 constexpr float AIMovementGrid::floatingHeight;
 
 //FIXME: this must be the worst way to check for a node in a graph, when you already implemented a*
-AIMovementNode *AIMovementGrid::isAlreadyVisited(const glm::vec3 &position) {
-    for (int i = visited.size() - 1; i >= 0; --i) {
+AIMovementNode *AIMovementGrid::isAlreadyVisited(const glm::vec3 &position, size_t &indexOf) {
+    for (size_t i = visited.size() - 1; i > 0; --i) {
         if (isPositionCloseEnoughYOnly(position, visited[i]->getPosition())) {
+            indexOf = i;
             return visited[i];
         }
     }
@@ -82,6 +83,10 @@ AIMovementGrid::aStarPath(const AIMovementNode *start, const glm::vec3 &destinat
 
 /**
  * Since this Method checks the world, it is perfectly possible ghost object is detected as valid it point. Remove it before calling this method
+ *
+ * 1) create ray, from position -> to position - 999999 (for 0 heck height) or position - check height
+ * 2) if there is a hit, move position height to hit+floating height else return false
+ *
  * @param position
  * @param floatingHeight
  * @param checkHeight
@@ -101,6 +106,9 @@ bool AIMovementGrid::setProperHeight(glm::vec3 *position, float floatingHeight, 
     rayCallback->m_collisionObject = nullptr;
     staticWorld->rayTest(rayCallback->m_rayFromWorld, rayCallback->m_rayToWorld, *rayCallback);
     if (rayCallback->hasHit()) {
+        if(rayCallback->m_hitPointWorld.getY() > (*position - glm::vec3(0,1,0)).y) {
+            return false;
+        }
         position->y = rayCallback->m_hitPointWorld.getY() + floatingHeight;
         return true;
     } else {
@@ -121,24 +129,28 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
     staticWorld->addCollisionObject(sharedGhostObject, collisionGroup, collisionMask);
     sharedGhostObject->setWorldTransform(
             btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(root->getPosition())));
+    btVector3 minO, maxO;
+    sharedGhostObject->getCollisionShape()->getAabb(sharedGhostObject->getWorldTransform(), minO, maxO);
     bool isMovable = !isThereCollision(staticWorld);
     staticWorld->removeCollisionObject(sharedGhostObject);
     if (isMovable) {
         root->setIsMovable(isMovable);
         frontier.push(root);
         visited.push_back(root);
+
         std::cerr << "Root node " << GLMUtils::vectorToString(walkPoint) << "is movable, AI walk grid generation starts." << std::endl;
     } else {
         std::cerr << "Root node " << GLMUtils::vectorToString(walkPoint) << "is not movable, AI walk grid generation failed. Please check map." << std::endl;
         return root;
     }
+    size_t indexOfFoundNode;
     AIMovementNode *current;
     while (!frontier.empty()) {
         current = frontier.front();
         frontier.pop();
 
-        if(visited.size() %100 == 0) {
-            std::cout << "After "<< SDL_GetTicks() << " current walk node " << visited.size() << " last node: " << glm::to_string(current->getPosition()) << std::endl;
+        if(doneNodes.size() %10000 == 0) {
+            std::cout << "After "<< SDL_GetTicks() << " current done " << doneNodes.size() << " nodes, partial " << visited.size() << " last node: " << glm::to_string(current->getPosition()) << std::endl;
         }
 
         for (int i = -1; i <= 1; ++i) {
@@ -146,9 +158,6 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                 if (i == 0 && j == 0) {
                     continue; //skip the center, it is the self
                 } else {
-                    if (current->getPosition().x < 1.1 && current->getPosition().x > -1.1 &&
-                        current->getPosition().z < 0.1 && current->getPosition().z > -0.1) {
-                    }
                     int neighbourIndex = (i + 1) * 3 + (j + 1);
                     if(current->getNeighbour(neighbourIndex) != nullptr) {
                         continue;//already set
@@ -165,29 +174,47 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                         continue;
                     }
 
-                    AIMovementNode *visitedNode = isAlreadyVisited(neighbourPosition);
+                    AIMovementNode *visitedNode = isAlreadyVisited(neighbourPosition, indexOfFoundNode);
                     if (visitedNode != nullptr) {
                         //std::cout << "already visited node at " << GLMUtils::vectorToString(neighbourPosition) << std::endl;
                         //std::cout << "already visited node position is " << GLMUtils::vectorToString(visitedNode->getPosition()) << std::endl;
                         current->setNeighbour(neighbourIndex, visitedNode);
                     } else {
-//                        std::cout << "adding new node with position " << GLMUtils::vectorToString(neighbourPosition) << std::endl;
+                        //std::cout << "adding new node with position " << GLMUtils::vectorToString(neighbourPosition) << std::endl;
                         staticWorld->addCollisionObject(sharedGhostObject, collisionGroup, collisionMask);
                         sharedGhostObject->setWorldTransform(
                                 btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(neighbourPosition)));
                         isMovable = !isThereCollision(staticWorld);
                         staticWorld->removeCollisionObject(sharedGhostObject);
-                        AIMovementNode *neighbour = new AIMovementNode(neighbourPosition);
-                        neighbour->setIsMovable(isMovable);
-                        current->setNeighbour(neighbourIndex, neighbour);
 
-                        frontier.push(neighbour);
-                        visited.push_back(neighbour);
+                        if(isMovable) {
+                            AIMovementNode *neighbour = new AIMovementNode(neighbourPosition);
+                            neighbour->setIsMovable(isMovable);
+                            current->setNeighbour(neighbourIndex, neighbour);
+
+                            frontier.push(neighbour);
+                            visited.push_back(neighbour);
+                        }
                     }
                 }
             }
         }
+        if(isAlreadyVisited(current->getPosition(), indexOfFoundNode)) {
+            visited.erase(visited.begin() + indexOfFoundNode);
+        }
+
+        doneNodes.push_back(current);
+        if(current->getPosition().x > this->max.x) { this->max.x = current->getPosition().x;}
+        if(current->getPosition().y > this->max.y) { this->max.y = current->getPosition().y;}
+        if(current->getPosition().z > this->max.z) { this->max.z = current->getPosition().z;}
+
+        if(current->getPosition().x < this->min.x) { this->min.x = current->getPosition().x;}
+        if(current->getPosition().y < this->min.y) { this->min.y = current->getPosition().y;}
+        if(current->getPosition().z < this->min.z) { this->min.z = current->getPosition().z;}
+
     }
+
+    std::cout << "Walk grid creation finished with " << doneNodes.size() << " nodes between " << glm::to_string(this->min) << ", " << glm::to_string(this->max) << std::endl;
     return root;
 }
 
@@ -302,7 +329,7 @@ bool AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, std:
 void AIMovementGrid::debugDraw(BulletDebugDrawer *debugDrawer) const {
     std::vector<AIMovementNode *>::const_iterator it;
     glm::vec3 toColor, fromColor;
-    for (it = visited.begin(); it != visited.end(); it++) {
+    for (it = doneNodes.begin(); it != doneNodes.end(); it++) {
         int neighbourCount = 5; //if not an edge, just draw first 4, the last 4 should be rendered by the neighbours
         if ((*it)->isIsMovable()) {
             fromColor = glm::vec3(1, 1, 1);
