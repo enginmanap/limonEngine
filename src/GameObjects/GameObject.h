@@ -43,7 +43,7 @@ public:
                   ortogonalMatrix(ortogonalMatrix), screenHeight(screenHeight), screenWidth(screenWidth), limonAPI(limonAPI) {}
     };
 
-    enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT, GUI_IMAGE, GUI_BUTTON, GUI_ANIMATION, SOUND };
+    enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT, GUI_IMAGE, GUI_BUTTON, GUI_ANIMATION, SOUND, MODEL_GROUP };
 
     virtual ObjectTypes getTypeID() const = 0;
     virtual std::string getName() const = 0;
@@ -51,7 +51,7 @@ public:
 
     virtual void interact(LimonAPI *limonAPI __attribute((unused)), std::vector<LimonAPI::ParameterRequest> &interactionData __attribute((unused))) {};
 
-    virtual uint32_t getWorldObjectID() = 0;
+    virtual uint32_t getWorldObjectID() const = 0;
     virtual ~GameObject() {};
 };
 

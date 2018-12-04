@@ -138,3 +138,14 @@ GUIRenderable *GUILayer::getRenderableFromCoordinate(const glm::vec2 &coordinate
 
     return nullptr;
 }
+
+std::vector<GameObject*> GUILayer::getGuiElements() {
+    std::vector<GameObject*> elements;
+    for (auto iterator = guiElements.begin(); iterator != guiElements.end(); ++iterator) {
+        GameObject* element = dynamic_cast<GameObject*> (*iterator);
+        if(element != nullptr) {
+            elements.push_back(element);
+        }
+    }
+    return elements;
+}

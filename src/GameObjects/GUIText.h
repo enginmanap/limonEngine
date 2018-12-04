@@ -33,7 +33,9 @@ public:
 
     std::string getName() const override;
 
-    uint32_t getWorldObjectID() override;
+    uint32_t getWorldObjectID() const override {
+        return worldID;
+    }
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
 

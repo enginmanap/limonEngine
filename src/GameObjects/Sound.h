@@ -51,7 +51,7 @@ public:
         return name;
     }
 
-    uint32_t getWorldObjectID() {
+    uint32_t getWorldObjectID() const override {
         return worldID;
     }
     /** Game object methods */

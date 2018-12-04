@@ -10,6 +10,7 @@
 
 class BulletDebugDrawer;
 class GUIRenderable;
+class GameObject;
 
 class GUILayer {
     GLHelper *glHelper;
@@ -35,6 +36,7 @@ public:
 
     void removeGuiElement(uint32_t guiElementID);
 
+    std::vector<GameObject*> getGuiElements();
 
     void render();
 

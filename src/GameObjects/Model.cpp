@@ -329,6 +329,15 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
     currentElement->SetText(objectID);
     objectElement->InsertEndChild(currentElement);
 
+    if(this->parentObject != nullptr) {
+        GameObject* parent = dynamic_cast<GameObject*>(this->parentObject);
+        if(parent != nullptr) {
+            currentElement = document.NewElement("ParentID");
+            currentElement->SetText(std::to_string(parent->getWorldObjectID()).c_str());
+            objectElement->InsertEndChild(currentElement);
+        }
+    }
+
     if(stepOnSound) {
         currentElement = document.NewElement("StepOnSound");
         currentElement->SetText(stepOnSound->getName().c_str());
