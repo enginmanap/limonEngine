@@ -197,54 +197,39 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
          currentPlayer->processPhysicsWorld(dynamicsWorld);
      }
-
      if(camera->isDirty()) {
          glHelper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
          alHelper->setListenerPositionAndOrientation(camera->getPosition(), camera->getCenter(), camera->getUp());
      }
-
-
-
      checkAndRunTimedEvents();
-
      if(currentPlayersSettings->worldSimulation) {
-
-        for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
-            trigger->second->checkAndTrigger();
-        }
+         for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
+             trigger->second->checkAndTrigger();
+         }
          animateCustomAnimations();
-
-         for (auto actorIt = actors.begin(); actorIt != actors.end(); ++actorIt) {
-            ActorInterface::ActorInformation information = fillActorInformation(actorIt->second);
-            actorIt->second->play(gameTime, information);
-        }
-        for (auto it = objects.begin(); it != objects.end(); ++it) {
-            if (!it->second->getRigidBody()->isStaticOrKinematicObject() && it->second->getRigidBody()->isActive()) {
-                it->second->updateTransformFromPhysics();
-                Model* model = dynamic_cast<Model*>(it->second);
-                assert(model!= nullptr);
-                updatedModels.push_back(model);
-            }
-        }
-
-         fillVisibleObjects();
-
-         for (auto modelAssetIterator = modelsInCameraFrustum.begin();
-              modelAssetIterator != modelsInCameraFrustum.end(); ++modelAssetIterator) {
-             for (auto modelIterator = modelAssetIterator->second.begin();
-                  modelIterator != modelAssetIterator->second.end(); ++modelIterator) {
+         for(auto actorIt = actors.begin(); actorIt != actors.end(); ++actorIt) {
+             ActorInterface::ActorInformation information = fillActorInformation(actorIt->second);
+             actorIt->second->play(gameTime, information);
+         }
+         for (auto it = objects.begin(); it != objects.end(); ++it) {
+             if (!it->second->getRigidBody()->isStaticOrKinematicObject() && it->second->getRigidBody()->isActive()) {
+                 it->second->updateTransformFromPhysics();
+                 Model* model = dynamic_cast<Model*>(it->second);
+                 assert(model!= nullptr);
+                 updatedModels.push_back(model);
+             }
+         }
+         for (auto modelAssetIterator = modelsInCameraFrustum.begin(); modelAssetIterator != modelsInCameraFrustum.end(); ++modelAssetIterator) {
+             for (auto modelIterator = modelAssetIterator->second.begin(); modelIterator != modelAssetIterator->second.end(); ++modelIterator) {
                  (*modelIterator)->setupForTime(gameTime);
              }
          }
-
          for (auto modelIt = animatedModelsInAnyFrustum.begin(); modelIt != animatedModelsInAnyFrustum.end(); ++modelIt) {
              (*modelIt)->setupForTime(gameTime);
          }
-
-    } else {
-
-         fillVisibleObjects();
-    }
+     }
+     
+     fillVisibleObjects();
 
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
         guiLayers[i]->setupForTime(gameTime);
