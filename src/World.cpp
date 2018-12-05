@@ -793,6 +793,28 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
                 pickedObject = static_cast<GameObject*>(newModel);
             }
+
+            if(ImGui::Button("Attach this object to another")) {
+                this->objectToAttach = dynamic_cast<Model*>(pickedObject);
+            }
+            if(objectToAttach!= nullptr && objectToAttach->getWorldObjectID() != pickedObject->getWorldObjectID()) {
+                if (ImGui::Button("Attach saved object to current")) {
+                    Model *pickedModel = dynamic_cast<Model *>(pickedObject);
+
+                    glm::vec3 translate, scale;
+                    glm::quat orientation;
+                    pickedModel->getTransformation()->getDifference(*objectToAttach->getTransformation(), translate,
+                                                                    scale, orientation);
+                    translate = translate * (1.0f / pickedModel->getTransformation()->getScale());
+                    translate = translate * pickedModel->getTransformation()->getOrientation();
+                    objectToAttach->getTransformation()->setTranslate(translate);
+                    objectToAttach->getTransformation()->setScale(scale);
+                    objectToAttach->getTransformation()->setOrientation(orientation);
+                    objectToAttach->getTransformation()->setParentTransform(pickedModel->getTransformation());
+                    objectToAttach->setParentObject(pickedModel);
+                    this->objectToAttach = nullptr;
+                }
+            }
         }
 
         ImGui::Separator();
@@ -1385,7 +1407,7 @@ void World::createGridFrom(const glm::vec3 &aiGridStartPoint) {
     if(grid != nullptr) {
         delete grid;
     }
-    grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING);
+    //grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING);
 }
 
 void World::setSky(SkyBox *skyBox) {

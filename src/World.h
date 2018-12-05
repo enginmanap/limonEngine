@@ -11,7 +11,6 @@
 #include <set>
 #include <queue>
 
-#include "glm/glm.hpp"
 #include "InputHandler.h"
 #include "FontManager.h"
 #include "GameObjects/SkyBox.h"
@@ -243,6 +242,7 @@ private:
     btSequentialImpulseConstraintSolver *solver;
     ImGuiHelper *imgGuiHelper;
     GameObject* pickedObject = nullptr;
+    Model* objectToAttach = nullptr;
     bool guiPickMode = false;
     enum class QuitResponse
     {
