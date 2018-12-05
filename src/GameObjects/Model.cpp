@@ -228,6 +228,21 @@ bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
 
     if (animated) {
         //set all of the bones to unitTransform for testing
+
+        for (auto boneIterator = exposedBoneTransforms.begin();
+             boneIterator != exposedBoneTransforms.end(); ++boneIterator) {
+                glm::vec3 temp1;//these are not used
+                glm::vec4 temp2;
+                glm::vec3 translate, scale;
+                glm::quat orientation;
+
+                glm::decompose(this->transformation.getWorldTransform() * boneTransforms[boneIterator->first], scale, orientation, translate, temp1, temp2);
+
+                exposedBoneTransforms[boneIterator->first]->setTranslate(translate);
+                exposedBoneTransforms[boneIterator->first]->setScale(scale);
+                exposedBoneTransforms[boneIterator->first]->setOrientation(orientation);
+        }
+
         program->setUniformArray("boneTransformArray[0]", boneTransforms);
     }
     return true;
@@ -433,6 +448,17 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
             this->stepOnSound->setLoop(true);
         }
     }
+    if(animated) {
+        if (ImGui::CollapsingHeader("Expose Bone for attachment")) {
+            int32_t newSelectedBoneID = this->modelAsset->buildEditorBoneTree(selectedBoneID);
+            if (newSelectedBoneID != -1 && newSelectedBoneID != selectedBoneID) {
+                selectedBoneID = newSelectedBoneID;
+                std::cout << "selected bone is " << selectedBoneID << std::endl;
+            }
+        } else {
+            selectedBoneID = -1;
+        }
+    }
     return result;
 }
 
@@ -445,9 +471,14 @@ Model::~Model() {
     delete compoundShape;
     delete AIActor;
 
-    for (unsigned int i = 0; i < meshMetaData.size(); ++i) {
+    for (size_t i = 0; i < meshMetaData.size(); ++i) {
         delete meshMetaData[i];
     }
+
+    for (size_t i = 0; i < children.size(); ++i) {
+        children[i]->setParentObject(nullptr);
+    }
+
     assetManager->freeAsset({name});
 }
 

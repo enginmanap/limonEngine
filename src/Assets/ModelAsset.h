@@ -89,6 +89,9 @@ class ModelAsset : public Asset {
 
     void deserializeCustomizations();
 
+    int32_t buildEditorBoneTreeRecursive(BoneNode *boneNode, int32_t selectedBoneNodeID);
+
+
 public:
     ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
 
@@ -172,6 +175,9 @@ public:
     }
 
     void serializeCustomizations();
+
+    int32_t buildEditorBoneTree(int32_t selectedBoneNodeID);
+
 };
 
 

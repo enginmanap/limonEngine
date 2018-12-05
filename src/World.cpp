@@ -800,17 +800,18 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             if(objectToAttach!= nullptr && objectToAttach->getWorldObjectID() != pickedObject->getWorldObjectID()) {
                 if (ImGui::Button("Attach saved object to current")) {
                     Model *pickedModel = dynamic_cast<Model *>(pickedObject);
+                    Transformation* pickedModelTransformation = pickedModel->attachmentRequested();
 
                     glm::vec3 translate, scale;
                     glm::quat orientation;
-                    pickedModel->getTransformation()->getDifference(*objectToAttach->getTransformation(), translate,
+                    pickedModelTransformation->getDifference(*objectToAttach->getTransformation(), translate,
                                                                     scale, orientation);
-                    translate = translate * (1.0f / pickedModel->getTransformation()->getScale());
-                    translate = translate * pickedModel->getTransformation()->getOrientation();
+                    translate = translate * (1.0f / pickedModelTransformation->getScale());
+                    translate = translate * pickedModelTransformation->getOrientation();
                     objectToAttach->getTransformation()->setTranslate(translate);
                     objectToAttach->getTransformation()->setScale(scale);
                     objectToAttach->getTransformation()->setOrientation(orientation);
-                    objectToAttach->getTransformation()->setParentTransform(pickedModel->getTransformation());
+                    objectToAttach->getTransformation()->setParentTransform(pickedModelTransformation);
                     objectToAttach->setParentObject(pickedModel);
                     pickedModel->addChild(objectToAttach);
                     this->objectToAttach = nullptr;

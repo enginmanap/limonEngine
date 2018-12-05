@@ -65,6 +65,8 @@ class Model : public PhysicalRenderable, public GameObject {
     int opacityMapAttachPoint = 4;
     int normalMapAttachPoint = 5;
     uint_fast32_t triangleCount;
+    int32_t selectedBoneID = -1;
+    std::map<uint32_t, Transformation*> exposedBoneTransforms;
 
     static ImGuiResult putAIonGUI(ActorInterface *actorInterface, std::vector<LimonAPI::ParameterRequest> &parameters,
                                   const ImGuiRequest &request, std::string &lastSelectedAIName);
@@ -197,6 +199,28 @@ public:
     uint32_t getAssetID() {
         return modelAsset->getAssetID();
     }
+
+    Transformation* attachmentRequested() {
+        if(selectedBoneID == -1) {
+            return &(this->transformation);
+        }
+        //return bones transformation, create expose transform if there is none.
+        if(exposedBoneTransforms.find(selectedBoneID) == exposedBoneTransforms.end()) {
+            exposedBoneTransforms[selectedBoneID] = new Transformation();
+            glm::vec3 temp1;//these are not used
+            glm::vec4 temp2;
+            glm::vec3 translate, scale;
+            glm::quat orientation;
+
+            glm::decompose(this->transformation.getWorldTransform() * boneTransforms[selectedBoneID], scale, orientation, translate, temp1, temp2);//update the current of thes
+
+            exposedBoneTransforms[selectedBoneID]->setTranslate(translate);
+            exposedBoneTransforms[selectedBoneID]->setScale(scale);
+            exposedBoneTransforms[selectedBoneID]->setOrientation(orientation);
+        }
+        return exposedBoneTransforms[selectedBoneID];
+    }
+
 };
 
 #endif //LIMONENGINE_MODEL_H
