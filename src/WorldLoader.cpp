@@ -403,19 +403,27 @@ WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *object
         }
     std::unique_ptr<ObjectInformation> loadedObjectInformation = std::make_unique<ObjectInformation>();
     loadedObjectInformation->model = new Model(id, assetManager, modelMass, modelFile, disconnected);
-    loadedObjectInformation->model->setParentObject(parentObject);
+
+    int32_t parentBoneID = -1;
+    objectAttribute =  objectNode->FirstChildElement("ParentBoneID");
+
+    if (objectAttribute != nullptr) {
+        parentBoneID = std::stoi(objectAttribute->GetText());
+    }
+
+    loadedObjectInformation->model->setParentObject(parentObject, parentBoneID);
 
     objectAttribute =  objectNode->FirstChildElement("StepOnSound");
 
     if (objectAttribute == nullptr) {
-            std::cerr << "Object does not have step on sound." << std::endl;
-        } else {
-            std::string stepOnSound = objectAttribute->GetText();
-            if(requiredSounds.find(stepOnSound) == requiredSounds.end()) {
-                requiredSounds[stepOnSound] = std::make_shared<Sound>(0, assetManager, stepOnSound);//since the step on is not managed by world, not feed world object ID
-            }
-            loadedObjectInformation->model->setPlayerStepOnSound(requiredSounds[stepOnSound]);
+        std::cerr << "Object does not have step on sound." << std::endl;
+    } else {
+        std::string stepOnSound = objectAttribute->GetText();
+        if(requiredSounds.find(stepOnSound) == requiredSounds.end()) {
+            requiredSounds[stepOnSound] = std::make_shared<Sound>(0, assetManager, stepOnSound);//since the step on is not managed by world, not feed world object ID
         }
+        loadedObjectInformation->model->setPlayerStepOnSound(requiredSounds[stepOnSound]);
+    }
 
     objectAttribute =  objectNode->FirstChildElement("Transformation");
     if(objectAttribute == nullptr) {
@@ -425,7 +433,14 @@ WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *object
     }
     loadedObjectInformation->model->getTransformation()->deserialize(objectAttribute);
     if(parentObject != nullptr) {
-        loadedObjectInformation->model->getTransformation()->setParentTransform(parentObject->getTransformation());
+        Model* parentModel = dynamic_cast<Model*>(parentObject);
+        if(parentModel != nullptr) {
+            loadedObjectInformation->model->getTransformation()->setParentTransform(
+                    parentModel->getAttachmentTransformForKnownBone(parentBoneID));
+        } else {
+            loadedObjectInformation->model->getTransformation()->setParentTransform(
+                    parentObject->getTransformation());
+        }
     }
     //Since we are not loading objects recursively, these can be set here safely
     objectAttribute =  objectNode->FirstChildElement("Actor");

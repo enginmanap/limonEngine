@@ -200,8 +200,18 @@ public:
         return modelAsset->getAssetID();
     }
 
-    Transformation* attachmentRequested() {
+    /**
+     * This method allows attachment to a specific bone of the model, if a bone is selected. If no bone is selected, world transform is returned.
+     * If a bone is returned, bone id is set to the parameter attachedBone. If no bone is selected and world transform is returned,
+     * parameter will contain -1
+     *
+     * If the selected bone is not exposed, it creates a transform to expose.
+     * @param attachedBone -1 is no bone is selected, bone id if bone is selected
+     * @return pointer to selected bones transform or world transform of the object
+     */
+    Transformation* getAttachmentTransform(int32_t &attachedBone) {
         if(selectedBoneID == -1) {
+            attachedBone = -1;
             return &(this->transformation);
         }
         //return bones transformation, create expose transform if there is none.
@@ -218,7 +228,18 @@ public:
             exposedBoneTransforms[selectedBoneID]->setScale(scale);
             exposedBoneTransforms[selectedBoneID]->setOrientation(orientation);
         }
+        attachedBone = selectedBoneID;
         return exposedBoneTransforms[selectedBoneID];
+    }
+
+    /**
+     * This method is only to be used by WorldLoader, and even it is not proper, and should be removed.
+     * @param attachedBone
+     * @return
+     */
+    Transformation* getAttachmentTransformForKnownBone(int32_t attachmentBoneID) {
+        selectedBoneID = attachmentBoneID;
+        return getAttachmentTransform(attachmentBoneID);
     }
 
 };
