@@ -150,6 +150,14 @@ public:
         }
         return false;
     }
+
+    const std::vector<PhysicalRenderable*> &getChildren() const {
+        return children;
+    }
+
+    bool hasChildren() const {
+        return !children.empty();
+    }
 };
 
 

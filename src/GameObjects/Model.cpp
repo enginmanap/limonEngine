@@ -366,7 +366,7 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
         tinyxml2::XMLElement *childrenNode = document.NewElement("Children");
         tinyxml2::XMLElement *childrenCountNode = document.NewElement("Count");
         childrenCountNode->SetText(std::to_string(children.size()).c_str());
-        objectElement->InsertEndChild(childrenCountNode);
+        childrenNode->InsertEndChild(childrenCountNode);
         objectElement->InsertEndChild(childrenNode);
        for (size_t i = 0; i < children.size(); ++i) {
            tinyxml2::XMLElement *childNode = document.NewElement("Child");
