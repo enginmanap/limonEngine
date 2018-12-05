@@ -9,6 +9,7 @@
 #include "Animations/AnimationAssimp.h"
 #include "../GLHelper.h"
 #include "Animations/AnimationAssimpSection.h"
+#include "../../libs/imgui/imgui.h"
 
 ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList)
         : Asset(assetManager, assetID,
@@ -745,4 +746,44 @@ void ModelAsset::deserializeCustomizations() {
 
 
 
+}
+
+int32_t ModelAsset::buildEditorBoneTree(int32_t selectedBoneNodeID) {
+   if(rootNode != nullptr) {
+       return buildEditorBoneTreeRecursive(rootNode, selectedBoneNodeID);
+   }
+   return -1;//not found
+}
+
+int32_t ModelAsset::buildEditorBoneTreeRecursive(BoneNode *boneNode, int32_t selectedBoneNodeID) {
+    int32_t result = -1;
+    if(boneNode == nullptr) {
+        return result;
+    }
+    ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ((selectedBoneNodeID == boneNode->boneID) ? ImGuiTreeNodeFlags_Selected : 0);
+
+    if(boneNode->children.size() == 0) {
+        node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+        ImGui::TreeNodeEx((boneNode->name + "##BoneTree" + std::to_string(boneNode->boneID)).c_str(), node_flags);
+        if (ImGui::IsItemClicked()) {
+            result = boneNode->boneID;
+            return result;
+        }
+    } else {
+        if(ImGui::TreeNodeEx((boneNode->name + "##BoneTree" + std::to_string(boneNode->boneID)).c_str(), node_flags)) {
+            if (ImGui::IsItemClicked()) {
+                result = boneNode->boneID;
+            }
+            for (size_t i = 0; i < boneNode->children.size(); ++i) {
+                result = std::max(buildEditorBoneTreeRecursive(boneNode->children[i], selectedBoneNodeID), result);
+            }
+            ImGui::TreePop();
+        } else {
+            if (ImGui::IsItemClicked()) {
+                result = boneNode->boneID;
+            }
+        }
+
+    }
+    return result;
 }
