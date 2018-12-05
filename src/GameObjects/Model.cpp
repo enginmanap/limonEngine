@@ -351,6 +351,11 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
             currentElement->SetText(std::to_string(parent->getWorldObjectID()).c_str());
             objectElement->InsertEndChild(currentElement);
         }
+        if(parentBoneID != -1) {
+            currentElement = document.NewElement("ParentBoneID");
+            currentElement->SetText(std::to_string(parentBoneID).c_str());
+            objectElement->InsertEndChild(currentElement);
+        }
     }
 
     if(stepOnSound) {

@@ -19,6 +19,7 @@ protected:
     const float mass;
     btRigidBody *rigidBody = nullptr;
     PhysicalRenderable* parentObject = nullptr; //this points to ModelGroup if this is part of a group.
+    int32_t parentBoneID = -1;
 protected:
     bool disconnected = false;
     std::vector<PhysicalRenderable*> children;
@@ -131,9 +132,9 @@ public:
 
     }
 
-    void setParentObject(PhysicalRenderable *parentObject){
+    void setParentObject(PhysicalRenderable *parentObject, int32_t parentBoneID = -1){
         this->parentObject = parentObject;
-
+        this->parentBoneID = parentBoneID;
     }
 
     virtual void addChild(PhysicalRenderable* otherModel) {
