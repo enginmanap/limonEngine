@@ -84,11 +84,14 @@ protected:
 
 
     glm::mat4 generateWorldTransformWithParent(){
-        glm::mat4 totalTransform = parentTransform->getWorldTransform() * this->generateWorldTransformSingle();
+        //glm::mat4 totalTransform = parentTransform->generateWorldTransformDefault() * this->generateWorldTransformSingle();
         Transformation* parent = this->parentTransform;
         glm::mat4 rawTotalTransform = this->generateWorldTransformDefault();
+        glm::mat4 totalTransform = this->generateWorldTransformSingle();
         while(parent != nullptr) {
-            rawTotalTransform = parent->generateWorldTransformDefault() * rawTotalTransform;
+            glm::mat4 parentTransformTemp = parent->generateWorldTransformDefault();
+            rawTotalTransform = parentTransformTemp * rawTotalTransform;
+            totalTransform = parentTransformTemp * totalTransform;
             parent = parent->parentTransform;
         }
 
