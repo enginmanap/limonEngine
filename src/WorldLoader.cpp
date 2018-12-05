@@ -155,14 +155,16 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
             if (objectNode != nullptr) {
                 std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds; //required. Should not be used normally.
 
-                std::unique_ptr<ObjectInformation> objectInfo = loadObject(assetManager, objectNode,
-                                                                           requiredSounds, limonAPI);//this map is used to load all the sounds, while sharing same objects.
-                if (objectInfo) { //if not null
-                    if (objectInfo->modelActor != nullptr) {
+                std::vector<std::unique_ptr<ObjectInformation>> objectInfos = loadObject(assetManager, objectNode,
+                                                                                         requiredSounds, limonAPI,
+                                                                                         nullptr);//this map is used to load all the sounds, while sharing same objects.
+
+                for (auto objectIterator = objectInfos.begin(); objectIterator != objectInfos.end(); ++objectIterator) {
+                    if((*objectIterator)->modelActor != nullptr) {
                         std::cerr << "There was an AI attached to player model, this shouldn't happen. Ignoring" << std::endl;
-                        delete objectInfo->modelActor;
+                        delete (*objectIterator)->modelActor;
                     }
-                    startingPlayer.attachedModel = objectInfo->model;
+                    startingPlayer.attachedModel = (*objectIterator)->model;
                 }
             }
         }
@@ -320,25 +322,27 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
 
     while(objectNode != nullptr) {
 
-        std::unique_ptr<ObjectInformation> objectInfo = loadObject(assetManager, objectNode,
-                                                                   requiredSounds, limonAPI);//this map is used to load all the sounds, while sharing same objects.
+        std::vector<std::unique_ptr<ObjectInformation>> objectInfos = loadObject(assetManager, objectNode,
+                                                                                 requiredSounds, limonAPI, nullptr);//this map is used to load all the sounds, while sharing same objects.
 
-        if(objectInfo) { //if not null
-            if(objectInfo->modelActor != nullptr) {
-                world->addActor(objectInfo->modelActor);
+        for (auto objectIterator = objectInfos.begin(); objectIterator != objectInfos.end(); ++objectIterator) {
+            if((*objectIterator)->modelActor != nullptr) {
+                world->addActor((*objectIterator)->modelActor);
             }
-            if(!isAIGridStartPointSet && objectInfo->isAIGridStartPointSet ) { //if this is the first actor to set AI grid start point
-                aiGridStartPoint = objectInfo->aiGridStartPoint;
+            if(!isAIGridStartPointSet && (*objectIterator)->isAIGridStartPointSet ) { //if this is the first actor to set AI grid start point
+                aiGridStartPoint = (*objectIterator)->aiGridStartPoint;
+            }
+
+            // We will add static objects first, build AI grid, then add other objects
+            if((*objectIterator)->model->getMass() == 0 && !(*objectIterator)->model->isAnimated()) {
+                world->addModelToWorld((*objectIterator)->model);
+            } else {
+                notStaticObjects.push_back((*objectIterator)->model);
             }
         }
 
-        //ADD NEW ATTRIBUTES GOES UP FROM HERE
-        // We will add static objects first, build AI grid, then add other objects
-        if(objectInfo->model->getMass() == 0 && !objectInfo->model->isAnimated()) {
-            world->addModelToWorld(objectInfo->model);
-        } else {
-            notStaticObjects.push_back(objectInfo->model);
-        }
+        //DON'T ADD NEW ATTRIBUTES HERE STATIC AND OTHER OBJECTS ARE HANDLED DIFFERENTLY, ADD ATTRIBUTES BEFORE THAT
+
         objectNode = objectNode->NextSiblingElement("Object");
     } // end of while (objects)
 
@@ -350,17 +354,18 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
     return true;
 }
 
-std::unique_ptr<WorldLoader::ObjectInformation> WorldLoader::loadObject(AssetManager *assetManager,
-                                                                        tinyxml2::XMLElement *objectNode,
-                                                                        std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
-                                                                        LimonAPI *limonAPI) {
-    std::unique_ptr<ObjectInformation> loadedObjectInformation = std::make_unique<ObjectInformation>();
+std::vector<std::unique_ptr<WorldLoader::ObjectInformation>>
+WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *objectNode,
+                        std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI,
+                        PhysicalRenderable *parentObject) {
+    std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> loadedObjects;
+
 
 
     tinyxml2::XMLElement *objectAttribute =  objectNode->FirstChildElement("File");
     if (objectAttribute == nullptr) {
             std::cerr << "Object must have a source file." << std::endl;
-        return std::unique_ptr<ObjectInformation>(nullptr);
+        return loadedObjects;
         }
     std::string modelFile = objectAttribute->GetText();
     objectAttribute =  objectNode->FirstChildElement("Mass");
@@ -375,7 +380,7 @@ std::unique_ptr<WorldLoader::ObjectInformation> WorldLoader::loadObject(AssetMan
     objectAttribute =  objectNode->FirstChildElement("ID");
     if (objectAttribute == nullptr) {
             std::cerr << "Object does not have ID. Can't be loaded" << std::endl;
-            return std::unique_ptr<ObjectInformation>(nullptr);
+            return loadedObjects;
         } else {
             id = std::stoi(objectAttribute->GetText());
         }
@@ -396,8 +401,9 @@ std::unique_ptr<WorldLoader::ObjectInformation> WorldLoader::loadObject(AssetMan
                 std::cout << "Object disconnect status is unknown. defaulting to False" << std::endl;
             }
         }
-
+    std::unique_ptr<ObjectInformation> loadedObjectInformation = std::make_unique<ObjectInformation>();
     loadedObjectInformation->model = new Model(id, assetManager, modelMass, modelFile, disconnected);
+    loadedObjectInformation->model->setParentObject(parentObject);
 
     objectAttribute =  objectNode->FirstChildElement("StepOnSound");
 
@@ -415,10 +421,12 @@ std::unique_ptr<WorldLoader::ObjectInformation> WorldLoader::loadObject(AssetMan
     if(objectAttribute == nullptr) {
             std::cerr << "Object does not have transformation. Can't be loaded" << std::endl;
             delete loadedObjectInformation->model;
-        return std::unique_ptr<ObjectInformation>(nullptr);
+        return loadedObjects;
     }
     loadedObjectInformation->model->getTransformation()->deserialize(objectAttribute);
-
+    if(parentObject != nullptr) {
+        loadedObjectInformation->model->getTransformation()->setParentTransform(parentObject->getTransformation());
+    }
     //Since we are not loading objects recursively, these can be set here safely
     objectAttribute =  objectNode->FirstChildElement("Actor");
     if (objectAttribute == nullptr) {
@@ -442,13 +450,45 @@ std::unique_ptr<WorldLoader::ObjectInformation> WorldLoader::loadObject(AssetMan
     objectAttribute =  objectNode->FirstChildElement("Animation");
     if (objectAttribute == nullptr) {
 #ifndef NDEBUG
-            std::cout << "Object does not have default animation." << std::endl;
+        std::cout << "Object does not have default animation." << std::endl;
 #endif
-        } else {
+    } else {
         loadedObjectInformation->model->setAnimation(objectAttribute->GetText());
-        }
+    }
 
-    return loadedObjectInformation;
+    //now load children
+
+    tinyxml2::XMLElement* childrenNode =  objectNode->FirstChildElement("Children");
+
+    if(childrenNode != nullptr) {
+        //means there are children
+
+        tinyxml2::XMLElement* childrenCountNode =  childrenNode->FirstChildElement("Count");
+        if(childrenCountNode == nullptr || childrenCountNode->GetText() == nullptr) {
+            std::cerr << "Object has children node, but count it unknown. Children can't be loaded! " << std::endl;
+                    } else {
+            uint32_t childCount = std::stoi(childrenCountNode->GetText());
+            //loadedObjectInformation->model->children.resize(childCount);
+            tinyxml2::XMLElement *childNode = childrenNode->FirstChildElement("Child");
+            while (childNode != nullptr) {
+                tinyxml2::XMLElement *childObjectNode = childNode->FirstChildElement("Object");
+                std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> objectInfos = loadObject(assetManager,
+                                                                                                      childObjectNode,
+                                                                                                      requiredSounds,
+                                                                                                      limonAPI,
+                                                                                                      loadedObjectInformation->model);
+
+                loadedObjectInformation->model->addChild(objectInfos[objectInfos.size()-1]->model);//we know the root of the list is the last element
+
+                std::move(std::begin(objectInfos), std::end(objectInfos), std::back_inserter(loadedObjects));
+                childNode = childNode->NextSiblingElement("Child");
+            }
+        }
+    }
+    loadedObjects.push_back(std::move(loadedObjectInformation));
+
+
+    return loadedObjects;
 }
 
 bool WorldLoader::loadSkymap(tinyxml2::XMLNode *skymapNode, World* world) const {

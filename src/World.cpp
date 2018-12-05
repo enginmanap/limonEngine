@@ -812,6 +812,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     objectToAttach->getTransformation()->setOrientation(orientation);
                     objectToAttach->getTransformation()->setParentTransform(pickedModel->getTransformation());
                     objectToAttach->setParentObject(pickedModel);
+                    pickedModel->addChild(objectToAttach);
                     this->objectToAttach = nullptr;
                 }
             }
@@ -839,7 +840,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 //now prevent adding to self
 
                 if(ImGui::Button("Add model to group")) {
-                    modelGroups[selectedModelGroup]->addToGroup(pickedPhysicalRenderable);
+                    modelGroups[selectedModelGroup]->addChild(pickedPhysicalRenderable);
                 }
             } else {
                 ImGui::Button("Add model to group");

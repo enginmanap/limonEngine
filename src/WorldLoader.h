@@ -61,9 +61,9 @@ public:
     WorldLoader(AssetManager *assetManager, InputHandler *inputHandler, Options *options);
     World *loadWorld(const std::string &worldFile, LimonAPI *limonAPI) const;
 
-    static std::unique_ptr<ObjectInformation> loadObject(AssetManager *assetManager, tinyxml2::XMLElement *objectNode,
-                                                         std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
-                                                         LimonAPI *limonAPI);
+    static std::vector<std::unique_ptr<ObjectInformation>> loadObject(AssetManager *assetManager, tinyxml2::XMLElement *objectNode,
+                                                                          std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI,
+                                                                          PhysicalRenderable *parentObject);
 };
 
 

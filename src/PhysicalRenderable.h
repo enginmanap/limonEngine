@@ -21,6 +21,7 @@ protected:
     PhysicalRenderable* parentObject = nullptr; //this points to ModelGroup if this is part of a group.
 protected:
     bool disconnected = false;
+    std::vector<PhysicalRenderable*> children;
     std::unique_ptr<Sound> soundAttachment2 = nullptr;
 
 public:
@@ -133,6 +134,21 @@ public:
     void setParentObject(PhysicalRenderable *parentObject){
         this->parentObject = parentObject;
 
+    }
+
+    virtual void addChild(PhysicalRenderable* otherModel) {
+        this->children.push_back(otherModel);
+    }
+
+    virtual bool removeChild(PhysicalRenderable* otherModel) {
+        for (auto iterator = children.begin();
+             iterator != children.end(); ++iterator) {
+            if((*iterator) == otherModel) {
+                children.erase(iterator);
+                return true;
+            }
+        }
+        return false;
     }
 };
 
