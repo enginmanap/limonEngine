@@ -11,7 +11,7 @@
 
 
 class ModelGroup : public PhysicalRenderable, public GameObject {
-    std::vector<PhysicalRenderable*> renderables;
+    std::vector<PhysicalRenderable*> children;
     uint32_t worldObjectID;
     std::string name;
 public:
@@ -34,15 +34,15 @@ public:
     }
 
     const std::vector<PhysicalRenderable *> &getRenderables() const {
-        return renderables;
+        return children;
     }
 
-    void addToGroup(PhysicalRenderable* renderable);
+    void addChild(PhysicalRenderable *renderable) override;
 
-    bool removeFromGroup(PhysicalRenderable* renderable) {
-        for (auto element = renderables.begin(); element != renderables.end(); ++element) {
+    bool removeChild(PhysicalRenderable* renderable) override {
+        for (auto element = children.begin(); element != children.end(); ++element) {
             if((*element) == renderable) {
-                renderables.erase(element);
+                children.erase(element);
                 renderable->getTransformation()->removeParentTransform();
                 renderable->getTransformation()->addTranslate(this->getTransformation()->getTranslateSingle());
                 renderable->getTransformation()->addScale(this->getTransformation()->getScale());

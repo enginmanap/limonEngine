@@ -8,7 +8,7 @@
 
 void ModelGroup::renderWithProgram(GLSLProgram &program) {
     std::cerr << "Model Groups render with program used, it was not planned, nor tested." << std::endl;
-    for (auto renderable = renderables.begin(); renderable != renderables.end(); ++renderable) {
+    for (auto renderable = children.begin(); renderable != children.end(); ++renderable) {
         (*renderable)->renderWithProgram(program);
     }
 }
@@ -29,39 +29,39 @@ void ModelGroup::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLEleme
     this->transformation.serialize(document, objectGroupNode);
 
     tinyxml2::XMLElement *countNode = document.NewElement("ChildCount");
-    countNode->SetText(std::to_string(this->renderables.size()).c_str());
+    countNode->SetText(std::to_string(this->children.size()).c_str());
     objectGroupNode->InsertEndChild(countNode);
 
     tinyxml2::XMLElement *childrenNode = document.NewElement("Children");
     objectGroupNode->InsertEndChild(childrenNode);
 
-    for (size_t i = 0; i < renderables.size(); ++i) {
+    for (size_t i = 0; i < children.size(); ++i) {
         tinyxml2::XMLElement *currentElement = document.NewElement("Child");
         currentElement->SetAttribute("Index", std::to_string(i).c_str());
         childrenNode->InsertEndChild(currentElement);
 
-        renderables[i]->fillObjects(document,currentElement);
+        children[i]->fillObjects(document,currentElement);
     }
 
 }
 
 void ModelGroup::render() {
     std::cerr << "Model Groups render used, it was not planned, nor tested." << std::endl;
-    for (auto renderable = renderables.begin(); renderable != renderables.end(); ++renderable) {
+    for (auto renderable = children.begin(); renderable != children.end(); ++renderable) {
         (*renderable)->render();
     }
 }
 
 void ModelGroup::setupForTime(long time) {
     std::cerr << "Model Groups setup for time used, it was not planned, nor tested." << std::endl;
-    for (auto renderable = renderables.begin(); renderable != renderables.end(); ++renderable) {
+    for (auto renderable = children.begin(); renderable != children.end(); ++renderable) {
         (*renderable)->setupForTime(time);
     }
 }
 
 GameObject::ImGuiResult ModelGroup::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
     ImGuiResult result;
-    if(this->renderables.size() == 0) {
+    if(this->children.size() == 0) {
         ImGui::Text("This group is empty");
     } else {
         //Allow transformation editing.
@@ -122,7 +122,7 @@ ModelGroup *ModelGroup::deserialize(GLHelper *glHelper, AssetManager *assetManag
 
     uint32_t childCount = std::stoul(groupAttribute->GetText());
 
-    modelGroup->renderables.resize(childCount);
+    modelGroup->children.resize(childCount);
 
     tinyxml2::XMLElement* childrenNode =  ModelGroupsNode->FirstChildElement("Children");
 
@@ -140,19 +140,22 @@ ModelGroup *ModelGroup::deserialize(GLHelper *glHelper, AssetManager *assetManag
             size_t childIndex = std::stoul(std::string(childNode->Attribute("Index")));
 
             if(childNode->FirstChildElement("Object")) {
-                childObjects.push_back(WorldLoader::loadObject(assetManager,childNode->FirstChildElement("Object"), requiredSounds, limonAPI));
-                Model* model = childObjects.at(childObjects.size()-1)->model;
-                model->setParentObject(modelGroup);
-                modelGroup->renderables[childIndex] = model;
+                std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> childVector =
+                WorldLoader::loadObject(assetManager, childNode->FirstChildElement("Object"), requiredSounds,
+                                        limonAPI, modelGroup);
 
-                modelGroup->renderables[childIndex]->getTransformation()->setParentTransform(modelGroup->getTransformation());
+                childObjects.push_back(std::move(childVector[childVector.size() -1]));
+                Model* model = childObjects.at(childObjects.size()-1)->model;
+                modelGroup->children[childIndex] = model;
+
+                modelGroup->children[childIndex]->getTransformation()->setParentTransform(modelGroup->getTransformation());
             } else if(childNode->FirstChildElement("ObjectGroup")) {
                 ModelGroup* newModelGroup = ModelGroup::deserialize(glHelper, assetManager,
                                                                     childNode->FirstChildElement("ObjectGroup"),
                                                                     requiredSounds, childGroups, childObjects, limonAPI,
                                                                     modelGroup);
                 childGroups[newModelGroup->getWorldObjectID()] = newModelGroup;
-                modelGroup->renderables[childIndex] = newModelGroup;
+                modelGroup->children[childIndex] = newModelGroup;
             } else {
                 std::cerr << "The child is not Object, or Object group. Can't load unknown type, skipping." << std::endl;
             }
@@ -164,21 +167,21 @@ ModelGroup *ModelGroup::deserialize(GLHelper *glHelper, AssetManager *assetManag
     return modelGroup;
 }
 
-void ModelGroup::addToGroup(PhysicalRenderable *renderable) {
+void ModelGroup::addChild(PhysicalRenderable *renderable) {
     glm::vec3 averageTranslateDifference(0.0f, 0.0f, 0.0f);
-    if(renderables.size() != 0) {
-        for (auto iterator = renderables.begin(); iterator != renderables.end(); ++iterator) {
+    if(children.size() != 0) {
+        for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
             averageTranslateDifference += (*iterator)->getTransformation()->getTranslateSingle();//single because we are the parent
         }
     }
 
     averageTranslateDifference += renderable->getTransformation()->getTranslateSingle() - this->transformation.getTranslate();//if already had parent, don't use it
 
-    averageTranslateDifference = averageTranslateDifference * (1.0f / (renderables.size()+1)); //+1 because new renderable is not put in yet
+    averageTranslateDifference = averageTranslateDifference * (1.0f / (children.size()+1)); //+1 because new renderable is not put in yet
     //at this point, we know where the model group imguizmo should be, now move it, and update old children
 
     glm::vec3 difference = averageTranslateDifference;
-    for (auto iterator = renderables.begin(); iterator != renderables.end(); ++iterator) {
+    for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
         (*iterator)->getTransformation()->setTransformationsNotPropagate((*iterator)->getTransformation()->getTranslateSingle() - difference);
     }
 
@@ -196,5 +199,5 @@ void ModelGroup::addToGroup(PhysicalRenderable *renderable) {
     renderable->getTransformation()->setParentTransform(&this->transformation);
     renderable->setParentObject(this);
 
-    renderables.push_back(renderable);
+    children.push_back(renderable);
 }

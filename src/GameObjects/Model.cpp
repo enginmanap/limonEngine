@@ -346,6 +346,22 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
 
     transformation.serialize(document, objectElement);
 
+    //now handle children
+    if(this->children.size() > 0) {
+        tinyxml2::XMLElement *childrenNode = document.NewElement("Children");
+        tinyxml2::XMLElement *childrenCountNode = document.NewElement("Count");
+        childrenCountNode->SetText(std::to_string(children.size()).c_str());
+        objectElement->InsertEndChild(childrenCountNode);
+        objectElement->InsertEndChild(childrenNode);
+       for (size_t i = 0; i < children.size(); ++i) {
+           tinyxml2::XMLElement *childNode = document.NewElement("Child");
+           childNode->SetAttribute("Index", (uint32_t)i);
+           PhysicalRenderable* child = children[i];
+           child->fillObjects(document, childNode);
+           childrenNode->InsertEndChild(childNode);
+        }
+    }
+
     modelAsset->serializeCustomizations();
 }
 
@@ -421,6 +437,9 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
 }
 
 Model::~Model() {
+    if(this->parentObject != nullptr) {
+        this->parentObject->removeChild(this);
+    }
     delete rigidBody->getMotionState();
     delete rigidBody;
     delete compoundShape;
