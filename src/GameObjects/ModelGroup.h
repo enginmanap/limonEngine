@@ -11,7 +11,6 @@
 
 
 class ModelGroup : public PhysicalRenderable, public GameObject {
-    std::vector<PhysicalRenderable*> children;
     uint32_t worldObjectID;
     std::string name;
 public:
@@ -31,10 +30,6 @@ public:
 
     uint32_t getWorldObjectID() const override {
         return worldObjectID;
-    }
-
-    const std::vector<PhysicalRenderable *> &getRenderables() const {
-        return children;
     }
 
     void addChild(PhysicalRenderable *renderable) override;

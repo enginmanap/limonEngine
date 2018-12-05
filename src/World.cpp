@@ -2519,6 +2519,32 @@ void World::buildTreeFromAllGameObjects() {
             if(iterator->second->getParentObject() != nullptr) {
                 continue; //the parent will show this group
             }
+            createObjectTreeRecursive(iterator->second, pickedObjectID, nodeFlags, leafFlags);
+        }
+        //ModelGroups end
+
+        //Objects recursive
+        for (auto iterator = objects.begin(); iterator != objects.end(); ++iterator) {
+            if(iterator->second->getParentObject() != nullptr) {
+                continue; //the parent will show this group
+            }
+            if(iterator->second->hasChildren()) {
+                createObjectTreeRecursive(iterator->second, pickedObjectID, nodeFlags, leafFlags);
+            } else {
+                GameObject* currentObject = dynamic_cast<GameObject*>(iterator->second);
+                if(currentObject != nullptr) {
+                    ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+                    if (ImGui::IsItemClicked()) {
+                        pickedObject = currentObject;
+                    }
+                }
+            }
+        }
+        /*
+        for (auto iterator = objects.begin(); iterator != objects.end(); ++iterator) {
+            if(iterator->second->getParentObject() != nullptr) {
+                continue; //the parent will show this group
+            }
             GameObject* currentObject = dynamic_cast<GameObject*>(iterator->second);
             if(currentObject != nullptr) {
                 if(currentObject->getTypeID() == GameObject::MODEL_GROUP) {
@@ -2535,7 +2561,9 @@ void World::buildTreeFromAllGameObjects() {
                 }
             }
         }
-        //ModelGroups end
+         */
+        //Objects recursive end
+/*
         for (auto iterator = objects.begin(); iterator != objects.end(); ++iterator) {
             if(iterator->second->getParentObject() != nullptr) {
                 continue;//if there is a parent, parent should list this object
@@ -2548,6 +2576,7 @@ void World::buildTreeFromAllGameObjects() {
                 }
             }
         }
+        */
         ImGui::TreePop();
     }
 
@@ -2606,22 +2635,23 @@ void World::buildTreeFromAllGameObjects() {
     ImGui::EndChild();
 }
 
-void World::createObjectTreeRecursive(ModelGroup *modelGroup, uint32_t pickedObjectID, ImGuiTreeNodeFlags nodeFlags,
+void World::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID, ImGuiTreeNodeFlags nodeFlags,
                                        ImGuiTreeNodeFlags leafFlags) {
-    if(modelGroup == nullptr) {
+    GameObject* gameObjectOfSame = dynamic_cast<GameObject*>(physicalRenderable);
+    if(physicalRenderable == nullptr || gameObjectOfSame == nullptr) {
         return;
     }
 
-    bool isNodeOpen = ImGui::TreeNodeEx((modelGroup->getName() + "##ModelGroupsTreeElement" + std::to_string(modelGroup->getWorldObjectID())).c_str(),
-           nodeFlags | ((modelGroup->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected: 0));
+    bool isNodeOpen = ImGui::TreeNodeEx((gameObjectOfSame->getName() + "##ModelGroupsTreeElement" + std::to_string(gameObjectOfSame->getWorldObjectID())).c_str(),
+           nodeFlags | ((gameObjectOfSame->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected: 0));
     if (ImGui::IsItemClicked()) {
-        pickedObject = modelGroup;
+        pickedObject = gameObjectOfSame;
     }
     if(isNodeOpen){
-       for (auto iterator = modelGroup->getRenderables().begin(); iterator != modelGroup->getRenderables().end(); ++iterator) {
+       for (auto iterator = physicalRenderable->getChildren().begin(); iterator != physicalRenderable->getChildren().end(); ++iterator) {
            GameObject* currentObject = dynamic_cast<GameObject*>(*iterator);
            if(currentObject != nullptr) {
-               if(currentObject->getTypeID() == GameObject::MODEL_GROUP) {
+               if((*iterator)->hasChildren()) {
                    createObjectTreeRecursive(static_cast<ModelGroup *>(currentObject), pickedObjectID, nodeFlags, leafFlags);
                } else {
                    ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags |
