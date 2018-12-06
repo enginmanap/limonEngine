@@ -601,7 +601,7 @@ void World::render() {
             continue;
         }
         //FIXME why are these set here?
-        shadowMapProgramDirectional->setUniform("renderLightIndex", (int)i);
+        shadowMapProgramPoint->setUniform("renderLightIndex", (int)i);
         for (auto modelIterator = modelsInLightFrustum[i].begin(); modelIterator != modelsInLightFrustum[i].end(); ++modelIterator) {
             //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
             std::set<Model*> modelSet = modelIterator->second;
