@@ -600,6 +600,7 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
     tinyxml2::XMLElement* lightAttribute;
     tinyxml2::XMLElement* lightAttributeAttribute;
     float x,y,z;
+    uint32_t lightID;
     while(lightNode != nullptr) {
         lightAttribute = lightNode->FirstChildElement("Type");
         if (lightAttribute == nullptr) {
@@ -616,6 +617,15 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
             std::cerr << "Light type is not POINT or DIRECTIONAL. it is " << lightAttribute->GetText() << std::endl;
             return false;
         }
+
+        lightAttribute =  lightNode->FirstChildElement("ID");
+        if (lightAttribute == nullptr) {
+            std::cerr << "Light does not have ID. This is depricated, and will be removed!" << std::endl;
+            lightID = (uint32_t)world->lights.size();
+        } else {
+            lightID = std::stoul(lightAttribute->GetText());
+        }
+
         lightAttribute = lightNode->FirstChildElement("Position");
         if (lightAttribute == nullptr) {
             std::cerr << "Light must have a position/direction." << std::endl;
@@ -674,7 +684,7 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
         color.y = y;
         color.z = z;
 
-        xmlLight = new Light(glHelper, world->lights.size(), type, position, color);
+        xmlLight = new Light(glHelper, lightID, type, position, color);
         world->addLight(xmlLight);
         lightNode =  lightNode->NextSiblingElement("Light");
     }

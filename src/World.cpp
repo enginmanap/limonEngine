@@ -123,8 +123,9 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     onLoadActions.push_back(new ActionForOnload());//this is here for editor, as if no action is added, editor would fail to allow setting the first one.
 
     modelIndicesBuffer.reserve(NR_MAX_MODELS);
-    modelsInLightFrustum.resize(NR_POINT_LIGHTS);
-    animatedModelsInLightFrustum.resize(NR_POINT_LIGHTS);
+    modelsInLightFrustum.resize(NR_TOTAL_LIGHTS);
+    animatedModelsInLightFrustum.resize(NR_TOTAL_LIGHTS);
+    activeLights.reserve(NR_TOTAL_LIGHTS);
 
     /************ ImGui *****************************/
     // Setup ImGui binding
@@ -228,6 +229,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
              (*modelIt)->setupForTime(gameTime);
          }
      }
+
+     updateActiveLights();
      
      fillVisibleObjects();
 
@@ -343,14 +346,14 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
         }
     }
 
-    for (size_t currentLightIndex = 0; currentLightIndex < lights.size(); ++currentLightIndex) {
-        if(lights[currentLightIndex]->isFrustumChanged()) {
+    for (size_t currentLightIndex = 0; currentLightIndex < activeLights.size(); ++currentLightIndex) {
+        if(activeLights[currentLightIndex]->isFrustumChanged()) {
             modelsInLightFrustum[currentLightIndex].clear();
             animatedModelsInLightFrustum[currentLightIndex].clear();
             for (auto objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
                 setLightVisibilityAndPutToSets(currentLightIndex, objectIt->second, false);
             }
-            lights[currentLightIndex]->setFrustumChanged(false);
+            activeLights[currentLightIndex]->setFrustumChanged(false);
         } else {
             //if camera frustum not changed, but object itself changed case
             for (size_t i = 0; i < updatedModels.size(); ++i) {
@@ -366,7 +369,7 @@ void World::setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRen
     Model* currentModel = dynamic_cast<Model*>(PhysicalRenderable);
     assert(currentModel != nullptr);
     currentModel->setIsInLightFrustum(currentLightIndex,
-                                                  lights[currentLightIndex]->isShadowCaster(currentModel->getAabbMin(),
+                                      activeLights[currentLightIndex]->isShadowCaster(currentModel->getAabbMin(),
                                                                                             currentModel->getAabbMax(),
                                                                                             currentModel->getTransformation()->getTranslate()));
     if(currentModel->isInLightFrustum(currentLightIndex)) {
@@ -564,8 +567,8 @@ bool World::handlePlayerInput(InputHandler &inputHandler) {
 
 void World::render() {
 
-    for (unsigned int i = 0; i < lights.size(); ++i) {
-        if(lights[i]->getLightType() != Light::DIRECTIONAL) {
+    for (unsigned int i = 0; i < activeLights.size(); ++i) {
+        if(activeLights[i]->getLightType() != Light::DIRECTIONAL) {
             continue;
         }
         //generate shadow map
@@ -596,8 +599,8 @@ void World::render() {
     }
 
     glHelper->switchRenderToShadowMapPoint();
-    for (unsigned int i = 0; i < lights.size(); ++i) {
-        if(lights[i]->getLightType() != Light::POINT) {
+    for (unsigned int i = 0; i < activeLights.size(); ++i) {
+        if(activeLights[i]->getLightType() != Light::POINT) {
             continue;
         }
         //FIXME why are these set here?
@@ -774,8 +777,8 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
             }
         }
-        ImGui::Separator();
         if(pickedObject != nullptr && pickedObject->getTypeID() == GameObject::MODEL) {
+            ImGui::Separator();
             static float copyOffsets[3] { 0.25f, 0.25f, 0.25f};
             ImGui::DragFloat3("Copy position offsets", copyOffsets, 0.1f);
             if (ImGui::Button("Copy Selected object")) {
@@ -888,6 +891,23 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             triggers[to->getWorldObjectID()] = to;
 
             pickedObject = static_cast<GameObject*>(to);
+        }
+
+        if (ImGui::CollapsingHeader("Add New Light")) {
+
+            if(ImGui::Button("Add Point Light")) {
+                Light* newLight = new Light(glHelper, this->getNextObjectID(), Light::LightTypes::POINT, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
+                //this->lights.push_back(newLight);
+                this->addLight(newLight);
+                pickedObject = newLight;
+            }
+            if(directionalLightIndex == -1) {//Allow single directional light
+                if(ImGui::Button("Add Directional Light")) {
+                    Light* newLight = new Light(glHelper, this->getNextObjectID(), Light::LightTypes::DIRECTIONAL, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
+                    this->addLight(newLight);
+                }
+            }
+
         }
 
         if (ImGui::CollapsingHeader("Add GUI Elements##The header")) {
@@ -1377,7 +1397,7 @@ bool World::addModelToWorld(Model *xmlModel) {
     xmlModel->getRigidBody()->getAabb(aabbMin, aabbMax);
 
     updateWorldAABB(GLMConverter::BltToGLM(aabbMin), GLMConverter::BltToGLM(aabbMax));
-
+    updatedModels.push_back(xmlModel);
     return true;
 
 }
@@ -1410,7 +1430,7 @@ void World::createGridFrom(const glm::vec3 &aiGridStartPoint) {
     if(grid != nullptr) {
         delete grid;
     }
-    //grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING);
+    grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING);
 }
 
 void World::setSky(SkyBox *skyBox) {
@@ -1421,8 +1441,11 @@ void World::setSky(SkyBox *skyBox) {
 }
 
 void World::addLight(Light *light) {
-    glHelper->setLight(*(light), lights.size());//since size start from 0, this should be before adding it to vector
     this->lights.push_back(light);
+    if(light->getLightType() == Light::DIRECTIONAL) {
+        directionalLightIndex = (uint32_t)lights.size()-1;
+    }
+    updateActiveLights();
 }
 
 uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad,
@@ -1766,14 +1789,14 @@ bool World::removeObject(uint32_t objectID) {
             //we need to remove from ligth frustum lists, and camera frustum lists
             if(modelToRemove->isAnimated()) {
                 animatedModelsInFrustum.erase(modelToRemove);
-                for (size_t i = 0; i < lights.size(); ++i) {
+                for (size_t i = 0; i < activeLights.size(); ++i) {
                     animatedModelsInLightFrustum[i].erase(modelToRemove);
                 }
 
                 animatedModelsInAnyFrustum.erase(modelToRemove);
             } else {
                 modelsInCameraFrustum[modelToRemove->getAssetID()].erase(modelToRemove);
-                for (size_t i = 0; i < lights.size(); ++i) {
+                for (size_t i = 0; i < activeLights.size(); ++i) {
                     modelsInLightFrustum[i][modelToRemove->getAssetID()].erase(modelToRemove);
                 }
             }
@@ -2667,4 +2690,74 @@ void World::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, ui
        }
        ImGui::TreePop();
    }
+}
+
+struct LightCloserToPlayer {
+    glm::vec3 playerPosition;
+    LightCloserToPlayer(glm::vec3 playerPosition) : playerPosition(playerPosition) {}
+   bool operator()(Light const *a, Light const *b) const {
+       return glm::length2(a->getPosition() - playerPosition) <
+              glm::length2(b->getPosition() - playerPosition);
+   }
+};
+void World::updateActiveLights() {
+    // if player is not moved around and lights didn't move around, don't update
+    bool updated = false;
+    float distance = glm::distance(currentPlayer->getPosition(), lastLightUpdatePlayerPosition);
+    if(distance < 1.0f) {
+        for (size_t lightIndex = 0; lightIndex < lights.size(); ++lightIndex) {
+            if(lights[lightIndex]->isFrustumChanged()) {
+                updated = true;
+            }
+        }
+    } else {
+        updated = true;
+    }
+    if(!updated) {
+        return;
+    }
+
+    lastLightUpdatePlayerPosition = currentPlayer->getPosition();
+    activeLights.clear();
+
+    // we have NR_POINT lights, and directional lights. we should have 1 directional light, and rest point lights.
+    uint32_t fullLightsIndex = 0;
+    for (; fullLightsIndex < lights.size() && activeLights.size() < NR_POINT_LIGHTS; ++fullLightsIndex) {
+        if(lights[fullLightsIndex]->getLightType() != Light::LightTypes::DIRECTIONAL) {
+            activeLights.push_back(lights[fullLightsIndex]);
+            lights[fullLightsIndex]->setFrustumChanged(true);//since we needed update, force update;
+        }
+    }
+    if(lights.size() > NR_POINT_LIGHTS) {
+        std::sort(activeLights.begin(), activeLights.end(), LightCloserToPlayer(currentPlayer->getPosition()));
+        for (; fullLightsIndex < lights.size(); ++fullLightsIndex) {
+            if(lights[fullLightsIndex]->getLightType() == Light::LightTypes::DIRECTIONAL) {
+                continue;
+            }
+            uint32_t insertIndex = NR_POINT_LIGHTS-1;
+            while(insertIndex > 0 && (glm::length2(lights[fullLightsIndex]->getPosition() - currentPlayer->getPosition()) <
+                    glm::length2(activeLights[insertIndex]->getPosition() - currentPlayer->getPosition()))) {
+                activeLights[insertIndex] = activeLights[insertIndex-1];
+                insertIndex--;
+            }
+            if(insertIndex != NR_POINT_LIGHTS-1) {
+                activeLights[insertIndex] = lights[fullLightsIndex];
+                lights[fullLightsIndex]->setFrustumChanged(true);
+            } else {
+                //this means the light will not be used, there for it will not be needed for frustum culled;
+                lights[fullLightsIndex]->setFrustumChanged(false);//since we needed update, force update;
+            }
+        }
+    }
+
+    //at this point, add the directional light to the end
+    if(directionalLightIndex != -1) {
+        activeLights.push_back(lights[directionalLightIndex]);
+        lights[directionalLightIndex]->setFrustumChanged(true);
+    }
+
+    for (size_t lightIndex = 0; lightIndex < activeLights.size(); ++lightIndex) {
+        glHelper->setLight(*activeLights[lightIndex], lightIndex);
+    }
+
 }
