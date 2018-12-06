@@ -230,6 +230,10 @@ bool WorldSaver::fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
         }
         lightElement->InsertEndChild(currentElement);
 
+        currentElement = document.NewElement("ID");
+        currentElement->SetText(std::to_string((*it)->getWorldObjectID()).c_str());
+        lightElement->InsertEndChild(currentElement);
+
         tinyxml2::XMLElement *parent = document.NewElement("Position");
         glm::vec3 position = (*it)->getPosition();
         currentElement = document.NewElement("X");

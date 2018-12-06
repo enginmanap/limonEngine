@@ -191,6 +191,9 @@ private:
     std::unordered_map<uint32_t, std::unique_ptr<Sound>> sounds;
     AnimationSequenceInterface* animationInProgress = nullptr;
     std::vector<Light *> lights;
+    int32_t directionalLightIndex = -1;
+    glm::vec3 lastLightUpdatePlayerPosition = glm::vec3(0,0,0);
+    std::vector<Light *> activeLights; //this contains redundant pointers at most MAX_LIGHT elements, from lights array.
     std::vector<GUILayer *> guiLayers;
     std::unordered_map<uint32_t, ActorInterface*> actors;
     AIMovementGrid *grid = nullptr;
@@ -488,6 +491,8 @@ public:
     void buildTreeFromAllGameObjects();
 
     void createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID, int nodeFlags, int leafFlags);
+
+    void updateActiveLights();
 };
 
 #endif //LIMONENGINE_WORLD_H

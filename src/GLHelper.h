@@ -26,7 +26,8 @@
 
 #endif/*__APPLE__*/
 
-#define NR_POINT_LIGHTS 4
+#define NR_POINT_LIGHTS 3
+#define NR_TOTAL_LIGHTS 4
 #define NR_MAX_MODELS (1000)
 #define NR_MAX_MATERIALS 2000
 

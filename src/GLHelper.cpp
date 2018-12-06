@@ -206,7 +206,7 @@ void GLHelper::attachGeneralUBOs(const GLuint program){//Attach the light block 
         glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
         glUniformBlockBinding(program, uniformIndex, lightAttachPoint);
         glBindBufferRange(GL_UNIFORM_BUFFER, lightAttachPoint, lightUBOLocation, 0,
-                          lightUniformSize * NR_POINT_LIGHTS);
+                          lightUniformSize * NR_TOTAL_LIGHTS);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
@@ -313,8 +313,8 @@ GLHelper::GLHelper(Options *options): options(options) {
     //create the Light Uniform Buffer Object for later usage
     glGenBuffers(1, &lightUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    std::vector<GLubyte> emptyData(lightUniformSize * NR_POINT_LIGHTS, 0);
-    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * NR_POINT_LIGHTS, &emptyData[0], GL_STATIC_DRAW);
+    std::vector<GLubyte> emptyData(lightUniformSize * NR_TOTAL_LIGHTS, 0);
+    glBufferData(GL_UNIFORM_BUFFER, lightUniformSize * NR_TOTAL_LIGHTS, &emptyData[0], GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //create player transforms uniform buffer object
@@ -347,7 +347,7 @@ GLHelper::GLHelper(Options *options): options(options) {
     glGenTextures(1, &depthMapDirectional);
     glBindTexture(GL_TEXTURE_2D_ARRAY, depthMapDirectional);
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT, options->getShadowMapDirectionalWidth(),
-                 options->getShadowMapDirectionalHeight(), NR_POINT_LIGHTS, 0,
+                 options->getShadowMapDirectionalHeight(), NR_TOTAL_LIGHTS, 0,
                  GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -370,7 +370,7 @@ GLHelper::GLHelper(Options *options): options(options) {
     glGenTextures(1, &depthCubemapPoint);
     glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, depthCubemapPoint);
     glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, GL_DEPTH_COMPONENT, options->getShadowMapPointWidth(),
-                 options->getShadowMapPointHeight(), NR_POINT_LIGHTS*6, 0,
+                 options->getShadowMapPointHeight(), NR_TOTAL_LIGHTS*6, 0,
                  GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
