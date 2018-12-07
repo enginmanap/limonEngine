@@ -230,7 +230,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          }
      }
 
-     updateActiveLights();
+     updateActiveLights(false);
      
      fillVisibleObjects();
 
@@ -1209,6 +1209,24 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     }
                     }
                     break;
+                case GameObject::LIGHT: {
+                    if(objectEditorResult.remove) {
+                        for (auto iterator = lights.begin(); iterator != lights.end(); ++iterator) {
+                            if((*iterator)->getWorldObjectID() == pickedObject->getWorldObjectID()) {
+                                lights.erase(iterator);
+                                break;
+                            }
+                        }
+                        if(static_cast<Light*>(pickedObject)->getLightType() == Light::LightTypes::DIRECTIONAL) {
+                            directionalLightIndex = -1;
+                        }
+                        delete pickedObject;
+                        std::cout << "delete the light" << std::endl;
+                        updateActiveLights(true);
+                        pickedObject = nullptr;
+                    }
+                }
+                break;
                 default: {
                     //there is nothing for now
                 }
@@ -1445,7 +1463,7 @@ void World::addLight(Light *light) {
     if(light->getLightType() == Light::DIRECTIONAL) {
         directionalLightIndex = (uint32_t)lights.size()-1;
     }
-    updateActiveLights();
+    updateActiveLights(false);
 }
 
 uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad,
@@ -2700,21 +2718,23 @@ struct LightCloserToPlayer {
               glm::length2(b->getPosition() - playerPosition);
    }
 };
-void World::updateActiveLights() {
-    // if player is not moved around and lights didn't move around, don't update
-    bool updated = false;
-    float distance = glm::distance(currentPlayer->getPosition(), lastLightUpdatePlayerPosition);
-    if(distance < 1.0f) {
-        for (size_t lightIndex = 0; lightIndex < lights.size(); ++lightIndex) {
-            if(lights[lightIndex]->isFrustumChanged()) {
-                updated = true;
+void World::updateActiveLights(bool forceUpdate) {
+    if(!forceUpdate) {
+        // if player is not moved around and lights didn't move around, don't update
+        float distance = glm::distance(currentPlayer->getPosition(), lastLightUpdatePlayerPosition);
+        if (distance < 1.0f) {
+            for (size_t lightIndex = 0; lightIndex < lights.size(); ++lightIndex) {
+                if (lights[lightIndex]->isFrustumChanged()) {
+                    forceUpdate = true;
+                    break;
+                }
             }
+        } else {
+            forceUpdate = true;
         }
-    } else {
-        updated = true;
-    }
-    if(!updated) {
-        return;
+        if (!forceUpdate) {
+            return;
+        }
     }
 
     lastLightUpdatePlayerPosition = currentPlayer->getPosition();
@@ -2758,6 +2778,12 @@ void World::updateActiveLights() {
 
     for (size_t lightIndex = 0; lightIndex < activeLights.size(); ++lightIndex) {
         glHelper->setLight(*activeLights[lightIndex], lightIndex);
+        std::cout << "set light index " << lightIndex << std::endl;
+    }
+
+    for (uint32_t i = activeLights.size(); i < NR_TOTAL_LIGHTS; ++i) {
+        glHelper->removeLight(i);
+        std::cout << "Removed light index " << i << std::endl;
     }
 
 }
