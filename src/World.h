@@ -492,7 +492,7 @@ public:
 
     void createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID, int nodeFlags, int leafFlags);
 
-    void updateActiveLights();
+    void updateActiveLights(bool forceUpdate = false);
 };
 
 #endif //LIMONENGINE_WORLD_H

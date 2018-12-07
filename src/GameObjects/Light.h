@@ -142,7 +142,7 @@ public:
     };
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) {
-        static ImGuiResult result;
+        ImGuiResult result;
 
         bool crudeUpdated = false;
         static glm::vec3 preciseTranslatePoint = this->position;
@@ -185,6 +185,11 @@ public:
 
         //now we should have object matrix updated, update the object
         this->setPosition(glm::vec3(objectMatrix[3][0], objectMatrix[3][1], objectMatrix[3][2]));
+
+        if(ImGui::Button("Remove light")) {
+            result.remove = true;
+            std::cout << "remove button press" << std::endl;
+        }
 
         return result;
     }

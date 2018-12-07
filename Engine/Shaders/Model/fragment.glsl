@@ -112,8 +112,7 @@ float ShadowCalculationPoint(vec3 fragPos, float bias, float viewDistance, int l
     return shadow;
 }
 
-void main(void)
-{
+void main(void) {
         vec4 objectColor;
         if((material.isMap & 0x0004)!=0) {
             if((material.isMap & 0x0001)!=0) { //if there is a opacity map, and it with diffuse

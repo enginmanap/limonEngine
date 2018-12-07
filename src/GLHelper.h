@@ -365,6 +365,15 @@ public:
 
     void setLight(const Light &light, const int i);
 
+    void removeLight(const int i) {
+        GLint temp = 0;
+        glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
+        glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec4) + sizeof(glm::vec3),
+                        sizeof(GLint), &temp);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        checkErrors("removeLight");
+    }
+
     void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix);
 
     void switchRenderToShadowMapDirectional(const unsigned int index);
