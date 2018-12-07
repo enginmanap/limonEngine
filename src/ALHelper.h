@@ -110,7 +110,17 @@ public:
         if(playingSounds.find(soundID) != playingSounds.end()) {
             return playingSounds[soundID]->looped || !playingSounds[soundID]->isFinished();
         }
-        return false;
+        //it is possible that play is requested, but not yet started, they should be considered playing too, check it
+        bool result = false;
+        SDL_AtomicLock(&playRequestLock);
+        for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
+            if((*request)->soundID == soundID) {
+                result = true;
+                break;
+            }
+        }
+        SDL_AtomicUnlock(&playRequestLock);
+        return result;
     }
 
     uint32_t stop(uint32_t soundID);
