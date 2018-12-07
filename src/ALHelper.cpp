@@ -52,8 +52,7 @@ int ALHelper::soundManager() {
             paused = false;
             resumed = false;
         } else if(running) {
-            if (playRequests.size() >
-                0) { //this might miss a request because not locking, but I am ok with 10ms delay at most
+            if (playRequests.size() > 0) { //this might miss a request because not locking, but I am ok with 10ms delay at most
                 SDL_AtomicLock(&playRequestLock);
                 for (size_t i = 0; i < playRequests.size(); ++i) {
                     std::unique_ptr<PlayingSound> &sound = playRequests.at(i);
