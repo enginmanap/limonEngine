@@ -2437,6 +2437,8 @@ Model *World::findModelByID(uint32_t modelID) const {
 }
 
 bool World::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID) {
+    PhysicalRenderable* objectToAttach;
+    PhysicalRenderable* objectToAttachTo;
     if(objectID == objectToAttachToID) {
         //can't attach to self
         return false;
@@ -2449,9 +2451,11 @@ bool World::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID)
             return false;
         } else {
             transform1 = startingPlayer.attachedModel->getTransformation();
+            objectToAttach = startingPlayer.attachedModel;
         }
     } else {
         transform1 = objects[objectID]->getTransformation();
+        objectToAttach = objects[objectID];
     }
 
     //there is another possibility, that is the player attachment
@@ -2460,12 +2464,21 @@ bool World::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID)
             return false;
         } else {
             transform2 = startingPlayer.attachedModel->getTransformation();
+            objectToAttachTo = startingPlayer.attachedModel;
+
         }
     } else {
         transform2 = objects[objectToAttachToID]->getTransformation();
+        objectToAttachTo = objects[objectToAttachToID];
+
     }
 
+
+    //The offset removal of the parent is not exposed via API. We should manually remove that from the object
+    transform1->addTranslate(-1 * objectToAttachTo->getCenterOffset());
+
     transform1->setParentTransform(transform2);
+    objectToAttach->setParentObject(objectToAttachTo);
     return true;
 
 }
