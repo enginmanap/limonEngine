@@ -20,7 +20,6 @@ protected:
     btRigidBody *rigidBody = nullptr;
     PhysicalRenderable* parentObject = nullptr; //this points to ModelGroup if this is part of a group.
     int32_t parentBoneID = -1;
-protected:
     bool disconnected = false;
     std::vector<PhysicalRenderable*> children;
     std::unique_ptr<Sound> soundAttachment2 = nullptr;
@@ -158,6 +157,10 @@ public:
 
     bool hasChildren() const {
         return !children.empty();
+    }
+
+    const glm::vec3 &getCenterOffset() const {
+        return centerOffset;
     }
 };
 
