@@ -357,6 +357,8 @@ public:
 
     bool setUniform(const GLuint programID, const GLuint uniformID, const glm::vec3 &vector);
 
+    bool setUniform(const GLuint programID, const GLuint uniformID, const std::vector<glm::vec3> &vectorArray);
+
     bool setUniform(const GLuint programID, const GLuint uniformID, const float value);
 
     bool setUniform(const GLuint programID, const GLuint uniformID, const int value);
