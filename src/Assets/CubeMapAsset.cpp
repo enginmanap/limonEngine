@@ -31,7 +31,7 @@ CubeMapAsset::CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const s
                       IMG_GetError << std::endl;
             exit(-1);
         } else {
-            std::cout << "TextureAsset " << path + "/" + names[i] << " loaded succesfully." << std::endl;
+            //std::cout << "TextureAsset " << path + "/" + names[i] << " loaded succesfully." << std::endl;
         }
 
     }

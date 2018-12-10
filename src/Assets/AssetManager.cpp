@@ -51,7 +51,7 @@ void AssetManager::addAssetsRecursively(const std::string &directoryPath, const 
                     newNode->assetType = assetType;
                     newNode->parent = nodeToProcess;
                     nodeToProcess->children.push_back(newNode);
-                    std::cout << entry->d_name << " added as asset. with type " << assetType << std::endl;
+                    //std::cout << entry->d_name << " added as asset. with type " << assetType << std::endl;
                 } else {
                     //file found but not added because extension is not in list
                 }
@@ -93,7 +93,7 @@ std::vector<std::pair<std::string, AssetManager::AssetTypes>> AssetManager::load
                 exit(1);
             }
             extensionList.push_back(std::pair<std::string, AssetTypes>(currentAssetNode->GetText(), currentAssetType));
-            std::cout << "adding available asset extension " << currentAssetNode->GetText() << std::endl;
+            //std::cout << "adding available asset extension " << currentAssetNode->GetText() << std::endl;
         } else {
             std::cerr << "Asset extension without a type is invalid, skipping" << std::endl;
         }
