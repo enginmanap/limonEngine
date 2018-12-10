@@ -670,6 +670,20 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
     }
 }
 
+bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const std::vector<glm::vec3> &vectorArray) {
+    if (!glIsProgram(programID)) {
+        std::cerr << "invalid program for setting uniform." << std::endl;
+        return false;
+    } else {
+        state->setProgram(programID);
+        glUniform3fv(uniformID, vectorArray.size(), glm::value_ptr(*vectorArray.data()));
+                //state->setProgram(0);
+        uniformSetCount++;
+        checkErrors("setUniformVector");
+        return true;
+    }
+}
+
 bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const float value) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;

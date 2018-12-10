@@ -41,6 +41,13 @@ public:
         return false;
     }
 
+    bool setUniform(const std::string &uniformName, const std::vector<glm::vec3> &vectorArray) {
+        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GLHelper::FLOAT_VEC3) {
+            return glHelper->setUniform(programID, uniformMap[uniformName]->location, vectorArray);
+        }
+        return false;
+    }
+
     bool setUniform(const std::string &uniformName, const float value) {
         if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GLHelper::FLOAT) {
             return glHelper->setUniform(programID, uniformMap[uniformName]->location, value);
