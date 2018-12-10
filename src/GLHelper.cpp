@@ -394,12 +394,11 @@ GLHelper::GLHelper(Options *options): options(options) {
     glReadBuffer(GL_NONE);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    checkErrors("Constructor bf ssao");
 
-    //create depth buffer for SSAO
-    glGenFramebuffers(1, &depthOnlyFrameBufferSSAO);
-    glGenTextures(1, &depthMapSSAO);
-    glBindTexture(GL_TEXTURE_2D, depthMapSSAO);
+    //create prepass depth
+    glGenFramebuffers(1, &depthOnlyFrameBuffer);
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, screenWidth, screenHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -409,13 +408,13 @@ GLHelper::GLHelper(Options *options): options(options) {
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferSSAO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapSSAO, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    /****************************** SSAO KERNEL AND NOISE **************************************/
+    /****************************** SSAO NOISE **************************************/
     std::uniform_real_distribution<GLfloat> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
     std::default_random_engine generator;
     // generate noise texture
@@ -433,7 +432,7 @@ GLHelper::GLHelper(Options *options): options(options) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    /****************************** SSAO KERNEL AND NOISE **************************************/
+    /****************************** SSAO NOISE **************************************/
 
     frustumPlanes.resize(6);
 
@@ -617,13 +616,13 @@ void GLHelper::switchRenderToShadowMapPoint() {
     checkErrors("switchRenderToShadowMapPoint");
 }
 
-void GLHelper::switchRenderToSSAO() {
+void GLHelper::switchRenderToDepthPrePass() {
     glViewport(0, 0, screenWidth, screenHeight);
-    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferSSAO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapSSAO, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
 
     glCullFace(GL_BACK);
-    checkErrors("switchRenderToSSAO");
+    checkErrors("switchRenderToDepthPrePass");
 }
 
 void GLHelper::switchRenderToDefault() {
@@ -632,7 +631,7 @@ void GLHelper::switchRenderToDefault() {
     //we bind shadow map to last texture unit
     state->attach2DTextureArray(depthMapDirectional, maxTextureImageUnits - 1);
     state->attachCubemapArray(depthCubemapPoint, maxTextureImageUnits - 2);
-    state->attachTexture(depthMapSSAO, maxTextureImageUnits - 3);
+    state->attachTexture(depthMap, maxTextureImageUnits - 3);
     state->attachTexture(noiseTexture, maxTextureImageUnits - 4);
 
     glCullFace(GL_BACK);
@@ -777,10 +776,10 @@ GLHelper::~GLHelper() {
     deleteBuffer(1, allMaterialsUBOLocation);
     deleteBuffer(1, depthMapDirectional);
     deleteBuffer(1, depthCubemapPoint);
-    deleteBuffer(1, depthMapSSAO);
+    deleteBuffer(1, depthMap);
     glDeleteFramebuffers(1, &depthOnlyFrameBufferDirectional); //maybe we should wrap this up too
     glDeleteFramebuffers(1, &depthOnlyFrameBufferPoint);
-    glDeleteFramebuffers(1, &depthOnlyFrameBufferSSAO);
+    glDeleteFramebuffers(1, &depthOnlyFrameBuffer);
     //state->setProgram(0);
 }
 

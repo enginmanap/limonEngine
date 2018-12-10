@@ -72,8 +72,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                                             "./Engine/Shaders/ShadowMap/geometryPoint.glsl",
                                             "./Engine/Shaders/ShadowMap/fragmentPoint.glsl", false);
 
-    ssaoProgram = new GLSLProgram(glHelper, "./Engine/Shaders/SSAO/vertex.glsl",
-                                  "./Engine/Shaders/SSAO/fragment.glsl", false);
+    depthBufferProgram = new GLSLProgram(glHelper, "./Engine/Shaders/depthPrePass/vertex.glsl",
+                                  "./Engine/Shaders/depthPrePass/fragment.glsl", false);
 
 
     apiGUILayer = new GUILayer(glHelper, debugDrawer, 1);
@@ -631,7 +631,7 @@ void World::render() {
     }
     /**************** SSAO ********************************************************/
 
-    glHelper->switchRenderToSSAO();
+    glHelper->switchRenderToDepthPrePass();
     for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
         //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
         std::set<Model*> modelSet = modelIterator->second;
@@ -643,14 +643,14 @@ void World::render() {
             sampleModel = *model;
         }
         if(sampleModel != nullptr) {
-            sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *ssaoProgram);
+            sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *depthBufferProgram);
         }
     }
 
     for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
         std::vector<uint32_t > temp;
         temp.push_back((*modelIterator)->getWorldObjectID());
-        (*modelIterator)->renderWithProgramInstanced(temp, *ssaoProgram);
+        (*modelIterator)->renderWithProgramInstanced(temp, *depthBufferProgram);
     }
 
     if(startingPlayer.attachedModel != nullptr && !currentPlayer->isDead()) {//don't render attched model if dead

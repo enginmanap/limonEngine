@@ -186,7 +186,7 @@ void main(void) {
         }
         occlusion = 1 - occlusion;
 
-        vec3 lightingColorFactor = (material.ambient) * occlusion;
+        vec3 lightingColorFactor = (material.ambient + vec3(0.35, 0.35, 0.35)) * occlusion;
         if((material.isMap & 0x0008)!=0) {
             lightingColorFactor = vec3(texture(ambientSampler, from_vs.textureCoord));
         }
