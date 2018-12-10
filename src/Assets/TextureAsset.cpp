@@ -48,7 +48,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
                   << std::endl;
         exit(1);
     } else {
-        std::cout << "TextureAsset " << name[0] << " loaded from disk successfully." << std::endl;
+        //std::cout << "TextureAsset " << name[0] << " loaded from disk successfully." << std::endl;
     }
     if (surface->format->BytesPerPixel == 4) {
         if(surface->format->format != SDL_PIXELFORMAT_ABGR8888) {
@@ -83,5 +83,5 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
 
 TextureAsset::~TextureAsset() {
     assetManager->getGlHelper()->deleteTexture(textureBufferID);
-    std::cout << "Texture asset deleted: " << name[0] << std::endl;
+    //std::cout << "Texture asset deleted: " << name[0] << std::endl;
 }

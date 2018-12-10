@@ -91,7 +91,7 @@ GLuint GLHelper::createProgram(const std::vector<GLuint> &shaderList) {
         std::cerr << "Linking failed: \n" << strInfoLog << std::endl;
         delete[] strInfoLog;
     } else {
-        std::cout << "Program compiled successfully" << std::endl;
+        //std::cout << "Program compiled successfully" << std::endl;
     }
 
     for (size_t iLoop = 0; iLoop < shaderList.size(); iLoop++) {

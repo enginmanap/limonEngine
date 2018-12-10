@@ -24,7 +24,7 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     if (fileList.size() > 1) {
         std::cerr << "multiple files are sent to Model constructor, extra elements ignored." << std::endl;
     }
-    std::cout << "ASSIMP::Loading::" << name << std::endl;
+    //std::cout << "ASSIMP::Loading::" << name << std::endl;
     const aiScene *scene;
     Assimp::Importer import;
     scene = import.ReadFile(name, aiProcess_FlipUVs
@@ -59,13 +59,13 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
 
     this->hasAnimation = (scene->mNumAnimations != 0);
 
-    std::cout << "ASSIMP::success::" << name << std::endl;
+    //std::cout << "ASSIMP::success::" << name << std::endl;
 
     if (!scene->HasMeshes()) {
         std::cout << "Model does not contain a mesh. This is not handled." << std::endl;
         exit(-1);
     } else {
-        std::cout << "Model "<< this->name << " has " << scene->mNumMeshes << " mesh(es)." << std::endl;
+        //std::cout << "Model "<< this->name << " has " << scene->mNumMeshes << " mesh(es)." << std::endl;
     }
 
     this->rootNode = loadNodeTree(scene->mRootNode);
@@ -79,7 +79,7 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     boundingBoxMax = GLMConverter::AssimpToGLM(max);
     boundingBoxMin = GLMConverter::AssimpToGLM(min);
     centerOffset = glm::vec3((max.x + min.x) / 2, (max.y + min.y) / 2, (max.z + min.z) / 2);
-    std::cout << "Model asset: " << name << "Assimp bounding box is " << GLMUtils::vectorToString(boundingBoxMin) << ", " <<  GLMUtils::vectorToString(boundingBoxMax) << std::endl;
+    //std::cout << "Model asset: " << name << "Assimp bounding box is " << GLMUtils::vectorToString(boundingBoxMin) << ", " <<  GLMUtils::vectorToString(boundingBoxMax) << std::endl;
     //Implicit call to import.FreeScene(), and removal of scene.
 
     //it is possible that there are mixamo animation files, chech if they do, add them too if needed
@@ -184,11 +184,11 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &property)) {
                 if(property.data[0] != '*') {
                     newMaterial->setDiffuseTexture(property.C_Str());
-                    std::cout << "set diffuse texture " << property.C_Str() << std::endl;
+                    //std::cout << "set diffuse texture " << property.C_Str() << std::endl;
                 } else {
                     //embeddedTexture handling
                     newMaterial->setDiffuseTexture(property.C_Str(), &this->name);
-                    std::cout << "set (embedded) setDiffuseTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
+                    //std::cout << "set (embedded) setDiffuseTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
                 }
             } else {
                 std::cerr << "The model contained diffuse texture information, but texture loading failed. \n" <<
@@ -304,8 +304,7 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
         if(!strncmp(aiNode->mName.C_Str(), "UCX_", strlen("UCX_"))) {
             //if starts with "UCX_"
             simplifiedMeshes[mesh->getName()] = mesh;
-            std::cout << "simplified mesh " << currentMesh->mName.C_Str() << " for node " << aiNode->mName.C_Str()
-                      << std::endl;
+            //std::cout << "simplified mesh " << currentMesh->mName.C_Str() << " for node " << aiNode->mName.C_Str() << std::endl;
         } else {
 
             if (meshMaterial->hasOpacityMap()) {
@@ -313,8 +312,7 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
             } else {
                 meshes.insert(meshes.begin(), mesh);
             }
-            std::cout << "set mesh " << currentMesh->mName.C_Str() << " for node " << aiNode->mName.C_Str()
-                      << std::endl;
+            //std::cout << "set mesh " << currentMesh->mName.C_Str() << " for node " << aiNode->mName.C_Str() << std::endl;
         }
 
     }

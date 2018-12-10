@@ -371,7 +371,7 @@ WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *object
     objectAttribute =  objectNode->FirstChildElement("Mass");
     float modelMass;
     if (objectAttribute == nullptr) {
-            std::cout << "Object does not have mass, assume 0." << std::endl;
+            //std::cout << "Object does not have mass, assume 0." << std::endl;
             modelMass = 0;
         } else {
             modelMass = std::stof(objectAttribute->GetText());
@@ -389,7 +389,7 @@ WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *object
     objectAttribute =  objectNode->FirstChildElement("Disconnected");
     if (objectAttribute == nullptr) {
 #ifndef NDEBUG
-            std::cout << "Object disconnect status is not set. defaulting to False" << std::endl;
+            //std::cout << "Object disconnect status is not set. defaulting to False" << std::endl;
 #endif
         } else {
             std::string disConnectedText = objectAttribute->GetText();
@@ -398,7 +398,7 @@ WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *object
             } else if(disConnectedText == "False") {
                 disconnected = false;
             } else {
-                std::cout << "Object disconnect status is unknown. defaulting to False" << std::endl;
+                //std::cout << "Object disconnect status is unknown. defaulting to False" << std::endl;
             }
         }
     std::unique_ptr<ObjectInformation> loadedObjectInformation = std::make_unique<ObjectInformation>();
@@ -416,7 +416,7 @@ WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *object
     objectAttribute =  objectNode->FirstChildElement("StepOnSound");
 
     if (objectAttribute == nullptr) {
-        std::cerr << "Object does not have step on sound." << std::endl;
+        //std::cerr << "Object does not have step on sound." << std::endl;
     } else {
         std::string stepOnSound = objectAttribute->GetText();
         if(requiredSounds.find(stepOnSound) == requiredSounds.end()) {
@@ -446,7 +446,7 @@ WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *object
     objectAttribute =  objectNode->FirstChildElement("Actor");
     if (objectAttribute == nullptr) {
 #ifndef NDEBUG
-        std::cout << "Object does not have AI." << std::endl;
+        //std::cout << "Object does not have AI." << std::endl;
 #endif
     } else {
         ActorInterface* actor = ActorInterface::deserializeActorInterface(objectAttribute, limonAPI);
@@ -454,7 +454,6 @@ WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *object
         loadedObjectInformation->aiGridStartPoint = GLMConverter::BltToGLM(loadedObjectInformation->model->getRigidBody()->getCenterOfMassPosition()) +
                            glm::vec3(0, 2.0f, 0);
         loadedObjectInformation->isAIGridStartPointSet = true;
-        std::cout << "Object has AI." << std::endl;
         if(actor != nullptr) {//most likely shared library not found, but in general possible.
             loadedObjectInformation->modelActor = actor;
             loadedObjectInformation->modelActor->setModel(loadedObjectInformation->model->getWorldObjectID());
@@ -465,7 +464,7 @@ WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *object
     objectAttribute =  objectNode->FirstChildElement("Animation");
     if (objectAttribute == nullptr) {
 #ifndef NDEBUG
-        std::cout << "Object does not have default animation." << std::endl;
+        //std::cout << "Object does not have default animation." << std::endl;
 #endif
     } else {
         loadedObjectInformation->model->setAnimation(objectAttribute->GetText());
