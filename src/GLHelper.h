@@ -197,8 +197,9 @@ private:
     GLuint depthOnlyFrameBufferPoint;
     GLuint depthCubemapPoint;
 
-    GLuint depthOnlyFrameBufferSSAO;
-    GLuint depthMapSSAO;
+    GLuint depthOnlyFrameBuffer;
+    GLuint depthMap;
+
 
     unsigned int noiseTexture;
 
@@ -317,7 +318,7 @@ public:
         glClear(GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
         glClear(GL_DEPTH_BUFFER_BIT);
-        glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferSSAO);
+        glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBuffer);
         glClear(GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -390,7 +391,7 @@ public:
 
     void switchRenderToShadowMapPoint();
 
-    void switchRenderToSSAO();
+    void switchRenderToDepthPrePass();
 
     void switchRenderToDefault();
 
