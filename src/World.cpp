@@ -72,6 +72,9 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                                             "./Engine/Shaders/ShadowMap/geometryPoint.glsl",
                                             "./Engine/Shaders/ShadowMap/fragmentPoint.glsl", false);
 
+    ssaoProgram = new GLSLProgram(glHelper, "./Engine/Shaders/SSAO/vertex.glsl",
+                                  "./Engine/Shaders/SSAO/fragment.glsl", false);
+
 
     apiGUILayer = new GUILayer(glHelper, debugDrawer, 1);
     apiGUILayer->setDebug(false);
@@ -626,7 +629,39 @@ void World::render() {
             (*animatedModelIterator)->renderWithProgramInstanced(temp,*shadowMapProgramPoint);
         }
     }
+    /**************** SSAO ********************************************************/
 
+    glHelper->switchRenderToSSAO();
+    for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
+        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
+        std::set<Model*> modelSet = modelIterator->second;
+        modelIndicesBuffer.clear();
+        Model* sampleModel = nullptr;
+        for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
+            //all of these models will be rendered
+            modelIndicesBuffer.push_back((*model)->getWorldObjectID());
+            sampleModel = *model;
+        }
+        if(sampleModel != nullptr) {
+            sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *ssaoProgram);
+        }
+    }
+
+    for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
+        std::vector<uint32_t > temp;
+        temp.push_back((*modelIterator)->getWorldObjectID());
+        (*modelIterator)->renderWithProgramInstanced(temp, *ssaoProgram);
+    }
+
+    if(startingPlayer.attachedModel != nullptr && !currentPlayer->isDead()) {//don't render attched model if dead
+        startingPlayer.attachedModel->setupForTime(gameTime);
+        std::vector<uint32_t> temp;
+        temp.push_back(startingPlayer.attachedModel->getWorldObjectID());
+        startingPlayer.attachedModel->renderInstanced(temp);
+    }
+
+
+    /************** END OF SSAO ********************************************************/
     glHelper->switchRenderToDefault();
     if(sky!=nullptr) {
         sky->render();//this is moved to the top, because transparency can create issues if this is at the end

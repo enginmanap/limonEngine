@@ -7,7 +7,9 @@ layout (std140) uniform PlayerTransformBlock {
     mat4 camera;
     mat4 projection;
     mat4 cameraProjection;
+    mat4 inverseTransposeProjection;
     vec3 position;
+    vec2 noiseScale;
 } playerTransforms;
 
 struct LightSource
@@ -44,6 +46,8 @@ out vec4 finalColor;
 
 uniform sampler2DArray shadowSamplerDirectional;
 uniform samplerCubeArray shadowSamplerPoint;
+uniform sampler2D ssaoSampler;
+uniform sampler2D ssaoNoiseSampler;
 
 uniform sampler2D ambientSampler;
 uniform sampler2D diffuseSampler;
@@ -51,7 +55,7 @@ uniform sampler2D specularSampler;
 uniform sampler2D opacitySampler;
 uniform sampler2D normalSampler;
 
-uniform vec3 pointSampleOffsetDirections[20] = vec3[]
+vec3 pointSampleOffsetDirections[20] = vec3[]
 (
    vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1),
    vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
@@ -59,6 +63,9 @@ uniform vec3 pointSampleOffsetDirections[20] = vec3[]
    vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
    vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
+
+uniform vec3 ssaoKernel[128];
+uniform int ssaoSampleCount;
 
 float ShadowCalculationDirectional(vec4 fragPosLightSpace, float bias, float lightIndex){
     // perform perspective divide
@@ -112,6 +119,13 @@ float ShadowCalculationPoint(vec3 fragPos, float bias, float viewDistance, int l
     return shadow;
 }
 
+vec3 calcViewSpacePos(vec3 screen) {
+    vec4 temp = vec4(screen.x, screen.y, screen.z, 1);
+    temp *= playerTransforms.inverseTransposeProjection;
+    vec3 camera_space = temp.xyz / temp.w;
+    return camera_space;
+}
+
 void main(void) {
         vec4 objectColor;
         if((material.isMap & 0x0004)!=0) {
@@ -132,14 +146,49 @@ void main(void) {
             objectColor = vec4(material.diffuse, 1.0);
         }
 
-        vec3 lightingColorFactor = material.ambient;
-        if((material.isMap & 0x0008)!=0) {
-            lightingColorFactor = vec3(texture(ambientSampler, from_vs.textureCoord));
-        }
-
         vec3 normal = from_vs.normal;
+
         if((material.isMap & 0x0010) != 0) {
             normal = -1 * vec3(texture(normalSampler, from_vs.textureCoord));
+        }
+
+        float occlusion = 0.0;
+
+        if(length(playerTransforms.position - from_vs.fragPos) < 100) {
+            vec3 randomVec = texture(ssaoNoiseSampler, from_vs.fragPos.xy * playerTransforms.noiseScale).xyz;
+
+            vec3 tangent   = normalize(randomVec - normal * dot(randomVec, normal));
+            vec3 bitangent = cross(normal, tangent);
+            mat3 TBN       = mat3(tangent, bitangent, normal);
+
+            float uRadius = 0.5f;
+            for(int i = 0; i < ssaoSampleCount; ++i){
+                // get sample position
+                vec3 samplePosition = TBN * ssaoKernel[i]; // From tangent to view-space
+                samplePosition = samplePosition * uRadius;
+                samplePosition  += vec3(from_vs.fragPos);
+
+                vec4 offset = vec4(samplePosition, 1.0);
+                offset = playerTransforms.cameraProjection * offset;    // from view to clip-space
+                offset.xyz /= offset.w;               // perspective divide
+                offset.xyz  = offset.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0
+
+                float sampleDepth = texture(ssaoSampler, offset.xy).r;
+
+                vec3 realElement = calcViewSpacePos(vec3(offset.xy, sampleDepth));
+                vec3 kernelElement = calcViewSpacePos(offset.xyz);
+
+                float rangeCheck= abs(realElement.z - kernelElement.z) < 1 ? 1.0 : 0.0;
+                occlusion += (realElement.z >= kernelElement.z ? 1.0 : 0.0) * rangeCheck;
+            }
+
+            occlusion = occlusion / ssaoSampleCount;
+        }
+        occlusion = 1 - occlusion;
+
+        vec3 lightingColorFactor = (material.ambient) * occlusion;
+        if((material.isMap & 0x0008)!=0) {
+            lightingColorFactor = vec3(texture(ambientSampler, from_vs.textureCoord));
         }
 
         float shadow;

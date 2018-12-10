@@ -209,7 +209,9 @@ private:
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
 
-    GLSLProgram *shadowMapProgramDirectional, *shadowMapProgramPoint;
+    GLSLProgram *shadowMapProgramDirectional = nullptr;
+    GLSLProgram *shadowMapProgramPoint = nullptr;
+    GLSLProgram *ssaoProgram = nullptr;
     FontManager fontManager;
 
     PlayerInfo startingPlayer;

@@ -2,6 +2,7 @@
 // Created by Engin Manap on 10.02.2016.
 //
 
+#include <random>
 #include "GLHelper.h"
 #include "GLSLProgram.h"
 
@@ -222,6 +223,9 @@ void GLHelper::attachGeneralUBOs(const GLuint program){//Attach the light block 
 
 
 GLHelper::GLHelper(Options *options): options(options) {
+
+    this->screenHeight = options->getScreenHeight();
+    this->screenWidth = options->getScreenWidth();
     GLenum rev;
     error = GL_NO_ERROR;
     glewExperimental = GL_TRUE;
@@ -390,6 +394,46 @@ GLHelper::GLHelper(Options *options): options(options) {
     glReadBuffer(GL_NONE);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    checkErrors("Constructor bf ssao");
+
+    //create depth buffer for SSAO
+    glGenFramebuffers(1, &depthOnlyFrameBufferSSAO);
+    glGenTextures(1, &depthMapSSAO);
+    glBindTexture(GL_TEXTURE_2D, depthMapSSAO);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, screenWidth, screenHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferSSAO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapSSAO, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    /****************************** SSAO KERNEL AND NOISE **************************************/
+    std::uniform_real_distribution<GLfloat> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
+    std::default_random_engine generator;
+    // generate noise texture
+    // ----------------------
+    std::vector<glm::vec3> ssaoNoise;
+    for (unsigned int i = 0; i < 16; i++)
+    {
+        glm::vec3 noise(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, 0.0f); // rotate around z-axis (in tangent space)
+        ssaoNoise.push_back(noise);
+    }
+    glGenTextures(1, &noiseTexture);
+    glBindTexture(GL_TEXTURE_2D, noiseTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 4, 4, 0, GL_RGB, GL_FLOAT, &ssaoNoise[0]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    /****************************** SSAO KERNEL AND NOISE **************************************/
 
     frustumPlanes.resize(6);
 
@@ -573,6 +617,14 @@ void GLHelper::switchRenderToShadowMapPoint() {
     checkErrors("switchRenderToShadowMapPoint");
 }
 
+void GLHelper::switchRenderToSSAO() {
+    glViewport(0, 0, screenWidth, screenHeight);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferSSAO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapSSAO, 0);
+
+    glCullFace(GL_BACK);
+    checkErrors("switchRenderToSSAO");
+}
 
 void GLHelper::switchRenderToDefault() {
     glViewport(0, 0, screenWidth, screenHeight);
@@ -580,8 +632,10 @@ void GLHelper::switchRenderToDefault() {
     //we bind shadow map to last texture unit
     state->attach2DTextureArray(depthMapDirectional, maxTextureImageUnits - 1);
     state->attachCubemapArray(depthCubemapPoint, maxTextureImageUnits - 2);
+    state->attachTexture(depthMapSSAO, maxTextureImageUnits - 3);
+    state->attachTexture(noiseTexture, maxTextureImageUnits - 4);
+
     glCullFace(GL_BACK);
-    //glEnable(GL_CULL_FACE);
     checkErrors("switchRenderToDefault");
 }
 
@@ -722,7 +776,11 @@ GLHelper::~GLHelper() {
     deleteBuffer(1, playerUBOLocation);
     deleteBuffer(1, allMaterialsUBOLocation);
     deleteBuffer(1, depthMapDirectional);
+    deleteBuffer(1, depthCubemapPoint);
+    deleteBuffer(1, depthMapSSAO);
     glDeleteFramebuffers(1, &depthOnlyFrameBufferDirectional); //maybe we should wrap this up too
+    glDeleteFramebuffers(1, &depthOnlyFrameBufferPoint);
+    glDeleteFramebuffers(1, &depthOnlyFrameBufferSSAO);
     //state->setProgram(0);
 }
 
@@ -732,7 +790,8 @@ void GLHelper::reshape() {
     this->screenWidth = options->getScreenWidth();
     glViewport(0, 0, options->getScreenWidth(), options->getScreenHeight());
     aspect = float(options->getScreenHeight()) / float(options->getScreenWidth());
-    perspectiveProjectionMatrix = glm::perspective(options->PI/3.0f, 1.0f / aspect, 0.01f, 1000.0f);
+    perspectiveProjectionMatrix = glm::perspective(options->PI/3.0f, 1.0f / aspect, 0.01f, 10000.0f);
+    inverseTransposeProjection = glm::transpose(glm::inverse(perspectiveProjectionMatrix));
     orthogonalProjectionMatrix = glm::ortho(0.0f, (float) options->getScreenWidth(), 0.0f, (float) options->getScreenHeight());
     checkErrors("reshape");
 }
@@ -962,11 +1021,14 @@ void GLHelper::setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) {
 void GLHelper::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform) {
     this->cameraMatrix = cameraTransform;
     glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0 * sizeof(glm::mat4), sizeof(glm::mat4), &cameraMatrix);//changes with camera
-    glBufferSubData(GL_UNIFORM_BUFFER, 1 * sizeof(glm::mat4), sizeof(glm::mat4), &perspectiveProjectionMatrix);//never changes
+    glBufferSubData(GL_UNIFORM_BUFFER, 0 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(cameraMatrix));//changes with camera
+    glBufferSubData(GL_UNIFORM_BUFFER, 1 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(perspectiveProjectionMatrix));//never changes
     glm::mat4 viewMatrix = perspectiveProjectionMatrix * cameraMatrix;
-    glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), sizeof(glm::mat4), &viewMatrix);//changes with camera
-    glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), sizeof(glm::vec3), &cameraPosition);//changes with camera
+    glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(viewMatrix));//changes with camera
+    glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(inverseTransposeProjection));//never changes
+    glBufferSubData(GL_UNIFORM_BUFFER, 4 * sizeof(glm::mat4), sizeof(glm::vec3), glm::value_ptr(cameraPosition));//changes with camera
+    glm::vec2 noiseScale(this->screenWidth / 4, this->screenHeight / 4);
+    glBufferSubData(GL_UNIFORM_BUFFER, 4 * sizeof(glm::mat4)+ sizeof(glm::vec4), sizeof(glm::vec2), glm::value_ptr(noiseScale));//never changes
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     calculateFrustumPlanes(cameraMatrix, perspectiveProjectionMatrix, frustumPlanes);

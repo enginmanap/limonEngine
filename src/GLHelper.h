@@ -197,15 +197,21 @@ private:
     GLuint depthOnlyFrameBufferPoint;
     GLuint depthCubemapPoint;
 
+    GLuint depthOnlyFrameBufferSSAO;
+    GLuint depthMapSSAO;
+
+    unsigned int noiseTexture;
+
     Options *options;
 
     const uint_fast32_t lightUniformSize = (sizeof(glm::mat4) * 7) + (2 * sizeof(glm::vec4));
-    const uint32_t playerUniformSize = 3 * sizeof(glm::mat4) + sizeof(glm::vec4);
+    const uint32_t playerUniformSize = 4 * sizeof(glm::mat4) + sizeof(glm::vec4) + sizeof(glm::vec4);
     int32_t materialUniformSize = 2 * sizeof(glm::vec3) + sizeof(float) + sizeof(GLuint);
     int32_t modelUniformSize = sizeof(glm::mat4);
 
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;
+    glm::mat4 inverseTransposeProjection;
     std::vector<glm::vec4>frustumPlanes;
     glm::mat4 orthogonalProjectionMatrix;
     glm::mat4 lightProjectionMatrixDirectional;
@@ -234,7 +240,7 @@ private:
 #ifndef NDEBUG
         GLenum fbStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (fbStatus != GL_FRAMEBUFFER_COMPLETE) {
-            std::cerr << "FB status is " << fbStatus << std::endl;
+            std::cerr << "FB status while " << callerFunc << " is " << fbStatus << std::endl;
         }
         bool hasError = false;
         while ((error = glGetError()) != GL_NO_ERROR) {
@@ -311,6 +317,8 @@ public:
         glClear(GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
         glClear(GL_DEPTH_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferSSAO);
+        glClear(GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         renderTriangleCount = 0;
@@ -381,6 +389,8 @@ public:
     void switchRenderToShadowMapDirectional(const unsigned int index);
 
     void switchRenderToShadowMapPoint();
+
+    void switchRenderToSSAO();
 
     void switchRenderToDefault();
 
