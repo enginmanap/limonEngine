@@ -2826,12 +2826,10 @@ void World::updateActiveLights(bool forceUpdate) {
 
     for (size_t lightIndex = 0; lightIndex < activeLights.size(); ++lightIndex) {
         glHelper->setLight(*activeLights[lightIndex], lightIndex);
-        std::cout << "set light index " << lightIndex << std::endl;
     }
 
     for (uint32_t i = activeLights.size(); i < NR_TOTAL_LIGHTS; ++i) {
         glHelper->removeLight(i);
-        std::cout << "Removed light index " << i << std::endl;
     }
 
 }
