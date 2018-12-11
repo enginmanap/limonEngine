@@ -2479,6 +2479,8 @@ bool World::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID)
 
     transform1->setParentTransform(transform2);
     objectToAttach->setParentObject(objectToAttachTo);
+    objectToAttachTo->addChild(objectToAttach);
+
     return true;
 
 }
