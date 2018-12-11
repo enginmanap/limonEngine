@@ -61,7 +61,7 @@ class PhysicalPlayer : public Player, public CameraAttachment {
 
 public:
     glm::vec3 getPosition() const {
-        return GLMConverter::BltToGLM(player->getCenterOfMassPosition());
+        return GLMConverter::BltToGLM(player->getCenterOfMassPosition()) + glm::vec3(0.0f, 1.0f, 0.0f);
     }
 
     void move(moveDirections);
@@ -107,6 +107,7 @@ public:
     }
     void getCameraVariables(glm::vec3& position, glm::vec3 &center, glm::vec3& up, glm::vec3& right) {
         position = GLMConverter::BltToGLM(this->getRigidBody()->getWorldTransform().getOrigin());
+        position.y += 1.0f;//for putting the camera up portion of capsule
         center = this->center;
         up = this->up;
         right = this->right;
@@ -144,7 +145,7 @@ public:
         this->right = glm::normalize(glm::cross(center, up));
 
         btTransform transform = this->player->getCenterOfMassTransform();
-        transform.setOrigin(btVector3(position.x, position.y, position.z));
+        transform.setOrigin(btVector3(position.x, position.y - 1.0f, position.z));
         this->player->setWorldTransform(transform);
         this->player->getMotionState()->setWorldTransform(transform);
         this->player->activate();
@@ -181,7 +182,7 @@ public:
 
     inline void setAttachedModelTransformation(Model *attachedModel) {
         if(attachedModel != nullptr) {
-            attachedModel->getTransformation()->setTranslate( GLMConverter::BltToGLM(getRigidBody()->getWorldTransform().getOrigin()) + getLookDirectionQuaternion() * attachedModelOffset);
+            attachedModel->getTransformation()->setTranslate( GLMConverter::BltToGLM(getRigidBody()->getWorldTransform().getOrigin()) + glm::vec3(0,1,0)  + getLookDirectionQuaternion() * attachedModelOffset);
         }
     }
 
