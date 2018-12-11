@@ -9,7 +9,7 @@
 #include "Animations/AnimationAssimp.h"
 #include "../GLHelper.h"
 #include "Animations/AnimationAssimpSection.h"
-#include "../../libs/imgui/imgui.h"
+#include "../../libs/ImGui/imgui.h"
 
 ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList)
         : Asset(assetManager, assetID,

@@ -4,7 +4,7 @@
 
 #include "ModelGroup.h"
 #include "Model.h"
-#include "../../libs/imgui/imgui.h"
+#include "../../libs/ImGui/imgui.h"
 
 void ModelGroup::renderWithProgram(GLSLProgram &program) {
     std::cerr << "Model Groups render with program used, it was not planned, nor tested." << std::endl;
