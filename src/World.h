@@ -57,6 +57,7 @@ class ModelGroup;
 class QuadRenderBase;
 class CombinePostProcess;
 class SSAOPostProcess;
+class SSAOBlurPostProcess;
 
 class GLHelper;
 class ALHelper;
@@ -254,6 +255,7 @@ private:
     Model* objectToAttach = nullptr;
     CombinePostProcess* combiningObject;
     SSAOPostProcess* ssaoPostProcess;
+    SSAOBlurPostProcess* ssaoBlurPostProcess;
     bool guiPickMode = false;
     enum class QuitResponse
     {

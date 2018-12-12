@@ -497,6 +497,38 @@ GLHelper::GLHelper(Options *options): options(options) {
 
     // SSAO Framebuffer
 
+    /**************************** SSAO blur ******************************************/
+
+    // SSAO Framebuffer
+    glGenFramebuffers(1, &ssaoBlurFrameBuffer);
+
+    glGenTextures(1, &ssaoBlurredMap);
+    glBindTexture(GL_TEXTURE_2D, ssaoBlurredMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, screenWidth, screenHeight, 0, GL_RGB, GL_FLOAT, nullptr);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFrameBuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ssaoBlurredMap, 0);
+
+    glGenRenderbuffers(1, &rboDepth3);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth3);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, screenWidth, screenHeight);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth3);
+    unsigned int attachments3[2] = { GL_NONE, GL_COLOR_ATTACHMENT1 };
+    glDrawBuffers(2, attachments3);
+    fbStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (fbStatus != GL_FRAMEBUFFER_COMPLETE) {
+        std::cerr << "SSAO Blur frame buffer is not complete: " << fbStatus  << ": " << gluErrorString(fbStatus) << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    /********************** SSAO BLUR END ***********************************************************/
 
     /****************************** SSAO NOISE **************************************/
     std::uniform_real_distribution<GLfloat> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
@@ -729,10 +761,17 @@ void GLHelper::switchRenderToSSAOGeneration() {
     state->attachTexture(normalMap, 2);
     state->attachTexture(noiseTexture, 3);
     glCullFace(GL_BACK);
-    checkErrors("switchRenderToColoring");
+    checkErrors("switchRenderToSSAOGeneration");
 }
 
-
+void GLHelper::switchRenderToSSAOBlur() {
+    glViewport(0, 0, screenWidth, screenHeight);
+    glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFrameBuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ssaoBlurredMap, 0);
+    state->attachTexture(ssaoMap, 1);
+    glCullFace(GL_BACK);
+    checkErrors("switchRenderToSSAOBlur");
+}
 
 void GLHelper::switchRenderToCombining(){
         glViewport(0, 0, screenWidth, screenHeight);
@@ -740,7 +779,7 @@ void GLHelper::switchRenderToCombining(){
         //we combine diffuse+specular lighted with ambient / SSAO
         state->attachTexture(diffuseAndSpecularLightedMap, 1);
         state->attachTexture(ambientMap, 2);
-        state->attachTexture(ssaoMap,3);
+        state->attachTexture(ssaoBlurredMap,3);
         //glEnable(GL_CULL_FACE);
         checkErrors("switchRenderToCombining");
 

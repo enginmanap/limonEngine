@@ -206,9 +206,13 @@ private:
     GLuint ambientMap;
     GLuint rboDepth;
     GLuint rboDepth2;
+    GLuint rboDepth3;
 
     GLuint ssaoGenerationFrameBuffer;
     GLuint ssaoMap;
+
+    GLuint ssaoBlurFrameBuffer;
+    GLuint ssaoBlurredMap;
 
     unsigned int noiseTexture;
 
@@ -332,6 +336,8 @@ public:
         glClear(GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, ssaoGenerationFrameBuffer);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFrameBuffer);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);//clear for default
 
@@ -401,14 +407,11 @@ public:
     void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix);
 
     void switchRenderToShadowMapDirectional(const unsigned int index);
-
     void switchRenderToShadowMapPoint();
-
     void switchRenderToDepthPrePass();
-
     void switchRenderToColoring();
     void switchRenderToSSAOGeneration();
-
+    void switchRenderToSSAOBlur();
     void switchRenderToCombining();
 
     int getMaxTextureImageUnits() const {
