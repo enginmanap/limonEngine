@@ -12,16 +12,17 @@
 class GLHelper;
 class GLSLProgram;
 
-class CombiningObject {
-    GLHelper* glHelper = nullptr;
-    GLSLProgram* program;
-
+class QuadRenderBase {
     uint32_t vao, ebo;
     std::vector<uint32_t> bufferObjects;
     std::map<std::string, int32_t> textureAttachments;
 
+    virtual void initializeProgram() = 0;
+protected:
+    GLSLProgram* program = nullptr;
+    GLHelper* glHelper = nullptr;
 public:
-    CombiningObject(GLHelper* glHelper);
+    QuadRenderBase(GLHelper* glHelper);
 
     void setSourceTexture(std::string samplerName, int32_t textureID) {
         textureAttachments[samplerName] = textureID;
@@ -34,7 +35,9 @@ public:
         }
         return false;
     }
-    void render();
+    virtual void render();
+
+    virtual ~QuadRenderBase() {}
 };
 
 

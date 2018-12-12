@@ -7,15 +7,17 @@ in VS_FS {
 } from_vs;
 
 uniform sampler2D diffuseSpecularLighted;
-uniform sampler2D ambientWithSSAO;
+uniform sampler2D ambient;
+uniform sampler2D ssao;
 
 void main()
 {
 
     vec4 baseColor = texture(diffuseSpecularLighted, from_vs.textureCoordinates).rgba;
-    vec3 ambientFactor = texture(ambientWithSSAO, from_vs.textureCoordinates).rgb;
+    vec3 ambientFactor = texture(ambient, from_vs.textureCoordinates).rgb;
+    float ssao = texture(ssao, from_vs.textureCoordinates).r;
 
-    finalColor = baseColor + vec4(ambientFactor, 0.0);
+    finalColor = baseColor - (vec4(ambientFactor, 0.0) * ssao);
 }
 
 

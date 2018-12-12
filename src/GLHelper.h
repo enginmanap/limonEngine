@@ -205,6 +205,10 @@ private:
     GLuint diffuseAndSpecularLightedMap;
     GLuint ambientMap;
     GLuint rboDepth;
+    GLuint rboDepth2;
+
+    GLuint ssaoGenerationFrameBuffer;
+    GLuint ssaoMap;
 
     unsigned int noiseTexture;
 
@@ -326,6 +330,8 @@ public:
         glClear(GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBuffer);
         glClear(GL_DEPTH_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, ssaoGenerationFrameBuffer);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);//clear for default
 
@@ -401,6 +407,7 @@ public:
     void switchRenderToDepthPrePass();
 
     void switchRenderToColoring();
+    void switchRenderToSSAOGeneration();
 
     void switchRenderToCombining();
 

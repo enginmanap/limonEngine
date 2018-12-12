@@ -2,11 +2,11 @@
 // Created by engin on 12.12.2018.
 //
 
-#include "CombiningObject.h"
+#include "QuadRenderBase.h"
 #include "../GLHelper.h"
 #include "../GLSLProgram.h"
 
-CombiningObject::CombiningObject(GLHelper *glHelper) : glHelper(glHelper){
+QuadRenderBase::QuadRenderBase(GLHelper *glHelper) : glHelper(glHelper){
     std::vector<glm::vec3> vertices;
 
     vertices.push_back(glm::vec3( -1.0f,  1.0f, 0.0f));
@@ -34,12 +34,9 @@ CombiningObject::CombiningObject(GLHelper *glHelper) : glHelper(glHelper){
     glHelper->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 2);
     bufferObjects.push_back(vbo);
 
-    program = new GLSLProgram(glHelper, "./Engine/Shaders/CombineAll/vertex.glsl",
-            "./Engine/Shaders/CombineAll/fragment.glsl", false);
-
 }
 
-void CombiningObject::render() {
+void QuadRenderBase::render() {
 
     //we should attach textures
     for (auto textureIterator = textureAttachments.begin();

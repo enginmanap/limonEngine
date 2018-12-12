@@ -31,16 +31,18 @@
 #include "GameObjects/GUIButton.h"
 #include "GameObjects/GUIAnimation.h"
 #include "GameObjects/ModelGroup.h"
-#include "Utils/CombiningObject.h"
+#include "PostProcess/QuadRenderBase.h"
+#include "PostProcess/CombinePostProcess.h"
+#include "PostProcess/SSAOPostProcess.h"
 
 
-   const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
-        {
-                { Types::PHYSICAL_PLAYER, "Physical"},
-                { Types::DEBUG_PLAYER, "Debug"},
-                { Types::EDITOR_PLAYER, "Editor"},
-                { Types::MENU_PLAYER, "Menu" }
-        };
+const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
+    {
+            { Types::PHYSICAL_PLAYER, "Physical"},
+            { Types::DEBUG_PLAYER, "Debug"},
+            { Types::EDITOR_PLAYER, "Editor"},
+            { Types::MENU_PLAYER, "Menu" }
+    };
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
              AssetManager *assetManager, Options *options)
@@ -112,9 +114,17 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
             break;
     }
 
-    combiningObject = new CombiningObject(glHelper);
+
+    ssaoPostProcess = new SSAOPostProcess(glHelper);
+    ssaoPostProcess->setSourceTexture("depthMapSampler", 1);
+    ssaoPostProcess->setSourceTexture("normalMapSampler", 2);
+    ssaoPostProcess->setSourceTexture("ssaoNoiseSampler", 3);
+
+    combiningObject = new CombinePostProcess(glHelper);
     combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
-    combiningObject->setSourceTexture("ambientWithSSAO", 2);
+    combiningObject->setSourceTexture("ambient", 2);
+    combiningObject->setSourceTexture("ssao", 3);
+
 
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
     camera = new Camera(options, currentPlayer->getCameraAttachment());//register is just below
@@ -736,6 +746,9 @@ void World::render() {
     debugDrawer->flushDraws();
 
     //at this point, we should combine all of the coloring
+
+    glHelper->switchRenderToSSAOGeneration();
+    ssaoPostProcess->render();
 
     glHelper->switchRenderToCombining();
     combiningObject->render();

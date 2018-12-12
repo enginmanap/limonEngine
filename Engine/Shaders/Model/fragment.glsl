@@ -156,46 +156,12 @@ void main(void) {
 
         normalOutput = normal;
 
-        float occlusion = 0.0;
-
-        if(length(playerTransforms.position - from_vs.fragPos) < 100) {
-            vec3 randomVec = texture(ssaoNoiseSampler, from_vs.fragPos.xy * playerTransforms.noiseScale).xyz;
-
-            vec3 tangent   = normalize(randomVec - normal * dot(randomVec, normal));
-            vec3 bitangent = cross(normal, tangent);
-            mat3 TBN       = mat3(tangent, bitangent, normal);
-
-            float uRadius = 0.5f;
-            for(int i = 0; i < ssaoSampleCount; ++i){
-                // get sample position
-                vec3 samplePosition = TBN * ssaoKernel[i]; // From tangent to view-space
-                samplePosition = samplePosition * uRadius;
-                samplePosition  += vec3(from_vs.fragPos);
-
-                vec4 offset = vec4(samplePosition, 1.0);
-                offset = playerTransforms.cameraProjection * offset;    // from view to clip-space
-                offset.xyz /= offset.w;               // perspective divide
-                offset.xyz  = offset.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0
-
-                float sampleDepth = texture(ssaoSampler, offset.xy).r;
-
-                vec3 realElement = calcViewSpacePos(vec3(offset.xy, sampleDepth));
-                vec3 kernelElement = calcViewSpacePos(offset.xyz);
-
-                float rangeCheck= abs(realElement.z - kernelElement.z) < 1 ? 1.0 : 0.0;
-                occlusion += (realElement.z >= kernelElement.z ? 1.0 : 0.0) * rangeCheck;
-            }
-
-            occlusion = occlusion / ssaoSampleCount;
-        }
-        occlusion = 1 - occlusion;
-
-        vec3 lightingColorFactor;
         if((material.isMap & 0x0008)!=0) {
             ambientColor = vec3(texture(ambientSampler, from_vs.textureCoord));
         } else {
-            ambientColor = material.ambient * occlusion;
+            ambientColor = material.ambient;
         }
+        vec3 lightingColorFactor = ambientColor;
 
         float shadow;
         for(int i=0; i < NR_POINT_LIGHTS; ++i){

@@ -53,7 +53,10 @@ class AnimationNode;
 class AnimationSequenceInterface;
 class LimonAPI;
 class ModelGroup;
-class CombiningObject;
+
+class QuadRenderBase;
+class CombinePostProcess;
+class SSAOPostProcess;
 
 class GLHelper;
 class ALHelper;
@@ -249,7 +252,8 @@ private:
     ImGuiHelper *imgGuiHelper;
     GameObject* pickedObject = nullptr;
     Model* objectToAttach = nullptr;
-    CombiningObject* combiningObject;
+    CombinePostProcess* combiningObject;
+    SSAOPostProcess* ssaoPostProcess;
     bool guiPickMode = false;
     enum class QuitResponse
     {
