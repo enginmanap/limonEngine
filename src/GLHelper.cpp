@@ -705,7 +705,6 @@ void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &text
 void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
     glViewport(0, 0, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight());
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
-    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional, 0, index);
     glCullFace(GL_FRONT);
     checkErrors("switchRenderToShadowMapDirectional");
 }
@@ -721,7 +720,6 @@ void GLHelper::switchRenderToShadowMapPoint() {
 void GLHelper::switchRenderToDepthPrePass() {
     glViewport(0, 0, screenWidth, screenHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
     glCullFace(GL_BACK);
     checkErrors("switchRenderToDepthPrePass");
 }
@@ -729,9 +727,7 @@ void GLHelper::switchRenderToDepthPrePass() {
 void GLHelper::switchRenderToColoring() {
     glViewport(0, 0, screenWidth, screenHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, coloringFrameBuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, diffuseAndSpecularLightedMap, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ambientMap, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, normalMap, 0);
+
     //we bind shadow map to last texture unit
     state->attach2DTextureArray(depthMapDirectional, maxTextureImageUnits - 1);
     state->attachCubemapArray(depthCubemapPoint, maxTextureImageUnits - 2);
@@ -744,7 +740,6 @@ void GLHelper::switchRenderToColoring() {
 void GLHelper::switchRenderToSSAOGeneration() {
     glViewport(0, 0, screenWidth, screenHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, ssaoGenerationFrameBuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ssaoMap, 0);
     state->attachTexture(depthMap, 1);
     state->attachTexture(normalMap, 2);
     state->attachTexture(noiseTexture, 3);
@@ -755,7 +750,6 @@ void GLHelper::switchRenderToSSAOGeneration() {
 void GLHelper::switchRenderToSSAOBlur() {
     glViewport(0, 0, screenWidth, screenHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFrameBuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ssaoBlurredMap, 0);
     state->attachTexture(ssaoMap, 1);
     glCullFace(GL_BACK);
     checkErrors("switchRenderToSSAOBlur");
