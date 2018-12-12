@@ -116,7 +116,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     }
 
 
-    ssaoPostProcess = new SSAOPostProcess(glHelper);
+    ssaoPostProcess = new SSAOPostProcess(glHelper, options->getSSAOSampleCount());
     ssaoPostProcess->setSourceTexture("depthMapSampler", 1);
     ssaoPostProcess->setSourceTexture("normalMapSampler", 2);
     ssaoPostProcess->setSourceTexture("ssaoNoiseSampler", 3);

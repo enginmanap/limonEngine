@@ -32,4 +32,5 @@
         <Z>-100.0</Z>
         <W>100.0</W>
     </lightOrthogonalProjectionValues>
+    <SSAOSampleCount>9</SSAOSampleCount>
 </Options>

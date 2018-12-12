@@ -51,6 +51,8 @@ private:
 
     bool fullScreen = false;
 
+    uint32_t ssaoSampleCount = 9;
+
     void loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec3&);
     void loadVec4(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec4&);
 public:
@@ -234,6 +236,14 @@ public:
 
     void setFullScreen(bool isFullScreen) {
         this->fullScreen = isFullScreen;
+    }
+
+    uint32_t getSSAOSampleCount() const {
+        return ssaoSampleCount;
+    }
+
+    void setSSAOSampleCount(uint32_t sampleCount) {
+        ssaoSampleCount = sampleCount;
     }
 };
 
