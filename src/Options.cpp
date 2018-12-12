@@ -182,6 +182,22 @@ bool Options::loadOptions(const std::string &optionsFileName) {
         ssaoSampleCount = std::stoi(ssaoSampleCountNode->GetText());
     }
 
+    tinyxml2::XMLElement *ssaoEnabledNode = optionsNode->FirstChildElement(
+            "SSAOEnabled");
+    if (ssaoEnabledNode != nullptr) {
+        std::string ssaoEnabledText = ssaoEnabledNode->GetText();
+        if(ssaoEnabledText == "True") {
+            this->ssaoEnabled = true;
+        } else if (ssaoEnabledText == "False") {
+            this->ssaoEnabled = false;
+        } else {
+            std::cerr << "SSAO setting doesn't match \"True\" or \"False\", assuming false." << std::endl;
+        }
+    } else {
+        std::cout << "SSAO setting \"SSAOEnabled\" not found, assuming false.";
+        this->ssaoEnabled = false;
+    }
+
 
 
     loadVec3(optionsNode, "walkSpeed", walkSpeed);

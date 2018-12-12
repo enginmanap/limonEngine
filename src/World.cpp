@@ -124,11 +124,15 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     ssaoBlurPostProcess = new SSAOBlurPostProcess(glHelper);
     ssaoBlurPostProcess->setSourceTexture("ssaoResultSampler", 1);
 
-
-    combiningObject = new CombinePostProcess(glHelper);
-    combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
-    combiningObject->setSourceTexture("ambient", 2);
-    combiningObject->setSourceTexture("ssao", 3);
+    if(options->isSsaoEnabled()) {
+        combiningObject = new CombinePostProcess(glHelper,true);
+        combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
+        combiningObject->setSourceTexture("ambient", 2);
+        combiningObject->setSourceTexture("ssao", 3);
+    } else {
+        combiningObject = new CombinePostProcess(glHelper,false);
+        combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
+    }
 
 
 
@@ -753,13 +757,13 @@ void World::render() {
     debugDrawer->flushDraws();
 
     //at this point, we should combine all of the coloring
+    if(options->isSsaoEnabled()) {
+        glHelper->switchRenderToSSAOGeneration();
+        ssaoPostProcess->render();
 
-    glHelper->switchRenderToSSAOGeneration();
-    ssaoPostProcess->render();
-
-    glHelper->switchRenderToSSAOBlur();
-    ssaoBlurPostProcess->render();
-
+        glHelper->switchRenderToSSAOBlur();
+        ssaoBlurPostProcess->render();
+    }
     glHelper->switchRenderToCombining();
     combiningObject->render();
 

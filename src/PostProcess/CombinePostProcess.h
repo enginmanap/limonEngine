@@ -8,10 +8,15 @@
 #include "QuadRenderBase.h"
 
 class CombinePostProcess : public QuadRenderBase {
+    bool isSSAOEnabled;
     void initializeProgram() override;
 
 public:
-    CombinePostProcess(GLHelper* glHelper);
+    CombinePostProcess(GLHelper* glHelper, bool isSSAOEnabled);
+
+    bool isIsSSAOEnabled() const {
+        return isSSAOEnabled;
+    }
 };
 
 
