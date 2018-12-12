@@ -241,8 +241,6 @@ public:
         selectedBoneID = attachmentBoneID;
         return getAttachmentTransform(attachmentBoneID);
     }
-
-    void generateAndSetSSAOKernels(GLSLProgram *programToSet, uint32_t kernelSize) const;
 };
 
 #endif //LIMONENGINE_MODEL_H

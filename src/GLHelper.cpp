@@ -421,8 +421,8 @@ GLHelper::GLHelper(Options *options): options(options) {
     glBindTexture(GL_TEXTURE_2D, normalMap);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, screenWidth, screenHeight, 0, GL_RGB, GL_FLOAT, nullptr);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
@@ -462,9 +462,40 @@ GLHelper::GLHelper(Options *options): options(options) {
     unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
     glDrawBuffers(3, attachments);
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        std::cerr << "default frame buffer is not complete!" << std::endl;
+        std::cerr << "coloring frame buffer is not complete!" << std::endl;
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // SSAO Framebuffer
+    glGenFramebuffers(1, &ssaoGenerationFrameBuffer);
+
+    glGenTextures(1, &ssaoMap);
+    glBindTexture(GL_TEXTURE_2D, ssaoMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, screenWidth, screenHeight, 0, GL_RGB, GL_FLOAT, nullptr);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, ssaoGenerationFrameBuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ssaoMap, 0);
+
+    glGenRenderbuffers(1, &rboDepth2);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth2);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, screenWidth, screenHeight);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth2);
+    unsigned int attachments2[2] = { GL_NONE, GL_COLOR_ATTACHMENT1 };
+    glDrawBuffers(2, attachments2);
+    GLenum fbStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (fbStatus != GL_FRAMEBUFFER_COMPLETE) {
+        std::cerr << "SSAO frame buffer is not complete: " << fbStatus  << ": " << gluErrorString(fbStatus) << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // SSAO Framebuffer
 
 
     /****************************** SSAO NOISE **************************************/
@@ -690,12 +721,26 @@ void GLHelper::switchRenderToColoring() {
     checkErrors("switchRenderToColoring");
 }
 
+void GLHelper::switchRenderToSSAOGeneration() {
+    glViewport(0, 0, screenWidth, screenHeight);
+    glBindFramebuffer(GL_FRAMEBUFFER, ssaoGenerationFrameBuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ssaoMap, 0);
+    state->attachTexture(depthMap, 1);
+    state->attachTexture(normalMap, 2);
+    state->attachTexture(noiseTexture, 3);
+    glCullFace(GL_BACK);
+    checkErrors("switchRenderToColoring");
+}
+
+
+
 void GLHelper::switchRenderToCombining(){
         glViewport(0, 0, screenWidth, screenHeight);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         //we combine diffuse+specular lighted with ambient / SSAO
         state->attachTexture(diffuseAndSpecularLightedMap, 1);
         state->attachTexture(ambientMap, 2);
+        state->attachTexture(ssaoMap,3);
         //glEnable(GL_CULL_FACE);
         checkErrors("switchRenderToCombining");
 
@@ -853,7 +898,7 @@ void GLHelper::reshape() {
     glViewport(0, 0, options->getScreenWidth(), options->getScreenHeight());
     aspect = float(options->getScreenHeight()) / float(options->getScreenWidth());
     perspectiveProjectionMatrix = glm::perspective(options->PI/3.0f, 1.0f / aspect, 0.01f, 10000.0f);
-    inverseTransposeProjection = glm::transpose(glm::inverse(perspectiveProjectionMatrix));
+    inverseTransposeProjection = glm::inverse(perspectiveProjectionMatrix);
     orthogonalProjectionMatrix = glm::ortho(0.0f, (float) options->getScreenWidth(), 0.0f, (float) options->getScreenHeight());
     checkErrors("reshape");
 }
