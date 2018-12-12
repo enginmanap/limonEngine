@@ -53,6 +53,7 @@ class AnimationNode;
 class AnimationSequenceInterface;
 class LimonAPI;
 class ModelGroup;
+class CombiningObject;
 
 class GLHelper;
 class ALHelper;
@@ -248,6 +249,7 @@ private:
     ImGuiHelper *imgGuiHelper;
     GameObject* pickedObject = nullptr;
     Model* objectToAttach = nullptr;
+    CombiningObject* combiningObject;
     bool guiPickMode = false;
     enum class QuitResponse
     {

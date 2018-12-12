@@ -31,6 +31,7 @@
 #include "GameObjects/GUIButton.h"
 #include "GameObjects/GUIAnimation.h"
 #include "GameObjects/ModelGroup.h"
+#include "Utils/CombiningObject.h"
 
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
@@ -110,6 +111,10 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
             currentPlayer = menuPlayer;
             break;
     }
+
+    combiningObject = new CombiningObject(glHelper);
+    combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
+    combiningObject->setSourceTexture("ambientWithSSAO", 2);
 
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
     camera = new Camera(options, currentPlayer->getCameraAttachment());//register is just below
@@ -662,7 +667,7 @@ void World::render() {
 
 
     /************** END OF SSAO ********************************************************/
-    glHelper->switchRenderToDefault();
+    glHelper->switchRenderToColoring();
     if(sky!=nullptr) {
         sky->render();//this is moved to the top, because transparency can create issues if this is at the end
     }
@@ -730,6 +735,10 @@ void World::render() {
 
     debugDrawer->flushDraws();
 
+    //at this point, we should combine all of the coloring
+
+    glHelper->switchRenderToCombining();
+    combiningObject->render();
 
     //since gui uses blending, everything must be already rendered.
     // Also, since gui elements only depth test each other, clear depth buffer
