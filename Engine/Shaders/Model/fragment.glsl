@@ -3,6 +3,10 @@
 
 #define NR_POINT_LIGHTS 4
 
+layout (location = 0) out vec4 diffuseAndSpecularLightedColor;
+layout (location = 1) out vec3 ambientColor;
+layout (location = 2) out vec3 normalOutput;
+
 layout (std140) uniform PlayerTransformBlock {
     mat4 camera;
     mat4 projection;
@@ -41,8 +45,6 @@ in VS_FS {
     vec3 fragPos;
     vec4 fragPosLightSpace[NR_POINT_LIGHTS];
 } from_vs;
-
-out vec4 finalColor;
 
 uniform sampler2DArray shadowSamplerDirectional;
 uniform samplerCubeArray shadowSamplerPoint;
@@ -152,6 +154,8 @@ void main(void) {
             normal = -1 * vec3(texture(normalSampler, from_vs.textureCoord));
         }
 
+        normalOutput = normal;
+
         float occlusion = 0.0;
 
         if(length(playerTransforms.position - from_vs.fragPos) < 100) {
@@ -186,9 +190,11 @@ void main(void) {
         }
         occlusion = 1 - occlusion;
 
-        vec3 lightingColorFactor = (material.ambient) * occlusion;
+        vec3 lightingColorFactor;
         if((material.isMap & 0x0008)!=0) {
-            lightingColorFactor = vec3(texture(ambientSampler, from_vs.textureCoord));
+            ambientColor = vec3(texture(ambientSampler, from_vs.textureCoord));
+        } else {
+            ambientColor = material.ambient * occlusion;
         }
 
         float shadow;
@@ -222,7 +228,7 @@ void main(void) {
                 lightingColorFactor += ((1.0 - shadow) * (diffuseRate + specularRate) * LightSources.lights[i].color);
             }
         }
-        finalColor = vec4(
+        diffuseAndSpecularLightedColor = vec4(
         min(lightingColorFactor.x, 1.0),
         min(lightingColorFactor.y, 1.0),
         min(lightingColorFactor.z, 1.0),
