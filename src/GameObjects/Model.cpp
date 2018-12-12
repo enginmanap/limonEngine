@@ -213,14 +213,6 @@ void Model::setSamplersAndUBOs(GLSLProgram *program) {
         std::cerr << "Uniform \"shadowSamplerPoint\" could not be set" << std::endl;
     }
 
-    if (!program->setUniform("ssaoSampler", glHelper->getMaxTextureImageUnits() - 3)) {
-        std::cerr << "Uniform \"ssaoSampler\" could not be set" << std::endl;
-    }
-
-    if (!program->setUniform("ssaoNoiseSampler", glHelper->getMaxTextureImageUnits() - 4)) {
-        std::cerr << "Uniform \"ssaoNoiseSampler\" could not be set" << std::endl;
-    }
-
     glHelper->attachModelUBO(program->getID());
     glHelper->attachModelIndicesUBO(program->getID());
 }

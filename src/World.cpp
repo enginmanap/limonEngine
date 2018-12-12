@@ -34,6 +34,7 @@
 #include "PostProcess/QuadRenderBase.h"
 #include "PostProcess/CombinePostProcess.h"
 #include "PostProcess/SSAOPostProcess.h"
+#include "PostProcess/SSAOBlurPostProcess.h"
 
 
 const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
@@ -120,10 +121,16 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     ssaoPostProcess->setSourceTexture("normalMapSampler", 2);
     ssaoPostProcess->setSourceTexture("ssaoNoiseSampler", 3);
 
+    ssaoBlurPostProcess = new SSAOBlurPostProcess(glHelper);
+    ssaoBlurPostProcess->setSourceTexture("ssaoResultSampler", 1);
+
+
     combiningObject = new CombinePostProcess(glHelper);
     combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
     combiningObject->setSourceTexture("ambient", 2);
     combiningObject->setSourceTexture("ssao", 3);
+
+
 
 
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
@@ -749,6 +756,9 @@ void World::render() {
 
     glHelper->switchRenderToSSAOGeneration();
     ssaoPostProcess->render();
+
+    glHelper->switchRenderToSSAOBlur();
+    ssaoBlurPostProcess->render();
 
     glHelper->switchRenderToCombining();
     combiningObject->render();
