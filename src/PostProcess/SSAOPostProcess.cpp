@@ -10,7 +10,6 @@
 void SSAOPostProcess::initializeProgram() {
     program = new GLSLProgram(glHelper, "./Engine/Shaders/SSAO/vertex.glsl",
                               "./Engine/Shaders/SSAO/fragment.glsl", false);
-    generateAndSetSSAOKernels(16);
 }
 
 float lerp(float first , float second , float factor ) {

@@ -176,6 +176,14 @@ bool Options::loadOptions(const std::string &optionsFileName) {
         std::cout << "\"fullScreen\" setting not found, defaulting to false";
     }
 
+    tinyxml2::XMLElement *ssaoSampleCountNode = optionsNode->FirstChildElement(
+            "SSAOSampleCount");
+    if (ssaoSampleCountNode != nullptr) {
+        ssaoSampleCount = std::stoi(ssaoSampleCountNode->GetText());
+    }
+
+
+
     loadVec3(optionsNode, "walkSpeed", walkSpeed);
     loadVec3(optionsNode, "runSpeed", runSpeed);
     loadVec3(optionsNode, "freeMovementSpeed", freeMovementSpeed);
