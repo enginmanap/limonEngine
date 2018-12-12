@@ -483,10 +483,6 @@ GLHelper::GLHelper(Options *options): options(options) {
     glBindFramebuffer(GL_FRAMEBUFFER, ssaoGenerationFrameBuffer);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ssaoMap, 0);
 
-    glGenRenderbuffers(1, &rboDepth2);
-    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth2);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, screenWidth, screenHeight);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth2);
     unsigned int attachments2[2] = { GL_NONE, GL_COLOR_ATTACHMENT1 };
     glDrawBuffers(2, attachments2);
     GLenum fbStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -516,10 +512,6 @@ GLHelper::GLHelper(Options *options): options(options) {
     glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFrameBuffer);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ssaoBlurredMap, 0);
 
-    glGenRenderbuffers(1, &rboDepth3);
-    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth3);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, screenWidth, screenHeight);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth3);
     unsigned int attachments3[2] = { GL_NONE, GL_COLOR_ATTACHMENT1 };
     glDrawBuffers(2, attachments3);
     fbStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -714,9 +706,7 @@ void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
     glViewport(0, 0, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight());
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional, 0, index);
-
     glCullFace(GL_FRONT);
-    //glDisable(GL_CULL_FACE);
     checkErrors("switchRenderToShadowMapDirectional");
 }
 
@@ -724,9 +714,7 @@ void GLHelper::switchRenderToShadowMapPoint() {
     checkErrors("switchRenderToShadowMapPointBefore");
     glViewport(0, 0, options->getShadowMapPointWidth(), options->getShadowMapPointHeight());
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
-
     glCullFace(GL_FRONT);
-    //glDisable(GL_CULL_FACE);
     checkErrors("switchRenderToShadowMapPoint");
 }
 
@@ -774,15 +762,13 @@ void GLHelper::switchRenderToSSAOBlur() {
 }
 
 void GLHelper::switchRenderToCombining(){
-        glViewport(0, 0, screenWidth, screenHeight);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        //we combine diffuse+specular lighted with ambient / SSAO
-        state->attachTexture(diffuseAndSpecularLightedMap, 1);
-        state->attachTexture(ambientMap, 2);
-        state->attachTexture(ssaoBlurredMap,3);
-        //glEnable(GL_CULL_FACE);
-        checkErrors("switchRenderToCombining");
-
+    glViewport(0, 0, screenWidth, screenHeight);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    //we combine diffuse+specular lighted with ambient / SSAO
+    state->attachTexture(diffuseAndSpecularLightedMap, 1);
+    state->attachTexture(ambientMap, 2);
+    state->attachTexture(ssaoBlurredMap,3);
+    checkErrors("switchRenderToCombining");
 }
 
 void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount) {
@@ -799,7 +785,6 @@ void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, 
     renderTriangleCount = renderTriangleCount + elementCount;
     glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, nullptr);
     glBindVertexArray(0);
-    //state->setProgram(0);
 
     checkErrors("render");
 }
