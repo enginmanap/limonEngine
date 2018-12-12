@@ -710,7 +710,6 @@ void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
 }
 
 void GLHelper::switchRenderToShadowMapPoint() {
-    checkErrors("switchRenderToShadowMapPointBefore");
     glViewport(0, 0, options->getShadowMapPointWidth(), options->getShadowMapPointHeight());
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
     glCullFace(GL_FRONT);
