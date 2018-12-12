@@ -32,5 +32,6 @@
         <Z>-100.0</Z>
         <W>100.0</W>
     </lightOrthogonalProjectionValues>
+    <SSAOEnabled>True</SSAOEnabled>
     <SSAOSampleCount>9</SSAOSampleCount>
 </Options>

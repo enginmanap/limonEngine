@@ -5,11 +5,17 @@
 #include "CombinePostProcess.h"
 #include "../GLSLProgram.h"
 
-CombinePostProcess::CombinePostProcess(GLHelper* glHelper) : QuadRenderBase(glHelper) {
+CombinePostProcess::CombinePostProcess(GLHelper* glHelper, bool isSSAOEnabled) : QuadRenderBase(glHelper), isSSAOEnabled(isSSAOEnabled) {
         initializeProgram();
 }
 
 void CombinePostProcess::initializeProgram() {
-        program = new GLSLProgram(glHelper, "./Engine/Shaders/CombineAll/vertex.glsl",
-                                  "./Engine/Shaders/CombineAll/fragment.glsl", false);
+        if(isSSAOEnabled) {
+                program = new GLSLProgram(glHelper, "./Engine/Shaders/CombineAll/vertex.glsl",
+                                          "./Engine/Shaders/CombineAll/fragmentWithSSAO.glsl", false);
+        } else {
+                program = new GLSLProgram(glHelper, "./Engine/Shaders/CombineAll/vertex.glsl",
+                                          "./Engine/Shaders/CombineAll/fragment.glsl", false);
+        }
+
 }

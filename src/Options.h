@@ -52,6 +52,7 @@ private:
     bool fullScreen = false;
 
     uint32_t ssaoSampleCount = 9;
+    bool ssaoEnabled = false;
 
     void loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec3&);
     void loadVec4(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec4&);
@@ -244,6 +245,14 @@ public:
 
     void setSSAOSampleCount(uint32_t sampleCount) {
         ssaoSampleCount = sampleCount;
+    }
+
+    bool isSsaoEnabled() const {
+        return ssaoEnabled;
+    }
+
+    void setSsaoEnabled(bool ssaoEnabled) {
+        this->ssaoEnabled = ssaoEnabled;
     }
 };
 
