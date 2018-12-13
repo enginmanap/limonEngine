@@ -705,6 +705,7 @@ void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &text
 void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
     glViewport(0, 0, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight());
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional, 0, index);
     glCullFace(GL_FRONT);
     checkErrors("switchRenderToShadowMapDirectional");
 }
