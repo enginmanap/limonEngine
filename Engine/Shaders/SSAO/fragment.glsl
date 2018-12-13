@@ -50,7 +50,10 @@ void main(){
 
     vec3 basePosition = calcViewSpacePos( vec3(from_vs.textureCoordinates, depth));
     //set a bias, that scales with the world space distance with player
-    float bias = 0.1 + 0.01 * (length(basePosition - playerTransforms.position)/5);
+    float distanceSQ = float((basePosition.x - playerTransforms.position.x) * (basePosition.x - playerTransforms.position.x) +
+    (basePosition.y - playerTransforms.position.y) * (basePosition.y - playerTransforms.position.y) +
+    (basePosition.z - playerTransforms.position.z) * (basePosition.z - playerTransforms.position.z));
+    float bias = 0.005 + 0.01 * distanceSQ / 1000;
     float tempOcculusion = 0;
     for(int i = 0; i < ssaoSampleCount; ++i){
         // get sample position
