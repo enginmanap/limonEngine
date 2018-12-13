@@ -17,5 +17,5 @@ void main() {
             result += texture(ssaoResultSampler, from_vs.textureCoordinates + offset).r;
         }
     }
-    occlusion = result / (4.0 * 4.0);
+    occlusion = result / (5.0 * 5.0);
 }
