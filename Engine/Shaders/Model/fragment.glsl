@@ -3,11 +3,17 @@
 
 #define NR_POINT_LIGHTS 4
 
+layout (location = 0) out vec4 diffuseAndSpecularLightedColor;
+layout (location = 1) out vec3 ambientColor;
+layout (location = 2) out vec3 normalOutput;
+
 layout (std140) uniform PlayerTransformBlock {
     mat4 camera;
     mat4 projection;
     mat4 cameraProjection;
+    mat4 inverseTransposeProjection;
     vec3 position;
+    vec2 noiseScale;
 } playerTransforms;
 
 struct LightSource
@@ -40,10 +46,10 @@ in VS_FS {
     vec4 fragPosLightSpace[NR_POINT_LIGHTS];
 } from_vs;
 
-out vec4 finalColor;
-
 uniform sampler2DArray shadowSamplerDirectional;
 uniform samplerCubeArray shadowSamplerPoint;
+uniform sampler2D ssaoSampler;
+uniform sampler2D ssaoNoiseSampler;
 
 uniform sampler2D ambientSampler;
 uniform sampler2D diffuseSampler;
@@ -51,7 +57,7 @@ uniform sampler2D specularSampler;
 uniform sampler2D opacitySampler;
 uniform sampler2D normalSampler;
 
-uniform vec3 pointSampleOffsetDirections[20] = vec3[]
+vec3 pointSampleOffsetDirections[20] = vec3[]
 (
    vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1),
    vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
@@ -59,6 +65,9 @@ uniform vec3 pointSampleOffsetDirections[20] = vec3[]
    vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
    vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
+
+uniform vec3 ssaoKernel[128];
+uniform int ssaoSampleCount;
 
 float ShadowCalculationDirectional(vec4 fragPosLightSpace, float bias, float lightIndex){
     // perform perspective divide
@@ -112,6 +121,13 @@ float ShadowCalculationPoint(vec3 fragPos, float bias, float viewDistance, int l
     return shadow;
 }
 
+vec3 calcViewSpacePos(vec3 screen) {
+    vec4 temp = vec4(screen.x, screen.y, screen.z, 1);
+    temp *= playerTransforms.inverseTransposeProjection;
+    vec3 camera_space = temp.xyz / temp.w;
+    return camera_space;
+}
+
 void main(void) {
         vec4 objectColor;
         if((material.isMap & 0x0004)!=0) {
@@ -132,15 +148,20 @@ void main(void) {
             objectColor = vec4(material.diffuse, 1.0);
         }
 
-        vec3 lightingColorFactor = material.ambient;
-        if((material.isMap & 0x0008)!=0) {
-            lightingColorFactor = vec3(texture(ambientSampler, from_vs.textureCoord));
-        }
-
         vec3 normal = from_vs.normal;
+
         if((material.isMap & 0x0010) != 0) {
             normal = -1 * vec3(texture(normalSampler, from_vs.textureCoord));
         }
+
+        normalOutput = normal;
+
+        if((material.isMap & 0x0008)!=0) {
+            ambientColor = vec3(texture(ambientSampler, from_vs.textureCoord));
+        } else {
+            ambientColor = material.ambient;
+        }
+        vec3 lightingColorFactor = ambientColor;
 
         float shadow;
         for(int i=0; i < NR_POINT_LIGHTS; ++i){
@@ -173,7 +194,7 @@ void main(void) {
                 lightingColorFactor += ((1.0 - shadow) * (diffuseRate + specularRate) * LightSources.lights[i].color);
             }
         }
-        finalColor = vec4(
+        diffuseAndSpecularLightedColor = vec4(
         min(lightingColorFactor.x, 1.0),
         min(lightingColorFactor.y, 1.0),
         min(lightingColorFactor.z, 1.0),

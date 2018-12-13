@@ -4,6 +4,7 @@
 
 #include "Model.h"
 #include "../AI/ActorInterface.h"
+#include <random>
 
 Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile,
              bool disconnected = false) :

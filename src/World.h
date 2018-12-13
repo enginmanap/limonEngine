@@ -54,6 +54,11 @@ class AnimationSequenceInterface;
 class LimonAPI;
 class ModelGroup;
 
+class QuadRenderBase;
+class CombinePostProcess;
+class SSAOPostProcess;
+class SSAOBlurPostProcess;
+
 class GLHelper;
 class ALHelper;
 
@@ -209,7 +214,9 @@ private:
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
 
-    GLSLProgram *shadowMapProgramDirectional, *shadowMapProgramPoint;
+    GLSLProgram *shadowMapProgramDirectional = nullptr;
+    GLSLProgram *shadowMapProgramPoint = nullptr;
+    GLSLProgram *depthBufferProgram = nullptr;
     FontManager fontManager;
 
     PlayerInfo startingPlayer;
@@ -246,6 +253,9 @@ private:
     ImGuiHelper *imgGuiHelper;
     GameObject* pickedObject = nullptr;
     Model* objectToAttach = nullptr;
+    CombinePostProcess* combiningObject;
+    SSAOPostProcess* ssaoPostProcess;
+    SSAOBlurPostProcess* ssaoBlurPostProcess;
     bool guiPickMode = false;
     enum class QuitResponse
     {

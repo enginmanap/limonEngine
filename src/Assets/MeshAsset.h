@@ -78,6 +78,8 @@ public:
             delete shapeCopies[i];
         }
 
+        //FIXME buffer objects are not freed!
+
     }
 
     void fillBoneMap(const BoneNode *boneNode);
