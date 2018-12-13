@@ -241,7 +241,6 @@ public:
         selectedBoneID = attachmentBoneID;
         return getAttachmentTransform(attachmentBoneID);
     }
-
 };
 
 #endif //LIMONENGINE_MODEL_H

@@ -31,15 +31,19 @@
 #include "GameObjects/GUIButton.h"
 #include "GameObjects/GUIAnimation.h"
 #include "GameObjects/ModelGroup.h"
+#include "PostProcess/QuadRenderBase.h"
+#include "PostProcess/CombinePostProcess.h"
+#include "PostProcess/SSAOPostProcess.h"
+#include "PostProcess/SSAOBlurPostProcess.h"
 
 
-   const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
-        {
-                { Types::PHYSICAL_PLAYER, "Physical"},
-                { Types::DEBUG_PLAYER, "Debug"},
-                { Types::EDITOR_PLAYER, "Editor"},
-                { Types::MENU_PLAYER, "Menu" }
-        };
+const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
+    {
+            { Types::PHYSICAL_PLAYER, "Physical"},
+            { Types::DEBUG_PLAYER, "Debug"},
+            { Types::EDITOR_PLAYER, "Editor"},
+            { Types::MENU_PLAYER, "Menu" }
+    };
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
              AssetManager *assetManager, Options *options)
@@ -71,6 +75,9 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     shadowMapProgramPoint = new GLSLProgram(glHelper, "./Engine/Shaders/ShadowMap/vertexPoint.glsl",
                                             "./Engine/Shaders/ShadowMap/geometryPoint.glsl",
                                             "./Engine/Shaders/ShadowMap/fragmentPoint.glsl", false);
+
+    depthBufferProgram = new GLSLProgram(glHelper, "./Engine/Shaders/depthPrePass/vertex.glsl",
+                                  "./Engine/Shaders/depthPrePass/fragment.glsl", false);
 
 
     apiGUILayer = new GUILayer(glHelper, debugDrawer, 1);
@@ -107,6 +114,28 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
             currentPlayer = menuPlayer;
             break;
     }
+
+
+    ssaoPostProcess = new SSAOPostProcess(glHelper, options->getSSAOSampleCount());
+    ssaoPostProcess->setSourceTexture("depthMapSampler", 1);
+    ssaoPostProcess->setSourceTexture("normalMapSampler", 2);
+    ssaoPostProcess->setSourceTexture("ssaoNoiseSampler", 3);
+
+    ssaoBlurPostProcess = new SSAOBlurPostProcess(glHelper);
+    ssaoBlurPostProcess->setSourceTexture("ssaoResultSampler", 1);
+
+    if(options->isSsaoEnabled()) {
+        combiningObject = new CombinePostProcess(glHelper,true);
+        combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
+        combiningObject->setSourceTexture("ambient", 2);
+        combiningObject->setSourceTexture("ssao", 3);
+    } else {
+        combiningObject = new CombinePostProcess(glHelper,false);
+        combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
+    }
+
+
+
 
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
     camera = new Camera(options, currentPlayer->getCameraAttachment());//register is just below
@@ -626,8 +655,40 @@ void World::render() {
             (*animatedModelIterator)->renderWithProgramInstanced(temp,*shadowMapProgramPoint);
         }
     }
+    /**************** SSAO ********************************************************/
 
-    glHelper->switchRenderToDefault();
+    glHelper->switchRenderToDepthPrePass();
+    for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
+        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
+        std::set<Model*> modelSet = modelIterator->second;
+        modelIndicesBuffer.clear();
+        Model* sampleModel = nullptr;
+        for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
+            //all of these models will be rendered
+            modelIndicesBuffer.push_back((*model)->getWorldObjectID());
+            sampleModel = *model;
+        }
+        if(sampleModel != nullptr) {
+            sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *depthBufferProgram);
+        }
+    }
+
+    for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
+        std::vector<uint32_t > temp;
+        temp.push_back((*modelIterator)->getWorldObjectID());
+        (*modelIterator)->renderWithProgramInstanced(temp, *depthBufferProgram);
+    }
+
+    if(startingPlayer.attachedModel != nullptr && !currentPlayer->isDead()) {//don't render attched model if dead
+        startingPlayer.attachedModel->setupForTime(gameTime);
+        std::vector<uint32_t> temp;
+        temp.push_back(startingPlayer.attachedModel->getWorldObjectID());
+        startingPlayer.attachedModel->renderInstanced(temp);
+    }
+
+
+    /************** END OF SSAO ********************************************************/
+    glHelper->switchRenderToColoring();
     if(sky!=nullptr) {
         sky->render();//this is moved to the top, because transparency can create issues if this is at the end
     }
@@ -695,6 +756,16 @@ void World::render() {
 
     debugDrawer->flushDraws();
 
+    //at this point, we should combine all of the coloring
+    if(options->isSsaoEnabled()) {
+        glHelper->switchRenderToSSAOGeneration();
+        ssaoPostProcess->render();
+
+        glHelper->switchRenderToSSAOBlur();
+        ssaoBlurPostProcess->render();
+    }
+    glHelper->switchRenderToCombining();
+    combiningObject->render();
 
     //since gui uses blending, everything must be already rendered.
     // Also, since gui elements only depth test each other, clear depth buffer

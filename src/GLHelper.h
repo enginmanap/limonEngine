@@ -197,15 +197,33 @@ private:
     GLuint depthOnlyFrameBufferPoint;
     GLuint depthCubemapPoint;
 
+    GLuint depthOnlyFrameBuffer;
+    GLuint depthMap;
+
+    GLuint coloringFrameBuffer;
+    GLuint normalMap;
+    GLuint diffuseAndSpecularLightedMap;
+    GLuint ambientMap;
+    GLuint rboDepth;
+
+    GLuint ssaoGenerationFrameBuffer;
+    GLuint ssaoMap;
+
+    GLuint ssaoBlurFrameBuffer;
+    GLuint ssaoBlurredMap;
+
+    unsigned int noiseTexture;
+
     Options *options;
 
     const uint_fast32_t lightUniformSize = (sizeof(glm::mat4) * 7) + (2 * sizeof(glm::vec4));
-    const uint32_t playerUniformSize = 3 * sizeof(glm::mat4) + sizeof(glm::vec4);
+    const uint32_t playerUniformSize = 4 * sizeof(glm::mat4) + sizeof(glm::vec4) + sizeof(glm::vec4);
     int32_t materialUniformSize = 2 * sizeof(glm::vec3) + sizeof(float) + sizeof(GLuint);
     int32_t modelUniformSize = sizeof(glm::mat4);
 
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;
+    glm::mat4 inverseTransposeProjection;
     std::vector<glm::vec4>frustumPlanes;
     glm::mat4 orthogonalProjectionMatrix;
     glm::mat4 lightProjectionMatrixDirectional;
@@ -234,7 +252,7 @@ private:
 #ifndef NDEBUG
         GLenum fbStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (fbStatus != GL_FRAMEBUFFER_COMPLETE) {
-            std::cerr << "FB status is " << fbStatus << std::endl;
+            std::cerr << "FB status while " << callerFunc << " is " << fbStatus << std::endl;
         }
         bool hasError = false;
         while ((error = glGetError()) != GL_NO_ERROR) {
@@ -304,14 +322,23 @@ public:
     bool freeVAO(const GLuint VAO);
 
     void clearFrame() {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         //additional depths for Directional is not needed, but depth for point is reqired, because there is no way to clear
         //it per layer, so we are clearing per frame. This also means, lights should not reuse the textures.
         glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
         glClear(GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
         glClear(GL_DEPTH_BUFFER_BIT);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBuffer);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, coloringFrameBuffer);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, ssaoGenerationFrameBuffer);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFrameBuffer);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);//combining doesn't need depth test either
+        glClear(GL_COLOR_BUFFER_BIT);//clear for default
 
         renderTriangleCount = 0;
         renderLineCount = 0;
@@ -379,10 +406,12 @@ public:
     void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix);
 
     void switchRenderToShadowMapDirectional(const unsigned int index);
-
     void switchRenderToShadowMapPoint();
-
-    void switchRenderToDefault();
+    void switchRenderToDepthPrePass();
+    void switchRenderToColoring();
+    void switchRenderToSSAOGeneration();
+    void switchRenderToSSAOBlur();
+    void switchRenderToCombining();
 
     int getMaxTextureImageUnits() const {
         return maxTextureImageUnits;
