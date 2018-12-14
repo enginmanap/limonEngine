@@ -48,9 +48,9 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
     switch (editorState.mode) {
         case TRANSLATE_MODE: {
             if(this->parentTransform != nullptr ) {
-                ImGui::Text((std::string("Current Total Translate X") + std::to_string(translate.x)).c_str());
-                ImGui::Text((std::string("Current Total Translate Y") + std::to_string(translate.y)).c_str());
-                ImGui::Text((std::string("Current Total Translate Z") + std::to_string(translate.z)).c_str());
+                ImGui::Text((std::string("Current Total Translate X: ") + std::to_string(translate.x)).c_str());
+                ImGui::Text((std::string("Current Total Translate Y: ") + std::to_string(translate.y)).c_str());
+                ImGui::Text((std::string("Current Total Translate Z: ") + std::to_string(translate.z)).c_str());
             }
             glm::vec3 tempTranslate = translateSingle;
             updated =
@@ -83,10 +83,10 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
         }
         case ROTATE_MODE: {
             if(this->parentTransform != nullptr ) {
-                ImGui::Text((std::string("Current Total Rotate X") + std::to_string(orientation.x)).c_str());
-                ImGui::Text((std::string("Current Total Rotate Y") + std::to_string(orientation.y)).c_str());
-                ImGui::Text((std::string("Current Total Rotate Z") + std::to_string(orientation.z)).c_str());
-                ImGui::Text((std::string("Current Total Rotate W") + std::to_string(orientation.z)).c_str());
+                ImGui::Text((std::string("Current Total Rotate X: ") + std::to_string(orientation.x)).c_str());
+                ImGui::Text((std::string("Current Total Rotate Y: ") + std::to_string(orientation.y)).c_str());
+                ImGui::Text((std::string("Current Total Rotate Z: ") + std::to_string(orientation.z)).c_str());
+                ImGui::Text((std::string("Current Total Rotate W: ") + std::to_string(orientation.z)).c_str());
             }
             glm::quat tempOrientation = orientationSingle;
             updated = ImGui::DragFloat("Rotate X", &(tempOrientation.x), 0.001f, -1.0f, 1.0f) || updated;
@@ -104,9 +104,9 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
         }
         case SCALE_MODE: {
             if(this->parentTransform != nullptr ) {
-                ImGui::Text((std::string("Current Total Scale X") + std::to_string(scale.x)).c_str());
-                ImGui::Text((std::string("Current Total Scale Y") + std::to_string(scale.y)).c_str());
-                ImGui::Text((std::string("Current Total Scale Z") + std::to_string(scale.z)).c_str());
+                ImGui::Text((std::string("Current Total Scale X: ") + std::to_string(scale.x)).c_str());
+                ImGui::Text((std::string("Current Total Scale Y: ") + std::to_string(scale.y)).c_str());
+                ImGui::Text((std::string("Current Total Scale Z: ") + std::to_string(scale.z)).c_str());
             }
 
             glm::vec3 tempScale = scaleSingle;
