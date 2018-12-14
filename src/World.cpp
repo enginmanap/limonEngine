@@ -1554,10 +1554,10 @@ uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animati
     as->startTime = gameTime;
     if(activeAnimations.count(as->object) != 0) {
         options->getLogger()->log(Logger::log_Subsystem_ANIMATION, Logger::log_level_WARN, "Model had custom animation, overriding.");
-        as->originalTransformation = activeAnimations[as->object]->originalTransformation;
+        as->originalTransformation.copy(activeAnimations[as->object]->originalTransformation);
         delete activeAnimations[as->object];
     } else {
-        as->originalTransformation = *(as->object->getTransformation());
+        as->originalTransformation.copy(*as->object->getTransformation());
     }
     //we should animate child, and keep parent, so we should attach to the object itself
     as->object->getTransformation()->setScale(glm::vec3(1.0f,1.0f,1.0f));

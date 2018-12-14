@@ -130,6 +130,10 @@ public:
     }
 
     Transformation(const Transformation& otherTransformation) {
+        generateWorldTransform = std::bind(&Transformation::generateWorldTransformDefault, this);
+        if(otherTransformation.parentTransform != nullptr) {
+            this->setParentTransform(otherTransformation.parentTransform);
+        }
         translate         = otherTransformation.translate;
         scale             = otherTransformation.scale;
         orientation       = otherTransformation.orientation;
@@ -141,11 +145,34 @@ public:
         isDirty           = otherTransformation.isDirty;
         rotated           = otherTransformation.rotated;
         worldTransform    = otherTransformation.worldTransform;
+
+    }
+
+    /**
+     * Since actually copying world transform and update callback, instead of overloading =, I implement this method,
+     * as a reminder that the result is not the same.
+     *
+     * @param otherTransformation
+     * @return
+     */
+    void copy(const Transformation& otherTransformation) {
         generateWorldTransform = std::bind(&Transformation::generateWorldTransformDefault, this);
+
         if(otherTransformation.parentTransform != nullptr) {
             this->setParentTransform(otherTransformation.parentTransform);
         }
 
+        translate         = otherTransformation.translate;
+        scale             = otherTransformation.scale;
+        orientation       = otherTransformation.orientation;
+
+        translateSingle   = otherTransformation.translateSingle;
+        scaleSingle       = otherTransformation.scaleSingle;
+        orientationSingle = otherTransformation.orientationSingle;
+
+        isDirty           = otherTransformation.isDirty;
+        rotated           = otherTransformation.rotated;
+        worldTransform    = otherTransformation.worldTransform;
     }
 
     const Transformation* getParentTransform() const {
