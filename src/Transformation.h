@@ -141,11 +141,11 @@ public:
         isDirty           = otherTransformation.isDirty;
         rotated           = otherTransformation.rotated;
         worldTransform    = otherTransformation.worldTransform;
+        generateWorldTransform = std::bind(&Transformation::generateWorldTransformDefault, this);
         if(otherTransformation.parentTransform != nullptr) {
             this->setParentTransform(otherTransformation.parentTransform);
         }
 
-        generateWorldTransform = std::bind(&Transformation::generateWorldTransformDefault, this);
     }
 
     const Transformation* getParentTransform() const {
