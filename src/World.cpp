@@ -307,7 +307,12 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
               AnimationStatus* animationStatus = animIt->second;
               if(animationStatus->originChange) {
                   //this means the origin has changed in editor mode, so we should update our origin of transformation.
-                  animationStatus->originalTransformation = *animationStatus->object->getTransformation();//first override the original transform
+
+                  // First change the original transform to current, since user updated it
+                  animationStatus->originalTransformation.setTranslate(animationStatus->object->getTransformation()->getTranslate());
+                  animationStatus->originalTransformation.setScale(animationStatus->object->getTransformation()->getScale());
+                  animationStatus->originalTransformation.setOrientation(animationStatus->object->getTransformation()->getOrientation());
+
                   animationStatus->object->getTransformation()->setScale(glm::vec3(1.0f,1.0f,1.0f));//then remove the change from object transform.
                   animationStatus->object->getTransformation()->setTranslate(glm::vec3(0.0f,0.0f,0.0f));
                   animationStatus->object->getTransformation()->setOrientation(glm::quat(1.0f,0.0f,0.0f, 0.0f));
@@ -352,6 +357,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                   animationStatus->object->getTransformation()->setTranslate(tempTranslate);
                   animationStatus->object->getTransformation()->setScale(tempScale);
                   animationStatus->object->getTransformation()->setOrientation(tempOrientation);
+                  animationStatus->object->setCustomAnimation(false);
 
                   options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, "Animation " + animationCustom->getName() + " finished, removing. ");
                   delete animIt->second;
@@ -1560,6 +1566,7 @@ uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animati
 
     //now set the parent/child
     as->object->getTransformation()->setParentTransform(&as->originalTransformation);
+    as->object->setCustomAnimation(true);
 
     as->object->getRigidBody()->setCollisionFlags(as->object->getRigidBody()->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
     as->object->getRigidBody()->setActivationState(DISABLE_DEACTIVATION);

@@ -148,6 +148,10 @@ public:
         generateWorldTransform = std::bind(&Transformation::generateWorldTransformDefault, this);
     }
 
+    const Transformation* getParentTransform() const {
+        return parentTransform;
+    }
+
     void setParentTransform(Transformation* transformation) {
         if(this->parentTransform != nullptr) {
             removeParentTransform();
@@ -360,6 +364,7 @@ public:
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) const;
 
     bool deserialize(tinyxml2::XMLElement *transformationNode);
+
 };
 
 

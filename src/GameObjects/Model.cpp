@@ -364,8 +364,13 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
         currentElement->SetText(stepOnSound->getName().c_str());
         objectElement->InsertEndChild(currentElement);
     }
-
-    transformation.serialize(document, objectElement);
+    if(!customAnimation) {
+        transformation.serialize(document, objectElement);
+    } else {
+        //if part of custom animation, it means the original position is at the parent. Serialize that
+        const Transformation* parent = transformation.getParentTransform();
+        parent->serialize(document, objectElement);
+    }
 
     //now handle children
     if(this->children.size() > 0) {

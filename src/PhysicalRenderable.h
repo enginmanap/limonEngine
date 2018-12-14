@@ -23,6 +23,7 @@ protected:
     bool disconnected = false;
     std::vector<PhysicalRenderable*> children;
     std::unique_ptr<Sound> soundAttachment2 = nullptr;
+    bool customAnimation;
 
 public:
     explicit PhysicalRenderable(GLHelper *glHelper, float mass, bool disconnected)
@@ -161,6 +162,14 @@ public:
 
     const glm::vec3 &getCenterOffset() const {
         return centerOffset;
+    }
+
+    void setCustomAnimation(bool customAnimation) {
+        this->customAnimation = customAnimation;
+    }
+
+    bool getCustomAnimation() {
+        return customAnimation;
     }
 };
 
