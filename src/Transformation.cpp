@@ -82,6 +82,12 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
             break;
         }
         case ROTATE_MODE: {
+            if(this->parentTransform != nullptr ) {
+                ImGui::Text((std::string("Current Total Rotate X") + std::to_string(orientation.x)).c_str());
+                ImGui::Text((std::string("Current Total Rotate Y") + std::to_string(orientation.y)).c_str());
+                ImGui::Text((std::string("Current Total Rotate Z") + std::to_string(orientation.z)).c_str());
+                ImGui::Text((std::string("Current Total Rotate W") + std::to_string(orientation.z)).c_str());
+            }
             glm::quat tempOrientation = orientationSingle;
             updated = ImGui::DragFloat("Rotate X", &(tempOrientation.x), 0.001f, -1.0f, 1.0f) || updated;
             updated = ImGui::DragFloat("Rotate Y", &(tempOrientation.y), 0.001f, -1.0f, 1.0f) || updated;
