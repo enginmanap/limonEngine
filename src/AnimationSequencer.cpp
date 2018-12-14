@@ -14,7 +14,11 @@ AnimationSequenceInterface::AnimationSequenceInterface(PhysicalRenderable* anima
 
 AnimationSequenceInterface::~AnimationSequenceInterface(){
     //put object back to original position
-    (*animatingObject->getTransformation()) = originalTransformation;
+    if(animatingObject != nullptr) { //if cancelled or finalized, this is already done, and animating object is null
+        animatingObject->getTransformation()->setTranslate(originalTransformation.getTranslate());
+        animatingObject->getTransformation()->setScale(originalTransformation.getScale());
+        animatingObject->getTransformation()->setOrientation(originalTransformation.getOrientation());
+    }
 }
 
 void AnimationSequenceInterface::Duplicate(int index) {
@@ -249,11 +253,15 @@ void AnimationSequenceInterface::addAnimationSequencerToEditor(bool &finished, b
 
         if(selectedEntry == -1) {
             //means nothing is selected, can happen when sequence removed.
-            (*animatingObject->getTransformation()) = originalTransformation;
+            animatingObject->getTransformation()->setTranslate(originalTransformation.getTranslate());
+            animatingObject->getTransformation()->setScale(originalTransformation.getScale());
+            animatingObject->getTransformation()->setOrientation(originalTransformation.getOrientation());
         } else {
-            Transformation itemTransformation = originalTransformation;
+            Transformation itemTransformation(originalTransformation);
             itemTransformation.combine(sections[selectedEntry].transformation);
-            (*animatingObject->getTransformation()) = itemTransformation;
+            animatingObject->getTransformation()->setTranslate(itemTransformation.getTranslate());
+            animatingObject->getTransformation()->setScale(itemTransformation.getScale());
+            animatingObject->getTransformation()->setOrientation(itemTransformation.getOrientation());
         }
     }
 
@@ -274,7 +282,11 @@ void AnimationSequenceInterface::addAnimationSequencerToEditor(bool &finished, b
         cancelled = true;
     }
     if(cancelled ||finished) {
-        (*animatingObject->getTransformation()) = originalTransformation;//return to origin if cancelled or finished
+        animatingObject->getTransformation()->setTranslate(originalTransformation.getTranslate());
+        animatingObject->getTransformation()->setScale(originalTransformation.getScale());
+        animatingObject->getTransformation()->setOrientation(originalTransformation.getOrientation());
+        //since return to origin is done, invalidate the object so destructor doesn't mess with it
+        animatingObject = nullptr;
     }
     ImGui::End();
 }
