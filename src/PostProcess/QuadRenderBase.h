@@ -13,7 +13,7 @@ class GLHelper;
 class GLSLProgram;
 
 class QuadRenderBase {
-    uint32_t vao, ebo;
+    uint_fast32_t vao, ebo;
     std::vector<uint32_t> bufferObjects;
     std::map<std::string, int32_t> textureAttachments;
 
