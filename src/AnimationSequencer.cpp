@@ -259,9 +259,10 @@ void AnimationSequenceInterface::addAnimationSequencerToEditor(bool &finished, b
         } else {
             Transformation itemTransformation(originalTransformation);
             itemTransformation.combine(sections[selectedEntry].transformation);
-            animatingObject->getTransformation()->setTranslate(itemTransformation.getTranslate());
-            animatingObject->getTransformation()->setScale(itemTransformation.getScale());
-            animatingObject->getTransformation()->setOrientation(itemTransformation.getOrientation());
+            //If there is a parent, they share the parent so single is appropriate. If no parent, single works as normal
+            animatingObject->getTransformation()->setTranslate(itemTransformation.getTranslateSingle());
+            animatingObject->getTransformation()->setScale(itemTransformation.getScaleSingle());
+            animatingObject->getTransformation()->setOrientation(itemTransformation.getOrientationSingle());
         }
     }
 
@@ -282,9 +283,10 @@ void AnimationSequenceInterface::addAnimationSequencerToEditor(bool &finished, b
         cancelled = true;
     }
     if(cancelled ||finished) {
-        animatingObject->getTransformation()->setTranslate(originalTransformation.getTranslate());
-        animatingObject->getTransformation()->setScale(originalTransformation.getScale());
-        animatingObject->getTransformation()->setOrientation(originalTransformation.getOrientation());
+        //Single works both parented and not parented transforms.
+        animatingObject->getTransformation()->setTranslate(originalTransformation.getTranslateSingle());
+        animatingObject->getTransformation()->setScale(originalTransformation.getScaleSingle());
+        animatingObject->getTransformation()->setOrientation(originalTransformation.getOrientationSingle());
         //since return to origin is done, invalidate the object so destructor doesn't mess with it
         animatingObject = nullptr;
     }
