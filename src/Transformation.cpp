@@ -200,8 +200,8 @@ bool Transformation::addImGuizmoElements(const ImGuizmoState &editorState, const
 
 void Transformation::getDifference(const Transformation& otherTransformation, glm::vec3 &translateOut, glm::vec3 &scaleOut, glm::quat &rotationOut) const {
     //first, find out, what would convert this, to other. Simple substract won't work because these will stack, not add
-    glm::mat4 currentWT = getWorldTransform();
-    glm::mat4 otherWt = otherTransformation.getWorldTransform();
+    glm::mat4 currentWT = generateRawWorldTransformWithOrWithoutParent();
+    glm::mat4 otherWt = otherTransformation.generateRawWorldTransformWithOrWithoutParent();
     glm::mat4 differenceWT = glm::inverse(currentWT) * otherWt;
 
     glm::vec3 temp1;

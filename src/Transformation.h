@@ -77,9 +77,21 @@ protected:
     std::function<glm::mat4()> generateWorldTransformSingle = nullptr; //these are backups, in case of stacking
     std::function<void()> updateCallbackSingle = nullptr; //these are backups, in case of stacking
 
-    glm::mat4 generateWorldTransformDefault(){
+    glm::mat4 generateWorldTransformDefault() const {
         return glm::translate(glm::mat4(1.0f), translateSingle) * glm::mat4_cast(orientationSingle) *
                                glm::scale(glm::mat4(1.0f), scaleSingle);
+    }
+
+    glm::mat4 generateRawWorldTransformWithOrWithoutParent() const {
+        //glm::mat4 totalTransform = parentTransform->generateWorldTransformDefault() * this->generateWorldTransformSingle();
+        Transformation* parent = this->parentTransform;
+        glm::mat4 rawTotalTransform = this->generateWorldTransformDefault();
+        while(parent != nullptr) {
+            glm::mat4 parentTransformTemp = parent->generateWorldTransformDefault();
+            rawTotalTransform = parentTransformTemp * rawTotalTransform;
+            parent = parent->parentTransform;
+        }
+        return rawTotalTransform;
     }
 
 
