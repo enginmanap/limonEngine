@@ -86,7 +86,9 @@ public:
                                              const std::string &customPrefix, const AssetManager::AvailableAssetsNode **selectedNode) {
         ImGui::Separator();
         ImGui::BeginChild(("Asset Selector##" + customPrefix).c_str(), ImVec2(0, 300), true, ImGuiWindowFlags_HorizontalScrollbar);
-        buildTreeFromAssetsRecursive(assetsNode, typeToShow, customPrefix, selectedNode);
+        if(assetsNode != nullptr) {//possible because of filtering
+            buildTreeFromAssetsRecursive(assetsNode, typeToShow, customPrefix, selectedNode);
+        }
         ImGui::EndChild();
         ImGui::Separator();
     }
