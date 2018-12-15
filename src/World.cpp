@@ -831,8 +831,15 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
         static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
         glm::vec3 newObjectPosition = camera->getPosition() + 10.0f * camera->getCenter();
 
+
         if (ImGui::CollapsingHeader("Add New Object")) {
-            imgGuiHelper->buildTreeFromAssets(assetManager->getAvailableAssetsTree(), AssetManager::Asset_type_MODEL, "Model",
+            static char modelAssetFilter[32] = {0};
+            ImGui::InputText("Filter Assets ##ModelsAssetTreeFilter", modelAssetFilter, sizeof(modelAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
+            std::string modelAssetFilterStr = modelAssetFilter;
+            std::transform(modelAssetFilterStr.begin(), modelAssetFilterStr.end(), modelAssetFilterStr.begin(), ::tolower);
+            const AssetManager::AvailableAssetsNode* filteredAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_MODEL, modelAssetFilterStr);
+            imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_MODEL,
+                                              "Model",
                                               &selectedAsset);
 
             static float newObjectWeight;
@@ -1985,7 +1992,14 @@ void World::addGUIImageControls() {
      * For a new GUI Image we need only name and filename
      */
     static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
-    imgGuiHelper->buildTreeFromAssets(assetManager->getAvailableAssetsTree(), AssetManager::Asset_type_TEXTURE, "GUIImage",
+
+    static char textureAssetFilter[32] = {0};
+    ImGui::InputText("Filter Assets ##TextureAssetTreeFilter", textureAssetFilter, sizeof(textureAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
+    std::string textureAssetFilterStr = textureAssetFilter;
+    std::transform(textureAssetFilterStr.begin(), textureAssetFilterStr.end(), textureAssetFilterStr.begin(), ::tolower);
+    const AssetManager::AvailableAssetsNode* filteredAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureAssetFilterStr);
+    imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
+                                      "GUIImage",
                                       &selectedAsset);
 
     static size_t selectedLayerIndex = 0;
@@ -2159,7 +2173,15 @@ void World::addGUIButtonControls() {
        ImGui::Checkbox("Is Animation Looped", &isLooped);
 
        static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
-       imgGuiHelper->buildTreeFromAssets(assetManager->getAvailableAssetsTree(), AssetManager::AssetTypes::Asset_type_TEXTURE, "GUIAnimation",
+
+       static char textureAnimationAssetFilter[32] = {0};
+       ImGui::InputText("Filter Assets ##TextureAnimationAssetTreeFilter", textureAnimationAssetFilter, sizeof(textureAnimationAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
+       std::string textureAssetFilterStr = textureAnimationAssetFilter;
+       std::transform(textureAssetFilterStr.begin(), textureAssetFilterStr.end(), textureAssetFilterStr.begin(), ::tolower);
+       const AssetManager::AvailableAssetsNode* filteredAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureAssetFilterStr);
+
+       imgGuiHelper->buildTreeFromAssets(filteredAssets,
+                                         AssetManager::AssetTypes::Asset_type_TEXTURE, "GUIAnimation",
                                          &selectedAsset);
 
        static size_t selectedLayerIndex = 0;

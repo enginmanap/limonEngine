@@ -16,6 +16,9 @@ void AssetManager::addAssetsRecursively(const std::string &directoryPath, const 
     struct dirent *entry;
 
     nodeToProcess->name = fileName;
+    nodeToProcess->nameLower = nodeToProcess->name;
+    std::transform(nodeToProcess->nameLower.begin(), nodeToProcess->nameLower.end(), nodeToProcess->nameLower.begin(), ::tolower);
+
     nodeToProcess->fullPath = directoryPath;
 
     if (!(directory = opendir(directoryPath.c_str()))) {
@@ -48,6 +51,8 @@ void AssetManager::addAssetsRecursively(const std::string &directoryPath, const 
                     AvailableAssetsNode* newNode = new AvailableAssetsNode;
                     newNode->fullPath = filePath;
                     newNode->name = std::string(entry->d_name);
+                    newNode->nameLower = newNode->name;
+                    std::transform(newNode->nameLower.begin(), newNode->nameLower.end(), newNode->nameLower.begin(), ::tolower);
                     newNode->assetType = assetType;
                     newNode->parent = nodeToProcess;
                     nodeToProcess->children.push_back(newNode);
@@ -122,5 +127,49 @@ bool AssetManager::isExtensionInList(const std::string &name, const std::vector<
         }
     }
     return false;
+}
+
+const AssetManager::AvailableAssetsNode *
+AssetManager::getAvailableAssetsTreeFiltered(AssetManager::AssetTypes type, const std::string &filterText) {
+    std::pair<AssetTypes , std::string> key = std::make_pair(type,filterText);
+    if(filteredResults.find(key) != filteredResults.end()) {
+        return filteredResults[key];
+    }
+    //now we should build another tree with given filters
+    AssetManager::AvailableAssetsNode *root = getAvailableAssetsTreeFilteredRecursive(availableAssetsRootNode, type, filterText);
+    filteredResults[key] = root;
+    return root;
+}
+
+AssetManager::AvailableAssetsNode *
+AssetManager::getAvailableAssetsTreeFilteredRecursive(AvailableAssetsNode *assetsNode, AssetManager::AssetTypes type,
+                                                      const std::string &filterText) {
+    AssetManager::AvailableAssetsNode *newAssetsNode = nullptr;
+    if(assetsNode->assetType == type) {
+        if(assetsNode->nameLower.find(filterText) != std::string::npos) {
+            return assetsNode;
+        } else {
+            return nullptr;
+        }
+    } else if(assetsNode->assetType != Asset_type_DIRECTORY) {
+        return nullptr;
+    }
+    //at this point, we made sure the asset node type is directory, and any child that doesn't match filters will return null.
+    for (size_t i = 0; i < assetsNode->children.size(); ++i) {
+        AssetManager::AvailableAssetsNode *childAssetNode = getAvailableAssetsTreeFilteredRecursive(assetsNode->children[i], type, filterText);
+        if(childAssetNode != nullptr) {
+            if(newAssetsNode == nullptr) {
+                newAssetsNode = new AvailableAssetsNode();
+                newAssetsNode->name = assetsNode->name;
+                newAssetsNode->nameLower = assetsNode->nameLower;
+                newAssetsNode->fullPath = assetsNode->fullPath;
+                newAssetsNode->assetType = assetsNode->assetType;//directory known
+                //parent = nullptr;
+            }
+            childAssetNode->parent = newAssetsNode;
+            newAssetsNode->children.push_back(childAssetNode);
+        }
+    }
+    return newAssetsNode;
 }
 

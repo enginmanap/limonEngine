@@ -58,6 +58,7 @@ public:
 
     struct AvailableAssetsNode {
         std::string name;
+        std::string nameLower;
         std::string fullPath;
         AssetTypes assetType = Asset_type_UNKNOWN;
         AvailableAssetsNode* parent = nullptr;
@@ -92,6 +93,7 @@ private:
 
     //std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
     AvailableAssetsNode* availableAssetsRootNode = nullptr;
+    std::map<std::pair<AssetTypes, std::string>, AvailableAssetsNode*> filteredResults;
     GLHelper *glHelper;
     ALHelper *alHelper;
 
@@ -113,6 +115,10 @@ private:
             return false;
         }
     }
+
+    AvailableAssetsNode * getAvailableAssetsTreeFilteredRecursive(AvailableAssetsNode *assetsNode, AssetTypes type,
+                                                                  const std::string &filterText);
+
 public:
 
     explicit AssetManager(GLHelper *glHelper, ALHelper *alHelper) : glHelper(glHelper), alHelper(alHelper) {
@@ -160,6 +166,9 @@ public:
         return availableAssetsRootNode;
     };
 
+    const AvailableAssetsNode* getAvailableAssetsTreeFiltered(AssetTypes type, const std::string &filterText);
+
+
     void addEmbeddedTextures(const std::string& ownerAsset, std::vector<EmbeddedTexture> textures) {
         this->embeddedTextures[ownerAsset] = textures;
     }
@@ -191,6 +200,13 @@ public:
              it != assets.end(); it++) {
             delete it->second.first;
         }
+
+        delete availableAssetsRootNode;
+
+        for (auto tree_iterator = filteredResults.begin(); tree_iterator != filteredResults.end(); ++tree_iterator) {
+            delete tree_iterator->second;
+        }
+
     }
 };
 
