@@ -26,9 +26,9 @@ class Transformation {
     };
     /* EDITOR INFORMATION PART */
 
-    glm::mat4 worldTransform;//private
+    mutable glm::mat4 worldTransform;//private
 
-    void setWorldTransform(const glm::mat4& transform){
+    void setWorldTransform(const glm::mat4& transform) {
         this->worldTransform = transform;
         isDirty = false;
     }
@@ -56,7 +56,7 @@ protected:
     glm::vec3 translate = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::quat orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-    bool isDirty = true;
+    mutable bool isDirty = true;
     bool rotated = false;
 
     //ATTENTION These 2 method pointers are not set when copy constructed
@@ -372,9 +372,10 @@ public:
         return rotated;
     }
 
-    const glm::mat4 &getWorldTransform() {
+    const glm::mat4 &getWorldTransform() const {
         if (isDirty) {
-            this->setWorldTransform(generateWorldTransform());
+            this->worldTransform = generateWorldTransform();
+            isDirty = false;
         }
         return worldTransform;
     }

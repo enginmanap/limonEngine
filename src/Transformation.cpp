@@ -199,11 +199,16 @@ bool Transformation::addImGuizmoElements(const ImGuizmoState &editorState, const
 }
 
 void Transformation::getDifference(const Transformation& otherTransformation, glm::vec3 &translateOut, glm::vec3 &scaleOut, glm::quat &rotationOut) const {
-    translateOut = otherTransformation.translate - this->translate;
-    scaleOut = otherTransformation.scale / this->scale;
-    rotationOut = this->orientation;
-    rotationOut = glm::inverse(rotationOut);
-    rotationOut = rotationOut * otherTransformation.orientation;
+    //first, find out, what would convert this, to other. Simple substract won't work because these will stack, not add
+    glm::mat4 currentWT = getWorldTransform();
+    glm::mat4 otherWt = otherTransformation.getWorldTransform();
+    glm::mat4 differenceWT = glm::inverse(currentWT) * otherWt;
+
+    glm::vec3 temp1;
+    glm::vec4 temp2;
+
+
+    glm::decompose(differenceWT, scaleOut, rotationOut, translateOut, temp1, temp2);
 }
 
 bool Transformation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) const {
