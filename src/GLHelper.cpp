@@ -1079,7 +1079,8 @@ void GLHelper::setLight(const Light &light, const int i) {
 
     //std::cout << "light type is " << lightType << std::endl;
     //std::cout << "size is " << sizeof(GLint) << std::endl;
-    float farPlane = 100;
+    float farPlane = light.getActiveDistance();
+    glm::vec3 attenuation = light.getAttenuation();
 
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
     glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize,
@@ -1094,6 +1095,8 @@ void GLHelper::setLight(const Light &light, const int i) {
                     sizeof(glm::vec3), &light.getColor());
     glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec4) + sizeof(glm::vec3),
                     sizeof(GLint), &lightType);
+    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + 2 *sizeof(glm::vec4),
+                    sizeof(glm::vec3), glm::value_ptr(attenuation));
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setLight");
 }

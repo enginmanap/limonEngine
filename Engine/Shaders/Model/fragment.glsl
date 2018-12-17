@@ -24,6 +24,7 @@ struct LightSource
     float farPlanePoint;
     vec3 color;
     int type; //1 Directional, 2 point
+	vec3 attenuation;
 };
 
 layout (std140) uniform LightSourceBlock
@@ -99,6 +100,10 @@ float ShadowCalculationPoint(vec3 fragPos, float bias, float viewDistance, int l
 {
     // get vector between fragment position and light position
     vec3 fragToLight = fragPos - LightSources.lights[lightIndex].position;
+    float fragDistance = length(fragToLight);
+    if(LightSources.lights[lightIndex].farPlanePoint < fragDistance) {
+        return 1;//if outside of the active distance, in shadow
+    }
     // use the light to fragment vector to sample from the depth map
     float closestDepth = texture(shadowSamplerPoint, vec4(fragToLight, lightIndex)).r;
     // it is currently in linear range between [0,1]. Re-transform back to original value
@@ -116,7 +121,18 @@ float ShadowCalculationPoint(vec3 fragPos, float bias, float viewDistance, int l
         if(currentDepth + bias > closestDepth)
             shadow += 1.0;
     }
-    shadow /= float(samples);
+    //now calculate attenuation
+    float attenuation = 1.0 / (LightSources.lights[lightIndex].attenuation.x +
+                              (LightSources.lights[lightIndex].attenuation.y * fragDistance) +
+                               (LightSources.lights[lightIndex].attenuation.z * fragDistance * fragDistance));
+    attenuation = clamp(attenuation, 0.0, 1.0);
+    attenuation = 1 - attenuation;
+    if(attenuation == 1) {
+        shadow = 1;
+    } else {
+        shadow /= float(samples);
+        shadow = max(shadow, attenuation);
+    }
 
     return shadow;
 }

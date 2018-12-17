@@ -684,6 +684,15 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
         color.z = z;
 
         xmlLight = new Light(glHelper, lightID, type, position, color);
+
+        glm::vec3 attenuation(1, 0.1f, 0.01f);
+        tinyxml2::XMLElement* lightAttenuation =  lightNode->FirstChildElement("Attenuation");
+        if(lightAttenuation != nullptr) {
+            if(loadVec3(lightAttenuation, attenuation)) {
+                xmlLight->setAttenuation(attenuation);
+            }
+        }
+
         world->addLight(xmlLight);
         lightNode =  lightNode->NextSiblingElement("Light");
     }

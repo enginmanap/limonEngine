@@ -1306,7 +1306,6 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                             directionalLightIndex = -1;
                         }
                         delete pickedObject;
-                        std::cout << "delete the light" << std::endl;
                         updateActiveLights(true);
                         pickedObject = nullptr;
                     }
