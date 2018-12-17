@@ -6,6 +6,7 @@
 #define LIMONENGINE_LIGHT_H
 
 
+#include <glm/gtx/norm.hpp>
 #include "glm/glm.hpp"
 #include "GameObject.h"
 #include "../GLHelper.h"
@@ -24,6 +25,8 @@ private:
 
     uint32_t objectID;
     glm::vec3 position, color;
+    glm::vec3 attenuation = glm::vec3(1,0.1,0.01);//const, linear, exponential
+    float activeDistance = 10;//will auto recalculate on constructor
     LightTypes lightType;
     bool frustumChanged = true;
     void setShadowMatricesForPosition(){
@@ -40,9 +43,12 @@ private:
         shadowMatrices[5] =glHelper->getLightProjectionMatrixPoint() *
                            glm::lookAt(position, position + glm::vec3( 0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0));
     }
+
+    void calculateActiveDistance();
+
 public:
     Light(GLHelper *glHelper, uint32_t objectID, LightTypes lightType, const glm::vec3 &position,
-              const glm::vec3 &color) :
+          const glm::vec3 &color) :
             glHelper(glHelper),
             objectID(objectID),
             position(position),
@@ -59,6 +65,9 @@ public:
 
         this->frustumPlanes.resize(6);
         glHelper->calculateFrustumPlanes(lightView, glHelper->getLightProjectionMatrixDirectional(), this->frustumPlanes);
+        if(lightType == LightTypes::POINT) {
+            calculateActiveDistance();
+        }
         frustumChanged = true;
     }
 
@@ -102,7 +111,7 @@ public:
         return frustumPlanes;
     }
 
-    bool isShadowCaster(const glm::vec3& aabbMin, const glm::vec3& aabbMax, const glm::vec3& position __attribute((unused))) const {
+    bool isShadowCaster(const glm::vec3& aabbMin, const glm::vec3& aabbMax, const glm::vec3& position) const {
         //there are 2 possibilities.
         // 1) if directional light -> check if in frustum
         // 2) point light -> check if within range
@@ -111,7 +120,7 @@ public:
             case DIRECTIONAL:
                 return glHelper->isInFrustum(aabbMin, aabbMax, this->frustumPlanes);
             case POINT:
-                return true; //TODO not implemented yet
+            return (glm::distance2(position, this->position) < activeDistance * activeDistance);
         }
         return true;//for safety only
     }
@@ -141,6 +150,20 @@ public:
         return goName;
     };
 
+    glm::vec3 getAttenuation() const {
+        return attenuation;
+    }
+
+    void setAttenuation(const glm::vec3& attenuation) {
+        this->attenuation = attenuation;
+        calculateActiveDistance();
+        this->setFrustumChanged(true);
+    }
+
+    float getActiveDistance() const {
+        return activeDistance;
+    }
+
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) {
         ImGuiResult result;
 
@@ -158,6 +181,17 @@ public:
         result.updated = ImGui::DragFloat("Color G", &(this->color.g), 0.0f, 1.0f)   || result.updated;
         result.updated = ImGui::DragFloat("Color B", &(this->color.b), 0.0f, 1.0f)   || result.updated;
         ImGui::NewLine();
+        bool attenuationUpdate = false;
+        if(lightType == LightTypes::POINT) {
+            attenuationUpdate = ImGui::DragFloat("Constant",    &(this->attenuation.x), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
+            attenuationUpdate = ImGui::DragFloat("Linear",      &(this->attenuation.y), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
+            attenuationUpdate = ImGui::DragFloat("Exponential", &(this->attenuation.z), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
+            if(attenuationUpdate) {
+                calculateActiveDistance();
+                result.updated = true;
+            }
+            ImGui::NewLine();
+        }
 
         if(result.updated || crudeUpdated) {
             this->setPosition(position);

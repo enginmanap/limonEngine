@@ -13,6 +13,7 @@ struct LightSource
     float farPlanePoint;
     vec3 color;
     int type;
+    vec3 attenuation;
 };
 
 layout (std140) uniform LightSourceBlock

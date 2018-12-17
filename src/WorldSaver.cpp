@@ -259,6 +259,19 @@ bool WorldSaver::fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
         currentElement->SetText(color.b);
         parent->InsertEndChild(currentElement);
         lightElement->InsertEndChild(parent);
+
+        parent = document.NewElement("Attenuation");
+        glm::vec3 attenuation = (*it)->getAttenuation();
+        currentElement = document.NewElement("X");
+        currentElement->SetText(attenuation.x);
+        parent->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Y");
+        currentElement->SetText(attenuation.y);
+        parent->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Z");
+        currentElement->SetText(attenuation.z);
+        parent->InsertEndChild(currentElement);
+        lightElement->InsertEndChild(parent);
     }
     return true;
 }
