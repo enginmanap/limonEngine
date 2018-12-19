@@ -1144,15 +1144,21 @@ void GLHelper::setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) {
 void GLHelper::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform) {
     this->cameraMatrix = cameraTransform;
     this->cameraPosition= cameraPosition;
+    glm::vec3 cameraSpacePosition = glm::vec3(cameraMatrix * glm::vec4(cameraPosition, 1.0));
+    glm::mat4 inverseCameraMatrix = glm::inverse(cameraTransform);
     glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
     glBufferSubData(GL_UNIFORM_BUFFER, 0 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(cameraMatrix));//changes with camera
     glBufferSubData(GL_UNIFORM_BUFFER, 1 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(perspectiveProjectionMatrix));//never changes
     glm::mat4 viewMatrix = perspectiveProjectionMatrix * cameraMatrix;
     glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(viewMatrix));//changes with camera
     glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(inverseProjection));//never changes
-    glBufferSubData(GL_UNIFORM_BUFFER, 4 * sizeof(glm::mat4), sizeof(glm::vec3), glm::value_ptr(cameraPosition));//changes with camera
+
+    glBufferSubData(GL_UNIFORM_BUFFER, 4 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(inverseCameraMatrix));//changes with camera
+    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4), sizeof(glm::vec3), glm::value_ptr(cameraPosition));//changes with camera
+    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4)+ sizeof(glm::vec4), sizeof(glm::vec3), glm::value_ptr(cameraSpacePosition));//changes with camera
+
     glm::vec2 noiseScale(this->screenWidth / 4, this->screenHeight / 4);
-    glBufferSubData(GL_UNIFORM_BUFFER, 4 * sizeof(glm::mat4)+ sizeof(glm::vec4), sizeof(glm::vec2), glm::value_ptr(noiseScale));//never changes
+    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4)+ 2* sizeof(glm::vec4), sizeof(glm::vec2), glm::value_ptr(noiseScale));//never changes
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     calculateFrustumPlanes(cameraMatrix, perspectiveProjectionMatrix, frustumPlanes);

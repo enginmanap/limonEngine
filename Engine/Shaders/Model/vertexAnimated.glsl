@@ -24,7 +24,9 @@ layout (std140) uniform PlayerTransformBlock {
     mat4 projection;
     mat4 cameraProjection;
     mat4 inverseProjection;
+	mat4 inverseCamera;
     vec3 position;
+	vec3 cameraSpacePosition;
     vec2 noiseScale;
 } playerTransforms;
 
