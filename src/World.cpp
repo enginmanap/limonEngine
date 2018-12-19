@@ -259,10 +259,10 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          }
      }
 
-     updateActiveLights(false);
      for (size_t j = 0; j < activeLights.size(); ++j) {
          activeLights[j]->step(gameTime);
      }
+     updateActiveLights(false);
 
      fillVisibleObjects();
 
