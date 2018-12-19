@@ -916,7 +916,7 @@ void GLHelper::reshape() {
     glViewport(0, 0, options->getScreenWidth(), options->getScreenHeight());
     aspect = float(options->getScreenHeight()) / float(options->getScreenWidth());
     perspectiveProjectionMatrix = glm::perspective(options->PI/3.0f, 1.0f / aspect, 0.01f, 10000.0f);
-    inverseTransposeProjection = glm::inverse(perspectiveProjectionMatrix);
+    inverseProjection = glm::inverse(perspectiveProjectionMatrix);
     orthogonalProjectionMatrix = glm::ortho(0.0f, (float) options->getScreenWidth(), 0.0f, (float) options->getScreenHeight());
     checkErrors("reshape");
 }
@@ -1149,7 +1149,7 @@ void GLHelper::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat
     glBufferSubData(GL_UNIFORM_BUFFER, 1 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(perspectiveProjectionMatrix));//never changes
     glm::mat4 viewMatrix = perspectiveProjectionMatrix * cameraMatrix;
     glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(viewMatrix));//changes with camera
-    glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(inverseTransposeProjection));//never changes
+    glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(inverseProjection));//never changes
     glBufferSubData(GL_UNIFORM_BUFFER, 4 * sizeof(glm::mat4), sizeof(glm::vec3), glm::value_ptr(cameraPosition));//changes with camera
     glm::vec2 noiseScale(this->screenWidth / 4, this->screenHeight / 4);
     glBufferSubData(GL_UNIFORM_BUFFER, 4 * sizeof(glm::mat4)+ sizeof(glm::vec4), sizeof(glm::vec2), glm::value_ptr(noiseScale));//never changes

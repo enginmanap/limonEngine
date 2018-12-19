@@ -223,7 +223,7 @@ private:
 
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;
-    glm::mat4 inverseTransposeProjection;
+    glm::mat4 inverseProjection;
     std::vector<glm::vec4>frustumPlanes;
     glm::mat4 orthogonalProjectionMatrix;
     glm::mat4 lightProjectionMatrixDirectional;
