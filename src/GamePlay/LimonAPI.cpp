@@ -130,6 +130,14 @@ bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tiny
             currentElement->SetText("FreeNumber");
         }
             break;
+        case COORDINATE: {
+            currentElement->SetText("Coordinate");
+        }
+            break;
+        case TRANSFORM: {
+            currentElement->SetText("Transform");
+        }
+            break;
     }
     parameterNode->InsertEndChild(currentElement);
 
@@ -176,6 +184,44 @@ bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tiny
             valueElement->SetText(commaSeperatedArray.c_str());
         }
         break;
+        case VEC4: {
+            currentElement->SetText("Vec4");
+            tinyxml2::XMLElement *xELement = document.NewElement("X");
+            xELement->SetText(std::to_string(value.vectorValue.x).c_str());
+            valueElement->InsertEndChild(xELement);
+            tinyxml2::XMLElement *yELement = document.NewElement("Y");
+            xELement->SetText(std::to_string(value.vectorValue.y).c_str());
+            valueElement->InsertEndChild(yELement);
+            tinyxml2::XMLElement *zELement = document.NewElement("Z");
+            xELement->SetText(std::to_string(value.vectorValue.z).c_str());
+            valueElement->InsertEndChild(zELement);
+            tinyxml2::XMLElement *wELement = document.NewElement("W");
+            xELement->SetText(std::to_string(value.vectorValue.w).c_str());
+            valueElement->InsertEndChild(wELement);
+        }
+            break;
+        case MAT4: {
+            currentElement->SetText("Mat4");
+
+            for (int32_t i = 0; i < 4; ++i) {
+                tinyxml2::XMLElement *rowELement = document.NewElement(std::to_string(i).c_str());
+                tinyxml2::XMLElement *xELement = document.NewElement("X");
+                xELement->SetText(std::to_string(value.matrixValue[i].x).c_str());
+                rowELement->InsertEndChild(xELement);
+                tinyxml2::XMLElement *yELement = document.NewElement("Y");
+                xELement->SetText(std::to_string(value.matrixValue[i].y).c_str());
+                rowELement->InsertEndChild(yELement);
+                tinyxml2::XMLElement *zELement = document.NewElement("Z");
+                xELement->SetText(std::to_string(value.matrixValue[i].z).c_str());
+                rowELement->InsertEndChild(zELement);
+                tinyxml2::XMLElement *wELement = document.NewElement("W");
+                xELement->SetText(std::to_string(value.matrixValue[i].w).c_str());
+                rowELement->InsertEndChild(wELement);
+                valueElement->InsertEndChild(rowELement);
+            }
+        }
+            break;
+
         default:
             currentElement->SetText("UNKNOWN");
     }
@@ -219,6 +265,10 @@ deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index) {
         this->requestType = RequestParameterTypes::GUI_TEXT;
     } else if(strcmp(parameterAttribute->GetText(), "FreeNumber") == 0) {
         this->requestType = RequestParameterTypes::FREE_NUMBER;
+    } else if(strcmp(parameterAttribute->GetText(), "Coordinate") == 0) {
+        this->requestType = RequestParameterTypes::COORDINATE;
+    } else if(strcmp(parameterAttribute->GetText(), "Transform") == 0) {
+        this->requestType = RequestParameterTypes::TRANSFORM;
     } else {
         std::cerr << "Trigger parameter request type was unknown. " << parameterAttribute->GetText() << std::endl;
         return false;
@@ -298,6 +348,21 @@ deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index) {
                 std::size_t commaPosition = commaSeperatedParameterString.find(",");
                 value.longValues[i] = std::stol(commaSeperatedParameterString.substr(0, commaPosition));
                 commaSeperatedParameterString = commaSeperatedParameterString.substr(commaPosition + 1);
+            }
+        }
+    } else if(strcmp(parameterAttribute->GetText(),"Vec4")== 0) {
+        this->valueType = ValueTypes::VEC4;
+        if(this->isSet) {
+            parameterAttribute = parameterNode->FirstChildElement("Value");
+            loadVec4(parameterAttribute, this->value.vectorValue);
+        }
+    } else if(strcmp(parameterAttribute->GetText(),"Mat4")== 0) {
+        this->valueType = ValueTypes::MAT4;
+        if(this->isSet) {
+            parameterAttribute = parameterNode->FirstChildElement("Value");
+            for(long i = 1; i < value.longValues[0]; i++) {
+                tinyxml2::XMLElement *rowNode = parameterAttribute->FirstChildElement(std::to_string(i).c_str());;
+                loadVec4(rowNode, this->value.matrixValue[i]);
             }
         }
     } else {
@@ -397,4 +462,31 @@ bool LimonAPI::addObjectScale(uint32_t objectID, const LimonAPI::Vec4 &scale) {
 
 bool LimonAPI::addObjectOrientation(uint32_t objectID, const LimonAPI::Vec4 &orientation) {
     return worldAddObjectOrientation(objectID, orientation);
+}
+
+void LimonAPI::loadVec4(tinyxml2::XMLNode *vectorNode, LimonAPI::Vec4 &vector) {
+    tinyxml2::XMLElement *vectorElementNode = vectorNode->FirstChildElement("X");
+    if(vectorElementNode != nullptr) {
+        vector.x = std::stof(vectorElementNode->GetText());
+    } else {
+        vector.x = 0;
+    }
+    vectorElementNode = vectorNode->FirstChildElement("Y");
+    if(vectorElementNode != nullptr) {
+        vector.y = std::stof(vectorElementNode->GetText());
+    } else {
+        vector.y = 0;
+    }
+    vectorElementNode = vectorNode->FirstChildElement("Z");
+    if(vectorElementNode != nullptr) {
+        vector.z = std::stof(vectorElementNode->GetText());
+    } else {
+        vector.z = 0;
+    }
+    vectorElementNode = vectorNode->FirstChildElement("W");
+    if(vectorElementNode != nullptr) {
+        vector.w = std::stof(vectorElementNode->GetText());
+    } else {
+        vector.w = 0;
+    }
 }

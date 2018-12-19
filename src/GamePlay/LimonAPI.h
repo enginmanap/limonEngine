@@ -300,6 +300,8 @@ private:
     std::function<void ()> limonExitGame;
     std::function<void ()> limonReturnPrevious;
     /*** Non World API calls *******************************************************/
+
+    static void loadVec4(tinyxml2::XMLNode *vectorNode, LimonAPI::Vec4 &vector);
 };
 
 
