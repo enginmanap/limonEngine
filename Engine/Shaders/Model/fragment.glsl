@@ -11,7 +11,7 @@ layout (std140) uniform PlayerTransformBlock {
     mat4 camera;
     mat4 projection;
     mat4 cameraProjection;
-    mat4 inverseTransposeProjection;
+    mat4 inverseProjection;
     vec3 position;
     vec2 noiseScale;
 } playerTransforms;
@@ -139,7 +139,7 @@ float ShadowCalculationPoint(vec3 fragPos, float bias, float viewDistance, int l
 
 vec3 calcViewSpacePos(vec3 screen) {
     vec4 temp = vec4(screen.x, screen.y, screen.z, 1);
-    temp *= playerTransforms.inverseTransposeProjection;
+    temp *= playerTransforms.inverseProjection;
     vec3 camera_space = temp.xyz / temp.w;
     return camera_space;
 }

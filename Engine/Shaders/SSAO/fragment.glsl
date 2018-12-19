@@ -6,7 +6,7 @@ layout (std140) uniform PlayerTransformBlock {
     mat4 camera;
     mat4 projection;
     mat4 cameraProjection;
-    mat4 inverseTransposeProjection;
+    mat4 inverseProjection;
     vec3 position;
     vec2 noiseScale;
 } playerTransforms;
@@ -28,7 +28,7 @@ vec3 calcViewSpacePos(vec3 screen) {
     temp.z = temp.z * 2 - 1;
     temp.y = temp.y * 2 - 1;
     temp.x = temp.x * 2 - 1;
-    temp = playerTransforms.inverseTransposeProjection * temp;
+    temp = playerTransforms.inverseProjection * temp;
     vec3 camera_space = temp.xyz / temp.w;
     return camera_space;
 }
