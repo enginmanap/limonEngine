@@ -228,6 +228,7 @@ private:
     glm::mat4 orthogonalProjectionMatrix;
     glm::mat4 lightProjectionMatrixDirectional;
     glm::mat4 lightProjectionMatrixPoint;
+    glm::vec3 cameraPosition;
     uint32_t renderTriangleCount;
     uint32_t renderLineCount;
     uint32_t uniformSetCount=0;
@@ -367,6 +368,8 @@ public:
     bool getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location);
 
     const glm::mat4& getCameraMatrix() const { return cameraMatrix; };
+
+    const glm::vec3& getCameraPosition() const { return cameraPosition; };
 
     const glm::mat4& getProjectionMatrix() const { return perspectiveProjectionMatrix; };
 

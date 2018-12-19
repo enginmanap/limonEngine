@@ -21,10 +21,17 @@ public:
 private:
     GLHelper* glHelper;
     glm::mat4 shadowMatrices[6];//these are used only for point lights for now
+    glm::mat4 lightSpaceMatrix;
+public:
+    const glm::mat4 &getLightSpaceMatrix() const;
+
+private:
+// and this is used only for directional lights
     std::vector<glm::vec4> frustumPlanes;
 
     uint32_t objectID;
     glm::vec3 position, color;
+    glm::vec3 renderPosition;
     glm::vec3 attenuation = glm::vec3(1,0.1,0.01);//const, linear, exponential
     float activeDistance = 10;//will auto recalculate on constructor
     LightTypes lightType;
@@ -75,17 +82,9 @@ public:
         return position;
     }
 
-    void setPosition(glm::vec3 position) {
-        this->position = position;
-        setShadowMatricesForPosition();
+    void setPosition(glm::vec3 position);
 
-        glm::mat4 lightView = glm::lookAt(this->position,
-                                          glm::vec3(0.0f, 0.0f, 0.0f),
-                                          glm::vec3(0.0f, 1.0f, 0.0f));
-
-        glHelper->calculateFrustumPlanes(lightView, glHelper->getLightProjectionMatrixDirectional(), this->frustumPlanes);
-        frustumChanged = true;
-    }
+    void step(long time);
 
     const glm::vec3 &getColor() const {
         return color;
@@ -164,71 +163,10 @@ public:
         return activeDistance;
     }
 
-    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) {
-        ImGuiResult result;
-
-        bool crudeUpdated = false;
-        static glm::vec3 preciseTranslatePoint = this->position;
-        result.updated = ImGui::DragFloat("Precise Position X", &(this->position.x), preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || result.updated;
-        result.updated = ImGui::DragFloat("Precise Position Y", &(this->position.y), preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || result.updated;
-        result.updated = ImGui::DragFloat("Precise Position Z", &(this->position.z), preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || result.updated;
-        ImGui::NewLine();
-        crudeUpdated = ImGui::SliderFloat("Crude Position X", &(this->position.x), -100.0f, 100.0f)   || crudeUpdated;
-        crudeUpdated = ImGui::SliderFloat("Crude Position Y", &(this->position.y), -100.0f, 100.0f)   || crudeUpdated;
-        crudeUpdated = ImGui::SliderFloat("Crude Position Z", &(this->position.z), -100.0f, 100.0f)   || crudeUpdated;
-        ImGui::NewLine();
-        result.updated = ImGui::DragFloat("Color R", &(this->color.r), 0.0f, 1.0f)   || result.updated;
-        result.updated = ImGui::DragFloat("Color G", &(this->color.g), 0.0f, 1.0f)   || result.updated;
-        result.updated = ImGui::DragFloat("Color B", &(this->color.b), 0.0f, 1.0f)   || result.updated;
-        ImGui::NewLine();
-        bool attenuationUpdate = false;
-        if(lightType == LightTypes::POINT) {
-            attenuationUpdate = ImGui::DragFloat("Constant",    &(this->attenuation.x), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
-            attenuationUpdate = ImGui::DragFloat("Linear",      &(this->attenuation.y), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
-            attenuationUpdate = ImGui::DragFloat("Exponential", &(this->attenuation.z), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
-            if(attenuationUpdate) {
-                calculateActiveDistance();
-                result.updated = true;
-            }
-            ImGui::NewLine();
-        }
-
-        if(result.updated || crudeUpdated) {
-            this->setPosition(position);
-        }
-        if(crudeUpdated) {
-            preciseTranslatePoint = this->position;
-        }
-
-        /* IMGUIZMO PART */
-
-        static bool useSnap; //these are static because we want to keep the values
-        static float snap[3] = {1.0f, 1.0f, 1.0f};
-        ImGui::NewLine();
-        ImGui::Checkbox("", &(useSnap));
-        ImGui::SameLine();
-        ImGui::InputFloat3("Snap", &(snap[0]));
-
-        glm::mat4 objectMatrix = glm::translate(glm::mat4(1.0f), position);
-        ImGuizmo::BeginFrame();
-        static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
-
-        ImGuiIO& io = ImGui::GetIO();
-        ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-        ImGuizmo::Manipulate(glm::value_ptr(request.perspectiveCameraMatrix), glm::value_ptr(request.perspectiveMatrix), ImGuizmo::TRANSLATE, mCurrentGizmoMode, glm::value_ptr(objectMatrix), NULL, useSnap ? &(snap[0]) : NULL);
-
-        //now we should have object matrix updated, update the object
-        this->setPosition(glm::vec3(objectMatrix[3][0], objectMatrix[3][1], objectMatrix[3][2]));
-
-        if(ImGui::Button("Remove light")) {
-            result.remove = true;
-            std::cout << "remove button press" << std::endl;
-        }
-
-        return result;
-    }
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
     /************Game Object methods **************/
 
+    void updateLightView();
 };
 
 

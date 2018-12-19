@@ -1062,11 +1062,6 @@ void GLHelper::drawLines(GLSLProgram &program, uint32_t vao, uint32_t vbo, const
 }
 
 void GLHelper::setLight(const Light &light, const int i) {
-    glm::mat4 lightView = glm::lookAt(light.getPosition(),
-                                      glm::vec3(0.0f, 0.0f, 0.0f),
-                                      glm::vec3(0.0f, 1.0f, 0.0f));
-
-    glm::mat4 lightSpaceMatrix = lightProjectionMatrixDirectional * lightView;
     GLint lightType;
     switch (light.getLightType()) {
         case Light::DIRECTIONAL:
@@ -1086,7 +1081,7 @@ void GLHelper::setLight(const Light &light, const int i) {
     glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize,
                     sizeof(glm::mat4) * 6, light.getShadowMatrices());
     glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 6,
-                    sizeof(glm::mat4), glm::value_ptr(lightSpaceMatrix));
+                    sizeof(glm::mat4), glm::value_ptr(light.getLightSpaceMatrix()));
     glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7,
                     sizeof(glm::vec3), &light.getPosition());
     glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec3),
@@ -1148,6 +1143,7 @@ void GLHelper::setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) {
 
 void GLHelper::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform) {
     this->cameraMatrix = cameraTransform;
+    this->cameraPosition= cameraPosition;
     glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
     glBufferSubData(GL_UNIFORM_BUFFER, 0 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(cameraMatrix));//changes with camera
     glBufferSubData(GL_UNIFORM_BUFFER, 1 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(perspectiveProjectionMatrix));//never changes
