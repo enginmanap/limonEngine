@@ -758,7 +758,7 @@ int32_t ModelAsset::buildEditorBoneTreeRecursive(BoneNode *boneNode, int32_t sel
     if(boneNode == nullptr) {
         return result;
     }
-    ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ((selectedBoneNodeID == boneNode->boneID) ? ImGuiTreeNodeFlags_Selected : 0);
+    ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ((selectedBoneNodeID == (int32_t)boneNode->boneID) ? ImGuiTreeNodeFlags_Selected : 0);
 
     if(boneNode->children.size() == 0) {
         node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
