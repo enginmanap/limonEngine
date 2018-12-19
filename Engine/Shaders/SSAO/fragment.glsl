@@ -49,10 +49,12 @@ void main(){
     float uRadius = 0.3f;
 
     vec3 basePosition = calcViewSpacePos( vec3(from_vs.textureCoordinates, depth));
+    vec3 playerPosView = (playerTransforms.camera * vec4(playerTransforms.position, 1.0)).xyz;
     //set a bias, that scales with the world space distance with player
-    float distanceSQ = float((basePosition.x - playerTransforms.position.x) * (basePosition.x - playerTransforms.position.x) +
-    (basePosition.y - playerTransforms.position.y) * (basePosition.y - playerTransforms.position.y) +
-    (basePosition.z - playerTransforms.position.z) * (basePosition.z - playerTransforms.position.z));
+    float distanceSQ = float((basePosition.x - playerPosView.x) * (basePosition.x - playerPosView.x) +
+                             (basePosition.y - playerPosView.y) * (basePosition.y - playerPosView.y) +
+                             (basePosition.z - playerPosView.z) * (basePosition.z - playerPosView.z));
+
     float bias = 0.005 + 0.01 * distanceSQ / 1000;
     float tempOcculusion = 0;
     for(int i = 0; i < ssaoSampleCount; ++i){
