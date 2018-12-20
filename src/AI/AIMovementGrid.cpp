@@ -19,21 +19,30 @@ AIMovementNode *AIMovementGrid::isAlreadyVisited(const glm::vec3 &position, size
 }
 
 const AIMovementNode *
-AIMovementGrid::aStarPath(const AIMovementNode *start, const glm::vec3 &destination, std::vector<glm::vec3> *route) {
+AIMovementGrid::aStarPath(const AIMovementNode *start, const glm::vec3 &destination, uint32_t maximumNumberOfNodes,
+                          std::vector<glm::vec3> *route) {
+
     std::priority_queue<AINodeWithPriority, std::vector<AINodeWithPriority>, std::greater<AINodeWithPriority>> frontier;
     frontier.push(AINodeWithPriority(start, 0));
 
-    std::unordered_map<const AIMovementNode *, const AIMovementNode *> from;
-    std::unordered_map<const AIMovementNode *, float> totalCost;
+    std::map<const AIMovementNode *, const AIMovementNode *> from;
+    std::map<const AIMovementNode *, float> totalCost;
+    std::map<const AIMovementNode *, uint32_t> totalNodes;
     const AIMovementNode *finalNode = nullptr;
     from[start] = nullptr;
     totalCost[start] = 0;
+    totalNodes[start] = 0;
     while (!frontier.empty()) {
         AINodeWithPriority nodeWithPriority = frontier.top();
         //std::cout << "testing with a* " << GLMUtils::vectorToString(nodeWithPriority.node->getPosition()) << std::endl;
         frontier.pop();
         if (isPositionCloseEnough(destination, nodeWithPriority.node->getPosition())) {
             finalNode = nodeWithPriority.node;
+            break;
+        }
+
+        if(maximumNumberOfNodes != 0 && (totalNodes.count(nodeWithPriority.node) != 0 && totalNodes[nodeWithPriority.node] >= maximumNumberOfNodes)) {
+            //we searched for this depth, but couldn't found the player no need to keep searching
             break;
         }
 
@@ -49,12 +58,14 @@ AIMovementGrid::aStarPath(const AIMovementNode *start, const glm::vec3 &destinat
             float movementCost = glm::length(currentNode->getPosition() - nodeWithPriority.node->getPosition());
             float heuristic = glm::length(destination - currentNode->getPosition());
             float currentCost = totalCost[nodeWithPriority.node] + movementCost + heuristic;
+            float currentNodeCount = totalNodes[nodeWithPriority.node] + 1;
             if (!totalCost.count(currentNode) || currentCost < totalCost[currentNode]) {
                 //float currentPriority = currentCost + heuristic;
 //                std::cout << "for node " << GLMUtils::vectorToString(currentNode->getPosition()) << " priority is " << currentCost << " with heuristic " << heuristic << std::endl;
                 frontier.push(AINodeWithPriority(currentNode, currentCost));
                 from[currentNode] = nodeWithPriority.node;
                 totalCost[currentNode] = currentCost;
+                totalNodes[currentNode] = currentNodeCount;
             }
         }
 
@@ -269,7 +280,7 @@ AIMovementGrid::AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *st
 }
 
 bool
-AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, int actorId, std::vector<glm::vec3> *route) {
+AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, uint32_t actorId, uint32_t maximumNumberOfNodes, std::vector<glm::vec3> *route) {
 
     //first search for from node.
     const AIMovementNode *fromAINode = nullptr;
@@ -286,7 +297,7 @@ AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, int actor
     }
 
     //search where the actor is
-    fromAINode = aStarPath(fromAINode, from, route);
+    fromAINode = aStarPath(fromAINode, from, 0, route);//0 means search whole map
 
     if (fromAINode == nullptr) {
         std::cerr << "new from node can't be found, this means snap distance is too small." << std::endl;
@@ -296,7 +307,7 @@ AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, int actor
     //save actor position to use on later calls
     actorLastNodeMap[actorId] = fromAINode;
 
-    const AIMovementNode *finalNode = aStarPath(fromAINode, to, route);
+    const AIMovementNode *finalNode = aStarPath(fromAINode, to, maximumNumberOfNodes, route);
 
     if (finalNode == nullptr) {
         std::cerr << "Destination can't be reached, most likely player moved to somewhere AI can't." << std::endl;
@@ -306,18 +317,18 @@ AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, int actor
     }
 }
 
-bool AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, std::vector<glm::vec3> *route) {
+bool AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, uint32_t maximumNumberOfNodes, std::vector<glm::vec3> *route) {
     //first start by finding the from point. We should  cache these from values at some point, so we don't a* twice all the time
     const AIMovementNode *fromAINode;
 
     long start = SDL_GetTicks();
 
-    fromAINode = aStarPath(root, from, route);
+    fromAINode = aStarPath(root, from, 0, route);
     if (fromAINode == nullptr) {
         return false;
     }
 
-    aStarPath(fromAINode, to, route);
+    aStarPath(fromAINode, to, maximumNumberOfNodes, route);
     long end = SDL_GetTicks();
     std::cout << "route set " << end - start << std::endl;
 

@@ -23,7 +23,7 @@
 
 //bigger than sqrt(3)/2
 //avoiding sqrt
-#define GRID_SNAP_DISTANCE (0.707f * 0.707f)
+#define GRID_SNAP_DISTANCE (0.8f * 0.8f)
 
 #define X_Z_DISTANCE 0.01
 #define Y_DISTANCE_SQ 0.25
@@ -77,7 +77,8 @@ class AIMovementGrid {
                     const glm::vec3 &max, uint32_t collisionGroup, uint32_t collisionMask);
 
     const AIMovementNode *
-    aStarPath(const AIMovementNode *start, const glm::vec3 &destination, std::vector<glm::vec3> *route);
+    aStarPath(const AIMovementNode *start, const glm::vec3 &destination, uint32_t maximumNumberOfNodes,
+                  std::vector<glm::vec3> *route);
 
 
 public:
@@ -96,9 +97,10 @@ public:
 
     }
 
-    bool coursePath(const glm::vec3 &from, const glm::vec3 &to, int actorId, std::vector<glm::vec3> *route);
+    bool coursePath(const glm::vec3 &from, const glm::vec3 &to, uint32_t actorId, uint32_t maximumNumberOfNodes,
+                    std::vector<glm::vec3> *route);
 
-    bool coursePath(const glm::vec3 &from, const glm::vec3 &to, std::vector<glm::vec3> *route);
+    bool coursePath(const glm::vec3 &from, const glm::vec3 &to, uint32_t maximumNumberOfNodes, std::vector<glm::vec3> *route);
 
     void debugDraw(BulletDebugDrawer *debugDrawer) const;
 
