@@ -33,6 +33,7 @@ private:
     glm::vec3 position, color;
     glm::vec3 renderPosition;
     glm::vec3 attenuation = glm::vec3(1,0.1,0.01);//const, linear, exponential
+    glm::vec3 ambientColor = glm::vec3(0,0,0); //this will be added to all objects on shading phase
     float activeDistance = 10;//will auto recalculate on constructor
     LightTypes lightType;
     bool frustumChanged = true;
@@ -149,6 +150,12 @@ public:
         return goName;
     };
 
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
+    /************Game Object methods **************/
+
+    void updateLightView();
+
+
     glm::vec3 getAttenuation() const {
         return attenuation;
     }
@@ -163,10 +170,13 @@ public:
         return activeDistance;
     }
 
-    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
-    /************Game Object methods **************/
+    const glm::vec3 &getAmbientColor() const {
+        return ambientColor;
+    }
 
-    void updateLightView();
+    void setAmbientColor(const glm::vec3 &ambientColor) {
+        Light::ambientColor = ambientColor;
+    }
 };
 
 

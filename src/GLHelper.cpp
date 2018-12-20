@@ -1092,6 +1092,8 @@ void GLHelper::setLight(const Light &light, const int i) {
                     sizeof(GLint), &lightType);
     glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + 2 *sizeof(glm::vec4),
                     sizeof(glm::vec3), glm::value_ptr(attenuation));
+    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + 3 *sizeof(glm::vec4),
+                    sizeof(glm::vec3), glm::value_ptr(light.getAmbientColor()));
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setLight");
 }

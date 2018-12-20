@@ -26,8 +26,7 @@ layout (std140) uniform PlayerTransformBlock {
     vec2 noiseScale;
 } playerTransforms;
 
-struct LightSource
-{
+struct LightSource {
     mat4 shadowMatrices[6];
     mat4 lightSpaceMatrix;
     vec3 position;
@@ -35,6 +34,7 @@ struct LightSource
     vec3 color;
     int type; //1 Directional, 2 point
 	vec3 attenuation;
+	vec3 ambient;
 };
 
 layout (std140) uniform ModelInformationBlock {

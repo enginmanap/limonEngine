@@ -216,7 +216,7 @@ private:
 
     Options *options;
 
-    const uint_fast32_t lightUniformSize = (sizeof(glm::mat4) * 7) + (3 * sizeof(glm::vec4));
+    const uint_fast32_t lightUniformSize = (sizeof(glm::mat4) * 7) + (4 * sizeof(glm::vec4));
     const uint32_t playerUniformSize = 5 * sizeof(glm::mat4)+ 3* sizeof(glm::vec4);
     int32_t materialUniformSize = 2 * sizeof(glm::vec3) + sizeof(float) + sizeof(GLuint);
     int32_t modelUniformSize = sizeof(glm::mat4);
