@@ -18,8 +18,7 @@ layout (std140) uniform PlayerTransformBlock {
     vec2 noiseScale;
 } playerTransforms;
 
-struct LightSource
-{
+struct LightSource {
     mat4 shadowMatrices[6];
     mat4 lightSpaceMatrix;
     vec3 position;
@@ -27,6 +26,7 @@ struct LightSource
     vec3 color;
     int type; //1 Directional, 2 point
 	vec3 attenuation;
+	vec3 ambient;
 };
 
 layout (std140) uniform LightSourceBlock
@@ -209,7 +209,8 @@ void main(void) {
                 } else if (LightSources.lights[i].type == 2){//point light
                     shadow = ShadowCalculationPoint(from_vs.fragPos, bias, viewDistance, i);
                 }
-                lightingColorFactor += ((1.0 - shadow) * (diffuseRate + specularRate) * LightSources.lights[i].color);
+                lightingColorFactor += ((1.0 - shadow) * (diffuseRate + specularRate) * LightSources.lights[i].color) + LightSources.lights[i].ambient;
+                ambientColor += LightSources.lights[i].ambient;
             }
         }
         diffuseAndSpecularLightedColor = vec4(

@@ -9,8 +9,7 @@ layout (location = 2) in vec4 position;
 layout (location = 5) in uvec4 boneIDs;
 layout (location = 6) in vec4 boneWeights;
 
-struct LightSource
-{
+struct LightSource {
     mat4 shadowMatrices[6];
     mat4 lightSpaceMatrix;
     vec3 position;
@@ -18,6 +17,7 @@ struct LightSource
     vec3 color;
     int type;
     vec3 attenuation;
+    vec3 ambient;
 };
 
 layout (std140) uniform LightSourceBlock

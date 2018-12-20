@@ -4,8 +4,7 @@
 
 in vec4 FragPos;
 
-struct LightSource
-{
+struct LightSource {
     mat4 shadowMatrices[6];
     mat4 lightSpaceMatrix;
     vec3 position;
@@ -13,6 +12,7 @@ struct LightSource
     vec3 color;
     int type;
     vec3 attenuation;
+    vec3 ambient;
 };
 
 layout (std140) uniform LightSourceBlock

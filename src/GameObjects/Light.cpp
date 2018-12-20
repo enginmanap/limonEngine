@@ -86,9 +86,9 @@ GameObject::ImGuiResult Light::addImGuiEditorElements(const GameObject::ImGuiReq
 
     bool crudeUpdated = false;
     static glm::vec3 preciseTranslatePoint = this->position;
-    result.updated = ImGui::DragFloat("Precise Position X", &(this->position.x), preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || result.updated;
-    result.updated = ImGui::DragFloat("Precise Position Y", &(this->position.y), preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || result.updated;
-    result.updated = ImGui::DragFloat("Precise Position Z", &(this->position.z), preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || result.updated;
+    result.updated = ImGui::DragFloat("Precise Position X", &(this->position.x), 0.01, preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || result.updated;
+    result.updated = ImGui::DragFloat("Precise Position Y", &(this->position.y), 0.01, preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || result.updated;
+    result.updated = ImGui::DragFloat("Precise Position Z", &(this->position.z), 0.01, preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || result.updated;
     ImGui::NewLine();
     crudeUpdated = ImGui::SliderFloat("Crude Position X", &(this->position.x), -100.0f, 100.0f)   || crudeUpdated;
     crudeUpdated = ImGui::SliderFloat("Crude Position Y", &(this->position.y), -100.0f, 100.0f)   || crudeUpdated;
@@ -99,15 +99,23 @@ GameObject::ImGuiResult Light::addImGuiEditorElements(const GameObject::ImGuiReq
     result.updated = ImGui::DragFloat("Color B", &(this->color.b), 0.0f, 1.0f)   || result.updated;
     ImGui::NewLine();
     bool attenuationUpdate = false;
-    if(lightType == LightTypes::POINT) {
-        attenuationUpdate = ImGui::DragFloat("Constant",    &(this->attenuation.x), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
-        attenuationUpdate = ImGui::DragFloat("Linear",      &(this->attenuation.y), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
-        attenuationUpdate = ImGui::DragFloat("Exponential", &(this->attenuation.z), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
-        if(attenuationUpdate) {
-            calculateActiveDistance();
-            result.updated = true;
+    switch (lightType) {
+        case LightTypes::POINT: {
+            attenuationUpdate = ImGui::DragFloat("Constant", &(this->attenuation.x), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
+            attenuationUpdate = ImGui::DragFloat("Linear", &(this->attenuation.y), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
+            attenuationUpdate = ImGui::DragFloat("Exponential", &(this->attenuation.z), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
+            if (attenuationUpdate) {
+                calculateActiveDistance();
+                result.updated = true;
+            }
+            ImGui::NewLine();
         }
-        ImGui::NewLine();
+        break;
+        case LightTypes::DIRECTIONAL: {
+            result.updated = ImGui::DragFloat3("Ambient", glm::value_ptr(ambientColor), 0.01f, 0.0f, 1.0f) || result.updated;
+            ImGui::NewLine();
+        }
+        break;
     }
 
     if(result.updated || crudeUpdated) {
