@@ -40,6 +40,7 @@ public:
         glm::vec3 playerDirection;
         float cosineBetweenPlayerForSide;
         glm::vec3 toPlayerRoute;
+        uint32_t maximumRouteDistance = 128;//in node count
         bool canGoToPlayer = false;
         bool playerDead = false;
     };

@@ -535,8 +535,8 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
         bool isPlayerReachable = grid->setProperHeight(&playerPosWithGrid, AIMovementGrid::floatingHeight, 0.0f,
                                                        dynamicsWorld);
         if (isPlayerReachable &&
-            grid->coursePath(actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0), playerPosWithGrid,
-                             actor->getWorldID(), &route)) {
+                grid->coursePath(actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0),
+                                 playerPosWithGrid, actor->getWorldID(), information.maximumRouteDistance, &route)) {
             if (route.empty()) {
                 information.toPlayerRoute = glm::vec3(0, 0, 0);
                 information.canGoToPlayer = false;
