@@ -693,6 +693,14 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
             }
         }
 
+        glm::vec3 ambientColor(1, 0.1f, 0.01f);
+        tinyxml2::XMLElement* lightAmbient =  lightNode->FirstChildElement("Ambient");
+        if(lightAttenuation != nullptr) {
+            if(loadVec3(lightAmbient, ambientColor)) {
+                xmlLight->setAmbientColor(ambientColor);
+            }
+        }
+
         world->addLight(xmlLight);
         lightNode =  lightNode->NextSiblingElement("Light");
     }
@@ -927,6 +935,9 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
 }
 
 bool WorldLoader::loadVec3(tinyxml2::XMLNode *vectorNode, glm::vec3& vector) {
+    if(vectorNode == nullptr) {
+        return false;
+    }
     tinyxml2::XMLElement *vectorAttributeNode = vectorNode->FirstChildElement("X");
     if (vectorAttributeNode != nullptr) {
         vector.x = std::stof(vectorAttributeNode->GetText());
