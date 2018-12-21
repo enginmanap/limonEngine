@@ -272,6 +272,19 @@ bool WorldSaver::fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
         currentElement->SetText(attenuation.z);
         parent->InsertEndChild(currentElement);
         lightElement->InsertEndChild(parent);
+
+        parent = document.NewElement("Ambient");
+        glm::vec3 ambientColor = (*it)->getAmbientColor();
+        currentElement = document.NewElement("X");//these are xyz, because they deserialize in standard vec3 way.
+        currentElement->SetText(ambientColor.x);
+        parent->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Y");
+        currentElement->SetText(ambientColor.y);
+        parent->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Z");
+        currentElement->SetText(ambientColor.z);
+        parent->InsertEndChild(currentElement);
+        lightElement->InsertEndChild(parent);
     }
     return true;
 }
