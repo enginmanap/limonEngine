@@ -167,6 +167,7 @@ private:
     AssetManager* assetManager;
     Options* options;
     uint32_t nextWorldID = 1;
+    std::queue<uint32_t> unusedIDs;
     std::map<uint32_t, PhysicalRenderable *> objects;
     std::map<uint32_t, ModelGroup*> modelGroups;
 
@@ -329,12 +330,16 @@ private:
             maxID = std::max(maxID, modelGroup->first);
         }
 
+        uint32_t unusedIDCount = 0;
         for(uint32_t index = 1; index <= maxID; index++) {
             if(usedIDs.count(index) != 1) {
                 //TODO this should be ok, logging just to check. Can be removed in the future
-                std::cout << "found empty ID" << index << std::endl;
+                //std::cout << "found empty ID" << index << std::endl;
+                unusedIDs.push(index);
+                unusedIDCount++;
             }
         }
+        std::cout << "World load found " << maxID - unusedIDCount << " objects and " << unusedIDCount << " unused IDs." << std::endl;
 
         nextWorldID = maxID+1;
         return true;
@@ -398,6 +403,11 @@ public:
     void render();
 
     uint32_t getNextObjectID() {
+        if(unusedIDs.size() > 0) {
+            uint32_t id = unusedIDs.front();
+            unusedIDs.pop();
+            return id;
+        }
         return nextWorldID++;
     }
 

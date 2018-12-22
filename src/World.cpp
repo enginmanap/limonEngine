@@ -1255,8 +1255,11 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
                     }
                     addActor(newEnemy);
+                } else {
+                    if(removedActorID != 0) {
+                        unusedIDs.push(removedActorID);
+                    }
                 }
-
             }
             ImGui::NewLine();
             switch (pickedObject->getTypeID()) {
@@ -1292,6 +1295,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 case GameObject::GUI_ANIMATION: {
                     if(objectEditorResult.remove) {
                         this->guiElements.erase(pickedObject->getWorldObjectID());
+                        unusedIDs.push(pickedObject->getWorldObjectID());
                         delete pickedObject;
                         pickedObject = nullptr;
                     }
@@ -1301,6 +1305,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     if(objectEditorResult.remove) {
                         for (auto iterator = lights.begin(); iterator != lights.end(); ++iterator) {
                             if((*iterator)->getWorldObjectID() == pickedObject->getWorldObjectID()) {
+                                unusedIDs.push(pickedObject->getWorldObjectID());
                                 lights.erase(iterator);
                                 break;
                             }
@@ -1869,6 +1874,7 @@ bool World::removeTriggerObject(uint32_t triggerobjectID) {
         //delete object itself
         delete triggers[triggerobjectID];
         triggers.erase(triggerobjectID);
+        unusedIDs.push(triggerobjectID);
         return true;
     }
     return false;//not successful
@@ -1879,7 +1885,9 @@ bool World::removeObject(uint32_t objectID) {
         PhysicalRenderable* objectToRemove = objects[objectID];
         dynamicsWorld->removeRigidBody(objectToRemove->getRigidBody());
         //disconnect AI
-        if (dynamic_cast<Model *>(objectToRemove)->getAIID() != 0) {
+        Model* modelToRemove = dynamic_cast<Model*>(objectToRemove);
+        if (modelToRemove!= nullptr && modelToRemove->getAIID() != 0) {
+            unusedIDs.push(modelToRemove->getAIID());
             actors.erase(dynamic_cast<Model *>(objectToRemove)->getAIID());
         }
         //remove any active animations
@@ -1889,8 +1897,6 @@ bool World::removeObject(uint32_t objectID) {
         }
         onLoadAnimations.erase(objectToRemove);
 
-
-        Model* modelToRemove = dynamic_cast<Model*>(objectToRemove);
         if(modelToRemove != nullptr) {
             //we need to remove from ligth frustum lists, and camera frustum lists
             if(modelToRemove->isAnimated()) {
@@ -1911,6 +1917,7 @@ bool World::removeObject(uint32_t objectID) {
         //delete object itself
         delete objects[objectID];
         objects.erase(objectID);
+        unusedIDs.push(objectID);
         return true;
     }
     return false;//not successful
