@@ -27,7 +27,6 @@ void Light::calculateActiveDistance() {
             activeDistance = (sqrt(1000) - attenuation.x) / attenuation.y;
         }
     } else {
-        std::cout << "for " << glm::to_string(attenuation);
         float discriminant = attenuation.y * attenuation.y - (4 * (attenuation.x - 1000) * attenuation.z);
         if (discriminant < 0) {
             activeDistance = 0;
