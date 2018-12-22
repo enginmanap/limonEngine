@@ -253,6 +253,7 @@ private:
     btSequentialImpulseConstraintSolver *solver;
     ImGuiHelper *imgGuiHelper;
     GameObject* pickedObject = nullptr;
+    uint32_t pickedObjectID = 0xFFFFFFFF;//FIXME not 0 because 0 is used by player and lights, they should get real ids.
     Model* objectToAttach = nullptr;
     CombinePostProcess* combiningObject;
     SSAOPostProcess* ssaoPostProcess;
@@ -510,7 +511,8 @@ public:
 
     void buildTreeFromAllGameObjects();
 
-    void createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID, int nodeFlags, int leafFlags);
+    void createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID, int nodeFlags, int leafFlags,
+                                       std::vector<uint32_t> parentage);
 
     void updateActiveLights(bool forceUpdate = false);
 };
