@@ -35,9 +35,10 @@
 #include "PostProcess/CombinePostProcess.h"
 #include "PostProcess/SSAOPostProcess.h"
 #include "PostProcess/SSAOBlurPostProcess.h"
+#include "SDL2Helper.h"
 
 
-const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
+   const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
             { Types::PHYSICAL_PLAYER, "Physical"},
             { Types::DEBUG_PLAYER, "Debug"},
@@ -532,30 +533,39 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
         }
         ActorInterface::InformationRequest requests = actor->getRequests();
         if(requests.routeToPlayer == true) {
-            std::vector<glm::vec3> route;
-            glm::vec3 playerPosWithGrid = currentPlayer->getPosition();
-            bool isPlayerReachable = grid->setProperHeight(&playerPosWithGrid, AIMovementGrid::floatingHeight, 0.0f,
-                                                           dynamicsWorld);
-            if (isPlayerReachable &&
-                grid->coursePath(actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0),
-                                 playerPosWithGrid, actor->getWorldID(), information.maximumRouteDistance, &route)) {
-                if (route.empty()) {
-                    information.routeFound = false;
-                    information.routeReady = true;
-                } else {
-                    //Normally, this information should be used for straightening the path, but not yet.
-                    std::reverse(std::begin(route), std::end(route));
-                    information.routeToRequest = route;
-                    information.routeFound = true;
-                    information.routeReady = true;
-                }
+
+            information.routeToRequest = fillRouteInformation(actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0),
+                                                                actor->getWorldID(), information.maximumRouteDistance);
+
+            if(information.routeToRequest.empty()) {
+                information.routeFound = false;
+            } else {
+                information.routeFound = true;
             }
+            information.routeReady = true;
         }
     }
     return information;
 }
 
-bool World::handlePlayerInput(InputHandler &inputHandler) {
+   std::vector<glm::vec3>
+   World::fillRouteInformation(glm::vec3 fromPosition, uint32_t actorID, uint32_t maximumDistance) const {
+       std::vector<glm::vec3> route;
+       glm::vec3 playerPosWithGrid = currentPlayer->getPosition();
+       bool isPlayerReachable = grid->setProperHeight(&playerPosWithGrid, AIMovementGrid::floatingHeight, 0.0f,
+                                                      dynamicsWorld);
+       if (isPlayerReachable &&
+                   grid->coursePath(fromPosition,
+                                    playerPosWithGrid, actorID, maximumDistance, &route)) {
+                   if (!route.empty()) {
+                       //Normally, this information should be used for straightening the path, but not yet.
+                       reverse(std::begin(route), std::end(route));
+                   }
+               }
+       return route;
+   }
+
+   bool World::handlePlayerInput(InputHandler &inputHandler) {
     if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT)) {
         if(inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
             GameObject *gameObject = getPointedObject(COLLIDE_EVERYTHING, ~(COLLIDE_NOTHING));
