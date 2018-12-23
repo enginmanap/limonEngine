@@ -532,7 +532,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
             information.isPlayerDown = false;
         }
         ActorInterface::InformationRequest requests = actor->getRequests();
-        if (requests.routeToPlayer == true) {
+        if (requests.routeToPlayer == true && routeThreads.find(actor->getWorldID()) == routeThreads.end()) {//if no thread is working for route to player
             std::cout << "new route thread will launch because it is requested" << std::endl;
             std::vector<LimonAPI::ParameterRequest> parameters;
             parameters.push_back(LimonAPI::ParameterRequest());
@@ -547,18 +547,18 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
             std::function<std::vector<LimonAPI::ParameterRequest>(
                     std::vector<LimonAPI::ParameterRequest>)> functionToRun =
                     std::bind(&World::fillRouteInformation, this, std::placeholders::_1);
-            routeThread = new SDL2Helper::Thread("FillRouteForActor", functionToRun, parameters);
-            routeThread->run();
+            routeThreads[actor->getWorldID()] = new SDL2Helper::Thread("FillRouteForActor", functionToRun, parameters);
+            routeThreads[actor->getWorldID()]->run();
         }
 
-        if (routeThread != nullptr && routeThread->isThreadDone()) {
+        if (routeThreads.find(actor->getWorldID()) != routeThreads.end() && routeThreads[actor->getWorldID()]->isThreadDone()) {
             std::cout << "route thread done, passing route" << std::endl;
-            const std::vector<LimonAPI::ParameterRequest>* route = routeThread->getResult();
+            const std::vector<LimonAPI::ParameterRequest>* route = routeThreads[actor->getWorldID()]->getResult();
             for (size_t i = 0; i < route->size(); ++i) {
                 information.routeToRequest.push_back(GLMConverter::LimonToGLM(route->at(i).value.vectorValue));
             }
-            delete routeThread;
-            routeThread = nullptr;
+            delete routeThreads[actor->getWorldID()];
+            routeThreads.erase(actor->getWorldID());
 
             if (information.routeToRequest.empty()) {
                 information.routeFound = false;
@@ -567,7 +567,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
             }
             information.routeReady = true;
         } else {
-            if(routeThread != nullptr) {
+            if(routeThreads.find(actor->getWorldID()) != routeThreads.end()) {
                 std::cout << "route thread not done" << std::endl;
             }
         }

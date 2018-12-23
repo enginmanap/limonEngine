@@ -259,7 +259,7 @@ private:
     CombinePostProcess* combiningObject;
     SSAOPostProcess* ssaoPostProcess;
     SSAOBlurPostProcess* ssaoBlurPostProcess;
-    SDL2Helper::Thread* routeThread = nullptr;
+    std::map<uint32_t, SDL2Helper::Thread*> routeThreads;
 
     bool guiPickMode = false;
     enum class QuitResponse
