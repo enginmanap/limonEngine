@@ -23,7 +23,7 @@ protected:
     bool disconnected = false;
     std::vector<PhysicalRenderable*> children;
     std::unique_ptr<Sound> soundAttachment2 = nullptr;
-    bool customAnimation;
+    bool customAnimation = false;
 
 public:
     explicit PhysicalRenderable(GLHelper *glHelper, float mass, bool disconnected)
