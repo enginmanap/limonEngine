@@ -533,9 +533,19 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
         }
         ActorInterface::InformationRequest requests = actor->getRequests();
         if(requests.routeToPlayer == true) {
+            std::vector<LimonAPI::ParameterRequest> parameters;
+            parameters.push_back(LimonAPI::ParameterRequest());
 
-            information.routeToRequest = fillRouteInformation(actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0),
-                                                                actor->getWorldID(), information.maximumRouteDistance);
+            parameters[0].value.vectorValue = GLMConverter::GLMToLimon(actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0));
+            parameters.push_back(LimonAPI::ParameterRequest());
+            parameters[1].value.longValues[0] = 2;
+            parameters[1].value.longValues[1] = actor->getWorldID();
+            parameters[1].value.longValues[2] = information.maximumRouteDistance;
+
+            std::vector<LimonAPI::ParameterRequest> route = fillRouteInformation(parameters);
+            for (int i = 0; i < route.size(); ++i) {
+                information.routeToRequest.push_back(GLMConverter::LimonToGLM(route[i].value.vectorValue));
+            }
 
             if(information.routeToRequest.empty()) {
                 information.routeFound = false;
@@ -548,22 +558,32 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
     return information;
 }
 
-   std::vector<glm::vec3>
-   World::fillRouteInformation(glm::vec3 fromPosition, uint32_t actorID, uint32_t maximumDistance) const {
-       std::vector<glm::vec3> route;
-       glm::vec3 playerPosWithGrid = currentPlayer->getPosition();
-       bool isPlayerReachable = grid->setProperHeight(&playerPosWithGrid, AIMovementGrid::floatingHeight, 0.0f,
+
+   //std::function<std::vector<LimonAPI::ParameterRequest>(std::vector<LimonAPI::ParameterRequest>)> functionToRun
+
+std::vector<LimonAPI::ParameterRequest>
+World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) const {
+    glm::vec3 fromPosition = GLMConverter::LimonToGLM(parameters[0].value.vectorValue);
+    uint32_t actorID = (uint32_t)parameters[1].value.longValues[1];
+    uint32_t maximumDistance = (uint32_t)parameters[1].value.longValues[2];
+    std::vector<glm::vec3> route;
+    glm::vec3 playerPosWithGrid = currentPlayer->getPosition();
+    bool isPlayerReachable = grid->setProperHeight(&playerPosWithGrid, AIMovementGrid::floatingHeight, 0.0f,
                                                       dynamicsWorld);
-       if (isPlayerReachable &&
-                   grid->coursePath(fromPosition,
-                                    playerPosWithGrid, actorID, maximumDistance, &route)) {
-                   if (!route.empty()) {
-                       //Normally, this information should be used for straightening the path, but not yet.
-                       reverse(std::begin(route), std::end(route));
-                   }
-               }
-       return route;
-   }
+    if (isPlayerReachable && grid->coursePath(fromPosition, playerPosWithGrid, actorID, maximumDistance, &route)) {
+        if (!route.empty()) {             
+            //Normally, this information should be used for straightening the path, but not yet.             
+            reverse(std::begin(route), std::end(route));
+            }
+       }
+    std::vector<LimonAPI::ParameterRequest> routeList;
+    for (int i = 0; i < route.size(); ++i) {
+        LimonAPI::ParameterRequest pr;
+        pr.value.vectorValue = GLMConverter::GLMToLimon(route[i]);
+        routeList.push_back(pr);
+    }
+    return routeList;
+}
 
    bool World::handlePlayerInput(InputHandler &inputHandler) {
     if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT)) {
