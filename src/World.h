@@ -396,8 +396,8 @@ private:
 
     Model* findModelByID(uint32_t modelID) const;
 
-    std::vector<glm::vec3>
-    fillRouteInformation(glm::vec3 fromPosition, uint32_t actorID, uint32_t maximumDistance) const;
+    std::vector<LimonAPI::ParameterRequest>
+    fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) const;
 
 public:
     ~World();
