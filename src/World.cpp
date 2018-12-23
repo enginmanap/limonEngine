@@ -532,27 +532,44 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
             information.isPlayerDown = false;
         }
         ActorInterface::InformationRequest requests = actor->getRequests();
-        if(requests.routeToPlayer == true) {
+        if (requests.routeToPlayer == true) {
+            std::cout << "new route thread will launch because it is requested" << std::endl;
             std::vector<LimonAPI::ParameterRequest> parameters;
             parameters.push_back(LimonAPI::ParameterRequest());
 
-            parameters[0].value.vectorValue = GLMConverter::GLMToLimon(actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0));
+            parameters[0].value.vectorValue = GLMConverter::GLMToLimon(
+                    actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0));
             parameters.push_back(LimonAPI::ParameterRequest());
             parameters[1].value.longValues[0] = 2;
             parameters[1].value.longValues[1] = actor->getWorldID();
             parameters[1].value.longValues[2] = information.maximumRouteDistance;
 
-            std::vector<LimonAPI::ParameterRequest> route = fillRouteInformation(parameters);
-            for (int i = 0; i < route.size(); ++i) {
-                information.routeToRequest.push_back(GLMConverter::LimonToGLM(route[i].value.vectorValue));
-            }
+            std::function<std::vector<LimonAPI::ParameterRequest>(
+                    std::vector<LimonAPI::ParameterRequest>)> functionToRun =
+                    std::bind(&World::fillRouteInformation, this, std::placeholders::_1);
+            routeThread = new SDL2Helper::Thread("FillRouteForActor", functionToRun, parameters);
+            routeThread->run();
+        }
 
-            if(information.routeToRequest.empty()) {
+        if (routeThread != nullptr && routeThread->isThreadDone()) {
+            std::cout << "route thread done, passing route" << std::endl;
+            const std::vector<LimonAPI::ParameterRequest>* route = routeThread->getResult();
+            for (size_t i = 0; i < route->size(); ++i) {
+                information.routeToRequest.push_back(GLMConverter::LimonToGLM(route->at(i).value.vectorValue));
+            }
+            delete routeThread;
+            routeThread = nullptr;
+
+            if (information.routeToRequest.empty()) {
                 information.routeFound = false;
             } else {
                 information.routeFound = true;
             }
             information.routeReady = true;
+        } else {
+            if(routeThread != nullptr) {
+                std::cout << "route thread not done" << std::endl;
+            }
         }
     }
     return information;
@@ -563,6 +580,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
 
 std::vector<LimonAPI::ParameterRequest>
 World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) const {
+    std::cout << "FillRouteForActor thread starts working " << std::endl;
     glm::vec3 fromPosition = GLMConverter::LimonToGLM(parameters[0].value.vectorValue);
     uint32_t actorID = (uint32_t)parameters[1].value.longValues[1];
     uint32_t maximumDistance = (uint32_t)parameters[1].value.longValues[2];
@@ -577,11 +595,12 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
             }
        }
     std::vector<LimonAPI::ParameterRequest> routeList;
-    for (int i = 0; i < route.size(); ++i) {
+    for (size_t i = 0; i < route.size(); ++i) {
         LimonAPI::ParameterRequest pr;
         pr.value.vectorValue = GLMConverter::GLMToLimon(route[i]);
         routeList.push_back(pr);
     }
+    std::cout << "FillRouteForActor thread finishes working " << std::endl;
     return routeList;
 }
 

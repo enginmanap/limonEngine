@@ -12,8 +12,11 @@ ActorRegister<HumanEnemy> HumanEnemy::reg("ENEMY_AI_SWAT");
 void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) {
     if(information.routeReady) {
         this->routeTorequest = information.routeToRequest;
-        lastWalkDirection = routeTorequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
+        if(information.routeFound) {
+            lastWalkDirection = routeTorequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
+        }
         routeGetTime = time;
+        routeRequested = false;
     }
     lastSetupTime = time;
 
@@ -41,7 +44,10 @@ void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) 
     }
     //check if the player can be seen
     if(information.canSeePlayerDirectly && information.isPlayerFront && !information.playerDead) {
-        informationRequest.routeToPlayer = true;//ask for a route to player
+        if((routeGetTime == 0 || routeGetTime + 1000 < time) && routeRequested == false) {
+            informationRequest.routeToPlayer = true;//ask for a route to player
+            routeRequested = true;
+        }
         if (playerPursuitStartTime == 0) {
             limonAPI->setModelAnimationWithBlend(modelID,"run forward|mixamo.com");
             //means we will just start pursuit, mark the position so we can return.
@@ -77,9 +83,10 @@ void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) 
             //TODO search for route to initial position and return
         }
     } else {
-        if(routeGetTime + 1000 < time) {
+        if(routeGetTime != 0 && routeGetTime + 1000 < time && routeRequested == false) {
             //its been 1 second since route request, refresh
             this->informationRequest.routeToPlayer = true;
+            routeRequested = true;
             std::cout << "route refresh request" << std::endl;
         }
         //if player pursuit mode
