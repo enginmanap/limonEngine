@@ -25,7 +25,7 @@
 //avoiding sqrt
 #define GRID_SNAP_DISTANCE (0.8f * 0.8f)
 
-#define X_Z_DISTANCE 0.01
+#define X_Z_DISTANCE 0.1
 #define Y_DISTANCE_SQ 0.25
 
 class AIMovementGrid {
@@ -46,7 +46,7 @@ class AIMovementGrid {
 
         return ((fabs(position1.x - position2.x) < X_Z_DISTANCE) &&
                 (fabs(position1.z - position2.z) < X_Z_DISTANCE) &&
-                ((position1.y - position2.y) * (position1.y - position2.y) <= Y_DISTANCE_SQ));
+                (((position1.y - position2.y) * (position1.y - position2.y)) <= Y_DISTANCE_SQ));
     }
 
     bool inline isPositionCloseEnough(const glm::vec3 &position1, const glm::vec3 &position2) const {
