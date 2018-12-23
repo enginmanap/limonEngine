@@ -10,6 +10,11 @@ ActorRegister<HumanEnemy> HumanEnemy::reg("ENEMY_AI_SWAT");
 
 
 void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) {
+    if(information.routeReady) {
+        this->routeTorequest = information.routeToRequest;
+        lastWalkDirection = routeTorequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
+        routeGetTime = time;
+    }
     lastSetupTime = time;
 
     //first check if we just died
@@ -34,14 +39,14 @@ void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) 
     if(limonAPI->getModelAnimationName(modelID) == "Shoot Rifle|mixamo.com"  && limonAPI->getModelAnimationFinished(modelID)) {
         limonAPI->setModelAnimationWithBlend(modelID,"run forward|mixamo.com");
     }
-    informationRequest.routeToPlayer = true;//ask for a route to player
     //check if the player can be seen
     if(information.canSeePlayerDirectly && information.isPlayerFront && !information.playerDead) {
+        informationRequest.routeToPlayer = true;//ask for a route to player
         if (playerPursuitStartTime == 0) {
             limonAPI->setModelAnimationWithBlend(modelID,"run forward|mixamo.com");
             //means we will just start pursuit, mark the position so we can return.
             initialPosition = this->getPosition();
-            returnToPosition = true;
+            returnToPositionAfterPursuit = true;
         }
         playerPursuitStartTime = time;
         if(shootPlayerTimer == 0) {
@@ -67,10 +72,16 @@ void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) 
 
     if(playerPursuitStartTime == 0) {
         //if not in player pursuit
-        if(returnToPosition) {
+        if(returnToPositionAfterPursuit) {
+
             //TODO search for route to initial position and return
         }
     } else {
+        if(routeGetTime + 1000 < time) {
+            //its been 1 second since route request, refresh
+            this->informationRequest.routeToPlayer = true;
+            std::cout << "route refresh request" << std::endl;
+        }
         //if player pursuit mode
 
         //first check if we are hit
@@ -83,21 +94,36 @@ void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) 
         //now check if hit animation should be finished
         if(hitAnimationStartTime != 0 && time - hitAnimationStartTime > 500) { //play hit animation for 500 ms only
             limonAPI->setModelAnimationWithBlend(modelID,"run forward|mixamo.com");
-            initialPosition = this->getPosition();
-            returnToPosition = true;
             hitAnimationStartTime = 0;
         }
-
-        std::cout << "route ready: " << (information.routeReady ? "true" : "false");
-        std::cout << ", route found: " << (information.routeFound ? "true" : "false") << std::endl << std::endl;
-
-        if (information.routeReady && information.routeFound) {
-            //keep the last known direction, if player is at a unknown place.
-            //FIXME this is a hack, normally this should not be necessary but sometimes even player is a valid place,
-            //actor might not be for current implementation.
-            lastWalkDirection = information.routeToRequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
+        /*
+        if (information.routeReady) {
+            std::cout << "route ready " << std::endl;
+            if(information.routeFound) {
+                std::cout << "route found " << std::endl;
+                //keep the last known direction, if player is at a unknown place.
+                //FIXME this is a hack, normally this should not be necessary but sometimes even player is a valid place,
+                //actor might not be for current implementation.
+                lastWalkDirection = information.routeToRequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
+            } else {
+                lastWalkDirection = glm::vec3(0, 0, 0);
+            }
         }
-
+        */
+        if(!routeTorequest.empty()) {
+            float distanceToRouteNode = glm::length2(getPosition() + glm::vec3(0, 2.0f, 0) - routeTorequest[0]);
+            if (distanceToRouteNode < 0.1f) {//if reached first element
+                routeTorequest.erase(routeTorequest.begin());
+                std::cout << "reached route node, removed it" << std::endl;
+                if (!routeTorequest.empty() ) {
+                    lastWalkDirection = routeTorequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
+                } else {
+                    lastWalkDirection = glm::vec3(0, 0, 0);
+                }
+            } else {
+                //std::cout << "distance " << distanceToRouteNode << std::endl;
+            }
+        }
         glm::vec3 moveDirection = 0.1f * lastWalkDirection;
 
         limonAPI->addObjectTranslate(modelID, LimonConverter::GLMToLimon(moveDirection));

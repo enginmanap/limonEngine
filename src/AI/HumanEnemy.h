@@ -16,7 +16,7 @@ class HumanEnemy: public ActorInterface {
     const long PLAYER_SHOOT_TIMEOUT = 1000;
     long playerPursuitStartTime = 0L;
     long playerPursuitTimeout = 500000L; //if not see player for this amount, return.
-    bool returnToPosition = false;
+    bool returnToPositionAfterPursuit = false;
     glm::vec3 initialPosition;
     glm::vec3 lastWalkDirection;
     std::string currentAnimation;
@@ -28,6 +28,7 @@ class HumanEnemy: public ActorInterface {
     uint32_t hitPoints = 100;
 
     std::vector<glm::vec3> routeTorequest;
+    long routeGetTime = 0;
 
 public:
     HumanEnemy(uint32_t id, LimonAPI *limonAPI) : ActorInterface(id, limonAPI) {}
