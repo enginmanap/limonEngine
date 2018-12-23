@@ -3,6 +3,7 @@
 //
 
 #include <iostream>
+#include <glm/gtx/string_cast.hpp>
 #include "HumanEnemy.h"
 
 ActorRegister<HumanEnemy> HumanEnemy::reg("ENEMY_AI_SWAT");
@@ -33,7 +34,7 @@ void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) 
     if(limonAPI->getModelAnimationName(modelID) == "Shoot Rifle|mixamo.com"  && limonAPI->getModelAnimationFinished(modelID)) {
         limonAPI->setModelAnimationWithBlend(modelID,"run forward|mixamo.com");
     }
-
+    informationRequest.routeToPlayer = true;//ask for a route to player
     //check if the player can be seen
     if(information.canSeePlayerDirectly && information.isPlayerFront && !information.playerDead) {
         if (playerPursuitStartTime == 0) {
@@ -87,12 +88,16 @@ void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) 
             hitAnimationStartTime = 0;
         }
 
-        if (information.canGoToPlayer) {
+        std::cout << "route ready: " << (information.routeReady ? "true" : "false");
+        std::cout << ", route found: " << (information.routeFound ? "true" : "false") << std::endl << std::endl;
+
+        if (information.routeReady && information.routeFound) {
             //keep the last known direction, if player is at a unknown place.
             //FIXME this is a hack, normally this should not be necessary but sometimes even player is a valid place,
             //actor might not be for current implementation.
-            lastWalkDirection = information.toPlayerRoute;
+            lastWalkDirection = information.routeToRequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
         }
+
         glm::vec3 moveDirection = 0.1f * lastWalkDirection;
 
         limonAPI->addObjectTranslate(modelID, LimonConverter::GLMToLimon(moveDirection));

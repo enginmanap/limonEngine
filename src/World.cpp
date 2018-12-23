@@ -530,20 +530,25 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
             information.isPlayerUp = true;
             information.isPlayerDown = false;
         }
-        std::vector<glm::vec3> route;
-        glm::vec3 playerPosWithGrid = currentPlayer->getPosition();
-        bool isPlayerReachable = grid->setProperHeight(&playerPosWithGrid, AIMovementGrid::floatingHeight, 0.0f,
-                                                       dynamicsWorld);
-        if (isPlayerReachable &&
+        ActorInterface::InformationRequest requests = actor->getRequests();
+        if(requests.routeToPlayer == true) {
+            std::vector<glm::vec3> route;
+            glm::vec3 playerPosWithGrid = currentPlayer->getPosition();
+            bool isPlayerReachable = grid->setProperHeight(&playerPosWithGrid, AIMovementGrid::floatingHeight, 0.0f,
+                                                           dynamicsWorld);
+            if (isPlayerReachable &&
                 grid->coursePath(actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0),
                                  playerPosWithGrid, actor->getWorldID(), information.maximumRouteDistance, &route)) {
-            if (route.empty()) {
-                information.toPlayerRoute = glm::vec3(0, 0, 0);
-                information.canGoToPlayer = false;
-            } else {
-                //Normally, this information should be used for straightening the path, but not yet.
-                information.toPlayerRoute = route[route.size() - 1] - actor->getPosition() - glm::vec3(0, 2.0f, 0);
-                information.canGoToPlayer = true;
+                if (route.empty()) {
+                    information.routeFound = false;
+                    information.routeReady = true;
+                } else {
+                    //Normally, this information should be used for straightening the path, but not yet.
+                    std::reverse(std::begin(route), std::end(route));
+                    information.routeToRequest = route;
+                    information.routeFound = true;
+                    information.routeReady = true;
+                }
             }
         }
     }
