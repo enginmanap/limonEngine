@@ -18,6 +18,7 @@
 #include "AI/ActorInterface.h"
 #include "ALHelper.h"
 #include "GameObjects/Players/Player.h"
+#include "SDL2Helper.h"
 
 
 class btGhostPairCallback;
@@ -258,6 +259,8 @@ private:
     CombinePostProcess* combiningObject;
     SSAOPostProcess* ssaoPostProcess;
     SSAOBlurPostProcess* ssaoBlurPostProcess;
+    SDL2Helper::Thread* routeThread = nullptr;
+
     bool guiPickMode = false;
     enum class QuitResponse
     {
