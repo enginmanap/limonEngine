@@ -95,7 +95,7 @@ AIMovementGrid::aStarPath(const AIMovementNode *start, const glm::vec3 &destinat
 /**
  * Since this Method checks the world, it is perfectly possible ghost object is detected as valid it point. Remove it before calling this method
  *
- * 1) create ray, from position -> to position - 999999 (for 0 heck height) or position - check height
+ * 1) create ray, from position -> to position - 999999 (for 0 check height) or position - check height
  * 2) if there is a hit, move position height to hit+floating height else return false
  *
  * @param position
@@ -117,7 +117,7 @@ bool AIMovementGrid::setProperHeight(glm::vec3 *position, float floatingHeight, 
     rayCallback->m_collisionObject = nullptr;
     staticWorld->rayTest(rayCallback->m_rayFromWorld, rayCallback->m_rayToWorld, *rayCallback);
     if (rayCallback->hasHit()) {
-        if(rayCallback->m_hitPointWorld.getY() > (*position - glm::vec3(0,1,0)).y) {
+        if(rayCallback->m_hitPointWorld.getY() > (*position - glm::vec3(0, 1, 0)).y) {
             return false;
         }
         position->y = rayCallback->m_hitPointWorld.getY() + floatingHeight;
@@ -173,10 +173,10 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                     if(current->getNeighbour(neighbourIndex) != nullptr) {
                         continue;//already set
                     }
+                    isMovable = true;
                     glm::vec3 neighbourPosition = current->getPosition() + glm::vec3(i, 0, j);
                     if (!setProperHeight(&neighbourPosition, floatingHeight, floatingHeight + 1.0f, staticWorld)) {
-                        current->setNeighbour(neighbourIndex, nullptr);
-                        continue;// if there is nothing under for 1.5f, than don't process this node.
+                        isMovable = false;
                     }
 
                     if (neighbourPosition.x < min.x || neighbourPosition.y < min.y || neighbourPosition.z < min.z ||
@@ -195,16 +195,17 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                         staticWorld->addCollisionObject(sharedGhostObject, collisionGroup, collisionMask);
                         sharedGhostObject->setWorldTransform(
                                 btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(neighbourPosition)));
-                        isMovable = !isThereCollision(staticWorld);
+                        isMovable = isMovable && !isThereCollision(staticWorld);
                         staticWorld->removeCollisionObject(sharedGhostObject);
 
-                        if(isMovable) {
-                            AIMovementNode *neighbour = new AIMovementNode(neighbourPosition);
-                            neighbour->setIsMovable(isMovable);
-                            current->setNeighbour(neighbourIndex, neighbour);
 
+                        AIMovementNode *neighbour = new AIMovementNode(neighbourPosition);
+                        neighbour->setIsMovable(isMovable);
+                        current->setNeighbour(neighbourIndex, neighbour);
+                        visited.push_back(neighbour);
+                        if(isMovable) {
                             frontier.push(neighbour);
-                            visited.push_back(neighbour);
+
                         }
                     }
                 }
