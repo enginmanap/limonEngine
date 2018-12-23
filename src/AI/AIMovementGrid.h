@@ -61,9 +61,9 @@ class AIMovementGrid {
     btManifoldArray sharedManifoldArray;
     std::map<int, const AIMovementNode *> actorLastNodeMap;
 
-    int isThereCollisionCounter = 0;//this is only meaninful for debug
-    float capsuleHeight = 2.0f + 0.1f;
-    float capsuleRadius = 0.5f;//FIXME these should be configurable
+    int isThereCollisionCounter = 0;//this is only meaningful for debug
+    float capsuleHeight = 1.30f + 0.1f;
+    float capsuleRadius = 0.35f;//FIXME these should be configurable
     bool isThereCollision(btDiscreteDynamicsWorld *staticWorld);
 
     glm::vec3 max,min;
