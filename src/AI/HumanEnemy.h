@@ -27,6 +27,8 @@ class HumanEnemy: public ActorInterface {
     long shootPlayerTimer = 0;
     uint32_t hitPoints = 100;
 
+    std::vector<glm::vec3> routeTorequest;
+
 public:
     HumanEnemy(uint32_t id, LimonAPI *limonAPI) : ActorInterface(id, limonAPI) {}
 

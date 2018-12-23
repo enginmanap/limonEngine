@@ -17,6 +17,15 @@
 
 
 class ActorInterface {
+public:
+
+    struct InformationRequest {
+        bool routeToPlayer = false;
+        bool routeToCustomPosition = false;
+        glm::vec3 customPosition;
+    };
+
+private:
     static std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>* typeMap;
 
 protected:
@@ -31,6 +40,7 @@ protected:
 
     uint32_t worldID;
     uint32_t modelID = 0;
+    InformationRequest informationRequest;
     LimonAPI* limonAPI;
 public:
     struct ActorInformation{
@@ -39,9 +49,10 @@ public:
         float cosineBetweenPlayer = 0.0f;
         glm::vec3 playerDirection;
         float cosineBetweenPlayerForSide;
-        glm::vec3 toPlayerRoute;
+        std::vector<glm::vec3> routeToRequest;
         uint32_t maximumRouteDistance = 128;//in node count
-        bool canGoToPlayer = false;
+        bool routeFound = false;
+        bool routeReady = false;
         bool playerDead = false;
     };
 
@@ -90,6 +101,19 @@ public:
     glm::vec3 getPosition() const;
 
     glm::vec3 getFrontVector() const;
+
+    /**
+     * Remove requests after this method is called
+     *
+     * @return
+     */
+    InformationRequest getRequests() {
+        InformationRequest request = this->informationRequest;
+        this->informationRequest.routeToCustomPosition = false;
+        this->informationRequest.routeToPlayer = false;
+        return request;
+    }
+
 
     static ActorInterface * createActor(std::string const& s, uint32_t id, LimonAPI* apiInstance) {
         auto it = getMap()->find(s);
