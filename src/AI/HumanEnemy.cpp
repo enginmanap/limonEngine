@@ -87,7 +87,6 @@ void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) 
             //its been 1 second since route request, refresh
             this->informationRequest.routeToPlayer = true;
             routeRequested = true;
-            std::cout << "route refresh request" << std::endl;
         }
         //if player pursuit mode
 
@@ -103,32 +102,15 @@ void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) 
             limonAPI->setModelAnimationWithBlend(modelID,"run forward|mixamo.com");
             hitAnimationStartTime = 0;
         }
-        /*
-        if (information.routeReady) {
-            std::cout << "route ready " << std::endl;
-            if(information.routeFound) {
-                std::cout << "route found " << std::endl;
-                //keep the last known direction, if player is at a unknown place.
-                //FIXME this is a hack, normally this should not be necessary but sometimes even player is a valid place,
-                //actor might not be for current implementation.
-                lastWalkDirection = information.routeToRequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
-            } else {
-                lastWalkDirection = glm::vec3(0, 0, 0);
-            }
-        }
-        */
         if(!routeTorequest.empty()) {
             float distanceToRouteNode = glm::length2(getPosition() + glm::vec3(0, 2.0f, 0) - routeTorequest[0]);
             if (distanceToRouteNode < 0.1f) {//if reached first element
                 routeTorequest.erase(routeTorequest.begin());
-                std::cout << "reached route node, removed it" << std::endl;
                 if (!routeTorequest.empty() ) {
                     lastWalkDirection = routeTorequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
                 } else {
                     lastWalkDirection = glm::vec3(0, 0, 0);
                 }
-            } else {
-                //std::cout << "distance " << distanceToRouteNode << std::endl;
             }
         }
         glm::vec3 moveDirection = 0.1f * lastWalkDirection;
@@ -162,7 +144,6 @@ bool HumanEnemy::interaction(std::vector<LimonAPI::ParameterRequest> &interactio
     }
 
     if(interactionInformation[0].valueType == LimonAPI::ParameterRequest::ValueTypes::STRING && std::string(interactionInformation[0].value.stringValue) == "GOT_HIT") {
-        std::cout << "Enemy get hit!" << std::endl;
         playerPursuitStartTime = lastSetupTime;
         hitAnimationAwaiting = true;
         if(hitPoints < 20) {
