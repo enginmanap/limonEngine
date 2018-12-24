@@ -961,6 +961,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     //objectToAttach->getTransformation()->setTranslate(physicalPlayer->getPosition());
                     objectToAttach->disconnectFromPhysicsWorld(dynamicsWorld);
                     physicalPlayer->setAttachedModel(objectToAttach);
+                    startingPlayer.attachedModel = objectToAttach;
                     this->objectToAttach = nullptr;
                 }
             }
