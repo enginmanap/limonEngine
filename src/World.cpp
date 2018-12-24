@@ -533,7 +533,6 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
         }
         ActorInterface::InformationRequest requests = actor->getRequests();
         if (requests.routeToPlayer == true && routeThreads.find(actor->getWorldID()) == routeThreads.end()) {//if no thread is working for route to player
-            std::cout << "new route thread will launch because it is requested" << std::endl;
             std::vector<LimonAPI::ParameterRequest> parameters;
             parameters.push_back(LimonAPI::ParameterRequest());
 
@@ -552,7 +551,6 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
         }
 
         if (routeThreads.find(actor->getWorldID()) != routeThreads.end() && routeThreads[actor->getWorldID()]->isThreadDone()) {
-            std::cout << "route thread done, passing route" << std::endl;
             const std::vector<LimonAPI::ParameterRequest>* route = routeThreads[actor->getWorldID()]->getResult();
             for (size_t i = 0; i < route->size(); ++i) {
                 information.routeToRequest.push_back(GLMConverter::LimonToGLM(route->at(i).value.vectorValue));
@@ -566,10 +564,6 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
                 information.routeFound = true;
             }
             information.routeReady = true;
-        } else {
-            if(routeThreads.find(actor->getWorldID()) != routeThreads.end()) {
-                std::cout << "route thread not done" << std::endl;
-            }
         }
     }
     return information;
@@ -580,7 +574,6 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
 
 std::vector<LimonAPI::ParameterRequest>
 World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) const {
-    std::cout << "FillRouteForActor thread starts working " << std::endl;
     glm::vec3 fromPosition = GLMConverter::LimonToGLM(parameters[0].value.vectorValue);
     uint32_t actorID = (uint32_t)parameters[1].value.longValues[1];
     uint32_t maximumDistance = (uint32_t)parameters[1].value.longValues[2];
@@ -600,7 +593,6 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
         pr.value.vectorValue = GLMConverter::GLMToLimon(route[i]);
         routeList.push_back(pr);
     }
-    std::cout << "FillRouteForActor thread finishes working " << std::endl;
     return routeList;
 }
 
