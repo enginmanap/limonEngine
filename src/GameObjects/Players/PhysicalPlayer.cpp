@@ -348,24 +348,20 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
         imGuiResult.updated = true;
     }
 
-
     if(attachedModel != nullptr) {
         attachedModel->addImGuiEditorElements(request);
     }
 
     ImGui::DragFloat3("Attached Model Offsets", glm::value_ptr(attachedModelOffset));
 
-
     setAttachedModelTransformation(attachedModel);
 
-
     this->player->activate(true);
-    this->player->setCenterOfMassTransform(btTransform(btQuaternion(), GLMConverter::GLMToBlt(tr.getTranslate())));
+    this->player->setCenterOfMassTransform(btTransform(this->player->getCenterOfMassTransform().getRotation(), GLMConverter::GLMToBlt(tr.getTranslate())));
 
     //orientation update
     center = glm::normalize(tr.getOrientation() * glm::vec3(0,0,1));
     right = glm::normalize(glm::cross(center, up));
-
 
     return imGuiResult;
 }
