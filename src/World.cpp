@@ -2171,12 +2171,12 @@ void World::addGUIButtonControls() {
                                       "GUIButton",
                                       &selectedAssetForGUIButton);
 
-    static char GUIButtonNormalFileName[256] = "";
+    static char GUIButtonNormalFileName[256] = {0};
     ImGui::InputText("Normal image", GUIButtonNormalFileName, sizeof(GUIButtonNormalFileName));
     ImGui::SameLine();
     if(selectedAssetForGUIButton != nullptr) {
         if(ImGui::Button("Set##GuiButN")) {
-            strcpy_s(GUIButtonNormalFileName, sizeof(GUIButtonNormalFileName)-1, selectedAssetForGUIButton->fullPath.c_str());
+            strncpy(GUIButtonNormalFileName, selectedAssetForGUIButton->fullPath.c_str(), sizeof(GUIButtonNormalFileName)-1);
         }
     } else {
         ImGui::Button("Set##GuiButN");
@@ -2184,12 +2184,12 @@ void World::addGUIButtonControls() {
         ImGuiHelper::ShowHelpMarker("No asset selected");
     }
 
-    static char GUIButtonOnHoverFileName[256] = "";
+    static char GUIButtonOnHoverFileName[256] = {0};
     ImGui::InputText("On hover image", GUIButtonOnHoverFileName, sizeof(GUIButtonOnHoverFileName));
     ImGui::SameLine();
     if(selectedAssetForGUIButton != nullptr) {
         if(ImGui::Button("Set##GuiButH")) {
-            strcpy_s(GUIButtonOnHoverFileName, sizeof(GUIButtonOnHoverFileName)-1, selectedAssetForGUIButton->fullPath.c_str());
+            strncpy(GUIButtonOnHoverFileName, selectedAssetForGUIButton->fullPath.c_str(), sizeof(GUIButtonOnHoverFileName)-1);
         }
     } else {
         ImGui::Button("Set##GuiButN");
@@ -2197,12 +2197,12 @@ void World::addGUIButtonControls() {
         ImGuiHelper::ShowHelpMarker("No asset selected");
     }
 
-    static char GUIButtonOnClicklFileName[256] = "";
-    ImGui::InputText("On click image", GUIButtonOnClicklFileName, sizeof(GUIButtonOnClicklFileName));
+    static char GUIButtonOnClickFileName[256] = {0};
+    ImGui::InputText("On click image", GUIButtonOnClickFileName, sizeof(GUIButtonOnClickFileName));
     ImGui::SameLine();
     if(selectedAssetForGUIButton != nullptr) {
         if(ImGui::Button("Set##GuiButC")) {
-            strcpy_s(GUIButtonOnClicklFileName, sizeof(GUIButtonOnClicklFileName)-1, selectedAssetForGUIButton->fullPath.c_str());
+            strncpy(GUIButtonOnClickFileName, selectedAssetForGUIButton->fullPath.c_str(), sizeof(GUIButtonOnClickFileName)-1);
         }
     } else {
         ImGui::Button("Set##GuiButN");
@@ -2210,12 +2210,12 @@ void World::addGUIButtonControls() {
         ImGuiHelper::ShowHelpMarker("No asset selected");
     }
 
-    static char GUIButtonDisabledFileName[256] = "";
+    static char GUIButtonDisabledFileName[256] = {0};
     ImGui::InputText("Disabled image", GUIButtonDisabledFileName, sizeof(GUIButtonDisabledFileName));
     ImGui::SameLine();
     if(selectedAssetForGUIButton != nullptr) {
         if(ImGui::Button("Set##GuiButD")) {
-            strcpy_s(GUIButtonDisabledFileName, sizeof(GUIButtonDisabledFileName)-1, selectedAssetForGUIButton->fullPath.c_str());
+            strncpy(GUIButtonDisabledFileName, selectedAssetForGUIButton->fullPath.c_str(), sizeof(GUIButtonDisabledFileName)-1);
         }
     } else {
         ImGui::Button("Set##GuiButN");
@@ -2250,8 +2250,8 @@ void World::addGUIButtonControls() {
             fileNames.push_back(std::string(GUIButtonNormalFileName));
             if (strlen(GUIButtonOnHoverFileName) > 0) {
                 fileNames.push_back(std::string(GUIButtonOnHoverFileName));
-                if (strlen(GUIButtonOnClicklFileName) > 0) {
-                    fileNames.push_back(std::string(GUIButtonOnClicklFileName));
+                if (strlen(GUIButtonOnClickFileName) > 0) {
+                    fileNames.push_back(std::string(GUIButtonOnClickFileName));
                     if (strlen(GUIButtonDisabledFileName) > 0) {
                         fileNames.push_back(std::string(GUIButtonDisabledFileName));
                     }
