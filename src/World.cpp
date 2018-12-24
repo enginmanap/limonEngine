@@ -2156,23 +2156,72 @@ void World::setupForPlay(InputHandler &inputHandler) {
 }
 
 void World::addGUIButtonControls() {
-    /**
-     * For a new GUI Image we need only name and filename
-     */
+
     static char GUIButtonName[32];
     ImGui::InputText("GUI Button Name", GUIButtonName, sizeof(GUIButtonName), ImGuiInputTextFlags_CharsNoBlank);
 
-    static char GUIButtonNormalFileName[256] = "./Data/Textures/Menu/Buttons/";
-    ImGui::InputText("Normal image path", GUIButtonNormalFileName, sizeof(GUIButtonNormalFileName));
+    static const AssetManager::AvailableAssetsNode* selectedAssetForGUIButton = nullptr;
 
-    static char GUIButtonOnHoverFileName[256] = "./Data/Textures/Menu/Buttons/";
-    ImGui::InputText("On hover image path", GUIButtonOnHoverFileName, sizeof(GUIButtonOnHoverFileName));
+    static char textureAssetFilter[32] = {0};
+    ImGui::InputText("Filter Assets ##TextureButtonAssetTreeFilter", textureAssetFilter, sizeof(textureAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
+    std::string textureAssetFilterStr = textureAssetFilter;
+    std::transform(textureAssetFilterStr.begin(), textureAssetFilterStr.end(), textureAssetFilterStr.begin(), ::tolower);
+    const AssetManager::AvailableAssetsNode* filteredAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureAssetFilterStr);
+    imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
+                                      "GUIButton",
+                                      &selectedAssetForGUIButton);
 
-    static char GUIButtonOnClicklFileName[256] = "./Data/Textures/Menu/Buttons/";
-    ImGui::InputText("On click image path", GUIButtonOnClicklFileName, sizeof(GUIButtonOnClicklFileName));
+    static char GUIButtonNormalFileName[256] = "";
+    ImGui::InputText("Normal image", GUIButtonNormalFileName, sizeof(GUIButtonNormalFileName));
+    ImGui::SameLine();
+    if(selectedAssetForGUIButton != nullptr) {
+        if(ImGui::Button("Set##GuiButN")) {
+            strcpy_s(GUIButtonNormalFileName, sizeof(GUIButtonNormalFileName)-1, selectedAssetForGUIButton->fullPath.c_str());
+        }
+    } else {
+        ImGui::Button("Set##GuiButN");
+        ImGui::SameLine();
+        ImGuiHelper::ShowHelpMarker("No asset selected");
+    }
 
-    static char GUIButtonDisabledFileName[256] = "./Data/Textures/Menu/Buttons/";
-    ImGui::InputText("Disabled image path", GUIButtonDisabledFileName, sizeof(GUIButtonDisabledFileName));
+    static char GUIButtonOnHoverFileName[256] = "";
+    ImGui::InputText("On hover image", GUIButtonOnHoverFileName, sizeof(GUIButtonOnHoverFileName));
+    ImGui::SameLine();
+    if(selectedAssetForGUIButton != nullptr) {
+        if(ImGui::Button("Set##GuiButH")) {
+            strcpy_s(GUIButtonOnHoverFileName, sizeof(GUIButtonOnHoverFileName)-1, selectedAssetForGUIButton->fullPath.c_str());
+        }
+    } else {
+        ImGui::Button("Set##GuiButN");
+        ImGui::SameLine();
+        ImGuiHelper::ShowHelpMarker("No asset selected");
+    }
+
+    static char GUIButtonOnClicklFileName[256] = "";
+    ImGui::InputText("On click image", GUIButtonOnClicklFileName, sizeof(GUIButtonOnClicklFileName));
+    ImGui::SameLine();
+    if(selectedAssetForGUIButton != nullptr) {
+        if(ImGui::Button("Set##GuiButC")) {
+            strcpy_s(GUIButtonOnClicklFileName, sizeof(GUIButtonOnClicklFileName)-1, selectedAssetForGUIButton->fullPath.c_str());
+        }
+    } else {
+        ImGui::Button("Set##GuiButN");
+        ImGui::SameLine();
+        ImGuiHelper::ShowHelpMarker("No asset selected");
+    }
+
+    static char GUIButtonDisabledFileName[256] = "";
+    ImGui::InputText("Disabled image", GUIButtonDisabledFileName, sizeof(GUIButtonDisabledFileName));
+    ImGui::SameLine();
+    if(selectedAssetForGUIButton != nullptr) {
+        if(ImGui::Button("Set##GuiButD")) {
+            strcpy_s(GUIButtonDisabledFileName, sizeof(GUIButtonDisabledFileName)-1, selectedAssetForGUIButton->fullPath.c_str());
+        }
+    } else {
+        ImGui::Button("Set##GuiButN");
+        ImGui::SameLine();
+        ImGuiHelper::ShowHelpMarker("No asset selected");
+    }
 
     static size_t selectedLayerIndex = 0;
     if (guiLayers.size() == 0) {
@@ -2190,26 +2239,34 @@ void World::addGUIButtonControls() {
         }
         ImGui::EndCombo();
     }
-    if (ImGui::Button("Add GUI Button")) {
-        std::vector<std::string> fileNames;
-        fileNames.push_back(std::string(GUIButtonNormalFileName));
-        if(strlen(GUIButtonOnHoverFileName) > 0) {
-            fileNames.push_back(std::string(GUIButtonOnHoverFileName));
-            if(strlen(GUIButtonOnClicklFileName) > 0) {
-                fileNames.push_back(std::string(GUIButtonOnClicklFileName));
-                if(strlen(GUIButtonDisabledFileName) > 0) {
-                    fileNames.push_back(std::string(GUIButtonDisabledFileName));
+    if(strlen(GUIButtonNormalFileName) == 0) {
+        ImGui::Button("Add GUI Button");
+        ImGui::SameLine();
+        ImGuiHelper::ShowHelpMarker("Normal image must be set");
+    } else {
+        if (ImGui::Button("Add GUI Button")) {
+            std::vector<std::string> fileNames;
+
+            fileNames.push_back(std::string(GUIButtonNormalFileName));
+            if (strlen(GUIButtonOnHoverFileName) > 0) {
+                fileNames.push_back(std::string(GUIButtonOnHoverFileName));
+                if (strlen(GUIButtonOnClicklFileName) > 0) {
+                    fileNames.push_back(std::string(GUIButtonOnClicklFileName));
+                    if (strlen(GUIButtonDisabledFileName) > 0) {
+                        fileNames.push_back(std::string(GUIButtonDisabledFileName));
+                    }
                 }
             }
-        }
 
-        GUIButton *guiButton = new GUIButton(this->getNextObjectID(), assetManager, apiInstance, std::string(GUIButtonName),
-                                             fileNames);
-        guiButton->set2dWorldTransform(
-                glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
-        guiElements[guiButton->getWorldObjectID()] = guiButton;
-        guiLayers[selectedLayerIndex]->addGuiElement(guiButton);
-        pickedObject = guiButton;
+            GUIButton *guiButton = new GUIButton(this->getNextObjectID(), assetManager, apiInstance,
+                                                 std::string(GUIButtonName),
+                                                 fileNames);
+            guiButton->set2dWorldTransform(
+                    glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
+            guiElements[guiButton->getWorldObjectID()] = guiButton;
+            guiLayers[selectedLayerIndex]->addGuiElement(guiButton);
+            pickedObject = guiButton;
+        }
     }
 }
 
