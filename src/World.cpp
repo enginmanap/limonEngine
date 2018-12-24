@@ -1261,7 +1261,9 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             if(pickedObject->getTypeID() == GameObject::MODEL) {
                 Model* selectedObject = dynamic_cast<Model*>(pickedObject);
                 if(objectEditorResult.updated) {
-                    dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
+                    if(!selectedObject->isDisconnected()) {
+                        dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
+                    }
                     updatedModels.push_back(selectedObject);
                 }
                 if(activeAnimations.find(selectedObject) != activeAnimations.end()) {
