@@ -955,6 +955,16 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
             }
         }
+        if(pickedObject != nullptr && pickedObject->getTypeID() == GameObject::PLAYER) {
+            if(objectToAttach!= nullptr && objectToAttach->getWorldObjectID() != pickedObject->getWorldObjectID()) {
+                if (ImGui::Button("Attach saved object to Player")) {
+                    //objectToAttach->getTransformation()->setTranslate(physicalPlayer->getPosition());
+                    objectToAttach->disconnectFromPhysicsWorld(dynamicsWorld);
+                    physicalPlayer->setAttachedModel(objectToAttach);
+                    this->objectToAttach = nullptr;
+                }
+            }
+        }
 
         ImGui::Separator();
         if (ImGui::CollapsingHeader("Model Groups")) {
