@@ -116,7 +116,8 @@ private:
         }
     }
 
-    AvailableAssetsNode * getAvailableAssetsTreeFilteredRecursive(AvailableAssetsNode *assetsNode, AssetTypes type,
+    AvailableAssetsNode * getAvailableAssetsTreeFilteredRecursive(const AvailableAssetsNode * const assetsNode ,
+                                                                  AssetTypes type,
                                                                   const std::string &filterText);
 
 public:

@@ -142,12 +142,19 @@ AssetManager::getAvailableAssetsTreeFiltered(AssetManager::AssetTypes type, cons
 }
 
 AssetManager::AvailableAssetsNode *
-AssetManager::getAvailableAssetsTreeFilteredRecursive(AvailableAssetsNode *assetsNode, AssetManager::AssetTypes type,
+AssetManager::getAvailableAssetsTreeFilteredRecursive(const AvailableAssetsNode * const assetsNode,
+                                                      AssetManager::AssetTypes type,
                                                       const std::string &filterText) {
     AssetManager::AvailableAssetsNode *newAssetsNode = nullptr;
     if(assetsNode->assetType == type) {
         if(assetsNode->nameLower.find(filterText) != std::string::npos) {
-            return assetsNode;
+            AvailableAssetsNode* newAssetNode = new AvailableAssetsNode();
+            newAssetNode->name = assetsNode->name;
+            newAssetNode->fullPath = assetsNode->fullPath;
+            newAssetNode->nameLower = assetsNode->nameLower;
+            newAssetNode->assetType = assetsNode->assetType;
+            //not setting parent, because if this was called recursively, caller sets it, if root it should be null
+            return newAssetNode;
         } else {
             return nullptr;
         }
