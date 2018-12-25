@@ -3,16 +3,43 @@
     <Player>
         <Type>Physical</Type>
         <Position>
-            <X>-15</X>
-            <Y>7</Y>
-            <Z>25</Z>
+            <X>9.0850201</X>
+            <Y>4.9999995</Y>
+            <Z>12.668722</Z>
         </Position>
         <Orientation>
-            <X>1</X>
-            <Y>0</Y>
-            <Z>0</Z>
+            <X>0.044193659</X>
+            <Y>-0.10955051</Y>
+            <Z>0.9929983</Z>
         </Orientation>
-        <Attachement/>
+        <ExtensionName>ShooterPlayerExtension</ExtensionName>
+        <Attachement>
+            <Object>
+                <File>./Data/Models/EasyFPS/EasyFPS.fbx</File>
+                <Animation>Idle</Animation>
+                <Disconnected>False</Disconnected>
+                <Mass>0</Mass>
+                <ID>24</ID>
+                <Transformation>
+                    <Scale>
+                        <X>0.0099999998</X>
+                        <Y>0.0099999998</Y>
+                        <Z>0.0099999998</Z>
+                    </Scale>
+                    <Translate>
+                        <X>-0.075000003</X>
+                        <Y>-1.5</Y>
+                        <Z>0.045000002</Z>
+                    </Translate>
+                    <Rotate>
+                        <X>0.054844271</X>
+                        <Y>0.022202643</Y>
+                        <Z>-0.0012198258</Z>
+                        <W>0.99824727</W>
+                    </Rotate>
+                </Transformation>
+            </Object>
+        </Attachement>
     </Player>
     <QuitResponse>QuitGame</QuitResponse>
     <QuitWorldName></QuitWorldName>
@@ -24,9 +51,9 @@
             <ID>3</ID>
             <Transformation>
                 <Scale>
-                    <X>35</X>
+                    <X>45</X>
                     <Y>1</Y>
-                    <Z>35</Z>
+                    <Z>40</Z>
                 </Scale>
                 <Translate>
                     <X>0</X>
@@ -53,15 +80,15 @@
                     <Z>1</Z>
                 </Scale>
                 <Translate>
-                    <X>8.7356644</X>
-                    <Y>2.0396943</Y>
-                    <Z>-6.4643297</Z>
+                    <X>2.3646984</X>
+                    <Y>2.0399997</Y>
+                    <Z>-2.1260991</Z>
                 </Translate>
                 <Rotate>
-                    <X>0.60354108</X>
-                    <Y>0.36824554</Y>
-                    <Z>-0.36838669</Z>
-                    <W>0.60367602</W>
+                    <X>0.5083347</X>
+                    <Y>-0.49152389</Y>
+                    <Z>0.49152401</Z>
+                    <W>0.50833482</W>
                 </Rotate>
             </Transformation>
         </Object>
@@ -77,15 +104,15 @@
                     <Z>1</Z>
                 </Scale>
                 <Translate>
-                    <X>2.7527478</X>
+                    <X>-1.996604</X>
                     <Y>2.0399997</Y>
-                    <Z>-8.8009605</Z>
+                    <Z>-8.567605</Z>
                 </Translate>
                 <Rotate>
-                    <X>-1.8619134e-07</X>
-                    <Y>0.68724322</Y>
-                    <Z>2.1932705e-07</Z>
-                    <W>0.72642738</W>
+                    <X>1.1854512e-07</X>
+                    <Y>0.99168807</Y>
+                    <Z>-1.286764e-08</Z>
+                    <W>0.12866542</W>
                 </Rotate>
             </Transformation>
         </Object>
@@ -96,92 +123,20 @@
             <ID>6</ID>
             <Transformation>
                 <Scale>
-                    <X>1</X>
+                    <X>0.99992925</X>
                     <Y>1</Y>
-                    <Z>1</Z>
+                    <Z>0.99992925</Z>
                 </Scale>
                 <Translate>
-                    <X>2.6197982</X>
-                    <Y>2.0399995</Y>
-                    <Z>-2.4239166</Z>
+                    <X>-2.5439811</X>
+                    <Y>2.0400004</Y>
+                    <Z>-5.9543757</Z>
                 </Translate>
                 <Rotate>
-                    <X>8.7031076e-09</X>
-                    <Y>-0.16721651</Y>
-                    <Z>3.1495496e-08</Z>
-                    <W>0.98592019</W>
-                </Rotate>
-            </Transformation>
-        </Object>
-        <Object>
-            <File>./Data/Models/Box/Box.obj</File>
-            <Disconnected>False</Disconnected>
-            <Mass>0</Mass>
-            <ID>7</ID>
-            <Transformation>
-                <Scale>
-                    <X>0.25</X>
-                    <Y>0.25</Y>
-                    <Z>1</Z>
-                </Scale>
-                <Translate>
-                    <X>0.029999999</X>
-                    <Y>1.25</Y>
-                    <Z>0.02</Z>
-                </Translate>
-                <Rotate>
-                    <X>0</X>
-                    <Y>0</Y>
-                    <Z>0</Z>
-                    <W>1</W>
-                </Rotate>
-            </Transformation>
-        </Object>
-        <Object>
-            <File>./Data/Models/Box/Box.obj</File>
-            <Disconnected>False</Disconnected>
-            <Mass>0</Mass>
-            <ID>8</ID>
-            <Transformation>
-                <Scale>
-                    <X>0.5</X>
-                    <Y>0.5</Y>
-                    <Z>1</Z>
-                </Scale>
-                <Translate>
-                    <X>0.75</X>
-                    <Y>1.5</Y>
-                    <Z>0.02</Z>
-                </Translate>
-                <Rotate>
-                    <X>0</X>
-                    <Y>0</Y>
-                    <Z>0</Z>
-                    <W>1</W>
-                </Rotate>
-            </Transformation>
-        </Object>
-        <Object>
-            <File>./Data/Models/Box/Box.obj</File>
-            <Disconnected>False</Disconnected>
-            <Mass>0</Mass>
-            <ID>9</ID>
-            <Transformation>
-                <Scale>
-                    <X>0.75</X>
-                    <Y>0.75</Y>
-                    <Z>1</Z>
-                </Scale>
-                <Translate>
-                    <X>1.53</X>
-                    <Y>1.75</Y>
-                    <Z>0.02</Z>
-                </Translate>
-                <Rotate>
-                    <X>0</X>
-                    <Y>0</Y>
-                    <Z>0</Z>
-                    <W>1</W>
+                    <X>4.1908908e-07</X>
+                    <Y>0.77916205</Y>
+                    <Z>5.2310071e-08</Z>
+                    <W>0.62682253</W>
                 </Rotate>
             </Transformation>
         </Object>
@@ -192,20 +147,20 @@
             <ID>10</ID>
             <Transformation>
                 <Scale>
-                    <X>1</X>
-                    <Y>1</Y>
+                    <X>11.382213</X>
+                    <Y>0.99999976</Y>
                     <Z>1</Z>
                 </Scale>
                 <Translate>
-                    <X>2.5</X>
+                    <X>3.2037408</X>
                     <Y>2</Y>
                     <Z>0.02</Z>
                 </Translate>
                 <Rotate>
                     <X>0</X>
                     <Y>0</Y>
-                    <Z>0</Z>
-                    <W>1</W>
+                    <Z>0.32221648</Z>
+                    <W>0.946666</W>
                 </Rotate>
             </Transformation>
         </Object>
@@ -221,39 +176,15 @@
                     <Z>1</Z>
                 </Scale>
                 <Translate>
-                    <X>5.0453348</X>
-                    <Y>2.0399992</Y>
-                    <Z>-4.9478483</Z>
+                    <X>8.6870718</X>
+                    <Y>2.039988</Y>
+                    <Z>-25.065563</Z>
                 </Translate>
                 <Rotate>
-                    <X>0.66890287</X>
-                    <Y>0.66890401</Y>
-                    <Z>-0.22927736</Z>
-                    <W>-0.22927785</W>
-                </Rotate>
-            </Transformation>
-        </Object>
-        <Object>
-            <File>./Data/Models/Box/Box.obj</File>
-            <Disconnected>False</Disconnected>
-            <Mass>0</Mass>
-            <ID>12</ID>
-            <Transformation>
-                <Scale>
-                    <X>0.02</X>
-                    <Y>0.02</Y>
-                    <Z>0.02</Z>
-                </Scale>
-                <Translate>
-                    <X>1</X>
-                    <Y>6</Y>
-                    <Z>0</Z>
-                </Translate>
-                <Rotate>
-                    <X>0</X>
-                    <Y>0</Y>
-                    <Z>0</Z>
-                    <W>1</W>
+                    <X>0.70684272</X>
+                    <Y>0.019589182</Y>
+                    <Z>-0.019583419</Z>
+                    <W>0.70682824</W>
                 </Rotate>
             </Transformation>
         </Object>
@@ -355,18 +286,30 @@
             </Transformation>
         </Object>
         <Object>
-            <File>./Data/Models/ArmyPilot/ArmyPilot.mesh.xml</File>
-            <Animation>Idle</Animation>
+            <File>./Data/Models/Swat/Swat.fbx</File>
+            <Animation>idle|mixamo.com</Animation>
             <Disconnected>False</Disconnected>
-            <AI>True</AI>
-            <AI_ID>22</AI_ID>
+            <Actor>
+                <ID>22</ID>
+                <TypeName>ENEMY_AI_SWAT</TypeName>
+                <parameters>
+                    <Parameter>
+                        <RequestType>FreeNumber</RequestType>
+                        <Description>Hit points</Description>
+                        <Value>100</Value>
+                        <valueType>Long</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>0</Index>
+                    </Parameter>
+                </parameters>
+            </Actor>
             <Mass>0</Mass>
             <ID>21</ID>
             <Transformation>
                 <Scale>
-                    <X>0.02</X>
-                    <Y>0.02</Y>
-                    <Z>0.02</Z>
+                    <X>0.025</X>
+                    <Y>0.025</Y>
+                    <Z>0.025</Z>
                 </Scale>
                 <Translate>
                     <X>10</X>
@@ -381,12 +324,38 @@
                 </Rotate>
             </Transformation>
         </Object>
+        <Object>
+            <File>./Data/Models/Box/Box.obj</File>
+            <Disconnected>True</Disconnected>
+            <Mass>0</Mass>
+            <ID>25</ID>
+            <Transformation>
+                <Scale>
+                    <X>0.20000005</X>
+                    <Y>0.20000005</Y>
+                    <Z>0.20000005</Z>
+                </Scale>
+                <Translate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>1.5</Z>
+                </Translate>
+                <Rotate>
+                    <X>0</X>
+                    <Y>0</Y>
+                    <Z>0</Z>
+                    <W>1</W>
+                </Rotate>
+            </Transformation>
+        </Object>
     </Objects>
+    <ObjectGroups/>
     <Lights>
         <Light>
             <Type>POINT</Type>
+            <ID>0</ID>
             <Position>
-                <X>1</X>
+                <X>1.0475657</X>
                 <Y>6</Y>
                 <Z>0</Z>
             </Position>
@@ -395,9 +364,20 @@
                 <G>0.69999999</G>
                 <B>0.69999999</B>
             </Color>
+            <Attenuation>
+                <X>1</X>
+                <Y>0.1</Y>
+                <Z>0.0099999998</Z>
+            </Attenuation>
+            <Ambient>
+                <X>0</X>
+                <Y>0</Y>
+                <Z>0</Z>
+            </Ambient>
         </Light>
         <Light>
             <Type>DIRECTIONAL</Type>
+            <ID>1</ID>
             <Position>
                 <X>-25</X>
                 <Y>50</Y>
@@ -408,6 +388,16 @@
                 <G>0.69999999</G>
                 <B>0.69999999</B>
             </Color>
+            <Attenuation>
+                <X>1</X>
+                <Y>0.1</Y>
+                <Z>0.0099999998</Z>
+            </Attenuation>
+            <Ambient>
+                <X>0</X>
+                <Y>0</Y>
+                <Z>0</Z>
+            </Ambient>
         </Light>
     </Lights>
     <Sky>
@@ -506,6 +496,36 @@
                     <W>1</W>
                 </Rotate>
             </Transformation>
+            <FirstEnterTriggerCode>
+                <Name>CoinPickUpOnTrigger</Name>
+                <parameters>
+                    <Parameter>
+                        <RequestType>GUIText</RequestType>
+                        <Description>Counter GUI Element</Description>
+                        <Value>2</Value>
+                        <valueType>Long</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>0</Index>
+                    </Parameter>
+                    <Parameter>
+                        <RequestType>Model</RequestType>
+                        <Description>Model to remove</Description>
+                        <Value>17</Value>
+                        <valueType>Long</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>1</Index>
+                    </Parameter>
+                    <Parameter>
+                        <RequestType>FreeNumber</RequestType>
+                        <Description>Count to finish</Description>
+                        <Value>2</Value>
+                        <valueType>Long</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>2</Index>
+                    </Parameter>
+                </parameters>
+                <Enabled>True</Enabled>
+            </FirstEnterTriggerCode>
         </Trigger>
         <Trigger>
             <Name>TRIGGER-20</Name>
@@ -528,6 +548,36 @@
                     <W>1</W>
                 </Rotate>
             </Transformation>
+            <FirstEnterTriggerCode>
+                <Name>CoinPickUpOnTrigger</Name>
+                <parameters>
+                    <Parameter>
+                        <RequestType>GUIText</RequestType>
+                        <Description>Counter GUI Element</Description>
+                        <Value>2</Value>
+                        <valueType>Long</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>0</Index>
+                    </Parameter>
+                    <Parameter>
+                        <RequestType>Model</RequestType>
+                        <Description>Model to remove</Description>
+                        <Value>18</Value>
+                        <valueType>Long</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>1</Index>
+                    </Parameter>
+                    <Parameter>
+                        <RequestType>FreeNumber</RequestType>
+                        <Description>Count to finish</Description>
+                        <Value>2</Value>
+                        <valueType>Long</valueType>
+                        <IsSet>True</IsSet>
+                        <Index>2</Index>
+                    </Parameter>
+                </parameters>
+                <Enabled>True</Enabled>
+            </FirstEnterTriggerCode>
         </Trigger>
     </Triggers>
     <OnloadActions/>
@@ -572,7 +622,7 @@
                     <Rotate>
                         <X>0</X>
                         <Y>0</Y>
-                        <Z>-0</Z>
+                        <Z>0</Z>
                         <W>1</W>
                     </Rotate>
                 </Transformation>
@@ -605,7 +655,7 @@
                     <Rotate>
                         <X>0</X>
                         <Y>0</Y>
-                        <Z>-0</Z>
+                        <Z>0</Z>
                         <W>1</W>
                     </Rotate>
                 </Transformation>
@@ -638,8 +688,66 @@
                     <Rotate>
                         <X>0</X>
                         <Y>0</Y>
-                        <Z>0.70710683</Z>
-                        <W>0.70710683</W>
+                        <Z>0</Z>
+                        <W>1</W>
+                    </Rotate>
+                </Transformation>
+            </GUIElement>
+            <GUIElement>
+                <Type>GUIText</Type>
+                <ID>40</ID>
+                <Name>Health</Name>
+                <Text>100</Text>
+                <Font>
+                    <Path>./Data/Fonts/Helvetica-Normal.ttf</Path>
+                    <Size>64</Size>
+                </Font>
+                <Color>
+                    <R>256</R>
+                    <G>63.231998</G>
+                    <B>57.599998</B>
+                </Color>
+                <Transformation>
+                    <Scale>
+                        <X>1</X>
+                        <Y>1</Y>
+                        <Z>1</Z>
+                    </Scale>
+                    <Translate>
+                        <X>0.10416666</X>
+                        <Y>0.18518518</Y>
+                        <Z>0</Z>
+                    </Translate>
+                    <Rotate>
+                        <X>0</X>
+                        <Y>0</Y>
+                        <Z>0</Z>
+                        <W>1</W>
+                    </Rotate>
+                </Transformation>
+            </GUIElement>
+            <GUIElement>
+                <Type>GUIImage</Type>
+                <ID>42</ID>
+                <Name>health-icon</Name>
+                <File>./Data/Textures/Health-icon.png</File>
+                <FullScreen>False</FullScreen>
+                <Transformation>
+                    <Scale>
+                        <X>25</X>
+                        <Y>25</Y>
+                        <Z>0</Z>
+                    </Scale>
+                    <Translate>
+                        <X>0.0625</X>
+                        <Y>0.18055555</Y>
+                        <Z>0</Z>
+                    </Translate>
+                    <Rotate>
+                        <X>0</X>
+                        <Y>0</Y>
+                        <Z>0</Z>
+                        <W>1</W>
                     </Rotate>
                 </Transformation>
             </GUIElement>
