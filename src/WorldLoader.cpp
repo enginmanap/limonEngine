@@ -462,7 +462,7 @@ WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *object
     }
 
     objectAttribute =  objectNode->FirstChildElement("Animation");
-    if (objectAttribute == nullptr) {
+    if (objectAttribute == nullptr || objectAttribute->GetText() == nullptr) {
 #ifndef NDEBUG
         //std::cout << "Object does not have default animation." << std::endl;
 #endif
