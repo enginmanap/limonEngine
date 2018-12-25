@@ -402,6 +402,9 @@ private:
     std::vector<LimonAPI::ParameterRequest>
     fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) const;
 
+    void renderPlayerAttachments(GameObject *attachment) const;
+    void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment);
+
 public:
     ~World();
 
