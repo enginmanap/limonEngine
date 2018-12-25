@@ -354,6 +354,15 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
     return true;
 }
 
+/**
+ * Last element in the vector is the parent of all
+ * @param assetManager
+ * @param objectNode
+ * @param requiredSounds
+ * @param limonAPI
+ * @param parentObject
+ * @return
+ */
 std::vector<std::unique_ptr<WorldLoader::ObjectInformation>>
 WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *objectNode,
                         std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI,
