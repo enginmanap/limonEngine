@@ -182,7 +182,7 @@ public:
 
     inline void setAttachedModelTransformation(Model *attachedModel) {
         if(attachedModel != nullptr) {
-            attachedModel->getTransformation()->setTranslate( GLMConverter::BltToGLM(getRigidBody()->getWorldTransform().getOrigin()) + glm::vec3(0,1,0)  + getLookDirectionQuaternion() * attachedModelOffset);
+            attachedModel->getTransformation()->setTranslate(GLMConverter::BltToGLM(getRigidBody()->getWorldTransform().getOrigin()) + glm::vec3(0,1,0)  + getLookDirectionQuaternion() * attachedModelOffset);
         }
     }
 
