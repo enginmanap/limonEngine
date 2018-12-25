@@ -23,7 +23,7 @@ SoundAsset::SoundAsset(AssetManager *assetManager, uint32_t assetID, const std::
     soundData = drwav_open_and_read_file_s16(name.c_str(), &channels, &sampleRate, &sampleCount);
     if (soundData == nullptr) {
         // Error opening and reading WAV file.
-        std::cerr << "failed to read wav file, this case is not handled. Exiting" << std::endl;
+        std::cerr << "failed to read wav file " << name << " , this case is not handled. Exiting" << std::endl;
         exit(-1);
     }
 }
