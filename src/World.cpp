@@ -650,7 +650,6 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
 }
 
 void World::render() {
-
     for (unsigned int i = 0; i < activeLights.size(); ++i) {
         if(activeLights[i]->getLightType() != Light::DIRECTIONAL) {
             continue;
@@ -734,11 +733,9 @@ void World::render() {
         (*modelIterator)->renderWithProgramInstanced(temp, *depthBufferProgram);
     }
 
-    if(startingPlayer.attachedModel != nullptr && !currentPlayer->isDead()) {//don't render attched model if dead
-        startingPlayer.attachedModel->setupForTime(gameTime);
-        std::vector<uint32_t> temp;
-        temp.push_back(startingPlayer.attachedModel->getWorldObjectID());
-        startingPlayer.attachedModel->renderInstanced(temp);
+    if(!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attched model if dead
+        Model* attachedModel = startingPlayer.attachedModel;
+        renderPlayerAttachments(attachedModel);
     }
 
 
@@ -802,11 +799,9 @@ void World::render() {
         }
     }
 
-    if(startingPlayer.attachedModel != nullptr && !currentPlayer->isDead()) {//don't render attched model if dead
-        startingPlayer.attachedModel->setupForTime(gameTime);
-        std::vector<uint32_t> temp;
-        temp.push_back(startingPlayer.attachedModel->getWorldObjectID());
-        startingPlayer.attachedModel->renderInstanced(temp);
+    if(!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attched model if dead
+        Model* attachedModel = startingPlayer.attachedModel;
+        renderPlayerAttachments(attachedModel);
     }
 
     debugDrawer->flushDraws();
@@ -844,6 +839,42 @@ void World::render() {
         ImGuiFrameSetup();
     }
 }
+
+   void World::renderPlayerAttachments(GameObject *attachment) const {
+     if(attachment->getTypeID() == GameObject::MODEL) {
+         Model* attachedModel = static_cast<Model*>(attachment);
+         attachedModel->setupForTime(gameTime);
+         std::vector<uint32_t> temp;
+         temp.push_back(attachedModel->getWorldObjectID());
+         attachedModel->renderInstanced(temp);
+         if (attachedModel->hasChildren()) {
+             const std::vector<PhysicalRenderable *> &children = attachedModel->getChildren();
+             for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
+                 GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
+                 if(gameObject != nullptr) {
+                     renderPlayerAttachments(gameObject);
+                 }
+             }
+         }
+     } else if(attachment->getTypeID() == GameObject::MODEL_GROUP) {
+         ModelGroup* attachedModelGroup = static_cast<ModelGroup*>(attachment);
+         attachedModelGroup->setupForTime(gameTime);
+         std::vector<uint32_t> temp;
+         temp.push_back(attachedModelGroup->getWorldObjectID());
+         if (attachedModelGroup->hasChildren()) {
+             const std::vector<PhysicalRenderable *> &children = attachedModelGroup->getChildren();
+             for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
+                 GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
+                 if(gameObject != nullptr) {
+                     renderPlayerAttachments(gameObject);
+                 }
+             }
+         }
+     }
+
+
+
+   }
 
 //This method is used only for ImGui loaded animations list generation
 bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {
@@ -958,8 +989,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
         if(pickedObject != nullptr && pickedObject->getTypeID() == GameObject::PLAYER) {
             if(objectToAttach!= nullptr && objectToAttach->getWorldObjectID() != pickedObject->getWorldObjectID()) {
                 if (ImGui::Button("Attach saved object to Player")) {
-                    //objectToAttach->getTransformation()->setTranslate(physicalPlayer->getPosition());
-                    objectToAttach->disconnectFromPhysicsWorld(dynamicsWorld);
+                    clearWorldRefsBeforeAttachment(objectToAttach);
                     physicalPlayer->setAttachedModel(objectToAttach);
                     startingPlayer.attachedModel = objectToAttach;
                     this->objectToAttach = nullptr;
@@ -1117,6 +1147,15 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             static bool showError = false;
             if(ImGui::InputText("Custom Extension name", extensionNameBuffer, 31, ImGuiInputTextFlags_CharsNoBlank)) {
                 showError = false;
+            }
+
+            if(startingPlayer.attachedModel != nullptr) {
+                if(ImGui::Button("Disconnect Attachment##player attachment")) {
+                    Model* attachedModel = startingPlayer.attachedModel;
+                    startingPlayer.attachedModel = nullptr;
+                    this->physicalPlayer->setAttachedModel(nullptr);
+                    this->addModelToWorld(attachedModel);
+                }
             }
 
             if(ImGui::Button("Apply##PlayerExtensionUpdate")) {
@@ -3041,3 +3080,22 @@ void World::updateActiveLights(bool forceUpdate) {
     }
 
 }
+
+   void World::clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment) {
+       GameObject* gameObject = dynamic_cast<GameObject*>(attachment);
+       if(gameObject != nullptr) {
+           objects.erase(gameObject->getWorldObjectID());
+           dynamicsWorld->removeRigidBody(attachment->getRigidBody());
+           for (auto iterator = rigidBodies.begin(); iterator != rigidBodies.end(); ++iterator) {
+               if ((*iterator) == attachment->getRigidBody()) {
+                   rigidBodies.erase(iterator);
+                   break;
+               }
+           }
+       }
+       attachment->disconnectFromPhysicsWorld(dynamicsWorld);
+       for (auto childIt = attachment->getChildren().begin();
+            childIt != attachment->getChildren().end(); ++childIt) {
+           clearWorldRefsBeforeAttachment(*childIt);
+       }
+   }
