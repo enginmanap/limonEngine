@@ -188,7 +188,7 @@ void ModelGroup::addChild(PhysicalRenderable *renderable) {
     this->getTransformation()->addTranslate(averageTranslateDifference);
     glm::vec3 translate, scale;
     glm::quat orientation;
-    this->transformation.getDifference(*renderable->getTransformation(), translate, scale, orientation);
+    this->transformation.getDifferenceAddition(*renderable->getTransformation(), translate, scale, orientation);
 
     translate = translate * (1.0f / this->transformation.getScale());
     translate = translate * this->transformation.getOrientation();

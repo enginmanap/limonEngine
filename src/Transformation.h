@@ -399,7 +399,10 @@ public:
 
     void combine(const Transformation &otherTransformation);
 
-    void getDifference(const Transformation& otherTransformation, glm::vec3 &translate, glm::vec3 &scale, glm::quat &rotation) const;
+    void getDifferenceAddition(const Transformation &otherTransformation, glm::vec3 &translate, glm::vec3 &scale,
+                               glm::quat &rotation) const;
+
+    void getDifferenceStacked(const Transformation& otherTransformation, glm::vec3 &translate, glm::vec3 &scale, glm::quat &rotation) const;
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) const;
 

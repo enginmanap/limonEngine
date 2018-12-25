@@ -198,7 +198,18 @@ bool Transformation::addImGuizmoElements(const ImGuizmoState &editorState, const
     return false;
 }
 
-void Transformation::getDifference(const Transformation& otherTransformation, glm::vec3 &translateOut, glm::vec3 &scaleOut, glm::quat &rotationOut) const {
+void Transformation::getDifferenceAddition(const Transformation &otherTransformation, glm::vec3 &translate,
+                                           glm::vec3 &scale, glm::quat &rotation) const {
+
+    translate = otherTransformation.translate - this->translate;
+    scale = otherTransformation.scale / this->scale;
+    rotation = this->orientation;
+    rotation = glm::inverse(rotation);
+    rotation = rotation * otherTransformation.orientation;
+}
+
+void Transformation::getDifferenceStacked(const Transformation &otherTransformation, glm::vec3 &translate,
+                                          glm::vec3 &scale, glm::quat &rotation) const {
     //first, find out, what would convert this, to other. Simple substract won't work because these will stack, not add
     glm::mat4 currentWT = generateRawWorldTransformWithOrWithoutParent();
     glm::mat4 otherWt = otherTransformation.generateRawWorldTransformWithOrWithoutParent();
@@ -208,7 +219,7 @@ void Transformation::getDifference(const Transformation& otherTransformation, gl
     glm::vec4 temp2;
 
 
-    glm::decompose(differenceWT, scaleOut, rotationOut, translateOut, temp1, temp2);
+    glm::decompose(differenceWT, scale, rotation, translate, temp1, temp2);
 }
 
 bool Transformation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) const {

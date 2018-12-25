@@ -972,8 +972,8 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
                     glm::vec3 translate, scale;
                     glm::quat orientation;
-                    pickedModelTransformation->getDifference(*objectToAttach->getTransformation(), translate,
-                                                                    scale, orientation);
+                    pickedModelTransformation->getDifferenceAddition(*objectToAttach->getTransformation(), translate,
+                                                                     scale, orientation);
                     translate = translate * (1.0f / pickedModelTransformation->getScale());
                     translate = translate * pickedModelTransformation->getOrientation();
                     objectToAttach->getTransformation()->setTranslate(translate);
