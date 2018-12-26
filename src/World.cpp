@@ -2702,9 +2702,33 @@ void World::killPlayerAPI() {
     this->currentPlayer->setDead();
 }
 
+Model* World::findModelByIDChildren(PhysicalRenderable* parent,uint32_t modelID) const {
+    if(parent == nullptr) {
+        return nullptr;
+    }
+    Model* model = dynamic_cast<Model*>(parent);
+    if(model != nullptr) {//FIXME non model attachments are filtered
+        if(model->getWorldObjectID() == modelID) {
+            return model;
+        }else {
+            for (auto iterator = model->getChildren().begin(); iterator != model->getChildren().end(); ++iterator) {
+                Model* child = findModelByIDChildren(*iterator, modelID);
+                if(child != nullptr) {
+                    return child;
+                }
+            }
+        }
+    }
+    return nullptr;
+}
+
+
 Model *World::findModelByID(uint32_t modelID) const {
-    if(startingPlayer.attachedModel != nullptr && startingPlayer.attachedModel->getWorldObjectID() == modelID) {
-        return startingPlayer.attachedModel;
+    if(startingPlayer.attachedModel != nullptr) {
+        Model* playerAttachment = findModelByIDChildren(startingPlayer.attachedModel, modelID);
+        if(playerAttachment != nullptr) {
+            return playerAttachment;
+        }
     }
 
     if(objects.find(modelID) != objects.end()) {
