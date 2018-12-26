@@ -3099,3 +3099,100 @@ void World::updateActiveLights(bool forceUpdate) {
            clearWorldRefsBeforeAttachment(*childIt);
        }
    }
+
+bool World::addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs,
+                                       uint32_t &maxID) {
+    const GameObject* gameObjectOfTheSame = dynamic_cast<const GameObject*>(attachment);
+    if(gameObjectOfTheSame == nullptr) {
+        std::cerr << "Player attachment is not GameObject, that should never happen." << std::endl;
+        return false;
+    }
+    auto result = usedIDs.insert(gameObjectOfTheSame->getWorldObjectID());
+    if(result.second == false) {
+        std::cerr << "world ID repetition on player attachment detected! ID was " << gameObjectOfTheSame->getWorldObjectID() << std::endl;
+        return false;
+    }
+    maxID = std::max(maxID, gameObjectOfTheSame->getWorldObjectID());
+    for (auto child = attachment->getChildren().begin(); child != attachment->getChildren().end(); ++child) {
+        if(!addPlayerAttachmentUsedIDs(*child, usedIDs, maxID)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+   bool World::verifyIDs() {
+           std::set<uint32_t > usedIDs;
+           uint32_t maxID = 0;
+           /** there are 3 places that has IDs,
+            * 1) sky
+            * 2) objects
+            * 3) AIs
+            */
+           //put sky first, since it is guaranteed to be single
+           if(this->sky != nullptr) {
+               usedIDs.insert(this->sky->getWorldObjectID());
+               maxID = this->sky->getWorldObjectID();
+           }
+
+           for(auto object = objects.begin(); object != objects.end(); object++) {
+               auto result = usedIDs.insert(object->first);
+               if(result.second == false) {
+                   std::cerr << "world ID repetition on object detected! with id " << object->first << std::endl;
+                   return false;
+               }
+               maxID = std::max(maxID,object->first);
+           }
+
+           for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
+               auto result = usedIDs.insert(trigger->first);
+               if(result.second == false) {
+                   std::cerr << "world ID repetition on trigger detected! with id " << trigger->first << std::endl;
+                   return false;
+               }
+               maxID = std::max(maxID,trigger->first);
+           }
+
+           for(auto actor = actors.begin(); actor != actors.end(); actor++) {
+               auto result = usedIDs.insert(actor->first);
+               if(result.second == false) {
+                   std::cerr << "world ID repetition on trigger detected! ActorInterface with id " << actor->first << std::endl;
+                   return false;
+               }
+               maxID = std::max(maxID,actor->first);
+           }
+
+           for (auto guiElement = guiElements.begin(); guiElement != guiElements.end(); ++guiElement) {
+               auto result = usedIDs.insert(guiElement->first);
+               if(result.second == false) {
+                   std::cerr << "world ID repetition on trigger detected! gui element with id " << guiElement->first << std::endl;
+                   return false;
+               }
+               maxID = std::max(maxID, guiElement->first);
+           }
+
+           for (auto modelGroup = modelGroups.begin(); modelGroup != modelGroups.end(); ++modelGroup) {
+               auto result = usedIDs.insert(modelGroup->first);
+               if(result.second == false) {
+                   std::cerr << "world ID repetition on trigger detected! gui element with id " << modelGroup->first << std::endl;
+                   return false;
+               }
+               maxID = std::max(maxID, modelGroup->first);
+           }
+
+           if (!addPlayerAttachmentUsedIDs(startingPlayer.attachedModel, usedIDs, maxID)) {
+               return false;
+           }
+
+           uint32_t unusedIDCount = 0;
+           for(uint32_t index = 1; index <= maxID; index++) {
+               if(usedIDs.count(index) != 1) {
+                       unusedIDs.push(index);
+                   unusedIDCount++;
+               }
+           }
+           std::cout << "World load found " << maxID - unusedIDCount << " objects and " << unusedIDCount << " unused IDs." << std::endl;
+
+           nextWorldID = maxID+1;
+           return true;
+   }
