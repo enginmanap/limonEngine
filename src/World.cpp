@@ -2751,9 +2751,15 @@ bool World::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID)
     Transformation* transform1,* transform2;
 
     objectToAttach = findModelByID(objectID);
+    if(objectToAttach == 0) {
+        return false;
+    }
     transform1 = objectToAttach->getTransformation();
 
     objectToAttachTo = findModelByID(objectToAttachToID);
+    if(objectToAttachTo == 0) {
+        return false;
+    }
     transform2 = objectToAttachTo->getTransformation();
 
     //The offset removal of the parent is not exposed via API. We should manually remove that from the object
