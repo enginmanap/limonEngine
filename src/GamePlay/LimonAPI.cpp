@@ -420,6 +420,10 @@ uint32_t LimonAPI::getPlayerAttachedModel() {
     return worldGetPlayerAttachedModel();
 }
 
+std::vector<uint32_t> LimonAPI::getModelChildren(uint32_t modelID) {
+    return worldGetModelChildren(modelID);
+}
+
 std::string LimonAPI::getModelAnimationName(uint32_t modelID) {
     return worldGetModelAnimationName(modelID);
 }

@@ -2628,6 +2628,21 @@ uint32_t World::getPlayerAttachedModelAPI() {
     return 0;
 }
 
+std::vector<uint32_t> World::getModelChildrenAPI(uint32_t modelID) {
+    std::vector<uint32_t> result;
+    Model* model = findModelByID(modelID);
+    if(model != nullptr) {
+        std::vector<PhysicalRenderable*> children = model->getChildren();
+        for (auto child = children.begin(); child != children.end(); ++child) {
+            Model* model = dynamic_cast<Model*>(*child);
+            if(model!= nullptr) {//FIXME this eliminates non model childs
+                result.push_back(model->getWorldObjectID());
+            }
+        }
+   }
+   return result;
+}
+
 std::string World::getModelAnimationNameAPI(uint32_t modelID) {
     Model* model = findModelByID(modelID);
         if(model != nullptr) {
