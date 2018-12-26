@@ -244,6 +244,8 @@ public:
         limonReturnPrevious = worldReturnPreviousMethod;
     }
 
+    std::vector<uint32_t> getModelChildren(uint32_t modelID);
+
 private:
     friend class WorldLoader;
 
@@ -285,6 +287,7 @@ private:
     std::function<LimonAPI::Vec4 ()> worldGetPlayerAttachmentOffset;
     std::function<bool (LimonAPI::Vec4)> worldSetPlayerAttachmentOffset;
     std::function<uint32_t ()> worldGetPlayerAttachedModel;
+    std::function<std::vector<uint32_t> (uint32_t)> worldGetModelChildren;
     std::function<void ()> worldKillPlayer;
 
     std::function<std::string(uint32_t)> worldGetModelAnimationName;

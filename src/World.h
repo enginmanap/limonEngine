@@ -431,6 +431,7 @@ public:
                               std::vector<LimonAPI::ParameterRequest> parameters);
 
     uint32_t getPlayerAttachedModelAPI();
+    std::vector<uint32_t> getModelChildrenAPI(uint32_t modelID);
 
     std::string getModelAnimationNameAPI(uint32_t modelID);
     bool getModelAnimationFinishedAPI(uint32_t modelID);
