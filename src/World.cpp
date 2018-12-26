@@ -2959,9 +2959,24 @@ void World::buildTreeFromAllGameObjects() {
     }
 
     //player
-    ImGui::TreeNodeEx(this->physicalPlayer->getName().c_str(), leafFlags | ((this->physicalPlayer->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+    bool isOpen = false;
+    if(startingPlayer.attachedModel == nullptr) {
+        ImGui::TreeNodeEx(this->physicalPlayer->getName().c_str(), leafFlags |
+                                                                   ((this->physicalPlayer->getWorldObjectID() ==
+                                                                     pickedObjectID) ? ImGuiTreeNodeFlags_Selected
+                                                                                     : 0));
+    } else {
+        isOpen = ImGui::TreeNodeEx(this->physicalPlayer->getName().c_str(), nodeFlags |
+                                                                   ((this->physicalPlayer->getWorldObjectID() ==
+                                                                     pickedObjectID) ? ImGuiTreeNodeFlags_Selected
+                                                                                     : 0));
+    }
     if (ImGui::IsItemClicked()) {
         pickedObject = this->physicalPlayer;
+    }
+    if(isOpen) {
+        createObjectTreeRecursive(startingPlayer.attachedModel, pickedObjectID, nodeFlags, leafFlags, parentageList);
+        ImGui::TreePop();
     }
 
     ImGui::EndChild();
