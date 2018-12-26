@@ -2749,34 +2749,12 @@ bool World::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID)
     }
 
     Transformation* transform1,* transform2;
-    //there is another possibility, that is the player attachment
-    if(objects.find(objectID) == objects.end() ) {
-        if(objectID != startingPlayer.attachedModel->getWorldObjectID()) {
-            return false;
-        } else {
-            transform1 = startingPlayer.attachedModel->getTransformation();
-            objectToAttach = startingPlayer.attachedModel;
-        }
-    } else {
-        transform1 = objects[objectID]->getTransformation();
-        objectToAttach = objects[objectID];
-    }
 
-    //there is another possibility, that is the player attachment
-    if(objects.find(objectToAttachToID) == objects.end() ) {
-        if(objectToAttachToID != startingPlayer.attachedModel->getWorldObjectID()) {
-            return false;
-        } else {
-            transform2 = startingPlayer.attachedModel->getTransformation();
-            objectToAttachTo = startingPlayer.attachedModel;
+    objectToAttach = findModelByID(objectID);
+    transform1 = objectToAttach->getTransformation();
 
-        }
-    } else {
-        transform2 = objects[objectToAttachToID]->getTransformation();
-        objectToAttachTo = objects[objectToAttachToID];
-
-    }
-
+    objectToAttachTo = findModelByID(objectToAttachToID);
+    transform2 = objectToAttachTo->getTransformation();
 
     //The offset removal of the parent is not exposed via API. We should manually remove that from the object
     transform1->addTranslate(-1 * objectToAttachTo->getCenterOffset());
