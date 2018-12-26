@@ -270,84 +270,14 @@ private:
     };
     QuitResponse currentQuitResponse = QuitResponse::QUIT_GAME;
 
+    bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
+
     /**
-     * This method checks, if IDs assigned without any empty space, and any collision
-     * and sets the totalObjectCount accordingly.
-     * @return true if everything ok, false if not
-     */
-    bool verifyIDs(){
-        std::set<uint32_t > usedIDs;
-        uint32_t maxID = 0;
-        /** there are 3 places that has IDs,
-         * 1) sky
-         * 2) objects
-         * 3) AIs
+         * This method checks, if IDs assigned without any empty space, and any collision
+         * and sets the totalObjectCount accordingly.
+         * @return true if everything ok, false if not
          */
-        //put sky first, since it is guaranteed to be single
-        if(this->sky != nullptr) {
-            usedIDs.insert(this->sky->getWorldObjectID());
-            maxID = this->sky->getWorldObjectID();
-        }
-
-        for(auto object = objects.begin(); object != objects.end(); object++) {
-            auto result = usedIDs.insert(object->first);
-            if(result.second == false) {
-                std::cerr << "world ID repetition on object detected! with id " << object->first << std::endl;
-                return false;
-            }
-            maxID = std::max(maxID,object->first);
-        }
-
-        for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
-            auto result = usedIDs.insert(trigger->first);
-            if(result.second == false) {
-                std::cerr << "world ID repetition on trigger detected! with id " << trigger->first << std::endl;
-                return false;
-            }
-            maxID = std::max(maxID,trigger->first);
-        }
-
-        for(auto actor = actors.begin(); actor != actors.end(); actor++) {
-            auto result = usedIDs.insert(actor->first);
-            if(result.second == false) {
-                std::cerr << "world ID repetition on trigger detected! ActorInterface with id " << actor->first << std::endl;
-                return false;
-            }
-            maxID = std::max(maxID,actor->first);
-        }
-
-        for (auto guiElement = guiElements.begin(); guiElement != guiElements.end(); ++guiElement) {
-            auto result = usedIDs.insert(guiElement->first);
-            if(result.second == false) {
-                std::cerr << "world ID repetition on trigger detected! gui element with id " << guiElement->first << std::endl;
-                return false;
-            }
-            maxID = std::max(maxID, guiElement->first);
-        }
-
-        for (auto modelGroup = modelGroups.begin(); modelGroup != modelGroups.end(); ++modelGroup) {
-            auto result = usedIDs.insert(modelGroup->first);
-            if(result.second == false) {
-                std::cerr << "world ID repetition on trigger detected! gui element with id " << modelGroup->first << std::endl;
-                return false;
-            }
-            maxID = std::max(maxID, modelGroup->first);
-        }
-
-        uint32_t unusedIDCount = 0;
-        for(uint32_t index = 1; index <= maxID; index++) {
-            if(usedIDs.count(index) != 1) {
-                //TODO this should be ok, logging just to check. Can be removed in the future
-                //std::cout << "found empty ID" << index << std::endl;
-                unusedIDs.push(index);
-                unusedIDCount++;
-            }
-        }
-        std::cout << "World load found " << maxID - unusedIDCount << " objects and " << unusedIDCount << " unused IDs." << std::endl;
-
-        nextWorldID = maxID+1;
-        return true;
-    }
+    bool verifyIDs();
 
     bool handlePlayerInput(InputHandler &inputHandler);
 
