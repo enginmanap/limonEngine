@@ -328,6 +328,7 @@ private:
     //API methods
 
     Model* findModelByID(uint32_t modelID) const;
+    Model* findModelByIDChildren(PhysicalRenderable* parent ,uint32_t modelID) const;
 
     std::vector<LimonAPI::ParameterRequest>
     fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) const;
