@@ -1143,7 +1143,6 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 }
                 ImGui::EndCombo();
             }
-            static char extensionNameBuffer[32];
             static bool showError = false;
             if(ImGui::InputText("Custom Extension name", extensionNameBuffer, 31, ImGuiInputTextFlags_CharsNoBlank)) {
                 showError = false;
@@ -2038,8 +2037,9 @@ void World::afterLoadFinished() {
                                            glHelper->getOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), apiInstance);
 
     if(startingPlayer.extensionName != "") {
-        this->currentPlayer->setPlayerExtension(
-                PlayerExtensionInterface::createExtension(startingPlayer.extensionName, apiInstance));
+        PlayerExtensionInterface *playerExtension =PlayerExtensionInterface::createExtension(startingPlayer.extensionName, apiInstance);
+        this->currentPlayer->setPlayerExtension(playerExtension);
+        strncpy(extensionNameBuffer, startingPlayer.extensionName.c_str(), sizeof(extensionNameBuffer)-1);
     }
 }
 
