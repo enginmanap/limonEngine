@@ -222,6 +222,7 @@ private:
     FontManager fontManager;
 
     PlayerInfo startingPlayer;
+    char extensionNameBuffer[32] {};
     PhysicalPlayer* physicalPlayer = nullptr;
     Model* playerPlaceHolder = nullptr;
     FreeCursorPlayer* editorPlayer = nullptr;
