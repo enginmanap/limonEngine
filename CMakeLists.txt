@@ -102,7 +102,8 @@ add_library(customTriggers SHARED src/GamePlay/TriggerInterface.cpp
         src/GamePlay/MayanLever.cpp
         src/GamePlay/ShooterPlayerExtension.cpp
         src/AI/ActorInterface.h
-        src/AI/HumanEnemy.cpp)
+        src/AI/HumanEnemy.cpp
+        src/GamePlay/Samples/CowboyShooterExtension.cpp)
 
 TARGET_LINK_LIBRARIES(customTriggers ${TinyXML2_LIBRARIES})
 
