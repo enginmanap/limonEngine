@@ -9,6 +9,7 @@
 #include <glm/gtx/matrix_decompose.hpp>
 
 #include "../Utils/LimonConverter.h"
+#include "Samples/CowboyShooterExtension.h"
 
 PlayerExtensionRegister<ShooterPlayerExtension> ShooterPlayerExtension::reg("ShooterPlayerExtension");
 
@@ -236,4 +237,6 @@ std::string ShooterPlayerExtension::getName() const {
 
 extern "C" void registerPlayerExtensions(std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>* playerExtensionMap) {
     (*playerExtensionMap)["ShooterPlayerExtension"] = &createPlayerExtension<ShooterPlayerExtension>;
+    (*playerExtensionMap)["CowboyShooterExtension"] = &createPlayerExtension<CowboyShooterExtension>;
+
 }
