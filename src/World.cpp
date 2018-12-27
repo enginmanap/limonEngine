@@ -3140,6 +3140,9 @@ void World::updateActiveLights(bool forceUpdate) {
 
 bool World::addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs,
                                        uint32_t &maxID) {
+    if(attachment == nullptr) {
+        return true;
+    }
     const GameObject* gameObjectOfTheSame = dynamic_cast<const GameObject*>(attachment);
     if(gameObjectOfTheSame == nullptr) {
         std::cerr << "Player attachment is not GameObject, that should never happen." << std::endl;
