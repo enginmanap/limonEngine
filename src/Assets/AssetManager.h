@@ -84,7 +84,7 @@ public:
         }
     };
 private:
-    const std::string ASSET_EXTENSIONS_FILE = "./engine/assetExtensions.xml";
+    const std::string ASSET_EXTENSIONS_FILE = "./Engine/assetExtensions.xml";
 
     //second of the pair is how many times load requested. prework for unload
     std::map<const std::vector<std::string>, std::pair<Asset *, uint32_t>> assets;
