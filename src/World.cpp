@@ -2489,10 +2489,11 @@ std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
 
 std::vector<LimonAPI::ParameterRequest> World::getObjectTransformationAPI(uint32_t objectID) const {
     std::vector<LimonAPI::ParameterRequest> result;
-    if(objects.find(objectID) == objects.end()) {
+    Model* model = findModelByID(objectID);
+    if(model == nullptr) {
         return result;
     }
-    const Transformation* transformation = objects.at(objectID)->getTransformation();
+    const Transformation* transformation = model->getTransformation();
 
     LimonAPI::ParameterRequest translate;
     translate.valueType = LimonAPI::ParameterRequest::ValueTypes::VEC4;
