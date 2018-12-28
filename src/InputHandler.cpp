@@ -24,6 +24,10 @@ InputHandler::InputHandler(SDL_Window *window, Options *options) :
     inputEvents[DEBUG] = false;
     inputStatus[EDITOR] = false;
     inputEvents[EDITOR] = false;
+    inputStatus[NUMBER_1] = false;
+    inputEvents[NUMBER_1] = false;
+    inputStatus[NUMBER_2] = false;
+    inputEvents[NUMBER_2] = false;
     inputStatus[KEY_ALT] = false;
     inputEvents[KEY_ALT] = false;
     inputStatus[KEY_CTRL] = false;
@@ -60,6 +64,8 @@ void InputHandler::mapInput() {
     inputEvents[MOUSE_WHEEL_DOWN] = false;
     inputEvents[TEXT_INPUT] = false;
     inputEvents[QUIT] = false;
+    inputEvents[NUMBER_1] = false;
+    inputEvents[NUMBER_2] = false;
 
     while (SDL_PollEvent(&event)) {
         uint32_t downKey = event.key.keysym.sym & ~SDLK_SCANCODE_MASK;
@@ -198,6 +204,18 @@ void InputHandler::mapInput() {
                         }
                         inputStatus[EDITOR] = true;
                         break;
+                    case SDLK_1:
+                        if(!inputStatus[NUMBER_1]) {
+                            inputEvents[NUMBER_1] = true;
+                        }
+                        inputStatus[NUMBER_1] = true;
+                        break;
+                    case SDLK_2:
+                        if(!inputStatus[NUMBER_2]) {
+                            inputEvents[NUMBER_2] = true;
+                        }
+                        inputStatus[NUMBER_2] = true;
+                        break;
                     case SDLK_KP_PLUS:
                         options->setLookAroundSpeed(options->getLookAroundSpeed() + 1.0f);
                         break;
@@ -274,6 +292,18 @@ void InputHandler::mapInput() {
                             inputEvents[EDITOR] = true;
                         }
                         inputStatus[EDITOR] = false;
+                        break;
+                    case SDLK_1:
+                        if(!inputStatus[NUMBER_1]) {
+                            inputEvents[NUMBER_1] = true;
+                        }
+                        inputStatus[NUMBER_1] = false;
+                        break;
+                    case SDLK_2:
+                        if(!inputStatus[NUMBER_2]) {
+                            inputEvents[NUMBER_2] = true;
+                        }
+                        inputStatus[NUMBER_2] = false;
                         break;
                 }
                 break;
