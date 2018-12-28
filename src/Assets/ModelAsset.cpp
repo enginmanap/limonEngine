@@ -417,7 +417,7 @@ bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld,
     }
 
     const AnimationInterface *currentAnimationNew = nullptr;
-    float animationTimeNew;
+    float animationTimeNew = 0.0f;
     bool isFinishedNew = false;
     if(!(animationNameNew.empty() ||animationNameNew == "")) {
         if (animations.find(animationNameNew) != animations.end()) {
