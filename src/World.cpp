@@ -1978,46 +1978,48 @@ bool World::removeTriggerObject(uint32_t triggerobjectID) {
 }
 
 bool World::removeObject(uint32_t objectID) {
-    if(objects.find(objectID) != objects.end()) {
-        PhysicalRenderable* objectToRemove = objects[objectID];
-        dynamicsWorld->removeRigidBody(objectToRemove->getRigidBody());
-        //disconnect AI
-        Model* modelToRemove = dynamic_cast<Model*>(objectToRemove);
-        if (modelToRemove!= nullptr && modelToRemove->getAIID() != 0) {
-            unusedIDs.push(modelToRemove->getAIID());
-            actors.erase(dynamic_cast<Model *>(objectToRemove)->getAIID());
-        }
-        //remove any active animations
-        if(activeAnimations.find(objectToRemove) != activeAnimations.end()) {
-            delete activeAnimations[objectToRemove];
-            activeAnimations.erase(objectToRemove);
-        }
-        onLoadAnimations.erase(objectToRemove);
-
-        if(modelToRemove != nullptr) {
-            //we need to remove from ligth frustum lists, and camera frustum lists
-            if(modelToRemove->isAnimated()) {
-                animatedModelsInFrustum.erase(modelToRemove);
-                for (size_t i = 0; i < activeLights.size(); ++i) {
-                    animatedModelsInLightFrustum[i].erase(modelToRemove);
-                }
-
-                animatedModelsInAnyFrustum.erase(modelToRemove);
-            } else {
-                modelsInCameraFrustum[modelToRemove->getAssetID()].erase(modelToRemove);
-                for (size_t i = 0; i < activeLights.size(); ++i) {
-                    modelsInLightFrustum[i][modelToRemove->getAssetID()].erase(modelToRemove);
-                }
-            }
-        }
-
-        //delete object itself
-        delete objects[objectID];
-        objects.erase(objectID);
-        unusedIDs.push(objectID);
-        return true;
+    Model* modelToRemove = findModelByID(objectID);
+    if(modelToRemove == nullptr) {
+        return false;
     }
-    return false;//not successful
+    dynamicsWorld->removeRigidBody(modelToRemove->getRigidBody());
+    //disconnect AI
+
+    if (modelToRemove!= nullptr && modelToRemove->getAIID() != 0) {
+        unusedIDs.push(modelToRemove->getAIID());
+        actors.erase(modelToRemove->getAIID());
+    }
+    //remove any active animations
+    if(activeAnimations.find(modelToRemove) != activeAnimations.end()) {
+        delete activeAnimations[modelToRemove];
+        activeAnimations.erase(modelToRemove);
+    }
+    onLoadAnimations.erase(modelToRemove);
+
+    //we need to remove from ligth frustum lists, and camera frustum lists
+    if(modelToRemove->isAnimated()) {
+        animatedModelsInFrustum.erase(modelToRemove);
+        for (size_t i = 0; i < activeLights.size(); ++i) {
+            animatedModelsInLightFrustum[i].erase(modelToRemove);
+        }
+
+        animatedModelsInAnyFrustum.erase(modelToRemove);
+    } else {
+        modelsInCameraFrustum[modelToRemove->getAssetID()].erase(modelToRemove);
+        for (size_t i = 0; i < activeLights.size(); ++i) {
+            modelsInLightFrustum[i][modelToRemove->getAssetID()].erase(modelToRemove);
+        }
+    }
+
+
+    //delete object itself
+    delete modelToRemove;
+    objects.erase(objectID);
+    unusedIDs.push(objectID);
+
+
+    return true;
+
 }
 
 void World::afterLoadFinished() {
