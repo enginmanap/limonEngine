@@ -492,7 +492,6 @@ WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *object
         if(childrenCountNode == nullptr || childrenCountNode->GetText() == nullptr) {
             std::cerr << "Object has children node, but count it unknown. Children can't be loaded! " << std::endl;
                     } else {
-            uint32_t childCount = std::stoi(childrenCountNode->GetText());
             //loadedObjectInformation->model->children.resize(childCount);
             tinyxml2::XMLElement *childNode = childrenNode->FirstChildElement("Child");
             while (childNode != nullptr) {
