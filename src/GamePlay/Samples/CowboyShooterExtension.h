@@ -24,16 +24,28 @@ class CowboyShooterExtension : public  PlayerExtensionInterface {
         SHOOTING
     };
 
+    enum class Gun {
+        PISTOL,
+        RIFLE
+    };
+
     State currentState = State::IDLE;
     State transitionState = State::IDLE;
+
+    Gun currentGun = Gun::PISTOL;
+    Gun transitionGun = Gun::PISTOL;
 
     std::string currentAnimationName;
     bool currentAnimationFinished;
 
-    const glm::quat direction = glm::quat(0.0f, 0.0f, 1.0f, 0.0f);//this is used to reverse hit normal
-    glm::vec3 muzzleFlashOffset = glm::vec3(0.010f,0.170f,0.517f);
+    const glm::quat direction   = glm::quat(0.0f, 0.0f, 1.0f, 0.0f);//this is used to reverse hit normal
+    glm::vec3 muzzleFlashOffset = glm::vec3(0.010f, 0.170f, 0.517f);
     uint32_t playerAttachedModelID;
-    uint32_t playerAttachedGunID;
+    uint32_t playerAttachedPistolID;
+    uint32_t playerAttachedRifleID;
+
+    const LimonAPI::Vec4 removeOffset = LimonAPI::Vec4(0, 0, -50);
+    const LimonAPI::Vec4 addOffset = LimonAPI::Vec4(0, 0, 50);
 
     int hitPoints = 100;
 
@@ -41,6 +53,9 @@ class CowboyShooterExtension : public  PlayerExtensionInterface {
     void walkingTransition();
     void runningTransition();
     void idleTransition();
+
+    bool changeGuns();
+
 public:
 
     CowboyShooterExtension(LimonAPI* limonAPI) : PlayerExtensionInterface(limonAPI) {
@@ -48,9 +63,14 @@ public:
         std::vector<uint32_t > children = limonAPI->getModelChildren(playerAttachedModelID);
         if(children.size() == 0) {
             std::cerr << "player attachment has no child, it should have a gun!" << std::endl;
-            playerAttachedGunID = 0;
+            playerAttachedPistolID = 0;
         } else {
-            playerAttachedGunID = children[0];
+            playerAttachedPistolID = children[0];
+            if(children.size() > 1) {
+                playerAttachedRifleID = children[1];
+                limonAPI->addObjectTranslate(playerAttachedRifleID, removeOffset);
+                currentGun = Gun::PISTOL;
+            }
         }
     }
     void removeDamageIndicator(std::vector<LimonAPI::ParameterRequest> parameters);
