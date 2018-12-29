@@ -9,11 +9,19 @@ constexpr float AIMovementGrid::floatingHeight;
 
 //FIXME: this must be the worst way to check for a node in a graph, when you already implemented a*
 AIMovementNode *AIMovementGrid::isAlreadyVisited(const glm::vec3 &position, size_t &indexOf) {
+    if(visited.empty()) {
+        return nullptr;
+    }
     for (size_t i = visited.size() - 1; i > 0; --i) {
         if (isPositionCloseEnoughYOnly(position, visited[i]->getPosition())) {
             indexOf = i;
             return visited[i];
         }
+    }
+    //because size_t wraps around, i>=0 is always true. Instead, = 0 case is below
+    if (isPositionCloseEnoughYOnly(position, visited[0]->getPosition())) {
+        indexOf = 0;
+        return visited[0];
     }
     return nullptr;
 }
@@ -136,7 +144,7 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
         return root;
     }
 
-    AIMovementNode *root = new AIMovementNode(walkPoint);
+    AIMovementNode *root = new AIMovementNode(getNextID(), walkPoint);
     staticWorld->addCollisionObject(sharedGhostObject, collisionGroup, collisionMask);
     sharedGhostObject->setWorldTransform(
             btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(root->getPosition())));
@@ -199,13 +207,12 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                         staticWorld->removeCollisionObject(sharedGhostObject);
 
 
-                        AIMovementNode *neighbour = new AIMovementNode(neighbourPosition);
+                        AIMovementNode *neighbour = new AIMovementNode(getNextID(), neighbourPosition);
                         neighbour->setIsMovable(isMovable);
                         current->setNeighbour(neighbourIndex, neighbour);
                         visited.push_back(neighbour);
                         if(isMovable) {
                             frontier.push(neighbour);
-
                         }
                     }
                 }
@@ -274,6 +281,7 @@ AIMovementGrid::AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *st
             sharedGhostObject->getCollisionFlags());
     sharedGhostObject->setWorldTransform(btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(startPoint)));
     std::cout << "Start generating AI walk grid" << std::endl;
+    doneNodes.push_back(new AIMovementNode(0, glm::vec3(0,100,0)));//0 index element should be empty
     root = walkMonster(startPoint, staticOnlyPhysicsWorld, min, max, collisionGroup, collisionMask);
     std::cout << "Finished generating AI walk grid, created " << visited.size() << " nodes, checked for collision "
               << isThereCollisionCounter << " times." << std::endl;
@@ -339,28 +347,261 @@ bool AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, uint
 }
 
 void AIMovementGrid::debugDraw(BulletDebugDrawer *debugDrawer) const {
-    std::vector<AIMovementNode *>::const_iterator it;
     glm::vec3 toColor, fromColor;
-    for (it = doneNodes.begin(); it != doneNodes.end(); it++) {
+    for (size_t i = 1; i < doneNodes.size(); i++) {
         int neighbourCount = 5; //if not an edge, just draw first 4, the last 4 should be rendered by the neighbours
-        if ((*it)->isIsMovable()) {
+        if (doneNodes[i]->isIsMovable()) {
             fromColor = glm::vec3(1, 1, 1);
         } else {
             fromColor = glm::vec3(1, 0, 0);
             neighbourCount = 9; //if on an edge, neighbours will not be able to draw rest, draw all.
         }
         for (int j = 0; j < neighbourCount; ++j) {
-            if ((*it)->getNeighbour(j) != nullptr) {
-                if ((*it)->getNeighbour(j)->isIsMovable()) {
+            if (doneNodes[i]->getNeighbour(j) != nullptr) {
+                if (doneNodes[i]->getNeighbour(j)->isIsMovable()) {
                     toColor = glm::vec3(1, 1, 1);
                 } else {
                     toColor = glm::vec3(1, 0, 0);
                 }
-                debugDrawer->drawLine(GLMConverter::GLMToBlt((*it)->getPosition()),
-                                      GLMConverter::GLMToBlt((*it)->getNeighbour(j)->getPosition()),
+                debugDrawer->drawLine(GLMConverter::GLMToBlt(doneNodes[i]->getPosition()),
+                                      GLMConverter::GLMToBlt(doneNodes[i]->getNeighbour(j)->getPosition()),
                                       GLMConverter::GLMToBlt(fromColor), GLMConverter::GLMToBlt(toColor));
             }
         }
-
     }
+    //Same with visited nodes
+    for (size_t i = 1; i < visited.size(); i++) {
+        int neighbourCount = 5; //if not an edge, just draw first 4, the last 4 should be rendered by the neighbours
+        if (visited[i]->isIsMovable()) {
+            fromColor = glm::vec3(1, 1, 1);
+        } else {
+            fromColor = glm::vec3(1, 0, 0);
+            neighbourCount = 9; //if on an edge, neighbours will not be able to draw rest, draw all.
+        }
+        for (int j = 0; j < neighbourCount; ++j) {
+            if (visited[i]->getNeighbour(j) != nullptr) {
+                if (visited[i]->getNeighbour(j)->isIsMovable()) {
+                    toColor = glm::vec3(1, 1, 1);
+                } else {
+                    toColor = glm::vec3(1, 0, 0);
+                }
+                debugDrawer->drawLine(GLMConverter::GLMToBlt(visited[i]->getPosition()),
+                                      GLMConverter::GLMToBlt(visited[i]->getNeighbour(j)->getPosition()),
+                                      GLMConverter::GLMToBlt(fromColor), GLMConverter::GLMToBlt(toColor));
+            }
+        }
+    }
+}
+
+bool AIMovementGrid::serialize(const std::string &fileName) {
+    tinyxml2::XMLDocument aiGridDocument;
+    tinyxml2::XMLNode * rootNode = aiGridDocument.NewElement("AIWalkGrid");
+    aiGridDocument.InsertFirstChild(rootNode);
+
+    tinyxml2::XMLElement* currentElement = aiGridDocument.NewElement("Name");
+    currentElement->SetText(fileName.c_str());
+    rootNode->InsertEndChild(currentElement);
+
+    currentElement = aiGridDocument.NewElement("MaximumNodeID");
+    currentElement->SetText(nextPossibleIndex);
+    rootNode->InsertEndChild(currentElement);
+
+    tinyxml2::XMLElement * nodesElement = aiGridDocument.NewElement("Nodes");
+
+    for (auto nodeIt = doneNodes.begin(); nodeIt != doneNodes.end(); ++nodeIt) {
+        serializeNode(aiGridDocument, rootNode, *nodeIt);
+    }
+
+    for (auto nodeIt = visited.begin(); nodeIt != visited.end(); ++nodeIt) {
+        serializeNode(aiGridDocument, rootNode, *nodeIt);
+    }
+
+    rootNode->InsertEndChild(nodesElement);
+
+
+    tinyxml2::XMLError eResult = aiGridDocument.SaveFile(fileName.c_str());
+    if(eResult != tinyxml2::XML_SUCCESS) {
+        std::cerr  << "ERROR saving AI grid: " << eResult << std::endl;
+        return false;
+    }
+    return true;
+}
+
+void AIMovementGrid::serializeNode(tinyxml2::XMLDocument &aiGridDocument, tinyxml2::XMLNode *rootNode, const AIMovementNode *nodeToSerialize) const {
+    tinyxml2::XMLElement* nodeElement = aiGridDocument.NewElement("Node");
+
+    tinyxml2::XMLElement *currentElement = aiGridDocument.NewElement("ID");
+    currentElement->SetText(std::__cxx11::to_string(nodeToSerialize->getID()).c_str());
+    nodeElement->InsertEndChild(currentElement);
+
+    currentElement = aiGridDocument.NewElement("Mv");
+    currentElement->SetText((nodeToSerialize->isIsMovable() ? "True" : "False"));
+    nodeElement->InsertEndChild(currentElement);
+
+    currentElement = aiGridDocument.NewElement("Ps");
+    {
+            tinyxml2::XMLElement *positionXElement = aiGridDocument.NewElement("X");
+            positionXElement->SetText(std::__cxx11::to_string(nodeToSerialize->getPosition().x).c_str());
+            currentElement->InsertEndChild(positionXElement);
+
+            tinyxml2::XMLElement *positionYElement = aiGridDocument.NewElement("Y");
+            positionYElement->SetText(std::__cxx11::to_string(nodeToSerialize->getPosition().y).c_str());
+            currentElement->InsertEndChild(positionYElement);
+
+            tinyxml2::XMLElement *positionZElement = aiGridDocument.NewElement("Z");
+            positionZElement->SetText(std::__cxx11::to_string(nodeToSerialize->getPosition().z).c_str());
+            currentElement->InsertEndChild(positionZElement);
+
+        }
+    nodeElement->InsertEndChild(currentElement);
+
+
+    for (int i = 0; i < 9; ++i) {
+            if(i == 4) {
+                continue;//4 is self
+            }
+            currentElement = aiGridDocument.NewElement("Nb");//neighbour
+            currentElement->SetAttribute("Ps", std::__cxx11::to_string(i).c_str());//position
+            if(nodeToSerialize->getNeighbour(i) != nullptr) {
+                currentElement->SetText(std::__cxx11::to_string(nodeToSerialize->getNeighbour(i)->getID()).c_str());
+            } else {
+                currentElement->SetText("0");//writing 0 if null
+            }
+            nodeElement->InsertEndChild(currentElement);
+        }
+    rootNode->InsertEndChild(nodeElement);
+}
+
+AIMovementGrid *AIMovementGrid::deserialize(const std::string &fileName) {
+    tinyxml2::XMLDocument xmlDoc;
+    tinyxml2::XMLError eResult = xmlDoc.LoadFile(fileName.c_str());
+    if (eResult != tinyxml2::XML_SUCCESS) {
+        std::cerr << "Error loading XML "<< fileName << ": " <<  xmlDoc.ErrorName() << std::endl;
+        std::cerr << "Possible results: AI actors not moving and very slow map load" << std::endl;
+        return nullptr;
+    }
+
+    tinyxml2::XMLNode * AIWalkGridRootElement = xmlDoc.FirstChild();
+    if (AIWalkGridRootElement == nullptr) {
+        std::cerr << fileName << " is not a valid AIWalkGrid file." << std::endl;
+        std::cerr << "Possible results: AI actors not moving and very slow map load" << std::endl;
+        return nullptr;
+    }
+
+    tinyxml2::XMLElement* fileNameNode =  AIWalkGridRootElement->FirstChildElement("Name");
+    if (fileNameNode == nullptr) {
+        std::cerr << "AIWalkGrid has no fileName in file. Possibly corrupted file." << std::endl;
+    }
+    std::cout << "Reading AI WalkGrid from file:" << fileNameNode->GetText() << std::endl;
+
+    uint32_t maximumNodeID = 0;
+    tinyxml2::XMLElement* maximumNodeIDNode =  AIWalkGridRootElement->FirstChildElement("MaximumNodeID");
+    if(maximumNodeIDNode != nullptr) {
+        maximumNodeID = std::strtoul(maximumNodeIDNode->GetText(), nullptr, 0);
+    } else {
+        std::cerr << "Maximum number of nodes at AI Walk Grid was missing from file" << fileName << " possible corruption. AI grid load fails." << std::endl;
+        std::cerr << "Possible results: AI actors not moving and very slow map load" << std::endl;
+        return nullptr;
+    }
+
+    AIMovementGrid* grid = new AIMovementGrid();
+
+    for (uint32_t i = 0; i < maximumNodeID; ++i) {
+        grid->doneNodes.push_back(new AIMovementNode(0, glm::vec3(0,100,0)));//we are creating nodes empty, so we can link them together later
+    }
+    tinyxml2::XMLElement* nodeElement =  AIWalkGridRootElement->FirstChildElement("Node");
+    while(nodeElement != nullptr) {
+        uint32_t nodeID = 0;
+        tinyxml2::XMLElement* nodeIDElement =  nodeElement->FirstChildElement("ID");
+        if(nodeIDElement != nullptr) {
+            nodeID = std::strtoul(nodeIDElement->GetText(), nullptr, 0);
+        } else {
+            std::cerr << "Missing NodeID at " << fileName << " possible corruption. AI grid load fails." << std::endl;
+            std::cerr << "Possible results: AI actors not moving and very slow map load" << std::endl;
+            delete grid;
+            return nullptr;
+        }
+        AIMovementNode* thisNode = grid->doneNodes[nodeID];
+        thisNode->setID(nodeID);
+        if(nodeID == 1) {
+            grid->root = thisNode;
+        }
+
+        tinyxml2::XMLElement* nodeMovableElement =  nodeElement->FirstChildElement("Mv");//movable
+        if(nodeMovableElement != nullptr && nodeMovableElement->GetText() != nullptr) {
+            std::string movableString = nodeMovableElement->GetText();
+            if(movableString == "True") {
+                thisNode->setIsMovable(true);
+            } else if(movableString == "False") {
+                thisNode->setIsMovable(false);
+            } else {
+                std::cerr << "Invalid Node movable at " << fileName << " for node " << nodeID << " possible corruption. Assuming False." << std::endl;
+                thisNode->setIsMovable(false);
+            }
+        } else {
+            std::cerr << "Missing Node movable at " << fileName << " for node " << nodeID << " possible corruption. Assuming False." << std::endl;
+            thisNode->setIsMovable(false);
+        }
+
+        /***************** Parse Position *****************/
+        tinyxml2::XMLElement* nodePositionElement =  nodeElement->FirstChildElement("Ps");
+        if(nodePositionElement != nullptr) {
+            tinyxml2::XMLElement* positionXElement =  nodePositionElement->FirstChildElement("X");
+            tinyxml2::XMLElement* positionYElement =  nodePositionElement->FirstChildElement("Y");
+            tinyxml2::XMLElement* positionZElement =  nodePositionElement->FirstChildElement("Z");
+
+            if(positionXElement == nullptr || positionYElement == nullptr || positionZElement == nullptr ||
+               positionXElement->GetText() == nullptr || positionYElement->GetText() == nullptr || positionZElement->GetText() == nullptr) {
+                std::cerr << "Missing Node position value at " << fileName << " with ID " << nodeID << " possible corruption. AI grid load fails." << std::endl;
+                std::cerr << "Possible results: AI actors not moving and very slow map load" << std::endl;
+                delete grid;
+                return nullptr;
+            } else {
+                glm::vec3 position;
+                position.x = std::stof(positionXElement->GetText());
+                position.y = std::stof(positionYElement->GetText());
+                position.z = std::stof(positionZElement->GetText());
+                thisNode->setPosition(position);
+            }
+        } else {
+            std::cerr << "Missing Node position at " << fileName << " with ID " << nodeID << " possible corruption. AI grid load fails." << std::endl;
+            std::cerr << "Possible results: AI actors not moving and very slow map load" << std::endl;
+            delete grid;
+            return nullptr;
+        }
+
+        /***************** Parse Position *****************/
+
+        tinyxml2::XMLElement* neighbourElement =  nodeElement->FirstChildElement("Nb");
+        while(neighbourElement != nullptr) {
+            const char* positionAttribute = neighbourElement->Attribute("Ps");
+            if(positionAttribute == nullptr) {
+                std::cerr << "Missing Node position at " << fileName << " possible corruption. AI grid load fails." << std::endl;
+                std::cerr << "Possible results: AI actors not moving and very slow map load" << std::endl;
+                delete grid;
+                return nullptr;
+            } else {
+                int neighbourIndex;//this will hold which neighbour was the value
+                neighbourIndex = std::stoi(positionAttribute);
+
+                if(neighbourElement->GetText() != nullptr) {
+                    uint32_t neighbourPosition = std::strtoul(neighbourElement->GetText(), nullptr, 0);//this is the position in doneNodes array
+                    if(neighbourPosition != 0) {
+                        thisNode->setNeighbour(neighbourIndex, grid->doneNodes[neighbourPosition]);
+                    }//if 0, null
+                } else {
+                    std::cerr << "Missing Node index at " << fileName << " possible corruption. AI grid load fails." << std::endl;
+                    std::cerr << "Possible results: AI actors not moving and very slow map load" << std::endl;
+                    delete grid;
+                    return nullptr;
+                }
+            }
+
+            neighbourElement =  neighbourElement->NextSiblingElement("Nb");
+        }
+
+        nodeElement =  nodeElement->NextSiblingElement("Node");
+    }
+    std::cout << "AI Walk grid read successful" << std::endl;
+    return grid;
 }

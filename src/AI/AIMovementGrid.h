@@ -42,8 +42,6 @@ class AIMovementGrid {
     };
 
     bool inline isPositionCloseEnoughYOnly(const glm::vec3 &position1, const glm::vec3 &position2) const {
-
-
         return ((fabs(position1.x - position2.x) < X_Z_DISTANCE) &&
                 (fabs(position1.z - position2.z) < X_Z_DISTANCE) &&
                 (((position1.y - position2.y) * (position1.y - position2.y)) <= Y_DISTANCE_SQ));
@@ -54,12 +52,13 @@ class AIMovementGrid {
     }
 
     AIMovementNode *root = nullptr;
-    btCollisionShape *ghostShape;
+    btCollisionShape *ghostShape = nullptr;
     btPairCachingGhostObject *sharedGhostObject = new btPairCachingGhostObject();
     btCollisionWorld::ClosestRayResultCallback *rayCallback = new btCollisionWorld::ClosestRayResultCallback(
             btVector3(0, 0, 0), btVector3(0, 0, 0));
     btManifoldArray sharedManifoldArray;
     std::map<int, const AIMovementNode *> actorLastNodeMap;
+    uint32_t nextPossibleIndex = 1;//this is to be used internal and constructor only. Not thread safe
 
     int isThereCollisionCounter = 0;//this is only meaningful for debug
     float capsuleHeight = 1.30f + 0.1f;
@@ -80,6 +79,11 @@ class AIMovementGrid {
     aStarPath(const AIMovementNode *start, const glm::vec3 &destination, uint32_t maximumNumberOfNodes,
                   std::vector<glm::vec3> *route);
 
+    uint32_t getNextID() {
+        return nextPossibleIndex++;
+    }
+
+    AIMovementGrid() {};//used for deserialize
 
 public:
     static constexpr float floatingHeight = 2.0f;
@@ -95,6 +99,10 @@ public:
             delete visited[i];
         }
 
+        for (unsigned int i = 0; i < doneNodes.size(); ++i) {
+            delete doneNodes[i];
+        }
+
     }
 
     bool coursePath(const glm::vec3 &from, const glm::vec3 &to, uint32_t actorId, uint32_t maximumNumberOfNodes,
@@ -106,6 +114,13 @@ public:
 
     bool setProperHeight(glm::vec3 *position, float floatingHeight, float checkHeight,
                          btDiscreteDynamicsWorld *staticWorld);
+
+    bool serialize(const std::string& fileName);
+
+    static AIMovementGrid* deserialize(const std::string& fileName);
+
+    void
+    serializeNode(tinyxml2::XMLDocument &aiGridDocument, tinyxml2::XMLNode *rootNode, const AIMovementNode *nodeToSerialize) const;
 };
 
 

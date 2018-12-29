@@ -1280,6 +1280,12 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
             }
         }
+        if(ImGui::Button("Save AI walk Grid")) {
+            if(this->grid != nullptr) {
+                std::string AIWalkName = this->name.substr(0, this->name.find_last_of(".")) + ".aiwalk";
+                this->grid->serialize(AIWalkName);
+            }
+        }
         ImGui::End();
 
         ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
@@ -1637,7 +1643,12 @@ void World::createGridFrom(const glm::vec3 &aiGridStartPoint) {
     if(grid != nullptr) {
         delete grid;
     }
-    grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING);
+    std::string AIWalkName = this->name.substr(0, this->name.find_last_of(".")) + ".aiwalk";
+    grid = AIMovementGrid::deserialize(AIWalkName);
+    if(grid == nullptr) {
+        grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax, COLLIDE_PLAYER,
+                                  COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING);
+    }
 }
 
 void World::setSky(SkyBox *skyBox) {
