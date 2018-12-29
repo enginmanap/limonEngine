@@ -553,7 +553,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
         if (routeThreads.find(actor->getWorldID()) != routeThreads.end() && routeThreads[actor->getWorldID()]->isThreadDone()) {
             const std::vector<LimonAPI::ParameterRequest>* route = routeThreads[actor->getWorldID()]->getResult();
             for (size_t i = 0; i < route->size(); ++i) {
-                information.routeToRequest.push_back(GLMConverter::LimonToGLM(route->at(i).value.vectorValue));
+                information.routeToRequest.push_back(glm::vec3(GLMConverter::LimonToGLM(route->at(i).value.vectorValue)));
             }
             delete routeThreads[actor->getWorldID()];
             routeThreads.erase(actor->getWorldID());
@@ -574,7 +574,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
 
 std::vector<LimonAPI::ParameterRequest>
 World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) const {
-    glm::vec3 fromPosition = GLMConverter::LimonToGLM(parameters[0].value.vectorValue);
+    glm::vec3 fromPosition = glm::vec3(GLMConverter::LimonToGLM(parameters[0].value.vectorValue));
     uint32_t actorID = (uint32_t)parameters[1].value.longValues[1];
     uint32_t maximumDistance = (uint32_t)parameters[1].value.longValues[2];
     std::vector<glm::vec3> route;
