@@ -226,8 +226,17 @@ void CowboyShooterExtension::shootingTransition() {
                 //means the normal is up
                 orientation = glm::quat(0.707f, -0.707f, 0.0f, 0.0f);
             } else {
-                orientation = glm::quatLookAt(hitNormal * -1.0f, glm::vec3(0,1,0));
-            }
+#if (GLM_VERSION_MAJOR !=0 || GLM_VERSION_MINOR > 9 || (GLM_VERSION_MINOR == 9 && GLM_VERSION_PATCH >= 9))
+                orientation =  glm::quatLookAt(hitNormal * -1.0f, glm::vec3(0,1,0));
+#else
+                glm::mat3 Result;
+
+                Result[2] = -1.0f * hitNormal;//this -1 shouldn't be needed
+                Result[0] = glm::normalize(cross(glm::vec3(0,1,0), Result[2]));
+                Result[1] = glm::cross(Result[2], Result[0]);
+
+                orientation = glm::quat_cast(Result);
+#endif            }
 
 
             std::vector<LimonAPI::ParameterRequest>modelTransformationMat = limonAPI->getObjectTransformationMatrix(rayResult[0].value.longValue);
