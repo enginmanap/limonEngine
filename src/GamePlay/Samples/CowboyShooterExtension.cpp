@@ -236,8 +236,8 @@ void CowboyShooterExtension::shootingTransition() {
                 Result[1] = glm::cross(Result[2], Result[0]);
 
                 orientation = glm::quat_cast(Result);
-#endif            }
-
+#endif
+            }
 
             std::vector<LimonAPI::ParameterRequest>modelTransformationMat = limonAPI->getObjectTransformationMatrix(rayResult[0].value.longValue);
             if(modelTransformationMat.size() == 0) {
