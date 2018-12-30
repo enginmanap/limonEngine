@@ -27,8 +27,13 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     //std::cout << "ASSIMP::Loading::" << name << std::endl;
     const aiScene *scene;
     Assimp::Importer import;
-    scene = import.ReadFile(name, aiProcess_FlipUVs
-                                  | aiProcessPreset_TargetRealtime_MaxQuality);
+    unsigned int flags = (aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality);
+#ifdef ASSIMP_VALIDATE_WORKAROUND
+    flags = flags & ~aiProcess_FindInvalidData;
+#endif
+    scene = import.ReadFile(name, flags);
+
+
 
     if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         std::cerr << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;

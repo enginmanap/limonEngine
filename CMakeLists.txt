@@ -3,6 +3,7 @@ project(LimonEngine)
 
 set(PROJECT_VERSION 0.6)
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
+add_definitions(-DASSIMP_VALIDATE_WORKAROUND)
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
