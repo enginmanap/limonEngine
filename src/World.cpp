@@ -1548,6 +1548,15 @@ void World::addAnimationDefinitionToEditor() {
 }
 
 World::~World() {
+
+    if(routeThreads.empty()) {
+        std::cout << "Waiting for AI route threads to finish. " << std::endl;
+        for (auto threadIt = routeThreads.begin(); threadIt != routeThreads.end(); ++threadIt) {
+            threadIt->second->waitUntilDone();
+        }
+        std::cout << "AI route threads to finished." << std::endl;
+    }
+
     delete dynamicsWorld;
     delete animationInProgress;
 
