@@ -12,6 +12,9 @@
     <lightOrthogonalProjectionFarPlane>100000</lightOrthogonalProjectionFarPlane>
     <lightPerspectiveProjectionNearPlane>1.0</lightPerspectiveProjectionNearPlane>
     <lightPerspectiveProjectionFarPlane>100</lightPerspectiveProjectionFarPlane>
+    <TextureFiltering>Trilinear</TextureFiltering>
+    <!--<TextureFiltering>"Nearest"</TextureFiltering>-->
+    <!--<TextureFiltering>"Bilinear"</TextureFiltering>-->
     <walkSpeed>
         <X>8</X>
         <Y>0</Y>
