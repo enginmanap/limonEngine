@@ -41,6 +41,7 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     float startingHeight;
     int collisionGroup;
     int collisionMask;
+    uint32_t worldID = 0;
 
     std::vector<btCollisionWorld::ClosestRayResultCallback> rayCallbackArray;
     btTransform worldTransformHolder;
@@ -162,7 +163,7 @@ public:
         return this;
     }
 
-    PhysicalPlayer(Options *options, GUIRenderable *cursor, const glm::vec3 &position,
+    PhysicalPlayer(uint32_t worldID, Options *options, GUIRenderable *cursor, const glm::vec3 &position,
                    const glm::vec3 &lookDirection, Model *attachedModel = nullptr);
 
     ~PhysicalPlayer() {
@@ -191,6 +192,10 @@ public:
     void interact(LimonAPI *limonAPI, std::vector<LimonAPI::ParameterRequest> &interactionData) override;
 
     void setDead() override;
+
+    uint32_t getWorldObjectID() const override {
+        return worldID;
+    }
 
 };
 

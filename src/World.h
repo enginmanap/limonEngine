@@ -167,7 +167,7 @@ private:
     std::vector<uint32_t > modelIndicesBuffer;
     AssetManager* assetManager;
     Options* options;
-    uint32_t nextWorldID = 1;
+    uint32_t nextWorldID = 2;
     std::queue<uint32_t> unusedIDs;
     std::map<uint32_t, PhysicalRenderable *> objects;
     std::map<uint32_t, ModelGroup*> modelGroups;

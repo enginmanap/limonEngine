@@ -11,16 +11,17 @@ const float PhysicalPlayer::CAPSULE_HEIGHT = 1.0f;
 const float PhysicalPlayer::CAPSULE_RADIUS = 1.0f;
 const float PhysicalPlayer::STANDING_HEIGHT = 2.0f;
 
-PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor, const glm::vec3 &position,
+PhysicalPlayer::PhysicalPlayer(uint32_t worldID, Options *options, GUIRenderable *cursor, const glm::vec3 &position,
                                const glm::vec3 &lookDirection, Model *attachedModel ) :
         Player(cursor, options, position, lookDirection),
         center(lookDirection),
         up(glm::vec3(0,1,0)),
         view(glm::quat(0,0,0,-1)),
         spring(nullptr),
+        worldID(worldID),
         onAir(true),
         dirty(true),
-        attachedModel(attachedModel){
+        attachedModel(attachedModel) {
     right = glm::normalize(glm::cross(center, up));
     startingHeight = position.y;
     worldSettings.debugMode = DEBUG_DISABLED;
