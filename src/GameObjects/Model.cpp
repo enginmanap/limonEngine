@@ -413,8 +413,12 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
         if (ImGui::CollapsingHeader("Model animation properties")) {
             if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {
                 for (auto it = modelAsset->getAnimations().begin(); it != modelAsset->getAnimations().end(); it++) {
-                    if (ImGui::Selectable(it->first.c_str())) {
+                    bool isThisAnimationCurrent = this->getAnimationName() == it->first;
+                    if (ImGui::Selectable(it->first.c_str(), isThisAnimationCurrent)) {
                         setAnimation(it->first, true);
+                    }
+                    if (isThisAnimationCurrent) {
+                        ImGui::SetItemDefaultFocus();
                     }
                 }
                 ImGui::EndCombo();
