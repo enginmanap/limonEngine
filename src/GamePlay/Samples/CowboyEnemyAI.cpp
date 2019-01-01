@@ -255,15 +255,112 @@ std::vector<LimonAPI::ParameterRequest> CowboyEnemyAI::getParameters() const {
     hitPointParameter.value.longValue = (long) this->hitPoints;
     hitPointParameter.isSet = true;//don't force change
     parameters.push_back(hitPointParameter);
+
+    LimonAPI::ParameterRequest kneelDownChance;
+    kneelDownChance.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+    kneelDownChance.description = "AI kneel down chance in %";
+    kneelDownChance.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+    kneelDownChance.value.doubleValue = this->kneelDownChance;
+    kneelDownChance.isSet = true;//don't force change
+    parameters.push_back(kneelDownChance);
+
+    LimonAPI::ParameterRequest kneelStandChance;
+    kneelStandChance.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+    kneelStandChance.description = "AI kneel stay chance in %";
+    kneelStandChance.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+    kneelStandChance.value.doubleValue = this->kneelStayChance;
+    kneelStandChance.isSet = true;//don't force change
+    parameters.push_back(kneelStandChance);
+
+    LimonAPI::ParameterRequest minShootWait;
+    minShootWait.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+    minShootWait.description = "Wait until shoot again (in ms.)";
+    minShootWait.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+    minShootWait.value.longValue = this->minShootTimeWait;
+    minShootWait.isSet = true;//don't force change
+    parameters.push_back(minShootWait);
+
+    LimonAPI::ParameterRequest gunDamage;
+    gunDamage.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+    gunDamage.description = "Damage of Gun";
+    gunDamage.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+    gunDamage.value.longValue = (long)this->gunDamage;
+    gunDamage.isSet = true;//don't force change
+    parameters.push_back(gunDamage);
+
+    LimonAPI::ParameterRequest gunType;// first one is the name of selected one
+    gunType.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+    gunType.description = "Gun type";
+    gunType.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MULTI_SELECT;
+    switch (currentGun) {
+        case Gun::PISTOL:
+            strncpy(gunType.value.stringValue, "Pistol", sizeof(gunType.value.stringValue) - 1);
+            break;
+        case Gun::RIFLE:
+            strncpy(gunType.value.stringValue, "Rifle", sizeof(gunType.value.stringValue) - 1);
+            break;
+        case Gun::SHOTGUN:
+            strncpy(gunType.value.stringValue, "Shotgun", sizeof(gunType.value.stringValue) - 1);
+            break;
+    }
+    gunType.isSet = true;//don't force change
+    parameters.push_back(gunType);
+
+    LimonAPI::ParameterRequest gunType2;
+    gunType2.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+    gunType2.description = "Gun type";
+    gunType2.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MULTI_SELECT;
+    strncpy(gunType2.value.stringValue, "Pistol", sizeof(gunType.value.stringValue) -1);
+    gunType2.isSet = true;//don't force change
+    parameters.push_back(gunType2);
+
+    LimonAPI::ParameterRequest gunType3;
+    gunType3.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+    gunType3.description = "Gun type";
+    gunType3.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MULTI_SELECT;
+    strncpy(gunType3.value.stringValue, "Rifle", sizeof(gunType3.value.stringValue) -1);
+    gunType3.isSet = true;//don't force change
+    parameters.push_back(gunType3);
+
+    LimonAPI::ParameterRequest gunType4;
+    gunType4.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+    gunType4.description = "Gun type";
+    gunType4.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MULTI_SELECT;
+    strncpy(gunType4.value.stringValue, "Shotgun", sizeof(gunType4.value.stringValue) -1);
+    gunType4.isSet = true;//don't force change
+    parameters.push_back(gunType4);
+
     return parameters;
 }
 
 void CowboyEnemyAI::setParameters(std::vector<LimonAPI::ParameterRequest> parameters) {
-    if(parameters.size() > 0) {
-        if(parameters[0].description == "Hit points" && parameters[0].valueType == LimonAPI::ParameterRequest::ValueTypes::LONG) {
-            this->hitPoints = parameters[0].value.longValue;
+    bool gunTypeSet = false;
+    for (size_t i = 0; i < parameters.size(); ++i) {
+        if(parameters[i].description == "Hit points") {
+            this->hitPoints = (uint32_t) parameters[i].value.longValue;
+        } else if(parameters[i].description == "AI kneel down chance in %") {
+            this->kneelDownChance = (float)parameters[i].value.doubleValue;
+        } else if(parameters[i].description == "AI kneel stay chance in %") {
+            this->kneelStayChance = (float)parameters[i].value.doubleValue;
+        } else if(parameters[i].description == "Wait until shoot again (in ms.)") {
+            this->minShootTimeWait = parameters[i].value.longValue;
+        } else if(parameters[i].description == "Damage of Gun") {
+            this->gunDamage = (uint32_t) parameters[i].value.longValue;
+        } else {
+            if(parameters[i].description == "Gun type" && !gunTypeSet) {
+                if(!std::strcmp(parameters[i].value.stringValue, "Pistol")) {
+                    this->currentGun = Gun::PISTOL;
+                } else if(!std::strcmp(parameters[i].value.stringValue, "Rifle")) {
+                    this->currentGun = Gun::RIFLE;
+                } else if(!std::strcmp(parameters[i].value.stringValue, "Shotgun")) {
+                    this->currentGun = Gun::SHOTGUN;
+                } else {
+                    std::cerr << "Gun type didn't match possible values, assuming pistol." << std::endl;
+                    this->currentGun = Gun::PISTOL;
+                }
+                gunTypeSet = true;
+            }
         }
-
     }
 }
 
