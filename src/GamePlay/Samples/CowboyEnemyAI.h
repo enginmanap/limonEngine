@@ -128,7 +128,9 @@ public:
 
     void transitionToDead();
 
-    void shootPlayer() const;
+    void shootPlayer();
+
+    void playShootSound(Gun gunType);
 };
 
 
