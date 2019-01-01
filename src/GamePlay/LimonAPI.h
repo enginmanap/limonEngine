@@ -97,7 +97,7 @@ public:
 
     struct ParameterRequest {
         enum RequestParameterTypes { MODEL, ANIMATION, SWITCH, FREE_TEXT, TRIGGER, GUI_TEXT, FREE_NUMBER, COORDINATE, TRANSFORM };
-        RequestParameterTypes requestType;
+        RequestParameterTypes requestType = FREE_NUMBER;
         std::string description;
         enum ValueTypes { STRING, DOUBLE, LONG, LONG_ARRAY, BOOLEAN, VEC4, MAT4 };
         ValueTypes valueType;
