@@ -71,15 +71,14 @@ class CowboyEnemyAI : public ActorInterface {
     glm::vec3 lastWalkDirection = glm::vec3(0,0,0);
     bool routeRequested = false;
 
-
+    float walkSpeed = 0.065;
+    float runSpeed = 0.14;
     /********* Parameters to expose as setting *************/
     float shootChance = 0.85f;
     float kneelDownChance = 0.005f;
     float kneelStayChance = 0.0025f;
     long minShootTimeWait = 1000;
     uint32_t hitPoints = 100;
-    float walkSpeed = 0.065;
-    float runSpeed = 0.14;
     Gun currentGun = Gun::RIFLE;
     uint32_t gunDamage = 15;
 
