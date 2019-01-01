@@ -48,6 +48,7 @@ public:
         bool isPlayerLeft = false, isPlayerRight = false, isPlayerUp = false, isPlayerDown = false, isPlayerFront = false, isPlayerBack = false;
         float cosineBetweenPlayer = 0.0f;
         glm::vec3 playerDirection;
+        float playerDistance = 0.0f;
         float cosineBetweenPlayerForSide;
         std::vector<glm::vec3> routeToRequest;
         uint32_t maximumRouteDistance = 128;//in node count
