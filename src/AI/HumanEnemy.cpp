@@ -5,6 +5,7 @@
 #include <iostream>
 #include <glm/gtx/string_cast.hpp>
 #include "HumanEnemy.h"
+#include "../GamePlay/Samples/CowboyEnemyAI.h"
 
 ActorRegister<HumanEnemy> HumanEnemy::reg("ENEMY_AI_SWAT");
 
@@ -180,4 +181,5 @@ void HumanEnemy::setParameters(std::vector<LimonAPI::ParameterRequest> parameter
 
 extern "C" void registerActors(std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>* actorMap) {
     (*actorMap)["ENEMY_AI_SWAT"] = &createActorT<HumanEnemy>;
+    (*actorMap)["Cowboy Enemy"] = &createActorT<CowboyEnemyAI>;
 }
