@@ -62,7 +62,7 @@ class CowboyEnemyAI : public ActorInterface {
     bool currentAnimationFinished;
 
     const float DETECTION_DISTANCE = 100;//too little because of testing
-    const float MELEE_DISTANCE = 15;
+    const float MELEE_DISTANCE = 6;
     const float RUN_DISTANCE = 25;
 
     long lastSetupTime;
