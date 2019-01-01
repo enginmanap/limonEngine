@@ -52,7 +52,6 @@ class CowboyEnemyAI : public ActorInterface {
     State transitionState = State::IDLE;
     State beforeState = State::IDLE;//Shooting and Hit uses to return
 
-    Gun currentGun = Gun::RIFLE;
     Gun transitionGun = Gun::RIFLE;
 
     std::string currentAnimationName;
@@ -81,6 +80,8 @@ class CowboyEnemyAI : public ActorInterface {
     uint32_t hitPoints = 100;
     float walkSpeed = 0.065;
     float runSpeed = 0.14;
+    Gun currentGun = Gun::RIFLE;
+    uint32_t gunDamage = 15;
 
     /********* Parameters to expose as setting *************/
     std::uniform_real_distribution<float> randomFloats;
@@ -127,6 +128,8 @@ public:
     void transitionToHit();
 
     void transitionToDead();
+
+    void shootPlayer() const;
 };
 
 

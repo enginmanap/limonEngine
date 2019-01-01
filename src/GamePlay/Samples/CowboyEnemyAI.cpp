@@ -417,6 +417,7 @@ void CowboyEnemyAI::transitionToKneelShoot(const ActorInformation &information) 
         case Gun::SHOTGUN:
         case Gun::RIFLE: {
             limonAPI->setModelAnimationWithBlend(modelID, "Rifle Kneel Fire|", false);
+            shootPlayer();
             currentState = State::KNEEL_SHOOTING;
         }
         break;
@@ -443,11 +444,11 @@ void CowboyEnemyAI::transitionToStandUp(const ActorInformation &information) {
 
 void CowboyEnemyAI::transitionToShoot(const ActorInformation &information) {
     turnFaceToPlayer(information);
-    uint32_t damage = 0;
     switch (currentGun) {
         case Gun::PISTOL: {
             limonAPI->setModelAnimationWithBlend(modelID, "Pistol Run 2|", false); //FIXME I couldn't find the correct animation
-            damage = 10;
+
+            shootPlayer();
 
         }
         break;
@@ -462,19 +463,7 @@ void CowboyEnemyAI::transitionToShoot(const ActorInformation &information) {
                 case 1:
                     if(currentAnimationFinished) {
                         limonAPI->setModelAnimationWithBlend(modelID, "Rifle Idle Fire|", false);
-
-                        std::vector<LimonAPI::ParameterRequest> prList;
-                        LimonAPI::ParameterRequest pr;
-                        pr.valueType = pr.STRING;
-                        strncpy(pr.value.stringValue, "SHOOT_PLAYER", 63);
-                        prList.push_back(pr);
-
-                        LimonAPI::ParameterRequest pr2;
-                        pr2.valueType = pr.LONG;
-                        pr2.value.longValue = damage;
-                        prList.push_back(pr2);
-                        limonAPI->interactWithPlayer(prList);
-
+                        shootPlayer();
                         shootingStage = 2;
                     }
                 break;
@@ -486,11 +475,24 @@ void CowboyEnemyAI::transitionToShoot(const ActorInformation &information) {
                 break;
             }
             currentState = State::SHOOTING;
-            damage = 15;
         }
         break;
     }
     lastShootTime = lastSetupTime;
+}
+
+void CowboyEnemyAI::shootPlayer() const {
+    std::vector<LimonAPI::ParameterRequest> prList;
+    LimonAPI::ParameterRequest pr;
+    pr.valueType = pr.STRING;
+    strncpy(pr.value.stringValue, "SHOOT_PLAYER", 63);
+    prList.push_back(pr);
+
+    LimonAPI::ParameterRequest pr2;
+    pr2.valueType = pr.LONG;
+    pr2.value.longValue = gunDamage;
+    prList.push_back(pr2);
+    limonAPI->interactWithPlayer(prList);
 }
 
 void CowboyEnemyAI::transitionToIdle(const ActorInformation &information __attribute__((unused))) {
