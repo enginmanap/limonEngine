@@ -1726,10 +1726,37 @@ uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animati
 bool
 World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest> &runParameters, uint32_t index) {
     bool isAllSet = true;
+    std::set<std::string> passDescriptions;//multi select is build on first occurance, so pass other times
     for (size_t i = 0; i < runParameters.size(); ++i) {
         LimonAPI::ParameterRequest& parameter = runParameters[i];
-
+        if(passDescriptions.find(parameter.description) != passDescriptions.end()) {
+            continue;
+        }
         switch(parameter.requestType) {
+
+            case LimonAPI::ParameterRequest::RequestParameterTypes::MULTI_SELECT: {
+                //we get a multi select, we should build the multiselect. first one is the selected element
+                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(), parameter.value.stringValue)) {
+                    for (size_t j = i+1; j < runParameters.size(); ++j) {//passing i because it should be repeated in the list
+                        if(runParameters[j].requestType == LimonAPI::ParameterRequest::RequestParameterTypes::MULTI_SELECT && runParameters[j].description == runParameters[i].description) {
+                            bool isThisElementSelected = (std::strcmp(runParameters[j].value.stringValue,parameter.value.stringValue) == 0);
+
+                            if (ImGui::Selectable(runParameters[j].value.stringValue, isThisElementSelected)) {
+                                strncpy(parameter.value.stringValue,runParameters[j].value.stringValue, sizeof(runParameters[j].value.stringValue));
+                                parameter.isSet = true;
+                            }
+                            if(isThisElementSelected) {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+            //now add this to pass list
+            passDescriptions.insert(parameter.description);
+            break;
             case LimonAPI::ParameterRequest::RequestParameterTypes::MODEL: {
                 parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
                 std::string currentObject;
@@ -1863,18 +1890,39 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
             }
                 break;
             case LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER: {
-                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-                if (!parameter.isSet) {
-                    isAllSet = false;
+                switch (parameter.valueType) {
+                    case LimonAPI::ParameterRequest::ValueTypes::DOUBLE: {
+                        parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+                        if (!parameter.isSet) {
+                            isAllSet = false;
+                        }
+                        float value = parameter.value.doubleValue;
+                        if (ImGui::DragFloat((parameter.description + "##triggerParam" + std::to_string(i) + "##" +
+                                              std::to_string(index)).c_str(),
+                                             &value, sizeof(parameter.value.doubleValue))) {
+                            parameter.value.doubleValue = value;
+                            parameter.isSet = true;
+                        };
+                    }
+                    break;
+                    case LimonAPI::ParameterRequest::ValueTypes::LONG:
+                    default: {
+                        parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+                        if (!parameter.isSet) {
+                            isAllSet = false;
+                        }
+                        int value = parameter.value.longValue;
+                        if (ImGui::DragInt((parameter.description + "##triggerParam" + std::to_string(i) + "##" +
+                                            std::to_string(index)).c_str(),
+                                           &value, sizeof(parameter.value.longValue))) {
+                            parameter.value.longValue = value;
+                            parameter.isSet = true;
+                        };
+                    }
+                        break;
                 }
-                int value = parameter.value.longValue;
-                if (ImGui::DragInt((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
-                                   &value, sizeof(parameter.value.longValue))) {
-                    parameter.value.longValue = value;
-                    parameter.isSet = true;
-                };
             }
-                break;
+            break;
             case LimonAPI::ParameterRequest::RequestParameterTypes::TRIGGER: {
                 parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG_ARRAY;
                 parameter.value.longValues[0] = 3;//including self
