@@ -495,6 +495,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
         glm::vec3 front = actor->getFrontVector();
         glm::vec3 rayDir = currentPlayer->getPosition() - actor->getPosition();
         float cosBetween = glm::dot(normalize(front), normalize(rayDir));
+        information.playerDistance = glm::length(rayDir);
         information.cosineBetweenPlayer = cosBetween;
         information.playerDirection = normalize(rayDir);
         if (cosBetween > 0) {
@@ -504,6 +505,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
             information.isPlayerFront = false;
             information.isPlayerBack = true;
         }
+
         //now we know if it is front or back. we can check up, down, left, right
         //remove the y component, and test for left, right
         glm::vec3 rayDirWithoutY = rayDir;
