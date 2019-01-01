@@ -577,3 +577,9 @@ GameObject::ImGuiResult Model::putAIonGUI(ActorInterface *actorInterface,
 
     return result;
 }
+
+void Model::attachAI(ActorInterface *AIActor) {
+    //after this, clearing the AI is job of the model.
+    this->AIActor = AIActor;
+    lastSelectedAIName = AIActor->getName();
+}

@@ -185,10 +185,7 @@ public:
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
     /************Game Object methods **************/
 
-    void attachAI(ActorInterface *AIActor) {
-        //after this, clearing the AI is job of the model.
-        this->AIActor = AIActor;
-    }
+    void attachAI(ActorInterface *AIActor);
 
     uint32_t getAIID();
 
