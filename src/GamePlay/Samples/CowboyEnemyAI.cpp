@@ -371,7 +371,6 @@ void CowboyEnemyAI::transitionToMelee(const ActorInformation &information) {
     switch (currentGun) {
         case Gun::PISTOL: {
             limonAPI->setModelAnimationWithBlend(modelID, "Pistol Whip|", false);
-            limonAPI->playSound("./Data/Sounds/shotgun.wav", this->getPosition(), false);
             damage = 10;
             std::vector<LimonAPI::ParameterRequest> prList;
             LimonAPI::ParameterRequest pr;
@@ -514,6 +513,7 @@ void CowboyEnemyAI::transitionToKneelShoot(const ActorInformation &information) 
         case Gun::SHOTGUN:
         case Gun::RIFLE: {
             limonAPI->setModelAnimationWithBlend(modelID, "Rifle Kneel Fire|", false);
+            playShootSound(currentGun);
             shootPlayer();
             currentState = State::KNEEL_SHOOTING;
         }
@@ -544,6 +544,7 @@ void CowboyEnemyAI::transitionToShoot(const ActorInformation &information) {
     switch (currentGun) {
         case Gun::PISTOL: {
             limonAPI->setModelAnimationWithBlend(modelID, "Pistol Run 2|", false); //FIXME I couldn't find the correct animation
+            playShootSound(currentGun);
             shootPlayer();
 
         }
@@ -559,6 +560,7 @@ void CowboyEnemyAI::transitionToShoot(const ActorInformation &information) {
                 case 1:
                     if(currentAnimationFinished) {
                         limonAPI->setModelAnimationWithBlend(modelID, "Rifle Idle Fire|", false);
+                        playShootSound(currentGun);
                         shootPlayer();
                         shootingStage = 2;
                     }
@@ -577,7 +579,48 @@ void CowboyEnemyAI::transitionToShoot(const ActorInformation &information) {
     lastShootTime = lastSetupTime;
 }
 
-void CowboyEnemyAI::shootPlayer() const {
+void CowboyEnemyAI::playShootSound(Gun gunType) {
+    float randomValue = randomFloats(generator);
+    if(randomValue < 0.33f) {
+        switch (gunType) {
+            case Gun::PISTOL:
+                limonAPI->playSound("./Data/Sounds/guns/pistol.wav", getPosition(), false);
+                break;
+            case Gun::RIFLE:
+                limonAPI->playSound("./Data/Sounds/guns/rifle.wav", getPosition(), false);
+                break;
+            case Gun::SHOTGUN:
+                limonAPI->playSound("./Data/Sounds/guns/shotgun.wav", getPosition(), false);
+                break;
+        }
+    } else if(randomValue < 0.66f) {
+        switch (gunType) {
+            case Gun::PISTOL:
+                limonAPI->playSound("./Data/Sounds/guns/pistol2.wav", getPosition(), false);
+                break;
+            case Gun::RIFLE:
+                limonAPI->playSound("./Data/Sounds/guns/rifle2.wav", getPosition(), false);
+                break;
+            case Gun::SHOTGUN:
+                limonAPI->playSound("./Data/Sounds/guns/shotgun2.wav", getPosition(), false);
+                break;
+        }
+    } else {
+        switch (gunType) {
+            case Gun::PISTOL:
+                limonAPI->playSound("./Data/Sounds/guns/pistol3.wav", getPosition(), false);
+                break;
+            case Gun::RIFLE:
+                limonAPI->playSound("./Data/Sounds/guns/rifle3.wav", getPosition(), false);
+                break;
+            case Gun::SHOTGUN:
+                limonAPI->playSound("./Data/Sounds/guns/shotgun3.wav", getPosition(), false);
+                break;
+        }
+    }
+}
+
+void CowboyEnemyAI::shootPlayer() {
     std::vector<LimonAPI::ParameterRequest> prList;
     LimonAPI::ParameterRequest pr;
     pr.valueType = pr.STRING;
