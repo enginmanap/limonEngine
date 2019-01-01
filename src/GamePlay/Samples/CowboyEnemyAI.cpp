@@ -681,7 +681,8 @@ void CowboyEnemyAI::transitionToHit() {
     if(currentState != State::HIT) {
         switch (currentGun) {
             case Gun::PISTOL: {
-                std::cerr << "pistol hit animations not set yet " << std::endl;
+                limonAPI->setModelAnimationWithBlend(modelID, "Pistol Idle Hit Reaction|", false);
+                currentState = State::HIT;
             }
             break;
             case Gun::SHOTGUN:
@@ -723,10 +724,11 @@ void CowboyEnemyAI::transitionToHit() {
 }
 
 void CowboyEnemyAI::transitionToDead() {
-    if(currentState != State::HIT) {
+    if(currentState != State::HIT && currentState != State::DEAD) {
         switch (currentGun) {
             case Gun::PISTOL: {
-                std::cerr << "pistol dead animations not set yet " << std::endl;
+                limonAPI->setModelAnimationWithBlend(modelID, "Generic Dying|", false, 500);
+                currentState = State::DEAD;
             }
                 break;
             case Gun::SHOTGUN:
