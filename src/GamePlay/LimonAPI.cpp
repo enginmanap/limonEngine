@@ -138,6 +138,10 @@ bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tiny
             currentElement->SetText("Transform");
         }
             break;
+        case MULTI_SELECT: {
+            currentElement->SetText("MultiSelect");
+        }
+
     }
     parameterNode->InsertEndChild(currentElement);
 
@@ -269,6 +273,8 @@ deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index) {
         this->requestType = RequestParameterTypes::COORDINATE;
     } else if(strcmp(parameterAttribute->GetText(), "Transform") == 0) {
         this->requestType = RequestParameterTypes::TRANSFORM;
+    } else if(strcmp(parameterAttribute->GetText(), "MultiSelect") == 0) {
+        this->requestType = RequestParameterTypes::MULTI_SELECT;
     } else {
         std::cerr << "Trigger parameter request type was unknown. " << parameterAttribute->GetText() << std::endl;
         return false;
