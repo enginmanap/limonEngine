@@ -79,7 +79,7 @@ class CowboyEnemyAI : public ActorInterface {
     float kneelStayChance = 0.0025f;
     long minShootTimeWait = 1000;
     uint32_t hitPoints = 100;
-    float walkSpeed = 0.1;
+    float walkSpeed = 0.065;
     float runSpeed = 0.14;
 
     /********* Parameters to expose as setting *************/
