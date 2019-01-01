@@ -517,7 +517,7 @@ void CowboyEnemyAI::transitionToIdle(const ActorInformation &information __attri
     }
 }
 
-void CowboyEnemyAI::turnFaceToPlayer(const ActorInterface::ActorInformation &information) const {
+void CowboyEnemyAI::turnFaceToPlayer(const ActorInterface::ActorInformation &information) {
     //face the player
     if(information.isPlayerLeft) {
         if(information.cosineBetweenPlayerForSide < 0.95) {

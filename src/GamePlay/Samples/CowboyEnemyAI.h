@@ -122,7 +122,7 @@ public:
 
     void transitionToIdle(const ActorInformation &information);
 
-    void turnFaceToPlayer(const ActorInformation &information) const;
+    void turnFaceToPlayer(const ActorInformation &information);
 
     void transitionToHit();
 
