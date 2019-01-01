@@ -544,7 +544,6 @@ void CowboyEnemyAI::transitionToShoot(const ActorInformation &information) {
     switch (currentGun) {
         case Gun::PISTOL: {
             limonAPI->setModelAnimationWithBlend(modelID, "Pistol Run 2|", false); //FIXME I couldn't find the correct animation
-
             shootPlayer();
 
         }
@@ -634,6 +633,8 @@ void CowboyEnemyAI::turnFaceToPlayer(const ActorInterface::ActorInformation &inf
 }
 
 void CowboyEnemyAI::transitionToHit() {
+    //since hit has priority over everything, make sure shooting is not left in the middle
+    shootingStage = 0;
     if(currentState != State::HIT) {
         switch (currentGun) {
             case Gun::PISTOL: {
