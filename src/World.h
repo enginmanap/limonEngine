@@ -170,6 +170,7 @@ private:
     uint32_t nextWorldID = 2;
     std::queue<uint32_t> unusedIDs;
     std::map<uint32_t, PhysicalRenderable *> objects;
+    std::set<uint32_t> disconnectedModels;
     std::map<uint32_t, ModelGroup*> modelGroups;
 
     Sound* music = nullptr;
@@ -401,6 +402,10 @@ public:
     bool disconnectObjectFromPhysics(uint32_t objectWorldID);
 
     bool reconnectObjectToPhysics(uint32_t objectWorldID);
+
+    bool disconnectObjectFromPhysicsRequest(uint32_t objectWorldID);
+
+    bool reconnectObjectToPhysicsRequest(uint32_t objectWorldID);
 
     /**
      * If nothing is hit, returns empty vector
