@@ -46,7 +46,7 @@ class ModelAsset : public Asset {
 
     std::string name;
     std::unordered_map<std::string, AnimationInterface*> animations;
-    BoneNode *rootNode;
+    std::shared_ptr<BoneNode> rootNode = nullptr;//bones are shared with meshes
     int_fast32_t boneIDCounter, boneIDCounterPerMesh;
 
     glm::vec3 boundingBoxMin;
@@ -69,15 +69,15 @@ class ModelAsset : public Asset {
     void createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 parentTransform);//parent transform is not reference on purpose
     //if it was, then we would need a stack
 
-    BoneNode *loadNodeTree(aiNode *aiNode);
+    std::shared_ptr<BoneNode> loadNodeTree(aiNode *aiNode);
 
-    bool findNode(const std::string &nodeName, BoneNode** foundNode, BoneNode* searchRoot) const;
+    bool findNode(const std::string &nodeName, std::shared_ptr<BoneNode>& foundNode, std::shared_ptr<BoneNode> searchRoot) const;
 
-    void traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform, const AnimationInterface *animation,
+    void traverseAndSetTransform(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform, const AnimationInterface *animation,
                                  float timeInTicks,
                                  std::vector<glm::mat4> &transforms) const;
 
-    void traverseAndSetTransformBlended(const BoneNode *boneNode, const glm::mat4 &parentTransform,
+    void traverseAndSetTransformBlended(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
                                                     const AnimationInterface *animationOld,
                                                     float timeInTicksOld,
                                                     const AnimationInterface *animationNew,
@@ -89,7 +89,7 @@ class ModelAsset : public Asset {
 
     void deserializeCustomizations();
 
-    int32_t buildEditorBoneTreeRecursive(BoneNode *boneNode, int32_t selectedBoneNodeID);
+    int32_t buildEditorBoneTreeRecursive(std::shared_ptr<BoneNode> boneNode, int32_t selectedBoneNodeID);
 
 
 public:

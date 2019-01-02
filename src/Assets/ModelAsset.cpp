@@ -327,8 +327,8 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
     }
 }
 
-BoneNode* ModelAsset::loadNodeTree(aiNode *aiNode) {
-    BoneNode *currentNode = new BoneNode();
+std::shared_ptr<BoneNode> ModelAsset::loadNodeTree(aiNode *aiNode) {
+    auto currentNode = std::make_shared<BoneNode>();
     currentNode->name = aiNode->mName.C_Str();
     currentNode->boneID = boneIDCounter++;
     currentNode->transformation = GLMConverter::AssimpToGLM(aiNode->mTransformation);
@@ -338,9 +338,9 @@ BoneNode* ModelAsset::loadNodeTree(aiNode *aiNode) {
     return currentNode;
 }
 
-bool ModelAsset::findNode(const std::string &nodeName, BoneNode** foundNode, BoneNode* searchRoot) const {
+bool ModelAsset::findNode(const std::string &nodeName, std::shared_ptr<BoneNode>& foundNode, std::shared_ptr<BoneNode> searchRoot) const {
     if (nodeName == searchRoot->name) {
-        *foundNode = searchRoot;
+        foundNode = searchRoot;
         return true;
     } else {
         for (unsigned int i = 0; i < searchRoot->children.size(); ++i) {
@@ -379,9 +379,9 @@ bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld,
       (animationNameNew.empty() || animationNameNew == "")) {
         //if no animation name is provided, we return bind pose by default
         for(std::unordered_map<std::string, BoneInformation>::const_iterator it = boneInformationMap.begin(); it != boneInformationMap.end(); it++){
-            BoneNode* node;
+            std::shared_ptr<BoneNode> node;
             std::string name = it->first;
-            if(findNode(name, &node, rootNode)) {
+            if(findNode(name, node, rootNode)) {
                 transformMatrix[node->boneID] = boneInformationMap.at(node->name).parentOffset;
                 //parent above means parent transform of the mesh node, not the parent of bone.
             }
@@ -492,9 +492,9 @@ bool ModelAsset::getTransform(long time, bool looped, std::string animationName,
         //FIXME calculating bind pose for each frame is wrong, but I am assuming this part will be removed, and idle pose
         //will be used instead. If bind pose requirement arises, it should set once, and reused.
         for(std::unordered_map<std::string, BoneInformation>::const_iterator it = boneInformationMap.begin(); it != boneInformationMap.end(); it++){
-            BoneNode* node;
+            std::shared_ptr<BoneNode> node;
             std::string name = it->first;
-            if(findNode(name, &node, rootNode)) {
+            if(findNode(name, node, rootNode)) {
                 transformMatrix[node->boneID] = boneInformationMap.at(node->name).parentOffset;
                 //parent above means parent transform of the mesh node, not the parent of bone.
             }
@@ -537,7 +537,7 @@ bool ModelAsset::getTransform(long time, bool looped, std::string animationName,
     return result;
 }
 
-void ModelAsset::traverseAndSetTransformBlended(const BoneNode *boneNode, const glm::mat4 &parentTransform,
+void ModelAsset::traverseAndSetTransformBlended(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
                                          const AnimationInterface *animationOld,
                                          float timeInTicksOld,
                                          const AnimationInterface *animationNew,
@@ -586,7 +586,7 @@ void ModelAsset::traverseAndSetTransformBlended(const BoneNode *boneNode, const 
     }
 }
 
-void ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform,
+void ModelAsset::traverseAndSetTransform( std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
                                     const AnimationInterface *animation,
                                     float timeInTicks,
                                     std::vector<glm::mat4> &transforms) const {
@@ -758,7 +758,7 @@ int32_t ModelAsset::buildEditorBoneTree(int32_t selectedBoneNodeID) {
    return -1;//not found
 }
 
-int32_t ModelAsset::buildEditorBoneTreeRecursive(BoneNode *boneNode, int32_t selectedBoneNodeID) {
+int32_t ModelAsset::buildEditorBoneTreeRecursive(std::shared_ptr<BoneNode> boneNode, int32_t selectedBoneNodeID) {
     int32_t result = -1;
     if(boneNode == nullptr) {
         return result;
