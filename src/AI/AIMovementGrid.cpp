@@ -509,6 +509,7 @@ AIMovementGrid *AIMovementGrid::deserialize(const std::string &fileName) {
     for (uint32_t i = 0; i < maximumNodeID; ++i) {
         grid->doneNodes.push_back(new AIMovementNode(0, glm::vec3(0,100,0)));//we are creating nodes empty, so we can link them together later
     }
+    grid->nextPossibleIndex = maximumNodeID;
     tinyxml2::XMLElement* nodeElement =  AIWalkGridRootElement->FirstChildElement("Node");
     while(nodeElement != nullptr) {
         uint32_t nodeID = 0;
