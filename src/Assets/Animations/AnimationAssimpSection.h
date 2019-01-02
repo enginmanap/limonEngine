@@ -9,12 +9,12 @@
 #include "AnimationAssimp.h"
 
 class AnimationAssimpSection : public AnimationInterface {
-    AnimationInterface *baseAnimation;
+    std::shared_ptr<AnimationInterface> baseAnimation;
     float startTime = 0;
     float endTime = 0;
 
 public:
-    AnimationAssimpSection(AnimationInterface *base, float startTime, float endTime);
+    AnimationAssimpSection(std::shared_ptr<AnimationInterface> base, float startTime, float endTime);
 
     bool calculateTransform(const std::string& nodeName, float time, Transformation& transformation) const;
 
