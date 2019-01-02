@@ -6,7 +6,8 @@
 #include "../GLHelper.h"
 
 MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
-                     const Material *material, std::shared_ptr<const BoneNode> meshSkeleton, const glm::mat4 &parentTransform,
+                     std::shared_ptr<const Material> material, std::shared_ptr<const BoneNode> meshSkeleton,
+                     const glm::mat4 &parentTransform,
                      const bool isPartOfAnimated)
         : name(name), material(material), parentTransform(parentTransform), isPartOfAnimated(isPartOfAnimated) {
     triangleCount = currentMesh->mNumFaces;

@@ -127,7 +127,7 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
 }
 
 
-Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialIndex) {
+std::shared_ptr<Material>ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialIndex) {
     // create material uniform buffer
     aiMaterial *currentMaterial = scene->mMaterials[materialIndex];
     aiString property;    //contains filename of texture
@@ -138,10 +138,10 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
         //return nullptr; should work too.
     }
 
-    Material *newMaterial;
+    std::shared_ptr<Material> newMaterial;
     if (materialMap.find(property.C_Str()) == materialMap.end()) {//search for the name
         //if the material is not loaded before
-        newMaterial = new Material(assetManager, property.C_Str(), assetManager->getGlHelper()->getNextMaterialIndex());
+        newMaterial = std::make_shared<Material>(assetManager, property.C_Str(), assetManager->getGlHelper()->getNextMaterialIndex());
         aiColor3D color(0.f, 0.f, 0.f);
         float transferFloat;
 
@@ -297,7 +297,7 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
             boneInformationMap[aiNode->mName.C_Str()].globalMeshInverse = glm::mat4(1.0f);
         }
 
-        Material *meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
+        std::shared_ptr<Material>meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
         MeshAsset *mesh;
         try {
             mesh = new MeshAsset(assetManager, currentMesh, aiNode->mName.C_Str(), meshMaterial, rootNode,

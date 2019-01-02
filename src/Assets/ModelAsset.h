@@ -53,7 +53,7 @@ class ModelAsset : public Asset {
     glm::vec3 boundingBoxMax;
     glm::vec3 centerOffset;
 
-    std::unordered_map<std::string, Material *> materialMap;
+    std::unordered_map<std::string, std::shared_ptr<Material>> materialMap;
     std::vector<btConvexShape *> shapeCopies;
     std::vector<MeshAsset *> meshes;
     std::vector<AnimationSection> animationSections;
@@ -64,7 +64,7 @@ class ModelAsset : public Asset {
     bool hasAnimation;
     bool customizationAfterSave = false;
 
-    Material *loadMaterials(const aiScene *scene, unsigned int materialIndex);
+    std::shared_ptr<Material> loadMaterials(const aiScene *scene, unsigned int materialIndex);
 
     void createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 parentTransform);//parent transform is not reference on purpose
     //if it was, then we would need a stack
@@ -126,7 +126,7 @@ public:
     /*
      * FIXME: the materials should be const too
      */
-    const std::unordered_map<std::string, Material *> &getMaterialMap() const { return materialMap; };
+    const std::unordered_map<std::string, std::shared_ptr<Material>> &getMaterialMap() const { return materialMap; };
 
     ~ModelAsset() {
         //std::cout << "Model asset deleted: " << name << std::endl;
@@ -138,10 +138,6 @@ public:
             delete iter->second;
         }
 
-        for (std::unordered_map<std::string, Material *>::iterator iter = materialMap.begin();
-             iter != materialMap.end(); ++iter) {
-            delete iter->second;
-        }
         //FIXME GPU side is not freed
     }
 

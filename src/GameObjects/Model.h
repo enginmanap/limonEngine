@@ -58,7 +58,7 @@ class Model : public PhysicalRenderable, public GameObject {
     char stepOnSoundNameBuffer[128] = {};
 
     btCompoundShape *compoundShape;
-    std::unordered_map<std::string, Material *> materialMap;
+    std::unordered_map<std::string, std::shared_ptr<Material>> materialMap;
     int diffuseMapAttachPoint = 1;
     int ambientMapAttachPoint = 2;
     int specularMapAttachPoint = 3;
@@ -91,7 +91,7 @@ public:
     }
 
     void setSamplersAndUBOs(GLSLProgram *program);
-    void activateTexturesOnly(const Material *material);
+    void activateTexturesOnly(std::shared_ptr<const Material> material);
 
     bool setupRenderVariables(MeshMeta *meshMetaData);
 

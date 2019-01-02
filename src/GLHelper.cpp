@@ -1098,7 +1098,7 @@ void GLHelper::setLight(const Light &light, const int i) {
     checkErrors("setLight");
 }
 
-void GLHelper::setMaterial(const Material* material) {
+void GLHelper::setMaterial(std::shared_ptr<const Material> material) {
     /*
      * this buffer has 2 objects, model has mat4 and then the material below:
      *
