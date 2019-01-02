@@ -1371,11 +1371,11 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 case GameObject::MODEL: {
                     if (static_cast<Model *>(pickedObject)->isDisconnected()) {
                         if (ImGui::Button("reconnect to physics")) {
-                            reconnectObjectToPhysics(static_cast<Model *>(pickedObject)->getWorldObjectID());
+                            reconnectObjectToPhysicsRequest(static_cast<Model *>(pickedObject)->getWorldObjectID());//Request because that action will not be carried out on editor mode
                         }
                     } else {
                         if (ImGui::Button("Disconnect from physics")) {
-                            disconnectObjectFromPhysics(static_cast<Model *>(pickedObject)->getWorldObjectID());
+                            disconnectObjectFromPhysicsRequest(static_cast<Model *>(pickedObject)->getWorldObjectID());
                         }
                         ImGui::Text(
                                 "If object is placed in trigger volume, \ndisconnecting drastically improve performance.");
@@ -1613,6 +1613,7 @@ bool World::addModelToWorld(Model *xmlModel) {
     rigidBodies.push_back(xmlModel->getRigidBody());
     xmlModel->updateAABB();
     if(xmlModel->isDisconnected()) {
+        disconnectedModels.insert(xmlModel->getWorldObjectID());
         dynamicsWorld->removeRigidBody(xmlModel->getRigidBody());
     } else {
         dynamicsWorld->addRigidBody(xmlModel->getRigidBody(), COLLIDE_MODELS, COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
@@ -2136,9 +2137,32 @@ bool World::reconnectObjectToPhysics(uint32_t objectWorldID) {
     if(model == nullptr) {
         return false;//fail
     }
-
     model->connectToPhysicsWorld(dynamicsWorld, COLLIDE_MODELS, COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
     return true;
+}
+
+bool World::disconnectObjectFromPhysicsRequest(uint32_t objectWorldID) {
+   if(objects.find(objectWorldID) == objects.end()) {
+       return false;//fail
+   }
+   Model* model = dynamic_cast<Model*>(objects.at(objectWorldID));
+   if(model == nullptr) {
+       return false;//fail
+   }
+   disconnectedModels.insert(model->getWorldObjectID());
+   return true;
+}
+
+bool World::reconnectObjectToPhysicsRequest(uint32_t objectWorldID) {
+   if(objects.find(objectWorldID) == objects.end()) {
+       return false;//fail
+   }
+   Model* model = dynamic_cast<Model*>(objects.at(objectWorldID));
+   if(model == nullptr) {
+       return false;//fail
+   }
+   disconnectedModels.erase(model->getWorldObjectID());
+   return true;
 }
 
 bool World::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath) {
@@ -2218,6 +2242,19 @@ void World::addGUIImageControls() {
 }
 
 void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
+    //we should reconnect disconnected object if switching to editor mode, because we use physics for pickup
+    if(targetPlayer->getWorldSettings().editorShown && (currentPlayersSettings == nullptr ||!currentPlayersSettings->editorShown)) {
+        //switching to editor shown. reconnect all disconnected objects, if no currentPlayer, starting with editor, reconnect
+        for (auto objectIt = disconnectedModels.begin(); objectIt != disconnectedModels.end(); ++objectIt) {
+            reconnectObjectToPhysics(*objectIt);
+        }
+    } else if(!targetPlayer->getWorldSettings().editorShown && (currentPlayersSettings  == nullptr || currentPlayersSettings->editorShown)) {
+        //if exiting editor mode, or starting not editor mode
+        for (auto objectIt = disconnectedModels.begin(); objectIt != disconnectedModels.end(); ++objectIt) {
+            disconnectObjectFromPhysics(*objectIt);
+        }
+    }
+
     currentPlayersSettings = &(targetPlayer->getWorldSettings());
 
     setupForPlay(inputHandler);
