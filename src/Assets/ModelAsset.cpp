@@ -390,7 +390,7 @@ bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld,
         return true;
     }
 
-    const AnimationInterface *currentAnimationOld = nullptr;
+    std::shared_ptr<const AnimationInterface> currentAnimationOld = nullptr;
     float animationTimeOld;
     bool isFinishedOld = false;
     if(!(animationNameOld.empty() ||animationNameOld == "")) {
@@ -421,7 +421,7 @@ bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld,
         }
     }
 
-    const AnimationInterface *currentAnimationNew = nullptr;
+    std::shared_ptr<const AnimationInterface> currentAnimationNew = nullptr;
     float animationTimeNew;
     bool isFinishedNew = false;
     if(!(animationNameNew.empty() ||animationNameNew == "")) {
@@ -503,7 +503,7 @@ bool ModelAsset::getTransform(long time, bool looped, std::string animationName,
         return true;
     }
 
-    const AnimationInterface *currentAnimation;
+    std::shared_ptr<const AnimationInterface> currentAnimation;
     if(animations.find(animationName) != animations.end()) {
         currentAnimation = animations.at(animationName);
     } else {
@@ -538,12 +538,12 @@ bool ModelAsset::getTransform(long time, bool looped, std::string animationName,
 }
 
 void ModelAsset::traverseAndSetTransformBlended(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
-                                         const AnimationInterface *animationOld,
-                                         float timeInTicksOld,
-                                         const AnimationInterface *animationNew,
-                                         float timeInTicksNew,
-                                         float blendFactor,
-                                         std::vector<glm::mat4> &transforms) const {
+                                                std::shared_ptr<const AnimationInterface> animationOld,
+                                                float timeInTicksOld,
+                                                std::shared_ptr<const AnimationInterface> animationNew,
+                                                float timeInTicksNew,
+                                                float blendFactor,
+                                                std::vector<glm::mat4> &transforms) const {
 
     glm::mat4 nodeTransform;
     Transformation tf1, tf2;
@@ -587,7 +587,7 @@ void ModelAsset::traverseAndSetTransformBlended(std::shared_ptr<const BoneNode> 
 }
 
 void ModelAsset::traverseAndSetTransform( std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
-                                    const AnimationInterface *animation,
+                                          std::shared_ptr<const AnimationInterface> animation,
                                     float timeInTicks,
                                     std::vector<glm::mat4> &transforms) const {
 
@@ -626,7 +626,7 @@ ModelAsset::fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimation
         std::string animationName = animationNamePrefix + currentAnimation->mName.C_Str();
         std::cout << "add animation with name " << animationNamePrefix << animationName << std::endl;
 
-        AnimationAssimp* animationObject = new AnimationAssimp(currentAnimation);
+        std::shared_ptr<AnimationAssimp> animationObject = std::make_shared<AnimationAssimp>(currentAnimation);
         animations[animationName] = animationObject;
     }
     //validate
@@ -638,8 +638,8 @@ bool ModelAsset::addAnimationAsSubSequence(const std::string &baseAnimationName,
         //base animation not found
         return false;
     }
-    AnimationInterface* animationAssimp = this->animations[baseAnimationName];
-    AnimationAssimpSection* animation = new AnimationAssimpSection(animationAssimp, startTime, endTime);
+    std::shared_ptr<AnimationInterface> animationAssimp = this->animations[baseAnimationName];
+    std::shared_ptr<AnimationAssimpSection> animation = std::make_shared<AnimationAssimpSection>(animationAssimp, startTime, endTime);
 
     this->animations[newAnimationName] = animation;
 

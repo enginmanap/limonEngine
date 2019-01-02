@@ -45,7 +45,7 @@ class ModelAsset : public Asset {
     };
 
     std::string name;
-    std::unordered_map<std::string, AnimationInterface*> animations;
+    std::unordered_map<std::string, std::shared_ptr<AnimationInterface>> animations;//shared for animation sections
     std::shared_ptr<BoneNode> rootNode = nullptr;//bones are shared with meshes
     int_fast32_t boneIDCounter, boneIDCounterPerMesh;
 
@@ -73,17 +73,17 @@ class ModelAsset : public Asset {
 
     bool findNode(const std::string &nodeName, std::shared_ptr<BoneNode>& foundNode, std::shared_ptr<BoneNode> searchRoot) const;
 
-    void traverseAndSetTransform(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform, const AnimationInterface *animation,
+    void traverseAndSetTransform(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform, std::shared_ptr<const AnimationInterface> animation,
                                  float timeInTicks,
                                  std::vector<glm::mat4> &transforms) const;
 
     void traverseAndSetTransformBlended(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
-                                                    const AnimationInterface *animationOld,
-                                                    float timeInTicksOld,
-                                                    const AnimationInterface *animationNew,
-                                                    float timeInTicksNew,
-                                                    float blendFactor,
-                                                    std::vector<glm::mat4> &transforms) const;
+                                        std::shared_ptr<const AnimationInterface> animationOld,
+                                        float timeInTicksOld,
+                                        std::shared_ptr<const AnimationInterface> animationNew,
+                                        float timeInTicksNew,
+                                        float blendFactor,
+                                        std::vector<glm::mat4> &transforms) const;
 
     const aiNodeAnim *findNodeAnimation(aiAnimation *pAnimation, std::string basic_string) const;
 
@@ -170,7 +170,7 @@ public:
 
     void fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimations, const std::string &animationNamePrefix = "");
 
-    const std::unordered_map<std::string, AnimationInterface*> &getAnimations() const {
+    const std::unordered_map<std::string, std::shared_ptr<AnimationInterface>> &getAnimations() const {
         return animations;
     }
 
