@@ -33,11 +33,11 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
     std::map<uint_fast32_t, btTransform> btTransformMap;
 
     MeshMeta *meshMeta;
-    std::vector<MeshAsset *> assetMeshes = modelAsset->getMeshes();
+    std::vector<std::shared_ptr<MeshAsset>> assetMeshes = modelAsset->getMeshes();
     static GLSLProgram* animatedProgram = nullptr;
     static GLSLProgram* nonAnimatedProgram = nullptr;
 
-    for (std::vector<MeshAsset *>::iterator iter = assetMeshes.begin(); iter != assetMeshes.end(); ++iter) {
+    for (auto iter = assetMeshes.begin(); iter != assetMeshes.end(); ++iter) {
         meshMeta = new MeshMeta();
         meshMeta->mesh = (*iter);
 
@@ -63,7 +63,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
         meshMetaData.push_back(meshMeta);
     }
 
-    std::vector<MeshAsset *> physicalMeshes = modelAsset->getPhysicsMeshes();
+    std::vector<std::shared_ptr<MeshAsset>> physicalMeshes = modelAsset->getPhysicsMeshes();
 
     for(auto iter = physicalMeshes.begin(); iter != physicalMeshes.end(); ++iter) {
 

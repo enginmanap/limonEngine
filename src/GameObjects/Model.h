@@ -24,7 +24,7 @@ class ActorInterface;
 class Model : public PhysicalRenderable, public GameObject {
     uint32_t objectID;
     struct MeshMeta {
-        MeshAsset* mesh = nullptr;
+        std::shared_ptr<MeshAsset> mesh = nullptr;
         GLSLProgram* program = nullptr;
     };
     ActorInterface *AIActor = nullptr;
