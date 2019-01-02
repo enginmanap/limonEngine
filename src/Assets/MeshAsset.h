@@ -31,7 +31,7 @@ class MeshAsset {
 
     std::map<uint_fast32_t, std::vector<uint_fast32_t >> boneAttachedMeshes;
 
-    const BoneNode *skeleton;
+    std::shared_ptr<const BoneNode> skeleton;
     std::map<std::string, uint_fast32_t> boneIdMap;
 
     bool bones;
@@ -53,7 +53,7 @@ class MeshAsset {
 
 public:
     MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
-                  const Material *material, const BoneNode *meshSkeleton, const glm::mat4 &parentTransform,
+                  const Material *material, std::shared_ptr<const BoneNode> meshSkeleton, const glm::mat4 &parentTransform,
                   const bool isPartOfAnimated);
 
     uint_fast32_t getTriangleCount() const { return triangleCount; }
@@ -82,7 +82,7 @@ public:
 
     }
 
-    void fillBoneMap(const BoneNode *boneNode);
+    void fillBoneMap(std::shared_ptr<const BoneNode> boneNode);
 
     std::string getName() {
         return name;
