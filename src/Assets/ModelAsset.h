@@ -53,12 +53,12 @@ class ModelAsset : public Asset {
     glm::vec3 boundingBoxMax;
     glm::vec3 centerOffset;
 
-    std::unordered_map<std::string, std::shared_ptr<Material>> materialMap;
+    std::unordered_map<std::string, std::shared_ptr<Material>> materialMap;//shared with model
     std::vector<btConvexShape *> shapeCopies;
-    std::vector<MeshAsset *> meshes;
+    std::vector<std::shared_ptr<MeshAsset>> meshes;
     std::vector<AnimationSection> animationSections;
 
-    std::unordered_map<std::string, MeshAsset *> simplifiedMeshes;
+    std::unordered_map<std::string, std::shared_ptr<MeshAsset>> simplifiedMeshes;//physics
     std::unordered_map<std::string, BoneInformation> boneInformationMap;
 
     bool hasAnimation;
@@ -129,19 +129,10 @@ public:
     const std::unordered_map<std::string, std::shared_ptr<Material>> &getMaterialMap() const { return materialMap; };
 
     ~ModelAsset() {
-        //std::cout << "Model asset deleted: " << name << std::endl;
-        for (std::vector<MeshAsset *>::iterator iter = meshes.begin(); iter != meshes.end(); ++iter) {
-            delete (*iter);
-        }
-
-        for (auto iter = simplifiedMeshes.begin(); iter != simplifiedMeshes.end(); ++iter) {
-            delete iter->second;
-        }
-
         //FIXME GPU side is not freed
     }
 
-    std::vector<MeshAsset *> getMeshes() const {
+    std::vector<std::shared_ptr<MeshAsset>> getMeshes() const {
         return meshes;
     }
 
@@ -149,12 +140,12 @@ public:
      * This method checks if there is a simplified mesh with same name, and there is, adds simplified one instead of original.
      * @return hybrid of original and simplified meshes
      */
-    std::vector<MeshAsset *> getPhysicsMeshes() const {
+    std::vector<std::shared_ptr<MeshAsset>> getPhysicsMeshes() const {
         if(simplifiedMeshes.size() == 0) {
             return meshes;
         }
 
-        std::vector<MeshAsset *> meshAssets = meshes;//shallow copy
+        std::vector<std::shared_ptr<MeshAsset>> meshAssets = meshes;//shallow copy
         for (unsigned int i = 0; i < meshes.size(); ++i) {
             std::string meshName = "UCX_" + meshes[i]->getName();
             if(simplifiedMeshes.find(meshName) != simplifiedMeshes.end()) {

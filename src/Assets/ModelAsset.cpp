@@ -298,9 +298,9 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
         }
 
         std::shared_ptr<Material>meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
-        MeshAsset *mesh;
+        std::shared_ptr<MeshAsset> mesh;
         try {
-            mesh = new MeshAsset(assetManager, currentMesh, aiNode->mName.C_Str(), meshMaterial, rootNode,
+            mesh = std::make_shared<MeshAsset>(assetManager, currentMesh, aiNode->mName.C_Str(), meshMaterial, rootNode,
                                             parentTransform, hasAnimation);
         } catch(...) {
             continue;
