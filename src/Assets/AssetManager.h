@@ -25,7 +25,7 @@ public:
         char format[9] = "\0";
         uint32_t height = 0;
         uint32_t width = 0;
-        uint8_t * texelData = nullptr;
+        std::vector<uint8_t> texelData;
 
         bool checkFormat(const char* s) const {
             if (nullptr == s) {
@@ -41,19 +41,16 @@ public:
             this->height = texture2.height;
             this->width = texture2.width;
             if(this->height != 0) {
-                this->texelData = new uint8_t[this->height * this->width];
-                memcpy(this->texelData, texture2.texelData, this->height* this->width);
+                this->texelData.resize(this->height * this->width);
+                memcpy(this->texelData.data(), texture2.texelData.data(), this->height* this->width);
             } else {
                 //compressed data
-                this->texelData = new uint8_t[this->width];
-                memcpy(this->texelData, texture2.texelData, this->width);
+                this->texelData.resize(this->width);
+                memcpy(this->texelData.data(), texture2.texelData.data(), this->width);
             }
 
         }
 
-        ~EmbeddedTexture() {
-            delete texelData;
-        }
     };
 
     struct AvailableAssetsNode {
