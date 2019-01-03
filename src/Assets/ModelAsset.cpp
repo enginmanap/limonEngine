@@ -40,21 +40,21 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
         exit(-1);
     }
 
-    std::vector<AssetManager::EmbeddedTexture> textures;
+    std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>> textures;
     for (size_t i = 0; i < scene->mNumTextures; ++i) {
         aiTexture* currentTexture = scene->mTextures[i];
-        AssetManager::EmbeddedTexture eTexture;
+        std::shared_ptr<AssetManager::EmbeddedTexture> eTexture = std::make_shared<AssetManager::EmbeddedTexture>();
 
-        eTexture.height = currentTexture->mHeight;
-        eTexture.width = currentTexture->mWidth;
-        memcpy(&eTexture.format, &currentTexture->achFormatHint, sizeof(eTexture.format));
-        if(eTexture.height != 0) {
-            eTexture.texelData.resize(currentTexture->mHeight * currentTexture->mWidth);
-            memcpy(eTexture.texelData.data(), currentTexture->pcData, currentTexture->mHeight * currentTexture->mWidth);
+        eTexture->height = currentTexture->mHeight;
+        eTexture->width = currentTexture->mWidth;
+        memcpy(&eTexture->format, &currentTexture->achFormatHint, sizeof(eTexture->format));
+        if(eTexture->height != 0) {
+            eTexture->texelData.resize(currentTexture->mHeight * currentTexture->mWidth);
+            memcpy(eTexture->texelData.data(), currentTexture->pcData, currentTexture->mHeight * currentTexture->mWidth);
         } else {
             //compressed data
-            eTexture.texelData.resize(currentTexture->mWidth);
-            memcpy(eTexture.texelData.data(), currentTexture->pcData, currentTexture->mWidth);
+            eTexture->texelData.resize(currentTexture->mWidth);
+            memcpy(eTexture->texelData.data(), currentTexture->pcData, currentTexture->mWidth);
         }
         textures.push_back(eTexture);
     }

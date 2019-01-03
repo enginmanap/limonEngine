@@ -85,7 +85,7 @@ private:
 
     //second of the pair is how many times load requested. prework for unload
     std::map<const std::vector<std::string>, std::pair<Asset *, uint32_t>> assets;
-    std::unordered_map<std::string, std::vector<EmbeddedTexture>> embeddedTextures;
+    std::unordered_map<std::string, std::vector<std::shared_ptr<const EmbeddedTexture>>> embeddedTextures;
     uint32_t nextAssetIndex = 1;
 
     //std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
@@ -167,11 +167,11 @@ public:
     const AvailableAssetsNode* getAvailableAssetsTreeFiltered(AssetTypes type, const std::string &filterText);
 
 
-    void addEmbeddedTextures(const std::string& ownerAsset, std::vector<EmbeddedTexture> textures) {
+    void addEmbeddedTextures(const std::string& ownerAsset, std::vector<std::shared_ptr<const EmbeddedTexture>> textures) {
         this->embeddedTextures[ownerAsset] = textures;
     }
 
-    const EmbeddedTexture* getEmbeddedTextures(const std::string& ownerAsset, uint32_t textureID) {
+    std::shared_ptr<const EmbeddedTexture> getEmbeddedTextures(const std::string& ownerAsset, uint32_t textureID) {
         if(embeddedTextures.find(ownerAsset) == embeddedTextures.end()) {
             return nullptr;
         }
@@ -179,7 +179,7 @@ public:
             return nullptr;
         }
 
-        return &embeddedTextures[ownerAsset][textureID];
+        return embeddedTextures[ownerAsset][textureID];
 
     }
 

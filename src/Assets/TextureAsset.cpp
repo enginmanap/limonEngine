@@ -21,7 +21,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
         //index is a string, first char is * second char is the index
         std::cout << "Texture request has 2 elements. Attempting to extract embedded texture. " << std::endl;
         int textureID = std::atoi(&files[0][1]);
-        const AssetManager::EmbeddedTexture* embeddedTexture = assetManager->getEmbeddedTextures(files[1], textureID);
+        std::shared_ptr<const AssetManager::EmbeddedTexture> embeddedTexture = assetManager->getEmbeddedTextures(files[1], textureID);
         if(embeddedTexture != nullptr) {
             SDL_RWops* rwop = nullptr;
             if(embeddedTexture->height == 0) {
