@@ -49,12 +49,12 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
         eTexture.width = currentTexture->mWidth;
         memcpy(&eTexture.format, &currentTexture->achFormatHint, sizeof(eTexture.format));
         if(eTexture.height != 0) {
-            eTexture.texelData = new uint8_t[currentTexture->mHeight * currentTexture->mWidth];
-            memcpy(eTexture.texelData, currentTexture->pcData, currentTexture->mHeight * currentTexture->mWidth);
+            eTexture.texelData.resize(currentTexture->mHeight * currentTexture->mWidth);
+            memcpy(eTexture.texelData.data(), currentTexture->pcData, currentTexture->mHeight * currentTexture->mWidth);
         } else {
             //compressed data
-            eTexture.texelData = new uint8_t[currentTexture->mWidth];
-            memcpy(eTexture.texelData, currentTexture->pcData, currentTexture->mWidth);
+            eTexture.texelData.resize(currentTexture->mWidth);
+            memcpy(eTexture.texelData.data(), currentTexture->pcData, currentTexture->mWidth);
         }
         textures.push_back(eTexture);
     }

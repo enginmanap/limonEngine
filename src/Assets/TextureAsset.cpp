@@ -25,9 +25,9 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
         if(embeddedTexture != nullptr) {
             SDL_RWops* rwop = nullptr;
             if(embeddedTexture->height == 0) {
-                rwop = SDL_RWFromMem( embeddedTexture->texelData, embeddedTexture->width);
+                rwop = SDL_RWFromMem( (void*)embeddedTexture->texelData.data(), embeddedTexture->width);
             } else {
-                rwop = SDL_RWFromMem(embeddedTexture->texelData, embeddedTexture->width * embeddedTexture->height);
+                rwop = SDL_RWFromMem((void*)embeddedTexture->texelData.data(), embeddedTexture->width * embeddedTexture->height);
             }
             surface = IMG_Load_RW(rwop, 0);
         }
