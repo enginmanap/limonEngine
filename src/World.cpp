@@ -3308,7 +3308,7 @@ bool World::verifyIDs() {
     for(auto actor = actors.begin(); actor != actors.end(); actor++) {
         auto result = usedIDs.insert(actor->first);
         if(result.second == false) {
-            std::cerr << "world ID repetition on trigger detected! ActorInterface with id " << actor->first << std::endl;
+            std::cerr << "world ID repetition detected! ActorInterface with id " << actor->first << std::endl;
             return false;
         }
         maxID = std::max(maxID,actor->first);
@@ -3317,7 +3317,7 @@ bool World::verifyIDs() {
     for (auto guiElement = guiElements.begin(); guiElement != guiElements.end(); ++guiElement) {
         auto result = usedIDs.insert(guiElement->first);
         if(result.second == false) {
-            std::cerr << "world ID repetition on trigger detected! gui element with id " << guiElement->first << std::endl;
+            std::cerr << "world ID repetition detected! gui element with id " << guiElement->first << std::endl;
             return false;
         }
         maxID = std::max(maxID, guiElement->first);

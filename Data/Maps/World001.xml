@@ -377,7 +377,7 @@
         </Light>
         <Light>
             <Type>DIRECTIONAL</Type>
-            <ID>1</ID>
+            <ID>8</ID>
             <Position>
                 <X>-25</X>
                 <Y>50</Y>
@@ -596,7 +596,7 @@
             <Level>2</Level>
             <GUIElement>
                 <Type>GUIText</Type>
-                <ID>1</ID>
+                <ID>7</ID>
                 <Name>LimonEngine</Name>
                 <Text>Limon Engine</Text>
                 <Font>
