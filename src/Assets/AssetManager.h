@@ -10,9 +10,11 @@
 #include <map>
 #include <utility>
 #include <tinyxml2.h>
+#include <fstream>
 
 #include "Asset.h"
 #include "../ALHelper.h"
+
 
 class GLHelper;
 class ALHelper;
@@ -49,6 +51,11 @@ public:
                 memcpy(this->texelData.data(), texture2.texelData.data(), this->width);
             }
 
+        }
+
+        template<class Archive>
+        void serialize( Archive & ar ) {
+            ar(format, height, width, texelData );
         }
 
     };
@@ -123,11 +130,24 @@ public:
         loadAssetList();
     }
 
+    void loadUsingCereal(const std::vector<std::string> files);
+
     template<class T>
     T *loadAsset(const std::vector<std::string> files) {
         if (assets.count(files) == 0) {
-            assets[files] = std::make_pair(new T(this, nextAssetIndex, files), 0);
-            nextAssetIndex++;
+            bool loaded = false;
+            //check if asset is cereal deserialize file.
+            if(files.size() == 1) {
+                std::string extension = files[0].substr(files[0].find_last_of(".") + 1);
+                if (extension == "limonmodel") {
+                    loadUsingCereal(files);
+                    loaded = true;
+                }
+            }
+            if(!loaded) {
+                assets[files] = std::make_pair(new T(this, nextAssetIndex, files), 0);
+                nextAssetIndex++;
+            }
         }
 
         assets[files].second++;

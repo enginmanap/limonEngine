@@ -18,7 +18,7 @@ bool AnimationAssimp::calculateTransform(const std::string& nodeName, float time
         return status;
     }
     status = true;
-    AnimationNode *nodeAnimation = nodes.at(nodeName);
+    std::shared_ptr<AnimationNode> nodeAnimation = nodes.at(nodeName);
 
     transformation.setScale(nodeAnimation->getScalingVector(time));
     transformation.setOrientation(nodeAnimation->getRotationQuat(time));
@@ -31,7 +31,7 @@ AnimationAssimp::AnimationAssimp(aiAnimation *assimpAnimation) {
     ticksPerSecond = assimpAnimation->mTicksPerSecond;
     //create and attach AnimationNodes
     for (unsigned int j = 0; j < assimpAnimation->mNumChannels; ++j) {
-        AnimationNode *node = new AnimationNode();
+        std::shared_ptr<AnimationNode> node = std::make_shared<AnimationNode>();
         for (unsigned int k = 0; k < assimpAnimation->mChannels[j]->mNumPositionKeys; ++k) {
             node->translates.push_back(glm::vec3(
                     assimpAnimation->mChannels[j]->mPositionKeys[k].mValue.x,

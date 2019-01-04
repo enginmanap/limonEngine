@@ -7,6 +7,7 @@
 
 
 #include <vector>
+#include <memory>
 #include "../libs/ImGuizmo/ImSequencer.h"
 #include "Transformation.h"
 
@@ -40,8 +41,8 @@ class AnimationSequenceInterface : public ImSequencer::SequenceInterface {
      * @param animationToFill
      */
     void fillAnimationFromItem(uint32_t itemIndex, AnimationCustom *animationToFill, const Transformation& sourceTransform) const;
-    void pushTransformToAnimationTime(AnimationNode *animationNode, float time, const Transformation &transformation) const;
-    void pushIdentityToAnimationTime(AnimationNode *animationNode, float time) const;
+    void pushTransformToAnimationTime(std::shared_ptr<AnimationNode> animationNode, float time, const Transformation &transformation) const;
+    void pushIdentityToAnimationTime(std::shared_ptr<AnimationNode> animationNode, float time) const;
 
 
 public:
