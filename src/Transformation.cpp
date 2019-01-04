@@ -161,7 +161,7 @@ bool Transformation::addImGuizmoElements(const ImGuizmoState &editorState, const
                                             glm::value_ptr(scale),
                                             glm::value_ptr(objectMatrix));
 
-    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
+    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
 
     ImGuiIO& io = ImGui::GetIO();
     ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
