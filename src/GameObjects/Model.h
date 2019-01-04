@@ -7,6 +7,7 @@
 
 
 #include <vector>
+#include <set>
 #include <bullet/BulletCollision/CollisionShapes/btShapeHull.h>
 
 #include "glm/glm.hpp"
@@ -30,7 +31,7 @@ class Model : public PhysicalRenderable, public GameObject {
     ActorInterface *AIActor = nullptr;
     AssetManager *assetManager;
     ModelAsset *modelAsset;
-
+private:
     std::string animationName;
     long animationTime = 0;
     bool animationLooped = true;
@@ -196,6 +197,8 @@ public:
     uint32_t getAssetID() {
         return modelAsset->getAssetID();
     }
+
+    void convertAssetToLimon(std::set<std::vector<std::string>>& convertedAssetsSet);
 
     /**
      * This method allows attachment to a specific bone of the model, if a bone is selected. If no bone is selected, world transform is returned.

@@ -3,6 +3,7 @@
 //
 
 #include "AssetManager.h"
+#include "ModelAsset.h"
 
 #include <algorithm>
 #include <string>
@@ -178,5 +179,21 @@ AssetManager::getAvailableAssetsTreeFilteredRecursive(const AvailableAssetsNode 
         }
     }
     return newAssetsNode;
+}
+
+void AssetManager::loadUsingCereal(const std::vector<std::string> files) {
+#ifdef CEREAL_SUPPORT
+    std::ifstream is(files[0], std::ios::binary);
+    cereal::BinaryInputArchive archive(is);
+    ModelAsset* ma = new ModelAsset();
+    archive(*ma);
+    ma->afterDeserialize(this, files);
+    assets[files] = std::make_pair(ma, 0);
+    nextAssetIndex++;
+#else
+    std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
+    std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
+    exit(-1);
+#endif
 }
 

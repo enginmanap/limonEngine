@@ -70,7 +70,7 @@ bool AnimationLoader::loadNodesFromXML(tinyxml2::XMLNode *animationNode, Animati
         std::cerr << "Animation must have at least one animation node." << std::endl;
         return false;
     }
-    AnimationNode *animationForNode = new AnimationNode();
+    std::shared_ptr<AnimationNode> animationForNode = std::make_shared<AnimationNode>();
 
     loadingAnimation->animationNode = animationForNode;
 
@@ -82,7 +82,7 @@ bool AnimationLoader::loadNodesFromXML(tinyxml2::XMLNode *animationNode, Animati
 }
 
 bool AnimationLoader::readTranslateAndTimes(tinyxml2::XMLElement *nodeNode,
-                                            AnimationNode *animationForNode) {
+                                            std::shared_ptr<AnimationNode> animationForNode) {
     tinyxml2::XMLElement *nodeAttribute;
     tinyxml2::XMLElement* nodeAttributeAttribute;
     tinyxml2::XMLElement* nodeAttributeAttributeValue;
@@ -145,7 +145,7 @@ bool AnimationLoader::readTranslateAndTimes(tinyxml2::XMLElement *nodeNode,
     return true;
 }
 
-bool AnimationLoader::readScaleAndTimes(tinyxml2::XMLElement *nodeNode, AnimationNode *animationForNode) {
+bool AnimationLoader::readScaleAndTimes(tinyxml2::XMLElement *nodeNode, std::shared_ptr<AnimationNode> animationForNode) {
     tinyxml2::XMLElement *nodeAttribute;
     tinyxml2::XMLElement* nodeAttributeAttribute;
     tinyxml2::XMLElement* nodeAttributeAttributeValue;
@@ -209,7 +209,7 @@ bool AnimationLoader::readScaleAndTimes(tinyxml2::XMLElement *nodeNode, Animatio
 }
 
 bool
-AnimationLoader::readRotationAndTimes(tinyxml2::XMLElement *nodeNode, AnimationNode *animationForNode) {
+AnimationLoader::readRotationAndTimes(tinyxml2::XMLElement *nodeNode, std::shared_ptr<AnimationNode> animationForNode) {
     tinyxml2::XMLElement *nodeAttribute;
     tinyxml2::XMLElement* nodeAttributeAttribute;
     tinyxml2::XMLElement* nodeAttributeAttributeValue;
