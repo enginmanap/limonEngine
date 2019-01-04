@@ -3,6 +3,7 @@
 //
 
 #include <set>
+
 #include "ModelAsset.h"
 #include "../glm/gtx/matrix_decompose.hpp"
 #include "../Utils/GLMUtils.h"
@@ -32,8 +33,6 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     flags = flags & ~aiProcess_FindInvalidData;
 #endif
     scene = import.ReadFile(name, flags);
-
-
 
     if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         std::cerr << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
@@ -87,7 +86,7 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     //std::cout << "Model asset: " << name << "Assimp bounding box is " << GLMUtils::vectorToString(boundingBoxMin) << ", " <<  GLMUtils::vectorToString(boundingBoxMax) << std::endl;
     //Implicit call to import.FreeScene(), and removal of scene.
 
-    //it is possible that there are mixamo animation files, chech if they do, add them too if needed
+    //it is possible that there are mixamo animation files, check if they do, add them too if needed
     const AssetManager::AvailableAssetsNode* availableAssetsTree = assetManager->getAvailableAssetsTree();
 
     //first find node of the object itself
@@ -124,6 +123,51 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     }
 
     this->deserializeCustomizations();
+}
+
+
+void ModelAsset::afterDeserialize(AssetManager *assetManager, std::vector<std::string> files) {
+    // serialize should save these
+    // assetID
+    // boneIDCounter
+    // boneIDCounterPerMesh
+    // name
+    // textures -> get from assetmanager
+    // hasAnimation
+    // rootNode
+    // boundingBoxMax
+    // boundingBoxMin
+    // centerOffset
+    // boneInformationMap
+    // simplifiedMeshes
+    // meshes
+    // animations
+    // animationSections
+    // customizationAfterSave
+
+    // AssetManager::EmbeddedTexture eTextures should be serializeable
+    // Animations should be
+
+    this->assetManager = assetManager;
+    if (files.empty()) {
+        std::cerr << "Model load failed because file name vector is empty." << std::endl;
+        exit(-1);
+    }
+    this->name = files[0];
+
+    if(temporaryEmbeddedTextures->size() > 0 ) {
+        assetManager->addEmbeddedTextures(this->name, *temporaryEmbeddedTextures);
+    }
+    temporaryEmbeddedTextures.reset();
+
+    for (auto material = materialMap.begin(); material != materialMap.end(); ++material) {
+        material->second->afterDeserialize(assetManager, name);
+        assetManager->getGlHelper()->setMaterial(material->second);
+    }
+
+    for (auto mesh = meshes.begin(); mesh != meshes.end(); ++mesh) {
+        (*mesh)->afterDeserialize(assetManager);
+    }
 }
 
 

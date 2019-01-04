@@ -36,7 +36,7 @@
 #include "PostProcess/SSAOPostProcess.h"
 #include "PostProcess/SSAOBlurPostProcess.h"
 #include "SDL2Helper.h"
-
+#include <cereal/archives/binary.hpp>
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -1288,6 +1288,15 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 this->grid->serialize(AIWalkName);
             }
         }
+
+        if(ImGui::Button("Save Selected ModelAsset")) {
+            if(pickedObject != nullptr && pickedObject->getTypeID() == GameObject::MODEL) {
+                Model* model = static_cast<Model*>(pickedObject);
+                std::set<std::vector<std::string>> convertedAssets;
+                model->convertAssetToLimon(convertedAssets);
+            }
+        }
+
         ImGui::End();
 
         ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
@@ -1551,7 +1560,7 @@ void World::addAnimationDefinitionToEditor() {
 
 World::~World() {
 
-    if(routeThreads.empty()) {
+    if(!routeThreads.empty()) {
         std::cout << "Waiting for AI route threads to finish. " << std::endl;
         for (auto threadIt = routeThreads.begin(); threadIt != routeThreads.end(); ++threadIt) {
             threadIt->second->waitUntilDone();

@@ -10,6 +10,7 @@
 #include "../../Transformation.h"
 #include "AnimationInterface.h"
 #include <memory>
+#include <cereal/access.hpp>
 
 class AnimationCustom : public AnimationInterface {
     friend class AnimationLoader;
@@ -22,6 +23,7 @@ class AnimationCustom : public AnimationInterface {
 
     std::string name;
 
+    friend class cereal::access;
     /*this private constructor is meant for deserialize only*/
     AnimationCustom() = default;
 
@@ -53,7 +55,15 @@ public:
     }
 
     bool serializeAnimation(const std::string &path) const;
+
+    template<class Archive>
+    void serialize( Archive & ar ) {
+        ar(ticksPerSecond, duration, animationNode, name);
+    }
 };
 
+#include <cereal/types/polymorphic.hpp>
+CEREAL_REGISTER_TYPE(AnimationCustom)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(AnimationInterface, AnimationCustom)
 
 #endif //LIMONENGINE_ANIMATIONCUSTOM_H

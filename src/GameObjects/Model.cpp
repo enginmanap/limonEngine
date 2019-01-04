@@ -583,3 +583,12 @@ void Model::attachAI(ActorInterface *AIActor) {
     this->AIActor = AIActor;
     lastSelectedAIName = AIActor->getName();
 }
+
+void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedModels) {
+    std::string newName = name.substr(0, name.find_last_of(".")) + ".limonmodel";
+    std::ofstream os(newName, std::ios::binary);
+    cereal::BinaryOutputArchive archive( os );
+
+    archive(*modelAsset);
+    this->name = newName;//change name of self so next time converted file would be used.
+}

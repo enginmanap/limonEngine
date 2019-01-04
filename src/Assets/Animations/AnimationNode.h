@@ -12,6 +12,9 @@
 #include <glm/gtc/quaternion.hpp>
 #include <string>
 
+#include <cereal/types/vector.hpp>
+#include "../../Utils/GLMCerealConverters.hpp"
+
 //ATTENTION this is not a class, but a struct
 struct AnimationNode {
 
@@ -36,6 +39,12 @@ struct AnimationNode {
         void fillScaleAndTimes(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *nodeElement) const;
 
         void fillRotationAndTimes(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *nodeElement) const;
+
+public:
+    template<class Archive>
+    void serialize( Archive & ar ) {
+        ar(translates, translateTimes, scales, scaleTimes, rotations, rotationTimes);
+    }
 
 };
 

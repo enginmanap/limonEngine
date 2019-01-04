@@ -17,6 +17,13 @@
 #include "AssetManager.h"
 #include "../Material.h"
 #include "BoneNode.h"
+#include <cereal/cereal.hpp>
+#include <cereal/access.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/map.hpp>
+#include "../Utils/GLMCerealConverters.hpp"
+
 
 
 class MeshAsset {
@@ -41,8 +48,8 @@ class MeshAsset {
     std::vector<glm::vec4> boneWeights;
 
     std::shared_ptr<const Material> material;
-    const glm::mat4 parentTransform;
-    const bool isPartOfAnimated;
+    glm::mat4 parentTransform;
+    bool isPartOfAnimated;
 
     std::vector<btTriangleMesh *> shapeCopies;
 
@@ -51,11 +58,21 @@ class MeshAsset {
 
     void normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const;
 
+    friend class cereal::access;
+    friend class AssetManager;
+    MeshAsset(){}
 public:
     MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
               std::shared_ptr<const Material> material, std::shared_ptr<const BoneNode> meshSkeleton,
               const glm::mat4 &parentTransform,
               const bool isPartOfAnimated);
+
+    /**
+     * This method sets GPU side of the deserialization, and uses AssetManager to access GPU with getGLHelper
+     *
+     * @param assetManager
+     */
+    void afterDeserialize(AssetManager *assetManager);
 
     uint_fast32_t getTriangleCount() const { return triangleCount; }
 
@@ -88,6 +105,12 @@ public:
     std::string getName() {
         return name;
     }
+
+    template<class Archive>
+    void serialize(Archive & archive){
+        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, material, name, isPartOfAnimated, parentTransform);
+    }
+
 };
 
 

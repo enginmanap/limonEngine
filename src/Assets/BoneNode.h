@@ -27,6 +27,11 @@ public:
             this->children.push_back(std::make_shared<BoneNode>(*originalNode.children.at(i)));
         }
     }
+
+    template<class Archive>
+    void serialize(Archive & archive){
+        archive(name, boneID, children, transformation);
+    }
 };
 
 

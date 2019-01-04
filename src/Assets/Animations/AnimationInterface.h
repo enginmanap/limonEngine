@@ -8,6 +8,8 @@
 
 #include "../../Transformation.h"
 #include <glm/glm.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/xml.hpp>
 
 class AnimationInterface {
 public:

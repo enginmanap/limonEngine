@@ -13,6 +13,8 @@
 #include <BulletCollision/CollisionShapes/btShapeHull.h>
 #include <cstdint>
 #include <unordered_map>
+#include <cereal/cereal.hpp>
+#include <cereal/access.hpp>
 
 #include "../Utils/AssimpUtils.h"
 #include "../Material.h"
@@ -21,7 +23,7 @@
 #include "../Utils/GLMConverter.h"
 #include "BoneNode.h"
 #include "Animations/AnimationInterface.h"
-
+#include "../Utils/GLMCerealConverters.hpp"
 
 class AnimationAssimp;
 
@@ -31,6 +33,11 @@ class ModelAsset : public Asset {
         glm::mat4 offset;
         glm::mat4 parentOffset;
         glm::mat4 globalMeshInverse;
+
+        template<class Archive>
+        void serialize( Archive & ar ) {
+            ar( offset, parentOffset, globalMeshInverse);
+        }
     };
 
     struct AnimationSection {
@@ -42,6 +49,12 @@ class ModelAsset : public Asset {
         AnimationSection(const std::string &sourceAnimationName, const std::string &animationName,
                          float startTime, float endTime) : baseAnimationName(
                 sourceAnimationName), animationName(animationName), startTime(startTime), endTime(endTime) {}
+        //cereal uses
+        AnimationSection() : startTime(0), endTime(0){}
+        template<class Archive>
+        void serialize( Archive & ar ) {
+            ar( baseAnimationName, animationName, startTime, endTime);
+        }
     };
 
     std::string name;
@@ -63,6 +76,8 @@ class ModelAsset : public Asset {
 
     bool hasAnimation;
     bool customizationAfterSave = false;
+
+    std::unique_ptr<std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>>> temporaryEmbeddedTextures = nullptr;//this is set on cerealLoad
 
     std::shared_ptr<Material> loadMaterials(const aiScene *scene, unsigned int materialIndex);
 
@@ -92,9 +107,17 @@ class ModelAsset : public Asset {
     int32_t buildEditorBoneTreeRecursive(std::shared_ptr<BoneNode> boneNode, int32_t selectedBoneNodeID);
 
 
+    friend class cereal::access;
+    friend class AssetManager;
+    /**
+     * This is used by cereal for deserialize
+     */
+    ModelAsset() : Asset(nullptr, 0, std::vector<std::string>()) {};
+
 public:
     ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
 
+    void afterDeserialize(AssetManager *assetManager, std::vector<std::string> files);
     bool addAnimationAsSubSequence(const std::string &baseAnimationName, const std::string newAnimationName,
                                    float startTime, float endTime);
 
@@ -164,6 +187,27 @@ public:
     void serializeCustomizations();
 
     int32_t buildEditorBoneTree(int32_t selectedBoneNodeID);
+
+    template<class Archive>
+    void save( Archive & ar ) const {
+        std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>> textures;
+        size_t index = 0;
+        std::shared_ptr<const AssetManager::EmbeddedTexture> embeddedTexture = assetManager->getEmbeddedTextures(name, index);
+        while(embeddedTexture != nullptr) {
+            textures.push_back(embeddedTexture);
+            index++;
+            embeddedTexture = assetManager->getEmbeddedTextures(name, index);
+        }
+        ar(assetID, boneIDCounter, boneIDCounterPerMesh, textures,                   hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap);
+    }
+
+    template<class Archive>
+    void load( Archive & ar ) {
+        temporaryEmbeddedTextures = std::make_unique<std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>>>();
+        ar(assetID, boneIDCounter, boneIDCounterPerMesh, *temporaryEmbeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap);
+        //now update embedded textures to assetManager
+
+    }
 
 };
 

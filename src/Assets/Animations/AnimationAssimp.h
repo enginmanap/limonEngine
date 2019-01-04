@@ -13,6 +13,8 @@
 #include <tinyxml2.h>
 #include "AnimationInterface.h"
 #include <memory>
+#include <cereal/types/unordered_map.hpp>
+#include <cereal/access.hpp>
 #include "AnimationNode.h"
 
 class AnimationAssimp : public AnimationInterface {
@@ -20,6 +22,8 @@ class AnimationAssimp : public AnimationInterface {
     float duration;
     //This map keeps the animations for node(bone)
     std::unordered_map<std::string, std::shared_ptr<AnimationNode>> nodes;
+    friend class cereal::access;
+    AnimationAssimp(){}
 public:
     AnimationAssimp(aiAnimation *assimpAnimation);
 
@@ -32,7 +36,15 @@ public:
     float getDuration() const {
         return duration;
     }
+
+    template<class Archive>
+    void serialize( Archive & ar ) {
+        ar(ticksPerSecond, duration, nodes);
+    }
 };
 
+#include <cereal/types/polymorphic.hpp>
+CEREAL_REGISTER_TYPE(AnimationAssimp)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(AnimationInterface, AnimationAssimp)
 
 #endif //LIMONENGINE_ANIMATIONASSIMP_H

@@ -1,4 +1,5 @@
 <Assets>
+	<Asset type="Model">limonmodel</Asset><!--Limon custom model-->
     <Asset type="Model">3d</Asset>
     <Asset type="Model">3ds</Asset>
     <Asset type="Model">3mf</Asset>
