@@ -36,7 +36,6 @@
 #include "PostProcess/SSAOPostProcess.h"
 #include "PostProcess/SSAOBlurPostProcess.h"
 #include "SDL2Helper.h"
-#include <cereal/archives/binary.hpp>
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {

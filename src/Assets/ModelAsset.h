@@ -13,8 +13,10 @@
 #include <BulletCollision/CollisionShapes/btShapeHull.h>
 #include <cstdint>
 #include <unordered_map>
-#include <cereal/cereal.hpp>
+#ifdef CEREAL_SUPPORT
 #include <cereal/access.hpp>
+#include "../Utils/GLMCerealConverters.hpp"
+#endif
 
 #include "../Utils/AssimpUtils.h"
 #include "../Material.h"
@@ -23,7 +25,6 @@
 #include "../Utils/GLMConverter.h"
 #include "BoneNode.h"
 #include "Animations/AnimationInterface.h"
-#include "../Utils/GLMCerealConverters.hpp"
 
 class AnimationAssimp;
 
@@ -106,8 +107,9 @@ class ModelAsset : public Asset {
 
     int32_t buildEditorBoneTreeRecursive(std::shared_ptr<BoneNode> boneNode, int32_t selectedBoneNodeID);
 
-
+#ifdef CEREAL_SUPPORT
     friend class cereal::access;
+#endif
     friend class AssetManager;
     /**
      * This is used by cereal for deserialize
@@ -187,7 +189,7 @@ public:
     void serializeCustomizations();
 
     int32_t buildEditorBoneTree(int32_t selectedBoneNodeID);
-
+#ifdef CEREAL_SUPPORT
     template<class Archive>
     void save( Archive & ar ) const {
         std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>> textures;
@@ -206,8 +208,8 @@ public:
         temporaryEmbeddedTextures = std::make_unique<std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>>>();
         ar(assetID, boneIDCounter, boneIDCounterPerMesh, *temporaryEmbeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap);
         //now update embedded textures to assetManager
-
     }
+#endif
 
 };
 
