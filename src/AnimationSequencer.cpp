@@ -70,7 +70,8 @@ AnimationCustom* AnimationSequenceInterface::buildAnimationFromCurrentItems() {
     //first, delete old one
     delete animationInProgress;
     //create new ones
-    animationInProgress = new AnimationCustom(animationNameBuffer, new AnimationNode(), 0);// we don't have a duration yet. it will be determined afterwards
+    std::shared_ptr<AnimationNode> animationNode = std::make_shared<AnimationNode>();
+    animationInProgress = new AnimationCustom(animationNameBuffer, animationNode, 0);// we don't have a duration yet. it will be determined afterwards
 
     if(sections.size() == 0) {
         pushIdentityToAnimationTime(animationInProgress->animationNode, 0);
@@ -109,11 +110,13 @@ AnimationCustom* AnimationSequenceInterface::buildAnimationFromCurrentItems() {
         delete animationBase;
         animationBase = new AnimationCustom(*animationInProgress);
         delete animationInProgress;
-        animationInProgress = new AnimationCustom(animationNameBuffer, new AnimationNode(), maxDuration);
+        auto animationNode = std::make_shared<AnimationNode>();
+        animationInProgress = new AnimationCustom(animationNameBuffer, animationNode, maxDuration);
 
         //setup done, build animation for current item.
         item = sections[i];
-        AnimationCustom* itemsAnimation = new AnimationCustom("item", new AnimationNode(), 0);
+        auto animationNode2 = std::make_shared<AnimationNode>();
+        AnimationCustom* itemsAnimation = new AnimationCustom("item", animationNode2, 0);
         fillAnimationFromItem(i, itemsAnimation, sections[i-1].transformation);
 
         //sample both, join
@@ -204,7 +207,7 @@ void AnimationSequenceInterface::fillAnimationFromItem(uint32_t itemIndex, Anima
     animationToFill->duration = item.mFrameEnd;
 }
 
-void AnimationSequenceInterface::pushTransformToAnimationTime(AnimationNode *animationNode, float time, const Transformation &transformation) const {
+void AnimationSequenceInterface::pushTransformToAnimationTime(std::shared_ptr<AnimationNode> animationNode, float time, const Transformation &transformation) const {
     animationNode->translates.push_back(transformation.getTranslate());
     animationNode->translateTimes.push_back(time);
     animationNode->scales.push_back(transformation.getScale());
@@ -213,7 +216,7 @@ void AnimationSequenceInterface::pushTransformToAnimationTime(AnimationNode *ani
     animationNode->rotationTimes.push_back(time);
 }
 
-void AnimationSequenceInterface::pushIdentityToAnimationTime(AnimationNode *animationNode, float time) const {
+void AnimationSequenceInterface::pushIdentityToAnimationTime(std::shared_ptr<AnimationNode>animationNode, float time) const {
     animationNode->translates.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
     animationNode->translateTimes.push_back(time);
     animationNode->scales.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
