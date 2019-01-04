@@ -9,6 +9,7 @@
 #include "AnimationNode.h"
 #include "../../Transformation.h"
 #include "AnimationInterface.h"
+#include <memory>
 
 class AnimationCustom : public AnimationInterface {
     friend class AnimationLoader;
@@ -17,27 +18,24 @@ class AnimationCustom : public AnimationInterface {
     float ticksPerSecond;
     float duration;
 
-    AnimationNode* animationNode;
+    std::shared_ptr<AnimationNode> animationNode;
+
     std::string name;
 
     /*this private constructor is meant for deserialize only*/
     AnimationCustom() = default;
 
 public:
-    AnimationCustom(const std::string &animationName, AnimationNode *animationNode, int duration)
+    AnimationCustom(const std::string &animationName, std::shared_ptr<AnimationNode> animationNode, int duration)
             : ticksPerSecond(60), duration(duration), name(animationName) {
             this->animationNode = animationNode;
-    }
-
-    ~AnimationCustom() {
-        delete animationNode;
     }
 
     AnimationCustom(const AnimationCustom &otherAnimation) {
         this->ticksPerSecond = otherAnimation.ticksPerSecond;
         this->duration = otherAnimation.duration;
         this->name = otherAnimation.name;
-        this->animationNode = new AnimationNode(*(otherAnimation.animationNode));//default copy constructor used
+        this->animationNode = std::make_shared<AnimationNode>(*(otherAnimation.animationNode));//default copy constructor used
     }
 
     bool calculateTransform(const std::string& nodeName __attribute((unused)), float time __attribute((unused)), Transformation& transformation) const;

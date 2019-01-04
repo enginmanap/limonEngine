@@ -12,14 +12,14 @@
 #include <unordered_map>
 #include <tinyxml2.h>
 #include "AnimationInterface.h"
-
-class AnimationNode;
+#include <memory>
+#include "AnimationNode.h"
 
 class AnimationAssimp : public AnimationInterface {
     float ticksPerSecond;
     float duration;
     //This map keeps the animations for node(bone)
-    std::unordered_map<std::string, AnimationNode*> nodes;
+    std::unordered_map<std::string, std::shared_ptr<AnimationNode>> nodes;
 public:
     AnimationAssimp(aiAnimation *assimpAnimation);
 
