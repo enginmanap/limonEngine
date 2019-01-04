@@ -17,12 +17,13 @@
 #include "AssetManager.h"
 #include "../Material.h"
 #include "BoneNode.h"
-#include <cereal/cereal.hpp>
+#ifdef CEREAL_SUPPORT
 #include <cereal/access.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/map.hpp>
 #include "../Utils/GLMCerealConverters.hpp"
+#endif
 
 
 
@@ -57,9 +58,9 @@ class MeshAsset {
     bool setTriangles(const aiMesh *currentMesh);
 
     void normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const;
-
+#ifdef CEREAL_SUPPORT
     friend class cereal::access;
-    friend class AssetManager;
+#endif
     MeshAsset(){}
 public:
     MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
@@ -105,12 +106,12 @@ public:
     std::string getName() {
         return name;
     }
-
+#ifdef CEREAL_SUPPORT
     template<class Archive>
     void serialize(Archive & archive){
         archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, material, name, isPartOfAnimated, parentTransform);
     }
-
+#endif
 };
 
 

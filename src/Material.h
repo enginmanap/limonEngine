@@ -5,7 +5,10 @@
 #ifndef LIMONENGINE_MATERIAL_H
 #define LIMONENGINE_MATERIAL_H
 
+#ifdef CEREAL_SUPPORT
 #include <cereal/access.hpp>
+#endif
+
 #include "glm/glm.hpp"
 #include "Assets/TextureAsset.h"
 #include "Assets/AssetManager.h"
@@ -32,7 +35,9 @@ private:
     std::unique_ptr<std::vector<std::vector<std::string>>> textureNameListList = nullptr;
 
     TextureAsset *ambientTexture = nullptr, *diffuseTexture = nullptr, *specularTexture = nullptr, *normalTexture = nullptr, *opacityTexture = nullptr;
+#ifdef CEREAL_SUPPORT
     friend class cereal::access;
+#endif
     friend class AssetManager;
     Material() {};
 
@@ -229,7 +234,7 @@ public:
     uint32_t getMaps() const {
         return maps;
     }
-
+#ifdef CEREAL_SUPPORT
     template<class Archive>
     void save(Archive & archive) const {
         //AssetManager *assetManager;
@@ -275,7 +280,7 @@ public:
         archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex,
                 ambientTextureNames, diffuseTextureNames, specularTextureNames, normalTextureNames, opacityTextureNames);
     }
-
+#endif
 };
 
 

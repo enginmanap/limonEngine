@@ -7,6 +7,7 @@
 
 
 #include <vector>
+#include <set>
 #include <bullet/BulletCollision/CollisionShapes/btShapeHull.h>
 
 #include "glm/glm.hpp"

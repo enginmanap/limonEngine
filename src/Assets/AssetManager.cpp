@@ -9,7 +9,6 @@
 #include <string>
 #include <dirent.h>
 #include <sys/stat.h>
-#include <cereal/archives/binary.hpp>
 
 void AssetManager::addAssetsRecursively(const std::string &directoryPath, const std::string &fileName,
                                         const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions,
@@ -183,6 +182,7 @@ AssetManager::getAvailableAssetsTreeFilteredRecursive(const AvailableAssetsNode 
 }
 
 void AssetManager::loadUsingCereal(const std::vector<std::string> files) {
+#ifdef CEREAL_SUPPORT
     std::ifstream is(files[0], std::ios::binary);
     cereal::BinaryInputArchive archive(is);
     ModelAsset* ma = new ModelAsset();
@@ -190,5 +190,10 @@ void AssetManager::loadUsingCereal(const std::vector<std::string> files) {
     ma->afterDeserialize(this, files);
     assets[files] = std::make_pair(ma, 0);
     nextAssetIndex++;
+#else
+    std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
+    std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
+    exit(-1);
+#endif
 }
 

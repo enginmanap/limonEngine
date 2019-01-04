@@ -10,7 +10,6 @@
 #include <map>
 #include <utility>
 #include <tinyxml2.h>
-#include <cereal/archives/xml.hpp>
 #include <fstream>
 
 #include "Asset.h"
