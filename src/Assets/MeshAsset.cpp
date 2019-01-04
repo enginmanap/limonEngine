@@ -120,6 +120,45 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
     }
 }
 
+
+void MeshAsset::afterDeserialize(AssetManager *assetManager) {
+    /*** things should be set by serialize */
+    //triangleCount
+    //vertexCount
+    // isPartOfAnimated
+    //vertices
+    //faces
+    //normals
+    //textureCoordinates
+    //bones
+    //skeleton
+    // boneIDs
+    // boneWeights
+    // boneAttachedMeshes;
+    // boneIDMap
+
+
+    uint_fast32_t vbo;
+    assetManager->getGlHelper()->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
+    bufferObjects.push_back(vbo);
+
+    assetManager->getGlHelper()->bufferNormalData(normals, vao, vbo, 4);
+    bufferObjects.push_back(vbo);
+
+    if (!textureCoordinates.empty()) {
+        assetManager->getGlHelper()->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
+        bufferObjects.push_back(vbo);
+    }
+
+    if (this->bones) {
+        assetManager->getGlHelper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
+        bufferObjects.push_back(vbo);
+
+        assetManager->getGlHelper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
+        bufferObjects.push_back(vbo);
+    }
+}
+
 bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
     //In this part, the "if"s can be put in for, but then we will check them for each iteration. I am
     // not sure if that creates enough performance difference, it can be checked.
@@ -270,5 +309,3 @@ void MeshAsset::fillBoneMap(std::shared_ptr<const BoneNode> boneNode) {
         fillBoneMap(boneNode->children[i]);
     }
 }
-
-

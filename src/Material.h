@@ -5,6 +5,7 @@
 #ifndef LIMONENGINE_MATERIAL_H
 #define LIMONENGINE_MATERIAL_H
 
+#include <cereal/access.hpp>
 #include "glm/glm.hpp"
 #include "Assets/TextureAsset.h"
 #include "Assets/AssetManager.h"
@@ -14,11 +15,13 @@ class Material {
 private:
     AssetManager *assetManager;
     std::string name;
-    float specularExponent;
+    float specularExponent = 0;
     uint32_t materialIndex;
-    uint32_t maps;
+    uint32_t maps = 0;
 
-    glm::vec3 ambientColor, diffuseColor, specularColor;
+    glm::vec3 ambientColor;
+    glm::vec3 diffuseColor;
+    glm::vec3 specularColor;
     bool isAmbientMap = false;
     bool isDiffuseMap = false;
     bool isSpecularMap = false;
@@ -26,7 +29,12 @@ private:
     bool isOpacityMap = false;
     float refractionIndex;
 
+    std::unique_ptr<std::vector<std::vector<std::string>>> textureNameListList = nullptr;
+
     TextureAsset *ambientTexture = nullptr, *diffuseTexture = nullptr, *specularTexture = nullptr, *normalTexture = nullptr, *opacityTexture = nullptr;
+    friend class cereal::access;
+    friend class AssetManager;
+    Material() {};
 
 public:
     Material(AssetManager *assetManager, const std::string &name, uint32_t materialIndex, float specularExponent, const glm::vec3 &ambientColor,
@@ -43,7 +51,13 @@ public:
 
     Material(AssetManager *assetManager, const std::string &name, uint32_t materialIndex)
             : assetManager(assetManager),
-              name(name), materialIndex(materialIndex) { }
+              name(name),
+              materialIndex(materialIndex),
+              ambientColor(glm::vec3(0,0,0)),
+              diffuseColor(glm::vec3(0,0,0)),
+              specularColor(glm::vec3(0,0,0)) { }
+
+    void afterDeserialize(AssetManager *assetManager, std::string modelAssetFileName);
 
     const std::string &getName() const {
         return name;
@@ -214,6 +228,52 @@ public:
 
     uint32_t getMaps() const {
         return maps;
+    }
+
+    template<class Archive>
+    void save(Archive & archive) const {
+        //AssetManager *assetManager;
+        //TextureAsset *ambientTexture = nullptr, *diffuseTexture = nullptr, *specularTexture = nullptr, *normalTexture = nullptr, *opacityTexture = nullptr;
+
+        std::vector<std::string> ambientTextureNames, diffuseTextureNames, specularTextureNames, normalTextureNames, opacityTextureNames;
+
+        if(ambientTexture != nullptr) {
+            ambientTextureNames = ambientTexture->getName();
+        };
+        if(diffuseTexture != nullptr) {
+            diffuseTextureNames = diffuseTexture->getName();
+        };
+        if(specularTexture != nullptr) {
+            specularTextureNames = specularTexture->getName();
+        };
+        if(normalTexture != nullptr) {
+            normalTextureNames = normalTexture->getName();
+        };
+        if(opacityTexture != nullptr) {
+            opacityTextureNames = opacityTexture->getName();
+        };
+
+        archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex,
+                ambientTextureNames, diffuseTextureNames, specularTextureNames, normalTextureNames, opacityTextureNames);
+    }
+
+    template<class Archive>
+    void load(Archive & archive)  {
+        //AssetManager *assetManager;
+        //TextureAsset *ambientTexture = nullptr, *diffuseTexture = nullptr, *specularTexture = nullptr, *normalTexture = nullptr, *opacityTexture = nullptr;
+
+        textureNameListList = std::make_unique<std::vector<std::vector<std::string>>>();
+        for (int i = 0; i < 5; ++i) {
+            textureNameListList->push_back(std::vector<std::string>());
+        }
+
+        std::vector<std::string> &ambientTextureNames  = textureNameListList->at(0);
+        std::vector<std::string> &diffuseTextureNames  = textureNameListList->at(1);
+        std::vector<std::string> &specularTextureNames = textureNameListList->at(2);
+        std::vector<std::string> &normalTextureNames   = textureNameListList->at(3);
+        std::vector<std::string> &opacityTextureNames  = textureNameListList->at(4);
+        archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex,
+                ambientTextureNames, diffuseTextureNames, specularTextureNames, normalTextureNames, opacityTextureNames);
     }
 
 };

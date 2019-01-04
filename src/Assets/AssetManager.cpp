@@ -3,11 +3,13 @@
 //
 
 #include "AssetManager.h"
+#include "ModelAsset.h"
 
 #include <algorithm>
 #include <string>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <cereal/archives/binary.hpp>
 
 void AssetManager::addAssetsRecursively(const std::string &directoryPath, const std::string &fileName,
                                         const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions,
@@ -178,5 +180,15 @@ AssetManager::getAvailableAssetsTreeFilteredRecursive(const AvailableAssetsNode 
         }
     }
     return newAssetsNode;
+}
+
+void AssetManager::loadUsingCereal(const std::vector<std::string> files) {
+    std::ifstream is(files[0], std::ios::binary);
+    cereal::BinaryInputArchive archive(is);
+    ModelAsset* ma = new ModelAsset();
+    archive(*ma);
+    ma->afterDeserialize(this, files);
+    assets[files] = std::make_pair(ma, 0);
+    nextAssetIndex++;
 }
 

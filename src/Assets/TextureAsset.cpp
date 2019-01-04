@@ -30,6 +30,8 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
                 rwop = SDL_RWFromMem((void*)embeddedTexture->texelData.data(), embeddedTexture->width * embeddedTexture->height);
             }
             surface = IMG_Load_RW(rwop, 0);
+        } else {
+            std::cerr << "Embedded texture can't be found with following information: " << files[1] << ":" << textureID << std::endl;
         }
     } else {
         /**
