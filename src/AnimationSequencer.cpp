@@ -61,7 +61,7 @@ void AnimationSequenceInterface::setTransform(int32_t indexToSet) {
     }
     glm::vec3 translate, scale;
     glm::quat rotation;
-    originalTransformation.getDifferenceAddition(*animatingObject->getTransformation(), translate, scale, rotation);
+    originalTransformation.getDifferenceStacked(*animatingObject->getTransformation(), translate, scale, rotation);
     AnimationSequenceInterface::AnimationSequenceItem &item = sections[indexToSet];
     item.transformation.setTransformationsNotPropagate(translate,rotation,scale);
 }
