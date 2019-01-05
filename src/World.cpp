@@ -1272,7 +1272,10 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 } else {
                     options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation save failed");
                 }
-
+            }
+            //before saving, set the connection state
+            for (auto objectIt = disconnectedModels.begin(); objectIt != disconnectedModels.end(); ++objectIt) {
+                disconnectObjectFromPhysics(*objectIt);
             }
 
             if(WorldSaver::saveWorld(worldSaveNameBuffer, this)) {
@@ -1280,6 +1283,11 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             } else {
                 options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
             }
+            //after save, set the states back
+            for (auto objectIt = disconnectedModels.begin(); objectIt != disconnectedModels.end(); ++objectIt) {
+                reconnectObjectToPhysics(*objectIt);
+            }
+
         }
         if(ImGui::Button("Save AI walk Grid")) {
             if(this->grid != nullptr) {
@@ -1377,7 +1385,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             ImGui::NewLine();
             switch (pickedObject->getTypeID()) {
                 case GameObject::MODEL: {
-                    if (static_cast<Model *>(pickedObject)->isDisconnected()) {
+                    if (disconnectedModels.find(pickedObject->getWorldObjectID()) != disconnectedModels.end()) {
                         if (ImGui::Button("reconnect to physics")) {
                             reconnectObjectToPhysicsRequest(static_cast<Model *>(pickedObject)->getWorldObjectID());//Request because that action will not be carried out on editor mode
                         }
