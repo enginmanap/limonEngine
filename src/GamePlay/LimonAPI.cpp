@@ -39,7 +39,7 @@ bool LimonAPI::updateGuiText(uint32_t guiTextID, const std::string &newText) {
 }
 
 uint32_t LimonAPI::removeGuiElement(uint32_t guiElementID) {
-    return worldRemoveGuiText(guiElementID);
+    return worldRemoveGuiElement(guiElementID);
 
 }
 

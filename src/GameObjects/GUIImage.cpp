@@ -25,7 +25,7 @@ GameObject::ObjectTypes GUIImage::getTypeID() const {
 }
 
 std::string GUIImage::getName() const {
-    return this->name;
+    return this->name + "_" + std::to_string(this->getWorldObjectID());
 }
 
 void GUIImage::addedToLayer(GUILayer *layer) {

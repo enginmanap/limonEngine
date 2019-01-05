@@ -2023,13 +2023,13 @@ uint32_t World::addGuiImageAPI(const std::string &imageFilePath, const std::stri
     return guiImage->getWorldObjectID();
 }
 
-uint32_t World::removeGuiText(uint32_t guiElementID) {
+bool World::removeGuiElement(uint32_t guiElementID) {
     if(guiElements.find(guiElementID) != guiElements.end()) {
         delete guiElements[guiElementID];
         guiElements.erase(guiElementID);
-        return 0;
+        return true;
     }
-    return 1;
+    return false;
 }
 
 std::vector<LimonAPI::ParameterRequest> World::getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID) {
