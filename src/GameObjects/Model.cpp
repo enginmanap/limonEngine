@@ -587,7 +587,7 @@ void Model::attachAI(ActorInterface *AIActor) {
     lastSelectedAIName = AIActor->getName();
 }
 
-void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedModels) {
+void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedModels __attribute__((unused))) {
 #ifdef CEREAL_SUPPORT
     std::string newName = name.substr(0, name.find_last_of(".")) + ".limonmodel";
     std::ofstream os(newName, std::ios::binary);
