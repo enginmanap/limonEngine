@@ -181,7 +181,7 @@ AssetManager::getAvailableAssetsTreeFilteredRecursive(const AvailableAssetsNode 
     return newAssetsNode;
 }
 
-void AssetManager::loadUsingCereal(const std::vector<std::string> files) {
+void AssetManager::loadUsingCereal(const std::vector<std::string> files __attribute__((unused))) {
 #ifdef CEREAL_SUPPORT
     std::ifstream is(files[0], std::ios::binary);
     cereal::BinaryInputArchive archive(is);
