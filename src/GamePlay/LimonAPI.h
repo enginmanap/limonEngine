@@ -257,7 +257,7 @@ private:
     std::function<uint32_t(const std::string &, const std::string &, const Vec2 &, const Vec2 &, float)> worldAddGuiImage;
     std::function<uint32_t(const std::string &, float, bool, const glm::vec3 &, const glm::vec3 &, const glm::quat &)> worldAddModel;
     std::function<bool(uint32_t, const std::string &)> worldUpdateGuiText;
-    std::function<uint32_t (uint32_t)> worldRemoveGuiText;
+    std::function<uint32_t (uint32_t)> worldRemoveGuiElement;
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t , uint32_t )> worldGetResultOfTrigger;
     std::function<bool (uint32_t)> worldRemoveObject;
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t)> worldGetObjectTransformation;

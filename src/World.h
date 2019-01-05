@@ -389,7 +389,7 @@ public:
 
     bool removeObject(uint32_t objectID);
     bool removeTriggerObject(uint32_t triggerobjectID);
-    uint32_t removeGuiText(uint32_t guiElementID);
+    bool removeGuiElement(uint32_t guiElementID);
 
     bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath);
 

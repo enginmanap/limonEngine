@@ -61,7 +61,7 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldUpdateGuiText = std::bind(&World::updateGuiText, world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGenerateEditorElementsForParameters = std::bind(&World::generateEditorElementsForParameters, world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGetResultOfTrigger = std::bind(&World::getResultOfTrigger, world, std::placeholders::_1, std::placeholders::_2);
-    limonAPI->worldRemoveGuiText = std::bind(&World::removeGuiText, world, std::placeholders::_1);
+    limonAPI->worldRemoveGuiElement = std::bind(&World::removeGuiElement, world, std::placeholders::_1);
     limonAPI->worldRemoveObject = std::bind(&World::removeObject, world, std::placeholders::_1);
     limonAPI->worldAttachObjectToObject = std::bind(&World::attachObjectToObject, world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldRemoveTriggerObject = std::bind(&World::removeTriggerObject, world, std::placeholders::_1);
