@@ -18,6 +18,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <SDL_atomic.h>
 #include <SDL_thread.h>
+#include "SDL2Helper.h"
 
 class SoundAsset;
 
@@ -36,6 +37,7 @@ class ALHelper {
         ALuint buffers[NUM_BUFFERS];
         const int16_t *nextDataToBuffer;
         bool looped;
+        bool stopped = false;
         glm::vec3 position = glm::vec3(0,0,0);
         bool isPositionRelative = true;
         bool isFinished();
@@ -46,6 +48,7 @@ class ALHelper {
 
     SDL_SpinLock playRequestLock;
     SDL_Thread *thread = nullptr;
+    SDL2Helper::SpinLock removeSoundLock;
 
     ALCdevice *dev;
     ALCcontext *ctx;
@@ -123,7 +126,7 @@ public:
         return result;
     }
 
-    uint32_t stop(uint32_t soundID);
+    bool stop(uint32_t soundID);
 
     inline void setListenerPositionAndOrientation(const glm::vec3 &position, const glm::vec3 &front, const glm::vec3 &up) {
         glm::vec3 velocity = this->ListenerPosition - position;
