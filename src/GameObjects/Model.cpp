@@ -4,6 +4,7 @@
 
 #include "Model.h"
 #include "../AI/ActorInterface.h"
+#include "../ImGuiHelper.h"
 #include <random>
 
 #ifdef CEREAL_SUPPORT
@@ -428,7 +429,7 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
             }
             ImGui::SliderFloat("Animation time scale", &(this->animationTimeScale), 0.01f, 2.0f);
 
-            ImGui::Text("Seperate selected animation by time");
+            ImGui::Text("Separate selected animation by time");
             static char newAnimationName[256] = {0};
             static float times[2] = {0};
             ImGui::InputText("New animation Name", newAnimationName, sizeof(newAnimationName) - 1 );
@@ -456,14 +457,38 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
         }
     }
     if (ImGui::CollapsingHeader("Sound properties")) {
-        //Step on sound properties
-        ImGui::InputText("Step On Sound", stepOnSoundNameBuffer, 128);
-        if (ImGui::Button("Change Sound")) {
-            if (this->stepOnSound != nullptr) {
-                this->stepOnSound->stop();
+        ImGui::Indent(16.0f);
+        static const AssetManager::AvailableAssetsNode *selectedSoundAsset = nullptr;
+        static char stepOnSoundFilter[32] = {0};
+        ImGui::InputText("Filter Assets ##StepOnSoundAssetTreeFilter", stepOnSoundFilter, sizeof(stepOnSoundFilter),
+                         ImGuiInputTextFlags_CharsNoBlank);
+        std::string stepOnSoundFilterStr = stepOnSoundFilter;
+        std::transform(stepOnSoundFilterStr.begin(), stepOnSoundFilterStr.end(), stepOnSoundFilterStr.begin(),
+                       ::tolower);
+        const AssetManager::AvailableAssetsNode *filteredAssets = assetManager->getAvailableAssetsTreeFiltered(
+                AssetManager::Asset_type_SOUND, stepOnSoundFilterStr);
+        ImGuiHelper::buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_SOUND,
+                                          "StepOnSound",
+                                          &selectedSoundAsset);
+
+        if (this->stepOnSound != nullptr) {
+            ImGui::Text(("step On Sound: " + this->stepOnSound->getName()).c_str());
+        } else {
+            ImGui::Text("No step on sound set.");
+        }
+
+        if (selectedSoundAsset != nullptr) {
+            if (ImGui::Button("Set Step On Sound")) {
+                if (this->stepOnSound != nullptr) {
+                    this->stepOnSound->stop();
+                }
+                this->stepOnSound = std::make_shared<Sound>(0, assetManager, selectedSoundAsset->fullPath);
+                this->stepOnSound->setLoop(true);
             }
-            this->stepOnSound = std::make_shared<Sound>(0, assetManager, std::string(stepOnSoundNameBuffer));
-            this->stepOnSound->setLoop(true);
+        } else {
+            ImGui::Button("Set Step On Sound");
+            ImGui::SameLine();
+            ImGuiHelper::ShowHelpMarker("No sound asset selected");
         }
     }
     if(animated) {
