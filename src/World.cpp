@@ -1214,27 +1214,44 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     onLoadActions.push_back(new ActionForOnload());
                 }
             }
-            static char musicNameBuffer[128] = {};
-            static bool musicRefresh = true;
-            if (musicRefresh) {
+
+            if(ImGui::CollapsingHeader("Music")) {
+                ImGui::Indent(16.0f);
+                static const AssetManager::AvailableAssetsNode *selectedSoundAsset = nullptr;
+                static char musicAssetFilter[32] = {0};
+                ImGui::InputText("Filter Assets ##MusicAssetTreeFilter", musicAssetFilter, sizeof(musicAssetFilter),
+                                 ImGuiInputTextFlags_CharsNoBlank);
+                std::string musicAssetFilterStr = musicAssetFilter;
+                std::transform(musicAssetFilterStr.begin(), musicAssetFilterStr.end(), musicAssetFilterStr.begin(),
+                               ::tolower);
+                const AssetManager::AvailableAssetsNode *filteredAssets = assetManager->getAvailableAssetsTreeFiltered(
+                        AssetManager::Asset_type_SOUND, musicAssetFilterStr);
+                imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_SOUND,
+                                                  "Music",
+                                                  &selectedSoundAsset);
+
                 if (this->music != nullptr) {
-                    if (this->music->getName().length() < sizeof(musicNameBuffer)) {
-                        strcpy(musicNameBuffer, this->music->getName().c_str());
-                    } else {
-                        strncpy(musicNameBuffer, this->music->getName().c_str(), sizeof(musicNameBuffer) - 1);
-                    }
+                    ImGui::Text(("Current Music: " + this->music->getName()).c_str());
+                } else {
+                    ImGui::Text("No music set for level. ");
                 }
-                musicRefresh = false;
-            }
-            ImGui::InputText("OnLoad Music", musicNameBuffer, 128);
-            if (ImGui::Button("Change Music")) {
-                musicRefresh = true;
-                this->music->stop();
-                delete this->music;
-                this->music = new Sound(getNextObjectID(), assetManager, std::string(musicNameBuffer));
-                this->music->setLoop(true);
-                this->music->setWorldPosition(glm::vec3(0, 0, 0), true);
-                this->music->play();
+
+                if (selectedSoundAsset != nullptr) {
+                    if (ImGui::Button("Change Music")) {
+                        if (this->music != nullptr) {
+                            this->music->stop();
+                            delete this->music;
+                        }
+                        this->music = new Sound(getNextObjectID(), assetManager, selectedSoundAsset->fullPath);
+                        this->music->setLoop(true);
+                        this->music->setWorldPosition(glm::vec3(0, 0, 0), true);
+                        this->music->play();
+                    }
+                } else {
+                    ImGui::Button("Change Music");
+                    ImGui::SameLine();
+                    ImGuiHelper::ShowHelpMarker("No sound asset selected");
+                }
             }
 
             ImGui::Text("By default, esc quits the game");
