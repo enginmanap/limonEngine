@@ -7,8 +7,9 @@
 
 
 #include <glm/vec3.hpp>
+#include <memory>
 
-class AIMovementNode {
+class AIMovementNode : public std::enable_shared_from_this<AIMovementNode>{
     glm::vec3 position;
 
     /**
@@ -20,7 +21,7 @@ class AIMovementNode {
      *     -x   , na   ,    +x
      *     -x +z,    +z, +z +x
      */
-    AIMovementNode *neighbours[9] = {0};
+    std::shared_ptr<AIMovementNode> neighbours[9] = {0};
     uint32_t nodeID = 0;
     bool isMovable = false;
 
@@ -32,10 +33,10 @@ public:
         AIMovementNode::isMovable = isMovable;
     }
 
-    void setNeighbour(int index, AIMovementNode *neighbour) {
+    void setNeighbour(int index, std::shared_ptr<AIMovementNode> neighbour) {
         neighbours[index] = neighbour;
         if(neighbour != nullptr) {
-            neighbour->neighbours[8-index] = this;
+            neighbour->neighbours[8-index] = shared_from_this();
         }
 
     }
@@ -44,7 +45,7 @@ public:
         return position;
     }
 
-    AIMovementNode *getNeighbour(int i) const {
+    std::shared_ptr<AIMovementNode> getNeighbour(int i) const {
         return (neighbours[i]);
     }
 
