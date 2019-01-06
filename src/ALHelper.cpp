@@ -46,7 +46,9 @@ int ALHelper::soundManager() {
             running = false;
         } else if(resumed) {
             for (auto iterator = playingSounds.begin(); iterator != playingSounds.end();++iterator) {
-                alSourcePlay(iterator->second->source);
+                if(!iterator->second->stopped) {//don't start stopped sounds.
+                    alSourcePlay(iterator->second->source);
+                }
             }
             running = true;
             paused = false;
@@ -63,9 +65,15 @@ int ALHelper::soundManager() {
                 playRequests.clear();//moving should invalidate, so I don't remove one by one
                 SDL_AtomicUnlock(&playRequestLock);
             }
+            removeSoundLock.lock();
             for (auto iterator = playingSounds.begin(); iterator != playingSounds.end();) {
                 std::unique_ptr<PlayingSound> &temp = (*iterator).second;
-                if (temp->isFinished()) {
+                ALint state;
+                alGetSourcei(temp->source, AL_SOURCE_STATE, &state);
+                std::cout << "stop check at " << SDL_GetTicks() << std::endl;
+                if(state == AL_STOPPED) {
+                    iterator = playingSounds.erase(iterator);
+                } else if (temp->isFinished()) {
                     if (temp->looped) {
                         alSourceStop(temp->source);
                         ALuint buffers[NUM_BUFFERS];
@@ -104,17 +112,22 @@ int ALHelper::soundManager() {
                     ++iterator;
                 }
             }
+            removeSoundLock.unlock();
         }
         SDL_Delay(10);
     }
     return 0;
 }
 
-uint32_t ALHelper::stop(uint32_t soundID) {
+bool ALHelper::stop(uint32_t soundID) {
     if(playingSounds.find(soundID) != playingSounds.end()) {
         std::unique_ptr<PlayingSound>& sound = playingSounds[soundID];
         sound->looped = false;
+        removeSoundLock.lock();
         alSourceStop(sound->source);
+        std::cout << "stop at " << SDL_GetTicks() << std::endl;
+        sound->stopped = true;
+        removeSoundLock.unlock();
         ALenum error;
         if ((error = alGetError()) != AL_NO_ERROR) {
             std::cerr << "Stop source failed! " << alGetString(error) << std::endl;
