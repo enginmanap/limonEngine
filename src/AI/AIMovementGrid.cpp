@@ -431,7 +431,7 @@ void AIMovementGrid::serializeNode(tinyxml2::XMLDocument &aiGridDocument, tinyxm
     tinyxml2::XMLElement* nodeElement = aiGridDocument.NewElement("Node");
 
     tinyxml2::XMLElement *currentElement = aiGridDocument.NewElement("ID");
-    currentElement->SetText(std::__cxx11::to_string(nodeToSerialize->getID()).c_str());
+    currentElement->SetText(std::to_string(nodeToSerialize->getID()).c_str());
     nodeElement->InsertEndChild(currentElement);
 
     currentElement = aiGridDocument.NewElement("Mv");
