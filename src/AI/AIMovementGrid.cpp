@@ -139,8 +139,8 @@ std::shared_ptr<AIMovementNode>
 AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
                             const glm::vec3 &max, uint32_t collisionGroup, uint32_t collisionMask) {
     std::queue<std::shared_ptr<AIMovementNode>> frontier;
-    if (!setProperHeight(&walkPoint, floatingHeight, -1 * min.y, staticWorld)) {
-        std::cerr << "Root node has nothing underneath, grid generation failed. " << std::endl;
+    if (!setProperHeight(&walkPoint, floatingHeight, std::fabs(walkPoint.y -1 * min.y), staticWorld)) {
+        std::cerr << "Root node " << glm::to_string(walkPoint)<< " has nothing underneath, grid generation failed. " << std::endl;
         return root;
     }
 
