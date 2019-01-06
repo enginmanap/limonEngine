@@ -56,7 +56,6 @@ private:
 
     std::vector<MeshMeta *> meshMetaData;
     std::shared_ptr<Sound> stepOnSound = nullptr;
-    char stepOnSoundNameBuffer[128] = {};
 
     btCompoundShape *compoundShape;
     std::unordered_map<std::string, std::shared_ptr<Material>> materialMap;
@@ -162,11 +161,6 @@ public:
 
         if (this->stepOnSound != nullptr) {
             this->stepOnSound->setLoop(true);
-            if (this->stepOnSound->getName().length() < 128) {
-                strcpy(stepOnSoundNameBuffer, this->stepOnSound->getName().c_str());
-            } else {
-                strncpy(stepOnSoundNameBuffer, this->stepOnSound->getName().c_str(), 127);
-            }
         }
 
     }
