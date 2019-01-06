@@ -63,4 +63,5 @@
     <Asset type="Texture">tga</Asset>
     <Asset type="Texture">png</Asset>
     <Asset type="Texture">tif</Asset>
+    <Asset type="Sound">wav</Asset>
 </Assets>
