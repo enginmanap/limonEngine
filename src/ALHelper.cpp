@@ -70,7 +70,6 @@ int ALHelper::soundManager() {
                 std::unique_ptr<PlayingSound> &temp = (*iterator).second;
                 ALint state;
                 alGetSourcei(temp->source, AL_SOURCE_STATE, &state);
-                std::cout << "stop check at " << SDL_GetTicks() << std::endl;
                 if(state == AL_STOPPED) {
                     iterator = playingSounds.erase(iterator);
                 } else if (temp->isFinished()) {
