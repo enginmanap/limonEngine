@@ -8,7 +8,7 @@
 constexpr float AIMovementGrid::floatingHeight;
 
 //FIXME: this must be the worst way to check for a node in a graph, when you already implemented a*
-AIMovementNode *AIMovementGrid::isAlreadyVisited(const glm::vec3 &position, size_t &indexOf) {
+std::shared_ptr<AIMovementNode>AIMovementGrid::isAlreadyVisited(const glm::vec3 &position, size_t &indexOf) {
     if(visited.empty()) {
         return nullptr;
     }
@@ -26,17 +26,17 @@ AIMovementNode *AIMovementGrid::isAlreadyVisited(const glm::vec3 &position, size
     return nullptr;
 }
 
-const AIMovementNode *
-AIMovementGrid::aStarPath(const AIMovementNode *start, const glm::vec3 &destination, uint32_t maximumNumberOfNodes,
+std::shared_ptr<const AIMovementNode>
+AIMovementGrid::aStarPath(std::shared_ptr<const AIMovementNode> start, const glm::vec3 &destination, uint32_t maximumNumberOfNodes,
                           std::vector<glm::vec3> *route) {
 
     std::priority_queue<AINodeWithPriority, std::vector<AINodeWithPriority>, std::greater<AINodeWithPriority>> frontier;
     frontier.push(AINodeWithPriority(start, 0));
 
-    std::map<const AIMovementNode *, const AIMovementNode *> from;
-    std::map<const AIMovementNode *, float> totalCost;
-    std::map<const AIMovementNode *, uint32_t> totalNodes;
-    const AIMovementNode *finalNode = nullptr;
+    std::map<std::shared_ptr<const AIMovementNode>, std::shared_ptr<const AIMovementNode>> from;
+    std::map<std::shared_ptr<const AIMovementNode> , float> totalCost;
+    std::map<std::shared_ptr<const AIMovementNode> , uint32_t> totalNodes;
+    std::shared_ptr<const AIMovementNode> finalNode = nullptr;
     from[start] = nullptr;
     totalCost[start] = 0;
     totalNodes[start] = 0;
@@ -55,7 +55,7 @@ AIMovementGrid::aStarPath(const AIMovementNode *start, const glm::vec3 &destinat
         }
 
         for (int i = 0; i < 9; ++i) {
-            AIMovementNode *currentNode = nodeWithPriority.node->getNeighbour(i);
+            std::shared_ptr<AIMovementNode> currentNode = nodeWithPriority.node->getNeighbour(i);
             if (currentNode == nullptr) {
                 continue;
             }
@@ -90,7 +90,7 @@ AIMovementGrid::aStarPath(const AIMovementNode *start, const glm::vec3 &destinat
         route->clear();
         route->push_back(finalNode->getPosition());
         //std::cout << GLMUtils::vectorToString(finalNode->getPosition()) << ", " << (finalNode->isIsMovable()? " yes":"no") << std::endl;
-        const AIMovementNode *fromNode = from[finalNode];
+        std::shared_ptr<const AIMovementNode> fromNode = from[finalNode];
         while (start != fromNode) {
             route->push_back(fromNode->getPosition());
             fromNode = from[fromNode];
@@ -135,16 +135,16 @@ bool AIMovementGrid::setProperHeight(glm::vec3 *position, float floatingHeight, 
     }
 }
 
-AIMovementNode *
+std::shared_ptr<AIMovementNode>
 AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
                             const glm::vec3 &max, uint32_t collisionGroup, uint32_t collisionMask) {
-    std::queue<AIMovementNode *> frontier;
+    std::queue<std::shared_ptr<AIMovementNode>> frontier;
     if (!setProperHeight(&walkPoint, floatingHeight, -1 * min.y, staticWorld)) {
         std::cerr << "Root node has nothing underneath, grid generation failed. " << std::endl;
         return root;
     }
 
-    AIMovementNode *root = new AIMovementNode(getNextID(), walkPoint);
+    std::shared_ptr<AIMovementNode>root = std::make_shared<AIMovementNode>(getNextID(), walkPoint);
     staticWorld->addCollisionObject(sharedGhostObject, collisionGroup, collisionMask);
     sharedGhostObject->setWorldTransform(
             btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(root->getPosition())));
@@ -163,7 +163,7 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
         return root;
     }
     size_t indexOfFoundNode;
-    AIMovementNode *current;
+    std::shared_ptr<AIMovementNode> current;
     while (!frontier.empty()) {
         current = frontier.front();
         frontier.pop();
@@ -193,7 +193,7 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                         continue;
                     }
 
-                    AIMovementNode *visitedNode = isAlreadyVisited(neighbourPosition, indexOfFoundNode);
+                    std::shared_ptr<AIMovementNode> visitedNode = isAlreadyVisited(neighbourPosition, indexOfFoundNode);
                     if (visitedNode != nullptr) {
                         //std::cout << "already visited node at " << GLMUtils::vectorToString(neighbourPosition) << std::endl;
                         //std::cout << "already visited node position is " << GLMUtils::vectorToString(visitedNode->getPosition()) << std::endl;
@@ -207,7 +207,7 @@ AIMovementGrid::walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *static
                         staticWorld->removeCollisionObject(sharedGhostObject);
 
 
-                        AIMovementNode *neighbour = new AIMovementNode(getNextID(), neighbourPosition);
+                        std::shared_ptr<AIMovementNode> neighbour =std::make_shared<AIMovementNode>(getNextID(), neighbourPosition);
                         neighbour->setIsMovable(isMovable);
                         current->setNeighbour(neighbourIndex, neighbour);
                         visited.push_back(neighbour);
@@ -281,7 +281,7 @@ AIMovementGrid::AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *st
             sharedGhostObject->getCollisionFlags());
     sharedGhostObject->setWorldTransform(btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(startPoint)));
     std::cout << "Start generating AI walk grid" << std::endl;
-    doneNodes.push_back(new AIMovementNode(0, glm::vec3(0,100,0)));//0 index element should be empty
+    doneNodes.push_back(std::make_shared<AIMovementNode>(0, glm::vec3(0,100,0)));//0 index element should be empty
     root = walkMonster(startPoint, staticOnlyPhysicsWorld, min, max, collisionGroup, collisionMask);
     std::cout << "Finished generating AI walk grid, created " << visited.size() << " nodes, checked for collision "
               << isThereCollisionCounter << " times." << std::endl;
@@ -292,7 +292,7 @@ bool
 AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, uint32_t actorId, uint32_t maximumNumberOfNodes, std::vector<glm::vec3> *route) {
 
     //first search for from node.
-    const AIMovementNode *fromAINode = nullptr;
+    std::shared_ptr<const AIMovementNode> fromAINode = nullptr;
     if (actorLastNodeMap.find(actorId) != actorLastNodeMap.end()) {
         //if we already processed this actor before, use the last position of that actor we know
         fromAINode = actorLastNodeMap[actorId];
@@ -316,7 +316,7 @@ AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, uint32_t 
     //save actor position to use on later calls
     actorLastNodeMap[actorId] = fromAINode;
 
-    const AIMovementNode *finalNode = aStarPath(fromAINode, to, maximumNumberOfNodes, route);
+    std::shared_ptr<const AIMovementNode >finalNode = aStarPath(fromAINode, to, maximumNumberOfNodes, route);
 
     if (finalNode == nullptr) {
         std::cerr << "Destination can't be reached, most likely player moved to somewhere AI can't." << std::endl;
@@ -328,7 +328,7 @@ AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, uint32_t 
 
 bool AIMovementGrid::coursePath(const glm::vec3 &from, const glm::vec3 &to, uint32_t maximumNumberOfNodes, std::vector<glm::vec3> *route) {
     //first start by finding the from point. We should  cache these from values at some point, so we don't a* twice all the time
-    const AIMovementNode *fromAINode;
+    std::shared_ptr<const AIMovementNode> fromAINode;
 
     long start = SDL_GetTicks();
 
@@ -427,7 +427,7 @@ bool AIMovementGrid::serialize(const std::string &fileName) {
     return true;
 }
 
-void AIMovementGrid::serializeNode(tinyxml2::XMLDocument &aiGridDocument, tinyxml2::XMLNode *rootNode, const AIMovementNode *nodeToSerialize) const {
+void AIMovementGrid::serializeNode(tinyxml2::XMLDocument &aiGridDocument, tinyxml2::XMLNode *rootNode, std::shared_ptr<const AIMovementNode> nodeToSerialize) const {
     tinyxml2::XMLElement* nodeElement = aiGridDocument.NewElement("Node");
 
     tinyxml2::XMLElement *currentElement = aiGridDocument.NewElement("ID");
@@ -507,7 +507,7 @@ AIMovementGrid *AIMovementGrid::deserialize(const std::string &fileName) {
     AIMovementGrid* grid = new AIMovementGrid();
 
     for (uint32_t i = 0; i < maximumNodeID; ++i) {
-        grid->doneNodes.push_back(new AIMovementNode(0, glm::vec3(0,100,0)));//we are creating nodes empty, so we can link them together later
+        grid->doneNodes.push_back(std::make_shared<AIMovementNode>(0, glm::vec3(0,100,0)));//we are creating nodes empty, so we can link them together later
     }
     grid->nextPossibleIndex = maximumNodeID;
     tinyxml2::XMLElement* nodeElement =  AIWalkGridRootElement->FirstChildElement("Node");
@@ -522,10 +522,10 @@ AIMovementGrid *AIMovementGrid::deserialize(const std::string &fileName) {
             delete grid;
             return nullptr;
         }
-        AIMovementNode* thisNode = grid->doneNodes[nodeID];
+        std::shared_ptr<AIMovementNode> thisNode = grid->doneNodes[nodeID];
         thisNode->setID(nodeID);
         if(nodeID == 1) {
-            grid->root = thisNode;
+                grid->root = thisNode;
         }
 
         tinyxml2::XMLElement* nodeMovableElement =  nodeElement->FirstChildElement("Mv");//movable

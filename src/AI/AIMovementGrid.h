@@ -31,10 +31,10 @@
 class AIMovementGrid {
 
     struct AINodeWithPriority {
-        const AIMovementNode *node;
+        std::shared_ptr<const AIMovementNode> node;
         float priority;
 
-        AINodeWithPriority(const AIMovementNode *node, float priority) : node(node), priority(priority) {}
+        AINodeWithPriority(std::shared_ptr<const AIMovementNode> node, float priority) : node(node), priority(priority) {}
 
         bool operator>(const AINodeWithPriority &aiRight) const {
             return priority > aiRight.priority;
@@ -51,13 +51,13 @@ class AIMovementGrid {
         return (glm::length2(position1 - position2) < GRID_SNAP_DISTANCE);
     }
 
-    AIMovementNode *root = nullptr;
+    std::shared_ptr<AIMovementNode> root = nullptr;
     btCollisionShape *ghostShape = nullptr;
     btPairCachingGhostObject *sharedGhostObject = new btPairCachingGhostObject();
     btCollisionWorld::ClosestRayResultCallback *rayCallback = new btCollisionWorld::ClosestRayResultCallback(
             btVector3(0, 0, 0), btVector3(0, 0, 0));
     btManifoldArray sharedManifoldArray;
-    std::map<int, const AIMovementNode *> actorLastNodeMap;
+    std::map<int, std::shared_ptr<const AIMovementNode>> actorLastNodeMap;
     uint32_t nextPossibleIndex = 1;//this is to be used internal and constructor only. Not thread safe
 
     int isThereCollisionCounter = 0;//this is only meaningful for debug
@@ -66,17 +66,17 @@ class AIMovementGrid {
     bool isThereCollision(btDiscreteDynamicsWorld *staticWorld);
 
     glm::vec3 max,min;
-    std::vector<AIMovementNode *> visited;
-    std::vector<AIMovementNode *> doneNodes;
+    std::vector<std::shared_ptr<AIMovementNode>> visited;
+    std::vector<std::shared_ptr<AIMovementNode>> doneNodes;
 
-    AIMovementNode *isAlreadyVisited(const glm::vec3 &position, size_t &indexOf);
+    std::shared_ptr<AIMovementNode> isAlreadyVisited(const glm::vec3 &position, size_t &indexOf);
 
-    AIMovementNode *
+    std::shared_ptr<AIMovementNode>
     walkMonster(glm::vec3 walkPoint, btDiscreteDynamicsWorld *staticWorld, const glm::vec3 &min,
                     const glm::vec3 &max, uint32_t collisionGroup, uint32_t collisionMask);
 
-    const AIMovementNode *
-    aStarPath(const AIMovementNode *start, const glm::vec3 &destination, uint32_t maximumNumberOfNodes,
+    std::shared_ptr<const AIMovementNode>
+    aStarPath(std::shared_ptr<const AIMovementNode>start, const glm::vec3 &destination, uint32_t maximumNumberOfNodes,
                   std::vector<glm::vec3> *route);
 
     uint32_t getNextID() {
@@ -95,13 +95,6 @@ public:
         delete rayCallback;
         delete sharedGhostObject;
         delete ghostShape;
-        for (unsigned int i = 0; i < visited.size(); ++i) {
-            delete visited[i];
-        }
-
-        for (unsigned int i = 0; i < doneNodes.size(); ++i) {
-            delete doneNodes[i];
-        }
 
     }
 
@@ -120,7 +113,7 @@ public:
     static AIMovementGrid* deserialize(const std::string& fileName);
 
     void
-    serializeNode(tinyxml2::XMLDocument &aiGridDocument, tinyxml2::XMLNode *rootNode, const AIMovementNode *nodeToSerialize) const;
+    serializeNode(tinyxml2::XMLDocument &aiGridDocument, tinyxml2::XMLNode *rootNode, std::shared_ptr<const AIMovementNode> nodeToSerialize) const;
 };
 
 
