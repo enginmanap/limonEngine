@@ -478,7 +478,7 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
                                           &selectedSoundAsset);
 
         if (this->stepOnSound != nullptr) {
-            ImGui::Text(("step On Sound: " + this->stepOnSound->getName()).c_str());
+            ImGui::Text("step On Sound: %s", this->stepOnSound->getName().c_str());
         } else {
             ImGui::Text("No step on sound set.");
         }

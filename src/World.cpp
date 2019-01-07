@@ -1231,7 +1231,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                                                   &selectedSoundAsset);
 
                 if (this->music != nullptr) {
-                    ImGui::Text(("Current Music: " + this->music->getName()).c_str());
+                    ImGui::Text("Current Music: %s", this->music->getName().c_str());
                 } else {
                     ImGui::Text("No music set for level. ");
                 }
