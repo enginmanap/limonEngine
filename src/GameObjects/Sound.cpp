@@ -27,19 +27,31 @@ void Sound::setStopPosition(float stopPosition) {
 }
 
 void Sound::play() {
-    if(soundHandleID != 0) {
-        if(!assetManager->getAlHelper()->isPlaying(soundHandleID)) {//don't play if already playing
+    if(playState == State::STOP_AFTER_FINISH) {
+        if(this->looped) {
+            assetManager->getAlHelper()->setLooped(soundHandleID, this->looped);
+            this->playState = State::PLAYING;
+            return;
+        } else {
+            this->stop();//force stop if stop after finish
+        }
+    } else {
+        if (soundHandleID != 0) {
+            if (!assetManager->getAlHelper()->isPlaying(soundHandleID)) {//don't play if already playing
+                soundHandleID = assetManager->getAlHelper()->play(assetManager->loadAsset<SoundAsset>({this->name}),
+                                                                  this->looped);
+            }
+        } else {
             soundHandleID = assetManager->getAlHelper()->play(assetManager->loadAsset<SoundAsset>({this->name}),
                                                               this->looped);
         }
-    } else {
-        soundHandleID = assetManager->getAlHelper()->play(assetManager->loadAsset<SoundAsset>({this->name}),
-                                                          this->looped);
+        this->playState = State::PLAYING;
     }
 }
 
 void Sound::stop() {
     assetManager->getAlHelper()->stop(soundHandleID);
+    this->playState = State::STOPPED;
     soundHandleID = 0;
 }
 
@@ -48,8 +60,8 @@ void Sound::stopAfterFinish() {
         if (!assetManager->getAlHelper()->setLooped(soundHandleID, false)) {
             std::cerr << "The stop after finish is failed for " << this->name << "with handle " << soundHandleID <<  std::endl;
         }
-        soundHandleID = 0;//don't use same sound for further operations
     }
+    this->playState = State::STOP_AFTER_FINISH;
 
 }
 
@@ -62,5 +74,17 @@ void Sound::setWorldPosition(glm::vec3 position, bool listenerRelative) {
 
 Sound::~Sound() {
     this->stop();
-    this->assetManager->freeAsset({this->name});
+    if(soundHandleID != 0) {//we don't create asset until play, this check verifies it.
+        this->assetManager->freeAsset({this->name});
+    }
+}
+
+Sound::State Sound::getState() const {
+    if(playState == State::STOP_AFTER_FINISH) {
+        //check if stopped or not
+        if(!assetManager->getAlHelper()->isPlaying(soundHandleID)) {
+            playState == State::STOPPED;
+        }
+    }
+    return playState;
 }

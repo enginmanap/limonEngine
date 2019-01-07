@@ -75,7 +75,9 @@ void PhysicalPlayer::move(moveDirections direction) {
         player->setLinearVelocity(inputMovementSpeed + groundFrictionMovementSpeed);
 
         if(currentSound != nullptr ) {
-            currentSound->stopAfterFinish();
+            if(currentSound->getState() == Sound::State::PLAYING) {
+                currentSound->stopAfterFinish();
+            }
         }
         return;
     }
@@ -250,8 +252,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                 if (model->getPlayerStepOnSound() != nullptr) {
                     if (currentSound != nullptr) {
                         if (currentSound->getName() != model->getPlayerStepOnSound()->getName()) {
-                            std::cout << "changing sound from " << currentSound->getName() << " to "
-                                      << model->getPlayerStepOnSound()->getName() << std::endl;
+
                             currentSound->stop();
                             currentSound = model->getPlayerStepOnSound();
                         }
@@ -261,7 +262,6 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                 } else {
                     if (currentSound != nullptr) {
                         currentSound->stopAfterFinish();
-                        currentSound = nullptr;
                     }
                 }
             } else {
@@ -270,7 +270,9 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
             }
         } else {
             if (currentSound != nullptr) {
-                currentSound->stopAfterFinish();
+                if(currentSound->getState() == Sound::State::PLAYING) {
+                    currentSound->stopAfterFinish();
+                }
             }
             inputMovementSpeed = btVector3(0, 0, 0);
             groundFrictionMovementSpeed = btVector3(0, 0, 0);
