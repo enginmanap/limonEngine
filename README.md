@@ -26,7 +26,7 @@ For a demonstration, check out the video :
 Dependencies can be installed on Ubuntu 17.10 using:
 
 ```bash
-$ sudo apt-get install libassimp-dev libbullet-dev libsdl2-dev libsdl2-image-dev libfreetype6-dev libtinyxml2-dev libglew-dev build-essential libglm-dev libtinyxml2-dev
+$ sudo apt-get install libassimp-dev libbullet-dev libsdl2-dev libsdl2-image-dev libfreetype6-dev libtinyxml2-dev libglew-dev build-essential libglm-dev libtinyxml2-dev gcc-multilib g++-multilib
 ```
 
 After that, in repository directory
