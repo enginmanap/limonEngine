@@ -281,7 +281,7 @@ AIMovementGrid::AIMovementGrid(glm::vec3 startPoint, btDiscreteDynamicsWorld *st
             sharedGhostObject->getCollisionFlags());
     sharedGhostObject->setWorldTransform(btTransform(btQuaternion::getIdentity(), GLMConverter::GLMToBlt(startPoint)));
     std::cout << "Start generating AI walk grid" << std::endl;
-    doneNodes.push_back(std::make_shared<AIMovementNode>(0, glm::vec3(0,100,0)));//0 index element should be empty
+    doneNodes.push_back(std::make_shared<AIMovementNode>(0, glm::vec3(0,200,0)));//0 index element should be empty
     root = walkMonster(startPoint, staticOnlyPhysicsWorld, min, max, collisionGroup, collisionMask);
     std::cout << "Finished generating AI walk grid, created " << visited.size() << " nodes, checked for collision "
               << isThereCollisionCounter << " times." << std::endl;
@@ -393,7 +393,7 @@ void AIMovementGrid::debugDraw(BulletDebugDrawer *debugDrawer) const {
     }
 }
 
-bool AIMovementGrid::serialize(const std::string &fileName) {
+bool AIMovementGrid::serializeXML(const std::string &fileName) {
     tinyxml2::XMLDocument aiGridDocument;
     tinyxml2::XMLNode * rootNode = aiGridDocument.NewElement("AIWalkGrid");
     aiGridDocument.InsertFirstChild(rootNode);

@@ -16,10 +16,20 @@
 #include <unordered_set>
 #include <map>
 
+#ifdef CEREAL_SUPPORT
+#include <cereal/access.hpp>
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/vector.hpp>
+#include "../Utils/GLMCerealConverters.hpp"
+#endif
+
 #include "AIMovementNode.h"
 #include "../Utils/GLMConverter.h"
 #include "../Utils/GLMUtils.h"
 #include "../BulletDebugDrawer.h"
+
+
 
 //bigger than sqrt(3)/2
 //avoiding sqrt
@@ -83,6 +93,9 @@ class AIMovementGrid {
         return nextPossibleIndex++;
     }
 
+#ifdef CEREAL_SUPPORT
+    friend class cereal::access;
+#endif
     AIMovementGrid() {};//used for deserialize
 
 public:
@@ -108,12 +121,107 @@ public:
     bool setProperHeight(glm::vec3 *position, float floatingHeight, float checkHeight,
                          btDiscreteDynamicsWorld *staticWorld);
 
-    bool serialize(const std::string& fileName);
+    bool serializeXML(const std::string& fileName);
 
     static AIMovementGrid* deserialize(const std::string& fileName);
 
     void
     serializeNode(tinyxml2::XMLDocument &aiGridDocument, tinyxml2::XMLNode *rootNode, std::shared_ptr<const AIMovementNode> nodeToSerialize) const;
+
+#ifdef CEREAL_SUPPORT
+    struct FlattenedNode {
+        glm::vec3 position;
+        int neigbours[9] = {0};//4 is self
+        bool movable;
+
+        template<class Archive>
+        void serialize(Archive & archive){
+            archive(position, neigbours, movable);
+        }
+    };
+
+
+    template<class Archive>
+    void save(Archive& archive) const {
+        //build flattenedNode array
+        std::vector<FlattenedNode> saveNodes;
+        saveNodes.resize(this->nextPossibleIndex);
+        for (size_t i = 0; i < doneNodes.size(); ++i) {
+            saveNodes[doneNodes[i]->getID()].position = doneNodes[i]->getPosition();
+            saveNodes[doneNodes[i]->getID()].movable = doneNodes[i]->isIsMovable();
+            for (int j = 0; j < 9; ++j) {
+                if(doneNodes[i]->getNeighbour(j) == nullptr) {
+                    saveNodes[doneNodes[i]->getID()].neigbours[j] = 0;
+                } else {
+                    saveNodes[doneNodes[i]->getID()].neigbours[j] = doneNodes[i]->getNeighbour(j)->getID();
+                }            }
+            saveNodes[doneNodes[i]->getID()].neigbours[4] = doneNodes[i]->getID();//self ID at 4
+        }
+
+        for (size_t i = 0; i < visited.size(); ++i) {
+            saveNodes[visited[i]->getID()].position = visited[i]->getPosition();
+            saveNodes[visited[i]->getID()].movable = visited[i]->isIsMovable();
+            for (int j = 0; j < 9; ++j) {
+                if(visited[i]->getNeighbour(j) == nullptr) {
+                    saveNodes[visited[i]->getID()].neigbours[j] = 0;
+                } else {
+                    saveNodes[visited[i]->getID()].neigbours[j] = visited[i]->getNeighbour(j)->getID();
+                }
+            }
+            saveNodes[visited[i]->getID()].neigbours[4] = visited[i]->getID();//self ID at 4
+        }
+
+        archive(nextPossibleIndex, saveNodes);
+    }
+
+    template<class Archive>
+    void load(Archive& archive) {
+        std::vector<FlattenedNode> saveNodes;
+        archive(nextPossibleIndex, saveNodes);
+
+        this->doneNodes.resize(nextPossibleIndex);
+        for (uint32_t i = 0; i < nextPossibleIndex; ++i) {
+            doneNodes[i] = std::make_shared<AIMovementNode>(0, glm::vec3(0,100,0));//we are creating nodes empty, so we can link them together later
+        }
+
+        //now unflatten the nodes and move to doneNodes
+        for (size_t i = 0; i < saveNodes.size(); ++i) {
+            int nodeID = saveNodes[i].neigbours[4];
+            doneNodes[nodeID]->setPosition(saveNodes[i].position);
+            doneNodes[nodeID]->setIsMovable(saveNodes[i].movable);
+            for (int j = 0; j < 9; ++j) {
+                if(j == 4) {
+                    continue;
+                }
+                if(saveNodes[i].neigbours[j] != 0 ) {
+                    doneNodes[nodeID]->setNeighbour(j, doneNodes[saveNodes[i].neigbours[j]]);
+                } else {
+                    doneNodes[nodeID]->setNeighbour(j, nullptr);
+                }
+            }
+        }
+        if(doneNodes.size() > 1) {
+            root = doneNodes[1];
+        }
+
+    }
+
+    static AIMovementGrid* deserializeBinary(const std::string& fileName) {
+        std::ifstream is(fileName, std::ios::binary);
+        if( is.fail()) {
+            std::cout << "Binary AI walk grid read failed. Fallback to XML read" << std::endl;
+            return nullptr;
+        }
+        cereal::BinaryInputArchive archive(is);
+        AIMovementGrid* aiMovementGrid = new AIMovementGrid();
+        archive(*aiMovementGrid);
+        std::cout << "Binary AI walk grid read successful. " << std::endl;
+        return aiMovementGrid;
+    }
+#endif
+
+
+
 };
 
 

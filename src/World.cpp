@@ -1309,10 +1309,20 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
         if(ImGui::Button("Save AI walk Grid")) {
             if(this->grid != nullptr) {
                 std::string AIWalkName = this->name.substr(0, this->name.find_last_of(".")) + ".aiwalk";
-                this->grid->serialize(AIWalkName);
+                this->grid->serializeXML(AIWalkName);
             }
         }
+#ifdef CEREAL_SUPPORT
+   if(ImGui::Button("Save AI walk Grid Binary")) {
+            if(this->grid != nullptr) {
+                std::string AIWalkName = this->name.substr(0, this->name.find_last_of(".")) + ".aiwalkb";
+                std::ofstream os(AIWalkName, std::ios::binary);
+                cereal::BinaryOutputArchive archive( os );
 
+                archive(*grid);
+            }
+        }
+#endif
         if(ImGui::Button("Save Selected ModelAsset")) {
             if(pickedObject != nullptr && pickedObject->getTypeID() == GameObject::MODEL) {
                 Model* model = static_cast<Model*>(pickedObject);
@@ -1687,12 +1697,19 @@ void World::addActor(ActorInterface *actor) {
 void World::createGridFrom(const glm::vec3 &aiGridStartPoint) {
     if(grid != nullptr) {
         delete grid;
+        grid = nullptr;
     }
-    std::string AIWalkName = this->name.substr(0, this->name.find_last_of(".")) + ".aiwalk";
-    grid = AIMovementGrid::deserialize(AIWalkName);
+#ifdef CEREAL_SUPPORT
+    std::string AIWalkBinaryName = this->name.substr(0, this->name.find_last_of(".")) + ".aiwalkb";
+    grid = AIMovementGrid::deserializeBinary(AIWalkBinaryName);
+#endif
     if(grid == nullptr) {
-        grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax, COLLIDE_PLAYER,
-                                  COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING);
+        std::string AIWalkName = this->name.substr(0, this->name.find_last_of(".")) + ".aiwalk";
+        grid = AIMovementGrid::deserialize(AIWalkName);
+        if (grid == nullptr) {
+            grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax, COLLIDE_PLAYER,
+                                      COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING);
+        }
     }
 }
 
