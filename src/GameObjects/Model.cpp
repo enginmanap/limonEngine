@@ -317,7 +317,10 @@ void Model::renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GLSL
     }
 }
 
-void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode) const {
+bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const {
+    if(this->temporary) {
+        return false;//don't save objects if they are temporary
+    }
     tinyxml2::XMLElement *objectElement = document.NewElement("Object");
     objectsNode->InsertEndChild(objectElement);
 
@@ -387,12 +390,15 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
            tinyxml2::XMLElement *childNode = document.NewElement("Child");
            childNode->SetAttribute("Index", (uint32_t)i);
            PhysicalRenderable* child = children[i];
-           child->fillObjects(document, childNode);
-           childrenNode->InsertEndChild(childNode);
+           if(child->fillObjects(document, childNode)) {
+               childrenNode->InsertEndChild(childNode);
+           }
+
         }
     }
 
     modelAsset->serializeCustomizations();
+    return true;
 }
 
 uint32_t Model::getAIID() {

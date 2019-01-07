@@ -500,3 +500,7 @@ void LimonAPI::loadVec4(tinyxml2::XMLNode *vectorNode, LimonAPI::Vec4 &vector) {
         vector.w = 0;
     }
 }
+
+bool LimonAPI::setModelTemporary(uint32_t modelID, bool temporary) {
+    worldSetModelTemporary(modelID, temporary);
+}

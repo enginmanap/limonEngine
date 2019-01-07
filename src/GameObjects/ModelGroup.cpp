@@ -13,7 +13,7 @@ void ModelGroup::renderWithProgram(GLSLProgram &program) {
     }
 }
 
-void ModelGroup::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const {
+bool ModelGroup::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const {
 
     tinyxml2::XMLElement *objectGroupNode = document.NewElement("ObjectGroup");
     objectsNode->InsertEndChild(objectGroupNode);
@@ -38,9 +38,9 @@ void ModelGroup::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLEleme
     for (size_t i = 0; i < children.size(); ++i) {
         tinyxml2::XMLElement *currentElement = document.NewElement("Child");
         currentElement->SetAttribute("Index", std::to_string(i).c_str());
-        childrenNode->InsertEndChild(currentElement);
-
-        children[i]->fillObjects(document,currentElement);
+        if(children[i]->fillObjects(document,currentElement)) {
+            childrenNode->InsertEndChild(currentElement);
+        }
     }
 
 }
