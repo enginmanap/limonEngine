@@ -59,7 +59,9 @@ bool GUIText::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     fontNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("Size");
-    currentElement->SetText(std::to_string(this->face->getSize()).c_str());
+    float tempSize = this->face->getSize();
+    tempSize = tempSize / options->getScreenWidth();
+    currentElement->SetText(std::to_string(tempSize).c_str());
     fontNode->InsertEndChild(currentElement);
 
     tinyxml2::XMLElement * parent = document.NewElement("Color");
@@ -135,10 +137,12 @@ GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GLHelper 
         uint32_t size;
         GUIRenderableAttribute = FontAttribute->FirstChildElement("Size");
         if (GUIRenderableAttribute == nullptr) {
-            std::cerr << "GUI Text font size can't be read. Assumin 32" << std::endl;
+            std::cerr << "GUI Text font size can't be read. Assuming 32" << std::endl;
             size = 32;
         } else {
-            size = std::stoi(GUIRenderableAttribute->GetText());
+            float tempSize = std::stof(GUIRenderableAttribute->GetText());
+            tempSize = tempSize * options->getScreenWidth();
+            size = static_cast<int>(tempSize);
         }
 
         //now read the color information
