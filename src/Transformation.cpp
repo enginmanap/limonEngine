@@ -48,9 +48,9 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
     switch (editorState.mode) {
         case TRANSLATE_MODE: {
             if(this->parentTransform != nullptr ) {
-                ImGui::Text((std::string("Current Total Translate X: ") + std::to_string(translate.x)).c_str());
-                ImGui::Text((std::string("Current Total Translate Y: ") + std::to_string(translate.y)).c_str());
-                ImGui::Text((std::string("Current Total Translate Z: ") + std::to_string(translate.z)).c_str());
+                ImGui::Text("Current Total Translate X: %s", std::to_string(translate.x).c_str());
+                ImGui::Text("Current Total Translate Y: %s", std::to_string(translate.y).c_str());
+                ImGui::Text("Current Total Translate Z: %s", std::to_string(translate.z).c_str());
             }
             glm::vec3 tempTranslate = translateSingle;
             updated =
