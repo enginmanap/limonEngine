@@ -400,7 +400,6 @@ void CowboyEnemyAI::transitionToMelee(const ActorInformation &information) {
 }
 
 void CowboyEnemyAI::transitionToWalk(const ActorInformation &information) {
-    std::cout << "walking " << std::endl;
     turnFaceToPlayer(information);
     //ask for route to player if we need the data
     if(routeToRequest.empty() || ((routeGetTime == 0 || routeGetTime + 1000 < lastSetupTime) && routeRequested == false)) {

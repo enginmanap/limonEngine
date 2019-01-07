@@ -124,7 +124,6 @@ bool ALHelper::stop(uint32_t soundID) {
         sound->looped = false;
         removeSoundLock.lock();
         alSourceStop(sound->source);
-        std::cout << "stop at " << SDL_GetTicks() << std::endl;
         sound->stopped = true;
         removeSoundLock.unlock();
         ALenum error;
