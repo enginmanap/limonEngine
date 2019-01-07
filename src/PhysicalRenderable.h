@@ -101,7 +101,7 @@ public:
         return aabbMin;
     }
 
-    virtual void fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode) const = 0;
+    virtual bool fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const = 0;
 
     void updateAABB() {
         btVector3 abMax, abMin;

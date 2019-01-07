@@ -51,7 +51,7 @@ public:
 
     void renderWithProgram(GLSLProgram &program) override;
 
-    void fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const override;
+    bool fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const override;
 
     static ModelGroup *deserialize(GLHelper *glHelper, AssetManager *assetManager, tinyxml2::XMLElement *ModelGroupsNode,
                                        std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,

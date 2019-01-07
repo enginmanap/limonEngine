@@ -2594,7 +2594,17 @@ uint32_t World::addModelApi(const std::string &modelFilePath, float modelWeight,
     this->addModelToWorld(newModel);
 
     return objectID;
-   }
+}
+
+bool World::setModelTemporaryAPI(uint32_t modelID, bool temporary) {
+    Model* model = findModelByID(modelID);
+    if(model == nullptr) {
+        return false;
+    } else {
+        model->setTemporary(temporary);
+        return true;
+    }
+}
 
 std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
    /**

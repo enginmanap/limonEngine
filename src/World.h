@@ -383,6 +383,8 @@ public:
 
     uint32_t addModelApi(const std::string &modelFilePath, float modelWeight, bool physical, const glm::vec3 &position,
                          const glm::vec3 &scale, const glm::quat &orientation);
+    bool setModelTemporaryAPI(uint32_t modelID, bool temporary);
+
     bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID);
 
     bool updateGuiText(uint32_t guiTextID, const std::string &newText);

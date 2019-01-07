@@ -49,6 +49,7 @@ private:
     std::string name;
     bool animated = false;
     bool isAIParametersDirty = true;
+    bool temporary = false;
     std::vector<LimonAPI::ParameterRequest> aiParameters;
     std::string lastSelectedAIName;
     std::vector<glm::mat4> boneTransforms;
@@ -150,7 +151,7 @@ public:
 
     ~Model();
 
-    void fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode) const;
+    bool fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const;
 
     std::shared_ptr<Sound> &getPlayerStepOnSound() {
         return stepOnSound;
@@ -234,6 +235,14 @@ public:
     Transformation* getAttachmentTransformForKnownBone(int32_t attachmentBoneID) {
         selectedBoneID = attachmentBoneID;
         return getAttachmentTransform(attachmentBoneID);
+    }
+
+    bool isTemporary() const {
+        return temporary;
+    }
+
+    void setTemporary(bool temporary) {
+        this->temporary = temporary;
     }
 };
 
