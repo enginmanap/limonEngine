@@ -119,6 +119,7 @@ void ShooterPlayerExtension::processInput(InputHandler &inputHandler) {
                         //now
 
                         uint32_t bulletHoleID = limonAPI->addObject("./Data/Models/BulletHole/BulletHole.obj", 0, false, posdif, scaledif, orientDif);
+                        limonAPI->setModelTemporary(bulletHoleID, true);
 
                         limonAPI->attachObjectToObject(bulletHoleID, rayResult[0].value.longValue);
 
