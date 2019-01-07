@@ -42,7 +42,7 @@ bool ModelGroup::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLEleme
             childrenNode->InsertEndChild(currentElement);
         }
     }
-
+    return true;
 }
 
 void ModelGroup::render() {
