@@ -97,6 +97,12 @@ bool GUIAnimation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLEleme
             temp.getTranslate().z
     ));
 
+    temp.setScale(glm::vec3(
+            temp.getScale().x / options->getScreenWidth(),
+            temp.getScale().y / options->getScreenHeight(),
+            temp.getScale().z
+    ));
+
     temp.serialize(document, guiButtonNode);
 
     return true;
@@ -186,6 +192,13 @@ GUIAnimation *GUIAnimation::deserialize(tinyxml2::XMLElement *GUIRenderableNode,
                 tr.getTranslate().y * options->getScreenHeight(),
                 tr.getTranslate().z
         ));
+
+        tr.setScale(glm::vec3(
+                tr.getScale().x * options->getScreenWidth(),
+                tr.getScale().y * options->getScreenHeight(),
+                tr.getScale().z
+        ));
+
         //now we have everything, create the GUI Button
         GUIAnimation* element = new GUIAnimation(id, assetManager, name,
                                                  fileNames, creationTime, imagePerFrame, isLooped);

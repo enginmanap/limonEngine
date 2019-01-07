@@ -86,6 +86,12 @@ bool GUIButton::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement 
             temp.getTranslate().z
     ));
 
+    temp.setScale(glm::vec3(
+            temp.getScale().x / options->getScreenWidth(),
+            temp.getScale().y / options->getScreenHeight(),
+            temp.getScale().z
+    ));
+
     temp.serialize(document, guiButtonNode);
 
     if(onClickTriggerCode != nullptr) {
@@ -148,6 +154,12 @@ GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode, Asset
                 tr.getTranslate().x * options->getScreenWidth(),
                 tr.getTranslate().y * options->getScreenHeight(),
                 tr.getTranslate().z
+        ));
+
+        tr.setScale(glm::vec3(
+                tr.getScale().x * options->getScreenWidth(),
+                tr.getScale().y * options->getScreenHeight(),
+                tr.getScale().z
         ));
         //now we have everything, create the GUI Button
         GUIButton* element = new GUIButton(id, assetManager, limonAPI, name,

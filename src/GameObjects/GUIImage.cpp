@@ -77,6 +77,12 @@ bool GUIImage::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
             temp.getTranslate().z
     ));
 
+    temp.setScale(glm::vec3(
+            temp.getScale().x / options->getScreenWidth(),
+            temp.getScale().y / options->getScreenHeight(),
+            temp.getScale().z
+    ));
+
     temp.serialize(document, guiImageNode);
 
     return true;
@@ -145,6 +151,12 @@ GUIImage *GUIImage::deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetMa
                 tr.getTranslate().x * options->getScreenWidth(),
                 tr.getTranslate().y * options->getScreenHeight(),
                 tr.getTranslate().z
+        ));
+
+        tr.setScale(glm::vec3(
+                tr.getScale().x * options->getScreenWidth(),
+                tr.getScale().y * options->getScreenHeight(),
+                tr.getScale().z
         ));
         //now we have everything, create the GUI Image
         GUIImage* element = new GUIImage(id, options, assetManager, name,
