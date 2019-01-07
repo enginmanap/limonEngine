@@ -79,11 +79,11 @@ Sound::~Sound() {
     }
 }
 
-Sound::State Sound::getState() const {
+Sound::State Sound::getState() {
     if(playState == State::STOP_AFTER_FINISH) {
         //check if stopped or not
         if(!assetManager->getAlHelper()->isPlaying(soundHandleID)) {
-            playState == State::STOPPED;
+            playState = State::STOPPED;
         }
     }
     return playState;

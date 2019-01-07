@@ -60,7 +60,7 @@ public:
         return worldID;
     }
 
-    State getState() const;
+    State getState();
 
     /** Game object methods */
 };

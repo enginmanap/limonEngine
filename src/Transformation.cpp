@@ -83,10 +83,10 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
         }
         case ROTATE_MODE: {
             if(this->parentTransform != nullptr ) {
-                ImGui::Text((std::string("Current Total Rotate X: ") + std::to_string(orientation.x)).c_str());
-                ImGui::Text((std::string("Current Total Rotate Y: ") + std::to_string(orientation.y)).c_str());
-                ImGui::Text((std::string("Current Total Rotate Z: ") + std::to_string(orientation.z)).c_str());
-                ImGui::Text((std::string("Current Total Rotate W: ") + std::to_string(orientation.w)).c_str());
+                ImGui::Text("Current Total Rotate X: %s",  std::to_string(orientation.x).c_str());
+                ImGui::Text("Current Total Rotate Y: %s",  std::to_string(orientation.y).c_str());
+                ImGui::Text("Current Total Rotate Z: %s",  std::to_string(orientation.z).c_str());
+                ImGui::Text("Current Total Rotate W: %s",  std::to_string(orientation.w).c_str());
             }
             glm::quat tempOrientation = orientationSingle;
             updated = ImGui::DragFloat("Rotate X", &(tempOrientation.x), 0.001f, -1.0f, 1.0f) || updated;
@@ -104,9 +104,9 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
         }
         case SCALE_MODE: {
             if(this->parentTransform != nullptr ) {
-                ImGui::Text((std::string("Current Total Scale X: ") + std::to_string(scale.x)).c_str());
-                ImGui::Text((std::string("Current Total Scale Y: ") + std::to_string(scale.y)).c_str());
-                ImGui::Text((std::string("Current Total Scale Z: ") + std::to_string(scale.z)).c_str());
+                ImGui::Text("Current Total Scale X: %s", std::to_string(scale.x).c_str());
+                ImGui::Text("Current Total Scale Y: %s", std::to_string(scale.y).c_str());
+                ImGui::Text("Current Total Scale Z: %s", std::to_string(scale.z).c_str());
             }
 
             glm::vec3 tempScale = scaleSingle;
