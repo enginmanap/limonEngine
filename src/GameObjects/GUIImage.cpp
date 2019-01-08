@@ -205,59 +205,7 @@ GameObject::ImGuiResult GUIImage::addImGuiEditorElements(const ImGuiRequest &req
     }
 
     if(!this->fullScreen) {
-        glm::vec2 translate = getTranslate();
-        result.updated = ImGui::DragFloat("Position X", &(translate.x), 0, request.screenWidth) || result.updated;
-        result.updated = ImGui::DragFloat("Position Y", &(translate.y), 0, request.screenHeight) || result.updated;
-
-        glm::vec2 scale = getScale();
-        result.updated = ImGui::DragFloat("Scale X", &(scale.x), 0.1, 10) || result.updated;
-        result.updated = ImGui::DragFloat("Scale Y", &(scale.y), 0.1, 10) || result.updated;
-
-        ImGui::NewLine();
-
-        if (result.updated) {
-            this->setTranslate(translate);
-            this->setScale(scale);
-            result.updated = true;
-        }
-
-        /* IMGUIZMO PART */
-
-        static bool useSnap; //these are static because we want to keep the values
-        static float snap[3] = {50.0f, 50.0f, 50.0f};
-        ImGui::NewLine();
-        ImGui::Checkbox("", &(useSnap));
-        ImGui::SameLine();
-        ImGui::InputFloat3("Snap", &(snap[0]));
-
-        glm::mat4 objectMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(translate, 0));
-        ImGuizmo::BeginFrame();
-        static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
-
-        ImGuiIO &io = ImGui::GetIO();
-        ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-        ImGuizmo::SetOrthographic(true);
-        ImGuizmo::Manipulate(glm::value_ptr(request.ortogonalCameraMatrix), glm::value_ptr(request.ortogonalMatrix),
-                             ImGuizmo::TRANSLATE, mCurrentGizmoMode, glm::value_ptr(objectMatrix), NULL,
-                             useSnap ? &(snap[0]) : NULL);
-        ImGuizmo::SetOrthographic(false);
-        //now we should have object matrix updated, update the object
-
-        //just clip the values
-        if (objectMatrix[3][0] < 0) {
-            objectMatrix[3][0] = 0;
-        }
-        if (objectMatrix[3][1] < 0) {
-            objectMatrix[3][1] = 0;
-        }
-        if (objectMatrix[3][0] > request.screenWidth) {
-            objectMatrix[3][0] = request.screenWidth;
-        }
-        if (objectMatrix[3][1] > request.screenHeight) {
-            objectMatrix[3][1] = request.screenHeight;
-        }
-
-        this->setTranslate(glm::vec2(objectMatrix[3][0], objectMatrix[3][1]));
+        result.updated = this->transformation.addImGuiEditorElements(request.ortogonalCameraMatrix, request.ortogonalMatrix, true);
     }
 
     if (ImGui::Button("Remove")) {

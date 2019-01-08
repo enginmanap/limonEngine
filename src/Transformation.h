@@ -392,10 +392,10 @@ public:
         return worldTransform;
     }
 
-    bool addImGuiEditorElements(const glm::mat4& cameraMatrix, const glm::mat4& perspectiveMatrix);
+    bool addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix, bool is2D = false);
 
     bool addImGuizmoElements(const ImGuizmoState &editorState, const glm::mat4 &cameraMatrix,
-                             const glm::mat4 &perspectiveMatrix);
+                                 const glm::mat4 &perspectiveMatrix, bool is2D);
 
     void combine(const Transformation &otherTransformation);
 
