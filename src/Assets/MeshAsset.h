@@ -17,6 +17,14 @@
 #include "AssetManager.h"
 #include "../Material.h"
 #include "BoneNode.h"
+#ifdef CEREAL_SUPPORT
+#include <cereal/access.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/map.hpp>
+#include "../Utils/GLMCerealConverters.hpp"
+#endif
+
 
 
 class MeshAsset {
@@ -31,7 +39,7 @@ class MeshAsset {
 
     std::map<uint_fast32_t, std::vector<uint_fast32_t >> boneAttachedMeshes;
 
-    const BoneNode *skeleton;
+    std::shared_ptr<const BoneNode> skeleton;
     std::map<std::string, uint_fast32_t> boneIdMap;
 
     bool bones;
@@ -40,9 +48,9 @@ class MeshAsset {
     std::vector<glm::lowp_uvec4> boneIDs;
     std::vector<glm::vec4> boneWeights;
 
-    const Material *material;
-    const glm::mat4 parentTransform;
-    const bool isPartOfAnimated;
+    std::shared_ptr<const Material> material;
+    glm::mat4 parentTransform;
+    bool isPartOfAnimated;
 
     std::vector<btTriangleMesh *> shapeCopies;
 
@@ -50,11 +58,22 @@ class MeshAsset {
     bool setTriangles(const aiMesh *currentMesh);
 
     void normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const;
-
+#ifdef CEREAL_SUPPORT
+    friend class cereal::access;
+#endif
+    MeshAsset(){}
 public:
     MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
-                  const Material *material, const BoneNode *meshSkeleton, const glm::mat4 &parentTransform,
-                  const bool isPartOfAnimated);
+              std::shared_ptr<const Material> material, std::shared_ptr<const BoneNode> meshSkeleton,
+              const glm::mat4 &parentTransform,
+              const bool isPartOfAnimated);
+
+    /**
+     * This method sets GPU side of the deserialization, and uses AssetManager to access GPU with getGLHelper
+     *
+     * @param assetManager
+     */
+    void afterDeserialize(AssetManager *assetManager);
 
     uint_fast32_t getTriangleCount() const { return triangleCount; }
 
@@ -67,7 +86,7 @@ public:
 
     bool addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, float weight);
 
-    const Material *getMaterial() const {
+    std::shared_ptr<const Material> getMaterial() const {
         return material;
     }
 
@@ -82,11 +101,17 @@ public:
 
     }
 
-    void fillBoneMap(const BoneNode *boneNode);
+    void fillBoneMap(std::shared_ptr<const BoneNode> boneNode);
 
     std::string getName() {
         return name;
     }
+#ifdef CEREAL_SUPPORT
+    template<class Archive>
+    void serialize(Archive & archive){
+        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, material, name, isPartOfAnimated, parentTransform);
+    }
+#endif
 };
 
 

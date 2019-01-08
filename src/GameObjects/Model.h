@@ -7,6 +7,7 @@
 
 
 #include <vector>
+#include <set>
 #include <bullet/BulletCollision/CollisionShapes/btShapeHull.h>
 
 #include "glm/glm.hpp"
@@ -24,13 +25,13 @@ class ActorInterface;
 class Model : public PhysicalRenderable, public GameObject {
     uint32_t objectID;
     struct MeshMeta {
-        MeshAsset* mesh = nullptr;
+        std::shared_ptr<MeshAsset> mesh = nullptr;
         GLSLProgram* program = nullptr;
     };
     ActorInterface *AIActor = nullptr;
     AssetManager *assetManager;
     ModelAsset *modelAsset;
-
+private:
     std::string animationName;
     long animationTime = 0;
     bool animationLooped = true;
@@ -48,6 +49,7 @@ class Model : public PhysicalRenderable, public GameObject {
     std::string name;
     bool animated = false;
     bool isAIParametersDirty = true;
+    bool temporary = false;
     std::vector<LimonAPI::ParameterRequest> aiParameters;
     std::string lastSelectedAIName;
     std::vector<glm::mat4> boneTransforms;
@@ -55,10 +57,9 @@ class Model : public PhysicalRenderable, public GameObject {
 
     std::vector<MeshMeta *> meshMetaData;
     std::shared_ptr<Sound> stepOnSound = nullptr;
-    char stepOnSoundNameBuffer[128] = {};
 
     btCompoundShape *compoundShape;
-    std::unordered_map<std::string, Material *> materialMap;
+    std::unordered_map<std::string, std::shared_ptr<Material>> materialMap;
     int diffuseMapAttachPoint = 1;
     int ambientMapAttachPoint = 2;
     int specularMapAttachPoint = 3;
@@ -91,7 +92,7 @@ public:
     }
 
     void setSamplersAndUBOs(GLSLProgram *program);
-    void activateTexturesOnly(const Material *material);
+    void activateTexturesOnly(std::shared_ptr<const Material> material);
 
     bool setupRenderVariables(MeshMeta *meshMetaData);
 
@@ -150,7 +151,7 @@ public:
 
     ~Model();
 
-    void fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode) const;
+    bool fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const;
 
     std::shared_ptr<Sound> &getPlayerStepOnSound() {
         return stepOnSound;
@@ -161,11 +162,6 @@ public:
 
         if (this->stepOnSound != nullptr) {
             this->stepOnSound->setLoop(true);
-            if (this->stepOnSound->getName().length() < 128) {
-                strcpy(stepOnSoundNameBuffer, this->stepOnSound->getName().c_str());
-            } else {
-                strncpy(stepOnSoundNameBuffer, this->stepOnSound->getName().c_str(), 127);
-            }
         }
 
     }
@@ -185,10 +181,7 @@ public:
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
     /************Game Object methods **************/
 
-    void attachAI(ActorInterface *AIActor) {
-        //after this, clearing the AI is job of the model.
-        this->AIActor = AIActor;
-    }
+    void attachAI(ActorInterface *AIActor);
 
     uint32_t getAIID();
 
@@ -199,6 +192,8 @@ public:
     uint32_t getAssetID() {
         return modelAsset->getAssetID();
     }
+
+    void convertAssetToLimon(std::set<std::vector<std::string>>& convertedAssetsSet);
 
     /**
      * This method allows attachment to a specific bone of the model, if a bone is selected. If no bone is selected, world transform is returned.
@@ -240,6 +235,14 @@ public:
     Transformation* getAttachmentTransformForKnownBone(int32_t attachmentBoneID) {
         selectedBoneID = attachmentBoneID;
         return getAttachmentTransform(attachmentBoneID);
+    }
+
+    bool isTemporary() const {
+        return temporary;
+    }
+
+    void setTemporary(bool temporary) {
+        this->temporary = temporary;
     }
 };
 

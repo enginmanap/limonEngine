@@ -23,6 +23,7 @@
 #else
 
 #  include <GL/gl.h>
+#include <memory>
 
 #endif/*__APPLE__*/
 
@@ -443,7 +444,7 @@ public:
         return inside;
     }
 
-    void setMaterial(const Material *material);
+    void setMaterial(std::shared_ptr<const Material>material);
 
     void setModel(const uint32_t modelID, const glm::mat4 &worldTransform);
 

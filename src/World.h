@@ -167,9 +167,10 @@ private:
     std::vector<uint32_t > modelIndicesBuffer;
     AssetManager* assetManager;
     Options* options;
-    uint32_t nextWorldID = 1;
+    uint32_t nextWorldID = 2;
     std::queue<uint32_t> unusedIDs;
     std::map<uint32_t, PhysicalRenderable *> objects;
+    std::set<uint32_t> disconnectedModels;
     std::map<uint32_t, ModelGroup*> modelGroups;
 
     Sound* music = nullptr;
@@ -382,13 +383,15 @@ public:
 
     uint32_t addModelApi(const std::string &modelFilePath, float modelWeight, bool physical, const glm::vec3 &position,
                          const glm::vec3 &scale, const glm::quat &orientation);
+    bool setModelTemporaryAPI(uint32_t modelID, bool temporary);
+
     bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID);
 
     bool updateGuiText(uint32_t guiTextID, const std::string &newText);
 
     bool removeObject(uint32_t objectID);
     bool removeTriggerObject(uint32_t triggerobjectID);
-    uint32_t removeGuiText(uint32_t guiElementID);
+    bool removeGuiElement(uint32_t guiElementID);
 
     bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath);
 
@@ -401,6 +404,10 @@ public:
     bool disconnectObjectFromPhysics(uint32_t objectWorldID);
 
     bool reconnectObjectToPhysics(uint32_t objectWorldID);
+
+    bool disconnectObjectFromPhysicsRequest(uint32_t objectWorldID);
+
+    bool reconnectObjectToPhysicsRequest(uint32_t objectWorldID);
 
     /**
      * If nothing is hit, returns empty vector

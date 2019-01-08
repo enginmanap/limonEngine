@@ -12,6 +12,9 @@ class SoundAsset;
 class AssetManager;
 
 class Sound : public GameObject {
+public:
+    enum class State { STOPPED, PLAYING, STOP_AFTER_FINISH, PAUSED };
+private:
     std::string name;
     uint32_t worldID;
     uint32_t soundHandleID = 0;
@@ -19,6 +22,8 @@ class Sound : public GameObject {
 
     glm::vec3 position = glm::vec3(0,0,0);
     bool listenerRelative = true; //by default plays at the listener position
+
+    State playState = State::STOPPED;
     float startSecond = 0;
     float stopPosition = 0;
     bool looped = false;
@@ -54,6 +59,9 @@ public:
     uint32_t getWorldObjectID() const override {
         return worldID;
     }
+
+    State getState();
+
     /** Game object methods */
 };
 

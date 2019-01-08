@@ -12,7 +12,8 @@
 #include "../libs/ImGuizmo/ImGuizmo.h"
 
 
-bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const glm::mat4& perspectiveMatrix) {
+bool
+Transformation::addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm::mat4 &perspectiveMatrix, bool is2D) {
     static ImGuizmoState editorState;
     static glm::vec3 preciseTranslatePoint = translateSingle;
 
@@ -48,9 +49,9 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
     switch (editorState.mode) {
         case TRANSLATE_MODE: {
             if(this->parentTransform != nullptr ) {
-                ImGui::Text((std::string("Current Total Translate X: ") + std::to_string(translate.x)).c_str());
-                ImGui::Text((std::string("Current Total Translate Y: ") + std::to_string(translate.y)).c_str());
-                ImGui::Text((std::string("Current Total Translate Z: ") + std::to_string(translate.z)).c_str());
+                ImGui::Text("Current Total Translate X: %s", std::to_string(translate.x).c_str());
+                ImGui::Text("Current Total Translate Y: %s", std::to_string(translate.y).c_str());
+                ImGui::Text("Current Total Translate Z: %s", std::to_string(translate.z).c_str());
             }
             glm::vec3 tempTranslate = translateSingle;
             updated =
@@ -59,16 +60,18 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
             updated =
                     ImGui::DragFloat("Precise Position Y", &(tempTranslate.y), 0.01f, preciseTranslatePoint.y - 5.0f,
                                      preciseTranslatePoint.y + 5.0f) || updated;
-            updated =
-                    ImGui::DragFloat("Precise Position Z", &(tempTranslate.z), 0.01f, preciseTranslatePoint.z - 5.0f,
-                                     preciseTranslatePoint.z + 5.0f) || updated;
-            ImGui::NewLine();
-            crudeUpdated =
-                    ImGui::SliderFloat("Crude Position X", &(tempTranslate.x), -100.0f, 100.0f) || crudeUpdated;
-            crudeUpdated =
-                    ImGui::SliderFloat("Crude Position Y", &(tempTranslate.y), -100.0f, 100.0f) || crudeUpdated;
-            crudeUpdated =
-                    ImGui::SliderFloat("Crude Position Z", &(tempTranslate.z), -100.0f, 100.0f) || crudeUpdated;
+            if(!is2D) {
+                updated = ImGui::DragFloat("Precise Position Z", &(tempTranslate.z), 0.01f,
+                                           preciseTranslatePoint.z - 5.0f,
+                                           preciseTranslatePoint.z + 5.0f) || updated;
+                ImGui::NewLine();
+                crudeUpdated =
+                        ImGui::SliderFloat("Crude Position X", &(tempTranslate.x), -100.0f, 100.0f) || crudeUpdated;
+                crudeUpdated =
+                        ImGui::SliderFloat("Crude Position Y", &(tempTranslate.y), -100.0f, 100.0f) || crudeUpdated;
+                crudeUpdated =
+                        ImGui::SliderFloat("Crude Position Z", &(tempTranslate.z), -100.0f, 100.0f) || crudeUpdated;
+            }
             if (updated || crudeUpdated) {
                 setTranslate(tempTranslate);
             }
@@ -83,16 +86,18 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
         }
         case ROTATE_MODE: {
             if(this->parentTransform != nullptr ) {
-                ImGui::Text((std::string("Current Total Rotate X: ") + std::to_string(orientation.x)).c_str());
-                ImGui::Text((std::string("Current Total Rotate Y: ") + std::to_string(orientation.y)).c_str());
-                ImGui::Text((std::string("Current Total Rotate Z: ") + std::to_string(orientation.z)).c_str());
-                ImGui::Text((std::string("Current Total Rotate W: ") + std::to_string(orientation.w)).c_str());
+                ImGui::Text("Current Total Rotate X: %s",  std::to_string(orientation.x).c_str());
+                ImGui::Text("Current Total Rotate Y: %s",  std::to_string(orientation.y).c_str());
+                ImGui::Text("Current Total Rotate Z: %s",  std::to_string(orientation.z).c_str());
+                ImGui::Text("Current Total Rotate W: %s",  std::to_string(orientation.w).c_str());
             }
             glm::quat tempOrientation = orientationSingle;
-            updated = ImGui::DragFloat("Rotate X", &(tempOrientation.x), 0.001f, -1.0f, 1.0f) || updated;
-            updated = ImGui::DragFloat("Rotate Y", &(tempOrientation.y), 0.001f, -1.0f, 1.0f) || updated;
-            updated = ImGui::DragFloat("Rotate Z", &(tempOrientation.z), 0.001f, -1.0f, 1.0f) || updated;
-            updated = ImGui::DragFloat("Rotate W", &(tempOrientation.w), 0.001f, -1.0f, 1.0f) || updated;
+            if(!is2D) {
+                updated = ImGui::DragFloat("Rotate X", &(tempOrientation.x), 0.001f, -1.0f, 1.0f) || updated;
+                updated = ImGui::DragFloat("Rotate Y", &(tempOrientation.y), 0.001f, -1.0f, 1.0f) || updated;
+                updated = ImGui::DragFloat("Rotate Z", &(tempOrientation.z), 0.001f, -1.0f, 1.0f) || updated;
+            }
+            ImGui::Text("Rotate W %f", tempOrientation.w);
             if (updated || crudeUpdated) {
                 setOrientation(tempOrientation);
             }
@@ -104,19 +109,21 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
         }
         case SCALE_MODE: {
             if(this->parentTransform != nullptr ) {
-                ImGui::Text((std::string("Current Total Scale X: ") + std::to_string(scale.x)).c_str());
-                ImGui::Text((std::string("Current Total Scale Y: ") + std::to_string(scale.y)).c_str());
-                ImGui::Text((std::string("Current Total Scale Z: ") + std::to_string(scale.z)).c_str());
+                ImGui::Text("Current Total Scale X: %s", std::to_string(scale.x).c_str());
+                ImGui::Text("Current Total Scale Y: %s", std::to_string(scale.y).c_str());
+                ImGui::Text("Current Total Scale Z: %s", std::to_string(scale.z).c_str());
             }
 
             glm::vec3 tempScale = scaleSingle;
             updated = ImGui::DragFloat("Scale X", &(tempScale.x), 0.01, 0.01f, 10.0f) || updated;
             updated = ImGui::DragFloat("Scale Y", &(tempScale.y), 0.01, 0.01f, 10.0f) || updated;
-            updated = ImGui::DragFloat("Scale Z", &(tempScale.z), 0.01, 0.01f, 10.0f) || updated;
-            ImGui::NewLine();
-            updated = ImGui::SliderFloat("Massive Scale X", &(tempScale.x), 0.01f, 100.0f) || updated;
-            updated = ImGui::SliderFloat("Massive Scale Y", &(tempScale.y), 0.01f, 100.0f) || updated;
-            updated = ImGui::SliderFloat("Massive Scale Z", &(tempScale.z), 0.01f, 100.0f) || updated;
+            if(!is2D) {
+                updated = ImGui::DragFloat("Scale Z", &(tempScale.z), 0.01, 0.01f, 10.0f) || updated;
+                ImGui::NewLine();
+                updated = ImGui::SliderFloat("Massive Scale X", &(tempScale.x), 0.01f, 100.0f) || updated;
+                updated = ImGui::SliderFloat("Massive Scale Y", &(tempScale.y), 0.01f, 100.0f) || updated;
+                updated = ImGui::SliderFloat("Massive Scale Z", &(tempScale.z), 0.01f, 100.0f) || updated;
+            }
             //it is possible to enter any scale now. If user enters 0, don't update
             if ((updated || crudeUpdated) && (tempScale.x != 0.0f && tempScale.y != 0.0f && tempScale.z != 0.0f)) {
                 setScale(tempScale);
@@ -128,13 +135,13 @@ bool Transformation::addImGuiEditorElements(const glm::mat4& cameraMatrix, const
             break;
         }
     }
-    updated = addImGuizmoElements(editorState, cameraMatrix, perspectiveMatrix) || updated;
+    updated = addImGuizmoElements(editorState, cameraMatrix, perspectiveMatrix, is2D) || updated;
     return updated || crudeUpdated;
 }
 
 
 bool Transformation::addImGuizmoElements(const ImGuizmoState &editorState, const glm::mat4 &cameraMatrix,
-                                         const glm::mat4 &perspectiveMatrix) {
+                                         const glm::mat4 &perspectiveMatrix, bool is2D) {
     ImGuizmo::OPERATION mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
 
     switch (editorState.mode) {
@@ -161,10 +168,16 @@ bool Transformation::addImGuizmoElements(const ImGuizmoState &editorState, const
                                             glm::value_ptr(scale),
                                             glm::value_ptr(objectMatrix));
 
-    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
 
     ImGuiIO& io = ImGui::GetIO();
     ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
+    if(is2D) {
+        mCurrentGizmoMode = ImGuizmo::WORLD;
+        ImGuizmo::SetOrthographic(true);
+    } else {
+        ImGuizmo::SetOrthographic(false);
+    }
     float tempSnap[3] = {editorState.snap[0], editorState.snap[1], editorState.snap[2] };
     glm::mat4 deltaMatrix;
     ImGuizmo::Manipulate(glm::value_ptr(cameraMatrix), glm::value_ptr(perspectiveMatrix), mCurrentGizmoOperation, mCurrentGizmoMode, glm::value_ptr(objectMatrix), glm::value_ptr(deltaMatrix), editorState.useSnap ? &(tempSnap[0]) : NULL);
@@ -182,6 +195,11 @@ bool Transformation::addImGuizmoElements(const ImGuizmoState &editorState, const
             break;
         case ImGuizmo::ROTATE:
             if(tempOrientation != glm::quat(1,0,0,0)) {
+                if(is2D) {
+                    tempOrientation.x = 0;
+                    tempOrientation.y = 0;
+                    tempOrientation = glm::normalize(tempOrientation);
+                }
                 addOrientation(tempOrientation);
                 return true;
             }

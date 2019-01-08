@@ -11,16 +11,17 @@ const float PhysicalPlayer::CAPSULE_HEIGHT = 1.0f;
 const float PhysicalPlayer::CAPSULE_RADIUS = 1.0f;
 const float PhysicalPlayer::STANDING_HEIGHT = 2.0f;
 
-PhysicalPlayer::PhysicalPlayer(Options *options, GUIRenderable *cursor, const glm::vec3 &position,
+PhysicalPlayer::PhysicalPlayer(uint32_t worldID, Options *options, GUIRenderable *cursor, const glm::vec3 &position,
                                const glm::vec3 &lookDirection, Model *attachedModel ) :
         Player(cursor, options, position, lookDirection),
         center(lookDirection),
         up(glm::vec3(0,1,0)),
         view(glm::quat(0,0,0,-1)),
         spring(nullptr),
+        worldID(worldID),
         onAir(true),
         dirty(true),
-        attachedModel(attachedModel){
+        attachedModel(attachedModel) {
     right = glm::normalize(glm::cross(center, up));
     startingHeight = position.y;
     worldSettings.debugMode = DEBUG_DISABLED;
@@ -74,7 +75,9 @@ void PhysicalPlayer::move(moveDirections direction) {
         player->setLinearVelocity(inputMovementSpeed + groundFrictionMovementSpeed);
 
         if(currentSound != nullptr ) {
-            currentSound->stopAfterFinish();
+            if(currentSound->getState() == Sound::State::PLAYING) {
+                currentSound->stopAfterFinish();
+            }
         }
         return;
     }
@@ -249,8 +252,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                 if (model->getPlayerStepOnSound() != nullptr) {
                     if (currentSound != nullptr) {
                         if (currentSound->getName() != model->getPlayerStepOnSound()->getName()) {
-                            std::cout << "changing sound from " << currentSound->getName() << " to "
-                                      << model->getPlayerStepOnSound()->getName() << std::endl;
+
                             currentSound->stop();
                             currentSound = model->getPlayerStepOnSound();
                         }
@@ -260,7 +262,6 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                 } else {
                     if (currentSound != nullptr) {
                         currentSound->stopAfterFinish();
-                        currentSound = nullptr;
                     }
                 }
             } else {
@@ -269,7 +270,9 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
             }
         } else {
             if (currentSound != nullptr) {
-                currentSound->stopAfterFinish();
+                if(currentSound->getState() == Sound::State::PLAYING) {
+                    currentSound->stopAfterFinish();
+                }
             }
             inputMovementSpeed = btVector3(0, 0, 0);
             groundFrictionMovementSpeed = btVector3(0, 0, 0);

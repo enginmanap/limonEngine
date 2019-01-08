@@ -7,8 +7,9 @@
 
 
 #include <glm/vec3.hpp>
+#include <memory>
 
-class AIMovementNode {
+class AIMovementNode : public std::enable_shared_from_this<AIMovementNode>{
     glm::vec3 position;
 
     /**
@@ -20,22 +21,22 @@ class AIMovementNode {
      *     -x   , na   ,    +x
      *     -x +z,    +z, +z +x
      */
-    AIMovementNode *neighbours[9] = {0};
-
+    std::shared_ptr<AIMovementNode> neighbours[9] = {0};
+    uint32_t nodeID = 0;
     bool isMovable = false;
 
 public:
 
-    explicit AIMovementNode(glm::vec3 position) : position(position) {}
+    explicit AIMovementNode(uint32_t nodeID, glm::vec3 position) : position(position), nodeID(nodeID) {}
 
     void setIsMovable(bool isMovable) {
         AIMovementNode::isMovable = isMovable;
     }
 
-    void setNeighbour(int index, AIMovementNode *neighbour) {
+    void setNeighbour(int index, std::shared_ptr<AIMovementNode> neighbour) {
         neighbours[index] = neighbour;
         if(neighbour != nullptr) {
-            neighbour->neighbours[8-index] = this;
+            neighbour->neighbours[8-index] = shared_from_this();
         }
 
     }
@@ -44,12 +45,24 @@ public:
         return position;
     }
 
-    AIMovementNode *getNeighbour(int i) const {
+    std::shared_ptr<AIMovementNode> getNeighbour(int i) const {
         return (neighbours[i]);
     }
 
     bool isIsMovable() const {
         return isMovable;
+    }
+
+    void setID(uint32_t id) {
+        nodeID = id;
+    }
+
+    uint32_t getID() const {
+        return nodeID;
+    }
+
+    void setPosition(const glm::vec3& position) {
+        this->position = position;
     }
 };
 

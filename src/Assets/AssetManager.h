@@ -10,9 +10,11 @@
 #include <map>
 #include <utility>
 #include <tinyxml2.h>
+#include <fstream>
 
 #include "Asset.h"
 #include "../ALHelper.h"
+
 
 class GLHelper;
 class ALHelper;
@@ -25,7 +27,7 @@ public:
         char format[9] = "\0";
         uint32_t height = 0;
         uint32_t width = 0;
-        uint8_t * texelData = nullptr;
+        std::vector<uint8_t> texelData;
 
         bool checkFormat(const char* s) const {
             if (nullptr == s) {
@@ -41,19 +43,21 @@ public:
             this->height = texture2.height;
             this->width = texture2.width;
             if(this->height != 0) {
-                this->texelData = new uint8_t[this->height * this->width];
-                memcpy(this->texelData, texture2.texelData, this->height* this->width);
+                this->texelData.resize(this->height * this->width);
+                memcpy(this->texelData.data(), texture2.texelData.data(), this->height* this->width);
             } else {
                 //compressed data
-                this->texelData = new uint8_t[this->width];
-                memcpy(this->texelData, texture2.texelData, this->width);
+                this->texelData.resize(this->width);
+                memcpy(this->texelData.data(), texture2.texelData.data(), this->width);
             }
 
         }
 
-        ~EmbeddedTexture() {
-            delete texelData;
+        template<class Archive>
+        void serialize( Archive & ar ) {
+            ar(format, height, width, texelData );
         }
+
     };
 
     struct AvailableAssetsNode {
@@ -84,11 +88,11 @@ public:
         }
     };
 private:
-    const std::string ASSET_EXTENSIONS_FILE = "./engine/assetExtensions.xml";
+    const std::string ASSET_EXTENSIONS_FILE = "./Engine/assetExtensions.xml";
 
     //second of the pair is how many times load requested. prework for unload
     std::map<const std::vector<std::string>, std::pair<Asset *, uint32_t>> assets;
-    std::unordered_map<std::string, std::vector<EmbeddedTexture>> embeddedTextures;
+    std::unordered_map<std::string, std::vector<std::shared_ptr<const EmbeddedTexture>>> embeddedTextures;
     uint32_t nextAssetIndex = 1;
 
     //std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
@@ -126,11 +130,24 @@ public:
         loadAssetList();
     }
 
+    void loadUsingCereal(const std::vector<std::string> files);
+
     template<class T>
     T *loadAsset(const std::vector<std::string> files) {
         if (assets.count(files) == 0) {
-            assets[files] = std::make_pair(new T(this, nextAssetIndex, files), 0);
-            nextAssetIndex++;
+            bool loaded = false;
+            //check if asset is cereal deserialize file.
+            if(files.size() == 1) {
+                std::string extension = files[0].substr(files[0].find_last_of(".") + 1);
+                if (extension == "limonmodel") {
+                    loadUsingCereal(files);
+                    loaded = true;
+                }
+            }
+            if(!loaded) {
+                assets[files] = std::make_pair(new T(this, nextAssetIndex, files), 0);
+                nextAssetIndex++;
+            }
         }
 
         assets[files].second++;
@@ -170,11 +187,11 @@ public:
     const AvailableAssetsNode* getAvailableAssetsTreeFiltered(AssetTypes type, const std::string &filterText);
 
 
-    void addEmbeddedTextures(const std::string& ownerAsset, std::vector<EmbeddedTexture> textures) {
+    void addEmbeddedTextures(const std::string& ownerAsset, std::vector<std::shared_ptr<const EmbeddedTexture>> textures) {
         this->embeddedTextures[ownerAsset] = textures;
     }
 
-    const EmbeddedTexture* getEmbeddedTextures(const std::string& ownerAsset, uint32_t textureID) {
+    std::shared_ptr<const EmbeddedTexture> getEmbeddedTextures(const std::string& ownerAsset, uint32_t textureID) {
         if(embeddedTextures.find(ownerAsset) == embeddedTextures.end()) {
             return nullptr;
         }
@@ -182,7 +199,7 @@ public:
             return nullptr;
         }
 
-        return &embeddedTextures[ownerAsset][textureID];
+        return embeddedTextures[ownerAsset][textureID];
 
     }
 

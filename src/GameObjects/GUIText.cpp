@@ -59,7 +59,9 @@ bool GUIText::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     fontNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("Size");
-    currentElement->SetText(std::to_string(this->face->getSize()).c_str());
+    float tempSize = this->face->getSize();
+    tempSize = tempSize / options->getScreenWidth();
+    currentElement->SetText(std::to_string(tempSize).c_str());
     fontNode->InsertEndChild(currentElement);
 
     tinyxml2::XMLElement * parent = document.NewElement("Color");
@@ -135,10 +137,12 @@ GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GLHelper 
         uint32_t size;
         GUIRenderableAttribute = FontAttribute->FirstChildElement("Size");
         if (GUIRenderableAttribute == nullptr) {
-            std::cerr << "GUI Text font size can't be read. Assumin 32" << std::endl;
+            std::cerr << "GUI Text font size can't be read. Assuming 32" << std::endl;
             size = 32;
         } else {
-            size = std::stoi(GUIRenderableAttribute->GetText());
+            float tempSize = std::stof(GUIRenderableAttribute->GetText());
+            tempSize = tempSize * options->getScreenWidth();
+            size = static_cast<int>(tempSize);
         }
 
         //now read the color information
@@ -211,56 +215,14 @@ GameObject::ImGuiResult GUIText::addImGuiEditorElements(const ImGuiRequest &requ
 
     this->updateText(GUITextBuffer);
 
-    glm::vec2 translate = getTranslate();
-    result.updated = ImGui::DragFloat("Position X", &(translate.x), 0,request.screenWidth)   || result.updated;
-    result.updated = ImGui::DragFloat("Position Y", &(translate.y), 0,request.screenHeight)   || result.updated;
+    result.updated = this->transformation.addImGuiEditorElements(request.ortogonalCameraMatrix, request.ortogonalMatrix, true);
+
 
     ImGui::NewLine();
     result.updated = ImGui::SliderFloat("Color R", &(this->color.r), 0.0f, 1.0f)   || result.updated;
     result.updated = ImGui::SliderFloat("Color G", &(this->color.g), 0.0f, 1.0f)   || result.updated;
     result.updated = ImGui::SliderFloat("Color B", &(this->color.b), 0.0f, 1.0f)   || result.updated;
     ImGui::NewLine();
-
-    if(result.updated) {
-        this->setTranslate(translate);
-        result.updated = true;
-    }
-
-    /* IMGUIZMO PART */
-
-    static bool useSnap; //these are static because we want to keep the values
-    static float snap[3] = {50.0f, 50.0f, 50.0f};
-    ImGui::NewLine();
-    ImGui::Checkbox("", &(useSnap));
-    ImGui::SameLine();
-    ImGui::InputFloat3("Snap", &(snap[0]));
-
-    glm::mat4 objectMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(translate, 0));
-    ImGuizmo::BeginFrame();
-    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
-
-    ImGuiIO& io = ImGui::GetIO();
-    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-    ImGuizmo::SetOrthographic(true);
-    ImGuizmo::Manipulate(glm::value_ptr(request.ortogonalCameraMatrix), glm::value_ptr(request.ortogonalMatrix), ImGuizmo::TRANSLATE, mCurrentGizmoMode, glm::value_ptr(objectMatrix), NULL, useSnap ? &(snap[0]) : NULL);
-    ImGuizmo::SetOrthographic(false);
-    //now we should have object matrix updated, update the object
-
-    //just clip the values
-    if(objectMatrix[3][0] <0 ) {
-        objectMatrix[3][0] = 0;
-    }
-    if(objectMatrix[3][1] <0 ) {
-        objectMatrix[3][1] = 0;
-    }
-    if(objectMatrix[3][0] > request.screenWidth ) {
-        objectMatrix[3][0] = request.screenWidth;
-    }
-    if(objectMatrix[3][1] > request.screenHeight) {
-        objectMatrix[3][1] = request.screenHeight;
-    }
-
-    this->setTranslate(glm::vec2(objectMatrix[3][0], objectMatrix[3][1]));
 
     if (ImGui::Button("Remove")) {
         result.remove = true;

@@ -3,6 +3,7 @@
 //
 
 #include <set>
+
 #include "ModelAsset.h"
 #include "../glm/gtx/matrix_decompose.hpp"
 #include "../Utils/GLMUtils.h"
@@ -27,29 +28,32 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     //std::cout << "ASSIMP::Loading::" << name << std::endl;
     const aiScene *scene;
     Assimp::Importer import;
-    scene = import.ReadFile(name, aiProcess_FlipUVs
-                                  | aiProcessPreset_TargetRealtime_MaxQuality);
+    unsigned int flags = (aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality);
+#ifdef ASSIMP_VALIDATE_WORKAROUND
+    flags = flags & ~aiProcess_FindInvalidData;
+#endif
+    scene = import.ReadFile(name, flags);
 
     if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         std::cerr << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
         exit(-1);
     }
 
-    std::vector<AssetManager::EmbeddedTexture> textures;
+    std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>> textures;
     for (size_t i = 0; i < scene->mNumTextures; ++i) {
         aiTexture* currentTexture = scene->mTextures[i];
-        AssetManager::EmbeddedTexture eTexture;
+        std::shared_ptr<AssetManager::EmbeddedTexture> eTexture = std::make_shared<AssetManager::EmbeddedTexture>();
 
-        eTexture.height = currentTexture->mHeight;
-        eTexture.width = currentTexture->mWidth;
-        memcpy(&eTexture.format, &currentTexture->achFormatHint, sizeof(eTexture.format));
-        if(eTexture.height != 0) {
-            eTexture.texelData = new uint8_t[currentTexture->mHeight * currentTexture->mWidth];
-            memcpy(eTexture.texelData, currentTexture->pcData, currentTexture->mHeight * currentTexture->mWidth);
+        eTexture->height = currentTexture->mHeight;
+        eTexture->width = currentTexture->mWidth;
+        memcpy(&eTexture->format, &currentTexture->achFormatHint, sizeof(eTexture->format));
+        if(eTexture->height != 0) {
+            eTexture->texelData.resize(currentTexture->mHeight * currentTexture->mWidth);
+            memcpy(eTexture->texelData.data(), currentTexture->pcData, currentTexture->mHeight * currentTexture->mWidth);
         } else {
             //compressed data
-            eTexture.texelData = new uint8_t[currentTexture->mWidth];
-            memcpy(eTexture.texelData, currentTexture->pcData, currentTexture->mWidth);
+            eTexture->texelData.resize(currentTexture->mWidth);
+            memcpy(eTexture->texelData.data(), currentTexture->pcData, currentTexture->mWidth);
         }
         textures.push_back(eTexture);
     }
@@ -82,7 +86,7 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     //std::cout << "Model asset: " << name << "Assimp bounding box is " << GLMUtils::vectorToString(boundingBoxMin) << ", " <<  GLMUtils::vectorToString(boundingBoxMax) << std::endl;
     //Implicit call to import.FreeScene(), and removal of scene.
 
-    //it is possible that there are mixamo animation files, chech if they do, add them too if needed
+    //it is possible that there are mixamo animation files, check if they do, add them too if needed
     const AssetManager::AvailableAssetsNode* availableAssetsTree = assetManager->getAvailableAssetsTree();
 
     //first find node of the object itself
@@ -122,7 +126,52 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
 }
 
 
-Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialIndex) {
+void ModelAsset::afterDeserialize(AssetManager *assetManager, std::vector<std::string> files) {
+    // serialize should save these
+    // assetID
+    // boneIDCounter
+    // boneIDCounterPerMesh
+    // name
+    // textures -> get from assetmanager
+    // hasAnimation
+    // rootNode
+    // boundingBoxMax
+    // boundingBoxMin
+    // centerOffset
+    // boneInformationMap
+    // simplifiedMeshes
+    // meshes
+    // animations
+    // animationSections
+    // customizationAfterSave
+
+    // AssetManager::EmbeddedTexture eTextures should be serializeable
+    // Animations should be
+
+    this->assetManager = assetManager;
+    if (files.empty()) {
+        std::cerr << "Model load failed because file name vector is empty." << std::endl;
+        exit(-1);
+    }
+    this->name = files[0];
+
+    if(temporaryEmbeddedTextures->size() > 0 ) {
+        assetManager->addEmbeddedTextures(this->name, *temporaryEmbeddedTextures);
+    }
+    temporaryEmbeddedTextures.reset();
+
+    for (auto material = materialMap.begin(); material != materialMap.end(); ++material) {
+        material->second->afterDeserialize(assetManager, name);
+        assetManager->getGlHelper()->setMaterial(material->second);
+    }
+
+    for (auto mesh = meshes.begin(); mesh != meshes.end(); ++mesh) {
+        (*mesh)->afterDeserialize(assetManager);
+    }
+}
+
+
+std::shared_ptr<Material>ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialIndex) {
     // create material uniform buffer
     aiMaterial *currentMaterial = scene->mMaterials[materialIndex];
     aiString property;    //contains filename of texture
@@ -133,10 +182,10 @@ Material *ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialI
         //return nullptr; should work too.
     }
 
-    Material *newMaterial;
+    std::shared_ptr<Material> newMaterial;
     if (materialMap.find(property.C_Str()) == materialMap.end()) {//search for the name
         //if the material is not loaded before
-        newMaterial = new Material(assetManager, property.C_Str(), assetManager->getGlHelper()->getNextMaterialIndex());
+        newMaterial = std::make_shared<Material>(assetManager, property.C_Str(), assetManager->getGlHelper()->getNextMaterialIndex());
         aiColor3D color(0.f, 0.f, 0.f);
         float transferFloat;
 
@@ -292,10 +341,10 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
             boneInformationMap[aiNode->mName.C_Str()].globalMeshInverse = glm::mat4(1.0f);
         }
 
-        Material *meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
-        MeshAsset *mesh;
+        std::shared_ptr<Material>meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
+        std::shared_ptr<MeshAsset> mesh;
         try {
-            mesh = new MeshAsset(assetManager, currentMesh, aiNode->mName.C_Str(), meshMaterial, rootNode,
+            mesh = std::make_shared<MeshAsset>(assetManager, currentMesh, aiNode->mName.C_Str(), meshMaterial, rootNode,
                                             parentTransform, hasAnimation);
         } catch(...) {
             continue;
@@ -322,8 +371,8 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
     }
 }
 
-BoneNode* ModelAsset::loadNodeTree(aiNode *aiNode) {
-    BoneNode *currentNode = new BoneNode();
+std::shared_ptr<BoneNode> ModelAsset::loadNodeTree(aiNode *aiNode) {
+    auto currentNode = std::make_shared<BoneNode>();
     currentNode->name = aiNode->mName.C_Str();
     currentNode->boneID = boneIDCounter++;
     currentNode->transformation = GLMConverter::AssimpToGLM(aiNode->mTransformation);
@@ -333,9 +382,9 @@ BoneNode* ModelAsset::loadNodeTree(aiNode *aiNode) {
     return currentNode;
 }
 
-bool ModelAsset::findNode(const std::string &nodeName, BoneNode** foundNode, BoneNode* searchRoot) const {
+bool ModelAsset::findNode(const std::string &nodeName, std::shared_ptr<BoneNode>& foundNode, std::shared_ptr<BoneNode> searchRoot) const {
     if (nodeName == searchRoot->name) {
-        *foundNode = searchRoot;
+        foundNode = searchRoot;
         return true;
     } else {
         for (unsigned int i = 0; i < searchRoot->children.size(); ++i) {
@@ -374,9 +423,9 @@ bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld,
       (animationNameNew.empty() || animationNameNew == "")) {
         //if no animation name is provided, we return bind pose by default
         for(std::unordered_map<std::string, BoneInformation>::const_iterator it = boneInformationMap.begin(); it != boneInformationMap.end(); it++){
-            BoneNode* node;
+            std::shared_ptr<BoneNode> node;
             std::string name = it->first;
-            if(findNode(name, &node, rootNode)) {
+            if(findNode(name, node, rootNode)) {
                 transformMatrix[node->boneID] = boneInformationMap.at(node->name).parentOffset;
                 //parent above means parent transform of the mesh node, not the parent of bone.
             }
@@ -385,7 +434,7 @@ bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld,
         return true;
     }
 
-    const AnimationInterface *currentAnimationOld = nullptr;
+    std::shared_ptr<const AnimationInterface> currentAnimationOld = nullptr;
     float animationTimeOld;
     bool isFinishedOld = false;
     if(!(animationNameOld.empty() ||animationNameOld == "")) {
@@ -416,7 +465,7 @@ bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld,
         }
     }
 
-    const AnimationInterface *currentAnimationNew = nullptr;
+    std::shared_ptr<const AnimationInterface> currentAnimationNew = nullptr;
     float animationTimeNew = 0.0f;
     bool isFinishedNew = false;
     if(!(animationNameNew.empty() ||animationNameNew == "")) {
@@ -487,9 +536,9 @@ bool ModelAsset::getTransform(long time, bool looped, std::string animationName,
         //FIXME calculating bind pose for each frame is wrong, but I am assuming this part will be removed, and idle pose
         //will be used instead. If bind pose requirement arises, it should set once, and reused.
         for(std::unordered_map<std::string, BoneInformation>::const_iterator it = boneInformationMap.begin(); it != boneInformationMap.end(); it++){
-            BoneNode* node;
+            std::shared_ptr<BoneNode> node;
             std::string name = it->first;
-            if(findNode(name, &node, rootNode)) {
+            if(findNode(name, node, rootNode)) {
                 transformMatrix[node->boneID] = boneInformationMap.at(node->name).parentOffset;
                 //parent above means parent transform of the mesh node, not the parent of bone.
             }
@@ -498,7 +547,7 @@ bool ModelAsset::getTransform(long time, bool looped, std::string animationName,
         return true;
     }
 
-    const AnimationInterface *currentAnimation;
+    std::shared_ptr<const AnimationInterface> currentAnimation;
     if(animations.find(animationName) != animations.end()) {
         currentAnimation = animations.at(animationName);
     } else {
@@ -532,13 +581,13 @@ bool ModelAsset::getTransform(long time, bool looped, std::string animationName,
     return result;
 }
 
-void ModelAsset::traverseAndSetTransformBlended(const BoneNode *boneNode, const glm::mat4 &parentTransform,
-                                         const AnimationInterface *animationOld,
-                                         float timeInTicksOld,
-                                         const AnimationInterface *animationNew,
-                                         float timeInTicksNew,
-                                         float blendFactor,
-                                         std::vector<glm::mat4> &transforms) const {
+void ModelAsset::traverseAndSetTransformBlended(std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
+                                                std::shared_ptr<const AnimationInterface> animationOld,
+                                                float timeInTicksOld,
+                                                std::shared_ptr<const AnimationInterface> animationNew,
+                                                float timeInTicksNew,
+                                                float blendFactor,
+                                                std::vector<glm::mat4> &transforms) const {
 
     glm::mat4 nodeTransform;
     Transformation tf1, tf2;
@@ -581,8 +630,8 @@ void ModelAsset::traverseAndSetTransformBlended(const BoneNode *boneNode, const 
     }
 }
 
-void ModelAsset::traverseAndSetTransform(const BoneNode *boneNode, const glm::mat4 &parentTransform,
-                                    const AnimationInterface *animation,
+void ModelAsset::traverseAndSetTransform( std::shared_ptr<const BoneNode> boneNode, const glm::mat4 &parentTransform,
+                                          std::shared_ptr<const AnimationInterface> animation,
                                     float timeInTicks,
                                     std::vector<glm::mat4> &transforms) const {
 
@@ -621,7 +670,7 @@ ModelAsset::fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimation
         std::string animationName = animationNamePrefix + currentAnimation->mName.C_Str();
         std::cout << "add animation with name " << animationNamePrefix << animationName << std::endl;
 
-        AnimationAssimp* animationObject = new AnimationAssimp(currentAnimation);
+        std::shared_ptr<AnimationAssimp> animationObject = std::make_shared<AnimationAssimp>(currentAnimation);
         animations[animationName] = animationObject;
     }
     //validate
@@ -633,8 +682,8 @@ bool ModelAsset::addAnimationAsSubSequence(const std::string &baseAnimationName,
         //base animation not found
         return false;
     }
-    AnimationInterface* animationAssimp = this->animations[baseAnimationName];
-    AnimationAssimpSection* animation = new AnimationAssimpSection(animationAssimp, startTime, endTime);
+    std::shared_ptr<AnimationInterface> animationAssimp = this->animations[baseAnimationName];
+    std::shared_ptr<AnimationAssimpSection> animation = std::make_shared<AnimationAssimpSection>(animationAssimp, startTime, endTime);
 
     this->animations[newAnimationName] = animation;
 
@@ -753,7 +802,7 @@ int32_t ModelAsset::buildEditorBoneTree(int32_t selectedBoneNodeID) {
    return -1;//not found
 }
 
-int32_t ModelAsset::buildEditorBoneTreeRecursive(BoneNode *boneNode, int32_t selectedBoneNodeID) {
+int32_t ModelAsset::buildEditorBoneTreeRecursive(std::shared_ptr<BoneNode> boneNode, int32_t selectedBoneNodeID) {
     int32_t result = -1;
     if(boneNode == nullptr) {
         return result;

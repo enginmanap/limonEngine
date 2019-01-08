@@ -37,7 +37,6 @@
 #include "PostProcess/SSAOBlurPostProcess.h"
 #include "SDL2Helper.h"
 
-
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
             { Types::PHYSICAL_PLAYER, "Physical"},
@@ -99,7 +98,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     switch(startingPlayer.type) {
         case PlayerInfo::Types::PHYSICAL_PLAYER:
-            physicalPlayer = new PhysicalPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, startingPlayerType.attachedModel);
+            physicalPlayer = new PhysicalPlayer(1, options, cursor, startingPlayer.position, startingPlayer.orientation, startingPlayerType.attachedModel);// 1 is reserved for physical player
             currentPlayer = physicalPlayer;
             break;
         case PlayerInfo::Types::DEBUG_PLAYER:
@@ -495,6 +494,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
         glm::vec3 front = actor->getFrontVector();
         glm::vec3 rayDir = currentPlayer->getPosition() - actor->getPosition();
         float cosBetween = glm::dot(normalize(front), normalize(rayDir));
+        information.playerDistance = glm::length(rayDir);
         information.cosineBetweenPlayer = cosBetween;
         information.playerDirection = normalize(rayDir);
         if (cosBetween > 0) {
@@ -504,6 +504,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
             information.isPlayerFront = false;
             information.isPlayerBack = true;
         }
+
         //now we know if it is front or back. we can check up, down, left, right
         //remove the y component, and test for left, right
         glm::vec3 rayDirWithoutY = rayDir;
@@ -553,7 +554,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
         if (routeThreads.find(actor->getWorldID()) != routeThreads.end() && routeThreads[actor->getWorldID()]->isThreadDone()) {
             const std::vector<LimonAPI::ParameterRequest>* route = routeThreads[actor->getWorldID()]->getResult();
             for (size_t i = 0; i < route->size(); ++i) {
-                information.routeToRequest.push_back(GLMConverter::LimonToGLM(route->at(i).value.vectorValue));
+                information.routeToRequest.push_back(glm::vec3(GLMConverter::LimonToGLM(route->at(i).value.vectorValue)));
             }
             delete routeThreads[actor->getWorldID()];
             routeThreads.erase(actor->getWorldID());
@@ -574,7 +575,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
 
 std::vector<LimonAPI::ParameterRequest>
 World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) const {
-    glm::vec3 fromPosition = GLMConverter::LimonToGLM(parameters[0].value.vectorValue);
+    glm::vec3 fromPosition = glm::vec3(GLMConverter::LimonToGLM(parameters[0].value.vectorValue));
     uint32_t actorID = (uint32_t)parameters[1].value.longValues[1];
     uint32_t maximumDistance = (uint32_t)parameters[1].value.longValues[2];
     std::vector<glm::vec3> route;
@@ -632,7 +633,7 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
             switchPlayer(debugPlayer, inputHandler);
         } else {
             if(physicalPlayer == nullptr) {
-                physicalPlayer = new PhysicalPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, startingPlayer.attachedModel);
+                physicalPlayer = new PhysicalPlayer(1, options, cursor, startingPlayer.position, startingPlayer.orientation, startingPlayer.attachedModel);
                 physicalPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
 
             }
@@ -1213,27 +1214,44 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     onLoadActions.push_back(new ActionForOnload());
                 }
             }
-            static char musicNameBuffer[128] = {};
-            static bool musicRefresh = true;
-            if (musicRefresh) {
+
+            if(ImGui::CollapsingHeader("Music")) {
+                ImGui::Indent(16.0f);
+                static const AssetManager::AvailableAssetsNode *selectedSoundAsset = nullptr;
+                static char musicAssetFilter[32] = {0};
+                ImGui::InputText("Filter Assets ##MusicAssetTreeFilter", musicAssetFilter, sizeof(musicAssetFilter),
+                                 ImGuiInputTextFlags_CharsNoBlank);
+                std::string musicAssetFilterStr = musicAssetFilter;
+                std::transform(musicAssetFilterStr.begin(), musicAssetFilterStr.end(), musicAssetFilterStr.begin(),
+                               ::tolower);
+                const AssetManager::AvailableAssetsNode *filteredAssets = assetManager->getAvailableAssetsTreeFiltered(
+                        AssetManager::Asset_type_SOUND, musicAssetFilterStr);
+                imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_SOUND,
+                                                  "Music",
+                                                  &selectedSoundAsset);
+
                 if (this->music != nullptr) {
-                    if (this->music->getName().length() < sizeof(musicNameBuffer)) {
-                        strcpy(musicNameBuffer, this->music->getName().c_str());
-                    } else {
-                        strncpy(musicNameBuffer, this->music->getName().c_str(), sizeof(musicNameBuffer) - 1);
-                    }
+                    ImGui::Text("Current Music: %s", this->music->getName().c_str());
+                } else {
+                    ImGui::Text("No music set for level. ");
                 }
-                musicRefresh = false;
-            }
-            ImGui::InputText("OnLoad Music", musicNameBuffer, 128);
-            if (ImGui::Button("Change Music")) {
-                musicRefresh = true;
-                this->music->stop();
-                delete this->music;
-                this->music = new Sound(getNextObjectID(), assetManager, std::string(musicNameBuffer));
-                this->music->setLoop(true);
-                this->music->setWorldPosition(glm::vec3(0, 0, 0), true);
-                this->music->play();
+
+                if (selectedSoundAsset != nullptr) {
+                    if (ImGui::Button("Change Music")) {
+                        if (this->music != nullptr) {
+                            this->music->stop();
+                            delete this->music;
+                        }
+                        this->music = new Sound(getNextObjectID(), assetManager, selectedSoundAsset->fullPath);
+                        this->music->setLoop(true);
+                        this->music->setWorldPosition(glm::vec3(0, 0, 0), true);
+                        this->music->play();
+                    }
+                } else {
+                    ImGui::Button("Change Music");
+                    ImGui::SameLine();
+                    ImGuiHelper::ShowHelpMarker("No sound asset selected");
+                }
             }
 
             ImGui::Text("By default, esc quits the game");
@@ -1271,7 +1289,10 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 } else {
                     options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation save failed");
                 }
-
+            }
+            //before saving, set the connection state
+            for (auto objectIt = disconnectedModels.begin(); objectIt != disconnectedModels.end(); ++objectIt) {
+                disconnectObjectFromPhysics(*objectIt);
             }
 
             if(WorldSaver::saveWorld(worldSaveNameBuffer, this)) {
@@ -1279,7 +1300,37 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             } else {
                 options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
             }
+            //after save, set the states back
+            for (auto objectIt = disconnectedModels.begin(); objectIt != disconnectedModels.end(); ++objectIt) {
+                reconnectObjectToPhysics(*objectIt);
+            }
+
         }
+        if(ImGui::Button("Save AI walk Grid")) {
+            if(this->grid != nullptr) {
+                std::string AIWalkName = this->name.substr(0, this->name.find_last_of(".")) + ".aiwalk";
+                this->grid->serializeXML(AIWalkName);
+            }
+        }
+#ifdef CEREAL_SUPPORT
+   if(ImGui::Button("Save AI walk Grid Binary")) {
+            if(this->grid != nullptr) {
+                std::string AIWalkName = this->name.substr(0, this->name.find_last_of(".")) + ".aiwalkb";
+                std::ofstream os(AIWalkName, std::ios::binary);
+                cereal::BinaryOutputArchive archive( os );
+
+                archive(*grid);
+            }
+        }
+#endif
+        if(ImGui::Button("Save Selected ModelAsset")) {
+            if(pickedObject != nullptr && pickedObject->getTypeID() == GameObject::MODEL) {
+                Model* model = static_cast<Model*>(pickedObject);
+                std::set<std::vector<std::string>> convertedAssets;
+                model->convertAssetToLimon(convertedAssets);
+            }
+        }
+
         ImGui::End();
 
         ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
@@ -1361,13 +1412,13 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             ImGui::NewLine();
             switch (pickedObject->getTypeID()) {
                 case GameObject::MODEL: {
-                    if (static_cast<Model *>(pickedObject)->isDisconnected()) {
+                    if (disconnectedModels.find(pickedObject->getWorldObjectID()) != disconnectedModels.end()) {
                         if (ImGui::Button("reconnect to physics")) {
-                            reconnectObjectToPhysics(static_cast<Model *>(pickedObject)->getWorldObjectID());
+                            reconnectObjectToPhysicsRequest(static_cast<Model *>(pickedObject)->getWorldObjectID());//Request because that action will not be carried out on editor mode
                         }
                     } else {
                         if (ImGui::Button("Disconnect from physics")) {
-                            disconnectObjectFromPhysics(static_cast<Model *>(pickedObject)->getWorldObjectID());
+                            disconnectObjectFromPhysicsRequest(static_cast<Model *>(pickedObject)->getWorldObjectID());
                         }
                         ImGui::Text(
                                 "If object is placed in trigger volume, \ndisconnecting drastically improve performance.");
@@ -1542,6 +1593,15 @@ void World::addAnimationDefinitionToEditor() {
 }
 
 World::~World() {
+
+    if(!routeThreads.empty()) {
+        std::cout << "Waiting for AI route threads to finish. " << std::endl;
+        for (auto threadIt = routeThreads.begin(); threadIt != routeThreads.end(); ++threadIt) {
+            threadIt->second->waitUntilDone();
+        }
+        std::cout << "AI route threads to finished." << std::endl;
+    }
+
     delete dynamicsWorld;
     delete animationInProgress;
 
@@ -1596,6 +1656,7 @@ bool World::addModelToWorld(Model *xmlModel) {
     rigidBodies.push_back(xmlModel->getRigidBody());
     xmlModel->updateAABB();
     if(xmlModel->isDisconnected()) {
+        disconnectedModels.insert(xmlModel->getWorldObjectID());
         dynamicsWorld->removeRigidBody(xmlModel->getRigidBody());
     } else {
         dynamicsWorld->addRigidBody(xmlModel->getRigidBody(), COLLIDE_MODELS, COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
@@ -1636,8 +1697,20 @@ void World::addActor(ActorInterface *actor) {
 void World::createGridFrom(const glm::vec3 &aiGridStartPoint) {
     if(grid != nullptr) {
         delete grid;
+        grid = nullptr;
     }
-    grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING);
+#ifdef CEREAL_SUPPORT
+    std::string AIWalkBinaryName = this->name.substr(0, this->name.find_last_of(".")) + ".aiwalkb";
+    grid = AIMovementGrid::deserializeBinary(AIWalkBinaryName);
+#endif
+    if(grid == nullptr) {
+        std::string AIWalkName = this->name.substr(0, this->name.find_last_of(".")) + ".aiwalk";
+        grid = AIMovementGrid::deserialize(AIWalkName);
+        if (grid == nullptr) {
+            grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax, COLLIDE_PLAYER,
+                                      COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING);
+        }
+    }
 }
 
 void World::setSky(SkyBox *skyBox) {
@@ -1704,10 +1777,37 @@ uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animati
 bool
 World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest> &runParameters, uint32_t index) {
     bool isAllSet = true;
+    std::set<std::string> passDescriptions;//multi select is build on first occurance, so pass other times
     for (size_t i = 0; i < runParameters.size(); ++i) {
         LimonAPI::ParameterRequest& parameter = runParameters[i];
-
+        if(passDescriptions.find(parameter.description) != passDescriptions.end()) {
+            continue;
+        }
         switch(parameter.requestType) {
+
+            case LimonAPI::ParameterRequest::RequestParameterTypes::MULTI_SELECT: {
+                //we get a multi select, we should build the multiselect. first one is the selected element
+                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+                if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(), parameter.value.stringValue)) {
+                    for (size_t j = i+1; j < runParameters.size(); ++j) {//passing i because it should be repeated in the list
+                        if(runParameters[j].requestType == LimonAPI::ParameterRequest::RequestParameterTypes::MULTI_SELECT && runParameters[j].description == runParameters[i].description) {
+                            bool isThisElementSelected = (std::strcmp(runParameters[j].value.stringValue,parameter.value.stringValue) == 0);
+
+                            if (ImGui::Selectable(runParameters[j].value.stringValue, isThisElementSelected)) {
+                                strncpy(parameter.value.stringValue,runParameters[j].value.stringValue, sizeof(runParameters[j].value.stringValue));
+                                parameter.isSet = true;
+                            }
+                            if(isThisElementSelected) {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+            //now add this to pass list
+            passDescriptions.insert(parameter.description);
+            break;
             case LimonAPI::ParameterRequest::RequestParameterTypes::MODEL: {
                 parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
                 std::string currentObject;
@@ -1841,18 +1941,39 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
             }
                 break;
             case LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER: {
-                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-                if (!parameter.isSet) {
-                    isAllSet = false;
+                switch (parameter.valueType) {
+                    case LimonAPI::ParameterRequest::ValueTypes::DOUBLE: {
+                        parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+                        if (!parameter.isSet) {
+                            isAllSet = false;
+                        }
+                        float value = parameter.value.doubleValue;
+                        if (ImGui::DragFloat((parameter.description + "##triggerParam" + std::to_string(i) + "##" +
+                                              std::to_string(index)).c_str(),
+                                             &value, sizeof(parameter.value.doubleValue))) {
+                            parameter.value.doubleValue = value;
+                            parameter.isSet = true;
+                        };
+                    }
+                    break;
+                    case LimonAPI::ParameterRequest::ValueTypes::LONG:
+                    default: {
+                        parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+                        if (!parameter.isSet) {
+                            isAllSet = false;
+                        }
+                        int value = parameter.value.longValue;
+                        if (ImGui::DragInt((parameter.description + "##triggerParam" + std::to_string(i) + "##" +
+                                            std::to_string(index)).c_str(),
+                                           &value, sizeof(parameter.value.longValue))) {
+                            parameter.value.longValue = value;
+                            parameter.isSet = true;
+                        };
+                    }
+                        break;
                 }
-                int value = parameter.value.longValue;
-                if (ImGui::DragInt((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(),
-                                   &value, sizeof(parameter.value.longValue))) {
-                    parameter.value.longValue = value;
-                    parameter.isSet = true;
-                };
             }
-                break;
+            break;
             case LimonAPI::ParameterRequest::RequestParameterTypes::TRIGGER: {
                 parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG_ARRAY;
                 parameter.value.longValues[0] = 3;//including self
@@ -1936,13 +2057,13 @@ uint32_t World::addGuiImageAPI(const std::string &imageFilePath, const std::stri
     return guiImage->getWorldObjectID();
 }
 
-uint32_t World::removeGuiText(uint32_t guiElementID) {
+bool World::removeGuiElement(uint32_t guiElementID) {
     if(guiElements.find(guiElementID) != guiElements.end()) {
         delete guiElements[guiElementID];
         guiElements.erase(guiElementID);
-        return 0;
+        return true;
     }
-    return 1;
+    return false;
 }
 
 std::vector<LimonAPI::ParameterRequest> World::getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID) {
@@ -1978,46 +2099,48 @@ bool World::removeTriggerObject(uint32_t triggerobjectID) {
 }
 
 bool World::removeObject(uint32_t objectID) {
-    if(objects.find(objectID) != objects.end()) {
-        PhysicalRenderable* objectToRemove = objects[objectID];
-        dynamicsWorld->removeRigidBody(objectToRemove->getRigidBody());
-        //disconnect AI
-        Model* modelToRemove = dynamic_cast<Model*>(objectToRemove);
-        if (modelToRemove!= nullptr && modelToRemove->getAIID() != 0) {
-            unusedIDs.push(modelToRemove->getAIID());
-            actors.erase(dynamic_cast<Model *>(objectToRemove)->getAIID());
-        }
-        //remove any active animations
-        if(activeAnimations.find(objectToRemove) != activeAnimations.end()) {
-            delete activeAnimations[objectToRemove];
-            activeAnimations.erase(objectToRemove);
-        }
-        onLoadAnimations.erase(objectToRemove);
-
-        if(modelToRemove != nullptr) {
-            //we need to remove from ligth frustum lists, and camera frustum lists
-            if(modelToRemove->isAnimated()) {
-                animatedModelsInFrustum.erase(modelToRemove);
-                for (size_t i = 0; i < activeLights.size(); ++i) {
-                    animatedModelsInLightFrustum[i].erase(modelToRemove);
-                }
-
-                animatedModelsInAnyFrustum.erase(modelToRemove);
-            } else {
-                modelsInCameraFrustum[modelToRemove->getAssetID()].erase(modelToRemove);
-                for (size_t i = 0; i < activeLights.size(); ++i) {
-                    modelsInLightFrustum[i][modelToRemove->getAssetID()].erase(modelToRemove);
-                }
-            }
-        }
-
-        //delete object itself
-        delete objects[objectID];
-        objects.erase(objectID);
-        unusedIDs.push(objectID);
-        return true;
+    Model* modelToRemove = findModelByID(objectID);
+    if(modelToRemove == nullptr) {
+        return false;
     }
-    return false;//not successful
+    dynamicsWorld->removeRigidBody(modelToRemove->getRigidBody());
+    //disconnect AI
+
+    if (modelToRemove!= nullptr && modelToRemove->getAIID() != 0) {
+        unusedIDs.push(modelToRemove->getAIID());
+        actors.erase(modelToRemove->getAIID());
+    }
+    //remove any active animations
+    if(activeAnimations.find(modelToRemove) != activeAnimations.end()) {
+        delete activeAnimations[modelToRemove];
+        activeAnimations.erase(modelToRemove);
+    }
+    onLoadAnimations.erase(modelToRemove);
+
+    //we need to remove from ligth frustum lists, and camera frustum lists
+    if(modelToRemove->isAnimated()) {
+        animatedModelsInFrustum.erase(modelToRemove);
+        for (size_t i = 0; i < activeLights.size(); ++i) {
+            animatedModelsInLightFrustum[i].erase(modelToRemove);
+        }
+
+        animatedModelsInAnyFrustum.erase(modelToRemove);
+    } else {
+        modelsInCameraFrustum[modelToRemove->getAssetID()].erase(modelToRemove);
+        for (size_t i = 0; i < activeLights.size(); ++i) {
+            modelsInLightFrustum[i][modelToRemove->getAssetID()].erase(modelToRemove);
+        }
+    }
+
+
+    //delete object itself
+    delete modelToRemove;
+    objects.erase(objectID);
+    unusedIDs.push(objectID);
+
+
+    return true;
+
 }
 
 void World::afterLoadFinished() {
@@ -2064,9 +2187,32 @@ bool World::reconnectObjectToPhysics(uint32_t objectWorldID) {
     if(model == nullptr) {
         return false;//fail
     }
-
     model->connectToPhysicsWorld(dynamicsWorld, COLLIDE_MODELS, COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
     return true;
+}
+
+bool World::disconnectObjectFromPhysicsRequest(uint32_t objectWorldID) {
+   if(objects.find(objectWorldID) == objects.end()) {
+       return false;//fail
+   }
+   Model* model = dynamic_cast<Model*>(objects.at(objectWorldID));
+   if(model == nullptr) {
+       return false;//fail
+   }
+   disconnectedModels.insert(model->getWorldObjectID());
+   return true;
+}
+
+bool World::reconnectObjectToPhysicsRequest(uint32_t objectWorldID) {
+   if(objects.find(objectWorldID) == objects.end()) {
+       return false;//fail
+   }
+   Model* model = dynamic_cast<Model*>(objects.at(objectWorldID));
+   if(model == nullptr) {
+       return false;//fail
+   }
+   disconnectedModels.erase(model->getWorldObjectID());
+   return true;
 }
 
 bool World::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath) {
@@ -2146,6 +2292,19 @@ void World::addGUIImageControls() {
 }
 
 void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
+    //we should reconnect disconnected object if switching to editor mode, because we use physics for pickup
+    if(targetPlayer->getWorldSettings().editorShown && (currentPlayersSettings == nullptr ||!currentPlayersSettings->editorShown)) {
+        //switching to editor shown. reconnect all disconnected objects, if no currentPlayer, starting with editor, reconnect
+        for (auto objectIt = disconnectedModels.begin(); objectIt != disconnectedModels.end(); ++objectIt) {
+            reconnectObjectToPhysics(*objectIt);
+        }
+    } else if(!targetPlayer->getWorldSettings().editorShown && (currentPlayersSettings  == nullptr || currentPlayersSettings->editorShown)) {
+        //if exiting editor mode, or starting not editor mode
+        for (auto objectIt = disconnectedModels.begin(); objectIt != disconnectedModels.end(); ++objectIt) {
+            disconnectObjectFromPhysics(*objectIt);
+        }
+    }
+
     currentPlayersSettings = &(targetPlayer->getWorldSettings());
 
     setupForPlay(inputHandler);
@@ -2435,7 +2594,17 @@ uint32_t World::addModelApi(const std::string &modelFilePath, float modelWeight,
     this->addModelToWorld(newModel);
 
     return objectID;
-   }
+}
+
+bool World::setModelTemporaryAPI(uint32_t modelID, bool temporary) {
+    Model* model = findModelByID(modelID);
+    if(model == nullptr) {
+        return false;
+    } else {
+        model->setTemporary(temporary);
+        return true;
+    }
+}
 
 std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
    /**
@@ -2487,10 +2656,11 @@ std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
 
 std::vector<LimonAPI::ParameterRequest> World::getObjectTransformationAPI(uint32_t objectID) const {
     std::vector<LimonAPI::ParameterRequest> result;
-    if(objects.find(objectID) == objects.end()) {
+    Model* model = findModelByID(objectID);
+    if(model == nullptr) {
         return result;
     }
-    const Transformation* transformation = objects.at(objectID)->getTransformation();
+    const Transformation* transformation = model->getTransformation();
 
     LimonAPI::ParameterRequest translate;
     translate.valueType = LimonAPI::ParameterRequest::ValueTypes::VEC4;
@@ -3140,6 +3310,9 @@ void World::updateActiveLights(bool forceUpdate) {
 
 bool World::addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs,
                                        uint32_t &maxID) {
+    if(attachment == nullptr) {
+        return true;
+    }
     const GameObject* gameObjectOfTheSame = dynamic_cast<const GameObject*>(attachment);
     if(gameObjectOfTheSame == nullptr) {
         std::cerr << "Player attachment is not GameObject, that should never happen." << std::endl;
@@ -3159,78 +3332,79 @@ bool World::addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std
     return true;
 }
 
-   bool World::verifyIDs() {
-           std::set<uint32_t > usedIDs;
-           uint32_t maxID = 0;
-           /** there are 3 places that has IDs,
-            * 1) sky
-            * 2) objects
-            * 3) AIs
-            */
-           //put sky first, since it is guaranteed to be single
-           if(this->sky != nullptr) {
-               usedIDs.insert(this->sky->getWorldObjectID());
-               maxID = this->sky->getWorldObjectID();
-           }
+bool World::verifyIDs() {
+    std::set<uint32_t > usedIDs;
+    uint32_t maxID = 0;
+    usedIDs.insert(1);//reserved for physicalPlayer
+    /** there are 3 places that has IDs,
+     * 1) sky
+     * 2) objects
+     * 3) AIs
+     */
+    //put sky first, since it is guaranteed to be single
+    if(this->sky != nullptr) {
+        usedIDs.insert(this->sky->getWorldObjectID());
+        maxID = this->sky->getWorldObjectID();
+    }
 
-           for(auto object = objects.begin(); object != objects.end(); object++) {
-               auto result = usedIDs.insert(object->first);
-               if(result.second == false) {
-                   std::cerr << "world ID repetition on object detected! with id " << object->first << std::endl;
-                   return false;
-               }
-               maxID = std::max(maxID,object->first);
-           }
+    for(auto object = objects.begin(); object != objects.end(); object++) {
+        auto result = usedIDs.insert(object->first);
+        if(result.second == false) {
+            std::cerr << "world ID repetition on object detected! with id " << object->first << std::endl;
+            return false;
+        }
+        maxID = std::max(maxID,object->first);
+    }
 
-           for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
-               auto result = usedIDs.insert(trigger->first);
-               if(result.second == false) {
-                   std::cerr << "world ID repetition on trigger detected! with id " << trigger->first << std::endl;
-                   return false;
-               }
-               maxID = std::max(maxID,trigger->first);
-           }
+    for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
+        auto result = usedIDs.insert(trigger->first);
+        if(result.second == false) {
+            std::cerr << "world ID repetition on trigger detected! with id " << trigger->first << std::endl;
+            return false;
+        }
+        maxID = std::max(maxID,trigger->first);
+    }
 
-           for(auto actor = actors.begin(); actor != actors.end(); actor++) {
-               auto result = usedIDs.insert(actor->first);
-               if(result.second == false) {
-                   std::cerr << "world ID repetition on trigger detected! ActorInterface with id " << actor->first << std::endl;
-                   return false;
-               }
-               maxID = std::max(maxID,actor->first);
-           }
+    for(auto actor = actors.begin(); actor != actors.end(); actor++) {
+        auto result = usedIDs.insert(actor->first);
+        if(result.second == false) {
+            std::cerr << "world ID repetition detected! ActorInterface with id " << actor->first << std::endl;
+            return false;
+        }
+        maxID = std::max(maxID,actor->first);
+    }
 
-           for (auto guiElement = guiElements.begin(); guiElement != guiElements.end(); ++guiElement) {
-               auto result = usedIDs.insert(guiElement->first);
-               if(result.second == false) {
-                   std::cerr << "world ID repetition on trigger detected! gui element with id " << guiElement->first << std::endl;
-                   return false;
-               }
-               maxID = std::max(maxID, guiElement->first);
-           }
+    for (auto guiElement = guiElements.begin(); guiElement != guiElements.end(); ++guiElement) {
+        auto result = usedIDs.insert(guiElement->first);
+        if(result.second == false) {
+            std::cerr << "world ID repetition detected! gui element with id " << guiElement->first << std::endl;
+            return false;
+        }
+        maxID = std::max(maxID, guiElement->first);
+    }
 
-           for (auto modelGroup = modelGroups.begin(); modelGroup != modelGroups.end(); ++modelGroup) {
-               auto result = usedIDs.insert(modelGroup->first);
-               if(result.second == false) {
-                   std::cerr << "world ID repetition on trigger detected! gui element with id " << modelGroup->first << std::endl;
-                   return false;
-               }
-               maxID = std::max(maxID, modelGroup->first);
-           }
+    for (auto modelGroup = modelGroups.begin(); modelGroup != modelGroups.end(); ++modelGroup) {
+        auto result = usedIDs.insert(modelGroup->first);
+        if(result.second == false) {
+            std::cerr << "world ID repetition on trigger detected! gui element with id " << modelGroup->first << std::endl;
+            return false;
+        }
+        maxID = std::max(maxID, modelGroup->first);
+    }
 
-           if (!addPlayerAttachmentUsedIDs(startingPlayer.attachedModel, usedIDs, maxID)) {
-               return false;
-           }
+    if (!addPlayerAttachmentUsedIDs(startingPlayer.attachedModel, usedIDs, maxID)) {
+        return false;
+    }
 
-           uint32_t unusedIDCount = 0;
-           for(uint32_t index = 1; index <= maxID; index++) {
-               if(usedIDs.count(index) != 1) {
-                       unusedIDs.push(index);
-                   unusedIDCount++;
-               }
-           }
-           std::cout << "World load found " << maxID - unusedIDCount << " objects and " << unusedIDCount << " unused IDs." << std::endl;
+    uint32_t unusedIDCount = 0;
+    for(uint32_t index = 1; index <= maxID; index++) {
+        if(usedIDs.count(index) != 1) {
+            unusedIDs.push(index);
+            unusedIDCount++;
+        }
+    }
+    std::cout << "World load found " << maxID - unusedIDCount << " objects and " << unusedIDCount << " unused IDs." << std::endl;
 
-           nextWorldID = maxID+1;
-           return true;
-   }
+    nextWorldID = maxID+1;
+    return true;
+}
