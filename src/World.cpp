@@ -1333,7 +1333,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
         ImGui::End();
 
-        ImGui::SetNextWindowSize(ImVec2(0,0), true);//true means set it only once
+        //ImGui::SetNextWindowSize(ImVec2(0,0), false);//true means set it only once
 
         ImGui::Begin("Selected Object Properties");
         std::string selectedName;
