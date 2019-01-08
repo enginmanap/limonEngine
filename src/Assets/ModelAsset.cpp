@@ -435,7 +435,7 @@ bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld,
     }
 
     std::shared_ptr<const AnimationInterface> currentAnimationOld = nullptr;
-    float animationTimeOld;
+    float animationTimeOld = 0.0f;
     bool isFinishedOld = false;
     if(!(animationNameOld.empty() ||animationNameOld == "")) {
         if (animations.find(animationNameOld) != animations.end()) {
