@@ -46,15 +46,29 @@ class ImGuiHelper {
         if(assetsNode->assetType == AssetManager::Asset_type_UNKNOWN) {
             return;
         }
+        ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ((assetsNode == *selectedNode) ? ImGuiTreeNodeFlags_Selected : 0);
         if(assetsNode->assetType == AssetManager::AssetTypes::Asset_type_DIRECTORY) {
-            if (ImGui::TreeNode((assetsNode->name + "##"+ customPrefix + assetsNode->fullPath).c_str())) {
-                for (size_t i = 0; i < assetsNode->children.size(); ++i) {
-                    buildTreeFromAssetsRecursive(assetsNode->children[i], typeToShow, customPrefix, selectedNode);
+            if(typeToShow == AssetManager::AssetTypes::Asset_type_DIRECTORY) {
+                if (ImGui::TreeNodeEx((assetsNode->name + "##"+ customPrefix + assetsNode->fullPath).c_str(),node_flags)) {
+                    if(ImGui::IsItemClicked()) {
+                        if(*selectedNode != assetsNode) {
+                            *selectedNode = assetsNode;
+                        }
+                    }
+                    for (size_t i = 0; i < assetsNode->children.size(); ++i) {
+                        buildTreeFromAssetsRecursive(assetsNode->children[i], typeToShow, customPrefix, selectedNode);
+                    }
+                    ImGui::TreePop();
                 }
-                ImGui::TreePop();
+            } else {
+                if (ImGui::TreeNode((assetsNode->name + "##" + customPrefix + assetsNode->fullPath).c_str())) {
+                    for (size_t i = 0; i < assetsNode->children.size(); ++i) {
+                        buildTreeFromAssetsRecursive(assetsNode->children[i], typeToShow, customPrefix, selectedNode);
+                    }
+                    ImGui::TreePop();
+                }
             }
         } else if(assetsNode->assetType == typeToShow) {
-            ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ((assetsNode == *selectedNode) ? ImGuiTreeNodeFlags_Selected : 0);
             node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
             ImGui::TreeNodeEx((assetsNode->name + "## " + assetsNode->fullPath).c_str(), node_flags);
             if(ImGui::IsItemClicked()) {
