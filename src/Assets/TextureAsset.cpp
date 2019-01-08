@@ -21,15 +21,17 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
         //index is a string, first char is * second char is the index
         std::cout << "Texture request has 2 elements. Attempting to extract embedded texture. " << std::endl;
         int textureID = std::atoi(&files[0][1]);
-        const AssetManager::EmbeddedTexture* embeddedTexture = assetManager->getEmbeddedTextures(files[1], textureID);
+        std::shared_ptr<const AssetManager::EmbeddedTexture> embeddedTexture = assetManager->getEmbeddedTextures(files[1], textureID);
         if(embeddedTexture != nullptr) {
             SDL_RWops* rwop = nullptr;
             if(embeddedTexture->height == 0) {
-                rwop = SDL_RWFromMem( embeddedTexture->texelData, embeddedTexture->width);
+                rwop = SDL_RWFromMem( (void*)embeddedTexture->texelData.data(), embeddedTexture->width);
             } else {
-                rwop = SDL_RWFromMem(embeddedTexture->texelData, embeddedTexture->width * embeddedTexture->height);
+                rwop = SDL_RWFromMem((void*)embeddedTexture->texelData.data(), embeddedTexture->width * embeddedTexture->height);
             }
             surface = IMG_Load_RW(rwop, 0);
+        } else {
+            std::cerr << "Embedded texture can't be found with following information: " << files[1] << ":" << textureID << std::endl;
         }
     } else {
         /**

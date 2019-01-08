@@ -96,8 +96,8 @@ public:
     };
 
     struct ParameterRequest {
-        enum RequestParameterTypes { MODEL, ANIMATION, SWITCH, FREE_TEXT, TRIGGER, GUI_TEXT, FREE_NUMBER, COORDINATE, TRANSFORM };
-        RequestParameterTypes requestType;
+        enum RequestParameterTypes { MODEL, ANIMATION, SWITCH, FREE_TEXT, TRIGGER, GUI_TEXT, FREE_NUMBER, COORDINATE, TRANSFORM, MULTI_SELECT };
+        RequestParameterTypes requestType = FREE_NUMBER;
         std::string description;
         enum ValueTypes { STRING, DOUBLE, LONG, LONG_ARRAY, BOOLEAN, VEC4, MAT4 };
         ValueTypes valueType;
@@ -138,6 +138,7 @@ public:
 
     uint32_t addObject(const std::string &modelFilePath, float modelWeight, bool physical, const glm::vec3 &position,
                        const glm::vec3 &scale, const glm::quat &orientation);
+    bool setModelTemporary(uint32_t modelID, bool temporary);
     bool removeObject(uint32_t objectID);
     bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID);//second one is
     bool removeTriggerObject(uint32_t TriggerObjectID);
@@ -256,8 +257,9 @@ private:
     std::function<uint32_t(const std::string &, uint32_t, const std::string &, const std::string &, const glm::vec3 &, const glm::vec2 &, float)> worldAddGuiText;
     std::function<uint32_t(const std::string &, const std::string &, const Vec2 &, const Vec2 &, float)> worldAddGuiImage;
     std::function<uint32_t(const std::string &, float, bool, const glm::vec3 &, const glm::vec3 &, const glm::quat &)> worldAddModel;
+    std::function<bool(uint32_t, bool)> worldSetModelTemporary;
     std::function<bool(uint32_t, const std::string &)> worldUpdateGuiText;
-    std::function<uint32_t (uint32_t)> worldRemoveGuiText;
+    std::function<uint32_t (uint32_t)> worldRemoveGuiElement;
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t , uint32_t )> worldGetResultOfTrigger;
     std::function<bool (uint32_t)> worldRemoveObject;
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t)> worldGetObjectTransformation;

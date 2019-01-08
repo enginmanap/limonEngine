@@ -11,15 +11,25 @@
 #include <vector>
 #include <unordered_map>
 #include <tinyxml2.h>
-#include "AnimationInterface.h"
+#include <memory>
+#ifdef CEREAL_SUPPORT
+#include <cereal/types/unordered_map.hpp>
+#include <cereal/access.hpp>
+#endif
 
-class AnimationNode;
+#include "AnimationInterface.h"
+#include "AnimationNode.h"
 
 class AnimationAssimp : public AnimationInterface {
     float ticksPerSecond;
     float duration;
     //This map keeps the animations for node(bone)
-    std::unordered_map<std::string, AnimationNode*> nodes;
+    std::unordered_map<std::string, std::shared_ptr<AnimationNode>> nodes;
+#ifdef CEREAL_SUPPORT
+    friend class cereal::access;
+#endif
+
+    AnimationAssimp(){}
 public:
     AnimationAssimp(aiAnimation *assimpAnimation);
 
@@ -32,7 +42,18 @@ public:
     float getDuration() const {
         return duration;
     }
+#ifdef CEREAL_SUPPORT
+    template<class Archive>
+    void serialize( Archive & ar ) {
+        ar(ticksPerSecond, duration, nodes);
+    }
+#endif
 };
 
+#ifdef CEREAL_SUPPORT
+#include <cereal/types/polymorphic.hpp>
+CEREAL_REGISTER_TYPE(AnimationAssimp)
+CEREAL_REGISTER_POLYMORPHIC_RELATION(AnimationInterface, AnimationAssimp)
+#endif
 
 #endif //LIMONENGINE_ANIMATIONASSIMP_H

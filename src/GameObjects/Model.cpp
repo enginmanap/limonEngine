@@ -4,8 +4,12 @@
 
 #include "Model.h"
 #include "../AI/ActorInterface.h"
+#include "../ImGuiHelper.h"
 #include <random>
 
+#ifdef CEREAL_SUPPORT
+#include <cereal/archives/binary.hpp>
+#endif
 Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile,
              bool disconnected = false) :
         PhysicalRenderable(assetManager->getGlHelper(), mass, disconnected), objectID(objectID), assetManager(assetManager),
@@ -33,11 +37,11 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
     std::map<uint_fast32_t, btTransform> btTransformMap;
 
     MeshMeta *meshMeta;
-    std::vector<MeshAsset *> assetMeshes = modelAsset->getMeshes();
+    std::vector<std::shared_ptr<MeshAsset>> assetMeshes = modelAsset->getMeshes();
     static GLSLProgram* animatedProgram = nullptr;
     static GLSLProgram* nonAnimatedProgram = nullptr;
 
-    for (std::vector<MeshAsset *>::iterator iter = assetMeshes.begin(); iter != assetMeshes.end(); ++iter) {
+    for (auto iter = assetMeshes.begin(); iter != assetMeshes.end(); ++iter) {
         meshMeta = new MeshMeta();
         meshMeta->mesh = (*iter);
 
@@ -63,7 +67,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
         meshMetaData.push_back(meshMeta);
     }
 
-    std::vector<MeshAsset *> physicalMeshes = modelAsset->getPhysicsMeshes();
+    std::vector<std::shared_ptr<MeshAsset>> physicalMeshes = modelAsset->getPhysicsMeshes();
 
     for(auto iter = physicalMeshes.begin(); iter != physicalMeshes.end(); ++iter) {
 
@@ -167,7 +171,7 @@ void Model::setupForTime(long time) {
     lastSetupTime = time;
 }
 
-void Model::activateTexturesOnly(const Material *material) {
+void Model::activateTexturesOnly(std::shared_ptr<const Material>material) {
     if(material->hasDiffuseMap()) {
         glHelper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
     }
@@ -313,7 +317,10 @@ void Model::renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GLSL
     }
 }
 
-void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * objectsNode) const {
+bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const {
+    if(this->temporary) {
+        return false;//don't save objects if they are temporary
+    }
     tinyxml2::XMLElement *objectElement = document.NewElement("Object");
     objectsNode->InsertEndChild(objectElement);
 
@@ -383,12 +390,15 @@ void Model::fillObjects(tinyxml2::XMLDocument& document, tinyxml2::XMLElement * 
            tinyxml2::XMLElement *childNode = document.NewElement("Child");
            childNode->SetAttribute("Index", (uint32_t)i);
            PhysicalRenderable* child = children[i];
-           child->fillObjects(document, childNode);
-           childrenNode->InsertEndChild(childNode);
+           if(child->fillObjects(document, childNode)) {
+               childrenNode->InsertEndChild(childNode);
+           }
+
         }
     }
 
     modelAsset->serializeCustomizations();
+    return true;
 }
 
 uint32_t Model::getAIID() {
@@ -413,15 +423,19 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
         if (ImGui::CollapsingHeader("Model animation properties")) {
             if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {
                 for (auto it = modelAsset->getAnimations().begin(); it != modelAsset->getAnimations().end(); it++) {
-                    if (ImGui::Selectable(it->first.c_str())) {
+                    bool isThisAnimationCurrent = this->getAnimationName() == it->first;
+                    if (ImGui::Selectable(it->first.c_str(), isThisAnimationCurrent)) {
                         setAnimation(it->first, true);
+                    }
+                    if (isThisAnimationCurrent) {
+                        ImGui::SetItemDefaultFocus();
                     }
                 }
                 ImGui::EndCombo();
             }
             ImGui::SliderFloat("Animation time scale", &(this->animationTimeScale), 0.01f, 2.0f);
 
-            ImGui::Text("Seperate selected animation by time");
+            ImGui::Text("Separate selected animation by time");
             static char newAnimationName[256] = {0};
             static float times[2] = {0};
             ImGui::InputText("New animation Name", newAnimationName, sizeof(newAnimationName) - 1 );
@@ -449,14 +463,38 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
         }
     }
     if (ImGui::CollapsingHeader("Sound properties")) {
-        //Step on sound properties
-        ImGui::InputText("Step On Sound", stepOnSoundNameBuffer, 128);
-        if (ImGui::Button("Change Sound")) {
-            if (this->stepOnSound != nullptr) {
-                this->stepOnSound->stop();
+        ImGui::Indent(16.0f);
+        static const AssetManager::AvailableAssetsNode *selectedSoundAsset = nullptr;
+        static char stepOnSoundFilter[32] = {0};
+        ImGui::InputText("Filter Assets ##StepOnSoundAssetTreeFilter", stepOnSoundFilter, sizeof(stepOnSoundFilter),
+                         ImGuiInputTextFlags_CharsNoBlank);
+        std::string stepOnSoundFilterStr = stepOnSoundFilter;
+        std::transform(stepOnSoundFilterStr.begin(), stepOnSoundFilterStr.end(), stepOnSoundFilterStr.begin(),
+                       ::tolower);
+        const AssetManager::AvailableAssetsNode *filteredAssets = assetManager->getAvailableAssetsTreeFiltered(
+                AssetManager::Asset_type_SOUND, stepOnSoundFilterStr);
+        ImGuiHelper::buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_SOUND,
+                                          "StepOnSound",
+                                          &selectedSoundAsset);
+
+        if (this->stepOnSound != nullptr) {
+            ImGui::Text("step On Sound: %s", this->stepOnSound->getName().c_str());
+        } else {
+            ImGui::Text("No step on sound set.");
+        }
+
+        if (selectedSoundAsset != nullptr) {
+            if (ImGui::Button("Set Step On Sound")) {
+                if (this->stepOnSound != nullptr) {
+                    this->stepOnSound->stop();
+                }
+                this->stepOnSound = std::make_shared<Sound>(0, assetManager, selectedSoundAsset->fullPath);
+                this->stepOnSound->setLoop(true);
             }
-            this->stepOnSound = std::make_shared<Sound>(0, assetManager, std::string(stepOnSoundNameBuffer));
-            this->stepOnSound->setLoop(true);
+        } else {
+            ImGui::Button("Set Step On Sound");
+            ImGui::SameLine();
+            ImGuiHelper::ShowHelpMarker("No sound asset selected");
         }
     }
     if(animated) {
@@ -572,4 +610,23 @@ GameObject::ImGuiResult Model::putAIonGUI(ActorInterface *actorInterface,
     }
 
     return result;
+}
+
+void Model::attachAI(ActorInterface *AIActor) {
+    //after this, clearing the AI is job of the model.
+    this->AIActor = AIActor;
+    lastSelectedAIName = AIActor->getName();
+}
+
+void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedModels __attribute__((unused))) {
+#ifdef CEREAL_SUPPORT
+    std::string newName = name.substr(0, name.find_last_of(".")) + ".limonmodel";
+    std::ofstream os(newName, std::ios::binary);
+    cereal::BinaryOutputArchive archive( os );
+
+    archive(*modelAsset);
+    this->name = newName;//change name of self so next time converted file would be used.
+#else
+    std::cerr << "Cereal support disabled" << std::endl;
+#endif
 }

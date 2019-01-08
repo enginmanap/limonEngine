@@ -9,12 +9,13 @@
 #include <string>
 
 #include <glm/glm.hpp>
+#include <memory>
 
 class BoneNode {
 public:
     std::string name;
     uint_fast32_t boneID;
-    std::vector<BoneNode *> children;
+    std::vector<std::shared_ptr<BoneNode>> children;
     glm::mat4 transformation;
 
     BoneNode() = default;
@@ -23,8 +24,13 @@ public:
         this->name = originalNode.name;
         this->transformation = originalNode.transformation;
         for (unsigned int i = 0; i < originalNode.children.size(); ++i) {
-            this->children.push_back(new BoneNode((*originalNode.children.at(i))));
+            this->children.push_back(std::make_shared<BoneNode>(*originalNode.children.at(i)));
         }
+    }
+
+    template<class Archive>
+    void serialize(Archive & archive){
+        archive(name, boneID, children, transformation);
     }
 };
 

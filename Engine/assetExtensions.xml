@@ -1,4 +1,5 @@
 <Assets>
+	<Asset type="Model">limonmodel</Asset><!--Limon custom model-->
     <Asset type="Model">3d</Asset>
     <Asset type="Model">3ds</Asset>
     <Asset type="Model">3mf</Asset>
@@ -62,4 +63,5 @@
     <Asset type="Texture">tga</Asset>
     <Asset type="Texture">png</Asset>
     <Asset type="Texture">tif</Asset>
+    <Asset type="Sound">wav</Asset>
 </Assets>

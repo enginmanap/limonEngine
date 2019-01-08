@@ -58,10 +58,11 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldAddGuiImage = std::bind(&World::addGuiImageAPI, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5);
 
     limonAPI->worldAddModel = std::bind(&World::addModelApi, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6);
+    limonAPI->worldSetModelTemporary = std::bind(&World::setModelTemporaryAPI, world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldUpdateGuiText = std::bind(&World::updateGuiText, world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGenerateEditorElementsForParameters = std::bind(&World::generateEditorElementsForParameters, world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGetResultOfTrigger = std::bind(&World::getResultOfTrigger, world, std::placeholders::_1, std::placeholders::_2);
-    limonAPI->worldRemoveGuiText = std::bind(&World::removeGuiText, world, std::placeholders::_1);
+    limonAPI->worldRemoveGuiElement = std::bind(&World::removeGuiElement, world, std::placeholders::_1);
     limonAPI->worldRemoveObject = std::bind(&World::removeObject, world, std::placeholders::_1);
     limonAPI->worldAttachObjectToObject = std::bind(&World::attachObjectToObject, world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldRemoveTriggerObject = std::bind(&World::removeTriggerObject, world, std::placeholders::_1);
@@ -492,7 +493,6 @@ WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *object
         if(childrenCountNode == nullptr || childrenCountNode->GetText() == nullptr) {
             std::cerr << "Object has children node, but count it unknown. Children can't be loaded! " << std::endl;
                     } else {
-            uint32_t childCount = std::stoi(childrenCountNode->GetText());
             //loadedObjectInformation->model->children.resize(childCount);
             tinyxml2::XMLElement *childNode = childrenNode->FirstChildElement("Child");
             while (childNode != nullptr) {

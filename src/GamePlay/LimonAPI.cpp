@@ -39,7 +39,7 @@ bool LimonAPI::updateGuiText(uint32_t guiTextID, const std::string &newText) {
 }
 
 uint32_t LimonAPI::removeGuiElement(uint32_t guiElementID) {
-    return worldRemoveGuiText(guiElementID);
+    return worldRemoveGuiElement(guiElementID);
 
 }
 
@@ -138,6 +138,10 @@ bool LimonAPI::ParameterRequest::serialize(tinyxml2::XMLDocument &document, tiny
             currentElement->SetText("Transform");
         }
             break;
+        case MULTI_SELECT: {
+            currentElement->SetText("MultiSelect");
+        }
+
     }
     parameterNode->InsertEndChild(currentElement);
 
@@ -269,6 +273,8 @@ deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index) {
         this->requestType = RequestParameterTypes::COORDINATE;
     } else if(strcmp(parameterAttribute->GetText(), "Transform") == 0) {
         this->requestType = RequestParameterTypes::TRANSFORM;
+    } else if(strcmp(parameterAttribute->GetText(), "MultiSelect") == 0) {
+        this->requestType = RequestParameterTypes::MULTI_SELECT;
     } else {
         std::cerr << "Trigger parameter request type was unknown. " << parameterAttribute->GetText() << std::endl;
         return false;
@@ -493,4 +499,8 @@ void LimonAPI::loadVec4(tinyxml2::XMLNode *vectorNode, LimonAPI::Vec4 &vector) {
     } else {
         vector.w = 0;
     }
+}
+
+bool LimonAPI::setModelTemporary(uint32_t modelID, bool temporary) {
+    return worldSetModelTemporary(modelID, temporary);
 }

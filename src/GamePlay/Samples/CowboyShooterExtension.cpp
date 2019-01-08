@@ -37,6 +37,13 @@ void CowboyShooterExtension::processInput(InputHandler &inputHandler) {
         }
     }
 
+    if(inputHandler.getInputEvents(inputHandler.NUMBER_2)) {
+        transitionGun = Gun::RIFLE;
+    }
+    if(inputHandler.getInputEvents(inputHandler.NUMBER_1)) {
+        transitionGun = Gun::PISTOL;
+    }
+
     switch (transitionState) {
         case State::WALKING:  walkingTransition();  break;
         case State::RUNNING:  runningTransition();  break;
@@ -46,83 +53,106 @@ void CowboyShooterExtension::processInput(InputHandler &inputHandler) {
 }
 
 void CowboyShooterExtension::walkingTransition() {
-    if(currentState == State::WALKING) {
-        return;
+    bool transitionValidate = false;
+    switch(currentState) {
+        case State::WALKING:
+            if(changeGuns()) {
+                transitionValidate = true;
+            };
+        break;
+        case State::IDLE:
+        case State::RUNNING:
+            transitionValidate = true;
+        break;
+        case State::SHOOTING:
+            if(currentAnimationFinished) {
+                transitionValidate = true;
+            } else {
+                //if shooting animation is playing, we do nothing. state transition fails.
+            }
+        break;
     }
-    if(currentState == State::IDLE) {
-        limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Pistol Walk|", true);
+
+    if(transitionValidate) {
+        changeGuns();
         currentState = State::WALKING;
-        return;
-    }
-    if(currentState == State::RUNNING) {
-        limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Pistol Walk|", true);
-        currentState = State::WALKING;
-        return;
-    }
-    if(currentState == State::SHOOTING) {
-        if(currentAnimationFinished) {
-            limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Pistol Walk|", true);
-            currentState = State::WALKING;
-            return;
-        } else {
-            //if shooting animation is playing, we do nothing. state transition fails.
+        switch (currentGun) {
+            case Gun::PISTOL:
+                limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Pistol Walk|", true);
+                break;
+            case Gun::RIFLE:
+                limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Rifle Walk|", true);
+                break;
         }
     }
 }
 
 void CowboyShooterExtension::runningTransition() {
-    if(currentState == State::RUNNING) {
-        return;
-    }
-    if(currentState == State::IDLE) {
-        limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Pistol Run|", true);
-        currentState = State::RUNNING;
-        return;
+    bool transitionValidate = false;
+    switch(currentState) {
+        case State::RUNNING:
+            if(changeGuns()) {
+                transitionValidate = true;
+            };
+            break;
+        case State::IDLE:
+        case State::WALKING:
+            transitionValidate = true;
+            break;
+        case State::SHOOTING:
+            if(currentAnimationFinished) {
+                transitionValidate = true;
+            } else {
+                //if shooting animation is playing, we do nothing. state transition fails.
+            }
+            break;
     }
 
-    if(currentState == State::WALKING) {
-        limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Pistol Run|", true);
+    if(transitionValidate) {
+        changeGuns();
         currentState = State::RUNNING;
-        return;
-    }
-
-    if(currentState == State::SHOOTING) {
-        if(currentAnimationFinished) {
-            limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Pistol Run|", true);
-            currentState = State::RUNNING;
-            return;
-        } else {
-            //if shooting animation is playing, we do nothing. state transition fails.
+        switch (currentGun) {
+            case Gun::PISTOL:
+                limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Pistol Run|", true);
+                break;
+            case Gun::RIFLE:
+                limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Rifle Run|", true);
+                break;
         }
     }
 }
 
 void CowboyShooterExtension::idleTransition() {
-    if(currentState == State::IDLE) {
-        return;
+    bool transitionValidate = false;
+    switch(currentState) {
+        case State::IDLE:
+            if(changeGuns()) {
+                transitionValidate = true;
+            };
+            break;
+        case State::RUNNING:
+        case State::WALKING:
+            transitionValidate = true;
+            break;
+        case State::SHOOTING:
+            if(currentAnimationFinished) {
+                transitionValidate = true;
+            } else {
+                //if shooting animation is playing, we do nothing. state transition fails.
+            }
+            break;
     }
 
-    if(currentState == State::RUNNING) {
-        limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Pistol Idle|", true);
+    if(transitionValidate) {
+        changeGuns();
         currentState = State::IDLE;
-        return;
-    }
-
-    if(currentState == State::WALKING) {
-        limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Pistol Idle|", true);
-        currentState = State::IDLE;
-        return;
-    }
-
-    if(currentState == State::SHOOTING) {
-        if(currentAnimationFinished) {
-            limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Pistol Idle|", true);
-            currentState = State::IDLE;
-            return;
-        } else {
-            
-
-            //if shooting animation is playing, we do nothing. state transition fails.
+        switch (currentGun) {
+            case Gun::PISTOL:
+                limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Pistol Idle|", true);
+                break;
+            case Gun::RIFLE:
+                limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Rifle Idle|", true);
+                break;
         }
     }
 }
@@ -134,14 +164,23 @@ void CowboyShooterExtension::shootingTransition() {
 
     //SHOOTING has priority over all other states, so no need to check state
     /*************** Set animation and play sound ************/
-    limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Shooting|", false, 50);
-    limonAPI->playSound("./Data/Sounds/EasyFPS/shot.wav", glm::vec3(0,0,0), false);
+    switch(currentGun) {
+        case Gun::PISTOL:
+            limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Shooting|", false, 50);
+            limonAPI->playSound("./Data/Sounds/EasyFPS/shot.wav", glm::vec3(0,0,0), false);
+            break;
+        case Gun::RIFLE:
+            limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Shoot Rifle|", false, 50);
+            limonAPI->playSound("./Data/Sounds/EasyFPS/shot.wav", glm::vec3(0,0,0), false);
+            break;
+    }
+
     /*************** Set animation and play sound ************/
 
     /*************** Create muzzle flash *********************/
     glm::vec3 scale(0.25f, 0.25f, 0.25f);//it is actually 0,1 * 1/baseScale
     uint32_t muzzleFlashObjectID = limonAPI->addObject("./Data/Models/Muzzle/Muzzle.obj", 0, false, muzzleFlashOffset, scale, direction);
-    bool isAttached = limonAPI->attachObjectToObject(muzzleFlashObjectID, playerAttachedGunID);
+    bool isAttached = limonAPI->attachObjectToObject(muzzleFlashObjectID, playerAttachedPistolID);
     if(!isAttached) {
         std::cerr << "attachment failed!" << std::endl;
     }
@@ -187,9 +226,18 @@ void CowboyShooterExtension::shootingTransition() {
                 //means the normal is up
                 orientation = glm::quat(0.707f, -0.707f, 0.0f, 0.0f);
             } else {
-                orientation = glm::quatLookAt(hitNormal * -1.0f, glm::vec3(0,1,0));
-            }
+#if (GLM_VERSION_MAJOR !=0 || GLM_VERSION_MINOR > 9 || (GLM_VERSION_MINOR == 9 && GLM_VERSION_PATCH >= 9))
+                orientation =  glm::quatLookAt(hitNormal * -1.0f, glm::vec3(0,1,0));
+#else
+                glm::mat3 Result;
 
+                Result[2] = -1.0f * hitNormal;//this -1 shouldn't be needed
+                Result[0] = glm::normalize(cross(glm::vec3(0,1,0), Result[2]));
+                Result[1] = glm::cross(Result[2], Result[0]);
+
+                orientation = glm::quat_cast(Result);
+#endif
+            }
 
             std::vector<LimonAPI::ParameterRequest>modelTransformationMat = limonAPI->getObjectTransformationMatrix(rayResult[0].value.longValue);
             if(modelTransformationMat.size() == 0) {
@@ -286,4 +334,23 @@ void CowboyShooterExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
 
 std::string CowboyShooterExtension::getName() const {
     return "CowboyShooterExtension";
+}
+
+bool CowboyShooterExtension::changeGuns() {
+    if(currentGun == transitionGun) {
+        return false;
+    }
+
+    switch(transitionGun) {
+        case Gun::RIFLE:
+            limonAPI->addObjectTranslate(playerAttachedRifleID, addOffset);
+            limonAPI->addObjectTranslate(playerAttachedPistolID, removeOffset);
+        break;
+        case Gun::PISTOL:
+            limonAPI->addObjectTranslate(playerAttachedPistolID, addOffset);
+            limonAPI->addObjectTranslate(playerAttachedRifleID, removeOffset);
+            break;
+    }
+    currentGun = transitionGun;
+    return true;
 }
