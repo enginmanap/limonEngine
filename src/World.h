@@ -464,6 +464,8 @@ public:
                                        std::vector<uint32_t> parentage);
 
     void updateActiveLights(bool forceUpdate = false);
+
+    void addSkyBoxControls();
 };
 
 #endif //LIMONENGINE_WORLD_H

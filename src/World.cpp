@@ -1253,24 +1253,33 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     ImGuiHelper::ShowHelpMarker("No sound asset selected");
                 }
             }
+            if(ImGui::CollapsingHeader("SkyBox")) {
+                ImGui::Indent(16.0f);
+                addSkyBoxControls();
 
-            ImGui::Text("By default, esc quits the game");
+            }
 
-            if (ImGui::RadioButton("Quit Game", currentQuitResponse == QuitResponse::QUIT_GAME)) {
-                currentQuitResponse = QuitResponse::QUIT_GAME;
-            }
-            ImGui::SameLine();
-            if (ImGui::RadioButton("Return Previous", currentQuitResponse == QuitResponse::RETURN_PREVIOUS)) {
-                currentQuitResponse = QuitResponse::RETURN_PREVIOUS;
-            }
-            ImGui::SameLine();
-            if (ImGui::RadioButton("Load World", currentQuitResponse == QuitResponse::LOAD_WORLD)) {
-                currentQuitResponse = QuitResponse::LOAD_WORLD;
-            }
-            if(currentQuitResponse == QuitResponse::LOAD_WORLD) {
-                ImGui::InputText("Custom World file ", quitWorldNameBuffer, sizeof(quitWorldNameBuffer));
-                if(ImGui::Button("Apply##custom world file setting")) {
-                    quitWorldName = quitWorldNameBuffer;
+
+            if(ImGui::CollapsingHeader("ESC handling")) {
+                ImGui::Indent(16.0f);
+                ImGui::Text("By default, esc quits the game");
+
+                if (ImGui::RadioButton("Quit Game", currentQuitResponse == QuitResponse::QUIT_GAME)) {
+                    currentQuitResponse = QuitResponse::QUIT_GAME;
+                }
+                ImGui::SameLine();
+                if (ImGui::RadioButton("Return Previous", currentQuitResponse == QuitResponse::RETURN_PREVIOUS)) {
+                    currentQuitResponse = QuitResponse::RETURN_PREVIOUS;
+                }
+                ImGui::SameLine();
+                if (ImGui::RadioButton("Load World", currentQuitResponse == QuitResponse::LOAD_WORLD)) {
+                    currentQuitResponse = QuitResponse::LOAD_WORLD;
+                }
+                if (currentQuitResponse == QuitResponse::LOAD_WORLD) {
+                    ImGui::InputText("Custom World file ", quitWorldNameBuffer, sizeof(quitWorldNameBuffer));
+                    if (ImGui::Button("Apply##custom world file setting")) {
+                        quitWorldName = quitWorldNameBuffer;
+                    }
                 }
             }
 
@@ -3407,4 +3416,129 @@ bool World::verifyIDs() {
 
     nextWorldID = maxID+1;
     return true;
+}
+
+void World::addSkyBoxControls() {
+    //first, build a tree for showing directories with textures in them.
+    static const AssetManager::AvailableAssetsNode* selectedSkyBoxAsset = nullptr;
+    static const AssetManager::AvailableAssetsNode* selectedAssetDirectory = nullptr;
+
+    if(selectedAssetDirectory == nullptr) {
+        static char skyBoxAssetFilter[32] = {0};
+        ImGui::InputText("Filter Assets ##SkyBoxAssetTreeFilter", skyBoxAssetFilter, sizeof(skyBoxAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
+        std::string skyBoxAssetFilterStr = skyBoxAssetFilter;
+        std::transform(skyBoxAssetFilterStr.begin(), skyBoxAssetFilterStr.end(), skyBoxAssetFilterStr.begin(),::tolower);
+        const AssetManager::AvailableAssetsNode *filteredAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, skyBoxAssetFilterStr);
+
+        imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_DIRECTORY, "SkyBox", &selectedSkyBoxAsset);
+
+        if(ImGui::Button("Set Directory##SkyBox")) {
+            selectedAssetDirectory = selectedSkyBoxAsset;
+        }
+    } else {
+        imgGuiHelper->buildTreeFromAssets(selectedAssetDirectory, AssetManager::Asset_type_TEXTURE, "SkyBox", &selectedSkyBoxAsset);
+        if(ImGui::Button("Reset Directory##SkyBox")) {
+            selectedAssetDirectory = nullptr;
+            selectedSkyBoxAsset = nullptr;
+        }
+
+        static char skyBoxRightFileName[256] = {0};
+        ImGui::InputText("Right image", skyBoxRightFileName, sizeof(skyBoxRightFileName));
+        ImGui::SameLine();
+        if(selectedSkyBoxAsset != nullptr) {
+            if(ImGui::Button("Set##skyBoxRight")) {
+                strncpy(skyBoxRightFileName, selectedSkyBoxAsset->name.c_str(), sizeof(skyBoxRightFileName)-1);
+            }
+        } else {
+            ImGui::Button("Set##skyBoxRight");
+            ImGui::SameLine();
+            ImGuiHelper::ShowHelpMarker("No asset selected");
+        }
+
+        static char skyBoxLeftFileName[256] = {0};
+        ImGui::InputText("Left image", skyBoxLeftFileName, sizeof(skyBoxLeftFileName));
+        ImGui::SameLine();
+        if(selectedSkyBoxAsset != nullptr) {
+            if(ImGui::Button("Set##skyBoxLeft")) {
+                strncpy(skyBoxLeftFileName, selectedSkyBoxAsset->name.c_str(), sizeof(skyBoxLeftFileName)-1);
+            }
+        } else {
+            ImGui::Button("Set##skyBoxLeft");
+            ImGui::SameLine();
+            ImGuiHelper::ShowHelpMarker("No asset selected");
+        }
+
+        static char skyBoxTopFileName[256] = {0};
+        ImGui::InputText("Top image", skyBoxTopFileName, sizeof(skyBoxTopFileName));
+        ImGui::SameLine();
+        if(selectedSkyBoxAsset != nullptr) {
+            if(ImGui::Button("Set##skyBoxTop")) {
+                strncpy(skyBoxTopFileName, selectedSkyBoxAsset->name.c_str(), sizeof(skyBoxTopFileName)-1);
+            }
+        } else {
+            ImGui::Button("Set##skyBoxTop");
+            ImGui::SameLine();
+            ImGuiHelper::ShowHelpMarker("No asset selected");
+        }
+
+        static char skyBoxBottomFileName[256] = {0};
+        ImGui::InputText("Bottom image", skyBoxBottomFileName, sizeof(skyBoxBottomFileName));
+        ImGui::SameLine();
+        if(selectedSkyBoxAsset != nullptr) {
+            if(ImGui::Button("Set##skyBoxBottom")) {
+                strncpy(skyBoxBottomFileName, selectedSkyBoxAsset->name.c_str(), sizeof(skyBoxBottomFileName)-1);
+            }
+        } else {
+            ImGui::Button("Set##skyBoxBottom");
+            ImGui::SameLine();
+            ImGuiHelper::ShowHelpMarker("No asset selected");
+        }
+
+        static char skyBoxFrontFileName[256] = {0};
+        ImGui::InputText("Front image", skyBoxFrontFileName, sizeof(skyBoxFrontFileName));
+        ImGui::SameLine();
+        if(selectedSkyBoxAsset != nullptr) {
+            if(ImGui::Button("Set##skyBoxFront")) {
+                strncpy(skyBoxFrontFileName, selectedSkyBoxAsset->name.c_str(), sizeof(skyBoxFrontFileName)-1);
+            }
+        } else {
+            ImGui::Button("Set##skyBoxFront");
+            ImGui::SameLine();
+            ImGuiHelper::ShowHelpMarker("No asset selected");
+        }
+
+        static char skyBoxBackFileName[256] = {0};
+        ImGui::InputText("Back image", skyBoxBackFileName, sizeof(skyBoxBackFileName));
+        ImGui::SameLine();
+        if(selectedSkyBoxAsset != nullptr) {
+            if(ImGui::Button("Set##skyBoxBack")) {
+                strncpy(skyBoxBackFileName, selectedSkyBoxAsset->name.c_str(), sizeof(skyBoxBackFileName)-1);
+            }
+        } else {
+            ImGui::Button("Set##skyBoxBack");
+            ImGui::SameLine();
+            ImGuiHelper::ShowHelpMarker("No asset selected");
+        }
+
+        if(strlen(skyBoxRightFileName) != 0 &&
+                strlen(skyBoxLeftFileName) != 0 &&
+                strlen(skyBoxTopFileName) != 0 &&
+                strlen(skyBoxBottomFileName) != 0 &&
+                strlen(skyBoxFrontFileName) != 0 &&
+                strlen(skyBoxBackFileName) != 0   ) {
+            if(ImGui::Button("Change Sky Box")) {
+                SkyBox* newSkyBox = new SkyBox(getNextObjectID(), assetManager, selectedAssetDirectory->fullPath, skyBoxRightFileName, skyBoxLeftFileName, skyBoxTopFileName, skyBoxBottomFileName, skyBoxBackFileName, skyBoxFrontFileName);
+                delete this->sky;
+                this->sky = newSkyBox;
+            }
+        } else {
+            ImGui::Button("Change Sky Box");
+            ImGui::SameLine();
+            ImGuiHelper::ShowHelpMarker("Some Elements are empty");
+        }
+
+
+    }
+
+
 }
