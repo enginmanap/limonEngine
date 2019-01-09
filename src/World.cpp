@@ -3171,6 +3171,9 @@ void World::buildTreeFromAllGameObjects() {
     }
 
     //player
+    if(physicalPlayer == nullptr) {
+        physicalPlayer = new PhysicalPlayer(1, options, cursor, startingPlayer.position, startingPlayer.orientation, startingPlayer.attachedModel);// 1 is reserved for physical player
+    }
     bool isOpen = false;
     if(startingPlayer.attachedModel == nullptr) {
         ImGui::TreeNodeEx(this->physicalPlayer->getName().c_str(), leafFlags |
