@@ -59,6 +59,8 @@ private:
 
 public:
     WorldLoader(AssetManager *assetManager, InputHandler *inputHandler, Options *options);
+    std::unique_ptr<std::string> getLoadingImage(const std::string &worldFile) const;
+
     World *loadWorld(const std::string &worldFile, LimonAPI *limonAPI) const;
 
     static std::vector<std::unique_ptr<ObjectInformation>> loadObject(AssetManager *assetManager, tinyxml2::XMLElement *objectNode,
