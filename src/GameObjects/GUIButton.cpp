@@ -122,7 +122,7 @@ GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode, Asset
         uint32_t id = std::stoi(GUIRenderableAttribute->GetText());
 
         GUIRenderableAttribute = GUIRenderableNode->FirstChildElement("Name");
-        if (GUIRenderableAttribute == nullptr) {
+        if (GUIRenderableAttribute == nullptr || GUIRenderableAttribute->GetText() == nullptr) {
             std::cerr << "GUI renderable must have a name. Skipping" << std::endl;
             return nullptr;
         }
@@ -138,6 +138,7 @@ GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode, Asset
                     return nullptr;
                 } else {
                     std::cout << "GUI Image creation will continue with only " << i << " images." << std::endl;
+                    break;
                 }
             }
             fileNames.push_back(std::string(fileAttribute->GetText()));
