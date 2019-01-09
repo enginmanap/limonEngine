@@ -209,6 +209,7 @@ private:
     GLHelper *glHelper;
     ALHelper *alHelper;
     std::string name;
+    std::string loadingImage;
     char worldSaveNameBuffer[256] = {0};
     char quitWorldNameBuffer[256] = {0};
     std::string quitWorldName;
