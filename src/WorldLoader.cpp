@@ -997,7 +997,7 @@ std::unique_ptr<std::string> WorldLoader::getLoadingImage(const std::string &wor
     }
 
     tinyxml2::XMLElement* loadImage =  worldNode->FirstChildElement("LoadingImage");
-    if (loadImage == nullptr) {
+    if (loadImage == nullptr || loadImage->GetText() == nullptr) {
         return imageFilePath;
     } else {
         imageFilePath = std::make_unique<std::string>(loadImage->GetText());
