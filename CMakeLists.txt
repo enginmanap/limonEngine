@@ -107,7 +107,10 @@ add_library(customTriggers SHARED src/GamePlay/TriggerInterface.cpp
         src/AI/ActorInterface.h
         src/AI/HumanEnemy.cpp
         src/GamePlay/Samples/CowboyShooterExtension.cpp
-        src/GamePlay/Samples/CowboyEnemyAI.cpp)
+        src/GamePlay/Samples/CowboyEnemyAI.cpp
+        src/GamePlay/Samples/WesternMenuPlayerExtension.cpp
+        src/GamePlay/Samples/WesternMenuPlayerExtension.h
+        )
 
 TARGET_LINK_LIBRARIES(customTriggers ${TinyXML2_LIBRARIES})
 

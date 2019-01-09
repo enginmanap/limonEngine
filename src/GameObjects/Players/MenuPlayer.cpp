@@ -50,8 +50,8 @@ MenuPlayer::MenuPlayer(Options *options, GUIRenderable* cursor, const glm::vec3 
         view(glm::quat(0,0,0,-1)) {
     right = glm::normalize(glm::cross(center, up));
     worldSettings.debugMode = DEBUG_DISABLED;
-    worldSettings.audioPlaying = false;
-    worldSettings.worldSimulation = false;
+    worldSettings.audioPlaying = true;
+    worldSettings.worldSimulation = true;
     worldSettings.editorShown = false;
     worldSettings.cursorFree = true;
     worldSettings.resetAnimations = false;

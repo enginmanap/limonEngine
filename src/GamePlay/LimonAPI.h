@@ -203,6 +203,9 @@ public:
 
     void interactWithPlayer(std::vector<ParameterRequest>& input);
 
+    bool addLightTranslate(uint32_t lightID, const LimonAPI::Vec4& translate);
+    bool setLightColor(uint32_t lightID, const LimonAPI::Vec4& color);
+
     bool loadAndSwitchWorld(const std::string& worldFileName);
     bool returnToWorld(const std::string& worldFileName);//if world is not loaded, loads first
     bool LoadAndRemove(const std::string& worldFileName); // removes current world after loading the new one
@@ -283,6 +286,9 @@ private:
     std::function<std::vector<ParameterRequest>()> worldRayCastToCursor;
     std::function<bool (uint32_t, std::vector<ParameterRequest>&)> worldInteractWithAI;
     std::function<void (std::vector<ParameterRequest>&)> worldInteractWithPlayer;
+
+    std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldAddLightTranslate;
+    std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldSetLightColor;
 
     std::function<void (long, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)>, std::vector<LimonAPI::ParameterRequest>)> worldAddTimedEvent;
 

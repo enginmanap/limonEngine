@@ -406,6 +406,14 @@ void LimonAPI::interactWithPlayer(std::vector<LimonAPI::ParameterRequest> &input
     return this->worldInteractWithPlayer(input);
 }
 
+bool LimonAPI::addLightTranslate(uint32_t lightID, const LimonAPI::Vec4 &position) {
+    return worldAddLightTranslate(lightID, position);
+}
+
+bool LimonAPI::setLightColor(uint32_t lightID, const LimonAPI::Vec4 &color){
+    return worldSetLightColor(lightID, color);
+}
+
 void LimonAPI::addTimedEvent(long waitTime,
                              std::function<void(const std::vector<LimonAPI::ParameterRequest> &)> methodToCall,
                              std::vector<LimonAPI::ParameterRequest> parameters) {

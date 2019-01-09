@@ -187,7 +187,7 @@ public:
         }
     }
 
-    void processInput(InputHandler &inputHandler) override;
+    void processInput(InputHandler &inputHandler, long time) override;
 
     void interact(LimonAPI *limonAPI, std::vector<LimonAPI::ParameterRequest> &interactionData) override;
 

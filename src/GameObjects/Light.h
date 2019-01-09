@@ -91,6 +91,11 @@ public:
         return color;
     }
 
+    void setColor(glm::vec3 color) {
+        this->color = color;
+        this->setFrustumChanged(true);//the change is not frustum, but at this point this flag is a general dirty flag
+    }
+
     LightTypes getLightType() const {
         return lightType;
     }

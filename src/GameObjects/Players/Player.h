@@ -90,7 +90,7 @@ public:
     };
 
     /************Game Object methods **************/
-    virtual void processInput(InputHandler &inputHandler) {
+    virtual void processInput(InputHandler &inputHandler, long time [[gnu::unused]]) {
 
         float xPosition, yPosition, xChange, yChange;
         if (inputHandler.getMouseChange(xPosition, yPosition, xChange, yChange)) {

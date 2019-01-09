@@ -11,7 +11,7 @@
 
 PlayerExtensionRegister<CowboyShooterExtension> CowboyShooterExtension::reg("CowboyShooterExtension");
 
-void CowboyShooterExtension::processInput(InputHandler &inputHandler) {
+void CowboyShooterExtension::processInput(InputHandler &inputHandler, long time [[gnu::unused]]) {
     if (playerAttachedModelID == 0) {
         return;
     }

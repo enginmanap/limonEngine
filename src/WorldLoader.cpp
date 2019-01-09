@@ -97,6 +97,9 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldGetPlayerAttachmentOffset = std::bind(&World::getPlayerModelOffsetAPI, world);
     limonAPI->worldSetPlayerAttachmentOffset = std::bind(&World::setPlayerModelOffsetAPI, world, std::placeholders::_1);
 
+    limonAPI->worldAddLightTranslate =   std::bind(&World::addLightTranslateAPI,   world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldSetLightColor     =   std::bind(&World::setLightColorAPI,       world, std::placeholders::_1, std::placeholders::_2);
+
     world->apiInstance = limonAPI;
 }
 

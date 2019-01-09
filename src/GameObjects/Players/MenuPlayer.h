@@ -74,6 +74,20 @@ public:
     CameraAttachment* getCameraAttachment() {
         return this;
     }
+
+    void processInput(InputHandler &inputHandler, long time) {
+        Player::processInput(inputHandler, time);
+
+        if(playerExtension != nullptr) {
+            playerExtension->processInput(inputHandler, time);
+        }
+    }
+
+    void interact(LimonAPI *limonAPI __attribute__((unused)), std::vector<LimonAPI::ParameterRequest> &interactionData) {
+        if(playerExtension != nullptr) {
+            playerExtension->interact(interactionData);
+        }
+    }
 };
 
 
