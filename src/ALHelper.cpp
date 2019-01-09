@@ -70,7 +70,7 @@ int ALHelper::soundManager() {
                 std::unique_ptr<PlayingSound> &temp = (*iterator).second;
                 ALint state;
                 alGetSourcei(temp->source, AL_SOURCE_STATE, &state);
-                if(state == AL_STOPPED) {
+                if(state == AL_STOPPED && !temp->looped) {
                     iterator = playingSounds.erase(iterator);
                 } else if (temp->isFinished()) {
                     if (temp->looped) {
