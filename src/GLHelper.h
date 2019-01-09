@@ -58,7 +58,7 @@ class GLHelper {
     class OpenglState {
         unsigned int activeProgram;
         unsigned int activeTextureUnit;
-        unsigned int *textures;
+        std::vector<unsigned int> textures;
 
         void attachTexture(GLuint textureID, GLuint textureUnit, GLenum type) {
             if (textures[textureUnit] != textureID) {
@@ -72,8 +72,8 @@ class GLHelper {
         uint32_t programChangeCount=0;
 
         explicit OpenglState(GLint textureUnitCount) : activeProgram(0) {
-            textures = new unsigned int[textureUnitCount];
-            memset(textures, 0, textureUnitCount * sizeof(int));
+            textures.resize(textureUnitCount);
+            memset(textures.data(), 0, textureUnitCount * sizeof(int));
             activeTextureUnit = 0;
             glActiveTexture(GL_TEXTURE0);
         }
@@ -96,6 +96,22 @@ class GLHelper {
 
         void attachCubemap(GLuint textureID, GLuint textureUnit) {
             attachTexture(textureID, textureUnit, GL_TEXTURE_CUBE_MAP);
+        }
+
+        bool deleteTexture(GLuint textureID) {
+            //clear this textures attachment state
+            for (size_t i = 0; i < textures.size(); ++i) {
+                if(textures[i] == textureID) {
+                    textures[i] = 0;
+                }
+            }
+            if (glIsTexture(textureID)) {
+                glDeleteTextures(1, &textureID);
+                return true;
+            } else {
+
+                return false;
+            }
         }
 
         void attachCubemapArray(GLuint textureID, GLuint textureUnit) {
