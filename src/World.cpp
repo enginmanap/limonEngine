@@ -641,7 +641,7 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
         }
     }
 
-    currentPlayer->processInput(inputHandler);
+       currentPlayer->processInput(inputHandler, gameTime);
 
     if(inputHandler.getInputEvents(inputHandler.QUIT) &&  inputHandler.getInputStatus(inputHandler.QUIT)) {
         return true;
@@ -3575,4 +3575,36 @@ void World::addSkyBoxControls() {
     }
 
 
+}
+
+bool World::addLightTranslateAPI(uint32_t lightID, const LimonAPI::Vec4 &position) {
+    Light* light = nullptr;
+    for (size_t i = 0; i < lights.size(); ++i) {
+        if(lights[i]->getWorldObjectID() == lightID){
+            light = lights[i];
+            break;
+        }
+    }
+    if(light == nullptr) {
+        return false;
+    }
+
+    light->setPosition(light->getPosition() + glm::vec3(GLMConverter::LimonToGLM(position)));
+    return true;
+}
+
+bool World::setLightColorAPI(uint32_t lightID, const LimonAPI::Vec4& color) {
+    Light* light = nullptr;
+    for (size_t i = 0; i < lights.size(); ++i) {
+        if(lights[i]->getWorldObjectID() == lightID){
+            light = lights[i];
+            break;
+        }
+    }
+    if(light == nullptr) {
+        return false;
+    }
+
+    light->setColor(glm::vec3(GLMConverter::LimonToGLM(color)));
+    return true;
 }

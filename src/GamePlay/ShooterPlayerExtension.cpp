@@ -10,12 +10,13 @@
 
 #include "../Utils/LimonConverter.h"
 #include "Samples/CowboyShooterExtension.h"
+#include "Samples/WesternMenuPlayerExtension.h"
 
 PlayerExtensionRegister<ShooterPlayerExtension> ShooterPlayerExtension::reg("ShooterPlayerExtension");
 
 const glm::quat ShooterPlayerExtension::direction = glm::quat(0.0f, 0.0f, 1.0f, 0.0f);//this is used to reverse hit normal
 
-void ShooterPlayerExtension::processInput(InputHandler &inputHandler) {
+void ShooterPlayerExtension::processInput(InputHandler &inputHandler, long time [[gnu::unused]]) {
     if (playerAttachedModelID == 0) {
         return;
     }
@@ -249,5 +250,6 @@ std::string ShooterPlayerExtension::getName() const {
 extern "C" void registerPlayerExtensions(std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>* playerExtensionMap) {
     (*playerExtensionMap)["ShooterPlayerExtension"] = &createPlayerExtension<ShooterPlayerExtension>;
     (*playerExtensionMap)["CowboyShooterExtension"] = &createPlayerExtension<CowboyShooterExtension>;
+    (*playerExtensionMap)["WesternMenuExtension"] = &createPlayerExtension<WesternMenuPlayerExtension>;
 
 }

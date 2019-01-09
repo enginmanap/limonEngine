@@ -47,7 +47,7 @@ public:
         (*getMap())[typeName] = constructor;
     }
 
-    virtual void processInput(InputHandler &inputHandler) = 0;
+    virtual void processInput(InputHandler &inputHandler, long time) = 0;
     virtual void interact(std::vector<LimonAPI::ParameterRequest> &interactionData) = 0;
 
     virtual ~PlayerExtensionInterface() = default;
@@ -78,7 +78,7 @@ class PlayerExtensionRegister : PlayerExtensionInterface {
         return "This object is not meant to be used";
     }
 
-    void processInput(InputHandler &inputHandler __attribute__((unused))) override {}
+    void processInput(InputHandler &inputHandler [[gnu::unused]], long time [[gnu::unused]]) override {}
     void interact(std::vector<LimonAPI::ParameterRequest> &interactionData __attribute__((unused))) override {}
 
 public:

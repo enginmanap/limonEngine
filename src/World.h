@@ -452,6 +452,9 @@ public:
     bool setPlayerModelOffsetAPI(LimonAPI::Vec4 newOffset);
     void killPlayerAPI();
 
+    bool addLightTranslateAPI(uint32_t lightID, const LimonAPI::Vec4& position);
+    bool setLightColorAPI(uint32_t lightID, const LimonAPI::Vec4& color);
+
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);
 
