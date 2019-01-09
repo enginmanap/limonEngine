@@ -32,6 +32,10 @@ void WesternMenuPlayerExtension::processInput(InputHandler &inputHandler [[gnu::
     }
 
     float positionFactor = std::sin((time-startTime) / (speed*1000));
+    // base color is 0.5, 0.5, 0.5. I will add to red 0.2 based on the position factor
+    // since sin values change between (-1,1), and I don't want negative, use abs, and multiply by 0.2
+    color.x = 0.5f + std::fabs(positionFactor) * 0.2f;
+    limonAPI->setLightColor(3, color);
 
 
     glm::vec3 currentDirection = direction* positionFactor;//current direction is what we want. remove added pos

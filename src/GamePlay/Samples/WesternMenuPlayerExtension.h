@@ -18,6 +18,7 @@ class WesternMenuPlayerExtension : public PlayerExtensionInterface {
     glm::vec3 direction;
     glm::vec3 addedPositionTillNow = glm::vec3(0,0,0);
     long startTime = 0;
+    LimonAPI::Vec4 color = LimonAPI::Vec4(0.5f, 0.5f, 0.5f, 0);
     float speed;
 public:
 
