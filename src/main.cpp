@@ -13,7 +13,12 @@
 const std::string PROGRAM_NAME = "LimonEngine";
 
 bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
-    renderLoadingImage();
+
+    std::unique_ptr<std::string> loadingImagePath = worldLoader->getLoadingImage(worldFile);
+    if(loadingImagePath != nullptr) {
+        this->loadingImage = new GUIImage(0, options, assetManager, "loadingImage", *loadingImagePath);
+        renderLoadingImage();
+    }
 
     World* newWorld = worldLoader->loadWorld(worldFile, limonAPI);
     if(newWorld == nullptr) {
@@ -119,9 +124,6 @@ GameEngine::GameEngine() {
 
     limonAPI = new LimonAPI(limonLoadWorld, limonReturnOrLoadWorld, limonLoadNewAndRemoveCurrentWorld, limonExitGame,
                             limonReturnPrevious);
-
-    //FIXME this image should not be hardcoded
-    loadingImage = new GUIImage(0, options, assetManager, "loadingImage", "./Data/Textures/Menu/mayanMap-loading.png");
 }
 
 void GameEngine::run() {

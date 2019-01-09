@@ -972,3 +972,27 @@ bool WorldLoader::loadVec3(tinyxml2::XMLNode *vectorNode, glm::vec3& vector) {
     }
     return true;
 }
+
+std::unique_ptr<std::string> WorldLoader::getLoadingImage(const std::string &worldFile) const {
+    std::unique_ptr<std::string> imageFilePath;
+    tinyxml2::XMLDocument xmlDoc;
+    tinyxml2::XMLError eResult = xmlDoc.LoadFile(worldFile.c_str());
+    if (eResult != tinyxml2::XML_SUCCESS) {
+        std::cerr << "Error loading XML "<< worldFile << ": " <<  xmlDoc.ErrorName() << std::endl;
+        exit(-1);
+    }
+
+    tinyxml2::XMLNode * worldNode = xmlDoc.FirstChild();
+    if (worldNode == nullptr) {
+        std::cerr << "World xml is not a valid XML." << std::endl;
+        return imageFilePath;
+    }
+
+    tinyxml2::XMLElement* loadImage =  worldNode->FirstChildElement("LoadingImage");
+    if (loadImage == nullptr) {
+        return imageFilePath;
+    } else {
+        imageFilePath = std::make_unique<std::string>(loadImage->GetText());
+        return imageFilePath;
+    }
+}
