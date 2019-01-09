@@ -544,6 +544,9 @@ GLHelper::GLHelper(Options *options): options(options) {
 
     frustumPlanes.resize(6);
 
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);//clear everything before we start
+
     checkErrors("Constructor");
 }
 
