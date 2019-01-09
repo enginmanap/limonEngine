@@ -963,14 +963,8 @@ void GLHelper::attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint) {
 }
 
 bool GLHelper::deleteTexture(GLuint textureID) {
-    if (glIsTexture(textureID)) {
-        glDeleteTextures(1, &textureID);
-        checkErrors("deleteTexture");
-        return true;
-    } else {
-        checkErrors("deleteTexture");
-        return false;
-    }
+    state->deleteTexture(textureID);
+    checkErrors("deleteTexture");
 }
 
 GLuint GLHelper::loadCubeMap(int height, int width, void *right, void *left, void *top, void *bottom, void *back,
