@@ -1256,7 +1256,32 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             if(ImGui::CollapsingHeader("SkyBox")) {
                 ImGui::Indent(16.0f);
                 addSkyBoxControls();
+            }
+            if(ImGui::CollapsingHeader("LoadingImage")) {
+                ImGui::Indent(16.0f);
+                static const AssetManager::AvailableAssetsNode* selectedLoadingImageAsset = nullptr;
 
+                static char loadingImageAssetFilter[32] = {0};
+                ImGui::InputText("Filter Assets ##TextureAssetTreeFilter", loadingImageAssetFilter, sizeof(loadingImageAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
+                std::string loadingImageAssetFilterStr = loadingImageAssetFilter;
+                std::transform(loadingImageAssetFilterStr.begin(), loadingImageAssetFilterStr.end(), loadingImageAssetFilterStr.begin(), ::tolower);
+                const AssetManager::AvailableAssetsNode* filteredAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, loadingImageAssetFilterStr);
+                imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE, "LoadingImage", &selectedLoadingImageAsset);
+
+                if(selectedLoadingImageAsset == nullptr) {
+                    ImGui::Button("Set Loading Image");
+                    ImGui::SameLine();
+                    ImGuiHelper::ShowHelpMarker("No Asset Selected!");
+                } else {
+                    if (ImGui::Button("Set Loading Image")) {
+                        this->loadingImage = selectedLoadingImageAsset->fullPath;
+                    }
+                }
+                if(this->loadingImage != "" ) {
+                    ImGui::Text("Current Loading Image: %s", this->loadingImage.c_str() );
+                } else {
+                    ImGui::Text("No loading image set");
+                }
             }
 
 

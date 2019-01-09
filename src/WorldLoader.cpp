@@ -122,6 +122,13 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     }
     std::cout << "read name as " << worldName->GetText() << std::endl;
 
+    std::string loadingImageStr;
+    tinyxml2::XMLElement* worldLoadingImage =  worldNode->FirstChildElement("LoadingImage");
+    if (worldLoadingImage != nullptr && worldLoadingImage->GetText() != nullptr) {
+        loadingImageStr = worldLoadingImage->GetText();
+    }
+    std::cout << "read name as " << worldName->GetText() << std::endl;
+
     tinyxml2::XMLElement* worldStartPlayer =  worldNode->FirstChildElement("Player");
     World::PlayerInfo startingPlayer;
     if (worldStartPlayer == nullptr) {
@@ -176,6 +183,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     World* world = new World(std::string(worldName->GetText()), startingPlayer, inputHandler, assetManager, options);
 
     attachedAPIMethodsToWorld(world, limonAPI);
+    world->loadingImage = loadingImageStr;
 
     tinyxml2::XMLElement* musicNameNode =  worldNode->FirstChildElement("Music");
     if (musicNameNode == nullptr) {

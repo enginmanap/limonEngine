@@ -74,6 +74,10 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     currentElement->SetText(mapName.c_str());
     rootNode->InsertEndChild(currentElement);
 
+    currentElement = mapDocument.NewElement("LoadingImage");
+    currentElement->SetText(world->loadingImage.c_str());
+    rootNode->InsertEndChild(currentElement);
+
     currentElement = mapDocument.NewElement("Player");
     tinyxml2::XMLElement *playerType = mapDocument.NewElement("Type");
     playerType->SetText(world->startingPlayer.typeToString().c_str());
