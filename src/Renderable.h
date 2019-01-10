@@ -27,7 +27,7 @@ protected:
 
     explicit Renderable(GLHelper *glHelper) :
             glHelper(glHelper) {
-        this->inLightFrustum.reserve(4);//FIXME 4 is current light max, it will require update
+        this->inLightFrustum.resize(NR_TOTAL_LIGHTS);
     }
 
 public:
