@@ -36,10 +36,12 @@ bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
 }
 
 void GameEngine::renderLoadingImage() const {
-    loadingImage->setFullScreen(true);
-    sdlHelper->swap();
-    loadingImage->render();
-    sdlHelper->swap();
+    if(loadingImage != nullptr) {
+        loadingImage->setFullScreen(true);
+        sdlHelper->swap();
+        loadingImage->render();
+        sdlHelper->swap();
+    }
 }
 
 bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
