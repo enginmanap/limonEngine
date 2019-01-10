@@ -454,6 +454,10 @@ bool LimonAPI::setModelAnimationWithBlend(uint32_t modelID, std::string animatio
     return worldSetAnimationOfModelWithBlend(modelID, animationName, isLooped, blendTime);
 }
 
+bool LimonAPI::setModelAnimationSpeed(uint32_t modelID, float speed) {
+    return worldSetModelAnimationSpeed(modelID, speed);
+}
+
 void LimonAPI::killPlayer() {
     worldKillPlayer();
 }
