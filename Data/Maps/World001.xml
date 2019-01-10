@@ -601,7 +601,7 @@
                 <Text>Limon Engine</Text>
                 <Font>
                     <Path>Data/Fonts/Wolf_in_the_City_Light.ttf</Path>
-                    <Size>32</Size>
+                    <Size>0.01666667</Size>
                 </Font>
                 <Color>
                     <R>0</R>
@@ -634,7 +634,7 @@
                 <Text>0</Text>
                 <Font>
                     <Path>Data/Fonts/Helvetica-Normal.ttf</Path>
-                    <Size>64</Size>
+                    <Size>0.033333</Size>
                 </Font>
                 <Color>
                     <R>0</R>
@@ -667,7 +667,7 @@
                 <Text>Version 0.4</Text>
                 <Font>
                     <Path>Data/Fonts/Helvetica-Normal.ttf</Path>
-                    <Size>16</Size>
+                    <Size>0.008333333</Size>
                 </Font>
                 <Color>
                     <R>256</R>
@@ -700,7 +700,7 @@
                 <Text>100</Text>
                 <Font>
                     <Path>./Data/Fonts/Helvetica-Normal.ttf</Path>
-                    <Size>64</Size>
+                    <Size>0.033333</Size>
                 </Font>
                 <Color>
                     <R>256</R>
@@ -734,8 +734,8 @@
                 <FullScreen>False</FullScreen>
                 <Transformation>
                     <Scale>
-                        <X>25</X>
-                        <Y>25</Y>
+                        <X>0,0130208333</X>
+                        <Y>0,0231481481</Y>
                         <Z>0</Z>
                     </Scale>
                     <Translate>
