@@ -282,7 +282,6 @@ std::shared_ptr<Material>ModelAsset::loadMaterials(const aiScene *scene, unsigne
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_OPACITY, 0, &property)) {
                 if(property.data[0] != '*') {
                     newMaterial->setOpacityTexture(property.C_Str());
-                    std::cout << "set opacity texture " << property.C_Str() << std::endl;
                 } else {
                     //embeddedTexture handling
                     newMaterial->setOpacityTexture(property.C_Str(), &this->name);
@@ -357,6 +356,7 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
         } else {
 
             if (meshMaterial->hasOpacityMap()) {
+                this->transparentMaterialUsed = true;
                 meshes.push_back(mesh);
             } else {
                 meshes.insert(meshes.begin(), mesh);
@@ -833,4 +833,11 @@ int32_t ModelAsset::buildEditorBoneTreeRecursive(std::shared_ptr<BoneNode> boneN
 
     }
     return result;
+}
+
+bool ModelAsset::isTransparent() const {
+    if(isAnimated()) {
+        return false;
+    }
+    return transparentMaterialUsed;
 }

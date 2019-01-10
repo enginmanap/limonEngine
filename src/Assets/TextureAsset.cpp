@@ -72,8 +72,15 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
             surface = surfaceTemp;
         }
         textureBufferID = assetManager->getGlHelper()->loadTexture(surface->h, surface->w, GL_RGB, surface->pixels);
+    } else if (surface->format->BytesPerPixel == 1) {
+            SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(surface,
+                                                                SDL_PIXELFORMAT_ABGR8888,
+                                                                0);
+            SDL_FreeSurface(surface);
+            surface = surfaceTemp;
+        textureBufferID = assetManager->getGlHelper()->loadTexture(surface->h, surface->w, GL_RGBA, surface->pixels);
     } else {
-        std::cerr << "Format has undefined number of pixels:" << surface->format->BytesPerPixel << std::endl;
+        std::cerr << "Format has undefined number of pixels:" << std::to_string(surface->format->BytesPerPixel) << std::endl;
         exit(1);
     }
 

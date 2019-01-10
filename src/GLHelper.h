@@ -229,6 +229,8 @@ private:
     GLuint ssaoBlurFrameBuffer;
     GLuint ssaoBlurredMap;
 
+    GLuint combineFrameBuffer;
+
     unsigned int noiseTexture;
 
     Options *options;

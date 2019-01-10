@@ -149,6 +149,10 @@ public:
         Model::animationTimeScale = animationTimeScale;
     }
 
+    bool isTransparent() const {
+        return modelAsset->isTransparent();
+    }
+
     ~Model();
 
     bool fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const;

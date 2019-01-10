@@ -78,6 +78,8 @@ class ModelAsset : public Asset {
     bool hasAnimation;
     bool customizationAfterSave = false;
 
+    bool transparentMaterialUsed = false;
+
     std::unique_ptr<std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>>> temporaryEmbeddedTextures = nullptr;//this is set on cerealLoad
 
     std::shared_ptr<Material> loadMaterials(const aiScene *scene, unsigned int materialIndex);
@@ -211,6 +213,7 @@ public:
     }
 #endif
 
+    bool isTransparent() const;
 };
 
 

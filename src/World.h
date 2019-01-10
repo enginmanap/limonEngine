@@ -186,6 +186,8 @@ private:
     std::set<Model*> animatedModelsInFrustum; //since animated models can't be instanced, they don't need to be in a map etc.
     std::set<Model*> animatedModelsInAnyFrustum;
 
+    std::map<uint32_t , std::set<Model*>> transparentModelsInCameraFrustum;
+
     /************************* End of redundant variables ******************************************/
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<TimedEvent>> timedEvents;
 

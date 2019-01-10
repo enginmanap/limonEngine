@@ -765,6 +765,7 @@ void GLHelper::switchRenderToCombining(){
     state->attachTexture(diffuseAndSpecularLightedMap, 1);
     state->attachTexture(ambientMap, 2);
     state->attachTexture(ssaoBlurredMap,3);
+    state->attachTexture(depthMap,4);
     checkErrors("switchRenderToCombining");
 }
 
@@ -808,6 +809,8 @@ void GLHelper::renderInstanced(GLuint program, uint_fast32_t VAO, uint_fast32_t 
 }
 
 bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 &matrix) {
+    checkErrors("setUniformMatrixBefore");
+
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
@@ -963,8 +966,9 @@ void GLHelper::attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint) {
 }
 
 bool GLHelper::deleteTexture(GLuint textureID) {
-    state->deleteTexture(textureID);
+    bool result = state->deleteTexture(textureID);
     checkErrors("deleteTexture");
+    return result;
 }
 
 GLuint GLHelper::loadCubeMap(int height, int width, void *right, void *left, void *top, void *bottom, void *back,
