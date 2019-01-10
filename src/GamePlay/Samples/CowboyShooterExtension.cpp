@@ -66,6 +66,7 @@ void CowboyShooterExtension::walkingTransition() {
         break;
         case State::SHOOTING:
             if(currentAnimationFinished) {
+                limonAPI->setModelAnimationSpeed(playerAttachedModelID, 1.0);
                 transitionValidate = true;
             } else {
                 //if shooting animation is playing, we do nothing. state transition fails.
@@ -101,6 +102,7 @@ void CowboyShooterExtension::runningTransition() {
             break;
         case State::SHOOTING:
             if(currentAnimationFinished) {
+                limonAPI->setModelAnimationSpeed(playerAttachedModelID, 1.0);
                 transitionValidate = true;
             } else {
                 //if shooting animation is playing, we do nothing. state transition fails.
@@ -136,6 +138,7 @@ void CowboyShooterExtension::idleTransition() {
             break;
         case State::SHOOTING:
             if(currentAnimationFinished) {
+                limonAPI->setModelAnimationSpeed(playerAttachedModelID, 1.0);
                 transitionValidate = true;
             } else {
                 //if shooting animation is playing, we do nothing. state transition fails.
@@ -164,6 +167,7 @@ void CowboyShooterExtension::shootingTransition() {
 
     //SHOOTING has priority over all other states, so no need to check state
     /*************** Set animation and play sound ************/
+    limonAPI->setModelAnimationSpeed(playerAttachedModelID, 1.5);
     switch(currentGun) {
         case Gun::PISTOL:
             limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Shooting|", false, 50);
