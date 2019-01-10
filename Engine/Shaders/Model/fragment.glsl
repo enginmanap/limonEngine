@@ -104,7 +104,7 @@ float ShadowCalculationPoint(vec3 fragPos, float bias, float viewDistance, int l
     vec3 fragToLight = fragPos - LightSources.lights[lightIndex].position;
     float fragDistance = length(fragToLight);
     if(LightSources.lights[lightIndex].farPlanePoint < fragDistance) {
-        return 1;//if outside of the active distance, in shadow
+        return 1.0;//if outside of the active distance, in shadow
     }
     // use the light to fragment vector to sample from the depth map
     float closestDepth = texture(shadowSamplerPoint, vec4(fragToLight, lightIndex)).r;
@@ -130,7 +130,7 @@ float ShadowCalculationPoint(vec3 fragPos, float bias, float viewDistance, int l
     attenuation = clamp(attenuation, 0.0, 1.0);
     attenuation = 1 - attenuation;
     if(attenuation == 1) {
-        shadow = 1;
+        shadow = 1.0;
     } else {
         shadow /= float(samples);
         shadow = max(shadow, attenuation);
