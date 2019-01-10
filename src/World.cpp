@@ -2918,6 +2918,15 @@ bool World::setModelAnimationAPI(uint32_t modelID, std::string animationName, bo
     return false;
 }
 
+bool World::setModelAnimationSpeedAPI(uint32_t modelID, float speed) {
+   Model* model = findModelByID(modelID);
+   if(model != nullptr) {
+       model->setAnimationTimeScale(speed);
+       return true;
+   }
+   return false;
+}
+
 bool World::setModelAnimationWithBlendAPI(uint32_t modelID, std::string animationName, bool isLooped, long blendTime) {
     Model* model = findModelByID(modelID);
     if(model != nullptr) {

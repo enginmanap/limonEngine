@@ -200,6 +200,7 @@ public:
     bool getModelAnimationFinished(uint32_t modelID);
     bool setModelAnimation(uint32_t modelID, std::string animationName, bool isLooped = true);
     bool setModelAnimationWithBlend(uint32_t modelID, std::string animationName, bool isLooped = true, long blendTime = 100);
+    bool setModelAnimationSpeed(uint32_t modelID, float speed);
 
     void interactWithPlayer(std::vector<ParameterRequest>& input);
 
@@ -300,8 +301,9 @@ private:
 
     std::function<std::string(uint32_t)> worldGetModelAnimationName;
     std::function<bool(uint32_t)> worldGetModelAnimationFinished;
-    std::function<bool(uint32_t,std::string, bool)> worldSetAnimationOfModel;
-    std::function<bool(uint32_t,std::string, bool, long)> worldSetAnimationOfModelWithBlend;
+    std::function<bool(uint32_t, std::string, bool)> worldSetAnimationOfModel;
+    std::function<bool(uint32_t, std::string, bool, long)> worldSetAnimationOfModelWithBlend;
+    std::function<bool(uint32_t, float)> worldSetModelAnimationSpeed;
 
     /*** Non World API calls *******************************************************/
     std::function<bool (const std::string&)> limonLoadWorld;
