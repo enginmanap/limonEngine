@@ -130,7 +130,6 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     if (worldLoadingImage != nullptr && worldLoadingImage->GetText() != nullptr) {
         loadingImageStr = worldLoadingImage->GetText();
     }
-    std::cout << "read name as " << worldName->GetText() << std::endl;
 
     tinyxml2::XMLElement* worldStartPlayer =  worldNode->FirstChildElement("Player");
     World::PlayerInfo startingPlayer;
