@@ -206,7 +206,7 @@ void Model::setSamplersAndUBOs(GLSLProgram *program) {
         std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
     }
     if (!program->setUniform("normalSampler", normalMapAttachPoint)) {
-        std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
+        std::cerr << "Uniform \"normalSampler\" could not be set" << std::endl;
     }
     //TODO we should support multi texture on one pass
 

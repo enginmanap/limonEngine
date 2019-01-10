@@ -129,9 +129,11 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
         combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
         combiningObject->setSourceTexture("ambient", 2);
         combiningObject->setSourceTexture("ssao", 3);
+        combiningObject->setSourceTexture("depthMap", 4);
     } else {
         combiningObject = new CombinePostProcess(glHelper,false);
         combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
+        combiningObject->setSourceTexture("depthMap", 4);
     }
 
 
@@ -449,34 +451,49 @@ void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bo
     Model* currentModel = dynamic_cast<Model*>(PhysicalRenderable);
     assert(currentModel != nullptr);
     currentModel->setIsInFrustum(glHelper->isInFrustum(currentModel->getAabbMin(), currentModel->getAabbMax()));
-    if(currentModel->isIsInFrustum()) {
-        if(currentModel->isAnimated()) {
-            animatedModelsInFrustum.insert(currentModel);
-            animatedModelsInAnyFrustum.insert(currentModel);
-        } else {
-            if (modelsInCameraFrustum.find(currentModel->getAssetID()) == modelsInCameraFrustum.end()) {
-                modelsInCameraFrustum[currentModel->getAssetID()] = std::set<Model *>();
+    if(currentModel->isTransparent()) {
+        if(currentModel->isIsInFrustum()) {
+            if (transparentModelsInCameraFrustum.find(currentModel->getAssetID()) == transparentModelsInCameraFrustum.end()) {
+                transparentModelsInCameraFrustum[currentModel->getAssetID()] = std::set<Model *>();
             }
-            modelsInCameraFrustum[currentModel->getAssetID()].insert(currentModel);
-        }
-    } else if(removePossible) {
-        //if remove possible, and not in frustum, search for the model, and remove
-        if(currentModel->isAnimated()) {
-            bool isInAnyFrustum = false;
-            animatedModelsInFrustum.erase(currentModel);
-            //now check if it is in any other frustums
-            for (uint32_t i = 0; i < animatedModelsInLightFrustum.size(); ++i) {
-                if(animatedModelsInLightFrustum[i].find(currentModel) != animatedModelsInLightFrustum[i].end()) {
-                    isInAnyFrustum = true;
-                    break;
+            transparentModelsInCameraFrustum[currentModel->getAssetID()].insert(currentModel);
+        } else {
+            if(removePossible) {
+                if(transparentModelsInCameraFrustum[currentModel->getAssetID()].find(currentModel) != transparentModelsInCameraFrustum[currentModel->getAssetID()].end()) {
+                    transparentModelsInCameraFrustum[currentModel->getAssetID()].erase(currentModel);
                 }
             }
-            if(!isInAnyFrustum) {
-                animatedModelsInAnyFrustum.erase(currentModel);
+        }
+    } else {
+        if (currentModel->isIsInFrustum()) {
+            if (currentModel->isAnimated()) {
+                animatedModelsInFrustum.insert(currentModel);
+                animatedModelsInAnyFrustum.insert(currentModel);
+            } else {
+                if (modelsInCameraFrustum.find(currentModel->getAssetID()) == modelsInCameraFrustum.end()) {
+                    modelsInCameraFrustum[currentModel->getAssetID()] = std::set<Model *>();
+                }
+                modelsInCameraFrustum[currentModel->getAssetID()].insert(currentModel);
             }
-        } else {
-            //if not animated
-            modelsInCameraFrustum[currentModel->getAssetID()].erase(currentModel);
+        } else if (removePossible) {
+            //if remove possible, and not in frustum, search for the model, and remove
+            if (currentModel->isAnimated()) {
+                bool isInAnyFrustum = false;
+                animatedModelsInFrustum.erase(currentModel);
+                //now check if it is in any other frustums
+                for (uint32_t i = 0; i < animatedModelsInLightFrustum.size(); ++i) {
+                    if (animatedModelsInLightFrustum[i].find(currentModel) != animatedModelsInLightFrustum[i].end()) {
+                        isInAnyFrustum = true;
+                        break;
+                    }
+                }
+                if (!isInAnyFrustum) {
+                    animatedModelsInAnyFrustum.erase(currentModel);
+                }
+            } else {
+                //if not animated
+                modelsInCameraFrustum[currentModel->getAssetID()].erase(currentModel);
+            }
         }
     }
 }
@@ -710,7 +727,7 @@ void World::render() {
             (*animatedModelIterator)->renderWithProgramInstanced(temp,*shadowMapProgramPoint);
         }
     }
-    /**************** SSAO ********************************************************/
+    /**************** DEPTH PREPASS ********************************************************/
 
     glHelper->switchRenderToDepthPrePass();
     for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
@@ -739,8 +756,7 @@ void World::render() {
         renderPlayerAttachments(attachedModel);
     }
 
-
-    /************** END OF SSAO ********************************************************/
+    /************** END OF DEPTH PREPASS ********************************************************/
     glHelper->switchRenderToColoring();
     if(sky!=nullptr) {
         sky->render();//this is moved to the top, because transparency can create issues if this is at the end
@@ -816,11 +832,26 @@ void World::render() {
         ssaoBlurPostProcess->render();
     }
     glHelper->switchRenderToCombining();
-    combiningObject->render();
-
     //since gui uses blending, everything must be already rendered.
     // Also, since gui elements only depth test each other, clear depth buffer
     glHelper->clearDepthBuffer();
+    combiningObject->render();
+
+    //now render transparent objects
+    for (auto modelIterator = transparentModelsInCameraFrustum.begin(); modelIterator != transparentModelsInCameraFrustum.end(); ++modelIterator) {
+        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
+        std::set<Model*> modelSet = modelIterator->second;
+        modelIndicesBuffer.clear();
+        Model* sampleModel = nullptr;
+        for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
+            //all of these models will be rendered
+            modelIndicesBuffer.push_back((*model)->getWorldObjectID());
+            sampleModel = *model;
+        }
+        if(sampleModel != nullptr) {
+            sampleModel->renderInstanced(modelIndicesBuffer);
+        }
+    }
 
     for (std::vector<GUILayer *>::iterator it = guiLayers.begin(); it != guiLayers.end(); ++it) {
         (*it)->render();
@@ -2150,6 +2181,13 @@ bool World::removeObject(uint32_t objectID) {
         activeAnimations.erase(modelToRemove);
     }
     onLoadAnimations.erase(modelToRemove);
+
+    if(modelToRemove->isTransparent()) {
+        if(transparentModelsInCameraFrustum.find(modelToRemove->getAssetID()) != transparentModelsInCameraFrustum.end()) {
+            if(transparentModelsInCameraFrustum[modelToRemove->getAssetID()].find(modelToRemove) !=transparentModelsInCameraFrustum[modelToRemove->getAssetID()].end())
+            transparentModelsInCameraFrustum[modelToRemove->getAssetID()].erase(modelToRemove);
+        }
+    }
 
     //we need to remove from ligth frustum lists, and camera frustum lists
     if(modelToRemove->isAnimated()) {
