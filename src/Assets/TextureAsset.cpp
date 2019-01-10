@@ -41,10 +41,6 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
         surface = IMG_Load(name[0].data());
     }
 
-
-
-
-
     if (!surface) {
         std::cerr << "TextureAsset Load from disk failed for " << name[0] << ". Error:" << std::endl << IMG_GetError()
                   << std::endl;
@@ -58,7 +54,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
             SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(surface,
                                                                 SDL_PIXELFORMAT_ABGR8888,
                                                                 0);
-            delete surface;
+            SDL_FreeSurface(surface);
             surface = surfaceTemp;
         }
         textureBufferID = assetManager->getGlHelper()->loadTexture(surface->h, surface->w, GL_RGBA, surface->pixels);
@@ -68,7 +64,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
             SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(surface,
                                                                 SDL_PIXELFORMAT_RGB24,
                                                                 0);
-            delete surface;
+            SDL_FreeSurface(surface);
             surface = surfaceTemp;
         }
         textureBufferID = assetManager->getGlHelper()->loadTexture(surface->h, surface->w, GL_RGB, surface->pixels);
@@ -87,7 +83,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
     this->height = surface->h;
     this->width = surface->w;
 
-    delete surface;
+    SDL_FreeSurface(surface);
 }
 
 TextureAsset::~TextureAsset() {
