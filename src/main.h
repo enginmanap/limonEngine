@@ -36,7 +36,7 @@ class GameEngine {
 
     std::unordered_map<std::string, World*> loadedWorlds;
     std::vector<World*> returnWorldStack;//stack doesn't have clear, so I am using vector
-    GUIImage* loadingImage;
+    GUIImage* loadingImage = nullptr;
     uint32_t previousTime = 0;
 public:
 
