@@ -59,7 +59,6 @@ void CowboyEnemyAI::play(long time, ActorInterface::ActorInformation &informatio
      */
 
     lastSetupTime = time;
-
     if(information.routeReady) {
         this->routeToRequest = information.routeToRequest;
         if(information.routeFound) {
@@ -75,147 +74,162 @@ void CowboyEnemyAI::play(long time, ActorInterface::ActorInformation &informatio
     currentAnimationFinished = limonAPI->getModelAnimationFinished(modelID);
 
     //there is a special case, which player dies while actor is kneeling. He must get up.
-
-    switch(currentState) {
-        case State::SCRIPTED:
-            //handle scripted behaviour
-        break;
-        case State::DEAD: {
-            //do nothing
+    if(currentState ==  State::SCRIPTED) {
+        //not implemented
+    } else if(information.playerDead) {
+        if(currentState != State::DEAD) {
+            transitionToIdle(information);
         }
-        break;
-        case State::IDLE: {
-            if (isPlayerVisible) {
+    } else {
+        switch (currentState) {
+            case State::SCRIPTED:
+                //not possible, but generates compiler warning
+                break;
+            case State::DEAD: {
+                //do nothing
+            }
+                break;
+            case State::IDLE: {
+                if (isPlayerVisible) {
+                    if (information.playerDistance < MELEE_DISTANCE) {
+                        transitionToMelee(information);
+                    } else if (information.playerDistance < RUN_DISTANCE) {
+                        transitionToWalk(information);
+                    } else {
+                        transitionToRun(information);
+                    }
+                } else {
+                    transitionToIdle(information);
+                }
+            }
+                break;
+            case State::WALKING: {
+                if (information.playerDistance < MELEE_DISTANCE) {
+                    transitionToMelee(information);
+                } else if (information.playerDistance < RUN_DISTANCE) {
+                    //possible to Shoot, check last shoot time:
+                    //check if player can be seen, and in front
+                    if (((lastShootTime + minShootTimeWait) < lastSetupTime) &&
+                        information.canSeePlayerDirectly && information.cosineBetweenPlayer > 0.9f) {
+                        if (randomFloats(generator) < shootChance) {
+                            transitionToShoot(information);
+                        }
+                    } else {
+                        transitionToWalk(information);
+                    }
+                } else {
+                    transitionToRun(information);
+                }
+            }
+                break;
+            case State::RUNNING: {
                 if (information.playerDistance < MELEE_DISTANCE) {
                     transitionToMelee(information);
                 } else if (information.playerDistance < RUN_DISTANCE) {
                     transitionToWalk(information);
                 } else {
-                    transitionToRun(information);
-                }
-            } else {
-                transitionToIdle(information);
-            }
-        }
-        break;
-        case State::WALKING: {
-            if(information.playerDistance < MELEE_DISTANCE ) {
-                transitionToMelee(information);
-            } else if(information.playerDistance < RUN_DISTANCE ) {
-                //possible to Shoot, check last shoot time:
-                if(lastShootTime + minShootTimeWait < lastSetupTime) {
-                    if(randomFloats(generator) < shootChance) {
-                        transitionToShoot(information);
-                    }
-                } else {
-                    transitionToWalk(information);
-                }
-            } else {
-                transitionToRun(information);
-            }
-        }
-        break;
-        case State::RUNNING: {
-            if(information.playerDistance < MELEE_DISTANCE ) {
-                transitionToMelee(information);
-            } else if(information.playerDistance < RUN_DISTANCE ) {
-                transitionToWalk(information);
-            } else {
-                if(isPlayerVisible) {
-                    //possible to Shoot, check last shoot time:
-                    if(lastShootTime + minShootTimeWait < lastSetupTime && randomFloats(generator) > shootChance) {
+                    if (isPlayerVisible) {
+                        //possible to Shoot, check last shoot time:
+                        if (((lastShootTime + minShootTimeWait) < lastSetupTime) &&
+                            information.canSeePlayerDirectly &&
+                            information.cosineBetweenPlayer > 0.9f &&
+                            randomFloats(generator) > shootChance) {
                             transitionToShoot(information);
-                    } else if (randomFloats(generator) < kneelDownChance) {
+                        } else if (randomFloats(generator) < kneelDownChance) {
                             transitionToKneel(information);
+                        } else {
+                            transitionToRun(information);
+                        }
                     } else {
                         transitionToRun(information);
                     }
-                } else {
-                    transitionToRun(information);
                 }
             }
-        }
-        break;
-        case State::SHOOTING: {
-            if(currentAnimationFinished && shootingStage == 3) {//multi stage shooting animation handling
-                shootingStage = 0;//reset shooting
-                if(beforeState == State::KNEEL_IDLE || beforeState == State::KNEEL_SHOOTING ||beforeState == State::STANDING_UP) {
-                    transitionToKneelIdle(information);
+                break;
+            case State::SHOOTING: {
+                if (currentAnimationFinished && shootingStage == 3) {//multi stage shooting animation handling
+                    shootingStage = 0;//reset shooting
+                    if (beforeState == State::KNEEL_IDLE || beforeState == State::KNEEL_SHOOTING ||
+                        beforeState == State::STANDING_UP) {
+                        transitionToKneelIdle(information);
+                    } else {
+                        //same as IDLE
+                        if (information.playerDistance < MELEE_DISTANCE) {
+                            transitionToMelee(information);
+                        } else if (information.playerDistance < RUN_DISTANCE) {
+                            transitionToWalk(information);
+                        } else {
+                            transitionToRun(information);
+                        }
+                    }
                 } else {
-                    //same as IDLE
+                    transitionToShoot(information);
+                }
+            }
+                break;
+            case State::MELEE: {
+                if (currentAnimationFinished) {
                     if (information.playerDistance < MELEE_DISTANCE) {
                         transitionToMelee(information);
-                    } else if (information.playerDistance < RUN_DISTANCE) {
-                        transitionToWalk(information);
                     } else {
-                        transitionToRun(information);
+                        transitionToWalk(information);
                     }
-                }
-            } else {
-                transitionToShoot(information);
+                }//If animation not finished, don't do anything
             }
-        }
-        break;
-        case State::MELEE: {
-            if(currentAnimationFinished) {
-                if (information.playerDistance < MELEE_DISTANCE) {
-                    transitionToMelee(information);
-                } else {
-                    transitionToWalk(information);
-                }
-            }//If animation not finished, don't do anything
-        }
-        break;
-        case State::KNEELING_DOWN: {
-            if(currentAnimationFinished) {
-                transitionToKneelIdle(information);
-            }//If animation not finished, don't do anything
-        }
-        break;
-        case State::KNEEL_IDLE: {
-            if(isPlayerVisible) {
-                if(lastShootTime + minShootTimeWait < lastSetupTime && randomFloats(generator) > shootChance) {
-                    transitionToKneelShoot(information);
-                } else {
+                break;
+            case State::KNEELING_DOWN: {
+                if (currentAnimationFinished) {
                     transitionToKneelIdle(information);
-                }
-            } else {
-                transitionToStandUp(information);
+                }//If animation not finished, don't do anything
             }
-        }
-        break;
-        case State::KNEEL_SHOOTING: {
-            if(currentAnimationFinished) {
-                if(isPlayerVisible) {
-                    if(randomFloats(generator) < kneelStayChance) {
+                break;
+            case State::KNEEL_IDLE: {
+                if (isPlayerVisible) {
+                    if (lastShootTime + minShootTimeWait < lastSetupTime && randomFloats(generator) > shootChance) {
                         transitionToKneelShoot(information);
                     } else {
-                        transitionToStandUp(information);
+                        transitionToKneelIdle(information);
                     }
                 } else {
                     transitionToStandUp(information);
                 }
             }
-        }
-        break;
-        case State::STANDING_UP: {
-            if(currentAnimationFinished) {
-                transitionToRun(information);//since we know player is distant
-            }
-        }
-        break;
-        case State::HIT: {
-            if(currentAnimationFinished) {//same as shoot
-                if(beforeState == State::KNEEL_IDLE || beforeState == State::KNEEL_SHOOTING ||beforeState == State::STANDING_UP) {
-                    transitionToKneelIdle(information);
-                } else {
-                    //same as IDLE
-                    if (information.playerDistance < MELEE_DISTANCE) {
-                        transitionToMelee(information);
-                    } else if (information.playerDistance < RUN_DISTANCE) {
-                        transitionToWalk(information);
+                break;
+            case State::KNEEL_SHOOTING: {
+                if (currentAnimationFinished) {
+                    if (isPlayerVisible) {
+                        if (randomFloats(generator) < kneelStayChance) {
+                            transitionToKneelShoot(information);
+                        } else {
+                            transitionToStandUp(information);
+                        }
                     } else {
-                        transitionToRun(information);
+                        transitionToStandUp(information);
+                    }
+                }
+            }
+                break;
+            case State::STANDING_UP: {
+                if (currentAnimationFinished) {
+                    transitionToRun(information);//since we know player is distant
+                }
+            }
+                break;
+            case State::HIT: {
+                if (currentAnimationFinished) {//same as shoot
+                    limonAPI->setModelAnimationSpeed(modelID, 1.0f);
+                    if (beforeState == State::KNEEL_IDLE || beforeState == State::KNEEL_SHOOTING ||
+                        beforeState == State::STANDING_UP) {
+                        transitionToKneelIdle(information);
+                    } else {
+                        //same as IDLE
+                        if (information.playerDistance < MELEE_DISTANCE) {
+                            transitionToMelee(information);
+                        } else if (information.playerDistance < RUN_DISTANCE) {
+                            transitionToWalk(information);
+                        } else {
+                            transitionToRun(information);
+                        }
                     }
                 }
             }
@@ -388,7 +402,9 @@ void CowboyEnemyAI::transitionToMelee(const ActorInformation &information) {
         break;
         case Gun::RIFLE:
         case Gun::SHOTGUN: {
-            if(lastShootTime + minShootTimeWait < lastSetupTime &&
+            if(((lastShootTime + minShootTimeWait) < lastSetupTime ) &&
+               information.canSeePlayerDirectly &&
+               information.cosineBetweenPlayer > 0.9f  &&
                 randomFloats(generator) < shootChance) {
                 transitionToShoot(information);
             } else {
@@ -409,7 +425,12 @@ void CowboyEnemyAI::transitionToWalk(const ActorInformation &information) {
     //now we are walking, move along the route
     if(!routeToRequest.empty()) {
         if(currentState != State::WALKING) {
-            limonAPI->setModelAnimationWithBlend(modelID, "Rifle Walk|", false);
+            std::cout << "setting walk animation" << std::endl;
+            if(currentGun == Gun::PISTOL) {
+                limonAPI->setModelAnimationWithBlend(modelID, "Pistol Walk|");
+            } else {
+                limonAPI->setModelAnimationWithBlend(modelID, "Rifle Walk|");
+            }
         }
         float distanceToRouteNode = glm::length2(getPosition() + glm::vec3(0, 2.0f, 0) - routeToRequest[0]);
         if (distanceToRouteNode < 0.1f) {//if reached first element
@@ -422,10 +443,9 @@ void CowboyEnemyAI::transitionToWalk(const ActorInformation &information) {
         }
         glm::vec3 moveDirection = walkSpeed * lastWalkDirection;
         limonAPI->addObjectTranslate(modelID, LimonConverter::GLMToLimon(moveDirection));
-
+        currentState = State::WALKING;
     }
 
-    currentState = State::WALKING;
 }
 
 void CowboyEnemyAI::transitionToRun(const ActorInformation &information) {
@@ -440,7 +460,7 @@ void CowboyEnemyAI::transitionToRun(const ActorInformation &information) {
             case Gun::RIFLE: {
                 limonAPI->setModelAnimationWithBlend(modelID, "Rifle Run|");
             }
-                break;
+            break;
         }
     }
 
@@ -660,14 +680,20 @@ void CowboyEnemyAI::transitionToIdle(const ActorInformation &information __attri
 void CowboyEnemyAI::turnFaceToPlayer(const ActorInterface::ActorInformation &information) {
     //face the player
     if(information.isPlayerLeft) {
-        if(information.cosineBetweenPlayerForSide < 0.95) {
+        if(information.cosineBetweenPlayerForSide < 0.65) {
+            LimonAPI::Vec4 rotateLeft(0.0f, 0.030f, 0.0f, 1.0f);
+            limonAPI->addObjectOrientation(modelID, rotateLeft);
+        } else if(information.cosineBetweenPlayerForSide < 0.95) {
             LimonAPI::Vec4 rotateLeft(0.0f, 0.015f, 0.0f, 1.0f);
             limonAPI->addObjectOrientation(modelID, rotateLeft);
         }
     }
     if(information.isPlayerRight) {
         //turn just a little bit to right
-        if(information.cosineBetweenPlayerForSide < 0.95) {
+        if(information.cosineBetweenPlayerForSide < 0.65) {
+            LimonAPI::Vec4 rotateRight(0.0f, -0.030f, 0.0f, 1.0f);
+            limonAPI->addObjectOrientation(modelID, rotateRight);
+        } else if(information.cosineBetweenPlayerForSide < 0.95) {
             LimonAPI::Vec4 rotateRight(0.0f, -0.015f, 0.0f, 1.0f);
             limonAPI->addObjectOrientation(modelID, rotateRight);
         }
@@ -678,6 +704,7 @@ void CowboyEnemyAI::transitionToHit() {
     //since hit has priority over everything, make sure shooting is not left in the middle
     shootingStage = 0;
     if(currentState != State::HIT) {
+        limonAPI->setModelAnimationSpeed(modelID, 1.5f);
         switch (currentGun) {
             case Gun::PISTOL: {
                 limonAPI->setModelAnimationWithBlend(modelID, "Pistol Idle Hit Reaction|", false);
@@ -705,7 +732,7 @@ void CowboyEnemyAI::transitionToHit() {
                     case State::MELEE:
                     case State::KNEELING_DOWN:
                     case State::SHOOTING:
-                        limonAPI->setModelAnimationWithBlend(modelID, "Rifle Idle Hit Reaction|", false);
+                        limonAPI->setModelAnimationWithBlend(modelID, "Rifle Idle Hit Reaction|", false, 1000);
                         currentState = State::HIT;
                     break;
                     case State::HIT:
