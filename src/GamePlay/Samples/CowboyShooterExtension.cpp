@@ -244,7 +244,7 @@ void CowboyShooterExtension::shootingTransition() {
                 std::cerr << "Hit an object, but its ID "<< (uint32_t)rayResult[0].value.longValue << " is invalid!" << std::endl;
 
                 uint32_t bulletHoleID = limonAPI->addObject("./Data/Models/BulletHole/BulletHole.obj", 0, false, hitPos, scale, orientation);//add with default values
-                limonAPI->setModelTemporary(bulletHoleID, true);//don't save bulletholes when saving the map
+                limonAPI->setObjectTemporary(bulletHoleID, true);//don't save bulletholes when saving the map
             } else {
                 //at this point, we will attach the bullet hole to the object, to do so, we need to update the scale, translate and orientation
 
