@@ -2911,7 +2911,7 @@ bool World::getModelAnimationFinishedAPI(uint32_t modelID) {
     return false;
 }
 
-bool World::setModelAnimationAPI(uint32_t modelID, std::string animationName, bool isLooped) {
+bool World::setModelAnimationAPI(uint32_t modelID, const std::string& animationName, bool isLooped) {
     Model* model = findModelByID(modelID);
     if(model != nullptr) {
         model->setAnimation(animationName, isLooped);
@@ -2929,7 +2929,7 @@ bool World::setModelAnimationSpeedAPI(uint32_t modelID, float speed) {
    return false;
 }
 
-bool World::setModelAnimationWithBlendAPI(uint32_t modelID, std::string animationName, bool isLooped, long blendTime) {
+bool World::setModelAnimationWithBlendAPI(uint32_t modelID, const std::string& animationName, bool isLooped, long blendTime) {
     Model* model = findModelByID(modelID);
     if(model != nullptr) {
         model->setAnimationWithBlend(animationName, isLooped, blendTime);
