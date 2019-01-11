@@ -81,7 +81,7 @@ AnimationCustom* AnimationSequenceInterface::buildAnimationFromCurrentItems() {
     //add the first element here
     AnimationSequenceItem item = sections[0];
 
-    fillAnimationFromItem(0, animationInProgress, Transformation());//for the first element, we push identity transform
+    fillAnimationFromItem(0, animationInProgress, Transformation(), true);//for the first element, we push identity transform
 
 
     //now iterate over the list, combining the animations
@@ -117,7 +117,7 @@ AnimationCustom* AnimationSequenceInterface::buildAnimationFromCurrentItems() {
         item = sections[i];
         auto animationNode2 = std::make_shared<AnimationNode>();
         AnimationCustom* itemsAnimation = new AnimationCustom("item", animationNode2, 0);
-        fillAnimationFromItem(i, itemsAnimation, sections[i-1].transformation);
+        fillAnimationFromItem(i, itemsAnimation, sections[i-1].transformation, false);
 
         //sample both, join
         //how to sample both? we know they both start from 0, just get which one is shorter, sample until the shorter end.
@@ -182,8 +182,15 @@ AnimationCustom* AnimationSequenceInterface::buildAnimationFromCurrentItems() {
     return animationInProgress;
 }
 
-
-void AnimationSequenceInterface::fillAnimationFromItem(uint32_t itemIndex, AnimationCustom *animationToFill, const Transformation& sourceTransform) const {
+/**
+ * We should calculate the difference for stacking, but only first one is actually stacked, the rest is added to first transform, so the useStacked flag. We should have used index, but I want this to be easy to understand
+ *
+ * @param itemIndex
+ * @param animationToFill
+ * @param sourceTransform
+ * @param useStacked
+ */
+void AnimationSequenceInterface::fillAnimationFromItem(uint32_t itemIndex, AnimationCustom *animationToFill, const Transformation& sourceTransform, bool useStacked) const {
     AnimationSequenceItem item = sections[itemIndex];
     int animationStartTime = this->startTime;
     if(itemIndex > 0) {
@@ -199,7 +206,11 @@ void AnimationSequenceInterface::fillAnimationFromItem(uint32_t itemIndex, Anima
 
     glm::vec3 translate, scale;
     glm::quat rotation;
-    sourceTransform.getDifferenceStacked(item.transformation, translate, scale, rotation);
+    if(useStacked) {
+        sourceTransform.getDifferenceStacked(item.transformation, translate, scale, rotation);
+    } else {
+        sourceTransform.getDifferenceAddition(item.transformation, translate, scale, rotation);
+    }
 
     Transformation difference;
     difference.setTransformationsNotPropagate(translate,rotation,scale);
@@ -246,26 +257,27 @@ void AnimationSequenceInterface::addAnimationSequencerToEditor(bool &finished, b
     ImGui::InputInt("Frame count", &mFrameCount);
 
     int oldSelectedEntry = selectedEntry;
-    bool isSelectionChanged = Sequencer(this, NULL, &expanded, &selectedEntry, &firstFrame, ImSequencer::SEQUENCER_EDIT_STARTEND | ImSequencer::SEQUENCER_ADD | ImSequencer::SEQUENCER_DEL );
+    bool isSelectionUpdated = Sequencer(this, NULL, &expanded, &selectedEntry, &firstFrame, ImSequencer::SEQUENCER_EDIT_STARTEND | ImSequencer::SEQUENCER_ADD | ImSequencer::SEQUENCER_DEL );
     ImGui::Text("Every 60 frames is 1 second in game time");
-    if(isSelectionChanged) {
-        //set the current position of the attached model to old selected entry, then, move the model to new selected entries transformation
-        setTransform(oldSelectedEntry);
+    if(isSelectionUpdated) {
+        if (selectedEntry != oldSelectedEntry) {
+            //set the current position of the attached model to old selected entry, then, move the model to new selected entries transformation
+            setTransform(oldSelectedEntry);
 
-        //we set the transformation to item. now move the object:
-
-        if(selectedEntry == -1) {
-            //means nothing is selected, can happen when sequence removed.
-            animatingObject->getTransformation()->setTranslate(originalTransformation.getTranslate());
-            animatingObject->getTransformation()->setScale(originalTransformation.getScale());
-            animatingObject->getTransformation()->setOrientation(originalTransformation.getOrientation());
-        } else {
-            Transformation itemTransformation(originalTransformation);
-            itemTransformation.combine(sections[selectedEntry].transformation);
-            //If there is a parent, they share the parent so single is appropriate. If no parent, single works as normal
-            animatingObject->getTransformation()->setTranslate(itemTransformation.getTranslateSingle());
-            animatingObject->getTransformation()->setScale(itemTransformation.getScaleSingle());
-            animatingObject->getTransformation()->setOrientation(itemTransformation.getOrientationSingle());
+            //we set the transformation to item. now move the object:
+            if (selectedEntry == -1) {
+                //means nothing is selected, can happen when sequence removed.
+                animatingObject->getTransformation()->setTranslate(originalTransformation.getTranslate());
+                animatingObject->getTransformation()->setScale(originalTransformation.getScale());
+                animatingObject->getTransformation()->setOrientation(originalTransformation.getOrientation());
+            } else {
+                Transformation itemTransformation(originalTransformation);
+                itemTransformation.combine(sections[selectedEntry].transformation);
+                //If there is a parent, they share the parent so single is appropriate. If no parent, single works as normal
+                animatingObject->getTransformation()->setTranslate(itemTransformation.getTranslateSingle());
+                animatingObject->getTransformation()->setScale(itemTransformation.getScaleSingle());
+                animatingObject->getTransformation()->setOrientation(itemTransformation.getOrientationSingle());
+            }
         }
     }
 

@@ -40,14 +40,13 @@ class AnimationSequenceInterface : public ImSequencer::SequenceInterface {
      * @param item
      * @param animationToFill
      */
-    void fillAnimationFromItem(uint32_t itemIndex, AnimationCustom *animationToFill, const Transformation& sourceTransform) const;
+    void fillAnimationFromItem(uint32_t itemIndex, AnimationCustom *animationToFill, const Transformation& sourceTransform,  bool useStacked) const;
     void pushTransformToAnimationTime(std::shared_ptr<AnimationNode> animationNode, float time, const Transformation &transformation) const;
     void pushIdentityToAnimationTime(std::shared_ptr<AnimationNode> animationNode, float time) const;
 
 
 public:
     int mFrameCount = 120;
-
 
     int GetFrameCount() const { return mFrameCount; }
     int GetItemCount() const { return (int)sections.size(); }
