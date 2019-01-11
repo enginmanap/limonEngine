@@ -446,11 +446,11 @@ bool LimonAPI::getModelAnimationFinished(uint32_t modelID) {
     return worldGetModelAnimationFinished(modelID);
 }
 
-bool LimonAPI::setModelAnimation(uint32_t modelID, std::string animationName, bool isLooped) {
+bool LimonAPI::setModelAnimation(uint32_t modelID, const std::string& animationName, bool isLooped) {
     return worldSetAnimationOfModel(modelID, animationName, isLooped);
 }
 
-bool LimonAPI::setModelAnimationWithBlend(uint32_t modelID, std::string animationName, bool isLooped, long blendTime) {
+bool LimonAPI::setModelAnimationWithBlend(uint32_t modelID, const std::string& animationName, bool isLooped, long blendTime) {
     return worldSetAnimationOfModelWithBlend(modelID, animationName, isLooped, blendTime);
 }
 
