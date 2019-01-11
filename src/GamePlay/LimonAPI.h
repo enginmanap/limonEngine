@@ -201,6 +201,8 @@ public:
     bool setModelAnimation(uint32_t modelID, const std::string& animationName, bool isLooped = true);
     bool setModelAnimationWithBlend(uint32_t modelID, const std::string& animationName, bool isLooped = true, long blendTime = 100);
     bool setModelAnimationSpeed(uint32_t modelID, float speed);
+    std::vector<uint32_t> getModelChildren(uint32_t modelID);
+
 
     void interactWithPlayer(std::vector<ParameterRequest>& input);
 
@@ -248,9 +250,6 @@ public:
         limonExitGame = worldExitMethod;
         limonReturnPrevious = worldReturnPreviousMethod;
     }
-
-    std::vector<uint32_t> getModelChildren(uint32_t modelID);
-
 private:
     friend class WorldLoader;
 
