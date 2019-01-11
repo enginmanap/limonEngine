@@ -1428,6 +1428,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
                     if(ImGui::Button(("Remove custom animation: " + loadedAnimations[activeAnimations[selectedObject]->animationIndex].getName()).c_str())) {
                         selectedObject->getTransformation()->removeParentTransform();
+                        selectedObject->setCustomAnimation(false);
                         selectedObject->getTransformation()->setTranslate(activeAnimations[selectedObject]->originalTransformation.getTranslate());
                         selectedObject->getTransformation()->setScale(activeAnimations[selectedObject]->originalTransformation.getScale());
                         selectedObject->getTransformation()->setOrientation(activeAnimations[selectedObject]->originalTransformation.getOrientation());
@@ -1437,6 +1438,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                         if(onLoadAnimations.find(selectedObject) != onLoadAnimations.end()) {
                             onLoadAnimations.erase(selectedObject);
                         }
+
                      }
                 } else {
                     addAnimationDefinitionToEditor();
