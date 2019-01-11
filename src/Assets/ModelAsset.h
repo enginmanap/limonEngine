@@ -202,13 +202,13 @@ public:
             index++;
             embeddedTexture = assetManager->getEmbeddedTextures(name, index);
         }
-        ar(assetID, boneIDCounter, boneIDCounterPerMesh, textures,                   hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap);
+        ar(assetID, boneIDCounter, boneIDCounterPerMesh, textures,                   hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, transparentMaterialUsed);
     }
 
     template<class Archive>
     void load( Archive & ar ) {
         temporaryEmbeddedTextures = std::make_unique<std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>>>();
-        ar(assetID, boneIDCounter, boneIDCounterPerMesh, *temporaryEmbeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap);
+        ar(assetID, boneIDCounter, boneIDCounterPerMesh, *temporaryEmbeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, transparentMaterialUsed);
         //now update embedded textures to assetManager
     }
 #endif
