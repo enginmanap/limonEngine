@@ -103,6 +103,7 @@ add_library(customTriggers SHARED src/GamePlay/TriggerInterface.cpp
         src/GamePlay/UpdateGuiTextOnTrigger.cpp
         src/GamePlay/MayanCoinPickup.cpp
         src/GamePlay/MayanLever.cpp
+        src/GamePlay/Samples/DoorAnimationAction.cpp
         src/GamePlay/ShooterPlayerExtension.cpp
         src/AI/ActorInterface.h
         src/AI/HumanEnemy.cpp
