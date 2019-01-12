@@ -56,7 +56,7 @@ void Sound::stop() {
 }
 
 void Sound::stopAfterFinish() {
-    if(soundHandleID != 0) {
+    if(soundHandleID != 0 && this->playState == State::PLAYING) {
         if (!assetManager->getAlHelper()->setLooped(soundHandleID, false)) {
             std::cerr << "The stop after finish is failed for " << this->name << "with handle " << soundHandleID <<  std::endl;
         }
