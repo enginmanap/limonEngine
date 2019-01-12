@@ -1805,7 +1805,30 @@ uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animati
     as->startTime = gameTime;
     if(activeAnimations.count(as->object) != 0) {
         options->getLogger()->log(Logger::log_Subsystem_ANIMATION, Logger::log_level_WARN, "Model had custom animation, overriding.");
-        as->originalTransformation.copy(activeAnimations[as->object]->originalTransformation);
+        as->wasKinematic = activeAnimations[as->object]->wasKinematic;
+        if(activeAnimations[as->object]->loop) {
+            as->originalTransformation.copy(activeAnimations[as->object]->originalTransformation);//if looped animation, start new one from origin
+        } else {
+            //if not looped animation, start from end of the old one
+            const AnimationCustom* oldAnimation = &loadedAnimations[activeAnimations[as->object]->animationIndex];
+            float duration = oldAnimation->getDuration();
+            oldAnimation->calculateTransform("", duration, *as->object->getTransformation());
+
+            //now before deleting the animation, separate parent/child animations
+            glm::vec3 tempScale, tempTranslate;
+            glm::quat tempOrientation;
+            tempScale       = as->object->getTransformation()->getScale();
+            tempTranslate   = as->object->getTransformation()->getTranslate();
+            tempOrientation = as->object->getTransformation()->getOrientation();
+
+            as->object->getTransformation()->removeParentTransform();
+            as->object->getTransformation()->setTranslate(tempTranslate);
+            as->object->getTransformation()->setScale(tempScale);
+            as->object->getTransformation()->setOrientation(tempOrientation);
+            as->object->setCustomAnimation(false);
+            as->originalTransformation.copy(*as->object->getTransformation());
+
+        }
         delete activeAnimations[as->object];
     } else {
         as->originalTransformation.copy(*as->object->getTransformation());
