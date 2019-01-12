@@ -306,71 +306,70 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     }
 }
 
-   void World::animateCustomAnimations() {
-     // ATTENTION iterator is not increased in for, it is done manually.
-       for(auto animIt = activeAnimations.begin(); animIt != activeAnimations.end();) {
-              AnimationStatus* animationStatus = animIt->second;
-              if(animationStatus->originChange) {
-                  //this means the origin has changed in editor mode, so we should update our origin of transformation.
+void World::animateCustomAnimations() {
+    // ATTENTION iterator is not increased in for, it is done manually.
+    for(auto animIt = activeAnimations.begin(); animIt != activeAnimations.end();) {
+        AnimationStatus* animationStatus = animIt->second;
+        if(animationStatus->originChange) {
+            //this means the origin has changed in editor mode, so we should update our origin of transformation.
 
-                  // First change the original transform to current, since user updated it
-                  animationStatus->originalTransformation.setTranslate(animationStatus->object->getTransformation()->getTranslate());
-                  animationStatus->originalTransformation.setScale(animationStatus->object->getTransformation()->getScale());
-                  animationStatus->originalTransformation.setOrientation(animationStatus->object->getTransformation()->getOrientation());
+            // First change the original transform to current, since user updated it
+            animationStatus->originalTransformation.setTranslate(animationStatus->object->getTransformation()->getTranslate());
+            animationStatus->originalTransformation.setScale(animationStatus->object->getTransformation()->getScale());
+            animationStatus->originalTransformation.setOrientation(animationStatus->object->getTransformation()->getOrientation());
 
-                  animationStatus->object->getTransformation()->setScale(glm::vec3(1.0f,1.0f,1.0f));//then remove the change from object transform.
-                  animationStatus->object->getTransformation()->setTranslate(glm::vec3(0.0f,0.0f,0.0f));
-                  animationStatus->object->getTransformation()->setOrientation(glm::quat(1.0f,0.0f,0.0f, 0.0f));
-                  animationStatus->originChange = false;
-              }
-              const AnimationCustom* animationCustom = &loadedAnimations[animationStatus->animationIndex];
-              if((animationStatus->loop ) || animationCustom->getDuration() / animationCustom->getTicksPerSecond() * 1000  + animationStatus->startTime >
+            animationStatus->object->getTransformation()->setScale(glm::vec3(1.0f,1.0f,1.0f));//then remove the change from object transform.
+            animationStatus->object->getTransformation()->setTranslate(glm::vec3(0.0f,0.0f,0.0f));
+            animationStatus->object->getTransformation()->setOrientation(glm::quat(1.0f,0.0f,0.0f, 0.0f));
+            animationStatus->originChange = false;
+        }
+        const AnimationCustom* animationCustom = &loadedAnimations[animationStatus->animationIndex];
+        if((animationStatus->loop ) || animationCustom->getDuration() / animationCustom->getTicksPerSecond() * 1000  + animationStatus->startTime >
                                              gameTime) {
+            float ticksPerSecond;
+            if (animationCustom->getTicksPerSecond() != 0) {
+                ticksPerSecond = animationCustom->getTicksPerSecond();
+            } else {
+                ticksPerSecond = 60.0f;
+            }
+            float animationTime = fmod(((gameTime - animationStatus->startTime) / 1000.0f) * ticksPerSecond, animationCustom->getDuration());
+            animationCustom->calculateTransform("", animationTime, *animationStatus->object->getTransformation());
 
-                  float ticksPerSecond;
-                  if (animationCustom->getTicksPerSecond() != 0) {
-                      ticksPerSecond = animationCustom->getTicksPerSecond();
-                  } else {
-                      ticksPerSecond = 60.0f;
-                  }
-                  float animationTime = fmod(((gameTime - animationStatus->startTime) / 1000.0f) * ticksPerSecond, animationCustom->getDuration());
-                  animationCustom->calculateTransform("", animationTime, *animationStatus->object->getTransformation());
+            if(animationStatus->sound) {
+                animationStatus->sound->setWorldPosition(
+                animationStatus->object->getTransformation()->getTranslate());
+            }
+            animIt++;
+        } else {
+            if(!animationStatus->wasKinematic) {
+                animationStatus->object->getRigidBody()->setCollisionFlags(animationStatus->object->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
+                animationStatus->object->getRigidBody()->setActivationState(ACTIVE_TAG);
+            }
 
-                  if(animationStatus->sound) {
-                      animationStatus->sound->setWorldPosition(
-                              animationStatus->object->getTransformation()->getTranslate());
-                  }
-                  animIt++;
-              } else {
-                  if(!animationStatus->wasKinematic) {
-                      animationStatus->object->getRigidBody()->setCollisionFlags(animationStatus->object->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
-                      animationStatus->object->getRigidBody()->setActivationState(ACTIVE_TAG);
-                  }
+            if(animationStatus->sound) {
+                animationStatus->sound->stop();
+            }
 
-                  if(animationStatus->sound) {
-                      animationStatus->sound->stop();
-                  }
+            //now before deleting the animation, separate parent/child animations
+            glm::vec3 tempScale, tempTranslate;
+            glm::quat tempOrientation;
+            tempScale       = animationStatus->object->getTransformation()->getScale();
+            tempTranslate   = animationStatus->object->getTransformation()->getTranslate();
+            tempOrientation = animationStatus->object->getTransformation()->getOrientation();
 
-                  //now before deleting the animation, separate parent/child animations
-                  glm::vec3 tempScale, tempTranslate;
-                  glm::quat tempOrientation;
-                  tempScale       = animationStatus->object->getTransformation()->getScale();
-                  tempTranslate   = animationStatus->object->getTransformation()->getTranslate();
-                  tempOrientation = animationStatus->object->getTransformation()->getOrientation();
+            animationStatus->object->getTransformation()->removeParentTransform();
+            animationStatus->object->getTransformation()->setTranslate(tempTranslate);
+            animationStatus->object->getTransformation()->setScale(tempScale);
+            animationStatus->object->getTransformation()->setOrientation(tempOrientation);
+            animationStatus->object->setCustomAnimation(false);
 
-                  animationStatus->object->getTransformation()->removeParentTransform();
-                  animationStatus->object->getTransformation()->setTranslate(tempTranslate);
-                  animationStatus->object->getTransformation()->setScale(tempScale);
-                  animationStatus->object->getTransformation()->setOrientation(tempOrientation);
-                  animationStatus->object->setCustomAnimation(false);
+            options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, "Animation " + animationCustom->getName() + " finished, removing. ");
+            delete animIt->second;
+            animIt = activeAnimations.erase(animIt);
 
-                  options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, "Animation " + animationCustom->getName() + " finished, removing. ");
-                  delete animIt->second;
-                  animIt = activeAnimations.erase(animIt);
-
-              }
-          }
-   }
+        }
+    }
+}
 
    void World::fillVisibleObjects(){
     if(camera->isDirty()) {
