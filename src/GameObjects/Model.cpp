@@ -618,14 +618,26 @@ void Model::attachAI(ActorInterface *AIActor) {
     lastSelectedAIName = AIActor->getName();
 }
 
-void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedModels __attribute__((unused))) {
+void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedModels) {
 #ifdef CEREAL_SUPPORT
+    std::vector<std::string> nameVector;
+    nameVector.push_back(name);
     std::string newName = name.substr(0, name.find_last_of(".")) + ".limonmodel";
-    std::ofstream os(newName, std::ios::binary);
-    cereal::BinaryOutputArchive archive( os );
+    if(convertedModels.find(nameVector) == convertedModels.end()) {
+        std::ofstream os(newName, std::ios::binary);
+        cereal::BinaryOutputArchive archive( os );
 
-    archive(*modelAsset);
+        archive(*modelAsset);
+        convertedModels.insert(nameVector);
+    }
     this->name = newName;//change name of self so next time converted file would be used.
+
+    for (auto childIt = children.begin(); childIt != children.end(); ++childIt) {
+        Model* modelChild = dynamic_cast<Model*>(*childIt);
+        if(modelChild != nullptr) {
+            modelChild->convertAssetToLimon(convertedModels);
+        }
+    }
 #else
     std::cerr << "Cereal support disabled" << std::endl;
 #endif
