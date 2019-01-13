@@ -1387,11 +1387,17 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             }
         }
 #endif
-        if(ImGui::Button("Save Selected ModelAsset")) {
-            if(pickedObject != nullptr && pickedObject->getTypeID() == GameObject::MODEL) {
-                Model* model = static_cast<Model*>(pickedObject);
-                std::set<std::vector<std::string>> convertedAssets;
-                model->convertAssetToLimon(convertedAssets);
+        if(ImGui::Button("Convert models to binary")) {
+            std::set<std::vector<std::string>> convertedAssets;
+            for (auto objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
+
+                Model* model = dynamic_cast<Model*>(objectIt->second);
+                if(model!= nullptr) {
+                    model->convertAssetToLimon(convertedAssets);
+                }
+            }
+            if(startingPlayer.attachedModel != nullptr) {
+                startingPlayer.attachedModel->convertAssetToLimon(convertedAssets);
             }
         }
 
