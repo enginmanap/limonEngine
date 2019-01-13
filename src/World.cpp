@@ -341,6 +341,10 @@ void World::animateCustomAnimations() {
             }
             animIt++;
         } else {
+            //animation finish case, set final transform and remove
+            float animationTime = animationCustom->getDuration();
+            animationCustom->calculateTransform("", animationTime, *animationStatus->object->getTransformation());
+
             if(!animationStatus->wasKinematic) {
                 animationStatus->object->getRigidBody()->setCollisionFlags(animationStatus->object->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
                 animationStatus->object->getRigidBody()->setActivationState(ACTIVE_TAG);
