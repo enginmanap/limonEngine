@@ -1604,8 +1604,8 @@ void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove
     delete activeAnimations[objectOfAnimation];
    activeAnimations.erase(objectOfAnimation);
 
-   if(onLoadAnimations.find(animationStatusToRemove->object) != onLoadAnimations.end()) {
-       onLoadAnimations.erase(animationStatusToRemove->object);
+   if(onLoadAnimations.find(objectOfAnimation) != onLoadAnimations.end()) {
+       onLoadAnimations.erase(objectOfAnimation);
    }
 }
 
