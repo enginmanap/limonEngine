@@ -618,7 +618,7 @@ void Model::attachAI(ActorInterface *AIActor) {
     lastSelectedAIName = AIActor->getName();
 }
 
-void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedModels) {
+void Model::convertAssetToLimon(std::set<std::vector<std::string>> &convertedModels [[gnu::unused]]) {
 #ifdef CEREAL_SUPPORT
     std::vector<std::string> nameVector;
     nameVector.push_back(name);
