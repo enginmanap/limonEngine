@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <map>
+#include <cstring>
 
 class InputStates {
 public:
@@ -22,7 +23,9 @@ private:
     std::map<Inputs, bool> inputStatus;
     std::map<Inputs, bool> inputEvents;
     float xPos, yPos, xChange, yChange;
-    char* sdlText;
+    mutable char sdlText[128] = {0};
+    mutable char temporaryTextBuffer[128] = {0};
+
 
 public:
 
@@ -48,12 +51,14 @@ public:
         return inputEvents.at(input);
     }
 
-    const char * getText() const {
-        return sdlText;
+    const char *getText() const {
+        std::strncpy(this->temporaryTextBuffer, sdlText, sizeof(temporaryTextBuffer));
+        return temporaryTextBuffer;
     }
 
     void setText(char* sdlText) {
-        this->sdlText = sdlText;
+        size_t currentLength =std::strlen(this->sdlText);
+        std::strncpy(this->sdlText+currentLength, sdlText, sizeof(this->sdlText)-currentLength);
     }
 
     /**
