@@ -41,11 +41,11 @@ OPTION(ALSOFT_DLOPEN  "Check for the dlopen API for loading optional libs"  ON)
 
 OPTION(ALSOFT_WERROR  "Treat compile warnings as errors"      OFF)
 
-OPTION(ALSOFT_UTILS          "Build and install utility programs"         ON)
-OPTION(ALSOFT_NO_CONFIG_UTIL "Disable building the alsoft-config utility" OFF)
+OPTION(ALSOFT_UTILS          "Build and install utility programs"         OFF)
+OPTION(ALSOFT_NO_CONFIG_UTIL "Disable building the alsoft-config utility" ON)
 
-OPTION(ALSOFT_EXAMPLES  "Build and install example programs"  ON)
-OPTION(ALSOFT_TESTS     "Build and install test programs"     ON)
+OPTION(ALSOFT_EXAMPLES  "Build and install example programs"  OFF)
+OPTION(ALSOFT_TESTS     "Build and install test programs"     OFF)
 
 OPTION(ALSOFT_CONFIG "Install alsoft.conf sample configuration file" ON)
 OPTION(ALSOFT_HRTF_DEFS "Install HRTF definition files" ON)
