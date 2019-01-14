@@ -63,6 +63,9 @@ bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
 }
 
 bool GameEngine::LoadNewAndRemoveCurrent(const std::string &worldFile) {
+    if(currentWorld->getName() == worldFile) {
+        return false;
+    }
     renderLoadingImage();
     World* temp = currentWorld;
     loadedWorlds.erase(temp->getName());
