@@ -473,6 +473,10 @@ public:
     void updateActiveLights(bool forceUpdate = false);
 
     void addSkyBoxControls();
+
+    void
+    removeActiveCustomAnimation(const AnimationCustom &animationToRemove, const AnimationStatus *animationStatusToRemove,
+                                float animationTime);
 };
 
 #endif //LIMONENGINE_WORLD_H

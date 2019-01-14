@@ -1436,19 +1436,33 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
 
                     if(ImGui::Button(("Remove custom animation: " + loadedAnimations[activeAnimations[selectedObject]->animationIndex].getName()).c_str())) {
-                        selectedObject->getTransformation()->removeParentTransform();
-                        selectedObject->setCustomAnimation(false);
-                        selectedObject->getTransformation()->setTranslate(activeAnimations[selectedObject]->originalTransformation.getTranslate());
-                        selectedObject->getTransformation()->setScale(activeAnimations[selectedObject]->originalTransformation.getScale());
-                        selectedObject->getTransformation()->setOrientation(activeAnimations[selectedObject]->originalTransformation.getOrientation());
-
-                        delete activeAnimations[selectedObject];
-                        activeAnimations.erase(selectedObject);
-                        if(onLoadAnimations.find(selectedObject) != onLoadAnimations.end()) {
-                            onLoadAnimations.erase(selectedObject);
+                        ImGui::OpenPopup("How To Remove Custom Animation");
+                     }
+                    if (ImGui::BeginPopupModal("How To Remove Custom Animation")){
+                        AnimationCustom& animationToRemove = loadedAnimations[activeAnimations[selectedObject]->animationIndex];
+                        AnimationStatus* animationStatusToRemove = activeAnimations[selectedObject];
+                        if(ImGui::Button("Set to Start##CustomAnimationRemoval")) {
+                            removeActiveCustomAnimation(animationToRemove, animationStatusToRemove, 0);
+                            ImGui::CloseCurrentPopup();
                         }
 
-                     }
+                        if(ImGui::Button("Set to End##CustomAnimationRemoval")) {
+                            removeActiveCustomAnimation(animationToRemove, animationStatusToRemove, animationToRemove.getDuration());
+                            ImGui::CloseCurrentPopup();
+                        }
+                        static float customTime = 0.0f;
+                        ImGui::DragFloat("##CustomAnimationRemovalCustomTime", &customTime, 0.1, 0.0, animationToRemove.getDuration());
+                        ImGui::SameLine();
+                        if(ImGui::Button("Set to custom time##CustomAnimationRemoval")) {
+                            removeActiveCustomAnimation(animationToRemove, animationStatusToRemove, customTime);
+                            ImGui::CloseCurrentPopup();
+                        }
+                        if(ImGui::Button("Cancel##CustomAnimationRemoval")) {
+                            ImGui::CloseCurrentPopup();
+                        }
+                        ImGui::EndPopup();
+
+                    }
                 } else {
                     addAnimationDefinitionToEditor();
                 }
@@ -1558,7 +1572,44 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
 }
 
-void World::addGUITextControls() {
+void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove,
+        const World::AnimationStatus *animationStatusToRemove,
+        float animationTime) {
+   if(animationStatusToRemove->sound) {
+       animationStatusToRemove->sound->stop();
+   }
+
+   animationToRemove.calculateTransform("", animationTime, *animationStatusToRemove->object->getTransformation());
+
+   if(!animationStatusToRemove->wasKinematic) {
+        animationStatusToRemove->object->getRigidBody()->setCollisionFlags(animationStatusToRemove->object->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
+       animationStatusToRemove->object->getRigidBody()->setActivationState(ACTIVE_TAG);
+   }
+
+   //now before deleting the animation, separate parent/child animations
+   glm::vec3 tempScale, tempTranslate;
+   glm::quat tempOrientation;
+   tempScale       = animationStatusToRemove->object->getTransformation()->getScale();
+   tempTranslate   = animationStatusToRemove->object->getTransformation()->getTranslate();
+   tempOrientation = animationStatusToRemove->object->getTransformation()->getOrientation();
+
+   animationStatusToRemove->object->getTransformation()->removeParentTransform();
+   animationStatusToRemove->object->getTransformation()->setTranslate(tempTranslate);
+   animationStatusToRemove->object->getTransformation()->setScale(tempScale);
+   animationStatusToRemove->object->getTransformation()->setOrientation(tempOrientation);
+   animationStatusToRemove->object->setCustomAnimation(false);
+
+   //now remove active animations
+   PhysicalRenderable* objectOfAnimation = animationStatusToRemove->object;
+    delete activeAnimations[objectOfAnimation];
+   activeAnimations.erase(objectOfAnimation);
+
+   if(onLoadAnimations.find(animationStatusToRemove->object) != onLoadAnimations.end()) {
+       onLoadAnimations.erase(animationStatusToRemove->object);
+   }
+}
+
+   void World::addGUITextControls() {
     /**
      * we need these set:
      * 1) font
