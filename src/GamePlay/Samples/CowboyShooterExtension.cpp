@@ -11,24 +11,24 @@
 
 PlayerExtensionRegister<CowboyShooterExtension> CowboyShooterExtension::reg("CowboyShooterExtension");
 
-void CowboyShooterExtension::processInput(InputHandler &inputHandler, long time [[gnu::unused]]) {
+void CowboyShooterExtension::processInput(const InputStates &inputState, long time [[gnu::unused]]) {
     if (playerAttachedModelID == 0) {
         return;
     }
     currentAnimationName = limonAPI->getModelAnimationName(playerAttachedModelID);
     currentAnimationFinished = limonAPI->getModelAnimationFinished(playerAttachedModelID);
 
-    if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT) && inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
+    if(inputState.getInputEvents(InputStates::Inputs::MOUSE_BUTTON_LEFT) && inputState.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
         transitionState = State::SHOOTING;
     } else {
-        if(!inputHandler.getInputStatus(inputHandler.MOVE_FORWARD) &&
-           !inputHandler.getInputStatus(inputHandler.MOVE_BACKWARD) &&
-           !inputHandler.getInputStatus(inputHandler.MOVE_LEFT) &&
-           !inputHandler.getInputStatus(inputHandler.MOVE_RIGHT)) {
+        if(!inputState.getInputStatus(InputStates::Inputs::MOVE_FORWARD) &&
+           !inputState.getInputStatus(InputStates::Inputs::MOVE_BACKWARD) &&
+           !inputState.getInputStatus(InputStates::Inputs::MOVE_LEFT) &&
+           !inputState.getInputStatus(InputStates::Inputs::MOVE_RIGHT)) {
             //standing still
             transitionState = State::IDLE;
         } else {
-            if (inputHandler.getInputStatus(inputHandler.RUN)) {
+            if (inputState.getInputStatus(InputStates::Inputs::RUN)) {
                 transitionState = State::RUNNING;
             } else {
                 transitionState = State::WALKING;
@@ -37,10 +37,10 @@ void CowboyShooterExtension::processInput(InputHandler &inputHandler, long time 
         }
     }
 
-    if(inputHandler.getInputEvents(inputHandler.NUMBER_2)) {
+    if(inputState.getInputEvents(InputStates::Inputs::NUMBER_2)) {
         transitionGun = Gun::RIFLE;
     }
-    if(inputHandler.getInputEvents(inputHandler.NUMBER_1)) {
+    if(inputState.getInputEvents(InputStates::Inputs::NUMBER_1)) {
         transitionGun = Gun::PISTOL;
     }
 

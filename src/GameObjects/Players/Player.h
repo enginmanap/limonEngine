@@ -5,12 +5,13 @@
 #ifndef LIMONENGINE_PLAYER_H
 #define LIMONENGINE_PLAYER_H
 
-#include "../GameObject.h"
-#include "../../InputHandler.h"
-#include "../../GamePlay/LimonAPI.h"
 #include <glm/glm.hpp>
 #include <string>
 #include <iostream>
+#include "../GameObject.h"
+#include "../../InputStates.h"
+#include "../../GamePlay/LimonAPI.h"
+#include "../../Options.h"
 #include "../../GamePlay/PlayerExtensionInterface.h"
 
 class btDiscreteDynamicsWorld;
@@ -90,15 +91,14 @@ public:
     };
 
     /************Game Object methods **************/
-    virtual void processInput(InputHandler &inputHandler, long time [[gnu::unused]]) {
-
+    virtual void processInput(const InputStates &inputState, long time [[gnu::unused]]) {
         float xPosition, yPosition, xChange, yChange;
-        if (inputHandler.getMouseChange(xPosition, yPosition, xChange, yChange)) {
+        if (inputState.getMouseChange(xPosition, yPosition, xChange, yChange)) {
             rotate(xPosition, yPosition, xChange, yChange);
         }
 
-        if (inputHandler.getInputEvents(inputHandler.RUN)) {
-            if(inputHandler.getInputStatus(inputHandler.RUN)) {
+        if (inputState.getInputEvents(InputStates::Inputs::RUN)) {
+            if(inputState.getInputStatus(InputStates::Inputs::RUN)) {
                 options->setMoveSpeed(Options::RUN);
             } else {
                 options->setMoveSpeed(Options::WALK);
@@ -107,16 +107,16 @@ public:
 
         Player::moveDirections direction = Player::NONE;
         //ignore if both are pressed.
-        if (inputHandler.getInputStatus(inputHandler.MOVE_FORWARD) !=
-            inputHandler.getInputStatus(inputHandler.MOVE_BACKWARD)) {
-            if (inputHandler.getInputStatus(inputHandler.MOVE_FORWARD)) {
+        if (inputState.getInputStatus(InputStates::Inputs::MOVE_FORWARD) !=
+            inputState.getInputStatus(InputStates::Inputs::MOVE_BACKWARD)) {
+            if (inputState.getInputStatus(InputStates::Inputs::MOVE_FORWARD)) {
                 direction = Player::FORWARD;
             } else {
                 direction = Player::BACKWARD;
             }
         }
-        if (inputHandler.getInputStatus(inputHandler.MOVE_LEFT) != inputHandler.getInputStatus(inputHandler.MOVE_RIGHT)) {
-            if (inputHandler.getInputStatus(inputHandler.MOVE_LEFT)) {
+        if (inputState.getInputStatus(InputStates::Inputs::MOVE_LEFT) != inputState.getInputStatus(InputStates::Inputs::MOVE_RIGHT)) {
+            if (inputState.getInputStatus(InputStates::Inputs::MOVE_LEFT)) {
                 if (direction == Player::FORWARD) {
                     direction = Player::LEFT_FORWARD;
                 } else if (direction == Player::BACKWARD) {
@@ -133,7 +133,7 @@ public:
             }
         }
 
-        if (inputHandler.getInputStatus(inputHandler.JUMP) && inputHandler.getInputEvents(inputHandler.JUMP)) {
+        if (inputState.getInputStatus(InputStates::Inputs::JUMP) && inputState.getInputEvents(InputStates::Inputs::JUMP)) {
             direction = Player::UP;
         }
 

@@ -27,7 +27,7 @@ public:
         randomFloatsSpeed = std::uniform_real_distribution<float> (0.5f, 3.0); // generates random floats between 0.0 and 1.0
 
     }
-    void processInput(InputHandler &inputHandler, long time) override;
+    void processInput(const InputStates &inputHandler, long time) override;
 
     void interact(std::vector<LimonAPI::ParameterRequest> &interactionData) override;
 
