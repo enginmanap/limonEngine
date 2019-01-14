@@ -150,53 +150,55 @@ void ImGuiHelper::SetClipboardText(void*, const char* text)
  * @return
  */
 bool ImGuiHelper::ProcessEvent(const InputHandler& inputHandler) {
+    const InputStates& inputStates =inputHandler.getInputStates();
+
     ImGuiIO& io = ImGui::GetIO();
     if(io.WantCaptureKeyboard || io.WantCaptureMouse) {
-        if(inputHandler.getInputEvents(InputHandler::MOUSE_WHEEL_UP)) {
+        if(inputStates.getInputEvents(InputStates::Inputs::MOUSE_WHEEL_UP)) {
             g_MouseWheel = 1;
         }
-        if(inputHandler.getInputEvents(InputHandler::MOUSE_WHEEL_DOWN)) {
+        if(inputStates.getInputEvents(InputStates::Inputs::MOUSE_WHEEL_DOWN)) {
             g_MouseWheel = -1;
         }
 
-        if(inputHandler.getInputStatus(InputHandler::MOUSE_BUTTON_LEFT)) {
+        if(inputStates.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
             g_MousePressed[0] = true;
         } else {
             g_MousePressed[0] = false;
         }
-        if(inputHandler.getInputStatus(InputHandler::MOUSE_BUTTON_RIGHT)) {
+        if(inputStates.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_RIGHT)) {
             g_MousePressed[1] = true;
         } else {
             g_MousePressed[1] = false;
         }
-        if(inputHandler.getInputStatus(InputHandler::MOUSE_BUTTON_MIDDLE)) {
+        if(inputStates.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_MIDDLE)) {
             g_MousePressed[2] = true;
         } else {
             g_MousePressed[2] = false;
         }
 
-        if(inputHandler.getInputEvents(InputHandler::TEXT_INPUT)) {
-            io.AddInputCharactersUTF8(inputHandler.getText());
+        if(inputStates.getInputEvents(InputStates::Inputs::TEXT_INPUT)) {
+            io.AddInputCharactersUTF8(inputStates.getText());
         }
 
-        if(inputHandler.getInputEvents(InputHandler::KEY_SHIFT)) {
+        if(inputStates.getInputEvents(InputStates::Inputs::KEY_SHIFT)) {
             io.KeyShift = ((SDL_GetModState() & KMOD_SHIFT) != 0);
         }
-        if(inputHandler.getInputEvents(InputHandler::KEY_SUPER)) {
+        if(inputStates.getInputEvents(InputStates::Inputs::KEY_SUPER)) {
             io.KeySuper = ((SDL_GetModState() & KMOD_GUI) != 0);
         }
-        if(inputHandler.getInputEvents(InputHandler::KEY_CTRL)) {
+        if(inputStates.getInputEvents(InputStates::Inputs::KEY_CTRL)) {
             io.KeyCtrl = ((SDL_GetModState() & KMOD_CTRL) != 0);
         }
-        if(inputHandler.getInputEvents(InputHandler::KEY_ALT)) {
+        if(inputStates.getInputEvents(InputStates::Inputs::KEY_ALT)) {
             io.KeyAlt = ((SDL_GetModState() & KMOD_ALT) != 0);
         }
 
 
-        if(inputHandler.keyBufferSize > sizeof(io.KeysDown)) {
-            memcpy(io.KeysDown, inputHandler.getAllKeyStates(), inputHandler.keyBufferSize);
+        if(inputStates.keyBufferSize > sizeof(io.KeysDown)) {
+            memcpy(io.KeysDown, inputStates.getRawKeyStates(), inputStates.keyBufferSize);
         } else {
-            memcpy(io.KeysDown, inputHandler.getAllKeyStates(), sizeof(io.KeysDown));
+            memcpy(io.KeysDown, inputStates.getRawKeyStates(), sizeof(io.KeysDown));
         }
         return true;
     } else {

@@ -9,26 +9,15 @@
 #include <SDL2/SDL.h>
 
 #include "Options.h"
+#include "InputStates.h"
 
 
 class InputHandler {
-public:
-    static const uint32_t keyBufferElements = 512;
-    static const uint32_t keyBufferSize = sizeof(bool) * keyBufferElements;
-    enum states {
-        QUIT, MOUSE_MOVE, MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE, MOUSE_BUTTON_RIGHT, MOUSE_WHEEL_UP, MOUSE_WHEEL_DOWN, MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT, MOVE_RIGHT, JUMP, RUN, DEBUG, EDITOR, KEY_SHIFT, KEY_CTRL, KEY_ALT, KEY_SUPER, TEXT_INPUT, NUMBER_1, NUMBER_2
-    };
 private:
-    bool downKeys[keyBufferElements] = {0};
-
-
     SDL_Window *window;
     Options *options;
     SDL_Event event;
-    std::map<states, bool> inputStatus;
-    std::map<states, bool> inputEvents;
-    float xPos, yPos, xChange, yChange;
-    char* sdlText;
+    InputStates inputState;
 public:
     InputHandler(SDL_Window *, Options *options);
 
@@ -48,24 +37,9 @@ public:
 
     void mapInput();
 
-    bool getInputStatus(const states input) const {
-        return inputStatus.at(input);
+    const InputStates &getInputStates() const {
+        return this->inputState;
     }
-
-    bool getInputEvents(const states input) const {
-        return inputEvents.at(input);
-    }
-
-    const char * getText() const {
-        return sdlText;
-    }
-
-    bool getMouseChange(float &xPosition, float &yPosition, float &xChange, float &yChange);
-
-    const bool *  getAllKeyStates() const {
-        return downKeys;
-    }
-
 };
 
 #endif //LIMONENGINE_INPUTHANDLER_H

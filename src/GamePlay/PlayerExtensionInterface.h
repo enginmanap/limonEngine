@@ -9,7 +9,7 @@
 #include <string>
 #include <map>
 #include "LimonAPI.h"
-#include "../InputHandler.h"
+#include "../InputStates.h"
 
 /**
  * On shared library load, void registerPlayerExtensions(std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>*) function should be callable.
@@ -47,7 +47,7 @@ public:
         (*getMap())[typeName] = constructor;
     }
 
-    virtual void processInput(InputHandler &inputHandler, long time) = 0;
+    virtual void processInput(const InputStates &inputHandler, long time) = 0;
     virtual void interact(std::vector<LimonAPI::ParameterRequest> &interactionData) = 0;
 
     virtual ~PlayerExtensionInterface() = default;
@@ -78,7 +78,7 @@ class PlayerExtensionRegister : PlayerExtensionInterface {
         return "This object is not meant to be used";
     }
 
-    void processInput(InputHandler &inputHandler [[gnu::unused]], long time [[gnu::unused]]) override {}
+    void processInput(const InputStates &inputHandler [[gnu::unused]], long time [[gnu::unused]]) override {}
     void interact(std::vector<LimonAPI::ParameterRequest> &interactionData __attribute__((unused))) override {}
 
 public:

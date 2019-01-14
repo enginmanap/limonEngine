@@ -75,7 +75,7 @@ public:
         return this;
     }
 
-    void processInput(InputHandler &inputHandler, long time) {
+    void processInput(const InputStates &inputHandler, long time) {
         Player::processInput(inputHandler, time);
 
         if(playerExtension != nullptr) {

@@ -104,5 +104,5 @@ DoorAnimationAction::DoorAnimationAction(LimonAPI *limonAPI) : TriggerInterface(
 
 void DoorAnimationAction::resetAnimationRun(const std::vector<LimonAPI::ParameterRequest> &) {
     this->animationRun = false;
-    std::cout << "animation reset by timer" << std::endl;
+    //std::cout << "animation reset by timer" << std::endl;
 }

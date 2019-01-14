@@ -215,7 +215,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
      // If not in editor mode, dont let imgGuiHelper get input
      // if in editor mode, but player press editor button, dont allow imgui to process input
      // if in editor mode, player did not press editor button, then check if imgui processed, if not use the input
-     if(!currentPlayersSettings->editorShown || inputHandler.getInputEvents(InputHandler::EDITOR) || !imgGuiHelper->ProcessEvent(inputHandler)) {
+     if(!currentPlayersSettings->editorShown || inputHandler.getInputStates().getInputEvents(InputStates::Inputs ::EDITOR) || !imgGuiHelper->ProcessEvent(inputHandler)) {
          if(handlePlayerInput(inputHandler)) {
              handleQuitRequest();
              return;
@@ -290,8 +290,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
             }
             this->hoveringButton = button;
             button->setOnHover(true);
-            if(inputHandler.getInputStatus(InputHandler::MOUSE_BUTTON_LEFT)) {
-                if(inputHandler.getInputEvents(InputHandler::MOUSE_BUTTON_LEFT)) {
+            if(inputHandler.getInputStates().getInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
+                if(inputHandler.getInputStates().getInputEvents(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
                     button->setOnClick(true);
                 }
             } else {
@@ -618,8 +618,8 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
 }
 
    bool World::handlePlayerInput(InputHandler &inputHandler) {
-    if(inputHandler.getInputEvents(inputHandler.MOUSE_BUTTON_LEFT)) {
-        if(inputHandler.getInputStatus(inputHandler.MOUSE_BUTTON_LEFT)) {
+    if(inputHandler.getInputStates().getInputEvents(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
+        if(inputHandler.getInputStates().getInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
             GameObject *gameObject = getPointedObject(COLLIDE_EVERYTHING, ~(COLLIDE_NOTHING));
             if (gameObject != nullptr) {//FIXME this looks like a left over
                 pickedObject = gameObject;
@@ -630,7 +630,7 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
     }
 
 
-    if (inputHandler.getInputEvents(inputHandler.EDITOR) && inputHandler.getInputStatus(inputHandler.EDITOR)) {
+    if (inputHandler.getInputStates().getInputEvents(InputStates::Inputs::EDITOR) && inputHandler.getInputStates().getInputStatus(InputStates::Inputs::EDITOR)) {
         if(editorPlayer == nullptr) {
             editorPlayer = new FreeCursorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
             editorPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
@@ -643,7 +643,7 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
         }
     }
     //if not in editor mode and press debug
-    if (!currentPlayersSettings->editorShown && inputHandler.getInputEvents(inputHandler.DEBUG) && inputHandler.getInputStatus(inputHandler.DEBUG)) {
+    if (!currentPlayersSettings->editorShown && inputHandler.getInputStates().getInputEvents(InputStates::Inputs::DEBUG) && inputHandler.getInputStates().getInputStatus(InputStates::Inputs::DEBUG)) {
         if(currentPlayersSettings->debugMode != Player::DEBUG_ENABLED) {
             if(debugPlayer == nullptr) {
                 debugPlayer = new FreeMovingPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
@@ -661,9 +661,9 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
         }
     }
 
-       currentPlayer->processInput(inputHandler, gameTime);
+       currentPlayer->processInput(inputHandler.getInputStates(), gameTime);
 
-    if(inputHandler.getInputEvents(inputHandler.QUIT) &&  inputHandler.getInputStatus(inputHandler.QUIT)) {
+    if(inputHandler.getInputStates().getInputEvents(InputStates::Inputs::QUIT) &&  inputHandler.getInputStates().getInputStatus(InputStates::Inputs::QUIT)) {
         return true;
     } else {
         return false;

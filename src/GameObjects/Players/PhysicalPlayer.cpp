@@ -369,7 +369,7 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
     return imGuiResult;
 }
 
-void PhysicalPlayer::processInput(InputHandler &inputHandler, long time) {
+void PhysicalPlayer::processInput(const InputStates &inputHandler, long time) {
     Player::processInput(inputHandler, time);
     
     if(dead) {

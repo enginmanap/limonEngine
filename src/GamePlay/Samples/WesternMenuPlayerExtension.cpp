@@ -9,7 +9,7 @@
 
 PlayerExtensionRegister<WesternMenuPlayerExtension> WesternMenuPlayerExtension::reg("WesternMenuExtension");
 
-void WesternMenuPlayerExtension::processInput(InputHandler &inputHandler [[gnu::unused]], long time) {
+void WesternMenuPlayerExtension::processInput(const InputStates &inputHandler [[gnu::unused]], long time) {
     static constexpr float PI = 3.14159265358979f;
 
     //This method will update light info for the camp fire
