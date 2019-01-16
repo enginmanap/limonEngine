@@ -27,15 +27,18 @@ glm::vec3 AnimationNode::getPositionVector(const float timeInTicks) const {
         }
 
         unsigned int NextPositionIndex = (positionIndex + 1);
-        assert(NextPositionIndex < translates.size());
-        float DeltaTime = (float) (translateTimes[NextPositionIndex] -
-                                   translateTimes[positionIndex]);
-        float Factor = (timeInTicks - (float) translateTimes[positionIndex]) / DeltaTime;
-        assert(Factor >= 0.0f && Factor <= 1.0f);
-        const glm::vec3 &Start = translates[positionIndex];
-        const glm::vec3 &End = translates[NextPositionIndex];
-        glm::vec3 Delta = End - Start;
-        transformVector = Start + Factor * Delta;
+        if(NextPositionIndex >= translates.size()) {
+            transformVector = translates[translates.size()-1];
+        } else {
+            float DeltaTime = (float) (translateTimes[NextPositionIndex] -
+                                       translateTimes[positionIndex]);
+            float Factor = (timeInTicks - (float) translateTimes[positionIndex]) / DeltaTime;
+            assert(Factor >= 0.0f && Factor <= 1.0f);
+            const glm::vec3 &Start = translates[positionIndex];
+            const glm::vec3 &End = translates[NextPositionIndex];
+            glm::vec3 Delta = End - Start;
+            transformVector = Start + Factor * Delta;
+        }
     }
     return transformVector;
 }
@@ -64,15 +67,18 @@ glm::vec3 AnimationNode::getScalingVector(const float timeInTicks) const {
         }
 
         unsigned int NextScalingIndex = (ScalingIndex + 1);
-        assert(NextScalingIndex < scales.size());
-        float DeltaTime = (scaleTimes[NextScalingIndex] -
-                           scaleTimes[ScalingIndex]);
-        float Factor = (timeInTicks - (float) scaleTimes[ScalingIndex]) / DeltaTime;
-        assert(Factor >= 0.0f && Factor <= 1.0f);
-        const glm::vec3 &Start = scales[ScalingIndex];
-        const glm::vec3 &End = scales[NextScalingIndex];
-        glm::vec3 Delta = End - Start;
-        scalingTransformVector = Start + Factor * Delta;
+        if(NextScalingIndex >= scales.size()) {//set scale to last element
+            scalingTransformVector = scales[scales.size()-1];
+        } else {//blend scale
+            float DeltaTime = (scaleTimes[NextScalingIndex] -
+                               scaleTimes[ScalingIndex]);
+            float Factor = (timeInTicks - (float) scaleTimes[ScalingIndex]) / DeltaTime;
+            assert(Factor >= 0.0f && Factor <= 1.0f);
+            const glm::vec3 &Start = scales[ScalingIndex];
+            const glm::vec3 &End = scales[NextScalingIndex];
+            glm::vec3 Delta = End - Start;
+            scalingTransformVector = Start + Factor * Delta;
+        }
     }
     return scalingTransformVector;
 }
@@ -104,14 +110,17 @@ glm::quat AnimationNode::getRotationQuat(const float timeInTicks) const {
         }
 
         unsigned int NextRotationIndex = (rotationIndex + 1);
-        assert(NextRotationIndex < rotations.size());
-        float DeltaTime = (rotationTimes[NextRotationIndex] -
-                           rotationTimes[rotationIndex]);
-        float Factor = (timeInTicks - (float) rotationTimes[rotationIndex]) / DeltaTime;
-        assert(Factor >= 0.0f && Factor <= 1.0f);
-        const glm::quat &StartRotationQ = rotations[rotationIndex];
-        const glm::quat &EndRotationQ = rotations[NextRotationIndex];
-        rotationTransformQuaternion = glm::normalize(glm::slerp(StartRotationQ, EndRotationQ, Factor));
+        if(NextRotationIndex >= rotations.size()) {
+            rotationTransformQuaternion = rotations[rotations.size()-1];
+        } else {
+            float DeltaTime = (rotationTimes[NextRotationIndex] -
+                               rotationTimes[rotationIndex]);
+            float Factor = (timeInTicks - (float) rotationTimes[rotationIndex]) / DeltaTime;
+            assert(Factor >= 0.0f && Factor <= 1.0f);
+            const glm::quat &StartRotationQ = rotations[rotationIndex];
+            const glm::quat &EndRotationQ = rotations[NextRotationIndex];
+            rotationTransformQuaternion = glm::normalize(glm::slerp(StartRotationQ, EndRotationQ, Factor));
+        }
     }
     return rotationTransformQuaternion;
 }
