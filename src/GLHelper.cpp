@@ -543,6 +543,7 @@ GLHelper::GLHelper(Options *options): options(options) {
     /****************************** SSAO NOISE **************************************/
 
     frustumPlanes.resize(6);
+    modelIndexesTemp.resize(4 * NR_MAX_MODELS);//4 because it forces the padding
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);//clear everything before we start
@@ -1134,12 +1135,11 @@ void GLHelper::setModel(const uint32_t modelID, const glm::mat4& worldTransform)
 }
 
 void GLHelper::setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) {
-    std::vector<glm::uvec4> temp;
     for (uint32_t i = 0; i < modelIndicesList.size(); ++i) {
-        temp.push_back(glm::uvec4(modelIndicesList[i], 0,0,0));
+        modelIndexesTemp[i*4] = modelIndicesList[i];
     }
     glBindBuffer(GL_UNIFORM_BUFFER, allModelIndexesUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::uvec4) * modelIndicesList.size(), glm::value_ptr(temp.at(0)));
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(GLuint)* 4 * modelIndicesList.size(), modelIndexesTemp.data());
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setModelIndexesUBO");
 }
