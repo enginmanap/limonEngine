@@ -43,7 +43,7 @@ public:
         return worldID;
     }
 
-    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
 
 /******************** Game object methods ************************************/
     void setFullScreen(bool fullScreen);
