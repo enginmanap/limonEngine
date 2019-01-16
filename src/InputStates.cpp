@@ -63,5 +63,7 @@ void InputStates::resetAllEvents() {
     this->yChange = 0.0f;
     this->inputStatus[Inputs::MOUSE_MOVE] = false;
     this->inputStatus[Inputs::TEXT_INPUT] = false;
+    this->inputStatus[Inputs::MOUSE_WHEEL_UP] = false;
+    this->inputStatus[Inputs::MOUSE_WHEEL_DOWN] = false;
     memset(this->sdlText, 0, sizeof(this->sdlText));
 }
