@@ -22,9 +22,11 @@
 #include "GameObjects/GUIImage.h"
 #include "GameObjects/GUIButton.h"
 
+
 #include "main.h"
 #include "GameObjects/GUIAnimation.h"
 #include "GameObjects/ModelGroup.h"
+#include "GamePlay/SDKSerializer.h"
 
 WorldLoader::WorldLoader(AssetManager *assetManager, InputHandler *inputHandler, Options *options) :
         options(options),
@@ -472,7 +474,7 @@ WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *object
         //std::cout << "Object does not have AI." << std::endl;
 #endif
     } else {
-        ActorInterface* actor = ActorInterface::deserializeActorInterface(objectAttribute, limonAPI);
+        ActorInterface* actor = SDKSerializer::deserializeActorInterface(objectAttribute, limonAPI);
 
         loadedObjectInformation->aiGridStartPoint = GLMConverter::BltToGLM(loadedObjectInformation->model->getRigidBody()->getCenterOfMassPosition()) +
                            glm::vec3(0, 2.0f, 0);
@@ -822,12 +824,11 @@ bool WorldLoader::loadOnLoadActions(tinyxml2::XMLNode *worldNode, World *world) 
             tinyxml2::XMLElement* parameterNode = parametersListNode->FirstChildElement("Parameter");
             uint32_t index;
             while(parameterNode != nullptr) {
-
-                LimonAPI::ParameterRequest request;
-                if(!request.deserialize(parameterNode, index)) {
+                std::shared_ptr<LimonAPI::ParameterRequest> request = SDKSerializer::deserializeParameterRequest(parameterNode, index);
+                if(request == nullptr) {
                     return false;
                 }
-                actionForOnload->parameters.insert(actionForOnload->parameters.begin() + index, request);
+                actionForOnload->parameters.insert(actionForOnload->parameters.begin() + index, *request);
 
                 parameterNode = parameterNode->NextSiblingElement("Parameter");
             }

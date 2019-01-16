@@ -6,6 +6,7 @@
 #include "../Assets/Animations/AnimationCustom.h"
 #include "../../libs/ImGui/imgui.h"
 #include "../GameObjects/Model.h"
+#include "../GamePlay/SDKSerializer.h"
 
 void TriggerObject::render(BulletDebugDrawer *debugDrawer) {
     //render 12 lines
@@ -135,15 +136,15 @@ void TriggerObject::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
 
     // There are 3 trigger codes, put them all
     if(firstEnterTriggerCode != nullptr) {
-        firstEnterTriggerCode->serializeTriggerCode(document, triggerNode, "FirstEnterTriggerCode",
+        SDKSerializer::serializeTriggerCode(*firstEnterTriggerCode, document, triggerNode, "FirstEnterTriggerCode",
                                                     firstEnterParameters, enabledFirstTrigger);
     }
     if(enterTriggerCode != nullptr) {
-        enterTriggerCode->serializeTriggerCode(document, triggerNode, "EnterTriggerCode", enterParameters,
+        SDKSerializer::serializeTriggerCode(*enterTriggerCode, document, triggerNode, "EnterTriggerCode", enterParameters,
                                                enabledEnterTrigger);
     }
     if(exitTriggerCode != nullptr) {
-        exitTriggerCode->serializeTriggerCode(document, triggerNode, "ExitTriggerCode", exitParameters,
+        SDKSerializer::serializeTriggerCode(*exitTriggerCode, document, triggerNode, "ExitTriggerCode", exitParameters,
                                               enabledExitTrigger);
     }
 }
@@ -180,17 +181,17 @@ TriggerObject * TriggerObject::deserialize(tinyxml2::XMLElement *triggersNode, L
     }
     triggerObject->transformation.deserialize(triggerAttribute);
 
-    triggerObject->firstEnterTriggerCode = TriggerInterface::deserializeTriggerCode(triggersNode, triggerAttribute, "FirstEnterTriggerCode", triggerObject->limonAPI,
+    triggerObject->firstEnterTriggerCode = SDKSerializer::deserializeTriggerCode(triggersNode, triggerAttribute, "FirstEnterTriggerCode", triggerObject->limonAPI,
                                                                                     triggerObject->firstEnterParameters, triggerObject->enabledFirstTrigger);
     if(triggerObject->firstEnterTriggerCode == nullptr) {
         std::cout << "First enter trigger code deserialization failed." << std::endl;
     }
-    triggerObject->enterTriggerCode = TriggerInterface::deserializeTriggerCode(triggersNode, triggerAttribute, "EnterTriggerCode", triggerObject->limonAPI,
+    triggerObject->enterTriggerCode = SDKSerializer::deserializeTriggerCode(triggersNode, triggerAttribute, "EnterTriggerCode", triggerObject->limonAPI,
                                                                                triggerObject->enterParameters, triggerObject->enabledEnterTrigger);
     if(triggerObject->enterTriggerCode == nullptr) {
         std::cout << "enter trigger code deserialization failed." << std::endl;
     }
-    triggerObject->exitTriggerCode = TriggerInterface::deserializeTriggerCode(triggersNode, triggerAttribute, "ExitTriggerCode", triggerObject->limonAPI, triggerObject->exitParameters,
+    triggerObject->exitTriggerCode = SDKSerializer::deserializeTriggerCode(triggersNode, triggerAttribute, "ExitTriggerCode", triggerObject->limonAPI, triggerObject->exitParameters,
                                                                               triggerObject->enabledExitTrigger);
     if(triggerObject->exitTriggerCode == nullptr) {
         std::cout << "Exit trigger code deserialization failed." << std::endl;

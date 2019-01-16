@@ -10,7 +10,6 @@
 #include <map>
 #include <cstdint>
 #include <glm/glm.hpp>
-#include <tinyxml2.h>
 #include <functional>
 
 
@@ -19,10 +18,11 @@ class AnimationCustom;
 class World;
 class WorldLoader;
 class PhysicalRenderable;
-
+class SDKSerializer;
 
 
 class LimonAPI {
+    friend class SDKSerializer;
 public:
 
     struct Vec2 {
@@ -117,10 +117,6 @@ public:
 
         ParameterRequest() {}
 
-        bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *ParametersNode,
-                       uint32_t index) const;
-
-        bool deserialize(tinyxml2::XMLElement *parameterNode, uint32_t &index);
     };
 
     bool generateEditorElementsForParameters(std::vector<ParameterRequest> &runParameters, uint32_t index);
@@ -312,8 +308,6 @@ private:
     std::function<void ()> limonExitGame;
     std::function<void ()> limonReturnPrevious;
     /*** Non World API calls *******************************************************/
-
-    static void loadVec4(tinyxml2::XMLNode *vectorNode, LimonAPI::Vec4 &vector);
 };
 
 

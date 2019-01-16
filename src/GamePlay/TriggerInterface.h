@@ -62,14 +62,6 @@ public:
         return it->second(apiInstance);
     }
 
-    void serializeTriggerCode(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *triggerNode,
-                                  const std::string &triggerCodeNodeName,
-                                  const std::vector<LimonAPI::ParameterRequest> &parameters, bool enabled) const;
-
-    static TriggerInterface *deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxml2::XMLElement *triggerAttribute,
-                                                    const std::string &nodeName, LimonAPI *limonAPI,
-                                                    std::vector<LimonAPI::ParameterRequest> &parameters, bool &enabled);
-
 };
 
 template<typename T>

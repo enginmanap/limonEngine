@@ -5,6 +5,7 @@
 #include "Model.h"
 #include "../AI/ActorInterface.h"
 #include "../ImGuiHelper.h"
+#include "../GamePlay/SDKSerializer.h"
 #include <random>
 
 #ifdef CEREAL_SUPPORT
@@ -346,7 +347,7 @@ bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *o
     }
     objectElement->InsertEndChild(currentElement);
     if(AIActor != nullptr) {
-        AIActor->serialize(document, objectElement);
+        SDKSerializer::serializeActorInterface(*AIActor,document, objectElement);
     }
 
     currentElement = document.NewElement("Mass");
