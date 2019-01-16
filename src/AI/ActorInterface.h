@@ -123,10 +123,6 @@ public:
         }
         return it->second(id, apiInstance);
     }
-
-    void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) const;
-
-    static ActorInterface *deserializeActorInterface(tinyxml2::XMLElement *actorNode, LimonAPI *limonAPI);
 };
 
 

@@ -14,6 +14,8 @@
 #include "GUI/GUILayer.h"
 #include "GameObjects/Sound.h"
 #include "GameObjects/Players/PhysicalPlayer.h"
+#include "GamePlay/SDKSerializer.h"
+
 
 /************************************************************************************
  * Map file spec
@@ -374,7 +376,7 @@ bool WorldSaver::fillOnloadActions(tinyxml2::XMLDocument &document, tinyxml2::XM
         //now serialize the parameters
         tinyxml2::XMLElement* parametersNode = document.NewElement("Parameters");
         for (size_t i = 0; i < (*it)->parameters.size(); ++i) {
-            (*it)->parameters[i].serialize(document, parametersNode, i);
+            SDKSerializer::serializeParameterRequest((*it)->parameters[i], document, parametersNode, i);
         }
         onloadActionNode->InsertEndChild(parametersNode);
 

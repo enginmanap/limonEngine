@@ -9,6 +9,7 @@
 #include "../Assets/AssetManager.h"
 #include "../Assets/TextureAsset.h"
 #include "TriggerObject.h"
+#include "../GamePlay/SDKSerializer.h"
 
 GUIButton::GUIButton(uint32_t worldID, AssetManager *assetManager, LimonAPI *limonAPI, const std::string name,
                      const std::vector<std::string> &imageFiles)
@@ -95,7 +96,7 @@ bool GUIButton::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement 
     temp.serialize(document, guiButtonNode);
 
     if(onClickTriggerCode != nullptr) {
-        onClickTriggerCode->serializeTriggerCode(document, guiButtonNode, "onClickTrigger", onClickParameters, enabled);
+        SDKSerializer::serializeTriggerCode(*onClickTriggerCode, document, guiButtonNode, "onClickTrigger", onClickParameters, enabled);
     }
 
     return true;
@@ -169,7 +170,7 @@ GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode, Asset
         element->getTransformation()->setOrientation(tr.getOrientation());
         element->getTransformation()->setScale(tr.getScale());
 
-        element->onClickTriggerCode = TriggerInterface::deserializeTriggerCode(GUIRenderableNode, GUIRenderableAttribute, "onClickTrigger", element->limonAPI,
+        element->onClickTriggerCode = SDKSerializer::deserializeTriggerCode(GUIRenderableNode, GUIRenderableAttribute, "onClickTrigger", element->limonAPI,
                                                                          element->onClickParameters, element->enabled);
         if(element->onClickTriggerCode == nullptr) {
             std::cout << "Button On click trigger code deserialization failed." << std::endl;
