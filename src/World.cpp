@@ -1004,6 +1004,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 ImGuiHelper::ShowHelpMarker("Saved Object: " + this->objectToAttach->getName());
             }
             if(objectToAttach!= nullptr && objectToAttach->getWorldObjectID() != pickedObject->getWorldObjectID()) {
+                std::string savedObjectName = this->objectToAttach->getName();
                 if (ImGui::Button("Attach saved object to current")) {
                     Model *pickedModel = dynamic_cast<Model *>(pickedObject);
                     int32_t attachedBoneID;
@@ -1024,7 +1025,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     this->objectToAttach = nullptr;
                 }
                 ImGui::SameLine();
-                ImGuiHelper::ShowHelpMarker("Saved Object: " + this->objectToAttach->getName());
+                ImGuiHelper::ShowHelpMarker("Saved Object: " + savedObjectName);
                 ImGui::SameLine();
                 ImGuiHelper::ShowHelpMarker("Current Object: " + pickedObject->getName());
             }
