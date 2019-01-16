@@ -198,6 +198,7 @@ private:
     float aspect;
     std::vector<GLuint> bufferObjects;
     std::vector<GLuint> vertexArrays;
+    std::vector<GLuint> modelIndexesTemp;
 
 
     GLuint lightUBOLocation;
