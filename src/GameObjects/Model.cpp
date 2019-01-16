@@ -152,21 +152,26 @@ void Model::setupForTime(long time) {
             animationTime = animationTime + (time - lastSetupTime) * animationTimeScale;
             animationLastFramePlayed = modelAsset->getTransform(animationTime, animationLooped, animationName, boneTransforms);
         }
-
-
-
-        btVector3 scale = this->getRigidBody()->getCollisionShape()->getLocalScaling();
-        this->getRigidBody()->getCollisionShape()->setLocalScaling(btVector3(1, 1, 1));
-        for (unsigned int i = 0; i < boneTransforms.size(); ++i) {
-            if (boneIdCompoundChildMap.find(i) != boneIdCompoundChildMap.end()) {
-                btTransform transform;
-                transform.setFromOpenGLMatrix(glm::value_ptr(boneTransforms[i]));
-                compoundShape->updateChildTransform( boneIdCompoundChildMap[i], transform, false);
-                boneTransforms[i] = centerOffsetMatrix * boneTransforms[i];
+        if(disconnected) {
+            for (unsigned int i = 0; i < boneTransforms.size(); ++i) {
+                if (boneIdCompoundChildMap.find(i) != boneIdCompoundChildMap.end()) {
+                    boneTransforms[i] = centerOffsetMatrix * boneTransforms[i];
+                }
             }
+        } else {
+            btVector3 scale = this->getRigidBody()->getCollisionShape()->getLocalScaling();
+            this->getRigidBody()->getCollisionShape()->setLocalScaling(btVector3(1, 1, 1));
+            for (unsigned int i = 0; i < boneTransforms.size(); ++i) {
+                if (boneIdCompoundChildMap.find(i) != boneIdCompoundChildMap.end()) {
+                    btTransform transform;
+                    transform.setFromOpenGLMatrix(glm::value_ptr(boneTransforms[i]));
+                    compoundShape->updateChildTransform(boneIdCompoundChildMap[i], transform, false);
+                    boneTransforms[i] = centerOffsetMatrix * boneTransforms[i];
+                }
+            }
+            this->getRigidBody()->getCollisionShape()->setLocalScaling(scale);
+            compoundShape->recalculateLocalAabb();
         }
-        this->getRigidBody()->getCollisionShape()->setLocalScaling(scale);
-        compoundShape->recalculateLocalAabb();
     }
     lastSetupTime = time;
 }
