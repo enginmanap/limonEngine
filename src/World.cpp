@@ -999,6 +999,10 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             if(ImGui::Button("Attach this object to another")) {
                 this->objectToAttach = dynamic_cast<Model*>(pickedObject);
             }
+            if(this->objectToAttach != nullptr) {
+                ImGui::SameLine();
+                ImGuiHelper::ShowHelpMarker("Saved Object: " + this->objectToAttach->getName());
+            }
             if(objectToAttach!= nullptr && objectToAttach->getWorldObjectID() != pickedObject->getWorldObjectID()) {
                 if (ImGui::Button("Attach saved object to current")) {
                     Model *pickedModel = dynamic_cast<Model *>(pickedObject);
@@ -1019,6 +1023,10 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                     pickedModel->addChild(objectToAttach);
                     this->objectToAttach = nullptr;
                 }
+                ImGui::SameLine();
+                ImGuiHelper::ShowHelpMarker("Saved Object: " + this->objectToAttach->getName());
+                ImGui::SameLine();
+                ImGuiHelper::ShowHelpMarker("Current Object: " + pickedObject->getName());
             }
         }
         if(pickedObject != nullptr && pickedObject->getTypeID() == GameObject::PLAYER) {
