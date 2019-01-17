@@ -5,7 +5,7 @@
 #ifndef LIMONENGINE_ACTOR_H
 #define LIMONENGINE_ACTOR_H
 
-#include "../GamePlay/LimonAPI.h"
+#include "LimonAPI.h"
 
 
 /**

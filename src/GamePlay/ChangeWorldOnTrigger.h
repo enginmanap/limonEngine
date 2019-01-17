@@ -6,7 +6,7 @@
 #define LIMONENGINE_CHANGEWORLDONTRIGGER_H
 
 
-#include "TriggerInterface.h"
+#include "API/TriggerInterface.h"
 
 class ChangeWorldOnTrigger: public TriggerInterface {
     static TriggerRegister<ChangeWorldOnTrigger> reg;

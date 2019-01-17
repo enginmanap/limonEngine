@@ -5,7 +5,7 @@
 #ifndef LIMONENGINE_QUITGAMEONTRIGGER_H
 #define LIMONENGINE_QUITGAMEONTRIGGER_H
 
-#include "TriggerInterface.h"
+#include "API/TriggerInterface.h"
 
 class QuitGameOnTrigger : public TriggerInterface {
     static TriggerRegister<QuitGameOnTrigger> reg;

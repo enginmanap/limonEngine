@@ -9,10 +9,10 @@
 #include <string>
 #include <iostream>
 #include "../GameObject.h"
-#include "../../InputStates.h"
-#include "../../GamePlay/LimonAPI.h"
+#include "../../API/InputStates.h"
+#include "../../API/LimonAPI.h"
 #include "../../Options.h"
-#include "../../GamePlay/PlayerExtensionInterface.h"
+#include "../../API/PlayerExtensionInterface.h"
 
 class btDiscreteDynamicsWorld;
 class GUIRenderable;

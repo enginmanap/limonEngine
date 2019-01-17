@@ -21,7 +21,7 @@
 #include "../../GUI/GUIRenderable.h"
 #include "../Sound.h"
 #include "../Model.h"
-#include "../../GamePlay/PlayerExtensionInterface.h"
+#include "../../API/PlayerExtensionInterface.h"
 
 static const int STEPPING_TEST_COUNT = 5;
 

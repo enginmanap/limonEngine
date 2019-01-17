@@ -5,10 +5,10 @@
 #include <SDL_syswm.h>
 #include "SDL2Helper.h"
 #include "Options.h"
-#include "GamePlay/LimonAPI.h"
-#include "GamePlay/TriggerInterface.h"
-#include "GamePlay/PlayerExtensionInterface.h"
-#include "AI/ActorInterface.h"
+#include "API/LimonAPI.h"
+#include "API/TriggerInterface.h"
+#include "API/PlayerExtensionInterface.h"
+#include "API/ActorInterface.h"
 
 SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {
 

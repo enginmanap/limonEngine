@@ -6,7 +6,7 @@
 #define LIMONENGINE_COWBOYSHOOTEREXTENSION_H
 
 #include <iostream>
-#include "../PlayerExtensionInterface.h"
+#include "../../API/PlayerExtensionInterface.h"
 #include "glm/gtc/quaternion.hpp"
 /**
  * Cowboy attachment of player can be doing one of these:

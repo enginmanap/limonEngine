@@ -6,9 +6,9 @@
 #define LIMONENGINE_HUMANENEMY_H
 
 
-#include "ActorInterface.h"
+#include "API/ActorInterface.h"
 #include "../../libs/ImGui/imgui.h"
-#include "../Utils/LimonConverter.h"
+#include "API/LimonConverter.h"
 
 class HumanEnemy: public ActorInterface {
     static ActorRegister<HumanEnemy> reg;

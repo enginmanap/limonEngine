@@ -3,10 +3,10 @@
 //
 
 #include <c++/8.2.1/iostream>
-#include "SDKSerializer.h"
-#include "TriggerInterface.h"
+#include "APISerializer.h"
+#include "API/TriggerInterface.h"
 
-bool SDKSerializer::serializeParameterRequest(const LimonAPI::ParameterRequest &parameterRequest,
+bool APISerializer::serializeParameterRequest(const LimonAPI::ParameterRequest &parameterRequest,
                                               tinyxml2::XMLDocument &document, tinyxml2::XMLElement *ParametersNode,
                                               uint32_t index) {
 
@@ -159,7 +159,7 @@ bool SDKSerializer::serializeParameterRequest(const LimonAPI::ParameterRequest &
     return true;}
 
 std::shared_ptr<LimonAPI::ParameterRequest>
-SDKSerializer::deserializeParameterRequest(tinyxml2::XMLElement *parameterNode, uint32_t &index) {
+APISerializer::deserializeParameterRequest(tinyxml2::XMLElement *parameterNode, uint32_t &index) {
     tinyxml2::XMLElement* parameterAttribute;
 
     parameterAttribute = parameterNode->FirstChildElement("RequestType");
@@ -298,7 +298,7 @@ SDKSerializer::deserializeParameterRequest(tinyxml2::XMLElement *parameterNode, 
     return newParameterRequest;
 }
 
-void SDKSerializer::loadVec4(tinyxml2::XMLNode *vectorNode, LimonAPI::Vec4 &vector) {
+void APISerializer::loadVec4(tinyxml2::XMLNode *vectorNode, LimonAPI::Vec4 &vector) {
     tinyxml2::XMLElement *vectorElementNode = vectorNode->FirstChildElement("X");
     if(vectorElementNode != nullptr) {
         vector.x = std::stof(vectorElementNode->GetText());
@@ -325,7 +325,7 @@ void SDKSerializer::loadVec4(tinyxml2::XMLNode *vectorNode, LimonAPI::Vec4 &vect
     }
 }
 
-bool SDKSerializer::serializeTriggerCode(const TriggerInterface &trigger, tinyxml2::XMLDocument &document,
+bool APISerializer::serializeTriggerCode(const TriggerInterface &trigger, tinyxml2::XMLDocument &document,
                                          tinyxml2::XMLElement *triggerNode, const std::string &triggerCodeNodeName,
                                          const std::vector<LimonAPI::ParameterRequest> &parameters,
                                          bool enabled) {
@@ -338,7 +338,7 @@ bool SDKSerializer::serializeTriggerCode(const TriggerInterface &trigger, tinyxm
     //now serialize the parameters
     codeElement = document.NewElement("parameters");
     for (size_t i = 0; i < parameters.size(); ++i) {
-        SDKSerializer::serializeParameterRequest(parameters[i], document, codeElement, i);
+        APISerializer::serializeParameterRequest(parameters[i], document, codeElement, i);
     }
     currentElement->InsertEndChild(codeElement);
 
@@ -355,7 +355,7 @@ bool SDKSerializer::serializeTriggerCode(const TriggerInterface &trigger, tinyxm
 }
 
 TriggerInterface*
-SDKSerializer::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxml2::XMLElement *triggerAttribute,
+APISerializer::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxml2::XMLElement *triggerAttribute,
                                       const std::string &nodeName, LimonAPI *limonAPI,
                                       std::vector<LimonAPI::ParameterRequest> &parameters, bool &enabled) {
     TriggerInterface* triggerCode = nullptr;
@@ -371,7 +371,7 @@ SDKSerializer::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxm
 
         uint32_t index;
         while(triggerCodeParameter != nullptr) {
-            std::shared_ptr<LimonAPI::ParameterRequest> request = SDKSerializer::deserializeParameterRequest(triggerCodeParameter, index);
+            std::shared_ptr<LimonAPI::ParameterRequest> request = APISerializer::deserializeParameterRequest(triggerCodeParameter, index);
 
             if(request == nullptr) {
                 delete triggerCode;
@@ -401,7 +401,7 @@ SDKSerializer::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxm
 
 }
 
-void SDKSerializer::serializeActorInterface(const ActorInterface& actor, tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) {
+void APISerializer::serializeActorInterface(const ActorInterface& actor, tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) {
     tinyxml2::XMLElement *AINode = document.NewElement("Actor");
     parentNode->InsertEndChild(AINode);
 
@@ -421,7 +421,7 @@ void SDKSerializer::serializeActorInterface(const ActorInterface& actor, tinyxml
     AINode->InsertEndChild(parametersNode);
 }
 
-ActorInterface *SDKSerializer::deserializeActorInterface(tinyxml2::XMLElement *actorNode, LimonAPI *limonAPI) {
+ActorInterface *APISerializer::deserializeActorInterface(tinyxml2::XMLElement *actorNode, LimonAPI *limonAPI) {
     ActorInterface* actor = nullptr;
     if (actorNode != nullptr) {
         std::string typeName;
@@ -453,7 +453,7 @@ ActorInterface *SDKSerializer::deserializeActorInterface(tinyxml2::XMLElement *a
         std::vector<LimonAPI::ParameterRequest> parameters;
         bool parameterLoadSuccess = true;
         while(parameterNode != nullptr) {
-            std::shared_ptr<LimonAPI::ParameterRequest> request = SDKSerializer::deserializeParameterRequest(parameterNode, index);
+            std::shared_ptr<LimonAPI::ParameterRequest> request = APISerializer::deserializeParameterRequest(parameterNode, index);
             if(request == nullptr) {
                 std::cerr << "Parameter load failed for Actor, it will be using default values." << std::endl;
                 parameterLoadSuccess = false;
