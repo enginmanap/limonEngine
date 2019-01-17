@@ -12,7 +12,7 @@
 #include <SDL_thread.h>
 #include <functional>
 #include "Options.h"
-#include "GamePlay/LimonAPI.h"
+#include "API/LimonAPI.h"
 
 
 class SDL2Helper {

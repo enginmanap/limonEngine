@@ -6,7 +6,7 @@
 #define LIMONENGINE_ANIMATONTRIGGER_H
 
 
-#include "TriggerInterface.h"
+#include "API/TriggerInterface.h"
 
 class AnimateOnTrigger : public TriggerInterface {
     static TriggerRegister<AnimateOnTrigger> reg;

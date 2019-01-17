@@ -6,7 +6,7 @@
 #define LIMONENGINE_MAYANCOINPICKUP_H
 
 
-#include "TriggerInterface.h"
+#include "API/TriggerInterface.h"
 
 
 class MayanCoinPickup : public TriggerInterface {

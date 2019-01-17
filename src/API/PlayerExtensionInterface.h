@@ -9,7 +9,7 @@
 #include <string>
 #include <map>
 #include "LimonAPI.h"
-#include "../InputStates.h"
+#include "InputStates.h"
 
 /**
  * On shared library load, void registerPlayerExtensions(std::map<std::string, PlayerExtensionInterface*(*)(LimonAPI*)>*) function should be callable.

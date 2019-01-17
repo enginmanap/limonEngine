@@ -11,9 +11,9 @@
 
 #include "ALHelper.h"
 #include "InputHandler.h"
-#include "GamePlay/LimonAPI.h"
+#include "API/LimonAPI.h"
 #include "GameObjects/Sound.h"
-#include "AI/ActorInterface.h"
+#include "API/ActorInterface.h"
 
 class World;
 class Options;

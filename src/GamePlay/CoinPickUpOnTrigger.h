@@ -5,7 +5,7 @@
 #ifndef LIMONENGINE_COINPICKUPONTRIGGER_H
 #define LIMONENGINE_COINPICKUPONTRIGGER_H
 
-#include "TriggerInterface.h"
+#include "API/TriggerInterface.h"
 
 class CoinPickUpOnTrigger : public TriggerInterface {
 public:

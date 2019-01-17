@@ -18,7 +18,7 @@ class AnimationCustom;
 class World;
 class WorldLoader;
 class PhysicalRenderable;
-class SDKSerializer;
+class APISerializer;
 
 
 class LimonAPI {

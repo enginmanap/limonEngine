@@ -5,6 +5,4 @@
 #include "TriggerInterface.h"
 #include <iostream>
 
-#include "SDKSerializer.h"
-
 std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* TriggerInterface::typeMap;

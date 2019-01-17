@@ -6,7 +6,7 @@
 #include <iostream>
 #include <glm/ext.hpp>
 #include "CowboyEnemyAI.h"
-#include "../../Utils/LimonConverter.h"
+#include "../../API/LimonConverter.h"
 
 
 ActorRegister<CowboyEnemyAI> CowboyEnemyAI::reg("Cowboy Enemy");

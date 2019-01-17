@@ -8,11 +8,11 @@
 #include <tinyxml2.h>
 #include <memory>
 
-#include "LimonAPI.h"
-#include "../AI/ActorInterface.h"
-#include "TriggerInterface.h"
+#include "API/LimonAPI.h"
+#include "API/ActorInterface.h"
+#include "API/TriggerInterface.h"
 
-class SDKSerializer {
+class APISerializer {
 public:
     static bool serializeParameterRequest(const LimonAPI::ParameterRequest& parameterRequest, tinyxml2::XMLDocument &document, tinyxml2::XMLElement *ParametersNode,
                        uint32_t index);

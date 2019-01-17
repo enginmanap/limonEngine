@@ -6,7 +6,7 @@
 #define LIMONENGINE_SHOOTERPLAYEREXTENSION_H
 
 
-#include "PlayerExtensionInterface.h"
+#include "API/PlayerExtensionInterface.h"
 
 class ShooterPlayerExtension : public  PlayerExtensionInterface {
     static PlayerExtensionRegister<ShooterPlayerExtension> reg;

@@ -9,7 +9,7 @@
 #include <SDL2/SDL.h>
 
 #include "Options.h"
-#include "InputStates.h"
+#include "API/InputStates.h"
 
 
 class InputHandler {

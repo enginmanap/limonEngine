@@ -7,7 +7,6 @@
 
 #include "LimonAPI.h"
 
-
 /**
  * On shared library load, void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>*) function should be callable.
  *

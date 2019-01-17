@@ -7,7 +7,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include "../GamePlay/LimonAPI.h"
+#include "LimonAPI.h"
 
 class LimonConverter {
 public:

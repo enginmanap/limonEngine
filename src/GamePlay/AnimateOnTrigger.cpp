@@ -3,7 +3,7 @@
 //
 
 #include "AnimateOnTrigger.h"
-#include "LimonAPI.h"
+#include "API/LimonAPI.h"
 
 TriggerRegister<AnimateOnTrigger> AnimateOnTrigger::reg("AnimateOnTrigger");
 

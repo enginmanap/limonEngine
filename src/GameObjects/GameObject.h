@@ -8,7 +8,7 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "../GamePlay/LimonAPI.h"
+#include "API/LimonAPI.h"
 
 /**
  * This class is used to provide a polymorphic way of determining type and name of the object.

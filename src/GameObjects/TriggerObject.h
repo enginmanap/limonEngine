@@ -11,8 +11,8 @@
 #include "../Utils/GLMConverter.h"
 #include "GameObject.h"
 #include "../Transformation.h"
-#include "../GamePlay/LimonAPI.h"
-#include "../GamePlay/TriggerInterface.h"
+#include "API/LimonAPI.h"
+#include "API/TriggerInterface.h"
 #include "../BulletDebugDrawer.h"
 
 class TriggerObject : public GameObject {

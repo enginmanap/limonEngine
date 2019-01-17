@@ -6,7 +6,7 @@
 #define LIMONENGINE_RETURNPREVIOUSWORLDONTRIGGER_H
 
 
-#include "TriggerInterface.h"
+#include "API/TriggerInterface.h"
 
 class ReturnPreviousWorldOnTrigger : public TriggerInterface {
     static TriggerRegister<ReturnPreviousWorldOnTrigger> reg;

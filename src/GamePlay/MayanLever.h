@@ -5,7 +5,7 @@
 #ifndef LIMONENGINE_MAYANLEVER_H
 #define LIMONENGINE_MAYANLEVER_H
 
-#include "TriggerInterface.h"
+#include "API/TriggerInterface.h"
 
 
 class MayanLever : public TriggerInterface {
