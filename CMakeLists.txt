@@ -105,6 +105,35 @@ add_library(LimonAPI STATIC
         src/API/InputStates.cpp
         src/API/LimonConverter.h
         )
+file(GLOB API_HEADERS
+        "src/API/*.h"
+        )
+
+IF (WIN32 AND NOT ( MINGW OR MSYS))
+    add_custom_command(TARGET LimonAPI POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/LimonAPI/
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/
+        COMMAND ${CMAKE_COMMAND} -E copy ${API_HEADERS} ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/API/CMakeLists.txt ${CMAKE_BINARY_DIR}/LimonAPI/
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/lib
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/libLimonAPI.lib ${CMAKE_BINARY_DIR}/LimonAPI/lib
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/src
+        COMMAND ${CMAKE_COMMAND} -E tar "cfv" "LimonAPI.zip" --format=zip -- ${CMAKE_BINARY_DIR}/LimonAPI
+        COMMAND echo "Building api project done"
+    )
+else()
+    add_custom_command(TARGET LimonAPI POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/LimonAPI/
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/
+            COMMAND ${CMAKE_COMMAND} -E copy ${API_HEADERS} ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/API/CMakeLists.txt ${CMAKE_BINARY_DIR}/LimonAPI/
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/lib
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/libLimonAPI.a ${CMAKE_BINARY_DIR}/LimonAPI/lib
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/src
+            COMMAND ${CMAKE_COMMAND} -E tar "cfv" "LimonAPI.zip" --format=zip -- ${CMAKE_BINARY_DIR}/LimonAPI
+            COMMAND echo "Building api project done"
+    )
+ENDIF()
 
 add_library(customTriggers SHARED
         src/GamePlay/CoinPickUpOnTrigger.cpp
@@ -121,7 +150,7 @@ add_library(customTriggers SHARED
         )
 
 IF (WIN32 AND NOT ( MINGW OR MSYS))
-    TARGET_LINK_LIBRARIES(customTriggers ${CMAKE_SOURCE_DIR}/libLimonAPI.lib)
+    TARGET_LINK_LIBRARIES(customTriggers ${CMAKE_BINARY_DIR}/libLimonAPI.lib)
 else()
     TARGET_LINK_LIBRARIES(customTriggers ${CMAKE_BINARY_DIR}/libLimonAPI.a)
 ENDIF()
