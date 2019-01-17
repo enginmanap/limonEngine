@@ -2,7 +2,7 @@
 // Created by engin on 17.01.2019.
 //
 
-#include <c++/8.2.1/iostream>
+#include <iostream>
 #include "APISerializer.h"
 #include "API/TriggerInterface.h"
 
