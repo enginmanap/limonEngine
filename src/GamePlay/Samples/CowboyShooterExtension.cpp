@@ -305,7 +305,11 @@ void CowboyShooterExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
     }
 
     if(interactionData[0].valueType == LimonAPI::ParameterRequest::ValueTypes::STRING && std::string(interactionData[0].value.stringValue) == "SHOOT_PLAYER") {
-        hitPoints -= 20;
+        if(interactionData.size() < 2 ) {
+            hitPoints -= 20;
+        } else if(interactionData[1].valueType = LimonAPI::ParameterRequest::ValueTypes::LONG) {
+            hitPoints -= interactionData[1].value.longValue;
+        }
 
         limonAPI->updateGuiText(40, std::to_string(hitPoints));
         if(hitPoints <= 0) {
