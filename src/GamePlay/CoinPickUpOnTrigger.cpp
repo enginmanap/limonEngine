@@ -2,6 +2,7 @@
 // Created by engin on 6.06.2018.
 //
 
+#include <GamePlay/Samples/KillCowboyPlayer.h>
 #include "CoinPickUpOnTrigger.h"
 #include "UpdateGuiTextOnTrigger.h"
 #include "MayanCoinPickup.h"
@@ -62,6 +63,7 @@ void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* t
     (*triggerMap)["MayanCoinPickup"] = &createT<MayanCoinPickup>;
     (*triggerMap)["MayanLever"] = &createT<MayanLever>;
     (*triggerMap)["DoorAnimationAction"] = &createT<DoorAnimationAction>;
+    (*triggerMap)["KillCowboyPlayer"] = &createT<KillCowboyPlayer>;
 
 
 }
