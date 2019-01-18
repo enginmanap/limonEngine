@@ -351,10 +351,6 @@ GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject:
         imGuiResult.updated = true;
     }
 
-    if(attachedModel != nullptr) {
-        attachedModel->addImGuiEditorElements(request);
-    }
-
     ImGui::DragFloat3("Attached Model Offsets", glm::value_ptr(attachedModelOffset));
 
     setAttachedModelTransformation(attachedModel);
