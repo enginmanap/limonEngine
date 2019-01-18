@@ -68,7 +68,7 @@ void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) 
                 prList.push_back(pr);
                 limonAPI->interactWithPlayer(prList);
                 shootPlayerTimer = time;
-                limonAPI->playSound("./Data/Sounds/shotgun.wav", this->getPosition(), false);
+                limonAPI->playSound("./Data/Sounds/shotgun.wav", this->getPosition() + glm::vec3(0,2,0), false);
             }
         }
     }
