@@ -42,6 +42,7 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     float startingHeight;
     int collisionGroup;
     int collisionMask;
+    int collisionMaskGround;
     uint32_t worldID = 0;
 
     std::vector<btCollisionWorld::ClosestRayResultCallback> rayCallbackArray;
@@ -87,17 +88,18 @@ public:
         scale = glm::vec3(1,1,1);
     }
 
-    void registerToPhysicalWorld(btDiscreteDynamicsWorld *world, int collisionGroup, int collisionMask,
-                                     const glm::vec3 &worldAABBMin __attribute((unused)), const glm::vec3 &worldAABBMax __attribute((unused))) {
-        world->addRigidBody(getRigidBody(), collisionGroup, collisionMask);
+    void registerToPhysicalWorld(btDiscreteDynamicsWorld *world, int collisionGroup, int collisionMaskForSelf,
+                                     int collisionMaskForGround, const glm::vec3 &worldAABBMin [[gnu::unused]], const glm::vec3 &worldAABBMax [[gnu::unused]]) {
+        world->addRigidBody(getRigidBody(), collisionGroup, collisionMaskForSelf);
         this->collisionGroup = collisionGroup;
-        this->collisionMask = collisionMask;
+        this->collisionMask = collisionMaskForSelf;
+        this->collisionMaskGround = collisionMaskForGround;
         world->addConstraint(getSpring(worldAABBMin.y));
 
         for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
             for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
                 rayCallbackArray[i * STEPPING_TEST_COUNT + j].m_collisionFilterGroup = this->collisionGroup;
-                rayCallbackArray[i * STEPPING_TEST_COUNT + j].m_collisionFilterMask = this->collisionMask;
+                rayCallbackArray[i * STEPPING_TEST_COUNT + j].m_collisionFilterMask = this->collisionMaskGround;
             }
         }
     }
