@@ -47,6 +47,8 @@ bool CoinPickUpOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters
     }
 
     result = limonAPI->removeObject(parameters[1].value.longValue) == 0 && result;
+    //play coin pickup sound
+    limonAPI->playSound("./Data/Sounds/coinPickup.wav", glm::vec3(0,0,0), false);
     return result;
 }
 
