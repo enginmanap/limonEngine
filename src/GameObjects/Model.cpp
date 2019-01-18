@@ -495,6 +495,7 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
                     this->stepOnSound->stop();
                 }
                 this->stepOnSound = std::make_shared<Sound>(0, assetManager, selectedSoundAsset->fullPath);
+                this->stepOnSound->changeGain(250.0f);
                 this->stepOnSound->setLoop(true);
             }
         } else {

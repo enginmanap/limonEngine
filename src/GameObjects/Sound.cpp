@@ -39,11 +39,11 @@ void Sound::play() {
         if (soundHandleID != 0) {
             if (!assetManager->getAlHelper()->isPlaying(soundHandleID)) {//don't play if already playing
                 soundHandleID = assetManager->getAlHelper()->play(assetManager->loadAsset<SoundAsset>({this->name}),
-                                                                  this->looped);
+                                                                  this->looped, gain);
             }
         } else {
             soundHandleID = assetManager->getAlHelper()->play(assetManager->loadAsset<SoundAsset>({this->name}),
-                                                              this->looped);
+                                                              this->looped, gain);
         }
         this->playState = State::PLAYING;
     }
@@ -87,4 +87,14 @@ Sound::State Sound::getState() {
         }
     }
     return playState;
+}
+
+bool Sound::changeGain(float gain) {
+    this->gain = gain;
+    if(soundHandleID != 0) {
+        return assetManager->getAlHelper()->changeGain(this->soundHandleID, gain);
+    } else {
+        return false;
+    }
+
 }
