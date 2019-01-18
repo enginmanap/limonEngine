@@ -168,6 +168,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
     setAttachedModelTransformation(attachedModel);
 
     float highestPoint = std::numeric_limits<float>::lowest();
+    btVector3 hitNormal;
     GameObject *hitObject = nullptr;
 
     if(!dead) { //if dead, no need to check on air. This data is used for 2 things: 1) Spring adjustment, 2) step sound
@@ -191,6 +192,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                 if (rayCallback->hasHit()) {
                     highestPoint = std::max(rayCallback->m_hitPointWorld.getY(), highestPoint);
                     hitObject = static_cast<GameObject *>(rayCallback->m_collisionObject->getUserPointer());
+                    hitNormal = rayCallback->m_hitNormalWorld;
                     onAir = false;
                 }
             }
@@ -246,6 +248,10 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                     if (groundFrictionMovementSpeed.getZ() < groundSpeed.getZ()) {
                         groundFrictionMovementSpeed.setZ(groundSpeed.getZ());
                     }
+                }
+                if(hitNormal.getY() < MINIMUM_CLIMP_NORMAL_Y) {
+                    inputMovementSpeed.setX(hitNormal.getX());
+                    inputMovementSpeed.setZ(hitNormal.getZ());
                 }
                 player->setLinearVelocity(inputMovementSpeed + groundFrictionMovementSpeed);
                 //check if the sound should change, if it does stop the old one

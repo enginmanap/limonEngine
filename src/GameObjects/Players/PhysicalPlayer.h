@@ -24,6 +24,7 @@
 #include "../../API/PlayerExtensionInterface.h"
 
 static const int STEPPING_TEST_COUNT = 5;
+static const float MINIMUM_CLIMP_NORMAL_Y = 0.707f; // cant climb more than 45 degrees
 
 class LimonAPI;
 
