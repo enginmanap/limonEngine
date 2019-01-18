@@ -148,6 +148,7 @@ add_library(customTriggers SHARED
         src/GamePlay/Samples/CowboyEnemyAI.cpp
         src/GamePlay/Samples/WesternMenuPlayerExtension.cpp
         src/GamePlay/Samples/WesternMenuPlayerExtension.h
+        src/GamePlay/Samples/KillCowboyPlayer.cpp
         )
 
 IF (WIN32 AND NOT ( MINGW OR MSYS))
