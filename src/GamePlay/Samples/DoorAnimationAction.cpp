@@ -63,18 +63,7 @@ bool DoorAnimationAction::run(std::vector<LimonAPI::ParameterRequest> parameters
         if(enterResult.size() == 1 && enterResult[0].value.boolValue == true &&
                 exitResult.size() == 1 && exitResult[0].value.boolValue == false
                 ) {
-            std::cout << "skipping not to interfere" << std::endl;
             return false;//skip animation
-        } else {
-            if(enterResult.size() < 1 ) {
-                std::cout << "enter result returned empty for " << parameters[1].value.longValue << std::endl;
-            } else if(exitResult.size() < 1) {
-                std::cout << "exit result returned empty for " << parameters[1].value.longValue << std::endl;
-            } else {
-                std::cout << "check result by " << parameters[1].value.longValue << " was enter: "
-                          << (enterResult[0].value.boolValue ? "True" : "False") << " exit: "
-                          << (exitResult[0].value.boolValue ? "True" : "False") << std::endl;
-            }
         }
         //if entered, but not exited another trigger, skip animation, that one should handle it
     }
@@ -93,11 +82,10 @@ bool DoorAnimationAction::run(std::vector<LimonAPI::ParameterRequest> parameters
     this->animationRun = true;//set this animation run.
 
     //set timer for this animation run reset.
-    std::cout << "animation start for "<< parameters[1].value.longValue << " will reset in " << this->stateResetTime << std::endl;
     std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall = std::bind(&DoorAnimationAction::resetAnimationRun, this, std::placeholders::_1);
     std::vector<LimonAPI::ParameterRequest> emptyParams;
 
-    limonAPI->addTimedEvent(1500, methodToCall, emptyParams);
+    limonAPI->addTimedEvent(this->stateResetTime, methodToCall, emptyParams);
 
     return true;
 }
@@ -108,7 +96,6 @@ std::vector<LimonAPI::ParameterRequest> DoorAnimationAction::getResults() {
     LimonAPI::ParameterRequest request;
     request.value.boolValue = this->animationRun;
     result.push_back(request);
-    std::cout << "someone checked animation result for " << this->getName() << " result was " << this->animationRun << std::endl;
     return result;
 }
 
@@ -116,5 +103,4 @@ DoorAnimationAction::DoorAnimationAction(LimonAPI *limonAPI) : TriggerInterface(
 
 void DoorAnimationAction::resetAnimationRun(const std::vector<LimonAPI::ParameterRequest> &) {
     this->animationRun = false;
-    std::cout << "animation reset by timer" << std::endl;
 }
