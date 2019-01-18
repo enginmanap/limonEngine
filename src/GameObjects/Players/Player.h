@@ -61,8 +61,8 @@ public:
      */
     virtual void ownControl(const glm::vec3 &position, const glm::vec3 lookDirection) = 0;
 
-    virtual void registerToPhysicalWorld(btDiscreteDynamicsWorld *world, int collisionGroup, int collisionMask,
-                                             const glm::vec3 &worldAABBMin, const glm::vec3 &worldAABBMax) = 0;
+    virtual void registerToPhysicalWorld(btDiscreteDynamicsWorld *world, int collisionGroup, int collisionMaskForSelf,
+                                             int collisionMaskForGround, const glm::vec3 &worldAABBMin, const glm::vec3 &worldAABBMax) = 0;
 
     virtual void processPhysicsWorld(const btDiscreteDynamicsWorld *world) = 0;
 

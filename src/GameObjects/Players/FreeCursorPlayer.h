@@ -69,8 +69,8 @@ public:
         //FIXME Do we need release control?
     };
 
-    void registerToPhysicalWorld(btDiscreteDynamicsWorld *world __attribute((unused)), int collisionGroup __attribute((unused)), int collisionMask __attribute((unused)),
-                                     const glm::vec3 &worldAABBMin __attribute((unused)), const glm::vec3 &worldAABBMax __attribute((unused))) {}
+    void registerToPhysicalWorld(btDiscreteDynamicsWorld *world [[gnu::unused]], int collisionGroup [[gnu::unused]], int collisionMaskForSelf [[gnu::unused]],
+                                     int collisionMaskForGround [[gnu::unused]], const glm::vec3 &worldAABBMin [[gnu::unused]], const glm::vec3 &worldAABBMax [[gnu::unused]]) {}
     void processPhysicsWorld(const btDiscreteDynamicsWorld *world __attribute__((unused))) {};
 
     void rotate(float xPosition, float yPosition, float xChange, float yChange);

@@ -141,7 +141,10 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
     camera = new Camera(options, currentPlayer->getCameraAttachment());//register is just below
-    currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
+    currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
+                                           COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
+                                           COLLIDE_MODELS | COLLIDE_EVERYTHING, worldAABBMin,
+                                           worldAABBMax);
     switchPlayer(currentPlayer, *inputHandler); //switching to itself, to set the states properly. It uses camera so done after camera creation
 
 
@@ -633,7 +636,10 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
     if (inputHandler.getInputStates().getInputEvents(InputStates::Inputs::EDITOR) && inputHandler.getInputStates().getInputStatus(InputStates::Inputs::EDITOR)) {
         if(editorPlayer == nullptr) {
             editorPlayer = new FreeCursorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
-            editorPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
+            editorPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
+                                                  COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
+                                                  COLLIDE_MODELS | COLLIDE_EVERYTHING,
+                                                  worldAABBMin, worldAABBMax);
 
         }
         if(!currentPlayersSettings->editorShown) {
@@ -647,14 +653,20 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
         if(currentPlayersSettings->debugMode != Player::DEBUG_ENABLED) {
             if(debugPlayer == nullptr) {
                 debugPlayer = new FreeMovingPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
-                debugPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
+                debugPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
+                                                     COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
+                                                     COLLIDE_MODELS | COLLIDE_EVERYTHING,
+                                                     worldAABBMin, worldAABBMax);
 
             }
             switchPlayer(debugPlayer, inputHandler);
         } else {
             if(physicalPlayer == nullptr) {
                 physicalPlayer = new PhysicalPlayer(1, options, cursor, startingPlayer.position, startingPlayer.orientation, startingPlayer.attachedModel);
-                physicalPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER, COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING, worldAABBMin, worldAABBMax);
+                physicalPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
+                                                        COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
+                                                        COLLIDE_MODELS | COLLIDE_EVERYTHING,
+                                                        worldAABBMin, worldAABBMax);
 
             }
             switchPlayer(physicalPlayer, inputHandler);
