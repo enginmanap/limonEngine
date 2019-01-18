@@ -134,11 +134,12 @@ bool ALHelper::stop(uint32_t soundID) {
     return 0;
 }
 
-uint32_t ALHelper::play(const SoundAsset* soundAsset, bool looped) {
+uint32_t ALHelper::play(const SoundAsset *soundAsset, bool looped, float gain) {
     uint32_t id = getNextRequestID();
     auto sound = std::unique_ptr<PlayingSound>(new PlayingSound(id));
     sound->asset = soundAsset;
     sound->looped = looped;
+    sound->gain = gain;
 
     SDL_AtomicLock(&playRequestLock);
     this->playRequests.push_back(std::move(sound));
@@ -152,7 +153,7 @@ bool ALHelper::startPlay(std::unique_ptr<PlayingSound> &sound) {
     alGenBuffers(NUM_BUFFERS, sound->buffers);
     alGenSources(1, &sound->source);
 
-    alSourcef(sound->source,AL_GAIN,1000.0f);
+    alSourcef(sound->source,AL_GAIN,sound->gain);
 
     if(alGetError() != AL_NO_ERROR) {
         std::cerr << "Audio buffer setup failed!" << std::endl;

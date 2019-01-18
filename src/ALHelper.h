@@ -35,6 +35,7 @@ class ALHelper {
         ALuint source = 0;
         ALenum format;
         ALuint buffers[NUM_BUFFERS];
+        float gain;
         const int16_t *nextDataToBuffer;
         bool looped;
         bool stopped = false;
@@ -107,7 +108,7 @@ public:
 
     ~ALHelper();
 
-    uint32_t play(const SoundAsset *soundAsset, bool looped);
+    uint32_t play(const SoundAsset *soundAsset, bool looped, float gain = 1000.0f);
 
     bool isPlaying(uint32_t soundID) {
         if(playingSounds.find(soundID) != playingSounds.end()) {
@@ -118,6 +119,25 @@ public:
         SDL_AtomicLock(&playRequestLock);
         for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
             if((*request)->soundID == soundID) {
+                result = true;
+                break;
+            }
+        }
+        SDL_AtomicUnlock(&playRequestLock);
+        return result;
+    }
+
+    bool changeGain(uint32_t soundID, float gain) {
+        if(playingSounds.find(soundID) != playingSounds.end()) {
+            playingSounds[soundID]->gain = gain;
+            return true;
+        }
+        //it is possible that play is requested, but not yet started, they should be considered playing too, check it
+        bool result = false;
+        SDL_AtomicLock(&playRequestLock);
+        for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
+            if((*request)->soundID == soundID) {
+                (*request)->gain = gain;
                 result = true;
                 break;
             }
@@ -150,7 +170,7 @@ public:
 // Orientation ...
         alListenerfv(AL_ORIENTATION, listenerOri);
         if ((error = alGetError()) != AL_NO_ERROR) {
-            std::cerr << "Set listener oerientation failed! " << alGetString(error) << std::endl;
+            std::cerr << "Set listener orientation failed! " << alGetString(error) << std::endl;
             return;
         }
     }

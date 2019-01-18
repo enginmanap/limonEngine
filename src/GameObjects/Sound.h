@@ -26,6 +26,7 @@ private:
     State playState = State::STOPPED;
     float startSecond = 0;
     float stopPosition = 0;
+    float gain = 1000;//default
     bool looped = false;
 
 public:
@@ -43,6 +44,8 @@ public:
     void stop();
 
     void stopAfterFinish();
+
+    bool changeGain(float gain);
 
     void setWorldPosition(glm::vec3 position, bool listenerRelative);
     void setWorldPosition(glm::vec3 position) { setWorldPosition(position, false);};
