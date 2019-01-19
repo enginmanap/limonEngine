@@ -446,6 +446,7 @@ WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *object
         std::string stepOnSound = objectAttribute->GetText();
         if(requiredSounds.find(stepOnSound) == requiredSounds.end()) {
             requiredSounds[stepOnSound] = std::make_shared<Sound>(0, assetManager, stepOnSound);//since the step on is not managed by world, not feed world object ID
+            requiredSounds[stepOnSound]->changeGain(0.125f);
         }
         loadedObjectInformation->model->setPlayerStepOnSound(requiredSounds[stepOnSound]);
     }

@@ -164,7 +164,7 @@ public:
     void setPlayerStepOnSound(std::shared_ptr<Sound> stepOnSound) {
         this->stepOnSound = stepOnSound;
 
-        this->stepOnSound->changeGain(250.0f);
+        this->stepOnSound->changeGain(0.125f);
 
         if (this->stepOnSound != nullptr) {
             this->stepOnSound->setLoop(true);
