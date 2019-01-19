@@ -63,6 +63,10 @@ public:
         return worldID;
     }
 
+    float getGain() const {
+        return gain;
+    }
+
     State getState();
 
     /** Game object methods */
