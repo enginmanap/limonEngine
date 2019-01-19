@@ -46,6 +46,7 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     uint32_t worldID = 0;
 
     std::vector<btCollisionWorld::ClosestRayResultCallback> rayCallbackArray;
+    btCollisionWorld::ClosestRayResultCallback horizontalRayCallback = btCollisionWorld::ClosestRayResultCallback(btVector3(), btVector3());
     btTransform worldTransformHolder;
     bool onAir;
     bool positionSet = false;
