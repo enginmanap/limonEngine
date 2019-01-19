@@ -190,10 +190,13 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                 world->rayTest(rayCallback->m_rayFromWorld, rayCallback->m_rayToWorld, *rayCallback);
 
                 if (rayCallback->hasHit()) {
-                    highestPoint = std::max(rayCallback->m_hitPointWorld.getY(), highestPoint);
-                    hitObject = static_cast<GameObject *>(rayCallback->m_collisionObject->getUserPointer());
-                    hitNormal = rayCallback->m_hitNormalWorld;
+                    if(rayCallback->m_hitPointWorld.getY() > highestPoint ) {
+                        highestPoint = rayCallback->m_hitPointWorld.getY();
+                        hitObject = static_cast<GameObject *>(rayCallback->m_collisionObject->getUserPointer());
+                        hitNormal = rayCallback->m_hitNormalWorld;
+                    }
                     onAir = false;
+
                 }
             }
         }
@@ -249,11 +252,33 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                         groundFrictionMovementSpeed.setZ(groundSpeed.getZ());
                     }
                 }
-                if(hitNormal.getY() < MINIMUM_CLIMP_NORMAL_Y) {
-                    inputMovementSpeed.setX(hitNormal.getX());
-                    inputMovementSpeed.setZ(hitNormal.getZ());
+                btVector3 totalSpeed = inputMovementSpeed + groundFrictionMovementSpeed;
+                if(hitNormal.getY() < MINIMUM_CLIMP_NORMAL_Y && totalSpeed.length2() > 0.01) {
+                    std::cout << "inpt: " << glm::to_string(GLMConverter::BltToGLM(inputMovementSpeed)) << std::endl;
+                    btVector3 playerCapsuleBottom = player->getCenterOfMassPosition() - btVector3(0, CAPSULE_HEIGHT / 2 + CAPSULE_RADIUS + 0.1, 0);
+                    horizontalRayCallback.m_rayFromWorld = playerCapsuleBottom;
+                    btVector3 checkDistance;
+                    if(totalSpeed.length2() >= 1) {
+                        checkDistance = totalSpeed;
+                    } else {
+                        checkDistance = totalSpeed.normalize();
+                    }
+                    horizontalRayCallback.m_rayToWorld = playerCapsuleBottom + checkDistance;
+
+                    //set raycallback for downward raytest
+                    horizontalRayCallback.m_closestHitFraction = 1;
+                    horizontalRayCallback.m_collisionObject = nullptr;
+                    std::cout << "horiRay from: " << glm::to_string(GLMConverter::BltToGLM(horizontalRayCallback.m_rayFromWorld)) << ", " << glm::to_string(GLMConverter::BltToGLM(horizontalRayCallback.m_rayToWorld)) << ", inpt: " << glm::to_string(GLMConverter::BltToGLM(inputMovementSpeed)) << std::endl;
+                    world->rayTest(horizontalRayCallback.m_rayFromWorld, horizontalRayCallback.m_rayToWorld, horizontalRayCallback);
+
+                    if(horizontalRayCallback.hasHit()) {
+                        inputMovementSpeed.setX(hitNormal.getX());
+                        inputMovementSpeed.setZ(hitNormal.getZ());
+                        totalSpeed = inputMovementSpeed + groundFrictionMovementSpeed;
+                        std::cout << " input speed set to " << glm::to_string(GLMConverter::BltToGLM(inputMovementSpeed)) << std::endl;
+                    }
                 }
-                player->setLinearVelocity(inputMovementSpeed + groundFrictionMovementSpeed);
+                player->setLinearVelocity(totalSpeed);
                 //check if the sound should change, if it does stop the old one
                 if (model->getPlayerStepOnSound() != nullptr) {
                     if (currentSound != nullptr) {
@@ -274,7 +299,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                 std::cerr << "The thing under Player is not a Model object, this violates the movement assumptions."
                       << std::endl;
             }
-        } else {
+        } else {//if on air
             if (currentSound != nullptr) {
                 if(currentSound->getState() == Sound::State::PLAYING) {
                     currentSound->stopAfterFinish();
