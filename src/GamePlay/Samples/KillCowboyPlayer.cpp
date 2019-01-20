@@ -2,6 +2,7 @@
 // Created by engin on 18.01.2019.
 //
 
+#include <cstring>
 #include "KillCowboyPlayer.h"
 
 std::vector<LimonAPI::ParameterRequest> KillCowboyPlayer::getParameters() {
@@ -12,7 +13,7 @@ bool KillCowboyPlayer::run(std::vector<LimonAPI::ParameterRequest> parameters [[
     std::vector<LimonAPI::ParameterRequest> prList;
     LimonAPI::ParameterRequest pr;
     pr.valueType = pr.STRING;
-    strncpy(pr.value.stringValue, "SHOOT_PLAYER", 63);
+    std::strncpy(pr.value.stringValue, "SHOOT_PLAYER", 63);
     prList.push_back(pr);
 
     LimonAPI::ParameterRequest pr2;
