@@ -109,7 +109,7 @@ add_library(LimonAPI STATIC
 file(GLOB API_HEADERS
         "src/API/*.h"
         )
-
+set_property(TARGET LimonAPI PROPERTY POSITION_INDEPENDENT_CODE ON)
 IF (WIN32 AND NOT ( MINGW OR MSYS))
     add_custom_command(TARGET LimonAPI POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/LimonAPI/
