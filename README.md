@@ -21,19 +21,23 @@ For a demonstration, check out the video :
 
 [![Mayan Map with sound](http://img.youtube.com/vi/1OHS3TJ1q6o/0.jpg)](http://www.youtube.com/watch?v=1OHS3TJ1q6o)
 
-## Building
+## Building from source on Ubuntu 18.10:
 
-Dependencies can be installed on Ubuntu 17.10 using:
-
+Step 1) Open Terminal, then copy and paste the following command
 ```bash
-$ sudo apt-get install libassimp-dev libbullet-dev libsdl2-dev libsdl2-image-dev libfreetype6-dev libtinyxml2-dev libglew-dev build-essential libglm-dev libtinyxml2-dev
+$ sudo apt install cmake git git-lfs libassimp-dev libbullet-dev libsdl2-dev libsdl2-image-dev libfreetype6-dev libtinyxml2-dev libglew-dev build-essential libglm-dev libtinyxml2-dev
 ```
-
-After that, in repository directory
+Step 2) Next, we need to install LFS (Large File System), clone the LimonEngine repository and pull the LFS data:
 ```bash
-$ mkdir build
-$ cd build
-$ cmake ../
+$ git lfs install && git clone https://github.com/enginmanap/limonEngine.git && cd limonEngine && git lfs pull
+```
+Step 3) Next, we need to navigate to the directory run cmake:
+```bash
+$ mkdir build && cd build && cmake ../ && cd ..
+```
+Step 4) Finally, we need to navigate to the build directory, make the source and copy the `Data` directory to the `build` directory:
+```bash
+$ cd build && make && cd .. && cp -a Data build && cd build
 ```
 
 ## Running
@@ -41,6 +45,9 @@ $ cmake ../
 ### Start up: 
 - Engine take a parameter as path of world to load
 - If no parameter passed, falls back to `./Data/Maps/World001.xml`
+```bash
+$ ./LimonEngine ./Data/Maps/World001.xml
+```
 
 ### In Application:
 - Pressing `0` switches to debug mode, renders physics collision meshes and disconnects player from physics (flying and passing trough objects)
