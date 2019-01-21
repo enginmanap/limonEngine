@@ -257,7 +257,6 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                 }
                 btVector3 totalSpeed = inputMovementSpeed + groundFrictionMovementSpeed;
                 if(hitNormal.getY() < MINIMUM_CLIMP_NORMAL_Y && totalSpeed.length2() > 0.01) {
-                    std::cout << "inpt: " << glm::to_string(GLMConverter::BltToGLM(inputMovementSpeed)) << std::endl;
                     btVector3 playerCapsuleBottom = player->getCenterOfMassPosition() - btVector3(0, CAPSULE_HEIGHT / 2 + CAPSULE_RADIUS + 0.1, 0);
                     horizontalRayCallback.m_rayFromWorld = playerCapsuleBottom;
                     btVector3 checkDistance;
@@ -271,14 +270,12 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                     //set raycallback for downward raytest
                     horizontalRayCallback.m_closestHitFraction = 1;
                     horizontalRayCallback.m_collisionObject = nullptr;
-                    std::cout << "horiRay from: " << glm::to_string(GLMConverter::BltToGLM(horizontalRayCallback.m_rayFromWorld)) << ", " << glm::to_string(GLMConverter::BltToGLM(horizontalRayCallback.m_rayToWorld)) << ", inpt: " << glm::to_string(GLMConverter::BltToGLM(inputMovementSpeed)) << std::endl;
                     world->rayTest(horizontalRayCallback.m_rayFromWorld, horizontalRayCallback.m_rayToWorld, horizontalRayCallback);
 
                     if(horizontalRayCallback.hasHit()) {
                         inputMovementSpeed.setX(hitNormal.getX());
                         inputMovementSpeed.setZ(hitNormal.getZ());
                         totalSpeed = inputMovementSpeed + groundFrictionMovementSpeed;
-                        std::cout << " input speed set to " << glm::to_string(GLMConverter::BltToGLM(inputMovementSpeed)) << std::endl;
                     }
                 }
                 player->setLinearVelocity(totalSpeed);
