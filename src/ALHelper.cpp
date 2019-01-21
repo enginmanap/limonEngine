@@ -102,8 +102,9 @@ int ALHelper::soundManager() {
                         alSourceQueueBuffers(temp->source, NUM_BUFFERS, temp->buffers);
                         alSourcePlay(temp->source);
                         iterator++;
-                    } else {
+                    } else {//non looped finished sound
                         iterator = playingSounds.erase(iterator);
+
 
                     }
                 } else {
@@ -129,9 +130,22 @@ bool ALHelper::stop(uint32_t soundID) {
         ALenum error;
         if ((error = alGetError()) != AL_NO_ERROR) {
             std::cerr << "Stop source failed! " << alGetString(error) << std::endl;
+            return false;
         }
+        return true;
+    } else {
+        bool result = false;
+        SDL_AtomicLock(&playRequestLock);
+        for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
+            if((*request)->soundID == soundID) {
+                this->playRequests.erase(request);
+                result = true;
+                break;
+            }
+        }
+        SDL_AtomicUnlock(&playRequestLock);
+        return result;
     }
-    return 0;
 }
 
 uint32_t ALHelper::play(const SoundAsset *soundAsset, bool looped, float gain) {

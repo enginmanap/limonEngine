@@ -28,7 +28,7 @@ void Sound::setStopPosition(float stopPosition) {
 
 void Sound::play() {
     if(playState == State::STOP_AFTER_FINISH) {
-        if(this->looped) {
+        if(this->looped && assetManager->getAlHelper()->isPlaying(soundHandleID)) {
             assetManager->getAlHelper()->setLooped(soundHandleID, this->looped);
             this->playState = State::PLAYING;
             return;
@@ -73,9 +73,11 @@ void Sound::setWorldPosition(glm::vec3 position, bool listenerRelative) {
 }
 
 Sound::~Sound() {
-    this->stop();
     if(soundHandleID != 0) {//we don't create asset until play, this check verifies it.
+        this->stop();
         this->assetManager->freeAsset({this->name});
+    } else {
+        this->stop();
     }
 }
 
