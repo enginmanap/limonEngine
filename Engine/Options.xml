@@ -38,4 +38,5 @@
     </lightOrthogonalProjectionValues>
     <SSAOEnabled>True</SSAOEnabled>
     <SSAOSampleCount>9</SSAOSampleCount>
+    <RenderInformations>True</RenderInformations>
 </Options>

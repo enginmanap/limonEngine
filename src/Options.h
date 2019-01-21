@@ -53,6 +53,7 @@ private:
 
     uint32_t ssaoSampleCount = 9;
     bool ssaoEnabled = false;
+    bool renderInformations = true;
 
     void loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec3&);
     void loadVec4(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec4&);
@@ -253,6 +254,14 @@ public:
 
     void setSsaoEnabled(bool ssaoEnabled) {
         this->ssaoEnabled = ssaoEnabled;
+    }
+
+    bool getRenderInformations() {
+        return renderInformations;
+    }
+
+    void setRenderInformations(bool renderInformations) {
+        this->renderInformations = renderInformations;
     }
 };
 
