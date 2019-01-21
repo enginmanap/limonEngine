@@ -198,6 +198,22 @@ bool Options::loadOptions(const std::string &optionsFileName) {
         this->ssaoEnabled = false;
     }
 
+    tinyxml2::XMLElement *renderInformationsNode = optionsNode->FirstChildElement(
+            "RenderInformations");
+    if (renderInformationsNode != nullptr) {
+        std::string renderInformationsText = renderInformationsNode->GetText();
+        if(renderInformationsText == "True") {
+            this->renderInformations = true;
+        } else if (renderInformationsText == "False") {
+            this->renderInformations = false;
+        } else {
+            std::cerr << "Render informations setting doesn't match \"True\" or \"False\", assuming true." << std::endl;
+        }
+    } else {
+        std::cout << "Render informations setting \"RenderInformations\" not found, assuming true.";
+        this->renderInformations = true;
+    }
+
 
 
     loadVec3(optionsNode, "walkSpeed", walkSpeed);

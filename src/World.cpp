@@ -871,10 +871,12 @@ void World::render() {
     for (std::vector<GUILayer *>::iterator it = guiLayers.begin(); it != guiLayers.end(); ++it) {
         (*it)->render();
     }
-    renderCounts->render();
     cursor->render();
-    debugOutputGUI->render();
-    fpsCounter->render();
+    if(options->getRenderInformations()) {
+        renderCounts->render();
+        debugOutputGUI->render();
+        fpsCounter->render();
+    }
 
     //render API gui layer
     apiGUILayer->render();
