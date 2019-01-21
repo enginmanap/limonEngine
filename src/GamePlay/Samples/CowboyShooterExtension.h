@@ -69,7 +69,6 @@ public:
             playerAttachedPistolID = children[0];
             if(children.size() > 1) {
                 playerAttachedRifleID = children[1];
-                limonAPI->addObjectTranslate(playerAttachedRifleID, removeOffset);
                 currentGun = Gun::PISTOL;
             }
         }
