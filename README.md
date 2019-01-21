@@ -36,7 +36,7 @@ $ mkdir build && cd build && cmake ../ && cd ..
 ```
 Step 4) Finally, we need to navigate to the build directory, make the source and copy the `Data` directory to the `build` directory:
 ```bash
-$ cd build && make && cp -a ./Data .
+$ cd build && make && cp -a ../Data .
 ```
 
 ## Running
