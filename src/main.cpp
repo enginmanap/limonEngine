@@ -13,7 +13,7 @@
 const std::string PROGRAM_NAME = "LimonEngine";
 
 bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
-
+    glHelper->clearDepthBuffer();
     std::unique_ptr<std::string> loadingImagePath = worldLoader->getLoadingImage(worldFile);
     if(loadingImagePath != nullptr) {
         this->loadingImage = new GUIImage(0, options, assetManager, "loadingImage", *loadingImagePath);
