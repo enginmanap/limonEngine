@@ -44,26 +44,29 @@ void FreeMovingPlayer::move(moveDirections direction) {
 
 void FreeMovingPlayer::rotate(float xPosition __attribute__((unused)), float yPosition __attribute__((unused)), float xChange, float yChange) {
     glm::quat viewChange;
-    viewChange = glm::quat(cos(yChange * options->getLookAroundSpeed() / 2),
-                           right.x * sin(yChange * options->getLookAroundSpeed() / 2),
-                           right.y * sin(yChange * options->getLookAroundSpeed() / 2),
-                           right.z * sin(yChange * options->getLookAroundSpeed() / 2));
+    float lookAroundSpeedX = options->getLookAroundSpeed();
+    //scale look around speed with the abs(center.y). for 1 -> look around 0, for 0 -> lookaround 1.
+    float lookAroundSpeedY = lookAroundSpeedX * (1- (center.y * center.y));
+    viewChange = glm::quat(cos(yChange * lookAroundSpeedY / 2),
+                           right.x * sin(yChange * lookAroundSpeedY / 2),
+                           right.y * sin(yChange * lookAroundSpeedY / 2),
+                           right.z * sin(yChange * lookAroundSpeedY / 2));
 
     view = viewChange * view * glm::conjugate(viewChange);
     view = glm::normalize(view);
 
-    viewChange = glm::quat(cos(xChange * options->getLookAroundSpeed() / 2),
-                           up.x * sin(xChange * options->getLookAroundSpeed() / 2),
-                           up.y * sin(xChange * options->getLookAroundSpeed() / 2),
-                           up.z * sin(xChange * options->getLookAroundSpeed() / 2));
+    viewChange = glm::quat(cos(xChange * lookAroundSpeedX / 2),
+                           up.x * sin(xChange * lookAroundSpeedX / 2),
+                           up.y * sin(xChange * lookAroundSpeedX / 2),
+                           up.z * sin(xChange * lookAroundSpeedX / 2));
     view = viewChange * view * glm::conjugate(viewChange);
     view = glm::normalize(view);
 
     center.x = view.x;
-    if (view.y > 1.0f) {
-        center.y = 0.9999f;
-    } else if (view.y < -1.0f) {
-        center.y = -0.9999f;
+    if (view.y > 0.99f) {
+        center.y = 0.99f;
+    } else if (view.y < -0.99f) {
+        center.y = -0.99f;
     } else {
         center.y = view.y;
     }
