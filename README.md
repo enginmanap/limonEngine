@@ -7,7 +7,6 @@ Limon is a multi platform 3D game engine mainly focusing on first person games. 
 - 3D rendering with dynamic lighting/shadows
 - Rigid body physics
 - 3D spatial sound
-- AI
 - Built-in editor with animation sequencer
 - C++ API for extensibility, and dynamic loading of extensions
 
@@ -62,8 +61,12 @@ $ ./LimonEngine ./Data/Maps/World001.xml
 - When a new animation is created by animation editor, the object used to create the animation assumed to have this animation. You can remove by using the remove animation button.
 
 ### Extending with C++
-- Engine tries to load custom trigger extentions as `libcustomTriggers.dll` for Windows, `libcustomTriggers.so` for GNU/Linux and `libcustomTriggers.dylib` for macOS. If you use a custom action in a map and library is missing, action won't run check this first.
-- Custom actions should implement `TriggerInterface` class.
-- and the list of actions should be returned with method `void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* triggerMap);`, sample implementation in CoinPickUpOnTrigger
-- If you query a variable that never been set, it will be returned as 0.
-- Static values are saved when set in editor, other action results and variables are queried when action runs.
+- Limon Engine has 3 types of extensions:
+    - Actions for triggers and buttons
+    - AI for actors
+    - Player for Input handling
+- All uses the same API, but called upon depending on their type.
+- Engine tries to load custom extensions from `libcustomTriggers.dll` for Windows, `libcustomTriggers.so` for GNU/Linux and `libcustomTriggers.dylib` for macOS. If you use an customisation in a map and library is missing, that customisation wont work, but rest of the map will.
+
+Details in the documentation
+
