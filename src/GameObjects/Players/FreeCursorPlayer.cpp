@@ -49,26 +49,30 @@ void FreeCursorPlayer::rotate(float xPosition, float yPosition, float xChange __
 
     // FIXME this look around code is repeated in each player. I believe it should have been part of player class.
     // It can't be used directly because that would eliminate possibilities like 3rd person cameras.
-    
+
+    float lookAroundSpeed = options->getLookAroundSpeed();
+    //scale look around speed with the abs(center.y). for 1 -> look around 0, for 0 -> lookaround 1.
+    lookAroundSpeed = lookAroundSpeed * (1- (center.y * center.y));
+
     //if cursor is in the edge, rotate player look at
-    if(cursorPosition.x == 0 || cursorPosition.x == options->getScreenWidth() -1) {
+    if(cursorPosition.x == 0 || cursorPosition.x == options->getScreenWidth() - 1) {
         float xSpeed = 0.02;
         if(cursorPosition.x == 0) {
             xSpeed = -0.02f;
         }
         glm::quat viewChange;
-        viewChange = glm::quat(cos(0.02 * options->getLookAroundSpeed() / 2),
-                               up.x * sin(xSpeed * options->getLookAroundSpeed() / 2),
-                               up.y * sin(xSpeed * options->getLookAroundSpeed() / 2),
-                               up.z * sin(xSpeed * options->getLookAroundSpeed() / 2));
+        viewChange = glm::quat(cos(0.02f * lookAroundSpeed / 2),
+                               up.x * sin(xSpeed * lookAroundSpeed / 2),
+                               up.y * sin(xSpeed * lookAroundSpeed / 2),
+                               up.z * sin(xSpeed * lookAroundSpeed / 2));
         view = viewChange * view * glm::conjugate(viewChange);
         view = glm::normalize(view);
 
         center.x = view.x;
-        if (view.y > 1.0f) {
-            center.y = 0.9999f;
-        } else if (view.y < -1.0f) {
-            center.y = -0.9999f;
+        if (view.y > 0.99f) {
+            center.y = 0.99f;
+        } else if (view.y < -0.99f) {
+            center.y = -0.99f;
         } else {
             center.y = view.y;
         }
@@ -78,24 +82,24 @@ void FreeCursorPlayer::rotate(float xPosition, float yPosition, float xChange __
     }
 
     if(cursorPosition.y == 1 || cursorPosition.y == options->getScreenHeight() ) {//since y was negative, the 1 changes places
-        float ySpeed = -0.02;
+        float ySpeed = -0.02f;
         if(cursorPosition.y == 1) {
             ySpeed = 0.02f;
         }
         glm::quat viewChange;
-        viewChange = glm::quat(cos(0.02 * options->getLookAroundSpeed() / 2),
-                               right.x * sin(ySpeed * options->getLookAroundSpeed() / 2),
-                               right.y * sin(ySpeed * options->getLookAroundSpeed() / 2),
-                               right.z * sin(ySpeed * options->getLookAroundSpeed() / 2));
+        viewChange = glm::quat(cos(0.02f * lookAroundSpeed / 2),
+                               right.x * sin(ySpeed * lookAroundSpeed / 2),
+                               right.y * sin(ySpeed * lookAroundSpeed / 2),
+                               right.z * sin(ySpeed * lookAroundSpeed / 2));
 
         view = viewChange * view * glm::conjugate(viewChange);
         view = glm::normalize(view);
 
         center.x = view.x;
-        if (view.y > 1.0f) {
-            center.y = 0.9999f;
-        } else if (view.y < -1.0f) {
-            center.y = -0.9999f;
+        if (view.y > 0.99f) {
+            center.y = 0.99f;
+        } else if (view.y < -0.99f) {
+            center.y = -0.99f;
         } else {
             center.y = view.y;
         }
