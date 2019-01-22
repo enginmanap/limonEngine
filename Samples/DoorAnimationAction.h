@@ -11,7 +11,6 @@
 class DoorAnimationAction : public TriggerInterface {
     long stateResetTime = 250;
     bool animationRun = false;
-    static TriggerRegister<DoorAnimationAction> reg;
 public:
     DoorAnimationAction(LimonAPI *limonAPI);
 

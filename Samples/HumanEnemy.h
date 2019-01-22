@@ -11,7 +11,6 @@
 #include "API/LimonConverter.h"
 
 class HumanEnemy: public ActorInterface {
-    static ActorRegister<HumanEnemy> reg;
 
     const long PLAYER_SHOOT_TIMEOUT = 1000;
     long playerPursuitStartTime = 0L;

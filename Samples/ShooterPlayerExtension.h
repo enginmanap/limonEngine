@@ -9,8 +9,6 @@
 #include "API/PlayerExtensionInterface.h"
 
 class ShooterPlayerExtension : public  PlayerExtensionInterface {
-    static PlayerExtensionRegister<ShooterPlayerExtension> reg;
-
     static const glm::quat direction;
     glm::vec3 muzzleFlashOffset = glm::vec3(-0.18f,2.85f,0.5750f);
     uint32_t playerAttachedModelID;

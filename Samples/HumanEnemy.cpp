@@ -7,9 +7,6 @@
 #include "HumanEnemy.h"
 #include "CowboyEnemyAI.h"
 
-ActorRegister<HumanEnemy> HumanEnemy::reg("ENEMY_AI_SWAT");
-
-
 void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) {
     if(information.routeReady) {
         this->routeTorequest = information.routeToRequest;

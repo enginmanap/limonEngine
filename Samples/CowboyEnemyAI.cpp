@@ -8,10 +8,6 @@
 #include "CowboyEnemyAI.h"
 #include "API/LimonConverter.h"
 
-
-ActorRegister<CowboyEnemyAI> CowboyEnemyAI::reg("Cowboy Enemy");
-
-
 void CowboyEnemyAI::play(long time, ActorInterface::ActorInformation &information) {
     //first, check the information and decide if a state change is required
     /**

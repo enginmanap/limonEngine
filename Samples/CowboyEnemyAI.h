@@ -25,7 +25,6 @@
  */
 
 class CowboyEnemyAI : public ActorInterface {
-    static ActorRegister<CowboyEnemyAI> reg;
 
     enum class State {
         DEAD,
