@@ -7,7 +7,7 @@
 
 
 #include <random>
-#include "../../API/PlayerExtensionInterface.h"
+#include "API/PlayerExtensionInterface.h"
 
 class WesternMenuPlayerExtension : public PlayerExtensionInterface {
     static PlayerExtensionRegister<WesternMenuPlayerExtension> reg;

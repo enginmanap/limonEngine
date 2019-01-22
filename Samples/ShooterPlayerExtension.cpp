@@ -9,8 +9,8 @@
 #include <glm/gtx/matrix_decompose.hpp>
 
 #include "API/LimonConverter.h"
-#include "Samples/CowboyShooterExtension.h"
-#include "Samples/WesternMenuPlayerExtension.h"
+#include "CowboyShooterExtension.h"
+#include "WesternMenuPlayerExtension.h"
 
 PlayerExtensionRegister<ShooterPlayerExtension> ShooterPlayerExtension::reg("ShooterPlayerExtension");
 

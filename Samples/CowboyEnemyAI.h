@@ -6,7 +6,7 @@
 #define LIMONENGINE_COWBOYENEMYAI_H
 
 
-#include "../../API/ActorInterface.h"
+#include "API/ActorInterface.h"
 #include <random>
 
 /**
