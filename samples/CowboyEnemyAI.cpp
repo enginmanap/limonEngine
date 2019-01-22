@@ -599,37 +599,37 @@ void CowboyEnemyAI::playShootSound(Gun gunType) {
     if(randomValue < 0.33f) {
         switch (gunType) {
             case Gun::PISTOL:
-                limonAPI->playSound("./Data/Sounds/guns/pistol.wav", getPosition(), false);
+                limonAPI->playSound("./Data/Sounds/guns/pistol.wav", getPosition(), false, false);
                 break;
             case Gun::RIFLE:
-                limonAPI->playSound("./Data/Sounds/guns/rifle.wav", getPosition(), false);
+                limonAPI->playSound("./Data/Sounds/guns/rifle.wav", getPosition(), false, false);
                 break;
             case Gun::SHOTGUN:
-                limonAPI->playSound("./Data/Sounds/guns/shotgun.wav", getPosition(), false);
+                limonAPI->playSound("./Data/Sounds/guns/shotgun.wav", getPosition(), false, false);
                 break;
         }
     } else if(randomValue < 0.66f) {
         switch (gunType) {
             case Gun::PISTOL:
-                limonAPI->playSound("./Data/Sounds/guns/pistol2.wav", getPosition(), false);
+                limonAPI->playSound("./Data/Sounds/guns/pistol2.wav", getPosition(), false, false);
                 break;
             case Gun::RIFLE:
-                limonAPI->playSound("./Data/Sounds/guns/rifle2.wav", getPosition(), false);
+                limonAPI->playSound("./Data/Sounds/guns/rifle2.wav", getPosition(), false, false);
                 break;
             case Gun::SHOTGUN:
-                limonAPI->playSound("./Data/Sounds/guns/shotgun2.wav", getPosition(), false);
+                limonAPI->playSound("./Data/Sounds/guns/shotgun2.wav", getPosition(), false, false);
                 break;
         }
     } else {
         switch (gunType) {
             case Gun::PISTOL:
-                limonAPI->playSound("./Data/Sounds/guns/pistol3.wav", getPosition(), false);
+                limonAPI->playSound("./Data/Sounds/guns/pistol3.wav", getPosition(), false, false);
                 break;
             case Gun::RIFLE:
-                limonAPI->playSound("./Data/Sounds/guns/rifle3.wav", getPosition(), false);
+                limonAPI->playSound("./Data/Sounds/guns/rifle3.wav", getPosition(), false, false);
                 break;
             case Gun::SHOTGUN:
-                limonAPI->playSound("./Data/Sounds/guns/shotgun3.wav", getPosition(), false);
+                limonAPI->playSound("./Data/Sounds/guns/shotgun3.wav", getPosition(), false, false);
                 break;
         }
     }

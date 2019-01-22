@@ -400,7 +400,7 @@ public:
 
     bool detachSoundFromObject(uint32_t objectWorldID);
 
-    uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool looped);
+    uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative, bool looped);
 
     std::vector<LimonAPI::ParameterRequest> getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID);
 

@@ -70,8 +70,9 @@ bool LimonAPI::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::str
 bool LimonAPI::detachSoundFromObject(uint32_t objectWorldID){
     return worldDetachSoundFromObject(objectWorldID);
 }
-uint32_t LimonAPI::playSound(const std::string &soundPath, const glm::vec3 &position, bool looped){
-    return worldPlaySound(soundPath, position, looped);
+uint32_t
+LimonAPI::playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative, bool looped) {
+    return worldPlaySound(soundPath, position, positionRelative, looped);
 }
 
 bool LimonAPI::loadAndSwitchWorld(const std::string& worldFileName) {

@@ -30,7 +30,7 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, long ti
     if(inputState.getInputEvents(InputStates::Inputs::MOUSE_BUTTON_LEFT) && inputState.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
         if((limonAPI->getModelAnimationName(playerAttachedModelID) != "Shoot" ||  limonAPI->getModelAnimationFinished(playerAttachedModelID))) {
             limonAPI->setModelAnimation(playerAttachedModelID, "Shoot", false);
-            limonAPI->playSound("./Data/Sounds/EasyFPS/shot.wav", glm::vec3(0,0,0), false);
+            limonAPI->playSound("./Data/Sounds/EasyFPS/shot.wav", glm::vec3(0, 0, 0), false, false);
             glm::vec3 scale(10.0f,10.0f,10.0f);//it is actually 0,1 * 1/baseScale
             if(removeCounter!=0) {
                 limonAPI->removeObject(addedElement);

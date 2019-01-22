@@ -144,7 +144,7 @@ public:
 
     bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath);
     bool detachSoundFromObject(uint32_t objectWorldID);
-    uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool looped);
+    uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative = false, bool looped = false);
 
     bool interactWithAI(uint32_t AIID, std::vector<LimonAPI::ParameterRequest> &interactionInformation);
 
@@ -277,7 +277,7 @@ private:
 
     std::function<bool (uint32_t, const std::string&)> worldAttachSoundToObjectAndPlay;
     std::function<bool (uint32_t)> worldDetachSoundFromObject;
-    std::function<uint32_t (const std::string&, const glm::vec3&, bool)> worldPlaySound;
+    std::function<uint32_t (const std::string&, const glm::vec3&, bool, bool)> worldPlaySound;
 
     std::function<std::vector<ParameterRequest>()> worldRayCastToCursor;
     std::function<bool (uint32_t, std::vector<ParameterRequest>&)> worldInteractWithAI;
