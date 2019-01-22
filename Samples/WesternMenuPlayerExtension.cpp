@@ -5,7 +5,7 @@
 #include <glm/ext.hpp>
 
 #include "WesternMenuPlayerExtension.h"
-#include "../../API/LimonConverter.h"
+#include "API/LimonConverter.h"
 
 PlayerExtensionRegister<WesternMenuPlayerExtension> WesternMenuPlayerExtension::reg("WesternMenuExtension");
 

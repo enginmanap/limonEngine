@@ -5,7 +5,7 @@
 #include <iostream>
 #include <glm/gtx/string_cast.hpp>
 #include "HumanEnemy.h"
-#include "../GamePlay/Samples/CowboyEnemyAI.h"
+#include "CowboyEnemyAI.h"
 
 ActorRegister<HumanEnemy> HumanEnemy::reg("ENEMY_AI_SWAT");
 

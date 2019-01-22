@@ -9,6 +9,7 @@
 #include "API/TriggerInterface.h"
 
 class UpdateGuiTextOnTrigger: public TriggerInterface {
+    static TriggerRegister<UpdateGuiTextOnTrigger> reg;
 public:
     UpdateGuiTextOnTrigger(LimonAPI *limonAPI);
 

@@ -5,6 +5,7 @@
 #include <iostream>
 #include "UpdateGuiTextOnTrigger.h"
 
+TriggerRegister<UpdateGuiTextOnTrigger> UpdateGuiTextOnTrigger::reg("UpdateGuiTextOnTrigger");
 
 
 std::vector<LimonAPI::ParameterRequest> UpdateGuiTextOnTrigger::getParameters() {

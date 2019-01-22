@@ -22,7 +22,8 @@ include(libs/CmakeLists.txt)
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
-set(SOURCE_FILES src/Utils/Logger.cpp src/Utils/Logger.h src/ImGuiHelper.cpp src/ImGuiHelper.h src/main.cpp src/SDL2Helper.cpp src/SDL2Helper.h src/GLHelper.cpp src/GLHelper.h src/GameObjects/Model.cpp src/GameObjects/Model.h src/World.cpp src/World.h src/InputHandler.cpp src/InputHandler.h src/Camera.cpp src/Camera.h src/GameObjects/SkyBox.cpp src/GameObjects/SkyBox.h src/Assets/TextureAsset.cpp src/Assets/TextureAsset.h src/Assets/CubeMapAsset.cpp src/Assets/CubeMapAsset.h src/GLSLProgram.cpp src/GLSLProgram.h src/Renderable.h src/Utils/GLMConverter.cpp src/Utils/GLMConverter.h src/BulletDebugDrawer.cpp src/BulletDebugDrawer.h src/GUI/GUITextBase.cpp src/GUI/GUITextBase.h src/GUI/GUILayer.cpp src/GUI/GUILayer.h src/PhysicalRenderable.cpp src/PhysicalRenderable.h src/GUI/GUIRenderable.cpp src/GUI/GUIRenderable.h src/FontManager.cpp src/FontManager.h src/GUI/GUIFPSCounter.cpp src/GUI/GUIFPSCounter.h src/Utils/AssimpUtils.cpp src/Utils/AssimpUtils.h src/GameObjects/Light.cpp src/GameObjects/Light.h src/Material.cpp src/Material.h src/Assets/AssetManager.cpp src/Assets/AssetManager.h src/Assets/Asset.cpp src/Assets/Asset.h src/Assets/ModelAsset.cpp src/Assets/ModelAsset.h src/Assets/MeshAsset.cpp src/Assets/MeshAsset.h src/Assets/BoneNode.cpp src/Assets/BoneNode.h src/Utils/GLMUtils.h src/Options.h src/GUI/GUITextDynamic.cpp src/GUI/GUITextDynamic.h src/API/ActorInterface.cpp src/AI/AIMovementGrid.cpp src/GameObjects/Players/PhysicalPlayer.cpp src/GameObjects/Players/PhysicalPlayer.h src/CameraAttachment.h src/GameObjects/Players/FreeMovingPlayer.cpp src/GameObjects/Players/FreeMovingPlayer.h src/GameObjects/Players/FreeCursorPlayer.cpp src/GameObjects/Players/FreeCursorPlayer.cpp src/GameObjects/Players/Player.h src/GameObjects/GameObject.h src/WorldLoader.cpp src/WorldLoader.h src/WorldSaver.cpp src/WorldSaver.h src/GameObjects/TriggerObject.cpp src/GameObjects/TriggerObject.h src/Transformation.cpp src/Assets/Animations/AnimationAssimp.h src/Assets/Animations/AnimationAssimp.cpp src/Assets/Animations/AnimationLoader.h src/Assets/Animations/AnimationLoader.cpp src/Assets/Animations/AnimationNode.cpp src/Assets/Animations/AnimationNode.h src/Assets/Animations/AnimationCustom.cpp src/Assets/Animations/AnimationCustom.h src/API/LimonAPI.h src/API/LimonAPI.cpp src/API/TriggerInterface.h src/GamePlay/AnimateOnTrigger.cpp src/GamePlay/AnimateOnTrigger.h src/GamePlay/AddGuiTextOnTrigger.cpp src/GamePlay/AddGuiTextOnTrigger.h src/API/TriggerInterface.cpp src/GamePlay/RemoveGuiTextOnTrigger.h src/GamePlay/RemoveGuiTextOnTrigger.cpp src/AnimationSequencer.cpp src/AnimationSequencer.h src/GUI/GUICursor.cpp src/GUI/GUICursor.h src/GameObjects/GUIText.cpp src/GameObjects/GUIText.h src/Options.cpp src/ALHelper.cpp src/ALHelper.h src/Assets/SoundAsset.cpp src/Assets/SoundAsset.h src/GameObjects/Sound.cpp src/GameObjects/Sound.h src/GamePlay/AddSoundToObject.cpp src/GamePlay/AddSoundToObject.h src/GUI/GUIImageBase.cpp src/GUI/GUIImageBase.h src/GameObjects/GUIImage.cpp src/GameObjects/GUIImage.h src/GameObjects/GUIButton.cpp src/GameObjects/GUIButton.h src/GameObjects/Players/MenuPlayer.cpp src/GameObjects/Players/MenuPlayer.h src/main.h src/GamePlay/ChangeWorldOnTrigger.cpp src/GamePlay/ChangeWorldOnTrigger.h src/GamePlay/QuitGameOnTrigger.cpp src/GamePlay/QuitGameOnTrigger.h src/GamePlay/ReturnPreviousWorldOnTrigger.cpp src/GamePlay/ReturnPreviousWorldOnTrigger.h src/Assets/Animations/AnimationAssimpSection.cpp src/GameObjects/GUIAnimation.cpp src/GameObjects/GUIAnimation.h src/API/PlayerExtensionInterface.cpp src/GameObjects/ModelGroup.cpp src/GameObjects/ModelGroup.h src/PostProcess/QuadRenderBase.cpp src/PostProcess/QuadRenderBase.h src/PostProcess/CombinePostProcess.h src/PostProcess/CombinePostProcess.cpp src/PostProcess/SSAOPostProcess.cpp src/PostProcess/SSAOPostProcess.h src/PostProcess/SSAOBlurPostProcess.cpp src/PostProcess/SSAOBlurPostProcess.h src/Utils/GLMCerealConverters.hpp src/API/InputStates.h src/API/InputStates.cpp src/GamePlay/APISerializer.cpp src/GamePlay/APISerializer.h)
+file(GLOB_RECURSE SOURCE_FILES
+        src/*.cpp)
 
 add_executable(LimonEngine ${SOURCE_FILES})
 
@@ -137,18 +138,17 @@ else()
 ENDIF()
 
 add_library(customTriggers SHARED
-        src/GamePlay/CoinPickUpOnTrigger.cpp
-        src/GamePlay/UpdateGuiTextOnTrigger.cpp
-        src/GamePlay/MayanCoinPickup.cpp
-        src/GamePlay/MayanLever.cpp
-        src/GamePlay/Samples/DoorAnimationAction.cpp
-        src/GamePlay/ShooterPlayerExtension.cpp
-        src/AI/HumanEnemy.cpp
-        src/GamePlay/Samples/CowboyShooterExtension.cpp
-        src/GamePlay/Samples/CowboyEnemyAI.cpp
-        src/GamePlay/Samples/WesternMenuPlayerExtension.cpp
-        src/GamePlay/Samples/WesternMenuPlayerExtension.h
-        src/GamePlay/Samples/KillCowboyPlayer.cpp
+        Samples/CoinPickUpOnTrigger.cpp
+        Samples/MayanCoinPickup.cpp
+        Samples/MayanLever.cpp
+        Samples/DoorAnimationAction.cpp
+        Samples/ShooterPlayerExtension.cpp
+        Samples/HumanEnemy.cpp
+        Samples/CowboyShooterExtension.cpp
+        Samples/CowboyEnemyAI.cpp
+        Samples/WesternMenuPlayerExtension.cpp
+        Samples/WesternMenuPlayerExtension.h
+        Samples/KillCowboyPlayer.cpp
         )
 
 IF (WIN32 AND NOT ( MINGW OR MSYS))

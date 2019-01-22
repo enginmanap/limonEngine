@@ -31,10 +31,10 @@
         <Z>0.5</Z>
     </freeMovementSpeed>
     <lightOrthogonalProjectionValues>
-        <X>-50.0</X>
-        <Y>50.0</Y>
-        <Z>-50.0</Z>
-        <W>50.0</W>
+        <X>-100.0</X>
+        <Y>100.0</Y>
+        <Z>-100.0</Z>
+        <W>100.0</W>
     </lightOrthogonalProjectionValues>
     <SSAOEnabled>True</SSAOEnabled>
     <SSAOSampleCount>9</SSAOSampleCount>

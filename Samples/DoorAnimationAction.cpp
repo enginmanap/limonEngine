@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include "DoorAnimationAction.h"
-#include "../../API/LimonAPI.h"
+#include "API/LimonAPI.h"
 
 TriggerRegister<DoorAnimationAction> DoorAnimationAction::reg("DoorAnimationAction");
 

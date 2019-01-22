@@ -2,12 +2,11 @@
 // Created by engin on 6.06.2018.
 //
 
-#include <GamePlay/Samples/KillCowboyPlayer.h>
+#include "KillCowboyPlayer.h"
 #include "CoinPickUpOnTrigger.h"
-#include "UpdateGuiTextOnTrigger.h"
 #include "MayanCoinPickup.h"
 #include "MayanLever.h"
-#include "Samples/DoorAnimationAction.h"
+#include "DoorAnimationAction.h"
 
 CoinPickUpOnTrigger::CoinPickUpOnTrigger(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}
 
@@ -59,7 +58,6 @@ std::vector<LimonAPI::ParameterRequest> CoinPickUpOnTrigger::getResults() {
 
 void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* triggerMap) {
     (*triggerMap)["CoinPickUpOnTrigger"] = &createT<CoinPickUpOnTrigger>;
-    (*triggerMap)["UpdateGuiTextOnTrigger"] = &createT<UpdateGuiTextOnTrigger>;
     (*triggerMap)["MayanCoinPickup"] = &createT<MayanCoinPickup>;
     (*triggerMap)["MayanLever"] = &createT<MayanLever>;
     (*triggerMap)["DoorAnimationAction"] = &createT<DoorAnimationAction>;
