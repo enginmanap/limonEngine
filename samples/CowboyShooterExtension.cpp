@@ -181,7 +181,7 @@ void CowboyShooterExtension::shootingTransition() {
 
     /*************** Create muzzle flash *********************/
     glm::vec3 scale(0.25f, 0.25f, 0.25f);//it is actually 0,1 * 1/baseScale
-    uint32_t muzzleFlashObjectID = limonAPI->addObject("./Data/Models/Muzzle/Muzzle.obj", 0, false, muzzleFlashOffset, scale, direction);
+    uint32_t muzzleFlashObjectID = limonAPI->addObject("./Data/Models/Muzzle/Muzzle.obj", 0, false, currentMuzzleFlashOffset, scale, direction);
     bool isAttached = limonAPI->attachObjectToObject(muzzleFlashObjectID, playerAttachedPistolID);
     if(!isAttached) {
         std::cerr << "attachment failed!" << std::endl;
@@ -349,14 +349,16 @@ bool CowboyShooterExtension::changeGuns() {
     }
 
     switch(transitionGun) {
-        case Gun::RIFLE:
-            limonAPI->addObjectTranslate(playerAttachedRifleID, addOffset);
-            limonAPI->addObjectTranslate(playerAttachedPistolID, removeOffset);
-        break;
         case Gun::PISTOL:
             limonAPI->addObjectTranslate(playerAttachedPistolID, addOffset);
             limonAPI->addObjectTranslate(playerAttachedRifleID, removeOffset);
+            currentMuzzleFlashOffset = pistolMuzzleFlashOffset;
             break;
+        case Gun::RIFLE:
+            limonAPI->addObjectTranslate(playerAttachedRifleID, addOffset);
+            limonAPI->addObjectTranslate(playerAttachedPistolID, removeOffset);
+            currentMuzzleFlashOffset = rifleMuzzleFlashOffset;
+        break;
     }
     currentGun = transitionGun;
     return true;

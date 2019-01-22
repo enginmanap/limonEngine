@@ -38,7 +38,9 @@ class CowboyShooterExtension : public  PlayerExtensionInterface {
     bool currentAnimationFinished;
 
     const glm::quat direction   = glm::quat(0.0f, 0.0f, 1.0f, 0.0f);//this is used to reverse hit normal
-    glm::vec3 muzzleFlashOffset = glm::vec3(0.010f, 0.173f, 0.844f);
+    const glm::vec3 pistolMuzzleFlashOffset = glm::vec3(0.010f, 0.173f, 0.844f);
+    const glm::vec3 rifleMuzzleFlashOffset = glm::vec3(-4.140f, 44.759f, 8.279f);
+    glm::vec3 currentMuzzleFlashOffset = pistolMuzzleFlashOffset;
     uint32_t playerAttachedModelID;
     uint32_t playerAttachedPistolID;
     uint32_t playerAttachedRifleID;
