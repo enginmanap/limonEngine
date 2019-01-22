@@ -138,17 +138,17 @@ else()
 ENDIF()
 
 add_library(customTriggers SHARED
-        Samples/CoinPickUpOnTrigger.cpp
-        Samples/MayanCoinPickup.cpp
-        Samples/MayanLever.cpp
-        Samples/DoorAnimationAction.cpp
-        Samples/ShooterPlayerExtension.cpp
-        Samples/HumanEnemy.cpp
-        Samples/CowboyShooterExtension.cpp
-        Samples/CowboyEnemyAI.cpp
-        Samples/WesternMenuPlayerExtension.cpp
-        Samples/WesternMenuPlayerExtension.h
-        Samples/KillCowboyPlayer.cpp
+        samples/CoinPickUpOnTrigger.cpp
+        samples/MayanCoinPickup.cpp
+        samples/MayanLever.cpp
+        samples/DoorAnimationAction.cpp
+        samples/ShooterPlayerExtension.cpp
+        samples/HumanEnemy.cpp
+        samples/CowboyShooterExtension.cpp
+        samples/CowboyEnemyAI.cpp
+        samples/WesternMenuPlayerExtension.cpp
+        samples/WesternMenuPlayerExtension.h
+        samples/KillCowboyPlayer.cpp
         )
 
 IF (WIN32 AND NOT ( MINGW OR MSYS))
