@@ -268,7 +268,6 @@ GLHelper::GLHelper(Options *options): options(options) {
     glDepthMask(GL_TRUE);
     glDepthRange(0.0f, 1.0f);
 
-    glEnablei(GL_BLEND, 0);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
@@ -724,7 +723,9 @@ void GLHelper::switchRenderToShadowMapPoint() {
 void GLHelper::switchRenderToDepthPrePass() {
     glViewport(0, 0, screenWidth, screenHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBuffer);
+
     glCullFace(GL_BACK);
+    glDisablei(GL_BLEND, 0);
     checkErrors("switchRenderToDepthPrePass");
 }
 
@@ -767,6 +768,8 @@ void GLHelper::switchRenderToCombining(){
     state->attachTexture(ambientMap, 2);
     state->attachTexture(ssaoBlurredMap,3);
     state->attachTexture(depthMap,4);
+
+    glEnablei(GL_BLEND, 0);
     checkErrors("switchRenderToCombining");
 }
 

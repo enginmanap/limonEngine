@@ -41,6 +41,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
     std::vector<std::shared_ptr<MeshAsset>> assetMeshes = modelAsset->getMeshes();
     static GLSLProgram* animatedProgram = nullptr;
     static GLSLProgram* nonAnimatedProgram = nullptr;
+    static GLSLProgram* nonAnimatedTransparentProgram = nullptr;
 
     for (auto iter = assetMeshes.begin(); iter != assetMeshes.end(); ++iter) {
         meshMeta = new MeshMeta();
@@ -55,15 +56,23 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
             //set up the program to render object
             meshMeta->program = animatedProgram;
             //Now we should find out about bone tree
-
         } else {
             //set up the program to render object without bones
-            if(nonAnimatedProgram == nullptr) {
-                nonAnimatedProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertex.glsl",
-                                                     "./Engine/Shaders/Model/fragment.glsl", true);
-                this->setSamplersAndUBOs(nonAnimatedProgram);
+            if(meshMeta->mesh->getMaterial()->hasOpacityMap()) {
+                if (nonAnimatedTransparentProgram == nullptr) {
+                    nonAnimatedTransparentProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertex.glsl",
+                                                         "./Engine/Shaders/Model/fragmentOpacity.glsl", true);
+                    this->setSamplersAndUBOs(nonAnimatedTransparentProgram);
+                }
+                meshMeta->program = nonAnimatedTransparentProgram;
+            } else {
+                if (nonAnimatedProgram == nullptr) {
+                    nonAnimatedProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertex.glsl",
+                                                         "./Engine/Shaders/Model/fragment.glsl", true);
+                    this->setSamplersAndUBOs(nonAnimatedProgram);
+                }
+                meshMeta->program = nonAnimatedProgram;
             }
-            meshMeta->program = nonAnimatedProgram;
         }
         meshMetaData.push_back(meshMeta);
     }
