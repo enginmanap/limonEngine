@@ -203,6 +203,33 @@ public:
                 std::cerr << "Error setting source position! " << alGetString(error) << std::endl;
                 return;
             }
+        } else {
+            //sound is not found in playing sounds, try to find it in requests
+            //it is possible that play is requested, but not yet started, they should be considered playing too, check it
+            SDL_AtomicLock(&playRequestLock);
+            for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
+                if((*request)->soundID == soundID) {
+                    if(isCameraRelative != (*request)->isPositionRelative) {
+                        if (isCameraRelative) {
+                            alSourcei((*request)->source, AL_SOURCE_RELATIVE, AL_TRUE);
+                        } else {
+                            alSourcei((*request)->source, AL_SOURCE_RELATIVE, AL_FALSE);
+                        }
+                        (*request)->isPositionRelative = isCameraRelative;
+                    }
+
+                    if((*request)->position != soundPosition) {
+                        alSource3f((*request)->source, AL_POSITION, soundPosition.x, soundPosition.y, soundPosition.z);
+
+                        alSource3f((*request)->source, AL_VELOCITY, soundPosition.x - (*request)->position.x,
+                                   soundPosition.y - (*request)->position.y,
+                                   soundPosition.z - (*request)->position.z);
+                        (*request)->position = soundPosition;
+                    }
+                }
+            }
+            SDL_AtomicUnlock(&playRequestLock);
+            return;
         }
     }
 
