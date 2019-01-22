@@ -7,8 +7,6 @@
 #include "WesternMenuPlayerExtension.h"
 #include "API/LimonConverter.h"
 
-PlayerExtensionRegister<WesternMenuPlayerExtension> WesternMenuPlayerExtension::reg("WesternMenuExtension");
-
 void WesternMenuPlayerExtension::processInput(const InputStates &inputHandler [[gnu::unused]], long time) {
     static constexpr float PI = 3.14159265358979f;
 

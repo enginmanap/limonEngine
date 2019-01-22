@@ -12,8 +12,6 @@
 #include "CowboyShooterExtension.h"
 #include "WesternMenuPlayerExtension.h"
 
-PlayerExtensionRegister<ShooterPlayerExtension> ShooterPlayerExtension::reg("ShooterPlayerExtension");
-
 const glm::quat ShooterPlayerExtension::direction = glm::quat(0.0f, 0.0f, 1.0f, 0.0f);//this is used to reverse hit normal
 
 void ShooterPlayerExtension::processInput(const InputStates &inputState, long time [[gnu::unused]]) {

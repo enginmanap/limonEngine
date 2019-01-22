@@ -6,8 +6,6 @@
 #include "DoorAnimationAction.h"
 #include "API/LimonAPI.h"
 
-TriggerRegister<DoorAnimationAction> DoorAnimationAction::reg("DoorAnimationAction");
-
 std::vector<LimonAPI::ParameterRequest> DoorAnimationAction::getParameters() {
     std::vector<LimonAPI::ParameterRequest> parameters;
     LimonAPI::ParameterRequest param1;

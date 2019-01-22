@@ -10,7 +10,6 @@
 #include "API/PlayerExtensionInterface.h"
 
 class WesternMenuPlayerExtension : public PlayerExtensionInterface {
-    static PlayerExtensionRegister<WesternMenuPlayerExtension> reg;
     std::uniform_real_distribution<float> randomFloatsDirection; // generates random floats between 0.0 and 1.0
     std::uniform_real_distribution<float> randomFloatsSpeed; // generates random floats between 0.3 and 1.0
     std::default_random_engine generator;

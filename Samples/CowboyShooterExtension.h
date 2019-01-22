@@ -16,8 +16,6 @@
  * 4) shooting
  */
 class CowboyShooterExtension : public  PlayerExtensionInterface {
-    static PlayerExtensionRegister<CowboyShooterExtension> reg;
-
     enum class State {
         IDLE,
         WALKING,

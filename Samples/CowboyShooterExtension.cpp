@@ -9,8 +9,6 @@
 
 #include "API/LimonConverter.h"
 
-PlayerExtensionRegister<CowboyShooterExtension> CowboyShooterExtension::reg("CowboyShooterExtension");
-
 void CowboyShooterExtension::processInput(const InputStates &inputState, long time [[gnu::unused]]) {
     if (playerAttachedModelID == 0) {
         return;
