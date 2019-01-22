@@ -97,7 +97,7 @@ bool MayanCoinPickup::run(std::vector<LimonAPI::ParameterRequest> parameters) {
     limonAPI->animateModel(parameters[5].value.longValue, parameters[6].value.longValue, false, nullptr);
 
     std::string coinPickupSound = "./Data/Sounds/coinPickup.wav";
-    limonAPI->playSound(coinPickupSound, glm::vec3(0,0,0), false);
+    limonAPI->playSound(coinPickupSound, glm::vec3(0, 0, 0), false, false);
 
     if(parameters.size() == 8) {
         std::string text = parameters[7].value.stringValue;

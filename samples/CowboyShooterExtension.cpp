@@ -169,11 +169,11 @@ void CowboyShooterExtension::shootingTransition() {
     switch(currentGun) {
         case Gun::PISTOL:
             limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Shooting|", false, 50);
-            limonAPI->playSound("./Data/Sounds/guns/pistol3.wav", glm::vec3(0,0,0), false);
+            limonAPI->playSound("./Data/Sounds/guns/pistol3.wav", glm::vec3(0, 0, 0), true, false);
             break;
         case Gun::RIFLE:
             limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "Shoot Rifle|", false, 50);
-            limonAPI->playSound("./Data/Sounds/guns/rifle.wav", glm::vec3(0,0,0), false);
+            limonAPI->playSound("./Data/Sounds/guns/rifle.wav", glm::vec3(0, 0, 0), true, false);
             break;
     }
 
