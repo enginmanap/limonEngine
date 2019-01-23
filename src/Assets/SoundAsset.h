@@ -35,6 +35,10 @@ public:
     const int16_t *getSoundData() const {
         return soundData;
     }
+
+    const std::string& getName() const {
+        return name;
+    }
 };
 
 
