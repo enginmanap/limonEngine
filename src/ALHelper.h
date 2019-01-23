@@ -228,26 +228,13 @@ public:
             SDL_AtomicLock(&playRequestLock);
             for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
                 if((*request)->soundID == soundID) {
-                    if(isCameraRelative != (*request)->isPositionRelative) {
-                        if (isCameraRelative) {
-                            alSourcei((*request)->source, AL_SOURCE_RELATIVE, AL_TRUE);
-                        } else {
-                            alSourcei((*request)->source, AL_SOURCE_RELATIVE, AL_FALSE);
-                        }
-                        (*request)->isPositionRelative = isCameraRelative;
-                    }
-
-                    if((*request)->position != soundPosition) {
-                        alSource3f((*request)->source, AL_POSITION, soundPosition.x, soundPosition.y, soundPosition.z);
-
-                        alSource3f((*request)->source, AL_VELOCITY, soundPosition.x - (*request)->position.x,
-                                   soundPosition.y - (*request)->position.y,
-                                   soundPosition.z - (*request)->position.z);
-                        (*request)->position = soundPosition;
-                    }
+                    (*request)->isPositionRelative = isCameraRelative;
+                    (*request)->position = soundPosition;
+                    break;
                 }
             }
             SDL_AtomicUnlock(&playRequestLock);
+
             return;
         }
     }

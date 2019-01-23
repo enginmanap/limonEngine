@@ -40,10 +40,13 @@ void Sound::play() {
             if (!assetManager->getAlHelper()->isPlaying(soundHandleID)) {//don't play if already playing
                 soundHandleID = assetManager->getAlHelper()->play(assetManager->loadAsset<SoundAsset>({this->name}),
                                                                   this->looped, gain);
+                assetManager->getAlHelper()->setSourcePosition(soundHandleID, this->listenerRelative, this->position);
             }
         } else {
             soundHandleID = assetManager->getAlHelper()->play(assetManager->loadAsset<SoundAsset>({this->name}),
                                                               this->looped, gain);
+            assetManager->getAlHelper()->setSourcePosition(soundHandleID, this->listenerRelative, this->position);
+
         }
         this->playState = State::PLAYING;
     }
@@ -68,8 +71,9 @@ void Sound::stopAfterFinish() {
 void Sound::setWorldPosition(glm::vec3 position, bool listenerRelative) {
     this->position = position;
     this->listenerRelative = listenerRelative;
-
-    assetManager->getAlHelper()->setSourcePosition(soundHandleID, this->listenerRelative, this->position);
+    if(this->soundHandleID != 0) {
+        assetManager->getAlHelper()->setSourcePosition(soundHandleID, this->listenerRelative, this->position);
+    }
 }
 
 Sound::~Sound() {

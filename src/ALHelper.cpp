@@ -169,7 +169,16 @@ bool ALHelper::startPlay(std::unique_ptr<PlayingSound> &sound) {
 
     alSourcef(sound->source,AL_GAIN,sound->gain);
 
-    if(alGetError() != AL_NO_ERROR) {
+    if (sound->isPositionRelative) {
+        alSourcei(sound->source, AL_SOURCE_RELATIVE, AL_TRUE);
+    } else {
+        alSourcei(sound->source, AL_SOURCE_RELATIVE, AL_FALSE);
+    }
+
+    alSource3f(sound->source, AL_POSITION, sound->position.x, sound->position.y, sound->position.z);
+
+    ALenum error = alGetError();
+    if(error != AL_NO_ERROR) {
         std::cerr << "Audio buffer setup failed!" << std::endl;
         return false;
     }
