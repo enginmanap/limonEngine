@@ -51,7 +51,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
             if(animatedProgram == nullptr) {
                 animatedProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertexAnimated.glsl",
                                                  "./Engine/Shaders/Model/fragment.glsl", true);
-                this->setSamplersAndUBOs(animatedProgram);
+                this->setSamplersAndUBOs(animatedProgram, false);
             }
             //set up the program to render object
             meshMeta->program = animatedProgram;
@@ -62,14 +62,14 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
                 if (nonAnimatedTransparentProgram == nullptr) {
                     nonAnimatedTransparentProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertex.glsl",
                                                          "./Engine/Shaders/Model/fragmentOpacity.glsl", true);
-                    this->setSamplersAndUBOs(nonAnimatedTransparentProgram);
+                    this->setSamplersAndUBOs(nonAnimatedTransparentProgram, true);
                 }
                 meshMeta->program = nonAnimatedTransparentProgram;
             } else {
                 if (nonAnimatedProgram == nullptr) {
                     nonAnimatedProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertex.glsl",
                                                          "./Engine/Shaders/Model/fragment.glsl", true);
-                    this->setSamplersAndUBOs(nonAnimatedProgram);
+                    this->setSamplersAndUBOs(nonAnimatedProgram, false);
                 }
                 meshMeta->program = nonAnimatedProgram;
             }
@@ -207,7 +207,7 @@ void Model::activateTexturesOnly(std::shared_ptr<const Material>material) {
     }
 }
 
-void Model::setSamplersAndUBOs(GLSLProgram *program) {
+void Model::setSamplersAndUBOs(GLSLProgram *program, bool setOpacity) {
     if (!program->setUniform("diffuseSampler", diffuseMapAttachPoint)) {
         std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
     }
@@ -217,8 +217,10 @@ void Model::setSamplersAndUBOs(GLSLProgram *program) {
     if (!program->setUniform("specularSampler", specularMapAttachPoint)) {
         std::cerr << "Uniform \"specularSampler\" could not be set" << std::endl;
     }
-    if (!program->setUniform("opacitySampler", opacityMapAttachPoint)) {
-        std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
+    if(setOpacity) {
+        if (!program->setUniform("opacitySampler", opacityMapAttachPoint)) {
+            std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
+        }
     }
     if (!program->setUniform("normalSampler", normalMapAttachPoint)) {
         std::cerr << "Uniform \"normalSampler\" could not be set" << std::endl;

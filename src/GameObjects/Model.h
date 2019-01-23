@@ -91,7 +91,7 @@ public:
         glHelper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
     }
 
-    void setSamplersAndUBOs(GLSLProgram *program);
+    void setSamplersAndUBOs(GLSLProgram *program, bool setOpacity);
     void activateTexturesOnly(std::shared_ptr<const Material> material);
 
     bool setupRenderVariables(MeshMeta *meshMetaData);
