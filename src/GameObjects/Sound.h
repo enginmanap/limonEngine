@@ -47,8 +47,7 @@ public:
 
     bool changeGain(float gain);
 
-    void setWorldPosition(glm::vec3 position, bool listenerRelative);
-    void setWorldPosition(glm::vec3 position) { setWorldPosition(position, false);};
+    void setWorldPosition(glm::vec3 position, bool listenerRelative = false);
 
     /** Game object methods */
     GameObject::ObjectTypes getTypeID() const {
