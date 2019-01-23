@@ -742,36 +742,7 @@ void World::render() {
             (*animatedModelIterator)->renderWithProgramInstanced(temp,*shadowMapProgramPoint);
         }
     }
-    /**************** DEPTH PREPASS ********************************************************/
 
-    glHelper->switchRenderToDepthPrePass();
-    for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
-        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-        std::set<Model*> modelSet = modelIterator->second;
-        modelIndicesBuffer.clear();
-        Model* sampleModel = nullptr;
-        for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
-            //all of these models will be rendered
-            modelIndicesBuffer.push_back((*model)->getWorldObjectID());
-            sampleModel = *model;
-        }
-        if(sampleModel != nullptr) {
-            sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *depthBufferProgram);
-        }
-    }
-
-    for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
-        std::vector<uint32_t > temp;
-        temp.push_back((*modelIterator)->getWorldObjectID());
-        (*modelIterator)->renderWithProgramInstanced(temp, *depthBufferProgram);
-    }
-
-    if(!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attched model if dead
-        Model* attachedModel = startingPlayer.attachedModel;
-        renderPlayerAttachments(attachedModel);
-    }
-
-    /************** END OF DEPTH PREPASS ********************************************************/
     glHelper->switchRenderToColoring();
     if(sky!=nullptr) {
         sky->render();//this is moved to the top, because transparency can create issues if this is at the end

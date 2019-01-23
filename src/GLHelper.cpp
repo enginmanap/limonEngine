@@ -394,27 +394,7 @@ GLHelper::GLHelper(Options *options): options(options) {
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    //create prepass depth
-    glGenFramebuffers(1, &depthOnlyFrameBuffer);
-    glGenTextures(1, &depthMap);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, screenWidth, screenHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
     // Create default framebuffer with normal map extraction
-
     glGenFramebuffers(1, &coloringFrameBuffer);
     glGenTextures(1, &normalMap);
     glBindTexture(GL_TEXTURE_2D, normalMap);
@@ -449,15 +429,23 @@ GLHelper::GLHelper(Options *options): options(options) {
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     glBindTexture(GL_TEXTURE_2D, 0);
 
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, screenWidth, screenHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
     glBindFramebuffer(GL_FRAMEBUFFER, coloringFrameBuffer);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, diffuseAndSpecularLightedMap, 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ambientMap, 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, normalMap, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
 
-    glGenRenderbuffers(1, &rboDepth);
-    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, screenWidth, screenHeight);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
     unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
     glDrawBuffers(3, attachments);
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -720,15 +708,6 @@ void GLHelper::switchRenderToShadowMapPoint() {
     checkErrors("switchRenderToShadowMapPoint");
 }
 
-void GLHelper::switchRenderToDepthPrePass() {
-    glViewport(0, 0, screenWidth, screenHeight);
-    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBuffer);
-
-    glCullFace(GL_BACK);
-    glDisablei(GL_BLEND, 0);
-    checkErrors("switchRenderToDepthPrePass");
-}
-
 void GLHelper::switchRenderToColoring() {
     glViewport(0, 0, screenWidth, screenHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, coloringFrameBuffer);
@@ -738,6 +717,8 @@ void GLHelper::switchRenderToColoring() {
     state->attachCubemapArray(depthCubemapPoint, maxTextureImageUnits - 2);
     state->attachTexture(depthMap, maxTextureImageUnits - 3);
     state->attachTexture(noiseTexture, maxTextureImageUnits - 4);
+
+    glDisablei(GL_BLEND, 0);
     glCullFace(GL_BACK);
     checkErrors("switchRenderToColoring");
 }
@@ -915,7 +896,11 @@ GLHelper::~GLHelper() {
     deleteBuffer(1, depthMap);
     glDeleteFramebuffers(1, &depthOnlyFrameBufferDirectional); //maybe we should wrap this up too
     glDeleteFramebuffers(1, &depthOnlyFrameBufferPoint);
-    glDeleteFramebuffers(1, &depthOnlyFrameBuffer);
+    glDeleteFramebuffers(1, &coloringFrameBuffer);
+    glDeleteFramebuffers(1, &ssaoGenerationFrameBuffer);
+    glDeleteFramebuffers(1, &ssaoBlurFrameBuffer);
+    glDeleteFramebuffers(1, &combineFrameBuffer);
+
     //state->setProgram(0);
 }
 
