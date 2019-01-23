@@ -302,7 +302,7 @@ bool ALHelper::setLooped(uint32_t soundID, bool looped) {
         SDL_AtomicLock(&playRequestLock);
         for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
             if((*request)->soundID == soundID) {
-                this->playRequests.erase(request);
+                (*request)->looped = looped;
                 result = true;
                 break;
             }
