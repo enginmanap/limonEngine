@@ -12,6 +12,7 @@
 #include <BulletCollision/CollisionShapes/btTriangleMesh.h>
 #include <BulletCollision/CollisionShapes/btShapeHull.h>
 #include <cstdint>
+#include <map>
 #include <unordered_map>
 #ifdef CEREAL_SUPPORT
 #include <cereal/access.hpp>
@@ -59,7 +60,7 @@ class ModelAsset : public Asset {
     };
 
     std::string name;
-    std::unordered_map<std::string, std::shared_ptr<AnimationInterface>> animations;//shared for animation sections
+    std::map<std::string, std::shared_ptr<AnimationInterface>> animations;//shared for animation sections
     std::shared_ptr<BoneNode> rootNode = nullptr;//bones are shared with meshes
     int_fast32_t boneIDCounter, boneIDCounterPerMesh;
 
@@ -184,7 +185,7 @@ public:
 
     void fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimations, const std::string &animationNamePrefix = "");
 
-    const std::unordered_map<std::string, std::shared_ptr<AnimationInterface>> &getAnimations() const {
+    const std::map<std::string, std::shared_ptr<AnimationInterface>> &getAnimations() const {
         return animations;
     }
 
