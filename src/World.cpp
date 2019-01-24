@@ -2488,7 +2488,7 @@ void World::setupForPlay(InputHandler &inputHandler) {
         alHelper->resumePlay();
         if(this->music != nullptr) {
             //on world change, the music is stopped. If we are returning, we should start it again
-            if (this->music->getState() == Sound::State::STOPPED) {
+            if (this->music->getState() == Sound::State::PAUSED) {
                 this->music->resume();
             }
         }

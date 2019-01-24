@@ -46,7 +46,7 @@ int ALHelper::soundManager() {
             running = false;
         } else if(resumed) {
             for (auto iterator = playingSounds.begin(); iterator != playingSounds.end();++iterator) {
-                if(!iterator->second->stopped) {//don't start stopped sounds.
+                if(!iterator->second->stopped && !iterator->second->paused) {//don't start stopped sounds.
                     alSourcePlay(iterator->second->source);
                 }
             }
@@ -315,7 +315,7 @@ bool ALHelper::PlayingSound::isFinished() {
     if ((error = alGetError()) != AL_NO_ERROR) {
         std::cerr << "Error checking is finished! " << alGetString(error) << std::endl;
     }
-    return source_state != AL_PLAYING;
+    return !(source_state == AL_PLAYING || source_state == AL_PAUSED);
 }
 
 ALHelper::PlayingSound::~PlayingSound() {
