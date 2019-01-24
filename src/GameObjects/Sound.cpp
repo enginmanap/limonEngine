@@ -58,6 +58,16 @@ void Sound::stop() {
     soundHandleID = 0;
 }
 
+void Sound::pause() {
+    assetManager->getAlHelper()->pause(soundHandleID);
+    this->playState = State::PAUSED;
+}
+
+void Sound::resume() {
+    assetManager->getAlHelper()->resume(soundHandleID);
+    this->playState = State::PLAYING;
+}
+
 void Sound::stopAfterFinish() {
     if(soundHandleID != 0 && this->playState == State::PLAYING) {
         if (!assetManager->getAlHelper()->setLooped(soundHandleID, false)) {

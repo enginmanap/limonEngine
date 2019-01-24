@@ -2489,7 +2489,7 @@ void World::setupForPlay(InputHandler &inputHandler) {
         if(this->music != nullptr) {
             //on world change, the music is stopped. If we are returning, we should start it again
             if (this->music->getState() == Sound::State::STOPPED) {
-                this->music->play();
+                this->music->resume();
             }
         }
     } else {
@@ -2525,7 +2525,7 @@ void World::setupForPlay(InputHandler &inputHandler) {
 
 void World::setupForPauseOrStop() {
     if(this->music != nullptr) {
-        this->music->stop();
+        this->music->pause();
     }
 }
 

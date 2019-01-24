@@ -38,6 +38,7 @@ class ALHelper {
         float gain;
         const int16_t *nextDataToBuffer;
         bool looped;
+        bool paused = false;
         bool stopped = false;
         glm::vec3 position = glm::vec3(0,0,0);
         bool isPositionRelative = true;
@@ -167,6 +168,8 @@ public:
     }
 
     bool stop(uint32_t soundID);
+    bool pause(uint32_t soundID);
+    bool resume(uint32_t soundID);
 
     inline void setListenerPositionAndOrientation(const glm::vec3 &position, const glm::vec3 &front, const glm::vec3 &up) {
         glm::vec3 velocity = this->ListenerPosition - position;

@@ -148,6 +148,62 @@ bool ALHelper::stop(uint32_t soundID) {
     }
 }
 
+bool ALHelper::pause(uint32_t soundID) {
+    if(playingSounds.find(soundID) != playingSounds.end()) {
+        std::unique_ptr<PlayingSound>& sound = playingSounds[soundID];
+        removeSoundLock.lock();
+        alSourcePause(sound->source);
+        sound->paused = true;
+        removeSoundLock.unlock();
+        ALenum error;
+        if ((error = alGetError()) != AL_NO_ERROR) {
+            std::cerr << "Pause source failed! " << alGetString(error) << std::endl;
+            return false;
+        }
+        return true;
+    } else {
+        bool result = false;
+        SDL_AtomicLock(&playRequestLock);
+        for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
+            if((*request)->soundID == soundID) {
+                (*request)->paused = true;
+                result = true;
+                break;
+            }
+        }
+        SDL_AtomicUnlock(&playRequestLock);
+        return result;
+    }
+}
+
+bool ALHelper::resume(uint32_t soundID) {
+    if(playingSounds.find(soundID) != playingSounds.end()) {
+        std::unique_ptr<PlayingSound>& sound = playingSounds[soundID];
+        removeSoundLock.lock();
+        alSourcePlay(sound->source);
+        sound->paused = false;
+        removeSoundLock.unlock();
+        ALenum error;
+        if ((error = alGetError()) != AL_NO_ERROR) {
+            std::cerr << "Pause source failed! " << alGetString(error) << std::endl;
+            return false;
+        }
+        return true;
+    } else {
+        bool result = false;
+        SDL_AtomicLock(&playRequestLock);
+        for (auto request = playRequests.begin(); request != playRequests.end(); ++request) {
+            if((*request)->soundID == soundID) {
+                (*request)->paused = false;
+                result = true;
+                break;
+            }
+        }
+        SDL_AtomicUnlock(&playRequestLock);
+        return result;
+    }
+}
+
 uint32_t ALHelper::play(const SoundAsset *soundAsset, bool looped, float gain) {
     uint32_t id = getNextRequestID();
     auto sound = std::unique_ptr<PlayingSound>(new PlayingSound(id));
@@ -160,7 +216,6 @@ uint32_t ALHelper::play(const SoundAsset *soundAsset, bool looped, float gain) {
     SDL_AtomicUnlock(&playRequestLock);
     return id;
 }
-
 
 bool ALHelper::startPlay(std::unique_ptr<PlayingSound> &sound) {
 
@@ -200,7 +255,9 @@ bool ALHelper::startPlay(std::unique_ptr<PlayingSound> &sound) {
     }
 
     alSourceQueueBuffers(sound->source, NUM_BUFFERS, sound->buffers);
-    alSourcePlay(sound->source);
+    if(!sound->paused) {
+        alSourcePlay(sound->source);
+    }
     if(alGetError() != AL_NO_ERROR) {
         std::cerr << "Error starting sound playback" << std::endl;
 
