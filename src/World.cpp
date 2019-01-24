@@ -2486,6 +2486,12 @@ void World::setupForPlay(InputHandler &inputHandler) {
     }
     if(currentPlayersSettings->audioPlaying) {
         alHelper->resumePlay();
+        if(this->music != nullptr) {
+            //on world change, the music is stopped. If we are returning, we should start it again
+            if (this->music->getState() == Sound::State::STOPPED) {
+                this->music->play();
+            }
+        }
     } else {
         alHelper->pausePlay();
     }
@@ -2514,6 +2520,12 @@ void World::setupForPlay(InputHandler &inputHandler) {
         guiPickMode = true;
     } else {
         guiPickMode = false;
+    }
+}
+
+void World::setupForPauseOrStop() {
+    if(this->music != nullptr) {
+        this->music->stop();
     }
 }
 

@@ -29,6 +29,9 @@ bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
         delete loadedWorlds[worldFile].second;
         delete loadedWorlds[worldFile].first;
     }
+    if(currentWorld != nullptr) {
+        currentWorld->setupForPauseOrStop();
+    }
     currentWorld = newWorld;
     currentWorld->setupForPlay(*inputHandler);
     loadedWorlds[worldFile].first = currentWorld;
@@ -49,7 +52,13 @@ void GameEngine::renderLoadingImage() const {
 
 bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
     if(loadedWorlds.find(worldFile) != loadedWorlds.end()) {
-        currentWorld = loadedWorlds[worldFile].first;
+        if(currentWorld != loadedWorlds[worldFile].first) {
+            if (currentWorld != nullptr) {
+                currentWorld->setupForPauseOrStop();
+            }
+            currentWorld = loadedWorlds[worldFile].first;
+        }
+
     } else { //world is not in the map case
         renderLoadingImage();
         LimonAPI* apiInstance = getNewLimonAPI();
@@ -57,6 +66,9 @@ bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
         if(newWorld == nullptr) {
             delete apiInstance;
             return false;
+        }
+        if (currentWorld != nullptr) {
+            currentWorld->setupForPauseOrStop();
         }
         currentWorld = newWorld;
         loadedWorlds[worldFile].first = currentWorld;
@@ -95,6 +107,9 @@ bool GameEngine::LoadNewAndRemoveCurrent(const std::string &worldFile) {
 void GameEngine::returnPreviousMap() {
     if(returnWorldStack.size() >1) {
         returnWorldStack.pop_back();
+        if (currentWorld != nullptr) {
+            currentWorld->setupForPauseOrStop();
+        }
         currentWorld = returnWorldStack[returnWorldStack.size()-1];
         currentWorld->setupForPlay(*inputHandler);
     }
@@ -169,6 +184,11 @@ void GameEngine::run() {
 
 GameEngine::~GameEngine() {
 
+    for (auto iterator = loadedWorlds.begin(); iterator != loadedWorlds.end(); ++iterator) {
+        delete iterator->second.first;//delete world
+        delete iterator->second.second;//delete API
+    }
+
     delete worldLoader;
 
     delete inputHandler;
@@ -180,10 +200,7 @@ GameEngine::~GameEngine() {
 
     delete options;
 
-    for (auto iterator = loadedWorlds.begin(); iterator != loadedWorlds.end(); ++iterator) {
-        delete iterator->second.first;//delete world
-        delete iterator->second.second;//delete API
-    }
+
 }
 
 int main(int argc, char *argv[]) {

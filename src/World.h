@@ -461,6 +461,8 @@ public:
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);
 
+    void setupForPauseOrStop();
+
     void checkAndRunTimedEvents();
 
     void animateCustomAnimations();
