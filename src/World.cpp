@@ -2716,14 +2716,6 @@ void World::addGUIButtonControls() {
    }
 
 void World::addGUILayerControls() {
-    /**
-     * we need these set:
-     * 1) font
-     * 2) font size
-     * 3) name
-     *
-     */
-
     static  int32_t levelSlider = 0;
     ImGui::DragInt("Layer level", &levelSlider, 1, 1, 128);
     if (ImGui::Button("Add GUI Layer")) {
