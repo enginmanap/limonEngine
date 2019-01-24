@@ -108,8 +108,8 @@ GUIImage *GUIImage::deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetMa
         uint32_t id = std::stoi(GUIRenderableAttribute->GetText());
 
         GUIRenderableAttribute = GUIRenderableNode->FirstChildElement("Name");
-        if (GUIRenderableAttribute == nullptr) {
-            std::cerr << "GUI renderable must have a name. Skipping" << std::endl;
+        if (GUIRenderableAttribute == nullptr || GUIRenderableAttribute->GetText() == nullptr) {
+            std::cerr << "GUI renderable with id "<< id << " doesn't have a name. Skipping" << std::endl;
             return nullptr;
         }
         std::string name = GUIRenderableAttribute->GetText();
