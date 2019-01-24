@@ -32,9 +32,8 @@ class GameEngine {
     InputHandler* inputHandler = nullptr;
     AssetManager* assetManager = nullptr;
     SDL2Helper* sdlHelper = nullptr;
-    LimonAPI* limonAPI = nullptr;
 
-    std::unordered_map<std::string, World*> loadedWorlds;
+    std::unordered_map<std::string, std::pair<World*, LimonAPI*>> loadedWorlds;
     std::vector<World*> returnWorldStack;//stack doesn't have clear, so I am using vector
     GUIImage* loadingImage = nullptr;
     uint32_t previousTime = 0;
@@ -57,6 +56,8 @@ public:
     void run();
 
     void renderLoadingImage() const;
+
+    LimonAPI *getNewLimonAPI();
 };
 
 
