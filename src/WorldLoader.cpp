@@ -929,16 +929,24 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
                 std::string name;
                 if(typeName == "GUIText") {
                     element = GUIText::deserialize(GUIElementNode, glHelper, &world->fontManager, options);
-                    name = static_cast<GUIText*>(element)->getName();
+                    if(element != nullptr) {
+                        name = static_cast<GUIText*>(element)->getName();
+                    }
                 } else if(typeName == "GUIImage") {
                     element = GUIImage::deserialize(GUIElementNode, assetManager, options);
-                    name = static_cast<GUIImage*>(element)->getName();
+                    if(element != nullptr) {
+                        name = static_cast<GUIImage *>(element)->getName();
+                    }
                 } else if(typeName == "GUIButton") {
                     element = GUIButton::deserialize(GUIElementNode, assetManager, options, world->apiInstance);
-                    name = static_cast<GUIButton*>(element)->getName();
+                    if(element != nullptr) {
+                        name = static_cast<GUIButton *>(element)->getName();
+                    }
                 } else if(typeName == "GUIAnimation") {
                     element = GUIAnimation::deserialize(GUIElementNode, assetManager, options);
-                    name = static_cast<GUIAnimation*>(element)->getName();
+                    if(element != nullptr) {
+                        name = static_cast<GUIAnimation *>(element)->getName();
+                    }
                 }
 
                 if(element != nullptr) {
