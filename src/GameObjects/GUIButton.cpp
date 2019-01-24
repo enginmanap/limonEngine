@@ -16,7 +16,7 @@ GUIButton::GUIButton(uint32_t worldID, AssetManager *assetManager, LimonAPI *lim
         : GUIImageBase(
         assetManager->getGlHelper(), assetManager, imageFiles[0]), worldID(worldID), name(name), limonAPI(limonAPI) {
     this->imageFiles = imageFiles;
-    this->images[0] = this->image;
+    this->images.push_back(this->image);
     strncpy(GUINameBuffer, this->name.c_str(), sizeof(GUINameBuffer) - 1);
     strncpy(GUIFileNameBuffer[0], this->imageFiles[0].c_str(), sizeof(GUIFileNameBuffer[0]));
 

@@ -24,7 +24,7 @@ class GUIButton : public GUIImageBase, public GameObject{
     //ATTENTION don't use imageFile variable use this one
     std::vector<std::string> imageFiles;
     //ATTENTION don't use image variable, use this one
-    std::vector<TextureAsset *> images = {0};
+    std::vector<TextureAsset *> images;
 
     LimonAPI* limonAPI;
     TriggerInterface* onClickTriggerCode = nullptr;
