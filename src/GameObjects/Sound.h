@@ -43,6 +43,9 @@ public:
 
     void stop();
 
+    void pause();
+    void resume();
+
     void stopAfterFinish();
 
     bool changeGain(float gain);
