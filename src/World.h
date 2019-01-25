@@ -152,13 +152,16 @@ private:
     };
 
     enum collisiontypes {
-        COLLIDE_NOTHING         = 0, //Collide with nothing
-        COLLIDE_EVERYTHING      = 1 << 0, //Pick object etc needs to collide everything
-        COLLIDE_MODELS          = 1 << 1, //Collide with All Models
-        COLLIDE_PLAYER          = 1 << 2, //Collide with Player
-        COLLIDE_AI              = 1 << 3, //Collide with Only AI driven Models
-        COLLIDE_TRIGGER_VOLUME  = 1 << 4, //Collide with Triggers
-
+        COLLIDE_NOTHING          = 0, //Collide with nothing
+        COLLIDE_EVERYTHING       = 1 << 0, //Pick object etc needs to collide everything
+        COLLIDE_MODELS           = 1 << 1, //Collide with All Models
+        COLLIDE_PLAYER           = 1 << 2, //Collide with Player
+        COLLIDE_AI               = 1 << 3, //Collide with Only AI driven Models
+        COLLIDE_TRIGGER_VOLUME   = 1 << 4, //Collide with Triggers
+        COLLIDE_STATIC_MODELS    = 1 << 5, //Collide with All Models
+        COLLIDE_KINEMATIC_MODELS = 1 << 6, //Collide with All Models
+        COLLIDE_DYNAMIC_MODELS   = 1 << 7, //Collide with All Models
+        COLLIDE_END_ELEMENT      = -1
     };
 
     friend class WorldLoader;

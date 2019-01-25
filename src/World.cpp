@@ -1780,7 +1780,21 @@ bool World::addModelToWorld(Model *xmlModel) {
         disconnectedModels.insert(xmlModel->getWorldObjectID());
         dynamicsWorld->removeRigidBody(xmlModel->getRigidBody());
     } else {
-        dynamicsWorld->addRigidBody(xmlModel->getRigidBody(), COLLIDE_MODELS, COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
+        if(xmlModel->isAnimated()) {
+            dynamicsWorld->addRigidBody(xmlModel->getRigidBody(), COLLIDE_MODELS | COLLIDE_KINEMATIC_MODELS,
+                                        COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
+        } else {
+            if(xmlModel->getRigidBody()->isStaticObject()) {
+                dynamicsWorld->addRigidBody(xmlModel->getRigidBody(), COLLIDE_MODELS | COLLIDE_STATIC_MODELS,
+                                            COLLIDE_DYNAMIC_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
+            } else if(xmlModel->getRigidBody()->isKinematicObject()) {
+                dynamicsWorld->addRigidBody(xmlModel->getRigidBody(), COLLIDE_MODELS | COLLIDE_KINEMATIC_MODELS,
+                                            COLLIDE_DYNAMIC_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
+            } else {
+                dynamicsWorld->addRigidBody(xmlModel->getRigidBody(), COLLIDE_MODELS | COLLIDE_DYNAMIC_MODELS,
+                                            COLLIDE_MODELS | COLLIDE_PLAYER | COLLIDE_EVERYTHING);
+            }
+        }
     }
     btVector3 aabbMin, aabbMax;
     xmlModel->getRigidBody()->getAabb(aabbMin, aabbMax);
@@ -1829,7 +1843,7 @@ void World::createGridFrom(const glm::vec3 &aiGridStartPoint) {
         grid = AIMovementGrid::deserialize(AIWalkName);
         if (grid == nullptr) {
             grid = new AIMovementGrid(aiGridStartPoint, dynamicsWorld, worldAABBMin, worldAABBMax, COLLIDE_PLAYER,
-                                      COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING);
+                                      COLLIDE_STATIC_MODELS | COLLIDE_EVERYTHING);
         }
     }
 }
@@ -2778,7 +2792,7 @@ std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
     */
    std::vector<LimonAPI::ParameterRequest>result;
    glm::vec3 position, normal;
-   GameObject* gameObject = this->getPointedObject(COLLIDE_MODELS, COLLIDE_MODELS | COLLIDE_EVERYTHING, &position, &normal);
+   GameObject* gameObject = this->getPointedObject(COLLIDE_EVERYTHING, COLLIDE_MODELS |COLLIDE_EVERYTHING, &position, &normal);
 
    if(gameObject == nullptr) {
        return result;
