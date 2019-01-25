@@ -59,5 +59,5 @@ std::vector<LimonAPI::ParameterRequest> WesternStoryAtTrainAction::getResults() 
 }
 
 std::string WesternStoryAtTrainAction::getName() const {
-    return "WesternStoryAtTrainAction";
+    return "WesternStoryAtTrain";
 }
