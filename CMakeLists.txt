@@ -149,6 +149,11 @@ add_library(customTriggers SHARED
         samples/WesternMenuPlayerExtension.cpp
         samples/WesternMenuPlayerExtension.h
         samples/KillCowboyPlayer.cpp
+        samples/WesternStoryStartupAction.cpp
+        samples/WesternStoryAtGraveAction.cpp
+        samples/WesternStoryAtUndertakerAction.cpp
+        samples/WesternStoryAtSaloonAction.cpp
+        samples/WesternStoryAtTrainAction.cpp
         )
 
 IF (WIN32 AND NOT ( MINGW OR MSYS))
