@@ -138,7 +138,7 @@ GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode, Asset
                     std::cerr << "GUI Button must have at least one image file. Skipping" << std::endl;
                     return nullptr;
                 } else {
-                    std::cout << "GUI Image creation will continue with only " << i << " images." << std::endl;
+                    //std::cout << "GUI Button creation will continue with only " << i << " images." << std::endl;
                     break;
                 }
             }
