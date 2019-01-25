@@ -7,6 +7,11 @@
 #include "MayanCoinPickup.h"
 #include "MayanLever.h"
 #include "DoorAnimationAction.h"
+#include "WesternStoryStartupAction.h"
+#include "WesternStoryAtGraveAction.h"
+#include "WesternStoryAtSaloonAction.h"
+#include "WesternStoryAtUndertakerAction.h"
+#include "WesternStoryAtTrainAction.h"
 
 CoinPickUpOnTrigger::CoinPickUpOnTrigger(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}
 
@@ -62,6 +67,9 @@ void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* t
     (*triggerMap)["MayanLever"] = &createT<MayanLever>;
     (*triggerMap)["DoorAnimationAction"] = &createT<DoorAnimationAction>;
     (*triggerMap)["KillCowboyPlayer"] = &createT<KillCowboyPlayer>;
-
-
+    (*triggerMap)["WesternStoryStartup"] = &createT<WesternStoryStartupAction>;
+    (*triggerMap)["WesternStoryAtGrave"] = &createT<WesternStoryAtGraveAction>;
+    (*triggerMap)["WesternStoryAtUndertaker"] = &createT<WesternStoryAtUndertakerAction>;
+    (*triggerMap)["WesternStoryAtSaloon"] = &createT<WesternStoryAtSaloonAction>;
+    (*triggerMap)["WesternStoryAtTrain"] = &createT<WesternStoryAtTrainAction>;
 }
