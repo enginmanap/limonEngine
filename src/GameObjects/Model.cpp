@@ -169,8 +169,11 @@ void Model::setupForTime(long time) {
                 }
             }
         } else {
-            btVector3 scale = this->getRigidBody()->getCollisionShape()->getLocalScaling();
-            this->getRigidBody()->getCollisionShape()->setLocalScaling(btVector3(1, 1, 1));
+            btVector3 scale;
+            if(isScaled) {
+                scale = this->getRigidBody()->getCollisionShape()->getLocalScaling();
+                this->getRigidBody()->getCollisionShape()->setLocalScaling(btVector3(1, 1, 1));
+            }
             for (unsigned int i = 0; i < boneTransforms.size(); ++i) {
                 if (boneIdCompoundChildMap.find(i) != boneIdCompoundChildMap.end()) {
                     btTransform transform;
@@ -179,7 +182,9 @@ void Model::setupForTime(long time) {
                     boneTransforms[i] = centerOffsetMatrix * boneTransforms[i];
                 }
             }
-            this->getRigidBody()->getCollisionShape()->setLocalScaling(scale);
+            if(isScaled) {
+                this->getRigidBody()->getCollisionShape()->setLocalScaling(scale);
+            }
             compoundShape->recalculateLocalAabb();
         }
     }

@@ -24,6 +24,8 @@ protected:
     std::vector<PhysicalRenderable*> children;
     std::unique_ptr<Sound> soundAttachment2 = nullptr;
     bool customAnimation = false;
+    const float NOT_SCALE_LIMIT = 0.01;
+    bool isScaled = true;
 
 public:
     explicit PhysicalRenderable(GLHelper *glHelper, float mass, bool disconnected)
@@ -39,7 +41,13 @@ public:
     }
     void updatePhysicsFromTransform() {
         rigidBody->getCollisionShape()->setLocalScaling(btVector3(transformation.getScale().x, transformation.getScale().y, transformation.getScale().z));
-
+        if( std::fabs(transformation.getScale().x - 1.0f) < NOT_SCALE_LIMIT &&
+            std::fabs(transformation.getScale().y - 1.0f) < NOT_SCALE_LIMIT &&
+            std::fabs(transformation.getScale().z - 1.0f) < NOT_SCALE_LIMIT) {
+            this->isScaled = false;
+        } else {
+            this->isScaled = true;
+        }
         btTransform transform = this->rigidBody->getCenterOfMassTransform();
         transform.setOrigin(btVector3(transformation.getTranslate().x, transformation.getTranslate().y, transformation.getTranslate().z));
         transform.setRotation(GLMConverter::GLMToBlt(transformation.getOrientation()));
