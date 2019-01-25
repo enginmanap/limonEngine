@@ -84,7 +84,7 @@ class CowboyEnemyAI : public ActorInterface {
     /********* Parameters to expose as setting *************/
     std::uniform_real_distribution<float> randomFloats;
     std::default_random_engine generator;
-
+    ActorInterface::ActorInformation latestInformation;
 public:
     CowboyEnemyAI(uint32_t id, LimonAPI *limonAPI) : ActorInterface(id, limonAPI) {
         randomFloats = std::uniform_real_distribution<float>(0.0f, 1.0f); // generates random floats between 0.0 and 1.0

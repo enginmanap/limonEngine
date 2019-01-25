@@ -54,6 +54,8 @@ void CowboyEnemyAI::play(long time, ActorInterface::ActorInformation &informatio
      *        Unknown and Undefined
      */
 
+    latestInformation = information;
+
     lastSetupTime = time;
     if(information.routeReady) {
         this->routeToRequest = information.routeToRequest;
@@ -636,6 +638,11 @@ void CowboyEnemyAI::playShootSound(Gun gunType) {
 }
 
 void CowboyEnemyAI::shootPlayer() {
+    if(latestInformation.canSeePlayerDirectly == false) {
+        //it is possible we started shooting logic then player got out of sight. If that is the case, don't hurt the player.
+        // The sounds and animations will still play, creating illusion of missing
+        return;
+    }
     std::vector<LimonAPI::ParameterRequest> prList;
     LimonAPI::ParameterRequest pr;
     pr.valueType = pr.STRING;
