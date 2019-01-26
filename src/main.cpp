@@ -11,6 +11,8 @@
 #include "GameObjects/GUIImage.h"
 
 const std::string PROGRAM_NAME = "LimonEngine";
+const std::string RELEASE_FILE = "./Data/Release.xml";
+const std::string OPTIONS_FILE = "./Engine/Options.xml";
 
 bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
     glHelper->clearDepthBuffer();
@@ -119,7 +121,7 @@ void GameEngine::returnPreviousMap() {
 GameEngine::GameEngine() {
     options = new Options();
 
-    options->loadOptions("./Engine/Options.xml");
+    options->loadOptions(OPTIONS_FILE);
     std::cout << "Options loaded successfully" << std::endl;
 
     sdlHelper = new SDL2Helper(PROGRAM_NAME.c_str(), options);
@@ -203,12 +205,40 @@ GameEngine::~GameEngine() {
 
 }
 
+bool getWorldNameFromReleaseXML(std::string &worldName) {
+    tinyxml2::XMLDocument xmlDoc;
+    tinyxml2::XMLError eResult = xmlDoc.LoadFile(RELEASE_FILE.c_str());
+    if (eResult != tinyxml2::XML_SUCCESS) {
+        std::cerr << "Error loading release settings from "<< RELEASE_FILE << ": " <<  xmlDoc.ErrorName() << std::endl;
+        return false;
+    }
+
+    tinyxml2::XMLNode* releaseNode = xmlDoc.FirstChild();
+    if (releaseNode == nullptr) {
+        std::cerr << "Release settings is not valid." << std::endl;
+        return false;
+    }
+
+    tinyxml2::XMLElement* startingWorldNode =  releaseNode->FirstChildElement("StartingWorld");
+    if (startingWorldNode == nullptr || startingWorldNode->GetText() == nullptr) {
+        std::cerr << "Starting world is not set." << std::endl;
+        return false;
+    }
+    std::cout << "read starting world as " << startingWorldNode->GetText() << std::endl;
+    std::string worldNameTemp = startingWorldNode->GetText();
+    worldName = worldNameTemp;
+    return true;
+}
+
 int main(int argc, char *argv[]) {
 
     std::string worldName;
     if(argc == 1) {
-        std::cout << "No world file specified, trying to load ./Data/Maps/World001.xml" << std::endl;
-        worldName = "./Data/Maps/World001.xml";
+        std::cout << "No world file specified, world select from release settings" << std::endl;
+        if(!getWorldNameFromReleaseXML(worldName)) {
+            std::cout << "release settings read failed, defaulting to ./Data/Maps/World001.xml" << std::endl;
+            worldName = "./Data/Maps/World001.xml";
+        }
     } else if(argc == 2) {
         worldName = argv[1];
         std::cout << "Trying to load " <<  worldName << std::endl;
