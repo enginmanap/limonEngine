@@ -140,6 +140,7 @@ public:
     bool removeTriggerObject(uint32_t TriggerObjectID);
     bool disconnectObjectFromPhysics(uint32_t modelID);
     bool reconnectObjectToPhysics(uint32_t modelID);
+    bool applyForce(uint32_t modelID, const LimonAPI::Vec4 &forcePosition, const LimonAPI::Vec4 &forceAmount);
 
 
     bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath);
@@ -274,6 +275,8 @@ private:
     std::function<bool (uint32_t)> worldRemoveTriggerObject;
     std::function<bool (uint32_t)> worldDisconnectObjectFromPhysics;
     std::function<bool (uint32_t)> worldReconnectObjectToPhysics;
+
+    std::function<bool (uint32_t, const LimonAPI::Vec4&, const LimonAPI::Vec4&)> worldApplyForce;
 
     std::function<bool (uint32_t, const std::string&)> worldAttachSoundToObjectAndPlay;
     std::function<bool (uint32_t)> worldDetachSoundFromObject;

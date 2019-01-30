@@ -70,6 +70,8 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldRemoveTriggerObject = std::bind(&World::removeTriggerObject, world, std::placeholders::_1);
     limonAPI->worldDisconnectObjectFromPhysics = std::bind(&World::disconnectObjectFromPhysics, world, std::placeholders::_1);
     limonAPI->worldReconnectObjectToPhysics= std::bind(&World::reconnectObjectToPhysics, world, std::placeholders::_1);
+    limonAPI->worldApplyForce = std::bind(&World::applyForceAPI, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+
     limonAPI->worldAttachSoundToObjectAndPlay = std::bind(&World::attachSoundToObjectAndPlay, world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldDetachSoundFromObject = std::bind(&World::detachSoundFromObject, world, std::placeholders::_1);
     limonAPI->worldPlaySound = std::bind(&World::playSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);

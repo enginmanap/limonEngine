@@ -2771,6 +2771,18 @@ uint32_t World::addModelApi(const std::string &modelFilePath, float modelWeight,
     return objectID;
 }
 
+bool World::applyForceAPI(uint32_t objectID, const LimonAPI::Vec4 &forcePosition, const LimonAPI::Vec4 &forceAmount) {
+    Model* model = findModelByID(objectID);
+    if(model == nullptr) {
+        return false;
+    }
+    model->getRigidBody()->activate(true);
+    btVector3 forcePositionRelative = GLMConverter::LimonToBlt(forcePosition) - model->getRigidBody()->getCenterOfMassTransform().getOrigin();
+
+    model->getRigidBody()->applyForce(GLMConverter::LimonToBlt(forceAmount), forcePositionRelative);
+    return true;
+}
+
 bool World::setModelTemporaryAPI(uint32_t modelID, bool temporary) {
     Model* model = findModelByID(modelID);
     if(model == nullptr) {

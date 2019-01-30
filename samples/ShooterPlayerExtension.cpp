@@ -122,6 +122,18 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, long ti
 
                         limonAPI->attachObjectToObject(bulletHoleID, rayResult[0].value.longValue);
 
+                        //now apply force to the object
+                        //what it the force direction? It is the difference between player and hit position normalized
+                        std::vector<LimonAPI::ParameterRequest> playerTransformation = limonAPI->getObjectTransformation(this->playerAttachedModelID);
+                        if(playerTransformation.size() == 0 ) {
+                            std::cerr << "player attachment has no position. This prevents applying force." << std::endl;
+                        } else {
+                            glm::vec3 playerPosition = LimonConverter::LimonToGLM(playerTransformation[0].value.vectorValue);
+                            glm::vec3 forceDirection = glm::normalize(hitPos - playerPosition);
+
+                            limonAPI->applyForce(rayResult[0].value.longValue, LimonConverter::GLMToLimon(hitPos), LimonConverter::GLMToLimon(forceDirection * bulletForce));
+                        }
+
                     }
                 }
 
