@@ -39,6 +39,10 @@ public:
         return glm::vec2(vector.x, vector.y);
     }
 
+    static btVector3 LimonToBlt(const LimonAPI::Vec4 &vector) {
+        return btVector3(vector.x, vector.y, vector.z);
+    }
+
     static LimonAPI::Mat4 GLMToLimon(const glm::mat4 &matrix) {
         return LimonAPI::Mat4(GLMToLimon(matrix[0]),
                               GLMToLimon(matrix[1]),
@@ -52,6 +56,7 @@ public:
                          LimonToGLM(matrix[2]),
                          LimonToGLM(matrix[3]));
     }
+
 
     static glm::vec3 BltToGLM(const btVector3 &vector) {
         return glm::vec3(vector.getX(), vector.getY(), vector.getZ());

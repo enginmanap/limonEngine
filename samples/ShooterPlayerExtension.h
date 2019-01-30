@@ -15,7 +15,7 @@ class ShooterPlayerExtension : public  PlayerExtensionInterface {
     uint32_t addedElement = 0;
 
     uint32_t removeCounter = 0;
-
+    float bulletForce = 1000;
     int hitPoints = 100;
 public:
 

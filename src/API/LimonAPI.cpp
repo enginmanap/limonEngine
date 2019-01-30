@@ -64,6 +64,10 @@ bool LimonAPI::reconnectObjectToPhysics(uint32_t modelID) {
     return worldReconnectObjectToPhysics(modelID);
 }
 
+bool LimonAPI::applyForce(uint32_t modelID, const LimonAPI::Vec4 &forcePosition, const LimonAPI::Vec4 &forceAmount) {
+    return worldApplyForce(modelID, forcePosition, forceAmount);
+}
+
 bool LimonAPI::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath) {
     return worldAttachSoundToObjectAndPlay(objectWorldID, soundPath);
 }
