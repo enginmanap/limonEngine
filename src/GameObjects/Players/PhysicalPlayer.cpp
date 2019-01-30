@@ -405,7 +405,10 @@ void PhysicalPlayer::processInput(const InputStates &inputHandler, long time) {
         return;
     }
     if(playerExtension != nullptr) {
-        playerExtension->processInput(inputHandler, time);
+        PlayerExtensionInterface::PlayerInformation playerInformation;
+        playerInformation.position = GLMConverter::GLMToLimon(this->getPosition());
+        playerInformation.lookDirection = GLMConverter::GLMToLimon(this->getLookDirection());
+        playerExtension->processInput(inputHandler, playerInformation, time);
     }
 }
 

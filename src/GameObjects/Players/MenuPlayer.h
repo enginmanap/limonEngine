@@ -9,6 +9,7 @@
 #include "../../CameraAttachment.h"
 #include "Player.h"
 #include <glm/gtx/quaternion.hpp>
+#include <Utils/GLMConverter.h>
 
 class Options;
 class GUIRenderable;
@@ -80,7 +81,10 @@ public:
         Player::processInput(inputHandler, time);
 
         if(playerExtension != nullptr) {
-            playerExtension->processInput(inputHandler, time);
+            PlayerExtensionInterface::PlayerInformation playerInformation;
+            playerInformation.position = GLMConverter::GLMToLimon(this->getPosition());
+            playerInformation.lookDirection = GLMConverter::GLMToLimon(this->getLookDirection());
+            playerExtension->processInput(inputHandler, playerInformation, time);
         }
     }
 

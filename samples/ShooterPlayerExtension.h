@@ -23,7 +23,8 @@ public:
         playerAttachedModelID = limonAPI->getPlayerAttachedModel();
     }
     void removeDamageIndicator(std::vector<LimonAPI::ParameterRequest> parameters);
-    void processInput(const InputStates &inputState, long time) override;
+    void processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
+                          long time) override;
 
     void interact(std::vector<LimonAPI::ParameterRequest> &interactionData) override;
 
