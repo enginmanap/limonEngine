@@ -9,7 +9,8 @@
 
 #include "API/LimonConverter.h"
 
-void CowboyShooterExtension::processInput(const InputStates &inputState, long time [[gnu::unused]]) {
+void CowboyShooterExtension::processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
+                                          long time) {
     if (playerAttachedModelID == 0) {
         return;
     }

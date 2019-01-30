@@ -34,6 +34,12 @@ protected:
     PlayerExtensionInterface(LimonAPI* limonAPI): limonAPI(limonAPI) {}
 
 public:
+
+    struct PlayerInformation {
+        LimonAPI::Vec4 position;
+        LimonAPI::Vec4 lookDirection;
+    };
+
     // Not virtual
     static std::vector<std::string> getTriggerNames() {
         std::vector<std::string> names;
@@ -47,7 +53,8 @@ public:
         (*getMap())[typeName] = constructor;
     }
 
-    virtual void processInput(const InputStates &inputHandler, long time) = 0;
+    virtual void processInput(const InputStates &inputHandler, const PlayerExtensionInterface::PlayerInformation &playerInformation,
+                                  long time) = 0;
     virtual void interact(std::vector<LimonAPI::ParameterRequest> &interactionData) = 0;
 
     virtual ~PlayerExtensionInterface() = default;
@@ -78,7 +85,8 @@ class PlayerExtensionRegister : PlayerExtensionInterface {
         return "This object is not meant to be used";
     }
 
-    void processInput(const InputStates &inputHandler [[gnu::unused]], long time [[gnu::unused]]) override {}
+    void processInput(const InputStates &inputHandler, const PlayerExtensionInterface::PlayerInformation &playerInformation,
+                          long time) override {}
     void interact(std::vector<LimonAPI::ParameterRequest> &interactionData __attribute__((unused))) override {}
 
 public:
