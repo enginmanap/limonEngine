@@ -350,14 +350,26 @@ void CowboyShooterExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
             frontWithoutY.y = 0;
             glm::vec3 crossBetween = cross(normalize(frontWithoutY), normalize(rayDirWithoutY));
 
-            if (crossBetween.y < 0) {
+            if(fabs(crossBetween.y) < 0.2) {
                 uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorLeft.png", "damageIndicatorLeft", LimonAPI::Vec2(0.5f, 0.5f),
                                                               LimonAPI::Vec2(0.7f, 0.8f), 0);
+                uint32_t addedElement2 = limonAPI->addGuiImage("./Data/Textures/damageIndicatorRight.png", "damageIndicatorRight", LimonAPI::Vec2(0.5f, 0.5f),
+                                                               LimonAPI::Vec2(0.7f, 0.8f), 0);
+
                 removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
+                removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement2);
             } else {
-                uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorRight.png", "damageIndicatorRight", LimonAPI::Vec2(0.5f, 0.5f),
-                                                              LimonAPI::Vec2(0.7f, 0.8f), 0);
-                removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
+                if (crossBetween.y < 0) {
+                    uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorLeft.png",
+                                                                  "damageIndicatorLeft", LimonAPI::Vec2(0.5f, 0.5f),
+                                                                  LimonAPI::Vec2(0.7f, 0.8f), 0);
+                    removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
+                } else {
+                    uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorRight.png",
+                                                                  "damageIndicatorRight", LimonAPI::Vec2(0.5f, 0.5f),
+                                                                  LimonAPI::Vec2(0.7f, 0.8f), 0);
+                    removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
+                }
             }
 
             float cosineBetween = glm::dot(normalize(lookDirection), normalize(glm::vec3(1,0,-1)));
@@ -376,14 +388,25 @@ void CowboyShooterExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
             if(cosineBetween > 0 ) {
                 crossToCheck =  crossToCheck * -1; // cross product contains sin(q), so it might need reversing
             }
-            if (crossToCheck < 0) {
+            if(fabs(crossToCheck) < 0.2 ) {
                 uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorDown.png", "damageIndicatorDown", LimonAPI::Vec2(0.5f, 0.5f),
                                                               LimonAPI::Vec2(0.7f, 0.8f), 0);
-                removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
-            } else {
-                uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorUp.png", "damageIndicatorUp", LimonAPI::Vec2(0.5f, 0.5f),
+                uint32_t addedElement2 = limonAPI->addGuiImage("./Data/Textures/damageIndicatorUp.png", "damageIndicatorUp", LimonAPI::Vec2(0.5f, 0.5f),
                                                               LimonAPI::Vec2(0.7f, 0.8f), 0);
                 removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
+                removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement2);
+            } else {
+                if (crossToCheck < 0) {
+                    uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorDown.png",
+                                                                  "damageIndicatorDown", LimonAPI::Vec2(0.5f, 0.5f),
+                                                                  LimonAPI::Vec2(0.7f, 0.8f), 0);
+                    removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
+                } else {
+                    uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorUp.png",
+                                                                  "damageIndicatorUp", LimonAPI::Vec2(0.5f, 0.5f),
+                                                                  LimonAPI::Vec2(0.7f, 0.8f), 0);
+                    removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
+                }
             }
 
 
