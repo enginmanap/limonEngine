@@ -531,7 +531,7 @@ void CowboyEnemyAI::transitionToKneelShoot(const ActorInformation &information) 
         case Gun::RIFLE: {
             limonAPI->setModelAnimationWithBlend(modelID, "Rifle Kneel Fire|", false);
             playShootSound(currentGun);
-            shootPlayer();
+            shootPlayer(information.playerDistance);
             currentState = State::KNEEL_SHOOTING;
         }
         break;
@@ -562,7 +562,7 @@ void CowboyEnemyAI::transitionToShoot(const ActorInformation &information) {
         case Gun::PISTOL: {
             limonAPI->setModelAnimationWithBlend(modelID, "Pistol Run 2|", false); //FIXME I couldn't find the correct animation
             playShootSound(currentGun);
-            shootPlayer();
+            shootPlayer(information.playerDistance);
 
         }
         break;
@@ -578,7 +578,7 @@ void CowboyEnemyAI::transitionToShoot(const ActorInformation &information) {
                     if(currentAnimationFinished) {
                         limonAPI->setModelAnimationWithBlend(modelID, "Rifle Idle Fire|", false);
                         playShootSound(currentGun);
-                        shootPlayer();
+                        shootPlayer(information.playerDistance);
                         shootingStage = 2;
                     }
                 break;
@@ -637,12 +637,24 @@ void CowboyEnemyAI::playShootSound(Gun gunType) {
     }
 }
 
-void CowboyEnemyAI::shootPlayer() {
+void CowboyEnemyAI::shootPlayer(float playerDistance) {
     if(latestInformation.canSeePlayerDirectly == false) {
         //it is possible we started shooting logic then player got out of sight. If that is the case, don't hurt the player.
         // The sounds and animations will still play, creating illusion of missing
         return;
     }
+
+    //now add misisng based on distance.
+    if(playerDistance > 100.0f) {
+        //miss for certain. Break
+        return;
+    }
+    float missNumber = randomFloats(generator);
+    std::cout << "miss number is " << missNumber << " and player distance is " << playerDistance << std::endl;
+    if( missNumber < (playerDistance / 100.0f)) {
+        return; // miss
+    }
+
     std::vector<LimonAPI::ParameterRequest> prList;
     LimonAPI::ParameterRequest pr;
     pr.valueType = pr.STRING;
