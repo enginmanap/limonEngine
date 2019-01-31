@@ -11,6 +11,11 @@
 
 void CowboyShooterExtension::processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
                                           long time [[gnu::unused]]) {
+
+    if(inputState.isSimulated()) {
+        return;
+    }
+
     this->latestPlayerInformation = playerInformation;
     if (playerAttachedModelID == 0) {
         return;
