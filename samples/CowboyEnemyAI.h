@@ -127,7 +127,7 @@ public:
 
     void transitionToDead();
 
-    void shootPlayer();
+    void shootPlayer(float playerDistance);
 
     void playShootSound(Gun gunType);
 };
