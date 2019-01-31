@@ -325,7 +325,7 @@ void CowboyShooterExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
             limonAPI->killPlayer();
         }
 
-        uint32_t addedElementcount = 0;
+        uint32_t addedElementCount = 0;
         std::vector<LimonAPI::ParameterRequest> removeParameters;
         LimonAPI::ParameterRequest removeIDs;
         removeIDs.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG_ARRAY;
@@ -335,7 +335,7 @@ void CowboyShooterExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
             //damage origin not sent, can't calculate indicator position, render full damage indicator
             uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicator.png", "damageIndicator", LimonAPI::Vec2(0.5f, 0.5f),
                                                           LimonAPI::Vec2(0.7f, 0.8f), 0);
-            removeIDs.value.longValues[++addedElementcount] = static_cast<long>(addedElement);
+            removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
 
         } else {
             glm::vec3 damageOrigin = LimonConverter::LimonToGLM(interactionData[2].value.vectorValue);
@@ -353,11 +353,11 @@ void CowboyShooterExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
             if (crossBetween.y < 0) {
                 uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorLeft.png", "damageIndicatorLeft", LimonAPI::Vec2(0.5f, 0.5f),
                                                               LimonAPI::Vec2(0.7f, 0.8f), 0);
-                removeIDs.value.longValues[++addedElementcount] = static_cast<long>(addedElement);
+                removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
             } else {
                 uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorRight.png", "damageIndicatorRight", LimonAPI::Vec2(0.5f, 0.5f),
                                                               LimonAPI::Vec2(0.7f, 0.8f), 0);
-                removeIDs.value.longValues[++addedElementcount] = static_cast<long>(addedElement);
+                removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
             }
 
             float cosineBetween = glm::dot(normalize(lookDirection), normalize(glm::vec3(1,0,-1)));
@@ -379,11 +379,11 @@ void CowboyShooterExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
             if (crossToCheck < 0) {
                 uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorDown.png", "damageIndicatorDown", LimonAPI::Vec2(0.5f, 0.5f),
                                                               LimonAPI::Vec2(0.7f, 0.8f), 0);
-                removeIDs.value.longValues[++addedElementcount] = static_cast<long>(addedElement);
+                removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
             } else {
                 uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorUp.png", "damageIndicatorUp", LimonAPI::Vec2(0.5f, 0.5f),
                                                               LimonAPI::Vec2(0.7f, 0.8f), 0);
-                removeIDs.value.longValues[++addedElementcount] = static_cast<long>(addedElement);
+                removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
             }
 
 
@@ -391,7 +391,7 @@ void CowboyShooterExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
 
 
 
-        removeIDs.value.longValues[0] = static_cast<long>(addedElementcount);
+        removeIDs.value.longValues[0] = static_cast<long>(addedElementCount);
         removeParameters.push_back(removeIDs);
         limonAPI->addTimedEvent(250, std::bind(&CowboyShooterExtension::removeDamageIndicator, this, std::placeholders::_1), removeParameters);
         if(!hitReaction) {
