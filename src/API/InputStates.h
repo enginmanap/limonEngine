@@ -89,7 +89,7 @@ public:
         }
     }
 
-    void setMouseChange(float &xPosition, float &yPosition, float &xChange, float &yChange) {
+    void setMouseChange(const float &xPosition, const float &yPosition, const float &xChange, const float &yChange) {
         this->xPos = xPosition;
         this->yPos = yPosition;
         this->xChange = xChange;
