@@ -44,12 +44,17 @@ class CowboyShooterExtension : public  PlayerExtensionInterface {
     uint32_t playerAttachedModelID;
     uint32_t playerAttachedPistolID;
     uint32_t playerAttachedRifleID;
+    long lastInputTime = 0;
+    long hitTime = 0;
 
     const LimonAPI::Vec4 removeOffset = LimonAPI::Vec4(0, 0, -50);
     const LimonAPI::Vec4 addOffset = LimonAPI::Vec4(0, 0, 50);
     PlayerExtensionInterface::PlayerInformation latestPlayerInformation;
 
     int hitPoints = 100;
+    bool hitReaction = false;
+
+    InputStates inputState;
 
     void shootingTransition();
     void walkingTransition();
@@ -83,6 +88,7 @@ public:
 
     std::string getName() const override;
 
+    void processHitReaction();
 };
 
 

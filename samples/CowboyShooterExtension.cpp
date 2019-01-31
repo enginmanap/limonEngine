@@ -10,8 +10,8 @@
 #include "API/LimonConverter.h"
 
 void CowboyShooterExtension::processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
-                                          long time [[gnu::unused]]) {
-
+                                          long time) {
+    this->lastInputTime = time;
     if(inputState.isSimulated()) {
         return;
     }
@@ -22,6 +22,10 @@ void CowboyShooterExtension::processInput(const InputStates &inputState, const P
     }
     currentAnimationName = limonAPI->getModelAnimationName(playerAttachedModelID);
     currentAnimationFinished = limonAPI->getModelAnimationFinished(playerAttachedModelID);
+
+    if(hitReaction) {
+        processHitReaction();
+    }
 
     if(inputState.getInputEvents(InputStates::Inputs::MOUSE_BUTTON_LEFT) && inputState.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
         transitionState = State::SHOOTING;
@@ -390,6 +394,10 @@ void CowboyShooterExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
         removeIDs.value.longValues[0] = static_cast<long>(addedElementcount);
         removeParameters.push_back(removeIDs);
         limonAPI->addTimedEvent(250, std::bind(&CowboyShooterExtension::removeDamageIndicator, this, std::placeholders::_1), removeParameters);
+        if(!hitReaction) {
+            hitTime = lastInputTime;
+            hitReaction = true;
+        }
     }
 
 }
@@ -417,4 +425,31 @@ bool CowboyShooterExtension::changeGuns() {
     }
     currentGun = transitionGun;
     return true;
+}
+
+/**
+ * If player is hit, move the camera in a circle we will do this by calculating a difference for mouse position
+ * and simulating that input
+ */
+void CowboyShooterExtension::processHitReaction() {
+    hitReaction = false;
+    return;
+
+    //this part requires more tuning, it works as it should, but effect is not nice
+    /*
+    float ANIMATION_DURATION = 250/(2.0f * 3.14);//in ms
+    float animationTime = (lastInputTime - (hitTime)) / ANIMATION_DURATION;
+    if(animationTime >= (2.0f * 3.14)) {
+        animationTime = (2.0f * 3.14);
+    }
+    float xMove = cos(animationTime) * 0.001;
+    float yMove = sin(animationTime) * -0.005;
+    inputState.setMouseChange(0.0f,0.0f, xMove, yMove);
+    inputState.setInputStatus(InputStates::Inputs::MOUSE_MOVE, true);
+    limonAPI->simulateInput(inputState);
+
+    if(animationTime >= (2.0f * 3.14)) {
+        hitReaction = false;
+    }
+     */
 }
