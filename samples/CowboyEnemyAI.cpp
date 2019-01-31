@@ -656,7 +656,7 @@ void CowboyEnemyAI::shootPlayer() {
 
     LimonAPI::ParameterRequest pr3;
     pr3.valueType = pr.VEC4;
-    pr3.value.vectorValue= LimonConverter::GLMToLimon(this->getPosition());
+    pr3.value.vectorValue= LimonConverter::GLMToLimon(this->getPosition() + glm::vec3(0,2,0));//2 is the offset of model. 3d modeller should give this.
     prList.push_back(pr3);
 
     limonAPI->interactWithPlayer(prList);
