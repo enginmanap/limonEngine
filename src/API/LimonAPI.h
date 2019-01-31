@@ -12,6 +12,8 @@
 #include <glm/glm.hpp>
 #include <functional>
 
+#include "InputStates.h"
+
 
 class Model;
 class AnimationCustom;
@@ -202,6 +204,8 @@ public:
 
 
     void interactWithPlayer(std::vector<ParameterRequest>& input);
+    void simulateInput(const InputStates& input);
+
 
     bool addLightTranslate(uint32_t lightID, const LimonAPI::Vec4& translate);
     bool setLightColor(uint32_t lightID, const LimonAPI::Vec4& color);
@@ -285,6 +289,7 @@ private:
     std::function<std::vector<ParameterRequest>()> worldRayCastToCursor;
     std::function<bool (uint32_t, std::vector<ParameterRequest>&)> worldInteractWithAI;
     std::function<void (std::vector<ParameterRequest>&)> worldInteractWithPlayer;
+    std::function<void (InputStates)> worldSimulateInput;
 
     std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldAddLightTranslate;
     std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldSetLightColor;

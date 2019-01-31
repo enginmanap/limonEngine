@@ -16,6 +16,11 @@ const glm::quat ShooterPlayerExtension::direction = glm::quat(0.0f, 0.0f, 1.0f, 
 
 void ShooterPlayerExtension::processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
                                           long time) {
+
+    if(inputState.isSimulated()) {
+        return;
+    }
+
     if (playerAttachedModelID == 0) {
         return;
     }

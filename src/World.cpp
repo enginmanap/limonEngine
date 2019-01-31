@@ -2966,6 +2966,13 @@ void World::interactWithPlayerAPI(std::vector<LimonAPI::ParameterRequest> &inter
     }
 }
 
+void World::simulateInputAPI(InputStates input) {
+    if(this->physicalPlayer != nullptr) {
+        input.setSimulated(true);
+        this->physicalPlayer->processInput(input, gameTime);
+    }
+}
+
 void World::addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall,
                               std::vector<LimonAPI::ParameterRequest> parameters) {
     timedEvents.push(TimedEvent(waitTime + gameTime, methodToCall, parameters));

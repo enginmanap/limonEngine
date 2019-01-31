@@ -25,8 +25,7 @@ private:
     float xPos, yPos, xChange, yChange;
     mutable char sdlText[128] = {0};
     mutable char temporaryTextBuffer[128] = {0};
-
-
+    bool simulated = false;
 public:
 
     /**
@@ -105,6 +104,13 @@ public:
         downKeys[keyState] = pressed;
     }
 
+    bool isSimulated() const {
+        return simulated;
+    }
+
+    void setSimulated(bool isSimulated) {
+        InputStates::simulated = isSimulated;
+    }
 };
 
 

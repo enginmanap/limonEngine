@@ -119,6 +119,10 @@ void LimonAPI::interactWithPlayer(std::vector<LimonAPI::ParameterRequest> &input
     return this->worldInteractWithPlayer(input);
 }
 
+void LimonAPI::simulateInput(const InputStates& input) {
+    this->worldSimulateInput(input);
+}
+
 bool LimonAPI::addLightTranslate(uint32_t lightID, const LimonAPI::Vec4 &position) {
     return worldAddLightTranslate(lightID, position);
 }

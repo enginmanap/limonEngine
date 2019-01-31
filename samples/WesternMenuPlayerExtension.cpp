@@ -7,9 +7,15 @@
 #include "WesternMenuPlayerExtension.h"
 #include "API/LimonConverter.h"
 
-void WesternMenuPlayerExtension::processInput(const InputStates &inputHandler, const PlayerExtensionInterface::PlayerInformation &playerInformation,
+void WesternMenuPlayerExtension::processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
                                               long time) {
+
     static constexpr float PI = 3.14159265358979f;
+
+    if(inputState.isSimulated()) {
+        return;
+    }
+
 
     //This method will update light info for the camp fire
 

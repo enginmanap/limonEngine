@@ -88,6 +88,7 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
 
     limonAPI->worldInteractWithAI = std::bind(&World::interactWithAIAPI, world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldInteractWithPlayer = std::bind(&World::interactWithPlayerAPI, world, std::placeholders::_1);
+    limonAPI->worldSimulateInput = std::bind(&World::simulateInputAPI, world, std::placeholders::_1);
     limonAPI->worldAddTimedEvent = std::bind(&World::addTimedEventAPI, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
     limonAPI->worldKillPlayer = std::bind(&World::killPlayerAPI, world);

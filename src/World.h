@@ -443,6 +443,7 @@ public:
     bool interactWithAIAPI(uint32_t AIID, std::vector<LimonAPI::ParameterRequest> &interactionInformation) const;
 
     void interactWithPlayerAPI(std::vector<LimonAPI::ParameterRequest> &interactionInformation) const;
+    void simulateInputAPI(InputStates input);
 
     void addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall,
                               std::vector<LimonAPI::ParameterRequest> parameters);
