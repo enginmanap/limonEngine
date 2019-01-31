@@ -722,50 +722,49 @@ void CowboyEnemyAI::turnFaceToPlayer(const ActorInterface::ActorInformation &inf
 void CowboyEnemyAI::transitionToHit() {
     //since hit has priority over everything, make sure shooting is not left in the middle
     shootingStage = 0;
-    if(currentState != State::HIT) {
-        limonAPI->setModelAnimationSpeed(modelID, 1.5f);
-        switch (currentGun) {
-            case Gun::PISTOL: {
-                limonAPI->setModelAnimationWithBlend(modelID, "Pistol Idle Hit Reaction|", false);
-                currentState = State::HIT;
-            }
-            break;
-            case Gun::SHOTGUN:
-            case Gun::RIFLE: {
-                switch(currentState) {
-                    case State::KNEEL_SHOOTING:
-                    case State::KNEEL_IDLE:
-                    case State::STANDING_UP:
-                        limonAPI->setModelAnimationWithBlend(modelID, "Rifle Kneel Hit Reaction|", false);
-                        currentState = State::HIT;
-                    break;
-                    case State::WALKING:
-                        limonAPI->setModelAnimationWithBlend(modelID, "Rifle Walk Hit Reaction|", false);
-                        currentState = State::HIT;
-                    break;
-                    case State::RUNNING:
-                        limonAPI->setModelAnimationWithBlend(modelID, "Rifle Run Hit Reaction|", false);
-                        currentState = State::HIT;
-                    break;
-                    case State::IDLE:
-                    case State::MELEE:
-                    case State::KNEELING_DOWN:
-                    case State::SHOOTING:
-                        limonAPI->setModelAnimationWithBlend(modelID, "Rifle Idle Hit Reaction|", false, 1000);
-                        currentState = State::HIT;
-                    break;
-                    case State::HIT:
-                    case State::DEAD:
-                    {}//do nothing
-                    break;
-                    case State::SCRIPTED:
-                    {}//should let script it got hit.
-                    break;
-                }
-            }
-            break;
+    limonAPI->setModelAnimationSpeed(modelID, 1.5f);
+    switch (currentGun) {
+        case Gun::PISTOL: {
+            limonAPI->setModelAnimationWithBlend(modelID, "Pistol Idle Hit Reaction|", false);
+            currentState = State::HIT;
         }
+        break;
+        case Gun::SHOTGUN:
+        case Gun::RIFLE: {
+            switch(currentState) {
+                case State::KNEEL_SHOOTING:
+                case State::KNEEL_IDLE:
+                case State::STANDING_UP:
+                    limonAPI->setModelAnimationWithBlend(modelID, "Rifle Kneel Hit Reaction|", false);
+                    currentState = State::HIT;
+                break;
+                case State::WALKING:
+                    limonAPI->setModelAnimationWithBlend(modelID, "Rifle Walk Hit Reaction|", false);
+                    currentState = State::HIT;
+                break;
+                case State::RUNNING:
+                    limonAPI->setModelAnimationWithBlend(modelID, "Rifle Run Hit Reaction|", false);
+                    currentState = State::HIT;
+                break;
+                case State::IDLE:
+                case State::MELEE:
+                case State::KNEELING_DOWN:
+                case State::SHOOTING:
+                    limonAPI->setModelAnimationWithBlend(modelID, "Rifle Idle Hit Reaction|", false, 1000);
+                    currentState = State::HIT;
+                break;
+                case State::HIT:
+                case State::DEAD:
+                {}//do nothing
+                break;
+                case State::SCRIPTED:
+                {}//should let script it got hit.
+                break;
+            }
+        }
+        break;
     }
+
 }
 
 void CowboyEnemyAI::transitionToDead() {
