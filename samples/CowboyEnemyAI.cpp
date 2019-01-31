@@ -559,7 +559,7 @@ void CowboyEnemyAI::transitionToShoot(const ActorInformation &information) {
     turnFaceToPlayer(information);
     switch (currentGun) {
         case Gun::PISTOL: {
-            limonAPI->setModelAnimationWithBlend(modelID, "Pistol Run 2|", false); //FIXME I couldn't find the correct animation
+            limonAPI->setModelAnimationWithBlend(modelID, "Pistol Run 2|"); //FIXME I couldn't find the correct animation
             playShootSound(currentGun);
             shootPlayer(information.playerDistance);
 
