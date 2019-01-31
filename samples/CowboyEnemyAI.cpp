@@ -653,6 +653,12 @@ void CowboyEnemyAI::shootPlayer() {
     pr2.valueType = pr.LONG;
     pr2.value.longValue = gunDamage;
     prList.push_back(pr2);
+
+    LimonAPI::ParameterRequest pr3;
+    pr3.valueType = pr.VEC4;
+    pr3.value.vectorValue= LimonConverter::GLMToLimon(this->getPosition());
+    prList.push_back(pr3);
+
     limonAPI->interactWithPlayer(prList);
 }
 

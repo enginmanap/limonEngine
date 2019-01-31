@@ -47,6 +47,7 @@ class CowboyShooterExtension : public  PlayerExtensionInterface {
 
     const LimonAPI::Vec4 removeOffset = LimonAPI::Vec4(0, 0, -50);
     const LimonAPI::Vec4 addOffset = LimonAPI::Vec4(0, 0, 50);
+    PlayerExtensionInterface::PlayerInformation latestPlayerInformation;
 
     int hitPoints = 100;
 
