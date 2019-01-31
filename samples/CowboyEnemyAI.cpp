@@ -423,7 +423,6 @@ void CowboyEnemyAI::transitionToWalk(const ActorInformation &information) {
     //now we are walking, move along the route
     if(!routeToRequest.empty()) {
         if(currentState != State::WALKING) {
-            std::cout << "setting walk animation" << std::endl;
             if(currentGun == Gun::PISTOL) {
                 limonAPI->setModelAnimationWithBlend(modelID, "Pistol Walk|");
             } else {
@@ -650,7 +649,6 @@ void CowboyEnemyAI::shootPlayer(float playerDistance) {
         return;
     }
     float missNumber = randomFloats(generator);
-    std::cout << "miss number is " << missNumber << " and player distance is " << playerDistance << std::endl;
     if( missNumber < (playerDistance / 100.0f)) {
         return; // miss
     }
