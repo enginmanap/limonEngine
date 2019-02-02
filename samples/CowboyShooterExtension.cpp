@@ -349,63 +349,61 @@ void CowboyShooterExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
             glm::vec3 frontWithoutY = lookDirection;
             frontWithoutY.y = 0;
             glm::vec3 crossBetween = cross(normalize(frontWithoutY), normalize(rayDirWithoutY));
-
-            if(fabs(crossBetween.y) < 0.2) {
-                uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorLeft.png", "damageIndicatorLeft", LimonAPI::Vec2(0.5f, 0.5f),
-                                                              LimonAPI::Vec2(0.7f, 0.8f), 0);
-                uint32_t addedElement2 = limonAPI->addGuiImage("./Data/Textures/damageIndicatorRight.png", "damageIndicatorRight", LimonAPI::Vec2(0.5f, 0.5f),
-                                                               LimonAPI::Vec2(0.7f, 0.8f), 0);
-
-                removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
-                removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement2);
-            } else {
-                if (crossBetween.y < 0) {
-                    uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorLeft.png",
-                                                                  "damageIndicatorLeft", LimonAPI::Vec2(0.5f, 0.5f),
-                                                                  LimonAPI::Vec2(0.7f, 0.8f), 0);
-                    removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
-                } else {
-                    uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorRight.png",
-                                                                  "damageIndicatorRight", LimonAPI::Vec2(0.5f, 0.5f),
-                                                                  LimonAPI::Vec2(0.7f, 0.8f), 0);
-                    removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
-                }
-            }
+            float crossToCheckLeftRight = crossBetween.y;
+            float crossToCheckUpDown;
 
             float cosineBetween = glm::dot(normalize(lookDirection), normalize(glm::vec3(1,0,-1)));
-            float crossToCheck;
+
             if(fabs(damageVector.x) + fabs(lookDirection.x) < fabs(damageVector.z) + fabs(lookDirection.z)) {//use the longer axis to minimize presicion errors
                 damageVector.x = 0;
                 lookDirection.x = 0;
                 crossBetween = glm::cross(normalize(lookDirection), normalize(damageVector));
-                crossToCheck = crossBetween.x;
+                crossToCheckUpDown = crossBetween.x;
             } else {
                 damageVector.z = 0;
                 lookDirection.z = 0;
                 crossBetween = glm::cross(normalize(lookDirection), normalize(damageVector));
-                crossToCheck = crossBetween.z;
+                crossToCheckUpDown = crossBetween.z;
             }
             if(cosineBetween > 0 ) {
-                crossToCheck =  crossToCheck * -1; // cross product contains sin(q), so it might need reversing
+                crossToCheckUpDown =  crossToCheckUpDown * -1; // cross product contains sin(q), so it might need reversing
             }
-            if(fabs(crossToCheck) < 0.2 ) {
-                uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorDown.png", "damageIndicatorDown", LimonAPI::Vec2(0.5f, 0.5f),
-                                                              LimonAPI::Vec2(0.7f, 0.8f), 0);
-                uint32_t addedElement2 = limonAPI->addGuiImage("./Data/Textures/damageIndicatorUp.png", "damageIndicatorUp", LimonAPI::Vec2(0.5f, 0.5f),
+
+            //now we have 2 data, cross products for left right check, and cross products for up down check. Now put the damage indicator.
+
+            if(fabs(crossToCheckLeftRight) <= 0.2 && fabs(crossToCheckUpDown) <= 0.2) {
+                // the damage came from front, show full damage indicator
+                uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicator.png", "damageIndicator", LimonAPI::Vec2(0.5f, 0.5f),
                                                               LimonAPI::Vec2(0.7f, 0.8f), 0);
                 removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
-                removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement2);
             } else {
-                if (crossToCheck < 0) {
-                    uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorDown.png",
-                                                                  "damageIndicatorDown", LimonAPI::Vec2(0.5f, 0.5f),
-                                                                  LimonAPI::Vec2(0.7f, 0.8f), 0);
-                    removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
-                } else {
-                    uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorUp.png",
-                                                                  "damageIndicatorUp", LimonAPI::Vec2(0.5f, 0.5f),
-                                                                  LimonAPI::Vec2(0.7f, 0.8f), 0);
-                    removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
+                if (fabs(crossToCheckLeftRight) > 0.2) { // if around the center, don't render anything
+                    if (crossToCheckLeftRight < 0) {
+                        uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorLeft.png",
+                                                                      "damageIndicatorLeft",
+                                                                      LimonAPI::Vec2(0.5f, 0.5f),
+                                                                      LimonAPI::Vec2(0.7f, 0.8f), 0);
+                        removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
+                    } else {
+                        uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorRight.png",
+                                                                      "damageIndicatorRight",
+                                                                      LimonAPI::Vec2(0.5f, 0.5f),
+                                                                      LimonAPI::Vec2(0.7f, 0.8f), 0);
+                        removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
+                    }
+                }
+                if (fabs(crossToCheckUpDown) > 0.2) { // if around center, don't render anything
+                    if (crossToCheckUpDown < 0) {
+                        uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorDown.png",
+                                                                      "damageIndicatorDown", LimonAPI::Vec2(0.5f, 0.5f),
+                                                                      LimonAPI::Vec2(0.7f, 0.8f), 0);
+                        removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
+                    } else {
+                        uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorUp.png",
+                                                                      "damageIndicatorUp", LimonAPI::Vec2(0.5f, 0.5f),
+                                                                      LimonAPI::Vec2(0.7f, 0.8f), 0);
+                        removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
+                    }
                 }
             }
 
