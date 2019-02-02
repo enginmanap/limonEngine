@@ -328,6 +328,11 @@ void CowboyShooterExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
         addDamageIndicator(interactionData);
 
         //find which way the damage came from
+        if(interactionData.size() >= 3) {
+            glm::vec3 damageOrigin = LimonConverter::LimonToGLM(interactionData[2].value.vectorValue);
+            glm::vec3 damageVector = glm::normalize(glm::vec3(LimonConverter::LimonToGLM(latestPlayerInformation.position)) - damageOrigin);
+            limonAPI->applyForceToPlayer(LimonConverter::GLMToLimon(damageVector * 50000.0f));//50k is a bit much, but It felt right while playing
+        }
 
     }
 
