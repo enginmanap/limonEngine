@@ -68,6 +68,10 @@ bool LimonAPI::applyForce(uint32_t modelID, const LimonAPI::Vec4 &forcePosition,
     return worldApplyForce(modelID, forcePosition, forceAmount);
 }
 
+bool LimonAPI::applyForceToPlayer(const LimonAPI::Vec4 &forceAmount) {
+    return worldApplyForceToPlayer(forceAmount);
+}
+
 bool LimonAPI::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath) {
     return worldAttachSoundToObjectAndPlay(objectWorldID, soundPath);
 }

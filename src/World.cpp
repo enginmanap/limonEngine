@@ -2783,6 +2783,16 @@ bool World::applyForceAPI(uint32_t objectID, const LimonAPI::Vec4 &forcePosition
     return true;
 }
 
+bool World::applyForceToPlayerAPI(const LimonAPI::Vec4 &forceAmount) {
+    if(physicalPlayer == nullptr) {
+        return false;
+    }
+    physicalPlayer->getRigidBody()->activate(true);
+    physicalPlayer->getRigidBody()->applyForce(GLMConverter::LimonToBlt(forceAmount), btVector3(0,0,0));
+
+    return true;
+}
+
 bool World::setModelTemporaryAPI(uint32_t modelID, bool temporary) {
     Model* model = findModelByID(modelID);
     if(model == nullptr) {
