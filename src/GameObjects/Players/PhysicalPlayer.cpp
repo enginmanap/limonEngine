@@ -71,9 +71,15 @@ void PhysicalPlayer::move(moveDirections direction) {
     }
 
     if (direction == NONE) {
+        if(inputMovementSpeed.getY() > 0 ){
+            inputMovementSpeed.setY(0);//don't force slowdown on Y axis if jumping
+        }
+        if(player->getLinearVelocity().length2() < 0.1 && !movementSpeedFull) {
+            movementSpeedFactor *= 2;
+            movementSpeedFull = true;
+        }
         inputMovementSpeed = inputMovementSpeed / slowDownFactor;
-        player->setLinearVelocity(inputMovementSpeed + groundFrictionMovementSpeed);
-
+        player->applyForce((-1 * inputMovementSpeed + groundFrictionMovementSpeed) * movementSpeedFactor, btVector3(0,0,0));
         if(currentSound != nullptr ) {
             if(currentSound->getState() == Sound::State::PLAYING) {
                 currentSound->stopAfterFinish();
@@ -83,37 +89,45 @@ void PhysicalPlayer::move(moveDirections direction) {
     }
 
     switch (direction) {
-        case UP:
-            skipSpringByJump = true;
-            inputMovementSpeed = inputMovementSpeed + GLMConverter::GLMToBlt(up * options->getJumpFactor());
-            spring->setEnabled(false);
-            if(currentSound != nullptr ) {
-                currentSound->stopAfterFinish();
+        case UP: {
+                skipSpringByJump = true;
+                whileJump = true;
+                btVector3 currentSpeed = getRigidBody()->getLinearVelocity();
+            if (currentSpeed.getY() < 0 &&
+                    currentSpeed.getY() > -25.0f) {//TODO 25.0f is just a place holder for too high
+                    currentSpeed.setY(0);
+                    this->getRigidBody()->setLinearVelocity(currentSpeed);//so jump will not be swallowed by downward speed
+                }
+                inputMovementSpeed = inputMovementSpeed + GLMConverter::GLMToBlt(up * options->getJumpFactor() * 20);
+                spring->setEnabled(false);
+                if (currentSound != nullptr) {
+                    currentSound->stopAfterFinish();
+                }
             }
             break;
         case LEFT_BACKWARD:
-            inputMovementSpeed = GLMConverter::GLMToBlt(-1.0f * (right + center) * options->getMoveSpeed() + glm::vec3(0,inputMovementSpeed.getY(), 0));
+            inputMovementSpeed = GLMConverter::GLMToBlt(-1.0f * (right + center) * options->getMoveSpeed());
             break;
         case LEFT_FORWARD:
-            inputMovementSpeed = GLMConverter::GLMToBlt((-1.0f * right + center) * options->getMoveSpeed() + glm::vec3(0,inputMovementSpeed.getY(), 0));
+            inputMovementSpeed = GLMConverter::GLMToBlt((-1.0f * right + center) * options->getMoveSpeed());
             break;
         case LEFT:
-            inputMovementSpeed = GLMConverter::GLMToBlt(right * -1.0f * options->getMoveSpeed() + glm::vec3(0,inputMovementSpeed.getY(), 0));
+            inputMovementSpeed = GLMConverter::GLMToBlt(right * -1.0f * options->getMoveSpeed());
             break;
         case RIGHT_BACKWARD:
-            inputMovementSpeed = GLMConverter::GLMToBlt((right + -1.0f * center) * options->getMoveSpeed() + glm::vec3(0,inputMovementSpeed.getY(), 0));
+            inputMovementSpeed = GLMConverter::GLMToBlt((right + -1.0f * center) * options->getMoveSpeed());
             break;
         case RIGHT_FORWARD:
-            inputMovementSpeed = GLMConverter::GLMToBlt((right + center) * options->getMoveSpeed() + glm::vec3(0,inputMovementSpeed.getY(), 0));
+            inputMovementSpeed = GLMConverter::GLMToBlt((right + center) * options->getMoveSpeed());
             break;
         case RIGHT:
-            inputMovementSpeed = GLMConverter::GLMToBlt(right * options->getMoveSpeed() + glm::vec3(0,inputMovementSpeed.getY(), 0));
+            inputMovementSpeed = GLMConverter::GLMToBlt(right * options->getMoveSpeed());
             break;
         case BACKWARD:
-            inputMovementSpeed = GLMConverter::GLMToBlt(center * -1.0f * options->getMoveSpeed() + glm::vec3(0,inputMovementSpeed.getY(), 0));
+            inputMovementSpeed = GLMConverter::GLMToBlt(center * -1.0f * options->getMoveSpeed());
             break;
         case FORWARD:
-            inputMovementSpeed = GLMConverter::GLMToBlt(center * options->getMoveSpeed() + glm::vec3(0,inputMovementSpeed.getY(), 0));
+            inputMovementSpeed = GLMConverter::GLMToBlt(center * options->getMoveSpeed());
             break;
         case NONE:break;//this is here because -Wall complaints if it is not
     }
@@ -172,6 +186,66 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
     player->getMotionState()->getWorldTransform(worldTransformHolder);
 
     setAttachedModelTransformation(attachedModel);
+    btVector3 linearVelocity = player->getLinearVelocity();
+    if( linearVelocity.getX() > options->getMoveSpeed().x ) {
+        linearVelocity.setX(options->getMoveSpeed().x);
+        if(movementSpeedFull) {
+            movementSpeedFactor /= 2;
+            movementSpeedFull = false;
+        }
+    }
+    if(whileJump) {
+        if( linearVelocity.getY() > options->getJumpFactor()) {
+            linearVelocity.setY(options->getJumpFactor());
+        }
+    } else {
+        if( linearVelocity.getY() > options->getJumpFactor() / 2) {
+            //if upward speed is not caused by jumping, lower the speed even more
+            if (onAir) {
+                linearVelocity.setY(options->getJumpFactor() / -2);
+            } else {
+                linearVelocity.setY(options->getJumpFactor() / 4);
+
+            }
+        }
+    }
+    if (movementSpeedFull) {
+        movementSpeedFactor /= 2;
+        movementSpeedFull = false;
+    }
+
+    if( linearVelocity.getZ() > options->getMoveSpeed().z ) {
+        linearVelocity.setZ(options->getMoveSpeed().z);
+        if(movementSpeedFull) {
+            movementSpeedFactor /= 2;
+            movementSpeedFull = false;
+        }
+    }
+    if( linearVelocity.getX() < -1* options->getMoveSpeed().x ) {
+        linearVelocity.setX(-1* options->getMoveSpeed().x);
+        if(movementSpeedFull) {
+            movementSpeedFactor /= 2;
+            movementSpeedFull = false;
+        }
+    }
+    //clamping downward speed is not logical
+    /*
+    if( linearVelocity.getY() < -1* options->getMoveSpeed().y ) {
+        linearVelocity.setY(-1* options->getMoveSpeed().y);
+        if(movementSpeedFull) {
+            movementSpeedFactor /= 2;
+            movementSpeedFull = false;
+        }
+    }
+    */
+    if( linearVelocity.getZ() < -1* options->getMoveSpeed().z ) {
+        linearVelocity.setZ(-1* options->getMoveSpeed().z);
+        if(movementSpeedFull) {
+            movementSpeedFactor /= 2;
+            movementSpeedFull = false;
+        }
+    }
+    player->setLinearVelocity(linearVelocity);
 
     float highestPoint = std::numeric_limits<float>::lowest();
     btVector3 hitNormal;
@@ -214,13 +288,14 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
 
 
     if(skipSpringByJump) {
-        player->setLinearVelocity(inputMovementSpeed + groundFrictionMovementSpeed);
+        player->applyForce((inputMovementSpeed + groundFrictionMovementSpeed) * movementSpeedFactor, btVector3(0,0,0));
         if(onAir) {
             //until player is onAir, don't remove the flag
             skipSpringByJump = false;
         }
     } else {
         if (!onAir) {
+            whileJump = false;
             springStandPoint = highestPoint + STANDING_HEIGHT - startingHeight;
             spring->setLimit(1, springStandPoint + 1.0f, springStandPoint + 1.0f + STANDING_HEIGHT);
             spring->setEnabled(true);
@@ -228,9 +303,11 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
             Model *model = dynamic_cast<Model *>(hitObject);
             if (model != nullptr) {
                 btVector3 groundSpeed = model->getRigidBody()->getLinearVelocity();
-                groundFrictionMovementSpeed = groundFrictionMovementSpeed + groundSpeed / groundFrictionFactor;
+                btVector3 speedDifference = groundSpeed - this->getRigidBody()->getLinearVelocity();
+                speedDifference.setY(0);//don't apply friction for y axis
+                groundFrictionMovementSpeed = speedDifference / groundFrictionFactor;
                 // cap the speed of friction to ground speed
-                if (groundSpeed.getX() > 0) {
+                /*if (groundSpeed.getX() > 0) {
                     if (groundFrictionMovementSpeed.getX() > groundSpeed.getX()) {
                         groundFrictionMovementSpeed.setX(groundSpeed.getX());
                     }
@@ -258,6 +335,7 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
                         groundFrictionMovementSpeed.setZ(groundSpeed.getZ());
                     }
                 }
+                 */
                 btVector3 totalSpeed = inputMovementSpeed + groundFrictionMovementSpeed;
                 if(hitNormal.getY() < MINIMUM_CLIMP_NORMAL_Y && totalSpeed.length2() > 0.01) {
                     btVector3 playerCapsuleBottom = player->getCenterOfMassPosition() - btVector3(0, CAPSULE_HEIGHT / 2 + CAPSULE_RADIUS + 0.1, 0);
@@ -277,11 +355,16 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
 
                     if(horizontalRayCallback.hasHit()) {
                         inputMovementSpeed.setX(hitNormal.getX());
+                        inputMovementSpeed.setY(0);
                         inputMovementSpeed.setZ(hitNormal.getZ());
                         totalSpeed = inputMovementSpeed + groundFrictionMovementSpeed;
+                        if(!movementSpeedFull) {
+                            movementSpeedFactor *= 2;
+                            movementSpeedFull = true;
+                        }
                     }
                 }
-                player->setLinearVelocity(totalSpeed);
+                player->applyForce(totalSpeed * movementSpeedFactor, btVector3(0,0,0));
                 //check if the sound should change, if it does stop the old one
                 if (model->getPlayerStepOnSound() != nullptr) {
                     if (currentSound != nullptr) {
