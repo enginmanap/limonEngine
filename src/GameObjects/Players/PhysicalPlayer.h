@@ -33,8 +33,10 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     glm::quat view;
     btVector3 inputMovementSpeed;
     btVector3 groundFrictionMovementSpeed; //this is for emulating ground friction
-    float groundFrictionFactor = 10.0f;
-    btVector3 slowDownFactor = btVector3(2.5f, 1.0f, 2.5f);
+    float groundFrictionFactor = 2.0f;
+    float movementSpeedFactor = 1000;
+    bool movementSpeedFull = true;
+    btVector3 slowDownFactor = btVector3(2.0f, 1.0f, 2.0f);
 
     btRigidBody *player;
     btGeneric6DofSpring2Constraint *spring;
@@ -54,6 +56,7 @@ class PhysicalPlayer : public Player, public CameraAttachment {
 
     bool dirty;
     bool skipSpringByJump = false;
+    bool whileJump = false;
     Model* attachedModel = nullptr;
     glm::vec3 attachedModelOffset = glm::vec3(0,0,0);
 
