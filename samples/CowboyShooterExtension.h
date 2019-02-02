@@ -89,6 +89,8 @@ public:
     std::string getName() const override;
 
     void processHitReaction();
+
+    void addDamageIndicator(const std::vector<LimonAPI::ParameterRequest> &interactionData);
 };
 
 
