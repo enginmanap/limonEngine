@@ -417,6 +417,8 @@ public:
 
     bool applyForceAPI(uint32_t objectID, const LimonAPI::Vec4 &forcePosition, const LimonAPI::Vec4 &forceAmount);
 
+    bool applyForceToPlayerAPI(const LimonAPI::Vec4 &forceAmount);
+
     /**
      * If nothing is hit, returns empty vector
      * returns these values:
