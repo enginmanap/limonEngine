@@ -30,7 +30,7 @@ private:
     bool isSpecularMap = false;
     bool isNormalMap = false;
     bool isOpacityMap = false;
-    float refractionIndex;
+    float refractionIndex = 0;
 
     std::unique_ptr<std::vector<std::vector<std::string>>> textureNameListList = nullptr;
 
