@@ -3,11 +3,11 @@
 //
 
 #include "AnimationSequencer.h"
-#include "PhysicalRenderable.h"
+#include "Renderable.h"
 #include "../libs/ImGui/imgui.h"
 #include "Assets/Animations/AnimationCustom.h"
 
-AnimationSequenceInterface::AnimationSequenceInterface(PhysicalRenderable* animatingObject) :
+AnimationSequenceInterface::AnimationSequenceInterface(Renderable* animatingObject) :
         originalTransformation(*animatingObject->getTransformation()), animatingObject(animatingObject) {
     sections.push_back(AnimationSequenceInterface::AnimationSequenceItem{ 30, Transformation() });//put one element to sections by default
 }

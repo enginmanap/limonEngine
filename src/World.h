@@ -135,13 +135,14 @@ private:
     };
 
     struct AnimationStatus {
-        PhysicalRenderable* object = nullptr;
+        Renderable* object = nullptr;
         uint32_t animationIndex;
         bool loop;
         bool originChange = false;
         long startTime;
         Transformation originalTransformation;
         bool wasKinematic;
+        bool wasPhysical = false;
         std::unique_ptr<Sound> sound;
     };
 
@@ -199,8 +200,8 @@ private:
     std::map<uint32_t, TriggerObject*> triggers;
     std::vector<ActionForOnload* > onLoadActions;
     std::vector<AnimationCustom> loadedAnimations;
-    std::set<PhysicalRenderable*> onLoadAnimations;//Those renderables animations should be loaded and started on load
-    std::unordered_map<PhysicalRenderable*, AnimationStatus*> activeAnimations;
+    std::set<Renderable*> onLoadAnimations;//Those renderables animations should be loaded and started on load
+    std::unordered_map<Renderable*, AnimationStatus*> activeAnimations;
     std::unordered_map<uint32_t, std::unique_ptr<Sound>> sounds;
     AnimationSequenceInterface* animationInProgress = nullptr;
     std::vector<Light *> lights;

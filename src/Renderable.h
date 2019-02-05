@@ -23,7 +23,7 @@ protected:
     GLSLProgram *renderProgram = nullptr;
     bool isInCameraFrustum = true;
     bool dirtyForFrustum = true;//is this object require a frustum recalculate
-
+    bool customAnimation = false;
 
     explicit Renderable(GLHelper *glHelper) :
             glHelper(glHelper) {
@@ -75,6 +75,13 @@ public:
         return &transformation;
     }
 
+    void setCustomAnimation(bool customAnimation) {
+        this->customAnimation = customAnimation;
+    }
+
+    bool getCustomAnimation() {
+        return customAnimation;
+    }
 };
 
 

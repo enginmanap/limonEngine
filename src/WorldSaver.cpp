@@ -397,12 +397,21 @@ bool WorldSaver::fillOnloadActions(tinyxml2::XMLDocument &document, tinyxml2::XM
 
 bool WorldSaver::fillOnloadAnimations(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *onloadAnimationsNode,
                                       const World *world) {
+    bool isSuccess = true;
     for(auto it= world->onLoadAnimations.begin(); it != world->onLoadAnimations.end(); it++) {
         /**
          * we need only 2 information, model ID and loaded animation ID.
          */
 
-        uint32_t objectID = dynamic_cast<Model*>(world->activeAnimations.at(*it)->object)->getWorldObjectID();
+        GameObject* animatedObject = dynamic_cast<GameObject*>(world->activeAnimations.at(*it)->object);
+
+        if(animatedObject == nullptr) {
+            std::cerr << "Animation save failed because animated object is not Game Object!" << std::endl;
+            isSuccess = false;
+            continue;
+        }
+
+        uint32_t objectID = animatedObject->getWorldObjectID();
         uint32_t loadedAnimationID = world->activeAnimations.at(*it)->animationIndex;
 
         //we need to save parameters, and trigger code
@@ -417,7 +426,7 @@ bool WorldSaver::fillOnloadAnimations(tinyxml2::XMLDocument &document, tinyxml2:
         animationIDNode->SetText(std::to_string(loadedAnimationID).c_str());
         onloadActionNode->InsertEndChild(animationIDNode);
     }
-    return true;
+    return isSuccess;
 }
 
 bool WorldSaver::fillGUILayersAndElements(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *GUILayersListNode,

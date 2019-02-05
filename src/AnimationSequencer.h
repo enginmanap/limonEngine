@@ -11,7 +11,7 @@
 #include "../libs/ImGuizmo/ImSequencer.h"
 #include "Transformation.h"
 
-class PhysicalRenderable;
+class Renderable;
 class AnimationCustom;
 class AnimationNode;
 
@@ -24,7 +24,7 @@ class AnimationSequenceInterface : public ImSequencer::SequenceInterface {
         Transformation transformation;
     };
     std::vector<AnimationSequenceItem> sections;
-    PhysicalRenderable* animatingObject;
+    Renderable* animatingObject;
     AnimationCustom* animationInProgress = nullptr;
 
     /********************IMGUI variables *************************/
@@ -91,11 +91,11 @@ public:
 
     void Duplicate(int index);
 
-    const PhysicalRenderable *getAnimatingObject() const {
+    const Renderable *getAnimatingObject() const {
         return animatingObject;
     }
 
-    AnimationSequenceInterface(PhysicalRenderable* animatingObject);
+    AnimationSequenceInterface(Renderable* animatingObject);
     ~AnimationSequenceInterface();
     AnimationCustom* buildAnimationFromCurrentItems();
 

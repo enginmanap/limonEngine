@@ -348,9 +348,10 @@ void World::animateCustomAnimations() {
             float animationTime = animationCustom->getDuration();
             animationCustom->calculateTransform("", animationTime, *animationStatus->object->getTransformation());
 
-            if(!animationStatus->wasKinematic) {
-                animationStatus->object->getRigidBody()->setCollisionFlags(animationStatus->object->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
-                animationStatus->object->getRigidBody()->setActivationState(ACTIVE_TAG);
+            if(!animationStatus->wasKinematic && animationStatus->wasPhysical) {
+                PhysicalRenderable* tempPointer = dynamic_cast<PhysicalRenderable*>(animationStatus->object);//this can be static cast, since it is not possible to be anything else.
+                tempPointer->getRigidBody()->setCollisionFlags(tempPointer->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
+                tempPointer->getRigidBody()->setActivationState(ACTIVE_TAG);
             }
 
             if(animationStatus->sound) {
@@ -1415,84 +1416,109 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
 
         if(pickedObject != nullptr) {
             GameObject::ImGuiResult objectEditorResult = pickedObject->addImGuiEditorElements(*request);
-            if(pickedObject->getTypeID() == GameObject::MODEL) {
-                Model* selectedObject = dynamic_cast<Model*>(pickedObject);
-                if(objectEditorResult.updated) {
-                    if(!selectedObject->isDisconnected()) {
-                        dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
-                    }
-                    updatedModels.push_back(selectedObject);
-                }
-                if(activeAnimations.find(selectedObject) != activeAnimations.end()) {
+
+            switch(pickedObject->getTypeID()) {
+                case GameObject::MODEL: {
+                    Model* selectedObject = static_cast<Model*>(pickedObject);
                     if(objectEditorResult.updated) {
-                        activeAnimations[selectedObject]->originChange = true;
+                        if(!selectedObject->isDisconnected()) {
+                            dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
+                        }
+                        updatedModels.push_back(selectedObject);
+                    }
+                    uint32_t removedActorID = 0;
+                    if (objectEditorResult.removeAI) {
+                        //remove AI requested
+                        if (dynamic_cast<Model *>(pickedObject)->getAIID() != 0) {
+                            removedActorID = dynamic_cast<Model *>(pickedObject)->getAIID();
+                            actors.erase(dynamic_cast<Model *>(pickedObject)->getAIID());
+                            dynamic_cast<Model *>(pickedObject)->detachAI();
+                        }
                     }
 
-
-                    if(ImGui::Button(("Remove custom animation: " + loadedAnimations[activeAnimations[selectedObject]->animationIndex].getName()).c_str())) {
-                        ImGui::OpenPopup("How To Remove Custom Animation");
-                     }
-                    if (ImGui::BeginPopupModal("How To Remove Custom Animation")){
-                        AnimationCustom& animationToRemove = loadedAnimations[activeAnimations[selectedObject]->animationIndex];
-                        AnimationStatus* animationStatusToRemove = activeAnimations[selectedObject];
-                        if(ImGui::Button("Set to Start##CustomAnimationRemoval")) {
-                            removeActiveCustomAnimation(animationToRemove, animationStatusToRemove, 0);
-                            ImGui::CloseCurrentPopup();
+                    if (objectEditorResult.addAI) {
+                        std::cout << "adding AI to model " << std::endl;
+                        if(removedActorID == 0) {
+                            removedActorID = getNextObjectID();
                         }
+                        //if remove and add is called in same frame, it means the type is changed, reuse the ID
+                        ActorInterface *newEnemy = ActorInterface::createActor(objectEditorResult.actorTypeName, removedActorID, apiInstance);
+                        Model* model = dynamic_cast<Model *>(pickedObject);
+                        if(model != nullptr) {
+                            newEnemy->setModel(model->getWorldObjectID());
+                            model->attachAI(newEnemy);
+                        } else {
+                            std::cerr << "ActorInterface Model setting failed, because picked object is not a model." << std::endl;
 
-                        if(ImGui::Button("Set to End##CustomAnimationRemoval")) {
-                            removeActiveCustomAnimation(animationToRemove, animationStatusToRemove, animationToRemove.getDuration());
-                            ImGui::CloseCurrentPopup();
                         }
-                        static float customTime = 0.0f;
-                        ImGui::DragFloat("##CustomAnimationRemovalCustomTime", &customTime, 0.1, 0.0, animationToRemove.getDuration());
-                        ImGui::SameLine();
-                        if(ImGui::Button("Set to custom time##CustomAnimationRemoval")) {
-                            removeActiveCustomAnimation(animationToRemove, animationStatusToRemove, customTime);
-                            ImGui::CloseCurrentPopup();
-                        }
-                        if(ImGui::Button("Cancel##CustomAnimationRemoval")) {
-                            ImGui::CloseCurrentPopup();
-                        }
-                        ImGui::EndPopup();
-
-                    }
-                } else {
-                    addAnimationDefinitionToEditor();
-                }
-
-                uint32_t removedActorID = 0;
-                if (objectEditorResult.removeAI) {
-                    //remove AI requested
-                    if (dynamic_cast<Model *>(pickedObject)->getAIID() != 0) {
-                        removedActorID = dynamic_cast<Model *>(pickedObject)->getAIID();
-                        actors.erase(dynamic_cast<Model *>(pickedObject)->getAIID());
-                        dynamic_cast<Model *>(pickedObject)->detachAI();
-                    }
-                }
-
-                if (objectEditorResult.addAI) {
-                    std::cout << "adding AI to model " << std::endl;
-                    if(removedActorID == 0) {
-                        removedActorID = getNextObjectID();
-                    }
-                    //if remove and add is called in same frame, it means the type is changed, reuse the ID
-                    ActorInterface *newEnemy = ActorInterface::createActor(objectEditorResult.actorTypeName, removedActorID, apiInstance);
-                    Model* model = dynamic_cast<Model *>(pickedObject);
-                    if(model != nullptr) {
-                        newEnemy->setModel(model->getWorldObjectID());
-                        model->attachAI(newEnemy);
+                        addActor(newEnemy);
                     } else {
-                        std::cerr << "ActorInterface Model setting failed, because picked object is not a model." << std::endl;
-
-                    }
-                    addActor(newEnemy);
-                } else {
-                    if(removedActorID != 0) {
-                        unusedIDs.push(removedActorID);
+                        if(removedActorID != 0) {
+                            unusedIDs.push(removedActorID);
+                        }
                     }
                 }
+                /* fall through */
+/************** ATTENTION, NO BREAK ******************/
+                case GameObject::GUI_TEXT:
+                case GameObject::GUI_IMAGE:
+                case GameObject::GUI_BUTTON:
+                case GameObject::GUI_ANIMATION:
+                {
+                    Renderable* selectedObject = dynamic_cast<Renderable*>(pickedObject);
+                    if(selectedObject != nullptr) {
+                        //Now we are looking for animations
+                        if (activeAnimations.find(selectedObject) != activeAnimations.end()) {
+                            if (objectEditorResult.updated) {
+                                activeAnimations[selectedObject]->originChange = true;
+                            }
+
+                            if (ImGui::Button(("Remove custom animation: " +
+                                               loadedAnimations[activeAnimations[selectedObject]->animationIndex].getName()).c_str())) {
+                                ImGui::OpenPopup("How To Remove Custom Animation");
+                            }
+                            if (ImGui::BeginPopupModal("How To Remove Custom Animation")) {
+                                AnimationCustom &animationToRemove = loadedAnimations[activeAnimations[selectedObject]->animationIndex];
+                                AnimationStatus *animationStatusToRemove = activeAnimations[selectedObject];
+                                if (ImGui::Button("Set to Start##CustomAnimationRemoval")) {
+                                    removeActiveCustomAnimation(animationToRemove, animationStatusToRemove, 0);
+                                    ImGui::CloseCurrentPopup();
+                                }
+
+                                if (ImGui::Button("Set to End##CustomAnimationRemoval")) {
+                                    removeActiveCustomAnimation(animationToRemove, animationStatusToRemove,
+                                                                animationToRemove.getDuration());
+                                    ImGui::CloseCurrentPopup();
+                                }
+                                static float customTime = 0.0f;
+                                ImGui::DragFloat("##CustomAnimationRemovalCustomTime", &customTime, 0.1, 0.0,
+                                                 animationToRemove.getDuration());
+                                ImGui::SameLine();
+                                if (ImGui::Button("Set to custom time##CustomAnimationRemoval")) {
+                                    removeActiveCustomAnimation(animationToRemove, animationStatusToRemove, customTime);
+                                    ImGui::CloseCurrentPopup();
+                                }
+                                if (ImGui::Button("Cancel##CustomAnimationRemoval")) {
+                                    ImGui::CloseCurrentPopup();
+                                }
+                                ImGui::EndPopup();
+
+                            }
+                        } else {
+                            addAnimationDefinitionToEditor();
+                        }
+                    } else {
+                        std::cerr << "Editor Animation section has non renderable object selected, this shouldn't have happened!" << std::endl;
+                    }
+                }
+                break;
+                default:
+                    // Animation creation works on only model and gui elements, so rest is passed
+                    break;
+
             }
+
+            // after this, remove and physics disconnect
             ImGui::NewLine();
             switch (pickedObject->getTypeID()) {
                 case GameObject::MODEL: {
@@ -1575,9 +1601,10 @@ void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove
 
    animationToRemove.calculateTransform("", animationTime, *animationStatusToRemove->object->getTransformation());
 
-   if(!animationStatusToRemove->wasKinematic) {
-        animationStatusToRemove->object->getRigidBody()->setCollisionFlags(animationStatusToRemove->object->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
-       animationStatusToRemove->object->getRigidBody()->setActivationState(ACTIVE_TAG);
+   if(!animationStatusToRemove->wasKinematic && animationStatusToRemove->wasPhysical) {
+       PhysicalRenderable* tempPointer = dynamic_cast<PhysicalRenderable*>(animationStatusToRemove->object);//this can be static cast, since it is not possible to be anything else.
+       tempPointer->getRigidBody()->setCollisionFlags(tempPointer->getRigidBody()->getCollisionFlags() & ~btCollisionObject::CF_KINEMATIC_OBJECT);
+       tempPointer->getRigidBody()->setActivationState(ACTIVE_TAG);
    }
 
    //now before deleting the animation, separate parent/child animations
@@ -1594,7 +1621,7 @@ void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove
    animationStatusToRemove->object->setCustomAnimation(false);
 
    //now remove active animations
-   PhysicalRenderable* objectOfAnimation = animationStatusToRemove->object;
+   Renderable* objectOfAnimation = animationStatusToRemove->object;
     delete activeAnimations[objectOfAnimation];
    activeAnimations.erase(objectOfAnimation);
 
@@ -1668,7 +1695,7 @@ void World::addAnimationDefinitionToEditor() {
         //If there is no animation setup ongoing, or there is one, but not for this model,
         //put start animation button.
         //else put time input, add and finalize buttons.
-        if (animationInProgress == nullptr || animationInProgress->getAnimatingObject() != dynamic_cast<Model *>(pickedObject)) {
+        if (animationInProgress == nullptr || animationInProgress->getAnimatingObject() != dynamic_cast<Renderable *>(pickedObject)) {
 
             static int listbox_item_current = 0;
             ImGui::Text("Loaded animations list");
@@ -1676,7 +1703,7 @@ void World::addAnimationDefinitionToEditor() {
                            static_cast<void *>(&loadedAnimations), loadedAnimations.size(), 10);
 
             if (ImGui::Button("Apply selected")) {
-                addAnimationToObject(dynamic_cast<Model *>(pickedObject)->getWorldObjectID(), listbox_item_current,
+                addAnimationToObject(pickedObject->getWorldObjectID(), listbox_item_current,
                                      true, true);
             }
 
@@ -1684,12 +1711,12 @@ void World::addAnimationDefinitionToEditor() {
             if (ImGui::Button("Create new")) {
                 if (animationInProgress == nullptr) {
                     animationInProgress = new AnimationSequenceInterface(
-                            dynamic_cast<PhysicalRenderable *>(pickedObject));
+                            dynamic_cast<Renderable *>(pickedObject));
                 } else {
                     //ask for removal of the old work
                     delete animationInProgress;
                     animationInProgress = new AnimationSequenceInterface(
-                            dynamic_cast<PhysicalRenderable *>(pickedObject));
+                            dynamic_cast<Renderable *>(pickedObject));
                 }
                 // At this point we should know the animationInProgress is for current object
             }
@@ -1700,7 +1727,7 @@ void World::addAnimationDefinitionToEditor() {
             if (finished) {
                 loadedAnimations.push_back(AnimationCustom(*animationInProgress->buildAnimationFromCurrentItems()));
 
-                addAnimationToObject(dynamic_cast<Model *>(pickedObject)->getWorldObjectID(),
+                addAnimationToObject(pickedObject->getWorldObjectID(),
                                      loadedAnimations.size() - 1, true, true);
                 delete animationInProgress;
                 animationInProgress = nullptr;
@@ -1866,11 +1893,19 @@ void World::addLight(Light *light) {
 uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad,
                                               const std::string *soundToPlay) {
     AnimationStatus* as = new AnimationStatus;
-    as->object = objects[modelID];
-
+    PhysicalRenderable* physicalPointer = nullptr;
+    if(objects.find(modelID) != objects.end()) {
+        as->object = objects[modelID];
+        physicalPointer = objects[modelID];
+        as->wasPhysical = true;
+    } else if(guiElements.find(modelID) != guiElements.end()) {
+        as->object = guiElements[modelID];
+    }
     as->animationIndex = animationID;
     as->loop = looped;
-    as->wasKinematic = as->object->getRigidBody()->getCollisionFlags() & btCollisionObject::CF_KINEMATIC_OBJECT;
+    if(physicalPointer != nullptr) {
+        as->wasKinematic = physicalPointer->getRigidBody()->getCollisionFlags() & btCollisionObject::CF_KINEMATIC_OBJECT;
+    }
     as->startTime = gameTime;
     if(activeAnimations.count(as->object) != 0) {
         options->getLogger()->log(Logger::log_Subsystem_ANIMATION, Logger::log_level_WARN, "Model had custom animation, overriding.");
@@ -1910,10 +1945,10 @@ uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animati
     //now set the parent/child
     as->object->getTransformation()->setParentTransform(&as->originalTransformation);
     as->object->setCustomAnimation(true);
-
-    as->object->getRigidBody()->setCollisionFlags(as->object->getRigidBody()->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-    as->object->getRigidBody()->setActivationState(DISABLE_DEACTIVATION);
-
+    if(physicalPointer != nullptr) {
+        physicalPointer->getRigidBody()->setCollisionFlags(physicalPointer->getRigidBody()->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+        physicalPointer->getRigidBody()->setActivationState(DISABLE_DEACTIVATION);
+    }
     if(startOnLoad) {
         onLoadAnimations.insert(as->object);
         as->startTime = 0;

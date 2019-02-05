@@ -58,6 +58,8 @@ void GUITextBase::render() {
 
     glm::mat4 currentTransform;
 
+    this->transformation.getWorldTransform();//this is called incase part of animation, if not it returns value from cache, so no performance hit.
+
     //Setup position
     float quadPositionX, quadPositionY, quadSizeX, quadSizeY;
     const Glyph *glyph;
