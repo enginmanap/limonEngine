@@ -245,6 +245,8 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     //load lights
     loadLights(worldNode, world);
 
+    loadGUILayersAndElements(worldNode, world);
+
     //load triggers
     loadTriggers(worldNode, world);
 
@@ -252,8 +254,6 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     loadOnLoadActions(worldNode, world);
 
     loadOnLoadAnimations(worldNode, world);
-
-    loadGUILayersAndElements(worldNode, world);
 
     return world;
 }

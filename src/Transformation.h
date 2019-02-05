@@ -122,6 +122,7 @@ protected:
         for (auto iterator = childTransforms.begin(); iterator != childTransforms.end(); ++iterator) {
             if((*iterator)->updateCallback != nullptr) {
                 (*iterator)->isDirty = true;
+                (*iterator)->rotated = this->rotated;
                 (*iterator)->updateCallback();
             }
         }
@@ -316,7 +317,7 @@ public:
         if(this->parentTransform == nullptr) {
             this->orientation = orientationSingle;
         }
-        rotated = this->orientation.w < 0.99; // with rotation w gets smaller.
+        rotated = this->orientation.w < 0.99 || this->orientationSingle.w < 0.99; // with rotation w gets smaller.
         isDirty = true;
         propagateUpdate();
     }
