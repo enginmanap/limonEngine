@@ -208,6 +208,12 @@ GameObject::ImGuiResult GUIImage::addImGuiEditorElements(const ImGuiRequest &req
         result.updated = this->transformation.addImGuiEditorElements(request.ortogonalCameraMatrix, request.ortogonalMatrix, true);
     }
 
+    float alphaTemp = this->transformation.getTranslate().z;//since translate z is unused, we use it to store Alpha
+    if(ImGui::SliderFloat("Alpha", &alphaTemp, 0.0f, 1.0f)) {
+        this->transformation.setTranslate(glm::vec3(this->transformation.getTranslate().x, this->transformation.getTranslate().y, alphaTemp));
+        result.updated = true;
+    }
+
     if (ImGui::Button("Remove")) {
         result.remove = true;
     }
