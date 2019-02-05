@@ -99,7 +99,7 @@ void GUITextBase::render() {
                     this->transformation.getScale() * glm::vec3(quadSizeX, quadSizeY, 1.0f)
             );
         }
-
+        currentTransform[3][2] = this->getTransformation()->getTranslate().z;//alpha is set on translate z, since it is not used
         if (!renderProgram->setUniform("worldTransformMatrix", currentTransform)) {
             std::cerr << "failed to set uniform \"worldTransformMatrix\"" << std::endl;
         }

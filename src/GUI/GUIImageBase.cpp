@@ -28,15 +28,15 @@ void GUIImageBase::render() {
 
     renderProgram->setUniform("orthogonalProjectionMatrix", glHelper->getOrthogonalProjectionMatrix());
 
-        if (!renderProgram->setUniform("worldTransformMatrix", this->getTransformation()->getWorldTransform())) {
-            std::cerr << "failed to set uniform \"worldTransformMatrix\"" << std::endl;
-        }
+    if (!renderProgram->setUniform("worldTransformMatrix", this->getTransformation()->getWorldTransform())) {//translate.z is alpha channel, we are sending it too!
+        std::cerr << "failed to set uniform \"worldTransformMatrix\"" << std::endl;
+    }
 
-        if (!renderProgram->setUniform("GUISampler", imageAttachPoint)) {
-            std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
-        }
-        glHelper->attachTexture(image->getID(), imageAttachPoint);
-        glHelper->render(renderProgram->getID(), vao, ebo, (GLuint) (faces.size() * 3));
+    if (!renderProgram->setUniform("GUISampler", imageAttachPoint)) {
+        std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
+    }
+    glHelper->attachTexture(image->getID(), imageAttachPoint);
+    glHelper->render(renderProgram->getID(), vao, ebo, (GLuint) (faces.size() * 3));
 }
 
 void GUIImageBase::getAABB(glm::vec2 &aabbMin, glm::vec2 &aabbMax) const {

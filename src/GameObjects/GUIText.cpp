@@ -223,7 +223,13 @@ GameObject::ImGuiResult GUIText::addImGuiEditorElements(const ImGuiRequest &requ
     result.updated = ImGui::SliderFloat("Color G", &(this->color.g), 0.0f, 1.0f)   || result.updated;
     result.updated = ImGui::SliderFloat("Color B", &(this->color.b), 0.0f, 1.0f)   || result.updated;
     ImGui::NewLine();
+    float alphaTemp = this->transformation.getTranslateSingle().z;//since translate z is unused, we use it to store Alpha
+    if(ImGui::SliderFloat("Alpha", &alphaTemp, 0.0f, 1.0f)) {
+        this->transformation.setTranslate(glm::vec3(this->transformation.getTranslateSingle().x, this->transformation.getTranslateSingle().y, alphaTemp));
+        result.updated = true;
+    }
 
+    ImGui::NewLine();
     if (ImGui::Button("Remove")) {
         result.remove = true;
     }
