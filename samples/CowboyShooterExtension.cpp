@@ -334,6 +334,8 @@ void CowboyShooterExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
             limonAPI->applyForceToPlayer(LimonConverter::GLMToLimon(damageVector * 50000.0f));//50k is a bit much, but It felt right while playing
         }
 
+        //now add animation of the hitpoint GUI element
+        limonAPI->animateModel(678, 21, false, nullptr);
     }
 
 }
