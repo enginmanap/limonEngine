@@ -429,9 +429,9 @@ void CowboyShooterExtension::addDamageIndicator(const std::vector<LimonAPI::Para
     removeParameters.push_back(removeIDs);
     limonAPI->addTimedEvent(250, bind(&CowboyShooterExtension::removeDamageIndicator, this, std::placeholders::_1), removeParameters);
     if(!hitReaction) {
-            hitTime = lastInputTime;
-            hitReaction = true;
-        }
+        hitTime = lastInputTime;
+        hitReaction = true;
+    }
 }
 
 std::string CowboyShooterExtension::getName() const {
