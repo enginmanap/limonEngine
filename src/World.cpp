@@ -359,6 +359,9 @@ void World::animateCustomAnimations() {
             }
 
             //now before deleting the animation, separate parent/child animations
+
+            animationStatus->object->getTransformation()->getWorldTransform();//make sure propagates were run
+
             glm::vec3 tempScale, tempTranslate;
             glm::quat tempOrientation;
             tempScale       = animationStatus->object->getTransformation()->getScale();
@@ -371,7 +374,7 @@ void World::animateCustomAnimations() {
             animationStatus->object->getTransformation()->setOrientation(tempOrientation);
             animationStatus->object->setCustomAnimation(false);
 
-            options->getLogger()->log(Logger::log_Subsystem_INPUT, Logger::log_level_DEBUG, "Animation " + animationCustom->getName() + " finished, removing. ");
+            options->getLogger()->log(Logger::log_Subsystem_ANIMATION, Logger::log_level_DEBUG, "Animation " + animationCustom->getName() + " finished, removing. ");
             delete animIt->second;
             animIt = activeAnimations.erase(animIt);
 
