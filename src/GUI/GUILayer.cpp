@@ -70,7 +70,7 @@ void GUILayer::removeGuiElement(uint32_t guiElementID) {
                     worldObjectID = static_cast<GUIButton*>(guiElements[i])->getWorldObjectID();
                     break;
                 case GameObject::ObjectTypes::GUI_ANIMATION:
-                    worldObjectID = static_cast<GUIButton*>(guiElements[i])->getWorldObjectID();
+                    worldObjectID = static_cast<GUIAnimation*>(guiElements[i])->getWorldObjectID();
                     break;
                 default:
                     std::cerr << "A GUI Element remove failed to layer because of unknown type!" << std::endl;
