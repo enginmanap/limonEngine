@@ -2,19 +2,17 @@
 // Created by engin on 25.01.2019.
 //
 
-#ifndef LIMONENGINE_WESTERNSTARTUPACTION_H
-#define LIMONENGINE_WESTERNSTARTUPACTION_H
+#ifndef LIMONENGINE_WESTERNSTORYNEWGAMEACTION_H
+#define LIMONENGINE_WESTERNSTORYNEWGAMEACTION_H
 
 
 #include <API/TriggerInterface.h>
 
-class WesternStoryStartupAction : public TriggerInterface {
-    uint32_t textID1,textID2;
-    bool hasRun = false;
+class WesternStoryNewGameAction : public TriggerInterface {
 public:
-    WesternStoryStartupAction(LimonAPI* limonAPI) : TriggerInterface(limonAPI) {}
-    void showMessages1(const std::vector<LimonAPI::ParameterRequest> &emptyParamList);
-    void showMessages2(const std::vector<LimonAPI::ParameterRequest> &emptyParamList);
+    WesternStoryNewGameAction(LimonAPI* limonAPI) : TriggerInterface(limonAPI) {}
+    void animateThoughts(const std::vector<LimonAPI::ParameterRequest> &emptyParamList);
+    void switchWorld(const std::vector<LimonAPI::ParameterRequest> &emptyParamList);
 
     std::vector<LimonAPI::ParameterRequest> getParameters() override;
 
@@ -26,4 +24,4 @@ public:
 };
 
 
-#endif //LIMONENGINE_WESTERNSTARTUPACTION_H
+#endif //LIMONENGINE_WESTERNSTORYNEWGAMEACTION_H
