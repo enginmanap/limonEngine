@@ -513,7 +513,7 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
     Model* actorModel = dynamic_cast<Model*>(objects[actor->getModelID()]);
     if(actorModel != nullptr) {
         information.canSeePlayerDirectly = checkPlayerVisibility(
-                actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0),
+                actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight+1.0f, 0),
                 actorModel->getName());
         if (currentPlayer->isDead()) {
             information.playerDead = true;
@@ -1921,6 +1921,7 @@ uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animati
             float duration = oldAnimation->getDuration();
             oldAnimation->calculateTransform("", duration, *as->object->getTransformation());
 
+            as->object->getTransformation()->getWorldTransform();//make sure it propagated as it should.
             //now before deleting the animation, separate parent/child animations
             glm::vec3 tempScale, tempTranslate;
             glm::quat tempOrientation;
@@ -2255,8 +2256,19 @@ uint32_t World::addGuiImageAPI(const std::string &imageFilePath, const std::stri
 
 bool World::removeGuiElement(uint32_t guiElementID) {
     if(guiElements.find(guiElementID) != guiElements.end()) {
-        delete guiElements[guiElementID];
+        GUIRenderable* temp = guiElements[guiElementID];
+        if(hoveringButton != nullptr && hoveringButton->getWorldObjectID() == guiElementID ) {
+            hoveringButton = nullptr;
+        }
+        //remove any active animations
+        if(activeAnimations.find(temp) != activeAnimations.end()) {
+            delete activeAnimations[temp];
+            activeAnimations.erase(temp);
+        }
+        onLoadAnimations.erase(temp);
+
         guiElements.erase(guiElementID);
+        delete temp;
         return true;
     }
     return false;
