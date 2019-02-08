@@ -154,6 +154,7 @@ add_library(customTriggers SHARED
         samples/WesternStoryAtUndertakerAction.cpp
         samples/WesternStoryAtSaloonAction.cpp
         samples/WesternStoryAtTrainAction.cpp
+        samples/WesternStoryNewGameAction.cpp
         )
 
 IF (WIN32 AND NOT ( MINGW OR MSYS))
