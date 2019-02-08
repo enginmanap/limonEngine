@@ -1903,6 +1903,16 @@ uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animati
         as->wasPhysical = true;
     } else if(guiElements.find(modelID) != guiElements.end()) {
         as->object = guiElements[modelID];
+    } else {
+        //object is not model or GUI, so object is not found. Return 0
+        std::cerr << "add animation called for non existent object, skipping. " << std::endl;
+        delete as;
+        return 0;
+    }
+    if(loadedAnimations.size() <= animationID) {
+        std::cerr << "add animation called for non existent animation, skipping. " << std::endl;
+        delete as;
+        return 0;
     }
     as->animationIndex = animationID;
     as->loop = looped;
