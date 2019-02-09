@@ -40,7 +40,7 @@ occlusion = occlusion / 49;
 ``` 
 It is just a makeshift thing that remotely resembles what we want, but it yields the following result:
 
-![Makeshift SSAO]({{ site.baseurl }}/assets/images/posts/72/ssaoTestSM.png)
+[![Makeshift SSAO]({{ site.baseurl }}/assets/images/posts/72/ssaoTestSM.png)][ss1]
 
 It has banding, and things are blurry but the details are improved tremendously, and seeing this result, I was convinced SSAO was what I want. I implemented a proper version that you can check out [the commit](https://github.com/enginmanap/limonEngine/commit/adc4756094112ca3dda7d23d6c4c8e6549b62d9e#diff-d7e2342af9ab281bdd46f5126c7daf96R155). 
 
