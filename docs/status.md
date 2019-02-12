@@ -4,36 +4,37 @@ layout: default
 
 ## About
 
-Limon is a 3D FPS game engine. Main focus of its development is learning. It is not bleeding edge in any sense, but it is a functioning game engine none the less. 
+Limon is a 3D first person game engine. Main focus of its development ease of use and ease of study. It is not bleeding edge in any sense, but it is a functioning game engine none the less. 
 
 It is based on Opengl 3.3 + SDL2, but many other libraries are used.
 
-Latest release can be [downloaded here](https://github.com/enginmanap/limonEngine/releases/).
+Latest release can be [downloaded here](https://github.com/enginmanap/limonEngine/releases/)
 
-Here is the latest video of the engine:
+Documentation is served by [read the docs](https://limonengine.readthedocs.io/en/latest/)
 
-[![Mayan Map with sound](http://img.youtube.com/vi/1OHS3TJ1q6o/0.jpg)](http://www.youtube.com/watch?v=1OHS3TJ1q6o)
+Chat is done using [Discord](https://discord.gg/gqprbFd)
 
-# Features (as of 10 August 2018)
 
-- Model loading using Assimp
-- Skeletal animations
-- Realtime shadows
+Here is the latest tech demo of the engine:
+
+[![0.6 Tech Demo](http://img.youtube.com/vi/quOlyDosGXc/0.jpg)](http://www.youtube.com/watch?v=quOlyDosGXc)
+
+There is also another video for features:
+
+[![0.6 featurette](http://img.youtube.com/vi/WOJUJjeV2Gw/0.jpg)](http://www.youtube.com/watch?v=WOJUJjeV2Gw)
+
+# Features (as of 12 February 2019)
+
+- Loads 60+ Model formats (thanks to Assimp)
+- Skeletal animations + Mixamo.com support 
+- Custom 3D forward renderer with realtime lighting/shadows + postprocessing effects (only SSAO at the moment)
 - Rigid body physics
 - 3D spatial sound
-- Preliminary AI 
 - In game map editor
-- Trigger volumes
-- API for Custom Trigger code
-- Loading shared libraries that has Trigger code
 - Creating Animations in editor
-
-# Features to do
-- There should be some AI
-- Spot lights should be added.
-- Debug draw should be improved
-    * needs to have some other debug shapes, like sphere
-    * Some cases require a duration
-- For proper handling of opacity, we need to order the objects.
-- object culling? We are rendering everything, which is not feasible on the long run.
-- A file logger should be implemented,
+- Trigger volumes
+- API for customisations
+  * Actions: Triggers, buttons, onload.
+  * AI Actors: Enemies, NPCs, followers.
+  * Player extensions: Input handling.
+- Loading customisations from shared libraries
