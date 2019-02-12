@@ -11,3 +11,4 @@ Ni 1.000000
 d 1.000000
 illum 2
 map_Kd  ./Data/Textures/BulletHole/BulletHole.png
+map_d  ./Data/Textures/BulletHole/BulletHole_alpha.png
