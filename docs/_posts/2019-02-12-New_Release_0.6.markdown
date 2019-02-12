@@ -20,8 +20,8 @@ Lastly, there is a tech demo to showcase current state of the engine, and what c
 
 Thanks to:
 
-Skyboxes by Wello Soft (Wildan Mubarok).
-Synth studios for the 3D assets.
-mixamo.com for animations.
-Dan Knoflicek for the music.
-Daniel Simon for Train whistle sound.
+- Skyboxes by Wello Soft (Wildan Mubarok).
+- Synth studios for the 3D assets.
+- mixamo.com for animations.
+- Dan Knoflicek for the music.
+- Daniel Simon for Train whistle sound.
