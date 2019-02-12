@@ -16,9 +16,15 @@ Prebuilt binaries for Windows, Linux and MacOS can be [found here](https://githu
 
 Documentation is served on [readthedocs](https://limonengine.readthedocs.io/en/latest/)
 
+If you want to chat, we have a [Discord channel](https://discord.gg/gqprbFd)
+
 For a demonstration, check out the video :
 
-[![Mayan Map with sound](http://img.youtube.com/vi/1OHS3TJ1q6o/0.jpg)](http://www.youtube.com/watch?v=1OHS3TJ1q6o)
+[![0.6 Tech Demo](http://img.youtube.com/vi/quOlyDosGXc/0.jpg)](http://www.youtube.com/watch?v=quOlyDosGXc)
+
+For features, check out features video:
+
+[![0.6 featurette](http://img.youtube.com/vi/WOJUJjeV2Gw/0.jpg)](http://www.youtube.com/watch?v=WOJUJjeV2Gw)
 
 ## Building from source on Ubuntu 18.10:
 
