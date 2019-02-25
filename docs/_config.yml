@@ -10,7 +10,7 @@ url: https://enginmanap.github.io/
 # be the project name.
 # *** IMPORTANT: If your local "jekyll serve" throws errors change this to '' or
 #     run it like so: jekyll serve --baseurl=''
-baseurl: '/limonEngine'
+baseurl: ''
 github_comments_repository: enginmanap/limonEngine
 ## default date_format
 date_format: 
