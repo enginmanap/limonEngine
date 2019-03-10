@@ -30,7 +30,7 @@ For features, check out features video:
 
 Step 1) Open Terminal, then copy and paste the following command
 ```bash
-$ sudo apt install cmake git git-lfs libassimp-dev libbullet-dev libsdl2-dev libsdl2-image-dev libfreetype6-dev libtinyxml2-dev libglew-dev build-essential libglm-dev libtinyxml2-dev
+$ sudo apt install cmake git git-lfs libassimp-dev libbullet-dev libsdl2-dev libsdl2-image-dev libfreetype6-dev libtinyxml2-dev libglew-dev build-essential libglm-dev
 ```
 Step 2) Next, we need to install LFS (Large File System), clone the LimonEngine repository and pull the LFS data:
 ```bash
