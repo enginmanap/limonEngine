@@ -61,7 +61,9 @@ class SSAOPostProcess;
 class SSAOBlurPostProcess;
 
 class GLHelper;
+class GraphicsPipelineStage;
 class ALHelper;
+
 
 class World {
 public:
@@ -278,7 +280,7 @@ private:
         LOAD_WORLD
     };
     QuitResponse currentQuitResponse = QuitResponse::QUIT_GAME;
-
+    GraphicsPipelineStage* ssaoBlurStage = nullptr;
     bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
 
     /**

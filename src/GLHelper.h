@@ -24,6 +24,7 @@
 
 #  include <GL/gl.h>
 #include <memory>
+#include <c++/8.2.1/map>
 
 #endif/*__APPLE__*/
 
@@ -130,6 +131,66 @@ class GLHelper {
 
 
 public:
+
+    enum class TextureTypes {T2D, T2D_ARRAY, TCUBE_MAP};//Starting with digits is illegal
+    enum class InternalFormatTypes {RED, RGB, RGBA, RGB16F, RGB32F, DEPTH };
+    enum class FormatTypes {RGB, RGBA, DEPTH};
+    enum class DataTypes {UNSIGNED_BYTE, FLOAT};
+    enum class FrameBufferAttachPoints {NONE, COLOR0, COLOR1, COLOR2, COLOR3, COLOR4, COLOR5, COLOR6, DEPTH };
+
+    class Texture {
+        GLHelper* glHelper;
+        uint32_t textureID;
+        TextureTypes textureType;
+        InternalFormatTypes internalFormat;
+        FormatTypes format;
+        DataTypes dataType;
+        uint32_t height, width;
+        uint32_t depth;//3D textures, or texture arrays have this as element count
+
+        float borderColor[4] = {0};
+        bool borderColorSet = false;
+    public:
+        Texture(GLHelper* glHelper, TextureTypes textureType, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType,uint32_t width, uint32_t height, uint32_t depth = 0)
+        : glHelper(glHelper), textureType(textureType), internalFormat(internalFormat), format(format), dataType(dataType), height(height), width(width), depth(depth) {
+            this->textureID = glHelper->createTexture(height, width, textureType, internalFormat, format, dataType, depth);
+        }
+
+        void setBorderColor(float red, float green, float blue, float alpha) {
+            borderColor[0] = red;
+            borderColor[1] = green;
+            borderColor[2] = blue;
+            borderColor[3] = alpha;
+            borderColorSet = true;
+            glHelper->setTextureBorder(*this);
+        }
+
+        void removeBorderColor() {
+            borderColorSet = false;
+            glHelper->setTextureBorder(*this);
+        }
+
+        bool isBorderColorSet() {
+            return borderColorSet;
+        }
+        std::vector<float> getBorderColor() {
+            return std::vector<float>(borderColor, borderColor + (sizeof(borderColor)/sizeof(float)));
+        }
+
+        TextureTypes getType(){
+            return textureType;
+        }
+
+        uint32_t getTextureID() {
+            return textureID;
+        }
+
+        FormatTypes getFormat() {
+            return format;
+        }
+    };
+    std::shared_ptr<Texture> ssaoTexture;
+    GLuint ssaoBlurredMap;
     enum VariableTypes {
         INT,
         FLOAT,
@@ -226,7 +287,6 @@ private:
     GLuint ssaoMap;
 
     GLuint ssaoBlurFrameBuffer;
-    GLuint ssaoBlurredMap;
 
     GLuint combineFrameBuffer;
 
@@ -304,6 +364,8 @@ private:
                                const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
                                const uint_fast32_t attachPointer);
 
+    uint32_t createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth);
+
 public:
     explicit GLHelper(Options *options);
 
@@ -370,6 +432,11 @@ public:
 
     void reshape();
 
+    uint32_t createFrameBuffer();
+    void attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID, FrameBufferAttachPoints attachPoint, uint32_t layer=0);
+
+    void setTextureBorder(Texture& texture);
+
     GLuint loadTexture(int height, int width, GLenum format, void *data);
 
     GLuint loadCubeMap(int height, int width, void *right, void *left, void *top, void *bottom, void *back,
@@ -423,6 +490,8 @@ public:
     }
 
     void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix);
+
+    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, std::map<uint32_t , std::shared_ptr<GLHelper::Texture>>& inputs);
 
     void switchRenderToShadowMapDirectional(const unsigned int index);
     void switchRenderToShadowMapPoint();

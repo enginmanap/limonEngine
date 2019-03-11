@@ -456,6 +456,9 @@ GLHelper::GLHelper(Options *options): options(options) {
     // SSAO Framebuffer
     glGenFramebuffers(1, &ssaoGenerationFrameBuffer);
 
+    ssaoTexture = std::make_shared<Texture>(this, TextureTypes::T2D, InternalFormatTypes::RED, FormatTypes::RGB, DataTypes::FLOAT, screenWidth, screenHeight);
+    ssaoTexture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
+
     glGenTextures(1, &ssaoMap);
     glBindTexture(GL_TEXTURE_2D, ssaoMap);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, screenWidth, screenHeight, 0, GL_RGB, GL_FLOAT, nullptr);
@@ -468,7 +471,8 @@ GLHelper::GLHelper(Options *options): options(options) {
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glBindFramebuffer(GL_FRAMEBUFFER, ssaoGenerationFrameBuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ssaoMap, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ssaoTexture->getTextureID(), 0);
+//    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ssaoMap, 0);
 
     unsigned int attachments2[2] = { GL_NONE, GL_COLOR_ATTACHMENT1 };
     glDrawBuffers(2, attachments2);
@@ -693,6 +697,18 @@ void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &text
     checkErrors("bufferVertexTextureCoordinates");
 }
 
+void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, std::map<uint32_t , std::shared_ptr<GLHelper::Texture>> &inputs){
+    glViewport(0, 0, width, height);
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
+    //we combine diffuse+specular lighted with ambient / SSAO
+    for (auto inputIt = inputs.begin(); inputIt != inputs.end(); ++inputIt) {
+        state->attachTexture(inputIt->second->getTextureID(), inputIt->first);
+    }
+    if(blendEnabled) {
+        glEnablei(GL_BLEND, 0);
+    }
+}
+
 void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
     glViewport(0, 0, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight());
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
@@ -736,7 +752,7 @@ void GLHelper::switchRenderToSSAOGeneration() {
 void GLHelper::switchRenderToSSAOBlur() {
     glViewport(0, 0, screenWidth, screenHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFrameBuffer);
-    state->attachTexture(ssaoMap, 1);
+    state->attachTexture(ssaoTexture->getTextureID(), 1);
     glCullFace(GL_BACK);
     checkErrors("switchRenderToSSAOBlur");
 }
@@ -914,6 +930,178 @@ void GLHelper::reshape() {
     inverseProjection = glm::inverse(perspectiveProjectionMatrix);
     orthogonalProjectionMatrix = glm::ortho(0.0f, (float) options->getScreenWidth(), 0.0f, (float) options->getScreenHeight());
     checkErrors("reshape");
+}
+
+void GLHelper::setTextureBorder(Texture& texture) {
+    GLenum glTextureType;
+    switch (texture.getType()) {
+        case TextureTypes::T2D: {
+            glTextureType = GL_TEXTURE_2D;
+        }
+            break;
+        case TextureTypes::T2D_ARRAY: {
+            glTextureType = GL_TEXTURE_2D_ARRAY;
+
+        }
+            break;
+        case TextureTypes::TCUBE_MAP: {
+            glTextureType = GL_TEXTURE_CUBE_MAP_ARB;
+
+        }
+            break;
+    }
+
+    glBindTexture(glTextureType, texture.getTextureID());
+
+    if(texture.isBorderColorSet()) {
+
+        glTexParameteri(glTextureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        std::vector<float> borderRequest = texture.getBorderColor();
+        if(borderRequest.size() < 4) {
+            std::cerr << "Border color don't have 4 elements, this should never happen!" << std::endl;
+            std::exit(-1);
+        }
+        GLfloat borderColor[] = {borderRequest[0], borderRequest[1], borderRequest[2], borderRequest[3]};
+        glTexParameterfv(glTextureType, GL_TEXTURE_BORDER_COLOR, borderColor);
+    } else {
+        glTexParameteri(glTextureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    }
+}
+
+uint32_t GLHelper::createFrameBuffer() {
+    GLuint newFrameBufferLocation;
+    glGenFramebuffers(1, &newFrameBufferLocation);
+    glBindFramebuffer(GL_FRAMEBUFFER, newFrameBufferLocation);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    checkErrors("createFrameBuffer");
+
+    return newFrameBufferLocation;
+}
+
+void GLHelper::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID, FrameBufferAttachPoints attachPoint, uint32_t layer) {
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
+
+    GLenum glAttachment;
+    uint32_t index = 0;
+    switch(attachPoint) {
+        case FrameBufferAttachPoints::NONE: glAttachment = GL_NONE; break;
+        case FrameBufferAttachPoints::COLOR0: glAttachment = GL_COLOR_ATTACHMENT0; break;
+        case FrameBufferAttachPoints::COLOR1: glAttachment = GL_COLOR_ATTACHMENT1; index = 1;break;
+        case FrameBufferAttachPoints::COLOR2: glAttachment = GL_COLOR_ATTACHMENT2; index = 2;break;
+        case FrameBufferAttachPoints::COLOR3: glAttachment = GL_COLOR_ATTACHMENT3; index = 3;break;
+        case FrameBufferAttachPoints::COLOR4: glAttachment = GL_COLOR_ATTACHMENT4; index = 4;break;
+        case FrameBufferAttachPoints::COLOR5: glAttachment = GL_COLOR_ATTACHMENT5; index = 5;break;
+        case FrameBufferAttachPoints::COLOR6: glAttachment = GL_COLOR_ATTACHMENT6; index = 6;break;
+        case FrameBufferAttachPoints::DEPTH:  glAttachment = GL_DEPTH_COMPONENT;   break;
+    }
+
+    int32_t attachmentTemp;
+    unsigned int attachments[6];
+    for (int i = 0; i < 6; ++i) {
+        if(i == index) {
+            attachments[i] = glAttachment;
+        } else {
+            glGetIntegerv(GL_DRAW_BUFFER0 + i, &attachmentTemp);
+            attachments[i] = attachmentTemp;
+        }
+    }
+
+    glDrawBuffers(6, attachments);
+
+    switch (textureType) {
+        case TextureTypes::T2D: {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, glAttachment, GL_TEXTURE_2D, textureID, 0);
+        }
+            break;
+        case TextureTypes::T2D_ARRAY: {
+            glFramebufferTextureLayer(GL_FRAMEBUFFER, glAttachment, textureID, 0, layer);
+        }
+            break;
+        case TextureTypes::TCUBE_MAP: {
+            glFramebufferTexture(GL_FRAMEBUFFER, glAttachment, textureID, 0);
+        }
+        break;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+uint32_t GLHelper::createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth) {
+    GLuint texture;
+    glGenTextures(1, &texture);
+    state->activateTextureUnit(0);//this is the default working texture
+
+    GLint glInternalDataFormat;
+    switch (internalFormat) {
+        case InternalFormatTypes::RED: glInternalDataFormat = GL_RED; break;
+        case InternalFormatTypes::RGB: glInternalDataFormat = GL_RGB; break;
+        case InternalFormatTypes::RGBA: glInternalDataFormat = GL_RGBA; break;
+        case InternalFormatTypes::RGB16F: glInternalDataFormat = GL_RGB16F; break;
+        case InternalFormatTypes::RGB32F: glInternalDataFormat = GL_RGB32F; break;
+        case InternalFormatTypes::DEPTH: glInternalDataFormat = GL_DEPTH_COMPONENT; break;
+    }
+
+    GLenum glFormat;
+    switch (format) {
+        case FormatTypes::RGB: glFormat = GL_RGB; break;
+        case FormatTypes::RGBA: glFormat = GL_RGBA; break;
+        case FormatTypes::DEPTH: glFormat = GL_DEPTH_COMPONENT; break;
+    }
+
+    GLenum glDataType;
+    switch (dataType) {
+        case DataTypes::FLOAT: glDataType = GL_FLOAT; break;
+        case DataTypes::UNSIGNED_BYTE: glDataType = GL_UNSIGNED_BYTE; break;
+    }
+
+
+    GLenum glTextureType;
+    switch (type) {
+        case TextureTypes::T2D: {
+            glTextureType = GL_TEXTURE_2D;
+            glBindTexture(glTextureType, texture);
+            glTexImage2D(GL_TEXTURE_2D,       0, glInternalDataFormat, width, height,       0, glFormat, glDataType, nullptr);
+        }
+        break;
+        case TextureTypes::T2D_ARRAY: {
+            glTextureType = GL_TEXTURE_2D_ARRAY;
+            glBindTexture(glTextureType, texture);
+            glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, glInternalDataFormat, width,height, depth, 0, glFormat, glDataType, nullptr);
+        }
+        break;
+        case TextureTypes::TCUBE_MAP: {
+            glTextureType = GL_TEXTURE_CUBE_MAP_ARB;
+            glBindTexture(glTextureType, texture);
+            glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, glInternalDataFormat, width,height, depth, 0,glFormat, glDataType, nullptr);
+        }
+        break;
+    }
+
+    glTexParameteri(glTextureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    switch (options->getTextureFiltering()) {
+        case Options::TextureFilteringModes::NEAREST:
+            glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(glTextureType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            break;
+        case Options::TextureFilteringModes::BILINEAR:
+            glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(glTextureType, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            break;
+        case Options::TextureFilteringModes::TRILINEAR:
+            glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glTexParameteri(glTextureType, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            break;
+    }
+    glGenerateMipmap(glTextureType);
+    glBindTexture(glTextureType, 0);
+
+
+    checkErrors("createTexture");
+    return texture;
 }
 
 GLuint GLHelper::loadTexture(int height, int width, GLenum format, void *data) {
@@ -1209,3 +1397,5 @@ void GLHelper::calculateFrustumPlanes(const glm::mat4 &cameraMatrix,
     planes[FRONT].w = clipMat[3].w + clipMat[3].z;
     planes[FRONT] = glm::normalize(planes[FRONT]);
 }
+
+

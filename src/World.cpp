@@ -36,6 +36,7 @@
 #include "PostProcess/SSAOPostProcess.h"
 #include "PostProcess/SSAOBlurPostProcess.h"
 #include "SDL2Helper.h"
+#include "GraphicsPipelineStage.h"
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -136,9 +137,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
         combiningObject->setSourceTexture("depthMap", 4);
     }
 
-
-
-
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
     camera = new Camera(options, currentPlayer->getCameraAttachment());//register is just below
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
@@ -147,8 +145,12 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                                            worldAABBMax);
     switchPlayer(currentPlayer, *inputHandler); //switching to itself, to set the states properly. It uses camera so done after camera creation
 
+    std::shared_ptr<GLHelper::Texture> ssaoBlurTexture = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    ssaoBlurStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
 
-
+    ssaoBlurStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, ssaoBlurTexture);
+    ssaoBlurStage->setInput(1, glHelper->ssaoTexture);
+    glHelper->ssaoBlurredMap = ssaoBlurTexture->getTextureID();
 
     fpsCounter = new GUIFPSCounter(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                                    glm::vec3(204, 204, 0));
@@ -818,7 +820,8 @@ void World::render() {
         glHelper->switchRenderToSSAOGeneration();
         ssaoPostProcess->render();
 
-        glHelper->switchRenderToSSAOBlur();
+        //glHelper->switchRenderToSSAOBlur();
+        ssaoBlurStage->activate();
         ssaoBlurPostProcess->render();
     }
     glHelper->switchRenderToCombining();
