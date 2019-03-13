@@ -204,11 +204,12 @@ public:
         }
     };
 
-    GLuint ssaoBlurredMap;
-
+    std::shared_ptr<Texture> ssaoBlurredMap;
     std::shared_ptr<Texture> ssaoNoiseTexture;
     std::shared_ptr<Texture> depthMap;
     std::shared_ptr<Texture> normalMap;
+    std::shared_ptr<GLHelper::Texture> diffuseAndSpecularLightedMap;
+    std::shared_ptr<GLHelper::Texture> ambientMap;
     enum VariableTypes {
         INT,
         FLOAT,
@@ -296,8 +297,6 @@ private:
 
 
     GLuint coloringFrameBuffer;
-    GLuint diffuseAndSpecularLightedMap;
-    GLuint ambientMap;
 
     GLuint combineFrameBuffer;
 

@@ -160,7 +160,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     ssaoBlurStage->setInput(1, ssaoTexture);
 
 
-    glHelper->ssaoBlurredMap = ssaoBlurTexture->getTextureID();
+    glHelper->ssaoBlurredMap = ssaoBlurTexture;
 
     fpsCounter = new GUIFPSCounter(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                                    glm::vec3(204, 204, 0));

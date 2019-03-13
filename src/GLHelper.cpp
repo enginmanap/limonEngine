@@ -397,32 +397,23 @@ GLHelper::GLHelper(Options *options): options(options) {
     // Create default framebuffer with normal map extraction
     glGenFramebuffers(1, &coloringFrameBuffer);
 
-    normalMap = std::make_shared<GLHelper::Texture>(this, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB16F, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    normalMap = std::make_shared<GLHelper::Texture>(this, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB16F,
+            GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     normalMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
     normalMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
     normalMap->setFilterMode(GLHelper::FilterModes::LINEAR);
 
-    glGenTextures(1, &diffuseAndSpecularLightedMap);
-    glBindTexture(GL_TEXTURE_2D, diffuseAndSpecularLightedMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, screenWidth, screenHeight, 0, GL_RGBA, GL_FLOAT, nullptr);
+    diffuseAndSpecularLightedMap = std::make_shared<GLHelper::Texture>(this, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGBA,
+            GLHelper::FormatTypes::RGBA, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    diffuseAndSpecularLightedMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
+    diffuseAndSpecularLightedMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
+    diffuseAndSpecularLightedMap->setFilterMode(GLHelper::FilterModes::LINEAR);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    ambientMap = std::make_shared<GLHelper::Texture>(this, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    ambientMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
+    ambientMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
+    ambientMap->setFilterMode(GLHelper::FilterModes::LINEAR);
 
-    glGenTextures(1, &ambientMap);
-    glBindTexture(GL_TEXTURE_2D, ambientMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0, GL_RGB, GL_FLOAT, nullptr);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    glBindTexture(GL_TEXTURE_2D, 0);
 
     depthMap = std::make_shared<GLHelper::Texture>(this, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::DEPTH, GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     depthMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
@@ -430,8 +421,8 @@ GLHelper::GLHelper(Options *options): options(options) {
     depthMap->setFilterMode(GLHelper::FilterModes::LINEAR);
 
     glBindFramebuffer(GL_FRAMEBUFFER, coloringFrameBuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, diffuseAndSpecularLightedMap, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ambientMap, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, diffuseAndSpecularLightedMap->getTextureID(), 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ambientMap->getTextureID(), 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, normalMap->getTextureID(), 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap->getTextureID(), 0);
     unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
@@ -675,9 +666,9 @@ void GLHelper::switchRenderToCombining(){
     glViewport(0, 0, screenWidth, screenHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     //we combine diffuse+specular lighted with ambient / SSAO
-    state->attachTexture(diffuseAndSpecularLightedMap, 1);
-    state->attachTexture(ambientMap, 2);
-    state->attachTexture(ssaoBlurredMap,3);
+    state->attachTexture(diffuseAndSpecularLightedMap->getTextureID(), 1);
+    state->attachTexture(ambientMap->getTextureID(), 2);
+    state->attachTexture(ssaoBlurredMap->getTextureID(),3);
     state->attachTexture(depthMap->getTextureID(),4);
 
     glEnablei(GL_BLEND, 0);
