@@ -506,7 +506,6 @@ public:
     void switchRenderToShadowMapDirectional(const unsigned int index);
     void switchRenderToShadowMapPoint();
     void switchRenderToColoring();
-    void switchRenderToSSAOGeneration();
     void switchRenderToCombining();
 
     int getMaxTextureImageUnits() const {

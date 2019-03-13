@@ -670,17 +670,7 @@ void GLHelper::switchRenderToColoring() {
     glCullFace(GL_BACK);
     checkErrors("switchRenderToColoring");
 }
-/*
-void GLHelper::switchRenderToSSAOGeneration() {
-    glViewport(0, 0, screenWidth, screenHeight);
-    glBindFramebuffer(GL_FRAMEBUFFER, ssaoGenerationFrameBuffer);
-    state->attachTexture(depthMap->getTextureID(), 1);
-    state->attachTexture(normalMap->getTextureID(), 2);
-    state->attachTexture(ssaoNoiseTexture->getTextureID(), 3);
-    glCullFace(GL_BACK);
-    checkErrors("switchRenderToSSAOGeneration");
-}
-*/
+
 void GLHelper::switchRenderToCombining(){
     glViewport(0, 0, screenWidth, screenHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
