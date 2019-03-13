@@ -145,11 +145,21 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                                            worldAABBMax);
     switchPlayer(currentPlayer, *inputHandler); //switching to itself, to set the states properly. It uses camera so done after camera creation
 
+    GLfloat borderColor[] = {1.0, 1.0, 1.0, 1.0};
+    std::shared_ptr<GLHelper::Texture> ssaoTexture = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    ssaoTexture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
+    ssaoGenerationStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
+    ssaoGenerationStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, ssaoTexture);
+    ssaoGenerationStage->setInput(1, glHelper->depthMap);
+    ssaoGenerationStage->setInput(2, glHelper->normalMap);
+    ssaoGenerationStage->setInput(3, glHelper->ssaoNoiseTexture);
+
     std::shared_ptr<GLHelper::Texture> ssaoBlurTexture = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     ssaoBlurStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
-
     ssaoBlurStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, ssaoBlurTexture);
-    ssaoBlurStage->setInput(1, glHelper->ssaoTexture);
+    ssaoBlurStage->setInput(1, ssaoTexture);
+
+
     glHelper->ssaoBlurredMap = ssaoBlurTexture->getTextureID();
 
     fpsCounter = new GUIFPSCounter(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
@@ -817,7 +827,8 @@ void World::render() {
 
     //at this point, we should combine all of the coloring
     if(options->isSsaoEnabled()) {
-        glHelper->switchRenderToSSAOGeneration();
+        //glHelper->switchRenderToSSAOGeneration();
+        ssaoGenerationStage->activate();
         ssaoPostProcess->render();
 
         //glHelper->switchRenderToSSAOBlur();

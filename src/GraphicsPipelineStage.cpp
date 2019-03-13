@@ -4,6 +4,6 @@
 
 #include "GraphicsPipelineStage.h"
 
-void GraphicsPipelineStage::activate() {
-    glHelper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, inputs);
+void GraphicsPipelineStage::activate(bool clear) {
+    glHelper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, clear, inputs);
 }

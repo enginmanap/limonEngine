@@ -24,7 +24,11 @@ public:
 
     GraphicsPipelineStage(GLHelper *glHelper, uint32_t renderWidth, uint32_t renderHeight, bool blendEnabled) :
     glHelper(glHelper), renderWidth(renderWidth), renderHeight(renderHeight), blendEnabled(blendEnabled) {
-        frameBufferID = glHelper->createFrameBuffer();
+        frameBufferID = glHelper->createFrameBuffer(renderWidth, renderHeight);
+    }
+
+    ~GraphicsPipelineStage() {
+        glHelper->deleteFrameBuffer(frameBufferID);
     }
 
     void setInput(uint32_t textureAttachmentPoint, std::shared_ptr<GLHelper::Texture> texture) {
@@ -35,7 +39,7 @@ public:
         this->outputs[attachmentPoint] = texture;
     }
 
-    void activate();
+    void activate(bool clear = false);
 
 
 };

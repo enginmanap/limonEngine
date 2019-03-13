@@ -137,6 +137,8 @@ public:
     enum class FormatTypes {RGB, RGBA, DEPTH};
     enum class DataTypes {UNSIGNED_BYTE, FLOAT};
     enum class FrameBufferAttachPoints {NONE, COLOR0, COLOR1, COLOR2, COLOR3, COLOR4, COLOR5, COLOR6, DEPTH };
+    enum class TextureWrapModes {REPEAT, BORDER};
+    enum class FilterModes {NEAREST, LINEAR, TRILINEAR};
 
     class Texture {
         GLHelper* glHelper;
@@ -156,6 +158,10 @@ public:
             this->textureID = glHelper->createTexture(height, width, textureType, internalFormat, format, dataType, depth);
         }
 
+        ~Texture() {
+            glHelper->deleteTexture(textureID);
+        }
+
         void setBorderColor(float red, float green, float blue, float alpha) {
             borderColor[0] = red;
             borderColor[1] = green;
@@ -163,6 +169,14 @@ public:
             borderColor[3] = alpha;
             borderColorSet = true;
             glHelper->setTextureBorder(*this);
+        }
+
+        void setWrapModes(TextureWrapModes wrapModeS, TextureWrapModes wrapModeT) {
+            glHelper->setWrapMode(*this, wrapModeS, wrapModeT);
+        }
+
+        void setFilterMode(FilterModes filterMode) {
+            glHelper->setFilterMode(*this, filterMode);
         }
 
         void removeBorderColor() {
@@ -189,8 +203,12 @@ public:
             return format;
         }
     };
-    std::shared_ptr<Texture> ssaoTexture;
+
     GLuint ssaoBlurredMap;
+
+    std::shared_ptr<Texture> ssaoNoiseTexture;
+    std::shared_ptr<Texture> depthMap;
+    std::shared_ptr<Texture> normalMap;
     enum VariableTypes {
         INT,
         FLOAT,
@@ -278,19 +296,10 @@ private:
 
 
     GLuint coloringFrameBuffer;
-    GLuint normalMap;
     GLuint diffuseAndSpecularLightedMap;
     GLuint ambientMap;
-    GLuint depthMap;
-
-    GLuint ssaoGenerationFrameBuffer;
-    GLuint ssaoMap;
-
-    GLuint ssaoBlurFrameBuffer;
 
     GLuint combineFrameBuffer;
-
-    unsigned int noiseTexture;
 
     Options *options;
 
@@ -335,7 +344,7 @@ private:
         }
         bool hasError = false;
         while ((error = glGetError()) != GL_NO_ERROR) {
-            std::cerr << "error found on GL context while " << callerFunc << ":" << error << ":" << gluErrorString(error)
+            std::cerr << "error found on GL context while " << callerFunc << ":" << error << ": " << gluErrorString(error)
                       << std::endl;
             hasError = true;
         }
@@ -365,6 +374,12 @@ private:
                                const uint_fast32_t attachPointer);
 
     uint32_t createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth);
+
+    void setWrapMode(Texture& texture, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT);
+
+    void setTextureBorder(Texture& texture);
+
+    void setFilterMode(Texture& texture, FilterModes filterMode);
 
 public:
     explicit GLHelper(Options *options);
@@ -412,10 +427,6 @@ public:
         glClear(GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, coloringFrameBuffer);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glBindFramebuffer(GL_FRAMEBUFFER, ssaoGenerationFrameBuffer);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glBindFramebuffer(GL_FRAMEBUFFER, ssaoBlurFrameBuffer);
-        glClear(GL_COLOR_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);//combining doesn't need depth test either
         glClear(GL_COLOR_BUFFER_BIT);//clear for default
 
@@ -432,10 +443,9 @@ public:
 
     void reshape();
 
-    uint32_t createFrameBuffer();
+    uint32_t createFrameBuffer(uint32_t width, uint32_t height);
+    void deleteFrameBuffer(uint32_t frameBufferID);
     void attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID, FrameBufferAttachPoints attachPoint, uint32_t layer=0);
-
-    void setTextureBorder(Texture& texture);
 
     GLuint loadTexture(int height, int width, GLenum format, void *data);
 
@@ -491,13 +501,12 @@ public:
 
     void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix);
 
-    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, std::map<uint32_t , std::shared_ptr<GLHelper::Texture>>& inputs);
+    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clear, std::map<uint32_t, std::shared_ptr<GLHelper::Texture>> &inputs);
 
     void switchRenderToShadowMapDirectional(const unsigned int index);
     void switchRenderToShadowMapPoint();
     void switchRenderToColoring();
     void switchRenderToSSAOGeneration();
-    void switchRenderToSSAOBlur();
     void switchRenderToCombining();
 
     int getMaxTextureImageUnits() const {
