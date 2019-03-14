@@ -132,12 +132,12 @@ class GLHelper {
 
 public:
 
-    enum class TextureTypes {T2D, T2D_ARRAY, TCUBE_MAP};//Starting with digits is illegal
+    enum class TextureTypes {T2D, T2D_ARRAY, TCUBE_MAP_ARRAY};//Starting with digits is illegal
     enum class InternalFormatTypes {RED, RGB, RGBA, RGB16F, RGB32F, DEPTH };
     enum class FormatTypes {RGB, RGBA, DEPTH};
     enum class DataTypes {UNSIGNED_BYTE, FLOAT};
     enum class FrameBufferAttachPoints {NONE, COLOR0, COLOR1, COLOR2, COLOR3, COLOR4, COLOR5, COLOR6, DEPTH };
-    enum class TextureWrapModes {REPEAT, BORDER};
+    enum class TextureWrapModes {NONE, REPEAT, BORDER, EDGE};
     enum class FilterModes {NEAREST, LINEAR, TRILINEAR};
 
     class Texture {
@@ -171,8 +171,8 @@ public:
             glHelper->setTextureBorder(*this);
         }
 
-        void setWrapModes(TextureWrapModes wrapModeS, TextureWrapModes wrapModeT) {
-            glHelper->setWrapMode(*this, wrapModeS, wrapModeT);
+        void setWrapModes(TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR = TextureWrapModes::NONE) {
+            glHelper->setWrapMode(*this, wrapModeS, wrapModeT, wrapModeR);
         }
 
         void setFilterMode(FilterModes filterMode) {
@@ -209,6 +209,8 @@ public:
     std::shared_ptr<Texture> depthMap;
     std::shared_ptr<Texture> normalMap;
     std::shared_ptr<GLHelper::Texture> diffuseAndSpecularLightedMap;
+    std::shared_ptr<GLHelper::Texture> depthMapDirectional;
+    std::shared_ptr<GLHelper::Texture> depthMapPoint;
     std::shared_ptr<GLHelper::Texture> ambientMap;
     enum VariableTypes {
         INT,
@@ -290,11 +292,7 @@ private:
     uint32_t activeMaterialIndex;
 
     GLuint depthOnlyFrameBufferDirectional;
-    GLuint depthMapDirectional;
-
     GLuint depthOnlyFrameBufferPoint;
-    GLuint depthCubemapPoint;
-
 
     GLuint coloringFrameBuffer;
 
@@ -374,7 +372,7 @@ private:
 
     uint32_t createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth);
 
-    void setWrapMode(Texture& texture, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT);
+    void setWrapMode(Texture& texture, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR);
 
     void setTextureBorder(Texture& texture);
 

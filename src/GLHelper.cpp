@@ -344,54 +344,37 @@ GLHelper::GLHelper(Options *options): options(options) {
     glBufferData(GL_UNIFORM_BUFFER, sizeof(uint32_t) * NR_MAX_MODELS, nullptr, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-
-    //create depth buffer and texture for directional shadow map
-    glGenFramebuffers(1, &depthOnlyFrameBufferDirectional);
-    glGenTextures(1, &depthMapDirectional);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, depthMapDirectional);
-    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT, options->getShadowMapDirectionalWidth(),
-                 options->getShadowMapDirectionalHeight(), NR_TOTAL_LIGHTS, 0,
-                 GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     GLfloat borderColor[] = {1.0, 1.0, 1.0, 1.0};
-    glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, borderColor);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+    //create depth buffer and texture for directional shadow map
+    depthMapDirectional = std::make_shared<GLHelper::Texture>(this, GLHelper::TextureTypes::T2D_ARRAY, GLHelper::InternalFormatTypes::DEPTH,
+                                                                       GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), NR_TOTAL_LIGHTS);
+    depthMapDirectional->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
+    depthMapDirectional->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
+    depthMapDirectional->setFilterMode(GLHelper::FilterModes::LINEAR);
 
+    glGenFramebuffers(1, &depthOnlyFrameBufferDirectional);
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
-    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional, 0, 0);
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional->getTextureID(), 0, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
+    checkErrors("Constructor Directional Shadow FB ");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     //create depth buffer and texture for point shadow map
-    glGenFramebuffers(1, &depthOnlyFrameBufferPoint);
+
     // create depth cubemap texture
-    glGenTextures(1, &depthCubemapPoint);
-    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, depthCubemapPoint);
-    glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, GL_DEPTH_COMPONENT, options->getShadowMapPointWidth(),
-                 options->getShadowMapPointHeight(), NR_TOTAL_LIGHTS*6, 0,
-                 GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    depthMapPoint = std::make_shared<GLHelper::Texture>(this, GLHelper::TextureTypes::TCUBE_MAP_ARRAY, GLHelper::InternalFormatTypes::DEPTH,
+                                                              GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), NR_POINT_LIGHTS*6);
+    depthMapPoint->setWrapModes(GLHelper::TextureWrapModes::EDGE, GLHelper::TextureWrapModes::EDGE, GLHelper::TextureWrapModes::EDGE);
+    depthMapPoint->setFilterMode(GLHelper::FilterModes::LINEAR);
 
-    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //if we clamp to border, then the edges become visible. it should be clamped to edge
-    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameterfv(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, GL_TEXTURE_BORDER_COLOR, borderColor);
-
-    glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0);
-
+    glGenFramebuffers(1, &depthOnlyFrameBufferPoint);
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubemapPoint, 0);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapPoint->getTextureID(), 0);
 
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
-
+    checkErrors("Constructor Point Shadow FB ");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Create default framebuffer with normal map extraction
@@ -635,7 +618,7 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
 void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
     glViewport(0, 0, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight());
     glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
-    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional, 0, index);
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional->getTextureID(), 0, index);
     glCullFace(GL_FRONT);
     checkErrors("switchRenderToShadowMapDirectional");
 }
@@ -652,8 +635,8 @@ void GLHelper::switchRenderToColoring() {
     glBindFramebuffer(GL_FRAMEBUFFER, coloringFrameBuffer);
 
     //we bind shadow map to last texture unit
-    state->attach2DTextureArray(depthMapDirectional, maxTextureImageUnits - 1);
-    state->attachCubemapArray(depthCubemapPoint, maxTextureImageUnits - 2);
+    state->attach2DTextureArray(depthMapDirectional->getTextureID(), maxTextureImageUnits - 1);
+    state->attachCubemapArray(depthMapPoint->getTextureID(), maxTextureImageUnits - 2);
     state->attachTexture(depthMap->getTextureID(), maxTextureImageUnits - 3);
     state->attachTexture(ssaoNoiseTexture->getTextureID(), maxTextureImageUnits - 4);
 
@@ -810,8 +793,6 @@ GLHelper::~GLHelper() {
     deleteBuffer(1, lightUBOLocation);
     deleteBuffer(1, playerUBOLocation);
     deleteBuffer(1, allMaterialsUBOLocation);
-    deleteBuffer(1, depthMapDirectional);
-    deleteBuffer(1, depthCubemapPoint);
     glDeleteFramebuffers(1, &depthOnlyFrameBufferDirectional); //maybe we should wrap this up too
     glDeleteFramebuffers(1, &depthOnlyFrameBufferPoint);
     glDeleteFramebuffers(1, &coloringFrameBuffer);
@@ -832,7 +813,7 @@ void GLHelper::reshape() {
     checkErrors("reshape");
 }
 
-void GLHelper::setWrapMode(Texture& texture, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT) {
+void GLHelper::setWrapMode(Texture& texture, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR) {
     GLenum glTextureType;
     switch (texture.getType()) {
         case TextureTypes::T2D: {
@@ -844,8 +825,8 @@ void GLHelper::setWrapMode(Texture& texture, TextureWrapModes wrapModeS, Texture
 
         }
             break;
-        case TextureTypes::TCUBE_MAP: {
-            glTextureType = GL_TEXTURE_CUBE_MAP_ARB;
+        case TextureTypes::TCUBE_MAP_ARRAY: {
+            glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
 
         }
             break;
@@ -853,14 +834,26 @@ void GLHelper::setWrapMode(Texture& texture, TextureWrapModes wrapModeS, Texture
 
     glBindTexture(glTextureType, texture.getTextureID());
     switch(wrapModeS) {
+        case TextureWrapModes::NONE: std::cerr << "Wrap mode S not set, this is unexpected" << std::endl; break;
         case TextureWrapModes::BORDER: glTexParameteri(glTextureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); break;
         case TextureWrapModes::REPEAT: glTexParameteri(glTextureType, GL_TEXTURE_WRAP_S, GL_REPEAT); break;
+        case TextureWrapModes::EDGE: glTexParameteri(glTextureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); break;
     }
 
     switch(wrapModeT) {
+        case TextureWrapModes::NONE: std::cerr << "Wrap mode T not set, this is unexpected" << std::endl; break;
         case TextureWrapModes::BORDER: glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER); break;
         case TextureWrapModes::REPEAT: glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_REPEAT); break;
+        case TextureWrapModes::EDGE: glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); break;
     }
+
+    switch(wrapModeR) {
+        case TextureWrapModes::NONE: break;
+        case TextureWrapModes::BORDER: glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER); break;
+        case TextureWrapModes::REPEAT: glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_REPEAT); break;
+        case TextureWrapModes::EDGE: glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); break;
+    }
+
     checkErrors("setWrapMode");
 }
 
@@ -876,8 +869,8 @@ void GLHelper::setFilterMode(Texture& texture, GLHelper::FilterModes filterMode)
 
         }
             break;
-        case TextureTypes::TCUBE_MAP: {
-            glTextureType = GL_TEXTURE_CUBE_MAP_ARB;
+        case TextureTypes::TCUBE_MAP_ARRAY: {
+            glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
 
         }
             break;
@@ -915,8 +908,8 @@ void GLHelper::setTextureBorder(Texture& texture) {
 
         }
             break;
-        case TextureTypes::TCUBE_MAP: {
-            glTextureType = GL_TEXTURE_CUBE_MAP_ARB;
+        case TextureTypes::TCUBE_MAP_ARRAY: {
+            glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
 
         }
             break;
@@ -999,7 +992,7 @@ void GLHelper::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTyp
             glFramebufferTextureLayer(GL_FRAMEBUFFER, glAttachment, textureID, 0, layer);
         }
             break;
-        case TextureTypes::TCUBE_MAP: {
+        case TextureTypes::TCUBE_MAP_ARRAY: {
             glFramebufferTexture(GL_FRAMEBUFFER, glAttachment, textureID, 0);
         }
         break;
@@ -1051,8 +1044,8 @@ uint32_t GLHelper::createTexture(int height, int width, TextureTypes type, Inter
             glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, glInternalDataFormat, width,height, depth, 0, glFormat, glDataType, nullptr);
         }
         break;
-        case TextureTypes::TCUBE_MAP: {
-            glTextureType = GL_TEXTURE_CUBE_MAP_ARB;
+        case TextureTypes::TCUBE_MAP_ARRAY: {
+            glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
             glBindTexture(glTextureType, texture);
             glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, glInternalDataFormat, width,height, depth, 0,glFormat, glDataType, nullptr);
         }
