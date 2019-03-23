@@ -153,6 +153,10 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     directionalShadowStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, glHelper->depthMapDirectional);
     directionalShadowStage->setCullMode(GLHelper::CullModes::FRONT);
 
+    pointShadowStage = new GraphicsPipelineStage(glHelper, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), false);
+    pointShadowStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, glHelper->depthMapPoint);
+    pointShadowStage->setCullMode(GLHelper::CullModes::FRONT);
+
     std::shared_ptr<GLHelper::Texture> ssaoTexture = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     ssaoTexture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
     ssaoGenerationStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
@@ -741,7 +745,7 @@ void World::render() {
         }
     }
 
-    glHelper->switchRenderToShadowMapPoint();
+    pointShadowStage->activate(true);
     for (unsigned int i = 0; i < activeLights.size(); ++i) {
         if(activeLights[i]->getLightType() != Light::POINT) {
             continue;

@@ -362,14 +362,6 @@ GLHelper::GLHelper(Options *options): options(options) {
     depthMapPoint->setWrapModes(GLHelper::TextureWrapModes::EDGE, GLHelper::TextureWrapModes::EDGE, GLHelper::TextureWrapModes::EDGE);
     depthMapPoint->setFilterMode(GLHelper::FilterModes::LINEAR);
 
-    glGenFramebuffers(1, &depthOnlyFrameBufferPoint);
-    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapPoint->getTextureID(), 0);
-
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
     // Create default framebuffer with normal map extraction
     glGenFramebuffers(1, &coloringFrameBuffer);
 
@@ -648,13 +640,6 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
     checkErrors("switchRenderStageLayer");
 }
 
-void GLHelper::switchRenderToShadowMapPoint() {
-    glViewport(0, 0, options->getShadowMapPointWidth(), options->getShadowMapPointHeight());
-    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
-    glCullFace(GL_FRONT);
-    checkErrors("switchRenderToShadowMapPoint");
-}
-
 void GLHelper::switchRenderToColoring() {
     glViewport(0, 0, screenWidth, screenHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, coloringFrameBuffer);
@@ -818,7 +803,6 @@ GLHelper::~GLHelper() {
     deleteBuffer(1, lightUBOLocation);
     deleteBuffer(1, playerUBOLocation);
     deleteBuffer(1, allMaterialsUBOLocation);
-    glDeleteFramebuffers(1, &depthOnlyFrameBufferPoint);
     glDeleteFramebuffers(1, &coloringFrameBuffer);
     glDeleteFramebuffers(1, &combineFrameBuffer);
 

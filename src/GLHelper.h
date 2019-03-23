@@ -418,8 +418,6 @@ public:
 
         //additional depths for Directional is not needed, but depth for point is reqired, because there is no way to clear
         //it per layer, so we are clearing per frame. This also means, lights should not reuse the textures.
-        glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
-        glClear(GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, coloringFrameBuffer);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);//combining doesn't need depth test either
@@ -503,8 +501,6 @@ public:
                                const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
                                const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap);
 
-    void switchRenderToShadowMapDirectional(const unsigned int index);
-    void switchRenderToShadowMapPoint();
     void switchRenderToColoring();
     void switchRenderToCombining();
 
