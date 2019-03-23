@@ -139,6 +139,7 @@ public:
     enum class FrameBufferAttachPoints {NONE, COLOR0, COLOR1, COLOR2, COLOR3, COLOR4, COLOR5, COLOR6, DEPTH };
     enum class TextureWrapModes {NONE, REPEAT, BORDER, EDGE};
     enum class FilterModes {NEAREST, LINEAR, TRILINEAR};
+    enum class CullModes {FRONT, BACK, NONE, NO_CHANGE};
 
     class Texture {
         GLHelper* glHelper;
@@ -291,7 +292,6 @@ private:
 
     uint32_t activeMaterialIndex;
 
-    GLuint depthOnlyFrameBufferDirectional;
     GLuint depthOnlyFrameBufferPoint;
 
     GLuint coloringFrameBuffer;
@@ -420,8 +420,6 @@ public:
         //it per layer, so we are clearing per frame. This also means, lights should not reuse the textures.
         glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferPoint);
         glClear(GL_DEPTH_BUFFER_BIT);
-        glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
-        glClear(GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, coloringFrameBuffer);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);//combining doesn't need depth test either
@@ -434,6 +432,7 @@ public:
 
         //std::cout << "uniform set count was : " << uniformSetCount << std::endl;
         uniformSetCount = 0;
+        checkErrors("clearFrame");
     }
 
     void render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount);
@@ -442,7 +441,7 @@ public:
 
     uint32_t createFrameBuffer(uint32_t width, uint32_t height);
     void deleteFrameBuffer(uint32_t frameBufferID);
-    void attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID, FrameBufferAttachPoints attachPoint, uint32_t layer=0);
+    void attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID, FrameBufferAttachPoints attachPoint, int32_t layer = 0);
 
     GLuint loadTexture(int height, int width, GLenum format, void *data);
 
@@ -499,6 +498,9 @@ public:
     void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix);
 
     void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clear, std::map<uint32_t, std::shared_ptr<GLHelper::Texture>> &inputs);
+    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clear, CullModes cullMode,
+                               const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
+                               const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap);
 
     void switchRenderToShadowMapDirectional(const unsigned int index);
     void switchRenderToShadowMapPoint();

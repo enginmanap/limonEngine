@@ -282,6 +282,7 @@ private:
     QuitResponse currentQuitResponse = QuitResponse::QUIT_GAME;
     GraphicsPipelineStage* ssaoBlurStage = nullptr;
     GraphicsPipelineStage* ssaoGenerationStage = nullptr;
+    GraphicsPipelineStage* directionalShadowStage = nullptr;
     bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
 
     /**

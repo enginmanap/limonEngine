@@ -166,6 +166,7 @@ void GLHelper::attachModelUBO(const uint32_t program) {
                           sizeof(glm::mat4)* NR_MAX_MODELS);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
+    checkErrors("attachModelUBO");
 }
 
 void GLHelper::attachModelIndicesUBO(const uint32_t programID) {
@@ -179,6 +180,7 @@ void GLHelper::attachModelIndicesUBO(const uint32_t programID) {
                           sizeof(uint32_t) * NR_MAX_MODELS);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
+    checkErrors("attachModelIndicesUBO");
 }
 
 void GLHelper::attachMaterialUBO(const uint32_t program, const uint32_t materialID){
@@ -352,14 +354,6 @@ GLHelper::GLHelper(Options *options): options(options) {
     depthMapDirectional->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
     depthMapDirectional->setFilterMode(GLHelper::FilterModes::LINEAR);
 
-    glGenFramebuffers(1, &depthOnlyFrameBufferDirectional);
-    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
-    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional->getTextureID(), 0, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    checkErrors("Constructor Directional Shadow FB ");
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
     //create depth buffer and texture for point shadow map
 
     // create depth cubemap texture
@@ -374,7 +368,6 @@ GLHelper::GLHelper(Options *options): options(options) {
 
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
-    checkErrors("Constructor Point Shadow FB ");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Create default framebuffer with normal map extraction
@@ -612,15 +605,38 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
         glEnablei(GL_BLEND, 0);
     }
     checkErrors("switchRenderStage");
-
 }
 
-void GLHelper::switchRenderToShadowMapDirectional(const unsigned int index) {
-    glViewport(0, 0, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight());
-    glBindFramebuffer(GL_FRAMEBUFFER, depthOnlyFrameBufferDirectional);
-    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMapDirectional->getTextureID(), 0, index);
-    glCullFace(GL_FRONT);
-    checkErrors("switchRenderToShadowMapDirectional");
+
+void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clear, CullModes cullMode,
+                                 const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
+                                 const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap) {
+    //now we should change attachments based on the layer information we got
+    for (auto attachmentLayerIt = attachmentLayerMap.begin(); attachmentLayerIt != attachmentLayerMap.end(); ++attachmentLayerIt) {
+        attachDrawTextureToFrameBuffer(frameBufferID, attachmentLayerIt->first->getType(), attachmentLayerIt->first->getTextureID(), attachmentLayerIt->second.first, attachmentLayerIt->second.second);
+    }
+    glViewport(0, 0, width, height);
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
+    if(clear) {
+        glClear(GL_COLOR_BUFFER_BIT  | GL_DEPTH_BUFFER_BIT );
+    }
+
+    //we combine diffuse+specular lighted with ambient / SSAO
+    for (auto inputIt = inputs.begin(); inputIt != inputs.end(); ++inputIt) {
+        state->attachTexture(inputIt->second->getTextureID(), inputIt->first);
+    }
+    switch (cullMode) {
+        case GLHelper::CullModes::FRONT: glCullFace(GL_FRONT); break;
+        case GLHelper::CullModes::BACK: glCullFace(GL_BACK); break;
+        case GLHelper::CullModes::NONE: glCullFace(GL_NONE); break;
+        case GLHelper::CullModes::NO_CHANGE: break;
+    }
+    if(blendEnabled) {
+        glEnablei(GL_BLEND, 0);
+    } else {
+        glDisablei(GL_BLEND, 0);
+    }
+    checkErrors("switchRenderStageLayer");
 }
 
 void GLHelper::switchRenderToShadowMapPoint() {
@@ -793,7 +809,6 @@ GLHelper::~GLHelper() {
     deleteBuffer(1, lightUBOLocation);
     deleteBuffer(1, playerUBOLocation);
     deleteBuffer(1, allMaterialsUBOLocation);
-    glDeleteFramebuffers(1, &depthOnlyFrameBufferDirectional); //maybe we should wrap this up too
     glDeleteFramebuffers(1, &depthOnlyFrameBufferPoint);
     glDeleteFramebuffers(1, &coloringFrameBuffer);
     glDeleteFramebuffers(1, &combineFrameBuffer);
@@ -932,6 +947,7 @@ void GLHelper::setTextureBorder(Texture& texture) {
         glTexParameteri(glTextureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     }
+    checkErrors("setTextureBorder");
 }
 
 uint32_t GLHelper::createFrameBuffer(uint32_t width, uint32_t height) {
@@ -943,8 +959,8 @@ uint32_t GLHelper::createFrameBuffer(uint32_t width, uint32_t height) {
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
 
-    checkErrors("createFrameBuffer");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    checkErrors("createFrameBuffer");
     return newFrameBufferLocation;
 }
 
@@ -953,7 +969,8 @@ void GLHelper::deleteFrameBuffer(uint32_t frameBufferID) {
     checkErrors("deleteFrameBuffer");
 }
 
-void GLHelper::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID, FrameBufferAttachPoints attachPoint, uint32_t layer) {
+void GLHelper::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID, FrameBufferAttachPoints attachPoint, int32_t layer) {
+
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
 
     GLenum glAttachment;
@@ -967,29 +984,36 @@ void GLHelper::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTyp
         case FrameBufferAttachPoints::COLOR4: glAttachment = GL_COLOR_ATTACHMENT4; index = 4;break;
         case FrameBufferAttachPoints::COLOR5: glAttachment = GL_COLOR_ATTACHMENT5; index = 5;break;
         case FrameBufferAttachPoints::COLOR6: glAttachment = GL_COLOR_ATTACHMENT6; index = 6;break;
-        case FrameBufferAttachPoints::DEPTH:  glAttachment = GL_DEPTH_COMPONENT;   break;
+        case FrameBufferAttachPoints::DEPTH:  glAttachment = GL_DEPTH_ATTACHMENT;   break;
     }
 
-    int32_t attachmentTemp;
-    unsigned int attachments[6];
-    for (unsigned int i = 0; i < 6; ++i) {
-        if(i == index) {
-            attachments[i] = glAttachment;
-        } else {
-            glGetIntegerv(GL_DRAW_BUFFER0 + i, &attachmentTemp);
-            attachments[i] = attachmentTemp;
+    if(attachPoint != GLHelper::FrameBufferAttachPoints::DEPTH) {
+        int32_t attachmentTemp;
+        unsigned int attachments[6];
+        for (unsigned int i = 0; i < 6; ++i) {
+            if (i == index) {
+                attachments[i] = glAttachment;
+            } else {
+                glGetIntegerv(GL_DRAW_BUFFER0 + i, &attachmentTemp);
+                attachments[i] = attachmentTemp;
+            }
         }
+        glDrawBuffers(6, attachments);
     }
-
-    glDrawBuffers(6, attachments);
-
     switch (textureType) {
         case TextureTypes::T2D: {
             glFramebufferTexture2D(GL_FRAMEBUFFER, glAttachment, GL_TEXTURE_2D, textureID, 0);
         }
             break;
         case TextureTypes::T2D_ARRAY: {
-            glFramebufferTextureLayer(GL_FRAMEBUFFER, glAttachment, textureID, 0, layer);
+            if(layer == -1 ) {
+                glFramebufferTexture(GL_FRAMEBUFFER, glAttachment, textureID, 0);
+
+            } else {
+
+                glFramebufferTextureLayer(GL_FRAMEBUFFER, glAttachment, textureID, 0, layer);
+
+            }
         }
             break;
         case TextureTypes::TCUBE_MAP_ARRAY: {
@@ -999,7 +1023,7 @@ void GLHelper::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTyp
     }
 
     checkErrors("attachDrawTextureToFrameBuffer");
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 }
 
 uint32_t GLHelper::createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth) {

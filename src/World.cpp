@@ -145,7 +145,14 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                                            worldAABBMax);
     switchPlayer(currentPlayer, *inputHandler); //switching to itself, to set the states properly. It uses camera so done after camera creation
 
+
+
     GLfloat borderColor[] = {1.0, 1.0, 1.0, 1.0};
+
+    directionalShadowStage = new GraphicsPipelineStage(glHelper, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), false);
+    directionalShadowStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, glHelper->depthMapDirectional);
+    directionalShadowStage->setCullMode(GLHelper::CullModes::FRONT);
+
     std::shared_ptr<GLHelper::Texture> ssaoTexture = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     ssaoTexture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
     ssaoGenerationStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
@@ -699,12 +706,16 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
 }
 
 void World::render() {
+    std::map<std::shared_ptr<GLHelper::Texture>, std::pair<GLHelper::FrameBufferAttachPoints, int>> shadowAttachmentTextureLayers;
     for (unsigned int i = 0; i < activeLights.size(); ++i) {
+        shadowAttachmentTextureLayers.clear();
         if(activeLights[i]->getLightType() != Light::DIRECTIONAL) {
             continue;
         }
         //generate shadow map
-        glHelper->switchRenderToShadowMapDirectional(i);
+        //glHelper->switchRenderToShadowMapDirectional(i);
+        shadowAttachmentTextureLayers[glHelper->depthMapDirectional] = std::make_pair(GLHelper::FrameBufferAttachPoints::DEPTH, i);
+        directionalShadowStage->activate(shadowAttachmentTextureLayers, true);
         //FIXME why are these set here?
         shadowMapProgramDirectional->setUniform("renderLightIndex", (int)i);
 
