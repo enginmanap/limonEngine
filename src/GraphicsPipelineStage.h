@@ -16,6 +16,8 @@ class GraphicsPipelineStage {
     uint32_t renderHeight;
     uint32_t frameBufferID;
     bool blendEnabled;
+    bool colorAttachment = false;
+    bool depthAttachment = false;
     GLHelper::CullModes cullMode = GLHelper::CullModes::NO_CHANGE;
 
     std::map<uint32_t, std::shared_ptr<GLHelper::Texture>> inputs;
@@ -37,6 +39,17 @@ public:
     }
     void setOutput(GLHelper::FrameBufferAttachPoints attachmentPoint, std::shared_ptr<GLHelper::Texture> texture, uint32_t layer = -1) {
         glHelper->attachDrawTextureToFrameBuffer(this->frameBufferID, texture->getType(), texture->getTextureID(), attachmentPoint, layer);
+        switch (attachmentPoint) {
+            case GLHelper::FrameBufferAttachPoints::DEPTH: depthAttachment = true; break;
+            case GLHelper::FrameBufferAttachPoints::COLOR0:/*fallthrough*/
+            case GLHelper::FrameBufferAttachPoints::COLOR1:/*fallthrough*/
+            case GLHelper::FrameBufferAttachPoints::COLOR2:/*fallthrough*/
+            case GLHelper::FrameBufferAttachPoints::COLOR3:/*fallthrough*/
+            case GLHelper::FrameBufferAttachPoints::COLOR4:/*fallthrough*/
+            case GLHelper::FrameBufferAttachPoints::COLOR5:/*fallthrough*/
+            case GLHelper::FrameBufferAttachPoints::COLOR6: colorAttachment = true; break;
+            case GLHelper::FrameBufferAttachPoints::NONE: break;
+        }
         this->outputs[attachmentPoint] = texture;
     }
 

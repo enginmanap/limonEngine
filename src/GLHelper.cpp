@@ -590,11 +590,16 @@ void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &text
     checkErrors("bufferVertexTextureCoordinates");
 }
 
-void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clear, std::map<uint32_t, std::shared_ptr<GLHelper::Texture>> &inputs) {
+void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth,
+                                 std::map<uint32_t, std::shared_ptr<GLHelper::Texture>> &inputs) {
     glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
-    if(clear) {
+    if(clearColor && clearDepth) {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    } else if(clearColor) {
         glClear(GL_COLOR_BUFFER_BIT);
+    } else if(clearDepth) {
+        glClear(GL_DEPTH_BUFFER_BIT);
     }
 
     //we combine diffuse+specular lighted with ambient / SSAO
@@ -608,7 +613,7 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
 }
 
 
-void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clear, CullModes cullMode,
+void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
                                  const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
                                  const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap) {
     //now we should change attachments based on the layer information we got
@@ -617,8 +622,12 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
     }
     glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
-    if(clear) {
-        glClear(GL_COLOR_BUFFER_BIT  | GL_DEPTH_BUFFER_BIT );
+    if(clearColor && clearDepth) {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    } else if(clearColor) {
+        glClear(GL_COLOR_BUFFER_BIT);
+    } else if(clearDepth) {
+        glClear(GL_DEPTH_BUFFER_BIT);
     }
 
     //we combine diffuse+specular lighted with ambient / SSAO

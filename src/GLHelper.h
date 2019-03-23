@@ -497,8 +497,9 @@ public:
 
     void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix);
 
-    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clear, std::map<uint32_t, std::shared_ptr<GLHelper::Texture>> &inputs);
-    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clear, CullModes cullMode,
+    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth,
+                               std::map<uint32_t, std::shared_ptr<GLHelper::Texture>> &inputs);
+    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
                                const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
                                const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap);
 
