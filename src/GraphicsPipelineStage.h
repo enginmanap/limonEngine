@@ -25,9 +25,16 @@ class GraphicsPipelineStage {
 
 public:
 
-    GraphicsPipelineStage(GLHelper *glHelper, uint32_t renderWidth, uint32_t renderHeight, bool blendEnabled) :
-    glHelper(glHelper), renderWidth(renderWidth), renderHeight(renderHeight), blendEnabled(blendEnabled) {
-        frameBufferID = glHelper->createFrameBuffer(renderWidth, renderHeight);
+    GraphicsPipelineStage(GLHelper *glHelper, uint32_t renderWidth, uint32_t renderHeight, bool blendEnabled, bool toScreen = false) :
+            glHelper(glHelper), renderWidth(renderWidth), renderHeight(renderHeight), blendEnabled(blendEnabled) {
+        if(toScreen) {
+            frameBufferID = 0;
+            //since this is directly to screen, we should clear both color and depth, if clear is requested, because we will not get outputs set.
+            colorAttachment = true;
+            depthAttachment = true;
+        } else {
+            frameBufferID = glHelper->createFrameBuffer(renderWidth, renderHeight);
+        }
     }
 
     ~GraphicsPipelineStage() {
@@ -64,7 +71,6 @@ public:
     void activate(bool clear = false);
 
     void activate(const std::map<std::shared_ptr<GLHelper::Texture>, std::pair<GLHelper::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear = false);
-
 
 };
 

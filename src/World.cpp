@@ -181,8 +181,13 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     ssaoBlurStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, ssaoBlurTexture);
     ssaoBlurStage->setInput(1, ssaoTexture);
 
-
     glHelper->ssaoBlurredMap = ssaoBlurTexture;
+
+    combiningStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), true, true);
+    combiningStage->setInput(1, glHelper->diffuseAndSpecularLightedMap);
+    combiningStage->setInput(2, glHelper->ambientMap);
+    combiningStage->setInput(3, glHelper->ssaoBlurredMap);
+    combiningStage->setInput(4, glHelper->depthMap);
 
     fpsCounter = new GUIFPSCounter(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                                    glm::vec3(204, 204, 0));
@@ -860,10 +865,9 @@ void World::render() {
         ssaoBlurStage->activate();
         ssaoBlurPostProcess->render();
     }
-    glHelper->switchRenderToCombining();
+    combiningStage->activate(true);
     //since gui uses blending, everything must be already rendered.
     // Also, since gui elements only depth test each other, clear depth buffer
-    glHelper->clearDepthBuffer();
     combiningObject->render();
 
     //now render transparent objects

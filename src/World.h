@@ -283,8 +283,9 @@ private:
     GraphicsPipelineStage* directionalShadowStage = nullptr;
     GraphicsPipelineStage* pointShadowStage = nullptr;
     GraphicsPipelineStage* coloringStage = nullptr;
-    GraphicsPipelineStage* ssaoBlurStage = nullptr;
     GraphicsPipelineStage* ssaoGenerationStage = nullptr;
+    GraphicsPipelineStage* ssaoBlurStage = nullptr;
+    GraphicsPipelineStage* combiningStage = nullptr;
     bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
 
     /**

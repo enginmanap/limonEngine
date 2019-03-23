@@ -640,19 +640,6 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
     checkErrors("switchRenderStageLayer");
 }
 
-void GLHelper::switchRenderToCombining(){
-    glViewport(0, 0, screenWidth, screenHeight);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    //we combine diffuse+specular lighted with ambient / SSAO
-    state->attachTexture(diffuseAndSpecularLightedMap->getTextureID(), 1);
-    state->attachTexture(ambientMap->getTextureID(), 2);
-    state->attachTexture(ssaoBlurredMap->getTextureID(),3);
-    state->attachTexture(depthMap->getTextureID(),4);
-
-    glEnablei(GL_BLEND, 0);
-    checkErrors("switchRenderToCombining");
-}
-
 void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount) {
     if (program == 0) {
         std::cerr << "No program render requested." << std::endl;

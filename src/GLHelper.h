@@ -205,14 +205,15 @@ public:
         }
     };
 
-    std::shared_ptr<Texture> ssaoBlurredMap;
-    std::shared_ptr<Texture> ssaoNoiseTexture;
-    std::shared_ptr<Texture> depthMap;
-    std::shared_ptr<Texture> normalMap;
-    std::shared_ptr<GLHelper::Texture> diffuseAndSpecularLightedMap;
-    std::shared_ptr<GLHelper::Texture> depthMapDirectional;
-    std::shared_ptr<GLHelper::Texture> depthMapPoint;
-    std::shared_ptr<GLHelper::Texture> ambientMap;
+    std::shared_ptr<Texture> ssaoBlurredMap = nullptr;
+    std::shared_ptr<Texture> ssaoNoiseTexture = nullptr;
+    std::shared_ptr<Texture> depthMap = nullptr;
+    std::shared_ptr<Texture> normalMap = nullptr;
+    std::shared_ptr<GLHelper::Texture> diffuseAndSpecularLightedMap = nullptr;
+    std::shared_ptr<GLHelper::Texture> depthMapDirectional = nullptr;
+    std::shared_ptr<GLHelper::Texture> depthMapPoint = nullptr;
+    std::shared_ptr<GLHelper::Texture> ambientMap = nullptr;
+
     enum VariableTypes {
         INT,
         FLOAT,
@@ -494,9 +495,7 @@ public:
     void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
                                const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
                                const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap);
-
-    void switchRenderToCombining();
-
+    
     int getMaxTextureImageUnits() const {
         return maxTextureImageUnits;
     }
