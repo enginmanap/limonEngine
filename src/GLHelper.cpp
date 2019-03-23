@@ -362,9 +362,6 @@ GLHelper::GLHelper(Options *options): options(options) {
     depthMapPoint->setWrapModes(GLHelper::TextureWrapModes::EDGE, GLHelper::TextureWrapModes::EDGE, GLHelper::TextureWrapModes::EDGE);
     depthMapPoint->setFilterMode(GLHelper::FilterModes::LINEAR);
 
-    // Create default framebuffer with normal map extraction
-    glGenFramebuffers(1, &coloringFrameBuffer);
-
     normalMap = std::make_shared<GLHelper::Texture>(this, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB16F,
             GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     normalMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
@@ -388,17 +385,6 @@ GLHelper::GLHelper(Options *options): options(options) {
     depthMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
     depthMap->setFilterMode(GLHelper::FilterModes::LINEAR);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, coloringFrameBuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, diffuseAndSpecularLightedMap->getTextureID(), 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, ambientMap->getTextureID(), 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, normalMap->getTextureID(), 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap->getTextureID(), 0);
-    unsigned int attachments[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-    glDrawBuffers(3, attachments);
-    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        std::cerr << "coloring frame buffer is not complete!" << std::endl;
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     /****************************** SSAO NOISE **************************************/
     std::uniform_real_distribution<GLfloat> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
     std::default_random_engine generator;
@@ -582,7 +568,7 @@ void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &text
     checkErrors("bufferVertexTextureCoordinates");
 }
 
-void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth,
+void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
                                  std::map<uint32_t, std::shared_ptr<GLHelper::Texture>> &inputs) {
     glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
@@ -596,7 +582,17 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
 
     //we combine diffuse+specular lighted with ambient / SSAO
     for (auto inputIt = inputs.begin(); inputIt != inputs.end(); ++inputIt) {
-        state->attachTexture(inputIt->second->getTextureID(), inputIt->first);
+        switch (inputIt->second->getType()) {
+            case GLHelper::TextureTypes::T2D: state->attachTexture(inputIt->second->getTextureID(), inputIt->first); break;
+            case GLHelper::TextureTypes::T2D_ARRAY: state->attach2DTextureArray(inputIt->second->getTextureID(), inputIt->first); break;
+            case GLHelper::TextureTypes::TCUBE_MAP_ARRAY: state->attachCubemapArray(inputIt->second->getTextureID(), inputIt->first); break;
+        }
+    }
+    switch (cullMode) {
+        case GLHelper::CullModes::FRONT: glCullFace(GL_FRONT); break;
+        case GLHelper::CullModes::BACK: glCullFace(GL_BACK); break;
+        case GLHelper::CullModes::NONE: glCullFace(GL_NONE); break;
+        case GLHelper::CullModes::NO_CHANGE: break;
     }
     if(blendEnabled) {
         glEnablei(GL_BLEND, 0);
@@ -624,7 +620,11 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
 
     //we combine diffuse+specular lighted with ambient / SSAO
     for (auto inputIt = inputs.begin(); inputIt != inputs.end(); ++inputIt) {
-        state->attachTexture(inputIt->second->getTextureID(), inputIt->first);
+        switch (inputIt->second->getType()) {
+            case GLHelper::TextureTypes::T2D: state->attachTexture(inputIt->second->getTextureID(), inputIt->first); break;
+            case GLHelper::TextureTypes::T2D_ARRAY: state->attach2DTextureArray(inputIt->second->getTextureID(), inputIt->first); break;
+            case GLHelper::TextureTypes::TCUBE_MAP_ARRAY: state->attachCubemapArray(inputIt->second->getTextureID(), inputIt->first); break;
+        }
     }
     switch (cullMode) {
         case GLHelper::CullModes::FRONT: glCullFace(GL_FRONT); break;
@@ -638,21 +638,6 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
         glDisablei(GL_BLEND, 0);
     }
     checkErrors("switchRenderStageLayer");
-}
-
-void GLHelper::switchRenderToColoring() {
-    glViewport(0, 0, screenWidth, screenHeight);
-    glBindFramebuffer(GL_FRAMEBUFFER, coloringFrameBuffer);
-
-    //we bind shadow map to last texture unit
-    state->attach2DTextureArray(depthMapDirectional->getTextureID(), maxTextureImageUnits - 1);
-    state->attachCubemapArray(depthMapPoint->getTextureID(), maxTextureImageUnits - 2);
-    state->attachTexture(depthMap->getTextureID(), maxTextureImageUnits - 3);
-    state->attachTexture(ssaoNoiseTexture->getTextureID(), maxTextureImageUnits - 4);
-
-    glDisablei(GL_BLEND, 0);
-    glCullFace(GL_BACK);
-    checkErrors("switchRenderToColoring");
 }
 
 void GLHelper::switchRenderToCombining(){
@@ -803,7 +788,6 @@ GLHelper::~GLHelper() {
     deleteBuffer(1, lightUBOLocation);
     deleteBuffer(1, playerUBOLocation);
     deleteBuffer(1, allMaterialsUBOLocation);
-    glDeleteFramebuffers(1, &coloringFrameBuffer);
     glDeleteFramebuffers(1, &combineFrameBuffer);
 
     //state->setProgram(0);
@@ -951,7 +935,9 @@ uint32_t GLHelper::createFrameBuffer(uint32_t width, uint32_t height) {
     glFramebufferParameteri(GL_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_HEIGHT, height);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
-
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cerr << "created frame buffer is not complete!" << std::endl;
+    }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     checkErrors("createFrameBuffer");
     return newFrameBufferLocation;
@@ -1015,6 +1001,9 @@ void GLHelper::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTyp
         break;
     }
 
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cerr << "created frame buffer is not complete!" << std::endl;
+    }
     checkErrors("attachDrawTextureToFrameBuffer");
 
 }

@@ -157,6 +157,17 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     pointShadowStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, glHelper->depthMapPoint);
     pointShadowStage->setCullMode(GLHelper::CullModes::FRONT);
 
+    coloringStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
+    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR0, glHelper->diffuseAndSpecularLightedMap);
+    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, glHelper->ambientMap);
+    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR2, glHelper->normalMap);
+    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, glHelper->depthMap);
+    coloringStage->setInput(glHelper->getMaxTextureImageUnits() - 1, glHelper->depthMapDirectional);
+    coloringStage->setInput(glHelper->getMaxTextureImageUnits() - 2, glHelper->depthMapPoint);
+    coloringStage->setInput(glHelper->getMaxTextureImageUnits() - 3, glHelper->depthMap);
+    coloringStage->setInput(glHelper->getMaxTextureImageUnits() - 4, glHelper->ssaoNoiseTexture);
+    coloringStage->setCullMode(GLHelper::CullModes::BACK);
+
     std::shared_ptr<GLHelper::Texture> ssaoTexture = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     ssaoTexture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
     ssaoGenerationStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
@@ -717,7 +728,6 @@ void World::render() {
             continue;
         }
         //generate shadow map
-        //glHelper->switchRenderToShadowMapDirectional(i);
         shadowAttachmentTextureLayers[glHelper->depthMapDirectional] = std::make_pair(GLHelper::FrameBufferAttachPoints::DEPTH, i);
         directionalShadowStage->activate(shadowAttachmentTextureLayers, true);
         //FIXME why are these set here?
@@ -774,7 +784,7 @@ void World::render() {
         }
     }
 
-    glHelper->switchRenderToColoring();
+    coloringStage->activate(true);
     if(sky!=nullptr) {
         sky->render();//this is moved to the top, because transparency can create issues if this is at the end
     }
