@@ -2,7 +2,6 @@
 // Created by Engin Manap on 10.02.2016.
 //
 
-#include <random>
 #include "GLHelper.h"
 #include "GLSLProgram.h"
 
@@ -345,64 +344,6 @@ GLHelper::GLHelper(Options *options): options(options) {
     glBindBuffer(GL_UNIFORM_BUFFER, allModelIndexesUBOLocation);
     glBufferData(GL_UNIFORM_BUFFER, sizeof(uint32_t) * NR_MAX_MODELS, nullptr, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-    GLfloat borderColor[] = {1.0, 1.0, 1.0, 1.0};
-    //create depth buffer and texture for directional shadow map
-    depthMapDirectional = std::make_shared<GLHelper::Texture>(this, GLHelper::TextureTypes::T2D_ARRAY, GLHelper::InternalFormatTypes::DEPTH,
-                                                                       GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), NR_TOTAL_LIGHTS);
-    depthMapDirectional->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
-    depthMapDirectional->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-    depthMapDirectional->setFilterMode(GLHelper::FilterModes::LINEAR);
-
-    //create depth buffer and texture for point shadow map
-
-    // create depth cubemap texture
-    depthMapPoint = std::make_shared<GLHelper::Texture>(this, GLHelper::TextureTypes::TCUBE_MAP_ARRAY, GLHelper::InternalFormatTypes::DEPTH,
-                                                              GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), NR_POINT_LIGHTS*6);
-    depthMapPoint->setWrapModes(GLHelper::TextureWrapModes::EDGE, GLHelper::TextureWrapModes::EDGE, GLHelper::TextureWrapModes::EDGE);
-    depthMapPoint->setFilterMode(GLHelper::FilterModes::LINEAR);
-
-    normalMap = std::make_shared<GLHelper::Texture>(this, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB16F,
-            GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
-    normalMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
-    normalMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-    normalMap->setFilterMode(GLHelper::FilterModes::LINEAR);
-
-    diffuseAndSpecularLightedMap = std::make_shared<GLHelper::Texture>(this, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGBA,
-            GLHelper::FormatTypes::RGBA, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
-    diffuseAndSpecularLightedMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
-    diffuseAndSpecularLightedMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-    diffuseAndSpecularLightedMap->setFilterMode(GLHelper::FilterModes::LINEAR);
-
-    ambientMap = std::make_shared<GLHelper::Texture>(this, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
-    ambientMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
-    ambientMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-    ambientMap->setFilterMode(GLHelper::FilterModes::LINEAR);
-
-
-    depthMap = std::make_shared<GLHelper::Texture>(this, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::DEPTH, GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
-    depthMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
-    depthMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-    depthMap->setFilterMode(GLHelper::FilterModes::LINEAR);
-
-    /****************************** SSAO NOISE **************************************/
-    std::uniform_real_distribution<GLfloat> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
-    std::default_random_engine generator;
-    // generate noise texture
-    // ----------------------
-    std::vector<glm::vec3> ssaoNoise;
-    for (unsigned int i = 0; i < 16; i++)
-    {
-        glm::vec3 noise(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, 0.0f); // rotate around z-axis (in tangent space)
-        ssaoNoise.push_back(noise);
-    }
-
-    ssaoNoiseTexture = std::make_shared<Texture>(this, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB32F,
-            GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, 4, 4);
-    ssaoNoiseTexture->setFilterMode(GLHelper::FilterModes::NEAREST);
-    ssaoNoiseTexture->setWrapModes(GLHelper::TextureWrapModes::REPEAT, GLHelper::TextureWrapModes::REPEAT);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, 4, 4, 0, GL_RGB, GL_FLOAT, &ssaoNoise[0]);
-    /****************************** SSAO NOISE **************************************/
 
     frustumPlanes.resize(6);
     modelIndexesTemp.resize(4 * NR_MAX_MODELS);//4 because it forces the padding
@@ -1068,6 +1009,63 @@ uint32_t GLHelper::createTexture(int height, int width, TextureTypes type, Inter
     return texture;
 }
 
+void GLHelper::loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
+                               void *data) {
+    state->activateTextureUnit(0);//this is the default working texture
+
+    GLint glInternalDataFormat;
+    switch (internalFormat) {
+        case InternalFormatTypes::RED: glInternalDataFormat = GL_RED; break;
+        case InternalFormatTypes::RGB: glInternalDataFormat = GL_RGB; break;
+        case InternalFormatTypes::RGBA: glInternalDataFormat = GL_RGBA; break;
+        case InternalFormatTypes::RGB16F: glInternalDataFormat = GL_RGB16F; break;
+        case InternalFormatTypes::RGB32F: glInternalDataFormat = GL_RGB32F; break;
+        case InternalFormatTypes::DEPTH: glInternalDataFormat = GL_DEPTH_COMPONENT; break;
+    }
+
+    GLenum glFormat;
+    switch (format) {
+        case FormatTypes::RGB: glFormat = GL_RGB; break;
+        case FormatTypes::RGBA: glFormat = GL_RGBA; break;
+        case FormatTypes::DEPTH: glFormat = GL_DEPTH_COMPONENT; break;
+    }
+
+    GLenum glDataType;
+    switch (dataType) {
+        case DataTypes::FLOAT: glDataType = GL_FLOAT; break;
+        case DataTypes::UNSIGNED_BYTE: glDataType = GL_UNSIGNED_BYTE; break;
+    }
+
+    GLenum glTextureType;
+    switch (type) {
+        case TextureTypes::T2D: {
+            glTextureType = GL_TEXTURE_2D;
+            glBindTexture(glTextureType, textureID);
+            glTexImage2D(GL_TEXTURE_2D,       0, glInternalDataFormat, width, height,       0, glFormat, glDataType, data);
+        }
+            break;
+        case TextureTypes::T2D_ARRAY: {
+            glTextureType = GL_TEXTURE_2D_ARRAY;
+            glBindTexture(glTextureType, textureID);
+            glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, glInternalDataFormat, width,height, depth, 0, glFormat, glDataType, data);
+            std::cerr << "This method of loading texture data is not tested." << std::endl;
+        }
+            break;
+        case TextureTypes::TCUBE_MAP_ARRAY: {
+            glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
+            glBindTexture(glTextureType, textureID);
+            glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, glInternalDataFormat, width,height, depth, 0,glFormat, glDataType, data);
+            std::cerr << "This method of loading texture data is not tested." << std::endl;
+        }
+            break;
+    }
+
+    glGenerateMipmap(glTextureType);
+    glBindTexture(glTextureType, 0);
+
+    checkErrors("loadTextureData");
+}
+
 GLuint GLHelper::loadTexture(int height, int width, GLenum format, void *data) {
     GLuint texture;
     glGenTextures(1, &texture);
@@ -1361,5 +1359,3 @@ void GLHelper::calculateFrustumPlanes(const glm::mat4 &cameraMatrix,
     planes[FRONT].w = clipMat[3].w + clipMat[3].z;
     planes[FRONT] = glm::normalize(planes[FRONT]);
 }
-
-

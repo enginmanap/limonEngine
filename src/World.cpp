@@ -4,6 +4,7 @@
 
 
 #include "World.h"
+#include <random>
 
 #include "Camera.h"
 #include "BulletDebugDrawer.h"
@@ -149,45 +150,104 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     GLfloat borderColor[] = {1.0, 1.0, 1.0, 1.0};
 
+    //create depth buffer and texture for directional shadow map
+    depthMapDirectional = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D_ARRAY, GLHelper::InternalFormatTypes::DEPTH,
+                                                              GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), NR_TOTAL_LIGHTS);
+    depthMapDirectional->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
+    depthMapDirectional->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
+    depthMapDirectional->setFilterMode(GLHelper::FilterModes::LINEAR);
+
+    //create depth buffer and texture for point shadow map
+
+    // create depth cubemap texture
+    depthMapPoint = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::TCUBE_MAP_ARRAY, GLHelper::InternalFormatTypes::DEPTH,
+                                                        GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), NR_POINT_LIGHTS*6);
+    depthMapPoint->setWrapModes(GLHelper::TextureWrapModes::EDGE, GLHelper::TextureWrapModes::EDGE, GLHelper::TextureWrapModes::EDGE);
+    depthMapPoint->setFilterMode(GLHelper::FilterModes::LINEAR);
+
+    normalMap = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB16F,
+                                                    GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    normalMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
+    normalMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
+    normalMap->setFilterMode(GLHelper::FilterModes::LINEAR);
+
+    diffuseAndSpecularLightedMap = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGBA,
+                                                                       GLHelper::FormatTypes::RGBA, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    diffuseAndSpecularLightedMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
+    diffuseAndSpecularLightedMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
+    diffuseAndSpecularLightedMap->setFilterMode(GLHelper::FilterModes::LINEAR);
+
+    ambientMap = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    ambientMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
+    ambientMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
+    ambientMap->setFilterMode(GLHelper::FilterModes::LINEAR);
+
+
+    depthMap = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::DEPTH, GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    depthMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
+    depthMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
+    depthMap->setFilterMode(GLHelper::FilterModes::LINEAR);
+
+    ssaoBlurredMap = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+
+    ssaoTexture = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    ssaoTexture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
+
+    /****************************** SSAO NOISE **************************************/
+    ssaoNoiseTexture = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB32F,
+                                                 GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, 4, 4);
+    ssaoNoiseTexture->setFilterMode(GLHelper::FilterModes::NEAREST);
+    ssaoNoiseTexture->setWrapModes(GLHelper::TextureWrapModes::REPEAT, GLHelper::TextureWrapModes::REPEAT);
+
+    std::default_random_engine generator;
+    std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
+    // generate noise texture
+    // ----------------------
+    std::vector<glm::vec3> ssaoNoise;
+    for (unsigned int i = 0; i < 16; i++)
+    {
+        glm::vec3 noise(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, 0.0f); // rotate around z-axis (in tangent space)
+        ssaoNoise.push_back(noise);
+    }
+
+    ssaoNoiseTexture->loadData(&ssaoNoise[0]);
+    /****************************** SSAO NOISE **************************************/
+
+
     directionalShadowStage = new GraphicsPipelineStage(glHelper, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), false);
-    directionalShadowStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, glHelper->depthMapDirectional);
+    directionalShadowStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, depthMapDirectional);
     directionalShadowStage->setCullMode(GLHelper::CullModes::FRONT);
 
     pointShadowStage = new GraphicsPipelineStage(glHelper, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), false);
-    pointShadowStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, glHelper->depthMapPoint);
+    pointShadowStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, depthMapPoint);
     pointShadowStage->setCullMode(GLHelper::CullModes::FRONT);
 
     coloringStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
-    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR0, glHelper->diffuseAndSpecularLightedMap);
-    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, glHelper->ambientMap);
-    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR2, glHelper->normalMap);
-    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, glHelper->depthMap);
-    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 1, glHelper->depthMapDirectional);
-    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 2, glHelper->depthMapPoint);
-    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 3, glHelper->depthMap);
-    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 4, glHelper->ssaoNoiseTexture);
+    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR0, diffuseAndSpecularLightedMap);
+    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, ambientMap);
+    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR2, normalMap);
+    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, depthMap);
+    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 1, depthMapDirectional);
+    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 2, depthMapPoint);
+    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 3, depthMap);
+    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 4, ssaoNoiseTexture);
     coloringStage->setCullMode(GLHelper::CullModes::BACK);
 
-    std::shared_ptr<GLHelper::Texture> ssaoTexture = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
-    ssaoTexture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
     ssaoGenerationStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
     ssaoGenerationStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, ssaoTexture);
-    ssaoGenerationStage->setInput(1, glHelper->depthMap);
-    ssaoGenerationStage->setInput(2, glHelper->normalMap);
-    ssaoGenerationStage->setInput(3, glHelper->ssaoNoiseTexture);
+    ssaoGenerationStage->setInput(1, depthMap);
+    ssaoGenerationStage->setInput(2, normalMap);
+    ssaoGenerationStage->setInput(3, ssaoNoiseTexture);
 
-    std::shared_ptr<GLHelper::Texture> ssaoBlurTexture = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     ssaoBlurStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
-    ssaoBlurStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, ssaoBlurTexture);
+    ssaoBlurStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, ssaoBlurredMap);
     ssaoBlurStage->setInput(1, ssaoTexture);
 
-    glHelper->ssaoBlurredMap = ssaoBlurTexture;
-
     combiningStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), true, true);
-    combiningStage->setInput(1, glHelper->diffuseAndSpecularLightedMap);
-    combiningStage->setInput(2, glHelper->ambientMap);
-    combiningStage->setInput(3, glHelper->ssaoBlurredMap);
-    combiningStage->setInput(4, glHelper->depthMap);
+    combiningStage->setInput(1, diffuseAndSpecularLightedMap);
+    combiningStage->setInput(2, ambientMap);
+    combiningStage->setInput(3, ssaoBlurredMap);
+    combiningStage->setInput(4, depthMap);
 
     fpsCounter = new GUIFPSCounter(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                                    glm::vec3(204, 204, 0));
@@ -733,7 +793,7 @@ void World::render() {
             continue;
         }
         //generate shadow map
-        shadowAttachmentTextureLayers[glHelper->depthMapDirectional] = std::make_pair(GLHelper::FrameBufferAttachPoints::DEPTH, i);
+        shadowAttachmentTextureLayers[depthMapDirectional] = std::make_pair(GLHelper::FrameBufferAttachPoints::DEPTH, i);
         directionalShadowStage->activate(shadowAttachmentTextureLayers, true);
         //FIXME why are these set here?
         shadowMapProgramDirectional->setUniform("renderLightIndex", (int)i);

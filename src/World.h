@@ -280,12 +280,24 @@ private:
         LOAD_WORLD
     };
     QuitResponse currentQuitResponse = QuitResponse::QUIT_GAME;
+
+    std::shared_ptr<GLHelper::Texture> depthMapDirectional = nullptr;
+    std::shared_ptr<GLHelper::Texture> depthMapPoint = nullptr;
+    std::shared_ptr<GLHelper::Texture> diffuseAndSpecularLightedMap = nullptr;
+    std::shared_ptr<GLHelper::Texture> ambientMap = nullptr;
+    std::shared_ptr<GLHelper::Texture> normalMap = nullptr;
+    std::shared_ptr<GLHelper::Texture> depthMap = nullptr;
+    std::shared_ptr<GLHelper::Texture> ssaoTexture = nullptr;
+    std::shared_ptr<GLHelper::Texture> ssaoNoiseTexture = nullptr;
+    std::shared_ptr<GLHelper::Texture> ssaoBlurredMap = nullptr;
+
     GraphicsPipelineStage* directionalShadowStage = nullptr;
     GraphicsPipelineStage* pointShadowStage = nullptr;
     GraphicsPipelineStage* coloringStage = nullptr;
     GraphicsPipelineStage* ssaoGenerationStage = nullptr;
     GraphicsPipelineStage* ssaoBlurStage = nullptr;
     GraphicsPipelineStage* combiningStage = nullptr;
+
     bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
 
     /**

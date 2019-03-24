@@ -24,7 +24,7 @@
 
 #  include <GL/gl.h>
 #include <memory>
-#include <c++/8.2.1/map>
+#include <map>
 
 #endif/*__APPLE__*/
 
@@ -159,6 +159,10 @@ public:
             this->textureID = glHelper->createTexture(height, width, textureType, internalFormat, format, dataType, depth);
         }
 
+        void loadData(void *data) {
+            glHelper->loadTextureData(this->textureID, height, width, textureType, internalFormat, format, dataType, depth, data);
+        }
+
         ~Texture() {
             glHelper->deleteTexture(textureID);
         }
@@ -205,15 +209,6 @@ public:
         }
     };
 
-    std::shared_ptr<Texture> ssaoBlurredMap = nullptr;
-    std::shared_ptr<Texture> ssaoNoiseTexture = nullptr;
-    std::shared_ptr<Texture> depthMap = nullptr;
-    std::shared_ptr<Texture> normalMap = nullptr;
-    std::shared_ptr<GLHelper::Texture> diffuseAndSpecularLightedMap = nullptr;
-    std::shared_ptr<GLHelper::Texture> depthMapDirectional = nullptr;
-    std::shared_ptr<GLHelper::Texture> depthMapPoint = nullptr;
-    std::shared_ptr<GLHelper::Texture> ambientMap = nullptr;
-
     enum VariableTypes {
         INT,
         FLOAT,
@@ -221,8 +216,8 @@ public:
         FLOAT_VEC3,
         FLOAT_VEC4,
         FLOAT_MAT4,
-        UNDEFINED };
-
+        UNDEFINED
+    };
 
     class Uniform{
     public:
@@ -374,6 +369,9 @@ private:
     void setTextureBorder(Texture& texture);
 
     void setFilterMode(Texture& texture, FilterModes filterMode);
+
+    void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
+                             void *data);
 
 public:
     explicit GLHelper(Options *options);
