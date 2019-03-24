@@ -162,10 +162,10 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, glHelper->ambientMap);
     coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR2, glHelper->normalMap);
     coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, glHelper->depthMap);
-    coloringStage->setInput(glHelper->getMaxTextureImageUnits() - 1, glHelper->depthMapDirectional);
-    coloringStage->setInput(glHelper->getMaxTextureImageUnits() - 2, glHelper->depthMapPoint);
-    coloringStage->setInput(glHelper->getMaxTextureImageUnits() - 3, glHelper->depthMap);
-    coloringStage->setInput(glHelper->getMaxTextureImageUnits() - 4, glHelper->ssaoNoiseTexture);
+    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 1, glHelper->depthMapDirectional);
+    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 2, glHelper->depthMapPoint);
+    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 3, glHelper->depthMap);
+    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 4, glHelper->ssaoNoiseTexture);
     coloringStage->setCullMode(GLHelper::CullModes::BACK);
 
     std::shared_ptr<GLHelper::Texture> ssaoTexture = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
