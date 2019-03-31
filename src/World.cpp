@@ -795,29 +795,7 @@ void World::render() {
         //generate shadow map
         shadowAttachmentTextureLayers[depthMapDirectional] = std::make_pair(GLHelper::FrameBufferAttachPoints::DEPTH, i);
         directionalShadowStage->activate(shadowAttachmentTextureLayers, true);
-        //FIXME why are these set here?
-        shadowMapProgramDirectional->setUniform("renderLightIndex", (int)i);
-
-        for (auto modelIterator = modelsInLightFrustum[i].begin(); modelIterator != modelsInLightFrustum[i].end(); ++modelIterator) {
-            //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-            std::set<Model*> modelSet = modelIterator->second;
-            modelIndicesBuffer.clear();
-            Model* sampleModel = nullptr;
-            for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
-                sampleModel = *model;
-                //all of these models will be rendered
-                modelIndicesBuffer.push_back((*model)->getWorldObjectID());
-            }
-            if(sampleModel != nullptr) {
-                sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *shadowMapProgramDirectional);
-            }
-        }
-
-        for (auto animatedModelIterator = animatedModelsInLightFrustum[i].begin(); animatedModelIterator != animatedModelsInLightFrustum[i].end(); ++animatedModelIterator) {
-            std::vector<uint32_t > temp;
-            temp.push_back((*animatedModelIterator)->getWorldObjectID());
-            (*animatedModelIterator)->renderWithProgramInstanced(temp,*shadowMapProgramDirectional);
-        }
+        renderLight(i, shadowMapProgramDirectional);
     }
 
     pointShadowStage->activate(true);
@@ -825,28 +803,8 @@ void World::render() {
         if(activeLights[i]->getLightType() != Light::POINT) {
             continue;
         }
-        //FIXME why are these set here?
-        shadowMapProgramPoint->setUniform("renderLightIndex", (int)i);
-        for (auto modelIterator = modelsInLightFrustum[i].begin(); modelIterator != modelsInLightFrustum[i].end(); ++modelIterator) {
-            //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-            std::set<Model*> modelSet = modelIterator->second;
-            modelIndicesBuffer.clear();
-            Model* sampleModel = nullptr;
-            for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
-                //all of these models will be rendered
-                modelIndicesBuffer.push_back((*model)->getWorldObjectID());
-                sampleModel = *model;
-            }
-            if(sampleModel != nullptr) {
-                sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *shadowMapProgramPoint);
-            }
-        }
+        renderLight(i, shadowMapProgramPoint);
 
-        for (auto animatedModelIterator = animatedModelsInLightFrustum[i].begin(); animatedModelIterator != animatedModelsInLightFrustum[i].end(); ++animatedModelIterator) {
-            std::vector<uint32_t > temp;
-            temp.push_back((*animatedModelIterator)->getWorldObjectID());
-            (*animatedModelIterator)->renderWithProgramInstanced(temp,*shadowMapProgramPoint);
-        }
     }
 
     coloringStage->activate(true);
@@ -967,41 +925,66 @@ void World::render() {
     }
 }
 
-   void World::renderPlayerAttachments(GameObject *attachment) const {
-     if(attachment->getTypeID() == GameObject::MODEL) {
-         Model* attachedModel = static_cast<Model*>(attachment);
-         attachedModel->setupForTime(gameTime);
-         std::vector<uint32_t> temp;
-         temp.push_back(attachedModel->getWorldObjectID());
-         attachedModel->renderInstanced(temp);
-         if (attachedModel->hasChildren()) {
-             const std::vector<PhysicalRenderable *> &children = attachedModel->getChildren();
-             for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
-                 GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
-                 if(gameObject != nullptr) {
-                     renderPlayerAttachments(gameObject);
-                 }
-             }
-         }
-     } else if(attachment->getTypeID() == GameObject::MODEL_GROUP) {
-         ModelGroup* attachedModelGroup = static_cast<ModelGroup*>(attachment);
-         attachedModelGroup->setupForTime(gameTime);
-         std::vector<uint32_t> temp;
-         temp.push_back(attachedModelGroup->getWorldObjectID());
-         if (attachedModelGroup->hasChildren()) {
-             const std::vector<PhysicalRenderable *> &children = attachedModelGroup->getChildren();
-             for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
-                 GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
-                 if(gameObject != nullptr) {
-                     renderPlayerAttachments(gameObject);
-                 }
+void World::renderLight(unsigned int lightIndex, GLSLProgram *renderProgram) const {
+   renderProgram->setUniform("renderLightIndex", (int) lightIndex);
+   for (auto modelIterator = modelsInLightFrustum[lightIndex].begin(); modelIterator != modelsInLightFrustum[lightIndex].end(); ++modelIterator) {
+       //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
+       std::set<Model *> modelSet = modelIterator->second;
+       modelIndicesBuffer.clear();
+       Model *sampleModel = nullptr;
+       for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
+           //all of these models will be rendered
+           modelIndicesBuffer.push_back((*model)->getWorldObjectID());
+           sampleModel = *model;
+       }
+       if (sampleModel != nullptr) {
+           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *renderProgram);
+       }
+   }
+
+   for (auto animatedModelIterator = animatedModelsInLightFrustum[lightIndex].begin();
+        animatedModelIterator != animatedModelsInLightFrustum[lightIndex].end(); ++animatedModelIterator) {
+       std::vector<uint32_t> temp;
+       temp.push_back((*animatedModelIterator)->getWorldObjectID());
+       (*animatedModelIterator)->renderWithProgramInstanced(temp, *renderProgram);
+   }
+}
+
+void World::renderPlayerAttachments(GameObject *attachment) const {
+ if(attachment->getTypeID() == GameObject::MODEL) {
+     Model* attachedModel = static_cast<Model*>(attachment);
+     attachedModel->setupForTime(gameTime);
+     std::vector<uint32_t> temp;
+     temp.push_back(attachedModel->getWorldObjectID());
+     attachedModel->renderInstanced(temp);
+     if (attachedModel->hasChildren()) {
+         const std::vector<PhysicalRenderable *> &children = attachedModel->getChildren();
+         for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
+             GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
+             if(gameObject != nullptr) {
+                 renderPlayerAttachments(gameObject);
              }
          }
      }
+ } else if(attachment->getTypeID() == GameObject::MODEL_GROUP) {
+     ModelGroup* attachedModelGroup = static_cast<ModelGroup*>(attachment);
+     attachedModelGroup->setupForTime(gameTime);
+     std::vector<uint32_t> temp;
+     temp.push_back(attachedModelGroup->getWorldObjectID());
+     if (attachedModelGroup->hasChildren()) {
+         const std::vector<PhysicalRenderable *> &children = attachedModelGroup->getChildren();
+         for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
+             GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
+             if(gameObject != nullptr) {
+                 renderPlayerAttachments(gameObject);
+             }
+         }
+     }
+ }
 
 
 
-   }
+}
 
 //This method is used only for ImGui loaded animations list generation
 bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {

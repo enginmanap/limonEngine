@@ -170,7 +170,7 @@ private:
     friend class WorldLoader;
     friend class WorldSaver; //Those classes require direct access to some of the internal data
 
-    std::vector<uint32_t > modelIndicesBuffer;
+    mutable std::vector<uint32_t > modelIndicesBuffer;
     AssetManager* assetManager;
     Options* options;
     uint32_t nextWorldID = 2;
@@ -363,6 +363,8 @@ private:
 
     void renderPlayerAttachments(GameObject *attachment) const;
     void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment);
+
+    void renderLight(unsigned int lightIndex, GLSLProgram *renderProgram) const;
 
 public:
     ~World();
