@@ -365,6 +365,9 @@ private:
     void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment);
 
     void renderLight(unsigned int lightIndex, GLSLProgram *renderProgram) const;
+    void renderWorld();
+    void renderWorldTransparentObjects() const;
+    void renderGUI() const;
 
 public:
     ~World();

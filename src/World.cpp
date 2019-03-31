@@ -808,70 +808,7 @@ void World::render() {
     }
 
     coloringStage->activate(true);
-    if(sky!=nullptr) {
-        sky->render();//this is moved to the top, because transparency can create issues if this is at the end
-    }
-
-    for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
-        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-        std::set<Model*> modelSet = modelIterator->second;
-        modelIndicesBuffer.clear();
-        Model* sampleModel = nullptr;
-        for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
-            //all of these models will be rendered
-            modelIndicesBuffer.push_back((*model)->getWorldObjectID());
-            sampleModel = *model;
-        }
-        if(sampleModel != nullptr) {
-            sampleModel->renderInstanced(modelIndicesBuffer);
-        }
-    }
-
-    for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
-        std::vector<uint32_t > temp;
-        temp.push_back((*modelIterator)->getWorldObjectID());
-        (*modelIterator)->renderInstanced(temp);
-    }
-
-    dynamicsWorld->debugDrawWorld();
-    if (this->dynamicsWorld->getDebugDrawer()->getDebugMode() != btIDebugDraw::DBG_NoDebug) {
-        debugDrawer->drawLine(btVector3(0, 0, 0), btVector3(0, 250, 0), btVector3(1, 1, 1));
-        //draw the ai-grid
-        if(grid != nullptr) {
-            grid->debugDraw(debugDrawer);
-        }
-    }
-
-    if(currentPlayersSettings->editorShown) { //if editor is shown, render wireframe of the triggers
-        for (auto it = triggers.begin(); it != triggers.end(); ++it) {
-            it->second->render(debugDrawer);
-        }
-        if(physicalPlayer != nullptr) {
-            if(playerPlaceHolder == nullptr) {
-                std::string assetFile;
-                glm::vec3 scale;
-                physicalPlayer->getRenderProperties(assetFile, scale);
-                playerPlaceHolder = new Model(this->getNextObjectID(), assetManager, 0, assetFile, true);
-                playerPlaceHolder->getTransformation()->setScale(scale);
-            }
-
-            startingPlayer.orientation = physicalPlayer->getLookDirection();
-            startingPlayer.position = physicalPlayer->getPosition();
-
-            playerPlaceHolder->getTransformation()->setTranslate(physicalPlayer->getPosition());
-            playerPlaceHolder->getTransformation()->setOrientation(physicalPlayer->getLookDirectionQuaternion());
-            std::vector<uint32_t > temp;
-            temp.push_back(playerPlaceHolder->getWorldObjectID());
-            playerPlaceHolder->renderInstanced(temp);
-        }
-    }
-
-    if(!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attched model if dead
-        Model* attachedModel = startingPlayer.attachedModel;
-        renderPlayerAttachments(attachedModel);
-    }
-
-    debugDrawer->flushDraws();
+    renderWorld();
 
     //at this point, we should combine all of the coloring
     if(options->isSsaoEnabled()) {
@@ -887,42 +824,124 @@ void World::render() {
     //since gui uses blending, everything must be already rendered.
     // Also, since gui elements only depth test each other, clear depth buffer
     combiningObject->render();
+    renderWorldTransparentObjects();
 
-    //now render transparent objects
-    for (auto modelIterator = transparentModelsInCameraFrustum.begin(); modelIterator != transparentModelsInCameraFrustum.end(); ++modelIterator) {
-        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-        std::set<Model*> modelSet = modelIterator->second;
-        modelIndicesBuffer.clear();
-        Model* sampleModel = nullptr;
-        for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
-            //all of these models will be rendered
-            modelIndicesBuffer.push_back((*model)->getWorldObjectID());
-            sampleModel = *model;
-        }
-        if(sampleModel != nullptr) {
-            sampleModel->renderInstanced(modelIndicesBuffer);
-        }
-    }
+    renderGUI();
 
-    for (std::vector<GUILayer *>::iterator it = guiLayers.begin(); it != guiLayers.end(); ++it) {
-        (*it)->render();
-    }
-    cursor->render();
-    if(options->getRenderInformations()) {
-        renderCounts->render();
-        debugOutputGUI->render();
-        fpsCounter->render();
-    }
-
-    //render API gui layer
-    apiGUILayer->render();
-
-    uint32_t triangle, line;
-    glHelper->getRenderTriangleAndLineCount(triangle, line);
-    renderCounts->updateText("Tris: " + std::to_string(triangle) + ", lines: " + std::to_string(line));
     if(currentPlayersSettings->editorShown) {
         ImGuiFrameSetup();
     }
+}
+
+void World::renderGUI() const {
+   cursor->render();
+   if (options->getRenderInformations()) {
+       renderCounts->render();
+       debugOutputGUI->render();
+       fpsCounter->render();
+   }
+
+   //render API gui layer
+   apiGUILayer->render();
+
+   uint32_t triangle, line;
+   glHelper->getRenderTriangleAndLineCount(triangle, line);
+   renderCounts->updateText("Tris: " + std::to_string(triangle) + ", lines: " + std::to_string(line));
+}
+
+void World::renderWorldTransparentObjects() const {
+   for (auto modelIterator = transparentModelsInCameraFrustum.begin(); modelIterator != transparentModelsInCameraFrustum.end(); ++modelIterator) {
+       //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
+       std::set<Model *> modelSet = modelIterator->second;
+       modelIndicesBuffer.clear();
+       Model *sampleModel = nullptr;
+       for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
+           //all of these models will be rendered
+           modelIndicesBuffer.push_back((*model)->getWorldObjectID());
+           sampleModel = *model;
+       }
+       if (sampleModel != nullptr) {
+           sampleModel->renderInstanced(modelIndicesBuffer);
+       }
+   }
+
+   for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
+       (*it)->render();
+   }
+}
+
+/**
+ * This step renders:
+ * sky
+ * World
+ * Debug
+ * Player attachment
+ */
+void World::renderWorld() {
+   if (sky != nullptr) {
+       sky->render();//this is moved to the top, because transparency can create issues if this is at the end
+   }
+
+   for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
+       //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
+       std::set<Model *> modelSet = modelIterator->second;
+       modelIndicesBuffer.clear();
+       Model *sampleModel = nullptr;
+       for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
+           //all of these models will be rendered
+           modelIndicesBuffer.push_back((*model)->getWorldObjectID());
+           sampleModel = *model;
+       }
+       if (sampleModel != nullptr) {
+           sampleModel->renderInstanced(modelIndicesBuffer);
+       }
+   }
+
+   for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
+       std::vector<uint32_t> temp;
+       temp.push_back((*modelIterator)->getWorldObjectID());
+       (*modelIterator)->renderInstanced(temp);
+   }
+
+   dynamicsWorld->debugDrawWorld();
+   if (dynamicsWorld->getDebugDrawer()->getDebugMode() != btIDebugDraw::DBG_NoDebug) {
+       debugDrawer->drawLine(btVector3(0, 0, 0), btVector3(0, 250, 0), btVector3(1, 1, 1));
+       //draw the ai-grid
+       if (grid != nullptr) {
+           grid->debugDraw(debugDrawer);
+       }
+   }
+
+   if (currentPlayersSettings->editorShown) { //if editor is shown, render wireframe of the triggers
+       for (auto it = triggers.begin(); it != triggers.end(); ++it) {
+           it->second->render(debugDrawer);
+       }
+       if (physicalPlayer != nullptr) {
+           if (playerPlaceHolder == nullptr) {
+               std::string assetFile;
+               glm::vec3 scale;
+               physicalPlayer->getRenderProperties(assetFile, scale);
+               playerPlaceHolder = new Model(getNextObjectID(), assetManager, 0, assetFile, true);
+               playerPlaceHolder->getTransformation()->setScale(scale);
+           }
+
+           startingPlayer.orientation = physicalPlayer->getLookDirection();
+           startingPlayer.position = physicalPlayer->getPosition();
+
+           playerPlaceHolder->getTransformation()->setTranslate(physicalPlayer->getPosition());
+           playerPlaceHolder->getTransformation()->setOrientation(physicalPlayer->getLookDirectionQuaternion());
+           std::vector<uint32_t> temp;
+           temp.push_back(playerPlaceHolder->getWorldObjectID());
+           playerPlaceHolder->renderInstanced(temp);
+       }
+   }
+
+   if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attched model if dead
+       Model *attachedModel = startingPlayer.attachedModel;
+       renderPlayerAttachments(attachedModel);
+   }
+
+   debugDrawer->flushDraws();
 }
 
 void World::renderLight(unsigned int lightIndex, GLSLProgram *renderProgram) const {
