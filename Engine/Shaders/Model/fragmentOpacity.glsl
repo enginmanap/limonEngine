@@ -3,9 +3,7 @@
 
 #define NR_POINT_LIGHTS 4
 
-layout (location = 0) out vec4 diffuseAndSpecularLightedColor;
-layout (location = 1) out vec3 ambientColor;
-layout (location = 2) out vec3 normalOutput;
+layout (location = 0) out vec4 finalColor;
 
 layout (std140) uniform PlayerTransformBlock {
     mat4 camera;
@@ -51,8 +49,6 @@ in VS_FS {
 
 uniform sampler2DArray shadowSamplerDirectional;
 uniform samplerCubeArray shadowSamplerPoint;
-uniform sampler2D ssaoSampler;
-uniform sampler2D ssaoNoiseSampler;
 
 uniform sampler2D ambientSampler;
 uniform sampler2D diffuseSampler;
@@ -139,87 +135,76 @@ float ShadowCalculationPoint(vec3 fragPos, float bias, float viewDistance, int l
     return shadow;
 }
 
-vec3 calcViewSpacePos(vec3 screen) {
-    vec4 temp = vec4(screen.x, screen.y, screen.z, 1);
-    temp *= playerTransforms.inverseProjection;
-    vec3 camera_space = temp.xyz / temp.w;
-    return camera_space;
-}
-
 void main(void) {
-        vec4 objectColor;
-        if((material.isMap & 0x0004)!=0) {
-            if((material.isMap & 0x0001)!=0) { //if there is a opacity map, and it with diffuse
-                vec4 opacity = texture(opacitySampler, from_vs.textureCoord);
-                if(opacity.a < 0.05) {
-                    discard;
-                }
-                objectColor = texture(diffuseSampler, from_vs.textureCoord);
-                objectColor.w =  opacity.a;//FIXME some other textures used x
+    vec4 objectColor;
+    if((material.isMap & 0x0004)!=0) {
+        if((material.isMap & 0x0001)!=0) { //if there is a opacity map, and it with diffuse
+            vec4 opacity = texture(opacitySampler, from_vs.textureCoord);
+            if(opacity.a < 0.05) {
+                discard;
+            }
+            objectColor = texture(diffuseSampler, from_vs.textureCoord);
+            objectColor.w =  opacity.a;//FIXME some other textures used x
+        } else {
+            objectColor = texture(diffuseSampler, from_vs.textureCoord);
+            if(objectColor.a < 0.05) {
+                discard;
+            }
+        }
+    } else {
+        objectColor = vec4(material.diffuse, 1.0);
+    }
+
+    vec3 normal = from_vs.normal;
+
+    if((material.isMap & 0x0010) != 0) {
+        normal = -1 * vec3(texture(normalSampler, from_vs.textureCoord));
+    }
+
+    vec3 lightingColorFactor;
+    if((material.isMap & 0x0008)!=0) {
+        lightingColorFactor = vec3(texture(ambientSampler, from_vs.textureCoord));
+    } else {
+        lightingColorFactor = material.ambient;
+    }
+
+    float shadow;
+    for(int i=0; i < NR_POINT_LIGHTS; ++i){
+        if(LightSources.lights[i].type != 0) {
+            // Diffuse Lighting
+            vec3 lightDirectory;
+            if(LightSources.lights[i].type == 1) {
+                lightDirectory = normalize(LightSources.lights[i].position);
+            } else if(LightSources.lights[i].type == 2) {
+                lightDirectory = normalize(LightSources.lights[i].position - from_vs.fragPos);
+            }
+            float diffuseRate = max(dot(normal, lightDirectory), 0.0);
+            // Specular
+            vec3 viewDirectory = normalize(playerTransforms.position - from_vs.fragPos);
+            vec3 reflectDirectory = reflect(-lightDirectory, normal);
+            float specularRate = max(dot(viewDirectory, reflectDirectory), 0.0);
+            if(specularRate != 0 && material.shininess != 0) {
+                specularRate = pow(specularRate, material.shininess);
+                vec3 specularColor = vec3(texture(specularSampler, from_vs.textureCoord));
+                float specularAverage = (specularColor.x + specularColor.y + specularColor.z) / 3;
+                specularRate = specularRate * specularAverage;
+                //specularRate = specularRate * materialSpecular;//we should get specularMap to here
             } else {
-                objectColor = texture(diffuseSampler, from_vs.textureCoord);
-                if(objectColor.a < 0.05) {
-                    discard;
-                }
+                specularRate = 0;
             }
-        } else {
-            objectColor = vec4(material.diffuse, 1.0);
-        }
-
-        vec3 normal = from_vs.normal;
-
-        if((material.isMap & 0x0010) != 0) {
-            normal = -1 * vec3(texture(normalSampler, from_vs.textureCoord));
-        }
-
-        normalOutput = normal;
-
-        if((material.isMap & 0x0008)!=0) {
-            ambientColor = vec3(texture(ambientSampler, from_vs.textureCoord));
-        } else {
-            ambientColor = material.ambient;
-        }
-        vec3 lightingColorFactor = ambientColor;
-
-        float shadow;
-        for(int i=0; i < NR_POINT_LIGHTS; ++i){
-            if(LightSources.lights[i].type != 0) {
-                // Diffuse Lighting
-                vec3 lightDirectory;
-                if(LightSources.lights[i].type == 1) {
-                    lightDirectory = normalize(LightSources.lights[i].position);
-                } else if(LightSources.lights[i].type == 2) {
-                    lightDirectory = normalize(LightSources.lights[i].position - from_vs.fragPos);
-                }
-                float diffuseRate = max(dot(normal, lightDirectory), 0.0);
-                // Specular
-                vec3 viewDirectory = normalize(playerTransforms.position - from_vs.fragPos);
-                vec3 reflectDirectory = reflect(-lightDirectory, normal);
-                float specularRate = max(dot(viewDirectory, reflectDirectory), 0.0);
-                if(specularRate != 0 && material.shininess != 0) {
-                    specularRate = pow(specularRate, material.shininess);
-                    vec3 specularColor = vec3(texture(specularSampler, from_vs.textureCoord));
-                    float specularAverage = (specularColor.x + specularColor.y + specularColor.z) / 3;
-                    specularRate = specularRate * specularAverage;
-                    //specularRate = specularRate * materialSpecular;//we should get specularMap to here
-                } else {
-                    specularRate = 0;
-                }
-                float viewDistance = length(playerTransforms.position - from_vs.fragPos);
-                float bias = 0.0;
-                if(LightSources.lights[i].type == 1) {//directional light
-                    shadow = ShadowCalculationDirectional(from_vs.fragPosLightSpace[i], bias, i);
-                } else if (LightSources.lights[i].type == 2){//point light
-                    shadow = ShadowCalculationPoint(from_vs.fragPos, bias, viewDistance, i);
-                }
-                lightingColorFactor += ((1.0 - shadow) * (diffuseRate + specularRate) * LightSources.lights[i].color) + LightSources.lights[i].ambient;
-                ambientColor += LightSources.lights[i].ambient;
+            float viewDistance = length(playerTransforms.position - from_vs.fragPos);
+            float bias = 0.0;
+            if(LightSources.lights[i].type == 1) {//directional light
+                shadow = ShadowCalculationDirectional(from_vs.fragPosLightSpace[i], bias, i);
+            } else if (LightSources.lights[i].type == 2){//point light
+                shadow = ShadowCalculationPoint(from_vs.fragPos, bias, viewDistance, i);
             }
+            lightingColorFactor += ((1.0 - shadow) * (diffuseRate + specularRate) * LightSources.lights[i].color) + LightSources.lights[i].ambient;
         }
-        diffuseAndSpecularLightedColor = vec4(
-        min(lightingColorFactor.x, 1.0),
-        min(lightingColorFactor.y, 1.0),
-        min(lightingColorFactor.z, 1.0),
-        1.0) * objectColor;
-
+    }
+    finalColor = vec4(
+    min(lightingColorFactor.x, 1.0),
+    min(lightingColorFactor.y, 1.0),
+    min(lightingColorFactor.z, 1.0),
+    1.0) * objectColor;
 }
