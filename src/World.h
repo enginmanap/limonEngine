@@ -226,7 +226,6 @@ private:
 
     GLSLProgram *shadowMapProgramDirectional = nullptr;
     GLSLProgram *shadowMapProgramPoint = nullptr;
-    GLSLProgram *depthBufferProgram = nullptr;
     FontManager fontManager;
 
     PlayerInfo startingPlayer;
