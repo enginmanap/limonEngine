@@ -744,9 +744,6 @@ void World::render() {
     }
 
     glHelper->switchRenderToColoring();
-    if(sky!=nullptr) {
-        sky->render();//this is moved to the top, because transparency can create issues if this is at the end
-    }
 
     for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
         //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
@@ -777,6 +774,7 @@ void World::render() {
             grid->debugDraw(debugDrawer);
         }
     }
+    debugDrawer->flushDraws();
 
     if(currentPlayersSettings->editorShown) { //if editor is shown, render wireframe of the triggers
         for (auto it = triggers.begin(); it != triggers.end(); ++it) {
@@ -807,8 +805,6 @@ void World::render() {
         renderPlayerAttachments(attachedModel);
     }
 
-    debugDrawer->flushDraws();
-
     //at this point, we should combine all of the coloring
     if(options->isSsaoEnabled()) {
         glHelper->switchRenderToSSAOGeneration();
@@ -823,6 +819,9 @@ void World::render() {
     glHelper->clearDepthBuffer();
     combiningObject->render();
 
+    if(sky!=nullptr) {
+        sky->render();//this is after opaque but before transparent objects.
+    }
     //now render transparent objects
     for (auto modelIterator = transparentModelsInCameraFrustum.begin(); modelIterator != transparentModelsInCameraFrustum.end(); ++modelIterator) {
         //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
