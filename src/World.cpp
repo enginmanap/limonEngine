@@ -76,10 +76,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                                             "./Engine/Shaders/ShadowMap/geometryPoint.glsl",
                                             "./Engine/Shaders/ShadowMap/fragmentPoint.glsl", false);
 
-    depthBufferProgram = new GLSLProgram(glHelper, "./Engine/Shaders/depthPrePass/vertex.glsl",
-                                  "./Engine/Shaders/depthPrePass/fragment.glsl", false);
-
-
     apiGUILayer = new GUILayer(glHelper, debugDrawer, 1);
     apiGUILayer->setDebug(false);
 
