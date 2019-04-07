@@ -1,0 +1,3 @@
+[submodule "libs/nodeGraph"]
+	path = libs/nodeGraph
+	url = https://github.com/enginmanap/nodeGraph.git
