@@ -30,7 +30,16 @@ public:
 
     friend std::shared_ptr<GLSLProgram> GLHelper::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed);
     friend std::shared_ptr<GLSLProgram> GLHelper::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed);
+
     GLuint getID() const { return programID; }
+
+    std::unordered_map<std::string, GLHelper::Uniform const * const> getUniformMap() const {
+        std::unordered_map<std::string, GLHelper::Uniform const * const> constUniformMap;
+        for(auto element:uniformMap) {
+            constUniformMap.insert(element);
+        }
+        return constUniformMap;
+    }
 
     bool setUniform(const std::string &uniformName, const glm::mat4 &matrix) {
         if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GLHelper::FLOAT_MAT4) {

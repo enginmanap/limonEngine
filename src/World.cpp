@@ -4195,8 +4195,9 @@ bool World::setLightColorAPI(uint32_t lightID, const LimonAPI::Vec4& color) {
            };
 
 void World::drawNodeEditor() {
-    static std::vector<NodeType> nodeTypeVector(nodeTypes, nodeTypes + sizeof_array(nodeTypes));
-    static NodeGraph nodeGraph(nodeTypeVector);
+    if(this->nodeGraph == nullptr) {
+        createNodeGraph();
+    }
 
     ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiSetCond_FirstUseEver);
 
@@ -4205,9 +4206,38 @@ void World::drawNodeEditor() {
         return;
     }
 
-    nodeGraph.display();
+    nodeGraph->display();
     ImGui::Button("Save");
     ImGui::SameLine();
     ImGui::Button("Cancel");
     ImGui::End();
+}
+
+void World::createNodeGraph() {
+    std::vector<NodeType> nodeTypeVector;
+
+    auto programs = glHelper->getLoadedPrograms();
+    for(auto program:programs) {
+        auto uniformMap = program.first->getUniformMap();
+        NodeType type{program.first->getProgramName().c_str(), false, nullptr, {}, {}};
+
+        for(auto uniform:uniformMap) {
+            ConnectionDesc desc;
+            desc.name = uniform.first;
+            switch (uniform.second->type) {
+                case GLHelper::VariableTypes::INT       : desc.type = "Integer"; break;
+                case GLHelper::VariableTypes::FLOAT     : desc.type = "Float"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC2: desc.type = "Vector2"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC3: desc.type = "Vector3"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC4: desc.type = "Vector4"; break;
+                case GLHelper::VariableTypes::FLOAT_MAT4: desc.type = "Matrix4"; break;
+                case GLHelper::VariableTypes::UNDEFINED : desc.type = "Undefined"; break;
+            }
+            type.inputConnections.push_back(desc);
+        }
+        nodeTypeVector.push_back(type);
+    }
+
+    nodeGraph = new NodeGraph(nodeTypeVector);
+
 }

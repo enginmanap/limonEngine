@@ -311,8 +311,14 @@ private:
     /**
      * This is not keeping shared_ptr because getting a shared_ptr from destructor is not logical
      */
-    std::map<GLSLProgram*, int> loadedPrograms;
+    std::map<GLSLProgram const * const, int> loadedPrograms;
+
 public:
+
+    const std::map<const GLSLProgram *const, int> &getLoadedPrograms() const {
+        return loadedPrograms;
+    }
+
     void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) {
         triangleCount = renderTriangleCount;
         lineCount = renderLineCount;
