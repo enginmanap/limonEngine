@@ -18,6 +18,7 @@ class GLSLProgram {
     std::string vertexShader;
     std::string fragmentShader;
     std::unordered_map<std::string, GLHelper::Uniform*> uniformMap;
+    std::unordered_map<std::string, GLHelper::VariableTypes>outputMap;
     bool materialRequired;
     GLuint programID;
 
@@ -39,6 +40,10 @@ public:
             constUniformMap.insert(element);
         }
         return constUniformMap;
+    }
+
+    const std::unordered_map<std::string, GLHelper::VariableTypes> &getOutputMap() const {
+        return outputMap;
     }
 
     bool setUniform(const std::string &uniformName, const glm::mat4 &matrix) {

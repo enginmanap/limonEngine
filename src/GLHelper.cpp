@@ -103,7 +103,7 @@ GLuint GLHelper::createProgram(const std::vector<GLuint> &shaderList) {
 
 
 GLuint GLHelper::initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
-                                   std::unordered_map<std::string, Uniform *> &uniformMap) {
+                                   std::unordered_map<std::string, Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap) {
     GLuint program;
     std::vector<GLuint> shaderList;
     checkErrors("before create shaders");
@@ -117,7 +117,7 @@ GLuint GLHelper::initializeProgram(const std::string &vertexShaderFile, const st
     program = createProgram(shaderList);
     std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
 
-    fillUniformMap(program, uniformMap);
+    fillUniformAndOutputMaps(program, uniformMap, outputMap);
     attachGeneralUBOs(program);
 
     checkErrors("initializeProgram");
@@ -129,7 +129,8 @@ void GLHelper::destroyProgram(uint32_t programID) {
     checkErrors("destroyProgram");
 }
 
-void GLHelper::fillUniformMap(const GLuint program, std::unordered_map<std::string, GLHelper::Uniform *> &uniformMap) const {
+void GLHelper::fillUniformAndOutputMaps(const GLuint program, std::unordered_map<std::string, GLHelper::Uniform *> &uniformMap,
+                                        std::unordered_map<std::string, VariableTypes> &outputMap) {
     GLint i;
     GLint count;
 
@@ -157,6 +158,44 @@ void GLHelper::fillUniformMap(const GLuint program, std::unordered_map<std::stri
     }
 
     delete[] name;
+
+    glGetProgramInterfaceiv(program, GL_PROGRAM_OUTPUT, GL_MAX_NAME_LENGTH, &maxLength);
+    name = new GLchar[maxLength];
+
+    const GLenum properties[1] = {GL_TYPE};
+    GLint typeInt;
+    VariableTypes variableType;
+    glGetProgramInterfaceiv(program, GL_PROGRAM_OUTPUT, GL_ACTIVE_RESOURCES, &count);
+    for(i = 0; i < count; i++) {
+        glGetProgramResourceName(program, GL_PROGRAM_OUTPUT, i, maxLength, &size, name);
+        glGetProgramResourceiv(program, GL_PROGRAM_OUTPUT, i, 1, properties, 1, nullptr, &typeInt);
+        switch (typeInt) {
+            case GL_INT:
+                variableType = INT;
+                break;
+            case GL_FLOAT:
+                variableType = FLOAT;
+                break;
+            case GL_FLOAT_VEC2:
+                variableType = FLOAT_VEC2;
+                break;
+            case GL_FLOAT_VEC3:
+                variableType = FLOAT_VEC3;
+                break;
+            case GL_FLOAT_VEC4:
+                variableType = FLOAT_VEC4;
+                break;
+            case GL_FLOAT_MAT4:
+                variableType = FLOAT_MAT4;
+                break;
+            default:
+                variableType = UNDEFINED;
+        }
+        outputMap[name] = variableType;
+    }
+    delete[] name;
+
+    checkErrors("fillUniformAndOutputMaps");
 }
 
 void GLHelper::attachModelUBO(const uint32_t program) {
@@ -288,16 +327,30 @@ GLHelper::GLHelper(Options *options): options(options) {
     glGetIntegerv(GL_NUM_EXTENSIONS, &n);
     std::cout << "found " << n << " extensions." << std::endl;
     bool isCubeMapArraySupported = false;
+    bool isProgramInterfaceQuerySupported = false;
     char extensionNameBuffer[100];
     for (i = 0; i < n; i++) {
         sprintf(extensionNameBuffer, "%s", glGetStringi(GL_EXTENSIONS, i));
         if(std::strcmp(extensionNameBuffer, "GL_ARB_texture_cube_map_array") == 0) {
             isCubeMapArraySupported = true;
-            break;
+            if(isProgramInterfaceQuerySupported) {
+                break;
+            }
+        }
+        if(std::strcmp(extensionNameBuffer, "GL_ARB_program_interface_query") == 0) {
+            isProgramInterfaceQuerySupported = true;
+            if(isCubeMapArraySupported) {
+                break;
+            }
         }
     }
     if(!isCubeMapArraySupported) {
         std::cerr << "Cubemap array support is mandatory, exiting.. " << std::endl;
+        exit(-1);
+    }
+
+    if(!isProgramInterfaceQuerySupported) {
+        std::cerr << "Program Interface Query support is mandatory, exiting.. " << std::endl;
         exit(-1);
     }
 

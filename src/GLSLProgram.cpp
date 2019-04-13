@@ -8,13 +8,13 @@ GLSLProgram::GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::stri
         glHelper(glHelper), vertexShader(vertexShader), fragmentShader(fragmentShader), materialRequired(isMaterialUsed) {
     programName = vertexShader + fragmentShader;
     //FIXME is passing empty string acceptable?
-    programID = glHelper->initializeProgram(vertexShader, "", fragmentShader, uniformMap);
+    programID = glHelper->initializeProgram(vertexShader, "", fragmentShader, uniformMap, outputMap);
 }
 
 GLSLProgram::GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed) :
         glHelper(glHelper), vertexShader(vertexShader), fragmentShader(fragmentShader), materialRequired(isMaterialUsed) {
     programName = vertexShader + geometryShader + fragmentShader;
-    programID = glHelper->initializeProgram(vertexShader, geometryShader, fragmentShader, uniformMap);
+    programID = glHelper->initializeProgram(vertexShader, geometryShader, fragmentShader, uniformMap, outputMap);
 }
 
 GLSLProgram::~GLSLProgram() {

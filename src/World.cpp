@@ -4218,9 +4218,9 @@ void World::createNodeGraph() {
 
     auto programs = glHelper->getLoadedPrograms();
     for(auto program:programs) {
-        auto uniformMap = program.first->getUniformMap();
         NodeType type{program.first->getProgramName().c_str(), false, nullptr, {}, {}};
 
+        auto uniformMap = program.first->getUniformMap();
         for(auto uniform:uniformMap) {
             ConnectionDesc desc;
             desc.name = uniform.first;
@@ -4235,6 +4235,23 @@ void World::createNodeGraph() {
             }
             type.inputConnections.push_back(desc);
         }
+
+        auto outputMap = program.first->getOutputMap();
+        for(auto output:outputMap) {
+            ConnectionDesc desc;
+            desc.name = output.first;
+            switch (output.second) {
+                case GLHelper::VariableTypes::INT       : desc.type = "Integer"; break;
+                case GLHelper::VariableTypes::FLOAT     : desc.type = "Float"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC2: desc.type = "Vector2"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC3: desc.type = "Vector3"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC4: desc.type = "Vector4"; break;
+                case GLHelper::VariableTypes::FLOAT_MAT4: desc.type = "Matrix4"; break;
+                case GLHelper::VariableTypes::UNDEFINED : desc.type = "Undefined"; break;
+            }
+            type.outputConnections.push_back(desc);
+        }
+
         nodeTypeVector.push_back(type);
     }
 

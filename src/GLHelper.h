@@ -363,7 +363,7 @@ private:
 
     bool deleteVAO(const GLuint number, const GLuint bufferID);
 
-    void fillUniformMap(const GLuint program, std::unordered_map<std::string, Uniform *> &uniformMap) const;
+    void fillUniformAndOutputMaps(const GLuint program, std::unordered_map<std::string, Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap);
 
     void attachGeneralUBOs(const GLuint program);
     void bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
@@ -400,7 +400,7 @@ public:
     }
 
     GLuint initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
-                                 std::unordered_map<std::string, Uniform *> &);
+                             std::unordered_map<std::string, Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap);
     void destroyProgram(uint32_t programID);
 
     void bufferVertexData(const std::vector<glm::vec3> &vertices,
