@@ -121,23 +121,23 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
 
     ssaoPostProcess = new SSAOPostProcess(glHelper, options->getSSAOSampleCount());
-    ssaoPostProcess->setSourceTexture("depthMapSampler", 1);
-    ssaoPostProcess->setSourceTexture("normalMapSampler", 2);
+    ssaoPostProcess->setSourceTexture("pre_depthMap", 1);
+    ssaoPostProcess->setSourceTexture("pre_normalMap", 2);
     ssaoPostProcess->setSourceTexture("ssaoNoiseSampler", 3);
 
     ssaoBlurPostProcess = new SSAOBlurPostProcess(glHelper);
-    ssaoBlurPostProcess->setSourceTexture("ssaoResultSampler", 1);
+    ssaoBlurPostProcess->setSourceTexture("pre_ssaoResult", 1);
 
     if(options->isSsaoEnabled()) {
         combiningObject = new CombinePostProcess(glHelper,true);
-        combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
-        combiningObject->setSourceTexture("ambient", 2);
-        combiningObject->setSourceTexture("ssao", 3);
-        combiningObject->setSourceTexture("depthMap", 4);
+        combiningObject->setSourceTexture("pre_diffuseSpecularLighted", 1);
+        combiningObject->setSourceTexture("pre_ambient", 2);
+        combiningObject->setSourceTexture("pre_ssao", 3);
+        combiningObject->setSourceTexture("pre_depthMap", 4);
     } else {
         combiningObject = new CombinePostProcess(glHelper,false);
-        combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
-        combiningObject->setSourceTexture("depthMap", 4);
+        combiningObject->setSourceTexture("pre_diffuseSpecularLighted", 1);
+        combiningObject->setSourceTexture("pre_depthMap", 4);
     }
 
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation

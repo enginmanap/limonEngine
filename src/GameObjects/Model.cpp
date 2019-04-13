@@ -232,11 +232,11 @@ void Model::setSamplersAndUBOs(std::shared_ptr<GLSLProgram>& program, bool setOp
     }
     //TODO we should support multi texture on one pass
 
-    if (!program->setUniform("shadowSamplerDirectional", glHelper->getMaxTextureImageUnits() - 1)) {
-        std::cerr << "Uniform \"shadowSamplerDirectional\" could not be set" << std::endl;
+    if (!program->setUniform("pre_shadowDirectional", glHelper->getMaxTextureImageUnits() - 1)) {
+        std::cerr << "Uniform \"pre_shadowDirectional\" could not be set" << std::endl;
     }
-    if (!program->setUniform("shadowSamplerPoint", glHelper->getMaxTextureImageUnits() - 2)) {
-        std::cerr << "Uniform \"shadowSamplerPoint\" could not be set" << std::endl;
+    if (!program->setUniform("pre_shadowPoint", glHelper->getMaxTextureImageUnits() - 2)) {
+        std::cerr << "Uniform \"pre_shadowPoint\" could not be set" << std::endl;
     }
 
     glHelper->attachModelUBO(program->getID());

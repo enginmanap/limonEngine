@@ -17,8 +17,8 @@ in VS_FS {
     vec2 textureCoordinates;
 } from_vs;
 
-uniform sampler2D depthMapSampler;
-uniform sampler2D normalMapSampler;
+uniform sampler2D pre_depthMap;
+uniform sampler2D pre_normalMap;
 uniform sampler2D ssaoNoiseSampler;
 
 
@@ -38,9 +38,9 @@ vec3 calcViewSpacePos(vec3 screen) {
 
 void main(){
 
-    vec3 normal = texture(normalMapSampler, from_vs.textureCoordinates.xy).xyz;
+    vec3 normal = texture(pre_normalMap, from_vs.textureCoordinates.xy).xyz;
          normal = normalize(mat3(transpose(inverse(playerTransforms.camera))) * normal);
-    float depth = texture(depthMapSampler, from_vs.textureCoordinates.xy).r;
+    float depth = texture(pre_depthMap, from_vs.textureCoordinates.xy).r;
 
     vec3 randomVec = normalize(texture(ssaoNoiseSampler, from_vs.textureCoordinates * playerTransforms.noiseScale).xyz);
 
@@ -69,7 +69,7 @@ void main(){
         offset = playerTransforms.projection * offset;    // from view to clip-space
         offset.xyz /= offset.w;               // perspective divide
         offset.xyz  = offset.xyz * 0.5 + 0.5; // transform to range 0.0 - 1.0
-        float sampleDepth = texture(depthMapSampler, offset.xy).r;
+        float sampleDepth = texture(pre_depthMap, offset.xy).r;
         vec3 realElement = calcViewSpacePos(vec3(offset.xy, sampleDepth));
         float rangeCheck= abs(realElement.z - samplePosition.z) < uRadius ? 1.0 : 0.0;
         tempOcculusion += (realElement.z > (samplePosition.z + bias) ? 1.0 : 0.0) * rangeCheck;
