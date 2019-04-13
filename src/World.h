@@ -280,6 +280,7 @@ private:
         LOAD_WORLD
     };
     QuitResponse currentQuitResponse = QuitResponse::QUIT_GAME;
+    bool showNodeGraph = false;
 
     std::shared_ptr<GLHelper::Texture> depthMapDirectional = nullptr;
     std::shared_ptr<GLHelper::Texture> depthMapPoint = nullptr;
@@ -353,6 +354,7 @@ private:
     void addGUIAnimationControls();
     void addGUILayerControls();
 /********** Editor Methods *********************/
+    void drawNodeEditor();
     //API methods
 
     Model* findModelByID(uint32_t modelID) const;

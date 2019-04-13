@@ -5,6 +5,8 @@
 
 #include "World.h"
 #include <random>
+#include "nodeGraph/src/NodeGraph.h"
+
 
 #include "Camera.h"
 #include "BulletDebugDrawer.h"
@@ -1023,6 +1025,11 @@ bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {
 void World::ImGuiFrameSetup() {//TODO not const because it removes the object. Should be separated
 
     imgGuiHelper->NewFrame();
+    if(showNodeGraph) {
+        drawNodeEditor();
+        imgGuiHelper->RenderDrawLists();
+        return;
+    }
     /* window definitions */
     {
         ImGui::Begin("Editor");
@@ -1507,6 +1514,10 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
                 startingPlayer.attachedModel->convertAssetToLimon(convertedAssets);
             }
         }
+
+       if(ImGui::Button("Change Render Pipeline")) {
+           this->showNodeGraph = true;
+       }
 
         ImGui::End();
 
@@ -3948,4 +3959,255 @@ bool World::setLightColorAPI(uint32_t lightID, const LimonAPI::Vec4& color) {
 
     light->setColor(glm::vec3(GLMConverter::LimonToGLM(color)));
     return true;
+}
+
+   static struct NodeType nodeTypes[] =
+           {
+                   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                   {
+                           "Texture",
+                           true,
+                           nullptr,
+                           // Input connections
+                           {
+                                   {"Write", "Texture"},
+                           },
+                           // Output
+                           {
+                                   {"Read", "Texture"},
+                           },
+                   },
+                   {
+                           "Combine All",
+                           false,
+                           nullptr,
+                           // Input connections
+                           {
+                                   {"diffuseSpecularLighted", "Texture"},
+                                   {"depthMap", "Texture"},
+                           },
+                           // Output
+                           {
+                                   {"finalColor", "Texture"},
+
+                           },
+                   },
+                   {
+                           "Combine All SSAO",
+                           false,
+                           nullptr,
+                           // Input connections
+                           {
+                                   {"diffuseSpecularLighted", "Texture"},
+                                   {"ambient", "Texture"},
+                                   {"ssao", "Texture"},
+                                   {"depthMap", "Texture"},
+                           },
+                           // Output
+                           {
+                                   {"finalColor", "Texture"},
+                           },
+                   },
+                   {
+                           "depthPrePass",
+                           false,
+                           nullptr,
+                           // Input connections
+                           {
+                           },
+                           // Output
+                           {
+                                   {"depthMap", "Texture"},
+                           },
+                   },
+                   {
+                           "GUI",
+                           false,
+                           nullptr,
+                           // Input connections
+                           {
+                                   {"GUISampler", "Texture"},
+                           },
+                           // Output
+                           {
+                                   {"GUI", "Texture"},
+                           },
+                   },
+                   {
+                           "Models",
+                           false,
+                           nullptr,
+                           // Input connections
+                           {
+                                   {"shadowSamplerDirectional", "Texture"},
+                                   {"shadowSamplerPoint", "Texture"},
+                                   {"ambientSampler", "Texture"},
+                                   {"diffuseSampler", "Texture"},
+                                   {"specularSampler", "Texture"},
+                                   {"opacitySampler", "Texture"},
+                                   {"normalSampler", "Texture"},
+                           },
+                           // Output
+                           {
+                                   {"diffuseAndSpecularLightedColor", "Texture"},
+                                   {"ambientColor", "Texture"},
+                                   {"normalOutput", "Texture"},
+
+                           },
+                   },
+
+                   {
+                           "ModelsTransparent",
+                           false,
+                           nullptr,
+                           // Input connections
+                           {
+                                   {"shadowSamplerDirectional", "Texture"},
+                                   {"shadowSamplerPoint", "Texture"},
+                                   {"ambientSampler", "Texture"},
+                                   {"diffuseSampler", "Texture"},
+                                   {"specularSampler", "Texture"},
+                                   {"opacitySampler", "Texture"},
+                                   {"normalSampler", "Texture"},
+                           },
+                           // Output
+                           {
+                                   {"diffuseAndSpecularLightedColor", "Texture"},
+                                   {"ambientColor", "Texture"},
+                                   {"normalOutput", "Texture"},
+
+                           },
+                   },
+                   {
+                           "ShadowMapDirectional",
+                           false,
+                           nullptr,
+                           // Input connections
+                           {
+                           },
+                           // Output
+                           {
+
+                                   {"directionalShadowMap", "Texture"},
+
+                           },
+                   },
+                   {
+                           "ShadowMapPoint",
+                           false,
+                           nullptr,
+                           // Input connections
+                           {
+                           },
+                           // Output
+                           {
+                                   {"PointShadowMap", "Texture"},
+                           },
+                   },
+                   {
+                           "SkyCube",
+                           false,
+                           nullptr,
+                           // Input connections
+                           {
+                           },
+                           // Output
+                           {
+                                   {"SkyBox", "Texture"},
+                                   {"NormalOutput", "Texture"},
+                           },
+                   },
+                   {
+                           "SSAO",
+                           false,
+                           nullptr,
+                           // Input connections
+                           {
+                                   {"depthMapSampler", "Texture"},
+                                   {"normalMapSampler", "Texture"},
+                                   {"ssaoNoiseSampler", "Texture"},
+                           },
+                           // Output
+                           {
+                                   {"occlusion", "Texture"},
+                           },
+                   },
+                   {
+                           "SSAO",
+                           false,
+                           nullptr,
+                           // Input connections
+                           {
+                                   {"ssaoResultSampler", "Texture"},
+                           },
+                           // Output
+                           {
+                                   {"occlusion", "Texture"},
+                           },
+                   },
+
+                   {
+                           "Multiply",
+                           true,
+                           nullptr,
+                           // Input connections
+                           {
+                                   {"Input1", "Float"},
+                                   {"Input2", "Float"},
+                           },
+                           // Output
+                           {
+                                   {"Out", "Float"},
+                           },
+                   },
+
+                   {
+                           "Add",
+                           true,
+                           nullptr,
+                           // Input connections
+                           {
+                                   {"Input1", "Integer"},
+                                   {"Input2", "Integer"},
+                           },
+                           // Output
+                           {
+                                   {"Out", "Integer"},
+                           },
+                   },
+
+                   {
+                           "Divide",
+                           true,
+                           nullptr,
+                           // Input connections
+                           {
+                                   {"Input1", "Float"},
+                                   {"Input2", "Float"},
+                           },
+                           // Output
+                           {
+                                   {"Output1", "Float"},
+                                   {"Output2", "Float"},
+                                   {"Output3", "Float"},
+                           },
+                   },
+           };
+
+void World::drawNodeEditor() {
+    static std::vector<NodeType> nodeTypeVector(nodeTypes, nodeTypes + sizeof_array(nodeTypes));
+    static NodeGraph nodeGraph(nodeTypeVector);
+
+    ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiSetCond_FirstUseEver);
+
+    if (!ImGui::Begin("Example: Custom Node Graph", &showNodeGraph)) {
+        ImGui::End();
+        return;
+    }
+
+    nodeGraph.display();
+    ImGui::Button("Save");
+    ImGui::SameLine();
+    ImGui::Button("Cancel");
+    ImGui::End();
 }
