@@ -103,7 +103,7 @@ GLuint GLHelper::createProgram(const std::vector<GLuint> &shaderList) {
 
 
 GLuint GLHelper::initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
-                                   std::unordered_map<std::string, Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap) {
+                                   std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap) {
     GLuint program;
     std::vector<GLuint> shaderList;
     checkErrors("before create shaders");
@@ -129,7 +129,7 @@ void GLHelper::destroyProgram(uint32_t programID) {
     checkErrors("destroyProgram");
 }
 
-void GLHelper::fillUniformAndOutputMaps(const GLuint program, std::unordered_map<std::string, GLHelper::Uniform *> &uniformMap,
+void GLHelper::fillUniformAndOutputMaps(const GLuint program, std::unordered_map<std::string, GLHelper::Uniform const *> &uniformMap,
                                         std::unordered_map<std::string, VariableTypes> &outputMap) {
     GLint i;
     GLint count;
