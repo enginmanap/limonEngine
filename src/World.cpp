@@ -4230,13 +4230,17 @@ void World::createNodeGraph() {
             ConnectionDesc desc;
             desc.name = uniform.first;
             switch (uniform.second->type) {
-                case GLHelper::VariableTypes::INT       : desc.type = "Integer"; break;
-                case GLHelper::VariableTypes::FLOAT     : desc.type = "Float"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC2: desc.type = "Vector2"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC3: desc.type = "Vector3"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC4: desc.type = "Vector4"; break;
-                case GLHelper::VariableTypes::FLOAT_MAT4: desc.type = "Matrix4"; break;
-                case GLHelper::VariableTypes::UNDEFINED : desc.type = "Undefined"; break;
+                case GLHelper::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
+                case GLHelper::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
+                case GLHelper::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
+                case GLHelper::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
+                case GLHelper::VariableTypes::INT               : desc.type = "Integer"; break;
+                case GLHelper::VariableTypes::FLOAT             : desc.type = "Float"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
+                case GLHelper::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
+                case GLHelper::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
             }
             type.inputConnections.push_back(desc);
         }
@@ -4246,13 +4250,17 @@ void World::createNodeGraph() {
             ConnectionDesc desc;
             desc.name = output.first;
             switch (output.second) {
-                case GLHelper::VariableTypes::INT       : desc.type = "Integer"; break;
-                case GLHelper::VariableTypes::FLOAT     : desc.type = "Float"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC2: desc.type = "Vector2"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC3: desc.type = "Vector3"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC4: desc.type = "Vector4"; break;
-                case GLHelper::VariableTypes::FLOAT_MAT4: desc.type = "Matrix4"; break;
-                case GLHelper::VariableTypes::UNDEFINED : desc.type = "Undefined"; break;
+                case GLHelper::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
+                case GLHelper::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
+                case GLHelper::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
+                case GLHelper::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
+                case GLHelper::VariableTypes::INT               : desc.type = "Integer"; break;
+                case GLHelper::VariableTypes::FLOAT             : desc.type = "Float"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
+                case GLHelper::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
+                case GLHelper::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
             }
             type.outputConnections.push_back(desc);
         }

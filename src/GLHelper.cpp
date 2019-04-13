@@ -168,8 +168,21 @@ void GLHelper::fillUniformAndOutputMaps(const GLuint program, std::unordered_map
     glGetProgramInterfaceiv(program, GL_PROGRAM_OUTPUT, GL_ACTIVE_RESOURCES, &count);
     for(i = 0; i < count; i++) {
         glGetProgramResourceName(program, GL_PROGRAM_OUTPUT, i, maxLength, &size, name);
+        /*
         glGetProgramResourceiv(program, GL_PROGRAM_OUTPUT, i, 1, properties, 1, nullptr, &typeInt);
         switch (typeInt) {
+            case GL_SAMPLER_CUBE:
+                variableType = CUBEMAP;
+                break;
+            case GL_SAMPLER_CUBE_MAP_ARRAY_ARB:
+                variableType = CUBEMAP_ARRAY;
+                break;
+            case GL_SAMPLER_2D:
+                variableType = TEXTURE_2D;
+                break;
+            case GL_SAMPLER_2D_ARRAY:
+                variableType = TEXTURE_2D_ARRAY;
+                break;
             case GL_INT:
                 variableType = INT;
                 break;
@@ -192,6 +205,8 @@ void GLHelper::fillUniformAndOutputMaps(const GLuint program, std::unordered_map
                 variableType = UNDEFINED;
         }
         outputMap[name] = variableType;
+        */
+        outputMap[name] = VariableTypes::TEXTURE_2D;
     }
     delete[] name;
 

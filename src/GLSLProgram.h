@@ -73,9 +73,19 @@ public:
         }
         return false;
     }
-
+/**
+ * This method is used to set samplers, so it can alter int uniforms, and sampler uniforms.
+ * @param uniformName
+ * @param value
+ * @return
+ */
     bool setUniform(const std::string &uniformName, const int value) {
-        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GLHelper::INT) {
+        if (uniformMap.count(uniformName) &&
+                    (uniformMap[uniformName]->type == GLHelper::INT ||
+                        uniformMap[uniformName]->type == GLHelper::CUBEMAP ||
+                        uniformMap[uniformName]->type == GLHelper::CUBEMAP_ARRAY ||
+                        uniformMap[uniformName]->type == GLHelper::TEXTURE_2D ||
+                        uniformMap[uniformName]->type == GLHelper::TEXTURE_2D_ARRAY))  {
             return glHelper->setUniform(programID, uniformMap[uniformName]->location, value);
         }
         return false;

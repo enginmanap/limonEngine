@@ -215,6 +215,10 @@ public:
         FLOAT_VEC3,
         FLOAT_VEC4,
         FLOAT_MAT4,
+        CUBEMAP,
+        CUBEMAP_ARRAY,
+        TEXTURE_2D,
+        TEXTURE_2D_ARRAY,
         UNDEFINED
     };
 
@@ -228,10 +232,18 @@ public:
         Uniform(unsigned int location, const std::string &name, GLenum typeEnum, unsigned int size) : location(
                 location), name(name), size(size) {
             switch (typeEnum) {
-                case GL_SAMPLER_CUBE: //these are because sampler takes a int as texture unit
+                case GL_SAMPLER_CUBE:
+                    type = CUBEMAP;
+                    break;
                 case GL_SAMPLER_CUBE_MAP_ARRAY_ARB:
+                    type = CUBEMAP_ARRAY;
+                    break;
                 case GL_SAMPLER_2D:
+                    type = TEXTURE_2D;
+                    break;
                 case GL_SAMPLER_2D_ARRAY:
+                    type = TEXTURE_2D_ARRAY;
+                    break;
                 case GL_INT:
                     type = INT;
                     break;
