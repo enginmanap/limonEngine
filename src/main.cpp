@@ -193,6 +193,8 @@ GameEngine::~GameEngine() {
 
     delete worldLoader;
 
+    delete assetManager;
+
     delete inputHandler;
 
     delete alHelper;
