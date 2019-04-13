@@ -4218,7 +4218,12 @@ void World::createNodeGraph() {
 
     auto programs = glHelper->getLoadedPrograms();
     for(auto program:programs) {
-        NodeType type{program.first->getProgramName().c_str(), false, nullptr, {}, {}};
+        std::string programName = program.first->getProgramName();
+        size_t startof, endof;
+        endof=programName.find_last_of("/\\");
+        startof = programName.substr(0,endof).find_last_of("/\\") +1;
+        std::string nodeName = programName.substr(startof, endof - startof);
+        NodeType type{nodeName.c_str(), false, nullptr, {}, {}};
 
         auto uniformMap = program.first->getUniformMap();
         for(auto uniform:uniformMap) {
