@@ -8,8 +8,8 @@
 #include <glm/glm.hpp>
 
 void SSAOPostProcess::initializeProgram() {
-    program = glHelper->createGLSLProgram("./Engine/Shaders/SSAO/vertex.glsl",
-                              "./Engine/Shaders/SSAO/fragment.glsl", false);
+    program = glHelper->createGLSLProgram("./Engine/Shaders/SSAOGeneration/vertex.glsl",
+                              "./Engine/Shaders/SSAOGeneration/fragment.glsl", false);
 }
 
 float lerp(float first , float second , float factor ) {

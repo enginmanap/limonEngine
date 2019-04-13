@@ -74,11 +74,11 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
 
 
-    shadowMapProgramDirectional = glHelper->createGLSLProgram("./Engine/Shaders/ShadowMap/vertexDirectional.glsl",
-                                                  "./Engine/Shaders/ShadowMap/fragmentDirectional.glsl", false);
-    shadowMapProgramPoint = glHelper->createGLSLProgram("./Engine/Shaders/ShadowMap/vertexPoint.glsl",
-                                            "./Engine/Shaders/ShadowMap/geometryPoint.glsl",
-                                            "./Engine/Shaders/ShadowMap/fragmentPoint.glsl", false);
+    shadowMapProgramDirectional = glHelper->createGLSLProgram("./Engine/Shaders/ShadowMapDirectional/vertex.glsl",
+                                                  "./Engine/Shaders/ShadowMapDirectional/fragment.glsl", false);
+    shadowMapProgramPoint = glHelper->createGLSLProgram("./Engine/Shaders/ShadowMapPoint/vertex.glsl",
+                                            "./Engine/Shaders/ShadowMapPoint/geometry.glsl",
+                                            "./Engine/Shaders/ShadowMapPoint/fragment.glsl", false);
 
     depthBufferProgram = glHelper->createGLSLProgram("./Engine/Shaders/depthPrePass/vertex.glsl",
                                   "./Engine/Shaders/depthPrePass/fragment.glsl", false);

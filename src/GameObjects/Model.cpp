@@ -49,8 +49,8 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
 
         if (this->animated) {//this was hasBones, but it turns out, there are models with bones, but no animation.
             if(animatedProgram == nullptr) {
-                animatedProgram = glHelper->createGLSLProgram("./Engine/Shaders/Model/vertexAnimated.glsl",
-                                                 "./Engine/Shaders/Model/fragment.glsl", true);
+                animatedProgram = glHelper->createGLSLProgram("./Engine/Shaders/ModelAnimated/vertex.glsl",
+                                                 "./Engine/Shaders/ModelAnimated/fragment.glsl", true);
                 this->setSamplersAndUBOs(animatedProgram, false);
             }
             //set up the program to render object
@@ -60,8 +60,8 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
             //set up the program to render object without bones
             if(meshMeta->mesh->getMaterial()->hasOpacityMap()) {
                 if (nonAnimatedTransparentProgram == nullptr) {
-                    nonAnimatedTransparentProgram = glHelper->createGLSLProgram("./Engine/Shaders/Model/vertex.glsl",
-                                                         "./Engine/Shaders/Model/fragmentOpacity.glsl", true);
+                    nonAnimatedTransparentProgram = glHelper->createGLSLProgram("./Engine/Shaders/ModelTransparent/vertex.glsl",
+                                                         "./Engine/Shaders/ModelTransparent/fragment.glsl", true);
                     this->setSamplersAndUBOs(nonAnimatedTransparentProgram, true);
                 }
                 meshMeta->program = nonAnimatedTransparentProgram;
