@@ -4227,6 +4227,18 @@ void World::createNodeGraph() {
 
         auto uniformMap = program.first->getUniformMap();
         for(auto uniform:uniformMap) {
+
+            if (uniform.first.rfind("pre_", 0) != 0) {
+                continue;
+            }
+
+            if (!(uniform.second->type == GLHelper::VariableTypes::CUBEMAP ||
+                    uniform.second->type == GLHelper::VariableTypes::CUBEMAP_ARRAY ||
+                    uniform.second->type == GLHelper::VariableTypes::TEXTURE_2D ||
+                    uniform.second->type == GLHelper::VariableTypes::TEXTURE_2D_ARRAY)) {//if not texture
+                continue;
+            }
+
             ConnectionDesc desc;
             desc.name = uniform.first;
             switch (uniform.second->type) {
