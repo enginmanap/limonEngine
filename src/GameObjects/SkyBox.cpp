@@ -50,7 +50,7 @@ SkyBox::SkyBox(uint32_t objectID, AssetManager *assetManager, std::string path, 
     glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
     bufferObjects.push_back(vbo);
 
-    renderProgram = new GLSLProgram(glHelper, "./Engine/Shaders/SkyCube/vertex.glsl",
+    renderProgram = glHelper->createGLSLProgram("./Engine/Shaders/SkyCube/vertex.glsl",
                                     "./Engine/Shaders/SkyCube/fragment.glsl", false);
 }
 

@@ -6,7 +6,7 @@
 #include "../GLSLProgram.h"
 
 void SSAOBlurPostProcess::initializeProgram() {
-    program = new GLSLProgram(glHelper, "./Engine/Shaders/SSAO/vertex.glsl",
+    program = glHelper->createGLSLProgram("./Engine/Shaders/SSAO/vertex.glsl",
                               "./Engine/Shaders/SSAO/blurFragment.glsl", false);
 }
 

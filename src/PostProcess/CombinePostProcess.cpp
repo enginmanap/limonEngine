@@ -11,10 +11,10 @@ CombinePostProcess::CombinePostProcess(GLHelper* glHelper, bool isSSAOEnabled) :
 
 void CombinePostProcess::initializeProgram() {
         if(isSSAOEnabled) {
-                program = new GLSLProgram(glHelper, "./Engine/Shaders/CombineAll/vertex.glsl",
+                program = glHelper->createGLSLProgram("./Engine/Shaders/CombineAll/vertex.glsl",
                                           "./Engine/Shaders/CombineAll/fragmentWithSSAO.glsl", false);
         } else {
-                program = new GLSLProgram(glHelper, "./Engine/Shaders/CombineAll/vertex.glsl",
+                program = glHelper->createGLSLProgram("./Engine/Shaders/CombineAll/vertex.glsl",
                                           "./Engine/Shaders/CombineAll/fragment.glsl", false);
         }
 

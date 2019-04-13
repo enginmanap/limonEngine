@@ -39,9 +39,9 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
 
     MeshMeta *meshMeta;
     std::vector<std::shared_ptr<MeshAsset>> assetMeshes = modelAsset->getMeshes();
-    static GLSLProgram* animatedProgram = nullptr;
-    static GLSLProgram* nonAnimatedProgram = nullptr;
-    static GLSLProgram* nonAnimatedTransparentProgram = nullptr;
+    static std::shared_ptr<GLSLProgram> animatedProgram = nullptr;
+    static std::shared_ptr<GLSLProgram> nonAnimatedProgram = nullptr;
+    static std::shared_ptr<GLSLProgram> nonAnimatedTransparentProgram = nullptr;
 
     for (auto iter = assetMeshes.begin(); iter != assetMeshes.end(); ++iter) {
         meshMeta = new MeshMeta();
@@ -49,7 +49,7 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
 
         if (this->animated) {//this was hasBones, but it turns out, there are models with bones, but no animation.
             if(animatedProgram == nullptr) {
-                animatedProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertexAnimated.glsl",
+                animatedProgram = glHelper->createGLSLProgram("./Engine/Shaders/Model/vertexAnimated.glsl",
                                                  "./Engine/Shaders/Model/fragment.glsl", true);
                 this->setSamplersAndUBOs(animatedProgram, false);
             }
@@ -60,14 +60,14 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
             //set up the program to render object without bones
             if(meshMeta->mesh->getMaterial()->hasOpacityMap()) {
                 if (nonAnimatedTransparentProgram == nullptr) {
-                    nonAnimatedTransparentProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertex.glsl",
+                    nonAnimatedTransparentProgram = glHelper->createGLSLProgram("./Engine/Shaders/Model/vertex.glsl",
                                                          "./Engine/Shaders/Model/fragmentOpacity.glsl", true);
                     this->setSamplersAndUBOs(nonAnimatedTransparentProgram, true);
                 }
                 meshMeta->program = nonAnimatedTransparentProgram;
             } else {
                 if (nonAnimatedProgram == nullptr) {
-                    nonAnimatedProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertex.glsl",
+                    nonAnimatedProgram = glHelper->createGLSLProgram("./Engine/Shaders/Model/vertex.glsl",
                                                          "./Engine/Shaders/Model/fragment.glsl", true);
                     this->setSamplersAndUBOs(nonAnimatedProgram, false);
                 }
@@ -212,7 +212,7 @@ void Model::activateTexturesOnly(std::shared_ptr<const Material>material) {
     }
 }
 
-void Model::setSamplersAndUBOs(GLSLProgram *program, bool setOpacity) {
+void Model::setSamplersAndUBOs(std::shared_ptr<GLSLProgram>& program, bool setOpacity) {
     if (!program->setUniform("diffuseSampler", diffuseMapAttachPoint)) {
         std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
     }
@@ -244,7 +244,7 @@ void Model::setSamplersAndUBOs(GLSLProgram *program, bool setOpacity) {
 }
 
 bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
-    GLSLProgram* program  = meshMetaData->program;
+    std::shared_ptr<GLSLProgram> program  = meshMetaData->program;
 
     if (meshMetaData->mesh != nullptr && meshMetaData->mesh->getMaterial() != nullptr) {
         glHelper->attachMaterialUBO(program->getID(), meshMetaData->mesh->getMaterial()->getMaterialIndex());

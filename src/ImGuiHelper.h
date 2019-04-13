@@ -33,7 +33,7 @@ class ImGuiHelper {
     // ImGUI Data end"
 
     GLHelper* glHelper = nullptr;
-    GLSLProgram* program = nullptr;
+    std::shared_ptr<GLSLProgram> program = nullptr;
     Options* options;
 
     ImGuiContext* context = nullptr;

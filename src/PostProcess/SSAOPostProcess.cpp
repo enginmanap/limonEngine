@@ -8,7 +8,7 @@
 #include <glm/glm.hpp>
 
 void SSAOPostProcess::initializeProgram() {
-    program = new GLSLProgram(glHelper, "./Engine/Shaders/SSAO/vertex.glsl",
+    program = glHelper->createGLSLProgram("./Engine/Shaders/SSAO/vertex.glsl",
                               "./Engine/Shaders/SSAO/fragment.glsl", false);
 }
 

@@ -9,6 +9,8 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <memory>
+
 class GLHelper;
 class GLSLProgram;
 
@@ -19,7 +21,7 @@ class QuadRenderBase {
 
     virtual void initializeProgram() = 0;
 protected:
-    GLSLProgram* program = nullptr;
+    std::shared_ptr<GLSLProgram> program = nullptr;
     GLHelper* glHelper = nullptr;
 public:
     QuadRenderBase(GLHelper* glHelper);

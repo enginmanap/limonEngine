@@ -26,7 +26,7 @@ class Model : public PhysicalRenderable, public GameObject {
     uint32_t objectID;
     struct MeshMeta {
         std::shared_ptr<MeshAsset> mesh = nullptr;
-        GLSLProgram* program = nullptr;
+        std::shared_ptr<GLSLProgram>program = nullptr;
     };
     ActorInterface *AIActor = nullptr;
     AssetManager *assetManager;
@@ -91,7 +91,7 @@ public:
         glHelper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
     }
 
-    void setSamplersAndUBOs(GLSLProgram *program, bool setOpacity);
+    void setSamplersAndUBOs(std::shared_ptr<GLSLProgram>& program, bool setOpacity);
     void activateTexturesOnly(std::shared_ptr<const Material> material);
 
     bool setupRenderVariables(MeshMeta *meshMetaData);

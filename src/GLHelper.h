@@ -129,7 +129,6 @@ class GLHelper {
         }
     };
 
-
 public:
 
     enum class TextureTypes {T2D, T2D_ARRAY, TCUBE_MAP_ARRAY};//Starting with digits is illegal
@@ -309,7 +308,10 @@ private:
     uint32_t renderLineCount;
     uint32_t uniformSetCount=0;
 
-
+    /**
+     * This is not keeping shared_ptr because getting a shared_ptr from destructor is not logical
+     */
+    std::map<GLSLProgram*, int> loadedPrograms;
 public:
     void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) {
         triangleCount = renderTriangleCount;
@@ -373,10 +375,15 @@ private:
     void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                              void *data);
 
+    void testAndRemoveGLSLProgram(GLSLProgram *program);
+
 public:
     explicit GLHelper(Options *options);
 
     ~GLHelper();
+
+    std::shared_ptr<GLSLProgram> createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed);
+    std::shared_ptr<GLSLProgram> createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed);
 
     void attachModelUBO(const uint32_t program);
 
@@ -388,6 +395,7 @@ public:
 
     GLuint initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
                                  std::unordered_map<std::string, Uniform *> &);
+    void destroyProgram(uint32_t programID);
 
     void bufferVertexData(const std::vector<glm::vec3> &vertices,
                           const std::vector<glm::mediump_uvec3> &faces,

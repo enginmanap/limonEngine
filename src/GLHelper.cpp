@@ -124,6 +124,11 @@ GLuint GLHelper::initializeProgram(const std::string &vertexShaderFile, const st
     return program;
 }
 
+void GLHelper::destroyProgram(uint32_t programID) {
+    glDeleteProgram(programID);
+    checkErrors("destroyProgram");
+}
+
 void GLHelper::fillUniformMap(const GLuint program, std::unordered_map<std::string, GLHelper::Uniform *> &uniformMap) const {
     GLint i;
     GLint count;
@@ -719,6 +724,37 @@ GLHelper::~GLHelper() {
     glDeleteFramebuffers(1, &combineFrameBuffer);
 
     //state->setProgram(0);
+}
+
+std::shared_ptr<GLSLProgram> GLHelper::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) {
+    std::shared_ptr<GLSLProgram> program(new GLSLProgram(this, vertexShader, geometryShader, fragmentShader, isMaterialUsed), std::bind(&GLHelper::testAndRemoveGLSLProgram, this, std::placeholders::_1));
+    if(loadedPrograms.find(program.get()) == loadedPrograms.end()) {
+        loadedPrograms[program.get()] = 1;
+    } else {
+        loadedPrograms[program.get()] += 1;
+    }
+    return program;
+}
+std::shared_ptr<GLSLProgram> GLHelper::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) {
+    std::shared_ptr<GLSLProgram> program(new GLSLProgram(this, vertexShader, fragmentShader, isMaterialUsed), std::bind(&GLHelper::testAndRemoveGLSLProgram, this, std::placeholders::_1));
+    if(loadedPrograms.find(program.get()) == loadedPrograms.end()) {
+        loadedPrograms[program.get()] = 1;
+    } else {
+        loadedPrograms[program.get()] += 1;
+    }
+    return program;
+}
+
+void GLHelper::testAndRemoveGLSLProgram(GLSLProgram *program) {
+    if(loadedPrograms.find(program) != loadedPrograms.end()) {
+        if(loadedPrograms[program] == 1) {
+            loadedPrograms.erase(program);
+        } else {
+            loadedPrograms[program] -= 1;
+        }
+    } else {
+        std::cerr << "Trying to remove a GLSL program ["<< program->getProgramName() <<"] that is not registered. Please check." << std::endl;
+    }
 }
 
 void GLHelper::reshape() {

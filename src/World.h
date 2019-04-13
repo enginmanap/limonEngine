@@ -226,9 +226,9 @@ private:
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
 
-    GLSLProgram *shadowMapProgramDirectional = nullptr;
-    GLSLProgram *shadowMapProgramPoint = nullptr;
-    GLSLProgram *depthBufferProgram = nullptr;
+    std::shared_ptr<GLSLProgram> shadowMapProgramDirectional = nullptr;
+    std::shared_ptr<GLSLProgram> shadowMapProgramPoint = nullptr;
+    std::shared_ptr<GLSLProgram> depthBufferProgram = nullptr;
     FontManager fontManager;
 
     PlayerInfo startingPlayer;
@@ -366,7 +366,7 @@ private:
     void renderPlayerAttachments(GameObject *attachment) const;
     void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment);
 
-    void renderLight(unsigned int lightIndex, GLSLProgram *renderProgram) const;
+    void renderLight(unsigned int lightIndex, std::shared_ptr<GLSLProgram> renderProgram) const;
     void renderWorld();
     void renderWorldTransparentObjects() const;
     void renderGUI() const;

@@ -14,7 +14,7 @@ class TextureAsset;
 class GUIImageBase : public GUIRenderable {
     int imageAttachPoint = 1;
 
-    static GLSLProgram* imageRenderProgram;
+    static std::shared_ptr<GLSLProgram> imageRenderProgram;
 protected:
     AssetManager* assetManager;
     std::string imageFile;

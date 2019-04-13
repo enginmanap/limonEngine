@@ -243,7 +243,7 @@ bool ImGuiHelper::CreateDeviceObjects()
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
 
-    program = new GLSLProgram(glHelper, "./Engine/Shaders/ImGui/vertex.glsl",
+    program = glHelper->createGLSLProgram("./Engine/Shaders/ImGui/vertex.glsl",
                               "./Engine/Shaders/ImGui/fragment.glsl", true);
 
     g_AttribLocationPosition = glGetAttribLocation(program->getID(), "Position");
@@ -303,7 +303,6 @@ void    ImGuiHelper::InvalidateDeviceObjects()
 
     //if (g_ShaderHandle) glDeleteProgram(g_ShaderHandle);
     //g_ShaderHandle = 0;
-    delete program;
     program = nullptr;
 
     if (g_FontTexture)

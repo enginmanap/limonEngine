@@ -21,10 +21,15 @@ class GLSLProgram {
     bool materialRequired;
     GLuint programID;
 
-public:
     GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed);
     GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed);
 
+public:
+
+    ~GLSLProgram();
+
+    friend std::shared_ptr<GLSLProgram> GLHelper::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed);
+    friend std::shared_ptr<GLSLProgram> GLHelper::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed);
     GLuint getID() const { return programID; }
 
     bool setUniform(const std::string &uniformName, const glm::mat4 &matrix) {

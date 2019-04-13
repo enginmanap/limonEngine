@@ -16,3 +16,7 @@ GLSLProgram::GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::stri
     programName = vertexShader + geometryShader + fragmentShader;
     programID = glHelper->initializeProgram(vertexShader, geometryShader, fragmentShader, uniformMap);
 }
+
+GLSLProgram::~GLSLProgram() {
+    glHelper->destroyProgram(programID);
+}

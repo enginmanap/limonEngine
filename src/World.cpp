@@ -74,13 +74,13 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
 
 
-    shadowMapProgramDirectional = new GLSLProgram(glHelper, "./Engine/Shaders/ShadowMap/vertexDirectional.glsl",
+    shadowMapProgramDirectional = glHelper->createGLSLProgram("./Engine/Shaders/ShadowMap/vertexDirectional.glsl",
                                                   "./Engine/Shaders/ShadowMap/fragmentDirectional.glsl", false);
-    shadowMapProgramPoint = new GLSLProgram(glHelper, "./Engine/Shaders/ShadowMap/vertexPoint.glsl",
+    shadowMapProgramPoint = glHelper->createGLSLProgram("./Engine/Shaders/ShadowMap/vertexPoint.glsl",
                                             "./Engine/Shaders/ShadowMap/geometryPoint.glsl",
                                             "./Engine/Shaders/ShadowMap/fragmentPoint.glsl", false);
 
-    depthBufferProgram = new GLSLProgram(glHelper, "./Engine/Shaders/depthPrePass/vertex.glsl",
+    depthBufferProgram = glHelper->createGLSLProgram("./Engine/Shaders/depthPrePass/vertex.glsl",
                                   "./Engine/Shaders/depthPrePass/fragment.glsl", false);
 
 
@@ -946,7 +946,7 @@ void World::renderWorld() {
    debugDrawer->flushDraws();
 }
 
-void World::renderLight(unsigned int lightIndex, GLSLProgram *renderProgram) const {
+void World::renderLight(unsigned int lightIndex, std::shared_ptr<GLSLProgram> renderProgram) const {
    renderProgram->setUniform("renderLightIndex", (int) lightIndex);
    for (auto modelIterator = modelsInLightFrustum[lightIndex].begin(); modelIterator != modelsInLightFrustum[lightIndex].end(); ++modelIterator) {
        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated

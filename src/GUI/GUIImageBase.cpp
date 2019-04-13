@@ -6,13 +6,13 @@
 #include "../Assets/AssetManager.h"
 #include "../Assets/TextureAsset.h"
 
-GLSLProgram* GUIImageBase::imageRenderProgram = nullptr;
+std::shared_ptr<GLSLProgram> GUIImageBase::imageRenderProgram = nullptr;
 
 
 GUIImageBase::GUIImageBase(GLHelper *glHelper, AssetManager *assetManager, const std::string &imageFile) : GUIRenderable(glHelper), assetManager(assetManager), imageFile(imageFile) {
     image = assetManager->loadAsset<TextureAsset>({imageFile});
     if(imageRenderProgram == nullptr) {
-        imageRenderProgram = new GLSLProgram(glHelper, "./Engine/Shaders/GUI/vertexImage.glsl", "./Engine/Shaders/GUI/fragmentImage.glsl", false);
+        imageRenderProgram = glHelper->createGLSLProgram("./Engine/Shaders/GUI/vertexImage.glsl", "./Engine/Shaders/GUI/fragmentImage.glsl", false);
     }
     this->renderProgram = imageRenderProgram;
 

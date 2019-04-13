@@ -5,7 +5,7 @@
 #include "GUITextBase.h"
 
 
-GLSLProgram* GUITextBase::textRenderProgram = nullptr;
+std::shared_ptr<GLSLProgram> GUITextBase::textRenderProgram = nullptr;
 
 void GUITextBase::calculateSizes() {
     width = 0;
@@ -42,7 +42,7 @@ GUITextBase::GUITextBase(GLHelper *glHelper, Face *face, const std::string text,
         GUIRenderable(glHelper), text(text), color(color.x / 256, color.y / 256, color.z / 256), face(face), height(0),
         width(0), bearingUp(0) {
     if(textRenderProgram == nullptr) {
-        textRenderProgram = new GLSLProgram(glHelper, "./Engine/Shaders/GUI/vertexText.glsl", "./Engine/Shaders/GUI/fragmentText.glsl", false);
+        textRenderProgram = glHelper->createGLSLProgram("./Engine/Shaders/GUI/vertexText.glsl", "./Engine/Shaders/GUI/fragmentText.glsl", false);
     }
     this->renderProgram = textRenderProgram;
     calculateSizes();
