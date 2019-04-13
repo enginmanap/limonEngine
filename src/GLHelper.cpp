@@ -162,13 +162,13 @@ void GLHelper::fillUniformAndOutputMaps(const GLuint program, std::unordered_map
     glGetProgramInterfaceiv(program, GL_PROGRAM_OUTPUT, GL_MAX_NAME_LENGTH, &maxLength);
     name = new GLchar[maxLength];
 
-    const GLenum properties[1] = {GL_TYPE};
-    GLint typeInt;
-    VariableTypes variableType;
     glGetProgramInterfaceiv(program, GL_PROGRAM_OUTPUT, GL_ACTIVE_RESOURCES, &count);
     for(i = 0; i < count; i++) {
         glGetProgramResourceName(program, GL_PROGRAM_OUTPUT, i, maxLength, &size, name);
         /*
+        const GLenum properties[1] = {GL_TYPE};
+        GLint typeInt;
+        VariableTypes variableType;
         glGetProgramResourceiv(program, GL_PROGRAM_OUTPUT, i, 1, properties, 1, nullptr, &typeInt);
         switch (typeInt) {
             case GL_SAMPLER_CUBE:
