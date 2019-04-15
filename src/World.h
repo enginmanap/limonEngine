@@ -64,6 +64,7 @@ class GLHelper;
 class GraphicsPipelineStage;
 class ALHelper;
 
+class PipelineExtension;
 class NodeGraph;
 
 class World {
@@ -282,6 +283,7 @@ private:
     };
     QuitResponse currentQuitResponse = QuitResponse::QUIT_GAME;
     bool showNodeGraph = false;
+    PipelineExtension *pipelineExtension;
     NodeGraph* nodeGraph = nullptr;
 
     std::shared_ptr<GLHelper::Texture> depthMapDirectional = nullptr;

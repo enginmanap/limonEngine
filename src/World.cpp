@@ -5,8 +5,8 @@
 
 #include "World.h"
 #include <random>
+#include "NodeEditorExtensions/PipelineExtension.h"
 #include "nodeGraph/src/NodeGraph.h"
-
 
 #include "Camera.h"
 #include "BulletDebugDrawer.h"
@@ -4288,6 +4288,7 @@ void World::createNodeGraph() {
         nodeTypeVector.push_back(type);
     }
 
-    nodeGraph = new NodeGraph(nodeTypeVector);
+    pipelineExtension = new PipelineExtension(glHelper);
+    nodeGraph = new NodeGraph(nodeTypeVector, pipelineExtension);
 
 }
