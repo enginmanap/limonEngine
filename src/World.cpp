@@ -4216,6 +4216,14 @@ void World::drawNodeEditor() {
 void World::createNodeGraph() {
     std::vector<NodeType> nodeTypeVector;
 
+    //start with predefined types
+
+    NodeType blend{"Blend", true, nullptr,{}, {}};
+    blend.inputConnections.push_back(ConnectionDesc{"Input1", "Texture"});
+    blend.inputConnections.push_back(ConnectionDesc{"Input2", "Texture"});
+    blend.inputConnections.push_back(ConnectionDesc{"Input3", "Texture"});
+    blend.outputConnections.push_back(ConnectionDesc{"output", "Texture"});
+    nodeTypeVector.push_back(blend);
     auto programs = glHelper->getLoadedPrograms();
     for(auto program:programs) {
         std::string programName = program.first->getProgramName();
