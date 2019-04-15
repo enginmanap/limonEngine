@@ -165,7 +165,6 @@ void GLHelper::fillUniformAndOutputMaps(const GLuint program, std::unordered_map
     glGetProgramInterfaceiv(program, GL_PROGRAM_OUTPUT, GL_ACTIVE_RESOURCES, &count);
     for(i = 0; i < count; i++) {
         glGetProgramResourceName(program, GL_PROGRAM_OUTPUT, i, maxLength, &size, name);
-        /*
         const GLenum properties[1] = {GL_TYPE};
         GLint typeInt;
         VariableTypes variableType;
@@ -184,30 +183,18 @@ void GLHelper::fillUniformAndOutputMaps(const GLuint program, std::unordered_map
                 variableType = TEXTURE_2D_ARRAY;
                 break;
             case GL_INT:
-                variableType = INT;
-                break;
             case GL_FLOAT:
-                variableType = FLOAT;
-                break;
             case GL_FLOAT_VEC2:
-                variableType = FLOAT_VEC2;
-                break;
             case GL_FLOAT_VEC3:
-                variableType = FLOAT_VEC3;
-                break;
             case GL_FLOAT_VEC4:
-                variableType = FLOAT_VEC4;
-                break;
-            case GL_FLOAT_MAT4:
-                variableType = FLOAT_MAT4;
+                variableType = TEXTURE_2D;
                 break;
             default:
                 variableType = UNDEFINED;
         }
         outputMap[name] = variableType;
-        */
-        outputMap[name] = VariableTypes::TEXTURE_2D;
     }
+    outputMap["Depth"] = VariableTypes::TEXTURE_2D;//Depth is always written
     delete[] name;
 
     checkErrors("fillUniformAndOutputMaps");
