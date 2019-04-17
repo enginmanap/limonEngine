@@ -1044,6 +1044,7 @@ uint32_t GLHelper::createTexture(int height, int width, TextureTypes type, Inter
 
     GLenum glFormat;
     switch (format) {
+        case FormatTypes::RED: glFormat = GL_RED; break;
         case FormatTypes::RGB: glFormat = GL_RGB; break;
         case FormatTypes::RGBA: glFormat = GL_RGBA; break;
         case FormatTypes::DEPTH: glFormat = GL_DEPTH_COMPONENT; break;
@@ -1116,6 +1117,7 @@ void GLHelper::loadTextureData(uint32_t textureID, int height, int width, Textur
 
     GLenum glFormat;
     switch (format) {
+        case FormatTypes::RED: glFormat = GL_RED; break;
         case FormatTypes::RGB: glFormat = GL_RGB; break;
         case FormatTypes::RGBA: glFormat = GL_RGBA; break;
         case FormatTypes::DEPTH: glFormat = GL_DEPTH_COMPONENT; break;
