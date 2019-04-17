@@ -196,23 +196,9 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     ssaoTexture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
 
     /****************************** SSAO NOISE **************************************/
-    ssaoNoiseTexture = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB32F,
-                                                 GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, 4, 4);
-    ssaoNoiseTexture->setFilterMode(GLHelper::FilterModes::NEAREST);
-    ssaoNoiseTexture->setWrapModes(GLHelper::TextureWrapModes::REPEAT, GLHelper::TextureWrapModes::REPEAT);
+    ssaoNoise = assetManager->loadAsset<TextureAsset>({"./Engine/Textures/ssaoNoiseTexture.png"});
+    ssaoNoiseTexture = ssaoNoise->getTexture();
 
-    std::default_random_engine generator;
-    std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
-    // generate noise texture
-    // ----------------------
-    std::vector<glm::vec3> ssaoNoise;
-    for (unsigned int i = 0; i < 16; i++)
-    {
-        glm::vec3 noise(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, 0.0f); // rotate around z-axis (in tangent space)
-        ssaoNoise.push_back(noise);
-    }
-
-    ssaoNoiseTexture->loadData(&ssaoNoise[0]);
     /****************************** SSAO NOISE **************************************/
 
 

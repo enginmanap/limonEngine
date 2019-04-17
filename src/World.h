@@ -62,6 +62,7 @@ class SSAOBlurPostProcess;
 
 class GLHelper;
 class GraphicsPipelineStage;
+class TextureAsset;
 class ALHelper;
 
 class PipelineExtension;
@@ -286,6 +287,8 @@ private:
     PipelineExtension *pipelineExtension;
     NodeGraph* nodeGraph = nullptr;
 
+
+    TextureAsset* ssaoNoise = nullptr;
     std::shared_ptr<GLHelper::Texture> depthMapDirectional = nullptr;
     std::shared_ptr<GLHelper::Texture> depthMapPoint = nullptr;
     std::shared_ptr<GLHelper::Texture> diffuseAndSpecularLightedMap = nullptr;
