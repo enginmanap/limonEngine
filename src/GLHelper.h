@@ -131,7 +131,7 @@ class GLHelper {
 
 public:
 
-    enum class TextureTypes {T2D, T2D_ARRAY, TCUBE_MAP_ARRAY};//Starting with digits is illegal
+    enum class TextureTypes {T2D, T2D_ARRAY, TCUBE_MAP, TCUBE_MAP_ARRAY};//Starting with digits is illegal
     enum class InternalFormatTypes {RED, RGB, RGBA, RGB16F, RGB32F, DEPTH };
     enum class FormatTypes {RED, RGB, RGBA, DEPTH};
     enum class DataTypes {UNSIGNED_BYTE, FLOAT};
@@ -158,8 +158,8 @@ public:
             this->textureID = glHelper->createTexture(height, width, textureType, internalFormat, format, dataType, depth);
         }
 
-        void loadData(void *data) {
-            glHelper->loadTextureData(this->textureID, height, width, textureType, internalFormat, format, dataType, depth, data);
+        void loadData(void *data, void *data2 = nullptr, void *data3 = nullptr, void *data4 = nullptr, void *data5 = nullptr, void *data6 = nullptr) {
+            glHelper->loadTextureData(this->textureID, height, width, textureType, internalFormat, format, dataType, depth, data, data2, data3, data4, data5, data6);
         }
 
         ~Texture() {
@@ -399,7 +399,7 @@ private:
     void setFilterMode(Texture& texture, FilterModes filterMode);
 
     void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
-                             void *data);
+                         void *data, void *data2, void *data3, void *data4, void *data5, void *data6);
 
     void testAndRemoveGLSLProgram(GLSLProgram *program);
 
@@ -467,9 +467,6 @@ public:
     uint32_t createFrameBuffer(uint32_t width, uint32_t height);
     void deleteFrameBuffer(uint32_t frameBufferID);
     void attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID, FrameBufferAttachPoints attachPoint, int32_t layer = 0);
-
-    GLuint loadCubeMap(int height, int width, void *right, void *left, void *top, void *bottom, void *back,
-                       void *front);
 
     void attachTexture(unsigned int textureID, unsigned int attachPoint);
 

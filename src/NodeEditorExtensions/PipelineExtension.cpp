@@ -45,6 +45,8 @@ void PipelineExtension::drawDetailPane() {
         ImGui::SameLine();
         if(ImGui::RadioButton("2D Array##Texture_type_PipelineExtension", textureType == GLHelper::TextureTypes::T2D_ARRAY)) { textureType = GLHelper::TextureTypes::T2D_ARRAY; }
         ImGui::SameLine();
+        if(ImGui::RadioButton("Cubemap##Texture_type_PipelineExtension", textureType == GLHelper::TextureTypes::TCUBE_MAP)) { textureType = GLHelper::TextureTypes::TCUBE_MAP; }
+        ImGui::SameLine();
         if(ImGui::RadioButton("Cubemap Array##Texture_type_PipelineExtension", textureType == GLHelper::TextureTypes::TCUBE_MAP_ARRAY)) { textureType = GLHelper::TextureTypes::TCUBE_MAP_ARRAY; }
 
         static GLHelper::InternalFormatTypes internalFormatType = GLHelper::InternalFormatTypes::RED;
@@ -63,6 +65,8 @@ void PipelineExtension::drawDetailPane() {
 
         static GLHelper::FormatTypes formatType = GLHelper::FormatTypes::RGB;
         ImGui::Text("Format type:");
+        if(ImGui::RadioButton("RED##format_type_PipelineExtension", formatType == GLHelper::FormatTypes::RED)) { formatType = GLHelper::FormatTypes::RED; }
+        ImGui::SameLine();
         if(ImGui::RadioButton("RGB##format_type_PipelineExtension", formatType == GLHelper::FormatTypes::RGB)) { formatType = GLHelper::FormatTypes::RGB; }
         ImGui::SameLine();
         if(ImGui::RadioButton("RGBA##format_type_PipelineExtension", formatType == GLHelper::FormatTypes::RGBA)) { formatType = GLHelper::FormatTypes::RGBA; }

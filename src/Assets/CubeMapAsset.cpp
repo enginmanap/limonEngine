@@ -35,11 +35,15 @@ CubeMapAsset::CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const s
         }
 
     }
-    //check if all the maps has same height/width
-    cubeMapBufferID = assetManager->getGlHelper()->loadCubeMap(surfaces[0]->h, surfaces[0]->w,
-                                            surfaces[0]->pixels, surfaces[1]->pixels,
-                                            surfaces[2]->pixels, surfaces[3]->pixels,
-                                            surfaces[4]->pixels, surfaces[5]->pixels);
+
+    texture = std::make_unique<GLHelper::Texture>(assetManager->getGlHelper(), GLHelper::TextureTypes::TCUBE_MAP,
+                                                  GLHelper::InternalFormatTypes::RGB, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::UNSIGNED_BYTE,
+                                                  surfaces[0]->w, surfaces[0]->h);
+    //FIXME check if all the maps has same height/width, if they are RGB.
+    texture->loadData(surfaces[0]->pixels, surfaces[1]->pixels,
+                      surfaces[2]->pixels, surfaces[3]->pixels,
+                      surfaces[4]->pixels, surfaces[5]->pixels);
+
     for (int i = 0; i < 6; i++) {
         delete surfaces[i];
     }

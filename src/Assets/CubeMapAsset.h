@@ -17,16 +17,14 @@
 class CubeMapAsset : public Asset {
     std::string path;
     std::string names[6];
-    GLuint cubeMapBufferID;
+    std::unique_ptr<GLHelper::Texture> texture;
 public:
     CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
 
-    ~CubeMapAsset() {
-        assetManager->getGlHelper()->deleteTexture(cubeMapBufferID);
-    }
+    ~CubeMapAsset() {}
 
     GLuint getID() const {
-        return cubeMapBufferID;
+        return texture->getTextureID();
     }
 
     std::vector<std::string> getNames() {

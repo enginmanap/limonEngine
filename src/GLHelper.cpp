@@ -586,6 +586,7 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
         switch (inputIt->second->getType()) {
             case GLHelper::TextureTypes::T2D: state->attachTexture(inputIt->second->getTextureID(), inputIt->first); break;
             case GLHelper::TextureTypes::T2D_ARRAY: state->attach2DTextureArray(inputIt->second->getTextureID(), inputIt->first); break;
+            case GLHelper::TextureTypes::TCUBE_MAP: state->attachCubemap(inputIt->second->getTextureID(), inputIt->first); break;
             case GLHelper::TextureTypes::TCUBE_MAP_ARRAY: state->attachCubemapArray(inputIt->second->getTextureID(), inputIt->first); break;
         }
     }
@@ -624,6 +625,7 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
         switch (inputIt->second->getType()) {
             case GLHelper::TextureTypes::T2D: state->attachTexture(inputIt->second->getTextureID(), inputIt->first); break;
             case GLHelper::TextureTypes::T2D_ARRAY: state->attach2DTextureArray(inputIt->second->getTextureID(), inputIt->first); break;
+            case GLHelper::TextureTypes::TCUBE_MAP: state->attachCubemap(inputIt->second->getTextureID(), inputIt->first); break;
             case GLHelper::TextureTypes::TCUBE_MAP_ARRAY: state->attachCubemapArray(inputIt->second->getTextureID(), inputIt->first); break;
         }
     }
@@ -836,6 +838,11 @@ void GLHelper::setWrapMode(Texture& texture, TextureWrapModes wrapModeS, Texture
 
         }
             break;
+        case TextureTypes::TCUBE_MAP: {
+            glTextureType = GL_TEXTURE_CUBE_MAP;
+
+        }
+        break;
         case TextureTypes::TCUBE_MAP_ARRAY: {
             glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
 
@@ -880,6 +887,11 @@ void GLHelper::setFilterMode(Texture& texture, GLHelper::FilterModes filterMode)
 
         }
             break;
+        case TextureTypes::TCUBE_MAP: {
+            glTextureType = GL_TEXTURE_CUBE_MAP;
+
+        }
+        break;
         case TextureTypes::TCUBE_MAP_ARRAY: {
             glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
 
@@ -919,6 +931,11 @@ void GLHelper::setTextureBorder(Texture& texture) {
 
         }
             break;
+        case TextureTypes::TCUBE_MAP: {
+            glTextureType = GL_TEXTURE_CUBE_MAP;
+
+        }
+        break;
         case TextureTypes::TCUBE_MAP_ARRAY: {
             glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
 
@@ -1014,6 +1031,10 @@ void GLHelper::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTyp
             }
         }
             break;
+        case TextureTypes::TCUBE_MAP: {
+            glFramebufferTexture(GL_FRAMEBUFFER, glAttachment, textureID, 0);
+        }
+        break;
         case TextureTypes::TCUBE_MAP_ARRAY: {
             glFramebufferTexture(GL_FRAMEBUFFER, glAttachment, textureID, 0);
         }
@@ -1070,6 +1091,17 @@ uint32_t GLHelper::createTexture(int height, int width, TextureTypes type, Inter
             glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, glInternalDataFormat, width,height, depth, 0, glFormat, glDataType, nullptr);
         }
         break;
+        case TextureTypes::TCUBE_MAP: {
+            glTextureType = GL_TEXTURE_CUBE_MAP;
+            glBindTexture(glTextureType, texture);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, glInternalDataFormat, width, height, 0, glFormat, glDataType, nullptr);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, glInternalDataFormat, width, height, 0, glFormat, glDataType, nullptr);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, glInternalDataFormat, width, height, 0, glFormat, glDataType, nullptr);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, glInternalDataFormat, width, height, 0, glFormat, glDataType, nullptr);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, glInternalDataFormat, width, height, 0, glFormat, glDataType, nullptr);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, glInternalDataFormat, width, height, 0, glFormat, glDataType, nullptr);
+        }
+            break;
         case TextureTypes::TCUBE_MAP_ARRAY: {
             glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
             glBindTexture(glTextureType, texture);
@@ -1101,8 +1133,9 @@ uint32_t GLHelper::createTexture(int height, int width, TextureTypes type, Inter
     return texture;
 }
 
-void GLHelper::loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
-                               void *data) {
+void
+GLHelper::loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
+                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) {
     state->activateTextureUnit(0);//this is the default working texture
 
     GLint glInternalDataFormat;
@@ -1144,6 +1177,18 @@ void GLHelper::loadTextureData(uint32_t textureID, int height, int width, Textur
             std::cerr << "This method of loading texture data is not tested." << std::endl;
         }
             break;
+        case TextureTypes::TCUBE_MAP: {
+            glTextureType = GL_TEXTURE_CUBE_MAP;
+            glBindTexture(glTextureType, textureID);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, glInternalDataFormat, width, height, 0, glFormat, glDataType, data);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, glInternalDataFormat, width, height, 0, glFormat, glDataType, data2);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, glInternalDataFormat, width, height, 0, glFormat, glDataType, data3);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, glInternalDataFormat, width, height, 0, glFormat, glDataType, data4);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, glInternalDataFormat, width, height, 0, glFormat, glDataType, data5);
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, glInternalDataFormat, width, height, 0, glFormat, glDataType, data6);
+
+        }
+            break;
         case TextureTypes::TCUBE_MAP_ARRAY: {
             glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
             glBindTexture(glTextureType, textureID);
@@ -1174,40 +1219,6 @@ bool GLHelper::deleteTexture(GLuint textureID) {
     bool result = state->deleteTexture(textureID);
     checkErrors("deleteTexture");
     return result;
-}
-
-GLuint GLHelper::loadCubeMap(int height, int width, void *right, void *left, void *top, void *bottom, void *back,
-                             void *front) {
-    GLuint cubeMap;
-    glGenTextures(1, &cubeMap);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMap);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, right);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, left);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, top);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, bottom);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, back);
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, front);
-    switch (options->getTextureFiltering()) {
-        case Options::TextureFilteringModes::NEAREST:
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            break;
-        case Options::TextureFilteringModes::BILINEAR:
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            break;
-        case Options::TextureFilteringModes::TRILINEAR:
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            break;
-    }
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-    checkErrors("loadCubeMap");
-    return cubeMap;
 }
 
 bool GLHelper::getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location) {
