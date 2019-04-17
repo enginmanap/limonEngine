@@ -206,6 +206,14 @@ public:
         FormatTypes getFormat() {
             return format;
         }
+
+        uint32_t getHeight() const {
+            return height;
+        }
+
+        uint32_t getWidth() const {
+            return width;
+        }
     };
 
     enum VariableTypes {

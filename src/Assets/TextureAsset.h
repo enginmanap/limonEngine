@@ -8,15 +8,14 @@
 #include <string>
 #include <iostream>
 #include <SDL2/SDL_image.h>
+#include "GLHelper.h"
 #include "Asset.h"
 #include "AssetManager.h"
 
 class TextureAsset : public Asset {
 protected:
     std::vector<std::string> name;//1) single element filename, 2) First element embedded texture ID, second element model.
-    uint32_t textureBufferID;
-    uint32_t height = 0;
-    uint32_t width;
+    std::unique_ptr<GLHelper::Texture> texture;
 
 public:
     TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files);
@@ -24,7 +23,7 @@ public:
     ~TextureAsset();
 
     uint32_t getID() const {
-        return textureBufferID;
+        return texture->getTextureID();
     }
 
     std::vector<std::string> getName() const {
@@ -32,11 +31,11 @@ public:
     }
 
     uint32_t getHeight() const {
-        return height;
+        return texture->getHeight();
     }
 
     uint32_t getWidth() const {
-        return width;
+        return texture->getWidth();
     }
 };
 
