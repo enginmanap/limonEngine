@@ -15,7 +15,7 @@
 class TextureAsset : public Asset {
 protected:
     std::vector<std::string> name;//1) single element filename, 2) First element embedded texture ID, second element model.
-    std::unique_ptr<GLHelper::Texture> texture;
+    std::shared_ptr<GLHelper::Texture> texture;
 
 public:
     TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files);
@@ -24,6 +24,14 @@ public:
 
     uint32_t getID() const {
         return texture->getTextureID();
+    }
+
+    const std::shared_ptr<GLHelper::Texture> &getTexture() const {
+        return texture;
+    }
+
+    std::shared_ptr<GLHelper::Texture> &getTexture() {
+        return texture;
     }
 
     std::vector<std::string> getName() const {
