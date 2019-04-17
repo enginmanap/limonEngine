@@ -1159,33 +1159,6 @@ void GLHelper::loadTextureData(uint32_t textureID, int height, int width, Textur
     checkErrors("loadTextureData");
 }
 
-GLuint GLHelper::loadTexture(int height, int width, GLenum format, void *data) {
-    GLuint texture;
-    glGenTextures(1, &texture);
-    state->activateTextureUnit(0);//this is the default working texture
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    switch (options->getTextureFiltering()) {
-        case Options::TextureFilteringModes::NEAREST:
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            break;
-        case Options::TextureFilteringModes::BILINEAR:
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            break;
-        case Options::TextureFilteringModes::TRILINEAR:
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            break;
-    }
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    checkErrors("loadTexture");
-    return texture;
-}
 
 void GLHelper::attachTexture(unsigned int textureID, unsigned int attachPoint) {
     state->attachTexture(textureID, attachPoint);

@@ -468,8 +468,6 @@ public:
     void deleteFrameBuffer(uint32_t frameBufferID);
     void attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID, FrameBufferAttachPoints attachPoint, int32_t layer = 0);
 
-    GLuint loadTexture(int height, int width, GLenum format, void *data);
-
     GLuint loadCubeMap(int height, int width, void *right, void *left, void *top, void *bottom, void *back,
                        void *front);
 
