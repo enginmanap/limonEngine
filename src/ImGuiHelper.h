@@ -12,9 +12,10 @@
 #include <string>
 #include "../libs/ImGui/imgui.h"
 #include "Assets/AssetManager.h"
+#include "GLHelper.h"
 
 struct SDL_Window;
-class GLHelper;
+
 class GLSLProgram;
 class InputHandler;
 class Options;
@@ -22,6 +23,7 @@ typedef union SDL_Event SDL_Event;
 
 class ImGuiHelper {
 
+    std::unique_ptr<GLHelper::Texture> fontTexture;
     // ImGUI Data
     double       g_Time = 0.0f;
     bool         g_MousePressed[3] = { false, false, false };
