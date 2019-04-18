@@ -4275,6 +4275,6 @@ void World::createNodeGraph() {
     }
 
     pipelineExtension = new PipelineExtension(glHelper);
-    nodeGraph = new NodeGraph(nodeTypeVector, pipelineExtension);
+    nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);
 
 }
