@@ -5,6 +5,7 @@
 
 #include "World.h"
 #include <random>
+#include <NodeEditorExtensions/PipelineStageExtension.h>
 #include "NodeEditorExtensions/PipelineExtension.h"
 #include "nodeGraph/src/NodeGraph.h"
 
@@ -4211,6 +4212,8 @@ void World::createNodeGraph() {
     blend.outputConnections.push_back(ConnectionDesc{"output", "Texture"});
     nodeTypeVector.push_back(blend);
     auto programs = glHelper->getLoadedPrograms();
+    pipelineExtension = new PipelineExtension(glHelper);
+
     for(auto program:programs) {
         std::string programName = program.first->getProgramName();
         size_t startof, endof;
@@ -4270,11 +4273,11 @@ void World::createNodeGraph() {
             }
             type.outputConnections.push_back(desc);
         }
+        type.nodeExtension = new PipelineStageExtension(pipelineExtension);
 
         nodeTypeVector.push_back(type);
     }
 
-    pipelineExtension = new PipelineExtension(glHelper);
     nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);
 
 }
