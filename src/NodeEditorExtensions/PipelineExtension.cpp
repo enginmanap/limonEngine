@@ -5,10 +5,11 @@
 #include <imgui/imgui.h>
 #include <memory>
 #include "PipelineExtension.h"
+#include "Graphics/Texture.h"
 
 //This method is used only for ImGui texture name generation
 bool PipelineExtension::getNameOfTexture(void* data, int index, const char** outText) {
-    auto& textures = *static_cast<std::map<std::string, std::shared_ptr<GLHelper::Texture>>*>(data);
+    auto& textures = *static_cast<std::map<std::string, std::shared_ptr<Texture>>*>(data);
     if(index < 0 || (uint32_t)index >= textures.size()) {
         return false;
     }
@@ -142,7 +143,7 @@ void PipelineExtension::drawDetailPane() {
         }
         if(ImGui::Button("Create Texture##create_button_PipelineExtension")) {
             if(std::strlen(name) != 0) {
-                std::shared_ptr<GLHelper::Texture> texture = std::make_shared<GLHelper::Texture>(glHelper, textureType, internalFormatType, formatType, dataType, size[0], size[1],
+                std::shared_ptr<Texture> texture = std::make_shared<Texture>(glHelper, textureType, internalFormatType, formatType, dataType, size[0], size[1],
                                                                                                  depth);
                 texture->setWrapModes(textureWrapMode, textureWrapMode);
                 texture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);

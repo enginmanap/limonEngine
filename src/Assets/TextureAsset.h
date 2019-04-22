@@ -2,20 +2,22 @@
 // Created by Engin Manap on 1.03.2016.
 //
 
-#ifndef LIMONENGINE_TEXTURE_H
-#define LIMONENGINE_TEXTURE_H
+#ifndef LIMONENGINE_TEXTURE_ASSET_H
+#define LIMONENGINE_TEXTURE_ASSET_H
 
 #include <string>
 #include <iostream>
 #include <SDL2/SDL_image.h>
 #include "Graphics/GLHelper.h"
+#include "Graphics/Texture.h"
+
 #include "Asset.h"
 #include "AssetManager.h"
 
 class TextureAsset : public Asset {
 protected:
     std::vector<std::string> name;//1) single element filename, 2) First element embedded texture ID, second element model.
-    std::shared_ptr<GLHelper::Texture> texture;
+    std::shared_ptr<Texture> texture;
 
 public:
     TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files);
@@ -26,11 +28,11 @@ public:
         return texture->getTextureID();
     }
 
-    const std::shared_ptr<GLHelper::Texture> &getTexture() const {
+    const std::shared_ptr<Texture> &getTexture() const {
         return texture;
     }
 
-    std::shared_ptr<GLHelper::Texture> &getTexture() {
+    std::shared_ptr<Texture> &getTexture() {
         return texture;
     }
 
@@ -47,4 +49,4 @@ public:
     }
 };
 
-#endif //LIMONENGINE_TEXTURE_H
+#endif //LIMONENGINE_TEXTURE_ASSET_H

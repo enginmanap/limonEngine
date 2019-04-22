@@ -39,6 +39,7 @@ class Material;
 class Light;
 
 class GLSLProgram;
+class Texture;
 
 struct Line {
     glm::vec3 from;
@@ -56,6 +57,7 @@ struct Line {
 };
 
 class GLHelper {
+    friend class Texture;
     class OpenglState {
         unsigned int activeProgram;
         unsigned int activeTextureUnit;
@@ -139,83 +141,6 @@ public:
     enum class TextureWrapModes {NONE, REPEAT, BORDER, EDGE};
     enum class FilterModes {NEAREST, LINEAR, TRILINEAR};
     enum class CullModes {FRONT, BACK, NONE, NO_CHANGE};
-
-    class Texture {
-        GLHelper* glHelper;
-        uint32_t textureID;
-        TextureTypes textureType;
-        InternalFormatTypes internalFormat;
-        FormatTypes format;
-        DataTypes dataType;
-        uint32_t height, width;
-        uint32_t depth;//3D textures, or texture arrays have this as element count
-
-        float borderColor[4] = {0};
-        bool borderColorSet = false;
-    public:
-        Texture(GLHelper* glHelper, TextureTypes textureType, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType,uint32_t width, uint32_t height, uint32_t depth = 0)
-        : glHelper(glHelper), textureType(textureType), internalFormat(internalFormat), format(format), dataType(dataType), height(height), width(width), depth(depth) {
-            this->textureID = glHelper->createTexture(height, width, textureType, internalFormat, format, dataType, depth);
-        }
-
-        void loadData(void *data, void *data2 = nullptr, void *data3 = nullptr, void *data4 = nullptr, void *data5 = nullptr, void *data6 = nullptr) {
-            glHelper->loadTextureData(this->textureID, height, width, textureType, internalFormat, format, dataType, depth, data, data2, data3, data4, data5, data6);
-        }
-
-        ~Texture() {
-            glHelper->deleteTexture(textureID);
-        }
-
-        void setBorderColor(float red, float green, float blue, float alpha) {
-            borderColor[0] = red;
-            borderColor[1] = green;
-            borderColor[2] = blue;
-            borderColor[3] = alpha;
-            borderColorSet = true;
-            glHelper->setTextureBorder(*this);
-        }
-
-        void setWrapModes(TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR = TextureWrapModes::NONE) {
-            glHelper->setWrapMode(*this, wrapModeS, wrapModeT, wrapModeR);
-        }
-
-        void setFilterMode(FilterModes filterMode) {
-            glHelper->setFilterMode(*this, filterMode);
-        }
-
-        void removeBorderColor() {
-            borderColorSet = false;
-            glHelper->setTextureBorder(*this);
-        }
-
-        bool isBorderColorSet() {
-            return borderColorSet;
-        }
-        std::vector<float> getBorderColor() {
-            return std::vector<float>(borderColor, borderColor + (sizeof(borderColor)/sizeof(float)));
-        }
-
-        TextureTypes getType(){
-            return textureType;
-        }
-
-        uint32_t getTextureID() {
-            return textureID;
-        }
-
-        FormatTypes getFormat() {
-            return format;
-        }
-
-        uint32_t getHeight() const {
-            return height;
-        }
-
-        uint32_t getWidth() const {
-            return width;
-        }
-    };
-
     enum VariableTypes {
         INT,
         FLOAT,
@@ -392,6 +317,8 @@ private:
 
     uint32_t createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth);
 
+    bool deleteTexture(GLuint textureID);
+
     void setWrapMode(Texture& texture, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR);
 
     void setTextureBorder(Texture& texture);
@@ -472,8 +399,6 @@ public:
 
     void attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint);
 
-    bool deleteTexture(GLuint textureID);
-
     bool getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location);
 
     const glm::mat4& getCameraMatrix() const { return cameraMatrix; };
@@ -518,7 +443,7 @@ public:
     void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix);
 
     void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
-                               std::map<uint32_t, std::shared_ptr<GLHelper::Texture>> &inputs);
+                               std::map<uint32_t, std::shared_ptr<Texture>> &inputs);
     void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
                                const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
                                const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap);

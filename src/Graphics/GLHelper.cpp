@@ -9,6 +9,7 @@
 #include "Material.h"
 #include "GameObjects/Model.h"
 #include "Utils/GLMUtils.h"
+#include "Texture.h"
 
 GLuint GLHelper::createShader(GLenum eShaderType, const std::string &strShaderFile) {
     GLuint shader = glCreateShader(eShaderType);
@@ -570,7 +571,7 @@ void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &text
 }
 
 void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
-                                 std::map<uint32_t, std::shared_ptr<GLHelper::Texture>> &inputs) {
+                                 std::map<uint32_t, std::shared_ptr<Texture>> &inputs) {
     glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
     if(clearColor && clearDepth) {

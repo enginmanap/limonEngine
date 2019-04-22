@@ -23,7 +23,7 @@ typedef union SDL_Event SDL_Event;
 
 class ImGuiHelper {
 
-    std::unique_ptr<GLHelper::Texture> fontTexture;
+    std::unique_ptr<Texture> fontTexture;
     // ImGUI Data
     double       g_Time = 0.0f;
     bool         g_MousePressed[3] = { false, false, false };

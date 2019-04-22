@@ -14,10 +14,10 @@
 
 #include FT_FREETYPE_H
 #include "Graphics/GLHelper.h"
-
+#include "Graphics/Texture.h"
 
 class Glyph {
-    std::unique_ptr<GLHelper::Texture> texture;
+    std::unique_ptr<Texture> texture;
     glm::mediump_ivec2 size;
     glm::mediump_ivec2 bearing;
     GLuint advance;
@@ -29,7 +29,7 @@ public:
         if (FT_Load_Char(face, character, FT_LOAD_RENDER)) {
             std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
         } else {
-            texture = std::make_unique<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D,
+            texture = std::make_unique<Texture>(glHelper, GLHelper::TextureTypes::T2D,
                                                           GLHelper::InternalFormatTypes::RGBA, GLHelper::FormatTypes::RED, GLHelper::DataTypes::UNSIGNED_BYTE,
                                                           face->glyph->bitmap.width, face->glyph->bitmap.rows);
             texture->loadData(face->glyph->bitmap.buffer);

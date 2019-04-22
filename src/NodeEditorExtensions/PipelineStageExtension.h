@@ -21,7 +21,7 @@ class PipelineStageExtension : public NodeExtension {
     PipelineExtension* pipelineExtension = nullptr;
 
 
-    std::map<const Connection*, std::pair<std::string, std::shared_ptr<GLHelper::Texture>>> outputTextures;
+    std::map<const Connection*, std::pair<std::string, std::shared_ptr<Texture>>> outputTextures;
 public:
     PipelineStageExtension(PipelineExtension* pipelineExtension)  : pipelineExtension(pipelineExtension) {}
     void drawDetailPane(Node *node) override;

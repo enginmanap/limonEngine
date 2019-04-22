@@ -289,15 +289,15 @@ private:
 
 
     TextureAsset* ssaoNoise = nullptr;
-    std::shared_ptr<GLHelper::Texture> depthMapDirectional = nullptr;
-    std::shared_ptr<GLHelper::Texture> depthMapPoint = nullptr;
-    std::shared_ptr<GLHelper::Texture> diffuseAndSpecularLightedMap = nullptr;
-    std::shared_ptr<GLHelper::Texture> ambientMap = nullptr;
-    std::shared_ptr<GLHelper::Texture> normalMap = nullptr;
-    std::shared_ptr<GLHelper::Texture> depthMap = nullptr;
-    std::shared_ptr<GLHelper::Texture> ssaoTexture = nullptr;
-    std::shared_ptr<GLHelper::Texture> ssaoNoiseTexture = nullptr;
-    std::shared_ptr<GLHelper::Texture> ssaoBlurredMap = nullptr;
+    std::shared_ptr<Texture> depthMapDirectional = nullptr;
+    std::shared_ptr<Texture> depthMapPoint = nullptr;
+    std::shared_ptr<Texture> diffuseAndSpecularLightedMap = nullptr;
+    std::shared_ptr<Texture> ambientMap = nullptr;
+    std::shared_ptr<Texture> normalMap = nullptr;
+    std::shared_ptr<Texture> depthMap = nullptr;
+    std::shared_ptr<Texture> ssaoTexture = nullptr;
+    std::shared_ptr<Texture> ssaoNoiseTexture = nullptr;
+    std::shared_ptr<Texture> ssaoBlurredMap = nullptr;
 
     GraphicsPipelineStage* directionalShadowStage = nullptr;
     GraphicsPipelineStage* pointShadowStage = nullptr;

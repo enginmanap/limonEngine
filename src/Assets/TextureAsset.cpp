@@ -3,7 +3,6 @@
 //
 
 #include "TextureAsset.h"
-#include "Graphics/GLHelper.h"
 
 TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files) :
         Asset(assetManager, assetID, files) {
@@ -57,7 +56,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
             SDL_FreeSurface(surface);
             surface = surfaceTemp;
         }
-        texture = std::make_unique<GLHelper::Texture>(assetManager->getGlHelper(), GLHelper::TextureTypes::T2D,
+        texture = std::make_unique<Texture>(assetManager->getGlHelper(), GLHelper::TextureTypes::T2D,
                 GLHelper::InternalFormatTypes::RGBA, GLHelper::FormatTypes::RGBA, GLHelper::DataTypes::UNSIGNED_BYTE,
                 surface->w, surface->h);
     } else if (surface->format->BytesPerPixel == 3) {
@@ -69,7 +68,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
             SDL_FreeSurface(surface);
             surface = surfaceTemp;
         }
-        texture = std::make_unique<GLHelper::Texture>(assetManager->getGlHelper(), GLHelper::TextureTypes::T2D,
+        texture = std::make_unique<Texture>(assetManager->getGlHelper(), GLHelper::TextureTypes::T2D,
                                                       GLHelper::InternalFormatTypes::RGBA, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::UNSIGNED_BYTE,
                                                       surface->w, surface->h);
     } else if (surface->format->BytesPerPixel == 1) {
@@ -78,7 +77,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
                                                                 0);
             SDL_FreeSurface(surface);
             surface = surfaceTemp;
-        texture = std::make_unique<GLHelper::Texture>(assetManager->getGlHelper(), GLHelper::TextureTypes::T2D,
+        texture = std::make_unique<Texture>(assetManager->getGlHelper(), GLHelper::TextureTypes::T2D,
                                                       GLHelper::InternalFormatTypes::RGBA, GLHelper::FormatTypes::RGBA, GLHelper::DataTypes::UNSIGNED_BYTE,
                                                       surface->w, surface->h);
     } else {

@@ -7,10 +7,10 @@
 
 
 #include <nodeGraph/src/EditorExtension.h>
-#include <Graphics/GLHelper.h>
+#include "Graphics/GLHelper.h"
 
 class PipelineExtension : public EditorExtension {
-    std::map<std::string, std::shared_ptr<GLHelper::Texture>> usedTextures;
+    std::map<std::string, std::shared_ptr<Texture>> usedTextures;
     GLHelper* glHelper = nullptr;
     static bool getNameOfTexture(void* data, int index, const char** outText);
 public:
@@ -18,7 +18,7 @@ public:
     PipelineExtension(GLHelper* glHelper) : glHelper(glHelper) {}
     void drawDetailPane() override;
 
-    const std::map<std::string, std::shared_ptr<GLHelper::Texture>> &getUsedTextures() const {
+    const std::map<std::string, std::shared_ptr<Texture>> &getUsedTextures() const {
         return usedTextures;
     }
 };

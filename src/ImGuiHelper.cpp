@@ -13,6 +13,7 @@
 
 #include "Graphics/GLHelper.h"
 #include "Graphics/GLSLProgram.h"
+#include "Graphics/Texture.h"
 #include "InputHandler.h"
 #include "Options.h"
 // SDL,GL3W
@@ -214,7 +215,7 @@ void ImGuiHelper::CreateFontsTexture()
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits for OpenGL3 demo because it is more likely to be compatible with user's existing shader.
 
-    fontTexture = std::make_unique<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D,
+    fontTexture = std::make_unique<Texture>(glHelper, GLHelper::TextureTypes::T2D,
                                                   GLHelper::InternalFormatTypes::RGBA, GLHelper::FormatTypes::RGBA, GLHelper::DataTypes::UNSIGNED_BYTE,
                                                   width, height);
     fontTexture->loadData(pixels);

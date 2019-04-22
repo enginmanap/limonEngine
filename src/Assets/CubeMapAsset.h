@@ -10,6 +10,7 @@
 #include <SDL2/SDL_image.h>
 
 #include "Graphics/GLHelper.h"
+#include "Graphics/Texture.h"
 #include "Asset.h"
 #include "AssetManager.h"
 
@@ -17,7 +18,7 @@
 class CubeMapAsset : public Asset {
     std::string path;
     std::string names[6];
-    std::unique_ptr<GLHelper::Texture> texture;
+    std::unique_ptr<Texture> texture;
 public:
     CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
 
