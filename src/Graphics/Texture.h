@@ -14,6 +14,10 @@ class Texture {
     GLHelper::InternalFormatTypes internalFormat;
     GLHelper::FormatTypes format;
     GLHelper::DataTypes dataType;
+    GLHelper::FilterModes filterMode = GLHelper::FilterModes::LINEAR;
+    GLHelper::TextureWrapModes wrapModeS = GLHelper::TextureWrapModes::NONE;
+    GLHelper::TextureWrapModes wrapModeT = GLHelper::TextureWrapModes::NONE;
+    GLHelper::TextureWrapModes wrapModeR = GLHelper::TextureWrapModes::NONE;
     uint32_t height, width;
     uint32_t depth;//3D textures, or texture arrays have this as element count
 
@@ -43,11 +47,17 @@ public:
     }
 
     void setWrapModes(GLHelper::TextureWrapModes wrapModeS, GLHelper::TextureWrapModes wrapModeT, GLHelper::TextureWrapModes wrapModeR = GLHelper::TextureWrapModes::NONE) {
-        glHelper->setWrapMode(*this, wrapModeS, wrapModeT, wrapModeR);
+        if(this->wrapModeS != wrapModeS || this->wrapModeT != wrapModeT || this->wrapModeR != wrapModeR ) {
+            glHelper->setWrapMode(*this, wrapModeS, wrapModeT, wrapModeR);
+            this->wrapModeS = wrapModeS;
+            this->wrapModeT = wrapModeT;
+            this->wrapModeR = wrapModeR;
+        }
     }
 
     void setFilterMode(GLHelper::FilterModes filterMode) {
         glHelper->setFilterMode(*this, filterMode);
+        this->filterMode = filterMode;
     }
 
     void removeBorderColor() {
@@ -81,6 +91,11 @@ public:
     uint32_t getWidth() const {
         return width;
     }
+
+    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
+
+    static Texture *deserialize(tinyxml2::XMLElement *TextureNode, GLHelper *glHelper, Options *options);
+
 };
 
 
