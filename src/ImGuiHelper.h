@@ -12,7 +12,7 @@
 #include <string>
 #include "../libs/ImGui/imgui.h"
 #include "Assets/AssetManager.h"
-#include "GLHelper.h"
+#include "Graphics/GLHelper.h"
 
 struct SDL_Window;
 

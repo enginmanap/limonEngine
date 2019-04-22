@@ -7,10 +7,10 @@
 
 #include <iostream>
 
-#include "../GLHelper.h"
+#include "Graphics/GLHelper.h"
 #include "GUIRenderable.h"
 #include "../FontManager.h"
-#include "../GLHelper.h"
+#include "Graphics/GLHelper.h"
 
 
 class GUITextBase : public GUIRenderable {

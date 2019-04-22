@@ -7,8 +7,8 @@
 
 
 #include "GameObjects/GameObject.h"
-#include "GLHelper.h"
-#include "GLSLProgram.h"
+#include "Graphics/GLHelper.h"
+#include "Graphics/GLSLProgram.h"
 #include "Transformation.h"
 #include <btBulletDynamicsCommon.h>
 #include <glm/gtx/matrix_decompose.hpp>

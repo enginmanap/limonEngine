@@ -3,8 +3,8 @@
 //
 
 #include "QuadRenderBase.h"
-#include "../GLHelper.h"
-#include "../GLSLProgram.h"
+#include "Graphics/GLHelper.h"
+#include "Graphics/GLSLProgram.h"
 
 QuadRenderBase::QuadRenderBase(GLHelper *glHelper) : glHelper(glHelper){
     std::vector<glm::vec3> vertices;

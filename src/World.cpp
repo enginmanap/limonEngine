@@ -35,12 +35,12 @@
 #include "GameObjects/GUIButton.h"
 #include "GameObjects/GUIAnimation.h"
 #include "GameObjects/ModelGroup.h"
-#include "PostProcess/QuadRenderBase.h"
-#include "PostProcess/CombinePostProcess.h"
-#include "PostProcess/SSAOPostProcess.h"
-#include "PostProcess/SSAOBlurPostProcess.h"
+#include "Graphics/PostProcess/QuadRenderBase.h"
+#include "Graphics/PostProcess/CombinePostProcess.h"
+#include "Graphics/PostProcess/SSAOPostProcess.h"
+#include "Graphics/PostProcess/SSAOBlurPostProcess.h"
 #include "SDL2Helper.h"
-#include "GraphicsPipelineStage.h"
+#include "Graphics/GraphicsPipelineStage.h"
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {

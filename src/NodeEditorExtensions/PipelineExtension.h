@@ -7,7 +7,7 @@
 
 
 #include <nodeGraph/src/EditorExtension.h>
-#include <GLHelper.h>
+#include <Graphics/GLHelper.h>
 
 class PipelineExtension : public EditorExtension {
     std::map<std::string, std::shared_ptr<GLHelper::Texture>> usedTextures;

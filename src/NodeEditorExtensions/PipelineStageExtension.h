@@ -12,7 +12,7 @@
 
 #include <nodeGraph/src/NodeExtension.h>
 
-#include <GLHelper.h>
+#include <Graphics/GLHelper.h>
 
 #include "PipelineExtension.h"
 

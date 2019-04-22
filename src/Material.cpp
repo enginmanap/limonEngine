@@ -3,7 +3,7 @@
 //
 
 #include "Material.h"
-#include "GLHelper.h"
+#include "Graphics/GLHelper.h"
 
 void Material::afterDeserialize(AssetManager *assetManager, std::string modelAssetFileName) {
     if(textureNameListList == nullptr || textureNameListList->size() != 5) {

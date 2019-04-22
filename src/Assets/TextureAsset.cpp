@@ -3,7 +3,7 @@
 //
 
 #include "TextureAsset.h"
-#include "../GLHelper.h"
+#include "Graphics/GLHelper.h"
 
 TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files) :
         Asset(assetManager, assetID, files) {

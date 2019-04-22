@@ -3,7 +3,7 @@
 //
 
 #include "CombinePostProcess.h"
-#include "../GLSLProgram.h"
+#include "Graphics/GLSLProgram.h"
 
 CombinePostProcess::CombinePostProcess(GLHelper* glHelper, bool isSSAOEnabled) : QuadRenderBase(glHelper), isSSAOEnabled(isSSAOEnabled) {
         initializeProgram();

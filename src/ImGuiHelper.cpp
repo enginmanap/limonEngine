@@ -11,8 +11,8 @@
 #include "../libs/ImGui/imgui.h"
 #include "ImGuiHelper.h"
 
-#include "GLHelper.h"
-#include "GLSLProgram.h"
+#include "Graphics/GLHelper.h"
+#include "Graphics/GLSLProgram.h"
 #include "InputHandler.h"
 #include "Options.h"
 // SDL,GL3W

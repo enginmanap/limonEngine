@@ -8,7 +8,7 @@
 #include "../glm/gtx/matrix_decompose.hpp"
 #include "../Utils/GLMUtils.h"
 #include "Animations/AnimationAssimp.h"
-#include "../GLHelper.h"
+#include "Graphics/GLHelper.h"
 #include "Animations/AnimationAssimpSection.h"
 #include "../../libs/ImGui/imgui.h"
 

@@ -3,7 +3,7 @@
 //
 
 #include "main.h"
-#include "GLHelper.h"
+#include "Graphics/GLHelper.h"
 #include "SDL2Helper.h"
 #include "World.h"
 #include "WorldLoader.h"
