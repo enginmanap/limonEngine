@@ -12,12 +12,15 @@
 class PipelineExtension : public EditorExtension {
     std::map<std::string, std::shared_ptr<GLHelper::Texture>> usedTextures;
     GLHelper* glHelper = nullptr;
+    static bool getNameOfTexture(void* data, int index, const char** outText);
 public:
 
     PipelineExtension(GLHelper* glHelper) : glHelper(glHelper) {}
     void drawDetailPane() override;
 
-    static bool getNameOfTexture(void* data, int index, const char** outText);
+    const std::map<std::string, std::shared_ptr<GLHelper::Texture>> &getUsedTextures() const {
+        return usedTextures;
+    }
 };
 
 
