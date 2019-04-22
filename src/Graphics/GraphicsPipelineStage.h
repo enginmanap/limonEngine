@@ -16,7 +16,7 @@ class GraphicsPipelineStage {
     uint32_t renderWidth;
     uint32_t renderHeight;
     uint32_t frameBufferID;
-    bool blendEnabled;
+    bool blendEnabled = false;
     bool colorAttachment = false;
     bool depthAttachment = false;
     GLHelper::CullModes cullMode = GLHelper::CullModes::NO_CHANGE;
@@ -72,6 +72,10 @@ public:
     void activate(bool clear = false);
 
     void activate(const std::map<std::shared_ptr<Texture>, std::pair<GLHelper::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear = false);
+
+    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
+
+    static GraphicsPipelineStage *deserialize(tinyxml2::XMLElement *stageNode, GLHelper *glHelper, Options *options);
 
 };
 
