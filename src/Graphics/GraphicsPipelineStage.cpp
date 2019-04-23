@@ -102,10 +102,7 @@ GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *
     tinyxml2::XMLElement* stageNodeAttribute = nullptr;
 
     uint32_t renderHeight, renderWidth;
-    GLHelper::FrameBufferAttachPoints attachPoint;
     bool blendEnabled = false;
-    bool colorAttachment = false;
-    bool depthAttachment = false;
     bool toScreen = false;
     GLHelper::CullModes cullMode = GLHelper::CullModes::NO_CHANGE;
 

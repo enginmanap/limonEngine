@@ -66,6 +66,7 @@ class TextureAsset;
 class ALHelper;
 
 class PipelineExtension;
+class IterationExtension;
 class NodeGraph;
 
 class World {
@@ -285,6 +286,7 @@ private:
     QuitResponse currentQuitResponse = QuitResponse::QUIT_GAME;
     bool showNodeGraph = false;
     PipelineExtension *pipelineExtension;
+    IterationExtension *iterationExtension;
     NodeGraph* nodeGraph = nullptr;
 
 

@@ -164,6 +164,7 @@ void GLHelper::fillUniformAndOutputMaps(const GLuint program, std::unordered_map
     name = new GLchar[maxLength];
 
     glGetProgramInterfaceiv(program, GL_PROGRAM_OUTPUT, GL_ACTIVE_RESOURCES, &count);
+    bool depthAdded = false;
     for(i = 0; i < count; i++) {
         glGetProgramResourceName(program, GL_PROGRAM_OUTPUT, i, maxLength, &size, name);
         const GLenum properties[1] = {GL_TYPE};
@@ -193,9 +194,17 @@ void GLHelper::fillUniformAndOutputMaps(const GLuint program, std::unordered_map
             default:
                 variableType = UNDEFINED;
         }
-        outputMap[name] = variableType;
+        if(strcmp(name, "gl_FragDepth") == 0) {
+            depthAdded = true;
+            outputMap["Depth"] = variableType;
+        } else {
+            outputMap[name] = variableType;
+        }
+
     }
-    outputMap["Depth"] = VariableTypes::TEXTURE_2D;//Depth is always written
+    if(!depthAdded) {
+        outputMap["Depth"] = VariableTypes::TEXTURE_2D;//Depth is always written
+    }
     delete[] name;
 
     checkErrors("fillUniformAndOutputMaps");

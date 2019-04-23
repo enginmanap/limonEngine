@@ -5,8 +5,9 @@
 
 #include "World.h"
 #include <random>
-#include <NodeEditorExtensions/PipelineStageExtension.h>
+#include "NodeEditorExtensions/PipelineStageExtension.h"
 #include "NodeEditorExtensions/PipelineExtension.h"
+#include "NodeEditorExtensions/IterationExtension.h"
 #include "nodeGraph/src/NodeGraph.h"
 
 #include "Camera.h"
@@ -4211,6 +4212,15 @@ void World::createNodeGraph() {
     blend.inputConnections.push_back(ConnectionDesc{"Input3", "Texture"});
     blend.outputConnections.push_back(ConnectionDesc{"output", "Texture"});
     nodeTypeVector.push_back(blend);
+
+    iterationExtension = new IterationExtension();
+
+    NodeType Iterate {"Iterate", false, iterationExtension,
+                      {{"Input", "Texture"},},
+                       {{"Output", "Texture"},},
+    };
+    nodeTypeVector.push_back(Iterate);
+
     auto programs = glHelper->getLoadedPrograms();
     pipelineExtension = new PipelineExtension(glHelper);
 
