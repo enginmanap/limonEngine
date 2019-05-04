@@ -9,6 +9,14 @@
 
 
 void PipelineStageExtension::drawDetailPane(Node *node) {
+
+    for (const Connection* connection:node->getInputConnections()) {
+        if(inputTextureIndexes.find(connection) == inputTextureIndexes.end()) {
+            inputTextureIndexes[connection] = 0;
+        }
+        ImGui::InputInt((connection->getName() + " texture Attachment Index").c_str(), &(inputTextureIndexes[0]));
+    }
+
     auto usedTextures = this->pipelineExtension->getUsedTextures();
 
     for (const Connection* connection:node->getOutputConnections()) {
@@ -30,5 +38,15 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
             ImGui::EndCombo();
         }
     }
+
+    ImGui::Text("Cull Mode##FromNodeExtensionSetting");
+    if(ImGui::RadioButton("No Change##CullModeFromNodeExtension", cullmode == GLHelper::CullModes::NO_CHANGE)) { cullmode = GLHelper::CullModes::NO_CHANGE;}
+    if(ImGui::RadioButton("None##CullModeFromNodeExtension", cullmode == GLHelper::CullModes::NONE)) { cullmode = GLHelper::CullModes::NONE;}
+    if(ImGui::RadioButton("Front##CullModeFromNodeExtension", cullmode == GLHelper::CullModes::FRONT)) { cullmode = GLHelper::CullModes::FRONT;}
+    if(ImGui::RadioButton("Back##CullModeFromNodeExtension", cullmode == GLHelper::CullModes::BACK)) { cullmode = GLHelper::CullModes::BACK;}
+
+    ImGui::Checkbox("Blend", &blendEnabled);
+
+    ImGui::Checkbox("Clear", &blendEnabled);
 
 }

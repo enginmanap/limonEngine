@@ -4,8 +4,22 @@
 
 #include <imgui/imgui.h>
 #include <memory>
+#include <nodeGraph/src/Node.h>
+#include <Graphics/GraphicsPipeline.h>
 #include "PipelineExtension.h"
 #include "Graphics/Texture.h"
+#include "PipelineStageExtension.h"
+
+
+PipelineExtension::PipelineExtension(GLHelper *glHelper) : glHelper(glHelper) {
+    {
+        //Add a texture to the list as place holder for screen
+        auto texture = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGBA, GLHelper::FormatTypes::RGBA, GLHelper::DataTypes::UNSIGNED_BYTE, 1,1);
+        usedTextures["Screen"] = texture;
+        auto texture2 = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::DEPTH, GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::UNSIGNED_BYTE, 1,1);
+        usedTextures["Screen Depth"];
+    }
+}
 
 //This method is used only for ImGui texture name generation
 bool PipelineExtension::getNameOfTexture(void* data, int index, const char** outText) {
@@ -155,6 +169,69 @@ void PipelineExtension::drawDetailPane() {
         }
         ImGui::EndPopup();
     }
+    if(ImGui::Button("Build Pipeline")) {
+        std::vector<Node *> nodes;//Assume we can get this somehow
+        Node* rootNode = nullptr;
+        for(Node* node: nodes) {
+            /**
+             * what to do?
+             * find node that outputs to screen, iterate back to find all other nodes that needs rendering
+             */
+
+             if(node->getOutputConnections().size() == 0 && node->getOutputConnections()[0]->getName() == "Screen") {
+                 rootNode = node;
+                 break;
+             }
+        }
+        if(rootNode == nullptr) {
+            std::cout << "Screen output not found. cancelling." << std::endl;
+        } else {
+            GraphicsPipeline* graphicsPipeline = new GraphicsPipeline();
+            buildRenderPipelineRecursive(rootNode, graphicsPipeline);
+        }
+    }
     ImGui::PopStyleVar();
+
+}
+
+void PipelineExtension::buildRenderPipelineRecursive(Node *node, GraphicsPipeline *graphicsPipeline) {
+    for(const Connection* connection:node->getInputConnections()) {
+        Node* inputNode = connection->getInput()->getParent();
+        buildRenderPipelineRecursive(inputNode, graphicsPipeline);
+    }
+    //after all inputs are put in graphics pipeline, or no input case
+    auto stageExtension = dynamic_cast<PipelineStageExtension*>(node->getExtension());
+
+    if(stageExtension != nullptr) {
+        std::shared_ptr<GraphicsPipelineStage> newStage;
+        //FIXME this should be saved and used, not checked
+        if(node->getOutputConnections().size() == 0 && node->getOutputConnections()[0]->getName() == "Screen") {
+            newStage = std::make_shared<GraphicsPipelineStage>(glHelper, 1920, 1080, stageExtension->isBlendEnabled(), true);
+        } else {
+            newStage = std::make_shared<GraphicsPipelineStage>(glHelper, 1920, 1080, stageExtension->isBlendEnabled(), false);
+        }
+        for(const Connection *connection:node->getInputConnections()) {
+            auto inputStageExtension = dynamic_cast<PipelineStageExtension*>(connection->getInput()->getParent()->getExtension());
+            if(inputStageExtension != nullptr) {
+                newStage->setInput(stageExtension->getInputTextureIndex(connection), inputStageExtension->getOutputTexture(connection->getInput()));
+            } else {
+                std::cerr << "Input node extension is not PipelineStageExtension, this is not handled!" << std::endl;
+            };
+        }
+        //now handle outputs
+        for(const Connection *connection:node->getOutputConnections()) {
+            auto frameBufferAttachmentPoint = stageExtension->getOutputTextureIndex(connection);
+            newStage->setOutput(frameBufferAttachmentPoint, stageExtension->getOutputTexture(connection));
+        }
+
+        newStage->setCullMode(stageExtension->getCullmode());
+        GraphicsPipeline::StageInfo stageInfo;
+        stageInfo.clear = stageExtension->isClearBefore();
+        stageInfo.stage = newStage;
+        //graphicsPipeline->addNewStage(stageInfo, )
+
+    } else {
+        std::cerr << "Extension of the node is not PipelineStageExtension, this is not handled! " << std::endl;
+    }
 
 }
