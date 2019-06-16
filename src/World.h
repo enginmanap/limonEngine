@@ -233,6 +233,10 @@ private:
     std::shared_ptr<GLSLProgram> shadowMapProgramDirectional = nullptr;
     std::shared_ptr<GLSLProgram> shadowMapProgramPoint = nullptr;
     std::shared_ptr<GLSLProgram> depthBufferProgram = nullptr;
+
+    std::shared_ptr<GLSLProgram> nonTransparentModelProgram = nullptr;
+    std::shared_ptr<GLSLProgram> transparentModelProgram = nullptr;
+    std::shared_ptr<GLSLProgram> animatedModelProgram = nullptr;
     FontManager fontManager;
 
     PlayerInfo startingPlayer;
@@ -381,6 +385,10 @@ private:
     void renderGUI() const;
 
     void createNodeGraph();
+
+
+    //TODO remove with material editor
+    void setSamplersAndUBOs(std::shared_ptr<GLSLProgram>& program, bool setOpacity);
 
 public:
     ~World();

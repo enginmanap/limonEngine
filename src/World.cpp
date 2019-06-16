@@ -85,6 +85,17 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     depthBufferProgram = glHelper->createGLSLProgram("./Engine/Shaders/depthPrePass/vertex.glsl",
                                   "./Engine/Shaders/depthPrePass/fragment.glsl", false);
 
+    nonTransparentModelProgram = glHelper->createGLSLProgram("./Engine/Shaders/Model/vertex.glsl",
+                                                                                            "./Engine/Shaders/Model/fragment.glsl", true);
+    setSamplersAndUBOs(nonTransparentModelProgram, false);
+
+    transparentModelProgram    = glHelper->createGLSLProgram("./Engine/Shaders/ModelTransparent/vertex.glsl",
+                                                                                            "./Engine/Shaders/ModelTransparent/fragment.glsl", true);
+    setSamplersAndUBOs(transparentModelProgram, true);
+
+    animatedModelProgram       = glHelper->createGLSLProgram("./Engine/Shaders/ModelAnimated/vertex.glsl",
+                                                                                        "./Engine/Shaders/ModelAnimated/fragment.glsl", true);
+    setSamplersAndUBOs(animatedModelProgram, false);
 
     apiGUILayer = new GUILayer(glHelper, debugDrawer, 1);
     apiGUILayer->setDebug(false);
@@ -851,7 +862,7 @@ void World::renderWorldTransparentObjects() const {
            sampleModel = *model;
        }
        if (sampleModel != nullptr) {
-           sampleModel->renderInstanced(modelIndicesBuffer);
+           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(transparentModelProgram.get()));
        }
    }
 
@@ -883,14 +894,14 @@ void World::renderWorld() {
            sampleModel = *model;
        }
        if (sampleModel != nullptr) {
-           sampleModel->renderInstanced(modelIndicesBuffer);
+           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(nonTransparentModelProgram.get()));
        }
    }
 
    for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
        std::vector<uint32_t> temp;
        temp.push_back((*modelIterator)->getWorldObjectID());
-       (*modelIterator)->renderInstanced(temp);
+       (*modelIterator)->renderWithProgramInstanced(temp, *(animatedModelProgram.get()));
    }
 
    dynamicsWorld->debugDrawWorld();
@@ -922,7 +933,7 @@ void World::renderWorld() {
            playerPlaceHolder->getTransformation()->setOrientation(physicalPlayer->getLookDirectionQuaternion());
            std::vector<uint32_t> temp;
            temp.push_back(playerPlaceHolder->getWorldObjectID());
-           playerPlaceHolder->renderInstanced(temp);
+           playerPlaceHolder->renderWithProgramInstanced(temp, *(nonTransparentModelProgram.get()));
        }
    }
 
@@ -965,7 +976,15 @@ void World::renderPlayerAttachments(GameObject *attachment) const {
      attachedModel->setupForTime(gameTime);
      std::vector<uint32_t> temp;
      temp.push_back(attachedModel->getWorldObjectID());
-     attachedModel->renderInstanced(temp);
+     if(attachedModel->isAnimated()) {
+         attachedModel->renderWithProgramInstanced(temp, *(animatedModelProgram.get()));
+     } else {
+         if(attachedModel->isTransparent()) {
+             attachedModel->renderWithProgramInstanced(temp, *(transparentModelProgram.get()));
+         } else {
+             attachedModel->renderWithProgramInstanced(temp, *(nonTransparentModelProgram.get()));
+         }
+     }
      if (attachedModel->hasChildren()) {
          const std::vector<PhysicalRenderable *> &children = attachedModel->getChildren();
          for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
@@ -2474,6 +2493,10 @@ bool World::removeObject(uint32_t objectID) {
 
 void World::afterLoadFinished() {
     for (size_t i = 0; i < onLoadActions.size(); ++i) {
+        if(onLoadActions[i]->action == nullptr) {
+            std::cerr << "There was an onload action defined but action is not loaded, skipping." << std::endl;
+            continue;
+        }
         if(onLoadActions[i]->enabled) {
             std::cout << "running trigger " << onLoadActions[i]->action->getName() << std::endl;
             onLoadActions[i]->action->run(onLoadActions[i]->parameters);
@@ -4290,4 +4313,43 @@ void World::createNodeGraph() {
 
     nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);
 
+}
+
+void World::setSamplersAndUBOs(std::shared_ptr<GLSLProgram>& program, bool setOpacity) {
+
+    //TODO these will be configurable with material editor
+    int diffuseMapAttachPoint = 1;
+    int ambientMapAttachPoint = 2;
+    int specularMapAttachPoint = 3;
+    int opacityMapAttachPoint = 4;
+    int normalMapAttachPoint = 5;
+
+   if (!program->setUniform("diffuseSampler", diffuseMapAttachPoint)) {
+       std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
+   }
+   if (!program->setUniform("ambientSampler", ambientMapAttachPoint)) {
+       std::cerr << "Uniform \"ambientSampler\" could not be set" << std::endl;
+   }
+   if (!program->setUniform("specularSampler", specularMapAttachPoint)) {
+       std::cerr << "Uniform \"specularSampler\" could not be set" << std::endl;
+   }
+   if(setOpacity) {
+       if (!program->setUniform("opacitySampler", opacityMapAttachPoint)) {
+           std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
+       }
+   }
+   if (!program->setUniform("normalSampler", normalMapAttachPoint)) {
+       std::cerr << "Uniform \"normalSampler\" could not be set" << std::endl;
+   }
+   //TODO we should support multi texture on one pass
+
+   if (!program->setUniform("pre_shadowDirectional", glHelper->getMaxTextureImageUnits() - 1)) {
+       std::cerr << "Uniform \"pre_shadowDirectional\" could not be set" << std::endl;
+   }
+   if (!program->setUniform("pre_shadowPoint", glHelper->getMaxTextureImageUnits() - 2)) {
+       std::cerr << "Uniform \"pre_shadowPoint\" could not be set" << std::endl;
+   }
+
+   glHelper->attachModelUBO(program->getID());
+   glHelper->attachModelIndicesUBO(program->getID());
 }
