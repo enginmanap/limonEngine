@@ -5,8 +5,10 @@
 
 #include "World.h"
 #include <random>
+#include "NodeEditorExtensions/PipelineStageExtension.h"
+#include "NodeEditorExtensions/PipelineExtension.h"
+#include "NodeEditorExtensions/IterationExtension.h"
 #include "nodeGraph/src/NodeGraph.h"
-
 
 #include "Camera.h"
 #include "BulletDebugDrawer.h"
@@ -34,12 +36,12 @@
 #include "GameObjects/GUIButton.h"
 #include "GameObjects/GUIAnimation.h"
 #include "GameObjects/ModelGroup.h"
-#include "PostProcess/QuadRenderBase.h"
-#include "PostProcess/CombinePostProcess.h"
-#include "PostProcess/SSAOPostProcess.h"
-#include "PostProcess/SSAOBlurPostProcess.h"
+#include "Graphics/PostProcess/QuadRenderBase.h"
+#include "Graphics/PostProcess/CombinePostProcess.h"
+#include "Graphics/PostProcess/SSAOPostProcess.h"
+#include "Graphics/PostProcess/SSAOBlurPostProcess.h"
 #include "SDL2Helper.h"
-#include "GraphicsPipelineStage.h"
+#include "Graphics/GraphicsPipelineStage.h"
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -74,15 +76,26 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
 
 
-    shadowMapProgramDirectional = glHelper->createGLSLProgram("./Engine/Shaders/ShadowMap/vertexDirectional.glsl",
-                                                  "./Engine/Shaders/ShadowMap/fragmentDirectional.glsl", false);
-    shadowMapProgramPoint = glHelper->createGLSLProgram("./Engine/Shaders/ShadowMap/vertexPoint.glsl",
-                                            "./Engine/Shaders/ShadowMap/geometryPoint.glsl",
-                                            "./Engine/Shaders/ShadowMap/fragmentPoint.glsl", false);
+    shadowMapProgramDirectional = glHelper->createGLSLProgram("./Engine/Shaders/ShadowMapDirectional/vertex.glsl",
+                                                  "./Engine/Shaders/ShadowMapDirectional/fragment.glsl", false);
+    shadowMapProgramPoint = glHelper->createGLSLProgram("./Engine/Shaders/ShadowMapPoint/vertex.glsl",
+                                            "./Engine/Shaders/ShadowMapPoint/geometry.glsl",
+                                            "./Engine/Shaders/ShadowMapPoint/fragment.glsl", false);
 
     depthBufferProgram = glHelper->createGLSLProgram("./Engine/Shaders/depthPrePass/vertex.glsl",
                                   "./Engine/Shaders/depthPrePass/fragment.glsl", false);
 
+    nonTransparentModelProgram = glHelper->createGLSLProgram("./Engine/Shaders/Model/vertex.glsl",
+                                                                                            "./Engine/Shaders/Model/fragment.glsl", true);
+    setSamplersAndUBOs(nonTransparentModelProgram, false);
+
+    transparentModelProgram    = glHelper->createGLSLProgram("./Engine/Shaders/ModelTransparent/vertex.glsl",
+                                                                                            "./Engine/Shaders/ModelTransparent/fragment.glsl", true);
+    setSamplersAndUBOs(transparentModelProgram, true);
+
+    animatedModelProgram       = glHelper->createGLSLProgram("./Engine/Shaders/ModelAnimated/vertex.glsl",
+                                                                                        "./Engine/Shaders/ModelAnimated/fragment.glsl", true);
+    setSamplersAndUBOs(animatedModelProgram, false);
 
     apiGUILayer = new GUILayer(glHelper, debugDrawer, 1);
     apiGUILayer->setDebug(false);
@@ -121,23 +134,23 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
 
     ssaoPostProcess = new SSAOPostProcess(glHelper, options->getSSAOSampleCount());
-    ssaoPostProcess->setSourceTexture("depthMapSampler", 1);
-    ssaoPostProcess->setSourceTexture("normalMapSampler", 2);
+    ssaoPostProcess->setSourceTexture("pre_depthMap", 1);
+    ssaoPostProcess->setSourceTexture("pre_normalMap", 2);
     ssaoPostProcess->setSourceTexture("ssaoNoiseSampler", 3);
 
     ssaoBlurPostProcess = new SSAOBlurPostProcess(glHelper);
-    ssaoBlurPostProcess->setSourceTexture("ssaoResultSampler", 1);
+    ssaoBlurPostProcess->setSourceTexture("pre_ssaoResult", 1);
 
     if(options->isSsaoEnabled()) {
         combiningObject = new CombinePostProcess(glHelper,true);
-        combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
-        combiningObject->setSourceTexture("ambient", 2);
-        combiningObject->setSourceTexture("ssao", 3);
-        combiningObject->setSourceTexture("depthMap", 4);
+        combiningObject->setSourceTexture("pre_diffuseSpecularLighted", 1);
+        combiningObject->setSourceTexture("pre_ambient", 2);
+        combiningObject->setSourceTexture("pre_ssao", 3);
+        combiningObject->setSourceTexture("pre_depthMap", 4);
     } else {
         combiningObject = new CombinePostProcess(glHelper,false);
-        combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
-        combiningObject->setSourceTexture("depthMap", 4);
+        combiningObject->setSourceTexture("pre_diffuseSpecularLighted", 1);
+        combiningObject->setSourceTexture("pre_depthMap", 4);
     }
 
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
@@ -153,7 +166,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     GLfloat borderColor[] = {1.0, 1.0, 1.0, 1.0};
 
     //create depth buffer and texture for directional shadow map
-    depthMapDirectional = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D_ARRAY, GLHelper::InternalFormatTypes::DEPTH,
+    depthMapDirectional = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D_ARRAY, GLHelper::InternalFormatTypes::DEPTH,
                                                               GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), NR_TOTAL_LIGHTS);
     depthMapDirectional->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
     depthMapDirectional->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
@@ -162,57 +175,43 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     //create depth buffer and texture for point shadow map
 
     // create depth cubemap texture
-    depthMapPoint = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::TCUBE_MAP_ARRAY, GLHelper::InternalFormatTypes::DEPTH,
+    depthMapPoint = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::TCUBE_MAP_ARRAY, GLHelper::InternalFormatTypes::DEPTH,
                                                         GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), NR_POINT_LIGHTS*6);
     depthMapPoint->setWrapModes(GLHelper::TextureWrapModes::EDGE, GLHelper::TextureWrapModes::EDGE, GLHelper::TextureWrapModes::EDGE);
     depthMapPoint->setFilterMode(GLHelper::FilterModes::LINEAR);
 
-    normalMap = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB16F,
+    normalMap = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB16F,
                                                     GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     normalMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
     normalMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
     normalMap->setFilterMode(GLHelper::FilterModes::LINEAR);
 
-    diffuseAndSpecularLightedMap = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGBA,
+    diffuseAndSpecularLightedMap = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGBA,
                                                                        GLHelper::FormatTypes::RGBA, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     diffuseAndSpecularLightedMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
     diffuseAndSpecularLightedMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
     diffuseAndSpecularLightedMap->setFilterMode(GLHelper::FilterModes::LINEAR);
 
-    ambientMap = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    ambientMap = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     ambientMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
     ambientMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
     ambientMap->setFilterMode(GLHelper::FilterModes::LINEAR);
 
 
-    depthMap = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::DEPTH, GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    depthMap = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::DEPTH, GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     depthMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
     depthMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
     depthMap->setFilterMode(GLHelper::FilterModes::LINEAR);
 
-    ssaoBlurredMap = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    ssaoBlurredMap = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
 
-    ssaoTexture = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    ssaoTexture = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     ssaoTexture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
 
     /****************************** SSAO NOISE **************************************/
-    ssaoNoiseTexture = std::make_shared<GLHelper::Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB32F,
-                                                 GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, 4, 4);
-    ssaoNoiseTexture->setFilterMode(GLHelper::FilterModes::NEAREST);
-    ssaoNoiseTexture->setWrapModes(GLHelper::TextureWrapModes::REPEAT, GLHelper::TextureWrapModes::REPEAT);
+    ssaoNoise = assetManager->loadAsset<TextureAsset>({"./Engine/Textures/ssaoNoiseTexture.png"});
+    ssaoNoiseTexture = ssaoNoise->getTexture();
 
-    std::default_random_engine generator;
-    std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // generates random floats between 0.0 and 1.0
-    // generate noise texture
-    // ----------------------
-    std::vector<glm::vec3> ssaoNoise;
-    for (unsigned int i = 0; i < 16; i++)
-    {
-        glm::vec3 noise(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, 0.0f); // rotate around z-axis (in tangent space)
-        ssaoNoise.push_back(noise);
-    }
-
-    ssaoNoiseTexture->loadData(&ssaoNoise[0]);
     /****************************** SSAO NOISE **************************************/
 
 
@@ -788,7 +787,7 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
 }
 
 void World::render() {
-    std::map<std::shared_ptr<GLHelper::Texture>, std::pair<GLHelper::FrameBufferAttachPoints, int>> shadowAttachmentTextureLayers;
+    std::map<std::shared_ptr<Texture>, std::pair<GLHelper::FrameBufferAttachPoints, int>> shadowAttachmentTextureLayers;
     for (unsigned int i = 0; i < activeLights.size(); ++i) {
         shadowAttachmentTextureLayers.clear();
         if(activeLights[i]->getLightType() != Light::DIRECTIONAL) {
@@ -863,7 +862,7 @@ void World::renderWorldTransparentObjects() const {
            sampleModel = *model;
        }
        if (sampleModel != nullptr) {
-           sampleModel->renderInstanced(modelIndicesBuffer);
+           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(transparentModelProgram.get()));
        }
    }
 
@@ -895,14 +894,14 @@ void World::renderWorld() {
            sampleModel = *model;
        }
        if (sampleModel != nullptr) {
-           sampleModel->renderInstanced(modelIndicesBuffer);
+           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(nonTransparentModelProgram.get()));
        }
    }
 
    for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
        std::vector<uint32_t> temp;
        temp.push_back((*modelIterator)->getWorldObjectID());
-       (*modelIterator)->renderInstanced(temp);
+       (*modelIterator)->renderWithProgramInstanced(temp, *(animatedModelProgram.get()));
    }
 
    dynamicsWorld->debugDrawWorld();
@@ -934,7 +933,7 @@ void World::renderWorld() {
            playerPlaceHolder->getTransformation()->setOrientation(physicalPlayer->getLookDirectionQuaternion());
            std::vector<uint32_t> temp;
            temp.push_back(playerPlaceHolder->getWorldObjectID());
-           playerPlaceHolder->renderInstanced(temp);
+           playerPlaceHolder->renderWithProgramInstanced(temp, *(nonTransparentModelProgram.get()));
        }
    }
 
@@ -977,7 +976,15 @@ void World::renderPlayerAttachments(GameObject *attachment) const {
      attachedModel->setupForTime(gameTime);
      std::vector<uint32_t> temp;
      temp.push_back(attachedModel->getWorldObjectID());
-     attachedModel->renderInstanced(temp);
+     if(attachedModel->isAnimated()) {
+         attachedModel->renderWithProgramInstanced(temp, *(animatedModelProgram.get()));
+     } else {
+         if(attachedModel->isTransparent()) {
+             attachedModel->renderWithProgramInstanced(temp, *(transparentModelProgram.get()));
+         } else {
+             attachedModel->renderWithProgramInstanced(temp, *(nonTransparentModelProgram.get()));
+         }
+     }
      if (attachedModel->hasChildren()) {
          const std::vector<PhysicalRenderable *> &children = attachedModel->getChildren();
          for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
@@ -2486,6 +2493,10 @@ bool World::removeObject(uint32_t objectID) {
 
 void World::afterLoadFinished() {
     for (size_t i = 0; i < onLoadActions.size(); ++i) {
+        if(onLoadActions[i]->action == nullptr) {
+            std::cerr << "There was an onload action defined but action is not loaded, skipping." << std::endl;
+            continue;
+        }
         if(onLoadActions[i]->enabled) {
             std::cout << "running trigger " << onLoadActions[i]->action->getName() << std::endl;
             onLoadActions[i]->action->run(onLoadActions[i]->parameters);
@@ -4216,22 +4227,62 @@ void World::drawNodeEditor() {
 void World::createNodeGraph() {
     std::vector<NodeType> nodeTypeVector;
 
+    //start with predefined types
+
+    NodeType blend{"Blend", true, nullptr,{}, {}};
+    blend.inputConnections.push_back(ConnectionDesc{"Input1", "Texture"});
+    blend.inputConnections.push_back(ConnectionDesc{"Input2", "Texture"});
+    blend.inputConnections.push_back(ConnectionDesc{"Input3", "Texture"});
+    blend.outputConnections.push_back(ConnectionDesc{"output", "Texture"});
+    nodeTypeVector.push_back(blend);
+
+    iterationExtension = new IterationExtension();
+
+    NodeType Iterate {"Iterate", false, iterationExtension,
+                      {{"Input", "Texture"},},
+                       {{"Output", "Texture"},},
+    };
+    nodeTypeVector.push_back(Iterate);
+
     auto programs = glHelper->getLoadedPrograms();
+    pipelineExtension = new PipelineExtension(glHelper);
+
     for(auto program:programs) {
-        NodeType type{program.first->getProgramName().c_str(), false, nullptr, {}, {}};
+        std::string programName = program.first->getProgramName();
+        size_t startof, endof;
+        endof=programName.find_last_of("/\\");
+        startof = programName.substr(0,endof).find_last_of("/\\") +1;
+        std::string nodeName = programName.substr(startof, endof - startof);
+        NodeType type{nodeName.c_str(), false, nullptr, {}, {}};
 
         auto uniformMap = program.first->getUniformMap();
         for(auto uniform:uniformMap) {
+
+            if (uniform.first.rfind("pre_", 0) != 0) {
+                continue;
+            }
+
+            if (!(uniform.second->type == GLHelper::VariableTypes::CUBEMAP ||
+                    uniform.second->type == GLHelper::VariableTypes::CUBEMAP_ARRAY ||
+                    uniform.second->type == GLHelper::VariableTypes::TEXTURE_2D ||
+                    uniform.second->type == GLHelper::VariableTypes::TEXTURE_2D_ARRAY)) {//if not texture
+                continue;
+            }
+
             ConnectionDesc desc;
             desc.name = uniform.first;
             switch (uniform.second->type) {
-                case GLHelper::VariableTypes::INT       : desc.type = "Integer"; break;
-                case GLHelper::VariableTypes::FLOAT     : desc.type = "Float"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC2: desc.type = "Vector2"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC3: desc.type = "Vector3"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC4: desc.type = "Vector4"; break;
-                case GLHelper::VariableTypes::FLOAT_MAT4: desc.type = "Matrix4"; break;
-                case GLHelper::VariableTypes::UNDEFINED : desc.type = "Undefined"; break;
+                case GLHelper::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
+                case GLHelper::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
+                case GLHelper::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
+                case GLHelper::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
+                case GLHelper::VariableTypes::INT               : desc.type = "Integer"; break;
+                case GLHelper::VariableTypes::FLOAT             : desc.type = "Float"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
+                case GLHelper::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
+                case GLHelper::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
             }
             type.inputConnections.push_back(desc);
         }
@@ -4241,20 +4292,64 @@ void World::createNodeGraph() {
             ConnectionDesc desc;
             desc.name = output.first;
             switch (output.second) {
-                case GLHelper::VariableTypes::INT       : desc.type = "Integer"; break;
-                case GLHelper::VariableTypes::FLOAT     : desc.type = "Float"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC2: desc.type = "Vector2"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC3: desc.type = "Vector3"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC4: desc.type = "Vector4"; break;
-                case GLHelper::VariableTypes::FLOAT_MAT4: desc.type = "Matrix4"; break;
-                case GLHelper::VariableTypes::UNDEFINED : desc.type = "Undefined"; break;
+                case GLHelper::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
+                case GLHelper::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
+                case GLHelper::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
+                case GLHelper::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
+                case GLHelper::VariableTypes::INT               : desc.type = "Integer"; break;
+                case GLHelper::VariableTypes::FLOAT             : desc.type = "Float"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
+                case GLHelper::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
+                case GLHelper::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
+                case GLHelper::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
             }
             type.outputConnections.push_back(desc);
         }
+        type.nodeExtension = new PipelineStageExtension(pipelineExtension);
 
         nodeTypeVector.push_back(type);
     }
 
-    nodeGraph = new NodeGraph(nodeTypeVector);
+    nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);
 
+}
+
+void World::setSamplersAndUBOs(std::shared_ptr<GLSLProgram>& program, bool setOpacity) {
+
+    //TODO these will be configurable with material editor
+    int diffuseMapAttachPoint = 1;
+    int ambientMapAttachPoint = 2;
+    int specularMapAttachPoint = 3;
+    int opacityMapAttachPoint = 4;
+    int normalMapAttachPoint = 5;
+
+   if (!program->setUniform("diffuseSampler", diffuseMapAttachPoint)) {
+       std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
+   }
+   if (!program->setUniform("ambientSampler", ambientMapAttachPoint)) {
+       std::cerr << "Uniform \"ambientSampler\" could not be set" << std::endl;
+   }
+   if (!program->setUniform("specularSampler", specularMapAttachPoint)) {
+       std::cerr << "Uniform \"specularSampler\" could not be set" << std::endl;
+   }
+   if(setOpacity) {
+       if (!program->setUniform("opacitySampler", opacityMapAttachPoint)) {
+           std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
+       }
+   }
+   if (!program->setUniform("normalSampler", normalMapAttachPoint)) {
+       std::cerr << "Uniform \"normalSampler\" could not be set" << std::endl;
+   }
+   //TODO we should support multi texture on one pass
+
+   if (!program->setUniform("pre_shadowDirectional", glHelper->getMaxTextureImageUnits() - 1)) {
+       std::cerr << "Uniform \"pre_shadowDirectional\" could not be set" << std::endl;
+   }
+   if (!program->setUniform("pre_shadowPoint", glHelper->getMaxTextureImageUnits() - 2)) {
+       std::cerr << "Uniform \"pre_shadowPoint\" could not be set" << std::endl;
+   }
+
+   glHelper->attachModelUBO(program->getID());
+   glHelper->attachModelIndicesUBO(program->getID());
 }

@@ -26,9 +26,8 @@ protected:
 public:
     QuadRenderBase(GLHelper* glHelper);
 
-    void setSourceTexture(std::string samplerName, int32_t textureID) {
-        textureAttachments[samplerName] = textureID;
-    }
+    void setSourceTexture(std::string samplerName, int32_t textureID);
+
     bool removeSourceTexture(std::string samplerName) {
         auto mapElement = textureAttachments.find(samplerName);
         if(mapElement != textureAttachments.end()) {

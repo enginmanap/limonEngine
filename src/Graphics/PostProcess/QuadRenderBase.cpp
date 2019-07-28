@@ -3,8 +3,8 @@
 //
 
 #include "QuadRenderBase.h"
-#include "../GLHelper.h"
-#include "../GLSLProgram.h"
+#include "Graphics/GLHelper.h"
+#include "Graphics/GLSLProgram.h"
 
 QuadRenderBase::QuadRenderBase(GLHelper *glHelper) : glHelper(glHelper){
     std::vector<glm::vec3> vertices;
@@ -45,4 +45,26 @@ void QuadRenderBase::render() {
     }
 
     glHelper->render(program->getID(), vao, ebo, 3 * 2);//2 triangles
+}
+
+void QuadRenderBase::setSourceTexture(std::string samplerName, int32_t textureID) {
+    auto uniformMap = program->getUniformMap();
+    auto uniformToSetIt = uniformMap.find(samplerName);
+    if (uniformToSetIt == uniformMap.end()) {
+        std::cerr << "Source texture [" << samplerName << "] for QuadRenderer is not defined in set program[" << program->getProgramName() << "]! " << std::endl;
+        return;
+    }
+
+    if (uniformToSetIt->second == nullptr) {
+        std::cerr << "Uniform found, but object creation was failed for it! " << std::endl;
+        return;
+    }
+    if (uniformToSetIt->second->type == GLHelper::VariableTypes::CUBEMAP ||
+               uniformToSetIt->second->type == GLHelper::VariableTypes::CUBEMAP_ARRAY ||
+               uniformToSetIt->second->type == GLHelper::VariableTypes::TEXTURE_2D ||
+               uniformToSetIt->second->type == GLHelper::VariableTypes::TEXTURE_2D_ARRAY) {
+        textureAttachments[samplerName] = textureID;
+    } else {
+        std::cerr << "Source texture [" << samplerName << "] for QuadRenderer is not a texture type in set program[" << program->getProgramName() << "]! " << std::endl;
+    }
 }

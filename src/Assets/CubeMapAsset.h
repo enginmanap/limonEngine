@@ -9,7 +9,8 @@
 #include <string>
 #include <SDL2/SDL_image.h>
 
-#include "../GLHelper.h"
+#include "Graphics/GLHelper.h"
+#include "Graphics/Texture.h"
 #include "Asset.h"
 #include "AssetManager.h"
 
@@ -17,16 +18,14 @@
 class CubeMapAsset : public Asset {
     std::string path;
     std::string names[6];
-    GLuint cubeMapBufferID;
+    std::unique_ptr<Texture> texture;
 public:
     CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
 
-    ~CubeMapAsset() {
-        assetManager->getGlHelper()->deleteTexture(cubeMapBufferID);
-    }
+    ~CubeMapAsset() {}
 
     GLuint getID() const {
-        return cubeMapBufferID;
+        return texture->getTextureID();
     }
 
     std::vector<std::string> getNames() {

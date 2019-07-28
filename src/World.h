@@ -62,8 +62,11 @@ class SSAOBlurPostProcess;
 
 class GLHelper;
 class GraphicsPipelineStage;
+class TextureAsset;
 class ALHelper;
 
+class PipelineExtension;
+class IterationExtension;
 class NodeGraph;
 
 class World {
@@ -230,6 +233,10 @@ private:
     std::shared_ptr<GLSLProgram> shadowMapProgramDirectional = nullptr;
     std::shared_ptr<GLSLProgram> shadowMapProgramPoint = nullptr;
     std::shared_ptr<GLSLProgram> depthBufferProgram = nullptr;
+
+    std::shared_ptr<GLSLProgram> nonTransparentModelProgram = nullptr;
+    std::shared_ptr<GLSLProgram> transparentModelProgram = nullptr;
+    std::shared_ptr<GLSLProgram> animatedModelProgram = nullptr;
     FontManager fontManager;
 
     PlayerInfo startingPlayer;
@@ -282,17 +289,21 @@ private:
     };
     QuitResponse currentQuitResponse = QuitResponse::QUIT_GAME;
     bool showNodeGraph = false;
+    PipelineExtension *pipelineExtension;
+    IterationExtension *iterationExtension;
     NodeGraph* nodeGraph = nullptr;
 
-    std::shared_ptr<GLHelper::Texture> depthMapDirectional = nullptr;
-    std::shared_ptr<GLHelper::Texture> depthMapPoint = nullptr;
-    std::shared_ptr<GLHelper::Texture> diffuseAndSpecularLightedMap = nullptr;
-    std::shared_ptr<GLHelper::Texture> ambientMap = nullptr;
-    std::shared_ptr<GLHelper::Texture> normalMap = nullptr;
-    std::shared_ptr<GLHelper::Texture> depthMap = nullptr;
-    std::shared_ptr<GLHelper::Texture> ssaoTexture = nullptr;
-    std::shared_ptr<GLHelper::Texture> ssaoNoiseTexture = nullptr;
-    std::shared_ptr<GLHelper::Texture> ssaoBlurredMap = nullptr;
+
+    TextureAsset* ssaoNoise = nullptr;
+    std::shared_ptr<Texture> depthMapDirectional = nullptr;
+    std::shared_ptr<Texture> depthMapPoint = nullptr;
+    std::shared_ptr<Texture> diffuseAndSpecularLightedMap = nullptr;
+    std::shared_ptr<Texture> ambientMap = nullptr;
+    std::shared_ptr<Texture> normalMap = nullptr;
+    std::shared_ptr<Texture> depthMap = nullptr;
+    std::shared_ptr<Texture> ssaoTexture = nullptr;
+    std::shared_ptr<Texture> ssaoNoiseTexture = nullptr;
+    std::shared_ptr<Texture> ssaoBlurredMap = nullptr;
 
     GraphicsPipelineStage* directionalShadowStage = nullptr;
     GraphicsPipelineStage* pointShadowStage = nullptr;
@@ -374,6 +385,10 @@ private:
     void renderGUI() const;
 
     void createNodeGraph();
+
+
+    //TODO remove with material editor
+    void setSamplersAndUBOs(std::shared_ptr<GLSLProgram>& program, bool setOpacity);
 
 public:
     ~World();

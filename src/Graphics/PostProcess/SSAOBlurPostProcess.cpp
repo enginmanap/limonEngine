@@ -3,11 +3,11 @@
 //
 
 #include "SSAOBlurPostProcess.h"
-#include "../GLSLProgram.h"
+#include "Graphics/GLSLProgram.h"
 
 void SSAOBlurPostProcess::initializeProgram() {
-    program = glHelper->createGLSLProgram("./Engine/Shaders/SSAO/vertex.glsl",
-                              "./Engine/Shaders/SSAO/blurFragment.glsl", false);
+    program = glHelper->createGLSLProgram("./Engine/Shaders/SSAOBlur/vertex.glsl",
+                              "./Engine/Shaders/SSAOBlur/fragment.glsl", false);
 }
 
 SSAOBlurPostProcess::SSAOBlurPostProcess(GLHelper *glHelper) : QuadRenderBase(glHelper) {

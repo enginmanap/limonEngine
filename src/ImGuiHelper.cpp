@@ -11,8 +11,9 @@
 #include "../libs/ImGui/imgui.h"
 #include "ImGuiHelper.h"
 
-#include "GLHelper.h"
-#include "GLSLProgram.h"
+#include "Graphics/GLHelper.h"
+#include "Graphics/GLSLProgram.h"
+#include "Graphics/Texture.h"
 #include "InputHandler.h"
 #include "Options.h"
 // SDL,GL3W
@@ -214,7 +215,12 @@ void ImGuiHelper::CreateFontsTexture()
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits for OpenGL3 demo because it is more likely to be compatible with user's existing shader.
 
-    g_FontTexture = glHelper->loadTexture(height, width, GL_RGBA, pixels);
+    fontTexture = std::make_unique<Texture>(glHelper, GLHelper::TextureTypes::T2D,
+                                                  GLHelper::InternalFormatTypes::RGBA, GLHelper::FormatTypes::RGBA, GLHelper::DataTypes::UNSIGNED_BYTE,
+                                                  width, height);
+    fontTexture->loadData(pixels);
+
+    g_FontTexture = fontTexture->getTextureID();
 
     /* this method used to do these too, but they are not done now:
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

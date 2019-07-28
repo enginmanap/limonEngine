@@ -39,6 +39,7 @@ class Material;
 class Light;
 
 class GLSLProgram;
+class Texture;
 
 struct Line {
     glm::vec3 from;
@@ -56,6 +57,7 @@ struct Line {
 };
 
 class GLHelper {
+    friend class Texture;
     class OpenglState {
         unsigned int activeProgram;
         unsigned int activeTextureUnit;
@@ -131,83 +133,14 @@ class GLHelper {
 
 public:
 
-    enum class TextureTypes {T2D, T2D_ARRAY, TCUBE_MAP_ARRAY};//Starting with digits is illegal
+    enum class TextureTypes {T2D, T2D_ARRAY, TCUBE_MAP, TCUBE_MAP_ARRAY};//Starting with digits is illegal
     enum class InternalFormatTypes {RED, RGB, RGBA, RGB16F, RGB32F, DEPTH };
-    enum class FormatTypes {RGB, RGBA, DEPTH};
+    enum class FormatTypes {RED, RGB, RGBA, DEPTH};
     enum class DataTypes {UNSIGNED_BYTE, FLOAT};
     enum class FrameBufferAttachPoints {NONE, COLOR0, COLOR1, COLOR2, COLOR3, COLOR4, COLOR5, COLOR6, DEPTH };
     enum class TextureWrapModes {NONE, REPEAT, BORDER, EDGE};
     enum class FilterModes {NEAREST, LINEAR, TRILINEAR};
     enum class CullModes {FRONT, BACK, NONE, NO_CHANGE};
-
-    class Texture {
-        GLHelper* glHelper;
-        uint32_t textureID;
-        TextureTypes textureType;
-        InternalFormatTypes internalFormat;
-        FormatTypes format;
-        DataTypes dataType;
-        uint32_t height, width;
-        uint32_t depth;//3D textures, or texture arrays have this as element count
-
-        float borderColor[4] = {0};
-        bool borderColorSet = false;
-    public:
-        Texture(GLHelper* glHelper, TextureTypes textureType, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType,uint32_t width, uint32_t height, uint32_t depth = 0)
-        : glHelper(glHelper), textureType(textureType), internalFormat(internalFormat), format(format), dataType(dataType), height(height), width(width), depth(depth) {
-            this->textureID = glHelper->createTexture(height, width, textureType, internalFormat, format, dataType, depth);
-        }
-
-        void loadData(void *data) {
-            glHelper->loadTextureData(this->textureID, height, width, textureType, internalFormat, format, dataType, depth, data);
-        }
-
-        ~Texture() {
-            glHelper->deleteTexture(textureID);
-        }
-
-        void setBorderColor(float red, float green, float blue, float alpha) {
-            borderColor[0] = red;
-            borderColor[1] = green;
-            borderColor[2] = blue;
-            borderColor[3] = alpha;
-            borderColorSet = true;
-            glHelper->setTextureBorder(*this);
-        }
-
-        void setWrapModes(TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR = TextureWrapModes::NONE) {
-            glHelper->setWrapMode(*this, wrapModeS, wrapModeT, wrapModeR);
-        }
-
-        void setFilterMode(FilterModes filterMode) {
-            glHelper->setFilterMode(*this, filterMode);
-        }
-
-        void removeBorderColor() {
-            borderColorSet = false;
-            glHelper->setTextureBorder(*this);
-        }
-
-        bool isBorderColorSet() {
-            return borderColorSet;
-        }
-        std::vector<float> getBorderColor() {
-            return std::vector<float>(borderColor, borderColor + (sizeof(borderColor)/sizeof(float)));
-        }
-
-        TextureTypes getType(){
-            return textureType;
-        }
-
-        uint32_t getTextureID() {
-            return textureID;
-        }
-
-        FormatTypes getFormat() {
-            return format;
-        }
-    };
-
     enum VariableTypes {
         INT,
         FLOAT,
@@ -215,6 +148,10 @@ public:
         FLOAT_VEC3,
         FLOAT_VEC4,
         FLOAT_MAT4,
+        CUBEMAP,
+        CUBEMAP_ARRAY,
+        TEXTURE_2D,
+        TEXTURE_2D_ARRAY,
         UNDEFINED
     };
 
@@ -228,10 +165,18 @@ public:
         Uniform(unsigned int location, const std::string &name, GLenum typeEnum, unsigned int size) : location(
                 location), name(name), size(size) {
             switch (typeEnum) {
-                case GL_SAMPLER_CUBE: //these are because sampler takes a int as texture unit
+                case GL_SAMPLER_CUBE:
+                    type = CUBEMAP;
+                    break;
                 case GL_SAMPLER_CUBE_MAP_ARRAY_ARB:
+                    type = CUBEMAP_ARRAY;
+                    break;
                 case GL_SAMPLER_2D:
+                    type = TEXTURE_2D;
+                    break;
                 case GL_SAMPLER_2D_ARRAY:
+                    type = TEXTURE_2D_ARRAY;
+                    break;
                 case GL_INT:
                     type = INT;
                     break;
@@ -363,7 +308,7 @@ private:
 
     bool deleteVAO(const GLuint number, const GLuint bufferID);
 
-    void fillUniformAndOutputMaps(const GLuint program, std::unordered_map<std::string, Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap);
+    void fillUniformAndOutputMaps(const GLuint program, std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap);
 
     void attachGeneralUBOs(const GLuint program);
     void bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
@@ -372,6 +317,8 @@ private:
 
     uint32_t createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth);
 
+    bool deleteTexture(GLuint textureID);
+
     void setWrapMode(Texture& texture, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR);
 
     void setTextureBorder(Texture& texture);
@@ -379,7 +326,7 @@ private:
     void setFilterMode(Texture& texture, FilterModes filterMode);
 
     void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
-                             void *data);
+                         void *data, void *data2, void *data3, void *data4, void *data5, void *data6);
 
     void testAndRemoveGLSLProgram(GLSLProgram *program);
 
@@ -400,7 +347,7 @@ public:
     }
 
     GLuint initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
-                             std::unordered_map<std::string, Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap);
+                             std::unordered_map<std::string,const Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap);
     void destroyProgram(uint32_t programID);
 
     void bufferVertexData(const std::vector<glm::vec3> &vertices,
@@ -448,16 +395,9 @@ public:
     void deleteFrameBuffer(uint32_t frameBufferID);
     void attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID, FrameBufferAttachPoints attachPoint, int32_t layer = 0);
 
-    GLuint loadTexture(int height, int width, GLenum format, void *data);
-
-    GLuint loadCubeMap(int height, int width, void *right, void *left, void *top, void *bottom, void *back,
-                       void *front);
-
     void attachTexture(unsigned int textureID, unsigned int attachPoint);
 
     void attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint);
-
-    bool deleteTexture(GLuint textureID);
 
     bool getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location);
 
@@ -503,7 +443,7 @@ public:
     void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix);
 
     void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
-                               std::map<uint32_t, std::shared_ptr<GLHelper::Texture>> &inputs);
+                               std::map<uint32_t, std::shared_ptr<Texture>> &inputs);
     void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
                                const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
                                const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap);

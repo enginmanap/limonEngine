@@ -8,28 +8,31 @@
 #include <iostream>
 #include <string>
 #include <map>
-
+#include <memory>
 #include <freetype2/ft2build.h>
 #include <set>
-#include FT_FREETYPE_H
-#include "GLHelper.h"
 
+#include FT_FREETYPE_H
+#include "Graphics/GLHelper.h"
+#include "Graphics/Texture.h"
 
 class Glyph {
-    GLuint textureID;
+    std::unique_ptr<Texture> texture;
     glm::mediump_ivec2 size;
     glm::mediump_ivec2 bearing;
     GLuint advance;
 public:
     Glyph(GLHelper *glHelper, FT_Face face, const int size, const char character) :
-            textureID(0), size(glm::mediump_vec2(0)), bearing(glm::mediump_vec2(0)), advance(0) {
+            size(glm::mediump_vec2(0)), bearing(glm::mediump_vec2(0)), advance(0) {
         //FIXME this is not correct, there is a better function in API
         FT_Set_Pixel_Sizes(face, 0, size);
         if (FT_Load_Char(face, character, FT_LOAD_RENDER)) {
             std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
         } else {
-            textureID = glHelper->loadTexture(face->glyph->bitmap.rows, face->glyph->bitmap.width, GL_RED,
-                                              face->glyph->bitmap.buffer);
+            texture = std::make_unique<Texture>(glHelper, GLHelper::TextureTypes::T2D,
+                                                          GLHelper::InternalFormatTypes::RGBA, GLHelper::FormatTypes::RED, GLHelper::DataTypes::UNSIGNED_BYTE,
+                                                          face->glyph->bitmap.width, face->glyph->bitmap.rows);
+            texture->loadData(face->glyph->bitmap.buffer);
             this->size = glm::mediump_ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows);
             bearing = glm::mediump_ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
             advance = face->glyph->advance.x;
@@ -44,7 +47,7 @@ public:
 
     }
 
-    GLuint getTextureID() const { return textureID; }
+    GLuint getTextureID() const { return texture->getTextureID(); }
 
     const glm::mediump_ivec2 &getSize() const { return size; }
 

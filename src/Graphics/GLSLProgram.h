@@ -17,7 +17,7 @@ class GLSLProgram {
 
     std::string vertexShader;
     std::string fragmentShader;
-    std::unordered_map<std::string, GLHelper::Uniform*> uniformMap;
+    std::unordered_map<std::string, const GLHelper::Uniform *> uniformMap;
     std::unordered_map<std::string, GLHelper::VariableTypes>outputMap;
     bool materialRequired;
     GLuint programID;
@@ -34,12 +34,8 @@ public:
 
     GLuint getID() const { return programID; }
 
-    std::unordered_map<std::string, GLHelper::Uniform const * const> getUniformMap() const {
-        std::unordered_map<std::string, GLHelper::Uniform const * const> constUniformMap;
-        for(auto element:uniformMap) {
-            constUniformMap.insert(element);
-        }
-        return constUniformMap;
+    const std::unordered_map<std::string, const GLHelper::Uniform *> &getUniformMap() const {
+        return uniformMap;
     }
 
     const std::unordered_map<std::string, GLHelper::VariableTypes> &getOutputMap() const {
@@ -73,9 +69,19 @@ public:
         }
         return false;
     }
-
+/**
+ * This method is used to set samplers, so it can alter int uniforms, and sampler uniforms.
+ * @param uniformName
+ * @param value
+ * @return
+ */
     bool setUniform(const std::string &uniformName, const int value) {
-        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GLHelper::INT) {
+        if (uniformMap.count(uniformName) &&
+                    (uniformMap[uniformName]->type == GLHelper::INT ||
+                        uniformMap[uniformName]->type == GLHelper::CUBEMAP ||
+                        uniformMap[uniformName]->type == GLHelper::CUBEMAP_ARRAY ||
+                        uniformMap[uniformName]->type == GLHelper::TEXTURE_2D ||
+                        uniformMap[uniformName]->type == GLHelper::TEXTURE_2D_ARRAY))  {
             return glHelper->setUniform(programID, uniformMap[uniformName]->location, value);
         }
         return false;

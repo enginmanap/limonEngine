@@ -9,19 +9,20 @@
 #include <cstdint>
 #include <map>
 #include "GLHelper.h"
+#include "Texture.h"
 
 class GraphicsPipelineStage {
     GLHelper* glHelper = nullptr;
     uint32_t renderWidth;
     uint32_t renderHeight;
     uint32_t frameBufferID;
-    bool blendEnabled;
+    bool blendEnabled = false;
     bool colorAttachment = false;
     bool depthAttachment = false;
     GLHelper::CullModes cullMode = GLHelper::CullModes::NO_CHANGE;
 
-    std::map<uint32_t, std::shared_ptr<GLHelper::Texture>> inputs;
-    std::map<GLHelper::FrameBufferAttachPoints, std::shared_ptr<GLHelper::Texture>> outputs;
+    std::map<uint32_t, std::shared_ptr<Texture>> inputs;
+    std::map<GLHelper::FrameBufferAttachPoints, std::shared_ptr<Texture>> outputs;
 
 public:
 
@@ -41,10 +42,10 @@ public:
         glHelper->deleteFrameBuffer(frameBufferID);
     }
 
-    void setInput(uint32_t textureAttachmentPoint, std::shared_ptr<GLHelper::Texture> texture) {
+    void setInput(uint32_t textureAttachmentPoint, std::shared_ptr<Texture> texture) {
         this->inputs[textureAttachmentPoint] = texture;
     }
-    void setOutput(GLHelper::FrameBufferAttachPoints attachmentPoint, std::shared_ptr<GLHelper::Texture> texture, uint32_t layer = -1) {
+    void setOutput(GLHelper::FrameBufferAttachPoints attachmentPoint, std::shared_ptr<Texture> texture, uint32_t layer = -1) {
         glHelper->attachDrawTextureToFrameBuffer(this->frameBufferID, texture->getType(), texture->getTextureID(), attachmentPoint, layer);
         switch (attachmentPoint) {
             case GLHelper::FrameBufferAttachPoints::DEPTH: depthAttachment = true; break;
@@ -70,7 +71,11 @@ public:
 
     void activate(bool clear = false);
 
-    void activate(const std::map<std::shared_ptr<GLHelper::Texture>, std::pair<GLHelper::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear = false);
+    void activate(const std::map<std::shared_ptr<Texture>, std::pair<GLHelper::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear = false);
+
+    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
+
+    static GraphicsPipelineStage *deserialize(tinyxml2::XMLElement *stageNode, GLHelper *glHelper, Options *options);
 
 };
 
