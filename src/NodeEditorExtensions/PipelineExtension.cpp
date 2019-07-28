@@ -2,7 +2,7 @@
 // Created by engin on 15.04.2019.
 //
 
-#include <imgui/imgui.h>
+#include <ImGui/imgui.h>
 #include <memory>
 #include <nodeGraph/src/Node.h>
 #include <Graphics/GraphicsPipeline.h>
