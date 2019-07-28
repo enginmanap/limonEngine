@@ -4,7 +4,7 @@
 
 #include "Texture.h"
 
-bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options) {
+bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options [[gnu::unused]]) {
     tinyxml2::XMLElement *textureNode = document.NewElement("Texture");
     parentNode->InsertEndChild(textureNode);
 
@@ -123,7 +123,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     return true;
 }
 
-Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, GLHelper *glHelper, Options *options) {
+Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, GLHelper *glHelper, Options *options [[gnu::unused]]) {
     tinyxml2::XMLElement* textureNodeAttribute = nullptr;
 
     GLHelper::TextureTypes textureType;
