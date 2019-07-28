@@ -2047,7 +2047,7 @@ uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animati
         options->getLogger()->log(Logger::log_Subsystem_ANIMATION, Logger::log_level_WARN, "Model had custom animation, overriding.");
         as->wasKinematic = activeAnimations[as->object]->wasKinematic;
         if(activeAnimations[as->object]->loop) {
-            as->originalTransformation.copy(activeAnimations[as->object]->originalTransformation);//if looped animation, start new one from origin
+            as->originalTransformation = activeAnimations[as->object]->originalTransformation;//if looped animation, start new one from origin
         } else {
             //if not looped animation, start from end of the old one
             const AnimationCustom* oldAnimation = &loadedAnimations[activeAnimations[as->object]->animationIndex];
@@ -2067,12 +2067,12 @@ uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animati
             as->object->getTransformation()->setScale(tempScale);
             as->object->getTransformation()->setOrientation(tempOrientation);
             as->object->setCustomAnimation(false);
-            as->originalTransformation.copy(*as->object->getTransformation());
+            as->originalTransformation = *as->object->getTransformation();
 
         }
         delete activeAnimations[as->object];
     } else {
-        as->originalTransformation.copy(*as->object->getTransformation());
+        as->originalTransformation = *as->object->getTransformation();
     }
     //we should animate child, and keep parent, so we should attach to the object itself
     as->object->getTransformation()->setScale(glm::vec3(1.0f,1.0f,1.0f));
