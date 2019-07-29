@@ -40,6 +40,7 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
     }
 
     ImGui::Text("Cull Mode##FromNodeExtensionSetting");
+    ImGui::Text("Cull Mode");//FIXME this is possibly a bug, but it doesn't allow adding escaped text
     if(ImGui::RadioButton("No Change##CullModeFromNodeExtension", cullMode == GLHelper::CullModes::NO_CHANGE)) { cullMode = GLHelper::CullModes::NO_CHANGE;}
     if(ImGui::RadioButton("None##CullModeFromNodeExtension", cullMode == GLHelper::CullModes::NONE)) { cullMode = GLHelper::CullModes::NONE;}
     if(ImGui::RadioButton("Front##CullModeFromNodeExtension", cullMode == GLHelper::CullModes::FRONT)) { cullMode = GLHelper::CullModes::FRONT;}
