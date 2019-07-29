@@ -40,10 +40,10 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
     }
 
     ImGui::Text("Cull Mode##FromNodeExtensionSetting");
-    if(ImGui::RadioButton("No Change##CullModeFromNodeExtension", cullmode == GLHelper::CullModes::NO_CHANGE)) { cullmode = GLHelper::CullModes::NO_CHANGE;}
-    if(ImGui::RadioButton("None##CullModeFromNodeExtension", cullmode == GLHelper::CullModes::NONE)) { cullmode = GLHelper::CullModes::NONE;}
-    if(ImGui::RadioButton("Front##CullModeFromNodeExtension", cullmode == GLHelper::CullModes::FRONT)) { cullmode = GLHelper::CullModes::FRONT;}
-    if(ImGui::RadioButton("Back##CullModeFromNodeExtension", cullmode == GLHelper::CullModes::BACK)) { cullmode = GLHelper::CullModes::BACK;}
+    if(ImGui::RadioButton("No Change##CullModeFromNodeExtension", cullMode == GLHelper::CullModes::NO_CHANGE)) { cullMode = GLHelper::CullModes::NO_CHANGE;}
+    if(ImGui::RadioButton("None##CullModeFromNodeExtension", cullMode == GLHelper::CullModes::NONE)) { cullMode = GLHelper::CullModes::NONE;}
+    if(ImGui::RadioButton("Front##CullModeFromNodeExtension", cullMode == GLHelper::CullModes::FRONT)) { cullMode = GLHelper::CullModes::FRONT;}
+    if(ImGui::RadioButton("Back##CullModeFromNodeExtension", cullMode == GLHelper::CullModes::BACK)) { cullMode = GLHelper::CullModes::BACK;}
 
     ImGui::Checkbox("Blend", &blendEnabled);
 

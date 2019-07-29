@@ -20,7 +20,7 @@ class Connection;
 class PipelineStageExtension : public NodeExtension {
     PipelineExtension* pipelineExtension = nullptr;
 
-    GLHelper::CullModes cullmode = GLHelper::CullModes::NO_CHANGE;
+    GLHelper::CullModes cullMode = GLHelper::CullModes::NO_CHANGE;
     bool clearBefore = false;
     bool blendEnabled = false;
     bool toScreen = false;
@@ -67,7 +67,7 @@ public:
     }
 
     GLHelper::CullModes getCullmode() const {
-        return cullmode;
+        return cullMode;
     }
 };
 
