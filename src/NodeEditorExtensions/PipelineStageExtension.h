@@ -24,6 +24,7 @@ class PipelineStageExtension : public NodeExtension {
     bool clearBefore = false;
     bool blendEnabled = false;
     bool toScreen = false;
+    std::string currentMethodName = PipelineExtension::renderMethodNames[0];
     std::map<const Connection*, std::pair<std::string, std::shared_ptr<Texture>>> outputTextures;
     std::map<const Connection*, int> inputTextureIndexes;
     std::map<const Connection*, GLHelper::FrameBufferAttachPoints > outputTextureIndexes;
@@ -46,6 +47,10 @@ public:
         } else {
             return indexIt->second;
         }
+    }
+
+    const std::string &getMethodName() const {
+        return currentMethodName;
     }
 
     GLHelper::FrameBufferAttachPoints getOutputTextureIndex(const Connection* connection) const {

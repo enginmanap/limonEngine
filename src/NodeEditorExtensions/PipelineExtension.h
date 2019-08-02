@@ -15,6 +15,7 @@ class GraphicsPipeline;
 
 class PipelineExtension : public EditorExtension {
 public:
+    static std::string renderMethodNames[];
     struct RenderMethods {
         std::function<void(unsigned int, std::shared_ptr<GLSLProgram>)> renderLight;
         std::function<void()> renderWorld;

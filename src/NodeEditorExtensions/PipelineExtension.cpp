@@ -10,7 +10,7 @@
 #include "Graphics/Texture.h"
 #include "PipelineStageExtension.h"
 
-
+std::string PipelineExtension::renderMethodNames[] { "None", "RenderLight", "RenderWorld", "RenderWorldTransparentObjects", "RenderGUI", "ImGuiFrameSetup"};
 PipelineExtension::PipelineExtension(GLHelper *glHelper, RenderMethods renderMethods) : glHelper(glHelper), renderMethods(renderMethods) {
     {
         //Add a texture to the list as place holder for screen
@@ -38,7 +38,7 @@ bool PipelineExtension::getNameOfTexture(void* data, int index, const char** out
 }
 
 
-void PipelineExtension::drawDetailPane(const std::vector<const Node *>& nodes, const Node* selectedNode) {
+void PipelineExtension::drawDetailPane(const std::vector<const Node *>& nodes, const Node* selectedNode [[gnu::unused]]) {
     ImGui::Text("Graphics Pipeline Details");
     int listbox_item_current = -1;//not static because I don't want user to select a item.
 
@@ -177,7 +177,7 @@ void PipelineExtension::drawDetailPane(const std::vector<const Node *>& nodes, c
              * find node that outputs to screen, iterate back to find all other nodes that needs rendering
              */
 
-             if(node->getOutputConnections().size() == 0 && node->getOutputConnections()[0]->getName() == "Screen") {
+             if(node->getName() == "Screen") {
                  rootNode = node;
                  break;
              }
@@ -195,8 +195,10 @@ void PipelineExtension::drawDetailPane(const std::vector<const Node *>& nodes, c
 
 void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline) {
     for(const Connection* connection:node->getInputConnections()) {
-        Node* inputNode = connection->getInput()->getParent();
-        buildRenderPipelineRecursive(inputNode, graphicsPipeline);
+        if(connection->getInput() != nullptr) {
+            Node *inputNode = connection->getInput()->getParent();
+            buildRenderPipelineRecursive(inputNode, graphicsPipeline);
+        }
     }
     //after all inputs are put in graphics pipeline, or no input case
     auto stageExtension = dynamic_cast<PipelineStageExtension*>(node->getExtension());
@@ -204,31 +206,53 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
     if(stageExtension != nullptr) {
         std::shared_ptr<GraphicsPipelineStage> newStage;
         //FIXME this should be saved and used, not checked
-        if(node->getOutputConnections().size() == 0 && node->getOutputConnections()[0]->getName() == "Screen") {
+        if(node->getOutputConnections().size() == 1 && node->getOutputConnections()[0]->getName() == "Screen") {
             newStage = std::make_shared<GraphicsPipelineStage>(glHelper, 1920, 1080, stageExtension->isBlendEnabled(), true);
         } else {
             newStage = std::make_shared<GraphicsPipelineStage>(glHelper, 1920, 1080, stageExtension->isBlendEnabled(), false);
         }
         for(const Connection *connection:node->getInputConnections()) {
-            auto inputStageExtension = dynamic_cast<PipelineStageExtension*>(connection->getInput()->getParent()->getExtension());
-            if(inputStageExtension != nullptr) {
-                newStage->setInput(stageExtension->getInputTextureIndex(connection), inputStageExtension->getOutputTexture(connection->getInput()));
-            } else {
-                std::cerr << "Input node extension is not PipelineStageExtension, this is not handled!" << std::endl;
-            };
+            if(connection->getInput() != nullptr) {
+                auto inputStageExtension = dynamic_cast<PipelineStageExtension *>(connection->getInput()->getParent()->getExtension());
+                if (inputStageExtension != nullptr) {
+                    newStage->setInput(stageExtension->getInputTextureIndex(connection), inputStageExtension->getOutputTexture(connection->getInput()));
+                } else {
+                    std::cerr << "Input node extension is not PipelineStageExtension, this is not handled!" << std::endl;
+                };
+            }
+            std::cout << "Found input connection not feed for node " << node->getName() << " input " << connection->getName() << std::endl;
         }
         //now handle outputs
         for(const Connection *connection:node->getOutputConnections()) {
             auto frameBufferAttachmentPoint = stageExtension->getOutputTextureIndex(connection);
-            newStage->setOutput(frameBufferAttachmentPoint, stageExtension->getOutputTexture(connection));
+            if(frameBufferAttachmentPoint != GLHelper::FrameBufferAttachPoints::NONE) {
+                newStage->setOutput(frameBufferAttachmentPoint, stageExtension->getOutputTexture(connection));
+            }
         }
 
         newStage->setCullMode(stageExtension->getCullmode());
         GraphicsPipeline::StageInfo stageInfo;
         stageInfo.clear = stageExtension->isClearBefore();
         stageInfo.stage = newStage;
-        //graphicsPipeline->addNewStage(stageInfo, )
+        std::function<void()> functionToCall;
+        //std::string PipelineExtension::renderMethodNames[] { "None", "RenderLight", "RenderWorld", "RenderWorldTransparentObjects", "RenderGUI", "ImGuiFrameSetup"};
+        if(stageExtension->getMethodName() == "None") {
+            functionToCall =  [](){};
+            std::cerr << "Building graphics pipeline with empty method, are you sure that was set correctly?" << std::endl;
+        } else if(stageExtension->getMethodName() == "RenderLight") {
+            std::shared_ptr<GLSLProgram> shadowMapProgramDirectional = nullptr;
+            functionToCall =  [&](){renderMethods.renderLight(1, shadowMapProgramDirectional);};
+        } else if(stageExtension->getMethodName() == "RenderWorld") {
+            functionToCall =  renderMethods.renderWorld;
+        } else if(stageExtension->getMethodName() == "RenderWorldTransparentObjects") {
+            functionToCall =  renderMethods.renderWorldTransparentObjects;
+        } else if(stageExtension->getMethodName() == "RenderGUI") {
+            functionToCall = renderMethods.renderGUI;
+        } else if(stageExtension->getMethodName() == "ImGuiFrameSetup") {
+        functionToCall = renderMethods.ImGuiFrameSetup;
+        }
 
+        graphicsPipeline->addNewStage(stageInfo, functionToCall);
     } else {
         std::cerr << "Extension of the node is not PipelineStageExtension, this is not handled! " << std::endl;
     }

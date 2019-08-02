@@ -49,5 +49,16 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
     ImGui::Checkbox("Blend", &blendEnabled);
 
     ImGui::Checkbox("Clear", &blendEnabled);
-
+    if (ImGui::BeginCombo((currentMethodName + "##RenderMethodCombo").c_str(), currentMethodName.c_str())) {
+        for (size_t i = 0; i < PipelineExtension::renderMethodNames->size(); ++i) {
+            const std::string& methodName = PipelineExtension::renderMethodNames[i];
+                if (ImGui::Selectable(methodName.c_str())) {
+                    currentMethodName = methodName;
+                }
+                if(currentMethodName == methodName) {
+                    ImGui::SetItemDefaultFocus();
+                }
+        }
+        ImGui::EndCombo();
+    }
 }
