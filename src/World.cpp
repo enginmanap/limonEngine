@@ -4229,6 +4229,10 @@ void World::createNodeGraph() {
 
     //start with predefined types
 
+    NodeType screen{"Screen", false, nullptr,{}, {}};
+    screen.inputConnections.push_back(ConnectionDesc{"Input", "Texture"});
+    nodeTypeVector.push_back(screen);
+
     NodeType blend{"Blend", true, nullptr,{}, {}};
     blend.inputConnections.push_back(ConnectionDesc{"Input1", "Texture"});
     blend.inputConnections.push_back(ConnectionDesc{"Input2", "Texture"});
