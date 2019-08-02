@@ -11,7 +11,7 @@
 #include "PipelineStageExtension.h"
 
 
-PipelineExtension::PipelineExtension(GLHelper *glHelper) : glHelper(glHelper) {
+PipelineExtension::PipelineExtension(GLHelper *glHelper, RenderMethods renderMethods) : glHelper(glHelper), renderMethods(renderMethods) {
     {
         //Add a texture to the list as place holder for screen
         auto texture = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGBA, GLHelper::FormatTypes::RGBA, GLHelper::DataTypes::UNSIGNED_BYTE, 1,1);

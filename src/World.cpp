@@ -4249,7 +4249,13 @@ void World::createNodeGraph() {
     nodeTypeVector.push_back(Iterate);
 
     auto programs = glHelper->getLoadedPrograms();
-    pipelineExtension = new PipelineExtension(glHelper);
+    PipelineExtension::RenderMethods renderMethods;
+    renderMethods.renderGUI = std::bind(&World::renderGUI, this);
+    renderMethods.renderLight = std::bind(&World::renderLight, this,std::placeholders::_1, std::placeholders::_2);
+    renderMethods.renderWorld = std::bind(&World::renderWorld, this);
+    renderMethods.renderWorldTransparentObjects = std::bind(&World::renderWorldTransparentObjects, this);
+
+    pipelineExtension = new PipelineExtension(glHelper, renderMethods);
 
     for(auto program:programs) {
         std::string programName = program.first->getProgramName();
