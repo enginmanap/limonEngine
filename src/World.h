@@ -62,6 +62,7 @@ class SSAOBlurPostProcess;
 
 class GLHelper;
 class GraphicsPipelineStage;
+class GraphicsPipeline;
 class TextureAsset;
 class ALHelper;
 
@@ -305,12 +306,13 @@ private:
     std::shared_ptr<Texture> ssaoNoiseTexture = nullptr;
     std::shared_ptr<Texture> ssaoBlurredMap = nullptr;
 
-    GraphicsPipelineStage* directionalShadowStage = nullptr;
-    GraphicsPipelineStage* pointShadowStage = nullptr;
-    GraphicsPipelineStage* coloringStage = nullptr;
-    GraphicsPipelineStage* ssaoGenerationStage = nullptr;
-    GraphicsPipelineStage* ssaoBlurStage = nullptr;
-    GraphicsPipelineStage* combiningStage = nullptr;
+    std::shared_ptr<GraphicsPipeline> defaultRenderPipeline = nullptr;
+    std::shared_ptr<GraphicsPipelineStage> directionalShadowStage = nullptr;
+    std::shared_ptr<GraphicsPipelineStage> pointShadowStage = nullptr;
+    std::shared_ptr<GraphicsPipelineStage> coloringStage = nullptr;
+    std::shared_ptr<GraphicsPipelineStage> ssaoGenerationStage = nullptr;
+    std::shared_ptr<GraphicsPipelineStage> ssaoBlurStage = nullptr;
+    std::shared_ptr<GraphicsPipelineStage> combiningStage = nullptr;
 
     bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
 

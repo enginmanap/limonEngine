@@ -5,6 +5,7 @@
 
 #include "World.h"
 #include <random>
+#include <Graphics/GraphicsPipeline.h>
 #include "NodeEditorExtensions/PipelineStageExtension.h"
 #include "NodeEditorExtensions/PipelineExtension.h"
 #include "NodeEditorExtensions/IterationExtension.h"
@@ -215,15 +216,15 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     /****************************** SSAO NOISE **************************************/
 
 
-    directionalShadowStage = new GraphicsPipelineStage(glHelper, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), false);
+    directionalShadowStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), false);
     directionalShadowStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, depthMapDirectional);
     directionalShadowStage->setCullMode(GLHelper::CullModes::FRONT);
 
-    pointShadowStage = new GraphicsPipelineStage(glHelper, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), false);
+    pointShadowStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), false);
     pointShadowStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, depthMapPoint);
     pointShadowStage->setCullMode(GLHelper::CullModes::FRONT);
 
-    coloringStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
+    coloringStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
     coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR0, diffuseAndSpecularLightedMap);
     coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, ambientMap);
     coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR2, normalMap);
@@ -234,21 +235,52 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 4, ssaoNoiseTexture);
     coloringStage->setCullMode(GLHelper::CullModes::BACK);
 
-    ssaoGenerationStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
+    ssaoGenerationStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
     ssaoGenerationStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, ssaoTexture);
     ssaoGenerationStage->setInput(1, depthMap);
     ssaoGenerationStage->setInput(2, normalMap);
     ssaoGenerationStage->setInput(3, ssaoNoiseTexture);
 
-    ssaoBlurStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
+    ssaoBlurStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
     ssaoBlurStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, ssaoBlurredMap);
     ssaoBlurStage->setInput(1, ssaoTexture);
 
-    combiningStage = new GraphicsPipelineStage(glHelper, options->getScreenWidth(), options->getScreenHeight(), true, true);
+    combiningStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getScreenWidth(), options->getScreenHeight(), true, true);
     combiningStage->setInput(1, diffuseAndSpecularLightedMap);
     combiningStage->setInput(2, ambientMap);
     combiningStage->setInput(3, ssaoBlurredMap);
     combiningStage->setInput(4, depthMap);
+
+
+
+    /*
+     * Stages require convertion:
+    GraphicsPipelineStage* directionalShadowStage = nullptr;
+    GraphicsPipelineStage* pointShadowStage = nullptr;
+     */
+
+    defaultRenderPipeline = std::make_shared<GraphicsPipeline>();
+    GraphicsPipeline::StageInfo stageInfo;
+    stageInfo.clear = true;
+    stageInfo.stage = coloringStage;
+    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderWorld, this));
+    stageInfo.clear = false;
+    stageInfo.stage = ssaoGenerationStage;
+    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&SSAOPostProcess::render, this->ssaoPostProcess));
+
+    stageInfo.stage = ssaoBlurStage;
+    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&SSAOBlurPostProcess::render, this->ssaoBlurPostProcess));
+
+    stageInfo.clear = true;
+    stageInfo.stage = combiningStage;
+    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&CombinePostProcess::render, this->combiningObject));
+
+    stageInfo.clear = false;
+    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderWorldTransparentObjects, this));
+
+    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderGUI, this));
+
+    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::ImGuiFrameSetup, this));
 
     fpsCounter = new GUIFPSCounter(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                                    glm::vec3(204, 204, 0));
@@ -807,31 +839,7 @@ void World::render() {
         renderLight(i, shadowMapProgramPoint);
 
     }
-
-    coloringStage->activate(true);
-    renderWorld();
-
-    //at this point, we should combine all of the coloring
-    if(options->isSsaoEnabled()) {
-        //glHelper->switchRenderToSSAOGeneration();
-        ssaoGenerationStage->activate();
-        ssaoPostProcess->render();
-
-        //glHelper->switchRenderToSSAOBlur();
-        ssaoBlurStage->activate();
-        ssaoBlurPostProcess->render();
-    }
-    combiningStage->activate(true);
-    //since gui uses blending, everything must be already rendered.
-    // Also, since gui elements only depth test each other, clear depth buffer
-    combiningObject->render();
-    renderWorldTransparentObjects();
-
-    renderGUI();
-
-    if(currentPlayersSettings->editorShown) {
-        ImGuiFrameSetup();
-    }
+    defaultRenderPipeline->render();
 }
 
 void World::renderGUI() const {
@@ -1030,7 +1038,9 @@ bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {
  * It also fills the windows with relevant parameters.
  */
 void World::ImGuiFrameSetup() {//TODO not const because it removes the object. Should be separated
-
+   if(!currentPlayersSettings->editorShown) {
+       return;
+   }
     imgGuiHelper->NewFrame();
     if(showNodeGraph) {
         drawNodeEditor();
