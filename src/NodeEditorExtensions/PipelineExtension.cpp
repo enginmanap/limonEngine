@@ -38,7 +38,7 @@ bool PipelineExtension::getNameOfTexture(void* data, int index, const char** out
 }
 
 
-void PipelineExtension::drawDetailPane() {
+void PipelineExtension::drawDetailPane(const std::vector<const Node *>& nodes, const Node* selectedNode) {
     ImGui::Text("Graphics Pipeline Details");
     int listbox_item_current = -1;//not static because I don't want user to select a item.
 
@@ -170,9 +170,8 @@ void PipelineExtension::drawDetailPane() {
         ImGui::EndPopup();
     }
     if(ImGui::Button("Build Pipeline")) {
-        std::vector<Node *> nodes;//Assume we can get this somehow
-        Node* rootNode = nullptr;
-        for(Node* node: nodes) {
+        const Node* rootNode = nullptr;
+        for(const Node* node: nodes) {
             /**
              * what to do?
              * find node that outputs to screen, iterate back to find all other nodes that needs rendering
@@ -194,7 +193,7 @@ void PipelineExtension::drawDetailPane() {
 
 }
 
-void PipelineExtension::buildRenderPipelineRecursive(Node *node, GraphicsPipeline *graphicsPipeline) {
+void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline) {
     for(const Connection* connection:node->getInputConnections()) {
         Node* inputNode = connection->getInput()->getParent();
         buildRenderPipelineRecursive(inputNode, graphicsPipeline);

@@ -30,14 +30,16 @@ private:
 public:
 
 
-    void drawDetailPane() override;
 
     PipelineExtension(GLHelper* glHelper, RenderMethods renderMethods);
+
+    void drawDetailPane(const std::vector<const Node *>& nodes, const Node* selectedNode = nullptr) override;
+
     const std::map<std::string, std::shared_ptr<Texture>> &getUsedTextures() const {
         return usedTextures;
     }
 
-    void buildRenderPipelineRecursive(Node *node, GraphicsPipeline *graphicsPipeline);
+    void buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline);
 };
 
 
