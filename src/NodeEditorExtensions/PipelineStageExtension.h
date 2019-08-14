@@ -9,11 +9,9 @@
 #include <map>
 #include <utility>
 
-
 #include <nodeGraph/src/NodeExtension.h>
 
-#include <Graphics/GLHelper.h>
-
+#include "Graphics/GLHelper.h"
 #include "PipelineExtension.h"
 
 class Connection;
