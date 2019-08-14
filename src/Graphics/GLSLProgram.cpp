@@ -12,7 +12,7 @@ GLSLProgram::GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::stri
 }
 
 GLSLProgram::GLSLProgram(GLHelper *glHelper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed) :
-        glHelper(glHelper), vertexShader(vertexShader), fragmentShader(fragmentShader), materialRequired(isMaterialUsed) {
+        glHelper(glHelper), vertexShader(vertexShader), geometryShader(geometryShader), fragmentShader(fragmentShader), materialRequired(isMaterialUsed) {
     programName = vertexShader +"|"+ geometryShader +"|"+ fragmentShader;
     programID = glHelper->initializeProgram(vertexShader, geometryShader, fragmentShader, uniformMap, outputMap);
 }

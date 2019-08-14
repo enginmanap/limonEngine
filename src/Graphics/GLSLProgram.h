@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <memory>
 #include "GLHelper.h"
 
 
@@ -16,6 +17,7 @@ class GLSLProgram {
     std::string programName;
 
     std::string vertexShader;
+    std::string geometryShader;
     std::string fragmentShader;
     std::unordered_map<std::string, const GLHelper::Uniform *> uniformMap;
     std::unordered_map<std::string, GLHelper::VariableTypes>outputMap;
@@ -101,6 +103,92 @@ public:
 
     bool IsMaterialRequired() const {
         return materialRequired;
+    }
+
+    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) {
+        tinyxml2::XMLElement *programNode = document.NewElement("GLSLProgram");
+        parentNode->InsertEndChild(programNode);
+        tinyxml2::XMLElement *currentElement = nullptr;
+
+        currentElement = document.NewElement("VertexShader");
+        currentElement->SetText(this->vertexShader.c_str());
+        programNode->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("GeometryShader");
+        currentElement->SetText(this->geometryShader.c_str());
+        programNode->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("FragmentShader");
+        currentElement->SetText(this->fragmentShader.c_str());
+        programNode->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("MaterialRequired");
+        if(materialRequired) {
+            currentElement->SetText("True");
+        } else {
+            currentElement->SetText("False");
+        }
+        return true;
+    }
+
+    static std::shared_ptr<GLSLProgram> deserialize(tinyxml2::XMLElement *programNode, GLHelper *glHelper) {
+        std::string vertexShader;
+        std::string geometryShader;
+        std::string fragmentShader;
+
+        tinyxml2::XMLElement* programNodeAttribute = programNode->FirstChildElement("VertexShader");
+        if (programNodeAttribute != nullptr) {
+            if(programNodeAttribute->GetText() == nullptr) {
+                std::cerr << "GLSL Program vertex shader has no text, this case is not handled!" << std::endl;
+                return nullptr;
+            } else {
+                vertexShader = programNodeAttribute->GetText();
+            }
+        }
+
+        programNodeAttribute = programNode->FirstChildElement("GeometryShader");
+        if (programNodeAttribute != nullptr) {
+            if(programNodeAttribute->GetText() == nullptr) {
+                std::cout << "GLSL Program geometry shader has no text." << std::endl;
+            } else {
+                geometryShader = programNodeAttribute->GetText();
+            }
+        }
+
+        programNodeAttribute = programNode->FirstChildElement("VertexShader");
+        if (programNodeAttribute != nullptr) {
+            if(programNodeAttribute->GetText() == nullptr) {
+                std::cerr << "GLSL Program vertex shader has no text, this case is not handled!" << std::endl;
+                return nullptr;
+            } else {
+                fragmentShader = programNodeAttribute->GetText();
+            }
+        }
+
+        bool materialRequired = false;
+        programNodeAttribute = programNode->FirstChildElement("MaterialRequired");
+        if (programNodeAttribute != nullptr) {
+            if(programNodeAttribute->GetText() == nullptr) {
+                std::cerr << "GLSL Program material required flag couldn't be read, assuming no!" << std::endl;
+            } else {
+                std::string materialRequiredString = programNodeAttribute->GetText();
+                if(materialRequiredString == "True") {
+                    materialRequired = true;
+                } else if(materialRequiredString == "False") {
+                    materialRequired = false;
+                } else {
+                    std::cerr << "GLSL Program material required flag is unknown, assuming no!" << std::endl;
+                }
+            }
+        } else {
+            std::cerr << "GLSL Program material required flag not found, assuming no!" << std::endl;
+        }
+
+        if(geometryShader.length() > 0 ) {
+            return glHelper->createGLSLProgram(vertexShader, geometryShader, fragmentShader, materialRequired);
+        } else {
+            return glHelper->createGLSLProgram(vertexShader, fragmentShader, materialRequired);
+        }
     }
 
 };
