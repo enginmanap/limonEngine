@@ -256,11 +256,11 @@ private:
     /**
      * This is not keeping shared_ptr because getting a shared_ptr from destructor is not logical
      */
-    std::map<GLSLProgram const * const, int> loadedPrograms;
+    std::map<std::shared_ptr<GLSLProgram>, int> loadedPrograms;
 
 public:
 
-    const std::map<const GLSLProgram *const, int> &getLoadedPrograms() const {
+    const std::map<std::shared_ptr<GLSLProgram>, int> &getLoadedPrograms() const {
         return loadedPrograms;
     }
 

@@ -795,33 +795,36 @@ GLHelper::~GLHelper() {
 
 std::shared_ptr<GLSLProgram> GLHelper::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) {
     std::shared_ptr<GLSLProgram> program(new GLSLProgram(this, vertexShader, geometryShader, fragmentShader, isMaterialUsed), std::bind(&GLHelper::testAndRemoveGLSLProgram, this, std::placeholders::_1));
-    if(loadedPrograms.find(program.get()) == loadedPrograms.end()) {
-        loadedPrograms[program.get()] = 1;
+    if(loadedPrograms.find(program) == loadedPrograms.end()) {
+        loadedPrograms[program] = 1;
     } else {
-        loadedPrograms[program.get()] += 1;
+        loadedPrograms[program] += 1;
     }
     return program;
 }
 std::shared_ptr<GLSLProgram> GLHelper::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) {
     std::shared_ptr<GLSLProgram> program(new GLSLProgram(this, vertexShader, fragmentShader, isMaterialUsed), std::bind(&GLHelper::testAndRemoveGLSLProgram, this, std::placeholders::_1));
-    if(loadedPrograms.find(program.get()) == loadedPrograms.end()) {
-        loadedPrograms[program.get()] = 1;
+    if(loadedPrograms.find(program) == loadedPrograms.end()) {
+        loadedPrograms[program] = 1;
     } else {
-        loadedPrograms[program.get()] += 1;
+        loadedPrograms[program] += 1;
     }
     return program;
 }
 
 void GLHelper::testAndRemoveGLSLProgram(GLSLProgram *program) {
-    if(loadedPrograms.find(program) != loadedPrograms.end()) {
-        if(loadedPrograms[program] == 1) {
-            loadedPrograms.erase(program);
-        } else {
-            loadedPrograms[program] -= 1;
+    //FIXME this is a hack until I remove loadedPrograms altogether.
+    for(auto iterator = loadedPrograms.begin(); iterator != loadedPrograms.end(); iterator++) {
+        if(iterator->first.get() == program) {
+            if(iterator->second == 1) {
+                loadedPrograms.erase(iterator);
+            } else {
+                iterator->second -= 1;
+            }
+            return;
         }
-    } else {
-        std::cerr << "Trying to remove a GLSL program ["<< program->getProgramName() <<"] that is not registered. Please check." << std::endl;
     }
+    std::cerr << "Trying to remove a GLSL program ["<< program->getProgramName() <<"] that is not registered. Please check." << std::endl;
 }
 
 void GLHelper::reshape() {
