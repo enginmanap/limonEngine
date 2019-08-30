@@ -14,7 +14,10 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
         if(inputTextureIndexes.find(connection) == inputTextureIndexes.end()) {
             inputTextureIndexes[connection] = 0;
         }
-        ImGui::InputInt((connection->getName() + " texture Attachment Index").c_str(), &(inputTextureIndexes[0]));
+        ImGui::InputInt((connection->getName() + " texture Attachment Index").c_str(), &(inputTextureIndexes[connection]));
+        if(inputTextureIndexes[connection] < 0) {
+            inputTextureIndexes[connection] = 0;//Don't allow negative values
+        }
     }
 
     auto usedTextures = this->pipelineExtension->getUsedTextures();
