@@ -21,8 +21,11 @@ class PipelineStageExtension : public NodeExtension {
     GLHelper::CullModes cullMode = GLHelper::CullModes::NO_CHANGE;
     bool clearBefore = false;
     bool blendEnabled = false;
+    bool anyOutputMultiLayered = false;
     bool toScreen = false;
     std::string currentMethodName = PipelineExtension::renderMethodNames[0];
+    static const std::string LIGHT_TYPES[];
+    unsigned int iterateOverLightType = 0;
     std::map<const Connection*, std::pair<std::string, std::shared_ptr<Texture>>> outputTextures;
     std::map<const Connection*, int> inputTextureIndexes;
     std::map<const Connection*, GLHelper::FrameBufferAttachPoints > outputTextureIndexes;

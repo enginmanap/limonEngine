@@ -5,8 +5,9 @@
 #include <nodeGraph/src/Connection.h>
 #include <nodeGraph/src/Node.h>
 #include "PipelineStageExtension.h"
+#include "../Graphics/Texture.h"
 
-
+const std::string PipelineStageExtension::LIGHT_TYPES[] = {"NONE", "DIRECTIONAL", "POINT" };
 
 void PipelineStageExtension::drawDetailPane(Node *node) {
     ImGui::Indent( 16.0f );
@@ -33,10 +34,20 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
                 currentTextureName = outputTextures[connection].first;
             }
             if (ImGui::BeginCombo(connection->getName().c_str(), currentTextureName.c_str())) {
-                for (auto it = usedTextures.begin();
-                     it != usedTextures.end(); it++) {
+                for (auto it = usedTextures.begin(); it != usedTextures.end(); it++) {
                     if (ImGui::Selectable(it->first.c_str())) {
                         outputTextures[connection] = std::make_pair(it->first, it->second);
+                        //On output change, lets check if any of the outputs is multi layered
+                        for(auto setOutput = outputTextures.begin(); setOutput != outputTextures.end(); setOutput++) {
+                            this->anyOutputMultiLayered = false;
+                            if(setOutput->second.second->getType() == GLHelper::TextureTypes::T2D_ARRAY ||
+                                setOutput->second.second->getType() == GLHelper::TextureTypes::TCUBE_MAP ||
+                                setOutput->second.second->getType() == GLHelper::TextureTypes::TCUBE_MAP_ARRAY
+                            ) {
+                                this->anyOutputMultiLayered = true;
+                                break;
+                            }
+                        }
                     }
                     if (currentTextureName == it->first) {
                         ImGui::SetItemDefaultFocus();
@@ -48,6 +59,7 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
         }
         ImGui::EndChild();
     }
+
     if (ImGui::CollapsingHeader("Render Settings##PipelineStageExtension")) {
         //ImGui::Text("Cull Mode##FromNodeExtensionSetting");
         ImGui::Text("Cull Mode");//FIXME this is possibly a bug, but it doesn't allow adding escaped text
@@ -74,6 +86,24 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
             }
             ImGui::EndCombo();
         }
+
+        if(anyOutputMultiLayered) {
+            ImGui::Text("The output is layered, what Limon should iterate over? ");
+            if (ImGui::BeginCombo("Iterate of##RenderMethodCombo", LIGHT_TYPES[iterateOverLightType].c_str())) {
+                for (size_t i = 0; i < sizeof(LIGHT_TYPES) / sizeof(LIGHT_TYPES[0]); ++i) {
+                    const std::string &methodName = LIGHT_TYPES[i];
+                    if (ImGui::Selectable(methodName.c_str())) {
+                        iterateOverLightType = i;
+                    }
+                    if (iterateOverLightType == i) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+        }
+
     }
+
     ImGui::Unindent( 16.0f );
 }
