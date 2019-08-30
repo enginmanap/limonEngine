@@ -10,7 +10,7 @@
 #include "Graphics/Texture.h"
 #include "PipelineStageExtension.h"
 
-std::string PipelineExtension::renderMethodNames[] { "None", "RenderLight", "RenderWorld", "RenderWorldTransparentObjects", "RenderGUI", "ImGuiFrameSetup"};
+std::vector<std::string> PipelineExtension::renderMethodNames { "None", "Render Light", "Render Opaque Objects", "Render Animated Objects", "Render Transparent Objects", "Render GUI", "Render Editor", "Render GUI"};
 PipelineExtension::PipelineExtension(GLHelper *glHelper, RenderMethods renderMethods) : glHelper(glHelper), renderMethods(renderMethods) {
     {
         //Add a texture to the list as place holder for screen
@@ -235,7 +235,6 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
         stageInfo.clear = stageExtension->isClearBefore();
         stageInfo.stage = newStage;
         std::function<void()> functionToCall;
-        //std::string PipelineExtension::renderMethodNames[] { "None", "RenderLight", "RenderWorld", "RenderWorldTransparentObjects", "RenderGUI", "ImGuiFrameSetup"};
         if(stageExtension->getMethodName() == "None") {
             functionToCall =  [](){};
             std::cerr << "Building graphics pipeline with empty method, are you sure that was set correctly?" << std::endl;

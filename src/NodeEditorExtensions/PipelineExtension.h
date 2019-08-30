@@ -10,12 +10,13 @@
 #include "Graphics/GLHelper.h"
 
 #include <functional>
+#include <vector>
 
 class GraphicsPipeline;
 
 class PipelineExtension : public EditorExtension {
 public:
-    static std::string renderMethodNames[];
+    static std::vector<std::string> renderMethodNames;//This is not array, because custom effects might be loaded on runtime as extensions.
     struct RenderMethods {
         std::function<void(unsigned int, std::shared_ptr<GLSLProgram>)> renderLight;
         std::function<void()> renderWorld;
