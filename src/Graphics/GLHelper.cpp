@@ -7,7 +7,6 @@
 
 #include "GameObjects/Light.h"
 #include "Material.h"
-#include "GameObjects/Model.h"
 #include "Utils/GLMUtils.h"
 #include "Texture.h"
 
