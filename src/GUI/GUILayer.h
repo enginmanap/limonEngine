@@ -39,7 +39,8 @@ public:
 
     std::vector<GameObject*> getGuiElements();
 
-    void renderWithProgram(std::shared_ptr<GLSLProgram> textRenderProgram, std::shared_ptr<GLSLProgram> imageRenderProgram);
+    void renderTextWithProgram(std::shared_ptr<GLSLProgram> renderProgram);
+    void renderImageWithProgram(std::shared_ptr<GLSLProgram> renderProgram);
 
     void setupForTime(long time);
 

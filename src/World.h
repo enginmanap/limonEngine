@@ -390,9 +390,9 @@ private:
     void createNodeGraph();
 
     void renderLight(unsigned int lightIndex, std::shared_ptr<GLSLProgram> renderProgram) const;
-    void renderWorld() const;
-    void renderWorldTransparentObjects() const;
-    void renderGUI() const;
+    void renderTransparentObjects() const;
+    void renderGUIImages() const;
+    void renderGUITexts() const;
     void renderSky() const;
     void renderOpaqueObjects() const;
     void renderAnimatedObjects() const;

@@ -19,10 +19,15 @@ public:
     static std::vector<std::string> renderMethodNames;//This is not array, because custom effects might be loaded on runtime as extensions.
     struct RenderMethods {
         std::function<void(unsigned int, std::shared_ptr<GLSLProgram>)> renderLight;
-        std::function<void()> renderWorld;
-        std::function<void()> renderWorldTransparentObjects;
-        std::function<void()> renderGUI;
-        std::function<void()> ImGuiFrameSetup;
+        std::function<void()> renderOpaqueObjects;
+        std::function<void()> renderAnimatedObjects;
+        std::function<void()> renderTransparentObjects;
+        std::function<void()> renderGUITexts;
+        std::function<void()> renderGUIImages;
+        std::function<void()> renderPlayerAttachment;
+        std::function<void()> renderSky;
+        std::function<void()> renderEditor;
+        std::function<void()> renderDebug;
     };
 private:
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;
@@ -30,8 +35,6 @@ private:
     static bool getNameOfTexture(void* data, int index, const char** outText);
     RenderMethods renderMethods;
 public:
-
-
 
     PipelineExtension(GLHelper* glHelper, RenderMethods renderMethods);
 

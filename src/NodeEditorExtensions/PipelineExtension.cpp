@@ -10,7 +10,7 @@
 #include "Graphics/Texture.h"
 #include "PipelineStageExtension.h"
 
-std::vector<std::string> PipelineExtension::renderMethodNames { "None", "Render Light", "Render Opaque Objects", "Render Animated Objects", "Render Transparent Objects", "Render GUI", "Render Editor", "Render sky", "Render Debug Information", "Render Player Attachment"};
+std::vector<std::string> PipelineExtension::renderMethodNames { "None", "Render Light", "Render Opaque Objects", "Render Animated Objects", "Render Transparent Objects", "Render GUI Texts", "Render GUI Images", "Render Editor", "Render sky", "Render Debug Information", "Render Player Attachment"};
 PipelineExtension::PipelineExtension(GLHelper *glHelper, RenderMethods renderMethods) : glHelper(glHelper), renderMethods(renderMethods) {
     {
         //Add a texture to the list as place holder for screen
@@ -238,17 +238,27 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
         if(stageExtension->getMethodName() == "None") {
             functionToCall =  [](){};
             std::cerr << "Building graphics pipeline with empty method, are you sure that was set correctly?" << std::endl;
-        } else if(stageExtension->getMethodName() == "RenderLight") {
+        } else if(stageExtension->getMethodName() == "Render Light") {
             std::shared_ptr<GLSLProgram> shadowMapProgramDirectional = nullptr;
             functionToCall =  [&](){renderMethods.renderLight(1, shadowMapProgramDirectional);};
-        } else if(stageExtension->getMethodName() == "RenderWorld") {
-            functionToCall =  renderMethods.renderWorld;
-        } else if(stageExtension->getMethodName() == "RenderWorldTransparentObjects") {
-            functionToCall =  renderMethods.renderWorldTransparentObjects;
-        } else if(stageExtension->getMethodName() == "RenderGUI") {
-            functionToCall = renderMethods.renderGUI;
-        } else if(stageExtension->getMethodName() == "ImGuiFrameSetup") {
-        functionToCall = renderMethods.ImGuiFrameSetup;
+        } else if(stageExtension->getMethodName() == "Render Opaque Objects") {
+            functionToCall =  renderMethods.renderOpaqueObjects;
+        } else if(stageExtension->getMethodName() == "Render Animated Objects") {
+            functionToCall =  renderMethods.renderAnimatedObjects;
+        } else if(stageExtension->getMethodName() == "Render Transparent Objects") {
+            functionToCall =  renderMethods.renderTransparentObjects;
+        } else if(stageExtension->getMethodName() == "Render GUI Texts") {
+            functionToCall = renderMethods.renderGUITexts;
+        } else if(stageExtension->getMethodName() == "Render GUI Images") {
+            functionToCall = renderMethods.renderGUIImages;
+        } else if(stageExtension->getMethodName() == "Render Editor") {
+            functionToCall = renderMethods.renderEditor;
+        } else if(stageExtension->getMethodName() == "Render sky") {
+            functionToCall = renderMethods.renderSky;
+        } else if(stageExtension->getMethodName() == "Render Debug Information") {
+            functionToCall = renderMethods.renderDebug;
+        } else if(stageExtension->getMethodName() == "Render Player Attachment") {
+            functionToCall = renderMethods.renderPlayerAttachment;
         }
 
         graphicsPipeline->addNewStage(stageInfo, functionToCall);

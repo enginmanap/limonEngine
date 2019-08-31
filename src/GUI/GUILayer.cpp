@@ -12,22 +12,32 @@
 
 class Options;
 
-void GUILayer::renderWithProgram(std::shared_ptr<GLSLProgram> textRenderProgram, std::shared_ptr<GLSLProgram> imageRenderProgram) {
-    for (auto it = guiElements.begin(); it != guiElements.end(); ++it) {
-        if(it->second == RenderTypes::TEXT) {
-            it->first->renderWithProgram(textRenderProgram);
-        }
-    }
-
+void GUILayer::renderImageWithProgram(std::shared_ptr<GLSLProgram> renderProgram){
     for (auto it = guiElements.begin(); it != guiElements.end(); ++it) {
         if(it->second == RenderTypes::IMAGE) {
-            it->first->renderWithProgram(imageRenderProgram);
+            it->first->renderWithProgram(renderProgram);
         }
     }
-
     if (isDebug) {
         for (auto it = guiElements.begin(); it != guiElements.end(); ++it) {
-            it->first->renderDebug(debugDrawer);
+            if(it->second == RenderTypes::IMAGE) {
+                it->first->renderDebug(debugDrawer);
+            }
+        }
+    }
+}
+
+void GUILayer::renderTextWithProgram(std::shared_ptr<GLSLProgram> renderProgram){
+    for (auto it = guiElements.begin(); it != guiElements.end(); ++it) {
+        if(it->second == RenderTypes::TEXT) {
+            it->first->renderWithProgram(renderProgram);
+        }
+    }
+    if (isDebug) {
+        for (auto it = guiElements.begin(); it != guiElements.end(); ++it) {
+            if(it->second == RenderTypes::TEXT) {
+                it->first->renderDebug(debugDrawer);
+            }
         }
     }
 }

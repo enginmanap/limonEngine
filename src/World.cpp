@@ -270,8 +270,13 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     GraphicsPipeline::StageInfo stageInfo;
     stageInfo.clear = true;
     stageInfo.stage = coloringStage;
-    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderWorld, this));
+    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderPlayerAttachmentObjects, this));
     stageInfo.clear = false;
+    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderOpaqueObjects, this));
+    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderAnimatedObjects, this));
+    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderDebug, this));
+    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderSky, this));
+
     stageInfo.stage = ssaoGenerationStage;
     defaultRenderPipeline->addNewStage(stageInfo, std::bind(&SSAOPostProcess::render, this->ssaoPostProcess));
 
@@ -283,9 +288,10 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     defaultRenderPipeline->addNewStage(stageInfo, std::bind(&CombinePostProcess::render, this->combiningObject));
 
     stageInfo.clear = false;
-    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderWorldTransparentObjects, this));
+    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderTransparentObjects, this));
 
-    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderGUI, this));
+    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderGUITexts, this));
+    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderGUIImages, this));
 
     defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::ImGuiFrameSetup, this));
 
@@ -849,27 +855,35 @@ void World::render() {
     defaultRenderPipeline->render();
 }
 
-void World::renderGUI() const {
+void World::renderGUIImages() const {
+    cursor->renderWithProgram(imageRenderProgram);
+
     for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
-        (*it)->renderWithProgram(textRenderProgram, imageRenderProgram);
+        (*it)->renderImageWithProgram(imageRenderProgram);
     }
+    //render API gui layer
+    apiGUILayer->renderImageWithProgram(imageRenderProgram);
 
-   cursor->renderWithProgram(imageRenderProgram);
-   if (options->getRenderInformations()) {
-       renderCounts->renderWithProgram(textRenderProgram);
-       debugOutputGUI->renderWithProgram(textRenderProgram);
-       fpsCounter->renderWithProgram(textRenderProgram);
-   }
-
-   //render API gui layer
-    apiGUILayer->renderWithProgram(textRenderProgram, imageRenderProgram);
-
-   uint32_t triangle, line;
-   glHelper->getRenderTriangleAndLineCount(triangle, line);
-   renderCounts->updateText("Tris: " + std::to_string(triangle) + ", lines: " + std::to_string(line));
 }
 
-void World::renderWorldTransparentObjects() const {
+void World::renderGUITexts() const {
+    for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
+        (*it)->renderTextWithProgram(textRenderProgram);
+    }
+    //render API gui layer
+    apiGUILayer->renderTextWithProgram(textRenderProgram);
+
+    uint32_t triangle, line;
+    glHelper->getRenderTriangleAndLineCount(triangle, line);
+    renderCounts->updateText("Tris: " + std::to_string(triangle) + ", lines: " + std::to_string(line));
+    if (options->getRenderInformations()) {
+        renderCounts->renderWithProgram(textRenderProgram);
+        debugOutputGUI->renderWithProgram(textRenderProgram);
+        fpsCounter->renderWithProgram(textRenderProgram);
+    }
+}
+
+void World::renderTransparentObjects() const {
    for (auto modelIterator = transparentModelsInCameraFrustum.begin(); modelIterator != transparentModelsInCameraFrustum.end(); ++modelIterator) {
        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
        std::set<Model *> modelSet = modelIterator->second;
@@ -884,21 +898,6 @@ void World::renderWorldTransparentObjects() const {
            sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(transparentModelProgram.get()));
        }
    }
-}
-
-/**
- * This step renders:
- * sky
- * World
- * Debug
- * Player attachment
- */
-void World::renderWorld() const {
-    renderPlayerAttachmentObjects();
-    renderOpaqueObjects();
-    renderAnimatedObjects();
-    renderDebug();
-    renderSky();
 }
 
 void World::renderDebug() const {
@@ -4282,10 +4281,17 @@ void World::createNodeGraph() {
 
     auto programs = glHelper->getLoadedPrograms();
     PipelineExtension::RenderMethods renderMethods;
-    renderMethods.renderGUI = std::bind(&World::renderGUI, this);
+
     renderMethods.renderLight = std::bind(&World::renderLight, this,std::placeholders::_1, std::placeholders::_2);
-    renderMethods.renderWorld = std::bind(&World::renderWorld, this);
-    renderMethods.renderWorldTransparentObjects = std::bind(&World::renderWorldTransparentObjects, this);
+    renderMethods.renderOpaqueObjects = std::bind(&World::renderOpaqueObjects, this);
+    renderMethods.renderAnimatedObjects = std::bind(&World::renderAnimatedObjects, this);
+    renderMethods.renderTransparentObjects = std::bind(&World::renderTransparentObjects, this);
+    renderMethods.renderGUITexts = std::bind(&World::renderGUITexts, this);
+    renderMethods.renderGUIImages = std::bind(&World::renderGUIImages, this);
+    renderMethods.renderEditor = std::bind(&World::ImGuiFrameSetup, this);
+    renderMethods.renderSky = std::bind(&World::renderSky, this);
+    renderMethods.renderDebug = std::bind(&World::renderDebug, this);
+    renderMethods.renderPlayerAttachment = std::bind(&World::renderPlayerAttachmentObjects, this);
 
     pipelineExtension = new PipelineExtension(glHelper, renderMethods);
 
