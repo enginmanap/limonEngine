@@ -213,26 +213,22 @@ bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
     return true;
 }
 */
-void Model::render() {
-    std::cerr << "Model render method is a place holder, renderWithProgram should be used!" << std::endl;
-}
 
-
-void Model::renderWithProgram(GLSLProgram &program) {
-    glHelper->attachModelUBO(program.getID());
+void Model::renderWithProgram(std::shared_ptr<GLSLProgram> program){
+    glHelper->attachModelUBO(program->getID());
     for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
 
         if (animated) {
             //set all of the bones to unitTransform for testing
-            program.setUniformArray("boneTransformArray[0]", boneTransforms);
-            program.setUniform("isAnimated", true);
+            program->setUniformArray("boneTransformArray[0]", boneTransforms);
+            program->setUniform("isAnimated", true);
         } else {
-            program.setUniform("isAnimated", false);
+            program->setUniform("isAnimated", false);
         }
-        if(program.IsMaterialRequired()) {
-            glHelper->attachMaterialUBO(program.getID(), (*iter)->mesh->getMaterial()->getMaterialIndex());
+        if(program->IsMaterialRequired()) {
+            glHelper->attachMaterialUBO(program->getID(), (*iter)->mesh->getMaterial()->getMaterialIndex());
         }
-        glHelper->render(program.getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount() * 3);
+        glHelper->render(program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount() * 3);
     }
 }
 

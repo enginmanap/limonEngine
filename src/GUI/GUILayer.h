@@ -17,7 +17,8 @@ class GUILayer {
     BulletDebugDrawer* debugDrawer;
     uint32_t level;
     bool isDebug;
-    std::vector<GUIRenderable *> guiElements;
+    enum class RenderTypes {TEXT, IMAGE };
+    std::vector<std::pair<GUIRenderable *, RenderTypes>> guiElements;
 
 public:
     GUILayer(GLHelper *glHelper, BulletDebugDrawer* debugDrawer, uint32_t level) : glHelper(glHelper), debugDrawer(debugDrawer), level(level), isDebug(false) { };
@@ -38,7 +39,7 @@ public:
 
     std::vector<GameObject*> getGuiElements();
 
-    void render();
+    void renderWithProgram(std::shared_ptr<GLSLProgram> textRenderProgram, std::shared_ptr<GLSLProgram> imageRenderProgram);
 
     void setupForTime(long time);
 

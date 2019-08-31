@@ -6,7 +6,7 @@
 #include "Model.h"
 #include "../../libs/ImGui/imgui.h"
 
-void ModelGroup::renderWithProgram(GLSLProgram &program) {
+void ModelGroup::renderWithProgram(std::shared_ptr<GLSLProgram> program){
     std::cerr << "Model Groups render with program used, it was not planned, nor tested." << std::endl;
     for (auto renderable = children.begin(); renderable != children.end(); ++renderable) {
         (*renderable)->renderWithProgram(program);
@@ -43,13 +43,6 @@ bool ModelGroup::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLEleme
         }
     }
     return true;
-}
-
-void ModelGroup::render() {
-    std::cerr << "Model Groups render used, it was not planned, nor tested." << std::endl;
-    for (auto renderable = children.begin(); renderable != children.end(); ++renderable) {
-        (*renderable)->render();
-    }
 }
 
 void ModelGroup::setupForTime(long time) {

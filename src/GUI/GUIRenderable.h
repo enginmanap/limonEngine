@@ -24,7 +24,7 @@ public:
     explicit GUIRenderable(GLHelper *glHelper);
 
 
-    virtual ~GUIRenderable() {}
+    virtual ~GUIRenderable() = default;
     /**
      * the position on x,y coordinates, and clockwise rotation as radian
      */

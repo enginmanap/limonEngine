@@ -96,6 +96,13 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     animatedModelProgram       = glHelper->createGLSLProgram("./Engine/Shaders/ModelAnimated/vertex.glsl",
                                                                                         "./Engine/Shaders/ModelAnimated/fragment.glsl", true);
+
+    skyBoxProgram               = glHelper->createGLSLProgram("./Engine/Shaders/SkyCube/vertex.glsl", "./Engine/Shaders/SkyCube/fragment.glsl", false);
+
+    textRenderProgram           = glHelper->createGLSLProgram("./Engine/Shaders/GUIText/vertex.glsl", "./Engine/Shaders/GUIText/fragment.glsl", false);
+
+    imageRenderProgram          = glHelper->createGLSLProgram("./Engine/Shaders/GUIImage/vertex.glsl", "./Engine/Shaders/GUIImage/fragment.glsl", false);
+
     setSamplersAndUBOs(animatedModelProgram, false);
 
     apiGUILayer = new GUILayer(glHelper, debugDrawer, 1);
@@ -843,15 +850,19 @@ void World::render() {
 }
 
 void World::renderGUI() const {
-   cursor->render();
+    for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
+        (*it)->renderWithProgram(textRenderProgram, imageRenderProgram);
+    }
+
+   cursor->renderWithProgram(imageRenderProgram);
    if (options->getRenderInformations()) {
-       renderCounts->render();
-       debugOutputGUI->render();
-       fpsCounter->render();
+       renderCounts->renderWithProgram(textRenderProgram);
+       debugOutputGUI->renderWithProgram(textRenderProgram);
+       fpsCounter->renderWithProgram(textRenderProgram);
    }
 
    //render API gui layer
-   apiGUILayer->render();
+    apiGUILayer->renderWithProgram(textRenderProgram, imageRenderProgram);
 
    uint32_t triangle, line;
    glHelper->getRenderTriangleAndLineCount(triangle, line);
@@ -872,10 +883,6 @@ void World::renderWorldTransparentObjects() const {
        if (sampleModel != nullptr) {
            sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(transparentModelProgram.get()));
        }
-   }
-
-   for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
-       (*it)->render();
    }
 }
 
@@ -939,7 +946,7 @@ void World::renderOpaqueObjects() const {
 
 void World::renderSky() const {
    if (sky != nullptr) {
-       sky->render();//this is moved to the top, because transparency can create issues if this is at the end
+       sky->renderWithProgram(skyBoxProgram);
    }
 }
 

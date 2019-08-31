@@ -11,11 +11,6 @@ std::shared_ptr<GLSLProgram> GUIImageBase::imageRenderProgram = nullptr;
 
 GUIImageBase::GUIImageBase(GLHelper *glHelper, AssetManager *assetManager, const std::string &imageFile) : GUIRenderable(glHelper), assetManager(assetManager), imageFile(imageFile) {
     image = assetManager->loadAsset<TextureAsset>({imageFile});
-    if(imageRenderProgram == nullptr) {
-        imageRenderProgram = glHelper->createGLSLProgram("./Engine/Shaders/GUIImage/vertex.glsl", "./Engine/Shaders/GUIImage/fragment.glsl", false);
-    }
-    this->renderProgram = imageRenderProgram;
-
     this->setScale(image->getHeight() /2.0f,image->getWidth() /2.0f);// split in half, because the quad is -1 to 1, meaning it is 2 units long.
 }
 
@@ -24,7 +19,7 @@ GUIImageBase::~GUIImageBase() {
     //delete renderProgram;// since the program is shared, don't remove
 }
 
-void GUIImageBase::render() {
+void GUIImageBase::renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram){
 
     renderProgram->setUniform("orthogonalProjectionMatrix", glHelper->getOrthogonalProjectionMatrix());
 

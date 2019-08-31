@@ -238,6 +238,11 @@ private:
     std::shared_ptr<GLSLProgram> nonTransparentModelProgram = nullptr;
     std::shared_ptr<GLSLProgram> transparentModelProgram = nullptr;
     std::shared_ptr<GLSLProgram> animatedModelProgram = nullptr;
+
+    std::shared_ptr<GLSLProgram> skyBoxProgram = nullptr;
+    std::shared_ptr<GLSLProgram> textRenderProgram = nullptr;
+    std::shared_ptr<GLSLProgram> imageRenderProgram = nullptr;
+
     FontManager fontManager;
 
     PlayerInfo startingPlayer;

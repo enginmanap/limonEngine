@@ -76,7 +76,7 @@ public:
 
     virtual void updateTransformFromPhysics();
 
-    virtual void renderWithProgram(GLSLProgram &program) = 0;
+    virtual void renderWithProgram(std::shared_ptr<GLSLProgram> program) = 0;
 
     float getMass() const {
         return mass;

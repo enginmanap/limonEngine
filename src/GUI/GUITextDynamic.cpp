@@ -6,7 +6,7 @@
 #include "GUITextDynamic.h"
 
 
-void GUITextDynamic::render() {
+void GUITextDynamic::renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram) {
     //first move all logs to our list
     Logger::LogLine* logLine = source->getLog();
     while(logLine != nullptr) {

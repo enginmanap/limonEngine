@@ -17,8 +17,7 @@ public:
 
 public:
 
-    void render() override;
-
+    void renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram) override;
 
     bool isHidden() {
         return hidden;

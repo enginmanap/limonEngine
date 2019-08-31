@@ -21,7 +21,7 @@ public:
             previousFrameTimes{0}, lastRenderTime(0), lastFrameTime(0), framePointer(0) {
     }
 
-    void render();
+    void renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram) override;
 
     void updateFPS();
 };

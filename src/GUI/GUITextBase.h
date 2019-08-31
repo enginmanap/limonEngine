@@ -37,7 +37,7 @@ public:
     };
 
 
-    virtual void render();
+    virtual void renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram) override;
 
     virtual void renderDebug(BulletDebugDrawer *debugDrawer);
 

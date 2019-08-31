@@ -23,7 +23,7 @@ public:
     GUIImageBase(GLHelper *glHelper, AssetManager *assetManager, const std::string &imageFile);
     virtual ~GUIImageBase();
 
-    virtual void render() override;
+    virtual void renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram) override;
 
     void getAABB(glm::vec2 &aabbMin, glm::vec2 &aabbMax) const override;
 

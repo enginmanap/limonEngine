@@ -41,14 +41,10 @@ void GUITextBase::calculateSizes() {
 GUITextBase::GUITextBase(GLHelper *glHelper, Face *face, const std::string text, const glm::vec3 color) :
         GUIRenderable(glHelper), text(text), color(color.x / 256, color.y / 256, color.z / 256), face(face), height(0),
         width(0), bearingUp(0) {
-    if(textRenderProgram == nullptr) {
-        textRenderProgram = glHelper->createGLSLProgram("./Engine/Shaders/GUIText/vertex.glsl", "./Engine/Shaders/GUIText/fragment.glsl", false);
-    }
-    this->renderProgram = textRenderProgram;
     calculateSizes();
 }
 
-void GUITextBase::render() {
+void GUITextBase::renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram){
 
     float totalAdvance = 0.0f;
 

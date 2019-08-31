@@ -96,9 +96,7 @@ public:
 
     void setupForTime(long time);
 
-    void render();
-
-    void renderWithProgram(GLSLProgram &program);
+    void renderWithProgram(std::shared_ptr<GLSLProgram> program);
 
 
     void renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GLSLProgram &program);

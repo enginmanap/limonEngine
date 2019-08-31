@@ -49,12 +49,9 @@ SkyBox::SkyBox(uint32_t objectID, AssetManager *assetManager, std::string path, 
     uint_fast32_t vbo;
     glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
     bufferObjects.push_back(vbo);
-
-    renderProgram = glHelper->createGLSLProgram("./Engine/Shaders/SkyCube/vertex.glsl",
-                                    "./Engine/Shaders/SkyCube/fragment.glsl", false);
 }
 
-void SkyBox::render() {
+void SkyBox::renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram){
     int texturePoint = 1;
 
     glHelper->attachCubeMap(cubeMap->getID(), texturePoint);

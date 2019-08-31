@@ -20,7 +20,6 @@ protected:
     std::vector<bool> inLightFrustum;
     uint_fast32_t vao, ebo;
     GLHelper *glHelper;
-    std::shared_ptr<GLSLProgram> renderProgram = nullptr;
     bool isInCameraFrustum = true;
     bool dirtyForFrustum = true;//is this object require a frustum recalculate
     bool customAnimation = false;
@@ -32,7 +31,7 @@ protected:
 
 public:
 
-    virtual void render() = 0;
+    virtual void renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram) = 0;
 
     virtual void setupForTime(long time) = 0;
 
