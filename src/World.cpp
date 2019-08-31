@@ -886,32 +886,15 @@ void World::renderWorldTransparentObjects() const {
  * Debug
  * Player attachment
  */
-void World::renderWorld() {
-   if (sky != nullptr) {
-       sky->render();//this is moved to the top, because transparency can create issues if this is at the end
-   }
+void World::renderWorld() const {
+    renderPlayerAttachmentObjects();
+    renderOpaqueObjects();
+    renderAnimatedObjects();
+    renderDebug();
+    renderSky();
+}
 
-   for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
-       //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-       std::set<Model *> modelSet = modelIterator->second;
-       modelIndicesBuffer.clear();
-       Model *sampleModel = nullptr;
-       for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
-           //all of these models will be rendered
-           modelIndicesBuffer.push_back((*model)->getWorldObjectID());
-           sampleModel = *model;
-       }
-       if (sampleModel != nullptr) {
-           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(nonTransparentModelProgram.get()));
-       }
-   }
-
-   for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
-       std::vector<uint32_t> temp;
-       temp.push_back((*modelIterator)->getWorldObjectID());
-       (*modelIterator)->renderWithProgramInstanced(temp, *(animatedModelProgram.get()));
-   }
-
+void World::renderDebug() const {
    dynamicsWorld->debugDrawWorld();
    if (dynamicsWorld->getDebugDrawer()->getDebugMode() != btIDebugDraw::DBG_NoDebug) {
        debugDrawer->drawLine(btVector3(0, 0, 0), btVector3(0, 250, 0), btVector3(1, 1, 1));
@@ -920,37 +903,44 @@ void World::renderWorld() {
            grid->debugDraw(debugDrawer);
        }
    }
-
-   if (currentPlayersSettings->editorShown) { //if editor is shown, render wireframe of the triggers
-       for (auto it = triggers.begin(); it != triggers.end(); ++it) {
-           it->second->render(debugDrawer);
-       }
-       if (physicalPlayer != nullptr) {
-           if (playerPlaceHolder == nullptr) {
-               std::string assetFile;
-               glm::vec3 scale;
-               physicalPlayer->getRenderProperties(assetFile, scale);
-               playerPlaceHolder = new Model(getNextObjectID(), assetManager, 0, assetFile, true);
-               playerPlaceHolder->getTransformation()->setScale(scale);
-           }
-
-           startingPlayer.orientation = physicalPlayer->getLookDirection();
-           startingPlayer.position = physicalPlayer->getPosition();
-
-           playerPlaceHolder->getTransformation()->setTranslate(physicalPlayer->getPosition());
-           playerPlaceHolder->getTransformation()->setOrientation(physicalPlayer->getLookDirectionQuaternion());
-           std::vector<uint32_t> temp;
-           temp.push_back(playerPlaceHolder->getWorldObjectID());
-           playerPlaceHolder->renderWithProgramInstanced(temp, *(nonTransparentModelProgram.get()));
-       }
-   }
-
-   if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attched model if dead
-       Model *attachedModel = startingPlayer.attachedModel;
-       renderPlayerAttachments(attachedModel);
-   }
-
    debugDrawer->flushDraws();
+}
+
+void World::renderPlayerAttachmentObjects() const {
+   if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
+       Model *attachedModel = startingPlayer.attachedModel;
+       renderPlayerAttachmentsRecursive(attachedModel);
+   }
+}
+
+void World::renderAnimatedObjects() const {
+    for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
+       std::vector<uint32_t> temp;
+       temp.push_back((*modelIterator)->getWorldObjectID());
+       (*modelIterator)->renderWithProgramInstanced(temp, *(animatedModelProgram.get()));
+    }
+}
+
+void World::renderOpaqueObjects() const {
+   for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
+       //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
+       std::set<Model *> modelSet = modelIterator->second;
+       if(modelSet.size() > 0 ) {
+           modelIndicesBuffer.clear();
+           Model *sampleModel = *(modelSet.begin());
+           for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
+               //all of these models will be rendered
+               modelIndicesBuffer.push_back((*model)->getWorldObjectID());
+           }
+           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(nonTransparentModelProgram.get()));
+       }
+   }
+}
+
+void World::renderSky() const {
+   if (sky != nullptr) {
+       sky->render();//this is moved to the top, because transparency can create issues if this is at the end
+   }
 }
 
 void World::renderLight(unsigned int lightIndex, std::shared_ptr<GLSLProgram> renderProgram) const {
@@ -978,7 +968,7 @@ void World::renderLight(unsigned int lightIndex, std::shared_ptr<GLSLProgram> re
    }
 }
 
-void World::renderPlayerAttachments(GameObject *attachment) const {
+void World::renderPlayerAttachmentsRecursive(GameObject *attachment) const {
  if(attachment->getTypeID() == GameObject::MODEL) {
      Model* attachedModel = static_cast<Model*>(attachment);
      attachedModel->setupForTime(gameTime);
@@ -998,7 +988,7 @@ void World::renderPlayerAttachments(GameObject *attachment) const {
          for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
              GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
              if(gameObject != nullptr) {
-                 renderPlayerAttachments(gameObject);
+                 renderPlayerAttachmentsRecursive(gameObject);
              }
          }
      }
@@ -1012,7 +1002,7 @@ void World::renderPlayerAttachments(GameObject *attachment) const {
          for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
              GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
              if(gameObject != nullptr) {
-                 renderPlayerAttachments(gameObject);
+                 renderPlayerAttachmentsRecursive(gameObject);
              }
          }
      }
@@ -1041,6 +1031,31 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
    if(!currentPlayersSettings->editorShown) {
        return;
    }
+
+   //Render Trigger volumes
+   for (auto it = triggers.begin(); it != triggers.end(); ++it) {
+       it->second->render(debugDrawer);
+   }
+   //Render player place holder
+   if (physicalPlayer != nullptr) {
+       if (playerPlaceHolder == nullptr) {
+           std::string assetFile;
+           glm::vec3 scale;
+           physicalPlayer->getRenderProperties(assetFile, scale);
+           playerPlaceHolder = new Model(getNextObjectID(), assetManager, 0, assetFile, true);
+           playerPlaceHolder->getTransformation()->setScale(scale);
+       }
+
+       startingPlayer.orientation = physicalPlayer->getLookDirection();
+       startingPlayer.position = physicalPlayer->getPosition();
+
+       playerPlaceHolder->getTransformation()->setTranslate(physicalPlayer->getPosition());
+       playerPlaceHolder->getTransformation()->setOrientation(physicalPlayer->getLookDirectionQuaternion());
+       std::vector<uint32_t> temp;
+       temp.push_back(playerPlaceHolder->getWorldObjectID());
+       playerPlaceHolder->renderWithProgramInstanced(temp, *(nonTransparentModelProgram.get()));
+   }
+
     imgGuiHelper->NewFrame();
     if(showNodeGraph) {
         drawNodeEditor();

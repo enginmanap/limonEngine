@@ -10,7 +10,7 @@
 #include "Graphics/Texture.h"
 #include "PipelineStageExtension.h"
 
-std::vector<std::string> PipelineExtension::renderMethodNames { "None", "Render Light", "Render Opaque Objects", "Render Animated Objects", "Render Transparent Objects", "Render GUI", "Render Editor", "Render sky"};
+std::vector<std::string> PipelineExtension::renderMethodNames { "None", "Render Light", "Render Opaque Objects", "Render Animated Objects", "Render Transparent Objects", "Render GUI", "Render Editor", "Render sky", "Render Debug Information", "Render Player Attachment"};
 PipelineExtension::PipelineExtension(GLHelper *glHelper, RenderMethods renderMethods) : glHelper(glHelper), renderMethods(renderMethods) {
     {
         //Add a texture to the list as place holder for screen

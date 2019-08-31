@@ -370,24 +370,29 @@ private:
     void addGUILayerControls();
 /********** Editor Methods *********************/
     void drawNodeEditor();
-    //API methods
 
+    //API methods
     Model* findModelByID(uint32_t modelID) const;
     Model* findModelByIDChildren(PhysicalRenderable* parent ,uint32_t modelID) const;
 
     std::vector<LimonAPI::ParameterRequest>
     fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) const;
 
-    void renderPlayerAttachments(GameObject *attachment) const;
-    void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment);
+    void renderPlayerAttachmentsRecursive(GameObject *attachment) const;
 
-    void renderLight(unsigned int lightIndex, std::shared_ptr<GLSLProgram> renderProgram) const;
-    void renderWorld();
-    void renderWorldTransparentObjects() const;
-    void renderGUI() const;
+    void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment);
 
     void createNodeGraph();
 
+    void renderLight(unsigned int lightIndex, std::shared_ptr<GLSLProgram> renderProgram) const;
+    void renderWorld() const;
+    void renderWorldTransparentObjects() const;
+    void renderGUI() const;
+    void renderSky() const;
+    void renderOpaqueObjects() const;
+    void renderAnimatedObjects() const;
+    void renderPlayerAttachmentObjects() const;
+    void renderDebug() const;
 
     //TODO remove with material editor
     void setSamplersAndUBOs(std::shared_ptr<GLSLProgram>& program, bool setOpacity);
