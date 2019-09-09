@@ -9,6 +9,7 @@
 #include "PipelineExtension.h"
 #include "Graphics/Texture.h"
 #include "PipelineStageExtension.h"
+#include "Graphics/GLSLProgram.h"
 
 std::vector<std::string> PipelineExtension::renderMethodNames { "None", "Render Light", "Render Opaque Objects", "Render Animated Objects", "Render Transparent Objects", "Render GUI Texts", "Render GUI Images", "Render Editor", "Render sky", "Render Debug Information", "Render Player Attachment"};
 PipelineExtension::PipelineExtension(GLHelper *glHelper, RenderMethods renderMethods) : glHelper(glHelper), renderMethods(renderMethods) {
@@ -230,17 +231,19 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
             }
         }
 
+        //TODO: The program that was used too create the node should be accessable
+        std::shared_ptr<GLSLProgram> nodeProgram = nullptr;
         newStage->setCullMode(stageExtension->getCullmode());
         GraphicsPipeline::StageInfo stageInfo;
         stageInfo.clear = stageExtension->isClearBefore();
         stageInfo.stage = newStage;
-        std::function<void()> functionToCall;
+        std::function<void(const std::shared_ptr<GLSLProgram>&)> functionToCall;
         if(stageExtension->getMethodName() == "None") {
-            functionToCall =  [](){};
+            functionToCall =  [](const std::shared_ptr<GLSLProgram>& notUsed[[gnu::unused]]){};
             std::cerr << "Building graphics pipeline with empty method, are you sure that was set correctly?" << std::endl;
         } else if(stageExtension->getMethodName() == "Render Light") {
             std::shared_ptr<GLSLProgram> shadowMapProgramDirectional = nullptr;
-            functionToCall =  [&](){renderMethods.renderLight(1, shadowMapProgramDirectional);};
+            functionToCall =  [&](const std::shared_ptr<GLSLProgram>& program){renderMethods.renderLight(1, program);};
         } else if(stageExtension->getMethodName() == "Render Opaque Objects") {
             functionToCall =  renderMethods.renderOpaqueObjects;
         } else if(stageExtension->getMethodName() == "Render Animated Objects") {

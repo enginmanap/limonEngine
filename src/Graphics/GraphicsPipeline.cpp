@@ -7,6 +7,6 @@
 void GraphicsPipeline::render() {
     for(auto stage:pipelineStages) {
         stage.first.stage->activate(stage.first.attachmentLayerMap, stage.first.clear);
-        stage.second();
+        stage.second(nullptr);
     }
 }

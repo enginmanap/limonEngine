@@ -8,9 +8,11 @@
 
 #include <vector>
 #include <functional>
+#include <memory>
 #include "GraphicsPipelineStage.h"
 
 class World;
+class GLSLProgram;
 
 class GraphicsPipeline {
 public:
@@ -20,13 +22,13 @@ public:
         bool clear = false;
     };
 
-    void addNewStage(const StageInfo& stageInformation, std::function<void()> renderMethod) {
+    void addNewStage(const StageInfo& stageInformation, std::function<void(const std::shared_ptr<GLSLProgram>&)> renderMethod) {
         pipelineStages.push_back(std::make_pair(stageInformation, renderMethod));
     }
     void render();
 
 private:
-    std::vector<std::pair<StageInfo, std::function<void()>>> pipelineStages;
+    std::vector<std::pair<StageInfo, std::function<void(const std::shared_ptr<GLSLProgram>&)>>> pipelineStages;
 };
 
 

@@ -19,15 +19,15 @@ public:
     static std::vector<std::string> renderMethodNames;//This is not array, because custom effects might be loaded on runtime as extensions.
     struct RenderMethods {
         std::function<void(unsigned int, std::shared_ptr<GLSLProgram>)> renderLight;
-        std::function<void()> renderOpaqueObjects;
-        std::function<void()> renderAnimatedObjects;
-        std::function<void()> renderTransparentObjects;
-        std::function<void()> renderGUITexts;
-        std::function<void()> renderGUIImages;
-        std::function<void()> renderPlayerAttachment;
-        std::function<void()> renderSky;
-        std::function<void()> renderEditor;
-        std::function<void()> renderDebug;
+        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderOpaqueObjects;
+        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderAnimatedObjects;
+        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderTransparentObjects;
+        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderGUITexts;
+        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderGUIImages;
+        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderPlayerAttachment;
+        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderSky;
+        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderEditor;
+        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderDebug;
     };
 private:
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;

@@ -390,14 +390,14 @@ private:
     void createNodeGraph();
 
     void renderLight(unsigned int lightIndex, std::shared_ptr<GLSLProgram> renderProgram) const;
-    void renderTransparentObjects() const;
-    void renderGUIImages() const;
-    void renderGUITexts() const;
-    void renderSky() const;
-    void renderOpaqueObjects() const;
-    void renderAnimatedObjects() const;
-    void renderPlayerAttachmentObjects() const;
-    void renderDebug() const;
+    void renderTransparentObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
+    void renderGUIImages(const std::shared_ptr<GLSLProgram>& renderProgram) const;
+    void renderGUITexts(const std::shared_ptr<GLSLProgram>& renderProgram) const;
+    void renderSky(const std::shared_ptr<GLSLProgram>& renderProgram) const;
+    void renderOpaqueObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
+    void renderAnimatedObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
+    void renderPlayerAttachmentObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
+    void renderDebug(const std::shared_ptr<GLSLProgram>& renderProgram) const;
 
     //TODO remove with material editor
     void setSamplersAndUBOs(std::shared_ptr<GLSLProgram>& program, bool setOpacity);
