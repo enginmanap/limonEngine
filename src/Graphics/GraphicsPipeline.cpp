@@ -5,8 +5,10 @@
 #include "GraphicsPipeline.h"
 
 void GraphicsPipeline::render() {
-    for(auto stage:pipelineStages) {
-        stage.first.stage->activate(stage.first.attachmentLayerMap, stage.first.clear);
-        stage.second(nullptr);
+    for(auto stageInfo:pipelineStages) {
+        stageInfo.stage->activate(stageInfo.attachmentLayerMap, stageInfo.clear);
+        for(auto renderMethod:stageInfo.renderMethods) {
+            renderMethod.first(renderMethod.second);
+        }
     }
 }

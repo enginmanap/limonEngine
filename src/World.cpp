@@ -270,30 +270,39 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     GraphicsPipeline::StageInfo stageInfo;
     stageInfo.clear = true;
     stageInfo.stage = coloringStage;
-    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderPlayerAttachmentObjects, this, animatedModelProgram));
+    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderPlayerAttachmentObjects, this, std::placeholders::_1), animatedModelProgram));
+    defaultRenderPipeline->addNewStage(stageInfo);
     stageInfo.clear = false;
-    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderOpaqueObjects, this, nonTransparentModelProgram));
-    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderAnimatedObjects, this, animatedModelProgram));
-    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderDebug, this, nullptr));
-    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderSky, this, skyBoxProgram));
+    stageInfo.renderMethods.clear();
+    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1), nonTransparentModelProgram));
+    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderAnimatedObjects, this, std::placeholders::_1), animatedModelProgram));
+    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderDebug, this, std::placeholders::_1), nullptr));
+    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderSky, this, std::placeholders::_1), skyBoxProgram));
+    defaultRenderPipeline->addNewStage(stageInfo);
 
     stageInfo.stage = ssaoGenerationStage;
-    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&SSAOPostProcess::render, this->ssaoPostProcess));
+    stageInfo.renderMethods.clear();
+    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&SSAOPostProcess::render, this->ssaoPostProcess), nullptr));
+    defaultRenderPipeline->addNewStage(stageInfo);
 
     stageInfo.stage = ssaoBlurStage;
-    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&SSAOBlurPostProcess::render, this->ssaoBlurPostProcess));
+    stageInfo.renderMethods.clear();
+    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&SSAOBlurPostProcess::render, this->ssaoBlurPostProcess), nullptr));
+    defaultRenderPipeline->addNewStage(stageInfo);
 
     stageInfo.clear = true;
     stageInfo.stage = combiningStage;
-    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&CombinePostProcess::render, this->combiningObject));
+    stageInfo.renderMethods.clear();
+    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&CombinePostProcess::render, this->combiningObject), nullptr));
+    defaultRenderPipeline->addNewStage(stageInfo);
 
     stageInfo.clear = false;
-    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderTransparentObjects, this, transparentModelProgram));
-
-    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderGUITexts, this, textRenderProgram));
-    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::renderGUIImages, this, imageRenderProgram));
-
-    defaultRenderPipeline->addNewStage(stageInfo, std::bind(&World::ImGuiFrameSetup, this));
+    stageInfo.renderMethods.clear();
+    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderTransparentObjects, this, std::placeholders::_1), transparentModelProgram));
+    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderGUITexts, this, std::placeholders::_1), textRenderProgram));
+    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderGUIImages, this, std::placeholders::_1), imageRenderProgram));
+    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::ImGuiFrameSetup, this), nullptr));
+    defaultRenderPipeline->addNewStage(stageInfo);
 
     fpsCounter = new GUIFPSCounter(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                                    glm::vec3(204, 204, 0));

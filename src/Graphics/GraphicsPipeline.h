@@ -19,16 +19,17 @@ public:
     struct StageInfo {
         std::shared_ptr<GraphicsPipelineStage> stage;
         std::map<std::shared_ptr<Texture>, std::pair<GLHelper::FrameBufferAttachPoints, int>> attachmentLayerMap;
+        std::vector<std::pair<std::function<void(const std::shared_ptr<GLSLProgram>&)>, std::shared_ptr<GLSLProgram>>> renderMethods;
         bool clear = false;
     };
 
-    void addNewStage(const StageInfo& stageInformation, std::function<void(const std::shared_ptr<GLSLProgram>&)> renderMethod) {
-        pipelineStages.push_back(std::make_pair(stageInformation, renderMethod));
+    void addNewStage(const StageInfo& stageInformation) {
+        pipelineStages.push_back(stageInformation);
     }
     void render();
 
 private:
-    std::vector<std::pair<StageInfo, std::function<void(const std::shared_ptr<GLSLProgram>&)>>> pipelineStages;
+    std::vector<StageInfo> pipelineStages;
 };
 
 

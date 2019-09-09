@@ -264,7 +264,8 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
             functionToCall = renderMethods.renderPlayerAttachment;
         }
 
-        graphicsPipeline->addNewStage(stageInfo, functionToCall);
+        stageInfo.renderMethods.push_back(std::make_pair(functionToCall, nodeProgram));
+        graphicsPipeline->addNewStage(stageInfo);
     } else {
         std::cerr << "Extension of the node is not PipelineStageExtension, this is not handled! " << std::endl;
     }
