@@ -841,26 +841,8 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
 }
 
 void World:: render() {
-    std::map<std::shared_ptr<Texture>, std::pair<GLHelper::FrameBufferAttachPoints, int>> shadowAttachmentTextureLayers;
-    for (unsigned int i = 0; i < activeLights.size(); ++i) {
-        shadowAttachmentTextureLayers.clear();
-        if(activeLights[i]->getLightType() != Light::DIRECTIONAL) {
-            continue;
-        }
-        //generate shadow map
-        shadowAttachmentTextureLayers[depthMapDirectional] = std::make_pair(GLHelper::FrameBufferAttachPoints::DEPTH, i);
-        directionalShadowStage->activate(shadowAttachmentTextureLayers, true);
-        renderLight(i, shadowMapProgramDirectional);
-    }
-
-    pointShadowStage->activate(true);
-    for (unsigned int i = 0; i < activeLights.size(); ++i) {
-        if(activeLights[i]->getLightType() != Light::POINT) {
-            continue;
-        }
-        renderLight(i, shadowMapProgramPoint);
-
-    }
+    renderAllDirectionalLights(directionalShadowStage, depthMapDirectional, shadowMapProgramDirectional);
+    renderAllPointLights(pointShadowStage, shadowMapProgramPoint);
     defaultRenderPipeline->render();
 }
 
@@ -956,6 +938,30 @@ void World::renderSky(const std::shared_ptr<GLSLProgram>& renderProgram) const {
    if (sky != nullptr) {
        sky->renderWithProgram(renderProgram);
    }
+}
+
+void World::renderAllDirectionalLights(std::shared_ptr<GraphicsPipelineStage> stage, std::shared_ptr<Texture>& targetTexture, std::shared_ptr<GLSLProgram> renderProgram) const {
+    std::map<std::shared_ptr<Texture>, std::pair<GLHelper::FrameBufferAttachPoints, int>> shadowAttachmentTextureLayers;
+    for (unsigned int i = 0; i < activeLights.size(); ++i) {
+        shadowAttachmentTextureLayers.clear();
+        if(activeLights[i]->getLightType() != Light::DIRECTIONAL) {
+            continue;
+        }
+        //generate shadow map
+        shadowAttachmentTextureLayers[targetTexture] = std::make_pair(GLHelper::FrameBufferAttachPoints::DEPTH, i);
+        stage->activate(shadowAttachmentTextureLayers, true);
+        renderLight(i, renderProgram);
+    }
+}
+void World::renderAllPointLights(std::shared_ptr<GraphicsPipelineStage> stage, std::shared_ptr<GLSLProgram> renderProgram) const {
+    stage->activate(true);
+    for (unsigned int i = 0; i < activeLights.size(); ++i) {
+        if(activeLights[i]->getLightType() != Light::POINT) {
+            continue;
+        }
+        renderLight(i, renderProgram);
+
+    }
 }
 
 void World::renderLight(unsigned int lightIndex, std::shared_ptr<GLSLProgram> renderProgram) const {
@@ -4291,7 +4297,6 @@ void World::createNodeGraph() {
     auto programs = glHelper->getLoadedPrograms();
     PipelineExtension::RenderMethods renderMethods;
 
-    renderMethods.renderLight               = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2);
     renderMethods.renderOpaqueObjects       = std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1);
     renderMethods.renderAnimatedObjects     = std::bind(&World::renderAnimatedObjects, this, std::placeholders::_1);
     renderMethods.renderTransparentObjects  = std::bind(&World::renderTransparentObjects, this, std::placeholders::_1);

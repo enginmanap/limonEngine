@@ -18,7 +18,6 @@ class PipelineExtension : public EditorExtension {
 public:
     static std::vector<std::string> renderMethodNames;//This is not array, because custom effects might be loaded on runtime as extensions.
     struct RenderMethods {
-        std::function<void(unsigned int, std::shared_ptr<GLSLProgram>)> renderLight;
         std::function<void(const std::shared_ptr<GLSLProgram>&)> renderOpaqueObjects;
         std::function<void(const std::shared_ptr<GLSLProgram>&)> renderAnimatedObjects;
         std::function<void(const std::shared_ptr<GLSLProgram>&)> renderTransparentObjects;

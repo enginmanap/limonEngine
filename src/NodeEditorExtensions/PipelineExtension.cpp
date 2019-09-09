@@ -241,9 +241,6 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
         if(stageExtension->getMethodName() == "None") {
             functionToCall =  [](const std::shared_ptr<GLSLProgram>& notUsed[[gnu::unused]]){};
             std::cerr << "Building graphics pipeline with empty method, are you sure that was set correctly?" << std::endl;
-        } else if(stageExtension->getMethodName() == "Render Light") {
-            std::shared_ptr<GLSLProgram> shadowMapProgramDirectional = nullptr;
-            functionToCall =  [&](const std::shared_ptr<GLSLProgram>& program){renderMethods.renderLight(1, program);};
         } else if(stageExtension->getMethodName() == "Render Opaque Objects") {
             functionToCall =  renderMethods.renderOpaqueObjects;
         } else if(stageExtension->getMethodName() == "Render Animated Objects") {
