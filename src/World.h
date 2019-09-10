@@ -172,6 +172,8 @@ private:
         COLLIDE_END_ELEMENT      = -1
     };
 
+    enum class ModelTypes { NON_ANIMATED_OPAQUE, ANIMATED, TRANSPARENT };
+
     friend class WorldLoader;
     friend class WorldSaver; //Those classes require direct access to some of the internal data
 
@@ -383,7 +385,7 @@ private:
     std::vector<LimonAPI::ParameterRequest>
     fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) const;
 
-    void renderPlayerAttachmentsRecursive(GameObject *attachment) const;
+    void renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes renderingModelType, const std::shared_ptr<GLSLProgram> &renderProgram) const;
 
     void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment);
 
@@ -398,7 +400,9 @@ private:
     void renderSky(const std::shared_ptr<GLSLProgram>& renderProgram) const;
     void renderOpaqueObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
     void renderAnimatedObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
-    void renderPlayerAttachmentObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
+    void renderPlayerAttachmentTransparentObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
+    void renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
+    void renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
     void renderDebug(const std::shared_ptr<GLSLProgram>& renderProgram) const;
 
     //TODO remove with material editor

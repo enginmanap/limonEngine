@@ -257,8 +257,12 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
             functionToCall = renderMethods.renderSky;
         } else if(stageExtension->getMethodName() == "Render Debug Information") {
             functionToCall = renderMethods.renderDebug;
-        } else if(stageExtension->getMethodName() == "Render Player Attachment") {
-            functionToCall = renderMethods.renderPlayerAttachment;
+        } else if(stageExtension->getMethodName() == "Render Opaque Player Attachment") {
+            functionToCall = renderMethods.renderPlayerAttachmentOpaque;
+        } else if(stageExtension->getMethodName() == "Render Transparent Player Attachment") {
+            functionToCall = renderMethods.renderPlayerAttachmentTransparent;
+        } else if(stageExtension->getMethodName() == "Render Animated Player Attachment") {
+            functionToCall = renderMethods.renderPlayerAttachmentAnimated;
         }
 
         stageInfo.renderMethods.push_back(std::make_pair(functionToCall, nodeProgram));

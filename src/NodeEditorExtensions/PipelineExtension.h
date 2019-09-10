@@ -23,7 +23,9 @@ public:
         std::function<void(const std::shared_ptr<GLSLProgram>&)> renderTransparentObjects;
         std::function<void(const std::shared_ptr<GLSLProgram>&)> renderGUITexts;
         std::function<void(const std::shared_ptr<GLSLProgram>&)> renderGUIImages;
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderPlayerAttachment;
+        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderPlayerAttachmentOpaque;
+        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderPlayerAttachmentTransparent;
+        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderPlayerAttachmentAnimated;
         std::function<void(const std::shared_ptr<GLSLProgram>&)> renderSky;
         std::function<void(const std::shared_ptr<GLSLProgram>&)> renderEditor;
         std::function<void(const std::shared_ptr<GLSLProgram>&)> renderDebug;

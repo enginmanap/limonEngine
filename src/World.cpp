@@ -269,8 +269,10 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     defaultRenderPipeline = std::make_shared<GraphicsPipeline>();
     GraphicsPipeline::StageInfo stageInfo;
     stageInfo.clear = true;
+
     stageInfo.stage = coloringStage;
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderPlayerAttachmentObjects, this, std::placeholders::_1), animatedModelProgram));
+    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderPlayerAttachmentAnimatedObjects, this, std::placeholders::_1), animatedModelProgram));
+    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderPlayerAttachmentOpaqueObjects, this, std::placeholders::_1), nonTransparentModelProgram));
     defaultRenderPipeline->addNewStage(stageInfo);
     stageInfo.clear = false;
     stageInfo.renderMethods.clear();
@@ -298,6 +300,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     stageInfo.clear = false;
     stageInfo.renderMethods.clear();
+    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderPlayerAttachmentTransparentObjects, this, std::placeholders::_1), transparentModelProgram));
     stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderTransparentObjects, this, std::placeholders::_1), transparentModelProgram));
     stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderGUITexts, this, std::placeholders::_1), textRenderProgram));
     stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderGUIImages, this, std::placeholders::_1), imageRenderProgram));
@@ -903,10 +906,24 @@ void World::renderDebug(const std::shared_ptr<GLSLProgram>& renderProgram [[gnu:
    debugDrawer->flushDraws();
 }
 
-void World::renderPlayerAttachmentObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const {
+void World::renderPlayerAttachmentTransparentObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const {
    if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
        Model *attachedModel = startingPlayer.attachedModel;
-       renderPlayerAttachmentsRecursive(attachedModel);
+       renderPlayerAttachmentsRecursive(attachedModel, ModelTypes::TRANSPARENT, renderProgram);
+   }
+}
+
+void World::renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GLSLProgram> &renderProgram) const {
+   if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
+       Model *attachedModel = startingPlayer.attachedModel;
+       renderPlayerAttachmentsRecursive(attachedModel, ModelTypes::ANIMATED, renderProgram);
+   }
+}
+
+void World::renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GLSLProgram> &renderProgram) const {
+   if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
+       Model *attachedModel = startingPlayer.attachedModel;
+       renderPlayerAttachmentsRecursive(attachedModel, ModelTypes::NON_ANIMATED_OPAQUE, renderProgram);
    }
 }
 
@@ -989,27 +1006,35 @@ void World::renderLight(unsigned int lightIndex, std::shared_ptr<GLSLProgram> re
    }
 }
 
-void World::renderPlayerAttachmentsRecursive(GameObject *attachment) const {
+void World::renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes renderingModelType, const std::shared_ptr<GLSLProgram> &renderProgram) const {
  if(attachment->getTypeID() == GameObject::MODEL) {
      Model* attachedModel = static_cast<Model*>(attachment);
      attachedModel->setupForTime(gameTime);
      std::vector<uint32_t> temp;
      temp.push_back(attachedModel->getWorldObjectID());
+     //These if checks are not combined because they are not checking the same thing. Outer one checks model type, inner one checks what type of model we are rendering
      if(attachedModel->isAnimated()) {
-         attachedModel->renderWithProgramInstanced(temp, *(animatedModelProgram.get()));
+         if(renderingModelType == ModelTypes::ANIMATED) {
+             attachedModel->renderWithProgramInstanced(temp, *(animatedModelProgram.get()));
+         }
      } else {
          if(attachedModel->isTransparent()) {
-             attachedModel->renderWithProgramInstanced(temp, *(transparentModelProgram.get()));
+             if(renderingModelType == ModelTypes::TRANSPARENT) {
+                 attachedModel->renderWithProgramInstanced(temp, *(transparentModelProgram.get()));
+             }
          } else {
-             attachedModel->renderWithProgramInstanced(temp, *(nonTransparentModelProgram.get()));
+             if(renderingModelType == ModelTypes::NON_ANIMATED_OPAQUE) {
+                 attachedModel->renderWithProgramInstanced(temp, *(nonTransparentModelProgram.get()));
+             }
          }
      }
+
      if (attachedModel->hasChildren()) {
          const std::vector<PhysicalRenderable *> &children = attachedModel->getChildren();
          for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
              GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
              if(gameObject != nullptr) {
-                 renderPlayerAttachmentsRecursive(gameObject);
+                 renderPlayerAttachmentsRecursive(gameObject, renderingModelType, renderProgram);
              }
          }
      }
@@ -1023,7 +1048,7 @@ void World::renderPlayerAttachmentsRecursive(GameObject *attachment) const {
          for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
              GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
              if(gameObject != nullptr) {
-                 renderPlayerAttachmentsRecursive(gameObject);
+                 renderPlayerAttachmentsRecursive(gameObject, renderingModelType, renderProgram);
              }
          }
      }
@@ -4305,7 +4330,9 @@ void World::createNodeGraph() {
     renderMethods.renderEditor              = std::bind(&World::ImGuiFrameSetup, this);
     renderMethods.renderSky                 = std::bind(&World::renderSky, this, std::placeholders::_1);
     renderMethods.renderDebug               = std::bind(&World::renderDebug, this, std::placeholders::_1);
-    renderMethods.renderPlayerAttachment    = std::bind(&World::renderPlayerAttachmentObjects, this, std::placeholders::_1);
+    renderMethods.renderPlayerAttachmentOpaque    = std::bind(&World::renderPlayerAttachmentOpaqueObjects, this, std::placeholders::_1);
+    renderMethods.renderPlayerAttachmentTransparent    = std::bind(&World::renderPlayerAttachmentTransparentObjects, this, std::placeholders::_1);
+    renderMethods.renderPlayerAttachmentAnimated    = std::bind(&World::renderPlayerAttachmentAnimatedObjects, this, std::placeholders::_1);
 
     pipelineExtension = new PipelineExtension(glHelper, renderMethods);
 
