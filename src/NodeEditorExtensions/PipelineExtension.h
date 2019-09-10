@@ -13,6 +13,7 @@
 #include <vector>
 
 class GraphicsPipeline;
+class GraphicsPipelineStage;
 
 class PipelineExtension : public EditorExtension {
 public:
@@ -29,6 +30,11 @@ public:
         std::function<void(const std::shared_ptr<GLSLProgram>&)> renderSky;
         std::function<void(const std::shared_ptr<GLSLProgram>&)> renderEditor;
         std::function<void(const std::shared_ptr<GLSLProgram>&)> renderDebug;
+
+        //These methods are not exposed to the interface
+        //They are also not possible to add to render pipeline, so a method should be created and assigned.
+        std::function<void(std::shared_ptr<GraphicsPipelineStage>, std::shared_ptr<Texture>&, std::shared_ptr<GLSLProgram>)> renderAllDirectionalLights;
+        std::function<void(std::shared_ptr<GraphicsPipelineStage>, std::shared_ptr<GLSLProgram>)> renderAllPointLights;
     };
 private:
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;

@@ -270,6 +270,14 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     GraphicsPipeline::StageInfo stageInfo;
     stageInfo.clear = true;
 
+    stageInfo.stage = directionalShadowStage;
+    stageInfo.renderMethods.push_back(std::make_pair([&](const std::shared_ptr<GLSLProgram> &renderProgram) { renderAllDirectionalLights(directionalShadowStage, depthMapDirectional, renderProgram);}, shadowMapProgramDirectional));
+    defaultRenderPipeline->addNewStage(stageInfo);
+
+    stageInfo.stage = directionalShadowStage;
+    stageInfo.renderMethods.push_back(std::make_pair([&](const std::shared_ptr<GLSLProgram> &renderProgram) { renderAllPointLights(pointShadowStage, renderProgram);}, shadowMapProgramPoint));
+    defaultRenderPipeline->addNewStage(stageInfo);
+
     stageInfo.stage = coloringStage;
     stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderPlayerAttachmentAnimatedObjects, this, std::placeholders::_1), animatedModelProgram));
     stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderPlayerAttachmentOpaqueObjects, this, std::placeholders::_1), nonTransparentModelProgram));
@@ -844,8 +852,6 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
 }
 
 void World:: render() {
-    renderAllDirectionalLights(directionalShadowStage, depthMapDirectional, shadowMapProgramDirectional);
-    renderAllPointLights(pointShadowStage, shadowMapProgramPoint);
     defaultRenderPipeline->render();
 }
 
@@ -4333,6 +4339,10 @@ void World::createNodeGraph() {
     renderMethods.renderPlayerAttachmentOpaque    = std::bind(&World::renderPlayerAttachmentOpaqueObjects, this, std::placeholders::_1);
     renderMethods.renderPlayerAttachmentTransparent    = std::bind(&World::renderPlayerAttachmentTransparentObjects, this, std::placeholders::_1);
     renderMethods.renderPlayerAttachmentAnimated    = std::bind(&World::renderPlayerAttachmentAnimatedObjects, this, std::placeholders::_1);
+
+    renderMethods.renderAllDirectionalLights    = std::bind(&World::renderAllDirectionalLights, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    renderMethods.renderAllPointLights    = std::bind(&World::renderAllPointLights, this, std::placeholders::_1, std::placeholders::_2);
+
 
     pipelineExtension = new PipelineExtension(glHelper, renderMethods);
 
