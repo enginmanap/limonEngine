@@ -258,14 +258,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     combiningStage->setInput(3, ssaoBlurredMap);
     combiningStage->setInput(4, depthMap);
 
-
-
-    /*
-     * Stages require convertion:
-    GraphicsPipelineStage* directionalShadowStage = nullptr;
-    GraphicsPipelineStage* pointShadowStage = nullptr;
-     */
-
     defaultRenderPipeline = std::make_shared<GraphicsPipeline>();
     GraphicsPipeline::StageInfo stageInfo;
     stageInfo.clear = true;
