@@ -23,7 +23,7 @@ class PipelineStageExtension : public NodeExtension {
     bool blendEnabled = false;
     bool anyOutputMultiLayered = false;
     bool toScreen = false;
-    std::string currentMethodName = PipelineExtension::renderMethodNames[0];
+    std::string currentMethodName = "";
     static const std::string LIGHT_TYPES[];
     unsigned int iterateOverLightType = 0;
     std::map<const Connection*, std::pair<std::string, std::shared_ptr<Texture>>> outputTextures;

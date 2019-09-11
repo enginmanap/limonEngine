@@ -6,6 +6,7 @@
 #include <nodeGraph/src/Node.h>
 #include "PipelineStageExtension.h"
 #include "../Graphics/Texture.h"
+#include "../Graphics/GraphicsPipeline.h"
 
 const std::string PipelineStageExtension::LIGHT_TYPES[] = {"NONE", "DIRECTIONAL", "POINT" };
 
@@ -75,8 +76,9 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
 
         ImGui::Checkbox("Clear", &blendEnabled);
         if (ImGui::BeginCombo("Render Method##RenderMethodCombo", currentMethodName.c_str())) {
-            for (size_t i = 0; i < PipelineExtension::renderMethodNames.size(); ++i) {
-                const std::string &methodName = PipelineExtension::renderMethodNames[i];
+            static const std::vector<std::string> &methodNames = GraphicsPipeline::getRenderMethodNames();
+            for (size_t i = 0; i < methodNames.size(); ++i) {
+                const std::string &methodName = methodNames.at(i);
                 if (ImGui::Selectable(methodName.c_str())) {
                     currentMethodName = methodName;
                 }

@@ -258,7 +258,26 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     combiningStage->setInput(3, ssaoBlurredMap);
     combiningStage->setInput(4, depthMap);
 
-    defaultRenderPipeline = std::make_shared<GraphicsPipeline>();
+
+    GraphicsPipeline::RenderMethods renderMethods;
+
+    renderMethods.renderOpaqueObjects       = std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1);
+    renderMethods.renderAnimatedObjects     = std::bind(&World::renderAnimatedObjects, this, std::placeholders::_1);
+    renderMethods.renderTransparentObjects  = std::bind(&World::renderTransparentObjects, this, std::placeholders::_1);
+    renderMethods.renderGUITexts            = std::bind(&World::renderGUITexts, this, std::placeholders::_1);
+    renderMethods.renderGUIImages           = std::bind(&World::renderGUIImages, this, std::placeholders::_1);
+    renderMethods.renderEditor              = std::bind(&World::ImGuiFrameSetup, this);
+    renderMethods.renderSky                 = std::bind(&World::renderSky, this, std::placeholders::_1);
+    renderMethods.renderDebug               = std::bind(&World::renderDebug, this, std::placeholders::_1);
+    renderMethods.renderPlayerAttachmentOpaque    = std::bind(&World::renderPlayerAttachmentOpaqueObjects, this, std::placeholders::_1);
+    renderMethods.renderPlayerAttachmentTransparent    = std::bind(&World::renderPlayerAttachmentTransparentObjects, this, std::placeholders::_1);
+    renderMethods.renderPlayerAttachmentAnimated    = std::bind(&World::renderPlayerAttachmentAnimatedObjects, this, std::placeholders::_1);
+
+    renderMethods.renderAllDirectionalLights    = std::bind(&World::renderAllDirectionalLights, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    renderMethods.renderAllPointLights    = std::bind(&World::renderAllPointLights, this, std::placeholders::_1, std::placeholders::_2);
+
+
+    defaultRenderPipeline = std::make_shared<GraphicsPipeline>(renderMethods);
     GraphicsPipeline::StageInfo stageInfo;
     stageInfo.clear = true;
 
@@ -4318,7 +4337,7 @@ void World::createNodeGraph() {
     nodeTypeVector.push_back(Iterate);
 
     auto programs = glHelper->getLoadedPrograms();
-    PipelineExtension::RenderMethods renderMethods;
+    GraphicsPipeline::RenderMethods renderMethods;
 
     renderMethods.renderOpaqueObjects       = std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1);
     renderMethods.renderAnimatedObjects     = std::bind(&World::renderAnimatedObjects, this, std::placeholders::_1);
@@ -4336,7 +4355,7 @@ void World::createNodeGraph() {
     renderMethods.renderAllPointLights    = std::bind(&World::renderAllPointLights, this, std::placeholders::_1, std::placeholders::_2);
 
 
-    pipelineExtension = new PipelineExtension(glHelper, renderMethods);
+    pipelineExtension = new PipelineExtension(glHelper, GraphicsPipeline::getRenderMethodNames(), renderMethods);
 
     for(auto program:programs) {
         std::string programName = program.first->getProgramName();

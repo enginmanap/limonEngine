@@ -11,8 +11,7 @@
 #include "PipelineStageExtension.h"
 #include "Graphics/GLSLProgram.h"
 
-std::vector<std::string> PipelineExtension::renderMethodNames { "None", "Render Light", "Render Opaque Objects", "Render Animated Objects", "Render Transparent Objects", "Render GUI Texts", "Render GUI Images", "Render Editor", "Render sky", "Render Debug Information", "Render Player Attachment"};
-PipelineExtension::PipelineExtension(GLHelper *glHelper, RenderMethods renderMethods) : glHelper(glHelper), renderMethods(renderMethods) {
+PipelineExtension::PipelineExtension(GLHelper *glHelper, const std::vector<std::string>& renderMethodNames, GraphicsPipeline::RenderMethods& renderMethods) : glHelper(glHelper), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
     {
         //Add a texture to the list as place holder for screen
         auto texture = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGBA, GLHelper::FormatTypes::RGBA, GLHelper::DataTypes::UNSIGNED_BYTE, 1,1);
@@ -186,7 +185,7 @@ void PipelineExtension::drawDetailPane(const std::vector<const Node *>& nodes, c
         if(rootNode == nullptr) {
             std::cout << "Screen output not found. cancelling." << std::endl;
         } else {
-            GraphicsPipeline* graphicsPipeline = new GraphicsPipeline();
+            GraphicsPipeline* graphicsPipeline = new GraphicsPipeline(renderMethods);
             buildRenderPipelineRecursive(rootNode, graphicsPipeline);
         }
     }
@@ -223,11 +222,15 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
             }
             std::cout << "Found input connection not feed for node " << node->getName() << " input " << connection->getName() << std::endl;
         }
+
+        //TODO for directional lights, we need to determine which one of the outputs is the texture we want. For now, we assume the last one
+        std::shared_ptr<Texture> depthMapDirectional = nullptr;
         //now handle outputs
         for(const Connection *connection:node->getOutputConnections()) {
             auto frameBufferAttachmentPoint = stageExtension->getOutputTextureIndex(connection);
             if(frameBufferAttachmentPoint != GLHelper::FrameBufferAttachPoints::NONE) {
                 newStage->setOutput(frameBufferAttachmentPoint, stageExtension->getOutputTexture(connection));
+                depthMapDirectional = stageExtension->getOutputTexture(connection);
             }
         }
 
@@ -238,35 +241,21 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
         stageInfo.clear = stageExtension->isClearBefore();
         stageInfo.stage = newStage;
         std::function<void(const std::shared_ptr<GLSLProgram>&)> functionToCall;
-        if(stageExtension->getMethodName() == "None") {
-            functionToCall =  [](const std::shared_ptr<GLSLProgram>& notUsed[[gnu::unused]]){};
-            std::cerr << "Building graphics pipeline with empty method, are you sure that was set correctly?" << std::endl;
-        } else if(stageExtension->getMethodName() == "Render Opaque Objects") {
-            functionToCall =  renderMethods.renderOpaqueObjects;
-        } else if(stageExtension->getMethodName() == "Render Animated Objects") {
-            functionToCall =  renderMethods.renderAnimatedObjects;
-        } else if(stageExtension->getMethodName() == "Render Transparent Objects") {
-            functionToCall =  renderMethods.renderTransparentObjects;
-        } else if(stageExtension->getMethodName() == "Render GUI Texts") {
-            functionToCall = renderMethods.renderGUITexts;
-        } else if(stageExtension->getMethodName() == "Render GUI Images") {
-            functionToCall = renderMethods.renderGUIImages;
-        } else if(stageExtension->getMethodName() == "Render Editor") {
-            functionToCall = renderMethods.renderEditor;
-        } else if(stageExtension->getMethodName() == "Render sky") {
-            functionToCall = renderMethods.renderSky;
-        } else if(stageExtension->getMethodName() == "Render Debug Information") {
-            functionToCall = renderMethods.renderDebug;
-        } else if(stageExtension->getMethodName() == "Render Opaque Player Attachment") {
-            functionToCall = renderMethods.renderPlayerAttachmentOpaque;
-        } else if(stageExtension->getMethodName() == "Render Transparent Player Attachment") {
-            functionToCall = renderMethods.renderPlayerAttachmentTransparent;
-        } else if(stageExtension->getMethodName() == "Render Animated Player Attachment") {
-            functionToCall = renderMethods.renderPlayerAttachmentAnimated;
-        }
 
-        stageInfo.renderMethods.push_back(std::make_pair(functionToCall, nodeProgram));
-        graphicsPipeline->addNewStage(stageInfo);
+        if(stageExtension->getMethodName() == "All directional shadows") {
+            std::function<void(std::shared_ptr<GraphicsPipelineStage>, std::shared_ptr<Texture>&, std::shared_ptr<GLSLProgram>)>& renderAllDirectionalLightsMethod = graphicsPipeline->getRenderAllDirectionalLightsMethod();
+            functionToCall = [&](const std::shared_ptr<GLSLProgram> &renderProgram) { renderAllDirectionalLightsMethod(newStage, depthMapDirectional, renderProgram);};
+
+        } else if(stageExtension->getMethodName() == "All directional shadows") {
+            std::function<void(std::shared_ptr<GraphicsPipelineStage>, std::shared_ptr<GLSLProgram>)>& renderAllPointLightsMethod = graphicsPipeline->getRenderAllPointLightsMethod();
+            functionToCall = [&](const std::shared_ptr<GLSLProgram> &renderProgram) { renderAllPointLightsMethod(newStage, renderProgram);};
+        } else {
+            functionToCall = graphicsPipeline->getRenderMethodByName(stageExtension->getMethodName());
+        }
+        if(functionToCall) {
+            stageInfo.renderMethods.push_back(std::make_pair(functionToCall, nodeProgram));
+            graphicsPipeline->addNewStage(stageInfo);
+        }
     } else {
         std::cerr << "Extension of the node is not PipelineStageExtension, this is not handled! " << std::endl;
     }
