@@ -285,14 +285,17 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     stageInfo.renderMethods.push_back(std::make_pair([&](const std::shared_ptr<GLSLProgram> &renderProgram) { renderAllDirectionalLights(directionalShadowStage, depthMapDirectional, renderProgram);}, shadowMapProgramDirectional));
     defaultRenderPipeline->addNewStage(stageInfo);
 
-    stageInfo.stage = directionalShadowStage;
+    stageInfo.stage = pointShadowStage;
+    stageInfo.renderMethods.clear();
     stageInfo.renderMethods.push_back(std::make_pair([&](const std::shared_ptr<GLSLProgram> &renderProgram) { renderAllPointLights(pointShadowStage, renderProgram);}, shadowMapProgramPoint));
     defaultRenderPipeline->addNewStage(stageInfo);
 
     stageInfo.stage = coloringStage;
+    stageInfo.renderMethods.clear();
     stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderPlayerAttachmentAnimatedObjects, this, std::placeholders::_1), animatedModelProgram));
     stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderPlayerAttachmentOpaqueObjects, this, std::placeholders::_1), nonTransparentModelProgram));
     defaultRenderPipeline->addNewStage(stageInfo);
+
     stageInfo.clear = false;
     stageInfo.renderMethods.clear();
     stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1), nonTransparentModelProgram));
