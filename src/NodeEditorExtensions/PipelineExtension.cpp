@@ -234,7 +234,7 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
             }
         }
 
-        //TODO: The program that was used too create the node should be accessable
+        //TODO: The program that was used too create the node should be accessible
         std::shared_ptr<GLSLProgram> nodeProgram = nullptr;
         newStage->setCullMode(stageExtension->getCullmode());
         GraphicsPipeline::StageInfo stageInfo;
@@ -246,9 +246,8 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
             std::function<void(std::shared_ptr<GraphicsPipelineStage>, std::shared_ptr<Texture>&, std::shared_ptr<GLSLProgram>)>& renderAllDirectionalLightsMethod = graphicsPipeline->getRenderAllDirectionalLightsMethod();
             functionToCall = [&](const std::shared_ptr<GLSLProgram> &renderProgram) { renderAllDirectionalLightsMethod(newStage, depthMapDirectional, renderProgram);};
 
-        } else if(stageExtension->getMethodName() == "All directional shadows") {
-            std::function<void(std::shared_ptr<GraphicsPipelineStage>, std::shared_ptr<GLSLProgram>)>& renderAllPointLightsMethod = graphicsPipeline->getRenderAllPointLightsMethod();
-            functionToCall = [&](const std::shared_ptr<GLSLProgram> &renderProgram) { renderAllPointLightsMethod(newStage, renderProgram);};
+        } else if(stageExtension->getMethodName() == "All point shadows") {
+            functionToCall = graphicsPipeline->getRenderAllPointLightsMethod();
         } else {
             functionToCall = graphicsPipeline->getRenderMethodByName(stageExtension->getMethodName());
         }

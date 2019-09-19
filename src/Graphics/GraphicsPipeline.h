@@ -34,7 +34,7 @@ public:
         //These methods are not exposed to the interface
         //They are also not possible to add to render pipeline, so a method should be created and assigned.
         std::function<void(std::shared_ptr<GraphicsPipelineStage>, std::shared_ptr<Texture>&, std::shared_ptr<GLSLProgram>)> renderAllDirectionalLights;
-        std::function<void(std::shared_ptr<GraphicsPipelineStage>, std::shared_ptr<GLSLProgram>)> renderAllPointLights;
+        std::function<void(std::shared_ptr<GLSLProgram>)> renderAllPointLights;
 
     };
     
@@ -79,7 +79,7 @@ public:
         return this->renderMethods.renderAllDirectionalLights;
     }
 
-    std::function<void(std::shared_ptr<GraphicsPipelineStage>, std::shared_ptr<GLSLProgram>)>& getRenderAllPointLightsMethod() {
+    std::function<void(std::shared_ptr<GLSLProgram>)> & getRenderAllPointLightsMethod() {
         return this->renderMethods.renderAllPointLights;
     }
 

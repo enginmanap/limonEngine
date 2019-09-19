@@ -392,7 +392,7 @@ private:
     void createNodeGraph();
 
     void renderAllDirectionalLights(std::shared_ptr<GraphicsPipelineStage> stage, std::shared_ptr<Texture>& targetTexture, std::shared_ptr<GLSLProgram> renderProgram) const;
-    void renderAllPointLights(std::shared_ptr<GraphicsPipelineStage> stage, std::shared_ptr<GLSLProgram> renderProgram) const;
+    void renderAllPointLights(std::shared_ptr<GLSLProgram> renderProgram) const;
     void renderLight(unsigned int lightIndex, std::shared_ptr<GLSLProgram> renderProgram) const;
     void renderTransparentObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
     void renderGUIImages(const std::shared_ptr<GLSLProgram>& renderProgram) const;
