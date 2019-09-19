@@ -607,6 +607,8 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
     }
     if(blendEnabled) {
         glEnablei(GL_BLEND, 0);
+    } else {
+        glDisablei(GL_BLEND, 0);
     }
     checkErrors("switchRenderStage");
 }
