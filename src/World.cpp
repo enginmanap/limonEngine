@@ -991,13 +991,11 @@ void World::renderAllDirectionalLights(std::shared_ptr<GraphicsPipelineStage> st
     }
 }
 void World::renderAllPointLights(std::shared_ptr<GraphicsPipelineStage> stage, std::shared_ptr<GLSLProgram> renderProgram) const {
-    stage->activate(true);
     for (unsigned int i = 0; i < activeLights.size(); ++i) {
         if(activeLights[i]->getLightType() != Light::POINT) {
             continue;
         }
         renderLight(i, renderProgram);
-
     }
 }
 
