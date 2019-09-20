@@ -393,7 +393,8 @@ public:
 
     uint32_t createFrameBuffer(uint32_t width, uint32_t height);
     void deleteFrameBuffer(uint32_t frameBufferID);
-    void attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID, FrameBufferAttachPoints attachPoint, int32_t layer = 0);
+    void attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID,
+                                        FrameBufferAttachPoints attachPoint, int32_t layer = 0 , bool clear = false);
 
     void attachTexture(unsigned int textureID, unsigned int attachPoint);
 

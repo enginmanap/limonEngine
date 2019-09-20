@@ -246,7 +246,7 @@ GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *
                 if (outputTexture == nullptr) {
                     std::cerr << "For output " << attachmentString << " texture deserialize failed, skipping" << std::endl;
                 } else {
-                    newStage->setOutput(attachmentPoint, std::shared_ptr<Texture>(outputTexture));
+                    newStage->setOutput(attachmentPoint, std::shared_ptr<Texture>(outputTexture), false, 0);
                 }
             }
         }

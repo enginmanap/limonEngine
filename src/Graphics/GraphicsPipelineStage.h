@@ -45,8 +45,10 @@ public:
     void setInput(uint32_t textureAttachmentPoint, std::shared_ptr<Texture> texture) {
         this->inputs[textureAttachmentPoint] = texture;
     }
-    void setOutput(GLHelper::FrameBufferAttachPoints attachmentPoint, std::shared_ptr<Texture> texture, uint32_t layer = -1) {
-        glHelper->attachDrawTextureToFrameBuffer(this->frameBufferID, texture->getType(), texture->getTextureID(), attachmentPoint, layer);
+    void
+    setOutput(GLHelper::FrameBufferAttachPoints attachmentPoint, std::shared_ptr<Texture> texture, bool clear = false, uint32_t layer = -1) {
+        glHelper->attachDrawTextureToFrameBuffer(this->frameBufferID, texture->getType(), texture->getTextureID(),
+                                                 attachmentPoint, layer, clear);
         switch (attachmentPoint) {
             case GLHelper::FrameBufferAttachPoints::DEPTH: depthAttachment = true; break;
             case GLHelper::FrameBufferAttachPoints::COLOR0:/*fallthrough*/

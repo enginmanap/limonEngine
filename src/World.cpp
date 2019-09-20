@@ -279,12 +279,13 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     defaultRenderPipeline = std::make_shared<GraphicsPipeline>(renderMethods);
     GraphicsPipeline::StageInfo stageInfo;
-    stageInfo.clear = true;
 
+    stageInfo.clear = false;
     stageInfo.stage = directionalShadowStage;
     stageInfo.renderMethods.push_back(std::make_pair([&](const std::shared_ptr<GLSLProgram> &renderProgram) { renderAllDirectionalLights(directionalShadowStage, depthMapDirectional, renderProgram);}, shadowMapProgramDirectional));
     defaultRenderPipeline->addNewStage(stageInfo);
 
+    stageInfo.clear = true;
     stageInfo.stage = pointShadowStage;
     stageInfo.renderMethods.clear();
     stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderAllPointLights, this, std::placeholders::_1), shadowMapProgramPoint));
@@ -978,15 +979,14 @@ void World::renderSky(const std::shared_ptr<GLSLProgram>& renderProgram) const {
 }
 
 void World::renderAllDirectionalLights(std::shared_ptr<GraphicsPipelineStage> stage, std::shared_ptr<Texture>& targetTexture, std::shared_ptr<GLSLProgram> renderProgram) const {
-    std::map<std::shared_ptr<Texture>, std::pair<GLHelper::FrameBufferAttachPoints, int>> shadowAttachmentTextureLayers;
     for (unsigned int i = 0; i < activeLights.size(); ++i) {
-        shadowAttachmentTextureLayers.clear();
         if(activeLights[i]->getLightType() != Light::DIRECTIONAL) {
             continue;
         }
+        //set the layer that will be rendered. Also set clear so attached layer will be cleared right away.
+        //this is important because they will not be cleared other way.
+        stage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, targetTexture, true, i);
         //generate shadow map
-        shadowAttachmentTextureLayers[targetTexture] = std::make_pair(GLHelper::FrameBufferAttachPoints::DEPTH, i);
-        stage->activate(shadowAttachmentTextureLayers, true);
         renderLight(i, renderProgram);
     }
 }

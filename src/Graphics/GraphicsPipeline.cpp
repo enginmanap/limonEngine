@@ -10,7 +10,11 @@ std::vector<std::string> GraphicsPipeline::renderMethodNames { "None", "All dire
 
 void GraphicsPipeline::render() {
     for(auto stageInfo:pipelineStages) {
-        stageInfo.stage->activate(stageInfo.attachmentLayerMap, stageInfo.clear);
+        if(stageInfo.attachmentLayerMap.size() > 0) {
+            stageInfo.stage->activate(stageInfo.attachmentLayerMap, stageInfo.clear);
+        } else {
+            stageInfo.stage->activate(stageInfo.clear);
+        }
         for(auto renderMethod:stageInfo.renderMethods) {
             renderMethod.first(renderMethod.second);
         }

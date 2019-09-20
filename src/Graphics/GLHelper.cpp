@@ -619,7 +619,9 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
                                  const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap) {
     //now we should change attachments based on the layer information we got
     for (auto attachmentLayerIt = attachmentLayerMap.begin(); attachmentLayerIt != attachmentLayerMap.end(); ++attachmentLayerIt) {
-        attachDrawTextureToFrameBuffer(frameBufferID, attachmentLayerIt->first->getType(), attachmentLayerIt->first->getTextureID(), attachmentLayerIt->second.first, attachmentLayerIt->second.second);
+        attachDrawTextureToFrameBuffer(frameBufferID, attachmentLayerIt->first->getType(),
+                                       attachmentLayerIt->first->getTextureID(), attachmentLayerIt->second.first,
+                                       attachmentLayerIt->second.second, false);//no clear because clear will run afterwards
     }
     glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
@@ -998,7 +1000,8 @@ void GLHelper::deleteFrameBuffer(uint32_t frameBufferID) {
     checkErrors("deleteFrameBuffer");
 }
 
-void GLHelper::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID, FrameBufferAttachPoints attachPoint, int32_t layer) {
+void GLHelper::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID,
+                                              FrameBufferAttachPoints attachPoint, int32_t layer, bool clear) {
 
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
 
@@ -1016,19 +1019,6 @@ void GLHelper::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTyp
         case FrameBufferAttachPoints::DEPTH:  glAttachment = GL_DEPTH_ATTACHMENT;   break;
     }
 
-    if(attachPoint != GLHelper::FrameBufferAttachPoints::DEPTH) {
-        int32_t attachmentTemp;
-        unsigned int attachments[6];
-        for (unsigned int i = 0; i < 6; ++i) {
-            if (i == index) {
-                attachments[i] = glAttachment;
-            } else {
-                glGetIntegerv(GL_DRAW_BUFFER0 + i, &attachmentTemp);
-                attachments[i] = attachmentTemp;
-            }
-        }
-        glDrawBuffers(6, attachments);
-    }
     switch (textureType) {
         case TextureTypes::T2D: {
             glFramebufferTexture2D(GL_FRAMEBUFFER, glAttachment, GL_TEXTURE_2D, textureID, 0);
@@ -1053,6 +1043,29 @@ void GLHelper::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTyp
             glFramebufferTexture(GL_FRAMEBUFFER, glAttachment, textureID, 0);
         }
         break;
+    }
+
+
+    if(attachPoint == GLHelper::FrameBufferAttachPoints::DEPTH) {
+        if(clear) {
+            glClear(GL_DEPTH_BUFFER_BIT);
+        }
+    } else {
+        int32_t attachmentTemp;
+        unsigned int drawBufferAttachments[6];
+        for (unsigned int i = 0; i < 6; ++i) {
+            if (i == index) {
+                drawBufferAttachments[i] = glAttachment;
+                if(clear) {
+                    unsigned int tempAttachmentBuffer[1] = {glAttachment};
+                    glDrawBuffers(1, tempAttachmentBuffer);
+                }
+            } else {
+                glGetIntegerv(GL_DRAW_BUFFER0 + i, &attachmentTemp);
+                drawBufferAttachments[i] = attachmentTemp;
+            }
+        }
+        glDrawBuffers(6, drawBufferAttachments);
     }
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
