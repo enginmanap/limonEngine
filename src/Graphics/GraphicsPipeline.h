@@ -9,8 +9,9 @@
 #include <vector>
 #include <functional>
 #include <memory>
-#include "GraphicsPipelineStage.h"
 
+#include "GraphicsPipelineStage.h"
+#include "../GameObjects/Light.h"
 class World;
 class GLSLProgram;
 
@@ -33,8 +34,8 @@ public:
 
         //These methods are not exposed to the interface
         //They are also not possible to add to render pipeline, so a method should be created and assigned.
-        std::function<void(std::shared_ptr<GraphicsPipelineStage>, std::shared_ptr<Texture>&, std::shared_ptr<GLSLProgram>)> renderAllDirectionalLights;
-        std::function<void(std::shared_ptr<GLSLProgram>)> renderAllPointLights;
+        std::function<std::vector<size_t>(Light::LightTypes)> getLightsByType;
+        std::function<void(unsigned int, std::shared_ptr<GLSLProgram>)> renderLight;
 
     };
     
@@ -75,12 +76,12 @@ public:
 
     }
 
-    std::function<void(std::shared_ptr<GraphicsPipelineStage>, std::shared_ptr<Texture>&, std::shared_ptr<GLSLProgram>)>& getRenderAllDirectionalLightsMethod() {
-        return this->renderMethods.renderAllDirectionalLights;
+    std::vector<size_t> getLightIndexes(Light::LightTypes lightType) {
+        return renderMethods.getLightsByType(lightType);
     }
 
-    std::function<void(std::shared_ptr<GLSLProgram>)> & getRenderAllPointLightsMethod() {
-        return this->renderMethods.renderAllPointLights;
+    std::function<void(unsigned int, std::shared_ptr<GLSLProgram>)>& getRenderLightMethod() {
+        return this->renderMethods.renderLight;
     }
 
     static const std::vector<std::string> &getRenderMethodNames() {

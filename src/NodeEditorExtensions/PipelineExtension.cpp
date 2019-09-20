@@ -6,6 +6,7 @@
 #include <memory>
 #include <nodeGraph/src/Node.h>
 #include <Graphics/GraphicsPipeline.h>
+#include <GameObjects/Light.h>
 #include "PipelineExtension.h"
 #include "Graphics/Texture.h"
 #include "PipelineStageExtension.h"
@@ -243,11 +244,23 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
         std::function<void(const std::shared_ptr<GLSLProgram>&)> functionToCall;
 
         if(stageExtension->getMethodName() == "All directional shadows") {
-            std::function<void(std::shared_ptr<GraphicsPipelineStage>, std::shared_ptr<Texture>&, std::shared_ptr<GLSLProgram>)>& renderAllDirectionalLightsMethod = graphicsPipeline->getRenderAllDirectionalLightsMethod();
-            functionToCall = [&](const std::shared_ptr<GLSLProgram> &renderProgram) { renderAllDirectionalLightsMethod(newStage, depthMapDirectional, renderProgram);};
-
+            functionToCall = [&] (const std::shared_ptr<GLSLProgram> &renderProgram) {
+                std::vector<size_t> lights = graphicsPipeline->getLightIndexes(Light::LightTypes::DIRECTIONAL);
+                for (size_t light:lights) {
+                    //set the layer that will be rendered. Also set clear so attached layer will be cleared right away.
+                    //this is important because they will not be cleared other way.
+                    newStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, depthMapDirectional, true, light);
+                    //generate shadow map
+                    graphicsPipeline->getRenderLightMethod()(light, renderProgram);
+                }
+            };
         } else if(stageExtension->getMethodName() == "All point shadows") {
-            functionToCall = graphicsPipeline->getRenderAllPointLightsMethod();
+            functionToCall = [&] (const std::shared_ptr<GLSLProgram> &renderProgram) {
+                std::vector<size_t> lights = graphicsPipeline->getLightIndexes(Light::LightTypes::POINT);
+                for (size_t light:lights) {
+                    graphicsPipeline->getRenderLightMethod()(light, renderProgram);
+                }
+            };
         } else {
             functionToCall = graphicsPipeline->getRenderMethodByName(stageExtension->getMethodName());
         }

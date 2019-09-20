@@ -273,8 +273,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     renderMethods.renderPlayerAttachmentTransparent    = std::bind(&World::renderPlayerAttachmentTransparentObjects, this, std::placeholders::_1);
     renderMethods.renderPlayerAttachmentAnimated    = std::bind(&World::renderPlayerAttachmentAnimatedObjects, this, std::placeholders::_1);
 
-    renderMethods.renderAllDirectionalLights    = std::bind(&World::renderAllDirectionalLights, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    renderMethods.renderAllPointLights    = std::bind(&World::renderAllPointLights, this, std::placeholders::_1);
+    renderMethods.getLightsByType = std::bind(&World::getLightIndexes, this, std::placeholders::_1);
+    renderMethods.renderLight = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2);
 
 
     defaultRenderPipeline = std::make_shared<GraphicsPipeline>(renderMethods);
@@ -282,13 +282,31 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     stageInfo.clear = false;
     stageInfo.stage = directionalShadowStage;
-    stageInfo.renderMethods.push_back(std::make_pair([&](const std::shared_ptr<GLSLProgram> &renderProgram) { renderAllDirectionalLights(directionalShadowStage, depthMapDirectional, renderProgram);}, shadowMapProgramDirectional));
+    stageInfo.renderMethods.push_back(std::make_pair(
+            [&] (const std::shared_ptr<GLSLProgram> &renderProgram) {
+                std::vector<size_t> lights = defaultRenderPipeline->getLightIndexes(Light::LightTypes::DIRECTIONAL);
+                for (size_t light:lights) {
+                    //set the layer that will be rendered. Also set clear so attached layer will be cleared right away.
+                    //this is important because they will not be cleared other way.
+                    directionalShadowStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, depthMapDirectional, true, light);
+                    //generate shadow map
+                    defaultRenderPipeline->getRenderLightMethod()(light, renderProgram);
+                }
+            }
+            , shadowMapProgramDirectional));
     defaultRenderPipeline->addNewStage(stageInfo);
 
     stageInfo.clear = true;
     stageInfo.stage = pointShadowStage;
     stageInfo.renderMethods.clear();
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderAllPointLights, this, std::placeholders::_1), shadowMapProgramPoint));
+    stageInfo.renderMethods.push_back(std::make_pair(
+            [&] (const std::shared_ptr<GLSLProgram> &renderProgram) {
+                std::vector<size_t> lights = defaultRenderPipeline->getLightIndexes(Light::LightTypes::POINT);
+                for (size_t light:lights) {
+                    defaultRenderPipeline->getRenderLightMethod()(light, renderProgram);
+                }
+            }
+            , shadowMapProgramPoint));
     defaultRenderPipeline->addNewStage(stageInfo);
 
     stageInfo.stage = coloringStage;
@@ -978,28 +996,7 @@ void World::renderSky(const std::shared_ptr<GLSLProgram>& renderProgram) const {
    }
 }
 
-void World::renderAllDirectionalLights(std::shared_ptr<GraphicsPipelineStage> stage, std::shared_ptr<Texture>& targetTexture, std::shared_ptr<GLSLProgram> renderProgram) const {
-    for (unsigned int i = 0; i < activeLights.size(); ++i) {
-        if(activeLights[i]->getLightType() != Light::DIRECTIONAL) {
-            continue;
-        }
-        //set the layer that will be rendered. Also set clear so attached layer will be cleared right away.
-        //this is important because they will not be cleared other way.
-        stage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, targetTexture, true, i);
-        //generate shadow map
-        renderLight(i, renderProgram);
-    }
-}
-void World::renderAllPointLights(std::shared_ptr<GLSLProgram> renderProgram) const {
-    for (unsigned int i = 0; i < activeLights.size(); ++i) {
-        if(activeLights[i]->getLightType() != Light::POINT) {
-            continue;
-        }
-        renderLight(i, renderProgram);
-    }
-}
-
-void World::renderLight(unsigned int lightIndex, std::shared_ptr<GLSLProgram> renderProgram) const {
+void World::renderLight(unsigned int lightIndex, const std::shared_ptr<GLSLProgram> &renderProgram) const {
    renderProgram->setUniform("renderLightIndex", (int) lightIndex);
    for (auto modelIterator = modelsInLightFrustum[lightIndex].begin(); modelIterator != modelsInLightFrustum[lightIndex].end(); ++modelIterator) {
        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
@@ -4352,8 +4349,8 @@ void World::createNodeGraph() {
     renderMethods.renderPlayerAttachmentTransparent    = std::bind(&World::renderPlayerAttachmentTransparentObjects, this, std::placeholders::_1);
     renderMethods.renderPlayerAttachmentAnimated    = std::bind(&World::renderPlayerAttachmentAnimatedObjects, this, std::placeholders::_1);
 
-    renderMethods.renderAllDirectionalLights    = std::bind(&World::renderAllDirectionalLights, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    renderMethods.renderAllPointLights    = std::bind(&World::renderAllPointLights, this, std::placeholders::_1);
+    renderMethods.getLightsByType = std::bind(&World::getLightIndexes, this, std::placeholders::_1);
+    renderMethods.renderLight = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2);
 
 
     pipelineExtension = new PipelineExtension(glHelper, GraphicsPipeline::getRenderMethodNames(), renderMethods);

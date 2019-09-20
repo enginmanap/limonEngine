@@ -14,6 +14,7 @@
 #include "InputHandler.h"
 #include "FontManager.h"
 #include "GameObjects/SkyBox.h"
+#include "GameObjects/Light.h"
 #include "API/LimonAPI.h"
 #include "API/ActorInterface.h"
 #include "ALHelper.h"
@@ -25,7 +26,7 @@ class btGhostPairCallback;
 class Camera;
 class Model;
 class BulletDebugDrawer;
-class Light;
+
 class AIMovementGrid;
 class TriggerInterface;
 
@@ -391,9 +392,18 @@ private:
 
     void createNodeGraph();
 
-    void renderAllDirectionalLights(std::shared_ptr<GraphicsPipelineStage> stage, std::shared_ptr<Texture>& targetTexture, std::shared_ptr<GLSLProgram> renderProgram) const;
-    void renderAllPointLights(std::shared_ptr<GLSLProgram> renderProgram) const;
-    void renderLight(unsigned int lightIndex, std::shared_ptr<GLSLProgram> renderProgram) const;
+    std::vector<size_t> getLightIndexes(Light::LightTypes lightType) {
+        std::vector<size_t> lights;
+        for (unsigned int i = 0; i < activeLights.size(); ++i) {
+            if(activeLights[i]->getLightType() != lightType) {
+                continue;
+            }
+            lights.emplace_back(i);
+        }
+        return lights;
+    }
+
+    void renderLight(unsigned int lightIndex, const std::shared_ptr<GLSLProgram> &renderProgram) const;
     void renderTransparentObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
     void renderGUIImages(const std::shared_ptr<GLSLProgram>& renderProgram) const;
     void renderGUITexts(const std::shared_ptr<GLSLProgram>& renderProgram) const;
