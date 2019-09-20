@@ -90,7 +90,6 @@ public:
 
     struct StageInfo {
         std::shared_ptr<GraphicsPipelineStage> stage;
-        std::map<std::shared_ptr<Texture>, std::pair<GLHelper::FrameBufferAttachPoints, int>> attachmentLayerMap;
         std::vector<std::pair<std::function<void(const std::shared_ptr<GLSLProgram>&)>, std::shared_ptr<GLSLProgram>>> renderMethods;
         bool clear = false;
     };
