@@ -241,32 +241,24 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
         GraphicsPipeline::StageInfo stageInfo;
         stageInfo.clear = stageExtension->isClearBefore();
         stageInfo.stage = newStage;
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> functionToCall;
 
         if(stageExtension->getMethodName() == "All directional shadows") {
-            functionToCall = [&] (const std::shared_ptr<GLSLProgram> &renderProgram) {
-                std::vector<size_t> lights = graphicsPipeline->getLightIndexes(Light::LightTypes::DIRECTIONAL);
-                for (size_t light:lights) {
-                    //set the layer that will be rendered. Also set clear so attached layer will be cleared right away.
-                    //this is important because they will not be cleared other way.
-                    newStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, depthMapDirectional, true, light);
-                    //generate shadow map
-                    graphicsPipeline->getRenderLightMethod()(light, renderProgram);
-                }
-            };
-        } else if(stageExtension->getMethodName() == "All point shadows") {
-            functionToCall = [&] (const std::shared_ptr<GLSLProgram> &renderProgram) {
-                std::vector<size_t> lights = graphicsPipeline->getLightIndexes(Light::LightTypes::POINT);
-                for (size_t light:lights) {
-                    graphicsPipeline->getRenderLightMethod()(light, renderProgram);
-                }
-            };
-        } else {
-            functionToCall = graphicsPipeline->getRenderMethodByName(stageExtension->getMethodName());
-        }
-        if(functionToCall) {
-            stageInfo.renderMethods.push_back(std::make_pair(functionToCall, nodeProgram));
+            GraphicsPipeline::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllDirectionalLights(newStage, depthMapDirectional, nodeProgram);
+            stageInfo.renderMethods.emplace_back(functionToCall);
             graphicsPipeline->addNewStage(stageInfo);
+        } else if(stageExtension->getMethodName() == "All point shadows") {
+            GraphicsPipeline::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllPointLights(nodeProgram);
+            stageInfo.renderMethods.emplace_back(functionToCall);
+            graphicsPipeline->addNewStage(stageInfo);
+        } else {
+            bool isFound = true;
+            GraphicsPipeline::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethod(stageExtension->getMethodName(), nodeProgram, isFound);
+            if(isFound) {
+                stageInfo.renderMethods.emplace_back(functionToCall);
+                graphicsPipeline->addNewStage(stageInfo);
+            } else {
+                std::cerr << "Selected method name is invalid!" << std::endl;
+            }
         }
     } else {
         std::cerr << "Extension of the node is not PipelineStageExtension, this is not handled! " << std::endl;

@@ -60,6 +60,7 @@ class QuadRenderBase;
 class CombinePostProcess;
 class SSAOPostProcess;
 class SSAOBlurPostProcess;
+class QuadRender;
 
 class GLHelper;
 class GraphicsPipelineStage;
@@ -246,6 +247,11 @@ private:
     std::shared_ptr<GLSLProgram> textRenderProgram = nullptr;
     std::shared_ptr<GLSLProgram> imageRenderProgram = nullptr;
 
+    std::shared_ptr<GLSLProgram> ssaoGenerationProgram = nullptr;
+    std::shared_ptr<GLSLProgram> ssaoBlurProgram = nullptr;
+    std::shared_ptr<GLSLProgram> combineProgram = nullptr;
+
+
     FontManager fontManager;
 
     PlayerInfo startingPlayer;
@@ -284,9 +290,8 @@ private:
     GameObject* pickedObject = nullptr;
     uint32_t pickedObjectID = 0xFFFFFFFF;//FIXME not 0 because 0 is used by player and lights, they should get real ids.
     Model* objectToAttach = nullptr;
-    CombinePostProcess* combiningObject;
-    SSAOPostProcess* ssaoPostProcess;
-    SSAOBlurPostProcess* ssaoBlurPostProcess;
+
+    std::shared_ptr<QuadRender> quadRender;
     std::map<uint32_t, SDL2Helper::Thread*> routeThreads;
 
     bool guiPickMode = false;

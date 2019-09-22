@@ -41,6 +41,7 @@
 #include "Graphics/PostProcess/CombinePostProcess.h"
 #include "Graphics/PostProcess/SSAOPostProcess.h"
 #include "Graphics/PostProcess/SSAOBlurPostProcess.h"
+#include "Graphics/PostProcess/QuadRender.h"
 #include "SDL2Helper.h"
 #include "Graphics/GraphicsPipelineStage.h"
 
@@ -96,6 +97,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     animatedModelProgram       = glHelper->createGLSLProgram("./Engine/Shaders/ModelAnimated/vertex.glsl",
                                                                                         "./Engine/Shaders/ModelAnimated/fragment.glsl", true);
+    setSamplersAndUBOs(animatedModelProgram, false);
 
     skyBoxProgram               = glHelper->createGLSLProgram("./Engine/Shaders/SkyCube/vertex.glsl", "./Engine/Shaders/SkyCube/fragment.glsl", false);
 
@@ -103,7 +105,19 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     imageRenderProgram          = glHelper->createGLSLProgram("./Engine/Shaders/GUIImage/vertex.glsl", "./Engine/Shaders/GUIImage/fragment.glsl", false);
 
-    setSamplersAndUBOs(animatedModelProgram, false);
+    ssaoGenerationProgram       = glHelper->createGLSLProgram("./Engine/Shaders/SSAOGeneration/vertex.glsl","./Engine/Shaders/SSAOGeneration/fragment.glsl", false);
+    ssaoGenerationProgram->setUniform("pre_depthMap", 1);
+    ssaoGenerationProgram->setUniform("pre_normalMap", 2);
+    ssaoGenerationProgram->setUniform("ssaoNoiseSampler", 3);
+    ssaoBlurProgram             = glHelper->createGLSLProgram("./Engine/Shaders/SSAOBlur/vertex.glsl","./Engine/Shaders/SSAOBlur/fragment.glsl", false);
+    ssaoBlurProgram->setUniform("pre_ssaoResult", 1);
+
+    combineProgram              = glHelper->createGLSLProgram("./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl","./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl", false);
+    combineProgram->setUniform("pre_diffuseSpecularLighted", 1);
+    combineProgram->setUniform("pre_ambient", 2);
+    combineProgram->setUniform("pre_ssao", 3);
+    combineProgram->setUniform("pre_depthMap", 4);
+
 
     apiGUILayer = new GUILayer(glHelper, debugDrawer, 1);
     apiGUILayer->setDebug(false);
@@ -139,28 +153,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
             currentPlayer = menuPlayer;
             break;
     }
-
-
-    ssaoPostProcess = new SSAOPostProcess(glHelper, options->getSSAOSampleCount());
-    ssaoPostProcess->setSourceTexture("pre_depthMap", 1);
-    ssaoPostProcess->setSourceTexture("pre_normalMap", 2);
-    ssaoPostProcess->setSourceTexture("ssaoNoiseSampler", 3);
-
-    ssaoBlurPostProcess = new SSAOBlurPostProcess(glHelper);
-    ssaoBlurPostProcess->setSourceTexture("pre_ssaoResult", 1);
-
-    if(options->isSsaoEnabled()) {
-        combiningObject = new CombinePostProcess(glHelper,true);
-        combiningObject->setSourceTexture("pre_diffuseSpecularLighted", 1);
-        combiningObject->setSourceTexture("pre_ambient", 2);
-        combiningObject->setSourceTexture("pre_ssao", 3);
-        combiningObject->setSourceTexture("pre_depthMap", 4);
-    } else {
-        combiningObject = new CombinePostProcess(glHelper,false);
-        combiningObject->setSourceTexture("pre_diffuseSpecularLighted", 1);
-        combiningObject->setSourceTexture("pre_depthMap", 4);
-    }
-
+    
+    quadRender = std::make_shared<QuadRender>(glHelper);
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
     camera = new Camera(options, currentPlayer->getCameraAttachment());//register is just below
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
@@ -247,7 +241,14 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     ssaoGenerationStage->setInput(1, depthMap);
     ssaoGenerationStage->setInput(2, normalMap);
     ssaoGenerationStage->setInput(3, ssaoNoiseTexture);
+    std::vector<glm::vec3> kernels = SSAOPostProcess::generateSSAOKernels(options->getSSAOSampleCount());
 
+    if(!ssaoGenerationProgram->setUniform("ssaoKernel[0]", kernels)) {
+        std::cerr << "uniform variable \"ssaoKernel\" couldn't be set" << std::endl;
+    }
+    if(!ssaoGenerationProgram->setUniform("ssaoSampleCount", (int32_t)kernels.size())) {
+        std::cerr << "uniform variable \"ssaoSampleCount\" couldn't be set" << std::endl;
+    }
     ssaoBlurStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
     ssaoBlurStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, ssaoBlurredMap);
     ssaoBlurStage->setInput(1, ssaoTexture);
@@ -272,6 +273,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     renderMethods.renderPlayerAttachmentOpaque    = std::bind(&World::renderPlayerAttachmentOpaqueObjects, this, std::placeholders::_1);
     renderMethods.renderPlayerAttachmentTransparent    = std::bind(&World::renderPlayerAttachmentTransparentObjects, this, std::placeholders::_1);
     renderMethods.renderPlayerAttachmentAnimated    = std::bind(&World::renderPlayerAttachmentAnimatedObjects, this, std::placeholders::_1);
+    renderMethods.renderQuad                = std::bind(&QuadRender::render, this->quadRender, std::placeholders::_1);
+
 
     renderMethods.getLightsByType = std::bind(&World::getLightIndexes, this, std::placeholders::_1);
     renderMethods.renderLight = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2);
@@ -282,70 +285,66 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     stageInfo.clear = false;
     stageInfo.stage = directionalShadowStage;
-    stageInfo.renderMethods.push_back(std::make_pair(
-            [&] (const std::shared_ptr<GLSLProgram> &renderProgram) {
-                std::vector<size_t> lights = defaultRenderPipeline->getLightIndexes(Light::LightTypes::DIRECTIONAL);
-                for (size_t light:lights) {
-                    //set the layer that will be rendered. Also set clear so attached layer will be cleared right away.
-                    //this is important because they will not be cleared other way.
-                    directionalShadowStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, depthMapDirectional, true, light);
-                    //generate shadow map
-                    defaultRenderPipeline->getRenderLightMethod()(light, renderProgram);
-                }
-            }
-            , shadowMapProgramDirectional));
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethodAllDirectionalLights(directionalShadowStage, depthMapDirectional, shadowMapProgramDirectional));
     defaultRenderPipeline->addNewStage(stageInfo);
 
     stageInfo.clear = true;
     stageInfo.stage = pointShadowStage;
     stageInfo.renderMethods.clear();
-    stageInfo.renderMethods.push_back(std::make_pair(
-            [&] (const std::shared_ptr<GLSLProgram> &renderProgram) {
-                std::vector<size_t> lights = defaultRenderPipeline->getLightIndexes(Light::LightTypes::POINT);
-                for (size_t light:lights) {
-                    defaultRenderPipeline->getRenderLightMethod()(light, renderProgram);
-                }
-            }
-            , shadowMapProgramPoint));
-    defaultRenderPipeline->addNewStage(stageInfo);
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethodAllPointLights(shadowMapProgramPoint));
 
     stageInfo.stage = coloringStage;
     stageInfo.renderMethods.clear();
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderPlayerAttachmentAnimatedObjects, this, std::placeholders::_1), animatedModelProgram));
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderPlayerAttachmentOpaqueObjects, this, std::placeholders::_1), nonTransparentModelProgram));
-    defaultRenderPipeline->addNewStage(stageInfo);
-
-    stageInfo.clear = false;
-    stageInfo.renderMethods.clear();
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1), nonTransparentModelProgram));
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderAnimatedObjects, this, std::placeholders::_1), animatedModelProgram));
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderDebug, this, std::placeholders::_1), nullptr));
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderSky, this, std::placeholders::_1), skyBoxProgram));
+    bool isFound;
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render Animated Player Attachment", animatedModelProgram, isFound));
+    if(!isFound) {std::cerr << "Failed to create render method for animated player attachment!" << std::endl;}
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render Opaque Player Attachment", nonTransparentModelProgram, isFound));
+    if(!isFound) {std::cerr << "Failed to create render method for opaque player attachment!" << std::endl;}
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render Opaque Objects", nonTransparentModelProgram, isFound));
+    if(!isFound) { std::cerr << "Failed to create render method for Opaque objects!" << std::endl;}
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render Animated Objects", animatedModelProgram, isFound));
+    if(!isFound) { std::cerr << "Failed to create render method for Animated objects!" << std::endl;}
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render Debug Information", nullptr, isFound));
+    if(!isFound) { std::cerr << "Failed to create render method for Debug!" << std::endl;}
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render sky", skyBoxProgram, isFound));
+    if(!isFound) { std::cerr << "Failed to create render method for Sky!" << std::endl;}
     defaultRenderPipeline->addNewStage(stageInfo);
 
     stageInfo.stage = ssaoGenerationStage;
     stageInfo.renderMethods.clear();
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&SSAOPostProcess::render, this->ssaoPostProcess), nullptr));
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render quad", ssaoGenerationProgram, isFound));
+    if(!isFound) { std::cerr << "Failed to create render method for Sky!" << std::endl;}
+    //stageInfo.renderMethods.push_back(std::make_pair(std::bind(&SSAOPostProcess::render, this->ssaoPostProcess), nullptr));
     defaultRenderPipeline->addNewStage(stageInfo);
 
     stageInfo.stage = ssaoBlurStage;
     stageInfo.renderMethods.clear();
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&SSAOBlurPostProcess::render, this->ssaoBlurPostProcess), nullptr));
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render quad", ssaoBlurProgram, isFound));
+    if(!isFound) { std::cerr << "Failed to create render method for Sky!" << std::endl;}
+    //stageInfo.renderMethods.push_back(std::make_pair(std::bind(&SSAOBlurPostProcess::render, this->ssaoBlurPostProcess), nullptr));
     defaultRenderPipeline->addNewStage(stageInfo);
 
     stageInfo.clear = true;
     stageInfo.stage = combiningStage;
     stageInfo.renderMethods.clear();
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&CombinePostProcess::render, this->combiningObject), nullptr));
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render quad", combineProgram, isFound));
+    if(!isFound) { std::cerr << "Failed to create render method for Sky!" << std::endl;}
+    //stageInfo.renderMethods.push_back(std::make_pair(std::bind(&CombinePostProcess::render, this->combiningObject), nullptr));
     defaultRenderPipeline->addNewStage(stageInfo);
 
     stageInfo.clear = false;
     stageInfo.renderMethods.clear();
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderPlayerAttachmentTransparentObjects, this, std::placeholders::_1), transparentModelProgram));
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderTransparentObjects, this, std::placeholders::_1), transparentModelProgram));
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderGUITexts, this, std::placeholders::_1), textRenderProgram));
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::renderGUIImages, this, std::placeholders::_1), imageRenderProgram));
-    stageInfo.renderMethods.push_back(std::make_pair(std::bind(&World::ImGuiFrameSetup, this), nullptr));
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render Transparent Player Attachment", transparentModelProgram, isFound));
+    if(!isFound) { std::cerr << "Failed to create render method for Transparent player attachments!" << std::endl;}
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render Transparent Objects", transparentModelProgram, isFound));
+    if(!isFound) { std::cerr << "Failed to create render method for Transparent objects!" << std::endl;}
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render GUI Texts", textRenderProgram, isFound));
+    if(!isFound) { std::cerr << "Failed to create render method for GUI Texts!" << std::endl;}
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render GUI Images", imageRenderProgram, isFound));
+    if(!isFound) { std::cerr << "Failed to create render method for GUI Images!" << std::endl;}
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render Editor", nullptr, isFound));
+    if(!isFound) { std::cerr << "Failed to create render method for Editor!" << std::endl;}
+
     defaultRenderPipeline->addNewStage(stageInfo);
 
     fpsCounter = new GUIFPSCounter(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",

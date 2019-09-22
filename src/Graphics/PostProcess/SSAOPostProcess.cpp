@@ -16,7 +16,7 @@ float lerp(float first , float second , float factor ) {
     return first + factor * (second - first);
 }
 
-void SSAOPostProcess::generateAndSetSSAOKernels(uint32_t kernelSize) const {
+std::vector<glm::vec3> SSAOPostProcess::generateSSAOKernels(uint32_t kernelSize) {
 // generate sample kernel
 // ----------------------
     std::vector<glm::vec3> ssaoKernel;
@@ -34,11 +34,15 @@ void SSAOPostProcess::generateAndSetSSAOKernels(uint32_t kernelSize) const {
         ssaoKernel.push_back(sample);
         //std::cout << "sampleKernel" << glm::to_string(sample) << std::endl;
     }
+    return ssaoKernel;
+}
 
-    if(!this->program->setUniform("ssaoKernel[0]", ssaoKernel)) {
+void SSAOPostProcess::setSSAOKernels(const std::vector<glm::vec3> &kernels) {
+    if(!this->program->setUniform("ssaoKernel[0]", kernels)) {
         std::cerr << "uniform variable \"ssaoKernel\" couldn't be set" << std::endl;
     }
-    if(!this->program->setUniform("ssaoSampleCount", (int32_t)ssaoKernel.size())) {
+    if(!this->program->setUniform("ssaoSampleCount", (int32_t)kernels.size())) {
         std::cerr << "uniform variable \"ssaoSampleCount\" couldn't be set" << std::endl;
     }
 }
+

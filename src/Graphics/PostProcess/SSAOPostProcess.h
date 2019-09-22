@@ -7,13 +7,14 @@
 
 
 #include <iostream>
+#include <glm/glm.hpp>
 #include "QuadRenderBase.h"
 
 class SSAOPostProcess : public QuadRenderBase {
     uint32_t sampleCount;
-    void generateAndSetSSAOKernels(uint32_t kernelSize) const ;
-    void initializeProgram() override;
 
+    void initializeProgram() override;
+    void setSSAOKernels(const std::vector<glm::vec3>& kernels);
 public:
     SSAOPostProcess(GLHelper* glHelper, uint32_t sampleCount) : QuadRenderBase(glHelper), sampleCount(sampleCount) {
         initializeProgram();
@@ -21,7 +22,7 @@ public:
             std::cerr << "Maximum sample count for SSAO is 128, your input will be lowered to it. " << std::endl;
             this->sampleCount = 128;
         }
-        generateAndSetSSAOKernels(this->sampleCount);
+        setSSAOKernels(generateSSAOKernels(sampleCount));
     }
 
     uint32_t getSampleCount() const {
@@ -34,9 +35,9 @@ public:
             sampleCount = 128;
         }
         SSAOPostProcess::sampleCount = sampleCount;
-        generateAndSetSSAOKernels(sampleCount);
+        setSSAOKernels(generateSSAOKernels(sampleCount));
     }
-
+    static std::vector<glm::vec3> generateSSAOKernels(uint32_t kernelSize);
 };
 
 

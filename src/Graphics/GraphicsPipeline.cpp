@@ -5,14 +5,14 @@
 #include "GraphicsPipeline.h"
 
 //Static initialize of the vector
-std::vector<std::string> GraphicsPipeline::renderMethodNames { "None", "All directional shadows", "All point Shadow", "Opaque objects", "Animated objects", "Transparent objects", "GUI Texts", "GUI Images", "Editor", "Sky", "Debug information", "Opaque player attachments", "Animated player attachments", "Transparent player attachments"};
+std::vector<std::string> GraphicsPipeline::renderMethodNames { "None", "All directional shadows", "All point Shadow", "Opaque objects", "Animated objects", "Transparent objects", "GUI Texts", "GUI Images", "Editor", "Sky", "Debug information", "Opaque player attachments", "Animated player attachments", "Transparent player attachments", "Render quad"};
 
 
 void GraphicsPipeline::render() {
     for(auto stageInfo:pipelineStages) {
         stageInfo.stage->activate(stageInfo.clear);
         for(auto renderMethod:stageInfo.renderMethods) {
-            renderMethod.first(renderMethod.second);
+            renderMethod();
         }
     }
 }
