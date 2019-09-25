@@ -20,7 +20,7 @@ void GUIFPSCounter::updateFPS() {
     }
 }
 
-void GUIFPSCounter::renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram) {
+void GUIFPSCounter::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) {
     updateFPS();
     GUITextBase::renderWithProgram(renderProgram);
 }

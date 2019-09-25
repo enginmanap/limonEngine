@@ -51,7 +51,7 @@ SkyBox::SkyBox(uint32_t objectID, AssetManager *assetManager, std::string path, 
     bufferObjects.push_back(vbo);
 }
 
-void SkyBox::renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram){
+void SkyBox::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram){
     int texturePoint = 1;
 
     graphicsWrapper->attachCubeMap(cubeMap->getID(), texturePoint);

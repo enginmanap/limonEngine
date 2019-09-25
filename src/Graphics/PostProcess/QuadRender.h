@@ -12,7 +12,7 @@
 #include <memory>
 
 class GraphicsInterface;
-class GLSLProgram;
+class GraphicsProgram;
 
 class QuadRender {
     uint_fast32_t vao, ebo;
@@ -23,7 +23,7 @@ protected:
 public:
     QuadRender(GraphicsInterface* graphicsWrapper);
 
-    void render(std::shared_ptr<GLSLProgram> renderProgram);
+    void render(std::shared_ptr<GraphicsProgram> renderProgram);
 
 };
 

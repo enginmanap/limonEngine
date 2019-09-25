@@ -16,7 +16,7 @@
 
 struct SDL_Window;
 
-class GLSLProgram;
+class GraphicsProgram;
 class InputHandler;
 class Options;
 typedef union SDL_Event SDL_Event;
@@ -35,7 +35,7 @@ class ImGuiHelper {
     // ImGUI Data end"
 
     GraphicsInterface* graphicsWrapper = nullptr;
-    std::shared_ptr<GLSLProgram> program = nullptr;
+    std::shared_ptr<GraphicsProgram> program = nullptr;
     Options* options;
 
     ImGuiContext* context = nullptr;

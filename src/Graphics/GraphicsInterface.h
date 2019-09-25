@@ -5,28 +5,21 @@
 #ifndef LIMONENGINE_GRAPHICSINTERFACE_H
 #define LIMONENGINE_GRAPHICSINTERFACE_H
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <string>
-#include <algorithm>
-#include <vector>
 
-#include <fstream>
-#include <streambuf>
-#include <iostream>
-#include <unordered_map>
 #include <GL/glew.h>
 
 #ifdef __APPLE__
 #  include <OpenGL/gl.h>
 #else
 
-#  include <GL/gl.h>
+#include <GL/gl.h>
+#endif/*__APPLE__*/
+
 #include <memory>
 #include <map>
+#include <unordered_map>
+#include <vector>
 
-#endif/*__APPLE__*/
 
 #define NR_POINT_LIGHTS 3
 #define NR_TOTAL_LIGHTS 4
@@ -38,7 +31,7 @@ class Material;
 
 class Light;
 
-class GLSLProgram;
+class GraphicsProgram;
 class Texture;
 
 struct Line {
@@ -154,7 +147,7 @@ protected:
 
 public:
 
-    virtual const std::map<std::shared_ptr<GLSLProgram>, int> &getLoadedPrograms() const = 0;
+    virtual const std::map<std::shared_ptr<GraphicsProgram>, int> &getLoadedPrograms() const = 0;
 
     virtual void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) = 0;
     virtual const glm::mat4 &getLightProjectionMatrixPoint() const = 0;
@@ -162,8 +155,8 @@ public:
     explicit GraphicsInterface(Options *options [[gnu::unused]]) {};
     virtual ~GraphicsInterface() {};
 
-    virtual std::shared_ptr<GLSLProgram> createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) = 0;
-    virtual std::shared_ptr<GLSLProgram> createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) = 0;
+    virtual std::shared_ptr<GraphicsProgram> createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) = 0;
+    virtual std::shared_ptr<GraphicsProgram> createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) = 0;
 
     virtual void attachModelUBO(const uint32_t program) = 0;
     virtual void attachMaterialUBO(const uint32_t program, const uint32_t materialID) = 0;
@@ -215,7 +208,7 @@ public:
 
     virtual void createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize) = 0;
 
-    virtual void drawLines(GLSLProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines) = 0;
+    virtual void drawLines(GraphicsProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines) = 0;
 
     virtual void clearDepthBuffer() = 0; //FIXME this should be removed
 

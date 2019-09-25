@@ -235,21 +235,21 @@ private:
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
 
-    std::shared_ptr<GLSLProgram> shadowMapProgramDirectional = nullptr;
-    std::shared_ptr<GLSLProgram> shadowMapProgramPoint = nullptr;
-    std::shared_ptr<GLSLProgram> depthBufferProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> shadowMapProgramDirectional = nullptr;
+    std::shared_ptr<GraphicsProgram> shadowMapProgramPoint = nullptr;
+    std::shared_ptr<GraphicsProgram> depthBufferProgram = nullptr;
 
-    std::shared_ptr<GLSLProgram> nonTransparentModelProgram = nullptr;
-    std::shared_ptr<GLSLProgram> transparentModelProgram = nullptr;
-    std::shared_ptr<GLSLProgram> animatedModelProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> nonTransparentModelProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> transparentModelProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> animatedModelProgram = nullptr;
 
-    std::shared_ptr<GLSLProgram> skyBoxProgram = nullptr;
-    std::shared_ptr<GLSLProgram> textRenderProgram = nullptr;
-    std::shared_ptr<GLSLProgram> imageRenderProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> skyBoxProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> textRenderProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> imageRenderProgram = nullptr;
 
-    std::shared_ptr<GLSLProgram> ssaoGenerationProgram = nullptr;
-    std::shared_ptr<GLSLProgram> ssaoBlurProgram = nullptr;
-    std::shared_ptr<GLSLProgram> combineProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> ssaoGenerationProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> ssaoBlurProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> combineProgram = nullptr;
 
 
     FontManager fontManager;
@@ -391,7 +391,7 @@ private:
     std::vector<LimonAPI::ParameterRequest>
     fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) const;
 
-    void renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes renderingModelType, const std::shared_ptr<GLSLProgram> &renderProgram) const;
+    void renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes renderingModelType, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
 
     void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment);
 
@@ -408,20 +408,20 @@ private:
         return lights;
     }
 
-    void renderLight(unsigned int lightIndex, const std::shared_ptr<GLSLProgram> &renderProgram) const;
-    void renderTransparentObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
-    void renderGUIImages(const std::shared_ptr<GLSLProgram>& renderProgram) const;
-    void renderGUITexts(const std::shared_ptr<GLSLProgram>& renderProgram) const;
-    void renderSky(const std::shared_ptr<GLSLProgram>& renderProgram) const;
-    void renderOpaqueObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
-    void renderAnimatedObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
-    void renderPlayerAttachmentTransparentObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
-    void renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
-    void renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const;
-    void renderDebug(const std::shared_ptr<GLSLProgram>& renderProgram) const;
+    void renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
+    void renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderPlayerAttachmentTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
 
     //TODO remove with material editor
-    void setSamplersAndUBOs(std::shared_ptr<GLSLProgram>& program, bool setOpacity);
+    void setSamplersAndUBOs(std::shared_ptr<GraphicsProgram>& program, bool setOpacity);
 
 public:
     ~World();

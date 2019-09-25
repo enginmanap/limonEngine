@@ -4,7 +4,7 @@
 
 #include "QuadRender.h"
 #include "Graphics/GraphicsInterface.h"
-#include "Graphics/GLSLProgram.h"
+#include "Graphics/GraphicsProgram.h"
 
 QuadRender::QuadRender(GraphicsInterface* graphicsWrapper) : graphicsWrapper(graphicsWrapper){
     std::vector<glm::vec3> vertices;
@@ -36,6 +36,6 @@ QuadRender::QuadRender(GraphicsInterface* graphicsWrapper) : graphicsWrapper(gra
 
 }
 
-void QuadRender::render(std::shared_ptr<GLSLProgram> renderProgram) {
+void QuadRender::render(std::shared_ptr<GraphicsProgram> renderProgram) {
     graphicsWrapper->render(renderProgram->getID(), vao, ebo, 3 * 2);//2 triangles
 }

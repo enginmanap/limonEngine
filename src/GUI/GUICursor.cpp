@@ -4,7 +4,7 @@
 
 #include "GUICursor.h"
 
-void GUICursor::renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram){
+void GUICursor::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram){
     if(!this->hidden) {
         GUIImageBase::renderWithProgram(renderProgram);
     }

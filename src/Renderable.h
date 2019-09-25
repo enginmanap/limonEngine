@@ -8,7 +8,7 @@
 
 #include "GameObjects/GameObject.h"
 #include "Graphics/GraphicsInterface.h"
-#include "Graphics/GLSLProgram.h"
+#include "Graphics/GraphicsProgram.h"
 #include "Transformation.h"
 #include <btBulletDynamicsCommon.h>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -31,7 +31,7 @@ protected:
 
 public:
 
-    virtual void renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram) = 0;
+    virtual void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) = 0;
 
     virtual void setupForTime(long time) = 0;
 

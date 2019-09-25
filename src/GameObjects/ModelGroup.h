@@ -49,7 +49,7 @@ public:
         return false;
     }
 
-    void renderWithProgram(std::shared_ptr<GLSLProgram> program) override;
+    void renderWithProgram(std::shared_ptr<GraphicsProgram> program) override;
 
     bool fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const override;
 

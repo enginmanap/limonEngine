@@ -10,14 +10,14 @@
 #include <vector>
 
 #include "Graphics/GraphicsInterface.h"
-#include "Graphics/GLSLProgram.h"
+#include "Graphics/GraphicsProgram.h"
 #include "Utils/GLMConverter.h"
 #include "Options.h"
 
 class BulletDebugDrawer : public btIDebugDraw {
     DebugDrawModes currentMode;
     GraphicsInterface* graphicsWrapper;
-    std::shared_ptr<GLSLProgram> renderProgram;
+    std::shared_ptr<GraphicsProgram> renderProgram;
     GLuint vao, vbo, ebo;
     std::vector<Line> lineBuffer;
     Options* options;

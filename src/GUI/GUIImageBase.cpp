@@ -6,7 +6,7 @@
 #include "../Assets/AssetManager.h"
 #include "../Assets/TextureAsset.h"
 
-std::shared_ptr<GLSLProgram> GUIImageBase::imageRenderProgram = nullptr;
+std::shared_ptr<GraphicsProgram> GUIImageBase::imageRenderProgram = nullptr;
 
 
 GUIImageBase::GUIImageBase(GraphicsInterface* graphicsWrapper, AssetManager *assetManager, const std::string &imageFile) : GUIRenderable(graphicsWrapper), assetManager(assetManager), imageFile(imageFile) {
@@ -19,7 +19,7 @@ GUIImageBase::~GUIImageBase() {
     //delete renderProgram;// since the program is shared, don't remove
 }
 
-void GUIImageBase::renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram){
+void GUIImageBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram){
 
     renderProgram->setUniform("orthogonalProjectionMatrix", graphicsWrapper->getOrthogonalProjectionMatrix());
 

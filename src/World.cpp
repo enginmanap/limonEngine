@@ -888,7 +888,7 @@ void World:: render() {
     defaultRenderPipeline->render();
 }
 
-void World::renderGUIImages(const std::shared_ptr<GLSLProgram>& renderProgram) const {
+void World::renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
     cursor->renderWithProgram(renderProgram);
 
     for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
@@ -899,7 +899,7 @@ void World::renderGUIImages(const std::shared_ptr<GLSLProgram>& renderProgram) c
 
 }
 
-void World::renderGUITexts(const std::shared_ptr<GLSLProgram>& renderProgram) const {
+void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
     for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
         (*it)->renderTextWithProgram(renderProgram);
     }
@@ -916,7 +916,7 @@ void World::renderGUITexts(const std::shared_ptr<GLSLProgram>& renderProgram) co
     }
 }
 
-void World::renderTransparentObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const {
+void World::renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
    for (auto modelIterator = transparentModelsInCameraFrustum.begin(); modelIterator != transparentModelsInCameraFrustum.end(); ++modelIterator) {
        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
        std::set<Model *> modelSet = modelIterator->second;
@@ -933,7 +933,7 @@ void World::renderTransparentObjects(const std::shared_ptr<GLSLProgram>& renderP
    }
 }
 
-void World::renderDebug(const std::shared_ptr<GLSLProgram>& renderProgram [[gnu::unused]]) const {
+void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[gnu::unused]]) const {
    dynamicsWorld->debugDrawWorld();
    if (dynamicsWorld->getDebugDrawer()->getDebugMode() != btIDebugDraw::DBG_NoDebug) {
        debugDrawer->drawLine(btVector3(0, 0, 0), btVector3(0, 250, 0), btVector3(1, 1, 1));
@@ -945,28 +945,28 @@ void World::renderDebug(const std::shared_ptr<GLSLProgram>& renderProgram [[gnu:
    debugDrawer->flushDraws();
 }
 
-void World::renderPlayerAttachmentTransparentObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const {
+void World::renderPlayerAttachmentTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
    if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
        Model *attachedModel = startingPlayer.attachedModel;
        renderPlayerAttachmentsRecursive(attachedModel, ModelTypes::TRANSPARENT, renderProgram);
    }
 }
 
-void World::renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GLSLProgram> &renderProgram) const {
+void World::renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GraphicsProgram> &renderProgram) const {
    if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
        Model *attachedModel = startingPlayer.attachedModel;
        renderPlayerAttachmentsRecursive(attachedModel, ModelTypes::ANIMATED, renderProgram);
    }
 }
 
-void World::renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GLSLProgram> &renderProgram) const {
+void World::renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GraphicsProgram> &renderProgram) const {
    if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
        Model *attachedModel = startingPlayer.attachedModel;
        renderPlayerAttachmentsRecursive(attachedModel, ModelTypes::NON_ANIMATED_OPAQUE, renderProgram);
    }
 }
 
-void World::renderAnimatedObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const {
+void World::renderAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
     for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
        std::vector<uint32_t> temp;
        temp.push_back((*modelIterator)->getWorldObjectID());
@@ -974,7 +974,7 @@ void World::renderAnimatedObjects(const std::shared_ptr<GLSLProgram>& renderProg
     }
 }
 
-void World::renderOpaqueObjects(const std::shared_ptr<GLSLProgram>& renderProgram) const {
+void World::renderOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
    for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
        std::set<Model *> modelSet = modelIterator->second;
@@ -990,13 +990,13 @@ void World::renderOpaqueObjects(const std::shared_ptr<GLSLProgram>& renderProgra
    }
 }
 
-void World::renderSky(const std::shared_ptr<GLSLProgram>& renderProgram) const {
+void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
    if (sky != nullptr) {
        sky->renderWithProgram(renderProgram);
    }
 }
 
-void World::renderLight(unsigned int lightIndex, const std::shared_ptr<GLSLProgram> &renderProgram) const {
+void World::renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsProgram> &renderProgram) const {
    renderProgram->setUniform("renderLightIndex", (int) lightIndex);
    for (auto modelIterator = modelsInLightFrustum[lightIndex].begin(); modelIterator != modelsInLightFrustum[lightIndex].end(); ++modelIterator) {
        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
@@ -1021,7 +1021,7 @@ void World::renderLight(unsigned int lightIndex, const std::shared_ptr<GLSLProgr
    }
 }
 
-void World::renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes renderingModelType, const std::shared_ptr<GLSLProgram> &renderProgram) const {
+void World::renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes renderingModelType, const std::shared_ptr<GraphicsProgram> &renderProgram) const {
  if(attachment->getTypeID() == GameObject::MODEL) {
      Model* attachedModel = static_cast<Model*>(attachment);
      attachedModel->setupForTime(gameTime);
@@ -4423,7 +4423,7 @@ void World::createNodeGraph() {
 
 }
 
-void World::setSamplersAndUBOs(std::shared_ptr<GLSLProgram>& program, bool setOpacity) {
+void World::setSamplersAndUBOs(std::shared_ptr<GraphicsProgram>& program, bool setOpacity) {
 
     //TODO these will be configurable with material editor
     int diffuseMapAttachPoint = 1;

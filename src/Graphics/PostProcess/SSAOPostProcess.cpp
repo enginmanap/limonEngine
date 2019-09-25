@@ -3,7 +3,7 @@
 //
 
 #include "SSAOPostProcess.h"
-#include "Graphics/GLSLProgram.h"
+#include "Graphics/GraphicsProgram.h"
 #include <random>
 #include <glm/glm.hpp>
 

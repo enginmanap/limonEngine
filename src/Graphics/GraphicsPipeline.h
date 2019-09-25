@@ -13,7 +13,7 @@
 #include "GraphicsPipelineStage.h"
 #include "../GameObjects/Light.h"
 class World;
-class GLSLProgram;
+class GraphicsProgram;
 
 class GraphicsPipeline {
 public:
@@ -24,8 +24,8 @@ public:
         friend class RenderMethods;
 
         std::string name;
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> method;
-        std::shared_ptr<GLSLProgram> glslProgram;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&)> method;
+        std::shared_ptr<GraphicsProgram> glslProgram;
 
         explicit RenderMethod(){} //private
 
@@ -39,30 +39,30 @@ public:
     class RenderMethods {
         friend class World;//so it can fill it up.
     private:
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderOpaqueObjects;
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderAnimatedObjects;
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderTransparentObjects;
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderGUITexts;
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderGUIImages;
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderPlayerAttachmentOpaque;
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderPlayerAttachmentTransparent;
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderPlayerAttachmentAnimated;
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderSky;
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderEditor;
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderDebug;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderOpaqueObjects;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderAnimatedObjects;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderTransparentObjects;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderGUITexts;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderGUIImages;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderPlayerAttachmentOpaque;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderPlayerAttachmentTransparent;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderPlayerAttachmentAnimated;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderSky;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderEditor;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderDebug;
 
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> renderQuad;//For offscreen stuff
+        std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderQuad;//For offscreen stuff
 
         //These methods are not exposed to the interface
         //They are also not possible to add to render pipeline, so a method should be created and assigned.
         std::function<std::vector<size_t>(Light::LightTypes)> getLightsByType;
-        std::function<void(unsigned int, std::shared_ptr<GLSLProgram>)> renderLight;
+        std::function<void(unsigned int, std::shared_ptr<GraphicsProgram>)> renderLight;
 
-        std::function<void(const std::shared_ptr<GLSLProgram>&)> getRenderMethodByName(const std::string& name, bool& found) const {
+        std::function<void(const std::shared_ptr<GraphicsProgram>&)> getRenderMethodByName(const std::string& name, bool& found) const {
             found  = true;
             if(name == "None") {
                 std::cerr << "Building graphics pipeline with empty method, are you sure that was set correctly?" << std::endl;
-                return [](const std::shared_ptr<GLSLProgram>& notUsed[[gnu::unused]]){};
+                return [](const std::shared_ptr<GraphicsProgram>& notUsed[[gnu::unused]]){};
             } else if(name == "Render Opaque Objects") {
                 return  renderOpaqueObjects;
             } else if(name == "Render Animated Objects") {
@@ -96,12 +96,12 @@ public:
             return getLightsByType(lightType);
         }
 
-        std::function<void(unsigned int, std::shared_ptr<GLSLProgram>)>& getRenderLightMethod() {
+        std::function<void(unsigned int, std::shared_ptr<GraphicsProgram>)>& getRenderLightMethod() {
             return renderLight;
         }
 
     public:
-        RenderMethod getRenderMethod(const std::string& methodName, std::shared_ptr<GLSLProgram> glslProgram, bool& isFound) const {
+        RenderMethod getRenderMethod(const std::string& methodName, std::shared_ptr<GraphicsProgram> glslProgram, bool& isFound) const {
             RenderMethod renderMethod;
             renderMethod.method = getRenderMethodByName(methodName, isFound);
             if(!isFound) {
@@ -112,9 +112,9 @@ public:
             return renderMethod;
         }
 
-        RenderMethod getRenderMethodAllDirectionalLights(std::shared_ptr<GraphicsPipelineStage>& stage, std::shared_ptr<Texture>& layeredDepthMap, std::shared_ptr<GLSLProgram> glslProgram) const {
+        RenderMethod getRenderMethodAllDirectionalLights(std::shared_ptr<GraphicsPipelineStage>& stage, std::shared_ptr<Texture>& layeredDepthMap, std::shared_ptr<GraphicsProgram> glslProgram) const {
             RenderMethod renderMethod;
-            renderMethod.method = [&](const std::shared_ptr<GLSLProgram> &renderProgram) {
+            renderMethod.method = [&](const std::shared_ptr<GraphicsProgram> &renderProgram) {
                 std::vector<size_t> lights = getLightIndexes(Light::LightTypes::DIRECTIONAL);
                 for (size_t light:lights) {
                     //set the layer that will be rendered. Also set clear so attached layer will be cleared right away.
@@ -132,10 +132,10 @@ public:
 
         }
 
-        RenderMethod getRenderMethodAllPointLights(std::shared_ptr<GLSLProgram> glslProgram) const {
+        RenderMethod getRenderMethodAllPointLights(std::shared_ptr<GraphicsProgram> glslProgram) const {
             RenderMethod renderMethod;
 
-            renderMethod.method = [&] (const std::shared_ptr<GLSLProgram> &renderProgram) {
+            renderMethod.method = [&] (const std::shared_ptr<GraphicsProgram> &renderProgram) {
                 std::vector<size_t> lights = getLightIndexes(Light::LightTypes::POINT);
                 for (size_t light:lights) {
                     renderLight(light, renderProgram);

@@ -3,7 +3,7 @@
 //
 
 #include "SSAOBlurPostProcess.h"
-#include "Graphics/GLSLProgram.h"
+#include "Graphics/GraphicsProgram.h"
 
 void SSAOBlurPostProcess::initializeProgram() {
     program = graphicsWrapper->createGLSLProgram("./Engine/Shaders/SSAOBlur/vertex.glsl",

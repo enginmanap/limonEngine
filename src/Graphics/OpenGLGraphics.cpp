@@ -3,7 +3,7 @@
 //
 
 #include "OpenGLGraphics.h"
-#include "GLSLProgram.h"
+#include "GraphicsProgram.h"
 
 #include "GameObjects/Light.h"
 #include "Material.h"
@@ -796,8 +796,8 @@ OpenGLGraphics::~OpenGLGraphics() {
     //state->setProgram(0);
 }
 
-std::shared_ptr<GLSLProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) {
-    std::shared_ptr<GLSLProgram> program(new GLSLProgram(this, vertexShader, geometryShader, fragmentShader, isMaterialUsed), std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
+std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) {
+    std::shared_ptr<GraphicsProgram> program(new GraphicsProgram(this, vertexShader, geometryShader, fragmentShader, isMaterialUsed), std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
     if(loadedPrograms.find(program) == loadedPrograms.end()) {
         loadedPrograms[program] = 1;
     } else {
@@ -805,8 +805,8 @@ std::shared_ptr<GLSLProgram> OpenGLGraphics::createGLSLProgram(const std::string
     }
     return program;
 }
-std::shared_ptr<GLSLProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) {
-    std::shared_ptr<GLSLProgram> program(new GLSLProgram(this, vertexShader, fragmentShader, isMaterialUsed), std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
+std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) {
+    std::shared_ptr<GraphicsProgram> program(new GraphicsProgram(this, vertexShader, fragmentShader, isMaterialUsed), std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
     if(loadedPrograms.find(program) == loadedPrograms.end()) {
         loadedPrograms[program] = 1;
     } else {
@@ -815,7 +815,7 @@ std::shared_ptr<GLSLProgram> OpenGLGraphics::createGLSLProgram(const std::string
     return program;
 }
 
-void OpenGLGraphics::testAndRemoveGLSLProgram(GLSLProgram *program) {
+void OpenGLGraphics::testAndRemoveGLSLProgram(GraphicsProgram *program) {
     //FIXME this is a hack until I remove loadedPrograms altogether.
     for(auto iterator = loadedPrograms.begin(); iterator != loadedPrograms.end(); iterator++) {
         if(iterator->first.get() == program) {
@@ -1290,7 +1290,7 @@ void OpenGLGraphics::createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bu
  * @param vbo     - vbo that the lines will be buffered. It should be
  * @param lines   - line vector
  */
-void OpenGLGraphics::drawLines(GLSLProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines) {
+void OpenGLGraphics::drawLines(GraphicsProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines) {
     state->setProgram(program.getID());
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);

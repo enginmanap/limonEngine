@@ -24,7 +24,7 @@ protected:
     int height, width;
     int bearingUp;
 
-    static std::shared_ptr<GLSLProgram> textRenderProgram;
+    static std::shared_ptr<GraphicsProgram> textRenderProgram;
 
     //Don't allow constructing of this object itself
     GUITextBase(GraphicsInterface* graphicsWrapper, Face *font, const std::string text, const glm::vec3 color);
@@ -37,7 +37,7 @@ public:
     };
 
 
-    virtual void renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram) override;
+    virtual void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) override;
 
     virtual void renderDebug(BulletDebugDrawer *debugDrawer);
 

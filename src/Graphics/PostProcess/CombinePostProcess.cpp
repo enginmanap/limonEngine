@@ -3,7 +3,7 @@
 //
 
 #include "CombinePostProcess.h"
-#include "Graphics/GLSLProgram.h"
+#include "Graphics/GraphicsProgram.h"
 
 CombinePostProcess::CombinePostProcess(GraphicsInterface* graphicsWrapper, bool isSSAOEnabled) : QuadRenderBase(graphicsWrapper), isSSAOEnabled(isSSAOEnabled) {
         initializeProgram();

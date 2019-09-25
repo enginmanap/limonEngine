@@ -182,7 +182,7 @@ void Model::activateTexturesOnly(std::shared_ptr<const Material>material) {
 }
 /*
 bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
-    std::shared_ptr<GLSLProgram> program  = meshMetaData->program;
+    std::shared_ptr<GraphicsProgram> program  = meshMetaData->program;
 
     if (meshMetaData->mesh != nullptr && meshMetaData->mesh->getMaterial() != nullptr) {
         graphicsWrapper->attachMaterialUBO(program->getID(), meshMetaData->mesh->getMaterial()->getMaterialIndex());
@@ -214,7 +214,7 @@ bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
 }
 */
 
-void Model::renderWithProgram(std::shared_ptr<GLSLProgram> program){
+void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program){
     graphicsWrapper->attachModelUBO(program->getID());
     for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
 
@@ -232,7 +232,7 @@ void Model::renderWithProgram(std::shared_ptr<GLSLProgram> program){
     }
 }
 
-void Model::renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GLSLProgram &program) {
+void Model::renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GraphicsProgram &program) {
     graphicsWrapper->setModelIndexesUBO(modelIndices);
 
     graphicsWrapper->attachModelUBO(program.getID());

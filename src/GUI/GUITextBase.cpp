@@ -5,7 +5,7 @@
 #include "GUITextBase.h"
 
 
-std::shared_ptr<GLSLProgram> GUITextBase::textRenderProgram = nullptr;
+std::shared_ptr<GraphicsProgram> GUITextBase::textRenderProgram = nullptr;
 
 void GUITextBase::calculateSizes() {
     width = 0;
@@ -44,7 +44,7 @@ GUITextBase::GUITextBase(GraphicsInterface* graphicsWrapper, Face *face, const s
     calculateSizes();
 }
 
-void GUITextBase::renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram){
+void GUITextBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram){
 
     float totalAdvance = 0.0f;
 

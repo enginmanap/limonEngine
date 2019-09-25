@@ -2,8 +2,8 @@
 // Created by Engin Manap on 2.03.2016.
 //
 
-#ifndef LIMONENGINE_GLSLPROGRAM_H
-#define LIMONENGINE_GLSLPROGRAM_H
+#ifndef LIMONENGINE_GRAPHICSPROGRAM_H
+#define LIMONENGINE_GRAPHICSPROGRAM_H
 
 #include <string>
 #include <vector>
@@ -13,7 +13,7 @@
 #include "OpenGLGraphics.h"
 
 
-class GLSLProgram {
+class GraphicsProgram {
     GraphicsInterface* graphicsWrapper;
     std::string programName;
 
@@ -25,19 +25,19 @@ class GLSLProgram {
     bool materialRequired;
     GLuint programID;
 
-    GLSLProgram(GraphicsInterface* graphicsWrapper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed);
-    GLSLProgram(GraphicsInterface* graphicsWrapper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed);
+    GraphicsProgram(GraphicsInterface* graphicsWrapper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed);
+    GraphicsProgram(GraphicsInterface* graphicsWrapper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed);
 
 public:
 
-    ~GLSLProgram();
+    ~GraphicsProgram();
 
-    friend std::shared_ptr<GLSLProgram> GraphicsInterface::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed);
-    friend std::shared_ptr<GLSLProgram> GraphicsInterface::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed);
+    friend std::shared_ptr<GraphicsProgram> GraphicsInterface::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed);
+    friend std::shared_ptr<GraphicsProgram> GraphicsInterface::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed);
 
 
-    friend std::shared_ptr<GLSLProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed);
-    friend std::shared_ptr<GLSLProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed);
+    friend std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed);
+    friend std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed);
 
 
     GLuint getID() const { return programID; }
@@ -112,7 +112,7 @@ public:
     }
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode) {
-        tinyxml2::XMLElement *programNode = document.NewElement("GLSLProgram");
+        tinyxml2::XMLElement *programNode = document.NewElement("GraphicsProgram");
         parentNode->InsertEndChild(programNode);
         tinyxml2::XMLElement *currentElement = nullptr;
 
@@ -137,7 +137,7 @@ public:
         return true;
     }
 
-    static std::shared_ptr<GLSLProgram> deserialize(tinyxml2::XMLElement *programNode, GraphicsInterface* graphicsWrapper) {
+    static std::shared_ptr<GraphicsProgram> deserialize(tinyxml2::XMLElement *programNode, GraphicsInterface* graphicsWrapper) {
         std::string vertexShader;
         std::string geometryShader;
         std::string fragmentShader;
@@ -201,4 +201,4 @@ public:
 
 
 
-#endif //LIMONENGINE_GLSLPROGRAM_H
+#endif //LIMONENGINE_GRAPHICSPROGRAM_H

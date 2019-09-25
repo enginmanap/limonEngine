@@ -12,7 +12,7 @@
 #include <memory>
 
 class GraphicsInterface;
-class GLSLProgram;
+class GraphicsProgram;
 
 class QuadRenderBase {
     uint_fast32_t vao, ebo;
@@ -21,7 +21,7 @@ class QuadRenderBase {
 
     virtual void initializeProgram() = 0;
 protected:
-    std::shared_ptr<GLSLProgram> program = nullptr;
+    std::shared_ptr<GraphicsProgram> program = nullptr;
     GraphicsInterface* graphicsWrapper = nullptr;
 public:
     QuadRenderBase(GraphicsInterface* graphicsWrapper);

@@ -6,7 +6,7 @@
 #include "Model.h"
 #include "../../libs/ImGui/imgui.h"
 
-void ModelGroup::renderWithProgram(std::shared_ptr<GLSLProgram> program){
+void ModelGroup::renderWithProgram(std::shared_ptr<GraphicsProgram> program){
     std::cerr << "Model Groups render with program used, it was not planned, nor tested." << std::endl;
     for (auto renderable = children.begin(); renderable != children.end(); ++renderable) {
         (*renderable)->renderWithProgram(program);

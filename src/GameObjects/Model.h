@@ -96,10 +96,10 @@ public:
 
     void setupForTime(long time);
 
-    void renderWithProgram(std::shared_ptr<GLSLProgram> program);
+    void renderWithProgram(std::shared_ptr<GraphicsProgram> program);
 
 
-    void renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GLSLProgram &program);
+    void renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GraphicsProgram &program);
 
     bool isAnimated() const { return animated;}
 

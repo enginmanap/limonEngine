@@ -12,7 +12,7 @@
 
 class Options;
 
-void GUILayer::renderImageWithProgram(std::shared_ptr<GLSLProgram> renderProgram){
+void GUILayer::renderImageWithProgram(std::shared_ptr<GraphicsProgram> renderProgram){
     for (auto it = guiElements.begin(); it != guiElements.end(); ++it) {
         if(it->second == RenderTypes::IMAGE) {
             it->first->renderWithProgram(renderProgram);
@@ -27,7 +27,7 @@ void GUILayer::renderImageWithProgram(std::shared_ptr<GLSLProgram> renderProgram
     }
 }
 
-void GUILayer::renderTextWithProgram(std::shared_ptr<GLSLProgram> renderProgram){
+void GUILayer::renderTextWithProgram(std::shared_ptr<GraphicsProgram> renderProgram){
     for (auto it = guiElements.begin(); it != guiElements.end(); ++it) {
         if(it->second == RenderTypes::TEXT) {
             it->first->renderWithProgram(renderProgram);

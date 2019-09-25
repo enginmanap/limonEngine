@@ -28,10 +28,6 @@
 
 #endif/*__APPLE__*/
 
-#define NR_POINT_LIGHTS 3
-#define NR_TOTAL_LIGHTS 4
-#define NR_MAX_MODELS (1000)
-#define NR_MAX_MATERIALS 2000
 
 #include "Options.h"
 #include "GraphicsInterface.h"
@@ -40,7 +36,7 @@ class Material;
 
 class Light;
 
-class GLSLProgram;
+class GraphicsProgram;
 class Texture;
 
 class OpenGLGraphics : public GraphicsInterface {
@@ -160,11 +156,11 @@ private:
     /**
      * This is not keeping shared_ptr because getting a shared_ptr from destructor is not logical
      */
-    std::map<std::shared_ptr<GLSLProgram>, int> loadedPrograms;
+    std::map<std::shared_ptr<GraphicsProgram>, int> loadedPrograms;
 
 public:
 
-    const std::map<std::shared_ptr<GLSLProgram>, int> &getLoadedPrograms() const override {
+    const std::map<std::shared_ptr<GraphicsProgram>, int> &getLoadedPrograms() const override {
         return loadedPrograms;
     }
 
@@ -219,7 +215,7 @@ private:
                                const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
                                const uint_fast32_t attachPointer);
 
-    void testAndRemoveGLSLProgram(GLSLProgram *program);
+    void testAndRemoveGLSLProgram(GraphicsProgram *program);
 
 
 protected:
@@ -241,8 +237,8 @@ public:
 
     ~OpenGLGraphics();
 
-    std::shared_ptr<GLSLProgram> createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) override;
-    std::shared_ptr<GLSLProgram> createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) override;
+    std::shared_ptr<GraphicsProgram> createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) override;
+    std::shared_ptr<GraphicsProgram> createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) override;
 
     void attachModelUBO(const uint32_t program) override;
 
@@ -315,7 +311,7 @@ public:
 
     void createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize) override;
 
-    void drawLines(GLSLProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines) override;
+    void drawLines(GraphicsProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines) override;
 
     void clearDepthBuffer() override {
         glClear(GL_DEPTH_BUFFER_BIT);

@@ -10,7 +10,7 @@
 #include "PipelineExtension.h"
 #include "Graphics/Texture.h"
 #include "PipelineStageExtension.h"
-#include "Graphics/GLSLProgram.h"
+#include "Graphics/GraphicsProgram.h"
 
 PipelineExtension::PipelineExtension(GraphicsInterface* graphicsWrapper, const std::vector<std::string>& renderMethodNames, GraphicsPipeline::RenderMethods& renderMethods) : graphicsWrapper(graphicsWrapper), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
     {
@@ -236,7 +236,7 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
         }
 
         //TODO: The program that was used too create the node should be accessible
-        std::shared_ptr<GLSLProgram> nodeProgram = nullptr;
+        std::shared_ptr<GraphicsProgram> nodeProgram = nullptr;
         newStage->setCullMode(stageExtension->getCullmode());
         GraphicsPipeline::StageInfo stageInfo;
         stageInfo.clear = stageExtension->isClearBefore();
