@@ -134,7 +134,7 @@ protected:
     friend class Texture;
     virtual uint32_t createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth) = 0;
 
-    virtual bool deleteTexture(GLuint textureID) = 0;
+    virtual bool deleteTexture(uint32_t textureID) = 0;
 
     virtual void setWrapMode(Texture& texture, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR) = 0;
 
@@ -163,7 +163,7 @@ public:
 
     virtual uint32_t getNextMaterialIndex() = 0;
 
-    virtual GLuint initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
+    virtual uint32_t initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
                              std::unordered_map<std::string,const Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap) = 0;
     virtual void destroyProgram(uint32_t programID) = 0;
 
@@ -178,13 +178,13 @@ public:
                                uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) = 0;
     virtual void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
                                         uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) = 0;
-    virtual bool freeBuffer(const GLuint bufferID) = 0;
+    virtual bool freeBuffer(const uint32_t bufferID) = 0;
 
-    virtual bool freeVAO(const GLuint VAO) = 0;
+    virtual bool freeVAO(const uint32_t VAO) = 0;
 
     virtual void clearFrame() = 0;
 
-    virtual void render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount) = 0;
+    virtual void render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount) = 0;
 
     virtual void reshape() = 0;
 
@@ -196,7 +196,7 @@ public:
     virtual void attachTexture(unsigned int textureID, unsigned int attachPoint) = 0;
     virtual void attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint) = 0;
 
-    virtual bool getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location) = 0;
+    virtual bool getUniformLocation(const uint32_t programID, const std::string &uniformName, uint32_t &location) = 0;
 
     virtual const glm::mat4& getCameraMatrix() const = 0;
 
@@ -212,12 +212,12 @@ public:
 
     virtual void clearDepthBuffer() = 0; //FIXME this should be removed
 
-    virtual bool setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 &matrix) = 0;
-    virtual bool setUniform(const GLuint programID, const GLuint uniformID, const glm::vec3 &vector) = 0;
-    virtual bool setUniform(const GLuint programID, const GLuint uniformID, const std::vector<glm::vec3> &vectorArray) = 0;
-    virtual bool setUniform(const GLuint programID, const GLuint uniformID, const float value) = 0;
-    virtual bool setUniform(const GLuint programID, const GLuint uniformID, const int value) = 0;
-    virtual bool setUniformArray(const GLuint programID, const GLuint uniformID, const std::vector<glm::mat4> &matrixArray) = 0;
+    virtual bool setUniform(const uint32_t programID, const uint32_t uniformID, const glm::mat4 &matrix) = 0;
+    virtual bool setUniform(const uint32_t programID, const uint32_t uniformID, const glm::vec3 &vector) = 0;
+    virtual bool setUniform(const uint32_t programID, const uint32_t uniformID, const std::vector<glm::vec3> &vectorArray) = 0;
+    virtual bool setUniform(const uint32_t programID, const uint32_t uniformID, const float value) = 0;
+    virtual bool setUniform(const uint32_t programID, const uint32_t uniformID, const int value) = 0;
+    virtual bool setUniformArray(const uint32_t programID, const uint32_t uniformID, const std::vector<glm::mat4> &matrixArray) = 0;
 
     virtual void setLight(const Light &light, const int i) = 0;
 
@@ -243,7 +243,7 @@ public:
     virtual void setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) = 0;
     virtual void attachModelIndicesUBO(const uint32_t programID) = 0;
 
-    virtual void renderInstanced(GLuint program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
+    virtual void renderInstanced(uint32_t program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
                          uint32_t instanceCount) = 0;
 };
 

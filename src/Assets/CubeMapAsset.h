@@ -24,7 +24,7 @@ public:
 
     ~CubeMapAsset() {}
 
-    GLuint getID() const {
+    uint32_t getID() const {
         return texture->getTextureID();
     }
 

@@ -31,7 +31,7 @@ void GUIImageBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProg
         std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
     }
     graphicsWrapper->attachTexture(image->getID(), imageAttachPoint);
-    graphicsWrapper->render(renderProgram->getID(), vao, ebo, (GLuint) (faces.size() * 3));
+    graphicsWrapper->render(renderProgram->getID(), vao, ebo, (uint32_t) (faces.size() * 3));
 }
 
 void GUIImageBase::getAABB(glm::vec2 &aabbMin, glm::vec2 &aabbMax) const {

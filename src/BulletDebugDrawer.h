@@ -18,7 +18,7 @@ class BulletDebugDrawer : public btIDebugDraw {
     DebugDrawModes currentMode;
     GraphicsInterface* graphicsWrapper;
     std::shared_ptr<GraphicsProgram> renderProgram;
-    GLuint vao, vbo, ebo;
+    uint32_t vao, vbo, ebo;
     std::vector<Line> lineBuffer;
     Options* options;
 public:

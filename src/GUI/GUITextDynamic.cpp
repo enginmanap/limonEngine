@@ -95,7 +95,7 @@ void GUITextDynamic::renderWithProgram(std::shared_ptr<GraphicsProgram> renderPr
                     std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
                 }
                 graphicsWrapper->attachTexture(glyph->getTextureID(), glyphAttachPoint);
-                graphicsWrapper->render(renderProgram->getID(), vao, ebo, (GLuint) (faces.size() * 3));
+                graphicsWrapper->render(renderProgram->getID(), vao, ebo, (uint32_t) (faces.size() * 3));
 
                 totalAdvance += glyph->getAdvance() / 64;
                 if(totalAdvance + maxCharWidth >= width) {

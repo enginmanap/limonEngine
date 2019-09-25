@@ -20,7 +20,7 @@ class Glyph {
     std::unique_ptr<Texture> texture;
     glm::mediump_ivec2 size;
     glm::mediump_ivec2 bearing;
-    GLuint advance;
+    uint32_t advance;
 public:
     Glyph(GraphicsInterface* graphicsWrapper, FT_Face face, const int size, const char character) :
             size(glm::mediump_vec2(0)), bearing(glm::mediump_vec2(0)), advance(0) {
@@ -47,13 +47,13 @@ public:
 
     }
 
-    GLuint getTextureID() const { return texture->getTextureID(); }
+    uint32_t getTextureID() const { return texture->getTextureID(); }
 
     const glm::mediump_ivec2 &getSize() const { return size; }
 
     const glm::mediump_ivec2 &getBearing() const { return bearing; }
 
-    GLuint getAdvance() const { return advance; }
+    uint32_t getAdvance() const { return advance; }
 };
 
 class Face {

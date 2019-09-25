@@ -102,7 +102,7 @@ GLuint OpenGLGraphics::createProgram(const std::vector<GLuint> &shaderList) {
 }
 
 
-GLuint OpenGLGraphics::initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
+uint32_t OpenGLGraphics::initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
                                             std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap) {
     GLuint program;
     std::vector<GLuint> shaderList;
@@ -656,7 +656,7 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
     checkErrors("switchRenderStageLayer");
 }
 
-void OpenGLGraphics::render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount) {
+void OpenGLGraphics::render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount) {
     if (program == 0) {
         std::cerr << "No program render requested." << std::endl;
         return;
@@ -674,7 +674,7 @@ void OpenGLGraphics::render(const GLuint program, const GLuint vao, const GLuint
     checkErrors("render");
 }
 
-void OpenGLGraphics::renderInstanced(GLuint program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
+void OpenGLGraphics::renderInstanced(uint32_t program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
                                         uint32_t instanceCount) {
     if (program == 0) {
         std::cerr << "No program render requested." << std::endl;
@@ -695,7 +695,7 @@ void OpenGLGraphics::renderInstanced(GLuint program, uint_fast32_t VAO, uint_fas
 
 }
 
-bool OpenGLGraphics::setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 &matrix) {
+bool OpenGLGraphics::setUniform(const uint32_t programID, const uint32_t uniformID, const glm::mat4 &matrix) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
@@ -711,7 +711,7 @@ bool OpenGLGraphics::setUniform(const GLuint programID, const GLuint uniformID, 
 
 
 bool
-OpenGLGraphics::setUniformArray(const GLuint programID, const GLuint uniformID, const std::vector<glm::mat4> &matrixArray) {
+OpenGLGraphics::setUniformArray(const uint32_t programID, const uint32_t uniformID, const std::vector<glm::mat4> &matrixArray) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
@@ -726,7 +726,7 @@ OpenGLGraphics::setUniformArray(const GLuint programID, const GLuint uniformID, 
     }
 }
 
-bool OpenGLGraphics::setUniform(const GLuint programID, const GLuint uniformID, const glm::vec3 &vector) {
+bool OpenGLGraphics::setUniform(const uint32_t programID, const uint32_t uniformID, const glm::vec3 &vector) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
@@ -740,7 +740,7 @@ bool OpenGLGraphics::setUniform(const GLuint programID, const GLuint uniformID, 
     }
 }
 
-bool OpenGLGraphics::setUniform(const GLuint programID, const GLuint uniformID, const std::vector<glm::vec3> &vectorArray) {
+bool OpenGLGraphics::setUniform(const uint32_t programID, const uint32_t uniformID, const std::vector<glm::vec3> &vectorArray) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
@@ -754,7 +754,7 @@ bool OpenGLGraphics::setUniform(const GLuint programID, const GLuint uniformID, 
     }
 }
 
-bool OpenGLGraphics::setUniform(const GLuint programID, const GLuint uniformID, const float value) {
+bool OpenGLGraphics::setUniform(const uint32_t programID, const uint32_t uniformID, const float value) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
@@ -768,7 +768,7 @@ bool OpenGLGraphics::setUniform(const GLuint programID, const GLuint uniformID, 
     }
 }
 
-bool OpenGLGraphics::setUniform(const GLuint programID, const GLuint uniformID, const int value) {
+bool OpenGLGraphics::setUniform(const uint32_t programID, const uint32_t uniformID, const int value) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
@@ -1248,7 +1248,7 @@ bool OpenGLGraphics::deleteTexture(GLuint textureID) {
     return result;
 }
 
-bool OpenGLGraphics::getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location) {
+bool OpenGLGraphics::getUniformLocation(const uint32_t programID, const std::string &uniformName, uint32_t &location) {
     GLint rawLocation = glGetUniformLocation(programID, uniformName.c_str());
     if (!checkErrors("getUniformLocation")) {
         if (rawLocation >= 0) {

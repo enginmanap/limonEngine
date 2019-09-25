@@ -23,7 +23,7 @@ class GraphicsProgram {
     std::unordered_map<std::string, const GraphicsInterface::Uniform *> uniformMap;
     std::unordered_map<std::string, GraphicsInterface::VariableTypes>outputMap;
     bool materialRequired;
-    GLuint programID;
+    uint32_t programID;
 
     GraphicsProgram(GraphicsInterface* graphicsWrapper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed);
     GraphicsProgram(GraphicsInterface* graphicsWrapper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed);
@@ -40,7 +40,7 @@ public:
     friend std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed);
 
 
-    GLuint getID() const { return programID; }
+    uint32_t getID() const { return programID; }
 
     const std::unordered_map<std::string, const GraphicsInterface::Uniform *> &getUniformMap() const {
         return uniformMap;

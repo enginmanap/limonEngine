@@ -248,7 +248,7 @@ public:
         return nextMaterialIndex++;
     }
 
-    GLuint initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
+    uint32_t initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
                              std::unordered_map<std::string,const Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap) override;
     void destroyProgram(uint32_t programID) override;
 
@@ -268,9 +268,9 @@ public:
     void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
                                         uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) override;
 
-    bool freeBuffer(const GLuint bufferID) override;
+    bool freeBuffer(const uint32_t bufferID) override;
 
-    bool freeVAO(const GLuint VAO) override;
+    bool freeVAO(const uint32_t VAO) override;
 
     void clearFrame() {
 
@@ -286,7 +286,7 @@ public:
         checkErrors("clearFrame");
     }
 
-    void render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount) override;
+    void render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount) override;
 
     void reshape() override;
 
@@ -299,7 +299,7 @@ public:
 
     void attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint) override;
 
-    bool getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location) override;
+    bool getUniformLocation(const uint32_t programID, const std::string &uniformName, uint32_t &location) override;
 
     const glm::mat4& getCameraMatrix() const override { return cameraMatrix; };
 
@@ -317,17 +317,17 @@ public:
         glClear(GL_DEPTH_BUFFER_BIT);
     }
 
-    bool setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 &matrix) override;
+    bool setUniform(const uint32_t programID, const uint32_t uniformID, const glm::mat4 &matrix) override;
 
-    bool setUniform(const GLuint programID, const GLuint uniformID, const glm::vec3 &vector) override;
+    bool setUniform(const uint32_t programID, const uint32_t uniformID, const glm::vec3 &vector) override;
 
-    bool setUniform(const GLuint programID, const GLuint uniformID, const std::vector<glm::vec3> &vectorArray) override;
+    bool setUniform(const uint32_t programID, const uint32_t uniformID, const std::vector<glm::vec3> &vectorArray) override;
 
-    bool setUniform(const GLuint programID, const GLuint uniformID, const float value) override;
+    bool setUniform(const uint32_t programID, const uint32_t uniformID, const float value) override;
 
-    bool setUniform(const GLuint programID, const GLuint uniformID, const int value) override;
+    bool setUniform(const uint32_t programID, const uint32_t uniformID, const int value) override;
 
-    bool setUniformArray(const GLuint programID, const GLuint uniformID, const std::vector<glm::mat4> &matrixArray) override;
+    bool setUniformArray(const uint32_t programID, const uint32_t uniformID, const std::vector<glm::mat4> &matrixArray) override;
 
     void setLight(const Light &light, const int i) override;
 
@@ -383,7 +383,7 @@ public:
 
     void attachModelIndicesUBO(const uint32_t programID) override;
 
-    void renderInstanced(GLuint program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
+    void renderInstanced(uint32_t program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
                          uint32_t instanceCount) override;
 
 };
