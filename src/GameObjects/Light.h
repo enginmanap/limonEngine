@@ -19,7 +19,7 @@ public:
         DIRECTIONAL, POINT
     };
 private:
-    GraphicsInterface* glHelper;
+    GraphicsInterface* graphicsWrapper;
     glm::mat4 shadowMatrices[6];//these are used only for point lights for now
     glm::mat4 lightSpaceMatrix;
 public:
@@ -38,26 +38,26 @@ private:
     LightTypes lightType;
     bool frustumChanged = true;
     void setShadowMatricesForPosition(){
-        shadowMatrices[0] =glHelper->getLightProjectionMatrixPoint() *
+        shadowMatrices[0] =graphicsWrapper->getLightProjectionMatrixPoint() *
                            glm::lookAt(position, position + glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0));
-        shadowMatrices[1] =glHelper->getLightProjectionMatrixPoint() *
+        shadowMatrices[1] =graphicsWrapper->getLightProjectionMatrixPoint() *
                            glm::lookAt(position, position + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0));
-        shadowMatrices[2] =glHelper->getLightProjectionMatrixPoint() *
+        shadowMatrices[2] =graphicsWrapper->getLightProjectionMatrixPoint() *
                            glm::lookAt(position, position + glm::vec3( 0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
-        shadowMatrices[3] =glHelper->getLightProjectionMatrixPoint() *
+        shadowMatrices[3] =graphicsWrapper->getLightProjectionMatrixPoint() *
                            glm::lookAt(position, position + glm::vec3( 0.0,-1.0, 0.0), glm::vec3(0.0, 0.0,-1.0));
-        shadowMatrices[4] =glHelper->getLightProjectionMatrixPoint() *
+        shadowMatrices[4] =graphicsWrapper->getLightProjectionMatrixPoint() *
                            glm::lookAt(position, position + glm::vec3( 0.0, 0.0, 1.0), glm::vec3(0.0,-1.0, 0.0));
-        shadowMatrices[5] =glHelper->getLightProjectionMatrixPoint() *
+        shadowMatrices[5] =graphicsWrapper->getLightProjectionMatrixPoint() *
                            glm::lookAt(position, position + glm::vec3( 0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0));
     }
 
     void calculateActiveDistance();
 
 public:
-    Light(GraphicsInterface *glHelper, uint32_t objectID, LightTypes lightType, const glm::vec3 &position,
+    Light(GraphicsInterface* graphicsWrapper, uint32_t objectID, LightTypes lightType, const glm::vec3 &position,
           const glm::vec3 &color) :
-            glHelper(glHelper),
+            graphicsWrapper(graphicsWrapper),
             objectID(objectID),
             position(position),
             lightType(lightType) {
@@ -72,7 +72,7 @@ public:
                                           glm::vec3(0.0f, 1.0f, 0.0f));
 
         this->frustumPlanes.resize(6);
-        glHelper->calculateFrustumPlanes(lightView, glHelper->getLightProjectionMatrixDirectional(), this->frustumPlanes);
+        graphicsWrapper->calculateFrustumPlanes(lightView, graphicsWrapper->getLightProjectionMatrixDirectional(), this->frustumPlanes);
         if(lightType == LightTypes::POINT) {
             calculateActiveDistance();
         }
@@ -123,7 +123,7 @@ public:
 
         switch (this->lightType) {
             case DIRECTIONAL:
-                return glHelper->isInFrustum(aabbMin, aabbMax, this->frustumPlanes);
+                return graphicsWrapper->isInFrustum(aabbMin, aabbMax, this->frustumPlanes);
             case POINT:
             return (glm::distance2(position, this->position) < activeDistance * activeDistance);
         }

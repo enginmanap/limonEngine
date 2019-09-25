@@ -56,7 +56,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
             SDL_FreeSurface(surface);
             surface = surfaceTemp;
         }
-        texture = std::make_unique<Texture>(assetManager->getGlHelper(), GraphicsInterface::TextureTypes::T2D,
+        texture = std::make_unique<Texture>(assetManager->getGraphicsWrapper(), GraphicsInterface::TextureTypes::T2D,
                                             GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
                                             surface->w, surface->h);
     } else if (surface->format->BytesPerPixel == 3) {
@@ -68,7 +68,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
             SDL_FreeSurface(surface);
             surface = surfaceTemp;
         }
-        texture = std::make_unique<Texture>(assetManager->getGlHelper(), GraphicsInterface::TextureTypes::T2D,
+        texture = std::make_unique<Texture>(assetManager->getGraphicsWrapper(), GraphicsInterface::TextureTypes::T2D,
                                             GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
                                             surface->w, surface->h);
     } else if (surface->format->BytesPerPixel == 1) {
@@ -77,7 +77,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
                                                                 0);
             SDL_FreeSurface(surface);
             surface = surfaceTemp;
-        texture = std::make_unique<Texture>(assetManager->getGlHelper(), GraphicsInterface::TextureTypes::T2D,
+        texture = std::make_unique<Texture>(assetManager->getGraphicsWrapper(), GraphicsInterface::TextureTypes::T2D,
                                             GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
                                             surface->w, surface->h);
     } else {

@@ -34,7 +34,7 @@ class ImGuiHelper {
     unsigned int g_VboHandle = 0, g_VaoHandle = 0, g_ElementsHandle = 0;
     // ImGUI Data end"
 
-    GraphicsInterface* glHelper = nullptr;
+    GraphicsInterface* graphicsWrapper = nullptr;
     std::shared_ptr<GLSLProgram> program = nullptr;
     Options* options;
 
@@ -82,7 +82,7 @@ class ImGuiHelper {
     }
 
 public:
-    ImGuiHelper(GraphicsInterface* glHelper, Options* options);
+    ImGuiHelper(GraphicsInterface* graphicsWrapper, Options* options);
     ~ImGuiHelper();
     void        NewFrame();
     bool        ProcessEvent(const InputHandler& inputHandler);

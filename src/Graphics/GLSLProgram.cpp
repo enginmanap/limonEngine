@@ -4,19 +4,19 @@
 
 #include "GLSLProgram.h"
 
-GLSLProgram::GLSLProgram(GraphicsInterface *glHelper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed) :
-        glHelper(glHelper), vertexShader(vertexShader), fragmentShader(fragmentShader), materialRequired(isMaterialUsed) {
+GLSLProgram::GLSLProgram(GraphicsInterface* graphicsWrapper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed) :
+        graphicsWrapper(graphicsWrapper), vertexShader(vertexShader), fragmentShader(fragmentShader), materialRequired(isMaterialUsed) {
     programName = vertexShader +"|"+ fragmentShader;
     //FIXME is passing empty string acceptable?
-    programID = glHelper->initializeProgram(vertexShader, "", fragmentShader, uniformMap, outputMap);
+    programID = graphicsWrapper->initializeProgram(vertexShader, "", fragmentShader, uniformMap, outputMap);
 }
 
-GLSLProgram::GLSLProgram(GraphicsInterface *glHelper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed) :
-        glHelper(glHelper), vertexShader(vertexShader), geometryShader(geometryShader), fragmentShader(fragmentShader), materialRequired(isMaterialUsed) {
+GLSLProgram::GLSLProgram(GraphicsInterface* graphicsWrapper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed) :
+        graphicsWrapper(graphicsWrapper), vertexShader(vertexShader), geometryShader(geometryShader), fragmentShader(fragmentShader), materialRequired(isMaterialUsed) {
     programName = vertexShader +"|"+ geometryShader +"|"+ fragmentShader;
-    programID = glHelper->initializeProgram(vertexShader, geometryShader, fragmentShader, uniformMap, outputMap);
+    programID = graphicsWrapper->initializeProgram(vertexShader, geometryShader, fragmentShader, uniformMap, outputMap);
 }
 
 GLSLProgram::~GLSLProgram() {
-    glHelper->destroyProgram(programID);
+    graphicsWrapper->destroyProgram(programID);
 }

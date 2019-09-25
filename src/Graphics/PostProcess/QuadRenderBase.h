@@ -22,9 +22,9 @@ class QuadRenderBase {
     virtual void initializeProgram() = 0;
 protected:
     std::shared_ptr<GLSLProgram> program = nullptr;
-    GraphicsInterface* glHelper = nullptr;
+    GraphicsInterface* graphicsWrapper = nullptr;
 public:
-    QuadRenderBase(GraphicsInterface* glHelper);
+    QuadRenderBase(GraphicsInterface* graphicsWrapper);
 
     void setSourceTexture(std::string samplerName, int32_t textureID);
 

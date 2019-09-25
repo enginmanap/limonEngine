@@ -14,7 +14,7 @@
 GUIButton::GUIButton(uint32_t worldID, AssetManager *assetManager, LimonAPI *limonAPI, const std::string name,
                      const std::vector<std::string> &imageFiles)
         : GUIImageBase(
-        assetManager->getGlHelper(), assetManager, imageFiles[0]), worldID(worldID), name(name), limonAPI(limonAPI) {
+        assetManager->getGraphicsWrapper(), assetManager, imageFiles[0]), worldID(worldID), name(name), limonAPI(limonAPI) {
     this->imageFiles = imageFiles;
     this->images.push_back(this->image);
     strncpy(GUINameBuffer, this->name.c_str(), sizeof(GUINameBuffer) - 1);

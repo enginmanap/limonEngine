@@ -30,7 +30,7 @@
 
 WorldLoader::WorldLoader(AssetManager *assetManager, InputHandler *inputHandler, Options *options) :
         options(options),
-        glHelper(assetManager->getGlHelper()),
+        graphicsWrapper(assetManager->getGraphicsWrapper()),
         alHelper(assetManager->getAlHelper()),
         assetManager(assetManager),
         inputHandler(inputHandler)
@@ -278,7 +278,7 @@ bool WorldLoader::loadObjectGroupsFromXML(tinyxml2::XMLNode *worldNode, World *w
     std::vector<std::unique_ptr<ObjectInformation>> innerModels;
 
     while(objectGroupNode != nullptr) {
-        ModelGroup* modelGroup = ModelGroup::deserialize(glHelper, assetManager, objectGroupNode, requiredSounds,
+        ModelGroup* modelGroup = ModelGroup::deserialize(graphicsWrapper, assetManager, objectGroupNode, requiredSounds,
                                                          modelGroups, innerModels, limonAPI, nullptr);
         world->modelGroups[modelGroup->getWorldObjectID()] = modelGroup;
         objectGroupNode = objectGroupNode->NextSiblingElement("ObjectGroup");
@@ -712,7 +712,7 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
         color.y = y;
         color.z = z;
 
-        xmlLight = new Light(glHelper, lightID, type, position, color);
+        xmlLight = new Light(graphicsWrapper, lightID, type, position, color);
 
         glm::vec3 attenuation(1, 0.1f, 0.01f);
         tinyxml2::XMLElement* lightAttenuation =  lightNode->FirstChildElement("Attenuation");
@@ -919,7 +919,7 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
         }
         uint32_t level = std::stoi(levelNode->GetText());
 
-        GUILayer* layer = new GUILayer(glHelper, world->debugDrawer, level);
+        GUILayer* layer = new GUILayer(graphicsWrapper, world->debugDrawer, level);
         layer->setDebug(false);
         world->guiLayers.push_back(layer);
         //now we should deserialize each element
@@ -932,7 +932,7 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
                 GUIRenderable *element = nullptr;
                 std::string name;
                 if(typeName == "GUIText") {
-                    element = GUIText::deserialize(GUIElementNode, glHelper, &world->fontManager, options);
+                    element = GUIText::deserialize(GUIElementNode, graphicsWrapper, &world->fontManager, options);
                     if(element != nullptr) {
                         name = static_cast<GUIText*>(element)->getName();
                     }

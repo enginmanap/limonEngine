@@ -82,12 +82,12 @@ public:
 
     void transformChangeCallback() {
         PhysicalRenderable::updatePhysicsFromTransform();
-        glHelper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
+        graphicsWrapper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
     }
 
     void updateTransformFromPhysics() override {
         PhysicalRenderable::updateTransformFromPhysics();
-        glHelper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
+        graphicsWrapper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
     }
 
     void activateTexturesOnly(std::shared_ptr<const Material> material);

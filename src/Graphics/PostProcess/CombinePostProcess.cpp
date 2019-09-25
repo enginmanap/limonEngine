@@ -5,16 +5,16 @@
 #include "CombinePostProcess.h"
 #include "Graphics/GLSLProgram.h"
 
-CombinePostProcess::CombinePostProcess(GraphicsInterface* glHelper, bool isSSAOEnabled) : QuadRenderBase(glHelper), isSSAOEnabled(isSSAOEnabled) {
+CombinePostProcess::CombinePostProcess(GraphicsInterface* graphicsWrapper, bool isSSAOEnabled) : QuadRenderBase(graphicsWrapper), isSSAOEnabled(isSSAOEnabled) {
         initializeProgram();
 }
 
 void CombinePostProcess::initializeProgram() {
         if(isSSAOEnabled) {
-                program = glHelper->createGLSLProgram("./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl",
+                program = graphicsWrapper->createGLSLProgram("./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl",
                                           "./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl", false);
         } else {
-                program = glHelper->createGLSLProgram("./Engine/Shaders/CombineColors/vertex.glsl",
+                program = graphicsWrapper->createGLSLProgram("./Engine/Shaders/CombineColors/vertex.glsl",
                                           "./Engine/Shaders/CombineColors/fragment.glsl", false);
         }
 

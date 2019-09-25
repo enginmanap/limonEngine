@@ -13,7 +13,7 @@ class GUIRenderable;
 class GameObject;
 
 class GUILayer {
-    GraphicsInterface *glHelper;
+    GraphicsInterface* graphicsWrapper;
     BulletDebugDrawer* debugDrawer;
     uint32_t level;
     bool isDebug;
@@ -21,7 +21,7 @@ class GUILayer {
     std::vector<std::pair<GUIRenderable *, RenderTypes>> guiElements;
 
 public:
-    GUILayer(GraphicsInterface *glHelper, BulletDebugDrawer* debugDrawer, uint32_t level) : glHelper(glHelper), debugDrawer(debugDrawer), level(level), isDebug(false) { };
+    GUILayer(GraphicsInterface* graphicsWrapper, BulletDebugDrawer* debugDrawer, uint32_t level) : graphicsWrapper(graphicsWrapper), debugDrawer(debugDrawer), level(level), isDebug(false) { };
 
     uint32_t getLevel() { return level; }
 

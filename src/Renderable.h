@@ -19,13 +19,13 @@ protected:
     std::vector<uint_fast32_t > bufferObjects;
     std::vector<bool> inLightFrustum;
     uint_fast32_t vao, ebo;
-    GraphicsInterface *glHelper;
+    GraphicsInterface* graphicsWrapper;
     bool isInCameraFrustum = true;
     bool dirtyForFrustum = true;//is this object require a frustum recalculate
     bool customAnimation = false;
 
-    explicit Renderable(GraphicsInterface *glHelper) :
-            glHelper(glHelper) {
+    explicit Renderable(GraphicsInterface* graphicsWrapper) :
+            graphicsWrapper(graphicsWrapper) {
         this->inLightFrustum.resize(NR_TOTAL_LIGHTS);
     }
 
@@ -37,10 +37,10 @@ public:
 
     virtual ~Renderable() {
         for (unsigned int i = 0; i < bufferObjects.size(); ++i) {
-            glHelper->freeBuffer(bufferObjects[i]);
+            graphicsWrapper->freeBuffer(bufferObjects[i]);
         }
-        glHelper->freeBuffer(ebo);
-        glHelper->freeVAO(vao);
+        graphicsWrapper->freeBuffer(ebo);
+        graphicsWrapper->freeVAO(vao);
 
     }
 

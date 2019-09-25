@@ -5,11 +5,11 @@
 #include "GraphicsPipelineStage.h"
 
 void GraphicsPipelineStage::activate(bool clear) {
-    glHelper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, clear && colorAttachment, clear && depthAttachment, cullMode, inputs);
+    graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, clear && colorAttachment, clear && depthAttachment, cullMode, inputs);
 }
 
 void GraphicsPipelineStage::activate(const std::map<std::shared_ptr<Texture>, std::pair<GraphicsInterface::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear) {
-    glHelper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, clear && colorAttachment, clear && depthAttachment, cullMode, inputs, attachmentLayerMap);
+    graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, clear && colorAttachment, clear && depthAttachment, cullMode, inputs, attachmentLayerMap);
 }
 
 bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options) {
@@ -98,7 +98,7 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     return true;
 }
 
-GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface *glHelper, Options *options) {
+GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface* graphicsWrapper, Options *options) {
     tinyxml2::XMLElement* stageNodeAttribute = nullptr;
 
     uint32_t renderHeight, renderWidth;
@@ -167,7 +167,7 @@ GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *
         return nullptr;
     }
 
-    GraphicsPipelineStage* newStage = new GraphicsPipelineStage(glHelper, renderWidth, renderHeight, blendEnabled, toScreen);
+    GraphicsPipelineStage* newStage = new GraphicsPipelineStage(graphicsWrapper, renderWidth, renderHeight, blendEnabled, toScreen);
 
     stageNodeAttribute = stageNode->FirstChildElement("CullMode");
 
@@ -207,7 +207,7 @@ GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *
         } else {
             int index = std::stoi(indexRaw);
             tinyxml2::XMLElement *textureElement = inputElement->FirstChildElement("Texture");
-            Texture* inputTexture = Texture::deserialize(textureElement, glHelper, options);
+            Texture* inputTexture = Texture::deserialize(textureElement, graphicsWrapper, options);
             if(inputTexture == nullptr) {
                 std::cerr << "For input " << index << " texture deserialize failed, skipping" << std::endl;
             } else {
@@ -242,7 +242,7 @@ GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *
             }
             if(!fail) {
                 tinyxml2::XMLElement *textureElement = outputElement->FirstChildElement("Texture");
-                Texture *outputTexture = Texture::deserialize(textureElement, glHelper, options);
+                Texture *outputTexture = Texture::deserialize(textureElement, graphicsWrapper, options);
                 if (outputTexture == nullptr) {
                     std::cerr << "For output " << attachmentString << " texture deserialize failed, skipping" << std::endl;
                 } else {

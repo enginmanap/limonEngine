@@ -7,9 +7,9 @@
 #include "../../libs/ImGui/imgui.h"
 #include "../../libs/ImGuizmo/ImGuizmo.h"
 
-GUIText::GUIText(GraphicsInterface *glHelper, uint32_t id, const std::string &name, Face *font, const std::string &text,
+GUIText::GUIText(GraphicsInterface* graphicsWrapper, uint32_t id, const std::string &name, Face *font, const std::string &text,
                  const glm::vec3 &color)
-        : GUITextBase(glHelper, font, text, color), worldID(id), name(name) {}
+        : GUITextBase(graphicsWrapper, font, text, color), worldID(id), name(name) {}
 
 GameObject::ObjectTypes GUIText::getTypeID() const {
     return GUI_TEXT;
@@ -89,7 +89,7 @@ bool GUIText::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
 }
 
 
-GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GraphicsInterface *glHelper, FontManager *fontManager, Options *options) {
+GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GraphicsInterface* graphicsWrapper, FontManager *fontManager, Options *options) {
 
     tinyxml2::XMLElement* GUIRenderableAttribute;
 
@@ -186,7 +186,7 @@ GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GraphicsI
                 tr.getTranslate().z
         ));
         //now we have everything, create the GUI Text
-        GUIText* element = new GUIText(glHelper, id, name, fontManager->getFont(path, size), text, color);
+        GUIText* element = new GUIText(graphicsWrapper, id, name, fontManager->getFont(path, size), text, color);
         element->getTransformation()->setTranslate(tr.getTranslate());
         element->getTransformation()->setOrientation(tr.getOrientation());
         return element;

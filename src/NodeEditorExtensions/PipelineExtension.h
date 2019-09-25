@@ -20,13 +20,13 @@ public:
 
 private:
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;
-    GraphicsInterface* glHelper = nullptr;
+    GraphicsInterface* graphicsWrapper = nullptr;
     static bool getNameOfTexture(void* data, int index, const char** outText);
     const std::vector<std::string>& renderMethodNames;
     GraphicsPipeline::RenderMethods& renderMethods;
 public:
 
-    PipelineExtension(GraphicsInterface* glHelper, const std::vector<std::string>& renderMethodNames, GraphicsPipeline::RenderMethods& renderMethods);
+    PipelineExtension(GraphicsInterface* graphicsWrapper, const std::vector<std::string>& renderMethodNames, GraphicsPipeline::RenderMethods& renderMethods);
 
     void drawDetailPane(const std::vector<const Node *>& nodes, const Node* selectedNode = nullptr) override;
 

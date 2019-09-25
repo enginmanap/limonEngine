@@ -16,7 +16,7 @@ const std::string RELEASE_FILE = "./Data/Release.xml";
 const std::string OPTIONS_FILE = "./Engine/Options.xml";
 
 bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
-    glHelper->clearDepthBuffer();
+    graphicsWrapper->clearDepthBuffer();
     std::unique_ptr<std::string> loadingImagePath = worldLoader->getLoadingImage(worldFile);
     if(loadingImagePath != nullptr) {
         this->loadingImage = new GUIImage(0, options, assetManager, "loadingImage", *loadingImagePath);
@@ -48,7 +48,7 @@ void GameEngine::renderLoadingImage() const {
     if(loadingImage != nullptr) {
         loadingImage->setFullScreen(true);
         //FIXME: this definition here seems wrong. I can't think of another way, we should explore
-        std::shared_ptr<GLSLProgram> imageRenderProgram = glHelper->createGLSLProgram("./Engine/Shaders/GUIImage/vertex.glsl", "./Engine/Shaders/GUIImage/fragment.glsl", false);
+        std::shared_ptr<GLSLProgram> imageRenderProgram = graphicsWrapper->createGLSLProgram("./Engine/Shaders/GUIImage/vertex.glsl", "./Engine/Shaders/GUIImage/fragment.glsl", false);
         sdlHelper->swap();
         loadingImage->renderWithProgram(imageRenderProgram);
         sdlHelper->swap();
@@ -136,13 +136,13 @@ GameEngine::GameEngine() {
     sdlHelper->loadSharedLibrary("./libcustomTriggers.so");
 #endif
 
-    glHelper = new OpenGLGraphics(options);
-    glHelper->reshape();
+    graphicsWrapper = new OpenGLGraphics(options);
+    graphicsWrapper->reshape();
 
     alHelper = new ALHelper();
 
     inputHandler = new InputHandler(sdlHelper->getWindow(), options);
-    assetManager = new AssetManager(glHelper, alHelper);
+    assetManager = new AssetManager(graphicsWrapper, alHelper);
 
     worldLoader = new WorldLoader(assetManager, inputHandler, options);
 }
@@ -165,7 +165,7 @@ LimonAPI *GameEngine::getNewLimonAPI() {
 void GameEngine::run() {
     Uint32 worldUpdateTime = 1000 / 60;//This value is used to update world on a locked Timestep
 
-    glHelper->clearFrame();
+    graphicsWrapper->clearFrame();
     previousTime = SDL_GetTicks();
     Uint32 currentTime, frameTime, accumulatedTime = 0;
     while (!worldQuit) {
@@ -181,7 +181,7 @@ void GameEngine::run() {
             currentWorld->play(worldUpdateTime, *inputHandler);
             accumulatedTime -= worldUpdateTime;
         }
-        glHelper->clearFrame();
+        graphicsWrapper->clearFrame();
         currentWorld->render();
         sdlHelper->swap();
     }
@@ -201,7 +201,7 @@ GameEngine::~GameEngine() {
     delete inputHandler;
 
     delete alHelper;
-    delete glHelper;
+    delete graphicsWrapper;
 
     delete sdlHelper;
 

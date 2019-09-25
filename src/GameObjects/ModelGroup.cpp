@@ -65,7 +65,7 @@ GameObject::ImGuiResult ModelGroup::addImGuiEditorElements(const GameObject::ImG
     return result;
 }
 
-ModelGroup *ModelGroup::deserialize(GraphicsInterface *glHelper, AssetManager *assetManager, tinyxml2::XMLElement *ModelGroupsNode,
+ModelGroup *ModelGroup::deserialize(GraphicsInterface* graphicsWrapper, AssetManager *assetManager, tinyxml2::XMLElement *ModelGroupsNode,
                                     std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
                                     std::map<uint32_t, ModelGroup *> &childGroups,
                                     std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> &childObjects, LimonAPI *limonAPI,
@@ -89,7 +89,7 @@ ModelGroup *ModelGroup::deserialize(GraphicsInterface *glHelper, AssetManager *a
     }
     readID = std::stoul(groupAttribute->GetText());
 
-    modelGroup = new ModelGroup(glHelper, readID, readName);
+    modelGroup = new ModelGroup(graphicsWrapper, readID, readName);
 
     modelGroup->setParentObject(parentGroup);
 
@@ -143,7 +143,7 @@ ModelGroup *ModelGroup::deserialize(GraphicsInterface *glHelper, AssetManager *a
 
                 modelGroup->children[childIndex]->getTransformation()->setParentTransform(modelGroup->getTransformation());
             } else if(childNode->FirstChildElement("ObjectGroup")) {
-                ModelGroup* newModelGroup = ModelGroup::deserialize(glHelper, assetManager,
+                ModelGroup* newModelGroup = ModelGroup::deserialize(graphicsWrapper, assetManager,
                                                                     childNode->FirstChildElement("ObjectGroup"),
                                                                     requiredSounds, childGroups, childObjects, limonAPI,
                                                                     modelGroup);

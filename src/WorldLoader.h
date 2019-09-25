@@ -36,7 +36,7 @@ public:
 private:
 
     Options *options;
-    GraphicsInterface *glHelper;
+    GraphicsInterface* graphicsWrapper;
     ALHelper *alHelper;
     AssetManager *assetManager;
     InputHandler* inputHandler;

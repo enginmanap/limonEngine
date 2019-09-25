@@ -215,7 +215,7 @@ void ImGuiHelper::CreateFontsTexture()
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits for OpenGL3 demo because it is more likely to be compatible with user's existing shader.
 
-    fontTexture = std::make_unique<Texture>(glHelper, GraphicsInterface::TextureTypes::T2D,
+    fontTexture = std::make_unique<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D,
                                             GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
                                             width, height);
     fontTexture->loadData(pixels);
@@ -249,7 +249,7 @@ bool ImGuiHelper::CreateDeviceObjects()
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
 
-    program = glHelper->createGLSLProgram("./Engine/Shaders/ImGui/vertex.glsl",
+    program = graphicsWrapper->createGLSLProgram("./Engine/Shaders/ImGui/vertex.glsl",
                               "./Engine/Shaders/ImGui/fragment.glsl", true);
 
     g_AttribLocationPosition = glGetAttribLocation(program->getID(), "Position");
@@ -283,7 +283,7 @@ bool ImGuiHelper::CreateDeviceObjects()
 }
 
 /*
- * GLHELPER ->
+ * GraphicsWrapper ->
  * delete vao
  * delete vbo
  * delete element buffer
@@ -321,8 +321,8 @@ void    ImGuiHelper::InvalidateDeviceObjects()
 
 }
 
-ImGuiHelper::ImGuiHelper(GraphicsInterface* glHelper, Options* options) : options(options) {
-    this->glHelper = glHelper;
+ImGuiHelper::ImGuiHelper(GraphicsInterface* graphicsWrapper, Options* options) : options(options) {
+    this->graphicsWrapper = graphicsWrapper;
     context = ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.KeyMap[ImGuiKey_Tab] = SDLK_TAB;                     // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array.

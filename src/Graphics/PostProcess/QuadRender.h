@@ -19,9 +19,9 @@ class QuadRender {
     std::vector<uint32_t> bufferObjects;
 
 protected:
-    GraphicsInterface* glHelper = nullptr;
+    GraphicsInterface* graphicsWrapper = nullptr;
 public:
-    QuadRender(GraphicsInterface* glHelper);
+    QuadRender(GraphicsInterface* graphicsWrapper);
 
     void render(std::shared_ptr<GLSLProgram> renderProgram);
 

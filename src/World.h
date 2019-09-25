@@ -223,7 +223,7 @@ private:
     std::unordered_map<uint32_t, ActorInterface*> actors;
     AIMovementGrid *grid = nullptr;
     SkyBox *sky = nullptr;
-    GraphicsInterface *glHelper;
+    GraphicsInterface* graphicsWrapper;
     ALHelper *alHelper;
     std::string name;
     std::string loadingImage;

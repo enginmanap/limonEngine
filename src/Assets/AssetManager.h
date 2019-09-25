@@ -98,7 +98,7 @@ private:
     //std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
     AvailableAssetsNode* availableAssetsRootNode = nullptr;
     std::map<std::pair<AssetTypes, std::string>, AvailableAssetsNode*> filteredResults;
-    GraphicsInterface *glHelper;
+    GraphicsInterface* graphicsWrapper;
     ALHelper *alHelper;
 
     void addAssetsRecursively(const std::string &directoryPath, const std::string &fileName,
@@ -126,7 +126,7 @@ private:
 
 public:
 
-    explicit AssetManager(GraphicsInterface *glHelper, ALHelper *alHelper) : glHelper(glHelper), alHelper(alHelper) {
+    explicit AssetManager(GraphicsInterface* graphicsWrapper, ALHelper *alHelper) : graphicsWrapper(graphicsWrapper), alHelper(alHelper) {
         loadAssetList();
     }
 
@@ -204,8 +204,8 @@ public:
     }
 
 
-    GraphicsInterface *getGlHelper() const {
-        return glHelper;
+    GraphicsInterface* getGraphicsWrapper() const {
+        return graphicsWrapper;
     }
 
     ALHelper *getAlHelper() const {

@@ -7,7 +7,7 @@
 
 SkyBox::SkyBox(uint32_t objectID, AssetManager *assetManager, std::string path, std::string right, std::string left,
                std::string top, std::string down, std::string back, std::string front) :
-        Renderable(assetManager->getGlHelper()),
+        Renderable(assetManager->getGraphicsWrapper()),
         objectID(objectID),
         assetManager(assetManager),
         path(path), right(right), left(left), top(top), down(down), back(back), front(front){
@@ -47,19 +47,19 @@ SkyBox::SkyBox(uint32_t objectID, AssetManager *assetManager, std::string path, 
 
 
     uint_fast32_t vbo;
-    glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
+    graphicsWrapper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
     bufferObjects.push_back(vbo);
 }
 
 void SkyBox::renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram){
     int texturePoint = 1;
 
-    glHelper->attachCubeMap(cubeMap->getID(), texturePoint);
+    graphicsWrapper->attachCubeMap(cubeMap->getID(), texturePoint);
     //this is because we want to remove translate component from cameraMatrix.
-    glm::mat4 viewMatrix = glHelper->getProjectionMatrix() * glm::mat4(glm::mat3(glHelper->getCameraMatrix()));
+    glm::mat4 viewMatrix = graphicsWrapper->getProjectionMatrix() * glm::mat4(glm::mat3(graphicsWrapper->getCameraMatrix()));
     if (renderProgram->setUniform("cubeSampler", texturePoint)) {
         if (renderProgram->setUniform("cameraTransformMatrix", viewMatrix)) {
-            glHelper->render(renderProgram->getID(), vao, ebo, faces.size() * 3);
+            graphicsWrapper->render(renderProgram->getID(), vao, ebo, faces.size() * 3);
         } else {
             std::cerr << "Uniform \"cameraTransformMatrix\" could not be set, passing rendering." << std::endl;
         }

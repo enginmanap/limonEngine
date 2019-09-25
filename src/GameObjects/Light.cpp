@@ -51,16 +51,16 @@ void Light::step(long time __attribute__((unused))) {
 }
 
 void Light::updateLightView() {
-    glm::vec3 playerPos = glHelper->getCameraPosition();
+    glm::vec3 playerPos = graphicsWrapper->getCameraPosition();
     renderPosition = position + playerPos;
 
     glm::mat4 lightView = lookAt(renderPosition,
                                  playerPos,
                                  glm::vec3(0.0f, 1.0f, 0.0f));
 
-    lightSpaceMatrix = glHelper->getLightProjectionMatrixDirectional() * lightView;
+    lightSpaceMatrix = graphicsWrapper->getLightProjectionMatrixDirectional() * lightView;
 
-    glHelper->calculateFrustumPlanes(lightView, glHelper->getLightProjectionMatrixDirectional(), frustumPlanes);
+    graphicsWrapper->calculateFrustumPlanes(lightView, graphicsWrapper->getLightProjectionMatrixDirectional(), frustumPlanes);
     frustumChanged = true;
 }
 

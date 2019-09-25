@@ -5,7 +5,7 @@
 #include "GUIRenderable.h"
 #include "GUILayer.h"
 
-GUIRenderable::GUIRenderable(GraphicsInterface *glHelper) : Renderable(glHelper) {
+GUIRenderable::GUIRenderable(GraphicsInterface* graphicsWrapper) : Renderable(graphicsWrapper) {
     vertices.push_back(glm::vec3(-1.0f, -1.0f, 0.0f));
     vertices.push_back(glm::vec3(1.0f, -1.0f, 0.0f));
     vertices.push_back(glm::vec3(1.0f, 1.0f, 0.0f));
@@ -15,14 +15,14 @@ GUIRenderable::GUIRenderable(GraphicsInterface *glHelper) : Renderable(glHelper)
     faces.push_back(glm::mediump_uvec3(0, 2, 3));
 
     uint_fast32_t vbo;
-    glHelper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
+    graphicsWrapper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
     bufferObjects.push_back(vbo);
 
     textureCoordinates.push_back(glm::vec2(0.0f, 1.0f));
     textureCoordinates.push_back(glm::vec2(1.0f, 1.0f));
     textureCoordinates.push_back(glm::vec2(1.0f, 0.0f));
     textureCoordinates.push_back(glm::vec2(0.0f, 0.0f));
-    glHelper->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
+    graphicsWrapper->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
 }
 
 void GUIRenderable::renderDebug(BulletDebugDrawer* debugDrawer) {

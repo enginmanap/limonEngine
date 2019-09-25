@@ -12,12 +12,12 @@
 #include "PipelineStageExtension.h"
 #include "Graphics/GLSLProgram.h"
 
-PipelineExtension::PipelineExtension(GraphicsInterface *glHelper, const std::vector<std::string>& renderMethodNames, GraphicsPipeline::RenderMethods& renderMethods) : glHelper(glHelper), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
+PipelineExtension::PipelineExtension(GraphicsInterface* graphicsWrapper, const std::vector<std::string>& renderMethodNames, GraphicsPipeline::RenderMethods& renderMethods) : graphicsWrapper(graphicsWrapper), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
     {
         //Add a texture to the list as place holder for screen
-        auto texture = std::make_shared<Texture>(glHelper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 1, 1);
+        auto texture = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 1, 1);
         usedTextures["Screen"] = texture;
-        auto texture2 = std::make_shared<Texture>(glHelper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 1, 1);
+        auto texture2 = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 1, 1);
         usedTextures["Screen Depth"];
     }
 }
@@ -158,7 +158,7 @@ void PipelineExtension::drawDetailPane(const std::vector<const Node *>& nodes, c
         }
         if(ImGui::Button("Create Texture##create_button_PipelineExtension")) {
             if(std::strlen(name) != 0) {
-                std::shared_ptr<Texture> texture = std::make_shared<Texture>(glHelper, textureType, internalFormatType, formatType, dataType, size[0], size[1],
+                std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, textureType, internalFormatType, formatType, dataType, size[0], size[1],
                                                                                                  depth);
                 texture->setWrapModes(textureWrapMode, textureWrapMode);
                 texture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
@@ -208,9 +208,9 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
         std::shared_ptr<GraphicsPipelineStage> newStage;
         //FIXME this should be saved and used, not checked
         if(node->getOutputConnections().size() == 1 && node->getOutputConnections()[0]->getName() == "Screen") {
-            newStage = std::make_shared<GraphicsPipelineStage>(glHelper, 1920, 1080, stageExtension->isBlendEnabled(), true);
+            newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, 1920, 1080, stageExtension->isBlendEnabled(), true);
         } else {
-            newStage = std::make_shared<GraphicsPipelineStage>(glHelper, 1920, 1080, stageExtension->isBlendEnabled(), false);
+            newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, 1920, 1080, stageExtension->isBlendEnabled(), false);
         }
         for(const Connection *connection:node->getInputConnections()) {
             if(connection->getInput() != nullptr) {

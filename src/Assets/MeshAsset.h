@@ -69,7 +69,7 @@ public:
               const bool isPartOfAnimated);
 
     /**
-     * This method sets GPU side of the deserialization, and uses AssetManager to access GPU with getGLHelper
+     * This method sets GPU side of the deserialization, and uses AssetManager to access GPU with getGraphicsWrapper
      *
      * @param assetManager
      */

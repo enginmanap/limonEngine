@@ -28,7 +28,7 @@ class GameEngine {
 
     Options* options = nullptr;
     ALHelper* alHelper = nullptr;
-    GraphicsInterface* glHelper = nullptr;
+    GraphicsInterface* graphicsWrapper = nullptr;
     InputHandler* inputHandler = nullptr;
     AssetManager* assetManager = nullptr;
     SDL2Helper* sdlHelper = nullptr;

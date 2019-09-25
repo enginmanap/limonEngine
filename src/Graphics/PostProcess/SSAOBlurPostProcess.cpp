@@ -6,10 +6,10 @@
 #include "Graphics/GLSLProgram.h"
 
 void SSAOBlurPostProcess::initializeProgram() {
-    program = glHelper->createGLSLProgram("./Engine/Shaders/SSAOBlur/vertex.glsl",
+    program = graphicsWrapper->createGLSLProgram("./Engine/Shaders/SSAOBlur/vertex.glsl",
                               "./Engine/Shaders/SSAOBlur/fragment.glsl", false);
 }
 
-SSAOBlurPostProcess::SSAOBlurPostProcess(GraphicsInterface *glHelper) : QuadRenderBase(glHelper) {
+SSAOBlurPostProcess::SSAOBlurPostProcess(GraphicsInterface* graphicsWrapper) : QuadRenderBase(graphicsWrapper) {
     initializeProgram();
 }

@@ -19,7 +19,7 @@ void BulletDebugDrawer::drawLine(const glm::vec3 &from, const glm::vec3 &to, con
 
 void BulletDebugDrawer::flushDraws() {
     if(!lineBuffer.empty()) {
-        glHelper->drawLines(*renderProgram, vao, vbo, lineBuffer);
+        graphicsWrapper->drawLines(*renderProgram, vao, vbo, lineBuffer);
         lineBuffer.clear();
     }
 }

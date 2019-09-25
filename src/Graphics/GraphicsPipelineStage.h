@@ -12,7 +12,7 @@
 #include "Texture.h"
 
 class GraphicsPipelineStage {
-    GraphicsInterface* glHelper = nullptr;
+    GraphicsInterface* graphicsWrapper = nullptr;
     uint32_t renderWidth;
     uint32_t renderHeight;
     uint32_t frameBufferID;
@@ -26,20 +26,20 @@ class GraphicsPipelineStage {
 
 public:
 
-    GraphicsPipelineStage(GraphicsInterface *glHelper, uint32_t renderWidth, uint32_t renderHeight, bool blendEnabled, bool toScreen = false) :
-            glHelper(glHelper), renderWidth(renderWidth), renderHeight(renderHeight), blendEnabled(blendEnabled) {
+    GraphicsPipelineStage(GraphicsInterface* graphicsWrapper, uint32_t renderWidth, uint32_t renderHeight, bool blendEnabled, bool toScreen = false) :
+            graphicsWrapper(graphicsWrapper), renderWidth(renderWidth), renderHeight(renderHeight), blendEnabled(blendEnabled) {
         if(toScreen) {
             frameBufferID = 0;
             //since this is directly to screen, we should clear both color and depth, if clear is requested, because we will not get outputs set.
             colorAttachment = true;
             depthAttachment = true;
         } else {
-            frameBufferID = glHelper->createFrameBuffer(renderWidth, renderHeight);
+            frameBufferID = graphicsWrapper->createFrameBuffer(renderWidth, renderHeight);
         }
     }
 
     ~GraphicsPipelineStage() {
-        glHelper->deleteFrameBuffer(frameBufferID);
+        graphicsWrapper->deleteFrameBuffer(frameBufferID);
     }
 
     void setInput(uint32_t textureAttachmentPoint, std::shared_ptr<Texture> texture) {
@@ -47,7 +47,7 @@ public:
     }
     void
     setOutput(GraphicsInterface::FrameBufferAttachPoints attachmentPoint, std::shared_ptr<Texture> texture, bool clear = false, uint32_t layer = -1) {
-        glHelper->attachDrawTextureToFrameBuffer(this->frameBufferID, texture->getType(), texture->getTextureID(),
+        graphicsWrapper->attachDrawTextureToFrameBuffer(this->frameBufferID, texture->getType(), texture->getTextureID(),
                                                  attachmentPoint, layer, clear);
         switch (attachmentPoint) {
             case GraphicsInterface::FrameBufferAttachPoints::DEPTH: depthAttachment = true; break;
@@ -77,7 +77,7 @@ public:
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
 
-    static GraphicsPipelineStage *deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface *glHelper, Options *options);
+    static GraphicsPipelineStage *deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface* graphicsWrapper, Options *options);
 
 };
 

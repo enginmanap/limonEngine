@@ -38,8 +38,8 @@ void GUITextBase::calculateSizes() {
     }
 }
 
-GUITextBase::GUITextBase(GraphicsInterface *glHelper, Face *face, const std::string text, const glm::vec3 color) :
-        GUIRenderable(glHelper), text(text), color(color.x / 256, color.y / 256, color.z / 256), face(face), height(0),
+GUITextBase::GUITextBase(GraphicsInterface* graphicsWrapper, Face *face, const std::string text, const glm::vec3 color) :
+        GUIRenderable(graphicsWrapper), text(text), color(color.x / 256, color.y / 256, color.z / 256), face(face), height(0),
         width(0), bearingUp(0) {
     calculateSizes();
 }
@@ -50,7 +50,7 @@ void GUITextBase::renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram){
 
     renderProgram->setUniform("inColor", color);
 
-    renderProgram->setUniform("orthogonalProjectionMatrix", glHelper->getOrthogonalProjectionMatrix());
+    renderProgram->setUniform("orthogonalProjectionMatrix", graphicsWrapper->getOrthogonalProjectionMatrix());
 
     glm::mat4 currentTransform;
 
@@ -103,8 +103,8 @@ void GUITextBase::renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram){
         if (!renderProgram->setUniform("GUISampler", glyphAttachPoint)) {
             std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
         }
-        glHelper->attachTexture(glyph->getTextureID(), glyphAttachPoint);
-        glHelper->render(renderProgram->getID(), vao, ebo, (GLuint) (faces.size() * 3));
+        graphicsWrapper->attachTexture(glyph->getTextureID(), glyphAttachPoint);
+        graphicsWrapper->render(renderProgram->getID(), vao, ebo, (GLuint) (faces.size() * 3));
 
         totalAdvance += (glyph->getAdvance() / 64.0f) * this->getScale().x;
     }
@@ -112,7 +112,7 @@ void GUITextBase::renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram){
 }
 
 void GUITextBase::renderDebug(BulletDebugDrawer *debugDrawer) {
-    glm::mat4 orthogonalPM = glHelper->getOrthogonalProjectionMatrix();
+    glm::mat4 orthogonalPM = graphicsWrapper->getOrthogonalProjectionMatrix();
 
     glm::mat4 transform = (orthogonalPM * transformation.getWorldTransform());
 

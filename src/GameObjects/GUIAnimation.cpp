@@ -14,7 +14,7 @@ GUIAnimation::GUIAnimation(uint32_t worldID, AssetManager *assetManager, const s
                            const std::vector<std::string> &imageFiles, long creationTime, uint32_t frameSpeed,
                            bool isLooped)
         : GUIImageBase(
-        assetManager->getGlHelper(), assetManager, imageFiles[0]), worldID(worldID), name(name), creationTime(creationTime), imagePerFrame(frameSpeed), looped(isLooped) {
+        assetManager->getGraphicsWrapper(), assetManager, imageFiles[0]), worldID(worldID), name(name), creationTime(creationTime), imagePerFrame(frameSpeed), looped(isLooped) {
     this->imageFiles = imageFiles;
     this->images.push_back(this->image);//the first element is generated and held by base
 

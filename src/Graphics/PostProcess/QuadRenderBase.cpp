@@ -6,7 +6,7 @@
 #include "Graphics/GraphicsInterface.h"
 #include "Graphics/GLSLProgram.h"
 
-QuadRenderBase::QuadRenderBase(GraphicsInterface *glHelper) : glHelper(glHelper){
+QuadRenderBase::QuadRenderBase(GraphicsInterface* graphicsWrapper) : graphicsWrapper(graphicsWrapper){
     std::vector<glm::vec3> vertices;
 
     vertices.push_back(glm::vec3( -1.0f,  1.0f, 0.0f));
@@ -28,10 +28,10 @@ QuadRenderBase::QuadRenderBase(GraphicsInterface *glHelper) : glHelper(glHelper)
 
 
     uint_fast32_t vbo;
-    glHelper->bufferVertexData(vertices, faces, vao, vbo, 1, ebo);
+    graphicsWrapper->bufferVertexData(vertices, faces, vao, vbo, 1, ebo);
     bufferObjects.push_back(vbo);
 
-    glHelper->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 2);
+    graphicsWrapper->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 2);
     bufferObjects.push_back(vbo);
 
 }
@@ -44,7 +44,7 @@ void QuadRenderBase::render() {
         program->setUniform(textureIterator->first, textureIterator->second);
     }
 
-    glHelper->render(program->getID(), vao, ebo, 3 * 2);//2 triangles
+    graphicsWrapper->render(program->getID(), vao, ebo, 3 * 2);//2 triangles
 }
 
 void QuadRenderBase::setSourceTexture(std::string samplerName, int32_t textureID) {

@@ -21,14 +21,14 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
     }
 
     uint_fast32_t vbo;
-    assetManager->getGlHelper()->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
+    assetManager->getGraphicsWrapper()->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
     bufferObjects.push_back(vbo);
 
-    assetManager->getGlHelper()->bufferNormalData(normals, vao, vbo, 4);
+    assetManager->getGraphicsWrapper()->bufferNormalData(normals, vao, vbo, 4);
     bufferObjects.push_back(vbo);
 
     if (!textureCoordinates.empty()) {
-        assetManager->getGlHelper()->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
+        assetManager->getGraphicsWrapper()->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
         bufferObjects.push_back(vbo);
     }
 
@@ -70,10 +70,10 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
         }
         //std::cout << "Animation added for mesh" << std::endl;
 
-        assetManager->getGlHelper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
+        assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
         bufferObjects.push_back(vbo);
 
-        assetManager->getGlHelper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
+        assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
         bufferObjects.push_back(vbo);
     } else {
         if(isPartOfAnimated) {
@@ -107,10 +107,10 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
 
             //std::cout << "Animation added for mesh" << std::endl;
 
-            assetManager->getGlHelper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
+            assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
             bufferObjects.push_back(vbo);
 
-            assetManager->getGlHelper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
+            assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
             bufferObjects.push_back(vbo);
 
 
@@ -139,22 +139,22 @@ void MeshAsset::afterDeserialize(AssetManager *assetManager) {
 
 
     uint_fast32_t vbo;
-    assetManager->getGlHelper()->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
+    assetManager->getGraphicsWrapper()->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
     bufferObjects.push_back(vbo);
 
-    assetManager->getGlHelper()->bufferNormalData(normals, vao, vbo, 4);
+    assetManager->getGraphicsWrapper()->bufferNormalData(normals, vao, vbo, 4);
     bufferObjects.push_back(vbo);
 
     if (!textureCoordinates.empty()) {
-        assetManager->getGlHelper()->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
+        assetManager->getGraphicsWrapper()->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
         bufferObjects.push_back(vbo);
     }
 
     if (this->bones) {
-        assetManager->getGlHelper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
+        assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
         bufferObjects.push_back(vbo);
 
-        assetManager->getGlHelper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
+        assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
         bufferObjects.push_back(vbo);
     }
 }

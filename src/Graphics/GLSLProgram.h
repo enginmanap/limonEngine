@@ -14,7 +14,7 @@
 
 
 class GLSLProgram {
-    GraphicsInterface *glHelper;
+    GraphicsInterface* graphicsWrapper;
     std::string programName;
 
     std::string vertexShader;
@@ -25,8 +25,8 @@ class GLSLProgram {
     bool materialRequired;
     GLuint programID;
 
-    GLSLProgram(GraphicsInterface *glHelper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed);
-    GLSLProgram(GraphicsInterface *glHelper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed);
+    GLSLProgram(GraphicsInterface* graphicsWrapper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed);
+    GLSLProgram(GraphicsInterface* graphicsWrapper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed);
 
 public:
 
@@ -52,28 +52,28 @@ public:
 
     bool setUniform(const std::string &uniformName, const glm::mat4 &matrix) {
         if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GraphicsInterface::FLOAT_MAT4) {
-            return glHelper->setUniform(programID, uniformMap[uniformName]->location, matrix);
+            return graphicsWrapper->setUniform(programID, uniformMap[uniformName]->location, matrix);
         }
         return false;
     }
 
     bool setUniform(const std::string &uniformName, const glm::vec3 &vector) {
         if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GraphicsInterface::FLOAT_VEC3) {
-            return glHelper->setUniform(programID, uniformMap[uniformName]->location, vector);
+            return graphicsWrapper->setUniform(programID, uniformMap[uniformName]->location, vector);
         }
         return false;
     }
 
     bool setUniform(const std::string &uniformName, const std::vector<glm::vec3> &vectorArray) {
         if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GraphicsInterface::FLOAT_VEC3) {
-            return glHelper->setUniform(programID, uniformMap[uniformName]->location, vectorArray);
+            return graphicsWrapper->setUniform(programID, uniformMap[uniformName]->location, vectorArray);
         }
         return false;
     }
 
     bool setUniform(const std::string &uniformName, const float value) {
         if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GraphicsInterface::FLOAT) {
-            return glHelper->setUniform(programID, uniformMap[uniformName]->location, value);
+            return graphicsWrapper->setUniform(programID, uniformMap[uniformName]->location, value);
         }
         return false;
     }
@@ -90,7 +90,7 @@ public:
                      uniformMap[uniformName]->type == GraphicsInterface::CUBEMAP_ARRAY ||
                      uniformMap[uniformName]->type == GraphicsInterface::TEXTURE_2D ||
                      uniformMap[uniformName]->type == GraphicsInterface::TEXTURE_2D_ARRAY))  {
-            return glHelper->setUniform(programID, uniformMap[uniformName]->location, value);
+            return graphicsWrapper->setUniform(programID, uniformMap[uniformName]->location, value);
         }
         return false;
     }
@@ -98,7 +98,7 @@ public:
     bool setUniformArray(const std::string &uniformArrayName, const std::vector<glm::mat4> &matrix) {
         if (uniformMap.count(uniformArrayName) && uniformMap[uniformArrayName]->type == GraphicsInterface::FLOAT_MAT4) {
             //FIXME this should have a control of some sort
-            return glHelper->setUniformArray(programID, uniformMap[uniformArrayName]->location, matrix);
+            return graphicsWrapper->setUniformArray(programID, uniformMap[uniformArrayName]->location, matrix);
         }
         return false;
     }
@@ -137,7 +137,7 @@ public:
         return true;
     }
 
-    static std::shared_ptr<GLSLProgram> deserialize(tinyxml2::XMLElement *programNode, GraphicsInterface *glHelper) {
+    static std::shared_ptr<GLSLProgram> deserialize(tinyxml2::XMLElement *programNode, GraphicsInterface* graphicsWrapper) {
         std::string vertexShader;
         std::string geometryShader;
         std::string fragmentShader;
@@ -191,9 +191,9 @@ public:
         }
 
         if(geometryShader.length() > 0 ) {
-            return glHelper->createGLSLProgram(vertexShader, geometryShader, fragmentShader, materialRequired);
+            return graphicsWrapper->createGLSLProgram(vertexShader, geometryShader, fragmentShader, materialRequired);
         } else {
-            return glHelper->createGLSLProgram(vertexShader, fragmentShader, materialRequired);
+            return graphicsWrapper->createGLSLProgram(vertexShader, fragmentShader, materialRequired);
         }
     }
 

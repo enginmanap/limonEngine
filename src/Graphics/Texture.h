@@ -8,7 +8,7 @@
 #include "GraphicsInterface.h"
 
 class Texture {
-    GraphicsInterface* glHelper;
+    GraphicsInterface* graphicsWrapper;
     uint32_t textureID;
     GraphicsInterface::TextureTypes textureType;
     GraphicsInterface::InternalFormatTypes internalFormat;
@@ -24,17 +24,17 @@ class Texture {
     float borderColor[4] = {0};
     bool borderColorSet = false;
 public:
-    Texture(GraphicsInterface* glHelper, GraphicsInterface::TextureTypes textureType, GraphicsInterface::InternalFormatTypes internalFormat, GraphicsInterface::FormatTypes format, GraphicsInterface::DataTypes dataType, uint32_t width, uint32_t height, uint32_t depth = 0)
-            : glHelper(glHelper), textureType(textureType), internalFormat(internalFormat), format(format), dataType(dataType), height(height), width(width), depth(depth) {
-        this->textureID = glHelper->createTexture(height, width, textureType, internalFormat, format, dataType, depth);
+    Texture(GraphicsInterface* graphicsWrapper, GraphicsInterface::TextureTypes textureType, GraphicsInterface::InternalFormatTypes internalFormat, GraphicsInterface::FormatTypes format, GraphicsInterface::DataTypes dataType, uint32_t width, uint32_t height, uint32_t depth = 0)
+            : graphicsWrapper(graphicsWrapper), textureType(textureType), internalFormat(internalFormat), format(format), dataType(dataType), height(height), width(width), depth(depth) {
+        this->textureID = graphicsWrapper->createTexture(height, width, textureType, internalFormat, format, dataType, depth);
     }
 
     void loadData(void *data, void *data2 = nullptr, void *data3 = nullptr, void *data4 = nullptr, void *data5 = nullptr, void *data6 = nullptr) {
-        glHelper->loadTextureData(this->textureID, height, width, textureType, internalFormat, format, dataType, depth, data, data2, data3, data4, data5, data6);
+        graphicsWrapper->loadTextureData(this->textureID, height, width, textureType, internalFormat, format, dataType, depth, data, data2, data3, data4, data5, data6);
     }
 
     ~Texture() {
-        glHelper->deleteTexture(textureID);
+        graphicsWrapper->deleteTexture(textureID);
     }
 
     void setBorderColor(float red, float green, float blue, float alpha) {
@@ -43,12 +43,12 @@ public:
         borderColor[2] = blue;
         borderColor[3] = alpha;
         borderColorSet = true;
-        glHelper->setTextureBorder(*this);
+        graphicsWrapper->setTextureBorder(*this);
     }
 
     void setWrapModes(GraphicsInterface::TextureWrapModes wrapModeS, GraphicsInterface::TextureWrapModes wrapModeT, GraphicsInterface::TextureWrapModes wrapModeR = GraphicsInterface::TextureWrapModes::NONE) {
         if(this->wrapModeS != wrapModeS || this->wrapModeT != wrapModeT || this->wrapModeR != wrapModeR ) {
-            glHelper->setWrapMode(*this, wrapModeS, wrapModeT, wrapModeR);
+            graphicsWrapper->setWrapMode(*this, wrapModeS, wrapModeT, wrapModeR);
             this->wrapModeS = wrapModeS;
             this->wrapModeT = wrapModeT;
             this->wrapModeR = wrapModeR;
@@ -56,13 +56,13 @@ public:
     }
 
     void setFilterMode(GraphicsInterface::FilterModes filterMode) {
-        glHelper->setFilterMode(*this, filterMode);
+        graphicsWrapper->setFilterMode(*this, filterMode);
         this->filterMode = filterMode;
     }
 
     void removeBorderColor() {
         borderColorSet = false;
-        glHelper->setTextureBorder(*this);
+        graphicsWrapper->setTextureBorder(*this);
     }
 
     bool isBorderColorSet() {
@@ -94,7 +94,7 @@ public:
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
 
-    static Texture *deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface *glHelper, Options *options);
+    static Texture *deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface* graphicsWrapper, Options *options);
 
 };
 

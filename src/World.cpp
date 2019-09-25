@@ -55,7 +55,7 @@
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
              AssetManager *assetManager, Options *options)
-        : assetManager(assetManager),options(options), glHelper(assetManager->getGlHelper()), alHelper(assetManager->getAlHelper()), name(name), fontManager(glHelper), startingPlayer(startingPlayerType) {
+        : assetManager(assetManager), options(options), graphicsWrapper(assetManager->getGraphicsWrapper()), alHelper(assetManager->getAlHelper()), name(name), fontManager(graphicsWrapper), startingPlayer(startingPlayerType) {
 
     strncpy(worldSaveNameBuffer, name.c_str(), sizeof(worldSaveNameBuffer) -1 );
 
@@ -72,65 +72,65 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
     dynamicsWorld->setGravity(btVector3(0, -10, 0));
-    debugDrawer = new BulletDebugDrawer(glHelper, options);
+    debugDrawer = new BulletDebugDrawer(graphicsWrapper, options);
     dynamicsWorld->setDebugDrawer(debugDrawer);
     dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
     //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
 
 
-    shadowMapProgramDirectional = glHelper->createGLSLProgram("./Engine/Shaders/ShadowMapDirectional/vertex.glsl",
+    shadowMapProgramDirectional = graphicsWrapper->createGLSLProgram("./Engine/Shaders/ShadowMapDirectional/vertex.glsl",
                                                   "./Engine/Shaders/ShadowMapDirectional/fragment.glsl", false);
-    shadowMapProgramPoint = glHelper->createGLSLProgram("./Engine/Shaders/ShadowMapPoint/vertex.glsl",
+    shadowMapProgramPoint = graphicsWrapper->createGLSLProgram("./Engine/Shaders/ShadowMapPoint/vertex.glsl",
                                             "./Engine/Shaders/ShadowMapPoint/geometry.glsl",
                                             "./Engine/Shaders/ShadowMapPoint/fragment.glsl", false);
 
-    depthBufferProgram = glHelper->createGLSLProgram("./Engine/Shaders/depthPrePass/vertex.glsl",
+    depthBufferProgram = graphicsWrapper->createGLSLProgram("./Engine/Shaders/depthPrePass/vertex.glsl",
                                   "./Engine/Shaders/depthPrePass/fragment.glsl", false);
 
-    nonTransparentModelProgram = glHelper->createGLSLProgram("./Engine/Shaders/Model/vertex.glsl",
+    nonTransparentModelProgram = graphicsWrapper->createGLSLProgram("./Engine/Shaders/Model/vertex.glsl",
                                                                                             "./Engine/Shaders/Model/fragment.glsl", true);
     setSamplersAndUBOs(nonTransparentModelProgram, false);
 
-    transparentModelProgram    = glHelper->createGLSLProgram("./Engine/Shaders/ModelTransparent/vertex.glsl",
+    transparentModelProgram    = graphicsWrapper->createGLSLProgram("./Engine/Shaders/ModelTransparent/vertex.glsl",
                                                                                             "./Engine/Shaders/ModelTransparent/fragment.glsl", true);
     setSamplersAndUBOs(transparentModelProgram, true);
 
-    animatedModelProgram       = glHelper->createGLSLProgram("./Engine/Shaders/ModelAnimated/vertex.glsl",
+    animatedModelProgram       = graphicsWrapper->createGLSLProgram("./Engine/Shaders/ModelAnimated/vertex.glsl",
                                                                                         "./Engine/Shaders/ModelAnimated/fragment.glsl", true);
     setSamplersAndUBOs(animatedModelProgram, false);
 
-    skyBoxProgram               = glHelper->createGLSLProgram("./Engine/Shaders/SkyCube/vertex.glsl", "./Engine/Shaders/SkyCube/fragment.glsl", false);
+    skyBoxProgram               = graphicsWrapper->createGLSLProgram("./Engine/Shaders/SkyCube/vertex.glsl", "./Engine/Shaders/SkyCube/fragment.glsl", false);
 
-    textRenderProgram           = glHelper->createGLSLProgram("./Engine/Shaders/GUIText/vertex.glsl", "./Engine/Shaders/GUIText/fragment.glsl", false);
+    textRenderProgram           = graphicsWrapper->createGLSLProgram("./Engine/Shaders/GUIText/vertex.glsl", "./Engine/Shaders/GUIText/fragment.glsl", false);
 
-    imageRenderProgram          = glHelper->createGLSLProgram("./Engine/Shaders/GUIImage/vertex.glsl", "./Engine/Shaders/GUIImage/fragment.glsl", false);
+    imageRenderProgram          = graphicsWrapper->createGLSLProgram("./Engine/Shaders/GUIImage/vertex.glsl", "./Engine/Shaders/GUIImage/fragment.glsl", false);
 
-    ssaoGenerationProgram       = glHelper->createGLSLProgram("./Engine/Shaders/SSAOGeneration/vertex.glsl","./Engine/Shaders/SSAOGeneration/fragment.glsl", false);
+    ssaoGenerationProgram       = graphicsWrapper->createGLSLProgram("./Engine/Shaders/SSAOGeneration/vertex.glsl","./Engine/Shaders/SSAOGeneration/fragment.glsl", false);
     ssaoGenerationProgram->setUniform("pre_depthMap", 1);
     ssaoGenerationProgram->setUniform("pre_normalMap", 2);
     ssaoGenerationProgram->setUniform("ssaoNoiseSampler", 3);
-    ssaoBlurProgram             = glHelper->createGLSLProgram("./Engine/Shaders/SSAOBlur/vertex.glsl","./Engine/Shaders/SSAOBlur/fragment.glsl", false);
+    ssaoBlurProgram             = graphicsWrapper->createGLSLProgram("./Engine/Shaders/SSAOBlur/vertex.glsl","./Engine/Shaders/SSAOBlur/fragment.glsl", false);
     ssaoBlurProgram->setUniform("pre_ssaoResult", 1);
 
-    combineProgram              = glHelper->createGLSLProgram("./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl","./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl", false);
+    combineProgram              = graphicsWrapper->createGLSLProgram("./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl","./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl", false);
     combineProgram->setUniform("pre_diffuseSpecularLighted", 1);
     combineProgram->setUniform("pre_ambient", 2);
     combineProgram->setUniform("pre_ssao", 3);
     combineProgram->setUniform("pre_depthMap", 4);
 
 
-    apiGUILayer = new GUILayer(glHelper, debugDrawer, 1);
+    apiGUILayer = new GUILayer(graphicsWrapper, debugDrawer, 1);
     apiGUILayer->setDebug(false);
 
-    renderCounts = new GUIText(glHelper, getNextObjectID(), "Render Counts",
+    renderCounts = new GUIText(graphicsWrapper, getNextObjectID(), "Render Counts",
                                fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0", glm::vec3(204, 204, 0));
     renderCounts->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 170, options->getScreenHeight() - 36), 0);
 
-    cursor = new GUICursor(glHelper, assetManager, "./Data/Textures/crosshair.png");
+    cursor = new GUICursor(graphicsWrapper, assetManager, "./Data/Textures/crosshair.png");
 
     cursor->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), 0);
 
-    debugOutputGUI = new GUITextDynamic(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16),
+    debugOutputGUI = new GUITextDynamic(graphicsWrapper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16),
                                         glm::vec3(0, 0, 0), 640, 380, options);
     debugOutputGUI->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-200), 0.0f);
 
@@ -154,7 +154,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
             break;
     }
     
-    quadRender = std::make_shared<QuadRender>(glHelper);
+    quadRender = std::make_shared<QuadRender>(graphicsWrapper);
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
     camera = new Camera(options, currentPlayer->getCameraAttachment());//register is just below
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
@@ -168,7 +168,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     GLfloat borderColor[] = {1.0, 1.0, 1.0, 1.0};
 
     //create depth buffer and texture for directional shadow map
-    depthMapDirectional = std::make_shared<Texture>(glHelper, GraphicsInterface::TextureTypes::T2D_ARRAY, GraphicsInterface::InternalFormatTypes::DEPTH,
+    depthMapDirectional = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D_ARRAY, GraphicsInterface::InternalFormatTypes::DEPTH,
                                                     GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), NR_TOTAL_LIGHTS);
     depthMapDirectional->setWrapModes(GraphicsInterface::TextureWrapModes::BORDER, GraphicsInterface::TextureWrapModes::BORDER);
     depthMapDirectional->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
@@ -177,37 +177,37 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     //create depth buffer and texture for point shadow map
 
     // create depth cubemap texture
-    depthMapPoint = std::make_shared<Texture>(glHelper, GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY, GraphicsInterface::InternalFormatTypes::DEPTH,
+    depthMapPoint = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY, GraphicsInterface::InternalFormatTypes::DEPTH,
                                               GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), NR_POINT_LIGHTS * 6);
     depthMapPoint->setWrapModes(GraphicsInterface::TextureWrapModes::EDGE, GraphicsInterface::TextureWrapModes::EDGE, GraphicsInterface::TextureWrapModes::EDGE);
     depthMapPoint->setFilterMode(GraphicsInterface::FilterModes::LINEAR);
 
-    normalMap = std::make_shared<Texture>(glHelper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGB16F,
+    normalMap = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGB16F,
                                           GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     normalMap->setWrapModes(GraphicsInterface::TextureWrapModes::BORDER, GraphicsInterface::TextureWrapModes::BORDER);
     normalMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
     normalMap->setFilterMode(GraphicsInterface::FilterModes::LINEAR);
 
-    diffuseAndSpecularLightedMap = std::make_shared<Texture>(glHelper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA,
+    diffuseAndSpecularLightedMap = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA,
                                                              GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     diffuseAndSpecularLightedMap->setWrapModes(GraphicsInterface::TextureWrapModes::BORDER, GraphicsInterface::TextureWrapModes::BORDER);
     diffuseAndSpecularLightedMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
     diffuseAndSpecularLightedMap->setFilterMode(GraphicsInterface::FilterModes::LINEAR);
 
-    ambientMap = std::make_shared<Texture>(glHelper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGB, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    ambientMap = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGB, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     ambientMap->setWrapModes(GraphicsInterface::TextureWrapModes::BORDER, GraphicsInterface::TextureWrapModes::BORDER);
     ambientMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
     ambientMap->setFilterMode(GraphicsInterface::FilterModes::LINEAR);
 
 
-    depthMap = std::make_shared<Texture>(glHelper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    depthMap = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     depthMap->setWrapModes(GraphicsInterface::TextureWrapModes::BORDER, GraphicsInterface::TextureWrapModes::BORDER);
     depthMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
     depthMap->setFilterMode(GraphicsInterface::FilterModes::LINEAR);
 
-    ssaoBlurredMap = std::make_shared<Texture>(glHelper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RED, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    ssaoBlurredMap = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RED, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
 
-    ssaoTexture = std::make_shared<Texture>(glHelper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RED, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    ssaoTexture = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RED, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     ssaoTexture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
 
     /****************************** SSAO NOISE **************************************/
@@ -217,26 +217,26 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     /****************************** SSAO NOISE **************************************/
 
 
-    directionalShadowStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), false);
+    directionalShadowStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), false);
     directionalShadowStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, depthMapDirectional);
     directionalShadowStage->setCullMode(GraphicsInterface::CullModes::FRONT);
 
-    pointShadowStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), false);
+    pointShadowStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), false);
     pointShadowStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, depthMapPoint);
     pointShadowStage->setCullMode(GraphicsInterface::CullModes::FRONT);
 
-    coloringStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
+    coloringStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, options->getScreenWidth(), options->getScreenHeight(), false);
     coloringStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, diffuseAndSpecularLightedMap);
     coloringStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR1, ambientMap);
     coloringStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR2, normalMap);
     coloringStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, depthMap);
-    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 1, depthMapDirectional);
-    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 2, depthMapPoint);
-    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 3, depthMap);
-    coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 4, ssaoNoiseTexture);
+    coloringStage->setInput((uint32_t)graphicsWrapper->getMaxTextureImageUnits() - 1, depthMapDirectional);
+    coloringStage->setInput((uint32_t)graphicsWrapper->getMaxTextureImageUnits() - 2, depthMapPoint);
+    coloringStage->setInput((uint32_t)graphicsWrapper->getMaxTextureImageUnits() - 3, depthMap);
+    coloringStage->setInput((uint32_t)graphicsWrapper->getMaxTextureImageUnits() - 4, ssaoNoiseTexture);
     coloringStage->setCullMode(GraphicsInterface::CullModes::BACK);
 
-    ssaoGenerationStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
+    ssaoGenerationStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, options->getScreenWidth(), options->getScreenHeight(), false);
     ssaoGenerationStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR1, ssaoTexture);
     ssaoGenerationStage->setInput(1, depthMap);
     ssaoGenerationStage->setInput(2, normalMap);
@@ -249,11 +249,11 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     if(!ssaoGenerationProgram->setUniform("ssaoSampleCount", (int32_t)kernels.size())) {
         std::cerr << "uniform variable \"ssaoSampleCount\" couldn't be set" << std::endl;
     }
-    ssaoBlurStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
+    ssaoBlurStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, options->getScreenWidth(), options->getScreenHeight(), false);
     ssaoBlurStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR1, ssaoBlurredMap);
     ssaoBlurStage->setInput(1, ssaoTexture);
 
-    combiningStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getScreenWidth(), options->getScreenHeight(), true, true);
+    combiningStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, options->getScreenWidth(), options->getScreenHeight(), true, true);
     combiningStage->setInput(1, diffuseAndSpecularLightedMap);
     combiningStage->setInput(2, ambientMap);
     combiningStage->setInput(3, ssaoBlurredMap);
@@ -348,7 +348,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     defaultRenderPipeline->addNewStage(stageInfo);
 
-    fpsCounter = new GUIFPSCounter(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
+    fpsCounter = new GUIFPSCounter(graphicsWrapper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                                    glm::vec3(204, 204, 0));
     fpsCounter->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, options->getScreenHeight() - 18), 0);
 
@@ -361,7 +361,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     /************ ImGui *****************************/
     // Setup ImGui binding
-    imgGuiHelper = new ImGuiHelper(glHelper, options);
+    imgGuiHelper = new ImGuiHelper(graphicsWrapper, options);
 }
 
  bool World::checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName) {
@@ -431,7 +431,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          currentPlayer->processPhysicsWorld(dynamicsWorld);
      }
      if(camera->isDirty()) {
-         glHelper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
+         graphicsWrapper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
          alHelper->setListenerPositionAndOrientation(camera->getPosition(), camera->getCenter(), camera->getUp());
      }
      checkAndRunTimedEvents();
@@ -658,7 +658,7 @@ void World::setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRen
 void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bool removePossible) {
     Model* currentModel = dynamic_cast<Model*>(PhysicalRenderable);
     assert(currentModel != nullptr);
-    currentModel->setIsInFrustum(glHelper->isInFrustum(currentModel->getAabbMin(), currentModel->getAabbMax()));
+    currentModel->setIsInFrustum(graphicsWrapper->isInFrustum(currentModel->getAabbMin(), currentModel->getAabbMax()));
     if(currentModel->isTransparent()) {
         if(currentModel->isIsInFrustum()) {
             if (transparentModelsInCameraFrustum.find(currentModel->getAssetID()) == transparentModelsInCameraFrustum.end()) {
@@ -907,7 +907,7 @@ void World::renderGUITexts(const std::shared_ptr<GLSLProgram>& renderProgram) co
     apiGUILayer->renderTextWithProgram(renderProgram);
 
     uint32_t triangle, line;
-    glHelper->getRenderTriangleAndLineCount(triangle, line);
+    graphicsWrapper->getRenderTriangleAndLineCount(triangle, line);
     renderCounts->updateText("Tris: " + std::to_string(triangle) + ", lines: " + std::to_string(line));
     if (options->getRenderInformations()) {
         renderCounts->renderWithProgram(renderProgram);
@@ -1284,7 +1284,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             ImGui::InputText("Name of the Model Group: ", modelGroupNameBuffer, sizeof(modelGroupNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
             if(modelGroupNameBuffer[0] != 0 ) {
                 if(ImGui::Button("Create Group")) {
-                    ModelGroup* modelGroup = new ModelGroup(glHelper, this->getNextObjectID(), std::string(modelGroupNameBuffer));
+                    ModelGroup* modelGroup = new ModelGroup(graphicsWrapper, this->getNextObjectID(), std::string(modelGroupNameBuffer));
                     this->modelGroups[modelGroup->getWorldObjectID()] = modelGroup;
 
                 }
@@ -1308,14 +1308,14 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
         if (ImGui::CollapsingHeader("Add New Light")) {
 
             if(ImGui::Button("Add Point Light")) {
-                Light* newLight = new Light(glHelper, this->getNextObjectID(), Light::LightTypes::POINT, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
+                Light* newLight = new Light(graphicsWrapper, this->getNextObjectID(), Light::LightTypes::POINT, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
                 //this->lights.push_back(newLight);
                 this->addLight(newLight);
                 pickedObject = newLight;
             }
             if(directionalLightIndex == -1) {//Allow single directional light
                 if(ImGui::Button("Add Directional Light")) {
-                    Light* newLight = new Light(glHelper, this->getNextObjectID(), Light::LightTypes::DIRECTIONAL, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
+                    Light* newLight = new Light(graphicsWrapper, this->getNextObjectID(), Light::LightTypes::DIRECTIONAL, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
                     this->addLight(newLight);
                 }
             }
@@ -1877,7 +1877,7 @@ void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove
 
     static size_t selectedLayerIndex = 0;
     if (guiLayers.size() == 0) {
-        guiLayers.push_back(new GUILayer(glHelper, debugDrawer, 10));
+        guiLayers.push_back(new GUILayer(graphicsWrapper, debugDrawer, 10));
     }
     if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
         for (size_t i = 0; i < guiLayers.size(); ++i) {
@@ -1892,7 +1892,7 @@ void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove
         ImGui::EndCombo();
     }
     if (ImGui::Button("Add GUI Text")) {
-        GUIText *guiText = new GUIText(glHelper, getNextObjectID(), GUITextName,
+        GUIText *guiText = new GUIText(graphicsWrapper, getNextObjectID(), GUITextName,
                                        fontManager.getFont(selectedFontName, fontSize), "New Text", glm::vec3(0, 0, 0));
         guiText->set2dWorldTransform(
                 glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
@@ -2442,7 +2442,7 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
 uint32_t World::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &name, const std::string &text,
                            const glm::vec3 &color,
                            const glm::vec2 &position, float rotation) {
-    GUIText* tr = new GUIText(glHelper, getNextObjectID(), name, fontManager.getFont(fontFilePath, fontSize),
+    GUIText* tr = new GUIText(graphicsWrapper, getNextObjectID(), name, fontManager.getFont(fontFilePath, fontSize),
                               text, color);
     glm::vec2 screenPosition;
     screenPosition.x = position.x * this->options->getScreenWidth();
@@ -2594,8 +2594,8 @@ void World::afterLoadFinished() {
     }
 
     //setup request
-    request = new GameObject::ImGuiRequest(glHelper->getCameraMatrix(), glHelper->getProjectionMatrix(),
-                                           glHelper->getOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), apiInstance);
+    request = new GameObject::ImGuiRequest(graphicsWrapper->getCameraMatrix(), graphicsWrapper->getProjectionMatrix(),
+                                           graphicsWrapper->getOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), apiInstance);
 
     if(startingPlayer.extensionName != "") {
         PlayerExtensionInterface *playerExtension =PlayerExtensionInterface::createExtension(startingPlayer.extensionName, apiInstance);
@@ -2696,7 +2696,7 @@ void World::addGUIImageControls() {
 
     static size_t selectedLayerIndex = 0;
     if (guiLayers.size() == 0) {
-        guiLayers.push_back(new GUILayer(glHelper, debugDrawer, 10));
+        guiLayers.push_back(new GUILayer(graphicsWrapper, debugDrawer, 10));
     }
     static char GUIImageName[32];
     ImGui::InputText("GUI Image Name", GUIImageName, sizeof(GUIImageName), ImGuiInputTextFlags_CharsNoBlank);
@@ -2886,7 +2886,7 @@ void World::addGUIButtonControls() {
 
     static size_t selectedLayerIndex = 0;
     if (guiLayers.size() == 0) {
-        guiLayers.push_back(new GUILayer(glHelper, debugDrawer, 10));
+        guiLayers.push_back(new GUILayer(graphicsWrapper, debugDrawer, 10));
     }
     if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
         for (size_t i = 0; i < guiLayers.size(); ++i) {
@@ -2966,7 +2966,7 @@ void World::addGUIButtonControls() {
 
        static size_t selectedLayerIndex = 0;
        if (guiLayers.size() == 0) {
-           guiLayers.push_back(new GUILayer(glHelper, debugDrawer, 10));
+           guiLayers.push_back(new GUILayer(graphicsWrapper, debugDrawer, 10));
        }
        if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
            for (size_t i = 0; i < guiLayers.size(); ++i) {
@@ -3006,7 +3006,7 @@ void World::addGUILayerControls() {
     static  int32_t levelSlider = 0;
     ImGui::DragInt("Layer level", &levelSlider, 1, 1, 128);
     if (ImGui::Button("Add GUI Layer")) {
-        this->guiLayers.push_back(new GUILayer(glHelper, debugDrawer, (uint32_t)levelSlider));
+        this->guiLayers.push_back(new GUILayer(graphicsWrapper, debugDrawer, (uint32_t)levelSlider));
     }
 }
 
@@ -3772,11 +3772,11 @@ void World::updateActiveLights(bool forceUpdate) {
     }
 
     for (size_t lightIndex = 0; lightIndex < activeLights.size(); ++lightIndex) {
-        glHelper->setLight(*activeLights[lightIndex], lightIndex);
+        graphicsWrapper->setLight(*activeLights[lightIndex], lightIndex);
     }
 
     for (uint32_t i = activeLights.size(); i < NR_TOTAL_LIGHTS; ++i) {
-        glHelper->removeLight(i);
+        graphicsWrapper->removeLight(i);
     }
 
 }
@@ -4334,7 +4334,7 @@ void World::createNodeGraph() {
     };
     nodeTypeVector.push_back(Iterate);
 
-    auto programs = glHelper->getLoadedPrograms();
+    auto programs = graphicsWrapper->getLoadedPrograms();
     GraphicsPipeline::RenderMethods renderMethods;
 
     renderMethods.renderOpaqueObjects       = std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1);
@@ -4353,7 +4353,7 @@ void World::createNodeGraph() {
     renderMethods.renderLight = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2);
 
 
-    pipelineExtension = new PipelineExtension(glHelper, GraphicsPipeline::getRenderMethodNames(), renderMethods);
+    pipelineExtension = new PipelineExtension(graphicsWrapper, GraphicsPipeline::getRenderMethodNames(), renderMethods);
 
     for(auto program:programs) {
         std::string programName = program.first->getProgramName();
@@ -4451,13 +4451,13 @@ void World::setSamplersAndUBOs(std::shared_ptr<GLSLProgram>& program, bool setOp
    }
    //TODO we should support multi texture on one pass
 
-   if (!program->setUniform("pre_shadowDirectional", glHelper->getMaxTextureImageUnits() - 1)) {
+   if (!program->setUniform("pre_shadowDirectional", graphicsWrapper->getMaxTextureImageUnits() - 1)) {
        std::cerr << "Uniform \"pre_shadowDirectional\" could not be set" << std::endl;
    }
-   if (!program->setUniform("pre_shadowPoint", glHelper->getMaxTextureImageUnits() - 2)) {
+   if (!program->setUniform("pre_shadowPoint", graphicsWrapper->getMaxTextureImageUnits() - 2)) {
        std::cerr << "Uniform \"pre_shadowPoint\" could not be set" << std::endl;
    }
 
-   glHelper->attachModelUBO(program->getID());
-   glHelper->attachModelIndicesUBO(program->getID());
+   graphicsWrapper->attachModelUBO(program->getID());
+   graphicsWrapper->attachModelIndicesUBO(program->getID());
 }

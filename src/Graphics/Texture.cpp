@@ -123,7 +123,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     return true;
 }
 
-Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface *glHelper, Options *options [[gnu::unused]]) {
+Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface* graphicsWrapper, Options *options [[gnu::unused]]) {
     tinyxml2::XMLElement* textureNodeAttribute = nullptr;
 
     GraphicsInterface::TextureTypes textureType;
@@ -263,7 +263,7 @@ Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterfa
 
 
 
-    Texture* texture = new Texture(glHelper, textureType, internalFormat, format, dataType, width, height, depth);
+    Texture* texture = new Texture(graphicsWrapper, textureType, internalFormat, format, dataType, width, height, depth);
 
     textureNodeAttribute = TextureNode->FirstChildElement("FilterMode");
     if (textureNodeAttribute != nullptr) {

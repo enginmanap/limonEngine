@@ -162,7 +162,7 @@ void ModelAsset::afterDeserialize(AssetManager *assetManager, std::vector<std::s
 
     for (auto material = materialMap.begin(); material != materialMap.end(); ++material) {
         material->second->afterDeserialize(assetManager, name);
-        assetManager->getGlHelper()->setMaterial(material->second);
+        assetManager->getGraphicsWrapper()->setMaterial(material->second);
     }
 
     for (auto mesh = meshes.begin(); mesh != meshes.end(); ++mesh) {
@@ -185,7 +185,7 @@ std::shared_ptr<Material>ModelAsset::loadMaterials(const aiScene *scene, unsigne
     std::shared_ptr<Material> newMaterial;
     if (materialMap.find(property.C_Str()) == materialMap.end()) {//search for the name
         //if the material is not loaded before
-        newMaterial = std::make_shared<Material>(assetManager, property.C_Str(), assetManager->getGlHelper()->getNextMaterialIndex());
+        newMaterial = std::make_shared<Material>(assetManager, property.C_Str(), assetManager->getGraphicsWrapper()->getNextMaterialIndex());
         aiColor3D color(0.f, 0.f, 0.f);
         float transferFloat;
 
@@ -313,7 +313,7 @@ std::shared_ptr<Material>ModelAsset::loadMaterials(const aiScene *scene, unsigne
 
         newMaterial->setMaps(maps);
 
-        assetManager->getGlHelper()->setMaterial(newMaterial);
+        assetManager->getGraphicsWrapper()->setMaterial(newMaterial);
 
         materialMap[newMaterial->getName()] = newMaterial;
     } else {

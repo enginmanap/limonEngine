@@ -6,7 +6,7 @@
 
 const std::string FontManager::DEFAULT_FONT_PATH = "Data/Fonts/Helvetica-Normal.ttf";
 
-FontManager::FontManager(GraphicsInterface *glHelper) : glHelper(glHelper) {
+FontManager::FontManager(GraphicsInterface* graphicsWrapper) : graphicsWrapper(graphicsWrapper) {
     if (FT_Init_FreeType(&ft)) {
         std::cerr << "Freetype could not init, error: \n" << "error" << "\n Exiting.." << std::endl;
         exit(1);
@@ -27,7 +27,7 @@ Face *FontManager::getFont(const std::string &fontPath, const uint32_t size) {
             FT_New_Face(ft, DEFAULT_FONT_PATH.c_str(), 0, &face);
         }
 
-        fonts[fontDescription] = new Face(glHelper, fontPath, size, face);
+        fonts[fontDescription] = new Face(graphicsWrapper, fontPath, size, face);
         FT_Set_Pixel_Sizes(face, 0, size);
         //now we should calculate what we have
 

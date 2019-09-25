@@ -16,17 +16,17 @@
 
 class BulletDebugDrawer : public btIDebugDraw {
     DebugDrawModes currentMode;
-    GraphicsInterface *glHelper;
+    GraphicsInterface* graphicsWrapper;
     std::shared_ptr<GLSLProgram> renderProgram;
     GLuint vao, vbo, ebo;
     std::vector<Line> lineBuffer;
     Options* options;
 public:
-    BulletDebugDrawer(GraphicsInterface *glHelper, Options* options) : glHelper(glHelper), vao(0), vbo(0), ebo(0), options(options) {
-        renderProgram = glHelper->createGLSLProgram("./Engine/Shaders/Lines/vertex.glsl",
+    BulletDebugDrawer(GraphicsInterface* graphicsWrapper, Options* options) : graphicsWrapper(graphicsWrapper), vao(0), vbo(0), ebo(0), options(options) {
+        renderProgram = graphicsWrapper->createGLSLProgram("./Engine/Shaders/Lines/vertex.glsl",
                                         "./Engine/Shaders/Lines/fragment.glsl", false);
         //std::cout << "Render program is ready with id " << renderProgram->getID() << std::endl;
-        glHelper->createDebugVAOVBO(vao, vbo, options->getDebugDrawBufferSize());
+        graphicsWrapper->createDebugVAOVBO(vao, vbo, options->getDebugDrawBufferSize());
     }
 
     void drawLine(const glm::vec3 &from, const glm::vec3 &to, const glm::vec3 &fromColor, const glm::vec3 &toColor, bool needsCameraTransform);

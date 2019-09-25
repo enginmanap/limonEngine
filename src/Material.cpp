@@ -48,5 +48,5 @@ void Material::afterDeserialize(AssetManager *assetManager, std::string modelAss
     }
     textureNameListList.reset();
 
-    this->materialIndex = assetManager->getGlHelper()->getNextMaterialIndex();
+    this->materialIndex = assetManager->getGraphicsWrapper()->getNextMaterialIndex();
 }

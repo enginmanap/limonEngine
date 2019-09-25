@@ -27,8 +27,8 @@ protected:
     static std::shared_ptr<GLSLProgram> textRenderProgram;
 
     //Don't allow constructing of this object itself
-    GUITextBase(GraphicsInterface *glHelper, Face *font, const std::string text, const glm::vec3 color);
-    GUITextBase(GraphicsInterface *glHelper, Face *font, const glm::vec3 color) : GUITextBase(glHelper, font, "",
+    GUITextBase(GraphicsInterface* graphicsWrapper, Face *font, const std::string text, const glm::vec3 color);
+    GUITextBase(GraphicsInterface* graphicsWrapper, Face *font, const glm::vec3 color) : GUITextBase(graphicsWrapper, font, "",
                                                                                               color) {};
 
 public:
