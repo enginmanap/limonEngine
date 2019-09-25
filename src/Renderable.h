@@ -7,7 +7,7 @@
 
 
 #include "GameObjects/GameObject.h"
-#include "Graphics/GLHelper.h"
+#include "Graphics/OpenGLGraphics.h"
 #include "Graphics/GLSLProgram.h"
 #include "Transformation.h"
 #include <btBulletDynamicsCommon.h>
@@ -19,12 +19,12 @@ protected:
     std::vector<uint_fast32_t > bufferObjects;
     std::vector<bool> inLightFrustum;
     uint_fast32_t vao, ebo;
-    GLHelper *glHelper;
+    OpenGLGraphics *glHelper;
     bool isInCameraFrustum = true;
     bool dirtyForFrustum = true;//is this object require a frustum recalculate
     bool customAnimation = false;
 
-    explicit Renderable(GLHelper *glHelper) :
+    explicit Renderable(OpenGLGraphics *glHelper) :
             glHelper(glHelper) {
         this->inLightFrustum.resize(NR_TOTAL_LIGHTS);
     }

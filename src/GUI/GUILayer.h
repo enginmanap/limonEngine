@@ -6,14 +6,14 @@
 #define LIMONENGINE_GUILAYER_H
 
 #include <tinyxml2.h>
-#include "Graphics/GLHelper.h"
+#include "Graphics/OpenGLGraphics.h"
 
 class BulletDebugDrawer;
 class GUIRenderable;
 class GameObject;
 
 class GUILayer {
-    GLHelper *glHelper;
+    OpenGLGraphics *glHelper;
     BulletDebugDrawer* debugDrawer;
     uint32_t level;
     bool isDebug;
@@ -21,7 +21,7 @@ class GUILayer {
     std::vector<std::pair<GUIRenderable *, RenderTypes>> guiElements;
 
 public:
-    GUILayer(GLHelper *glHelper, BulletDebugDrawer* debugDrawer, uint32_t level) : glHelper(glHelper), debugDrawer(debugDrawer), level(level), isDebug(false) { };
+    GUILayer(OpenGLGraphics *glHelper, BulletDebugDrawer* debugDrawer, uint32_t level) : glHelper(glHelper), debugDrawer(debugDrawer), level(level), isDebug(false) { };
 
     uint32_t getLevel() { return level; }
 

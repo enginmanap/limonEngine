@@ -7,7 +7,7 @@
 
 
 #include <nodeGraph/src/EditorExtension.h>
-#include "Graphics/GLHelper.h"
+#include "Graphics/OpenGLGraphics.h"
 #include "Graphics/GraphicsPipeline.h"
 
 #include <functional>
@@ -20,13 +20,13 @@ public:
 
 private:
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;
-    GLHelper* glHelper = nullptr;
+    OpenGLGraphics* glHelper = nullptr;
     static bool getNameOfTexture(void* data, int index, const char** outText);
     const std::vector<std::string>& renderMethodNames;
     GraphicsPipeline::RenderMethods& renderMethods;
 public:
 
-    PipelineExtension(GLHelper* glHelper, const std::vector<std::string>& renderMethodNames, GraphicsPipeline::RenderMethods& renderMethods);
+    PipelineExtension(OpenGLGraphics* glHelper, const std::vector<std::string>& renderMethodNames, GraphicsPipeline::RenderMethods& renderMethods);
 
     void drawDetailPane(const std::vector<const Node *>& nodes, const Node* selectedNode = nullptr) override;
 

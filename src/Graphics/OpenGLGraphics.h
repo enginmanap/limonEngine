@@ -2,8 +2,8 @@
 // Created by Engin Manap on 10.02.2016.
 //
 
-#ifndef LIMONENGINE_GLHELPER_H
-#define LIMONENGINE_GLHELPER_H
+#ifndef LIMONENGINE_OPENGLGRAPHICS_H
+#define LIMONENGINE_OPENGLGRAPHICS_H
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -56,7 +56,7 @@ struct Line {
          const bool needsCameraTransform): from(from), fromColor(fromColor), needsCameraTransform(needsCameraTransform), to(to), toColor(toColor), needsCameraTransform2(needsCameraTransform){};
 };
 
-class GLHelper {
+class OpenGLGraphics {
     friend class Texture;
     class OpenglState {
         unsigned int activeProgram;
@@ -331,9 +331,9 @@ private:
     void testAndRemoveGLSLProgram(GLSLProgram *program);
 
 public:
-    explicit GLHelper(Options *options);
+    explicit OpenGLGraphics(Options *options);
 
-    ~GLHelper();
+    ~OpenGLGraphics();
 
     std::shared_ptr<GLSLProgram> createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed);
     std::shared_ptr<GLSLProgram> createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed);
@@ -488,4 +488,4 @@ public:
                          uint32_t instanceCount);
 };
 
-#endif //LIMONENGINE_GLHELPER_H
+#endif //LIMONENGINE_OPENGLGRAPHICS_H

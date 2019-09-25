@@ -38,7 +38,7 @@ void GUITextBase::calculateSizes() {
     }
 }
 
-GUITextBase::GUITextBase(GLHelper *glHelper, Face *face, const std::string text, const glm::vec3 color) :
+GUITextBase::GUITextBase(OpenGLGraphics *glHelper, Face *face, const std::string text, const glm::vec3 color) :
         GUIRenderable(glHelper), text(text), color(color.x / 256, color.y / 256, color.z / 256), face(face), height(0),
         width(0), bearingUp(0) {
     calculateSizes();

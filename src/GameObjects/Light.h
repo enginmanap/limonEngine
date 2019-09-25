@@ -9,7 +9,7 @@
 #include <glm/gtx/norm.hpp>
 #include "glm/glm.hpp"
 #include "GameObject.h"
-#include "Graphics/GLHelper.h"
+#include "Graphics/OpenGLGraphics.h"
 #include "../../libs/ImGui/imgui.h"
 #include "../../libs/ImGuizmo/ImGuizmo.h"
 
@@ -19,7 +19,7 @@ public:
         DIRECTIONAL, POINT
     };
 private:
-    GLHelper* glHelper;
+    OpenGLGraphics* glHelper;
     glm::mat4 shadowMatrices[6];//these are used only for point lights for now
     glm::mat4 lightSpaceMatrix;
 public:
@@ -55,7 +55,7 @@ private:
     void calculateActiveDistance();
 
 public:
-    Light(GLHelper *glHelper, uint32_t objectID, LightTypes lightType, const glm::vec3 &position,
+    Light(OpenGLGraphics *glHelper, uint32_t objectID, LightTypes lightType, const glm::vec3 &position,
           const glm::vec3 &color) :
             glHelper(glHelper),
             objectID(objectID),

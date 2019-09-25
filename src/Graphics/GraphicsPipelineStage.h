@@ -8,25 +8,25 @@
 
 #include <cstdint>
 #include <map>
-#include "GLHelper.h"
+#include "OpenGLGraphics.h"
 #include "Texture.h"
 
 class GraphicsPipelineStage {
-    GLHelper* glHelper = nullptr;
+    OpenGLGraphics* glHelper = nullptr;
     uint32_t renderWidth;
     uint32_t renderHeight;
     uint32_t frameBufferID;
     bool blendEnabled = false;
     bool colorAttachment = false;
     bool depthAttachment = false;
-    GLHelper::CullModes cullMode = GLHelper::CullModes::NO_CHANGE;
+    OpenGLGraphics::CullModes cullMode = OpenGLGraphics::CullModes::NO_CHANGE;
 
     std::map<uint32_t, std::shared_ptr<Texture>> inputs;
-    std::map<GLHelper::FrameBufferAttachPoints, std::shared_ptr<Texture>> outputs;
+    std::map<OpenGLGraphics::FrameBufferAttachPoints, std::shared_ptr<Texture>> outputs;
 
 public:
 
-    GraphicsPipelineStage(GLHelper *glHelper, uint32_t renderWidth, uint32_t renderHeight, bool blendEnabled, bool toScreen = false) :
+    GraphicsPipelineStage(OpenGLGraphics *glHelper, uint32_t renderWidth, uint32_t renderHeight, bool blendEnabled, bool toScreen = false) :
             glHelper(glHelper), renderWidth(renderWidth), renderHeight(renderHeight), blendEnabled(blendEnabled) {
         if(toScreen) {
             frameBufferID = 0;
@@ -46,38 +46,38 @@ public:
         this->inputs[textureAttachmentPoint] = texture;
     }
     void
-    setOutput(GLHelper::FrameBufferAttachPoints attachmentPoint, std::shared_ptr<Texture> texture, bool clear = false, uint32_t layer = -1) {
+    setOutput(OpenGLGraphics::FrameBufferAttachPoints attachmentPoint, std::shared_ptr<Texture> texture, bool clear = false, uint32_t layer = -1) {
         glHelper->attachDrawTextureToFrameBuffer(this->frameBufferID, texture->getType(), texture->getTextureID(),
                                                  attachmentPoint, layer, clear);
         switch (attachmentPoint) {
-            case GLHelper::FrameBufferAttachPoints::DEPTH: depthAttachment = true; break;
-            case GLHelper::FrameBufferAttachPoints::COLOR0:/*fallthrough*/
-            case GLHelper::FrameBufferAttachPoints::COLOR1:/*fallthrough*/
-            case GLHelper::FrameBufferAttachPoints::COLOR2:/*fallthrough*/
-            case GLHelper::FrameBufferAttachPoints::COLOR3:/*fallthrough*/
-            case GLHelper::FrameBufferAttachPoints::COLOR4:/*fallthrough*/
-            case GLHelper::FrameBufferAttachPoints::COLOR5:/*fallthrough*/
-            case GLHelper::FrameBufferAttachPoints::COLOR6: colorAttachment = true; break;
-            case GLHelper::FrameBufferAttachPoints::NONE: break;
+            case OpenGLGraphics::FrameBufferAttachPoints::DEPTH: depthAttachment = true; break;
+            case OpenGLGraphics::FrameBufferAttachPoints::COLOR0:/*fallthrough*/
+            case OpenGLGraphics::FrameBufferAttachPoints::COLOR1:/*fallthrough*/
+            case OpenGLGraphics::FrameBufferAttachPoints::COLOR2:/*fallthrough*/
+            case OpenGLGraphics::FrameBufferAttachPoints::COLOR3:/*fallthrough*/
+            case OpenGLGraphics::FrameBufferAttachPoints::COLOR4:/*fallthrough*/
+            case OpenGLGraphics::FrameBufferAttachPoints::COLOR5:/*fallthrough*/
+            case OpenGLGraphics::FrameBufferAttachPoints::COLOR6: colorAttachment = true; break;
+            case OpenGLGraphics::FrameBufferAttachPoints::NONE: break;
         }
         this->outputs[attachmentPoint] = texture;
     }
 
-    GLHelper::CullModes getCullMode() const {
+    OpenGLGraphics::CullModes getCullMode() const {
         return cullMode;
     }
 
-    void setCullMode(GLHelper::CullModes cullMode) {
+    void setCullMode(OpenGLGraphics::CullModes cullMode) {
         GraphicsPipelineStage::cullMode = cullMode;
     }
 
     void activate(bool clear = false);
 
-    void activate(const std::map<std::shared_ptr<Texture>, std::pair<GLHelper::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear = false);
+    void activate(const std::map<std::shared_ptr<Texture>, std::pair<OpenGLGraphics::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear = false);
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
 
-    static GraphicsPipelineStage *deserialize(tinyxml2::XMLElement *stageNode, GLHelper *glHelper, Options *options);
+    static GraphicsPipelineStage *deserialize(tinyxml2::XMLElement *stageNode, OpenGLGraphics *glHelper, Options *options);
 
 };
 

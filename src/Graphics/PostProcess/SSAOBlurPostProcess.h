@@ -11,7 +11,7 @@
 class SSAOBlurPostProcess : public QuadRenderBase {
     void initializeProgram() override;
 public:
-    SSAOBlurPostProcess(GLHelper* glHelper);
+    SSAOBlurPostProcess(OpenGLGraphics* glHelper);
 };
 
 

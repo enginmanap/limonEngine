@@ -12,7 +12,7 @@ class CombinePostProcess : public QuadRenderBase {
     void initializeProgram() override;
 
 public:
-    CombinePostProcess(GLHelper* glHelper, bool isSSAOEnabled);
+    CombinePostProcess(OpenGLGraphics* glHelper, bool isSSAOEnabled);
 
     bool isIsSSAOEnabled() const {
         return isSSAOEnabled;

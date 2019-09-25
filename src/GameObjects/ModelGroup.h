@@ -15,7 +15,7 @@ class ModelGroup : public PhysicalRenderable, public GameObject {
     std::string name;
 public:
 
-    ModelGroup(GLHelper* glHelper, uint32_t worldObjectID, const std::string& name)
+    ModelGroup(OpenGLGraphics* glHelper, uint32_t worldObjectID, const std::string& name)
     : PhysicalRenderable(glHelper, 0, true), worldObjectID(worldObjectID), name(name) {
         transformation.setUpdateCallback(nullptr);
     }
@@ -53,11 +53,11 @@ public:
 
     bool fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const override;
 
-    static ModelGroup *deserialize(GLHelper *glHelper, AssetManager *assetManager, tinyxml2::XMLElement *ModelGroupsNode,
-                                       std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
-                                       std::map<uint32_t, ModelGroup *> &childGroups,
-                                       std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> &childObjects, LimonAPI *limonAPI,
-                                       ModelGroup *parentGroup = nullptr);
+    static ModelGroup *deserialize(OpenGLGraphics *glHelper, AssetManager *assetManager, tinyxml2::XMLElement *ModelGroupsNode,
+                                   std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
+                                   std::map<uint32_t, ModelGroup *> &childGroups,
+                                   std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> &childObjects, LimonAPI *limonAPI,
+                                   ModelGroup *parentGroup = nullptr);
 
     void setupForTime(long time) override;
 

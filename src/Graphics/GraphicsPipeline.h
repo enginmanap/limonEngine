@@ -119,7 +119,7 @@ public:
                 for (size_t light:lights) {
                     //set the layer that will be rendered. Also set clear so attached layer will be cleared right away.
                     //this is important because they will not be cleared other way.
-                    stage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, layeredDepthMap, true, light);
+                    stage->setOutput(OpenGLGraphics::FrameBufferAttachPoints::DEPTH, layeredDepthMap, true, light);
                     //generate shadow map
                     renderLight(light, renderProgram);
                 }

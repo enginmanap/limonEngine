@@ -5,7 +5,7 @@
 #include "GUIRenderable.h"
 #include "GUILayer.h"
 
-GUIRenderable::GUIRenderable(GLHelper *glHelper) : Renderable(glHelper) {
+GUIRenderable::GUIRenderable(OpenGLGraphics *glHelper) : Renderable(glHelper) {
     vertices.push_back(glm::vec3(-1.0f, -1.0f, 0.0f));
     vertices.push_back(glm::vec3(1.0f, -1.0f, 0.0f));
     vertices.push_back(glm::vec3(1.0f, 1.0f, 0.0f));

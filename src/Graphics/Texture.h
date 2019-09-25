@@ -5,26 +5,26 @@
 #ifndef LIMONENGINE_TEXTURE_H
 #define LIMONENGINE_TEXTURE_H
 
-#include "GLHelper.h"
+#include "OpenGLGraphics.h"
 
 class Texture {
-    GLHelper* glHelper;
+    OpenGLGraphics* glHelper;
     uint32_t textureID;
-    GLHelper::TextureTypes textureType;
-    GLHelper::InternalFormatTypes internalFormat;
-    GLHelper::FormatTypes format;
-    GLHelper::DataTypes dataType;
-    GLHelper::FilterModes filterMode = GLHelper::FilterModes::LINEAR;
-    GLHelper::TextureWrapModes wrapModeS = GLHelper::TextureWrapModes::NONE;
-    GLHelper::TextureWrapModes wrapModeT = GLHelper::TextureWrapModes::NONE;
-    GLHelper::TextureWrapModes wrapModeR = GLHelper::TextureWrapModes::NONE;
+    OpenGLGraphics::TextureTypes textureType;
+    OpenGLGraphics::InternalFormatTypes internalFormat;
+    OpenGLGraphics::FormatTypes format;
+    OpenGLGraphics::DataTypes dataType;
+    OpenGLGraphics::FilterModes filterMode = OpenGLGraphics::FilterModes::LINEAR;
+    OpenGLGraphics::TextureWrapModes wrapModeS = OpenGLGraphics::TextureWrapModes::NONE;
+    OpenGLGraphics::TextureWrapModes wrapModeT = OpenGLGraphics::TextureWrapModes::NONE;
+    OpenGLGraphics::TextureWrapModes wrapModeR = OpenGLGraphics::TextureWrapModes::NONE;
     uint32_t height, width;
     uint32_t depth;//3D textures, or texture arrays have this as element count
 
     float borderColor[4] = {0};
     bool borderColorSet = false;
 public:
-    Texture(GLHelper* glHelper, GLHelper::TextureTypes textureType, GLHelper::InternalFormatTypes internalFormat, GLHelper::FormatTypes format, GLHelper::DataTypes dataType,uint32_t width, uint32_t height, uint32_t depth = 0)
+    Texture(OpenGLGraphics* glHelper, OpenGLGraphics::TextureTypes textureType, OpenGLGraphics::InternalFormatTypes internalFormat, OpenGLGraphics::FormatTypes format, OpenGLGraphics::DataTypes dataType, uint32_t width, uint32_t height, uint32_t depth = 0)
             : glHelper(glHelper), textureType(textureType), internalFormat(internalFormat), format(format), dataType(dataType), height(height), width(width), depth(depth) {
         this->textureID = glHelper->createTexture(height, width, textureType, internalFormat, format, dataType, depth);
     }
@@ -46,7 +46,7 @@ public:
         glHelper->setTextureBorder(*this);
     }
 
-    void setWrapModes(GLHelper::TextureWrapModes wrapModeS, GLHelper::TextureWrapModes wrapModeT, GLHelper::TextureWrapModes wrapModeR = GLHelper::TextureWrapModes::NONE) {
+    void setWrapModes(OpenGLGraphics::TextureWrapModes wrapModeS, OpenGLGraphics::TextureWrapModes wrapModeT, OpenGLGraphics::TextureWrapModes wrapModeR = OpenGLGraphics::TextureWrapModes::NONE) {
         if(this->wrapModeS != wrapModeS || this->wrapModeT != wrapModeT || this->wrapModeR != wrapModeR ) {
             glHelper->setWrapMode(*this, wrapModeS, wrapModeT, wrapModeR);
             this->wrapModeS = wrapModeS;
@@ -55,7 +55,7 @@ public:
         }
     }
 
-    void setFilterMode(GLHelper::FilterModes filterMode) {
+    void setFilterMode(OpenGLGraphics::FilterModes filterMode) {
         glHelper->setFilterMode(*this, filterMode);
         this->filterMode = filterMode;
     }
@@ -72,7 +72,7 @@ public:
         return std::vector<float>(borderColor, borderColor + (sizeof(borderColor)/sizeof(float)));
     }
 
-    GLHelper::TextureTypes getType(){
+    OpenGLGraphics::TextureTypes getType(){
         return textureType;
     }
 
@@ -80,7 +80,7 @@ public:
         return textureID;
     }
 
-    GLHelper::FormatTypes getFormat() {
+    OpenGLGraphics::FormatTypes getFormat() {
         return format;
     }
 
@@ -94,7 +94,7 @@ public:
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
 
-    static Texture *deserialize(tinyxml2::XMLElement *TextureNode, GLHelper *glHelper, Options *options);
+    static Texture *deserialize(tinyxml2::XMLElement *TextureNode, OpenGLGraphics *glHelper, Options *options);
 
 };
 

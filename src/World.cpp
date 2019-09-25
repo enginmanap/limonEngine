@@ -168,46 +168,46 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     GLfloat borderColor[] = {1.0, 1.0, 1.0, 1.0};
 
     //create depth buffer and texture for directional shadow map
-    depthMapDirectional = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D_ARRAY, GLHelper::InternalFormatTypes::DEPTH,
-                                                              GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), NR_TOTAL_LIGHTS);
-    depthMapDirectional->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
+    depthMapDirectional = std::make_shared<Texture>(glHelper, OpenGLGraphics::TextureTypes::T2D_ARRAY, OpenGLGraphics::InternalFormatTypes::DEPTH,
+                                                    OpenGLGraphics::FormatTypes::DEPTH, OpenGLGraphics::DataTypes::FLOAT, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), NR_TOTAL_LIGHTS);
+    depthMapDirectional->setWrapModes(OpenGLGraphics::TextureWrapModes::BORDER, OpenGLGraphics::TextureWrapModes::BORDER);
     depthMapDirectional->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-    depthMapDirectional->setFilterMode(GLHelper::FilterModes::LINEAR);
+    depthMapDirectional->setFilterMode(OpenGLGraphics::FilterModes::LINEAR);
 
     //create depth buffer and texture for point shadow map
 
     // create depth cubemap texture
-    depthMapPoint = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::TCUBE_MAP_ARRAY, GLHelper::InternalFormatTypes::DEPTH,
-                                                        GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), NR_POINT_LIGHTS*6);
-    depthMapPoint->setWrapModes(GLHelper::TextureWrapModes::EDGE, GLHelper::TextureWrapModes::EDGE, GLHelper::TextureWrapModes::EDGE);
-    depthMapPoint->setFilterMode(GLHelper::FilterModes::LINEAR);
+    depthMapPoint = std::make_shared<Texture>(glHelper, OpenGLGraphics::TextureTypes::TCUBE_MAP_ARRAY, OpenGLGraphics::InternalFormatTypes::DEPTH,
+                                              OpenGLGraphics::FormatTypes::DEPTH, OpenGLGraphics::DataTypes::FLOAT, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), NR_POINT_LIGHTS * 6);
+    depthMapPoint->setWrapModes(OpenGLGraphics::TextureWrapModes::EDGE, OpenGLGraphics::TextureWrapModes::EDGE, OpenGLGraphics::TextureWrapModes::EDGE);
+    depthMapPoint->setFilterMode(OpenGLGraphics::FilterModes::LINEAR);
 
-    normalMap = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB16F,
-                                                    GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
-    normalMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
+    normalMap = std::make_shared<Texture>(glHelper, OpenGLGraphics::TextureTypes::T2D, OpenGLGraphics::InternalFormatTypes::RGB16F,
+                                          OpenGLGraphics::FormatTypes::RGB, OpenGLGraphics::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    normalMap->setWrapModes(OpenGLGraphics::TextureWrapModes::BORDER, OpenGLGraphics::TextureWrapModes::BORDER);
     normalMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-    normalMap->setFilterMode(GLHelper::FilterModes::LINEAR);
+    normalMap->setFilterMode(OpenGLGraphics::FilterModes::LINEAR);
 
-    diffuseAndSpecularLightedMap = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGBA,
-                                                                       GLHelper::FormatTypes::RGBA, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
-    diffuseAndSpecularLightedMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
+    diffuseAndSpecularLightedMap = std::make_shared<Texture>(glHelper, OpenGLGraphics::TextureTypes::T2D, OpenGLGraphics::InternalFormatTypes::RGBA,
+                                                             OpenGLGraphics::FormatTypes::RGBA, OpenGLGraphics::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    diffuseAndSpecularLightedMap->setWrapModes(OpenGLGraphics::TextureWrapModes::BORDER, OpenGLGraphics::TextureWrapModes::BORDER);
     diffuseAndSpecularLightedMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-    diffuseAndSpecularLightedMap->setFilterMode(GLHelper::FilterModes::LINEAR);
+    diffuseAndSpecularLightedMap->setFilterMode(OpenGLGraphics::FilterModes::LINEAR);
 
-    ambientMap = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RGB, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
-    ambientMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
+    ambientMap = std::make_shared<Texture>(glHelper, OpenGLGraphics::TextureTypes::T2D, OpenGLGraphics::InternalFormatTypes::RGB, OpenGLGraphics::FormatTypes::RGB, OpenGLGraphics::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    ambientMap->setWrapModes(OpenGLGraphics::TextureWrapModes::BORDER, OpenGLGraphics::TextureWrapModes::BORDER);
     ambientMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-    ambientMap->setFilterMode(GLHelper::FilterModes::LINEAR);
+    ambientMap->setFilterMode(OpenGLGraphics::FilterModes::LINEAR);
 
 
-    depthMap = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::DEPTH, GLHelper::FormatTypes::DEPTH, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
-    depthMap->setWrapModes(GLHelper::TextureWrapModes::BORDER, GLHelper::TextureWrapModes::BORDER);
+    depthMap = std::make_shared<Texture>(glHelper, OpenGLGraphics::TextureTypes::T2D, OpenGLGraphics::InternalFormatTypes::DEPTH, OpenGLGraphics::FormatTypes::DEPTH, OpenGLGraphics::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    depthMap->setWrapModes(OpenGLGraphics::TextureWrapModes::BORDER, OpenGLGraphics::TextureWrapModes::BORDER);
     depthMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-    depthMap->setFilterMode(GLHelper::FilterModes::LINEAR);
+    depthMap->setFilterMode(OpenGLGraphics::FilterModes::LINEAR);
 
-    ssaoBlurredMap = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    ssaoBlurredMap = std::make_shared<Texture>(glHelper, OpenGLGraphics::TextureTypes::T2D, OpenGLGraphics::InternalFormatTypes::RED, OpenGLGraphics::FormatTypes::RGB, OpenGLGraphics::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
 
-    ssaoTexture = std::make_shared<Texture>(glHelper, GLHelper::TextureTypes::T2D, GLHelper::InternalFormatTypes::RED, GLHelper::FormatTypes::RGB, GLHelper::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
+    ssaoTexture = std::make_shared<Texture>(glHelper, OpenGLGraphics::TextureTypes::T2D, OpenGLGraphics::InternalFormatTypes::RED, OpenGLGraphics::FormatTypes::RGB, OpenGLGraphics::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
     ssaoTexture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
 
     /****************************** SSAO NOISE **************************************/
@@ -218,26 +218,26 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
 
     directionalShadowStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), false);
-    directionalShadowStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, depthMapDirectional);
-    directionalShadowStage->setCullMode(GLHelper::CullModes::FRONT);
+    directionalShadowStage->setOutput(OpenGLGraphics::FrameBufferAttachPoints::DEPTH, depthMapDirectional);
+    directionalShadowStage->setCullMode(OpenGLGraphics::CullModes::FRONT);
 
     pointShadowStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), false);
-    pointShadowStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, depthMapPoint);
-    pointShadowStage->setCullMode(GLHelper::CullModes::FRONT);
+    pointShadowStage->setOutput(OpenGLGraphics::FrameBufferAttachPoints::DEPTH, depthMapPoint);
+    pointShadowStage->setCullMode(OpenGLGraphics::CullModes::FRONT);
 
     coloringStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
-    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR0, diffuseAndSpecularLightedMap);
-    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, ambientMap);
-    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR2, normalMap);
-    coloringStage->setOutput(GLHelper::FrameBufferAttachPoints::DEPTH, depthMap);
+    coloringStage->setOutput(OpenGLGraphics::FrameBufferAttachPoints::COLOR0, diffuseAndSpecularLightedMap);
+    coloringStage->setOutput(OpenGLGraphics::FrameBufferAttachPoints::COLOR1, ambientMap);
+    coloringStage->setOutput(OpenGLGraphics::FrameBufferAttachPoints::COLOR2, normalMap);
+    coloringStage->setOutput(OpenGLGraphics::FrameBufferAttachPoints::DEPTH, depthMap);
     coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 1, depthMapDirectional);
     coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 2, depthMapPoint);
     coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 3, depthMap);
     coloringStage->setInput((uint32_t)glHelper->getMaxTextureImageUnits() - 4, ssaoNoiseTexture);
-    coloringStage->setCullMode(GLHelper::CullModes::BACK);
+    coloringStage->setCullMode(OpenGLGraphics::CullModes::BACK);
 
     ssaoGenerationStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
-    ssaoGenerationStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, ssaoTexture);
+    ssaoGenerationStage->setOutput(OpenGLGraphics::FrameBufferAttachPoints::COLOR1, ssaoTexture);
     ssaoGenerationStage->setInput(1, depthMap);
     ssaoGenerationStage->setInput(2, normalMap);
     ssaoGenerationStage->setInput(3, ssaoNoiseTexture);
@@ -250,7 +250,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
         std::cerr << "uniform variable \"ssaoSampleCount\" couldn't be set" << std::endl;
     }
     ssaoBlurStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getScreenWidth(), options->getScreenHeight(), false);
-    ssaoBlurStage->setOutput(GLHelper::FrameBufferAttachPoints::COLOR1, ssaoBlurredMap);
+    ssaoBlurStage->setOutput(OpenGLGraphics::FrameBufferAttachPoints::COLOR1, ssaoBlurredMap);
     ssaoBlurStage->setInput(1, ssaoTexture);
 
     combiningStage = std::make_shared<GraphicsPipelineStage>(glHelper, options->getScreenWidth(), options->getScreenHeight(), true, true);
@@ -4370,27 +4370,27 @@ void World::createNodeGraph() {
                 continue;
             }
 
-            if (!(uniform.second->type == GLHelper::VariableTypes::CUBEMAP ||
-                    uniform.second->type == GLHelper::VariableTypes::CUBEMAP_ARRAY ||
-                    uniform.second->type == GLHelper::VariableTypes::TEXTURE_2D ||
-                    uniform.second->type == GLHelper::VariableTypes::TEXTURE_2D_ARRAY)) {//if not texture
+            if (!(uniform.second->type == OpenGLGraphics::VariableTypes::CUBEMAP ||
+                  uniform.second->type == OpenGLGraphics::VariableTypes::CUBEMAP_ARRAY ||
+                  uniform.second->type == OpenGLGraphics::VariableTypes::TEXTURE_2D ||
+                  uniform.second->type == OpenGLGraphics::VariableTypes::TEXTURE_2D_ARRAY)) {//if not texture
                 continue;
             }
 
             ConnectionDesc desc;
             desc.name = uniform.first;
             switch (uniform.second->type) {
-                case GLHelper::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
-                case GLHelper::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
-                case GLHelper::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
-                case GLHelper::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
-                case GLHelper::VariableTypes::INT               : desc.type = "Integer"; break;
-                case GLHelper::VariableTypes::FLOAT             : desc.type = "Float"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
-                case GLHelper::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
-                case GLHelper::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
+                case OpenGLGraphics::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
+                case OpenGLGraphics::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
+                case OpenGLGraphics::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
+                case OpenGLGraphics::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
+                case OpenGLGraphics::VariableTypes::INT               : desc.type = "Integer"; break;
+                case OpenGLGraphics::VariableTypes::FLOAT             : desc.type = "Float"; break;
+                case OpenGLGraphics::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
+                case OpenGLGraphics::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
+                case OpenGLGraphics::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
+                case OpenGLGraphics::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
+                case OpenGLGraphics::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
             }
             type.inputConnections.push_back(desc);
         }
@@ -4400,17 +4400,17 @@ void World::createNodeGraph() {
             ConnectionDesc desc;
             desc.name = output.first;
             switch (output.second) {
-                case GLHelper::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
-                case GLHelper::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
-                case GLHelper::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
-                case GLHelper::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
-                case GLHelper::VariableTypes::INT               : desc.type = "Integer"; break;
-                case GLHelper::VariableTypes::FLOAT             : desc.type = "Float"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
-                case GLHelper::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
-                case GLHelper::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
-                case GLHelper::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
+                case OpenGLGraphics::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
+                case OpenGLGraphics::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
+                case OpenGLGraphics::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
+                case OpenGLGraphics::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
+                case OpenGLGraphics::VariableTypes::INT               : desc.type = "Integer"; break;
+                case OpenGLGraphics::VariableTypes::FLOAT             : desc.type = "Float"; break;
+                case OpenGLGraphics::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
+                case OpenGLGraphics::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
+                case OpenGLGraphics::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
+                case OpenGLGraphics::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
+                case OpenGLGraphics::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
             }
             type.outputConnections.push_back(desc);
         }

@@ -2,7 +2,7 @@
 // Created by Engin Manap on 10.02.2016.
 //
 
-#include "GLHelper.h"
+#include "OpenGLGraphics.h"
 #include "GLSLProgram.h"
 
 #include "GameObjects/Light.h"
@@ -10,7 +10,7 @@
 #include "Utils/GLMUtils.h"
 #include "Texture.h"
 
-GLuint GLHelper::createShader(GLenum eShaderType, const std::string &strShaderFile) {
+GLuint OpenGLGraphics::createShader(GLenum eShaderType, const std::string &strShaderFile) {
     GLuint shader = glCreateShader(eShaderType);
     std::string shaderCode;
     std::ifstream shaderStream(strShaderFile.c_str(), std::ios::in);
@@ -69,7 +69,7 @@ GLuint GLHelper::createShader(GLenum eShaderType, const std::string &strShaderFi
 }
 
 
-GLuint GLHelper::createProgram(const std::vector<GLuint> &shaderList) {
+GLuint OpenGLGraphics::createProgram(const std::vector<GLuint> &shaderList) {
     GLuint program = glCreateProgram();
 
     for (size_t iLoop = 0; iLoop < shaderList.size(); iLoop++) {
@@ -102,8 +102,8 @@ GLuint GLHelper::createProgram(const std::vector<GLuint> &shaderList) {
 }
 
 
-GLuint GLHelper::initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
-                                   std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap) {
+GLuint OpenGLGraphics::initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
+                                         std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap) {
     GLuint program;
     std::vector<GLuint> shaderList;
     checkErrors("before create shaders");
@@ -124,13 +124,13 @@ GLuint GLHelper::initializeProgram(const std::string &vertexShaderFile, const st
     return program;
 }
 
-void GLHelper::destroyProgram(uint32_t programID) {
+void OpenGLGraphics::destroyProgram(uint32_t programID) {
     glDeleteProgram(programID);
     checkErrors("destroyProgram");
 }
 
-void GLHelper::fillUniformAndOutputMaps(const GLuint program, std::unordered_map<std::string, GLHelper::Uniform const *> &uniformMap,
-                                        std::unordered_map<std::string, VariableTypes> &outputMap) {
+void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program, std::unordered_map<std::string, OpenGLGraphics::Uniform const *> &uniformMap,
+                                              std::unordered_map<std::string, VariableTypes> &outputMap) {
     GLint i;
     GLint count;
 
@@ -209,7 +209,7 @@ void GLHelper::fillUniformAndOutputMaps(const GLuint program, std::unordered_map
     checkErrors("fillUniformAndOutputMaps");
 }
 
-void GLHelper::attachModelUBO(const uint32_t program) {
+void OpenGLGraphics::attachModelUBO(const uint32_t program) {
     GLuint allModelsAttachPoint = 7;
 
     int uniformIndex = glGetUniformBlockIndex(program, "ModelInformationBlock");
@@ -223,7 +223,7 @@ void GLHelper::attachModelUBO(const uint32_t program) {
     checkErrors("attachModelUBO");
 }
 
-void GLHelper::attachModelIndicesUBO(const uint32_t programID) {
+void OpenGLGraphics::attachModelIndicesUBO(const uint32_t programID) {
     GLuint allModelIndexesAttachPoint = 8;
 
     int uniformIndex = glGetUniformBlockIndex(programID, "ModelIndexBlock");
@@ -237,7 +237,7 @@ void GLHelper::attachModelIndicesUBO(const uint32_t programID) {
     checkErrors("attachModelIndicesUBO");
 }
 
-void GLHelper::attachMaterialUBO(const uint32_t program, const uint32_t materialID){
+void OpenGLGraphics::attachMaterialUBO(const uint32_t program, const uint32_t materialID){
 
     GLuint allMaterialsAttachPoint = 9;
 
@@ -254,7 +254,7 @@ void GLHelper::attachMaterialUBO(const uint32_t program, const uint32_t material
     checkErrors("attachMaterialUBO");
 }
 
-void GLHelper::attachGeneralUBOs(const GLuint program){//Attach the light block to our UBO
+void OpenGLGraphics::attachGeneralUBOs(const GLuint program){//Attach the light block to our UBO
 
     GLuint lightAttachPoint = 0, playerAttachPoint = 1;
 
@@ -278,7 +278,7 @@ void GLHelper::attachGeneralUBOs(const GLuint program){//Attach the light block 
 }
 
 
-GLHelper::GLHelper(Options *options): options(options) {
+OpenGLGraphics::OpenGLGraphics(Options *options): options(options) {
 
     this->screenHeight = options->getScreenHeight();
     this->screenWidth = options->getScreenWidth();
@@ -423,7 +423,7 @@ GLHelper::GLHelper(Options *options): options(options) {
     checkErrors("Constructor");
 }
 
-GLuint GLHelper::generateBuffer(const GLuint number) {
+GLuint OpenGLGraphics::generateBuffer(const GLuint number) {
     GLuint bufferID;
     glGenBuffers(number, &bufferID);
     bufferObjects.push_back(bufferID);
@@ -432,7 +432,7 @@ GLuint GLHelper::generateBuffer(const GLuint number) {
     return bufferID;
 }
 
-bool GLHelper::deleteBuffer(const GLuint number, const GLuint bufferID) {
+bool OpenGLGraphics::deleteBuffer(const GLuint number, const GLuint bufferID) {
     if (glIsBuffer(bufferID)) {
         glDeleteBuffers(number, &bufferID);
         checkErrors("deleteBuffer");
@@ -442,7 +442,7 @@ bool GLHelper::deleteBuffer(const GLuint number, const GLuint bufferID) {
     return false;
 }
 
-bool GLHelper::freeBuffer(const GLuint bufferID) {
+bool OpenGLGraphics::freeBuffer(const GLuint bufferID) {
     for (unsigned int i = 0; i < bufferObjects.size(); ++i) {
         if (bufferObjects[i] == bufferID) {
             deleteBuffer(1, bufferObjects[i]);
@@ -456,7 +456,7 @@ bool GLHelper::freeBuffer(const GLuint bufferID) {
     return false;
 }
 
-GLuint GLHelper::generateVAO(const GLuint number) {
+GLuint OpenGLGraphics::generateVAO(const GLuint number) {
     GLuint bufferID;
     glGenVertexArrays(number, &bufferID);
     vertexArrays.push_back(bufferID);
@@ -464,7 +464,7 @@ GLuint GLHelper::generateVAO(const GLuint number) {
     return bufferID;
 }
 
-bool GLHelper::deleteVAO(const GLuint number, const GLuint bufferID) {
+bool OpenGLGraphics::deleteVAO(const GLuint number, const GLuint bufferID) {
     if (glIsBuffer(bufferID)) {
         glDeleteVertexArrays(number, &bufferID);
         checkErrors("deleteVAO");
@@ -474,7 +474,7 @@ bool GLHelper::deleteVAO(const GLuint number, const GLuint bufferID) {
     return false;
 }
 
-bool GLHelper::freeVAO(const GLuint bufferID) {
+bool OpenGLGraphics::freeVAO(const GLuint bufferID) {
     for (unsigned int i = 0; i < vertexArrays.size(); ++i) {
         if (vertexArrays[i] == bufferID) {
             deleteBuffer(1, vertexArrays[i]);
@@ -488,10 +488,10 @@ bool GLHelper::freeVAO(const GLuint bufferID) {
     return false;
 }
 
-void GLHelper::bufferVertexData(const std::vector<glm::vec3> &vertices,
-                                const std::vector<glm::mediump_uvec3> &faces,
-                                uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer,
-                                uint_fast32_t &ebo) {
+void OpenGLGraphics::bufferVertexData(const std::vector<glm::vec3> &vertices,
+                                      const std::vector<glm::mediump_uvec3> &faces,
+                                      uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer,
+                                      uint_fast32_t &ebo) {
     // Set up the element array buffer
     ebo = generateBuffer(1);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
@@ -515,8 +515,8 @@ void GLHelper::bufferVertexData(const std::vector<glm::vec3> &vertices,
     checkErrors("bufferVertexData");
 }
 
-void GLHelper::bufferNormalData(const std::vector<glm::vec3> &normals,
-                                uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
+void OpenGLGraphics::bufferNormalData(const std::vector<glm::vec3> &normals,
+                                      uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), normals.data(), GL_STATIC_DRAW);
@@ -528,22 +528,22 @@ void GLHelper::bufferNormalData(const std::vector<glm::vec3> &normals,
     checkErrors("bufferVertexColor");
 }
 
-void GLHelper::bufferExtraVertexData(const std::vector<glm::vec4> &extraData,
-                                     uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
+void OpenGLGraphics::bufferExtraVertexData(const std::vector<glm::vec4> &extraData,
+                                           uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
     bufferExtraVertexData(4, GL_FLOAT, extraData.size() * sizeof(glm::vec4), extraData.data(), vao, vbo, attachPointer);
     checkErrors("bufferVertexDataVec4");
 }
 
-void GLHelper::bufferExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData,
-                                     uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
+void OpenGLGraphics::bufferExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData,
+                                           uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
     bufferExtraVertexData(4, GL_UNSIGNED_INT, extraData.size() * sizeof(glm::lowp_uvec4), extraData.data(), vao, vbo,
                           attachPointer);
     checkErrors("bufferVertexDataIVec4");
 }
 
-void GLHelper::bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
-                                     const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
-                                     const uint_fast32_t attachPointer) {
+void OpenGLGraphics::bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
+                                           const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
+                                           const uint_fast32_t attachPointer) {
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, dataSize, extraData, GL_STATIC_DRAW);
@@ -563,8 +563,8 @@ void GLHelper::bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum
     checkErrors("bufferExtraVertexDataInternal");
 }
 
-void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
-                                              uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
+void OpenGLGraphics::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
+                                                    uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
@@ -578,8 +578,8 @@ void GLHelper::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &text
     checkErrors("bufferVertexTextureCoordinates");
 }
 
-void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
-                                 std::map<uint32_t, std::shared_ptr<Texture>> &inputs) {
+void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
+                                       std::map<uint32_t, std::shared_ptr<Texture>> &inputs) {
     glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
     if(clearColor && clearDepth) {
@@ -593,17 +593,17 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
     //we combine diffuse+specular lighted with ambient / SSAO
     for (auto inputIt = inputs.begin(); inputIt != inputs.end(); ++inputIt) {
         switch (inputIt->second->getType()) {
-            case GLHelper::TextureTypes::T2D: state->attachTexture(inputIt->second->getTextureID(), inputIt->first); break;
-            case GLHelper::TextureTypes::T2D_ARRAY: state->attach2DTextureArray(inputIt->second->getTextureID(), inputIt->first); break;
-            case GLHelper::TextureTypes::TCUBE_MAP: state->attachCubemap(inputIt->second->getTextureID(), inputIt->first); break;
-            case GLHelper::TextureTypes::TCUBE_MAP_ARRAY: state->attachCubemapArray(inputIt->second->getTextureID(), inputIt->first); break;
+            case OpenGLGraphics::TextureTypes::T2D: state->attachTexture(inputIt->second->getTextureID(), inputIt->first); break;
+            case OpenGLGraphics::TextureTypes::T2D_ARRAY: state->attach2DTextureArray(inputIt->second->getTextureID(), inputIt->first); break;
+            case OpenGLGraphics::TextureTypes::TCUBE_MAP: state->attachCubemap(inputIt->second->getTextureID(), inputIt->first); break;
+            case OpenGLGraphics::TextureTypes::TCUBE_MAP_ARRAY: state->attachCubemapArray(inputIt->second->getTextureID(), inputIt->first); break;
         }
     }
     switch (cullMode) {
-        case GLHelper::CullModes::FRONT: glCullFace(GL_FRONT); break;
-        case GLHelper::CullModes::BACK: glCullFace(GL_BACK); break;
-        case GLHelper::CullModes::NONE: glCullFace(GL_NONE); break;
-        case GLHelper::CullModes::NO_CHANGE: break;
+        case OpenGLGraphics::CullModes::FRONT: glCullFace(GL_FRONT); break;
+        case OpenGLGraphics::CullModes::BACK: glCullFace(GL_BACK); break;
+        case OpenGLGraphics::CullModes::NONE: glCullFace(GL_NONE); break;
+        case OpenGLGraphics::CullModes::NO_CHANGE: break;
     }
     if(blendEnabled) {
         glEnablei(GL_BLEND, 0);
@@ -614,9 +614,9 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
 }
 
 
-void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
-                                 const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
-                                 const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap) {
+void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
+                                       const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
+                                       const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap) {
     //now we should change attachments based on the layer information we got
     for (auto attachmentLayerIt = attachmentLayerMap.begin(); attachmentLayerIt != attachmentLayerMap.end(); ++attachmentLayerIt) {
         attachDrawTextureToFrameBuffer(frameBufferID, attachmentLayerIt->first->getType(),
@@ -636,17 +636,17 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
     //we combine diffuse+specular lighted with ambient / SSAO
     for (auto inputIt = inputs.begin(); inputIt != inputs.end(); ++inputIt) {
         switch (inputIt->second->getType()) {
-            case GLHelper::TextureTypes::T2D: state->attachTexture(inputIt->second->getTextureID(), inputIt->first); break;
-            case GLHelper::TextureTypes::T2D_ARRAY: state->attach2DTextureArray(inputIt->second->getTextureID(), inputIt->first); break;
-            case GLHelper::TextureTypes::TCUBE_MAP: state->attachCubemap(inputIt->second->getTextureID(), inputIt->first); break;
-            case GLHelper::TextureTypes::TCUBE_MAP_ARRAY: state->attachCubemapArray(inputIt->second->getTextureID(), inputIt->first); break;
+            case OpenGLGraphics::TextureTypes::T2D: state->attachTexture(inputIt->second->getTextureID(), inputIt->first); break;
+            case OpenGLGraphics::TextureTypes::T2D_ARRAY: state->attach2DTextureArray(inputIt->second->getTextureID(), inputIt->first); break;
+            case OpenGLGraphics::TextureTypes::TCUBE_MAP: state->attachCubemap(inputIt->second->getTextureID(), inputIt->first); break;
+            case OpenGLGraphics::TextureTypes::TCUBE_MAP_ARRAY: state->attachCubemapArray(inputIt->second->getTextureID(), inputIt->first); break;
         }
     }
     switch (cullMode) {
-        case GLHelper::CullModes::FRONT: glCullFace(GL_FRONT); break;
-        case GLHelper::CullModes::BACK: glCullFace(GL_BACK); break;
-        case GLHelper::CullModes::NONE: glCullFace(GL_NONE); break;
-        case GLHelper::CullModes::NO_CHANGE: break;
+        case OpenGLGraphics::CullModes::FRONT: glCullFace(GL_FRONT); break;
+        case OpenGLGraphics::CullModes::BACK: glCullFace(GL_BACK); break;
+        case OpenGLGraphics::CullModes::NONE: glCullFace(GL_NONE); break;
+        case OpenGLGraphics::CullModes::NO_CHANGE: break;
     }
     if(blendEnabled) {
         glEnablei(GL_BLEND, 0);
@@ -656,7 +656,7 @@ void GLHelper::switchRenderStage(uint32_t width, uint32_t height, uint32_t frame
     checkErrors("switchRenderStageLayer");
 }
 
-void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount) {
+void OpenGLGraphics::render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount) {
     if (program == 0) {
         std::cerr << "No program render requested." << std::endl;
         return;
@@ -674,8 +674,8 @@ void GLHelper::render(const GLuint program, const GLuint vao, const GLuint ebo, 
     checkErrors("render");
 }
 
-void GLHelper::renderInstanced(GLuint program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
-                               uint32_t instanceCount) {
+void OpenGLGraphics::renderInstanced(GLuint program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
+                                     uint32_t instanceCount) {
     if (program == 0) {
         std::cerr << "No program render requested." << std::endl;
         return;
@@ -695,7 +695,7 @@ void GLHelper::renderInstanced(GLuint program, uint_fast32_t VAO, uint_fast32_t 
 
 }
 
-bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 &matrix) {
+bool OpenGLGraphics::setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 &matrix) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
@@ -711,7 +711,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
 
 
 bool
-GLHelper::setUniformArray(const GLuint programID, const GLuint uniformID, const std::vector<glm::mat4> &matrixArray) {
+OpenGLGraphics::setUniformArray(const GLuint programID, const GLuint uniformID, const std::vector<glm::mat4> &matrixArray) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
@@ -726,7 +726,7 @@ GLHelper::setUniformArray(const GLuint programID, const GLuint uniformID, const 
     }
 }
 
-bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const glm::vec3 &vector) {
+bool OpenGLGraphics::setUniform(const GLuint programID, const GLuint uniformID, const glm::vec3 &vector) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
@@ -740,7 +740,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
     }
 }
 
-bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const std::vector<glm::vec3> &vectorArray) {
+bool OpenGLGraphics::setUniform(const GLuint programID, const GLuint uniformID, const std::vector<glm::vec3> &vectorArray) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
@@ -754,7 +754,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
     }
 }
 
-bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const float value) {
+bool OpenGLGraphics::setUniform(const GLuint programID, const GLuint uniformID, const float value) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
@@ -768,7 +768,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
     }
 }
 
-bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const int value) {
+bool OpenGLGraphics::setUniform(const GLuint programID, const GLuint uniformID, const int value) {
     if (!glIsProgram(programID)) {
         std::cerr << "invalid program for setting uniform." << std::endl;
         return false;
@@ -783,7 +783,7 @@ bool GLHelper::setUniform(const GLuint programID, const GLuint uniformID, const 
 }
 
 
-GLHelper::~GLHelper() {
+OpenGLGraphics::~OpenGLGraphics() {
     for (unsigned int i = 0; i < bufferObjects.size(); ++i) {
         deleteBuffer(1, bufferObjects[i]);
     }
@@ -796,8 +796,8 @@ GLHelper::~GLHelper() {
     //state->setProgram(0);
 }
 
-std::shared_ptr<GLSLProgram> GLHelper::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) {
-    std::shared_ptr<GLSLProgram> program(new GLSLProgram(this, vertexShader, geometryShader, fragmentShader, isMaterialUsed), std::bind(&GLHelper::testAndRemoveGLSLProgram, this, std::placeholders::_1));
+std::shared_ptr<GLSLProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) {
+    std::shared_ptr<GLSLProgram> program(new GLSLProgram(this, vertexShader, geometryShader, fragmentShader, isMaterialUsed), std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
     if(loadedPrograms.find(program) == loadedPrograms.end()) {
         loadedPrograms[program] = 1;
     } else {
@@ -805,8 +805,8 @@ std::shared_ptr<GLSLProgram> GLHelper::createGLSLProgram(const std::string &vert
     }
     return program;
 }
-std::shared_ptr<GLSLProgram> GLHelper::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) {
-    std::shared_ptr<GLSLProgram> program(new GLSLProgram(this, vertexShader, fragmentShader, isMaterialUsed), std::bind(&GLHelper::testAndRemoveGLSLProgram, this, std::placeholders::_1));
+std::shared_ptr<GLSLProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) {
+    std::shared_ptr<GLSLProgram> program(new GLSLProgram(this, vertexShader, fragmentShader, isMaterialUsed), std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
     if(loadedPrograms.find(program) == loadedPrograms.end()) {
         loadedPrograms[program] = 1;
     } else {
@@ -815,7 +815,7 @@ std::shared_ptr<GLSLProgram> GLHelper::createGLSLProgram(const std::string &vert
     return program;
 }
 
-void GLHelper::testAndRemoveGLSLProgram(GLSLProgram *program) {
+void OpenGLGraphics::testAndRemoveGLSLProgram(GLSLProgram *program) {
     //FIXME this is a hack until I remove loadedPrograms altogether.
     for(auto iterator = loadedPrograms.begin(); iterator != loadedPrograms.end(); iterator++) {
         if(iterator->first.get() == program) {
@@ -830,7 +830,7 @@ void GLHelper::testAndRemoveGLSLProgram(GLSLProgram *program) {
     std::cerr << "Trying to remove a GLSL program ["<< program->getProgramName() <<"] that is not registered. Please check." << std::endl;
 }
 
-void GLHelper::reshape() {
+void OpenGLGraphics::reshape() {
     //reshape actually checks for changes on options->
     this->screenHeight = options->getScreenHeight();
     this->screenWidth = options->getScreenWidth();
@@ -842,7 +842,7 @@ void GLHelper::reshape() {
     checkErrors("reshape");
 }
 
-void GLHelper::setWrapMode(Texture& texture, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR) {
+void OpenGLGraphics::setWrapMode(Texture& texture, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR) {
     GLenum glTextureType;
     switch (texture.getType()) {
         case TextureTypes::T2D: {
@@ -891,7 +891,7 @@ void GLHelper::setWrapMode(Texture& texture, TextureWrapModes wrapModeS, Texture
     checkErrors("setWrapMode");
 }
 
-void GLHelper::setFilterMode(Texture& texture, GLHelper::FilterModes filterMode) {
+void OpenGLGraphics::setFilterMode(Texture& texture, OpenGLGraphics::FilterModes filterMode) {
     GLenum glTextureType;
     switch (texture.getType()) {
         case TextureTypes::T2D: {
@@ -935,7 +935,7 @@ void GLHelper::setFilterMode(Texture& texture, GLHelper::FilterModes filterMode)
 }
 
 
-void GLHelper::setTextureBorder(Texture& texture) {
+void OpenGLGraphics::setTextureBorder(Texture& texture) {
     GLenum glTextureType;
     switch (texture.getType()) {
         case TextureTypes::T2D: {
@@ -979,7 +979,7 @@ void GLHelper::setTextureBorder(Texture& texture) {
     checkErrors("setTextureBorder");
 }
 
-uint32_t GLHelper::createFrameBuffer(uint32_t width, uint32_t height) {
+uint32_t OpenGLGraphics::createFrameBuffer(uint32_t width, uint32_t height) {
     GLuint newFrameBufferLocation;
     glGenFramebuffers(1, &newFrameBufferLocation);
     glBindFramebuffer(GL_FRAMEBUFFER, newFrameBufferLocation);
@@ -995,13 +995,13 @@ uint32_t GLHelper::createFrameBuffer(uint32_t width, uint32_t height) {
     return newFrameBufferLocation;
 }
 
-void GLHelper::deleteFrameBuffer(uint32_t frameBufferID) {
+void OpenGLGraphics::deleteFrameBuffer(uint32_t frameBufferID) {
     glDeleteFramebuffers(1, &frameBufferID);
     checkErrors("deleteFrameBuffer");
 }
 
-void GLHelper::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID,
-                                              FrameBufferAttachPoints attachPoint, int32_t layer, bool clear) {
+void OpenGLGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID,
+                                                    FrameBufferAttachPoints attachPoint, int32_t layer, bool clear) {
 
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
 
@@ -1046,7 +1046,7 @@ void GLHelper::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTyp
     }
 
 
-    if(attachPoint == GLHelper::FrameBufferAttachPoints::DEPTH) {
+    if(attachPoint == OpenGLGraphics::FrameBufferAttachPoints::DEPTH) {
         if(clear) {
             glClear(GL_DEPTH_BUFFER_BIT);
         }
@@ -1075,7 +1075,7 @@ void GLHelper::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTyp
 
 }
 
-uint32_t GLHelper::createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth) {
+uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth) {
     GLuint texture;
     glGenTextures(1, &texture);
     state->activateTextureUnit(0);//this is the default working texture
@@ -1161,8 +1161,8 @@ uint32_t GLHelper::createTexture(int height, int width, TextureTypes type, Inter
 }
 
 void
-GLHelper::loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
-                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) {
+OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
+                                void *data, void *data2, void *data3, void *data4, void *data5, void *data6) {
     state->activateTextureUnit(0);//this is the default working texture
 
     GLint glInternalDataFormat;
@@ -1232,23 +1232,23 @@ GLHelper::loadTextureData(uint32_t textureID, int height, int width, TextureType
 }
 
 
-void GLHelper::attachTexture(unsigned int textureID, unsigned int attachPoint) {
+void OpenGLGraphics::attachTexture(unsigned int textureID, unsigned int attachPoint) {
     state->attachTexture(textureID, attachPoint);
     checkErrors("attachTexture");
 }
 
-void GLHelper::attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint) {
+void OpenGLGraphics::attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint) {
     state->attachCubemap(cubeMapID, attachPoint);
     checkErrors("attachCubeMap");
 }
 
-bool GLHelper::deleteTexture(GLuint textureID) {
+bool OpenGLGraphics::deleteTexture(GLuint textureID) {
     bool result = state->deleteTexture(textureID);
     checkErrors("deleteTexture");
     return result;
 }
 
-bool GLHelper::getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location) {
+bool OpenGLGraphics::getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location) {
     GLint rawLocation = glGetUniformLocation(programID, uniformName.c_str());
     if (!checkErrors("getUniformLocation")) {
         if (rawLocation >= 0) {
@@ -1261,7 +1261,7 @@ bool GLHelper::getUniformLocation(const GLuint programID, const std::string &uni
     return false;
 }
 
-void GLHelper::createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize) {
+void OpenGLGraphics::createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize) {
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
     vbo = generateBuffer(1);
@@ -1290,7 +1290,7 @@ void GLHelper::createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSi
  * @param vbo     - vbo that the lines will be buffered. It should be
  * @param lines   - line vector
  */
-void GLHelper::drawLines(GLSLProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines) {
+void OpenGLGraphics::drawLines(GLSLProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines) {
     state->setProgram(program.getID());
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -1305,7 +1305,7 @@ void GLHelper::drawLines(GLSLProgram &program, uint32_t vao, uint32_t vbo, const
     checkErrors("drawLines");
 }
 
-void GLHelper::setLight(const Light &light, const int i) {
+void OpenGLGraphics::setLight(const Light &light, const int i) {
     GLint lightType;
     switch (light.getLightType()) {
         case Light::DIRECTIONAL:
@@ -1342,7 +1342,7 @@ void GLHelper::setLight(const Light &light, const int i) {
     checkErrors("setLight");
 }
 
-void GLHelper::setMaterial(std::shared_ptr<const Material> material) {
+void OpenGLGraphics::setMaterial(std::shared_ptr<const Material> material) {
     /*
      * this buffer has 2 objects, model has mat4 and then the material below:
      *
@@ -1369,14 +1369,14 @@ void GLHelper::setMaterial(std::shared_ptr<const Material> material) {
     checkErrors("setMaterial");
 }
 
-void GLHelper::setModel(const uint32_t modelID, const glm::mat4& worldTransform) {
+void OpenGLGraphics::setModel(const uint32_t modelID, const glm::mat4& worldTransform) {
     glBindBuffer(GL_UNIFORM_BUFFER, allModelsUBOLocation);
     glBufferSubData(GL_UNIFORM_BUFFER, modelID * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(worldTransform));
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setModel");
 }
 
-void GLHelper::setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) {
+void OpenGLGraphics::setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) {
     for (uint32_t i = 0; i < modelIndicesList.size(); ++i) {
         modelIndexesTemp[i*4] = modelIndicesList[i];
     }
@@ -1386,7 +1386,7 @@ void GLHelper::setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) {
     checkErrors("setModelIndexesUBO");
 }
 
-void GLHelper::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform) {
+void OpenGLGraphics::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform) {
     this->cameraMatrix = cameraTransform;
     this->cameraPosition= cameraPosition;
     glm::vec3 cameraSpacePosition = glm::vec3(cameraMatrix * glm::vec4(cameraPosition, 1.0));
@@ -1410,8 +1410,8 @@ void GLHelper::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat
     checkErrors("setPlayerMatrices");
 }
 
-void GLHelper::calculateFrustumPlanes(const glm::mat4 &cameraMatrix,
-                                      const glm::mat4 &projectionMatrix, std::vector<glm::vec4> &planes) const {
+void OpenGLGraphics::calculateFrustumPlanes(const glm::mat4 &cameraMatrix,
+                                            const glm::mat4 &projectionMatrix, std::vector<glm::vec4> &planes) const {
     assert(planes.size() == 6);
     glm::mat4 clipMat;
 

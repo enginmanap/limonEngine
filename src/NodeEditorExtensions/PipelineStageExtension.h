@@ -11,14 +11,14 @@
 
 #include <nodeGraph/src/NodeExtension.h>
 
-#include "Graphics/GLHelper.h"
+#include "Graphics/OpenGLGraphics.h"
 #include "PipelineExtension.h"
 
 class Connection;
 class PipelineStageExtension : public NodeExtension {
     PipelineExtension* pipelineExtension = nullptr;
 
-    GLHelper::CullModes cullMode = GLHelper::CullModes::NO_CHANGE;
+    OpenGLGraphics::CullModes cullMode = OpenGLGraphics::CullModes::NO_CHANGE;
     bool clearBefore = false;
     bool blendEnabled = false;
     bool anyOutputMultiLayered = false;
@@ -28,7 +28,7 @@ class PipelineStageExtension : public NodeExtension {
     unsigned int iterateOverLightType = 0;
     std::map<const Connection*, std::pair<std::string, std::shared_ptr<Texture>>> outputTextures;
     std::map<const Connection*, int> inputTextureIndexes;
-    std::map<const Connection*, GLHelper::FrameBufferAttachPoints > outputTextureIndexes;
+    std::map<const Connection*, OpenGLGraphics::FrameBufferAttachPoints > outputTextureIndexes;
 public:
     PipelineStageExtension(PipelineExtension* pipelineExtension)  : pipelineExtension(pipelineExtension) {}
     void drawDetailPane(Node *node) override;
@@ -54,10 +54,10 @@ public:
         return currentMethodName;
     }
 
-    GLHelper::FrameBufferAttachPoints getOutputTextureIndex(const Connection* connection) const {
+    OpenGLGraphics::FrameBufferAttachPoints getOutputTextureIndex(const Connection* connection) const {
         auto indexIt = outputTextureIndexes.find(connection);
         if(indexIt == outputTextureIndexes.end()) {
-            return GLHelper::FrameBufferAttachPoints::NONE;
+            return OpenGLGraphics::FrameBufferAttachPoints::NONE;
         } else {
             return indexIt->second;
         }
@@ -72,7 +72,7 @@ public:
         }
     }
 
-    GLHelper::CullModes getCullmode() const {
+    OpenGLGraphics::CullModes getCullmode() const {
         return cullMode;
     }
 };

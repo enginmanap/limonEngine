@@ -11,7 +11,7 @@
 #include <string>
 #include <memory>
 
-class GLHelper;
+class OpenGLGraphics;
 class GLSLProgram;
 
 class QuadRender {
@@ -19,9 +19,9 @@ class QuadRender {
     std::vector<uint32_t> bufferObjects;
 
 protected:
-    GLHelper* glHelper = nullptr;
+    OpenGLGraphics* glHelper = nullptr;
 public:
-    QuadRender(GLHelper* glHelper);
+    QuadRender(OpenGLGraphics* glHelper);
 
     void render(std::shared_ptr<GLSLProgram> renderProgram);
 

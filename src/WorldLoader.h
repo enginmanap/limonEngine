@@ -17,9 +17,9 @@
 
 class World;
 class Options;
-class GLHelper;
+class OpenGLGraphics;
 class AssetManager;
-class GLHelper;
+class OpenGLGraphics;
 class ALHelper;
 class InputHandler;
 class Model;
@@ -36,7 +36,7 @@ public:
 private:
 
     Options *options;
-    GLHelper *glHelper;
+    OpenGLGraphics *glHelper;
     ALHelper *alHelper;
     AssetManager *assetManager;
     InputHandler* inputHandler;

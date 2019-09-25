@@ -21,7 +21,7 @@ protected:
     GLuint textureID;
 
 public:
-    explicit GUIRenderable(GLHelper *glHelper);
+    explicit GUIRenderable(OpenGLGraphics *glHelper);
 
 
     virtual ~GUIRenderable() = default;

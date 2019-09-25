@@ -3,7 +3,7 @@
 //
 
 #include "main.h"
-#include "Graphics/GLHelper.h"
+#include "Graphics/OpenGLGraphics.h"
 #include "SDL2Helper.h"
 #include "World.h"
 #include "WorldLoader.h"
@@ -135,7 +135,7 @@ GameEngine::GameEngine() {
     sdlHelper->loadSharedLibrary("./libcustomTriggers.so");
 #endif
 
-    glHelper = new GLHelper(options);
+    glHelper = new OpenGLGraphics(options);
     glHelper->reshape();
 
     alHelper = new ALHelper();

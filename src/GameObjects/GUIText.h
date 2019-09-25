@@ -16,8 +16,8 @@ class GUIText : public GUITextBase, public GameObject {
     std::vector<GUILayer*> parentLayers;
 
 public:
-    GUIText(GLHelper *glHelper, uint32_t id, const std::string &name, Face *font, const std::string &text,
-                const glm::vec3 &color);
+    GUIText(OpenGLGraphics *glHelper, uint32_t id, const std::string &name, Face *font, const std::string &text,
+            const glm::vec3 &color);
 
     void addedToLayer(GUILayer* layer);
 
@@ -25,7 +25,7 @@ public:
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
 
-    static GUIText *deserialize(tinyxml2::XMLElement *GUIRenderableNode, GLHelper *glHelper, FontManager *fontManager, Options *options); //will turn into factory class at some point
+    static GUIText *deserialize(tinyxml2::XMLElement *GUIRenderableNode, OpenGLGraphics *glHelper, FontManager *fontManager, Options *options); //will turn into factory class at some point
 
 
     /******************** Game object methods ************************************/

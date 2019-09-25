@@ -37,7 +37,7 @@ class GUITextDynamic: public GUITextBase {
 
 
 public:
-    GUITextDynamic(GLHelper *glHelper, Face *font, const glm::vec3 color, int width, int height, Options *options)
+    GUITextDynamic(OpenGLGraphics *glHelper, Face *font, const glm::vec3 color, int width, int height, Options *options)
             : GUITextBase(glHelper, font, color) {
         lineHeight = face->getLineHeight()/64;
         maxCharWidth = face->getMaxCharWidth()/64;

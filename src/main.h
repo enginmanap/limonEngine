@@ -14,7 +14,7 @@ class World;
 class WorldLoader;
 class Options;
 class ALHelper;
-class GLHelper;
+class OpenGLGraphics;
 class InputHandler;
 class AssetManager;
 class SDL2Helper;
@@ -28,7 +28,7 @@ class GameEngine {
 
     Options* options = nullptr;
     ALHelper* alHelper = nullptr;
-    GLHelper* glHelper = nullptr;
+    OpenGLGraphics* glHelper = nullptr;
     InputHandler* inputHandler = nullptr;
     AssetManager* assetManager = nullptr;
     SDL2Helper* sdlHelper = nullptr;
