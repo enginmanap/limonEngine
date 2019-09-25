@@ -41,9 +41,9 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
                         //On output change, lets check if any of the outputs is multi layered
                         for(auto setOutput = outputTextures.begin(); setOutput != outputTextures.end(); setOutput++) {
                             this->anyOutputMultiLayered = false;
-                            if(setOutput->second.second->getType() == OpenGLGraphics::TextureTypes::T2D_ARRAY ||
-                               setOutput->second.second->getType() == OpenGLGraphics::TextureTypes::TCUBE_MAP ||
-                               setOutput->second.second->getType() == OpenGLGraphics::TextureTypes::TCUBE_MAP_ARRAY
+                            if(setOutput->second.second->getType() == GraphicsInterface::TextureTypes::T2D_ARRAY ||
+                               setOutput->second.second->getType() == GraphicsInterface::TextureTypes::TCUBE_MAP ||
+                               setOutput->second.second->getType() == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY
                             ) {
                                 this->anyOutputMultiLayered = true;
                                 break;
@@ -64,13 +64,13 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
     if (ImGui::CollapsingHeader("Render Settings##PipelineStageExtension")) {
         //ImGui::Text("Cull Mode##FromNodeExtensionSetting");
         ImGui::Text("Cull Mode");//FIXME this is possibly a bug, but it doesn't allow adding escaped text
-        if (ImGui::RadioButton("No Change##CullModeFromNodeExtension", cullMode == OpenGLGraphics::CullModes::NO_CHANGE)) { cullMode = OpenGLGraphics::CullModes::NO_CHANGE; }
+        if (ImGui::RadioButton("No Change##CullModeFromNodeExtension", cullMode == GraphicsInterface::CullModes::NO_CHANGE)) { cullMode = GraphicsInterface::CullModes::NO_CHANGE; }
         ImGui::SameLine();
-        if (ImGui::RadioButton("None##CullModeFromNodeExtension", cullMode == OpenGLGraphics::CullModes::NONE)) { cullMode = OpenGLGraphics::CullModes::NONE; }
+        if (ImGui::RadioButton("None##CullModeFromNodeExtension", cullMode == GraphicsInterface::CullModes::NONE)) { cullMode = GraphicsInterface::CullModes::NONE; }
         ImGui::SameLine();
-        if (ImGui::RadioButton("Front##CullModeFromNodeExtension", cullMode == OpenGLGraphics::CullModes::FRONT)) { cullMode = OpenGLGraphics::CullModes::FRONT; }
+        if (ImGui::RadioButton("Front##CullModeFromNodeExtension", cullMode == GraphicsInterface::CullModes::FRONT)) { cullMode = GraphicsInterface::CullModes::FRONT; }
         ImGui::SameLine();
-        if (ImGui::RadioButton("Back##CullModeFromNodeExtension", cullMode == OpenGLGraphics::CullModes::BACK)) { cullMode = OpenGLGraphics::CullModes::BACK; }
+        if (ImGui::RadioButton("Back##CullModeFromNodeExtension", cullMode == GraphicsInterface::CullModes::BACK)) { cullMode = GraphicsInterface::CullModes::BACK; }
 
         ImGui::Checkbox("Blend", &blendEnabled);
 

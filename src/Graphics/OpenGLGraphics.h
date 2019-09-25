@@ -1,5 +1,5 @@
 //
-// Created by Engin Manap on 10.02.2016.
+// Created by engin on 24.09.2019.
 //
 
 #ifndef LIMONENGINE_OPENGLGRAPHICS_H
@@ -22,7 +22,7 @@
 #  include <OpenGL/gl.h>
 #else
 
-#  include <GL/gl.h>
+#include <GL/gl.h>
 #include <memory>
 #include <map>
 
@@ -34,6 +34,8 @@
 #define NR_MAX_MATERIALS 2000
 
 #include "Options.h"
+#include "GraphicsInterface.h"
+
 class Material;
 
 class Light;
@@ -41,22 +43,7 @@ class Light;
 class GLSLProgram;
 class Texture;
 
-struct Line {
-    glm::vec3 from;
-    glm::vec3 fromColor;
-    int needsCameraTransform;//FIXME This variable is repeated, because it must be per vertex. Maybe we can share int as bytes.
-    glm::vec3 to;
-    glm::vec3 toColor;
-    int needsCameraTransform2;//this is the other one
-
-    Line(const glm::vec3 &from,
-         const glm::vec3 &to,
-         const glm::vec3 &fromColor,
-         const glm::vec3 &toColor,
-         const bool needsCameraTransform): from(from), fromColor(fromColor), needsCameraTransform(needsCameraTransform), to(to), toColor(toColor), needsCameraTransform2(needsCameraTransform){};
-};
-
-class OpenGLGraphics {
+class OpenGLGraphics : public GraphicsInterface {
     friend class Texture;
     class OpenglState {
         unsigned int activeProgram;
@@ -72,8 +59,6 @@ class OpenGLGraphics {
         }
 
     public:
-        uint32_t programChangeCount=0;
-
         explicit OpenglState(GLint textureUnitCount) : activeProgram(0) {
             textures.resize(textureUnitCount);
             memset(textures.data(), 0, textureUnitCount * sizeof(int));
@@ -124,91 +109,10 @@ class OpenGLGraphics {
 
         void setProgram(GLuint program) {
             if (program != this->activeProgram) {
-                programChangeCount++;
                 glUseProgram(program);
                 this->activeProgram = program;
             }
         }
-    };
-
-public:
-
-    enum class TextureTypes {T2D, T2D_ARRAY, TCUBE_MAP, TCUBE_MAP_ARRAY};//Starting with digits is illegal
-    enum class InternalFormatTypes {RED, RGB, RGBA, RGB16F, RGB32F, DEPTH };
-    enum class FormatTypes {RED, RGB, RGBA, DEPTH};
-    enum class DataTypes {UNSIGNED_BYTE, FLOAT};
-    enum class FrameBufferAttachPoints {NONE, COLOR0, COLOR1, COLOR2, COLOR3, COLOR4, COLOR5, COLOR6, DEPTH };
-    enum class TextureWrapModes {NONE, REPEAT, BORDER, EDGE};
-    enum class FilterModes {NEAREST, LINEAR, TRILINEAR};
-    enum class CullModes {FRONT, BACK, NONE, NO_CHANGE};
-    enum VariableTypes {
-        INT,
-        FLOAT,
-        FLOAT_VEC2,
-        FLOAT_VEC3,
-        FLOAT_VEC4,
-        FLOAT_MAT4,
-        CUBEMAP,
-        CUBEMAP_ARRAY,
-        TEXTURE_2D,
-        TEXTURE_2D_ARRAY,
-        UNDEFINED
-    };
-
-    class Uniform{
-    public:
-        unsigned int location;
-        std::string name;
-        VariableTypes type;
-        unsigned int size;
-
-        Uniform(unsigned int location, const std::string &name, GLenum typeEnum, unsigned int size) : location(
-                location), name(name), size(size) {
-            switch (typeEnum) {
-                case GL_SAMPLER_CUBE:
-                    type = CUBEMAP;
-                    break;
-                case GL_SAMPLER_CUBE_MAP_ARRAY_ARB:
-                    type = CUBEMAP_ARRAY;
-                    break;
-                case GL_SAMPLER_2D:
-                    type = TEXTURE_2D;
-                    break;
-                case GL_SAMPLER_2D_ARRAY:
-                    type = TEXTURE_2D_ARRAY;
-                    break;
-                case GL_INT:
-                    type = INT;
-                    break;
-                case GL_FLOAT:
-                    type = FLOAT;
-                    break;
-                case GL_FLOAT_VEC2:
-                    type = FLOAT_VEC2;
-                    break;
-                case GL_FLOAT_VEC3:
-                    type = FLOAT_VEC3;
-                    break;
-                case GL_FLOAT_VEC4:
-                    type = FLOAT_VEC4;
-                    break;
-                case GL_FLOAT_MAT4:
-                    type = FLOAT_MAT4;
-                    break;
-                default:
-                    type = UNDEFINED;
-            }
-        }
-    };
-
-    enum FrustumSide
-    {
-        RIGHT	= 0,		// The RIGHT side of the frustum
-        LEFT	= 1,		// The LEFT	 side of the frustum
-        BOTTOM	= 2,		// The BOTTOM side of the frustum
-        TOP		= 3,		// The TOP side of the frustum
-        BACK	= 4,		// The BACK	side of the frustum
-        FRONT	= 5			// The FRONT side of the frustum
     };
 
 private:
@@ -260,20 +164,20 @@ private:
 
 public:
 
-    const std::map<std::shared_ptr<GLSLProgram>, int> &getLoadedPrograms() const {
+    const std::map<std::shared_ptr<GLSLProgram>, int> &getLoadedPrograms() const override {
         return loadedPrograms;
     }
 
-    void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) {
+    void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) override {
         triangleCount = renderTriangleCount;
         lineCount = renderLineCount;
     }
 
-    const glm::mat4 &getLightProjectionMatrixPoint() const {
+    const glm::mat4 &getLightProjectionMatrixPoint() const override {
         return lightProjectionMatrixPoint;
     }
 
-    const glm::mat4 &getLightProjectionMatrixDirectional() const {
+    const glm::mat4 &getLightProjectionMatrixDirectional() const override {
         return lightProjectionMatrixDirectional;
     }
 
@@ -315,60 +219,62 @@ private:
                                const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
                                const uint_fast32_t attachPointer);
 
-    uint32_t createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth);
+    void testAndRemoveGLSLProgram(GLSLProgram *program);
 
-    bool deleteTexture(GLuint textureID);
 
-    void setWrapMode(Texture& texture, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR);
+protected:
+    uint32_t createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth) override;
 
-    void setTextureBorder(Texture& texture);
+    bool deleteTexture(GLuint textureID) override;
 
-    void setFilterMode(Texture& texture, FilterModes filterMode);
+    void setWrapMode(Texture& texture, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR) override;
+
+    void setTextureBorder(Texture& texture) override;
+
+    void setFilterMode(Texture& texture, FilterModes filterMode) override;
 
     void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
-                         void *data, void *data2, void *data3, void *data4, void *data5, void *data6);
-
-    void testAndRemoveGLSLProgram(GLSLProgram *program);
+                         void *data, void *data2, void *data3, void *data4, void *data5, void *data6) override;
 
 public:
     explicit OpenGLGraphics(Options *options);
 
     ~OpenGLGraphics();
 
-    std::shared_ptr<GLSLProgram> createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed);
-    std::shared_ptr<GLSLProgram> createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed);
+    std::shared_ptr<GLSLProgram> createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) override;
+    std::shared_ptr<GLSLProgram> createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) override;
 
-    void attachModelUBO(const uint32_t program);
+    void attachModelUBO(const uint32_t program) override;
 
-    void attachMaterialUBO(const uint32_t program, const uint32_t materialID);
+    void attachMaterialUBO(const uint32_t program, const uint32_t materialID) override;
 
-    uint32_t getNextMaterialIndex() {
+    uint32_t getNextMaterialIndex() override{
         return nextMaterialIndex++;
     }
 
     GLuint initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
-                             std::unordered_map<std::string,const Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap);
-    void destroyProgram(uint32_t programID);
+                             std::unordered_map<std::string,const Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap) override;
+    void destroyProgram(uint32_t programID) override;
 
     void bufferVertexData(const std::vector<glm::vec3> &vertices,
                           const std::vector<glm::mediump_uvec3> &faces,
-                          uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer, uint_fast32_t &ebo);
+                          uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer, uint_fast32_t &ebo) override;
 
     void bufferNormalData(const std::vector<glm::vec3> &colors,
-                          uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer);
+                          uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) override;
 
     void bufferExtraVertexData(const std::vector<glm::vec4> &extraData,
-                               uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer);
+                               uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) override;
 
     void bufferExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData,
-                               uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer);
+                               uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) override;
 
     void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
-                                        uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer);
+                                        uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) override;
 
-    bool freeBuffer(const GLuint bufferID);
+    bool freeBuffer(const GLuint bufferID) override;
 
-    bool freeVAO(const GLuint VAO);
+    bool freeVAO(const GLuint VAO) override;
 
     void clearFrame() {
 
@@ -379,60 +285,57 @@ public:
 
         renderTriangleCount = 0;
         renderLineCount = 0;
-        //std::cout << "program change count was : " << state->programChangeCount << std::endl;
-        state->programChangeCount = 0;
-
         //std::cout << "uniform set count was : " << uniformSetCount << std::endl;
         uniformSetCount = 0;
         checkErrors("clearFrame");
     }
 
-    void render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount);
+    void render(const GLuint program, const GLuint vao, const GLuint ebo, const GLuint elementCount) override;
 
-    void reshape();
+    void reshape() override;
 
-    uint32_t createFrameBuffer(uint32_t width, uint32_t height);
-    void deleteFrameBuffer(uint32_t frameBufferID);
+    uint32_t createFrameBuffer(uint32_t width, uint32_t height) override;
+    void deleteFrameBuffer(uint32_t frameBufferID) override;
     void attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID,
-                                        FrameBufferAttachPoints attachPoint, int32_t layer = 0 , bool clear = false);
+                                        FrameBufferAttachPoints attachPoint, int32_t layer = 0 , bool clear = false) override;
 
-    void attachTexture(unsigned int textureID, unsigned int attachPoint);
+    void attachTexture(unsigned int textureID, unsigned int attachPoint) override;
 
-    void attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint);
+    void attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint) override;
 
-    bool getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location);
+    bool getUniformLocation(const GLuint programID, const std::string &uniformName, GLuint &location) override;
 
-    const glm::mat4& getCameraMatrix() const { return cameraMatrix; };
+    const glm::mat4& getCameraMatrix() const override { return cameraMatrix; };
 
-    const glm::vec3& getCameraPosition() const { return cameraPosition; };
+    const glm::vec3& getCameraPosition() const override { return cameraPosition; };
 
-    const glm::mat4& getProjectionMatrix() const { return perspectiveProjectionMatrix; };
+    const glm::mat4& getProjectionMatrix() const override { return perspectiveProjectionMatrix; };
 
-    const glm::mat4& getOrthogonalProjectionMatrix() const { return orthogonalProjectionMatrix; }
+    const glm::mat4& getOrthogonalProjectionMatrix() const override { return orthogonalProjectionMatrix; }
 
-    void createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize);
+    void createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize) override;
 
-    void drawLines(GLSLProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines);
+    void drawLines(GLSLProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines) override;
 
-    void clearDepthBuffer() {
+    void clearDepthBuffer() override {
         glClear(GL_DEPTH_BUFFER_BIT);
     }
 
-    bool setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 &matrix);
+    bool setUniform(const GLuint programID, const GLuint uniformID, const glm::mat4 &matrix) override;
 
-    bool setUniform(const GLuint programID, const GLuint uniformID, const glm::vec3 &vector);
+    bool setUniform(const GLuint programID, const GLuint uniformID, const glm::vec3 &vector) override;
 
-    bool setUniform(const GLuint programID, const GLuint uniformID, const std::vector<glm::vec3> &vectorArray);
+    bool setUniform(const GLuint programID, const GLuint uniformID, const std::vector<glm::vec3> &vectorArray) override;
 
-    bool setUniform(const GLuint programID, const GLuint uniformID, const float value);
+    bool setUniform(const GLuint programID, const GLuint uniformID, const float value) override;
 
-    bool setUniform(const GLuint programID, const GLuint uniformID, const int value);
+    bool setUniform(const GLuint programID, const GLuint uniformID, const int value) override;
 
-    bool setUniformArray(const GLuint programID, const GLuint uniformID, const std::vector<glm::mat4> &matrixArray);
+    bool setUniformArray(const GLuint programID, const GLuint uniformID, const std::vector<glm::mat4> &matrixArray) override;
 
-    void setLight(const Light &light, const int i);
+    void setLight(const Light &light, const int i) override;
 
-    void removeLight(const int i) {
+    void removeLight(const int i) override {
         GLint temp = 0;
         glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
         glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec4) + sizeof(glm::vec3),
@@ -441,51 +344,53 @@ public:
         checkErrors("removeLight");
     }
 
-    void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix);
+    void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix) override;
 
     void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
-                               std::map<uint32_t, std::shared_ptr<Texture>> &inputs);
+                           std::map<uint32_t, std::shared_ptr<Texture>> &inputs) override;
     void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
-                               const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
-                               const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap);
-    
-    int getMaxTextureImageUnits() const {
+                           const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
+                           const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap) override;
+
+    int getMaxTextureImageUnits() const override {
         return maxTextureImageUnits;
     }
 
     void calculateFrustumPlanes(const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix,
-                                std::vector<glm::vec4> &planes) const;
+                                std::vector<glm::vec4> &planes) const override;
 
-    inline bool isInFrustum(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const {
+    inline bool isInFrustum(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const override {
         return isInFrustum(aabbMin, aabbMax, frustumPlanes);
     }
 
-    inline bool isInFrustum(const glm::vec3& aabbMin, const glm::vec3& aabbMax, const std::vector<glm::vec4>& frustumPlaneVector) const {
+    inline bool isInFrustum(const glm::vec3& aabbMin, const glm::vec3& aabbMax, const std::vector<glm::vec4>& frustumPlaneVector) const override {
         bool inside = true;
         //test all 6 frustum planes
         for (int i = 0; i<6; i++) {
             //pick closest point to plane and check if it behind the plane
             //if yes - object outside frustum
             float d =   std::fmax(aabbMin.x * frustumPlaneVector[i].x, aabbMax.x * frustumPlaneVector[i].x)
-                      + std::fmax(aabbMin.y * frustumPlaneVector[i].y, aabbMax.y * frustumPlaneVector[i].y)
-                      + std::fmax(aabbMin.z * frustumPlaneVector[i].z, aabbMax.z * frustumPlaneVector[i].z)
-                      + frustumPlaneVector[i].w;
+                        + std::fmax(aabbMin.y * frustumPlaneVector[i].y, aabbMax.y * frustumPlaneVector[i].y)
+                        + std::fmax(aabbMin.z * frustumPlaneVector[i].z, aabbMax.z * frustumPlaneVector[i].z)
+                        + frustumPlaneVector[i].w;
             inside &= d > 0;
             //return false; //with flag works faster
         }
         return inside;
     }
 
-    void setMaterial(std::shared_ptr<const Material>material);
+    void setMaterial(std::shared_ptr<const Material>material) override;
 
-    void setModel(const uint32_t modelID, const glm::mat4 &worldTransform);
+    void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) override;
 
-    void setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList);
+    void setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) override;
 
-    void attachModelIndicesUBO(const uint32_t programID);
+    void attachModelIndicesUBO(const uint32_t programID) override;
 
     void renderInstanced(GLuint program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
-                         uint32_t instanceCount);
+                         uint32_t instanceCount) override;
+
 };
+
 
 #endif //LIMONENGINE_OPENGLGRAPHICS_H

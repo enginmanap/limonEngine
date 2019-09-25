@@ -27,7 +27,7 @@ protected:
     bool isScaled = true;
 
 public:
-    explicit PhysicalRenderable(OpenGLGraphics *glHelper, float mass, bool disconnected)
+    explicit PhysicalRenderable(GraphicsInterface *glHelper, float mass, bool disconnected)
             : Renderable(glHelper), centerOffset(glm::vec3(0, 0, 0)), mass(mass), disconnected(disconnected) {
         transformation.setGenerateWorldTransform(std::bind(&PhysicalRenderable::processTransformForPyhsics, this));
         transformation.setUpdateCallback(std::bind(&PhysicalRenderable::updatePhysicsFromTransform, this));

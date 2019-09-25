@@ -7,7 +7,7 @@
 #include "../../libs/ImGui/imgui.h"
 #include "../../libs/ImGuizmo/ImGuizmo.h"
 
-GUIText::GUIText(OpenGLGraphics *glHelper, uint32_t id, const std::string &name, Face *font, const std::string &text,
+GUIText::GUIText(GraphicsInterface *glHelper, uint32_t id, const std::string &name, Face *font, const std::string &text,
                  const glm::vec3 &color)
         : GUITextBase(glHelper, font, text, color), worldID(id), name(name) {}
 
@@ -89,7 +89,7 @@ bool GUIText::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
 }
 
 
-GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, OpenGLGraphics *glHelper, FontManager *fontManager, Options *options) {
+GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GraphicsInterface *glHelper, FontManager *fontManager, Options *options) {
 
     tinyxml2::XMLElement* GUIRenderableAttribute;
 

@@ -2,8 +2,9 @@
 // Created by Engin Manap on 10.02.2016.
 //
 
+#include <Graphics/OpenGLGraphics.h>
 #include "main.h"
-#include "Graphics/OpenGLGraphics.h"
+#include "Graphics/GraphicsInterface.h"
 #include "SDL2Helper.h"
 #include "World.h"
 #include "WorldLoader.h"

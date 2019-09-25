@@ -3,10 +3,10 @@
 //
 
 #include "QuadRenderBase.h"
-#include "Graphics/OpenGLGraphics.h"
+#include "Graphics/GraphicsInterface.h"
 #include "Graphics/GLSLProgram.h"
 
-QuadRenderBase::QuadRenderBase(OpenGLGraphics *glHelper) : glHelper(glHelper){
+QuadRenderBase::QuadRenderBase(GraphicsInterface *glHelper) : glHelper(glHelper){
     std::vector<glm::vec3> vertices;
 
     vertices.push_back(glm::vec3( -1.0f,  1.0f, 0.0f));
@@ -59,10 +59,10 @@ void QuadRenderBase::setSourceTexture(std::string samplerName, int32_t textureID
         std::cerr << "Uniform found, but object creation was failed for it! " << std::endl;
         return;
     }
-    if (uniformToSetIt->second->type == OpenGLGraphics::VariableTypes::CUBEMAP ||
-        uniformToSetIt->second->type == OpenGLGraphics::VariableTypes::CUBEMAP_ARRAY ||
-        uniformToSetIt->second->type == OpenGLGraphics::VariableTypes::TEXTURE_2D ||
-        uniformToSetIt->second->type == OpenGLGraphics::VariableTypes::TEXTURE_2D_ARRAY) {
+    if (uniformToSetIt->second->type == GraphicsInterface::VariableTypes::CUBEMAP ||
+        uniformToSetIt->second->type == GraphicsInterface::VariableTypes::CUBEMAP_ARRAY ||
+        uniformToSetIt->second->type == GraphicsInterface::VariableTypes::TEXTURE_2D ||
+        uniformToSetIt->second->type == GraphicsInterface::VariableTypes::TEXTURE_2D_ARRAY) {
         textureAttachments[samplerName] = textureID;
     } else {
         std::cerr << "Source texture [" << samplerName << "] for QuadRenderer is not a texture type in set program[" << program->getProgramName() << "]! " << std::endl;

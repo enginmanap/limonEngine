@@ -6,7 +6,7 @@
 
 const std::string FontManager::DEFAULT_FONT_PATH = "Data/Fonts/Helvetica-Normal.ttf";
 
-FontManager::FontManager(OpenGLGraphics *glHelper) : glHelper(glHelper) {
+FontManager::FontManager(GraphicsInterface *glHelper) : glHelper(glHelper) {
     if (FT_Init_FreeType(&ft)) {
         std::cerr << "Freetype could not init, error: \n" << "error" << "\n Exiting.." << std::endl;
         exit(1);

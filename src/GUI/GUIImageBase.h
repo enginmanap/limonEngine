@@ -20,7 +20,7 @@ protected:
     std::string imageFile;
     TextureAsset *image;
 public:
-    GUIImageBase(OpenGLGraphics *glHelper, AssetManager *assetManager, const std::string &imageFile);
+    GUIImageBase(GraphicsInterface *glHelper, AssetManager *assetManager, const std::string &imageFile);
     virtual ~GUIImageBase();
 
     virtual void renderWithProgram(std::shared_ptr<GLSLProgram> renderProgram) override;

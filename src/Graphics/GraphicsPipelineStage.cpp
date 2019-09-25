@@ -8,7 +8,7 @@ void GraphicsPipelineStage::activate(bool clear) {
     glHelper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, clear && colorAttachment, clear && depthAttachment, cullMode, inputs);
 }
 
-void GraphicsPipelineStage::activate(const std::map<std::shared_ptr<Texture>, std::pair<OpenGLGraphics::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear) {
+void GraphicsPipelineStage::activate(const std::map<std::shared_ptr<Texture>, std::pair<GraphicsInterface::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear) {
     glHelper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, clear && colorAttachment, clear && depthAttachment, cullMode, inputs, attachmentLayerMap);
 }
 
@@ -59,10 +59,10 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
 
     currentElement = document.NewElement("CullMode");
     switch (cullMode) {
-        case OpenGLGraphics::CullModes::NONE: currentElement->SetText("NONE"); break;
-        case OpenGLGraphics::CullModes::BACK: currentElement->SetText("BACK"); break;
-        case OpenGLGraphics::CullModes::FRONT: currentElement->SetText("FRONT"); break;
-        case OpenGLGraphics::CullModes::NO_CHANGE: currentElement->SetText("NO_CHANGE"); break;
+        case GraphicsInterface::CullModes::NONE: currentElement->SetText("NONE"); break;
+        case GraphicsInterface::CullModes::BACK: currentElement->SetText("BACK"); break;
+        case GraphicsInterface::CullModes::FRONT: currentElement->SetText("FRONT"); break;
+        case GraphicsInterface::CullModes::NO_CHANGE: currentElement->SetText("NO_CHANGE"); break;
     }
     stageNode->InsertEndChild(currentElement);
 
@@ -82,15 +82,15 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     for(auto output:outputs) {
         tinyxml2::XMLElement *outputElement = document.NewElement("Output");
         switch(output.first) {
-            case OpenGLGraphics::FrameBufferAttachPoints::NONE : outputElement->SetAttribute("Attachment", "NONE"); break;
-            case OpenGLGraphics::FrameBufferAttachPoints::DEPTH : outputElement->SetAttribute("Attachment", "DEPTH"); break;
-            case OpenGLGraphics::FrameBufferAttachPoints::COLOR0 : outputElement->SetAttribute("Attachment", "COLOR0"); break;
-            case OpenGLGraphics::FrameBufferAttachPoints::COLOR1 : outputElement->SetAttribute("Attachment", "COLOR1"); break;
-            case OpenGLGraphics::FrameBufferAttachPoints::COLOR2 : outputElement->SetAttribute("Attachment", "COLOR2"); break;
-            case OpenGLGraphics::FrameBufferAttachPoints::COLOR3 : outputElement->SetAttribute("Attachment", "COLOR3"); break;
-            case OpenGLGraphics::FrameBufferAttachPoints::COLOR4 : outputElement->SetAttribute("Attachment", "COLOR4"); break;
-            case OpenGLGraphics::FrameBufferAttachPoints::COLOR5 : outputElement->SetAttribute("Attachment", "COLOR5"); break;
-            case OpenGLGraphics::FrameBufferAttachPoints::COLOR6 : outputElement->SetAttribute("Attachment", "COLOR6"); break;
+            case GraphicsInterface::FrameBufferAttachPoints::NONE : outputElement->SetAttribute("Attachment", "NONE"); break;
+            case GraphicsInterface::FrameBufferAttachPoints::DEPTH : outputElement->SetAttribute("Attachment", "DEPTH"); break;
+            case GraphicsInterface::FrameBufferAttachPoints::COLOR0 : outputElement->SetAttribute("Attachment", "COLOR0"); break;
+            case GraphicsInterface::FrameBufferAttachPoints::COLOR1 : outputElement->SetAttribute("Attachment", "COLOR1"); break;
+            case GraphicsInterface::FrameBufferAttachPoints::COLOR2 : outputElement->SetAttribute("Attachment", "COLOR2"); break;
+            case GraphicsInterface::FrameBufferAttachPoints::COLOR3 : outputElement->SetAttribute("Attachment", "COLOR3"); break;
+            case GraphicsInterface::FrameBufferAttachPoints::COLOR4 : outputElement->SetAttribute("Attachment", "COLOR4"); break;
+            case GraphicsInterface::FrameBufferAttachPoints::COLOR5 : outputElement->SetAttribute("Attachment", "COLOR5"); break;
+            case GraphicsInterface::FrameBufferAttachPoints::COLOR6 : outputElement->SetAttribute("Attachment", "COLOR6"); break;
         }
         output.second->serialize(document, outputElement, options);
         currentElement->InsertEndChild(outputElement);
@@ -98,13 +98,13 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     return true;
 }
 
-GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *stageNode, OpenGLGraphics *glHelper, Options *options) {
+GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface *glHelper, Options *options) {
     tinyxml2::XMLElement* stageNodeAttribute = nullptr;
 
     uint32_t renderHeight, renderWidth;
     bool blendEnabled = false;
     bool toScreen = false;
-    OpenGLGraphics::CullModes cullMode = OpenGLGraphics::CullModes::NO_CHANGE;
+    GraphicsInterface::CullModes cullMode = GraphicsInterface::CullModes::NO_CHANGE;
 
     stageNodeAttribute = stageNode->FirstChildElement("RenderHeight");
     if (stageNodeAttribute == nullptr) {
@@ -180,13 +180,13 @@ GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *
         } else {
             std::string cullModeString = stageNodeAttribute->GetText();
             if (cullModeString == "NONE") {
-                cullMode = OpenGLGraphics::CullModes::NONE;
+                cullMode = GraphicsInterface::CullModes::NONE;
             } else if (cullModeString == "BACK") {
-                cullMode = OpenGLGraphics::CullModes::BACK;
+                cullMode = GraphicsInterface::CullModes::BACK;
             } else if (cullModeString == "FRONT") {
-                cullMode = OpenGLGraphics::CullModes::FRONT;
+                cullMode = GraphicsInterface::CullModes::FRONT;
             } else if (cullModeString == "NO_CHANGE") {
-                cullMode = OpenGLGraphics::CullModes::NO_CHANGE;
+                cullMode = GraphicsInterface::CullModes::NO_CHANGE;
             } else {
                 std::cerr << "Texture type is unknown, defaulting to no change" << std::endl;
                 fail = true;
@@ -225,17 +225,17 @@ GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *
             std::cerr << "Ouput attachment for Pipeline Stage can't be read, skipping" << std::endl;
         } else {
             bool fail = false;
-            OpenGLGraphics::FrameBufferAttachPoints attachmentPoint;
+            GraphicsInterface::FrameBufferAttachPoints attachmentPoint;
             std::string attachmentString = attachmentRaw;
-            if(attachmentString == "NONE") { attachmentPoint = OpenGLGraphics::FrameBufferAttachPoints::NONE;}
-            else if(attachmentString == "DEPTH") { attachmentPoint = OpenGLGraphics::FrameBufferAttachPoints::DEPTH;}
-            else if(attachmentString == "COLOR0") { attachmentPoint = OpenGLGraphics::FrameBufferAttachPoints::COLOR0;}
-            else if(attachmentString == "COLOR1") { attachmentPoint = OpenGLGraphics::FrameBufferAttachPoints::COLOR1;}
-            else if(attachmentString == "COLOR2") { attachmentPoint = OpenGLGraphics::FrameBufferAttachPoints::COLOR2;}
-            else if(attachmentString == "COLOR3") { attachmentPoint = OpenGLGraphics::FrameBufferAttachPoints::COLOR3;}
-            else if(attachmentString == "COLOR4") { attachmentPoint = OpenGLGraphics::FrameBufferAttachPoints::COLOR4;}
-            else if(attachmentString == "COLOR5") { attachmentPoint = OpenGLGraphics::FrameBufferAttachPoints::COLOR5;}
-            else if(attachmentString == "COLOR6") { attachmentPoint = OpenGLGraphics::FrameBufferAttachPoints::COLOR6;}
+            if(attachmentString == "NONE") { attachmentPoint = GraphicsInterface::FrameBufferAttachPoints::NONE;}
+            else if(attachmentString == "DEPTH") { attachmentPoint = GraphicsInterface::FrameBufferAttachPoints::DEPTH;}
+            else if(attachmentString == "COLOR0") { attachmentPoint = GraphicsInterface::FrameBufferAttachPoints::COLOR0;}
+            else if(attachmentString == "COLOR1") { attachmentPoint = GraphicsInterface::FrameBufferAttachPoints::COLOR1;}
+            else if(attachmentString == "COLOR2") { attachmentPoint = GraphicsInterface::FrameBufferAttachPoints::COLOR2;}
+            else if(attachmentString == "COLOR3") { attachmentPoint = GraphicsInterface::FrameBufferAttachPoints::COLOR3;}
+            else if(attachmentString == "COLOR4") { attachmentPoint = GraphicsInterface::FrameBufferAttachPoints::COLOR4;}
+            else if(attachmentString == "COLOR5") { attachmentPoint = GraphicsInterface::FrameBufferAttachPoints::COLOR5;}
+            else if(attachmentString == "COLOR6") { attachmentPoint = GraphicsInterface::FrameBufferAttachPoints::COLOR6;}
             else {
                 std::cerr << "Attachment point read failed, skipping " << std::endl;
                 fail = true;

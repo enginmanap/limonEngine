@@ -16,7 +16,7 @@
 #include "../ALHelper.h"
 
 
-class OpenGLGraphics;
+class GraphicsInterface;
 class ALHelper;
 
 class AssetManager {
@@ -98,7 +98,7 @@ private:
     //std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
     AvailableAssetsNode* availableAssetsRootNode = nullptr;
     std::map<std::pair<AssetTypes, std::string>, AvailableAssetsNode*> filteredResults;
-    OpenGLGraphics *glHelper;
+    GraphicsInterface *glHelper;
     ALHelper *alHelper;
 
     void addAssetsRecursively(const std::string &directoryPath, const std::string &fileName,
@@ -126,7 +126,7 @@ private:
 
 public:
 
-    explicit AssetManager(OpenGLGraphics *glHelper, ALHelper *alHelper) : glHelper(glHelper), alHelper(alHelper) {
+    explicit AssetManager(GraphicsInterface *glHelper, ALHelper *alHelper) : glHelper(glHelper), alHelper(alHelper) {
         loadAssetList();
     }
 
@@ -204,7 +204,7 @@ public:
     }
 
 
-    OpenGLGraphics *getGlHelper() const {
+    GraphicsInterface *getGlHelper() const {
         return glHelper;
     }
 

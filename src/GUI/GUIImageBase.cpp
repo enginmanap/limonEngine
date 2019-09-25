@@ -9,7 +9,7 @@
 std::shared_ptr<GLSLProgram> GUIImageBase::imageRenderProgram = nullptr;
 
 
-GUIImageBase::GUIImageBase(OpenGLGraphics *glHelper, AssetManager *assetManager, const std::string &imageFile) : GUIRenderable(glHelper), assetManager(assetManager), imageFile(imageFile) {
+GUIImageBase::GUIImageBase(GraphicsInterface *glHelper, AssetManager *assetManager, const std::string &imageFile) : GUIRenderable(glHelper), assetManager(assetManager), imageFile(imageFile) {
     image = assetManager->loadAsset<TextureAsset>({imageFile});
     this->setScale(image->getHeight() /2.0f,image->getWidth() /2.0f);// split in half, because the quad is -1 to 1, meaning it is 2 units long.
 }

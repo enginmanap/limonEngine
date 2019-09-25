@@ -9,64 +9,70 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include "GraphicsInterface.h"
 #include "OpenGLGraphics.h"
 
 
 class GLSLProgram {
-    OpenGLGraphics *glHelper;
+    GraphicsInterface *glHelper;
     std::string programName;
 
     std::string vertexShader;
     std::string geometryShader;
     std::string fragmentShader;
-    std::unordered_map<std::string, const OpenGLGraphics::Uniform *> uniformMap;
-    std::unordered_map<std::string, OpenGLGraphics::VariableTypes>outputMap;
+    std::unordered_map<std::string, const GraphicsInterface::Uniform *> uniformMap;
+    std::unordered_map<std::string, GraphicsInterface::VariableTypes>outputMap;
     bool materialRequired;
     GLuint programID;
 
-    GLSLProgram(OpenGLGraphics *glHelper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed);
-    GLSLProgram(OpenGLGraphics *glHelper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed);
+    GLSLProgram(GraphicsInterface *glHelper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed);
+    GLSLProgram(GraphicsInterface *glHelper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed);
 
 public:
 
     ~GLSLProgram();
 
+    friend std::shared_ptr<GLSLProgram> GraphicsInterface::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed);
+    friend std::shared_ptr<GLSLProgram> GraphicsInterface::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed);
+
+
     friend std::shared_ptr<GLSLProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed);
     friend std::shared_ptr<GLSLProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed);
 
+
     GLuint getID() const { return programID; }
 
-    const std::unordered_map<std::string, const OpenGLGraphics::Uniform *> &getUniformMap() const {
+    const std::unordered_map<std::string, const GraphicsInterface::Uniform *> &getUniformMap() const {
         return uniformMap;
     }
 
-    const std::unordered_map<std::string, OpenGLGraphics::VariableTypes> &getOutputMap() const {
+    const std::unordered_map<std::string, GraphicsInterface::VariableTypes> &getOutputMap() const {
         return outputMap;
     }
 
     bool setUniform(const std::string &uniformName, const glm::mat4 &matrix) {
-        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == OpenGLGraphics::FLOAT_MAT4) {
+        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GraphicsInterface::FLOAT_MAT4) {
             return glHelper->setUniform(programID, uniformMap[uniformName]->location, matrix);
         }
         return false;
     }
 
     bool setUniform(const std::string &uniformName, const glm::vec3 &vector) {
-        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == OpenGLGraphics::FLOAT_VEC3) {
+        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GraphicsInterface::FLOAT_VEC3) {
             return glHelper->setUniform(programID, uniformMap[uniformName]->location, vector);
         }
         return false;
     }
 
     bool setUniform(const std::string &uniformName, const std::vector<glm::vec3> &vectorArray) {
-        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == OpenGLGraphics::FLOAT_VEC3) {
+        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GraphicsInterface::FLOAT_VEC3) {
             return glHelper->setUniform(programID, uniformMap[uniformName]->location, vectorArray);
         }
         return false;
     }
 
     bool setUniform(const std::string &uniformName, const float value) {
-        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == OpenGLGraphics::FLOAT) {
+        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GraphicsInterface::FLOAT) {
             return glHelper->setUniform(programID, uniformMap[uniformName]->location, value);
         }
         return false;
@@ -79,18 +85,18 @@ public:
  */
     bool setUniform(const std::string &uniformName, const int value) {
         if (uniformMap.count(uniformName) &&
-                    (uniformMap[uniformName]->type == OpenGLGraphics::INT ||
-                     uniformMap[uniformName]->type == OpenGLGraphics::CUBEMAP ||
-                     uniformMap[uniformName]->type == OpenGLGraphics::CUBEMAP_ARRAY ||
-                     uniformMap[uniformName]->type == OpenGLGraphics::TEXTURE_2D ||
-                     uniformMap[uniformName]->type == OpenGLGraphics::TEXTURE_2D_ARRAY))  {
+                    (uniformMap[uniformName]->type == GraphicsInterface::INT ||
+                     uniformMap[uniformName]->type == GraphicsInterface::CUBEMAP ||
+                     uniformMap[uniformName]->type == GraphicsInterface::CUBEMAP_ARRAY ||
+                     uniformMap[uniformName]->type == GraphicsInterface::TEXTURE_2D ||
+                     uniformMap[uniformName]->type == GraphicsInterface::TEXTURE_2D_ARRAY))  {
             return glHelper->setUniform(programID, uniformMap[uniformName]->location, value);
         }
         return false;
     }
 
     bool setUniformArray(const std::string &uniformArrayName, const std::vector<glm::mat4> &matrix) {
-        if (uniformMap.count(uniformArrayName) && uniformMap[uniformArrayName]->type == OpenGLGraphics::FLOAT_MAT4) {
+        if (uniformMap.count(uniformArrayName) && uniformMap[uniformArrayName]->type == GraphicsInterface::FLOAT_MAT4) {
             //FIXME this should have a control of some sort
             return glHelper->setUniformArray(programID, uniformMap[uniformArrayName]->location, matrix);
         }
@@ -131,7 +137,7 @@ public:
         return true;
     }
 
-    static std::shared_ptr<GLSLProgram> deserialize(tinyxml2::XMLElement *programNode, OpenGLGraphics *glHelper) {
+    static std::shared_ptr<GLSLProgram> deserialize(tinyxml2::XMLElement *programNode, GraphicsInterface *glHelper) {
         std::string vertexShader;
         std::string geometryShader;
         std::string fragmentShader;

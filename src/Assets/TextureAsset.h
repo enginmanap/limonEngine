@@ -8,7 +8,7 @@
 #include <string>
 #include <iostream>
 #include <SDL2/SDL_image.h>
-#include "Graphics/OpenGLGraphics.h"
+#include "Graphics/GraphicsInterface.h"
 #include "Graphics/Texture.h"
 
 #include "Asset.h"

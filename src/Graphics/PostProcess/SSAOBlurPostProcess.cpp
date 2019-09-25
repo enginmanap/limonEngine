@@ -10,6 +10,6 @@ void SSAOBlurPostProcess::initializeProgram() {
                               "./Engine/Shaders/SSAOBlur/fragment.glsl", false);
 }
 
-SSAOBlurPostProcess::SSAOBlurPostProcess(OpenGLGraphics *glHelper) : QuadRenderBase(glHelper) {
+SSAOBlurPostProcess::SSAOBlurPostProcess(GraphicsInterface *glHelper) : QuadRenderBase(glHelper) {
     initializeProgram();
 }

@@ -11,7 +11,7 @@
 #include "../libs/ImGui/imgui.h"
 #include "ImGuiHelper.h"
 
-#include "Graphics/OpenGLGraphics.h"
+#include "Graphics/GraphicsInterface.h"
 #include "Graphics/GLSLProgram.h"
 #include "Graphics/Texture.h"
 #include "InputHandler.h"
@@ -215,8 +215,8 @@ void ImGuiHelper::CreateFontsTexture()
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits for OpenGL3 demo because it is more likely to be compatible with user's existing shader.
 
-    fontTexture = std::make_unique<Texture>(glHelper, OpenGLGraphics::TextureTypes::T2D,
-                                            OpenGLGraphics::InternalFormatTypes::RGBA, OpenGLGraphics::FormatTypes::RGBA, OpenGLGraphics::DataTypes::UNSIGNED_BYTE,
+    fontTexture = std::make_unique<Texture>(glHelper, GraphicsInterface::TextureTypes::T2D,
+                                            GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
                                             width, height);
     fontTexture->loadData(pixels);
 
@@ -321,7 +321,7 @@ void    ImGuiHelper::InvalidateDeviceObjects()
 
 }
 
-ImGuiHelper::ImGuiHelper(OpenGLGraphics* glHelper, Options* options) : options(options) {
+ImGuiHelper::ImGuiHelper(GraphicsInterface* glHelper, Options* options) : options(options) {
     this->glHelper = glHelper;
     context = ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();

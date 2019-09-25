@@ -3,10 +3,10 @@
 //
 
 #include "QuadRender.h"
-#include "Graphics/OpenGLGraphics.h"
+#include "Graphics/GraphicsInterface.h"
 #include "Graphics/GLSLProgram.h"
 
-QuadRender::QuadRender(OpenGLGraphics* glHelper) : glHelper(glHelper){
+QuadRender::QuadRender(GraphicsInterface* glHelper) : glHelper(glHelper){
     std::vector<glm::vec3> vertices;
 
     vertices.push_back(glm::vec3( -1.0f,  1.0f, 0.0f));

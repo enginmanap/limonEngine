@@ -65,7 +65,7 @@ GameObject::ImGuiResult ModelGroup::addImGuiEditorElements(const GameObject::ImG
     return result;
 }
 
-ModelGroup *ModelGroup::deserialize(OpenGLGraphics *glHelper, AssetManager *assetManager, tinyxml2::XMLElement *ModelGroupsNode,
+ModelGroup *ModelGroup::deserialize(GraphicsInterface *glHelper, AssetManager *assetManager, tinyxml2::XMLElement *ModelGroupsNode,
                                     std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
                                     std::map<uint32_t, ModelGroup *> &childGroups,
                                     std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> &childObjects, LimonAPI *limonAPI,

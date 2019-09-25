@@ -12,7 +12,7 @@
 #include <string>
 #include "../libs/ImGui/imgui.h"
 #include "Assets/AssetManager.h"
-#include "Graphics/OpenGLGraphics.h"
+#include "Graphics/GraphicsInterface.h"
 
 struct SDL_Window;
 
@@ -34,7 +34,7 @@ class ImGuiHelper {
     unsigned int g_VboHandle = 0, g_VaoHandle = 0, g_ElementsHandle = 0;
     // ImGUI Data end"
 
-    OpenGLGraphics* glHelper = nullptr;
+    GraphicsInterface* glHelper = nullptr;
     std::shared_ptr<GLSLProgram> program = nullptr;
     Options* options;
 
@@ -82,7 +82,7 @@ class ImGuiHelper {
     }
 
 public:
-    ImGuiHelper(OpenGLGraphics* glHelper, Options* options);
+    ImGuiHelper(GraphicsInterface* glHelper, Options* options);
     ~ImGuiHelper();
     void        NewFrame();
     bool        ProcessEvent(const InputHandler& inputHandler);

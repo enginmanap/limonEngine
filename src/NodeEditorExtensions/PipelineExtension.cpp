@@ -12,12 +12,12 @@
 #include "PipelineStageExtension.h"
 #include "Graphics/GLSLProgram.h"
 
-PipelineExtension::PipelineExtension(OpenGLGraphics *glHelper, const std::vector<std::string>& renderMethodNames, GraphicsPipeline::RenderMethods& renderMethods) : glHelper(glHelper), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
+PipelineExtension::PipelineExtension(GraphicsInterface *glHelper, const std::vector<std::string>& renderMethodNames, GraphicsPipeline::RenderMethods& renderMethods) : glHelper(glHelper), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
     {
         //Add a texture to the list as place holder for screen
-        auto texture = std::make_shared<Texture>(glHelper, OpenGLGraphics::TextureTypes::T2D, OpenGLGraphics::InternalFormatTypes::RGBA, OpenGLGraphics::FormatTypes::RGBA, OpenGLGraphics::DataTypes::UNSIGNED_BYTE, 1, 1);
+        auto texture = std::make_shared<Texture>(glHelper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 1, 1);
         usedTextures["Screen"] = texture;
-        auto texture2 = std::make_shared<Texture>(glHelper, OpenGLGraphics::TextureTypes::T2D, OpenGLGraphics::InternalFormatTypes::DEPTH, OpenGLGraphics::FormatTypes::DEPTH, OpenGLGraphics::DataTypes::UNSIGNED_BYTE, 1, 1);
+        auto texture2 = std::make_shared<Texture>(glHelper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 1, 1);
         usedTextures["Screen Depth"];
     }
 }
@@ -55,63 +55,63 @@ void PipelineExtension::drawDetailPane(const std::vector<const Node *>& nodes, c
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
     if (ImGui::BeginPopup("create_texture_popup")) {
 
-        static OpenGLGraphics::TextureTypes  textureType = OpenGLGraphics::TextureTypes::T2D;
+        static GraphicsInterface::TextureTypes  textureType = GraphicsInterface::TextureTypes::T2D;
         ImGui::Text("Texture type:");
-        if(ImGui::RadioButton("2D##Texture_type_PipelineExtension", textureType == OpenGLGraphics::TextureTypes::T2D)) { textureType = OpenGLGraphics::TextureTypes::T2D; }
+        if(ImGui::RadioButton("2D##Texture_type_PipelineExtension", textureType == GraphicsInterface::TextureTypes::T2D)) { textureType = GraphicsInterface::TextureTypes::T2D; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("2D Array##Texture_type_PipelineExtension", textureType == OpenGLGraphics::TextureTypes::T2D_ARRAY)) { textureType = OpenGLGraphics::TextureTypes::T2D_ARRAY; }
+        if(ImGui::RadioButton("2D Array##Texture_type_PipelineExtension", textureType == GraphicsInterface::TextureTypes::T2D_ARRAY)) { textureType = GraphicsInterface::TextureTypes::T2D_ARRAY; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("Cubemap##Texture_type_PipelineExtension", textureType == OpenGLGraphics::TextureTypes::TCUBE_MAP)) { textureType = OpenGLGraphics::TextureTypes::TCUBE_MAP; }
+        if(ImGui::RadioButton("Cubemap##Texture_type_PipelineExtension", textureType == GraphicsInterface::TextureTypes::TCUBE_MAP)) { textureType = GraphicsInterface::TextureTypes::TCUBE_MAP; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("Cubemap Array##Texture_type_PipelineExtension", textureType == OpenGLGraphics::TextureTypes::TCUBE_MAP_ARRAY)) { textureType = OpenGLGraphics::TextureTypes::TCUBE_MAP_ARRAY; }
+        if(ImGui::RadioButton("Cubemap Array##Texture_type_PipelineExtension", textureType == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY)) { textureType = GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY; }
 
-        static OpenGLGraphics::InternalFormatTypes internalFormatType = OpenGLGraphics::InternalFormatTypes::RED;
+        static GraphicsInterface::InternalFormatTypes internalFormatType = GraphicsInterface::InternalFormatTypes::RED;
         ImGui::Text("Internal Format type:");
-        if(ImGui::RadioButton("RED##internalFormat_type_PipelineExtension", internalFormatType == OpenGLGraphics::InternalFormatTypes::RED)) { internalFormatType = OpenGLGraphics::InternalFormatTypes::RED; }
+        if(ImGui::RadioButton("RED##internalFormat_type_PipelineExtension", internalFormatType == GraphicsInterface::InternalFormatTypes::RED)) { internalFormatType = GraphicsInterface::InternalFormatTypes::RED; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("RGB##internalFormat_type_PipelineExtension", internalFormatType == OpenGLGraphics::InternalFormatTypes::RGB)) { internalFormatType = OpenGLGraphics::InternalFormatTypes::RGB; }
+        if(ImGui::RadioButton("RGB##internalFormat_type_PipelineExtension", internalFormatType == GraphicsInterface::InternalFormatTypes::RGB)) { internalFormatType = GraphicsInterface::InternalFormatTypes::RGB; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("RGBA##internalFormat_type_PipelineExtension", internalFormatType == OpenGLGraphics::InternalFormatTypes::RGBA)) { internalFormatType = OpenGLGraphics::InternalFormatTypes::RGBA; }
+        if(ImGui::RadioButton("RGBA##internalFormat_type_PipelineExtension", internalFormatType == GraphicsInterface::InternalFormatTypes::RGBA)) { internalFormatType = GraphicsInterface::InternalFormatTypes::RGBA; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("RGB16F##internalFormat_type_PipelineExtension", internalFormatType == OpenGLGraphics::InternalFormatTypes::RGB16F)) { internalFormatType = OpenGLGraphics::InternalFormatTypes::RGB16F; }
+        if(ImGui::RadioButton("RGB16F##internalFormat_type_PipelineExtension", internalFormatType == GraphicsInterface::InternalFormatTypes::RGB16F)) { internalFormatType = GraphicsInterface::InternalFormatTypes::RGB16F; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("RGB32F##internalFormat_type_PipelineExtension", internalFormatType == OpenGLGraphics::InternalFormatTypes::RGB32F)) { internalFormatType = OpenGLGraphics::InternalFormatTypes::RGB32F; }
+        if(ImGui::RadioButton("RGB32F##internalFormat_type_PipelineExtension", internalFormatType == GraphicsInterface::InternalFormatTypes::RGB32F)) { internalFormatType = GraphicsInterface::InternalFormatTypes::RGB32F; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("DEPTH##internalFormat_type_PipelineExtension", internalFormatType == OpenGLGraphics::InternalFormatTypes::DEPTH)) { internalFormatType = OpenGLGraphics::InternalFormatTypes::DEPTH; }
+        if(ImGui::RadioButton("DEPTH##internalFormat_type_PipelineExtension", internalFormatType == GraphicsInterface::InternalFormatTypes::DEPTH)) { internalFormatType = GraphicsInterface::InternalFormatTypes::DEPTH; }
 
-        static OpenGLGraphics::FormatTypes formatType = OpenGLGraphics::FormatTypes::RGB;
+        static GraphicsInterface::FormatTypes formatType = GraphicsInterface::FormatTypes::RGB;
         ImGui::Text("Format type:");
-        if(ImGui::RadioButton("RED##format_type_PipelineExtension", formatType == OpenGLGraphics::FormatTypes::RED)) { formatType = OpenGLGraphics::FormatTypes::RED; }
+        if(ImGui::RadioButton("RED##format_type_PipelineExtension", formatType == GraphicsInterface::FormatTypes::RED)) { formatType = GraphicsInterface::FormatTypes::RED; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("RGB##format_type_PipelineExtension", formatType == OpenGLGraphics::FormatTypes::RGB)) { formatType = OpenGLGraphics::FormatTypes::RGB; }
+        if(ImGui::RadioButton("RGB##format_type_PipelineExtension", formatType == GraphicsInterface::FormatTypes::RGB)) { formatType = GraphicsInterface::FormatTypes::RGB; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("RGBA##format_type_PipelineExtension", formatType == OpenGLGraphics::FormatTypes::RGBA)) { formatType = OpenGLGraphics::FormatTypes::RGBA; }
+        if(ImGui::RadioButton("RGBA##format_type_PipelineExtension", formatType == GraphicsInterface::FormatTypes::RGBA)) { formatType = GraphicsInterface::FormatTypes::RGBA; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("DEPTH##format_type_PipelineExtension", formatType == OpenGLGraphics::FormatTypes::DEPTH)) { formatType = OpenGLGraphics::FormatTypes::DEPTH; }
+        if(ImGui::RadioButton("DEPTH##format_type_PipelineExtension", formatType == GraphicsInterface::FormatTypes::DEPTH)) { formatType = GraphicsInterface::FormatTypes::DEPTH; }
 
-        static OpenGLGraphics::DataTypes dataType = OpenGLGraphics::DataTypes::UNSIGNED_BYTE;
+        static GraphicsInterface::DataTypes dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE;
         ImGui::Text("Data type:");
-        if(ImGui::RadioButton("UNSIGNED_BYTE##data_type_PipelineExtension", dataType == OpenGLGraphics::DataTypes::UNSIGNED_BYTE)) { dataType = OpenGLGraphics::DataTypes::UNSIGNED_BYTE; }
+        if(ImGui::RadioButton("UNSIGNED_BYTE##data_type_PipelineExtension", dataType == GraphicsInterface::DataTypes::UNSIGNED_BYTE)) { dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("FLOAT##data_type_PipelineExtension", dataType == OpenGLGraphics::DataTypes::FLOAT)) { dataType = OpenGLGraphics::DataTypes::FLOAT; }
+        if(ImGui::RadioButton("FLOAT##data_type_PipelineExtension", dataType == GraphicsInterface::DataTypes::FLOAT)) { dataType = GraphicsInterface::DataTypes::FLOAT; }
 
-        static OpenGLGraphics::TextureWrapModes  textureWrapMode = OpenGLGraphics::TextureWrapModes::NONE;
+        static GraphicsInterface::TextureWrapModes  textureWrapMode = GraphicsInterface::TextureWrapModes::NONE;
         ImGui::Text("Wrap Mode:");
-        if(ImGui::RadioButton("NONE##wrap_mode_PipelineExtension", textureWrapMode == OpenGLGraphics::TextureWrapModes::NONE)) { textureWrapMode = OpenGLGraphics::TextureWrapModes::NONE; }
+        if(ImGui::RadioButton("NONE##wrap_mode_PipelineExtension", textureWrapMode == GraphicsInterface::TextureWrapModes::NONE)) { textureWrapMode = GraphicsInterface::TextureWrapModes::NONE; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("REPEAT##wrap_mode_PipelineExtension", textureWrapMode == OpenGLGraphics::TextureWrapModes::REPEAT)) { textureWrapMode = OpenGLGraphics::TextureWrapModes::REPEAT; }
+        if(ImGui::RadioButton("REPEAT##wrap_mode_PipelineExtension", textureWrapMode == GraphicsInterface::TextureWrapModes::REPEAT)) { textureWrapMode = GraphicsInterface::TextureWrapModes::REPEAT; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("BORDER##wrap_mode_PipelineExtension", textureWrapMode == OpenGLGraphics::TextureWrapModes::BORDER)) { textureWrapMode = OpenGLGraphics::TextureWrapModes::BORDER; }
+        if(ImGui::RadioButton("BORDER##wrap_mode_PipelineExtension", textureWrapMode == GraphicsInterface::TextureWrapModes::BORDER)) { textureWrapMode = GraphicsInterface::TextureWrapModes::BORDER; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("EDGE##wrap_mode_PipelineExtension", textureWrapMode == OpenGLGraphics::TextureWrapModes::EDGE)) { textureWrapMode = OpenGLGraphics::TextureWrapModes::EDGE; }
+        if(ImGui::RadioButton("EDGE##wrap_mode_PipelineExtension", textureWrapMode == GraphicsInterface::TextureWrapModes::EDGE)) { textureWrapMode = GraphicsInterface::TextureWrapModes::EDGE; }
 
-        static OpenGLGraphics::FilterModes  filterMode = OpenGLGraphics::FilterModes::NEAREST;
+        static GraphicsInterface::FilterModes  filterMode = GraphicsInterface::FilterModes::NEAREST;
         ImGui::Text("Filter Mode:");
-        if(ImGui::RadioButton("NEAREST##wrap_mode_PipelineExtension", filterMode == OpenGLGraphics::FilterModes::NEAREST)) { filterMode = OpenGLGraphics::FilterModes::NEAREST; }
+        if(ImGui::RadioButton("NEAREST##wrap_mode_PipelineExtension", filterMode == GraphicsInterface::FilterModes::NEAREST)) { filterMode = GraphicsInterface::FilterModes::NEAREST; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("LINEAR##wrap_mode_PipelineExtension", filterMode == OpenGLGraphics::FilterModes::LINEAR)) { filterMode = OpenGLGraphics::FilterModes::LINEAR; }
+        if(ImGui::RadioButton("LINEAR##wrap_mode_PipelineExtension", filterMode == GraphicsInterface::FilterModes::LINEAR)) { filterMode = GraphicsInterface::FilterModes::LINEAR; }
         ImGui::SameLine();
-        if(ImGui::RadioButton("TRILINEAR##wrap_mode_PipelineExtension", filterMode == OpenGLGraphics::FilterModes::TRILINEAR)) { filterMode = OpenGLGraphics::FilterModes::TRILINEAR; }
+        if(ImGui::RadioButton("TRILINEAR##wrap_mode_PipelineExtension", filterMode == GraphicsInterface::FilterModes::TRILINEAR)) { filterMode = GraphicsInterface::FilterModes::TRILINEAR; }
 
         static int size[2] = {1920, 1080};
         if(ImGui::InputInt2("Size##texture_size_PipelineExtension", size)) {
@@ -125,7 +125,7 @@ void PipelineExtension::drawDetailPane(const std::vector<const Node *>& nodes, c
             }
         }
         static int depth = 0;
-        if(textureType == OpenGLGraphics::TextureTypes::T2D_ARRAY || textureType == OpenGLGraphics::TextureTypes::TCUBE_MAP_ARRAY) {
+        if(textureType == GraphicsInterface::TextureTypes::T2D_ARRAY || textureType == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY) {
             if(ImGui::InputInt("Depth##texture_depth_PipelineExtension", &depth)) {
                 if(depth < 0 ) {
                     depth = 0;
@@ -229,7 +229,7 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
         //now handle outputs
         for(const Connection *connection:node->getOutputConnections()) {
             auto frameBufferAttachmentPoint = stageExtension->getOutputTextureIndex(connection);
-            if(frameBufferAttachmentPoint != OpenGLGraphics::FrameBufferAttachPoints::NONE) {
+            if(frameBufferAttachmentPoint != GraphicsInterface::FrameBufferAttachPoints::NONE) {
                 newStage->setOutput(frameBufferAttachmentPoint, stageExtension->getOutputTexture(connection));
                 depthMapDirectional = stageExtension->getOutputTexture(connection);
             }

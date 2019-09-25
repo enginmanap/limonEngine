@@ -36,8 +36,8 @@ CubeMapAsset::CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const s
 
     }
 
-    texture = std::make_unique<Texture>(assetManager->getGlHelper(), OpenGLGraphics::TextureTypes::TCUBE_MAP,
-                                        OpenGLGraphics::InternalFormatTypes::RGB, OpenGLGraphics::FormatTypes::RGB, OpenGLGraphics::DataTypes::UNSIGNED_BYTE,
+    texture = std::make_unique<Texture>(assetManager->getGlHelper(), GraphicsInterface::TextureTypes::TCUBE_MAP,
+                                        GraphicsInterface::InternalFormatTypes::RGB, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
                                         surfaces[0]->w, surfaces[0]->h);
     //FIXME check if all the maps has same height/width, if they are RGB.
     texture->loadData(surfaces[0]->pixels, surfaces[1]->pixels,

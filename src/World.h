@@ -62,7 +62,7 @@ class SSAOPostProcess;
 class SSAOBlurPostProcess;
 class QuadRender;
 
-class OpenGLGraphics;
+class GraphicsInterface;
 class GraphicsPipelineStage;
 class GraphicsPipeline;
 class TextureAsset;
@@ -223,7 +223,7 @@ private:
     std::unordered_map<uint32_t, ActorInterface*> actors;
     AIMovementGrid *grid = nullptr;
     SkyBox *sky = nullptr;
-    OpenGLGraphics *glHelper;
+    GraphicsInterface *glHelper;
     ALHelper *alHelper;
     std::string name;
     std::string loadingImage;

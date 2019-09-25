@@ -10,37 +10,37 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
 
     tinyxml2::XMLElement *currentElement = document.NewElement("TextureType");
     switch (textureType) {
-        case OpenGLGraphics::TextureTypes::T2D: currentElement->SetText("T2D"); break;
-        case OpenGLGraphics::TextureTypes::T2D_ARRAY: currentElement->SetText("T2D_ARRAY"); break;
-        case OpenGLGraphics::TextureTypes::TCUBE_MAP: currentElement->SetText("TCUBE_MAP"); break;
-        case OpenGLGraphics::TextureTypes::TCUBE_MAP_ARRAY: currentElement->SetText("TCUBE_MAP_ARRAY"); break;
+        case GraphicsInterface::TextureTypes::T2D: currentElement->SetText("T2D"); break;
+        case GraphicsInterface::TextureTypes::T2D_ARRAY: currentElement->SetText("T2D_ARRAY"); break;
+        case GraphicsInterface::TextureTypes::TCUBE_MAP: currentElement->SetText("TCUBE_MAP"); break;
+        case GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY: currentElement->SetText("TCUBE_MAP_ARRAY"); break;
     }
     textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("InternalFormat");
     switch (internalFormat) {
-        case OpenGLGraphics::InternalFormatTypes::RED: currentElement->SetText("RED"); break;
-        case OpenGLGraphics::InternalFormatTypes::RGB: currentElement->SetText("RGB"); break;
-        case OpenGLGraphics::InternalFormatTypes::RGBA: currentElement->SetText("RGBA"); break;
-        case OpenGLGraphics::InternalFormatTypes::RGB16F: currentElement->SetText("RGB16F"); break;
-        case OpenGLGraphics::InternalFormatTypes::RGB32F: currentElement->SetText("RGB32F"); break;
-        case OpenGLGraphics::InternalFormatTypes::DEPTH: currentElement->SetText("DEPTH"); break;
+        case GraphicsInterface::InternalFormatTypes::RED: currentElement->SetText("RED"); break;
+        case GraphicsInterface::InternalFormatTypes::RGB: currentElement->SetText("RGB"); break;
+        case GraphicsInterface::InternalFormatTypes::RGBA: currentElement->SetText("RGBA"); break;
+        case GraphicsInterface::InternalFormatTypes::RGB16F: currentElement->SetText("RGB16F"); break;
+        case GraphicsInterface::InternalFormatTypes::RGB32F: currentElement->SetText("RGB32F"); break;
+        case GraphicsInterface::InternalFormatTypes::DEPTH: currentElement->SetText("DEPTH"); break;
     }
     textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("Format");
     switch (format) {
-        case OpenGLGraphics::FormatTypes::RED: currentElement->SetText("RED"); break;
-        case OpenGLGraphics::FormatTypes::RGB: currentElement->SetText("RGB"); break;
-        case OpenGLGraphics::FormatTypes::RGBA: currentElement->SetText("RGBA"); break;
-        case OpenGLGraphics::FormatTypes::DEPTH: currentElement->SetText("DEPTH"); break;
+        case GraphicsInterface::FormatTypes::RED: currentElement->SetText("RED"); break;
+        case GraphicsInterface::FormatTypes::RGB: currentElement->SetText("RGB"); break;
+        case GraphicsInterface::FormatTypes::RGBA: currentElement->SetText("RGBA"); break;
+        case GraphicsInterface::FormatTypes::DEPTH: currentElement->SetText("DEPTH"); break;
     }
     textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("DataType");
     switch (dataType) {
-        case OpenGLGraphics::DataTypes::UNSIGNED_BYTE: currentElement->SetText("UNSIGNED_BYTE"); break;
-        case OpenGLGraphics::DataTypes::FLOAT: currentElement->SetText("FLOAT"); break;
+        case GraphicsInterface::DataTypes::UNSIGNED_BYTE: currentElement->SetText("UNSIGNED_BYTE"); break;
+        case GraphicsInterface::DataTypes::FLOAT: currentElement->SetText("FLOAT"); break;
     }
     textureNode->InsertEndChild(currentElement);
 
@@ -85,37 +85,37 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
 
     currentElement = document.NewElement("FilterMode");
     switch (filterMode) {
-        case OpenGLGraphics::FilterModes::NEAREST: currentElement->SetText("NEAREST"); break;
-        case OpenGLGraphics::FilterModes::LINEAR: currentElement->SetText("LINEAR"); break;
-        case OpenGLGraphics::FilterModes::TRILINEAR: currentElement->SetText("TRILINEAR"); break;
+        case GraphicsInterface::FilterModes::NEAREST: currentElement->SetText("NEAREST"); break;
+        case GraphicsInterface::FilterModes::LINEAR: currentElement->SetText("LINEAR"); break;
+        case GraphicsInterface::FilterModes::TRILINEAR: currentElement->SetText("TRILINEAR"); break;
     }
     textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("WrapModes");
     tinyxml2::XMLElement *wrapModeNode= document.NewElement("S");
     switch (wrapModeS) {
-        case OpenGLGraphics::TextureWrapModes::NONE: currentElement->SetText("NONE"); break;
-        case OpenGLGraphics::TextureWrapModes::BORDER: currentElement->SetText("BORDER"); break;
-        case OpenGLGraphics::TextureWrapModes::EDGE: currentElement->SetText("EDGE"); break;
-        case OpenGLGraphics::TextureWrapModes::REPEAT: currentElement->SetText("REPEAT"); break;
+        case GraphicsInterface::TextureWrapModes::NONE: currentElement->SetText("NONE"); break;
+        case GraphicsInterface::TextureWrapModes::BORDER: currentElement->SetText("BORDER"); break;
+        case GraphicsInterface::TextureWrapModes::EDGE: currentElement->SetText("EDGE"); break;
+        case GraphicsInterface::TextureWrapModes::REPEAT: currentElement->SetText("REPEAT"); break;
     }
     currentElement->InsertEndChild(wrapModeNode);
 
     wrapModeNode= document.NewElement("T");
     switch (wrapModeT) {
-        case OpenGLGraphics::TextureWrapModes::NONE: currentElement->SetText("NONE"); break;
-        case OpenGLGraphics::TextureWrapModes::BORDER: currentElement->SetText("BORDER"); break;
-        case OpenGLGraphics::TextureWrapModes::EDGE: currentElement->SetText("EDGE"); break;
-        case OpenGLGraphics::TextureWrapModes::REPEAT: currentElement->SetText("REPEAT"); break;
+        case GraphicsInterface::TextureWrapModes::NONE: currentElement->SetText("NONE"); break;
+        case GraphicsInterface::TextureWrapModes::BORDER: currentElement->SetText("BORDER"); break;
+        case GraphicsInterface::TextureWrapModes::EDGE: currentElement->SetText("EDGE"); break;
+        case GraphicsInterface::TextureWrapModes::REPEAT: currentElement->SetText("REPEAT"); break;
     }
     currentElement->InsertEndChild(wrapModeNode);
 
     wrapModeNode= document.NewElement("R");
     switch (wrapModeR) {
-        case OpenGLGraphics::TextureWrapModes::NONE: currentElement->SetText("NONE"); break;
-        case OpenGLGraphics::TextureWrapModes::BORDER: currentElement->SetText("BORDER"); break;
-        case OpenGLGraphics::TextureWrapModes::EDGE: currentElement->SetText("EDGE"); break;
-        case OpenGLGraphics::TextureWrapModes::REPEAT: currentElement->SetText("REPEAT"); break;
+        case GraphicsInterface::TextureWrapModes::NONE: currentElement->SetText("NONE"); break;
+        case GraphicsInterface::TextureWrapModes::BORDER: currentElement->SetText("BORDER"); break;
+        case GraphicsInterface::TextureWrapModes::EDGE: currentElement->SetText("EDGE"); break;
+        case GraphicsInterface::TextureWrapModes::REPEAT: currentElement->SetText("REPEAT"); break;
     }
     currentElement->InsertEndChild(wrapModeNode);
     textureNode->InsertEndChild(currentElement);
@@ -123,13 +123,13 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     return true;
 }
 
-Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, OpenGLGraphics *glHelper, Options *options [[gnu::unused]]) {
+Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface *glHelper, Options *options [[gnu::unused]]) {
     tinyxml2::XMLElement* textureNodeAttribute = nullptr;
 
-    OpenGLGraphics::TextureTypes textureType;
-    OpenGLGraphics::InternalFormatTypes internalFormat;
-    OpenGLGraphics::FormatTypes format;
-    OpenGLGraphics::DataTypes dataType;
+    GraphicsInterface::TextureTypes textureType;
+    GraphicsInterface::InternalFormatTypes internalFormat;
+    GraphicsInterface::FormatTypes format;
+    GraphicsInterface::DataTypes dataType;
     uint32_t height, width;
     uint32_t depth;
 
@@ -144,13 +144,13 @@ Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, OpenGLGraphics 
     }
     std::string textureTypeString = textureNodeAttribute->GetText();
     if(textureTypeString == "T2D") {
-        textureType = OpenGLGraphics::TextureTypes::T2D;
+        textureType = GraphicsInterface::TextureTypes::T2D;
     } else if(textureTypeString == "T2D_ARRAY") {
-        textureType = OpenGLGraphics::TextureTypes::T2D_ARRAY;
+        textureType = GraphicsInterface::TextureTypes::T2D_ARRAY;
     } else if(textureTypeString == "TCUBE_MAP") {
-        textureType = OpenGLGraphics::TextureTypes::TCUBE_MAP;
+        textureType = GraphicsInterface::TextureTypes::TCUBE_MAP;
     } else if(textureTypeString == "TCUBE_MAP_ARRAY") {
-        textureType = OpenGLGraphics::TextureTypes::TCUBE_MAP_ARRAY;
+        textureType = GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY;
     } else {
         std::cerr << "Texture type is unknown, skipping! " << std::endl;
         return nullptr;
@@ -167,17 +167,17 @@ Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, OpenGLGraphics 
     }
     std::string internalFormatString = textureNodeAttribute->GetText();
     if(internalFormatString == "RED") {
-        internalFormat = OpenGLGraphics::InternalFormatTypes ::RED;
+        internalFormat = GraphicsInterface::InternalFormatTypes ::RED;
     } else if(internalFormatString == "RGB") {
-        internalFormat = OpenGLGraphics::InternalFormatTypes ::RGB;
+        internalFormat = GraphicsInterface::InternalFormatTypes ::RGB;
     } else if(internalFormatString == "RGBA") {
-        internalFormat = OpenGLGraphics::InternalFormatTypes ::RGBA;
+        internalFormat = GraphicsInterface::InternalFormatTypes ::RGBA;
     } else if(internalFormatString == "RGB16F") {
-        internalFormat = OpenGLGraphics::InternalFormatTypes ::RGB16F;
+        internalFormat = GraphicsInterface::InternalFormatTypes ::RGB16F;
     } else if(internalFormatString == "RGB32F") {
-        internalFormat = OpenGLGraphics::InternalFormatTypes ::RGB32F;
+        internalFormat = GraphicsInterface::InternalFormatTypes ::RGB32F;
     } else if(internalFormatString == "DEPTH") {
-        internalFormat = OpenGLGraphics::InternalFormatTypes ::DEPTH;
+        internalFormat = GraphicsInterface::InternalFormatTypes ::DEPTH;
     } else {
         std::cerr << "Texture internal format is unknown, skipping! " << std::endl;
         return nullptr;
@@ -194,13 +194,13 @@ Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, OpenGLGraphics 
     }
     std::string formatString = textureNodeAttribute->GetText();
     if(formatString == "RED") {
-        format = OpenGLGraphics::FormatTypes::RED;
+        format = GraphicsInterface::FormatTypes::RED;
     } else if(formatString == "RGB") {
-        format = OpenGLGraphics::FormatTypes::RGB;
+        format = GraphicsInterface::FormatTypes::RGB;
     } else if(formatString == "RGBA") {
-        format = OpenGLGraphics::FormatTypes::RGBA;
+        format = GraphicsInterface::FormatTypes::RGBA;
     } else if(formatString == "DEPTH") {
-        format = OpenGLGraphics::FormatTypes::DEPTH;
+        format = GraphicsInterface::FormatTypes::DEPTH;
     } else {
         std::cerr << "Texture format is unknown, skipping! " << std::endl;
         return nullptr;
@@ -217,9 +217,9 @@ Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, OpenGLGraphics 
     }
     std::string dataTypeString = textureNodeAttribute->GetText();
     if(dataTypeString == "UNSIGNED_BYTE") {
-        dataType = OpenGLGraphics::DataTypes::UNSIGNED_BYTE;
+        dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE;
     } else if(dataTypeString == "FLOAT") {
-        dataType = OpenGLGraphics::DataTypes::FLOAT;
+        dataType = GraphicsInterface::DataTypes::FLOAT;
     } else {
         std::cerr << "Texture data type is unknown, skipping! " << std::endl;
         return nullptr;
@@ -270,15 +270,15 @@ Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, OpenGLGraphics 
         if (textureNodeAttribute->GetText() == nullptr) {
             std::cerr << "Texture filter mode has no text, using default value." << std::endl;
         } else {
-            OpenGLGraphics::FilterModes filterMode;
+            GraphicsInterface::FilterModes filterMode;
             bool fail = false;
             std::string filterModeString = textureNodeAttribute->GetText();
             if (filterModeString == "NEAREST") {
-                filterMode = OpenGLGraphics::FilterModes::NEAREST;
+                filterMode = GraphicsInterface::FilterModes::NEAREST;
             } else if (filterModeString == "LINEAR") {
-                filterMode = OpenGLGraphics::FilterModes::LINEAR;
+                filterMode = GraphicsInterface::FilterModes::LINEAR;
             } else if (filterModeString == "TRILINEAR") {
-                filterMode = OpenGLGraphics::FilterModes::TRILINEAR;
+                filterMode = GraphicsInterface::FilterModes::TRILINEAR;
             } else {
                 std::cerr << "Texture filter mode is unknown, using default value." << std::endl;
                 fail = true;
@@ -291,7 +291,7 @@ Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, OpenGLGraphics 
 
     textureNodeAttribute = TextureNode->FirstChildElement("WrapModes");
     {
-        OpenGLGraphics::TextureWrapModes wrapModeS, wrapModeT, wrapModeR;
+        GraphicsInterface::TextureWrapModes wrapModeS, wrapModeT, wrapModeR;
         bool fail = false;
         tinyxml2::XMLElement *wrapNodeAttribute = nullptr;
         wrapNodeAttribute = textureNodeAttribute->FirstChildElement("S");
@@ -302,13 +302,13 @@ Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, OpenGLGraphics 
             } else {
                 std::string wrapModeString = wrapNodeAttribute->GetText();
                 if (wrapModeString == "NONE") {
-                    wrapModeS = OpenGLGraphics::TextureWrapModes::NONE;
+                    wrapModeS = GraphicsInterface::TextureWrapModes::NONE;
                 } else if (wrapModeString == "BORDER") {
-                    wrapModeS = OpenGLGraphics::TextureWrapModes::BORDER;
+                    wrapModeS = GraphicsInterface::TextureWrapModes::BORDER;
                 } else if (wrapModeString == "EDGE") {
-                    wrapModeS = OpenGLGraphics::TextureWrapModes::EDGE;
+                    wrapModeS = GraphicsInterface::TextureWrapModes::EDGE;
                 } else if (wrapModeString == "REPEAT") {
-                    wrapModeS = OpenGLGraphics::TextureWrapModes::REPEAT;
+                    wrapModeS = GraphicsInterface::TextureWrapModes::REPEAT;
                 } else {
                     std::cerr << "Texture wrap mode S is unknown, using default value." << std::endl;
                     fail = true;
@@ -326,13 +326,13 @@ Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, OpenGLGraphics 
             } else {
                 std::string wrapModeString = wrapNodeAttribute->GetText();
                 if (wrapModeString == "NONE") {
-                    wrapModeT = OpenGLGraphics::TextureWrapModes::NONE;
+                    wrapModeT = GraphicsInterface::TextureWrapModes::NONE;
                 } else if (wrapModeString == "BORDER") {
-                    wrapModeT = OpenGLGraphics::TextureWrapModes::BORDER;
+                    wrapModeT = GraphicsInterface::TextureWrapModes::BORDER;
                 } else if (wrapModeString == "EDGE") {
-                    wrapModeT = OpenGLGraphics::TextureWrapModes::EDGE;
+                    wrapModeT = GraphicsInterface::TextureWrapModes::EDGE;
                 } else if (wrapModeString == "REPEAT") {
-                    wrapModeT = OpenGLGraphics::TextureWrapModes::REPEAT;
+                    wrapModeT = GraphicsInterface::TextureWrapModes::REPEAT;
                 } else {
                     std::cerr << "Texture wrap mode T is unknown, using default value." << std::endl;
                     fail = true;
@@ -350,13 +350,13 @@ Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, OpenGLGraphics 
             } else {
                 std::string wrapModeString = wrapNodeAttribute->GetText();
                 if (wrapModeString == "NONE") {
-                    wrapModeR = OpenGLGraphics::TextureWrapModes::NONE;
+                    wrapModeR = GraphicsInterface::TextureWrapModes::NONE;
                 } else if (wrapModeString == "BORDER") {
-                    wrapModeR = OpenGLGraphics::TextureWrapModes::BORDER;
+                    wrapModeR = GraphicsInterface::TextureWrapModes::BORDER;
                 } else if (wrapModeString == "EDGE") {
-                    wrapModeR = OpenGLGraphics::TextureWrapModes::EDGE;
+                    wrapModeR = GraphicsInterface::TextureWrapModes::EDGE;
                 } else if (wrapModeString == "REPEAT") {
-                    wrapModeR = OpenGLGraphics::TextureWrapModes::REPEAT;
+                    wrapModeR = GraphicsInterface::TextureWrapModes::REPEAT;
                 } else {
                     std::cerr << "Texture wrap mode R is unknown, using default value." << std::endl;
                     fail = true;

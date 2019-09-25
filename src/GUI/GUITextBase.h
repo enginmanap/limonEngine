@@ -7,10 +7,10 @@
 
 #include <iostream>
 
-#include "Graphics/OpenGLGraphics.h"
+#include "Graphics/GraphicsInterface.h"
 #include "GUIRenderable.h"
 #include "../FontManager.h"
-#include "Graphics/OpenGLGraphics.h"
+#include "Graphics/GraphicsInterface.h"
 
 
 class GUITextBase : public GUIRenderable {
@@ -27,9 +27,9 @@ protected:
     static std::shared_ptr<GLSLProgram> textRenderProgram;
 
     //Don't allow constructing of this object itself
-    GUITextBase(OpenGLGraphics *glHelper, Face *font, const std::string text, const glm::vec3 color);
-    GUITextBase(OpenGLGraphics *glHelper, Face *font, const glm::vec3 color) : GUITextBase(glHelper, font, "",
-                                                                                           color) {};
+    GUITextBase(GraphicsInterface *glHelper, Face *font, const std::string text, const glm::vec3 color);
+    GUITextBase(GraphicsInterface *glHelper, Face *font, const glm::vec3 color) : GUITextBase(glHelper, font, "",
+                                                                                              color) {};
 
 public:
     virtual ~GUITextBase(){

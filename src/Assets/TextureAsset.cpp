@@ -56,8 +56,8 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
             SDL_FreeSurface(surface);
             surface = surfaceTemp;
         }
-        texture = std::make_unique<Texture>(assetManager->getGlHelper(), OpenGLGraphics::TextureTypes::T2D,
-                                            OpenGLGraphics::InternalFormatTypes::RGBA, OpenGLGraphics::FormatTypes::RGBA, OpenGLGraphics::DataTypes::UNSIGNED_BYTE,
+        texture = std::make_unique<Texture>(assetManager->getGlHelper(), GraphicsInterface::TextureTypes::T2D,
+                                            GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
                                             surface->w, surface->h);
     } else if (surface->format->BytesPerPixel == 3) {
         if(surface->format->format != SDL_PIXELFORMAT_RGB24) {
@@ -68,8 +68,8 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
             SDL_FreeSurface(surface);
             surface = surfaceTemp;
         }
-        texture = std::make_unique<Texture>(assetManager->getGlHelper(), OpenGLGraphics::TextureTypes::T2D,
-                                            OpenGLGraphics::InternalFormatTypes::RGBA, OpenGLGraphics::FormatTypes::RGB, OpenGLGraphics::DataTypes::UNSIGNED_BYTE,
+        texture = std::make_unique<Texture>(assetManager->getGlHelper(), GraphicsInterface::TextureTypes::T2D,
+                                            GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
                                             surface->w, surface->h);
     } else if (surface->format->BytesPerPixel == 1) {
             SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(surface,
@@ -77,8 +77,8 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
                                                                 0);
             SDL_FreeSurface(surface);
             surface = surfaceTemp;
-        texture = std::make_unique<Texture>(assetManager->getGlHelper(), OpenGLGraphics::TextureTypes::T2D,
-                                            OpenGLGraphics::InternalFormatTypes::RGBA, OpenGLGraphics::FormatTypes::RGBA, OpenGLGraphics::DataTypes::UNSIGNED_BYTE,
+        texture = std::make_unique<Texture>(assetManager->getGlHelper(), GraphicsInterface::TextureTypes::T2D,
+                                            GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
                                             surface->w, surface->h);
     } else {
         std::cerr << "Format has undefined number of pixels:" << std::to_string(surface->format->BytesPerPixel) << std::endl;

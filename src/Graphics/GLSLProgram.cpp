@@ -4,14 +4,14 @@
 
 #include "GLSLProgram.h"
 
-GLSLProgram::GLSLProgram(OpenGLGraphics *glHelper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed) :
+GLSLProgram::GLSLProgram(GraphicsInterface *glHelper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed) :
         glHelper(glHelper), vertexShader(vertexShader), fragmentShader(fragmentShader), materialRequired(isMaterialUsed) {
     programName = vertexShader +"|"+ fragmentShader;
     //FIXME is passing empty string acceptable?
     programID = glHelper->initializeProgram(vertexShader, "", fragmentShader, uniformMap, outputMap);
 }
 
-GLSLProgram::GLSLProgram(OpenGLGraphics *glHelper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed) :
+GLSLProgram::GLSLProgram(GraphicsInterface *glHelper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed) :
         glHelper(glHelper), vertexShader(vertexShader), geometryShader(geometryShader), fragmentShader(fragmentShader), materialRequired(isMaterialUsed) {
     programName = vertexShader +"|"+ geometryShader +"|"+ fragmentShader;
     programID = glHelper->initializeProgram(vertexShader, geometryShader, fragmentShader, uniformMap, outputMap);

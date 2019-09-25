@@ -16,7 +16,7 @@ class SSAOPostProcess : public QuadRenderBase {
     void initializeProgram() override;
     void setSSAOKernels(const std::vector<glm::vec3>& kernels);
 public:
-    SSAOPostProcess(OpenGLGraphics* glHelper, uint32_t sampleCount) : QuadRenderBase(glHelper), sampleCount(sampleCount) {
+    SSAOPostProcess(GraphicsInterface* glHelper, uint32_t sampleCount) : QuadRenderBase(glHelper), sampleCount(sampleCount) {
         initializeProgram();
         if(sampleCount > 128) {
             std::cerr << "Maximum sample count for SSAO is 128, your input will be lowered to it. " << std::endl;

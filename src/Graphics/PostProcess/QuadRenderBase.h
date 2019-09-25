@@ -11,7 +11,7 @@
 #include <string>
 #include <memory>
 
-class OpenGLGraphics;
+class GraphicsInterface;
 class GLSLProgram;
 
 class QuadRenderBase {
@@ -22,9 +22,9 @@ class QuadRenderBase {
     virtual void initializeProgram() = 0;
 protected:
     std::shared_ptr<GLSLProgram> program = nullptr;
-    OpenGLGraphics* glHelper = nullptr;
+    GraphicsInterface* glHelper = nullptr;
 public:
-    QuadRenderBase(OpenGLGraphics* glHelper);
+    QuadRenderBase(GraphicsInterface* glHelper);
 
     void setSourceTexture(std::string samplerName, int32_t textureID);
 
