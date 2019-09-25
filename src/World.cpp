@@ -292,6 +292,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     stageInfo.stage = pointShadowStage;
     stageInfo.renderMethods.clear();
     stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethodAllPointLights(shadowMapProgramPoint));
+    defaultRenderPipeline->addNewStage(stageInfo);
 
     stageInfo.stage = coloringStage;
     stageInfo.renderMethods.clear();
