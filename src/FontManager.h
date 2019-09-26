@@ -13,7 +13,7 @@
 #include <set>
 
 #include FT_FREETYPE_H
-#include "Graphics/GraphicsInterface.h"
+#include "API/GraphicsInterface.h"
 #include "Graphics/Texture.h"
 
 class Glyph {

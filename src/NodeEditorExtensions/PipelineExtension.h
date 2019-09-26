@@ -7,7 +7,7 @@
 
 
 #include <nodeGraph/src/EditorExtension.h>
-#include "Graphics/GraphicsInterface.h"
+#include "API/GraphicsInterface.h"
 #include "Graphics/GraphicsPipeline.h"
 
 #include <functional>

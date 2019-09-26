@@ -3,7 +3,7 @@
 //
 
 #include "MeshAsset.h"
-#include "Graphics/GraphicsInterface.h"
+#include "API/GraphicsInterface.h"
 
 MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
                      std::shared_ptr<const Material> material, std::shared_ptr<const BoneNode> meshSkeleton,

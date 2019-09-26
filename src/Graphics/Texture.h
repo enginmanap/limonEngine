@@ -5,7 +5,7 @@
 #ifndef LIMONENGINE_TEXTURE_H
 #define LIMONENGINE_TEXTURE_H
 
-#include "GraphicsInterface.h"
+#include "API/GraphicsInterface.h"
 
 class Texture {
     GraphicsInterface* graphicsWrapper;

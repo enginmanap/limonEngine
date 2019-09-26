@@ -3,7 +3,7 @@
 //
 
 #include "QuadRender.h"
-#include "Graphics/GraphicsInterface.h"
+#include "API/GraphicsInterface.h"
 #include "Graphics/GraphicsProgram.h"
 
 QuadRender::QuadRender(GraphicsInterface* graphicsWrapper) : graphicsWrapper(graphicsWrapper){

@@ -7,7 +7,7 @@
 
 
 #include "GameObjects/GameObject.h"
-#include "Graphics/GraphicsInterface.h"
+#include "API/GraphicsInterface.h"
 #include "Graphics/GraphicsProgram.h"
 #include "Transformation.h"
 #include <btBulletDynamicsCommon.h>

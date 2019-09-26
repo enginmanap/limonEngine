@@ -8,7 +8,7 @@
 
 #include <cstdint>
 #include <map>
-#include "GraphicsInterface.h"
+#include "API/GraphicsInterface.h"
 #include "Texture.h"
 
 class GraphicsPipelineStage {

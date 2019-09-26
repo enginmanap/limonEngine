@@ -11,7 +11,7 @@
 
 #include <nodeGraph/src/NodeExtension.h>
 
-#include "Graphics/GraphicsInterface.h"
+#include "API/GraphicsInterface.h"
 #include "PipelineExtension.h"
 
 class Connection;
