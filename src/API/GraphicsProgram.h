@@ -10,7 +10,6 @@
 #include <unordered_map>
 #include <memory>
 #include "API/GraphicsInterface.h"
-#include "OpenGLGraphics.h"
 
 
 class GraphicsProgram {
@@ -32,13 +31,8 @@ public:
 
     ~GraphicsProgram();
 
-    friend std::shared_ptr<GraphicsProgram> GraphicsInterface::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed);
-    friend std::shared_ptr<GraphicsProgram> GraphicsInterface::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed);
-
-
-    friend std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed);
-    friend std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed);
-
+    friend std::shared_ptr<GraphicsProgram> GraphicsInterface::createGraphicsProgramInternal(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed, std::function<void(GraphicsProgram*)> deleterMethod);
+    friend std::shared_ptr<GraphicsProgram> GraphicsInterface::createGraphicsProgramInternal(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed, std::function<void(GraphicsProgram*)> deleterMethod);
 
     uint32_t getID() const { return programID; }
 
@@ -191,9 +185,9 @@ public:
         }
 
         if(geometryShader.length() > 0 ) {
-            return graphicsWrapper->createGLSLProgram(vertexShader, geometryShader, fragmentShader, materialRequired);
+            return graphicsWrapper->createGraphicsProgram(vertexShader, geometryShader, fragmentShader, materialRequired);
         } else {
-            return graphicsWrapper->createGLSLProgram(vertexShader, fragmentShader, materialRequired);
+            return graphicsWrapper->createGraphicsProgram(vertexShader, fragmentShader, materialRequired);
         }
     }
 

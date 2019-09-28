@@ -10,7 +10,7 @@
 #include "PipelineExtension.h"
 #include "Graphics/Texture.h"
 #include "PipelineStageExtension.h"
-#include "Graphics/GraphicsProgram.h"
+#include "API/GraphicsProgram.h"
 
 PipelineExtension::PipelineExtension(GraphicsInterface* graphicsWrapper, const std::vector<std::string>& renderMethodNames, GraphicsPipeline::RenderMethods& renderMethods) : graphicsWrapper(graphicsWrapper), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
     {

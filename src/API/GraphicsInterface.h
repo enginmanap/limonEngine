@@ -19,6 +19,7 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 
 #define NR_POINT_LIGHTS 3
@@ -50,6 +51,7 @@ struct Line {
 };
 
 class GraphicsInterface {
+    friend class GraphicsProgram; //TODO This is to allow access of protected method createGraphicsProgramInternal we should come up with something better
 public:
 
     enum class TextureTypes {T2D, T2D_ARRAY, TCUBE_MAP, TCUBE_MAP_ARRAY};//Starting with digits is illegal
@@ -145,6 +147,10 @@ protected:
     virtual void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) = 0;
 
+    std::shared_ptr<GraphicsProgram> createGraphicsProgramInternal(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed, std::function<void(GraphicsProgram*)> deleterMethod);
+    std::shared_ptr<GraphicsProgram> createGraphicsProgramInternal(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed, std::function<void(GraphicsProgram*)> deleterMethod);
+
+
 public:
 
     virtual const std::map<std::shared_ptr<GraphicsProgram>, int> &getLoadedPrograms() const = 0;
@@ -155,8 +161,8 @@ public:
     explicit GraphicsInterface(Options *options [[gnu::unused]]) {};
     virtual ~GraphicsInterface() {};
 
-    virtual std::shared_ptr<GraphicsProgram> createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) = 0;
-    virtual std::shared_ptr<GraphicsProgram> createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) = 0;
+    virtual std::shared_ptr<GraphicsProgram> createGraphicsProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) = 0;
+    virtual std::shared_ptr<GraphicsProgram> createGraphicsProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) = 0;
 
     virtual void attachModelUBO(const uint32_t program) = 0;
     virtual void attachMaterialUBO(const uint32_t program, const uint32_t materialID) = 0;

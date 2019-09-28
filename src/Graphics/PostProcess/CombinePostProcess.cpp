@@ -3,7 +3,7 @@
 //
 
 #include "CombinePostProcess.h"
-#include "Graphics/GraphicsProgram.h"
+#include "API/GraphicsProgram.h"
 
 CombinePostProcess::CombinePostProcess(GraphicsInterface* graphicsWrapper, bool isSSAOEnabled) : QuadRenderBase(graphicsWrapper), isSSAOEnabled(isSSAOEnabled) {
         initializeProgram();
@@ -11,11 +11,11 @@ CombinePostProcess::CombinePostProcess(GraphicsInterface* graphicsWrapper, bool 
 
 void CombinePostProcess::initializeProgram() {
         if(isSSAOEnabled) {
-                program = graphicsWrapper->createGLSLProgram("./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl",
-                                          "./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl", false);
+                program = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl",
+                                                                 "./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl", false);
         } else {
-                program = graphicsWrapper->createGLSLProgram("./Engine/Shaders/CombineColors/vertex.glsl",
-                                          "./Engine/Shaders/CombineColors/fragment.glsl", false);
+                program = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/CombineColors/vertex.glsl",
+                                                                 "./Engine/Shaders/CombineColors/fragment.glsl", false);
         }
 
 }

@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "API/GraphicsInterface.h"
-#include "Graphics/GraphicsProgram.h"
+#include "API/GraphicsProgram.h"
 #include "Utils/GLMConverter.h"
 #include "Options.h"
 
@@ -23,8 +23,8 @@ class BulletDebugDrawer : public btIDebugDraw {
     Options* options;
 public:
     BulletDebugDrawer(GraphicsInterface* graphicsWrapper, Options* options) : graphicsWrapper(graphicsWrapper), vao(0), vbo(0), ebo(0), options(options) {
-        renderProgram = graphicsWrapper->createGLSLProgram("./Engine/Shaders/Lines/vertex.glsl",
-                                        "./Engine/Shaders/Lines/fragment.glsl", false);
+        renderProgram = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/Lines/vertex.glsl",
+                                                               "./Engine/Shaders/Lines/fragment.glsl", false);
         //std::cout << "Render program is ready with id " << renderProgram->getID() << std::endl;
         graphicsWrapper->createDebugVAOVBO(vao, vbo, options->getDebugDrawBufferSize());
     }

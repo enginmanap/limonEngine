@@ -4,7 +4,7 @@
 
 #include "QuadRenderBase.h"
 #include "API/GraphicsInterface.h"
-#include "Graphics/GraphicsProgram.h"
+#include "API/GraphicsProgram.h"
 
 QuadRenderBase::QuadRenderBase(GraphicsInterface* graphicsWrapper) : graphicsWrapper(graphicsWrapper){
     std::vector<glm::vec3> vertices;

@@ -237,8 +237,8 @@ public:
 
     ~OpenGLGraphics();
 
-    std::shared_ptr<GraphicsProgram> createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) override;
-    std::shared_ptr<GraphicsProgram> createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) override;
+    std::shared_ptr<GraphicsProgram> createGraphicsProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) override;
+    std::shared_ptr<GraphicsProgram> createGraphicsProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) override;
 
     void attachModelUBO(const uint32_t program) override;
 

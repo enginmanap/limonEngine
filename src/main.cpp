@@ -48,7 +48,8 @@ void GameEngine::renderLoadingImage() const {
     if(loadingImage != nullptr) {
         loadingImage->setFullScreen(true);
         //FIXME: this definition here seems wrong. I can't think of another way, we should explore
-        std::shared_ptr<GraphicsProgram> imageRenderProgram = graphicsWrapper->createGLSLProgram("./Engine/Shaders/GUIImage/vertex.glsl", "./Engine/Shaders/GUIImage/fragment.glsl", false);
+        std::shared_ptr<GraphicsProgram> imageRenderProgram = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/GUIImage/vertex.glsl",
+                                                                                                     "./Engine/Shaders/GUIImage/fragment.glsl", false);
         sdlHelper->swap();
         loadingImage->renderWithProgram(imageRenderProgram);
         sdlHelper->swap();

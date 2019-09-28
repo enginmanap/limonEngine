@@ -12,7 +12,7 @@
 #include "ImGuiHelper.h"
 
 #include "API/GraphicsInterface.h"
-#include "Graphics/GraphicsProgram.h"
+#include "API/GraphicsProgram.h"
 #include "Graphics/Texture.h"
 #include "InputHandler.h"
 #include "Options.h"
@@ -249,8 +249,8 @@ bool ImGuiHelper::CreateDeviceObjects()
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
 
-    program = graphicsWrapper->createGLSLProgram("./Engine/Shaders/ImGui/vertex.glsl",
-                              "./Engine/Shaders/ImGui/fragment.glsl", true);
+    program = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/ImGui/vertex.glsl",
+                                                     "./Engine/Shaders/ImGui/fragment.glsl", true);
 
     g_AttribLocationPosition = glGetAttribLocation(program->getID(), "Position");
     g_AttribLocationUV = glGetAttribLocation(program->getID(), "UV");

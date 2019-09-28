@@ -3,13 +3,13 @@
 //
 
 #include "SSAOPostProcess.h"
-#include "Graphics/GraphicsProgram.h"
+#include "API/GraphicsProgram.h"
 #include <random>
 #include <glm/glm.hpp>
 
 void SSAOPostProcess::initializeProgram() {
-    program = graphicsWrapper->createGLSLProgram("./Engine/Shaders/SSAOGeneration/vertex.glsl",
-                              "./Engine/Shaders/SSAOGeneration/fragment.glsl", false);
+    program = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/SSAOGeneration/vertex.glsl",
+                                                     "./Engine/Shaders/SSAOGeneration/fragment.glsl", false);
 }
 
 float lerp(float first , float second , float factor ) {

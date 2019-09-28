@@ -78,41 +78,42 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
 
 
-    shadowMapProgramDirectional = graphicsWrapper->createGLSLProgram("./Engine/Shaders/ShadowMapDirectional/vertex.glsl",
-                                                  "./Engine/Shaders/ShadowMapDirectional/fragment.glsl", false);
-    shadowMapProgramPoint = graphicsWrapper->createGLSLProgram("./Engine/Shaders/ShadowMapPoint/vertex.glsl",
-                                            "./Engine/Shaders/ShadowMapPoint/geometry.glsl",
-                                            "./Engine/Shaders/ShadowMapPoint/fragment.glsl", false);
+    shadowMapProgramDirectional = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/ShadowMapDirectional/vertex.glsl",
+                                                                         "./Engine/Shaders/ShadowMapDirectional/fragment.glsl", false);
+    shadowMapProgramPoint = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/ShadowMapPoint/vertex.glsl",
+                                                                   "./Engine/Shaders/ShadowMapPoint/geometry.glsl",
+                                                                   "./Engine/Shaders/ShadowMapPoint/fragment.glsl", false);
 
-    depthBufferProgram = graphicsWrapper->createGLSLProgram("./Engine/Shaders/depthPrePass/vertex.glsl",
-                                  "./Engine/Shaders/depthPrePass/fragment.glsl", false);
+    depthBufferProgram = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/depthPrePass/vertex.glsl",
+                                                                "./Engine/Shaders/depthPrePass/fragment.glsl", false);
 
-    nonTransparentModelProgram = graphicsWrapper->createGLSLProgram("./Engine/Shaders/Model/vertex.glsl",
-                                                                                            "./Engine/Shaders/Model/fragment.glsl", true);
+    nonTransparentModelProgram = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/Model/vertex.glsl",
+                                                                        "./Engine/Shaders/Model/fragment.glsl", true);
     setSamplersAndUBOs(nonTransparentModelProgram, false);
 
-    transparentModelProgram    = graphicsWrapper->createGLSLProgram("./Engine/Shaders/ModelTransparent/vertex.glsl",
-                                                                                            "./Engine/Shaders/ModelTransparent/fragment.glsl", true);
+    transparentModelProgram    = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/ModelTransparent/vertex.glsl",
+                                                                        "./Engine/Shaders/ModelTransparent/fragment.glsl", true);
     setSamplersAndUBOs(transparentModelProgram, true);
 
-    animatedModelProgram       = graphicsWrapper->createGLSLProgram("./Engine/Shaders/ModelAnimated/vertex.glsl",
-                                                                                        "./Engine/Shaders/ModelAnimated/fragment.glsl", true);
+    animatedModelProgram       = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/ModelAnimated/vertex.glsl",
+                                                                        "./Engine/Shaders/ModelAnimated/fragment.glsl", true);
     setSamplersAndUBOs(animatedModelProgram, false);
 
-    skyBoxProgram               = graphicsWrapper->createGLSLProgram("./Engine/Shaders/SkyCube/vertex.glsl", "./Engine/Shaders/SkyCube/fragment.glsl", false);
+    skyBoxProgram               = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/SkyCube/vertex.glsl", "./Engine/Shaders/SkyCube/fragment.glsl", false);
 
-    textRenderProgram           = graphicsWrapper->createGLSLProgram("./Engine/Shaders/GUIText/vertex.glsl", "./Engine/Shaders/GUIText/fragment.glsl", false);
+    textRenderProgram           = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/GUIText/vertex.glsl", "./Engine/Shaders/GUIText/fragment.glsl", false);
 
-    imageRenderProgram          = graphicsWrapper->createGLSLProgram("./Engine/Shaders/GUIImage/vertex.glsl", "./Engine/Shaders/GUIImage/fragment.glsl", false);
+    imageRenderProgram          = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/GUIImage/vertex.glsl", "./Engine/Shaders/GUIImage/fragment.glsl", false);
 
-    ssaoGenerationProgram       = graphicsWrapper->createGLSLProgram("./Engine/Shaders/SSAOGeneration/vertex.glsl","./Engine/Shaders/SSAOGeneration/fragment.glsl", false);
+    ssaoGenerationProgram       = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/SSAOGeneration/vertex.glsl", "./Engine/Shaders/SSAOGeneration/fragment.glsl", false);
     ssaoGenerationProgram->setUniform("pre_depthMap", 1);
     ssaoGenerationProgram->setUniform("pre_normalMap", 2);
     ssaoGenerationProgram->setUniform("ssaoNoiseSampler", 3);
-    ssaoBlurProgram             = graphicsWrapper->createGLSLProgram("./Engine/Shaders/SSAOBlur/vertex.glsl","./Engine/Shaders/SSAOBlur/fragment.glsl", false);
+    ssaoBlurProgram             = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/SSAOBlur/vertex.glsl", "./Engine/Shaders/SSAOBlur/fragment.glsl", false);
     ssaoBlurProgram->setUniform("pre_ssaoResult", 1);
 
-    combineProgram              = graphicsWrapper->createGLSLProgram("./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl","./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl", false);
+    combineProgram              = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl",
+                                                                         "./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl", false);
     combineProgram->setUniform("pre_diffuseSpecularLighted", 1);
     combineProgram->setUniform("pre_ambient", 2);
     combineProgram->setUniform("pre_ssao", 3);

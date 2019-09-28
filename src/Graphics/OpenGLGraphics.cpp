@@ -3,7 +3,7 @@
 //
 
 #include "OpenGLGraphics.h"
-#include "GraphicsProgram.h"
+#include "API/GraphicsProgram.h"
 
 #include "GameObjects/Light.h"
 #include "Material.h"
@@ -796,8 +796,8 @@ OpenGLGraphics::~OpenGLGraphics() {
     //state->setProgram(0);
 }
 
-std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) {
-    std::shared_ptr<GraphicsProgram> program(new GraphicsProgram(this, vertexShader, geometryShader, fragmentShader, isMaterialUsed), std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
+std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGraphicsProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) {
+    std::shared_ptr<GraphicsProgram> program = createGraphicsProgramInternal(vertexShader, geometryShader, fragmentShader, isMaterialUsed, std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
     if(loadedPrograms.find(program) == loadedPrograms.end()) {
         loadedPrograms[program] = 1;
     } else {
@@ -805,8 +805,8 @@ std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGLSLProgram(const std::st
     }
     return program;
 }
-std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGLSLProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) {
-    std::shared_ptr<GraphicsProgram> program(new GraphicsProgram(this, vertexShader, fragmentShader, isMaterialUsed), std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
+std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGraphicsProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) {
+    std::shared_ptr<GraphicsProgram> program = createGraphicsProgramInternal(vertexShader, fragmentShader, isMaterialUsed, std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
     if(loadedPrograms.find(program) == loadedPrograms.end()) {
         loadedPrograms[program] = 1;
     } else {
