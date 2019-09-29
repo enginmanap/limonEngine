@@ -9,6 +9,8 @@
 #include "API/TriggerInterface.h"
 #include "API/PlayerExtensionInterface.h"
 #include "API/ActorInterface.h"
+#include "API/RenderMethodInterface.h"
+
 
 SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {
 
@@ -93,7 +95,8 @@ bool SDL2Helper::loadSharedLibrary(const std::string &fileName) {
     objectHandle = SDL_LoadObject(fileName.c_str());
     bool result = loadTriggers(objectHandle);
     result = loadActors(objectHandle) && result;
-    return loadPlayerExtensions(objectHandle) && result;
+    result = loadPlayerExtensions(objectHandle) && result;
+    return loadRenderMethods(objectHandle) && result;
 }
 
 bool SDL2Helper::loadPlayerExtensions(void *objectHandle) const {
@@ -158,6 +161,28 @@ bool SDL2Helper::loadActors(void *objectHandle) const {
         return true;
     } else {
         std::cerr << "Custom Actor load failed!" << std::endl;
+        return false;
+    }
+}
+
+bool SDL2Helper::loadRenderMethods(void *objectHandle) const {
+    const std::string recgisterFunctionName = "registerRenderMethods";
+    void(*registerFunction)(std::map<std::string, RenderMethodInterface*(*)(GraphicsInterface*)>*);
+    registerFunction = (void(*)(
+            std::map<std::string, RenderMethodInterface*(*)(GraphicsInterface*)>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
+    if(registerFunction != nullptr) {
+        std::cout << "RenderMethod register method found" << std::endl;
+        //register requires parameter
+        std::map<std::string, RenderMethodInterface*(*)(GraphicsInterface*)> elements;
+        registerFunction(&elements);
+        //now add this elements to registered map
+        for (auto it = elements.begin(); it != elements.end(); it++) {
+            RenderMethodInterface::registerType(it->first, it->second);
+            std::cout << "registered RenderMethod: " << it->first << std::endl;
+        }
+        return true;
+    } else {
+        std::cerr << "Custom RenderMethod load failed!" << std::endl;
         return false;
     }
 }

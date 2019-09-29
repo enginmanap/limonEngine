@@ -6,6 +6,7 @@
 #include "World.h"
 #include <random>
 #include <Graphics/GraphicsPipeline.h>
+#include <API/RenderMethodInterface.h>
 #include "NodeEditorExtensions/PipelineStageExtension.h"
 #include "NodeEditorExtensions/PipelineExtension.h"
 #include "NodeEditorExtensions/IterationExtension.h"
@@ -37,10 +38,6 @@
 #include "GameObjects/GUIButton.h"
 #include "GameObjects/GUIAnimation.h"
 #include "GameObjects/ModelGroup.h"
-#include "Graphics/PostProcess/QuadRenderBase.h"
-#include "Graphics/PostProcess/CombinePostProcess.h"
-#include "Graphics/PostProcess/SSAOPostProcess.h"
-#include "Graphics/PostProcess/SSAOBlurPostProcess.h"
 #include "Graphics/PostProcess/QuadRender.h"
 #include "SDL2Helper.h"
 #include "Graphics/GraphicsPipelineStage.h"
@@ -242,14 +239,9 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     ssaoGenerationStage->setInput(1, depthMap);
     ssaoGenerationStage->setInput(2, normalMap);
     ssaoGenerationStage->setInput(3, ssaoNoiseTexture);
-    std::vector<glm::vec3> kernels = SSAOPostProcess::generateSSAOKernels(options->getSSAOSampleCount());
 
-    if(!ssaoGenerationProgram->setUniform("ssaoKernel[0]", kernels)) {
-        std::cerr << "uniform variable \"ssaoKernel\" couldn't be set" << std::endl;
-    }
-    if(!ssaoGenerationProgram->setUniform("ssaoSampleCount", (int32_t)kernels.size())) {
-        std::cerr << "uniform variable \"ssaoSampleCount\" couldn't be set" << std::endl;
-    }
+    RenderMethodInterface* ssaoKernelGenerator = RenderMethodInterface::createRenderMethod("SSAOKernelRenderMethod", graphicsWrapper);
+    ssaoKernelGenerator->initRender(ssaoGenerationProgram, std::vector<LimonAPI::ParameterRequest>{});
     ssaoBlurStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, options->getScreenWidth(), options->getScreenHeight(), false);
     ssaoBlurStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR1, ssaoBlurredMap);
     ssaoBlurStage->setInput(1, ssaoTexture);

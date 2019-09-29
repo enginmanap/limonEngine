@@ -120,6 +120,7 @@ public:
     bool loadTriggers(void *objectHandle) const;
     bool loadPlayerExtensions(void *objectHandle) const;
     bool loadActors(void *objectHandle) const;
+    bool loadRenderMethods(void* objectHandle) const;
 
 };
 
