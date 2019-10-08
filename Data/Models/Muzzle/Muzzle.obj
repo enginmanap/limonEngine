@@ -1,3 +1,17 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:871729995765948cec0fcd773ac0852d2f736d332b7295d29a56defd2bcfe9df
-size 243
+mtllib Muzzle.mtl
+o Cube_Cube.001
+
+v -1.0 -1.0 0.0
+v  1.0 -1.0 0.0
+v  1.0  1.0 0.0
+v -1.0  1.0 0.0
+
+vt 0.000000 0.000000
+vt 1.000000 0.000000
+vt 1.000000 1.000000
+vt 0.000000 1.000000
+
+usemtl Material
+s off
+f 1/1 2/2 3/3 4/4
+

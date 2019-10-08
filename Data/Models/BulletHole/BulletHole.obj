@@ -1,3 +1,17 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:8bd9461d2e268efc255136b7a902bdc4e8dcdfc3f028c108072a51e1be335d2d
-size 247
+mtllib BulletHole.mtl
+o Cube_Cube.001
+
+v -1.0 -1.0 0.0
+v  1.0 -1.0 0.0
+v  1.0  1.0 0.0
+v -1.0  1.0 0.0
+
+vt 0.000000 0.000000
+vt 1.000000 0.000000
+vt 1.000000 1.000000
+vt 0.000000 1.000000
+
+usemtl Material
+s off
+f 1/1 2/2 3/3 4/4
+
