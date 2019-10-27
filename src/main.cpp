@@ -145,11 +145,11 @@ GameEngine::GameEngine() {
 }
 
 LimonAPI *GameEngine::getNewLimonAPI() {
-    std::function<bool(const std::__cxx11::string &)> limonLoadWorld =
+    std::function<bool(const std::string &)> limonLoadWorld =
             bind(&GameEngine::loadAndChangeWorld, this, std::placeholders::_1);
-    std::function<bool(const std::__cxx11::string &)> limonReturnOrLoadWorld =
+    std::function<bool(const std::string &)> limonReturnOrLoadWorld =
             bind(&GameEngine::returnOrLoadMap, this, std::placeholders::_1);
-    std::function<bool(const std::__cxx11::string &)> limonLoadNewAndRemoveCurrentWorld =
+    std::function<bool(const std::string &)> limonLoadNewAndRemoveCurrentWorld =
             bind(&GameEngine::LoadNewAndRemoveCurrent, this, std::placeholders::_1);
     std::function<void()> limonExitGame = [&] { setWorldQuit(); };
     std::function<void()> limonReturnPrevious = [&] { returnPreviousMap(); };
