@@ -166,7 +166,7 @@ bool SDL2Helper::loadActors(void *objectHandle) const {
 }
 
 bool SDL2Helper::loadRenderMethods(void *objectHandle) const {
-    const std::string recgisterFunctionName = "registerRenderMethods";
+    const std::string registerFunctionName = "registerRenderMethods";
     void(*registerFunction)(std::map<std::string, RenderMethodInterface*(*)(GraphicsInterface*)>*);
     registerFunction = (void(*)(
             std::map<std::string, RenderMethodInterface*(*)(GraphicsInterface*)>*))SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
