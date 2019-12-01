@@ -74,6 +74,21 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
     //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
 
+    std::shared_ptr<GraphicsProgram> shadowMapProgramDirectional = nullptr;
+    std::shared_ptr<GraphicsProgram> shadowMapProgramPoint = nullptr;
+    std::shared_ptr<GraphicsProgram> depthBufferProgram = nullptr;
+
+    std::shared_ptr<GraphicsProgram> nonTransparentModelProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> transparentModelProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> animatedModelProgram = nullptr;
+
+    std::shared_ptr<GraphicsProgram> skyBoxProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> textRenderProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> imageRenderProgram = nullptr;
+
+    std::shared_ptr<GraphicsProgram> ssaoGenerationProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> ssaoBlurProgram = nullptr;
+    std::shared_ptr<GraphicsProgram> combineProgram = nullptr;
 
     shadowMapProgramDirectional = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/ShadowMapDirectional/vertex.glsl",
                                                                          "./Engine/Shaders/ShadowMapDirectional/fragment.glsl", false);
@@ -260,7 +275,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     renderMethods.renderTransparentObjects  = std::bind(&World::renderTransparentObjects, this, std::placeholders::_1);
     renderMethods.renderGUITexts            = std::bind(&World::renderGUITexts, this, std::placeholders::_1);
     renderMethods.renderGUIImages           = std::bind(&World::renderGUIImages, this, std::placeholders::_1);
-    renderMethods.renderEditor              = std::bind(&World::ImGuiFrameSetup, this);
+    renderMethods.renderEditor              = std::bind(&World::ImGuiFrameSetup, this, std::placeholders::_1);
     renderMethods.renderSky                 = std::bind(&World::renderSky, this, std::placeholders::_1);
     renderMethods.renderDebug               = std::bind(&World::renderDebug, this, std::placeholders::_1);
     renderMethods.renderPlayerAttachmentOpaque    = std::bind(&World::renderPlayerAttachmentOpaqueObjects, this, std::placeholders::_1);
@@ -336,7 +351,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     if(!isFound) { std::cerr << "Failed to create render method for GUI Texts!" << std::endl;}
     stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render GUI Images", imageRenderProgram, isFound));
     if(!isFound) { std::cerr << "Failed to create render method for GUI Images!" << std::endl;}
-    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render Editor", nullptr, isFound));
+    stageInfo.addRenderMethod(defaultRenderPipeline->getRenderMethods().getRenderMethod("Render Editor", nonTransparentModelProgram, isFound));
     if(!isFound) { std::cerr << "Failed to create render method for Editor!" << std::endl;}
 
     defaultRenderPipeline->addNewStage(stageInfo);
@@ -1023,16 +1038,16 @@ void World::renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes 
      //These if checks are not combined because they are not checking the same thing. Outer one checks model type, inner one checks what type of model we are rendering
      if(attachedModel->isAnimated()) {
          if(renderingModelType == ModelTypes::ANIMATED) {
-             attachedModel->renderWithProgramInstanced(temp, *(animatedModelProgram.get()));
+             attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()));
          }
      } else {
          if(attachedModel->isTransparent()) {
              if(renderingModelType == ModelTypes::TRANSPARENT) {
-                 attachedModel->renderWithProgramInstanced(temp, *(transparentModelProgram.get()));
+                 attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()));
              }
          } else {
              if(renderingModelType == ModelTypes::NON_ANIMATED_OPAQUE) {
-                 attachedModel->renderWithProgramInstanced(temp, *(nonTransparentModelProgram.get()));
+                 attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()));
              }
          }
      }
@@ -1081,7 +1096,7 @@ bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {
  * This method checks if we are in editor mode, and if we are, enables ImGui windows
  * It also fills the windows with relevant parameters.
  */
-void World::ImGuiFrameSetup() {//TODO not const because it removes the object. Should be separated
+void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram) {//TODO not const because it removes the object. Should be separated
    if(!currentPlayersSettings->editorShown) {
        return;
    }
@@ -1107,7 +1122,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
        playerPlaceHolder->getTransformation()->setOrientation(physicalPlayer->getLookDirectionQuaternion());
        std::vector<uint32_t> temp;
        temp.push_back(playerPlaceHolder->getWorldObjectID());
-       playerPlaceHolder->renderWithProgramInstanced(temp, *(nonTransparentModelProgram.get()));
+       playerPlaceHolder->renderWithProgramInstanced(temp, *(graphicsProgram.get()));
    }
 
     imgGuiHelper->NewFrame();
@@ -4335,7 +4350,7 @@ void World::createNodeGraph() {
     renderMethods.renderTransparentObjects  = std::bind(&World::renderTransparentObjects, this, std::placeholders::_1);
     renderMethods.renderGUITexts            = std::bind(&World::renderGUITexts, this, std::placeholders::_1);
     renderMethods.renderGUIImages           = std::bind(&World::renderGUIImages, this, std::placeholders::_1);
-    renderMethods.renderEditor              = std::bind(&World::ImGuiFrameSetup, this);
+    renderMethods.renderEditor              = std::bind(&World::ImGuiFrameSetup, this, std::placeholders::_1);
     renderMethods.renderSky                 = std::bind(&World::renderSky, this, std::placeholders::_1);
     renderMethods.renderDebug               = std::bind(&World::renderDebug, this, std::placeholders::_1);
     renderMethods.renderPlayerAttachmentOpaque    = std::bind(&World::renderPlayerAttachmentOpaqueObjects, this, std::placeholders::_1);

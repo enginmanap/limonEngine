@@ -235,21 +235,7 @@ private:
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
 
-    std::shared_ptr<GraphicsProgram> shadowMapProgramDirectional = nullptr;
-    std::shared_ptr<GraphicsProgram> shadowMapProgramPoint = nullptr;
-    std::shared_ptr<GraphicsProgram> depthBufferProgram = nullptr;
 
-    std::shared_ptr<GraphicsProgram> nonTransparentModelProgram = nullptr;
-    std::shared_ptr<GraphicsProgram> transparentModelProgram = nullptr;
-    std::shared_ptr<GraphicsProgram> animatedModelProgram = nullptr;
-
-    std::shared_ptr<GraphicsProgram> skyBoxProgram = nullptr;
-    std::shared_ptr<GraphicsProgram> textRenderProgram = nullptr;
-    std::shared_ptr<GraphicsProgram> imageRenderProgram = nullptr;
-
-    std::shared_ptr<GraphicsProgram> ssaoGenerationProgram = nullptr;
-    std::shared_ptr<GraphicsProgram> ssaoBlurProgram = nullptr;
-    std::shared_ptr<GraphicsProgram> combineProgram = nullptr;
 
 
     FontManager fontManager;
@@ -367,7 +353,7 @@ private:
 
     void switchPlayer(Player* targetPlayer, InputHandler &inputHandler);
 
-    void ImGuiFrameSetup();
+    void ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram);
 
     void setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bool removePossible);
 
