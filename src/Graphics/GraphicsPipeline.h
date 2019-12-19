@@ -114,7 +114,7 @@ public:
 
         RenderMethod getRenderMethodAllDirectionalLights(std::shared_ptr<GraphicsPipelineStage>& stage, std::shared_ptr<Texture>& layeredDepthMap, std::shared_ptr<GraphicsProgram> glslProgram) const {
             RenderMethod renderMethod;
-            renderMethod.method = [&](const std::shared_ptr<GraphicsProgram> &renderProgram) {
+            renderMethod.method = [=](const std::shared_ptr<GraphicsProgram> &renderProgram) {
                 std::vector<size_t> lights = getLightIndexes(Light::LightTypes::DIRECTIONAL);
                 for (size_t light:lights) {
                     //set the layer that will be rendered. Also set clear so attached layer will be cleared right away.
@@ -170,16 +170,21 @@ public:
         }
     };
 
-    void addNewStage(const StageInfo& stageInformation) {
+    void addNewStage(const StageInfo stageInformation) {
         pipelineStages.push_back(stageInformation);
     }
+
+    void addTexture(std::shared_ptr<Texture> texture) {
+        textures.emplace_back(texture);
+    }
+
     void render();
 
 
 private:
     RenderMethods renderMethods;
     std::vector<StageInfo> pipelineStages;
+    std::vector<std::shared_ptr<Texture>> textures;
 };
-
 
 #endif //LIMONENGINE_GRAPHICSPIPELINE_H

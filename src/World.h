@@ -292,26 +292,8 @@ private:
     PipelineExtension *pipelineExtension;
     IterationExtension *iterationExtension;
     NodeGraph* nodeGraph = nullptr;
-
-
-    TextureAsset* ssaoNoise = nullptr;
-    std::shared_ptr<Texture> depthMapDirectional = nullptr;
-    std::shared_ptr<Texture> depthMapPoint = nullptr;
-    std::shared_ptr<Texture> diffuseAndSpecularLightedMap = nullptr;
-    std::shared_ptr<Texture> ambientMap = nullptr;
-    std::shared_ptr<Texture> normalMap = nullptr;
-    std::shared_ptr<Texture> depthMap = nullptr;
-    std::shared_ptr<Texture> ssaoTexture = nullptr;
-    std::shared_ptr<Texture> ssaoNoiseTexture = nullptr;
-    std::shared_ptr<Texture> ssaoBlurredMap = nullptr;
-
     std::shared_ptr<GraphicsPipeline> defaultRenderPipeline = nullptr;
-    std::shared_ptr<GraphicsPipelineStage> directionalShadowStage = nullptr;
-    std::shared_ptr<GraphicsPipelineStage> pointShadowStage = nullptr;
-    std::shared_ptr<GraphicsPipelineStage> coloringStage = nullptr;
-    std::shared_ptr<GraphicsPipelineStage> ssaoGenerationStage = nullptr;
-    std::shared_ptr<GraphicsPipelineStage> ssaoBlurStage = nullptr;
-    std::shared_ptr<GraphicsPipelineStage> combiningStage = nullptr;
+
 
     bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
 

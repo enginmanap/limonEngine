@@ -180,6 +180,29 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     GLfloat borderColor[] = {1.0, 1.0, 1.0, 1.0};
 
+    /** Temporary definition of the Textures
+     */
+
+    TextureAsset* ssaoNoise = nullptr;
+    std::shared_ptr<Texture> depthMapDirectional = nullptr;
+    std::shared_ptr<Texture> depthMapPoint = nullptr;
+    std::shared_ptr<Texture> diffuseAndSpecularLightedMap = nullptr;
+    std::shared_ptr<Texture> ambientMap = nullptr;
+    std::shared_ptr<Texture> normalMap = nullptr;
+    std::shared_ptr<Texture> depthMap = nullptr;
+    std::shared_ptr<Texture> ssaoTexture = nullptr;
+    std::shared_ptr<Texture> ssaoNoiseTexture = nullptr;
+    std::shared_ptr<Texture> ssaoBlurredMap = nullptr;
+
+
+
+    std::shared_ptr<GraphicsPipelineStage> directionalShadowStage = nullptr;
+    std::shared_ptr<GraphicsPipelineStage> pointShadowStage = nullptr;
+    std::shared_ptr<GraphicsPipelineStage> coloringStage = nullptr;
+    std::shared_ptr<GraphicsPipelineStage> ssaoGenerationStage = nullptr;
+    std::shared_ptr<GraphicsPipelineStage> ssaoBlurStage = nullptr;
+    std::shared_ptr<GraphicsPipelineStage> combiningStage = nullptr;
+
     //create depth buffer and texture for directional shadow map
     depthMapDirectional = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D_ARRAY, GraphicsInterface::InternalFormatTypes::DEPTH,
                                                     GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), NR_TOTAL_LIGHTS);
@@ -289,6 +312,18 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
 
     defaultRenderPipeline = std::make_shared<GraphicsPipeline>(renderMethods);
+
+    defaultRenderPipeline->addTexture(depthMapDirectional);
+    defaultRenderPipeline->addTexture(depthMapPoint);
+    defaultRenderPipeline->addTexture(diffuseAndSpecularLightedMap);
+    defaultRenderPipeline->addTexture(ambientMap);
+    defaultRenderPipeline->addTexture(normalMap);
+    defaultRenderPipeline->addTexture(depthMap);
+    defaultRenderPipeline->addTexture(ssaoTexture);
+    defaultRenderPipeline->addTexture(ssaoNoiseTexture);
+    defaultRenderPipeline->addTexture(ssaoBlurredMap);
+
+
     GraphicsPipeline::StageInfo stageInfo;
 
     stageInfo.clear = false;
