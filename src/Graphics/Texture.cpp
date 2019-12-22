@@ -83,6 +83,10 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     }
     textureNode->InsertEndChild(currentElement);
 
+    currentElement = document.NewElement("TextureSerializeID");
+    currentElement->SetText(this->serializeID);
+    textureNode->InsertEndChild(currentElement);
+
     currentElement = document.NewElement("FilterMode");
     switch (filterMode) {
         case GraphicsInterface::FilterModes::NEAREST: currentElement->SetText("NEAREST"); break;
@@ -94,28 +98,28 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     currentElement = document.NewElement("WrapModes");
     tinyxml2::XMLElement *wrapModeNode= document.NewElement("S");
     switch (wrapModeS) {
-        case GraphicsInterface::TextureWrapModes::NONE: currentElement->SetText("NONE"); break;
-        case GraphicsInterface::TextureWrapModes::BORDER: currentElement->SetText("BORDER"); break;
-        case GraphicsInterface::TextureWrapModes::EDGE: currentElement->SetText("EDGE"); break;
-        case GraphicsInterface::TextureWrapModes::REPEAT: currentElement->SetText("REPEAT"); break;
+        case GraphicsInterface::TextureWrapModes::NONE: wrapModeNode->SetText("NONE"); break;
+        case GraphicsInterface::TextureWrapModes::BORDER: wrapModeNode->SetText("BORDER"); break;
+        case GraphicsInterface::TextureWrapModes::EDGE: wrapModeNode->SetText("EDGE"); break;
+        case GraphicsInterface::TextureWrapModes::REPEAT: wrapModeNode->SetText("REPEAT"); break;
     }
     currentElement->InsertEndChild(wrapModeNode);
 
     wrapModeNode= document.NewElement("T");
     switch (wrapModeT) {
-        case GraphicsInterface::TextureWrapModes::NONE: currentElement->SetText("NONE"); break;
-        case GraphicsInterface::TextureWrapModes::BORDER: currentElement->SetText("BORDER"); break;
-        case GraphicsInterface::TextureWrapModes::EDGE: currentElement->SetText("EDGE"); break;
-        case GraphicsInterface::TextureWrapModes::REPEAT: currentElement->SetText("REPEAT"); break;
+        case GraphicsInterface::TextureWrapModes::NONE: wrapModeNode->SetText("NONE"); break;
+        case GraphicsInterface::TextureWrapModes::BORDER: wrapModeNode->SetText("BORDER"); break;
+        case GraphicsInterface::TextureWrapModes::EDGE: wrapModeNode->SetText("EDGE"); break;
+        case GraphicsInterface::TextureWrapModes::REPEAT: wrapModeNode->SetText("REPEAT"); break;
     }
     currentElement->InsertEndChild(wrapModeNode);
 
     wrapModeNode= document.NewElement("R");
     switch (wrapModeR) {
-        case GraphicsInterface::TextureWrapModes::NONE: currentElement->SetText("NONE"); break;
-        case GraphicsInterface::TextureWrapModes::BORDER: currentElement->SetText("BORDER"); break;
-        case GraphicsInterface::TextureWrapModes::EDGE: currentElement->SetText("EDGE"); break;
-        case GraphicsInterface::TextureWrapModes::REPEAT: currentElement->SetText("REPEAT"); break;
+        case GraphicsInterface::TextureWrapModes::NONE: wrapModeNode->SetText("NONE"); break;
+        case GraphicsInterface::TextureWrapModes::BORDER: wrapModeNode->SetText("BORDER"); break;
+        case GraphicsInterface::TextureWrapModes::EDGE: wrapModeNode->SetText("EDGE"); break;
+        case GraphicsInterface::TextureWrapModes::REPEAT: wrapModeNode->SetText("REPEAT"); break;
     }
     currentElement->InsertEndChild(wrapModeNode);
     textureNode->InsertEndChild(currentElement);
@@ -123,7 +127,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     return true;
 }
 
-Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface* graphicsWrapper, Options *options [[gnu::unused]]) {
+std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface* graphicsWrapper, Options *options [[gnu::unused]]) {
     tinyxml2::XMLElement* textureNodeAttribute = nullptr;
 
     GraphicsInterface::TextureTypes textureType;
@@ -261,9 +265,20 @@ Texture *Texture::deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterfa
     std::string depthString = textureNodeAttribute->GetText();
     depth = std::stoi(depthString);
 
+    std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, textureType, internalFormat, format, dataType, width, height, depth);
 
-
-    Texture* texture = new Texture(graphicsWrapper, textureType, internalFormat, format, dataType, width, height, depth);
+    textureNodeAttribute = TextureNode->FirstChildElement("TextureSerializeID");
+    if (textureNodeAttribute == nullptr) {
+        std::cerr << "Texture doesn't have serializeID." << std::endl;
+        return nullptr;
+    }
+    if(textureNodeAttribute->GetText() == nullptr) {
+        std::cerr << "Texture serializeID doesn't have text, this is must likely a bug." << std::endl;
+        return nullptr;
+    }
+    std::string serializeIDString = textureNodeAttribute->GetText();
+    uint32_t serializeID = std::stoi(serializeIDString);
+    texture->setSerializeID(serializeID);
 
     textureNodeAttribute = TextureNode->FirstChildElement("FilterMode");
     if (textureNodeAttribute != nullptr) {

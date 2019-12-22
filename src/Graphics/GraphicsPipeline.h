@@ -16,6 +16,7 @@ class World;
 class GraphicsProgram;
 
 class GraphicsPipeline {
+    GraphicsPipeline() = default;//used for deserialize
 public:
     static std::vector<std::string> renderMethodNames;//This is not array, because custom effects might be loaded on runtime as extensions.
 
@@ -34,6 +35,13 @@ public:
             method(glslProgram);
         }
 
+        const std::string &getName() const {
+            return name;
+        }
+
+        const std::shared_ptr<GraphicsProgram> &getGlslProgram() const {
+            return glslProgram;
+        }
     };
 
     class RenderMethods {
@@ -168,6 +176,11 @@ public:
         void addRenderMethod(RenderMethod method) {
             renderMethods.emplace_back(method);
         }
+
+        bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
+        static std::shared_ptr<GraphicsPipeline::StageInfo>
+        deserialize(tinyxml2::XMLElement *stageInfoElement, GraphicsInterface *graphicsWrapper, RenderMethods &renderMethods,
+                    const std::vector<std::shared_ptr<Texture>> &textures, Options *options);
     };
 
     void addNewStage(const StageInfo stageInformation) {
@@ -180,6 +193,9 @@ public:
 
     void render();
 
+    bool serialize(const std::string& renderPipelineFileName, Options *options);
+
+    static std::unique_ptr<GraphicsPipeline> deserialize(const std::string &graphicsPipelineFileName, GraphicsInterface *graphicsWrapper, Options *options, RenderMethods renderMethods);
 
 private:
     RenderMethods renderMethods;

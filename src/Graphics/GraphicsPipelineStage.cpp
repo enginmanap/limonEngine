@@ -12,7 +12,7 @@ void GraphicsPipelineStage::activate(const std::map<std::shared_ptr<Texture>, st
     graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, clear && colorAttachment, clear && depthAttachment, cullMode, inputs, attachmentLayerMap);
 }
 
-bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options) {
+bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options [[gnu::unused]]) {
     tinyxml2::XMLElement *stageNode = document.NewElement("GraphicsPipelineStage");
     parentNode->InsertEndChild(stageNode);
     tinyxml2::XMLElement *currentElement = nullptr;
@@ -72,7 +72,7 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     for(auto input:inputs) {
         tinyxml2::XMLElement *inputElement = document.NewElement("Input");
         inputElement->SetAttribute("Index", input.first);
-        input.second->serialize(document, inputElement, options);
+        inputElement->SetAttribute("textureID", input.second->getTextureID());//I am using texture ID because it is unique at a given time. We might use any other
         currentElement->InsertEndChild(inputElement);
     }
 
@@ -92,13 +92,13 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
             case GraphicsInterface::FrameBufferAttachPoints::COLOR5 : outputElement->SetAttribute("Attachment", "COLOR5"); break;
             case GraphicsInterface::FrameBufferAttachPoints::COLOR6 : outputElement->SetAttribute("Attachment", "COLOR6"); break;
         }
-        output.second->serialize(document, outputElement, options);
+        outputElement->SetAttribute("textureID", output.second->getTextureID());//I am using texture ID because it is unique at a given time. We might use any other
         currentElement->InsertEndChild(outputElement);
     }
     return true;
 }
 
-GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface* graphicsWrapper, Options *options) {
+std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface* graphicsWrapper, const std::vector<std::shared_ptr<Texture>>& textures, Options *options) {
     tinyxml2::XMLElement* stageNodeAttribute = nullptr;
 
     uint32_t renderHeight, renderWidth;
@@ -118,7 +118,7 @@ GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *
     std::string heightString = stageNodeAttribute->GetText();
     renderHeight = std::stoi(heightString);
 
-    stageNodeAttribute = stageNode->FirstChildElement("renderWidth");
+    stageNodeAttribute = stageNode->FirstChildElement("RenderWidth");
     if (stageNodeAttribute == nullptr) {
         std::cerr << "Pipeline stage must have Render Width. Skipping" << std::endl;
         return nullptr;
@@ -167,7 +167,7 @@ GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *
         return nullptr;
     }
 
-    GraphicsPipelineStage* newStage = new GraphicsPipelineStage(graphicsWrapper, renderWidth, renderHeight, blendEnabled, toScreen);
+    std::shared_ptr<GraphicsPipelineStage> newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, renderWidth, renderHeight, blendEnabled, toScreen);
 
     stageNodeAttribute = stageNode->FirstChildElement("CullMode");
 
@@ -206,12 +206,21 @@ GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *
             std::cerr << "Input index for Pipeline Stage can't be read, skipping" << std::endl;
         } else {
             int index = std::stoi(indexRaw);
-            tinyxml2::XMLElement *textureElement = inputElement->FirstChildElement("Texture");
-            Texture* inputTexture = Texture::deserialize(textureElement, graphicsWrapper, options);
-            if(inputTexture == nullptr) {
-                std::cerr << "For input " << index << " texture deserialize failed, skipping" << std::endl;
+            std::string textureID = inputElement->Attribute("textureID");
+            if(textureID.empty()) {
+                std::cerr << "Texture ID for index " << index << " can't be read, skipping" << std::endl;
             } else {
-                newStage->setInput(index, std::shared_ptr<Texture>(inputTexture));
+                bool found = false;
+                for (const auto& texture:textures) {
+                    if (texture->getSerializeID() == std::stoi(textureID)) {
+                        newStage->setInput(index, texture);
+                        found = true;
+                        break;
+                    }
+                }
+                if(!found) {
+                    std::cerr << "Texture ID "<< std::stoi(textureID) << " for index " << index << " can't be found" << std::endl;
+                }
             }
         }
         inputElement = stageNodeAttribute->NextSiblingElement("Input");
@@ -241,12 +250,27 @@ GraphicsPipelineStage *GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *
                 fail = true;
             }
             if(!fail) {
-                tinyxml2::XMLElement *textureElement = outputElement->FirstChildElement("Texture");
-                Texture *outputTexture = Texture::deserialize(textureElement, graphicsWrapper, options);
+                std::string textureID = outputElement->Attribute("textureID");
+                std::shared_ptr<Texture> outputTexture;
+                if(textureID.empty()) {
+                    std::cerr << "Texture ID for output attachment " << attachmentString << " can't be read, skipping" << std::endl;
+                } else {
+                    bool found = false;
+                    for (const auto& texture:textures) {
+                        if (texture->getSerializeID() == std::stoi(textureID)) {
+                            outputTexture = texture;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if(!found) {
+                        std::cerr << "Texture ID "<< std::stoi(textureID) << " for attachment point " << attachmentString << " can't be found" << std::endl;
+                    }
+                }
                 if (outputTexture == nullptr) {
                     std::cerr << "For output " << attachmentString << " texture deserialize failed, skipping" << std::endl;
                 } else {
-                    newStage->setOutput(attachmentPoint, std::shared_ptr<Texture>(outputTexture), false, 0);
+                    newStage->setOutput(attachmentPoint, outputTexture, false, 0);
                 }
             }
         }

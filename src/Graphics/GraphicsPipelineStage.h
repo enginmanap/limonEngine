@@ -77,7 +77,7 @@ public:
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
 
-    static GraphicsPipelineStage *deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface* graphicsWrapper, Options *options);
+    static std::shared_ptr<GraphicsPipelineStage> deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface* graphicsWrapper, const std::vector<std::shared_ptr<Texture>>& textures, Options *options);
 
 };
 

@@ -10,6 +10,7 @@
 class Texture {
     GraphicsInterface* graphicsWrapper;
     uint32_t textureID;
+    uint32_t serializeID;
     GraphicsInterface::TextureTypes textureType;
     GraphicsInterface::InternalFormatTypes internalFormat;
     GraphicsInterface::FormatTypes format;
@@ -25,7 +26,7 @@ class Texture {
     bool borderColorSet = false;
 public:
     Texture(GraphicsInterface* graphicsWrapper, GraphicsInterface::TextureTypes textureType, GraphicsInterface::InternalFormatTypes internalFormat, GraphicsInterface::FormatTypes format, GraphicsInterface::DataTypes dataType, uint32_t width, uint32_t height, uint32_t depth = 0)
-            : graphicsWrapper(graphicsWrapper), textureType(textureType), internalFormat(internalFormat), format(format), dataType(dataType), height(height), width(width), depth(depth) {
+            : graphicsWrapper(graphicsWrapper), serializeID(0), textureType(textureType), internalFormat(internalFormat), format(format), dataType(dataType), height(height), width(width), depth(depth) {
         this->textureID = graphicsWrapper->createTexture(height, width, textureType, internalFormat, format, dataType, depth);
     }
 
@@ -92,9 +93,17 @@ public:
         return width;
     }
 
+    uint32_t getSerializeID() const {
+        return serializeID;
+    }
+
+    void setSerializeID(uint32_t serializeID) {
+        this->serializeID = serializeID;
+    }
+
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
 
-    static Texture *deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface* graphicsWrapper, Options *options);
+    static std::shared_ptr<Texture> deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface* graphicsWrapper, Options *options);
 
 };
 

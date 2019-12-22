@@ -155,7 +155,7 @@ public:
             }
         }
 
-        programNodeAttribute = programNode->FirstChildElement("VertexShader");
+        programNodeAttribute = programNode->FirstChildElement("FragmentShader");
         if (programNodeAttribute != nullptr) {
             if(programNodeAttribute->GetText() == nullptr) {
                 std::cerr << "GLSL Program vertex shader has no text, this case is not handled!" << std::endl;
@@ -189,6 +189,18 @@ public:
         } else {
             return graphicsWrapper->createGraphicsProgram(vertexShader, fragmentShader, materialRequired);
         }
+    }
+
+    const std::string &getVertexShader() const {
+        return vertexShader;
+    }
+
+    const std::string &getGeometryShader() const {
+        return geometryShader;
+    }
+
+    const std::string &getFragmentShader() const {
+        return fragmentShader;
     }
 
 };

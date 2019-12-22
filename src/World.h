@@ -20,7 +20,7 @@
 #include "ALHelper.h"
 #include "GameObjects/Players/Player.h"
 #include "SDL2Helper.h"
-
+#include "Graphics/GraphicsPipeline.h"
 
 class btGhostPairCallback;
 class Camera;
@@ -64,7 +64,6 @@ class QuadRender;
 
 class GraphicsInterface;
 class GraphicsPipelineStage;
-class GraphicsPipeline;
 class TextureAsset;
 class ALHelper;
 
@@ -234,9 +233,6 @@ private:
     long gameTime = 0;
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
-
-
-
 
     FontManager fontManager;
 
@@ -411,7 +407,10 @@ public:
 
     std::string getName();
 
-    /************************************ Methods LimonAPI exposes *************/
+    std::shared_ptr<GraphicsPipeline> buildRenderPipeline(AssetManager *assetManager, const Options *options);
+    GraphicsPipeline::RenderMethods buildRenderMethods();
+
+        /************************************ Methods LimonAPI exposes *************/
     /**
     * This method fills the parameters required to run the trigger
     * @param runParameters
