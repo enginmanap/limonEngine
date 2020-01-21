@@ -72,7 +72,7 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     for(auto input:inputs) {
         tinyxml2::XMLElement *inputElement = document.NewElement("Input");
         inputElement->SetAttribute("Index", input.first);
-        inputElement->SetAttribute("textureID", input.second->getTextureID());//I am using texture ID because it is unique at a given time. We might use any other
+        inputElement->SetAttribute("textureID", input.second->getSerializeID());
         currentElement->InsertEndChild(inputElement);
     }
 
@@ -223,7 +223,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
                 }
             }
         }
-        inputElement = stageNodeAttribute->NextSiblingElement("Input");
+        inputElement = inputElement->NextSiblingElement("Input");
     }
 
     stageNodeAttribute = stageNode->FirstChildElement("Outputs");
@@ -274,7 +274,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
                 }
             }
         }
-        outputElement = stageNodeAttribute->NextSiblingElement("Output");
+        outputElement = outputElement->NextSiblingElement("Output");
     }
 
     return newStage;
