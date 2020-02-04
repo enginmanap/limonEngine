@@ -128,6 +128,7 @@ public:
         } else {
             currentElement->SetText("False");
         }
+        programNode->InsertEndChild(currentElement);
         return true;
     }
 
