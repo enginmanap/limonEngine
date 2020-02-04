@@ -65,7 +65,6 @@ bool GraphicsPipeline::StageInfo::serialize(tinyxml2::XMLDocument &document, tin
      * Stage serialization is Stage classes responsibility
      */
 
-
     tinyxml2::XMLElement *stageInformationElement = document.NewElement("StageInformation");
     parentNode->InsertEndChild(stageInformationElement);
 
@@ -241,6 +240,10 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
                 return nullptr;
             }
             graphicsProgram = GraphicsProgram::deserialize(graphicsProgramElement, graphicsWrapper);
+        }
+        if(methodName == "All directional shadows" || methodName == "All point shadows") {
+            std::cerr << "setting up shadow rendering is not implemented, skipping" << std::endl;
+            return nullptr;
         }
         bool isFound = true;
         RenderMethod method = renderMethods.getRenderMethod(methodName, graphicsProgram, isFound);
