@@ -92,7 +92,7 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
             case GraphicsInterface::FrameBufferAttachPoints::COLOR5 : outputElement->SetAttribute("Attachment", "COLOR5"); break;
             case GraphicsInterface::FrameBufferAttachPoints::COLOR6 : outputElement->SetAttribute("Attachment", "COLOR6"); break;
         }
-        outputElement->SetAttribute("textureID", output.second->getTextureID());//I am using texture ID because it is unique at a given time. We might use any other
+        outputElement->SetAttribute("textureID", output.second->getSerializeID());
         currentElement->InsertEndChild(outputElement);
     }
     return true;
@@ -212,7 +212,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
             } else {
                 bool found = false;
                 for (const auto& texture:textures) {
-                    if (texture->getSerializeID() == std::stoi(textureID)) {
+                    if (texture->getSerializeID() == (uint32_t)stoi(textureID)) {
                         newStage->setInput(index, texture);
                         found = true;
                         break;
@@ -231,7 +231,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
     while (outputElement != nullptr) {
         const char* attachmentRaw = outputElement->Attribute("Attachment");
         if(attachmentRaw == nullptr) {
-            std::cerr << "Ouput attachment for Pipeline Stage can't be read, skipping" << std::endl;
+            std::cerr << "Output attachment for Pipeline Stage can't be read, skipping" << std::endl;
         } else {
             bool fail = false;
             GraphicsInterface::FrameBufferAttachPoints attachmentPoint;
