@@ -195,6 +195,7 @@ void PipelineExtension::drawDetailPane(const std::vector<const Node *>& nodes, c
 }
 
 void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline) {
+    /*
     for(const Connection* connection:node->getInputConnections()) {
         if(connection->getInput() != nullptr) {
             Node *inputNode = connection->getInput()->getParent();
@@ -263,5 +264,5 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
     } else {
         std::cerr << "Extension of the node is not PipelineStageExtension, this is not handled! " << std::endl;
     }
-
+*/
 }

@@ -28,6 +28,7 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     //std::cout << "ASSIMP::Loading::" << name << std::endl;
     const aiScene *scene;
     Assimp::Importer import;
+    import.SetPropertyBool("AI_CONFIG_IMPORT_FBX_EMBEDDED_TEXTURES_LEGACY_NAMING", true);
     unsigned int flags = (aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality);
 #ifdef ASSIMP_VALIDATE_WORKAROUND
     flags = flags & ~aiProcess_FindInvalidData;
@@ -233,11 +234,9 @@ std::shared_ptr<Material>ModelAsset::loadMaterials(const aiScene *scene, unsigne
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &property)) {
                 if(property.data[0] != '*') {
                     newMaterial->setDiffuseTexture(property.C_Str());
-                    //std::cout << "set diffuse texture " << property.C_Str() << std::endl;
                 } else {
                     //embeddedTexture handling
                     newMaterial->setDiffuseTexture(property.C_Str(), &this->name);
-                    //std::cout << "set (embedded) setDiffuseTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
                 }
             } else {
                 std::cerr << "The model contained diffuse texture information, but texture loading failed. \n" <<

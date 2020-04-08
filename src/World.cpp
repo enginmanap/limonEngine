@@ -4109,239 +4109,6 @@ bool World::setLightColorAPI(uint32_t lightID, const LimonAPI::Vec4& color) {
     return true;
 }
 
-   static struct NodeType nodeTypes[] =
-           {
-                   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                   {
-                           "Texture",
-                           true,
-                           nullptr,
-                           // Input connections
-                           {
-                                   {"Write", "Texture"},
-                           },
-                           // Output
-                           {
-                                   {"Read", "Texture"},
-                           },
-                   },
-                   {
-                           "Combine All",
-                           false,
-                           nullptr,
-                           // Input connections
-                           {
-                                   {"diffuseSpecularLighted", "Texture"},
-                                   {"depthMap", "Texture"},
-                           },
-                           // Output
-                           {
-                                   {"finalColor", "Texture"},
-
-                           },
-                   },
-                   {
-                           "Combine All SSAO",
-                           false,
-                           nullptr,
-                           // Input connections
-                           {
-                                   {"diffuseSpecularLighted", "Texture"},
-                                   {"ambient", "Texture"},
-                                   {"ssao", "Texture"},
-                                   {"depthMap", "Texture"},
-                           },
-                           // Output
-                           {
-                                   {"finalColor", "Texture"},
-                           },
-                   },
-                   {
-                           "depthPrePass",
-                           false,
-                           nullptr,
-                           // Input connections
-                           {
-                           },
-                           // Output
-                           {
-                                   {"depthMap", "Texture"},
-                           },
-                   },
-                   {
-                           "GUI",
-                           false,
-                           nullptr,
-                           // Input connections
-                           {
-                                   {"GUISampler", "Texture"},
-                           },
-                           // Output
-                           {
-                                   {"GUI", "Texture"},
-                           },
-                   },
-                   {
-                           "Models",
-                           false,
-                           nullptr,
-                           // Input connections
-                           {
-                                   {"shadowSamplerDirectional", "Texture"},
-                                   {"shadowSamplerPoint", "Texture"},
-                                   {"ambientSampler", "Texture"},
-                                   {"diffuseSampler", "Texture"},
-                                   {"specularSampler", "Texture"},
-                                   {"opacitySampler", "Texture"},
-                                   {"normalSampler", "Texture"},
-                           },
-                           // Output
-                           {
-                                   {"diffuseAndSpecularLightedColor", "Texture"},
-                                   {"ambientColor", "Texture"},
-                                   {"normalOutput", "Texture"},
-
-                           },
-                   },
-
-                   {
-                           "ModelsTransparent",
-                           false,
-                           nullptr,
-                           // Input connections
-                           {
-                                   {"shadowSamplerDirectional", "Texture"},
-                                   {"shadowSamplerPoint", "Texture"},
-                                   {"ambientSampler", "Texture"},
-                                   {"diffuseSampler", "Texture"},
-                                   {"specularSampler", "Texture"},
-                                   {"opacitySampler", "Texture"},
-                                   {"normalSampler", "Texture"},
-                           },
-                           // Output
-                           {
-                                   {"diffuseAndSpecularLightedColor", "Texture"},
-                                   {"ambientColor", "Texture"},
-                                   {"normalOutput", "Texture"},
-
-                           },
-                   },
-                   {
-                           "ShadowMapDirectional",
-                           false,
-                           nullptr,
-                           // Input connections
-                           {
-                           },
-                           // Output
-                           {
-
-                                   {"directionalShadowMap", "Texture"},
-
-                           },
-                   },
-                   {
-                           "ShadowMapPoint",
-                           false,
-                           nullptr,
-                           // Input connections
-                           {
-                           },
-                           // Output
-                           {
-                                   {"PointShadowMap", "Texture"},
-                           },
-                   },
-                   {
-                           "SkyCube",
-                           false,
-                           nullptr,
-                           // Input connections
-                           {
-                           },
-                           // Output
-                           {
-                                   {"SkyBox", "Texture"},
-                                   {"NormalOutput", "Texture"},
-                           },
-                   },
-                   {
-                           "SSAO",
-                           false,
-                           nullptr,
-                           // Input connections
-                           {
-                                   {"depthMapSampler", "Texture"},
-                                   {"normalMapSampler", "Texture"},
-                                   {"ssaoNoiseSampler", "Texture"},
-                           },
-                           // Output
-                           {
-                                   {"occlusion", "Texture"},
-                           },
-                   },
-                   {
-                           "SSAO",
-                           false,
-                           nullptr,
-                           // Input connections
-                           {
-                                   {"ssaoResultSampler", "Texture"},
-                           },
-                           // Output
-                           {
-                                   {"occlusion", "Texture"},
-                           },
-                   },
-
-                   {
-                           "Multiply",
-                           true,
-                           nullptr,
-                           // Input connections
-                           {
-                                   {"Input1", "Float"},
-                                   {"Input2", "Float"},
-                           },
-                           // Output
-                           {
-                                   {"Out", "Float"},
-                           },
-                   },
-
-                   {
-                           "Add",
-                           true,
-                           nullptr,
-                           // Input connections
-                           {
-                                   {"Input1", "Integer"},
-                                   {"Input2", "Integer"},
-                           },
-                           // Output
-                           {
-                                   {"Out", "Integer"},
-                           },
-                   },
-
-                   {
-                           "Divide",
-                           true,
-                           nullptr,
-                           // Input connections
-                           {
-                                   {"Input1", "Float"},
-                                   {"Input2", "Float"},
-                           },
-                           // Output
-                           {
-                                   {"Output1", "Float"},
-                                   {"Output2", "Float"},
-                                   {"Output3", "Float"},
-                           },
-                   },
-           };
-
 void World::drawNodeEditor() {
     if(this->nodeGraph == nullptr) {
         createNodeGraph();
@@ -4368,11 +4135,11 @@ void World::createNodeGraph() {
 
     //start with predefined types
 
-    NodeType screen{"Screen", false, nullptr,{}, {}};
+    NodeType screen{"Screen", false, nullptr,{}, {}, true};
     screen.inputConnections.push_back(ConnectionDesc{"Input", "Texture"});
     nodeTypeVector.push_back(screen);
 
-    NodeType blend{"Blend", true, nullptr,{}, {}};
+    NodeType blend{"Blend", true, nullptr,{}, {}, false};
     blend.inputConnections.push_back(ConnectionDesc{"Input1", "Texture"});
     blend.inputConnections.push_back(ConnectionDesc{"Input2", "Texture"});
     blend.inputConnections.push_back(ConnectionDesc{"Input3", "Texture"});
@@ -4383,8 +4150,7 @@ void World::createNodeGraph() {
 
     NodeType Iterate {"Iterate", false, iterationExtension,
                       {{"Input", "Texture"},},
-                       {{"Output", "Texture"},},
-    };
+                       {{"Output", "Texture"},},false};
     nodeTypeVector.push_back(Iterate);
 
     auto programs = graphicsWrapper->getLoadedPrograms();
@@ -4414,7 +4180,7 @@ void World::createNodeGraph() {
         endof=programName.find_last_of("/\\");
         startof = programName.substr(0,endof).find_last_of("/\\") +1;
         std::string nodeName = programName.substr(startof, endof - startof);
-        NodeType type{nodeName.c_str(), false, nullptr, {}, {}};
+        NodeType type{nodeName.c_str(), false, nullptr, {}, {}, true};
 
         auto uniformMap = program.first->getUniformMap();
         for(auto uniform:uniformMap) {
