@@ -18,6 +18,11 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra -Wnon-virtual-dtor -pedantic")
 ENDIF()
 
+IF (UNIX)
+    cmake_policy (SET CMP0072 NEW)
+ENDIF()
+
+
 include(libs/CmakeLists.txt)
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
