@@ -119,8 +119,9 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     switchPlayer(currentPlayer, *inputHandler); //switching to itself, to set the states properly. It uses camera so done after camera creation
 
 
-    this->defaultRenderPipeline = buildRenderPipeline(assetManager, options);
-    //this->defaultRenderPipeline = GraphicsPipeline::deserialize("./Data/renderPipeline.xml", graphicsWrapper, options, buildRenderMethods());
+
+    std::shared_ptr<GraphicsPipeline> loadedPipeline = GraphicsPipeline::deserialize("./Data/renderPipeline.xml", graphicsWrapper, options, buildRenderMethods());
+    this->defaultRenderPipeline = buildRestOfPipeline(loadedPipeline, assetManager, options);
 
     fpsCounter = new GUIFPSCounter(graphicsWrapper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                                    glm::vec3(204, 204, 0));
@@ -138,259 +139,47 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     imgGuiHelper = new ImGuiHelper(graphicsWrapper, options);
 }
 
-   std::shared_ptr<GraphicsPipeline> World::buildRenderPipeline(AssetManager *assetManager, const Options *options) {
-       GLfloat borderColor[] = {1.0, 1.0, 1.0, 1.0};
 
+   std::shared_ptr<GraphicsPipeline> World::buildRestOfPipeline(std::shared_ptr<GraphicsPipeline> pipeline, AssetManager *assetManager, const Options *options) {
 
-       std::shared_ptr<GraphicsProgram> shadowMapProgramDirectional = nullptr;
-       std::shared_ptr<GraphicsProgram> shadowMapProgramPoint = nullptr;
-       std::shared_ptr<GraphicsProgram> depthBufferProgram = nullptr;
-
-       std::shared_ptr<GraphicsProgram> nonTransparentModelProgram = nullptr;
-       std::shared_ptr<GraphicsProgram> transparentModelProgram = nullptr;
-       std::shared_ptr<GraphicsProgram> animatedModelProgram = nullptr;
-
-       std::shared_ptr<GraphicsProgram> skyBoxProgram = nullptr;
-       std::shared_ptr<GraphicsProgram> textRenderProgram = nullptr;
-       std::shared_ptr<GraphicsProgram> imageRenderProgram = nullptr;
-
-       std::shared_ptr<GraphicsProgram> ssaoGenerationProgram = nullptr;
-       std::shared_ptr<GraphicsProgram> ssaoBlurProgram = nullptr;
-       std::shared_ptr<GraphicsProgram> combineProgram = nullptr;
-
-       shadowMapProgramDirectional = this->graphicsWrapper->createGraphicsProgram("./Engine/Shaders/ShadowMapDirectional/vertex.glsl",
-                                                                                  "./Engine/Shaders/ShadowMapDirectional/fragment.glsl", false);
-       shadowMapProgramPoint = this->graphicsWrapper->createGraphicsProgram("./Engine/Shaders/ShadowMapPoint/vertex.glsl",
-                                                                            "./Engine/Shaders/ShadowMapPoint/geometry.glsl",
-                                                                            "./Engine/Shaders/ShadowMapPoint/fragment.glsl", false);
-
-       depthBufferProgram = this->graphicsWrapper->createGraphicsProgram("./Engine/Shaders/depthPrePass/vertex.glsl",
-                                                                         "./Engine/Shaders/depthPrePass/fragment.glsl", false);
-
-       nonTransparentModelProgram = this->graphicsWrapper->createGraphicsProgram("./Engine/Shaders/Model/vertex.glsl",
-                                                                                 "./Engine/Shaders/Model/fragment.glsl", true);
-       this->setSamplersAndUBOs(nonTransparentModelProgram, false);
-
-       transparentModelProgram    = this->graphicsWrapper->createGraphicsProgram("./Engine/Shaders/ModelTransparent/vertex.glsl",
-                                                                                 "./Engine/Shaders/ModelTransparent/fragment.glsl", true);
-       this->setSamplersAndUBOs(transparentModelProgram, true);
-
-       animatedModelProgram       = this->graphicsWrapper->createGraphicsProgram("./Engine/Shaders/ModelAnimated/vertex.glsl",
-                                                                                 "./Engine/Shaders/ModelAnimated/fragment.glsl", true);
-       this->setSamplersAndUBOs(animatedModelProgram, false);
-
-       skyBoxProgram               = this->graphicsWrapper->createGraphicsProgram("./Engine/Shaders/SkyCube/vertex.glsl", "./Engine/Shaders/SkyCube/fragment.glsl", false);
-
-       textRenderProgram           = this->graphicsWrapper->createGraphicsProgram("./Engine/Shaders/GUIText/vertex.glsl", "./Engine/Shaders/GUIText/fragment.glsl", false);
-
-       imageRenderProgram          = this->graphicsWrapper->createGraphicsProgram("./Engine/Shaders/GUIImage/vertex.glsl", "./Engine/Shaders/GUIImage/fragment.glsl", false);
-
-       ssaoGenerationProgram       = this->graphicsWrapper->createGraphicsProgram("./Engine/Shaders/SSAOGeneration/vertex.glsl", "./Engine/Shaders/SSAOGeneration/fragment.glsl", false);
-       ssaoGenerationProgram->setUniform("pre_depthMap", 1);
-       ssaoGenerationProgram->setUniform("pre_normalMap", 2);
-       ssaoGenerationProgram->setUniform("ssaoNoiseSampler", 3);
-       ssaoBlurProgram             = this->graphicsWrapper->createGraphicsProgram("./Engine/Shaders/SSAOBlur/vertex.glsl", "./Engine/Shaders/SSAOBlur/fragment.glsl", false);
-       ssaoBlurProgram->setUniform("pre_ssaoResult", 1);
-
-       combineProgram              = this->graphicsWrapper->createGraphicsProgram("./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl",
-                                                                                  "./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl", false);
-       combineProgram->setUniform("pre_diffuseSpecularLighted", 1);
-       combineProgram->setUniform("pre_ambient", 2);
-       combineProgram->setUniform("pre_ssao", 3);
-       combineProgram->setUniform("pre_depthMap", 4);
-
-
-       /** Temporary definition of the Textures
-           */
-
-       TextureAsset* ssaoNoise = nullptr;
-       std::shared_ptr<Texture> depthMapDirectional = nullptr;
-       std::shared_ptr<Texture> depthMapPoint = nullptr;
-       std::shared_ptr<Texture> diffuseAndSpecularLightedMap = nullptr;
-       std::shared_ptr<Texture> ambientMap = nullptr;
-       std::shared_ptr<Texture> normalMap = nullptr;
-       std::shared_ptr<Texture> depthMap = nullptr;
-       std::shared_ptr<Texture> ssaoTexture = nullptr;
+       std::shared_ptr<GraphicsProgram> ssaoGenerationProgram;
+       std::shared_ptr<GraphicsPipelineStage> ssaoGenerationStage;
        std::shared_ptr<Texture> ssaoNoiseTexture = nullptr;
-       std::shared_ptr<Texture> ssaoBlurredMap = nullptr;
 
-       std::shared_ptr<GraphicsPipelineStage> directionalShadowStage = nullptr;
-       std::shared_ptr<GraphicsPipelineStage> pointShadowStage = nullptr;
-       std::shared_ptr<GraphicsPipelineStage> coloringStage = nullptr;
-       std::shared_ptr<GraphicsPipelineStage> ssaoGenerationStage = nullptr;
-       std::shared_ptr<GraphicsPipelineStage> ssaoBlurStage = nullptr;
-       std::shared_ptr<GraphicsPipelineStage> combiningStage = nullptr;
+       for(auto stage:pipeline->getStages()) {
+            for(auto program:stage.programs) {
+                if(program->getProgramName().find("ModelTransparent") != std::string::npos) {
+                    this->setSamplersAndUBOs(program, true);
+                    program->setUniform("pre_depthMap", 1);
+                } else if(program->getProgramName().find("Model") != std::string::npos) {
+                    this->setSamplersAndUBOs(program, false);
+                } else if(program->getProgramName().find("SSAOGeneration") != std::string::npos) {
+                    program->setUniform("pre_depthMap", 1);
+                    program->setUniform("pre_normalMap", 2);
+                    program->setUniform("ssaoNoiseSampler", 3);
+                    ssaoGenerationProgram = program;
+                    ssaoGenerationStage = stage.stage;
 
-       //create depth buffer and texture for directional shadow map
-       depthMapDirectional = std::make_shared<Texture>(this->graphicsWrapper, GraphicsInterface::TextureTypes::T2D_ARRAY, GraphicsInterface::InternalFormatTypes::DEPTH,
-                                                       GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), NR_TOTAL_LIGHTS);
-       depthMapDirectional->setWrapModes(GraphicsInterface::TextureWrapModes::BORDER, GraphicsInterface::TextureWrapModes::BORDER);
-       depthMapDirectional->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-       depthMapDirectional->setFilterMode(GraphicsInterface::FilterModes::LINEAR);
+                    TextureAsset* ssaoNoise = nullptr;
+                    ssaoNoise = assetManager->loadAsset<TextureAsset>({"./Engine/Textures/ssaoNoiseTexture.png"});
+                    ssaoNoiseTexture = ssaoNoise->getTexture();
+                    stage.stage->setInput(3, ssaoNoiseTexture);
 
-       //create depth buffer and texture for point shadow map
+                } else if(program->getProgramName().find("SSAOBlur") != std::string::npos) {
+                    RenderMethodInterface* ssaoKernelGenerator = RenderMethodInterface::createRenderMethod("SSAOKernelRenderMethod", this->graphicsWrapper);
+                    ssaoKernelGenerator->initRender(ssaoGenerationProgram, std::vector<LimonAPI::ParameterRequest>{});
+                    program->setUniform("pre_ssaoResult", 1);
 
-       // create depth cubemap texture
-       depthMapPoint = std::make_shared<Texture>(this->graphicsWrapper, GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY, GraphicsInterface::InternalFormatTypes::DEPTH,
-                                                 GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), NR_POINT_LIGHTS * 6);
-       depthMapPoint->setWrapModes(GraphicsInterface::TextureWrapModes::EDGE, GraphicsInterface::TextureWrapModes::EDGE, GraphicsInterface::TextureWrapModes::EDGE);
-       depthMapPoint->setFilterMode(GraphicsInterface::FilterModes::LINEAR);
+                } else if(program->getProgramName().find("CombineColorsWithSSAO") != std::string::npos) {
+                    program->setUniform("pre_diffuseSpecularLighted", 1);
+                    program->setUniform("pre_ambient", 2);
+                    program->setUniform("pre_ssao", 3);
+                    program->setUniform("pre_depthMap", 4);
+                }
+           }
+        }
 
-       normalMap = std::make_shared<Texture>(this->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGB16F,
-                                             GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
-       normalMap->setWrapModes(GraphicsInterface::TextureWrapModes::BORDER, GraphicsInterface::TextureWrapModes::BORDER);
-       normalMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-       normalMap->setFilterMode(GraphicsInterface::FilterModes::LINEAR);
-
-       diffuseAndSpecularLightedMap = std::make_shared<Texture>(this->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA,
-                                                                GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
-       diffuseAndSpecularLightedMap->setWrapModes(GraphicsInterface::TextureWrapModes::BORDER, GraphicsInterface::TextureWrapModes::BORDER);
-       diffuseAndSpecularLightedMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-       diffuseAndSpecularLightedMap->setFilterMode(GraphicsInterface::FilterModes::LINEAR);
-
-       ambientMap = std::make_shared<Texture>(this->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGB, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
-       ambientMap->setWrapModes(GraphicsInterface::TextureWrapModes::BORDER, GraphicsInterface::TextureWrapModes::BORDER);
-       ambientMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-       ambientMap->setFilterMode(GraphicsInterface::FilterModes::LINEAR);
-
-
-       depthMap = std::make_shared<Texture>(this->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
-       depthMap->setWrapModes(GraphicsInterface::TextureWrapModes::BORDER, GraphicsInterface::TextureWrapModes::BORDER);
-       depthMap->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-       depthMap->setFilterMode(GraphicsInterface::FilterModes::LINEAR);
-
-       ssaoBlurredMap = std::make_shared<Texture>(this->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RED, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
-
-       ssaoTexture = std::make_shared<Texture>(this->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RED, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, options->getScreenWidth(), options->getScreenHeight());
-       ssaoTexture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-
-       /****************************** SSAO NOISE **************************************/
-       ssaoNoise = assetManager->loadAsset<TextureAsset>({"./Engine/Textures/ssaoNoiseTexture.png"});
-       ssaoNoiseTexture = ssaoNoise->getTexture();
-
-       /****************************** SSAO NOISE **************************************/
-
-
-       directionalShadowStage = std::make_shared<GraphicsPipelineStage>(this->graphicsWrapper, options->getShadowMapDirectionalWidth(), options->getShadowMapDirectionalHeight(), false);
-       directionalShadowStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, depthMapDirectional);
-       directionalShadowStage->setCullMode(GraphicsInterface::CullModes::FRONT);
-
-       pointShadowStage = std::make_shared<GraphicsPipelineStage>(this->graphicsWrapper, options->getShadowMapPointWidth(), options->getShadowMapPointHeight(), false);
-       pointShadowStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, depthMapPoint);
-       pointShadowStage->setCullMode(GraphicsInterface::CullModes::FRONT);
-
-       coloringStage = std::make_shared<GraphicsPipelineStage>(this->graphicsWrapper, options->getScreenWidth(), options->getScreenHeight(), false);
-       coloringStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, diffuseAndSpecularLightedMap);
-       coloringStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR1, ambientMap);
-       coloringStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR2, normalMap);
-       coloringStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, depthMap);
-       coloringStage->setInput((uint32_t) this->graphicsWrapper->getMaxTextureImageUnits() - 1, depthMapDirectional);
-       coloringStage->setInput((uint32_t) this->graphicsWrapper->getMaxTextureImageUnits() - 2, depthMapPoint);
-       coloringStage->setInput((uint32_t) this->graphicsWrapper->getMaxTextureImageUnits() - 3, depthMap);
-       coloringStage->setInput((uint32_t) this->graphicsWrapper->getMaxTextureImageUnits() - 4, ssaoNoiseTexture);
-       coloringStage->setCullMode(GraphicsInterface::CullModes::BACK);
-
-       ssaoGenerationStage = std::make_shared<GraphicsPipelineStage>(this->graphicsWrapper, options->getScreenWidth(), options->getScreenHeight(), false);
-       ssaoGenerationStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR1, ssaoTexture);
-       ssaoGenerationStage->setInput(1, depthMap);
-       ssaoGenerationStage->setInput(2, normalMap);
-       ssaoGenerationStage->setInput(3, ssaoNoiseTexture);
-
-       RenderMethodInterface* ssaoKernelGenerator = RenderMethodInterface::createRenderMethod("SSAOKernelRenderMethod", this->graphicsWrapper);
-       ssaoKernelGenerator->initRender(ssaoGenerationProgram, std::vector<LimonAPI::ParameterRequest>{});
-       ssaoBlurStage = std::make_shared<GraphicsPipelineStage>(this->graphicsWrapper, options->getScreenWidth(), options->getScreenHeight(), false);
-       ssaoBlurStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR1, ssaoBlurredMap);
-       ssaoBlurStage->setInput(1, ssaoTexture);
-
-       combiningStage = std::make_shared<GraphicsPipelineStage>(this->graphicsWrapper, options->getScreenWidth(), options->getScreenHeight(), true, true);
-       combiningStage->setInput(1, diffuseAndSpecularLightedMap);
-       combiningStage->setInput(2, ambientMap);
-       combiningStage->setInput(3, ssaoBlurredMap);
-       combiningStage->setInput(4, depthMap);
-
-
-       GraphicsPipeline::RenderMethods renderMethods = buildRenderMethods();
-       std::shared_ptr<GraphicsPipeline> renderPipeline = std::make_shared<GraphicsPipeline>(renderMethods);
-
-       renderPipeline->addTexture(depthMapDirectional);
-       renderPipeline->addTexture(depthMapPoint);
-       renderPipeline->addTexture(diffuseAndSpecularLightedMap);
-       renderPipeline->addTexture(ambientMap);
-       renderPipeline->addTexture(normalMap);
-       renderPipeline->addTexture(depthMap);
-       renderPipeline->addTexture(ssaoTexture);
-       renderPipeline->addTexture(ssaoNoiseTexture);
-       renderPipeline->addTexture(ssaoBlurredMap);
-
-
-       GraphicsPipeline::StageInfo stageInfo;
-
-       stageInfo.clear = false;
-       stageInfo.stage = directionalShadowStage;
-       stageInfo.addRenderMethod(
-               renderPipeline->getRenderMethods().getRenderMethodAllDirectionalLights(directionalShadowStage, depthMapDirectional, shadowMapProgramDirectional));
-       renderPipeline->addNewStage(stageInfo);
-
-       stageInfo.clear = true;
-       stageInfo.stage = pointShadowStage;
-       stageInfo.renderMethods.clear();
-       stageInfo.addRenderMethod(renderPipeline->getRenderMethods().getRenderMethodAllPointLights(shadowMapProgramPoint));
-       renderPipeline->addNewStage(stageInfo);
-
-       stageInfo.stage = coloringStage;
-       stageInfo.renderMethods.clear();
-       bool isFound;
-       stageInfo.addRenderMethod(renderPipeline->getRenderMethods().getRenderMethod("Render Animated Player Attachment", animatedModelProgram, isFound));
-       if(!isFound) {std::cerr << "Failed to create render method for animated player attachment!" << std::endl;}
-       stageInfo.addRenderMethod(renderPipeline->getRenderMethods().getRenderMethod("Render Opaque Player Attachment", nonTransparentModelProgram, isFound));
-       if(!isFound) {std::cerr << "Failed to create render method for opaque player attachment!" << std::endl;}
-       stageInfo.addRenderMethod(renderPipeline->getRenderMethods().getRenderMethod("Render Opaque Objects", nonTransparentModelProgram, isFound));
-       if(!isFound) { std::cerr << "Failed to create render method for Opaque objects!" << std::endl;}
-       stageInfo.addRenderMethod(renderPipeline->getRenderMethods().getRenderMethod("Render Animated Objects", animatedModelProgram, isFound));
-       if(!isFound) { std::cerr << "Failed to create render method for Animated objects!" << std::endl;}
-       stageInfo.addRenderMethod(renderPipeline->getRenderMethods().getRenderMethod("Render Debug Information", nullptr, isFound));
-       if(!isFound) { std::cerr << "Failed to create render method for Debug!" << std::endl;}
-       stageInfo.addRenderMethod(renderPipeline->getRenderMethods().getRenderMethod("Render sky", skyBoxProgram, isFound));
-       if(!isFound) { std::cerr << "Failed to create render method for Sky!" << std::endl;}
-       renderPipeline->addNewStage(stageInfo);
-
-       stageInfo.stage = ssaoGenerationStage;
-       stageInfo.renderMethods.clear();
-       stageInfo.addRenderMethod(renderPipeline->getRenderMethods().getRenderMethod("Render quad", ssaoGenerationProgram, isFound));
-       if(!isFound) { std::cerr << "Failed to create render method for Sky!" << std::endl;}
-       //stageInfo.renderMethods.push_back(std::make_pair(std::bind(&SSAOPostProcess::render, this->ssaoPostProcess), nullptr));
-       renderPipeline->addNewStage(stageInfo);
-
-       stageInfo.stage = ssaoBlurStage;
-       stageInfo.renderMethods.clear();
-       stageInfo.addRenderMethod(renderPipeline->getRenderMethods().getRenderMethod("Render quad", ssaoBlurProgram, isFound));
-       if(!isFound) { std::cerr << "Failed to create render method for Sky!" << std::endl;}
-       //stageInfo.renderMethods.push_back(std::make_pair(std::bind(&SSAOBlurPostProcess::render, this->ssaoBlurPostProcess), nullptr));
-       renderPipeline->addNewStage(stageInfo);
-
-       stageInfo.clear = true;
-       stageInfo.stage = combiningStage;
-       stageInfo.renderMethods.clear();
-       stageInfo.addRenderMethod(renderPipeline->getRenderMethods().getRenderMethod("Render quad", combineProgram, isFound));
-       if(!isFound) { std::cerr << "Failed to create render method for Sky!" << std::endl;}
-       //stageInfo.renderMethods.push_back(std::make_pair(std::bind(&CombinePostProcess::render, this->combiningObject), nullptr));
-       renderPipeline->addNewStage(stageInfo);
-
-       stageInfo.clear = false;
-       stageInfo.renderMethods.clear();
-       stageInfo.addRenderMethod(renderPipeline->getRenderMethods().getRenderMethod("Render Transparent Player Attachment", transparentModelProgram, isFound));
-       if(!isFound) { std::cerr << "Failed to create render method for Transparent player attachments!" << std::endl;}
-       stageInfo.addRenderMethod(renderPipeline->getRenderMethods().getRenderMethod("Render Transparent Objects", transparentModelProgram, isFound));
-       if(!isFound) { std::cerr << "Failed to create render method for Transparent objects!" << std::endl;}
-       stageInfo.addRenderMethod(renderPipeline->getRenderMethods().getRenderMethod("Render GUI Texts", textRenderProgram, isFound));
-       if(!isFound) { std::cerr << "Failed to create render method for GUI Texts!" << std::endl;}
-       stageInfo.addRenderMethod(renderPipeline->getRenderMethods().getRenderMethod("Render GUI Images", imageRenderProgram, isFound));
-       if(!isFound) { std::cerr << "Failed to create render method for GUI Images!" << std::endl;}
-       stageInfo.addRenderMethod(renderPipeline->getRenderMethods().getRenderMethod("Render Editor", nonTransparentModelProgram, isFound));
-       if(!isFound) { std::cerr << "Failed to create render method for Editor!" << std::endl;}
-
-       renderPipeline->addNewStage(stageInfo);
-       return renderPipeline;
+        return pipeline;
    }
 
    GraphicsPipeline::RenderMethods World::buildRenderMethods() {

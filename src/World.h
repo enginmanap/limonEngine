@@ -56,10 +56,6 @@ class AnimationSequenceInterface;
 class LimonAPI;
 class ModelGroup;
 
-class QuadRenderBase;
-class CombinePostProcess;
-class SSAOPostProcess;
-class SSAOBlurPostProcess;
 class QuadRender;
 
 class GraphicsInterface;
@@ -407,7 +403,8 @@ public:
 
     std::string getName();
 
-    std::shared_ptr<GraphicsPipeline> buildRenderPipeline(AssetManager *assetManager, const Options *options);
+    std::shared_ptr<GraphicsPipeline> buildRestOfPipeline(std::shared_ptr<GraphicsPipeline> pipeline, AssetManager *assetManager, const Options *options);
+
     GraphicsPipeline::RenderMethods buildRenderMethods();
 
         /************************************ Methods LimonAPI exposes *************/

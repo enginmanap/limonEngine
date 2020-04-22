@@ -70,6 +70,13 @@ public:
     void setCullMode(GraphicsInterface::CullModes cullMode) {
         GraphicsPipelineStage::cullMode = cullMode;
     }
+    std::shared_ptr<Texture> getOutput(GraphicsInterface::FrameBufferAttachPoints attachPoint) {
+        if(outputs.find(attachPoint) != outputs.end()) {
+            return outputs[attachPoint];
+        }
+        std::cerr << "Requested output can't be found, exiting" << std::endl;
+        exit(1);
+    }
 
     void activate(bool clear = false);
 

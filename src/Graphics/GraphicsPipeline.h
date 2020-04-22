@@ -179,8 +179,9 @@ public:
 
         bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
         static std::shared_ptr<GraphicsPipeline::StageInfo>
-        deserialize(tinyxml2::XMLElement *stageInfoElement, GraphicsInterface *graphicsWrapper, RenderMethods &renderMethods,
+        deserialize(tinyxml2::XMLElement *stageInfoElement, GraphicsInterface *graphicsWrapper, std::unique_ptr<GraphicsPipeline> &pipeline,
                     const std::vector<std::shared_ptr<Texture>> &textures, Options *options);
+        std::vector<std::shared_ptr<GraphicsProgram>> programs;
     };
 
     void addNewStage(const StageInfo stageInformation) {
@@ -189,6 +190,19 @@ public:
 
     void addTexture(std::shared_ptr<Texture> texture) {
         textures.emplace_back(texture);
+    }
+
+    std::vector<StageInfo>& getStages() {
+        return pipelineStages;
+    };
+
+    std::shared_ptr<Texture> getTexture(uint32_t serializeID) {
+        for(std::shared_ptr<Texture> texture:this->textures) {
+            if(texture->getSerializeID() == serializeID) {
+                return texture;
+            }
+        }
+        return nullptr;
     }
 
     void render();
