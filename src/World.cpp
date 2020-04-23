@@ -149,10 +149,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
        for(auto stage:pipeline->getStages()) {
             for(auto program:stage.programs) {
                 if(program->getProgramName().find("ModelTransparent") != std::string::npos) {
-                    this->setSamplersAndUBOs(program, true);
                     program->setUniform("pre_depthMap", 1);
                 } else if(program->getProgramName().find("Model") != std::string::npos) {
-                    this->setSamplersAndUBOs(program, false);
                 } else if(program->getProgramName().find("SSAOGeneration") != std::string::npos) {
                     program->setUniform("pre_depthMap", 1);
                     program->setUniform("pre_normalMap", 2);
@@ -4029,43 +4027,4 @@ void World::createNodeGraph() {
 
     nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);
 
-}
-
-void World::setSamplersAndUBOs(std::shared_ptr<GraphicsProgram>& program, bool setOpacity) {
-
-    //TODO these will be configurable with material editor
-    int diffuseMapAttachPoint = 1;
-    int ambientMapAttachPoint = 2;
-    int specularMapAttachPoint = 3;
-    int opacityMapAttachPoint = 4;
-    int normalMapAttachPoint = 5;
-
-   if (!program->setUniform("diffuseSampler", diffuseMapAttachPoint)) {
-       std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
-   }
-   if (!program->setUniform("ambientSampler", ambientMapAttachPoint)) {
-       std::cerr << "Uniform \"ambientSampler\" could not be set" << std::endl;
-   }
-   if (!program->setUniform("specularSampler", specularMapAttachPoint)) {
-       std::cerr << "Uniform \"specularSampler\" could not be set" << std::endl;
-   }
-   if(setOpacity) {
-       if (!program->setUniform("opacitySampler", opacityMapAttachPoint)) {
-           std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
-       }
-   }
-   if (!program->setUniform("normalSampler", normalMapAttachPoint)) {
-       std::cerr << "Uniform \"normalSampler\" could not be set" << std::endl;
-   }
-   //TODO we should support multi texture on one pass
-
-   if (!program->setUniform("pre_shadowDirectional", graphicsWrapper->getMaxTextureImageUnits() - 1)) {
-       std::cerr << "Uniform \"pre_shadowDirectional\" could not be set" << std::endl;
-   }
-   if (!program->setUniform("pre_shadowPoint", graphicsWrapper->getMaxTextureImageUnits() - 2)) {
-       std::cerr << "Uniform \"pre_shadowPoint\" could not be set" << std::endl;
-   }
-
-   graphicsWrapper->attachModelUBO(program->getID());
-   graphicsWrapper->attachModelIndicesUBO(program->getID());
 }

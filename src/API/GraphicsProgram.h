@@ -27,6 +27,9 @@ class GraphicsProgram {
     GraphicsProgram(GraphicsInterface* graphicsWrapper, std::string vertexShader, std::string fragmentShader, bool isMaterialUsed);
     GraphicsProgram(GraphicsInterface* graphicsWrapper, std::string vertexShader, std::string geometryShader, std::string fragmentShader, bool isMaterialUsed);
 
+    //TODO remove with material editor
+    void setSamplersAndUBOs();
+
 public:
 
     ~GraphicsProgram();
@@ -184,12 +187,16 @@ public:
         } else {
             std::cerr << "GLSL Program material required flag not found, assuming no!" << std::endl;
         }
-
+        std::shared_ptr<GraphicsProgram> newProgram;
         if(geometryShader.length() > 0 ) {
-            return graphicsWrapper->createGraphicsProgram(vertexShader, geometryShader, fragmentShader, materialRequired);
+            newProgram = graphicsWrapper->createGraphicsProgram(vertexShader, geometryShader, fragmentShader, materialRequired);
         } else {
-            return graphicsWrapper->createGraphicsProgram(vertexShader, fragmentShader, materialRequired);
+            newProgram = graphicsWrapper->createGraphicsProgram(vertexShader, fragmentShader, materialRequired);
         }
+        if(materialRequired) {
+            newProgram->setSamplersAndUBOs();
+        }
+        return newProgram;
     }
 
     const std::string &getVertexShader() const {
@@ -205,7 +212,5 @@ public:
     }
 
 };
-
-
 
 #endif //LIMONENGINE_GRAPHICSPROGRAM_H

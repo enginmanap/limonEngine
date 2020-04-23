@@ -380,8 +380,6 @@ private:
     void renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
     void renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
 
-    //TODO remove with material editor
-    void setSamplersAndUBOs(std::shared_ptr<GraphicsProgram>& program, bool setOpacity);
 
 public:
     ~World();
