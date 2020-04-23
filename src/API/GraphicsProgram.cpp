@@ -42,8 +42,9 @@ void GraphicsProgram::setSamplersAndUBOs() {
         std::cerr << "Uniform \"specularSampler\" could not be set" << std::endl;
     }
     if(uniformMap.find("opacitySampler") != uniformMap.end()) {
-        std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
-    }
+        if (!setUniform("opacitySampler", opacityMapAttachPoint)) {
+            std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
+        }    }
     if (!setUniform("normalSampler", normalMapAttachPoint)) {
         std::cerr << "Uniform \"normalSampler\" could not be set" << std::endl;
     }
