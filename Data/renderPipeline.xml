@@ -216,7 +216,7 @@
                     <Index>0</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/ShadowMapDirectional/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
+                        <GeometryShader/>
                         <FragmentShader>./Engine/Shaders/ShadowMapDirectional/fragment.glsl</FragmentShader>
                         <MaterialRequired>False</MaterialRequired>
                     </GraphicsProgram>
@@ -270,7 +270,7 @@
                     <Index>0</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/ModelAnimated/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
+                        <GeometryShader/>
                         <FragmentShader>./Engine/Shaders/ModelAnimated/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
@@ -280,7 +280,7 @@
                     <Index>1</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/Model/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
+                        <GeometryShader/>
                         <FragmentShader>./Engine/Shaders/Model/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
@@ -290,7 +290,7 @@
                     <Index>2</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/Model/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
+                        <GeometryShader/>
                         <FragmentShader>./Engine/Shaders/Model/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
@@ -300,7 +300,7 @@
                     <Index>3</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/ModelAnimated/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
+                        <GeometryShader/>
                         <FragmentShader>./Engine/Shaders/ModelAnimated/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
@@ -314,7 +314,7 @@
                     <Index>5</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/SkyCube/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
+                        <GeometryShader/>
                         <FragmentShader>./Engine/Shaders/SkyCube/fragment.glsl</FragmentShader>
                         <MaterialRequired>False</MaterialRequired>
                     </GraphicsProgram>
@@ -349,9 +349,14 @@
                     <Index>0</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/SSAOGeneration/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
+                        <GeometryShader/>
                         <FragmentShader>./Engine/Shaders/SSAOGeneration/fragment.glsl</FragmentShader>
                         <MaterialRequired>False</MaterialRequired>
+                        <PresetValues>
+                            <Uniform Name="pre_depthMap">1</Uniform>
+                            <Uniform Name="pre_normalMap">2</Uniform>
+                            <Uniform Name="ssaoNoiseSampler">3</Uniform>
+                        </PresetValues>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -380,9 +385,12 @@
                     <Index>0</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/SSAOBlur/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
+                        <GeometryShader/>
                         <FragmentShader>./Engine/Shaders/SSAOBlur/fragment.glsl</FragmentShader>
                         <MaterialRequired>False</MaterialRequired>
+                        <PresetValues>
+                            <Uniform Name="pre_ssaoResult">1</Uniform>
+                        </PresetValues>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -409,9 +417,15 @@
                     <Index>0</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
+                        <GeometryShader/>
                         <FragmentShader>./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl</FragmentShader>
                         <MaterialRequired>False</MaterialRequired>
+                        <PresetValues>
+                            <Uniform Name="pre_diffuseSpecularLighted">1</Uniform>
+                            <Uniform Name="pre_ambient">2</Uniform>
+                            <Uniform Name="pre_ssao">3</Uniform>
+                            <Uniform Name="pre_depthMap">4</Uniform>
+                        </PresetValues>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -439,9 +453,12 @@
                     <Index>0</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/ModelTransparent/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
+                        <GeometryShader/>
                         <FragmentShader>./Engine/Shaders/ModelTransparent/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
+                        <PresetValues>
+                            <Uniform Name="pre_depthMap">1</Uniform>
+                        </PresetValues>
                     </GraphicsProgram>
                 </Method>
                 <Method>
@@ -449,9 +466,12 @@
                     <Index>1</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/ModelTransparent/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
+                        <GeometryShader/>
                         <FragmentShader>./Engine/Shaders/ModelTransparent/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
+                        <PresetValues>
+                            <Uniform Name="pre_depthMap">1</Uniform>
+                        </PresetValues>
                     </GraphicsProgram>
                 </Method>
                 <Method>
@@ -459,7 +479,7 @@
                     <Index>2</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/GUIText/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
+                        <GeometryShader/>
                         <FragmentShader>./Engine/Shaders/GUIText/fragment.glsl</FragmentShader>
                         <MaterialRequired>False</MaterialRequired>
                     </GraphicsProgram>
@@ -469,7 +489,7 @@
                     <Index>3</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/GUIImage/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
+                        <GeometryShader/>
                         <FragmentShader>./Engine/Shaders/GUIImage/fragment.glsl</FragmentShader>
                         <MaterialRequired>False</MaterialRequired>
                     </GraphicsProgram>
@@ -479,7 +499,7 @@
                     <Index>4</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/Model/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
+                        <GeometryShader/>
                         <FragmentShader>./Engine/Shaders/Model/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>

@@ -20,6 +20,7 @@ class GraphicsProgram {
     std::string geometryShader;
     std::string fragmentShader;
     std::unordered_map<std::string, const GraphicsInterface::Uniform *> uniformMap;
+    std::unordered_map<const GraphicsInterface::Uniform *, std::string> presetUniformValues;
     std::unordered_map<std::string, GraphicsInterface::VariableTypes>outputMap;
     bool materialRequired;
     uint32_t programID;

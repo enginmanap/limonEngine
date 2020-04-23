@@ -114,6 +114,7 @@ std::shared_ptr<GraphicsProgram> GraphicsProgram::deserialize(tinyxml2::XMLEleme
     } else {
         std::cerr << "GLSL Program material required flag not found, assuming no!" << std::endl;
     }
+
     std::shared_ptr<GraphicsProgram> newProgram;
     if(geometryShader.length() > 0 ) {
         newProgram = graphicsWrapper->createGraphicsProgram(vertexShader, geometryShader, fragmentShader, materialRequired);
@@ -122,6 +123,44 @@ std::shared_ptr<GraphicsProgram> GraphicsProgram::deserialize(tinyxml2::XMLEleme
     }
     if(materialRequired) {
         newProgram->setSamplersAndUBOs();
+    }
+
+    tinyxml2::XMLElement *presetValuesNode = programNode->FirstChildElement("PresetValues");
+    if(presetValuesNode != nullptr) {
+        tinyxml2::XMLElement *uniformNode = presetValuesNode->FirstChildElement("Uniform");
+        while (uniformNode != nullptr) {
+            const char *nameRaw = uniformNode->Attribute("Name");
+            if (nameRaw == nullptr) {
+                std::cerr << "uniform name of a preset value can't be read, skipping" << std::endl;
+            } else {
+                std::string uniformName = nameRaw;
+                std::string value = uniformNode->GetText();
+                if (newProgram->uniformMap.find(uniformName) != newProgram->uniformMap.end()) {
+                    newProgram->presetUniformValues[newProgram->uniformMap[uniformName]] = value;
+                    switch (newProgram->uniformMap[uniformName]->type) {
+                        case GraphicsInterface::VariableTypes::INT:
+                        case GraphicsInterface::VariableTypes::CUBEMAP:
+                        case GraphicsInterface::VariableTypes::CUBEMAP_ARRAY:
+                        case GraphicsInterface::VariableTypes::TEXTURE_2D:
+                        case GraphicsInterface::VariableTypes::TEXTURE_2D_ARRAY:
+                            newProgram->setUniform(uniformName, std::stoi(value));
+                            std::cout << "found preset uniform " << uniformName << " and set value to " << std::stoi(value) << std::endl;
+                            break;
+                        case GraphicsInterface::VariableTypes::FLOAT:
+                            newProgram->setUniform(uniformName, std::stof(value));
+                            std::cout << "found preset uniform " << uniformName << " and set value to " << std::stof(value) << std::endl;
+                            break;
+                        case GraphicsInterface::VariableTypes::FLOAT_VEC2:
+                        case GraphicsInterface::VariableTypes::FLOAT_VEC3:
+                        case GraphicsInterface::VariableTypes::FLOAT_VEC4:
+                        case GraphicsInterface::VariableTypes::FLOAT_MAT4:
+                        case GraphicsInterface::VariableTypes::UNDEFINED:
+                            std::cerr << "Deserializing the given type is not implemented! name: " << uniformName << ", value: " << value << std::endl;
+                    }
+                }
+            }
+            uniformNode = uniformNode->NextSiblingElement("Uniform");
+        }
     }
     return newProgram;
 }
@@ -148,6 +187,16 @@ bool GraphicsProgram::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLEl
         currentElement->SetText("True");
     } else {
         currentElement->SetText("False");
+    }
+
+    if(!presetUniformValues.empty()) {
+        currentElement = document.NewElement("PresetValues");
+        for(auto uniformEntry: presetUniformValues){
+            tinyxml2::XMLElement *uniformNode = document.NewElement("Uniform");
+            uniformNode->SetAttribute("Name", uniformEntry.first->name.c_str());
+            uniformNode->SetText(uniformEntry.second.c_str());
+        }
+        programNode->InsertEndChild(currentElement);
     }
     programNode->InsertEndChild(currentElement);
     return true;
