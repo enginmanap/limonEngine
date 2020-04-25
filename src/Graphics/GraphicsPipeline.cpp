@@ -101,7 +101,7 @@ bool GraphicsPipeline::StageInfo::serialize(tinyxml2::XMLDocument &document, tin
 }
 
 std::unique_ptr<GraphicsPipeline>
-GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, GraphicsInterface *graphicsWrapper, Options *options, RenderMethods renderMethods) {
+GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, GraphicsInterface *graphicsWrapper,  std::shared_ptr<AssetManager> assetManager, Options *options, RenderMethods renderMethods) {
     /**
 *     to serialize, we need 3 set of data
 *     1) Textures

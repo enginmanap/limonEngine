@@ -28,7 +28,7 @@ class Model : public PhysicalRenderable, public GameObject {
         std::shared_ptr<MeshAsset> mesh = nullptr;
     };
     ActorInterface *AIActor = nullptr;
-    AssetManager *assetManager;
+    std::shared_ptr<AssetManager> assetManager;
     ModelAsset *modelAsset;
 private:
     std::string animationName;
@@ -72,10 +72,10 @@ private:
                                   const ImGuiRequest &request, std::string &lastSelectedAIName);
 
 public:
-    Model(uint32_t objectID, AssetManager *assetManager, const std::string &modelFile) : Model(objectID, assetManager,
+    Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const std::string &modelFile) : Model(objectID, assetManager,
                                                                                                0, modelFile, false) {};
 
-    Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile,
+    Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const float mass, const std::string &modelFile,
               bool disconnected);
 
     Model(const Model& otherModel, uint32_t objectID); //kind of copy constructor, except ID

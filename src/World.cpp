@@ -51,7 +51,7 @@
     };
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
-             AssetManager *assetManager, Options *options)
+             std::shared_ptr<AssetManager> assetManager, Options *options)
         : assetManager(assetManager), options(options), graphicsWrapper(assetManager->getGraphicsWrapper()), alHelper(assetManager->getAlHelper()), name(name), fontManager(graphicsWrapper), startingPlayer(startingPlayerType) {
 
     strncpy(worldSaveNameBuffer, name.c_str(), sizeof(worldSaveNameBuffer) -1 );
@@ -120,7 +120,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
 
 
-    std::shared_ptr<GraphicsPipeline> loadedPipeline = GraphicsPipeline::deserialize("./Data/renderPipeline.xml", graphicsWrapper, options, buildRenderMethods());
+    std::shared_ptr<GraphicsPipeline> loadedPipeline = GraphicsPipeline::deserialize("./Data/renderPipeline.xml", graphicsWrapper, assetManager, options, buildRenderMethods());
     this->defaultRenderPipeline = buildRestOfPipeline(loadedPipeline, assetManager, options);
 
     fpsCounter = new GUIFPSCounter(graphicsWrapper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
@@ -140,7 +140,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 }
 
 
-   std::shared_ptr<GraphicsPipeline> World::buildRestOfPipeline(std::shared_ptr<GraphicsPipeline> pipeline, AssetManager *assetManager, const Options *options) {
+   std::shared_ptr<GraphicsPipeline> World::buildRestOfPipeline(std::shared_ptr<GraphicsPipeline> pipeline, std::shared_ptr<AssetManager> assetManager, const Options *options) {
 
        std::shared_ptr<GraphicsProgram> ssaoGenerationProgram;
        std::shared_ptr<GraphicsPipelineStage> ssaoGenerationStage;

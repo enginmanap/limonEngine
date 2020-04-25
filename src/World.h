@@ -175,7 +175,7 @@ private:
     friend class WorldSaver; //Those classes require direct access to some of the internal data
 
     mutable std::vector<uint32_t > modelIndicesBuffer;
-    AssetManager* assetManager;
+    std::shared_ptr<AssetManager> assetManager;
     Options* options;
     uint32_t nextWorldID = 2;
     std::queue<uint32_t> unusedIDs;
@@ -321,7 +321,7 @@ private:
     void addLight(Light *light);
 
     World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
-              AssetManager *assetManager, Options *options);
+          std::shared_ptr<AssetManager> assetManager, Options *options);
 
     void afterLoadFinished();
 
@@ -401,7 +401,7 @@ public:
 
     std::string getName();
 
-    std::shared_ptr<GraphicsPipeline> buildRestOfPipeline(std::shared_ptr<GraphicsPipeline> pipeline, AssetManager *assetManager, const Options *options);
+    std::shared_ptr<GraphicsPipeline> buildRestOfPipeline(std::shared_ptr<GraphicsPipeline> pipeline,  std::shared_ptr<AssetManager> assetManager, const Options *options);
 
     GraphicsPipeline::RenderMethods buildRenderMethods();
 

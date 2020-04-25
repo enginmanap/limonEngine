@@ -463,5 +463,23 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
             }
         }
     }
+
+    //there is a possibility, that this texture is intended as a custom texture with data within, check for the file tags
+    textureNodeAttribute = TextureNode->FirstChildElement("Source");
+    if (textureNodeAttribute != nullptr) {
+        if(textureNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Texture source color setting has no text, skipping! " << std::endl;
+        } else {
+            std::string textureSource = textureNodeAttribute->GetText();
+            if(textureSource == "True") {
+                borderColorSet = true;
+            } else if(textureSource == "False") {
+                borderColorSet = false;
+            } else {
+                std::cerr << "Texture border color setting is unknown, border color will not be set" << std::endl;
+            }
+        }
+    }
+
     return texture;
 }

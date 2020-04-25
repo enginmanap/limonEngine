@@ -237,8 +237,6 @@ public:
 #ifdef CEREAL_SUPPORT
     template<class Archive>
     void save(Archive & archive) const {
-        //AssetManager *assetManager;
-        //TextureAsset *ambientTexture = nullptr, *diffuseTexture = nullptr, *specularTexture = nullptr, *normalTexture = nullptr, *opacityTexture = nullptr;
 
         std::vector<std::string> ambientTextureNames, diffuseTextureNames, specularTextureNames, normalTextureNames, opacityTextureNames;
 
@@ -264,8 +262,6 @@ public:
 
     template<class Archive>
     void load(Archive & archive)  {
-        //AssetManager *assetManager;
-        //TextureAsset *ambientTexture = nullptr, *diffuseTexture = nullptr, *specularTexture = nullptr, *normalTexture = nullptr, *opacityTexture = nullptr;
 
         textureNameListList = std::make_unique<std::vector<std::vector<std::string>>>();
         for (int i = 0; i < 5; ++i) {

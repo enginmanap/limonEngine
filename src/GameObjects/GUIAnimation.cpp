@@ -10,7 +10,7 @@
 #include "../Assets/TextureAsset.h"
 
 
-GUIAnimation::GUIAnimation(uint32_t worldID, AssetManager *assetManager, const std::string name,
+GUIAnimation::GUIAnimation(uint32_t worldID,  std::shared_ptr<AssetManager> assetManager, const std::string name,
                            const std::vector<std::string> &imageFiles, long creationTime, uint32_t frameSpeed,
                            bool isLooped)
         : GUIImageBase(
@@ -109,7 +109,7 @@ bool GUIAnimation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLEleme
 }
 
 
-GUIAnimation *GUIAnimation::deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetManager *assetManager, Options *options) {
+GUIAnimation *GUIAnimation::deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std::shared_ptr<AssetManager> assetManager, Options *options) {
 
     tinyxml2::XMLElement* GUIRenderableAttribute;
 

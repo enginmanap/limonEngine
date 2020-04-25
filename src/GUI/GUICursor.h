@@ -11,7 +11,7 @@
 class GUICursor: public GUIImageBase {
     bool hidden=false;
 public:
-    GUICursor(GraphicsInterface* graphicsWrapper, AssetManager *assetManager, const std::string &imageFile) : GUIImageBase(graphicsWrapper,
+    GUICursor(GraphicsInterface* graphicsWrapper,  std::shared_ptr<AssetManager> assetManager, const std::string &imageFile) : GUIImageBase(graphicsWrapper,
                                                                                                                     assetManager,
                                                                                                                     imageFile) {}
 

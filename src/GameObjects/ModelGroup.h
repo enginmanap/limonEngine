@@ -53,7 +53,7 @@ public:
 
     bool fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const override;
 
-    static ModelGroup *deserialize(GraphicsInterface* graphicsWrapper, AssetManager *assetManager, tinyxml2::XMLElement *ModelGroupsNode,
+    static ModelGroup *deserialize(GraphicsInterface* graphicsWrapper, std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *ModelGroupsNode,
                                    std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
                                    std::map<uint32_t, ModelGroup *> &childGroups,
                                    std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> &childObjects, LimonAPI *limonAPI,

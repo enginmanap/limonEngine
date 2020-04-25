@@ -189,7 +189,7 @@ void AssetManager::loadUsingCereal(const std::vector<std::string> files __attrib
     cereal::BinaryInputArchive archive(is);
     ModelAsset* ma = new ModelAsset();
     archive(*ma);
-    ma->afterDeserialize(this, files);
+    ma->afterDeserialize(this->getptr(), files);
     assets[files] = std::make_pair(ma, 0);
     nextAssetIndex++;
 #else

@@ -16,11 +16,11 @@ class GUIImageBase : public GUIRenderable {
 
     static std::shared_ptr<GraphicsProgram> imageRenderProgram;
 protected:
-    AssetManager* assetManager;
+    std::shared_ptr<AssetManager> assetManager;
     std::string imageFile;
     TextureAsset *image;
 public:
-    GUIImageBase(GraphicsInterface* graphicsWrapper, AssetManager *assetManager, const std::string &imageFile);
+    GUIImageBase(GraphicsInterface* graphicsWrapper,  std::shared_ptr<AssetManager> assetManager, const std::string &imageFile);
     virtual ~GUIImageBase();
 
     virtual void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) override;

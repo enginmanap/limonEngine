@@ -28,7 +28,7 @@
 #include "GameObjects/ModelGroup.h"
 #include "GamePlay/APISerializer.h"
 
-WorldLoader::WorldLoader(AssetManager *assetManager, InputHandler *inputHandler, Options *options) :
+WorldLoader::WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, Options *options) :
         options(options),
         graphicsWrapper(assetManager->getGraphicsWrapper()),
         alHelper(assetManager->getAlHelper()),
@@ -384,7 +384,7 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
  * @return
  */
 std::vector<std::unique_ptr<WorldLoader::ObjectInformation>>
-WorldLoader::loadObject(AssetManager *assetManager, tinyxml2::XMLElement *objectNode,
+WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
                         std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI,
                         PhysicalRenderable *parentObject) {
     std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> loadedObjects;

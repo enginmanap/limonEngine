@@ -143,7 +143,7 @@ GameEngine::GameEngine() {
     alHelper = new ALHelper();
 
     inputHandler = new InputHandler(sdlHelper->getWindow(), options);
-    assetManager = new AssetManager(graphicsWrapper, alHelper);
+    assetManager = std::make_shared<AssetManager>(graphicsWrapper, alHelper);
 
     worldLoader = new WorldLoader(assetManager, inputHandler, options);
 }
@@ -196,8 +196,6 @@ GameEngine::~GameEngine() {
     }
 
     delete worldLoader;
-
-    delete assetManager;
 
     delete inputHandler;
 

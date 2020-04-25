@@ -9,6 +9,7 @@
 #include <vector>
 #include <functional>
 #include <memory>
+#include <Assets/AssetManager.h>
 
 #include "GraphicsPipelineStage.h"
 #include "../GameObjects/Light.h"
@@ -209,7 +210,7 @@ public:
 
     bool serialize(const std::string& renderPipelineFileName, Options *options);
 
-    static std::unique_ptr<GraphicsPipeline> deserialize(const std::string &graphicsPipelineFileName, GraphicsInterface *graphicsWrapper, Options *options, RenderMethods renderMethods);
+    static std::unique_ptr<GraphicsPipeline> deserialize(const std::string &graphicsPipelineFileName, GraphicsInterface *graphicsWrapper,  std::shared_ptr<AssetManager>, Options *options, RenderMethods renderMethods);
 
 private:
     RenderMethods renderMethods;

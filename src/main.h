@@ -30,7 +30,7 @@ class GameEngine {
     ALHelper* alHelper = nullptr;
     GraphicsInterface* graphicsWrapper = nullptr;
     InputHandler* inputHandler = nullptr;
-    AssetManager* assetManager = nullptr;
+    std::shared_ptr<AssetManager> assetManager = nullptr;
     SDL2Helper* sdlHelper = nullptr;
 
     std::unordered_map<std::string, std::pair<World*, LimonAPI*>> loadedWorlds;

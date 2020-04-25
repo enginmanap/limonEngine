@@ -11,7 +11,7 @@
 #ifdef CEREAL_SUPPORT
 #include <cereal/archives/binary.hpp>
 #endif
-Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile,
+Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const float mass, const std::string &modelFile,
              bool disconnected = false) :
         PhysicalRenderable(assetManager->getGraphicsWrapper(), mass, disconnected), objectID(objectID), assetManager(assetManager),
         name(modelFile) {
@@ -180,39 +180,6 @@ void Model::activateTexturesOnly(std::shared_ptr<const Material>material) {
         graphicsWrapper->attachTexture(material->getNormalTexture()->getID(), normalMapAttachPoint);
     }
 }
-/*
-bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
-    std::shared_ptr<GraphicsProgram> program  = meshMetaData->program;
-
-    if (meshMetaData->mesh != nullptr && meshMetaData->mesh->getMaterial() != nullptr) {
-        graphicsWrapper->attachMaterialUBO(program->getID(), meshMetaData->mesh->getMaterial()->getMaterialIndex());
-    } else {
-        std::cerr << "No material setup, passing rendering. " << std::endl;
-        return false;
-    }
-
-    if (animated) {
-        //set all of the bones to unitTransform for testing
-
-        for (auto boneIterator = exposedBoneTransforms.begin();
-             boneIterator != exposedBoneTransforms.end(); ++boneIterator) {
-                glm::vec3 temp1;//these are not used
-                glm::vec4 temp2;
-                glm::vec3 translate, scale;
-                glm::quat orientation;
-
-                glm::decompose(this->transformation.getWorldTransform() * boneTransforms[boneIterator->first], scale, orientation, translate, temp1, temp2);
-
-                exposedBoneTransforms[boneIterator->first]->setTranslate(translate);
-                exposedBoneTransforms[boneIterator->first]->setScale(scale);
-                exposedBoneTransforms[boneIterator->first]->setOrientation(orientation);
-        }
-
-        program->setUniformArray("boneTransformArray[0]", boneTransforms);
-    }
-    return true;
-}
-*/
 
 void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program){
     graphicsWrapper->attachModelUBO(program->getID());
