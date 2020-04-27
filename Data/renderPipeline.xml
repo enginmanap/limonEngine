@@ -162,6 +162,7 @@
             </WrapModes>
         </Texture>
         <Texture>
+            <Source>./Engine/Textures/ssaoNoiseTexture.png</Source>
             <TextureType>T2D</TextureType>
             <InternalFormat>RGBA</InternalFormat>
             <Format>RGBA</Format>

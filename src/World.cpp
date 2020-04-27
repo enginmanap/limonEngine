@@ -148,31 +148,9 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
        for(auto stage:pipeline->getStages()) {
             for(auto program:stage.programs) {
-                if(program->getProgramName().find("ModelTransparent") != std::string::npos) {
-                    //program->setUniform("pre_depthMap", 1);
-                } else if(program->getProgramName().find("Model") != std::string::npos) {
-                } else if(program->getProgramName().find("SSAOGeneration") != std::string::npos) {
-                    //program->setUniform("pre_depthMap", 1);
-                    //program->setUniform("pre_normalMap", 2);
-                    //program->setUniform("ssaoNoiseSampler", 3);
-                    ssaoGenerationProgram = program;
-                    ssaoGenerationStage = stage.stage;
-
-                    TextureAsset* ssaoNoise = nullptr;
-                    ssaoNoise = assetManager->loadAsset<TextureAsset>({"./Engine/Textures/ssaoNoiseTexture.png"});
-                    ssaoNoiseTexture = ssaoNoise->getTexture();
-                    stage.stage->setInput(3, ssaoNoiseTexture);
-
-                } else if(program->getProgramName().find("SSAOBlur") != std::string::npos) {
+                if(program->getProgramName().find("SSAOGeneration") != std::string::npos) {
                     RenderMethodInterface* ssaoKernelGenerator = RenderMethodInterface::createRenderMethod("SSAOKernelRenderMethod", this->graphicsWrapper);
                     ssaoKernelGenerator->initRender(program, std::vector<LimonAPI::ParameterRequest>{});
-                    //program->setUniform("pre_ssaoResult", 1);
-
-                } else if(program->getProgramName().find("CombineColorsWithSSAO") != std::string::npos) {
-                    //program->setUniform("pre_diffuseSpecularLighted", 1);
-                    //program->setUniform("pre_ambient", 2);
-                    //program->setUniform("pre_ssao", 3);
-                    //program->setUniform("pre_depthMap", 4);
                 }
            }
         }

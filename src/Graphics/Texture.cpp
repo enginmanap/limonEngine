@@ -2,13 +2,23 @@
 // Created by engin on 22.04.2019.
 //
 
+#include <Assets/AssetManager.h>
+#include <Assets/TextureAsset.h>
 #include "Texture.h"
 
 bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options [[gnu::unused]]) {
     tinyxml2::XMLElement *textureNode = document.NewElement("Texture");
     parentNode->InsertEndChild(textureNode);
 
-    tinyxml2::XMLElement *currentElement = document.NewElement("TextureType");
+    tinyxml2::XMLElement *currentElement;
+
+    if (this->source.length() > 0) {
+    tinyxml2::XMLElement *currentElement = document.NewElement("Source");
+    currentElement->SetText(this->source.c_str());
+    textureNode->InsertEndChild(currentElement);
+}
+
+    currentElement = document.NewElement("TextureType");
     switch (textureType) {
         case GraphicsInterface::TextureTypes::T2D: currentElement->SetText("T2D"); break;
         case GraphicsInterface::TextureTypes::T2D_ARRAY: currentElement->SetText("T2D_ARRAY"); break;
@@ -127,7 +137,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     return true;
 }
 
-std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface* graphicsWrapper, Options *options [[gnu::unused]]) {
+std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface* graphicsWrapper, std::shared_ptr<AssetManager> assetManager, Options *options [[gnu::unused]]) {
     tinyxml2::XMLElement* textureNodeAttribute = nullptr;
 
     GraphicsInterface::TextureTypes textureType;
@@ -136,6 +146,35 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
     GraphicsInterface::DataTypes dataType;
     uint32_t height, width;
     uint32_t depth;
+    uint32_t serializeID;
+
+    //if no serializeId is set, then we will not be able to assign textures to where they should, so it is the first thing.
+    textureNodeAttribute = TextureNode->FirstChildElement("TextureSerializeID");
+    if (textureNodeAttribute == nullptr) {
+        std::cerr << "Texture doesn't have serializeID." << std::endl;
+        return nullptr;
+    }
+    if(textureNodeAttribute->GetText() == nullptr) {
+        std::cerr << "Texture serializeID doesn't have text, this is must likely a bug." << std::endl;
+        return nullptr;
+    }
+    std::string serializeIDString = textureNodeAttribute->GetText();
+    serializeID = std::stoi(serializeIDString);
+
+    //there is a possibility, that this texture is intended as a custom texture with data within, check for the file tags
+    textureNodeAttribute = TextureNode->FirstChildElement("Source");
+    if (textureNodeAttribute != nullptr) {
+        if(textureNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Texture source color setting has no text, skipping! " << std::endl;
+        } else {
+            std::string textureSource = textureNodeAttribute->GetText();
+            TextureAsset* asset = assetManager->loadAsset<TextureAsset>({ textureSource });
+            std::shared_ptr<Texture> texture = asset->getTexture();
+            texture->setSource(textureSource);
+            texture->setSerializeID(serializeID);
+            return texture;
+        }
+    }
 
     textureNodeAttribute = TextureNode->FirstChildElement("TextureType");
     if (textureNodeAttribute == nullptr) {
@@ -267,17 +306,6 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
 
     std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, textureType, internalFormat, format, dataType, width, height, depth);
 
-    textureNodeAttribute = TextureNode->FirstChildElement("TextureSerializeID");
-    if (textureNodeAttribute == nullptr) {
-        std::cerr << "Texture doesn't have serializeID." << std::endl;
-        return nullptr;
-    }
-    if(textureNodeAttribute->GetText() == nullptr) {
-        std::cerr << "Texture serializeID doesn't have text, this is must likely a bug." << std::endl;
-        return nullptr;
-    }
-    std::string serializeIDString = textureNodeAttribute->GetText();
-    uint32_t serializeID = std::stoi(serializeIDString);
     texture->setSerializeID(serializeID);
 
     textureNodeAttribute = TextureNode->FirstChildElement("FilterMode");
@@ -460,23 +488,6 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
 
             if(!fail) {
                 texture->setBorderColor(borderColors[0], borderColors[1], borderColors[2], borderColors[3]);
-            }
-        }
-    }
-
-    //there is a possibility, that this texture is intended as a custom texture with data within, check for the file tags
-    textureNodeAttribute = TextureNode->FirstChildElement("Source");
-    if (textureNodeAttribute != nullptr) {
-        if(textureNodeAttribute->GetText() == nullptr) {
-            std::cerr << "Texture source color setting has no text, skipping! " << std::endl;
-        } else {
-            std::string textureSource = textureNodeAttribute->GetText();
-            if(textureSource == "True") {
-                borderColorSet = true;
-            } else if(textureSource == "False") {
-                borderColorSet = false;
-            } else {
-                std::cerr << "Texture border color setting is unknown, border color will not be set" << std::endl;
             }
         }
     }

@@ -136,7 +136,7 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
     }
     std::unique_ptr<GraphicsPipeline> graphicsPipeline = std::make_unique<GraphicsPipeline>(renderMethods);
     while(textureElement !=nullptr) {
-        std::shared_ptr<Texture> texture = Texture::deserialize(textureElement, graphicsWrapper, options);
+        std::shared_ptr<Texture> texture = Texture::deserialize(textureElement, graphicsWrapper, assetManager, options);
         if(texture != nullptr) {
             graphicsPipeline->addTexture(texture);
         }
