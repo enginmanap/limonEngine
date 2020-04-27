@@ -3,6 +3,7 @@
 //
 
 #include <SDL_syswm.h>
+#include <memory>
 #include "SDL2Helper.h"
 #include "Options.h"
 #include "API/LimonAPI.h"
@@ -89,7 +90,29 @@ SDL_Window *SDL2Helper::getWindow() {
     return window;
 }
 
-bool SDL2Helper::loadSharedLibrary(const std::string &fileName) {
+std::shared_ptr<GraphicsInterface> SDL2Helper::loadGraphicsBackend(const std::string &fileName, Options *options) {
+    std::cout << "trying to load shared library " << fileName << std::endl;
+    void* objectHandle = nullptr;
+    objectHandle = SDL_LoadObject(fileName.c_str());
+
+    const std::string registerFunctionName = "createGraphicsBackend";
+    std::shared_ptr<GraphicsInterface>(*registerFunction)(Options*);
+    registerFunction = (
+            std::shared_ptr<GraphicsInterface>(*)(
+                    Options*
+                            )
+            ) SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
+    if(registerFunction != nullptr) {
+        std::cout << "Trigger register method found" << std::endl;
+        return registerFunction(options);
+    } else {
+        std::cerr << "Graphics backend load failed!" << std::endl;
+        return nullptr;
+    }
+}
+
+
+bool SDL2Helper::loadCustomTriggers(const std::string &fileName) {
     std::cout << "trying to load shared library " << fileName << std::endl;
     void* objectHandle = nullptr;
     objectHandle = SDL_LoadObject(fileName.c_str());

@@ -30,7 +30,7 @@ include_directories(${CMAKE_SOURCE_DIR}/src)
 file(GLOB_RECURSE SOURCE_FILES
         src/*.cpp)
 
-add_executable(LimonEngine ${SOURCE_FILES})
+add_executable(LimonEngine ${SOURCE_FILES} src/Graphics/GraphicsProgramLoader.cpp src/Graphics/GraphicsProgramLoader.h)
 
 INCLUDE(FindPkgConfig)
 
@@ -95,7 +95,7 @@ add_custom_target(copyData
         ${CMAKE_SOURCE_DIR}/Engine ${CMAKE_BINARY_DIR}/Engine)
 add_dependencies(LimonEngine copyData)
 
-TARGET_LINK_LIBRARIES(LimonEngine ImGui ImGuizmo OpenAL nodeGraph ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} GLEW::GLEW ${OPENGL_LIBRARIES} ${ASSIMP_LIBRARIES})
+TARGET_LINK_LIBRARIES(LimonEngine ImGui ImGuizmo OpenAL nodeGraph ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${ASSIMP_LIBRARIES})
 
 IF (WIN32)
     #add icon to windows binary
@@ -171,8 +171,24 @@ ENDIF()
 
 add_dependencies(customTriggers LimonAPI)
 
-
 set_target_properties(customTriggers PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(customTriggers PROPERTIES SOVERSION 1)
+
+add_library(GraphicsBackend SHARED
+        src/API/GraphicsInterface.cpp
+        src/API/GraphicsProgram.cpp
+        GraphicBackends/OpenGLGraphics.cpp
+        )
+
+IF (WIN32 AND NOT ( MINGW OR MSYS))
+    TARGET_LINK_LIBRARIES(GraphicsBackend ${CMAKE_BINARY_DIR}/libLimonAPI.lib GLEW::GLEW ${OPENGL_LIBRARIES})
+else()
+    TARGET_LINK_LIBRARIES(GraphicsBackend ${CMAKE_BINARY_DIR}/libLimonAPI.a GLEW::GLEW ${OPENGL_LIBRARIES})
+ENDIF()
+
+add_dependencies(GraphicsBackend LimonAPI)
+
+set_target_properties(GraphicsBackend PROPERTIES VERSION ${PROJECT_VERSION})
+set_target_properties(GraphicsBackend PROPERTIES SOVERSION 1)
 
 #cotire(LimonEngine)

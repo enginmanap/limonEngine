@@ -225,7 +225,15 @@ public:
     virtual bool setUniform(const uint32_t programID, const uint32_t uniformID, const int value) = 0;
     virtual bool setUniformArray(const uint32_t programID, const uint32_t uniformID, const std::vector<glm::mat4> &matrixArray) = 0;
 
-    virtual void setLight(const Light &light, const int i) = 0;
+    virtual void setLight(const int lightIndex,
+                          const glm::vec3& attenuation,
+                          const glm::mat4* shadowMatrices,
+                          const glm::mat4& lightSpaceMatrix,
+                          const glm::vec3& position,
+                          const glm::vec3& color,
+                          const glm::vec3& ambientColor,
+                          const int32_t lightType,
+                          const float farPlane) = 0;
 
     virtual void removeLight(const int i) = 0;
 

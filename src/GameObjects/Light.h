@@ -18,14 +18,12 @@ public:
     enum LightTypes {
         DIRECTIONAL, POINT
     };
+    const glm::mat4 &getLightSpaceMatrix() const;
+
 private:
     GraphicsInterface* graphicsWrapper;
     glm::mat4 shadowMatrices[6];//these are used only for point lights for now
     glm::mat4 lightSpaceMatrix;
-public:
-    const glm::mat4 &getLightSpaceMatrix() const;
-
-private:
 // and this is used only for directional lights
     std::vector<glm::vec4> frustumPlanes;
 

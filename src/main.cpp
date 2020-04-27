@@ -2,7 +2,7 @@
 // Created by Engin Manap on 10.02.2016.
 //
 
-#include <Graphics/OpenGLGraphics.h>
+#include "../GraphicBackends/OpenGLGraphics.h"
 #include "main.h"
 #include "API/GraphicsInterface.h"
 #include "SDL2Helper.h"
@@ -129,21 +129,34 @@ GameEngine::GameEngine() {
     std::cout << "Options loaded successfully" << std::endl;
 
     sdlHelper = new SDL2Helper(PROGRAM_NAME.c_str(), options);
+
+    std::string graphicsBackendFileName;
 #ifdef _WIN32
-    sdlHelper->loadSharedLibrary("libcustomTriggers.dll");
+    graphicsBackendFileName = "libGraphicsBackend.dll";
+#elif __APPLE__
+    graphicsBackendFileName = "./libGraphicsBackend.dylib";
+#else
+    graphicsBackendFileName = "./libGraphicsBackend.so";
+#endif
+    graphicsWrapper = sdlHelper->loadGraphicsBackend(graphicsBackendFileName, options);
+    if(graphicsWrapper == nullptr) {
+        std::cerr << "failed to load graphics backend. Please check " << graphicsBackendFileName << std::endl;
+        exit(1);
+    }
+    graphicsWrapper->reshape();
+
+#ifdef _WIN32
+    sdlHelper->loadCustomTriggers("libcustomTriggers.dll");
 #elif __APPLE__
     sdlHelper->loadSharedLibrary("./libcustomTriggers.dylib");
 #else
     sdlHelper->loadSharedLibrary("./libcustomTriggers.so");
 #endif
 
-    graphicsWrapper = new OpenGLGraphics(options);
-    graphicsWrapper->reshape();
-
     alHelper = new ALHelper();
 
     inputHandler = new InputHandler(sdlHelper->getWindow(), options);
-    assetManager = std::make_shared<AssetManager>(graphicsWrapper, alHelper);
+    assetManager = std::make_shared<AssetManager>(graphicsWrapper.get(), alHelper);
 
     worldLoader = new WorldLoader(assetManager, inputHandler, options);
 }
@@ -196,14 +209,9 @@ GameEngine::~GameEngine() {
     }
 
     delete worldLoader;
-
     delete inputHandler;
-
     delete alHelper;
-    delete graphicsWrapper;
-
     delete sdlHelper;
-
     delete options;
 
 

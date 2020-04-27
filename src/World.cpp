@@ -89,7 +89,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                                         glm::vec3(0, 0, 0), 640, 380, options);
     debugOutputGUI->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-200), 0.0f);
 
-
     switch(startingPlayer.type) {
         case PlayerInfo::Types::PHYSICAL_PLAYER:
             physicalPlayer = new PhysicalPlayer(1, options, cursor, startingPlayer.position, startingPlayer.orientation, startingPlayerType.attachedModel);// 1 is reserved for physical player
@@ -3588,7 +3587,18 @@ void World::updateActiveLights(bool forceUpdate) {
     }
 
     for (size_t lightIndex = 0; lightIndex < activeLights.size(); ++lightIndex) {
-        graphicsWrapper->setLight(*activeLights[lightIndex], lightIndex);
+        const Light* currentLight = activeLights[lightIndex];
+        graphicsWrapper->setLight(
+                lightIndex,
+                currentLight->getAttenuation(),
+                currentLight->getShadowMatrices(),
+                currentLight->getLightSpaceMatrix(),
+                currentLight->getPosition(),
+                currentLight->getColor(),
+                currentLight->getAmbientColor(),
+                currentLight->getLightType(),
+                currentLight->getActiveDistance()
+                );
     }
 
     for (uint32_t i = activeLights.size(); i < NR_TOTAL_LIGHTS; ++i) {

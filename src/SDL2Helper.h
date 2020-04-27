@@ -11,6 +11,8 @@
 #include <SDL_atomic.h>
 #include <SDL_thread.h>
 #include <functional>
+#include <bits/shared_ptr.h>
+#include <API/GraphicsInterface.h>
 #include "Options.h"
 #include "API/LimonAPI.h"
 
@@ -109,7 +111,8 @@ public:
         options->setIsWindowInFocus(SDL_GetWindowFlags(window) & SDL_WINDOW_MOUSE_FOCUS);
     };
 
-    bool loadSharedLibrary(const std::string& fileName);
+    bool loadCustomTriggers(const std::string& fileName);
+    std::shared_ptr<GraphicsInterface> loadGraphicsBackend(const std::string &fileName, Options *options);
 
     SDL_Window *getWindow();
 

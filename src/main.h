@@ -28,7 +28,7 @@ class GameEngine {
 
     Options* options = nullptr;
     ALHelper* alHelper = nullptr;
-    GraphicsInterface* graphicsWrapper = nullptr;
+    std::shared_ptr<GraphicsInterface> graphicsWrapper = nullptr;
     InputHandler* inputHandler = nullptr;
     std::shared_ptr<AssetManager> assetManager = nullptr;
     SDL2Helper* sdlHelper = nullptr;

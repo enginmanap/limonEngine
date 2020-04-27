@@ -2,8 +2,8 @@
 // Created by engin on 17.01.2019.
 //
 
-#ifndef LIMONENGINE_SDKSERIALIZER_H
-#define LIMONENGINE_SDKSERIALIZER_H
+#ifndef LIMONENGINE_APISERIALIZER_H
+#define LIMONENGINE_APISERIALIZER_H
 
 #include <tinyxml2.h>
 #include <memory>
@@ -36,4 +36,4 @@ public:
 };
 
 
-#endif //LIMONENGINE_SDKSERIALIZER_H
+#endif //LIMONENGINE_APISERIALIZER_H

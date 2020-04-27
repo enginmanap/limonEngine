@@ -8,7 +8,12 @@
 #include "GameObjects/Light.h"
 #include "Material.h"
 #include "Utils/GLMUtils.h"
-#include "Texture.h"
+#include "Graphics/Texture.h"
+
+std::shared_ptr<GraphicsInterface> createGraphicsBackend(Options* options) {
+    return std::make_shared<OpenGLGraphics>(options);
+}
+
 
 GLuint OpenGLGraphics::createShader(GLenum eShaderType, const std::string &strShaderFile) {
     GLuint shader = glCreateShader(eShaderType);
@@ -23,8 +28,7 @@ GLuint OpenGLGraphics::createShader(GLenum eShaderType, const std::string &strSh
 
         shaderStream.close();
     } else {
-        std::cerr << strShaderFile.c_str() <<
-                  " could not be read. Please ensure run directory if you used relative paths." << std::endl;
+        std::cerr << strShaderFile.c_str() << " could not be read. Please ensure run directory if you used relative paths." << std::endl;
         getchar();
         return 0;
     }
@@ -1305,39 +1309,36 @@ void OpenGLGraphics::drawLines(GraphicsProgram &program, uint32_t vao, uint32_t 
     checkErrors("drawLines");
 }
 
-void OpenGLGraphics::setLight(const Light &light, const int i) {
-    GLint lightType;
-    switch (light.getLightType()) {
-        case Light::DIRECTIONAL:
-            lightType = 1;
-            break;
-        case Light::POINT:
-            lightType = 2;
-            break;
-    }
+void OpenGLGraphics::setLight(const int lightIndex,
+                              const glm::vec3& attenuation,
+                              const glm::mat4* shadowMatrices,
+                              const glm::mat4& lightSpaceMatrix,
+                              const glm::vec3& position,
+                              const glm::vec3& color,
+                              const glm::vec3& ambientColor,
+                              const int32_t lightType,
+                              const float farPlane) {
 
     //std::cout << "light type is " << lightType << std::endl;
-    //std::cout << "size is " << sizeof(GLint) << std::endl;
-    float farPlane = light.getActiveDistance();
-    glm::vec3 attenuation = light.getAttenuation();
+
 
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize,
-                    sizeof(glm::mat4) * 6, light.getShadowMatrices());
-    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 6,
-                    sizeof(glm::mat4), glm::value_ptr(light.getLightSpaceMatrix()));
-    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7,
-                    sizeof(glm::vec3), &light.getPosition());
-    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec3),
+    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize,
+                    sizeof(glm::mat4) * 6, shadowMatrices);
+    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6,
+                    sizeof(glm::mat4), glm::value_ptr(lightSpaceMatrix));
+    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 7,
+                    sizeof(glm::vec3), &position);
+    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec3),
                     sizeof(GLfloat), &farPlane);
-    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec4),
-                    sizeof(glm::vec3), &light.getColor());
-    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec4) + sizeof(glm::vec3),
+    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec4),
+                    sizeof(glm::vec3), &color);
+    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec4) + sizeof(glm::vec3),
                     sizeof(GLint), &lightType);
-    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + 2 *sizeof(glm::vec4),
+    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 7 + 2 * sizeof(glm::vec4),
                     sizeof(glm::vec3), glm::value_ptr(attenuation));
-    glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + 3 *sizeof(glm::vec4),
-                    sizeof(glm::vec3), glm::value_ptr(light.getAmbientColor()));
+    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 7 + 3 * sizeof(glm::vec4),
+                    sizeof(glm::vec3), glm::value_ptr(ambientColor));
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setLight");
 }

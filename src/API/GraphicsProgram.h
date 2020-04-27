@@ -11,8 +11,10 @@
 #include <memory>
 #include "API/GraphicsInterface.h"
 
+class GraphicsProgramLoader;
 
 class GraphicsProgram {
+    friend class GraphicsProgramLoader;
     GraphicsInterface* graphicsWrapper;
     std::string programName;
 
@@ -108,10 +110,6 @@ public:
     bool IsMaterialRequired() const {
         return materialRequired;
     }
-
-    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode);
-
-    static std::shared_ptr<GraphicsProgram> deserialize(tinyxml2::XMLElement *programNode, GraphicsInterface* graphicsWrapper);
 
     const std::string &getVertexShader() const {
         return vertexShader;

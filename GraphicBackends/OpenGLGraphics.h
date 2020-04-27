@@ -39,6 +39,9 @@ class Light;
 class GraphicsProgram;
 class Texture;
 
+extern "C" std::shared_ptr<GraphicsInterface> createGraphicsBackend(Options* options);
+
+
 class OpenGLGraphics : public GraphicsInterface {
     friend class Texture;
     class OpenglState {
@@ -329,7 +332,15 @@ public:
 
     bool setUniformArray(const uint32_t programID, const uint32_t uniformID, const std::vector<glm::mat4> &matrixArray) override;
 
-    void setLight(const Light &light, const int i) override;
+    void setLight(const int lightIndex,
+                  const glm::vec3& attenuation,
+                  const glm::mat4* shadowMatrices,
+                  const glm::mat4& lightSpaceMatrix,
+                  const glm::vec3& position,
+                  const glm::vec3& color,
+                  const glm::vec3& ambientColor,
+                  const int32_t lightType,
+                  const float farPlane) override;
 
     void removeLight(const int i) override {
         GLint temp = 0;

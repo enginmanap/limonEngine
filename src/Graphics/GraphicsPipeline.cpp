@@ -4,6 +4,7 @@
 
 #include "GraphicsPipeline.h"
 #include "API/GraphicsProgram.h"
+#include "GraphicsProgramLoader.h"
 
 //Static initialize of the vector
 std::vector<std::string> GraphicsPipeline::renderMethodNames { "None", "All directional shadows", "All point Shadow", "Opaque objects", "Animated objects", "Transparent objects", "GUI Texts", "GUI Images", "Editor", "Sky", "Debug information", "Opaque player attachments", "Animated player attachments", "Transparent player attachments", "Render quad"};
@@ -79,8 +80,7 @@ bool GraphicsPipeline::StageInfo::serialize(tinyxml2::XMLDocument &document, tin
         methodIndexElement->SetText(std::to_string(i).c_str());
         methodElement->InsertEndChild(methodIndexElement);
         if(renderMethods[i].getGlslProgram() != nullptr) {
-            renderMethods[i].getGlslProgram()->serialize(document, methodElement);
-
+            GraphicsProgramLoader::serialize(document, methodElement, renderMethods[i].getGlslProgram());
         } else {
             methodElement->SetAttribute("ProgramNull", "True");
         }
@@ -248,7 +248,8 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
                 std::cerr << "StageInfo has no render method, but it is not tagged as such, cancelling!" << std::endl;
                 return nullptr;
             }
-            graphicsProgram = GraphicsProgram::deserialize(graphicsProgramElement, graphicsWrapper);
+            graphicsProgram = GraphicsProgramLoader::deserialize(graphicsProgramElement, graphicsWrapper);
+
         }
 
         bool isFound = true;
