@@ -29,7 +29,6 @@ class ImGuiHelper {
     bool         g_MousePressed[3] = { false, false, false };
     float        g_MouseWheel = 0.0f;
     uint32_t     g_FontTexture = 0;
-    int          g_VertHandle = 0, g_FragHandle = 0;
     int          g_AttribLocationPosition = 0, g_AttribLocationUV = 0, g_AttribLocationColor = 0;
     unsigned int g_VboHandle = 0, g_VaoHandle = 0, g_ElementsHandle = 0;
     // ImGUI Data end"

@@ -259,6 +259,9 @@ public:
 
     virtual void renderInstanced(uint32_t program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
                          uint32_t instanceCount) = 0;
+
+    virtual void backupCurrentState() = 0;
+    virtual void restoreLastState() = 0;
 };
 
 #endif //LIMONENGINE_GRAPHICSINTERFACE_H

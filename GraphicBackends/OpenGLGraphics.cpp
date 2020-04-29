@@ -1464,3 +1464,11 @@ void OpenGLGraphics::calculateFrustumPlanes(const glm::mat4 &cameraMatrix,
     planes[FRONT].w = clipMat[3].w + clipMat[3].z;
     planes[FRONT] = glm::normalize(planes[FRONT]);
 }
+
+void OpenGLGraphics::backupCurrentState() {
+    this->state->backupState();
+}
+
+void OpenGLGraphics::restoreLastState() {
+    this->state->restoreState();
+}
