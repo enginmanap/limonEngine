@@ -16,7 +16,7 @@
 class Light : public GameObject {
 public:
     enum LightTypes {
-        DIRECTIONAL, POINT
+        NONE, DIRECTIONAL, POINT
     };
     const glm::mat4 &getLightSpaceMatrix() const;
 
