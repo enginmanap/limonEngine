@@ -148,9 +148,9 @@ GameEngine::GameEngine() {
 #ifdef _WIN32
     sdlHelper->loadCustomTriggers("libcustomTriggers.dll");
 #elif __APPLE__
-    sdlHelper->loadSharedLibrary("./libcustomTriggers.dylib");
+    sdlHelper->loadCustomTriggers("./libcustomTriggers.dylib");
 #else
-    sdlHelper->loadSharedLibrary("./libcustomTriggers.so");
+    sdlHelper->loadCustomTriggers("./libcustomTriggers.so");
 #endif
 
     alHelper = new ALHelper();
