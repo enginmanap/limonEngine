@@ -1,15 +1,11 @@
 #ifndef ALHELPERS_H
 #define ALHELPERS_H
 
-#include "AL/alc.h"
 #include "AL/al.h"
-#include "AL/alext.h"
-
-#include "threads.h"
 
 #ifdef __cplusplus
 extern "C" {
-#endif /* __cplusplus */
+#endif
 
 /* Some helper functions to get the name from the format enums. */
 const char *FormatName(ALenum type);
@@ -18,8 +14,12 @@ const char *FormatName(ALenum type);
 int InitAL(char ***argv, int *argc);
 void CloseAL(void);
 
+/* Cross-platform timeget and sleep functions. */
+int altime_get(void);
+void al_nssleep(unsigned long nsec);
+
 #ifdef __cplusplus
-}
-#endif /* __cplusplus */
+} // extern "C"
+#endif
 
 #endif /* ALHELPERS_H */

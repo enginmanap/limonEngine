@@ -158,9 +158,9 @@ extern "C" {
 
 #ifndef AL_EXT_STATIC_BUFFER
 #define AL_EXT_STATIC_BUFFER 1
-typedef ALvoid (AL_APIENTRY*PFNALBUFFERDATASTATICPROC)(const ALint,ALenum,ALvoid*,ALsizei,ALsizei);
+typedef void (AL_APIENTRY*PFNALBUFFERDATASTATICPROC)(const ALint,ALenum,ALvoid*,ALsizei,ALsizei);
 #ifdef AL_ALEXT_PROTOTYPES
-AL_API ALvoid AL_APIENTRY alBufferDataStatic(const ALint buffer, ALenum format, ALvoid *data, ALsizei len, ALsizei freq);
+AL_API void AL_APIENTRY alBufferDataStatic(const ALint buffer, ALenum format, ALvoid *data, ALsizei len, ALsizei freq);
 #endif
 #endif
 
@@ -193,9 +193,9 @@ ALC_API ALCcontext* ALC_APIENTRY alcGetThreadContext(void);
 #define AL_SOFT_buffer_sub_data 1
 #define AL_BYTE_RW_OFFSETS_SOFT                  0x1031
 #define AL_SAMPLE_RW_OFFSETS_SOFT                0x1032
-typedef ALvoid (AL_APIENTRY*PFNALBUFFERSUBDATASOFTPROC)(ALuint,ALenum,const ALvoid*,ALsizei,ALsizei);
+typedef void (AL_APIENTRY*PFNALBUFFERSUBDATASOFTPROC)(ALuint,ALenum,const ALvoid*,ALsizei,ALsizei);
 #ifdef AL_ALEXT_PROTOTYPES
-AL_API ALvoid AL_APIENTRY alBufferSubDataSOFT(ALuint buffer,ALenum format,const ALvoid *data,ALsizei offset,ALsizei length);
+AL_API void AL_APIENTRY alBufferSubDataSOFT(ALuint buffer,ALenum format,const ALvoid *data,ALsizei offset,ALsizei length);
 #endif
 #endif
 
@@ -381,11 +381,11 @@ AL_API void AL_APIENTRY alGetSourcei64vSOFT(ALuint source, ALenum param, ALint64
 #ifndef AL_SOFT_deferred_updates
 #define AL_SOFT_deferred_updates 1
 #define AL_DEFERRED_UPDATES_SOFT                 0xC002
-typedef ALvoid (AL_APIENTRY*LPALDEFERUPDATESSOFT)(void);
-typedef ALvoid (AL_APIENTRY*LPALPROCESSUPDATESSOFT)(void);
+typedef void (AL_APIENTRY*LPALDEFERUPDATESSOFT)(void);
+typedef void (AL_APIENTRY*LPALPROCESSUPDATESSOFT)(void);
 #ifdef AL_ALEXT_PROTOTYPES
-AL_API ALvoid AL_APIENTRY alDeferUpdatesSOFT(void);
-AL_API ALvoid AL_APIENTRY alProcessUpdatesSOFT(void);
+AL_API void AL_APIENTRY alDeferUpdatesSOFT(void);
+AL_API void AL_APIENTRY alProcessUpdatesSOFT(void);
 #endif
 #endif
 
@@ -507,6 +507,27 @@ typedef void (ALC_APIENTRY*LPALCGETINTEGER64VSOFT)(ALCdevice *device, ALCenum pn
 #ifdef AL_ALEXT_PROTOTYPES
 ALC_API void ALC_APIENTRY alcGetInteger64vSOFT(ALCdevice *device, ALCenum pname, ALsizei size, ALCint64SOFT *values);
 #endif
+#endif
+
+#ifndef AL_SOFT_direct_channels_remix
+#define AL_SOFT_direct_channels_remix 1
+#define AL_DROP_UNMATCHED_SOFT                   0x0001
+#define AL_REMIX_UNMATCHED_SOFT                  0x0002
+#endif
+
+#ifndef AL_SOFT_bformat_ex
+#define AL_SOFT_bformat_ex 1
+#define AL_AMBISONIC_LAYOUT_SOFT                 0x1997
+#define AL_AMBISONIC_SCALING_SOFT                0x1998
+
+/* Ambisonic layouts */
+#define AL_FUMA_SOFT                             0x0000
+#define AL_ACN_SOFT                              0x0001
+
+/* Ambisonic scalings (normalization) */
+/*#define AL_FUMA_SOFT*/
+#define AL_SN3D_SOFT                             0x0001
+#define AL_N3D_SOFT                              0x0002
 #endif
 
 #ifdef __cplusplus

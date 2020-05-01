@@ -28,14 +28,14 @@
  * finding an appropriate buffer format, and getting readable strings for
  * channel configs and sample types. */
 
+#include "alhelpers.h"
+
 #include <stdio.h>
+#include <errno.h>
 #include <string.h>
 
 #include "AL/al.h"
 #include "AL/alc.h"
-#include "AL/alext.h"
-
-#include "alhelpers.h"
 
 
 /* InitAL opens a device and sets up a context using default attributes, making
@@ -114,3 +114,71 @@ const char *FormatName(ALenum format)
     }
     return "Unknown Format";
 }
+
+
+#ifdef _WIN32
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <mmsystem.h>
+
+int altime_get(void)
+{
+    static int start_time = 0;
+    int cur_time;
+    union {
+        FILETIME ftime;
+        ULARGE_INTEGER ulint;
+    } systime;
+    GetSystemTimeAsFileTime(&systime.ftime);
+    /* FILETIME is in 100-nanosecond units, or 1/10th of a microsecond. */
+    cur_time = (int)(systime.ulint.QuadPart/10000);
+
+    if(!start_time)
+        start_time = cur_time;
+    return cur_time - start_time;
+}
+
+void al_nssleep(unsigned long nsec)
+{
+    Sleep(nsec / 1000000);
+}
+
+#else
+
+#include <sys/time.h>
+#include <unistd.h>
+#include <time.h>
+
+int altime_get(void)
+{
+    static int start_time = 0u;
+    int cur_time;
+
+#if _POSIX_TIMERS > 0
+    struct timespec ts;
+    int ret = clock_gettime(CLOCK_REALTIME, &ts);
+    if(ret != 0) return 0;
+    cur_time = (int)(ts.tv_sec*1000 + ts.tv_nsec/1000000);
+#else /* _POSIX_TIMERS > 0 */
+    struct timeval tv;
+    int ret = gettimeofday(&tv, NULL);
+    if(ret != 0) return 0;
+    cur_time = (int)(tv.tv_sec*1000 + tv.tv_usec/1000);
+#endif
+
+    if(!start_time)
+        start_time = cur_time;
+    return cur_time - start_time;
+}
+
+void al_nssleep(unsigned long nsec)
+{
+    struct timespec ts, rem;
+    ts.tv_sec = (time_t)(nsec / 1000000000ul);
+    ts.tv_nsec = (long)(nsec % 1000000000ul);
+    while(nanosleep(&ts, &rem) == -1 && errno == EINTR)
+        ts = rem;
+}
+
+#endif

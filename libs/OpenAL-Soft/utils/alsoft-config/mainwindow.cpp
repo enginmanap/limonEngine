@@ -1,7 +1,7 @@
 
 #include "config.h"
 
-#include "version.h"
+#include "mainwindow.h"
 
 #include <iostream>
 #include <cmath>
@@ -11,8 +11,13 @@
 #include <QCloseEvent>
 #include <QSettings>
 #include <QtGlobal>
-#include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "verstr.h"
+
+#ifdef _WIN32
+#include <windows.h>
+#include <shlobj.h>
+#endif
 
 namespace {
 
@@ -101,7 +106,9 @@ static const struct NameValuePair {
     { "Linear", "linear" },
     { "Default (Linear)", "" },
     { "Cubic Spline", "cubic" },
+    { "11th order Sinc (fast)", "fast_bsinc12" },
     { "11th order Sinc", "bsinc12" },
+    { "23rd order Sinc (fast)", "fast_bsinc24" },
     { "23rd order Sinc", "bsinc24" },
 
     { "", "" }
@@ -119,9 +126,16 @@ static const struct NameValuePair {
     { "", "" }
 }, ambiFormatList[] = {
     { "Default", "" },
-    { "ACN + SN3D", "acn+sn3d" },
-    { "ACN + N3D", "acn+n3d" },
+    { "AmbiX (ACN, SN3D)", "ambix" },
+    { "ACN, N3D", "acn+n3d" },
     { "Furse-Malham", "fuma" },
+
+    { "", "" }
+}, hrtfModeList[] = {
+    { "1st Order Ambisonic", "ambi1" },
+    { "2nd Order Ambisonic", "ambi2" },
+    { "Default (Full)", "" },
+    { "Full", "full" },
 
     { "", "" }
 };
@@ -130,7 +144,14 @@ static QString getDefaultConfigName()
 {
 #ifdef Q_OS_WIN32
     static const char fname[] = "alsoft.ini";
-    QByteArray base = qgetenv("AppData");
+    auto get_appdata_path = []() noexcept -> QString
+    {
+        WCHAR buffer[MAX_PATH];
+        if(SHGetSpecialFolderPathW(nullptr, buffer, CSIDL_APPDATA, FALSE) != FALSE)
+            return QString::fromWCharArray(buffer);
+        return QString();
+    };
+    QString base = get_appdata_path();
 #else
     static const char fname[] = "alsoft.conf";
     QByteArray base = qgetenv("XDG_CONFIG_HOME");
@@ -149,7 +170,14 @@ static QString getDefaultConfigName()
 static QString getBaseDataPath()
 {
 #ifdef Q_OS_WIN32
-    QByteArray base = qgetenv("AppData");
+    auto get_appdata_path = []() noexcept -> QString
+    {
+        WCHAR buffer[MAX_PATH];
+        if(SHGetSpecialFolderPathW(nullptr, buffer, CSIDL_APPDATA, FALSE) != FALSE)
+            return QString::fromWCharArray(buffer);
+        return QString();
+    };
+    QString base = get_appdata_path();
 #else
     QByteArray base = qgetenv("XDG_DATA_HOME");
     if(base.isEmpty())
@@ -162,7 +190,7 @@ static QString getBaseDataPath()
     return base;
 }
 
-static QStringList getAllDataPaths(QString append=QString())
+static QStringList getAllDataPaths(const QString &append)
 {
     QStringList list;
     list.append(getBaseDataPath());
@@ -196,7 +224,7 @@ static QString getValueFromName(const NameValuePair (&list)[N], const QString &s
         if(str == list[i].name)
             return list[i].value;
     }
-    return QString();
+    return QString{};
 }
 
 template<size_t N>
@@ -207,7 +235,27 @@ static QString getNameFromValue(const NameValuePair (&list)[N], const QString &s
         if(str == list[i].value)
             return list[i].name;
     }
-    return QString();
+    return QString{};
+}
+
+
+Qt::CheckState getCheckState(const QVariant &var)
+{
+    if(var.isNull())
+        return Qt::PartiallyChecked;
+    if(var.toBool())
+        return Qt::Checked;
+    return Qt::Unchecked;
+}
+
+QString getCheckValue(const QCheckBox *checkbox)
+{
+    const Qt::CheckState state{checkbox->checkState()};
+    if(state == Qt::Checked)
+        return QString{"true"};
+    if(state == Qt::Unchecked)
+        return QString{"false"};
+    return QString{};
 }
 
 }
@@ -215,13 +263,13 @@ static QString getNameFromValue(const NameValuePair (&list)[N], const QString &s
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    mPeriodSizeValidator(NULL),
-    mPeriodCountValidator(NULL),
-    mSourceCountValidator(NULL),
-    mEffectSlotValidator(NULL),
-    mSourceSendValidator(NULL),
-    mSampleRateValidator(NULL),
-    mJackBufferValidator(NULL),
+    mPeriodSizeValidator(nullptr),
+    mPeriodCountValidator(nullptr),
+    mSourceCountValidator(nullptr),
+    mEffectSlotValidator(nullptr),
+    mSourceSendValidator(nullptr),
+    mSampleRateValidator(nullptr),
+    mJackBufferValidator(nullptr),
     mNeedsSave(false)
 {
     ui->setupUi(this);
@@ -247,6 +295,9 @@ MainWindow::MainWindow(QWidget *parent) :
     }
     ui->resamplerSlider->setRange(0, count-1);
 
+    for(count = 0;hrtfModeList[count].name[0];count++) {
+    }
+    ui->hrtfmodeSlider->setRange(0, count-1);
     ui->hrtfStateComboBox->adjustSize();
 
 #if !defined(HAVE_NEON) && !defined(HAVE_SSE)
@@ -289,125 +340,131 @@ MainWindow::MainWindow(QWidget *parent) :
 
 #endif
 
-    mPeriodSizeValidator = new QIntValidator(64, 8192, this);
+    mPeriodSizeValidator = new QIntValidator{64, 8192, this};
     ui->periodSizeEdit->setValidator(mPeriodSizeValidator);
-    mPeriodCountValidator = new QIntValidator(2, 16, this);
+    mPeriodCountValidator = new QIntValidator{2, 16, this};
     ui->periodCountEdit->setValidator(mPeriodCountValidator);
 
-    mSourceCountValidator = new QIntValidator(0, 4096, this);
+    mSourceCountValidator = new QIntValidator{0, 4096, this};
     ui->srcCountLineEdit->setValidator(mSourceCountValidator);
-    mEffectSlotValidator = new QIntValidator(0, 64, this);
+    mEffectSlotValidator = new QIntValidator{0, 64, this};
     ui->effectSlotLineEdit->setValidator(mEffectSlotValidator);
-    mSourceSendValidator = new QIntValidator(0, 16, this);
+    mSourceSendValidator = new QIntValidator{0, 16, this};
     ui->srcSendLineEdit->setValidator(mSourceSendValidator);
-    mSampleRateValidator = new QIntValidator(8000, 192000, this);
+    mSampleRateValidator = new QIntValidator{8000, 192000, this};
     ui->sampleRateCombo->lineEdit()->setValidator(mSampleRateValidator);
 
-    mJackBufferValidator = new QIntValidator(0, 8192, this);
+    mJackBufferValidator = new QIntValidator{0, 8192, this};
     ui->jackBufferSizeLine->setValidator(mJackBufferValidator);
 
-    connect(ui->actionLoad, SIGNAL(triggered()), this, SLOT(loadConfigFromFile()));
-    connect(ui->actionSave_As, SIGNAL(triggered()), this, SLOT(saveConfigAsFile()));
+    connect(ui->actionLoad, &QAction::triggered, this, &MainWindow::loadConfigFromFile);
+    connect(ui->actionSave_As, &QAction::triggered, this, &MainWindow::saveConfigAsFile);
 
-    connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(showAboutPage()));
+    connect(ui->actionAbout, &QAction::triggered, this, &MainWindow::showAboutPage);
 
-    connect(ui->closeCancelButton, SIGNAL(clicked()), this, SLOT(cancelCloseAction()));
-    connect(ui->applyButton, SIGNAL(clicked()), this, SLOT(saveCurrentConfig()));
+    connect(ui->closeCancelButton, &QPushButton::clicked, this, &MainWindow::cancelCloseAction);
+    connect(ui->applyButton, &QPushButton::clicked, this, &MainWindow::saveCurrentConfig);
 
-    connect(ui->channelConfigCombo, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(enableApplyButton()));
-    connect(ui->sampleFormatCombo, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(enableApplyButton()));
-    connect(ui->stereoModeCombo, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(enableApplyButton()));
-    connect(ui->sampleRateCombo, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(enableApplyButton()));
-    connect(ui->sampleRateCombo, SIGNAL(editTextChanged(const QString&)), this, SLOT(enableApplyButton()));
+    auto qcb_cicstr = static_cast<void(QComboBox::*)(const QString&)>(&QComboBox::currentIndexChanged);
+    connect(ui->channelConfigCombo, qcb_cicstr, this, &MainWindow::enableApplyButton);
+    connect(ui->sampleFormatCombo, qcb_cicstr, this, &MainWindow::enableApplyButton);
+    connect(ui->stereoModeCombo, qcb_cicstr, this, &MainWindow::enableApplyButton);
+    connect(ui->sampleRateCombo, qcb_cicstr, this, &MainWindow::enableApplyButton);
+    connect(ui->sampleRateCombo, &QComboBox::editTextChanged, this, &MainWindow::enableApplyButton);
 
-    connect(ui->resamplerSlider, SIGNAL(valueChanged(int)), this, SLOT(updateResamplerLabel(int)));
+    connect(ui->resamplerSlider, &QSlider::valueChanged, this, &MainWindow::updateResamplerLabel);
 
-    connect(ui->periodSizeSlider, SIGNAL(valueChanged(int)), this, SLOT(updatePeriodSizeEdit(int)));
-    connect(ui->periodSizeEdit, SIGNAL(editingFinished()), this, SLOT(updatePeriodSizeSlider()));
-    connect(ui->periodCountSlider, SIGNAL(valueChanged(int)), this, SLOT(updatePeriodCountEdit(int)));
-    connect(ui->periodCountEdit, SIGNAL(editingFinished()), this, SLOT(updatePeriodCountSlider()));
+    connect(ui->periodSizeSlider, &QSlider::valueChanged, this, &MainWindow::updatePeriodSizeEdit);
+    connect(ui->periodSizeEdit, &QLineEdit::editingFinished, this, &MainWindow::updatePeriodSizeSlider);
+    connect(ui->periodCountSlider, &QSlider::valueChanged, this, &MainWindow::updatePeriodCountEdit);
+    connect(ui->periodCountEdit, &QLineEdit::editingFinished, this, &MainWindow::updatePeriodCountSlider);
 
-    connect(ui->stereoEncodingComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(enableApplyButton()));
-    connect(ui->ambiFormatComboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(enableApplyButton()));
-    connect(ui->outputLimiterCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->outputDitherCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
+    connect(ui->stereoEncodingComboBox, qcb_cicstr, this, &MainWindow::enableApplyButton);
+    connect(ui->ambiFormatComboBox, qcb_cicstr, this, &MainWindow::enableApplyButton);
+    connect(ui->outputLimiterCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->outputDitherCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
 
-    connect(ui->decoderHQModeCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->decoderDistCompCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->decoderNFEffectsCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->decoderNFRefDelaySpinBox, SIGNAL(valueChanged(double)), this, SLOT(enableApplyButton()));
-    connect(ui->decoderQuadLineEdit, SIGNAL(textChanged(QString)), this, SLOT(enableApplyButton()));
-    connect(ui->decoderQuadButton, SIGNAL(clicked()), this, SLOT(selectQuadDecoderFile()));
-    connect(ui->decoder51LineEdit, SIGNAL(textChanged(QString)), this, SLOT(enableApplyButton()));
-    connect(ui->decoder51Button, SIGNAL(clicked()), this, SLOT(select51DecoderFile()));
-    connect(ui->decoder61LineEdit, SIGNAL(textChanged(QString)), this, SLOT(enableApplyButton()));
-    connect(ui->decoder61Button, SIGNAL(clicked()), this, SLOT(select61DecoderFile()));
-    connect(ui->decoder71LineEdit, SIGNAL(textChanged(QString)), this, SLOT(enableApplyButton()));
-    connect(ui->decoder71Button, SIGNAL(clicked()), this, SLOT(select71DecoderFile()));
+    connect(ui->decoderHQModeCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->decoderDistCompCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->decoderNFEffectsCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    auto qdsb_vcd = static_cast<void(QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged);
+    connect(ui->decoderNFRefDelaySpinBox, qdsb_vcd, this, &MainWindow::enableApplyButton);
+    connect(ui->decoderQuadLineEdit, &QLineEdit::textChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->decoderQuadButton, &QPushButton::clicked, this, &MainWindow::selectQuadDecoderFile);
+    connect(ui->decoder51LineEdit, &QLineEdit::textChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->decoder51Button, &QPushButton::clicked, this, &MainWindow::select51DecoderFile);
+    connect(ui->decoder61LineEdit, &QLineEdit::textChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->decoder61Button, &QPushButton::clicked, this, &MainWindow::select61DecoderFile);
+    connect(ui->decoder71LineEdit, &QLineEdit::textChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->decoder71Button, &QPushButton::clicked, this, &MainWindow::select71DecoderFile);
 
-    connect(ui->preferredHrtfComboBox, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(enableApplyButton()));
-    connect(ui->hrtfStateComboBox, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(enableApplyButton()));
-    connect(ui->hrtfAddButton, SIGNAL(clicked()), this, SLOT(addHrtfFile()));
-    connect(ui->hrtfRemoveButton, SIGNAL(clicked()), this, SLOT(removeHrtfFile()));
-    connect(ui->hrtfFileList, SIGNAL(itemSelectionChanged()), this, SLOT(updateHrtfRemoveButton()));
-    connect(ui->defaultHrtfPathsCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
+    connect(ui->preferredHrtfComboBox, qcb_cicstr, this, &MainWindow::enableApplyButton);
+    connect(ui->hrtfStateComboBox, qcb_cicstr, this, &MainWindow::enableApplyButton);
+    connect(ui->hrtfmodeSlider, &QSlider::valueChanged, this, &MainWindow::updateHrtfModeLabel);
 
-    connect(ui->srcCountLineEdit, SIGNAL(editingFinished()), this, SLOT(enableApplyButton()));
-    connect(ui->srcSendLineEdit, SIGNAL(editingFinished()), this, SLOT(enableApplyButton()));
-    connect(ui->effectSlotLineEdit, SIGNAL(editingFinished()), this, SLOT(enableApplyButton()));
+    connect(ui->hrtfAddButton, &QPushButton::clicked, this, &MainWindow::addHrtfFile);
+    connect(ui->hrtfRemoveButton, &QPushButton::clicked, this, &MainWindow::removeHrtfFile);
+    connect(ui->hrtfFileList, &QListWidget::itemSelectionChanged, this, &MainWindow::updateHrtfRemoveButton);
+    connect(ui->defaultHrtfPathsCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
 
-    connect(ui->enableSSECheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enableSSE2CheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enableSSE3CheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enableSSE41CheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enableNeonCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
+    connect(ui->srcCountLineEdit, &QLineEdit::editingFinished, this, &MainWindow::enableApplyButton);
+    connect(ui->srcSendLineEdit, &QLineEdit::editingFinished, this, &MainWindow::enableApplyButton);
+    connect(ui->effectSlotLineEdit, &QLineEdit::editingFinished, this, &MainWindow::enableApplyButton);
+
+    connect(ui->enableSSECheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableSSE2CheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableSSE3CheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableSSE41CheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableNeonCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
 
     ui->enabledBackendList->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(ui->enabledBackendList, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showEnabledBackendMenu(QPoint)));
+    connect(ui->enabledBackendList, &QListWidget::customContextMenuRequested, this, &MainWindow::showEnabledBackendMenu);
 
     ui->disabledBackendList->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(ui->disabledBackendList, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(showDisabledBackendMenu(QPoint)));
-    connect(ui->backendCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
+    connect(ui->disabledBackendList, &QListWidget::customContextMenuRequested, this, &MainWindow::showDisabledBackendMenu);
+    connect(ui->backendCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
 
-    connect(ui->defaultReverbComboBox, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(enableApplyButton()));
-    connect(ui->enableEaxReverbCheck, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enableStdReverbCheck, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enableAutowahCheck, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enableChorusCheck, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enableCompressorCheck, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enableDistortionCheck, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enableEchoCheck, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enableEqualizerCheck, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enableFlangerCheck, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enableFrequencyShifterCheck, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enableModulatorCheck, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enableDedicatedCheck, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->enablePitchShifterCheck, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
+    connect(ui->defaultReverbComboBox, qcb_cicstr, this, &MainWindow::enableApplyButton);
+    connect(ui->enableEaxReverbCheck, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableStdReverbCheck, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableAutowahCheck, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableChorusCheck, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableCompressorCheck, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableDistortionCheck, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableEchoCheck, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableEqualizerCheck, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableFlangerCheck, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableFrequencyShifterCheck, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableModulatorCheck, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableDedicatedCheck, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enablePitchShifterCheck, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->enableVocalMorpherCheck, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
 
-    connect(ui->pulseAutospawnCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->pulseAllowMovesCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->pulseFixRateCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
+    connect(ui->pulseAutospawnCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->pulseAllowMovesCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->pulseFixRateCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->pulseAdjLatencyCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
 
-    connect(ui->jackAutospawnCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->jackBufferSizeSlider, SIGNAL(valueChanged(int)), this, SLOT(updateJackBufferSizeEdit(int)));
-    connect(ui->jackBufferSizeLine, SIGNAL(editingFinished()), this, SLOT(updateJackBufferSizeSlider()));
+    connect(ui->jackAutospawnCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->jackBufferSizeSlider, &QSlider::valueChanged, this, &MainWindow::updateJackBufferSizeEdit);
+    connect(ui->jackBufferSizeLine, &QLineEdit::editingFinished, this, &MainWindow::updateJackBufferSizeSlider);
 
-    connect(ui->alsaDefaultDeviceLine, SIGNAL(textChanged(QString)), this, SLOT(enableApplyButton()));
-    connect(ui->alsaDefaultCaptureLine, SIGNAL(textChanged(QString)), this, SLOT(enableApplyButton()));
-    connect(ui->alsaResamplerCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
-    connect(ui->alsaMmapCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
+    connect(ui->alsaDefaultDeviceLine, &QLineEdit::textChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->alsaDefaultCaptureLine, &QLineEdit::textChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->alsaResamplerCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->alsaMmapCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
 
-    connect(ui->ossDefaultDeviceLine, SIGNAL(textChanged(QString)), this, SLOT(enableApplyButton()));
-    connect(ui->ossPlaybackPushButton, SIGNAL(clicked(bool)), this, SLOT(selectOSSPlayback()));
-    connect(ui->ossDefaultCaptureLine, SIGNAL(textChanged(QString)), this, SLOT(enableApplyButton()));
-    connect(ui->ossCapturePushButton, SIGNAL(clicked(bool)), this, SLOT(selectOSSCapture()));
+    connect(ui->ossDefaultDeviceLine, &QLineEdit::textChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->ossPlaybackPushButton, &QPushButton::clicked, this, &MainWindow::selectOSSPlayback);
+    connect(ui->ossDefaultCaptureLine, &QLineEdit::textChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->ossCapturePushButton, &QPushButton::clicked, this, &MainWindow::selectOSSCapture);
 
-    connect(ui->solarisDefaultDeviceLine, SIGNAL(textChanged(QString)), this, SLOT(enableApplyButton()));
-    connect(ui->solarisPlaybackPushButton, SIGNAL(clicked(bool)), this, SLOT(selectSolarisPlayback()));
+    connect(ui->solarisDefaultDeviceLine, &QLineEdit::textChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->solarisPlaybackPushButton, &QPushButton::clicked, this, &MainWindow::selectSolarisPlayback);
 
-    connect(ui->waveOutputLine, SIGNAL(textChanged(QString)), this, SLOT(enableApplyButton()));
-    connect(ui->waveOutputButton, SIGNAL(clicked(bool)), this, SLOT(selectWaveOutput()));
-    connect(ui->waveBFormatCheckBox, SIGNAL(stateChanged(int)), this, SLOT(enableApplyButton()));
+    connect(ui->waveOutputLine, &QLineEdit::textChanged, this, &MainWindow::enableApplyButton);
+    connect(ui->waveOutputButton, &QPushButton::clicked, this, &MainWindow::selectWaveOutput);
+    connect(ui->waveBFormatCheckBox, &QCheckBox::stateChanged, this, &MainWindow::enableApplyButton);
 
     ui->backendListWidget->setCurrentRow(0);
     ui->tabWidget->setCurrentIndex(0);
@@ -446,8 +503,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
     {
         QMessageBox::StandardButton btn = QMessageBox::warning(this,
             tr("Apply changes?"), tr("Save changes before quitting?"),
-            QMessageBox::Save | QMessageBox::No | QMessageBox::Cancel
-        );
+            QMessageBox::Save | QMessageBox::No | QMessageBox::Cancel);
         if(btn == QMessageBox::Save)
             saveCurrentConfig();
         if(btn == QMessageBox::Cancel)
@@ -467,9 +523,8 @@ void MainWindow::cancelCloseAction()
 void MainWindow::showAboutPage()
 {
     QMessageBox::information(this, tr("About"),
-        tr("OpenAL Soft Configuration Utility.\nBuilt for OpenAL Soft library version ")+
-        (ALSOFT_VERSION "-" ALSOFT_GIT_COMMIT_HASH " (" ALSOFT_GIT_BRANCH " branch).")
-    );
+        tr("OpenAL Soft Configuration Utility.\nBuilt for OpenAL Soft library version ") +
+        GetVersionString());
 }
 
 
@@ -486,17 +541,17 @@ QStringList MainWindow::collectHrtfs()
         {
             if(!fname.endsWith(".mhr", Qt::CaseInsensitive))
                 continue;
-            QString fullname = dir.absoluteFilePath(fname);
+            QString fullname{dir.absoluteFilePath(fname)};
             if(processed.contains(fullname))
                 continue;
             processed.push_back(fullname);
 
-            QString name = fname.left(fname.length()-4);
+            QString name{fname.left(fname.length()-4)};
             if(!ret.contains(name))
                 ret.push_back(name);
             else
             {
-                size_t i = 2;
+                size_t i{2};
                 do {
                     QString s = name+" #"+QString::number(i);
                     if(!ret.contains(s))
@@ -515,25 +570,25 @@ QStringList MainWindow::collectHrtfs()
         QStringList paths = getAllDataPaths("/openal/hrtf");
         foreach(const QString &name, paths)
         {
-            QDir dir(name);
-            QStringList fnames = dir.entryList(QDir::Files | QDir::Readable, QDir::Name);
+            QDir dir{name};
+            QStringList fnames{dir.entryList(QDir::Files | QDir::Readable, QDir::Name)};
             foreach(const QString &fname, fnames)
             {
                 if(!fname.endsWith(".mhr", Qt::CaseInsensitive))
                     continue;
-                QString fullname = dir.absoluteFilePath(fname);
+                QString fullname{dir.absoluteFilePath(fname)};
                 if(processed.contains(fullname))
                     continue;
                 processed.push_back(fullname);
 
-                QString name = fname.left(fname.length()-4);
+                QString name{fname.left(fname.length()-4)};
                 if(!ret.contains(name))
                     ret.push_back(name);
                 else
                 {
-                    size_t i = 2;
+                    size_t i{2};
                     do {
-                        QString s = name+" #"+QString::number(i);
+                        QString s{name+" #"+QString::number(i)};
                         if(!ret.contains(s))
                         {
                             ret.push_back(s);
@@ -546,8 +601,7 @@ QStringList MainWindow::collectHrtfs()
         }
 
 #ifdef ALSOFT_EMBED_HRTF_DATA
-        ret.push_back("Built-In 44100hz");
-        ret.push_back("Built-In 48000hz");
+        ret.push_back("Built-In HRTF");
 #endif
     }
     return ret;
@@ -563,33 +617,33 @@ void MainWindow::loadConfigFromFile()
 
 void MainWindow::loadConfig(const QString &fname)
 {
-    QSettings settings(fname, QSettings::IniFormat);
+    QSettings settings{fname, QSettings::IniFormat};
 
     QString sampletype = settings.value("sample-type").toString();
     ui->sampleFormatCombo->setCurrentIndex(0);
     if(sampletype.isEmpty() == false)
     {
-        QString str = getNameFromValue(sampleTypeList, sampletype);
+        QString str{getNameFromValue(sampleTypeList, sampletype)};
         if(!str.isEmpty())
         {
-            int j = ui->sampleFormatCombo->findText(str);
+            const int j{ui->sampleFormatCombo->findText(str)};
             if(j > 0) ui->sampleFormatCombo->setCurrentIndex(j);
         }
     }
 
-    QString channelconfig = settings.value("channels").toString();
+    QString channelconfig{settings.value("channels").toString()};
     ui->channelConfigCombo->setCurrentIndex(0);
     if(channelconfig.isEmpty() == false)
     {
-        QString str = getNameFromValue(speakerModeList, channelconfig);
+        QString str{getNameFromValue(speakerModeList, channelconfig)};
         if(!str.isEmpty())
         {
-            int j = ui->channelConfigCombo->findText(str);
+            const int j{ui->channelConfigCombo->findText(str)};
             if(j > 0) ui->channelConfigCombo->setCurrentIndex(j);
         }
     }
 
-    QString srate = settings.value("frequency").toString();
+    QString srate{settings.value("frequency").toString()};
     if(srate.isEmpty())
         ui->sampleRateCombo->setCurrentIndex(0);
     else
@@ -608,11 +662,11 @@ void MainWindow::loadConfig(const QString &fname)
     QString resampler = settings.value("resampler").toString().trimmed();
     ui->resamplerSlider->setValue(2);
     ui->resamplerLabel->setText(resamplerList[2].name);
-    /* The "cubic" and "sinc8" resamplers are no longer supported. Use "sinc4"
+    /* The "sinc4" and "sinc8" resamplers are no longer supported. Use "cubic"
      * as a fallback.
      */
-    if(resampler == "cubic" || resampler == "sinc8")
-        resampler = "sinc4";
+    if(resampler == "sinc4" || resampler == "sinc8")
+        resampler = "cubic";
     /* The "bsinc" resampler name is an alias for "bsinc12". */
     else if(resampler == "bsinc")
         resampler = "bsinc12";
@@ -630,15 +684,15 @@ void MainWindow::loadConfig(const QString &fname)
     ui->stereoModeCombo->setCurrentIndex(0);
     if(stereomode.isEmpty() == false)
     {
-        QString str = getNameFromValue(stereoModeList, stereomode);
+        QString str{getNameFromValue(stereoModeList, stereomode)};
         if(!str.isEmpty())
         {
-            int j = ui->stereoModeCombo->findText(str);
+            const int j{ui->stereoModeCombo->findText(str)};
             if(j > 0) ui->stereoModeCombo->setCurrentIndex(j);
         }
     }
 
-    int periodsize = settings.value("period_size").toInt();
+    int periodsize{settings.value("period_size").toInt()};
     ui->periodSizeEdit->clear();
     if(periodsize >= 64)
     {
@@ -646,7 +700,7 @@ void MainWindow::loadConfig(const QString &fname)
         updatePeriodSizeSlider();
     }
 
-    int periodcount = settings.value("periods").toInt();
+    int periodcount{settings.value("periods").toInt()};
     ui->periodCountEdit->clear();
     if(periodcount >= 2)
     {
@@ -654,51 +708,38 @@ void MainWindow::loadConfig(const QString &fname)
         updatePeriodCountSlider();
     }
 
-    if(settings.value("output-limiter").isNull())
-        ui->outputLimiterCheckBox->setCheckState(Qt::PartiallyChecked);
-    else
-        ui->outputLimiterCheckBox->setCheckState(
-            settings.value("output-limiter").toBool() ? Qt::Checked : Qt::Unchecked
-        );
+    ui->outputLimiterCheckBox->setCheckState(getCheckState(settings.value("output-limiter")));
+    ui->outputDitherCheckBox->setCheckState(getCheckState(settings.value("dither")));
 
-    if(settings.value("dither").isNull())
-        ui->outputDitherCheckBox->setCheckState(Qt::PartiallyChecked);
-    else
-        ui->outputDitherCheckBox->setCheckState(
-            settings.value("dither").toBool() ? Qt::Checked : Qt::Unchecked
-        );
-
-    QString stereopan = settings.value("stereo-encoding").toString();
+    QString stereopan{settings.value("stereo-encoding").toString()};
     ui->stereoEncodingComboBox->setCurrentIndex(0);
     if(stereopan.isEmpty() == false)
     {
-        QString str = getNameFromValue(stereoEncList, stereopan);
+        QString str{getNameFromValue(stereoEncList, stereopan)};
         if(!str.isEmpty())
         {
-            int j = ui->stereoEncodingComboBox->findText(str);
+            const int j{ui->stereoEncodingComboBox->findText(str)};
             if(j > 0) ui->stereoEncodingComboBox->setCurrentIndex(j);
         }
     }
 
-    QString ambiformat = settings.value("ambi-format").toString();
+    QString ambiformat{settings.value("ambi-format").toString()};
     ui->ambiFormatComboBox->setCurrentIndex(0);
     if(ambiformat.isEmpty() == false)
     {
-        QString str = getNameFromValue(ambiFormatList, ambiformat);
+        QString str{getNameFromValue(ambiFormatList, ambiformat)};
         if(!str.isEmpty())
         {
-            int j = ui->ambiFormatComboBox->findText(str);
+            const int j{ui->ambiFormatComboBox->findText(str)};
             if(j > 0) ui->ambiFormatComboBox->setCurrentIndex(j);
         }
     }
 
-    bool hqmode = settings.value("decoder/hq-mode", false).toBool();
+    bool hqmode{settings.value("decoder/hq-mode", true).toBool()};
     ui->decoderHQModeCheckBox->setChecked(hqmode);
-    bool distcomp = settings.value("decoder/distance-comp", true).toBool();
-    ui->decoderDistCompCheckBox->setChecked(distcomp);
-    bool nfeffects = settings.value("decoder/nfc", true).toBool();
-    ui->decoderNFEffectsCheckBox->setChecked(nfeffects);
-    double refdelay = settings.value("decoder/nfc-ref-delay", 0.0).toDouble();
+    ui->decoderDistCompCheckBox->setCheckState(getCheckState(settings.value("decoder/distance-comp")));
+    ui->decoderNFEffectsCheckBox->setCheckState(getCheckState(settings.value("decoder/nfc")));
+    double refdelay{settings.value("decoder/nfc-ref-delay", 0.0).toDouble()};
     ui->decoderNFRefDelaySpinBox->setValue(refdelay);
 
     ui->decoderQuadLineEdit->setText(settings.value("decoder/quad").toString());
@@ -706,22 +747,40 @@ void MainWindow::loadConfig(const QString &fname)
     ui->decoder61LineEdit->setText(settings.value("decoder/surround61").toString());
     ui->decoder71LineEdit->setText(settings.value("decoder/surround71").toString());
 
-    QStringList disabledCpuExts = settings.value("disable-cpu-exts").toStringList();
+    QStringList disabledCpuExts{settings.value("disable-cpu-exts").toStringList()};
     if(disabledCpuExts.size() == 1)
         disabledCpuExts = disabledCpuExts[0].split(QChar(','));
-    for(QStringList::iterator iter = disabledCpuExts.begin();iter != disabledCpuExts.end();iter++)
-        *iter = iter->trimmed();
+    for(QString &name : disabledCpuExts)
+        name = name.trimmed();
     ui->enableSSECheckBox->setChecked(!disabledCpuExts.contains("sse", Qt::CaseInsensitive));
     ui->enableSSE2CheckBox->setChecked(!disabledCpuExts.contains("sse2", Qt::CaseInsensitive));
     ui->enableSSE3CheckBox->setChecked(!disabledCpuExts.contains("sse3", Qt::CaseInsensitive));
     ui->enableSSE41CheckBox->setChecked(!disabledCpuExts.contains("sse4.1", Qt::CaseInsensitive));
     ui->enableNeonCheckBox->setChecked(!disabledCpuExts.contains("neon", Qt::CaseInsensitive));
 
-    QStringList hrtf_paths = settings.value("hrtf-paths").toStringList();
+    QString hrtfmode{settings.value("hrtf-mode").toString().trimmed()};
+    ui->hrtfmodeSlider->setValue(2);
+    ui->hrtfmodeLabel->setText(hrtfModeList[2].name);
+    /* The "basic" mode name is no longer supported, and "ambi3" is temporarily
+     * disabled. Use "ambi2" instead.
+     */
+    if(hrtfmode == "basic" || hrtfmode == "ambi3")
+        hrtfmode = "ambi2";
+    for(int i = 0;hrtfModeList[i].name[0];i++)
+    {
+        if(hrtfmode == hrtfModeList[i].value)
+        {
+            ui->hrtfmodeSlider->setValue(i);
+            ui->hrtfmodeLabel->setText(hrtfModeList[i].name);
+            break;
+        }
+    }
+
+    QStringList hrtf_paths{settings.value("hrtf-paths").toStringList()};
     if(hrtf_paths.size() == 1)
         hrtf_paths = hrtf_paths[0].split(QChar(','));
-    for(QStringList::iterator iter = hrtf_paths.begin();iter != hrtf_paths.end();iter++)
-        *iter = iter->trimmed();
+    for(QString &name : hrtf_paths)
+        name = name.trimmed();
     if(!hrtf_paths.empty() && !hrtf_paths.back().isEmpty())
         ui->defaultHrtfPathsCheckBox->setCheckState(Qt::Unchecked);
     else
@@ -734,7 +793,7 @@ void MainWindow::loadConfig(const QString &fname)
     ui->hrtfFileList->addItems(hrtf_paths);
     updateHrtfRemoveButton();
 
-    QString hrtfstate = settings.value("hrtf").toString().toLower();
+    QString hrtfstate{settings.value("hrtf").toString().toLower()};
     if(hrtfstate == "true")
         ui->hrtfStateComboBox->setCurrentIndex(1);
     else if(hrtfstate == "false")
@@ -746,16 +805,16 @@ void MainWindow::loadConfig(const QString &fname)
     ui->preferredHrtfComboBox->addItem("- Any -");
     if(ui->defaultHrtfPathsCheckBox->isChecked())
     {
-        QStringList hrtfs = collectHrtfs();
+        QStringList hrtfs{collectHrtfs()};
         foreach(const QString &name, hrtfs)
             ui->preferredHrtfComboBox->addItem(name);
     }
 
-    QString defaulthrtf = settings.value("default-hrtf").toString();
+    QString defaulthrtf{settings.value("default-hrtf").toString()};
     ui->preferredHrtfComboBox->setCurrentIndex(0);
     if(defaulthrtf.isEmpty() == false)
     {
-        int i = ui->preferredHrtfComboBox->findText(defaulthrtf);
+        int i{ui->preferredHrtfComboBox->findText(defaulthrtf)};
         if(i > 0)
             ui->preferredHrtfComboBox->setCurrentIndex(i);
         else
@@ -769,23 +828,23 @@ void MainWindow::loadConfig(const QString &fname)
 
     ui->enabledBackendList->clear();
     ui->disabledBackendList->clear();
-    QStringList drivers = settings.value("drivers").toStringList();
+    QStringList drivers{settings.value("drivers").toStringList()};
     if(drivers.size() == 0)
         ui->backendCheckBox->setChecked(true);
     else
     {
         if(drivers.size() == 1)
             drivers = drivers[0].split(QChar(','));
-        for(QStringList::iterator iter = drivers.begin();iter != drivers.end();iter++)
+        for(QString &name : drivers)
         {
-            *iter = iter->trimmed();
+            name = name.trimmed();
             /* Convert "mmdevapi" references to "wasapi" for backwards
              * compatibility.
              */
-            if(*iter == "-mmdevapi")
-                *iter = "-wasapi";
-            else if(*iter == "mmdevapi")
-                *iter = "wasapi";
+            if(name == "-mmdevapi")
+                name = "-wasapi";
+            else if(name == "mmdevapi")
+                name = "wasapi";
         }
 
         bool lastWasEmpty = false;
@@ -805,7 +864,7 @@ void MainWindow::loadConfig(const QString &fname)
                 }
             else if(backend.size() > 1)
             {
-                QStringRef backendref = backend.rightRef(backend.size()-1);
+                QStringRef backendref{backend.rightRef(backend.size()-1)};
                 for(int j = 0;backendList[j].backend_name[0];j++)
                 {
                     if(backendref == backendList[j].backend_name)
@@ -819,7 +878,7 @@ void MainWindow::loadConfig(const QString &fname)
         ui->backendCheckBox->setChecked(lastWasEmpty);
     }
 
-    QString defaultreverb = settings.value("default-reverb").toString().toLower();
+    QString defaultreverb{settings.value("default-reverb").toString().toLower()};
     ui->defaultReverbComboBox->setCurrentIndex(0);
     if(defaultreverb.isEmpty() == false)
     {
@@ -833,11 +892,11 @@ void MainWindow::loadConfig(const QString &fname)
         }
     }
 
-    QStringList excludefx = settings.value("excludefx").toStringList();
+    QStringList excludefx{settings.value("excludefx").toStringList()};
     if(excludefx.size() == 1)
         excludefx = excludefx[0].split(QChar(','));
-    for(QStringList::iterator iter = excludefx.begin();iter != excludefx.end();iter++)
-        *iter = iter->trimmed();
+    for(QString &name : excludefx)
+        name = name.trimmed();
     ui->enableEaxReverbCheck->setChecked(!excludefx.contains("eaxreverb", Qt::CaseInsensitive));
     ui->enableStdReverbCheck->setChecked(!excludefx.contains("reverb", Qt::CaseInsensitive));
     ui->enableAutowahCheck->setChecked(!excludefx.contains("autowah", Qt::CaseInsensitive));
@@ -851,19 +910,21 @@ void MainWindow::loadConfig(const QString &fname)
     ui->enableModulatorCheck->setChecked(!excludefx.contains("modulator", Qt::CaseInsensitive));
     ui->enableDedicatedCheck->setChecked(!excludefx.contains("dedicated", Qt::CaseInsensitive));
     ui->enablePitchShifterCheck->setChecked(!excludefx.contains("pshifter", Qt::CaseInsensitive));
+    ui->enableVocalMorpherCheck->setChecked(!excludefx.contains("vmorpher", Qt::CaseInsensitive));
 
-    ui->pulseAutospawnCheckBox->setChecked(settings.value("pulse/spawn-server", true).toBool());
-    ui->pulseAllowMovesCheckBox->setChecked(settings.value("pulse/allow-moves", false).toBool());
-    ui->pulseFixRateCheckBox->setChecked(settings.value("pulse/fix-rate", false).toBool());
+    ui->pulseAutospawnCheckBox->setCheckState(getCheckState(settings.value("pulse/spawn-server")));
+    ui->pulseAllowMovesCheckBox->setCheckState(getCheckState(settings.value("pulse/allow-moves")));
+    ui->pulseFixRateCheckBox->setCheckState(getCheckState(settings.value("pulse/fix-rate")));
+    ui->pulseAdjLatencyCheckBox->setCheckState(getCheckState(settings.value("pulse/adjust-latency")));
 
-    ui->jackAutospawnCheckBox->setChecked(settings.value("jack/spawn-server", false).toBool());
+    ui->jackAutospawnCheckBox->setCheckState(getCheckState(settings.value("jack/spawn-server")));
     ui->jackBufferSizeLine->setText(settings.value("jack/buffer-size", QString()).toString());
     updateJackBufferSizeSlider();
 
     ui->alsaDefaultDeviceLine->setText(settings.value("alsa/device", QString()).toString());
     ui->alsaDefaultCaptureLine->setText(settings.value("alsa/capture", QString()).toString());
-    ui->alsaResamplerCheckBox->setChecked(settings.value("alsa/allow-resampler", false).toBool());
-    ui->alsaMmapCheckBox->setChecked(settings.value("alsa/mmap", true).toBool());
+    ui->alsaResamplerCheckBox->setCheckState(getCheckState(settings.value("alsa/allow-resampler")));
+    ui->alsaMmapCheckBox->setCheckState(getCheckState(settings.value("alsa/mmap")));
 
     ui->ossDefaultDeviceLine->setText(settings.value("oss/device", QString()).toString());
     ui->ossDefaultCaptureLine->setText(settings.value("oss/capture", QString()).toString());
@@ -885,12 +946,12 @@ void MainWindow::saveCurrentConfig()
     ui->closeCancelButton->setText(tr("Close"));
     mNeedsSave = false;
     QMessageBox::information(this, tr("Information"),
-                             tr("Applications using OpenAL need to be restarted for changes to take effect."));
+        tr("Applications using OpenAL need to be restarted for changes to take effect."));
 }
 
 void MainWindow::saveConfigAsFile()
 {
-    QString fname = QFileDialog::getOpenFileName(this, tr("Select Files"));
+    QString fname{QFileDialog::getOpenFileName(this, tr("Select Files"))};
     if(fname.isEmpty() == false)
     {
         saveConfig(fname);
@@ -901,13 +962,13 @@ void MainWindow::saveConfigAsFile()
 
 void MainWindow::saveConfig(const QString &fname) const
 {
-    QSettings settings(fname, QSettings::IniFormat);
+    QSettings settings{fname, QSettings::IniFormat};
 
     /* HACK: Compound any stringlist values into a comma-separated string. */
-    QStringList allkeys = settings.allKeys();
+    QStringList allkeys{settings.allKeys()};
     foreach(const QString &key, allkeys)
     {
-        QStringList vals = settings.value(key).toStringList();
+        QStringList vals{settings.value(key).toStringList()};
         if(vals.size() > 1)
             settings.setValue(key, vals.join(QChar(',')));
     }
@@ -915,9 +976,9 @@ void MainWindow::saveConfig(const QString &fname) const
     settings.setValue("sample-type", getValueFromName(sampleTypeList, ui->sampleFormatCombo->currentText()));
     settings.setValue("channels", getValueFromName(speakerModeList, ui->channelConfigCombo->currentText()));
 
-    uint rate = ui->sampleRateCombo->currentText().toUInt();
-    if(!(rate > 0))
-        settings.setValue("frequency", QString());
+    uint rate{ui->sampleRateCombo->currentText().toUInt()};
+    if(rate <= 0)
+        settings.setValue("frequency", QString{});
     else
         settings.setValue("frequency", rate);
 
@@ -933,34 +994,17 @@ void MainWindow::saveConfig(const QString &fname) const
     settings.setValue("stereo-encoding", getValueFromName(stereoEncList, ui->stereoEncodingComboBox->currentText()));
     settings.setValue("ambi-format", getValueFromName(ambiFormatList, ui->ambiFormatComboBox->currentText()));
 
-    Qt::CheckState limiter = ui->outputLimiterCheckBox->checkState();
-    if(limiter == Qt::PartiallyChecked)
-        settings.setValue("output-limiter", QString());
-    else if(limiter == Qt::Checked)
-        settings.setValue("output-limiter", QString("true"));
-    else if(limiter == Qt::Unchecked)
-        settings.setValue("output-limiter", QString("false"));
-
-    Qt::CheckState dither = ui->outputDitherCheckBox->checkState();
-    if(dither == Qt::PartiallyChecked)
-        settings.setValue("dither", QString());
-    else if(dither == Qt::Checked)
-        settings.setValue("dither", QString("true"));
-    else if(dither == Qt::Unchecked)
-        settings.setValue("dither", QString("false"));
+    settings.setValue("output-limiter", getCheckValue(ui->outputLimiterCheckBox));
+    settings.setValue("dither", getCheckValue(ui->outputDitherCheckBox));
 
     settings.setValue("decoder/hq-mode",
-        ui->decoderHQModeCheckBox->isChecked() ? QString("true") : QString(/*"false"*/)
+        ui->decoderHQModeCheckBox->isChecked() ? QString{/*"true"*/} : QString{"false"}
     );
-    settings.setValue("decoder/distance-comp",
-        ui->decoderDistCompCheckBox->isChecked() ? QString(/*"true"*/) : QString("false")
-    );
-    settings.setValue("decoder/nfc",
-        ui->decoderNFEffectsCheckBox->isChecked() ? QString(/*"true"*/) : QString("false")
-    );
+    settings.setValue("decoder/distance-comp", getCheckValue(ui->decoderDistCompCheckBox));
+    settings.setValue("decoder/nfc", getCheckValue(ui->decoderNFEffectsCheckBox));
     double refdelay = ui->decoderNFRefDelaySpinBox->value();
     settings.setValue("decoder/nfc-ref-delay",
-        (refdelay > 0.0) ? QString::number(refdelay) : QString()
+        (refdelay > 0.0) ? QString::number(refdelay) : QString{}
     );
 
     settings.setValue("decoder/quad", ui->decoderQuadLineEdit->text());
@@ -981,32 +1025,35 @@ void MainWindow::saveConfig(const QString &fname) const
         strlist.append("neon");
     settings.setValue("disable-cpu-exts", strlist.join(QChar(',')));
 
+    settings.setValue("hrtf-mode", hrtfModeList[ui->hrtfmodeSlider->value()].value);
+
     if(ui->hrtfStateComboBox->currentIndex() == 1)
         settings.setValue("hrtf", "true");
     else if(ui->hrtfStateComboBox->currentIndex() == 2)
         settings.setValue("hrtf", "false");
     else
-        settings.setValue("hrtf", QString());
+        settings.setValue("hrtf", QString{});
 
     if(ui->preferredHrtfComboBox->currentIndex() == 0)
-        settings.setValue("default-hrtf", QString());
+        settings.setValue("default-hrtf", QString{});
     else
     {
-        QString str = ui->preferredHrtfComboBox->currentText();
+        QString str{ui->preferredHrtfComboBox->currentText()};
         settings.setValue("default-hrtf", str);
     }
 
     strlist.clear();
+    strlist.reserve(ui->hrtfFileList->count());
     for(int i = 0;i < ui->hrtfFileList->count();i++)
         strlist.append(ui->hrtfFileList->item(i)->text());
     if(!strlist.empty() && ui->defaultHrtfPathsCheckBox->isChecked())
-        strlist.append(QString());
-    settings.setValue("hrtf-paths", strlist.join(QChar(',')));
+        strlist.append(QString{});
+    settings.setValue("hrtf-paths", strlist.join(QChar{','}));
 
     strlist.clear();
     for(int i = 0;i < ui->enabledBackendList->count();i++)
     {
-        QString label = ui->enabledBackendList->item(i)->text();
+        QString label{ui->enabledBackendList->item(i)->text()};
         for(int j = 0;backendList[j].backend_name[0];j++)
         {
             if(label == backendList[j].full_string)
@@ -1018,12 +1065,12 @@ void MainWindow::saveConfig(const QString &fname) const
     }
     for(int i = 0;i < ui->disabledBackendList->count();i++)
     {
-        QString label = ui->disabledBackendList->item(i)->text();
+        QString label{ui->disabledBackendList->item(i)->text()};
         for(int j = 0;backendList[j].backend_name[0];j++)
         {
             if(label == backendList[j].full_string)
             {
-                strlist.append(QChar('-')+QString(backendList[j].backend_name));
+                strlist.append(QChar{'-'}+QString{backendList[j].backend_name});
                 break;
             }
         }
@@ -1031,15 +1078,15 @@ void MainWindow::saveConfig(const QString &fname) const
     if(strlist.size() == 0 && !ui->backendCheckBox->isChecked())
         strlist.append("-all");
     else if(ui->backendCheckBox->isChecked())
-        strlist.append(QString());
+        strlist.append(QString{});
     settings.setValue("drivers", strlist.join(QChar(',')));
 
     // TODO: Remove check when we can properly match global values.
     if(ui->defaultReverbComboBox->currentIndex() == 0)
-        settings.setValue("default-reverb", QString());
+        settings.setValue("default-reverb", QString{});
     else
     {
-        QString str = ui->defaultReverbComboBox->currentText().toLower();
+        QString str{ui->defaultReverbComboBox->currentText().toLower()};
         settings.setValue("default-reverb", str);
     }
 
@@ -1070,31 +1117,22 @@ void MainWindow::saveConfig(const QString &fname) const
         strlist.append("dedicated");
     if(!ui->enablePitchShifterCheck->isChecked())
         strlist.append("pshifter");
-    settings.setValue("excludefx", strlist.join(QChar(',')));
+    if(!ui->enableVocalMorpherCheck->isChecked())
+        strlist.append("vmorpher");
+    settings.setValue("excludefx", strlist.join(QChar{','}));
 
-    settings.setValue("pulse/spawn-server",
-        ui->pulseAutospawnCheckBox->isChecked() ? QString(/*"true"*/) : QString("false")
-    );
-    settings.setValue("pulse/allow-moves",
-        ui->pulseAllowMovesCheckBox->isChecked() ? QString("true") : QString(/*"false"*/)
-    );
-    settings.setValue("pulse/fix-rate",
-        ui->pulseFixRateCheckBox->isChecked() ? QString("true") : QString(/*"false"*/)
-    );
+    settings.setValue("pulse/spawn-server", getCheckValue(ui->pulseAutospawnCheckBox));
+    settings.setValue("pulse/allow-moves", getCheckValue(ui->pulseAllowMovesCheckBox));
+    settings.setValue("pulse/fix-rate", getCheckValue(ui->pulseFixRateCheckBox));
+    settings.setValue("pulse/adjust-latency", getCheckValue(ui->pulseAdjLatencyCheckBox));
 
-    settings.setValue("jack/spawn-server",
-        ui->jackAutospawnCheckBox->isChecked() ? QString("true") : QString(/*"false"*/)
-    );
+    settings.setValue("jack/spawn-server", getCheckValue(ui->jackAutospawnCheckBox));
     settings.setValue("jack/buffer-size", ui->jackBufferSizeLine->text());
 
     settings.setValue("alsa/device", ui->alsaDefaultDeviceLine->text());
     settings.setValue("alsa/capture", ui->alsaDefaultCaptureLine->text());
-    settings.setValue("alsa/allow-resampler",
-        ui->alsaResamplerCheckBox->isChecked() ? QString("true") : QString(/*"false"*/)
-    );
-    settings.setValue("alsa/mmap",
-        ui->alsaMmapCheckBox->isChecked() ? QString(/*"true"*/) : QString("false")
-    );
+    settings.setValue("alsa/allow-resampler", getCheckValue(ui->alsaResamplerCheckBox));
+    settings.setValue("alsa/mmap", getCheckValue(ui->alsaMmapCheckBox));
 
     settings.setValue("oss/device", ui->ossDefaultDeviceLine->text());
     settings.setValue("oss/capture", ui->ossDefaultCaptureLine->text());
@@ -1103,7 +1141,7 @@ void MainWindow::saveConfig(const QString &fname) const
 
     settings.setValue("wave/file", ui->waveOutputLine->text());
     settings.setValue("wave/bformat",
-        ui->waveBFormatCheckBox->isChecked() ? QString("true") : QString(/*"false"*/)
+        ui->waveBFormatCheckBox->isChecked() ? QString{"true"} : QString{/*"false"*/}
     );
 
     /* Remove empty keys
@@ -1112,8 +1150,8 @@ void MainWindow::saveConfig(const QString &fname) const
     allkeys = settings.allKeys();
     foreach(const QString &key, allkeys)
     {
-        QString str = settings.value(key).toString();
-        if(str == QString())
+        QString str{settings.value(key).toString()};
+        if(str == QString{})
             settings.remove(key);
     }
 }
@@ -1139,10 +1177,7 @@ void MainWindow::updatePeriodSizeEdit(int size)
 {
     ui->periodSizeEdit->clear();
     if(size >= 64)
-    {
-        size = (size+32)&~0x3f;
         ui->periodSizeEdit->insert(QString::number(size));
-    }
     enableApplyButton();
 }
 
@@ -1188,13 +1223,13 @@ void MainWindow::select71DecoderFile()
 { selectDecoderFile(ui->decoder71LineEdit, "Select 7.1 Surround Decoder");}
 void MainWindow::selectDecoderFile(QLineEdit *line, const char *caption)
 {
-    QString dir = line->text();
+    QString dir{line->text()};
     if(dir.isEmpty() || QDir::isRelativePath(dir))
     {
-        QStringList paths = getAllDataPaths("/openal/presets");
+        QStringList paths{getAllDataPaths("/openal/presets")};
         while(!paths.isEmpty())
         {
-            if(QDir(paths.last()).exists())
+            if(QDir{paths.last()}.exists())
             {
                 dir = paths.last();
                 break;
@@ -1202,9 +1237,8 @@ void MainWindow::selectDecoderFile(QLineEdit *line, const char *caption)
             paths.removeLast();
         }
     }
-    QString fname = QFileDialog::getOpenFileName(this, tr(caption),
-        dir, tr("AmbDec Files (*.ambdec);;All Files (*.*)")
-    );
+    QString fname{QFileDialog::getOpenFileName(this, tr(caption),
+        dir, tr("AmbDec Files (*.ambdec);;All Files (*.*)"))};
     if(!fname.isEmpty())
     {
         line->setText(fname);
@@ -1223,16 +1257,23 @@ void MainWindow::updateJackBufferSizeEdit(int size)
 
 void MainWindow::updateJackBufferSizeSlider()
 {
-    int value = ui->jackBufferSizeLine->text().toInt();
-    int pos = (int)floor(log2(value) + 0.5);
+    int value{ui->jackBufferSizeLine->text().toInt()};
+    auto pos = static_cast<int>(floor(log2(value) + 0.5));
     ui->jackBufferSizeSlider->setSliderPosition(pos);
+    enableApplyButton();
+}
+
+
+void MainWindow::updateHrtfModeLabel(int num)
+{
+    ui->hrtfmodeLabel->setText(hrtfModeList[num].name);
     enableApplyButton();
 }
 
 
 void MainWindow::addHrtfFile()
 {
-    QString path = QFileDialog::getExistingDirectory(this, tr("Select HRTF Path"));
+    QString path{QFileDialog::getExistingDirectory(this, tr("Select HRTF Path"))};
     if(path.isEmpty() == false && !getAllDataPaths("/openal/hrtf").contains(path))
     {
         ui->hrtfFileList->addItem(path);
@@ -1242,7 +1283,7 @@ void MainWindow::addHrtfFile()
 
 void MainWindow::removeHrtfFile()
 {
-    QList<QListWidgetItem*> selected = ui->hrtfFileList->selectedItems();
+    QList<QListWidgetItem*> selected{ui->hrtfFileList->selectedItems()};
     if(!selected.isEmpty())
     {
         foreach(QListWidgetItem *item, selected)
@@ -1258,37 +1299,37 @@ void MainWindow::updateHrtfRemoveButton()
 
 void MainWindow::showEnabledBackendMenu(QPoint pt)
 {
-    QMap<QAction*,QString> actionMap;
+    QHash<QAction*,QString> actionMap;
 
     pt = ui->enabledBackendList->mapToGlobal(pt);
 
     QMenu ctxmenu;
-    QAction *removeAction = ctxmenu.addAction(QIcon::fromTheme("list-remove"), "Remove");
+    QAction *removeAction{ctxmenu.addAction(QIcon::fromTheme("list-remove"), "Remove")};
     if(ui->enabledBackendList->selectedItems().size() == 0)
         removeAction->setEnabled(false);
     ctxmenu.addSeparator();
     for(size_t i = 0;backendList[i].backend_name[0];i++)
     {
-        QString backend = backendList[i].full_string;
-        QAction *action = ctxmenu.addAction(QString("Add ")+backend);
+        QString backend{backendList[i].full_string};
+        QAction *action{ctxmenu.addAction(QString("Add ")+backend)};
         actionMap[action] = backend;
         if(ui->enabledBackendList->findItems(backend, Qt::MatchFixedString).size() != 0 ||
            ui->disabledBackendList->findItems(backend, Qt::MatchFixedString).size() != 0)
             action->setEnabled(false);
     }
 
-    QAction *gotAction = ctxmenu.exec(pt);
+    QAction *gotAction{ctxmenu.exec(pt)};
     if(gotAction == removeAction)
     {
-        QList<QListWidgetItem*> selected = ui->enabledBackendList->selectedItems();
+        QList<QListWidgetItem*> selected{ui->enabledBackendList->selectedItems()};
         foreach(QListWidgetItem *item, selected)
             delete item;
         enableApplyButton();
     }
-    else if(gotAction != NULL)
+    else if(gotAction != nullptr)
     {
-        QMap<QAction*,QString>::const_iterator iter = actionMap.find(gotAction);
-        if(iter != actionMap.end())
+        auto iter = actionMap.constFind(gotAction);
+        if(iter != actionMap.cend())
             ui->enabledBackendList->addItem(iter.value());
         enableApplyButton();
     }
@@ -1296,37 +1337,37 @@ void MainWindow::showEnabledBackendMenu(QPoint pt)
 
 void MainWindow::showDisabledBackendMenu(QPoint pt)
 {
-    QMap<QAction*,QString> actionMap;
+    QHash<QAction*,QString> actionMap;
 
     pt = ui->disabledBackendList->mapToGlobal(pt);
 
     QMenu ctxmenu;
-    QAction *removeAction = ctxmenu.addAction(QIcon::fromTheme("list-remove"), "Remove");
+    QAction *removeAction{ctxmenu.addAction(QIcon::fromTheme("list-remove"), "Remove")};
     if(ui->disabledBackendList->selectedItems().size() == 0)
         removeAction->setEnabled(false);
     ctxmenu.addSeparator();
     for(size_t i = 0;backendList[i].backend_name[0];i++)
     {
-        QString backend = backendList[i].full_string;
-        QAction *action = ctxmenu.addAction(QString("Add ")+backend);
+        QString backend{backendList[i].full_string};
+        QAction *action{ctxmenu.addAction(QString("Add ")+backend)};
         actionMap[action] = backend;
         if(ui->disabledBackendList->findItems(backend, Qt::MatchFixedString).size() != 0 ||
            ui->enabledBackendList->findItems(backend, Qt::MatchFixedString).size() != 0)
             action->setEnabled(false);
     }
 
-    QAction *gotAction = ctxmenu.exec(pt);
+    QAction *gotAction{ctxmenu.exec(pt)};
     if(gotAction == removeAction)
     {
-        QList<QListWidgetItem*> selected = ui->disabledBackendList->selectedItems();
+        QList<QListWidgetItem*> selected{ui->disabledBackendList->selectedItems()};
         foreach(QListWidgetItem *item, selected)
             delete item;
         enableApplyButton();
     }
-    else if(gotAction != NULL)
+    else if(gotAction != nullptr)
     {
-        QMap<QAction*,QString>::const_iterator iter = actionMap.find(gotAction);
-        if(iter != actionMap.end())
+        auto iter = actionMap.constFind(gotAction);
+        if(iter != actionMap.cend())
             ui->disabledBackendList->addItem(iter.value());
         enableApplyButton();
     }
@@ -1334,9 +1375,9 @@ void MainWindow::showDisabledBackendMenu(QPoint pt)
 
 void MainWindow::selectOSSPlayback()
 {
-    QString current = ui->ossDefaultDeviceLine->text();
+    QString current{ui->ossDefaultDeviceLine->text()};
     if(current.isEmpty()) current = ui->ossDefaultDeviceLine->placeholderText();
-    QString fname = QFileDialog::getOpenFileName(this, tr("Select Playback Device"), current);
+    QString fname{QFileDialog::getOpenFileName(this, tr("Select Playback Device"), current)};
     if(!fname.isEmpty())
     {
         ui->ossDefaultDeviceLine->setText(fname);
@@ -1346,9 +1387,9 @@ void MainWindow::selectOSSPlayback()
 
 void MainWindow::selectOSSCapture()
 {
-    QString current = ui->ossDefaultCaptureLine->text();
+    QString current{ui->ossDefaultCaptureLine->text()};
     if(current.isEmpty()) current = ui->ossDefaultCaptureLine->placeholderText();
-    QString fname = QFileDialog::getOpenFileName(this, tr("Select Capture Device"), current);
+    QString fname{QFileDialog::getOpenFileName(this, tr("Select Capture Device"), current)};
     if(!fname.isEmpty())
     {
         ui->ossDefaultCaptureLine->setText(fname);
@@ -1358,9 +1399,9 @@ void MainWindow::selectOSSCapture()
 
 void MainWindow::selectSolarisPlayback()
 {
-    QString current = ui->solarisDefaultDeviceLine->text();
+    QString current{ui->solarisDefaultDeviceLine->text()};
     if(current.isEmpty()) current = ui->solarisDefaultDeviceLine->placeholderText();
-    QString fname = QFileDialog::getOpenFileName(this, tr("Select Playback Device"), current);
+    QString fname{QFileDialog::getOpenFileName(this, tr("Select Playback Device"), current)};
     if(!fname.isEmpty())
     {
         ui->solarisDefaultDeviceLine->setText(fname);
@@ -1370,9 +1411,8 @@ void MainWindow::selectSolarisPlayback()
 
 void MainWindow::selectWaveOutput()
 {
-    QString fname = QFileDialog::getSaveFileName(this, tr("Select Wave File Output"),
-        ui->waveOutputLine->text(), tr("Wave Files (*.wav *.amb);;All Files (*.*)")
-    );
+    QString fname{QFileDialog::getSaveFileName(this, tr("Select Wave File Output"),
+        ui->waveOutputLine->text(), tr("Wave Files (*.wav *.amb);;All Files (*.*)"))};
     if(!fname.isEmpty())
     {
         ui->waveOutputLine->setText(fname);

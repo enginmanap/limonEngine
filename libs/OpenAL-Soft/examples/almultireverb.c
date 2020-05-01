@@ -29,15 +29,20 @@
  * listener.
  */
 
-#include <stdio.h>
-#include <assert.h>
-#include <math.h>
 
-#include <SDL_sound.h>
+#include <assert.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "sndfile.h"
 
 #include "AL/al.h"
 #include "AL/alc.h"
-#include "AL/alext.h"
+#include "AL/efx.h"
 #include "AL/efx-presets.h"
 
 #include "common/alhelpers.h"
@@ -148,68 +153,62 @@ static int LoadEffect(ALuint effect, const EFXEAXREVERBPROPERTIES *reverb)
  */
 static ALuint LoadSound(const char *filename)
 {
-    Sound_Sample *sample;
     ALenum err, format;
     ALuint buffer;
-    Uint32 slen;
+    SNDFILE *sndfile;
+    SF_INFO sfinfo;
+    short *membuf;
+    sf_count_t num_frames;
+    ALsizei num_bytes;
 
-    /* Open the audio file */
-    sample = Sound_NewSampleFromFile(filename, NULL, 65536);
-    if(!sample)
+    /* Open the audio file and check that it's usable. */
+    sndfile = sf_open(filename, SFM_READ, &sfinfo);
+    if(!sndfile)
     {
-        fprintf(stderr, "Could not open audio in %s\n", filename);
+        fprintf(stderr, "Could not open audio in %s: %s\n", filename, sf_strerror(sndfile));
+        return 0;
+    }
+    if(sfinfo.frames < 1 || sfinfo.frames > (sf_count_t)(INT_MAX/sizeof(short))/sfinfo.channels)
+    {
+        fprintf(stderr, "Bad sample count in %s (%" PRId64 ")\n", filename, sfinfo.frames);
+        sf_close(sndfile);
         return 0;
     }
 
     /* Get the sound format, and figure out the OpenAL format */
-    if(sample->actual.channels == 1)
-    {
-        if(sample->actual.format == AUDIO_U8)
-            format = AL_FORMAT_MONO8;
-        else if(sample->actual.format == AUDIO_S16SYS)
-            format = AL_FORMAT_MONO16;
-        else
-        {
-            fprintf(stderr, "Unsupported sample format: 0x%04x\n", sample->actual.format);
-            Sound_FreeSample(sample);
-            return 0;
-        }
-    }
-    else if(sample->actual.channels == 2)
-    {
-        if(sample->actual.format == AUDIO_U8)
-            format = AL_FORMAT_STEREO8;
-        else if(sample->actual.format == AUDIO_S16SYS)
-            format = AL_FORMAT_STEREO16;
-        else
-        {
-            fprintf(stderr, "Unsupported sample format: 0x%04x\n", sample->actual.format);
-            Sound_FreeSample(sample);
-            return 0;
-        }
-    }
+    if(sfinfo.channels == 1)
+        format = AL_FORMAT_MONO16;
+    else if(sfinfo.channels == 2)
+        format = AL_FORMAT_STEREO16;
     else
     {
-        fprintf(stderr, "Unsupported channel count: %d\n", sample->actual.channels);
-        Sound_FreeSample(sample);
+        fprintf(stderr, "Unsupported channel count: %d\n", sfinfo.channels);
+        sf_close(sndfile);
         return 0;
     }
 
-    /* Decode the whole audio stream to a buffer. */
-    slen = Sound_DecodeAll(sample);
-    if(!sample->buffer || slen == 0)
+    /* Decode the whole audio file to a buffer. */
+    membuf = malloc((size_t)(sfinfo.frames * sfinfo.channels) * sizeof(short));
+
+    num_frames = sf_readf_short(sndfile, membuf, sfinfo.frames);
+    if(num_frames < 1)
     {
-        fprintf(stderr, "Failed to read audio from %s\n", filename);
-        Sound_FreeSample(sample);
+        free(membuf);
+        sf_close(sndfile);
+        fprintf(stderr, "Failed to read samples in %s (%" PRId64 ")\n", filename, num_frames);
         return 0;
     }
+    num_bytes = (ALsizei)(num_frames * sfinfo.channels) * (ALsizei)sizeof(short);
 
     /* Buffer the audio data into a new buffer object, then free the data and
-     * close the file. */
+     * close the file.
+     */
     buffer = 0;
     alGenBuffers(1, &buffer);
-    alBufferData(buffer, format, sample->buffer, slen, sample->actual.rate);
-    Sound_FreeSample(sample);
+    alBufferData(buffer, format, membuf, num_bytes, sfinfo.samplerate);
+
+    free(membuf);
+    sf_close(sndfile);
 
     /* Check if an error occured, and clean up if so. */
     err = alGetError();
@@ -440,8 +439,8 @@ static void UpdateListenerAndEffects(float timediff, const ALuint slots[2], cons
     }
 
     /* Finally, update the effect slots with the updated effect parameters. */
-    alAuxiliaryEffectSloti(slots[0], AL_EFFECTSLOT_EFFECT, effects[0]);
-    alAuxiliaryEffectSloti(slots[1], AL_EFFECTSLOT_EFFECT, effects[1]);
+    alAuxiliaryEffectSloti(slots[0], AL_EFFECTSLOT_EFFECT, (ALint)effects[0]);
+    alAuxiliaryEffectSloti(slots[1], AL_EFFECTSLOT_EFFECT, (ALint)effects[1]);
 }
 
 
@@ -452,7 +451,6 @@ int main(int argc, char **argv)
         EFX_REVERB_PRESET_CARPETEDHALLWAY,
         EFX_REVERB_PRESET_BATHROOM
     };
-    struct timespec basetime;
     ALCdevice *device = NULL;
     ALCcontext *context = NULL;
     ALuint effects[2] = { 0, 0 };
@@ -463,6 +461,7 @@ int main(int argc, char **argv)
     ALCint num_sends = 0;
     ALenum state = AL_INITIAL;
     ALfloat direct_gain = 1.0f;
+    int basetime = 0;
     int loops = 0;
 
     /* Print out usage if no arguments were specified */
@@ -520,53 +519,49 @@ int main(int argc, char **argv)
     }
 
     /* Define a macro to help load the function pointers. */
-#define LOAD_PROC(x)  ((x) = alGetProcAddress(#x))
-    LOAD_PROC(alGenFilters);
-    LOAD_PROC(alDeleteFilters);
-    LOAD_PROC(alIsFilter);
-    LOAD_PROC(alFilteri);
-    LOAD_PROC(alFilteriv);
-    LOAD_PROC(alFilterf);
-    LOAD_PROC(alFilterfv);
-    LOAD_PROC(alGetFilteri);
-    LOAD_PROC(alGetFilteriv);
-    LOAD_PROC(alGetFilterf);
-    LOAD_PROC(alGetFilterfv);
+#define LOAD_PROC(T, x)  ((x) = (T)alGetProcAddress(#x))
+    LOAD_PROC(LPALGENFILTERS, alGenFilters);
+    LOAD_PROC(LPALDELETEFILTERS, alDeleteFilters);
+    LOAD_PROC(LPALISFILTER, alIsFilter);
+    LOAD_PROC(LPALFILTERI, alFilteri);
+    LOAD_PROC(LPALFILTERIV, alFilteriv);
+    LOAD_PROC(LPALFILTERF, alFilterf);
+    LOAD_PROC(LPALFILTERFV, alFilterfv);
+    LOAD_PROC(LPALGETFILTERI, alGetFilteri);
+    LOAD_PROC(LPALGETFILTERIV, alGetFilteriv);
+    LOAD_PROC(LPALGETFILTERF, alGetFilterf);
+    LOAD_PROC(LPALGETFILTERFV, alGetFilterfv);
 
-    LOAD_PROC(alGenEffects);
-    LOAD_PROC(alDeleteEffects);
-    LOAD_PROC(alIsEffect);
-    LOAD_PROC(alEffecti);
-    LOAD_PROC(alEffectiv);
-    LOAD_PROC(alEffectf);
-    LOAD_PROC(alEffectfv);
-    LOAD_PROC(alGetEffecti);
-    LOAD_PROC(alGetEffectiv);
-    LOAD_PROC(alGetEffectf);
-    LOAD_PROC(alGetEffectfv);
+    LOAD_PROC(LPALGENEFFECTS, alGenEffects);
+    LOAD_PROC(LPALDELETEEFFECTS, alDeleteEffects);
+    LOAD_PROC(LPALISEFFECT, alIsEffect);
+    LOAD_PROC(LPALEFFECTI, alEffecti);
+    LOAD_PROC(LPALEFFECTIV, alEffectiv);
+    LOAD_PROC(LPALEFFECTF, alEffectf);
+    LOAD_PROC(LPALEFFECTFV, alEffectfv);
+    LOAD_PROC(LPALGETEFFECTI, alGetEffecti);
+    LOAD_PROC(LPALGETEFFECTIV, alGetEffectiv);
+    LOAD_PROC(LPALGETEFFECTF, alGetEffectf);
+    LOAD_PROC(LPALGETEFFECTFV, alGetEffectfv);
 
-    LOAD_PROC(alGenAuxiliaryEffectSlots);
-    LOAD_PROC(alDeleteAuxiliaryEffectSlots);
-    LOAD_PROC(alIsAuxiliaryEffectSlot);
-    LOAD_PROC(alAuxiliaryEffectSloti);
-    LOAD_PROC(alAuxiliaryEffectSlotiv);
-    LOAD_PROC(alAuxiliaryEffectSlotf);
-    LOAD_PROC(alAuxiliaryEffectSlotfv);
-    LOAD_PROC(alGetAuxiliaryEffectSloti);
-    LOAD_PROC(alGetAuxiliaryEffectSlotiv);
-    LOAD_PROC(alGetAuxiliaryEffectSlotf);
-    LOAD_PROC(alGetAuxiliaryEffectSlotfv);
+    LOAD_PROC(LPALGENAUXILIARYEFFECTSLOTS, alGenAuxiliaryEffectSlots);
+    LOAD_PROC(LPALDELETEAUXILIARYEFFECTSLOTS, alDeleteAuxiliaryEffectSlots);
+    LOAD_PROC(LPALISAUXILIARYEFFECTSLOT, alIsAuxiliaryEffectSlot);
+    LOAD_PROC(LPALAUXILIARYEFFECTSLOTI, alAuxiliaryEffectSloti);
+    LOAD_PROC(LPALAUXILIARYEFFECTSLOTIV, alAuxiliaryEffectSlotiv);
+    LOAD_PROC(LPALAUXILIARYEFFECTSLOTF, alAuxiliaryEffectSlotf);
+    LOAD_PROC(LPALAUXILIARYEFFECTSLOTFV, alAuxiliaryEffectSlotfv);
+    LOAD_PROC(LPALGETAUXILIARYEFFECTSLOTI, alGetAuxiliaryEffectSloti);
+    LOAD_PROC(LPALGETAUXILIARYEFFECTSLOTIV, alGetAuxiliaryEffectSlotiv);
+    LOAD_PROC(LPALGETAUXILIARYEFFECTSLOTF, alGetAuxiliaryEffectSlotf);
+    LOAD_PROC(LPALGETAUXILIARYEFFECTSLOTFV, alGetAuxiliaryEffectSlotfv);
 #undef LOAD_PROC
-
-    /* Initialize SDL_sound. */
-    Sound_Init();
 
     /* Load the sound into a buffer. */
     buffer = LoadSound(argv[0]);
     if(!buffer)
     {
         CloseAL();
-        Sound_Quit();
         return 1;
     }
 
@@ -582,7 +577,6 @@ int main(int argc, char **argv)
     {
         alDeleteEffects(2, effects);
         alDeleteBuffers(1, &buffer);
-        Sound_Quit();
         CloseAL();
         return 1;
     }
@@ -595,8 +589,8 @@ int main(int argc, char **argv)
      * effect properties. Modifying or deleting the effect object afterward
      * won't directly affect the effect slot until they're reapplied like this.
      */
-    alAuxiliaryEffectSloti(slots[0], AL_EFFECTSLOT_EFFECT, effects[0]);
-    alAuxiliaryEffectSloti(slots[1], AL_EFFECTSLOT_EFFECT, effects[1]);
+    alAuxiliaryEffectSloti(slots[0], AL_EFFECTSLOT_EFFECT, (ALint)effects[0]);
+    alAuxiliaryEffectSloti(slots[1], AL_EFFECTSLOT_EFFECT, (ALint)effects[1]);
     assert(alGetError()==AL_NO_ERROR && "Failed to set effect slot");
 
     /* For the purposes of this example, prepare a filter that optionally
@@ -618,8 +612,8 @@ int main(int argc, char **argv)
     alGenSources(1, &source);
     alSourcei(source, AL_LOOPING, AL_TRUE);
     alSource3f(source, AL_POSITION, -5.0f, 0.0f, -2.0f);
-    alSourcei(source, AL_DIRECT_FILTER, direct_filter);
-    alSourcei(source, AL_BUFFER, buffer);
+    alSourcei(source, AL_DIRECT_FILTER, (ALint)direct_filter);
+    alSourcei(source, AL_BUFFER, (ALint)buffer);
 
     /* Connect the source to the effect slots. Here, we connect source send 0
      * to Zone 0's slot, and send 1 to Zone 1's slot. Filters can be specified
@@ -628,19 +622,19 @@ int main(int argc, char **argv)
      * can only see a zone through a window or thin wall may be attenuated for
      * that zone.
      */
-    alSource3i(source, AL_AUXILIARY_SEND_FILTER, slots[0], 0, AL_FILTER_NULL);
-    alSource3i(source, AL_AUXILIARY_SEND_FILTER, slots[1], 1, AL_FILTER_NULL);
+    alSource3i(source, AL_AUXILIARY_SEND_FILTER, (ALint)slots[0], 0, AL_FILTER_NULL);
+    alSource3i(source, AL_AUXILIARY_SEND_FILTER, (ALint)slots[1], 1, AL_FILTER_NULL);
     assert(alGetError()==AL_NO_ERROR && "Failed to setup sound source");
 
     /* Get the current time as the base for timing in the main loop. */
-    altimespec_get(&basetime, AL_TIME_UTC);
+    basetime = altime_get();
     loops = 0;
     printf("Transition %d of %d...\n", loops+1, MaxTransitions);
 
     /* Play the sound for a while. */
     alSourcePlay(source);
     do {
-        struct timespec curtime;
+        int curtime;
         ALfloat timediff;
 
         /* Start a batch update, to ensure all changes apply simultaneously. */
@@ -649,14 +643,13 @@ int main(int argc, char **argv)
         /* Get the current time to track the amount of time that passed.
          * Convert the difference to seconds.
          */
-        altimespec_get(&curtime, AL_TIME_UTC);
-        timediff = (ALfloat)(curtime.tv_sec - basetime.tv_sec);
-        timediff += (ALfloat)(curtime.tv_nsec - basetime.tv_nsec) / 1000000000.0f;
+        curtime = altime_get();
+        timediff = (float)(curtime - basetime) / 1000.0f;
 
         /* Avoid negative time deltas, in case of non-monotonic clocks. */
         if(timediff < 0.0f)
             timediff = 0.0f;
-        else while(timediff >= 4.0f*((loops&1)+1))
+        else while(timediff >= 4.0f*(float)((loops&1)+1))
         {
             /* For this example, each transition occurs over 4 seconds, and
              * there's 2 transitions per cycle.
@@ -669,7 +662,7 @@ int main(int argc, char **argv)
                  * time to start a new cycle.
                  */
                 timediff -= 8.0f;
-                basetime.tv_sec += 8;
+                basetime += 8000;
             }
         }
 
@@ -682,14 +675,13 @@ int main(int argc, char **argv)
         alGetSourcei(source, AL_SOURCE_STATE, &state);
     } while(alGetError() == AL_NO_ERROR && state == AL_PLAYING && loops < MaxTransitions);
 
-    /* All done. Delete resources, and close down SDL_sound and OpenAL. */
+    /* All done. Delete resources, and close down OpenAL. */
     alDeleteSources(1, &source);
     alDeleteAuxiliaryEffectSlots(2, slots);
     alDeleteEffects(2, effects);
     alDeleteFilters(1, &direct_filter);
     alDeleteBuffers(1, &buffer);
 
-    Sound_Quit();
     CloseAL();
 
     return 0;

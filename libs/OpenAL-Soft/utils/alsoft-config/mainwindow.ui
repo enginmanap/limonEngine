@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>564</width>
-    <height>460</height>
+    <height>469</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -21,8 +21,7 @@
   </property>
   <property name="windowIcon">
    <iconset theme="preferences-desktop-sound">
-    <normaloff/>
-   </iconset>
+    <normaloff>.</normaloff>.</iconset>
   </property>
   <widget class="QWidget" name="centralWidget">
    <widget class="QPushButton" name="applyButton">
@@ -31,7 +30,7 @@
       <x>470</x>
       <y>405</y>
       <width>81</width>
-      <height>21</height>
+      <height>31</height>
      </rect>
     </property>
     <property name="text">
@@ -39,8 +38,7 @@
     </property>
     <property name="icon">
      <iconset theme="dialog-ok-apply">
-      <normaloff/>
-     </iconset>
+      <normaloff>.</normaloff>.</iconset>
     </property>
    </widget>
    <widget class="QTabWidget" name="tabWidget">
@@ -53,7 +51,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>5</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="tab_3">
      <attribute name="title">
@@ -64,8 +62,8 @@
        <rect>
         <x>110</x>
         <y>50</y>
-        <width>78</width>
-        <height>21</height>
+        <width>76</width>
+        <height>31</height>
        </rect>
       </property>
       <property name="toolTip">
@@ -82,7 +80,7 @@ float and converted to the output sample type as needed.</string>
         <x>0</x>
         <y>50</y>
         <width>101</width>
-        <height>21</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -98,7 +96,7 @@ float and converted to the output sample type as needed.</string>
         <x>0</x>
         <y>20</y>
         <width>101</width>
-        <height>21</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -113,8 +111,8 @@ float and converted to the output sample type as needed.</string>
        <rect>
         <x>110</x>
         <y>20</y>
-        <width>78</width>
-        <height>21</height>
+        <width>76</width>
+        <height>31</height>
        </rect>
       </property>
       <property name="toolTip">
@@ -131,8 +129,8 @@ to stereo output.</string>
        <rect>
         <x>380</x>
         <y>20</y>
-        <width>80</width>
-        <height>20</height>
+        <width>96</width>
+        <height>31</height>
        </rect>
       </property>
       <property name="toolTip">
@@ -194,7 +192,7 @@ to stereo output.</string>
         <x>290</x>
         <y>20</y>
         <width>81</width>
-        <height>21</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -210,7 +208,7 @@ to stereo output.</string>
         <x>290</x>
         <y>50</y>
         <width>81</width>
-        <height>21</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -225,8 +223,8 @@ to stereo output.</string>
        <rect>
         <x>380</x>
         <y>50</y>
-        <width>78</width>
-        <height>21</height>
+        <width>101</width>
+        <height>31</height>
        </rect>
       </property>
       <property name="toolTip">
@@ -256,7 +254,7 @@ otherwise be suitable for speakers.</string>
          <x>20</x>
          <y>30</y>
          <width>511</width>
-         <height>91</height>
+         <height>81</height>
         </rect>
        </property>
        <property name="title">
@@ -283,9 +281,9 @@ mixed and being heard.</string>
         <widget class="QLabel" name="label_11">
          <property name="geometry">
           <rect>
-           <x>20</x>
+           <x>60</x>
            <y>0</y>
-           <width>201</width>
+           <width>161</width>
            <height>21</height>
           </rect>
          </property>
@@ -299,9 +297,9 @@ mixed and being heard.</string>
         <widget class="QSlider" name="periodCountSlider">
          <property name="geometry">
           <rect>
-           <x>80</x>
+           <x>99</x>
            <y>20</y>
-           <width>160</width>
+           <width>141</width>
            <height>21</height>
           </rect>
          </property>
@@ -336,7 +334,7 @@ mixed and being heard.</string>
         <widget class="QLineEdit" name="periodCountEdit">
          <property name="geometry">
           <rect>
-           <x>20</x>
+           <x>40</x>
            <y>20</y>
            <width>51</width>
            <height>21</height>
@@ -365,24 +363,24 @@ frames needed for each mixing update.</string>
           <rect>
            <x>60</x>
            <y>20</y>
-           <width>160</width>
+           <width>191</width>
            <height>21</height>
           </rect>
          </property>
          <property name="minimum">
-          <number>0</number>
+          <number>63</number>
          </property>
          <property name="maximum">
           <number>8192</number>
          </property>
          <property name="singleStep">
-          <number>64</number>
+          <number>1</number>
          </property>
          <property name="pageStep">
           <number>1024</number>
          </property>
          <property name="value">
-          <number>0</number>
+          <number>63</number>
          </property>
          <property name="tracking">
           <bool>true</bool>
@@ -423,7 +421,7 @@ frames needed for each mixing update.</string>
           </rect>
          </property>
          <property name="placeholderText">
-          <string>1024</string>
+          <string>20ms</string>
          </property>
         </widget>
        </widget>
@@ -432,9 +430,9 @@ frames needed for each mixing update.</string>
        <property name="geometry">
         <rect>
          <x>130</x>
-         <y>130</y>
-         <width>131</width>
-         <height>21</height>
+         <y>120</y>
+         <width>111</width>
+         <height>31</height>
         </rect>
        </property>
        <property name="toolTip">
@@ -451,9 +449,9 @@ receiver.</string>
        <property name="geometry">
         <rect>
          <x>20</x>
-         <y>130</y>
+         <y>120</y>
          <width>101</width>
-         <height>21</height>
+         <height>31</height>
         </rect>
        </property>
        <property name="text">
@@ -466,23 +464,26 @@ receiver.</string>
       <widget class="QLabel" name="label_30">
        <property name="geometry">
         <rect>
-         <x>270</x>
-         <y>130</y>
-         <width>111</width>
-         <height>21</height>
+         <x>260</x>
+         <y>120</y>
+         <width>121</width>
+         <height>31</height>
         </rect>
        </property>
        <property name="text">
         <string>Ambisonic Format:</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
        </property>
       </widget>
       <widget class="QComboBox" name="ambiFormatComboBox">
        <property name="geometry">
         <rect>
          <x>390</x>
-         <y>130</y>
+         <y>120</y>
          <width>131</width>
-         <height>21</height>
+         <height>31</height>
         </rect>
        </property>
       </widget>
@@ -533,7 +534,7 @@ quantization with low-level whitenoise.</string>
       <property name="geometry">
        <rect>
         <x>60</x>
-        <y>80</y>
+        <y>90</y>
         <width>421</width>
         <height>81</height>
        </rect>
@@ -611,7 +612,7 @@ quantization with low-level whitenoise.</string>
      <widget class="QCheckBox" name="decoderHQModeCheckBox">
       <property name="geometry">
        <rect>
-        <x>10</x>
+        <x>30</x>
         <y>20</y>
         <width>181</width>
         <height>21</height>
@@ -635,7 +636,7 @@ appropriate speaker configuration you intend to use.</string>
      <widget class="QCheckBox" name="decoderDistCompCheckBox">
       <property name="geometry">
        <rect>
-        <x>10</x>
+        <x>30</x>
         <y>50</y>
         <width>181</width>
         <height>21</height>
@@ -655,7 +656,7 @@ configuration file.</string>
       <property name="text">
        <string>Distance Compensation:</string>
       </property>
-      <property name="checked">
+      <property name="tristate">
        <bool>true</bool>
       </property>
      </widget>
@@ -834,7 +835,7 @@ configuration file.</string>
      <widget class="QCheckBox" name="decoderNFEffectsCheckBox">
       <property name="geometry">
        <rect>
-        <x>10</x>
+        <x>30</x>
         <y>80</y>
         <width>181</width>
         <height>21</height>
@@ -847,8 +848,7 @@ creates a more realistic perception of sound distance.
 Note that the effect may be stronger or weaker than
 intended if the application doesn't use or specify an
 appropriate unit scale, or if incorrect speaker distances
-are set in the decoder configuration file. Requires High
-Quality Mode to be enabled.</string>
+are set in the decoder configuration file.</string>
       </property>
       <property name="layoutDirection">
        <enum>Qt::RightToLeft</enum>
@@ -856,7 +856,7 @@ Quality Mode to be enabled.</string>
       <property name="text">
        <string>Near-Field Effects:</string>
       </property>
-      <property name="checked">
+      <property name="tristate">
        <bool>true</bool>
       </property>
      </widget>
@@ -885,7 +885,7 @@ normal output is created with no near-field simulation.</string>
         <rect>
          <x>20</x>
          <y>0</y>
-         <width>151</width>
+         <width>171</width>
          <height>21</height>
         </rect>
        </property>
@@ -899,9 +899,9 @@ normal output is created with no near-field simulation.</string>
       <widget class="QDoubleSpinBox" name="decoderNFRefDelaySpinBox">
        <property name="geometry">
         <rect>
-         <x>180</x>
+         <x>200</x>
          <y>0</y>
-         <width>91</width>
+         <width>81</width>
          <height>21</height>
         </rect>
        </property>
@@ -999,8 +999,7 @@ normal output is created with no near-field simulation.</string>
         </property>
         <property name="icon">
          <iconset theme="list-add">
-          <normaloff/>
-         </iconset>
+          <normaloff>.</normaloff>.</iconset>
         </property>
         <property name="flat">
          <bool>false</bool>
@@ -1040,8 +1039,7 @@ listed above.</string>
         </property>
         <property name="icon">
          <iconset theme="list-remove">
-          <normaloff/>
-         </iconset>
+          <normaloff>.</normaloff>.</iconset>
         </property>
        </widget>
       </widget>
@@ -1049,10 +1047,10 @@ listed above.</string>
      <widget class="QLabel" name="label_16">
       <property name="geometry">
        <rect>
-        <x>40</x>
-        <y>50</y>
+        <x>50</x>
+        <y>60</y>
         <width>71</width>
-        <height>21</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -1066,9 +1064,9 @@ listed above.</string>
       <property name="geometry">
        <rect>
         <x>130</x>
-        <y>50</y>
+        <y>60</y>
         <width>161</width>
-        <height>21</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="toolTip">
@@ -1097,10 +1095,10 @@ application or system to determine if it should be used.</string>
      <widget class="QLabel" name="label_12">
       <property name="geometry">
        <rect>
-        <x>20</x>
+        <x>30</x>
         <y>20</y>
         <width>91</width>
-        <height>21</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -1116,12 +1114,83 @@ application or system to determine if it should be used.</string>
         <x>130</x>
         <y>20</y>
         <width>161</width>
-        <height>21</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="toolTip">
        <string>The default HRTF to use if the application doesn't request one.</string>
       </property>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_9">
+      <property name="geometry">
+       <rect>
+        <x>50</x>
+        <y>100</y>
+        <width>441</width>
+        <height>81</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>HRTF Render Method</string>
+      </property>
+      <widget class="QLabel" name="label_31">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>30</y>
+         <width>51</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Speed</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_32">
+       <property name="geometry">
+        <rect>
+         <x>340</x>
+         <y>30</y>
+         <width>51</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Quality</string>
+       </property>
+      </widget>
+      <widget class="QSlider" name="hrtfmodeSlider">
+       <property name="geometry">
+        <rect>
+         <x>80</x>
+         <y>30</y>
+         <width>251</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+      <widget class="QLabel" name="hrtfmodeLabel">
+       <property name="geometry">
+        <rect>
+         <x>50</x>
+         <y>50</y>
+         <width>321</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Default</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
      </widget>
     </widget>
     <widget class="QWidget" name="tab">
@@ -1184,6 +1253,9 @@ application or system to determine if it should be used.</string>
         <width>421</width>
         <height>361</height>
        </rect>
+      </property>
+      <property name="currentIndex">
+       <number>0</number>
       </property>
       <widget class="QWidget" name="page">
        <widget class="QCheckBox" name="backendCheckBox">
@@ -1279,7 +1351,7 @@ is not already running.</string>
         <property name="text">
          <string>AutoSpawn Server</string>
         </property>
-        <property name="checked">
+        <property name="tristate">
          <bool>true</bool>
         </property>
        </widget>
@@ -1301,6 +1373,9 @@ to match the new device.</string>
         <property name="text">
          <string>Allow Moving Streams</string>
         </property>
+        <property name="tristate">
+         <bool>true</bool>
+        </property>
        </widget>
        <widget class="QCheckBox" name="pulseFixRateCheckBox">
         <property name="geometry">
@@ -1318,6 +1393,32 @@ rate to match the PulseAudio device.</string>
         <property name="text">
          <string>Fix Sample Rate</string>
         </property>
+        <property name="tristate">
+         <bool>true</bool>
+        </property>
+       </widget>
+       <widget class="QCheckBox" name="pulseAdjLatencyCheckBox">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>100</y>
+          <width>111</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="toolTip">
+         <string>Attempts to adjust the overall latency of device
+playback. Note that this may have adverse effects
+on the resulting internal buffer sizes and mixing
+updates, leading to performance problems and
+drop-outs.</string>
+        </property>
+        <property name="text">
+         <string>Adjust Latency</string>
+        </property>
+        <property name="tristate">
+         <bool>true</bool>
+        </property>
        </widget>
       </widget>
       <widget class="QWidget" name="page_7">
@@ -1332,6 +1433,9 @@ rate to match the PulseAudio device.</string>
         </property>
         <property name="text">
          <string>AutoSpawn Server</string>
+        </property>
+        <property name="tristate">
+         <bool>true</bool>
         </property>
        </widget>
        <widget class="QGroupBox" name="groupBox_7">
@@ -1474,6 +1578,9 @@ resample pass on top of OpenAL's resampler.</string>
         <property name="text">
          <string>Allow Resampler</string>
         </property>
+        <property name="tristate">
+         <bool>true</bool>
+        </property>
        </widget>
        <widget class="QCheckBox" name="alsaMmapCheckBox">
         <property name="geometry">
@@ -1492,7 +1599,7 @@ during updates.</string>
         <property name="text">
          <string>MMap Buffer</string>
         </property>
-        <property name="checked">
+        <property name="tristate">
          <bool>true</bool>
         </property>
        </widget>
@@ -2156,6 +2263,22 @@ added by the ALC_EXT_DEDICATED extension.</string>
         <bool>true</bool>
        </property>
       </widget>
+      <widget class="QCheckBox" name="enableVocalMorpherCheck">
+       <property name="geometry">
+        <rect>
+         <x>320</x>
+         <y>210</y>
+         <width>131</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Vocal morpher</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
      </widget>
      <widget class="QLabel" name="label_13">
       <property name="geometry">
@@ -2163,7 +2286,7 @@ added by the ALC_EXT_DEDICATED extension.</string>
         <x>10</x>
         <y>20</y>
         <width>141</width>
-        <height>21</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -2178,8 +2301,8 @@ added by the ALC_EXT_DEDICATED extension.</string>
        <rect>
         <x>160</x>
         <y>20</y>
-        <width>108</width>
-        <height>20</height>
+        <width>131</width>
+        <height>31</height>
        </rect>
       </property>
       <property name="sizeAdjustPolicy">
@@ -2329,7 +2452,7 @@ added by the ALC_EXT_DEDICATED extension.</string>
       <x>370</x>
       <y>405</y>
       <width>91</width>
-      <height>21</height>
+      <height>31</height>
      </rect>
     </property>
     <property name="text">
@@ -2337,8 +2460,7 @@ added by the ALC_EXT_DEDICATED extension.</string>
     </property>
     <property name="icon">
      <iconset theme="window-close">
-      <normaloff/>
-     </iconset>
+      <normaloff>.</normaloff>.</iconset>
     </property>
    </widget>
   </widget>
@@ -2348,7 +2470,7 @@ added by the ALC_EXT_DEDICATED extension.</string>
      <x>0</x>
      <y>0</y>
      <width>564</width>
-     <height>21</height>
+     <height>29</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -2372,8 +2494,7 @@ added by the ALC_EXT_DEDICATED extension.</string>
   <action name="actionQuit">
    <property name="icon">
     <iconset theme="application-exit">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>&amp;Quit</string>
@@ -2382,8 +2503,7 @@ added by the ALC_EXT_DEDICATED extension.</string>
   <action name="actionSave_As">
    <property name="icon">
     <iconset theme="document-save-as">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>Save &amp;As...</string>
@@ -2395,8 +2515,7 @@ added by the ALC_EXT_DEDICATED extension.</string>
   <action name="actionLoad">
    <property name="icon">
     <iconset theme="document-open">
-     <normaloff/>
-    </iconset>
+     <normaloff>.</normaloff>.</iconset>
    </property>
    <property name="text">
     <string>&amp;Load...</string>
@@ -2414,22 +2533,6 @@ added by the ALC_EXT_DEDICATED extension.</string>
  <layoutdefault spacing="6" margin="11"/>
  <resources/>
  <connections>
-  <connection>
-   <sender>actionQuit</sender>
-   <signal>activated()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>close()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>267</x>
-     <y>181</y>
-    </hint>
-   </hints>
-  </connection>
   <connection>
    <sender>backendListWidget</sender>
    <signal>currentRowChanged(int)</signal>
