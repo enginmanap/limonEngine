@@ -1,0 +1,6 @@
+[submodule "libs/OpenAL-Soft"]
+	path = libs/OpenAL-Soft
+	url = https://github.com/kcat/openal-soft.git
+[submodule "libs/nodeGraph"]
+	path = libs/nodeGraph
+	url = https://github.com/enginmanap/nodeGraph.git
