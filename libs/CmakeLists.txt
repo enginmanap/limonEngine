@@ -1,5 +1,7 @@
 cmake_minimum_required (VERSION 3.5.1)
 
+include_directories("libs/")
+
 set(IMGUI_SOURCES
         "libs/ImGui/imgui.cpp"
         "libs/ImGui/imgui_demo.cpp"
@@ -26,9 +28,13 @@ set(IMGUIZMO_HEADERS
 
 add_library(ImGuizmo ${IMGUIZMO_SOURCES} ${IMGUIZMO_HEADERS})
 
+set(NODEGRAPH_AS_LIBRARY "True")
+
+add_subdirectory("libs/nodeGraph")
 #include(libs/OpenAL-Soft/CmakeLists.txt)
 
 add_subdirectory("libs/OpenAL-Soft/")
 #target_include_directories(test PRIVATE "libs/OpenAL-Soft/CmakeLists.txt)
 
 include_directories("libs/Cereal/include/")
+

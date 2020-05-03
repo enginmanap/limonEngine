@@ -7,7 +7,7 @@
 #include "../ALHelper.h"
 #include "../Assets/SoundAsset.h"
 
-Sound::Sound(uint32_t worldID, AssetManager *assetManager, const std::string &filename) : name(filename), worldID(worldID), assetManager(assetManager) {}
+Sound::Sound(uint32_t worldID,  std::shared_ptr<AssetManager> assetManager, const std::string &filename) : name(filename), worldID(worldID), assetManager(assetManager) {}
 
 void Sound::setLoop(bool looped) {
     this->looped = looped;

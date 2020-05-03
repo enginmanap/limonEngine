@@ -11,9 +11,9 @@
 #ifdef CEREAL_SUPPORT
 #include <cereal/archives/binary.hpp>
 #endif
-Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile,
+Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const float mass, const std::string &modelFile,
              bool disconnected = false) :
-        PhysicalRenderable(assetManager->getGlHelper(), mass, disconnected), objectID(objectID), assetManager(assetManager),
+        PhysicalRenderable(assetManager->getGraphicsWrapper(), mass, disconnected), objectID(objectID), assetManager(assetManager),
         name(modelFile) {
 
     transformation.setUpdateCallback(std::bind(&Model::transformChangeCallback, this));
@@ -39,41 +39,10 @@ Model::Model(uint32_t objectID, AssetManager *assetManager, const float mass, co
 
     MeshMeta *meshMeta;
     std::vector<std::shared_ptr<MeshAsset>> assetMeshes = modelAsset->getMeshes();
-    static GLSLProgram* animatedProgram = nullptr;
-    static GLSLProgram* nonAnimatedProgram = nullptr;
-    static GLSLProgram* nonAnimatedTransparentProgram = nullptr;
 
     for (auto iter = assetMeshes.begin(); iter != assetMeshes.end(); ++iter) {
         meshMeta = new MeshMeta();
         meshMeta->mesh = (*iter);
-
-        if (this->animated) {//this was hasBones, but it turns out, there are models with bones, but no animation.
-            if(animatedProgram == nullptr) {
-                animatedProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertexAnimated.glsl",
-                                                 "./Engine/Shaders/Model/fragment.glsl", true);
-                this->setSamplersAndUBOs(animatedProgram, false);
-            }
-            //set up the program to render object
-            meshMeta->program = animatedProgram;
-            //Now we should find out about bone tree
-        } else {
-            //set up the program to render object without bones
-            if(meshMeta->mesh->getMaterial()->hasOpacityMap()) {
-                if (nonAnimatedTransparentProgram == nullptr) {
-                    nonAnimatedTransparentProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertex.glsl",
-                                                         "./Engine/Shaders/Model/fragmentOpacity.glsl", true);
-                    this->setSamplersAndUBOs(nonAnimatedTransparentProgram, true);
-                }
-                meshMeta->program = nonAnimatedTransparentProgram;
-            } else {
-                if (nonAnimatedProgram == nullptr) {
-                    nonAnimatedProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Model/vertex.glsl",
-                                                         "./Engine/Shaders/Model/fragment.glsl", true);
-                    this->setSamplersAndUBOs(nonAnimatedProgram, false);
-                }
-                meshMeta->program = nonAnimatedProgram;
-            }
-        }
         meshMetaData.push_back(meshMeta);
     }
 
@@ -193,137 +162,63 @@ void Model::setupForTime(long time) {
 
 void Model::activateTexturesOnly(std::shared_ptr<const Material>material) {
     if(material->hasDiffuseMap()) {
-        glHelper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
+        graphicsWrapper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
     }
     if(material->hasAmbientMap()) {
-        glHelper->attachTexture(material->getAmbientTexture()->getID(), ambientMapAttachPoint);
+        graphicsWrapper->attachTexture(material->getAmbientTexture()->getID(), ambientMapAttachPoint);
     }
 
     if(material->hasSpecularMap()) {
-        glHelper->attachTexture(material->getSpecularTexture()->getID(), specularMapAttachPoint);
+        graphicsWrapper->attachTexture(material->getSpecularTexture()->getID(), specularMapAttachPoint);
     }
 
     if(material->hasOpacityMap()) {
-        glHelper->attachTexture(material->getOpacityTexture()->getID(), opacityMapAttachPoint);
+        graphicsWrapper->attachTexture(material->getOpacityTexture()->getID(), opacityMapAttachPoint);
     }
 
     if(material->hasNormalMap()) {
-        glHelper->attachTexture(material->getNormalTexture()->getID(), normalMapAttachPoint);
+        graphicsWrapper->attachTexture(material->getNormalTexture()->getID(), normalMapAttachPoint);
     }
 }
 
-void Model::setSamplersAndUBOs(GLSLProgram *program, bool setOpacity) {
-    if (!program->setUniform("diffuseSampler", diffuseMapAttachPoint)) {
-        std::cerr << "Uniform \"diffuseSampler\" could not be set" << std::endl;
-    }
-    if (!program->setUniform("ambientSampler", ambientMapAttachPoint)) {
-        std::cerr << "Uniform \"ambientSampler\" could not be set" << std::endl;
-    }
-    if (!program->setUniform("specularSampler", specularMapAttachPoint)) {
-        std::cerr << "Uniform \"specularSampler\" could not be set" << std::endl;
-    }
-    if(setOpacity) {
-        if (!program->setUniform("opacitySampler", opacityMapAttachPoint)) {
-            std::cerr << "Uniform \"opacitySampler\" could not be set" << std::endl;
-        }
-    }
-    if (!program->setUniform("normalSampler", normalMapAttachPoint)) {
-        std::cerr << "Uniform \"normalSampler\" could not be set" << std::endl;
-    }
-    //TODO we should support multi texture on one pass
-
-    if (!program->setUniform("shadowSamplerDirectional", glHelper->getMaxTextureImageUnits() - 1)) {
-        std::cerr << "Uniform \"shadowSamplerDirectional\" could not be set" << std::endl;
-    }
-    if (!program->setUniform("shadowSamplerPoint", glHelper->getMaxTextureImageUnits() - 2)) {
-        std::cerr << "Uniform \"shadowSamplerPoint\" could not be set" << std::endl;
-    }
-
-    glHelper->attachModelUBO(program->getID());
-    glHelper->attachModelIndicesUBO(program->getID());
-}
-
-bool Model::setupRenderVariables(MeshMeta *meshMetaData) {
-    GLSLProgram* program  = meshMetaData->program;
-
-    if (meshMetaData->mesh != nullptr && meshMetaData->mesh->getMaterial() != nullptr) {
-        glHelper->attachMaterialUBO(program->getID(), meshMetaData->mesh->getMaterial()->getMaterialIndex());
-    } else {
-        std::cerr << "No material setup, passing rendering. " << std::endl;
-        return false;
-    }
-
-    if (animated) {
-        //set all of the bones to unitTransform for testing
-
-        for (auto boneIterator = exposedBoneTransforms.begin();
-             boneIterator != exposedBoneTransforms.end(); ++boneIterator) {
-                glm::vec3 temp1;//these are not used
-                glm::vec4 temp2;
-                glm::vec3 translate, scale;
-                glm::quat orientation;
-
-                glm::decompose(this->transformation.getWorldTransform() * boneTransforms[boneIterator->first], scale, orientation, translate, temp1, temp2);
-
-                exposedBoneTransforms[boneIterator->first]->setTranslate(translate);
-                exposedBoneTransforms[boneIterator->first]->setScale(scale);
-                exposedBoneTransforms[boneIterator->first]->setOrientation(orientation);
-        }
-
-        program->setUniformArray("boneTransformArray[0]", boneTransforms);
-    }
-    return true;
-}
-
-void Model::render() {
-    for (std::vector<MeshMeta *>::iterator iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
-        if (setupRenderVariables((*iter))) {
-            glHelper->render((*iter)->program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(),
-                             (*iter)->mesh->getTriangleCount() * 3);
-        }
-    }
-}
-
-void Model::renderInstanced(std::vector<uint32_t> &modelIndices) {
-    glHelper->setModelIndexesUBO(modelIndices);
-    for (std::vector<MeshMeta *>::iterator iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
-        MeshMeta* meshMetaData = *iter;
-
-        this->setupRenderVariables(meshMetaData);
-
-        if (meshMetaData->mesh != nullptr && meshMetaData->mesh->getMaterial() != nullptr) {
-            this->activateTexturesOnly(meshMetaData->mesh->getMaterial());
-
-            glHelper->renderInstanced((*iter)->program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(),
-                             (*iter)->mesh->getTriangleCount() * 3, modelIndices.size());
-        }
-    }
-}
-
-
-void Model::renderWithProgram(GLSLProgram &program) {
-    glHelper->attachModelUBO(program.getID());
+void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program){
+    graphicsWrapper->attachModelUBO(program->getID());
     for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
 
         if (animated) {
             //set all of the bones to unitTransform for testing
-            program.setUniformArray("boneTransformArray[0]", boneTransforms);
-            program.setUniform("isAnimated", true);
+            program->setUniformArray("boneTransformArray[0]", boneTransforms);
+            program->setUniform("isAnimated", true);
         } else {
-            program.setUniform("isAnimated", false);
+            program->setUniform("isAnimated", false);
         }
-        if(program.IsMaterialRequired()) {
-            glHelper->attachMaterialUBO(program.getID(), (*iter)->mesh->getMaterial()->getMaterialIndex());
+        if(program->IsMaterialRequired()) {
+            graphicsWrapper->attachMaterialUBO(program->getID(), (*iter)->mesh->getMaterial()->getMaterialIndex());
         }
-        glHelper->render(program.getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount() * 3);
+        graphicsWrapper->render(program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount() * 3);
     }
 }
 
-void Model::renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GLSLProgram &program) {
-    glHelper->setModelIndexesUBO(modelIndices);
+void Model::renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GraphicsProgram &program) {
+    graphicsWrapper->setModelIndexesUBO(modelIndices);
 
-    glHelper->attachModelUBO(program.getID());
-    glHelper->attachModelIndicesUBO(program.getID());
+    graphicsWrapper->attachModelUBO(program.getID());
+    graphicsWrapper->attachModelIndicesUBO(program.getID());
+
+    for (auto boneIterator = exposedBoneTransforms.begin();
+         boneIterator != exposedBoneTransforms.end(); ++boneIterator) {
+        glm::vec3 temp1;//these are not used
+        glm::vec4 temp2;
+        glm::vec3 translate, scale;
+        glm::quat orientation;
+
+        glm::decompose(this->transformation.getWorldTransform() * boneTransforms[boneIterator->first], scale, orientation, translate, temp1, temp2);
+
+        exposedBoneTransforms[boneIterator->first]->setTranslate(translate);
+        exposedBoneTransforms[boneIterator->first]->setScale(scale);
+        exposedBoneTransforms[boneIterator->first]->setOrientation(orientation);
+    }
+
     for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
         if (animated) {
             //set all of the bones to unitTransform for testing
@@ -333,9 +228,11 @@ void Model::renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GLSL
             program.setUniform("isAnimated", false);
         }
         if(program.IsMaterialRequired()) {
-            glHelper->attachMaterialUBO(program.getID(), (*iter)->mesh->getMaterial()->getMaterialIndex());
+            graphicsWrapper->attachMaterialUBO(program.getID(), (*iter)->mesh->getMaterial()->getMaterialIndex());
+            this->activateTexturesOnly((*iter)->mesh->getMaterial());
+
         }
-        glHelper->renderInstanced(program.getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount() * 3, modelIndices.size());
+        graphicsWrapper->renderInstanced(program.getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount() * 3, modelIndices.size());
     }
 }
 

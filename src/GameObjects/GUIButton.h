@@ -60,7 +60,7 @@ class GUIButton : public GUIImageBase, public GameObject{
     }
 
 public:
-    GUIButton(uint32_t worldID, AssetManager *assetManager, LimonAPI *limonAPI, const std::string name,
+    GUIButton(uint32_t worldID,  std::shared_ptr<AssetManager> assetManager, LimonAPI *limonAPI, const std::string name,
                   const std::vector<std::string> &imageFiles);
 
     ~GUIButton();
@@ -69,7 +69,7 @@ public:
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
 
-    static GUIButton *deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetManager *assetManager, Options *options,
+    static GUIButton *deserialize(tinyxml2::XMLElement *GUIRenderableNode, std::shared_ptr<AssetManager> assetManager, Options *options,
                                       LimonAPI *limonAPI); //will turn into factory class at some point
 
     void setOnHover(bool hover) {

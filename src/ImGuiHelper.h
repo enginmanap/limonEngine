@@ -12,28 +12,29 @@
 #include <string>
 #include "../libs/ImGui/imgui.h"
 #include "Assets/AssetManager.h"
+#include "API/GraphicsInterface.h"
 
 struct SDL_Window;
-class GLHelper;
-class GLSLProgram;
+
+class GraphicsProgram;
 class InputHandler;
 class Options;
 typedef union SDL_Event SDL_Event;
 
 class ImGuiHelper {
 
+    std::unique_ptr<Texture> fontTexture;
     // ImGUI Data
     double       g_Time = 0.0f;
     bool         g_MousePressed[3] = { false, false, false };
     float        g_MouseWheel = 0.0f;
     uint32_t     g_FontTexture = 0;
-    int          g_VertHandle = 0, g_FragHandle = 0;
     int          g_AttribLocationPosition = 0, g_AttribLocationUV = 0, g_AttribLocationColor = 0;
     unsigned int g_VboHandle = 0, g_VaoHandle = 0, g_ElementsHandle = 0;
     // ImGUI Data end"
 
-    GLHelper* glHelper = nullptr;
-    GLSLProgram* program = nullptr;
+    GraphicsInterface* graphicsWrapper = nullptr;
+    std::shared_ptr<GraphicsProgram> program = nullptr;
     Options* options;
 
     ImGuiContext* context = nullptr;
@@ -80,7 +81,7 @@ class ImGuiHelper {
     }
 
 public:
-    ImGuiHelper(GLHelper* glHelper, Options* options);
+    ImGuiHelper(GraphicsInterface* graphicsWrapper, Options* options);
     ~ImGuiHelper();
     void        NewFrame();
     bool        ProcessEvent(const InputHandler& inputHandler);

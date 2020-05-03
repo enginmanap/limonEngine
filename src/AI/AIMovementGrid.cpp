@@ -461,7 +461,7 @@ void AIMovementGrid::serializeNode(tinyxml2::XMLDocument &aiGridDocument, tinyxm
                 continue;//4 is self
             }
             currentElement = aiGridDocument.NewElement("Nb");//neighbour
-            currentElement->SetAttribute("Ps", std::__cxx11::to_string(i).c_str());//position
+            currentElement->SetAttribute("Ps", std::to_string(i).c_str());//position
             if(nodeToSerialize->getNeighbour(i) != nullptr) {
                 currentElement->SetText(std::__cxx11::to_string(nodeToSerialize->getNeighbour(i)->getID()).c_str());
             } else {

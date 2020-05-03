@@ -78,14 +78,11 @@ AnimationCustom* AnimationSequenceInterface::buildAnimationFromCurrentItems() {
         return animationInProgress;
     }
 
-    //add the first element here
-    AnimationSequenceItem item = sections[0];
-
+    //add starting position position
     fillAnimationFromItem(0, animationInProgress, Transformation(), true);//for the first element, we push identity transform
-
+    int maxDuration = sections[0].mFrameEnd;
 
     //now iterate over the list, combining the animations
-    int maxDuration = item.mFrameEnd;
 
     /**
      * lets look at what we have here
@@ -114,7 +111,7 @@ AnimationCustom* AnimationSequenceInterface::buildAnimationFromCurrentItems() {
         animationInProgress = new AnimationCustom(animationNameBuffer, animationNode, maxDuration);
 
         //setup done, build animation for current item.
-        item = sections[i];
+        AnimationSequenceItem& item = sections[i];
         auto animationNode2 = std::make_shared<AnimationNode>();
         AnimationCustom* itemsAnimation = new AnimationCustom("item", animationNode2, 0);
         fillAnimationFromItem(i, itemsAnimation, sections[i-1].transformation, false);

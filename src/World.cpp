@@ -4,6 +4,13 @@
 
 
 #include "World.h"
+#include <random>
+#include <Graphics/GraphicsPipeline.h>
+#include <API/RenderMethodInterface.h>
+#include "NodeEditorExtensions/PipelineStageExtension.h"
+#include "NodeEditorExtensions/PipelineExtension.h"
+#include "NodeEditorExtensions/IterationExtension.h"
+#include "nodeGraph/src/NodeGraph.h"
 
 #include "Camera.h"
 #include "BulletDebugDrawer.h"
@@ -31,11 +38,9 @@
 #include "GameObjects/GUIButton.h"
 #include "GameObjects/GUIAnimation.h"
 #include "GameObjects/ModelGroup.h"
-#include "PostProcess/QuadRenderBase.h"
-#include "PostProcess/CombinePostProcess.h"
-#include "PostProcess/SSAOPostProcess.h"
-#include "PostProcess/SSAOBlurPostProcess.h"
+#include "Graphics/PostProcess/QuadRender.h"
 #include "SDL2Helper.h"
+#include "Graphics/GraphicsPipelineStage.h"
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -46,8 +51,8 @@
     };
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
-             AssetManager *assetManager, Options *options)
-        : assetManager(assetManager),options(options), glHelper(assetManager->getGlHelper()), alHelper(assetManager->getAlHelper()), name(name), fontManager(glHelper), startingPlayer(startingPlayerType) {
+             std::shared_ptr<AssetManager> assetManager, Options *options)
+        : assetManager(assetManager), options(options), graphicsWrapper(assetManager->getGraphicsWrapper()), alHelper(assetManager->getAlHelper()), name(name), fontManager(graphicsWrapper), startingPlayer(startingPlayerType) {
 
     strncpy(worldSaveNameBuffer, name.c_str(), sizeof(worldSaveNameBuffer) -1 );
 
@@ -64,33 +69,25 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
     dynamicsWorld->setGravity(btVector3(0, -10, 0));
-    debugDrawer = new BulletDebugDrawer(glHelper, options);
+    debugDrawer = new BulletDebugDrawer(graphicsWrapper, options);
     dynamicsWorld->setDebugDrawer(debugDrawer);
     dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
     //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
 
-
-    shadowMapProgramDirectional = new GLSLProgram(glHelper, "./Engine/Shaders/ShadowMap/vertexDirectional.glsl",
-                                                  "./Engine/Shaders/ShadowMap/fragmentDirectional.glsl", false);
-    shadowMapProgramPoint = new GLSLProgram(glHelper, "./Engine/Shaders/ShadowMap/vertexPoint.glsl",
-                                            "./Engine/Shaders/ShadowMap/geometryPoint.glsl",
-                                            "./Engine/Shaders/ShadowMap/fragmentPoint.glsl", false);
-
-    apiGUILayer = new GUILayer(glHelper, debugDrawer, 1);
+    apiGUILayer = new GUILayer(graphicsWrapper, debugDrawer, 1);
     apiGUILayer->setDebug(false);
 
-    renderCounts = new GUIText(glHelper, getNextObjectID(), "Render Counts",
+    renderCounts = new GUIText(graphicsWrapper, getNextObjectID(), "Render Counts",
                                fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0", glm::vec3(204, 204, 0));
     renderCounts->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 170, options->getScreenHeight() - 36), 0);
 
-    cursor = new GUICursor(glHelper, assetManager, "./Data/Textures/crosshair.png");
+    cursor = new GUICursor(graphicsWrapper, assetManager, "./Data/Textures/crosshair.png");
 
     cursor->set2dWorldTransform(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f), 0);
 
-    debugOutputGUI = new GUITextDynamic(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16),
+    debugOutputGUI = new GUITextDynamic(graphicsWrapper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16),
                                         glm::vec3(0, 0, 0), 640, 380, options);
     debugOutputGUI->set2dWorldTransform(glm::vec2(320, options->getScreenHeight()-200), 0.0f);
-
 
     switch(startingPlayer.type) {
         case PlayerInfo::Types::PHYSICAL_PLAYER:
@@ -110,31 +107,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
             currentPlayer = menuPlayer;
             break;
     }
-
-
-    ssaoPostProcess = new SSAOPostProcess(glHelper, options->getSSAOSampleCount());
-    ssaoPostProcess->setSourceTexture("depthMapSampler", 1);
-    ssaoPostProcess->setSourceTexture("normalMapSampler", 2);
-    ssaoPostProcess->setSourceTexture("ssaoNoiseSampler", 3);
-
-    ssaoBlurPostProcess = new SSAOBlurPostProcess(glHelper);
-    ssaoBlurPostProcess->setSourceTexture("ssaoResultSampler", 1);
-
-    if(options->isSsaoEnabled()) {
-        combiningObject = new CombinePostProcess(glHelper,true);
-        combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
-        combiningObject->setSourceTexture("ambient", 2);
-        combiningObject->setSourceTexture("ssao", 3);
-        combiningObject->setSourceTexture("depthMap", 4);
-    } else {
-        combiningObject = new CombinePostProcess(glHelper,false);
-        combiningObject->setSourceTexture("diffuseSpecularLighted", 1);
-        combiningObject->setSourceTexture("depthMap", 4);
-    }
-
-
-
-
+    
+    quadRender = std::make_shared<QuadRender>(graphicsWrapper);
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
     camera = new Camera(options, currentPlayer->getCameraAttachment());//register is just below
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
@@ -145,8 +119,10 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
 
 
+    std::shared_ptr<GraphicsPipeline> loadedPipeline = GraphicsPipeline::deserialize("./Data/renderPipeline.xml", graphicsWrapper, assetManager, options, buildRenderMethods());
+    this->defaultRenderPipeline = buildRestOfPipeline(loadedPipeline, assetManager, options);
 
-    fpsCounter = new GUIFPSCounter(glHelper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
+    fpsCounter = new GUIFPSCounter(graphicsWrapper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                                    glm::vec3(204, 204, 0));
     fpsCounter->set2dWorldTransform(glm::vec2(options->getScreenWidth() - 50, options->getScreenHeight() - 18), 0);
 
@@ -159,10 +135,51 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     /************ ImGui *****************************/
     // Setup ImGui binding
-    imgGuiHelper = new ImGuiHelper(glHelper, options);
+    imgGuiHelper = new ImGuiHelper(graphicsWrapper, options);
 }
 
- bool World::checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName) {
+
+   std::shared_ptr<GraphicsPipeline> World::buildRestOfPipeline(std::shared_ptr<GraphicsPipeline> pipeline, std::shared_ptr<AssetManager> assetManager, const Options *options) {
+
+       std::shared_ptr<GraphicsProgram> ssaoGenerationProgram;
+       std::shared_ptr<GraphicsPipelineStage> ssaoGenerationStage;
+       std::shared_ptr<Texture> ssaoNoiseTexture = nullptr;
+
+       for(auto stage:pipeline->getStages()) {
+            for(auto program:stage.programs) {
+                if(program->getProgramName().find("SSAOGeneration") != std::string::npos) {
+                    RenderMethodInterface* ssaoKernelGenerator = RenderMethodInterface::createRenderMethod("SSAOKernelRenderMethod", this->graphicsWrapper);
+                    ssaoKernelGenerator->initRender(program, std::vector<LimonAPI::ParameterRequest>{});
+                }
+           }
+        }
+
+        return pipeline;
+   }
+
+   GraphicsPipeline::RenderMethods World::buildRenderMethods() {
+       GraphicsPipeline::RenderMethods renderMethods;
+
+       renderMethods.renderOpaqueObjects       = std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1);
+       renderMethods.renderAnimatedObjects     = std::bind(&World::renderAnimatedObjects, this, std::placeholders::_1);
+       renderMethods.renderTransparentObjects  = std::bind(&World::renderTransparentObjects, this, std::placeholders::_1);
+       renderMethods.renderGUITexts            = std::bind(&World::renderGUITexts, this, std::placeholders::_1);
+       renderMethods.renderGUIImages           = std::bind(&World::renderGUIImages, this, std::placeholders::_1);
+       renderMethods.renderEditor              = std::bind(&World::ImGuiFrameSetup, this, std::placeholders::_1);
+       renderMethods.renderSky                 = std::bind(&World::renderSky, this, std::placeholders::_1);
+       renderMethods.renderDebug               = std::bind(&World::renderDebug, this, std::placeholders::_1);
+       renderMethods.renderPlayerAttachmentOpaque    = std::bind(&World::renderPlayerAttachmentOpaqueObjects, this, std::placeholders::_1);
+       renderMethods.renderPlayerAttachmentTransparent    = std::bind(&World::renderPlayerAttachmentTransparentObjects, this, std::placeholders::_1);
+       renderMethods.renderPlayerAttachmentAnimated    = std::bind(&World::renderPlayerAttachmentAnimatedObjects, this, std::placeholders::_1);
+       renderMethods.renderQuad                = std::bind(&QuadRender::render, this->quadRender, std::placeholders::_1);
+
+
+       renderMethods.getLightsByType = std::bind(&World::getLightIndexes, this, std::placeholders::_1);
+       renderMethods.renderLight = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2);
+       return renderMethods;
+   }
+
+   bool World::checkPlayerVisibility(const glm::vec3 &from, const std::string &fromName) {
      //FIXME this debug draw creates a flicker, because we redraw frames that surpass 60. we need duration for debug draw to prevent it
      //debugDrawer->drawLine(GLMConverter::GLMToBlt(from), camera.getRigidBody()->getCenterOfMassPosition(), btVector3(1,0,0));
      btCollisionWorld::AllHitsRayResultCallback RayCallback(GLMConverter::GLMToBlt(from), GLMConverter::GLMToBlt(currentPlayer->getPosition()));
@@ -229,7 +246,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          currentPlayer->processPhysicsWorld(dynamicsWorld);
      }
      if(camera->isDirty()) {
-         glHelper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
+         graphicsWrapper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
          alHelper->setListenerPositionAndOrientation(camera->getPosition(), camera->getCenter(), camera->getUp());
      }
      checkAndRunTimedEvents();
@@ -456,7 +473,7 @@ void World::setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRen
 void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bool removePossible) {
     Model* currentModel = dynamic_cast<Model*>(PhysicalRenderable);
     assert(currentModel != nullptr);
-    currentModel->setIsInFrustum(glHelper->isInFrustum(currentModel->getAabbMin(), currentModel->getAabbMax()));
+    currentModel->setIsInFrustum(graphicsWrapper->isInFrustum(currentModel->getAabbMin(), currentModel->getAabbMax()));
     if(currentModel->isTransparent()) {
         if(currentModel->isIsInFrustum()) {
             if (transparentModelsInCameraFrustum.find(currentModel->getAssetID()) == transparentModelsInCameraFrustum.end()) {
@@ -682,218 +699,194 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
     }
 }
 
-void World::render() {
-    for (unsigned int i = 0; i < activeLights.size(); ++i) {
-        if(activeLights[i]->getLightType() != Light::DIRECTIONAL) {
-            continue;
-        }
-        //generate shadow map
-        glHelper->switchRenderToShadowMapDirectional(i);
-        //FIXME why are these set here?
-        shadowMapProgramDirectional->setUniform("renderLightIndex", (int)i);
+void World:: render() {
+    defaultRenderPipeline->render();
+}
 
-        for (auto modelIterator = modelsInLightFrustum[i].begin(); modelIterator != modelsInLightFrustum[i].end(); ++modelIterator) {
-            //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-            std::set<Model*> modelSet = modelIterator->second;
-            modelIndicesBuffer.clear();
-            Model* sampleModel = nullptr;
-            for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
-                sampleModel = *model;
-                //all of these models will be rendered
-                modelIndicesBuffer.push_back((*model)->getWorldObjectID());
-            }
-            if(sampleModel != nullptr) {
-                sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *shadowMapProgramDirectional);
-            }
-        }
+void World::renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
+    cursor->renderWithProgram(renderProgram);
 
-        for (auto animatedModelIterator = animatedModelsInLightFrustum[i].begin(); animatedModelIterator != animatedModelsInLightFrustum[i].end(); ++animatedModelIterator) {
-            std::vector<uint32_t > temp;
-            temp.push_back((*animatedModelIterator)->getWorldObjectID());
-            (*animatedModelIterator)->renderWithProgramInstanced(temp,*shadowMapProgramDirectional);
-        }
+    for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
+        (*it)->renderImageWithProgram(renderProgram);
     }
-
-    glHelper->switchRenderToShadowMapPoint();
-    for (unsigned int i = 0; i < activeLights.size(); ++i) {
-        if(activeLights[i]->getLightType() != Light::POINT) {
-            continue;
-        }
-        //FIXME why are these set here?
-        shadowMapProgramPoint->setUniform("renderLightIndex", (int)i);
-        for (auto modelIterator = modelsInLightFrustum[i].begin(); modelIterator != modelsInLightFrustum[i].end(); ++modelIterator) {
-            //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-            std::set<Model*> modelSet = modelIterator->second;
-            modelIndicesBuffer.clear();
-            Model* sampleModel = nullptr;
-            for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
-                //all of these models will be rendered
-                modelIndicesBuffer.push_back((*model)->getWorldObjectID());
-                sampleModel = *model;
-            }
-            if(sampleModel != nullptr) {
-                sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *shadowMapProgramPoint);
-            }
-        }
-
-        for (auto animatedModelIterator = animatedModelsInLightFrustum[i].begin(); animatedModelIterator != animatedModelsInLightFrustum[i].end(); ++animatedModelIterator) {
-            std::vector<uint32_t > temp;
-            temp.push_back((*animatedModelIterator)->getWorldObjectID());
-            (*animatedModelIterator)->renderWithProgramInstanced(temp,*shadowMapProgramPoint);
-        }
-    }
-
-    glHelper->switchRenderToColoring();
-
-    for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
-        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-        std::set<Model*> modelSet = modelIterator->second;
-        modelIndicesBuffer.clear();
-        Model* sampleModel = nullptr;
-        for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
-            //all of these models will be rendered
-            modelIndicesBuffer.push_back((*model)->getWorldObjectID());
-            sampleModel = *model;
-        }
-        if(sampleModel != nullptr) {
-            sampleModel->renderInstanced(modelIndicesBuffer);
-        }
-    }
-
-    for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
-        std::vector<uint32_t > temp;
-        temp.push_back((*modelIterator)->getWorldObjectID());
-        (*modelIterator)->renderInstanced(temp);
-    }
-
-    dynamicsWorld->debugDrawWorld();
-    if (this->dynamicsWorld->getDebugDrawer()->getDebugMode() != btIDebugDraw::DBG_NoDebug) {
-        debugDrawer->drawLine(btVector3(0, 0, 0), btVector3(0, 250, 0), btVector3(1, 1, 1));
-        //draw the ai-grid
-        if(grid != nullptr) {
-            grid->debugDraw(debugDrawer);
-        }
-    }
-    debugDrawer->flushDraws();
-
-    if(currentPlayersSettings->editorShown) { //if editor is shown, render wireframe of the triggers
-        for (auto it = triggers.begin(); it != triggers.end(); ++it) {
-            it->second->render(debugDrawer);
-        }
-        if(physicalPlayer != nullptr) {
-            if(playerPlaceHolder == nullptr) {
-                std::string assetFile;
-                glm::vec3 scale;
-                physicalPlayer->getRenderProperties(assetFile, scale);
-                playerPlaceHolder = new Model(this->getNextObjectID(), assetManager, 0, assetFile, true);
-                playerPlaceHolder->getTransformation()->setScale(scale);
-            }
-
-            startingPlayer.orientation = physicalPlayer->getLookDirection();
-            startingPlayer.position = physicalPlayer->getPosition();
-
-            playerPlaceHolder->getTransformation()->setTranslate(physicalPlayer->getPosition());
-            playerPlaceHolder->getTransformation()->setOrientation(physicalPlayer->getLookDirectionQuaternion());
-            std::vector<uint32_t > temp;
-            temp.push_back(playerPlaceHolder->getWorldObjectID());
-            playerPlaceHolder->renderInstanced(temp);
-        }
-    }
-
-    if(!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attched model if dead
-        Model* attachedModel = startingPlayer.attachedModel;
-        renderPlayerAttachments(attachedModel);
-    }
-
-    //at this point, we should combine all of the coloring
-    if(options->isSsaoEnabled()) {
-        glHelper->switchRenderToSSAOGeneration();
-        ssaoPostProcess->render();
-
-        glHelper->switchRenderToSSAOBlur();
-        ssaoBlurPostProcess->render();
-    }
-    glHelper->switchRenderToCombining();
-    //since gui uses blending, everything must be already rendered.
-    // Also, since gui elements only depth test each other, clear depth buffer
-    glHelper->clearDepthBuffer();
-    combiningObject->render();
-
-    if(sky!=nullptr) {
-        sky->render();//this is after opaque but before transparent objects.
-    }
-    //now render transparent objects
-    for (auto modelIterator = transparentModelsInCameraFrustum.begin(); modelIterator != transparentModelsInCameraFrustum.end(); ++modelIterator) {
-        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-        std::set<Model*> modelSet = modelIterator->second;
-        modelIndicesBuffer.clear();
-        Model* sampleModel = nullptr;
-        for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
-            //all of these models will be rendered
-            modelIndicesBuffer.push_back((*model)->getWorldObjectID());
-            sampleModel = *model;
-        }
-        if(sampleModel != nullptr) {
-            sampleModel->renderInstanced(modelIndicesBuffer);
-        }
-    }
-
-    for (std::vector<GUILayer *>::iterator it = guiLayers.begin(); it != guiLayers.end(); ++it) {
-        (*it)->render();
-    }
-    cursor->render();
-    if(options->getRenderInformations()) {
-        renderCounts->render();
-        debugOutputGUI->render();
-        fpsCounter->render();
-    }
-
     //render API gui layer
-    apiGUILayer->render();
+    apiGUILayer->renderImageWithProgram(renderProgram);
+
+}
+
+void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
+    for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
+        (*it)->renderTextWithProgram(renderProgram);
+    }
+    //render API gui layer
+    apiGUILayer->renderTextWithProgram(renderProgram);
 
     uint32_t triangle, line;
-    glHelper->getRenderTriangleAndLineCount(triangle, line);
+    graphicsWrapper->getRenderTriangleAndLineCount(triangle, line);
     renderCounts->updateText("Tris: " + std::to_string(triangle) + ", lines: " + std::to_string(line));
-    if(currentPlayersSettings->editorShown) {
-        ImGuiFrameSetup();
+    if (options->getRenderInformations()) {
+        renderCounts->renderWithProgram(renderProgram);
+        debugOutputGUI->renderWithProgram(renderProgram);
+        fpsCounter->renderWithProgram(renderProgram);
     }
 }
 
-   void World::renderPlayerAttachments(GameObject *attachment) const {
-     if(attachment->getTypeID() == GameObject::MODEL) {
-         Model* attachedModel = static_cast<Model*>(attachment);
-         attachedModel->setupForTime(gameTime);
-         std::vector<uint32_t> temp;
-         temp.push_back(attachedModel->getWorldObjectID());
-         attachedModel->renderInstanced(temp);
-         if (attachedModel->hasChildren()) {
-             const std::vector<PhysicalRenderable *> &children = attachedModel->getChildren();
-             for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
-                 GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
-                 if(gameObject != nullptr) {
-                     renderPlayerAttachments(gameObject);
-                 }
-             }
+void World::renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
+   for (auto modelIterator = transparentModelsInCameraFrustum.begin(); modelIterator != transparentModelsInCameraFrustum.end(); ++modelIterator) {
+       //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
+       std::set<Model *> modelSet = modelIterator->second;
+       modelIndicesBuffer.clear();
+       Model *sampleModel = nullptr;
+       for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
+           //all of these models will be rendered
+           modelIndicesBuffer.push_back((*model)->getWorldObjectID());
+           sampleModel = *model;
+       }
+       if (sampleModel != nullptr) {
+           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(renderProgram.get()));
+       }
+   }
+}
+
+void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[gnu::unused]]) const {
+   dynamicsWorld->debugDrawWorld();
+   if (dynamicsWorld->getDebugDrawer()->getDebugMode() != btIDebugDraw::DBG_NoDebug) {
+       debugDrawer->drawLine(btVector3(0, 0, 0), btVector3(0, 250, 0), btVector3(1, 1, 1));
+       //draw the ai-grid
+       if (grid != nullptr) {
+           grid->debugDraw(debugDrawer);
+       }
+   }
+   debugDrawer->flushDraws();
+}
+
+void World::renderPlayerAttachmentTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
+   if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
+       Model *attachedModel = startingPlayer.attachedModel;
+       renderPlayerAttachmentsRecursive(attachedModel, ModelTypes::TRANSPARENT, renderProgram);
+   }
+}
+
+void World::renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GraphicsProgram> &renderProgram) const {
+   if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
+       Model *attachedModel = startingPlayer.attachedModel;
+       renderPlayerAttachmentsRecursive(attachedModel, ModelTypes::ANIMATED, renderProgram);
+   }
+}
+
+void World::renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GraphicsProgram> &renderProgram) const {
+   if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
+       Model *attachedModel = startingPlayer.attachedModel;
+       renderPlayerAttachmentsRecursive(attachedModel, ModelTypes::NON_ANIMATED_OPAQUE, renderProgram);
+   }
+}
+
+void World::renderAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
+    for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
+       std::vector<uint32_t> temp;
+       temp.push_back((*modelIterator)->getWorldObjectID());
+       (*modelIterator)->renderWithProgramInstanced(temp, *(renderProgram.get()));
+    }
+}
+
+void World::renderOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
+   for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
+       //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
+       std::set<Model *> modelSet = modelIterator->second;
+       if(modelSet.size() > 0 ) {
+           modelIndicesBuffer.clear();
+           Model *sampleModel = *(modelSet.begin());
+           for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
+               //all of these models will be rendered
+               modelIndicesBuffer.push_back((*model)->getWorldObjectID());
+           }
+           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(renderProgram.get()));
+       }
+   }
+}
+
+void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
+   if (sky != nullptr) {
+       sky->renderWithProgram(renderProgram);
+   }
+}
+
+void World::renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsProgram> &renderProgram) const {
+   renderProgram->setUniform("renderLightIndex", (int) lightIndex);
+   for (auto modelIterator = modelsInLightFrustum[lightIndex].begin(); modelIterator != modelsInLightFrustum[lightIndex].end(); ++modelIterator) {
+       //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
+       std::set<Model *> modelSet = modelIterator->second;
+       modelIndicesBuffer.clear();
+       Model *sampleModel = nullptr;
+       for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
+           //all of these models will be rendered
+           modelIndicesBuffer.push_back((*model)->getWorldObjectID());
+           sampleModel = *model;
+       }
+       if (sampleModel != nullptr) {
+           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *renderProgram);
+       }
+   }
+
+   for (auto animatedModelIterator = animatedModelsInLightFrustum[lightIndex].begin();
+        animatedModelIterator != animatedModelsInLightFrustum[lightIndex].end(); ++animatedModelIterator) {
+       std::vector<uint32_t> temp;
+       temp.push_back((*animatedModelIterator)->getWorldObjectID());
+       (*animatedModelIterator)->renderWithProgramInstanced(temp, *renderProgram);
+   }
+}
+
+void World::renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes renderingModelType, const std::shared_ptr<GraphicsProgram> &renderProgram) const {
+ if(attachment->getTypeID() == GameObject::MODEL) {
+     Model* attachedModel = static_cast<Model*>(attachment);
+     attachedModel->setupForTime(gameTime);
+     std::vector<uint32_t> temp;
+     temp.push_back(attachedModel->getWorldObjectID());
+     //These if checks are not combined because they are not checking the same thing. Outer one checks model type, inner one checks what type of model we are rendering
+     if(attachedModel->isAnimated()) {
+         if(renderingModelType == ModelTypes::ANIMATED) {
+             attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()));
          }
-     } else if(attachment->getTypeID() == GameObject::MODEL_GROUP) {
-         ModelGroup* attachedModelGroup = static_cast<ModelGroup*>(attachment);
-         attachedModelGroup->setupForTime(gameTime);
-         std::vector<uint32_t> temp;
-         temp.push_back(attachedModelGroup->getWorldObjectID());
-         if (attachedModelGroup->hasChildren()) {
-             const std::vector<PhysicalRenderable *> &children = attachedModelGroup->getChildren();
-             for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
-                 GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
-                 if(gameObject != nullptr) {
-                     renderPlayerAttachments(gameObject);
-                 }
+     } else {
+         if(attachedModel->isTransparent()) {
+             if(renderingModelType == ModelTypes::TRANSPARENT) {
+                 attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()));
+             }
+         } else {
+             if(renderingModelType == ModelTypes::NON_ANIMATED_OPAQUE) {
+                 attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()));
              }
          }
      }
 
+     if (attachedModel->hasChildren()) {
+         const std::vector<PhysicalRenderable *> &children = attachedModel->getChildren();
+         for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
+             GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
+             if(gameObject != nullptr) {
+                 renderPlayerAttachmentsRecursive(gameObject, renderingModelType, renderProgram);
+             }
+         }
+     }
+ } else if(attachment->getTypeID() == GameObject::MODEL_GROUP) {
+     ModelGroup* attachedModelGroup = static_cast<ModelGroup*>(attachment);
+     attachedModelGroup->setupForTime(gameTime);
+     std::vector<uint32_t> temp;
+     temp.push_back(attachedModelGroup->getWorldObjectID());
+     if (attachedModelGroup->hasChildren()) {
+         const std::vector<PhysicalRenderable *> &children = attachedModelGroup->getChildren();
+         for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
+             GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
+             if(gameObject != nullptr) {
+                 renderPlayerAttachmentsRecursive(gameObject, renderingModelType, renderProgram);
+             }
+         }
+     }
+ }
 
 
-   }
+
+}
 
 //This method is used only for ImGui loaded animations list generation
 bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {
@@ -910,9 +903,41 @@ bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {
  * This method checks if we are in editor mode, and if we are, enables ImGui windows
  * It also fills the windows with relevant parameters.
  */
-void World::ImGuiFrameSetup() {//TODO not const because it removes the object. Should be separated
+void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram) {//TODO not const because it removes the object. Should be separated
+   if(!currentPlayersSettings->editorShown) {
+       return;
+   }
+
+   //Render Trigger volumes
+   for (auto it = triggers.begin(); it != triggers.end(); ++it) {
+       it->second->render(debugDrawer);
+   }
+   //Render player place holder
+   if (physicalPlayer != nullptr) {
+       if (playerPlaceHolder == nullptr) {
+           std::string assetFile;
+           glm::vec3 scale;
+           physicalPlayer->getRenderProperties(assetFile, scale);
+           playerPlaceHolder = new Model(getNextObjectID(), assetManager, 0, assetFile, true);
+           playerPlaceHolder->getTransformation()->setScale(scale);
+       }
+
+       startingPlayer.orientation = physicalPlayer->getLookDirection();
+       startingPlayer.position = physicalPlayer->getPosition();
+
+       playerPlaceHolder->getTransformation()->setTranslate(physicalPlayer->getPosition());
+       playerPlaceHolder->getTransformation()->setOrientation(physicalPlayer->getLookDirectionQuaternion());
+       std::vector<uint32_t> temp;
+       temp.push_back(playerPlaceHolder->getWorldObjectID());
+       playerPlaceHolder->renderWithProgramInstanced(temp, *(graphicsProgram.get()));
+   }
 
     imgGuiHelper->NewFrame();
+    if(showNodeGraph) {
+        drawNodeEditor();
+        imgGuiHelper->RenderDrawLists();
+        return;
+    }
     /* window definitions */
     {
         ImGui::Begin("Editor");
@@ -1074,7 +1099,7 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             ImGui::InputText("Name of the Model Group: ", modelGroupNameBuffer, sizeof(modelGroupNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
             if(modelGroupNameBuffer[0] != 0 ) {
                 if(ImGui::Button("Create Group")) {
-                    ModelGroup* modelGroup = new ModelGroup(glHelper, this->getNextObjectID(), std::string(modelGroupNameBuffer));
+                    ModelGroup* modelGroup = new ModelGroup(graphicsWrapper, this->getNextObjectID(), std::string(modelGroupNameBuffer));
                     this->modelGroups[modelGroup->getWorldObjectID()] = modelGroup;
 
                 }
@@ -1098,14 +1123,14 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
         if (ImGui::CollapsingHeader("Add New Light")) {
 
             if(ImGui::Button("Add Point Light")) {
-                Light* newLight = new Light(glHelper, this->getNextObjectID(), Light::LightTypes::POINT, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
+                Light* newLight = new Light(graphicsWrapper, this->getNextObjectID(), Light::LightTypes::POINT, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
                 //this->lights.push_back(newLight);
                 this->addLight(newLight);
                 pickedObject = newLight;
             }
             if(directionalLightIndex == -1) {//Allow single directional light
                 if(ImGui::Button("Add Directional Light")) {
-                    Light* newLight = new Light(glHelper, this->getNextObjectID(), Light::LightTypes::DIRECTIONAL, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
+                    Light* newLight = new Light(graphicsWrapper, this->getNextObjectID(), Light::LightTypes::DIRECTIONAL, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
                     this->addLight(newLight);
                 }
             }
@@ -1398,6 +1423,10 @@ void World::ImGuiFrameSetup() {//TODO not const because it removes the object. S
             }
         }
 
+       if(ImGui::Button("Change Render Pipeline")) {
+           this->showNodeGraph = true;
+       }
+
         ImGui::End();
 
         //ImGui::SetNextWindowSize(ImVec2(0,0), false);//true means set it only once
@@ -1663,7 +1692,7 @@ void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove
 
     static size_t selectedLayerIndex = 0;
     if (guiLayers.size() == 0) {
-        guiLayers.push_back(new GUILayer(glHelper, debugDrawer, 10));
+        guiLayers.push_back(new GUILayer(graphicsWrapper, debugDrawer, 10));
     }
     if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
         for (size_t i = 0; i < guiLayers.size(); ++i) {
@@ -1678,7 +1707,7 @@ void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove
         ImGui::EndCombo();
     }
     if (ImGui::Button("Add GUI Text")) {
-        GUIText *guiText = new GUIText(glHelper, getNextObjectID(), GUITextName,
+        GUIText *guiText = new GUIText(graphicsWrapper, getNextObjectID(), GUITextName,
                                        fontManager.getFont(selectedFontName, fontSize), "New Text", glm::vec3(0, 0, 0));
         guiText->set2dWorldTransform(
                 glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
@@ -1919,7 +1948,7 @@ uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animati
         options->getLogger()->log(Logger::log_Subsystem_ANIMATION, Logger::log_level_WARN, "Model had custom animation, overriding.");
         as->wasKinematic = activeAnimations[as->object]->wasKinematic;
         if(activeAnimations[as->object]->loop) {
-            as->originalTransformation.copy(activeAnimations[as->object]->originalTransformation);//if looped animation, start new one from origin
+            as->originalTransformation = activeAnimations[as->object]->originalTransformation;//if looped animation, start new one from origin
         } else {
             //if not looped animation, start from end of the old one
             const AnimationCustom* oldAnimation = &loadedAnimations[activeAnimations[as->object]->animationIndex];
@@ -1939,12 +1968,12 @@ uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animati
             as->object->getTransformation()->setScale(tempScale);
             as->object->getTransformation()->setOrientation(tempOrientation);
             as->object->setCustomAnimation(false);
-            as->originalTransformation.copy(*as->object->getTransformation());
+            as->originalTransformation = *as->object->getTransformation();
 
         }
         delete activeAnimations[as->object];
     } else {
-        as->originalTransformation.copy(*as->object->getTransformation());
+        as->originalTransformation = *as->object->getTransformation();
     }
     //we should animate child, and keep parent, so we should attach to the object itself
     as->object->getTransformation()->setScale(glm::vec3(1.0f,1.0f,1.0f));
@@ -2228,7 +2257,7 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
 uint32_t World::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &name, const std::string &text,
                            const glm::vec3 &color,
                            const glm::vec2 &position, float rotation) {
-    GUIText* tr = new GUIText(glHelper, getNextObjectID(), name, fontManager.getFont(fontFilePath, fontSize),
+    GUIText* tr = new GUIText(graphicsWrapper, getNextObjectID(), name, fontManager.getFont(fontFilePath, fontSize),
                               text, color);
     glm::vec2 screenPosition;
     screenPosition.x = position.x * this->options->getScreenWidth();
@@ -2365,6 +2394,10 @@ bool World::removeObject(uint32_t objectID) {
 
 void World::afterLoadFinished() {
     for (size_t i = 0; i < onLoadActions.size(); ++i) {
+        if(onLoadActions[i]->action == nullptr) {
+            std::cerr << "There was an onload action defined but action is not loaded, skipping." << std::endl;
+            continue;
+        }
         if(onLoadActions[i]->enabled) {
             std::cout << "running trigger " << onLoadActions[i]->action->getName() << std::endl;
             onLoadActions[i]->action->run(onLoadActions[i]->parameters);
@@ -2376,8 +2409,8 @@ void World::afterLoadFinished() {
     }
 
     //setup request
-    request = new GameObject::ImGuiRequest(glHelper->getCameraMatrix(), glHelper->getProjectionMatrix(),
-                                           glHelper->getOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), apiInstance);
+    request = new GameObject::ImGuiRequest(graphicsWrapper->getCameraMatrix(), graphicsWrapper->getProjectionMatrix(),
+                                           graphicsWrapper->getOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), apiInstance);
 
     if(startingPlayer.extensionName != "") {
         PlayerExtensionInterface *playerExtension =PlayerExtensionInterface::createExtension(startingPlayer.extensionName, apiInstance);
@@ -2478,7 +2511,7 @@ void World::addGUIImageControls() {
 
     static size_t selectedLayerIndex = 0;
     if (guiLayers.size() == 0) {
-        guiLayers.push_back(new GUILayer(glHelper, debugDrawer, 10));
+        guiLayers.push_back(new GUILayer(graphicsWrapper, debugDrawer, 10));
     }
     static char GUIImageName[32];
     ImGui::InputText("GUI Image Name", GUIImageName, sizeof(GUIImageName), ImGuiInputTextFlags_CharsNoBlank);
@@ -2668,7 +2701,7 @@ void World::addGUIButtonControls() {
 
     static size_t selectedLayerIndex = 0;
     if (guiLayers.size() == 0) {
-        guiLayers.push_back(new GUILayer(glHelper, debugDrawer, 10));
+        guiLayers.push_back(new GUILayer(graphicsWrapper, debugDrawer, 10));
     }
     if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
         for (size_t i = 0; i < guiLayers.size(); ++i) {
@@ -2748,7 +2781,7 @@ void World::addGUIButtonControls() {
 
        static size_t selectedLayerIndex = 0;
        if (guiLayers.size() == 0) {
-           guiLayers.push_back(new GUILayer(glHelper, debugDrawer, 10));
+           guiLayers.push_back(new GUILayer(graphicsWrapper, debugDrawer, 10));
        }
        if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
            for (size_t i = 0; i < guiLayers.size(); ++i) {
@@ -2788,7 +2821,7 @@ void World::addGUILayerControls() {
     static  int32_t levelSlider = 0;
     ImGui::DragInt("Layer level", &levelSlider, 1, 1, 128);
     if (ImGui::Button("Add GUI Layer")) {
-        this->guiLayers.push_back(new GUILayer(glHelper, debugDrawer, (uint32_t)levelSlider));
+        this->guiLayers.push_back(new GUILayer(graphicsWrapper, debugDrawer, (uint32_t)levelSlider));
     }
 }
 
@@ -3554,11 +3587,22 @@ void World::updateActiveLights(bool forceUpdate) {
     }
 
     for (size_t lightIndex = 0; lightIndex < activeLights.size(); ++lightIndex) {
-        glHelper->setLight(*activeLights[lightIndex], lightIndex);
+        const Light* currentLight = activeLights[lightIndex];
+        graphicsWrapper->setLight(
+                lightIndex,
+                currentLight->getAttenuation(),
+                currentLight->getShadowMatrices(),
+                currentLight->getLightSpaceMatrix(),
+                currentLight->getPosition(),
+                currentLight->getColor(),
+                currentLight->getAmbientColor(),
+                currentLight->getLightType(),
+                currentLight->getActiveDistance()
+                );
     }
 
     for (uint32_t i = activeLights.size(); i < NR_TOTAL_LIGHTS; ++i) {
-        glHelper->removeLight(i);
+        graphicsWrapper->removeLight(i);
     }
 
 }
@@ -3838,4 +3882,137 @@ bool World::setLightColorAPI(uint32_t lightID, const LimonAPI::Vec4& color) {
 
     light->setColor(glm::vec3(GLMConverter::LimonToGLM(color)));
     return true;
+}
+
+void World::drawNodeEditor() {
+    if(this->nodeGraph == nullptr) {
+        createNodeGraph();
+    }
+
+    ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiSetCond_FirstUseEver);
+
+    if (!ImGui::Begin("Example: Custom Node Graph", &showNodeGraph)) {
+        ImGui::End();
+        return;
+    }
+
+    nodeGraph->display();
+    if(ImGui::Button("Save")) {
+        defaultRenderPipeline->serialize("./Data/renderPipeline.xml", options);
+    }
+    ImGui::SameLine();
+    ImGui::Button("Cancel");
+    ImGui::End();
+}
+
+void World::createNodeGraph() {
+    std::vector<NodeType> nodeTypeVector;
+
+    //start with predefined types
+
+    NodeType screen{"Screen", false, nullptr,{}, {}, true};
+    screen.inputConnections.push_back(ConnectionDesc{"Input", "Texture"});
+    nodeTypeVector.push_back(screen);
+
+    NodeType blend{"Blend", true, nullptr,{}, {}, false};
+    blend.inputConnections.push_back(ConnectionDesc{"Input1", "Texture"});
+    blend.inputConnections.push_back(ConnectionDesc{"Input2", "Texture"});
+    blend.inputConnections.push_back(ConnectionDesc{"Input3", "Texture"});
+    blend.outputConnections.push_back(ConnectionDesc{"output", "Texture"});
+    nodeTypeVector.push_back(blend);
+
+    iterationExtension = new IterationExtension();
+
+    NodeType Iterate {"Iterate", false, iterationExtension,
+                      {{"Input", "Texture"},},
+                       {{"Output", "Texture"},},false};
+    nodeTypeVector.push_back(Iterate);
+
+    auto programs = graphicsWrapper->getLoadedPrograms();
+    GraphicsPipeline::RenderMethods renderMethods;
+
+    renderMethods.renderOpaqueObjects       = std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1);
+    renderMethods.renderAnimatedObjects     = std::bind(&World::renderAnimatedObjects, this, std::placeholders::_1);
+    renderMethods.renderTransparentObjects  = std::bind(&World::renderTransparentObjects, this, std::placeholders::_1);
+    renderMethods.renderGUITexts            = std::bind(&World::renderGUITexts, this, std::placeholders::_1);
+    renderMethods.renderGUIImages           = std::bind(&World::renderGUIImages, this, std::placeholders::_1);
+    renderMethods.renderEditor              = std::bind(&World::ImGuiFrameSetup, this, std::placeholders::_1);
+    renderMethods.renderSky                 = std::bind(&World::renderSky, this, std::placeholders::_1);
+    renderMethods.renderDebug               = std::bind(&World::renderDebug, this, std::placeholders::_1);
+    renderMethods.renderPlayerAttachmentOpaque    = std::bind(&World::renderPlayerAttachmentOpaqueObjects, this, std::placeholders::_1);
+    renderMethods.renderPlayerAttachmentTransparent    = std::bind(&World::renderPlayerAttachmentTransparentObjects, this, std::placeholders::_1);
+    renderMethods.renderPlayerAttachmentAnimated    = std::bind(&World::renderPlayerAttachmentAnimatedObjects, this, std::placeholders::_1);
+
+    renderMethods.getLightsByType = std::bind(&World::getLightIndexes, this, std::placeholders::_1);
+    renderMethods.renderLight = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2);
+
+
+    pipelineExtension = new PipelineExtension(graphicsWrapper, GraphicsPipeline::getRenderMethodNames(), renderMethods);
+
+    for(auto program:programs) {
+        std::string programName = program.first->getProgramName();
+        size_t startof, endof;
+        endof=programName.find_last_of("/\\");
+        startof = programName.substr(0,endof).find_last_of("/\\") +1;
+        std::string nodeName = programName.substr(startof, endof - startof);
+        NodeType type{nodeName.c_str(), false, nullptr, {}, {}, true};
+
+        auto uniformMap = program.first->getUniformMap();
+        for(auto uniform:uniformMap) {
+
+            if (uniform.first.rfind("pre_", 0) != 0) {
+                continue;
+            }
+
+            if (!(uniform.second->type == GraphicsInterface::VariableTypes::CUBEMAP ||
+                  uniform.second->type == GraphicsInterface::VariableTypes::CUBEMAP_ARRAY ||
+                  uniform.second->type == GraphicsInterface::VariableTypes::TEXTURE_2D ||
+                  uniform.second->type == GraphicsInterface::VariableTypes::TEXTURE_2D_ARRAY)) {//if not texture
+                continue;
+            }
+
+            ConnectionDesc desc;
+            desc.name = uniform.first;
+            switch (uniform.second->type) {
+                case GraphicsInterface::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
+                case GraphicsInterface::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
+                case GraphicsInterface::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
+                case GraphicsInterface::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
+                case GraphicsInterface::VariableTypes::INT               : desc.type = "Integer"; break;
+                case GraphicsInterface::VariableTypes::FLOAT             : desc.type = "Float"; break;
+                case GraphicsInterface::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
+                case GraphicsInterface::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
+                case GraphicsInterface::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
+                case GraphicsInterface::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
+                case GraphicsInterface::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
+            }
+            type.inputConnections.push_back(desc);
+        }
+
+        auto outputMap = program.first->getOutputMap();
+        for(auto output:outputMap) {
+            ConnectionDesc desc;
+            desc.name = output.first;
+            switch (output.second) {
+                case GraphicsInterface::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
+                case GraphicsInterface::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
+                case GraphicsInterface::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
+                case GraphicsInterface::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
+                case GraphicsInterface::VariableTypes::INT               : desc.type = "Integer"; break;
+                case GraphicsInterface::VariableTypes::FLOAT             : desc.type = "Float"; break;
+                case GraphicsInterface::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
+                case GraphicsInterface::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
+                case GraphicsInterface::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
+                case GraphicsInterface::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
+                case GraphicsInterface::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
+            }
+            type.outputConnections.push_back(desc);
+        }
+        type.nodeExtension = new PipelineStageExtension(pipelineExtension);
+
+        nodeTypeVector.push_back(type);
+    }
+
+    nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);
+
 }

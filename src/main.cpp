@@ -2,8 +2,9 @@
 // Created by Engin Manap on 10.02.2016.
 //
 
+#include "../GraphicBackends/OpenGLGraphics.h"
 #include "main.h"
-#include "GLHelper.h"
+#include "API/GraphicsInterface.h"
 #include "SDL2Helper.h"
 #include "World.h"
 #include "WorldLoader.h"
@@ -15,7 +16,7 @@ const std::string RELEASE_FILE = "./Data/Release.xml";
 const std::string OPTIONS_FILE = "./Engine/Options.xml";
 
 bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
-    glHelper->clearDepthBuffer();
+    graphicsWrapper->clearDepthBuffer();
     std::unique_ptr<std::string> loadingImagePath = worldLoader->getLoadingImage(worldFile);
     if(loadingImagePath != nullptr) {
         this->loadingImage = new GUIImage(0, options, assetManager, "loadingImage", *loadingImagePath);
@@ -46,8 +47,11 @@ bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
 void GameEngine::renderLoadingImage() const {
     if(loadingImage != nullptr) {
         loadingImage->setFullScreen(true);
+        //FIXME: this definition here seems wrong. I can't think of another way, we should explore
+        std::shared_ptr<GraphicsProgram> imageRenderProgram = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/GUIImage/vertex.glsl",
+                                                                                                     "./Engine/Shaders/GUIImage/fragment.glsl", false);
         sdlHelper->swap();
-        loadingImage->render();
+        loadingImage->renderWithProgram(imageRenderProgram);
         sdlHelper->swap();
     }
 }
@@ -125,21 +129,34 @@ GameEngine::GameEngine() {
     std::cout << "Options loaded successfully" << std::endl;
 
     sdlHelper = new SDL2Helper(PROGRAM_NAME.c_str(), options);
-#ifdef _WIN32
-    sdlHelper->loadSharedLibrary("libcustomTriggers.dll");
-#elif __APPLE__
-    sdlHelper->loadSharedLibrary("./libcustomTriggers.dylib");
-#else
-    sdlHelper->loadSharedLibrary("./libcustomTriggers.so");
-#endif
 
-    glHelper = new GLHelper(options);
-    glHelper->reshape();
+    std::string graphicsBackendFileName;
+#ifdef _WIN32
+    graphicsBackendFileName = "libGraphicsBackend.dll";
+#elif __APPLE__
+    graphicsBackendFileName = "./libGraphicsBackend.dylib";
+#else
+    graphicsBackendFileName = "./libGraphicsBackend.so";
+#endif
+    graphicsWrapper = sdlHelper->loadGraphicsBackend(graphicsBackendFileName, options);
+    if(graphicsWrapper == nullptr) {
+        std::cerr << "failed to load graphics backend. Please check " << graphicsBackendFileName << std::endl;
+        exit(1);
+    }
+    graphicsWrapper->reshape();
+
+#ifdef _WIN32
+    sdlHelper->loadCustomTriggers("libcustomTriggers.dll");
+#elif __APPLE__
+    sdlHelper->loadCustomTriggers("./libcustomTriggers.dylib");
+#else
+    sdlHelper->loadCustomTriggers("./libcustomTriggers.so");
+#endif
 
     alHelper = new ALHelper();
 
     inputHandler = new InputHandler(sdlHelper->getWindow(), options);
-    assetManager = new AssetManager(glHelper, alHelper);
+    assetManager = std::make_shared<AssetManager>(graphicsWrapper.get(), alHelper);
 
     worldLoader = new WorldLoader(assetManager, inputHandler, options);
 }
@@ -162,7 +179,7 @@ LimonAPI *GameEngine::getNewLimonAPI() {
 void GameEngine::run() {
     Uint32 worldUpdateTime = 1000 / 60;//This value is used to update world on a locked Timestep
 
-    glHelper->clearFrame();
+    graphicsWrapper->clearFrame();
     previousTime = SDL_GetTicks();
     Uint32 currentTime, frameTime, accumulatedTime = 0;
     while (!worldQuit) {
@@ -178,7 +195,7 @@ void GameEngine::run() {
             currentWorld->play(worldUpdateTime, *inputHandler);
             accumulatedTime -= worldUpdateTime;
         }
-        glHelper->clearFrame();
+        graphicsWrapper->clearFrame();
         currentWorld->render();
         sdlHelper->swap();
     }
@@ -192,14 +209,9 @@ GameEngine::~GameEngine() {
     }
 
     delete worldLoader;
-
     delete inputHandler;
-
     delete alHelper;
-    delete glHelper;
-
     delete sdlHelper;
-
     delete options;
 
 

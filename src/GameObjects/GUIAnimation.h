@@ -28,7 +28,7 @@ class GUIAnimation : public GUIImageBase, public GameObject{
     char* GUIFileNameBuffer[256]; //activate per element
 
 public:
-    GUIAnimation(uint32_t worldID, AssetManager *assetManager, const std::string name,
+    GUIAnimation(uint32_t worldID,  std::shared_ptr<AssetManager> assetManager, const std::string name,
                      const std::vector<std::string> &imageFiles, long creationTime, uint32_t frameSpeed,
                      bool isLooped);
 
@@ -42,7 +42,7 @@ public:
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
 
     static GUIAnimation *
-    deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetManager *assetManager, Options *options); //will turn into factory class at some point
+    deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std::shared_ptr<AssetManager> assetManager, Options *options); //will turn into factory class at some point
 
     /******************** Game object methods ************************************/
     ObjectTypes getTypeID() const override;

@@ -11,10 +11,10 @@
 #include "TriggerObject.h"
 #include "GamePlay/APISerializer.h"
 
-GUIButton::GUIButton(uint32_t worldID, AssetManager *assetManager, LimonAPI *limonAPI, const std::string name,
+GUIButton::GUIButton(uint32_t worldID,  std::shared_ptr<AssetManager> assetManager, LimonAPI *limonAPI, const std::string name,
                      const std::vector<std::string> &imageFiles)
         : GUIImageBase(
-        assetManager->getGlHelper(), assetManager, imageFiles[0]), worldID(worldID), name(name), limonAPI(limonAPI) {
+        assetManager->getGraphicsWrapper(), assetManager, imageFiles[0]), worldID(worldID), name(name), limonAPI(limonAPI) {
     this->imageFiles = imageFiles;
     this->images.push_back(this->image);
     strncpy(GUINameBuffer, this->name.c_str(), sizeof(GUINameBuffer) - 1);
@@ -103,7 +103,7 @@ bool GUIButton::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement 
 }
 
 
-GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetManager *assetManager, Options *options,
+GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std::shared_ptr<AssetManager> assetManager, Options *options,
                                   LimonAPI *limonAPI) {
 
     tinyxml2::XMLElement* GUIRenderableAttribute;
