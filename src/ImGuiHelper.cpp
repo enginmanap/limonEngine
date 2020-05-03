@@ -266,9 +266,9 @@ void    ImGuiHelper::InvalidateDeviceObjects()
 
     if (g_FontTexture)
     {
-        glDeleteTextures(1, &g_FontTexture);
         ImGui::GetIO().Fonts->TexID = 0;
         g_FontTexture = 0;
+        this->fontTexture = nullptr;
     }
 
 
