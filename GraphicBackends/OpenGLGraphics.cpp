@@ -107,7 +107,8 @@ GLuint OpenGLGraphics::createProgram(const std::vector<GLuint> &shaderList) {
 
 
 uint32_t OpenGLGraphics::initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
-                                            std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap) {
+                                           std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, uint32_t> &attributesMap,
+                                           std::unordered_map<std::string, VariableTypes> &outputMap) {
     GLuint program;
     std::vector<GLuint> shaderList;
     checkErrors("before create shaders");
@@ -121,7 +122,7 @@ uint32_t OpenGLGraphics::initializeProgram(const std::string &vertexShaderFile, 
     program = createProgram(shaderList);
     std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
 
-    fillUniformAndOutputMaps(program, uniformMap, outputMap);
+    fillUniformAndOutputMaps(program, uniformMap, attributesMap, outputMap);
     attachGeneralUBOs(program);
 
     checkErrors("initializeProgram");
@@ -133,8 +134,10 @@ void OpenGLGraphics::destroyProgram(uint32_t programID) {
     checkErrors("destroyProgram");
 }
 
-void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program, std::unordered_map<std::string, OpenGLGraphics::Uniform const *> &uniformMap,
-                                                 std::unordered_map<std::string, VariableTypes> &outputMap) {
+void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
+        std::unordered_map<std::string, OpenGLGraphics::Uniform const *> &uniformMap,
+        std::unordered_map<std::string, uint32_t> &attributesMap,
+        std::unordered_map<std::string, VariableTypes> &outputMap) {
     GLint i;
     GLint count;
 
@@ -159,6 +162,24 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program, std::unorder
 
         //std::cout << "Uniform " << i << " Location: " << uniformLocation << " Type: " << type << " Name: " << name << std::endl;
         uniformMap[name] = new Uniform(uniformLocation, name, type, size);
+    }
+
+
+    delete[] name;
+
+    glGetProgramiv(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxLength);
+    name = new GLchar[maxLength];
+
+    glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &count);
+    //std::cout << "Active Uniforms:" << count << std::endl;
+
+    uint32_t attributeLocation;
+    for (i = 0; i < count; i++)
+    {
+        glGetActiveAttrib(program, (GLuint)i, maxLength, &length, &size, &type, name);
+        attributeLocation = glGetAttribLocation(program, name);
+
+        attributesMap[name] = attributeLocation;
     }
 
     delete[] name;
@@ -212,6 +233,7 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program, std::unorder
 
     checkErrors("fillUniformAndOutputMaps");
 }
+
 
 void OpenGLGraphics::attachModelUBO(const uint32_t program) {
     GLuint allModelsAttachPoint = 7;

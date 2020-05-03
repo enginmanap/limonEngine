@@ -215,9 +215,9 @@ bool ImGuiHelper::CreateDeviceObjects()
     program = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/ImGui/vertex.glsl",
                                                      "./Engine/Shaders/ImGui/fragment.glsl", true);
 
-    g_AttribLocationPosition = glGetAttribLocation(program->getID(), "Position");
-    g_AttribLocationUV = glGetAttribLocation(program->getID(), "UV");
-    g_AttribLocationColor = glGetAttribLocation(program->getID(), "Color");
+    g_AttribLocationPosition = program->getAttributeLocation("Position");
+    g_AttribLocationUV = program->getAttributeLocation("UV");
+    g_AttribLocationColor = program->getAttributeLocation("Color");
 
     glGenBuffers(1, &g_VboHandle);
     glGenBuffers(1, &g_ElementsHandle);
@@ -230,9 +230,9 @@ bool ImGuiHelper::CreateDeviceObjects()
     glEnableVertexAttribArray(g_AttribLocationColor);
 
 #define OFFSETOF(TYPE, ELEMENT) ((size_t)&(((TYPE *)0)->ELEMENT))
-    glVertexAttribPointer(g_AttribLocationPosition, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, pos));
-    glVertexAttribPointer(g_AttribLocationUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, uv));
-    glVertexAttribPointer(g_AttribLocationColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, col));
+    glVertexAttribPointer(g_AttribLocationPosition, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, pos));//offset 0
+    glVertexAttribPointer(g_AttribLocationUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, uv));//offset *
+    glVertexAttribPointer(g_AttribLocationColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, col));//offset 16
 #undef OFFSETOF
 
     CreateFontsTexture();
