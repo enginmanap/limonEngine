@@ -71,6 +71,8 @@ const glm::mat4 &Light::getLightSpaceMatrix() const {
 void Light::setPosition(glm::vec3 position) {
     this->position = position;
     switch (lightType) {
+        case NONE:
+            return;
         case POINT: setShadowMatricesForPosition();
             break;
         case DIRECTIONAL: updateLightView();
@@ -99,6 +101,8 @@ GameObject::ImGuiResult Light::addImGuiEditorElements(const GameObject::ImGuiReq
     ImGui::NewLine();
     bool attenuationUpdate = false;
     switch (lightType) {
+        case LightTypes::NONE:
+            break;
         case LightTypes::POINT: {
             attenuationUpdate = ImGui::DragFloat("Constant", &(this->attenuation.x), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
             attenuationUpdate = ImGui::DragFloat("Linear", &(this->attenuation.y), 0.01f, 0.0f, 1.0f) || attenuationUpdate;

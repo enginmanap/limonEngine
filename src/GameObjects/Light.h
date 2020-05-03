@@ -120,6 +120,8 @@ public:
         // 2) point light -> check if within range
 
         switch (this->lightType) {
+            case NONE:
+                return false;
             case DIRECTIONAL:
                 return graphicsWrapper->isInFrustum(aabbMin, aabbMax, this->frustumPlanes);
             case POINT:
