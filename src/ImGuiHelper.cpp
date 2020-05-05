@@ -36,6 +36,7 @@ void ImGuiHelper::RenderDrawLists()
         return;
     draw_data->ScaleClipRects(io.DisplayFramebufferScale);
 
+    /************* This part should be done by pipelineSetup **************/
     graphicsWrapper->backupCurrentState();
     glActiveTexture(GL_TEXTURE0);
     // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, polygon fill
@@ -46,6 +47,8 @@ void ImGuiHelper::RenderDrawLists()
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_SCISSOR_TEST);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    /************* This part should be done by pipelineSetup **************/
 
     // Setup viewport, orthographic projection matrix
     glViewport(0, 0, (GLsizei)fb_width, (GLsizei)fb_height);
@@ -91,7 +94,9 @@ void ImGuiHelper::RenderDrawLists()
         }
     }
 
+    /************* This part should be done by pipelineSetup **************/
     graphicsWrapper->restoreLastState();
+    /************* This part should be done by pipelineSetup **************/
 }
 
 const char* ImGuiHelper::GetClipboardText(void*)
@@ -185,12 +190,6 @@ void ImGuiHelper::CreateFontsTexture()
 
     g_FontTexture = fontTexture->getTextureID();
 
-    /* this method used to do these too, but they are not done now:
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-     */
-
     io.Fonts->TexID = (void *)(intptr_t)g_FontTexture;
 }
 
@@ -206,11 +205,7 @@ void ImGuiHelper::CreateFontsTexture()
  */
 bool ImGuiHelper::CreateDeviceObjects()
 {
-    // Backup GL state
-    GLint last_texture, last_array_buffer, last_vertex_array;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
-    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
+    graphicsWrapper->backupCurrentState();
 
     program = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/ImGui/vertex.glsl",
                                                      "./Engine/Shaders/ImGui/fragment.glsl", true);
@@ -219,14 +214,12 @@ bool ImGuiHelper::CreateDeviceObjects()
     g_AttribLocationUV = program->getAttributeLocation("UV");
     g_AttribLocationColor = program->getAttributeLocation("Color");
 
-    glGenBuffers(1, &g_VboHandle);
-    glGenBuffers(1, &g_ElementsHandle);
-
-    glGenVertexArrays(1, &g_VaoHandle);
-    glBindVertexArray(g_VaoHandle);
-    glBindBuffer(GL_ARRAY_BUFFER, g_VboHandle);
-    glEnableVertexAttribArray(g_AttribLocationPosition);
+    graphicsWrapper->bufferVertexData(std::vector<glm::vec3>(), std::vector<glm::mediump_uvec3>(), g_VaoHandle, g_VboHandle, g_AttribLocationPosition, g_ElementsHandle);
+    glBindVertexArray(g_VaoHandle);//This is because vao is detached after
+    //graphicsWrapper->bufferVertexTextureCoordinates(std::vector<glm::vec2>(), g_VaoHandle, g_UVHandle, g_AttribLocationUV);
     glEnableVertexAttribArray(g_AttribLocationUV);
+    //graphicsWrapper->bufferExtraVertexData(std::vector<glm::vec4>(), g_VaoHandle, g_ColorHandle, g_AttribLocationColor);
+
     glEnableVertexAttribArray(g_AttribLocationColor);
 
 #define OFFSETOF(TYPE, ELEMENT) ((size_t)&(((TYPE *)0)->ELEMENT))
@@ -237,11 +230,7 @@ bool ImGuiHelper::CreateDeviceObjects()
 
     CreateFontsTexture();
 
-    // Restore modified GL state
-    glBindTexture(GL_TEXTURE_2D, last_texture);
-    glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
-    glBindVertexArray(last_vertex_array);
-
+    graphicsWrapper->restoreLastState();
     return true;
 }
 

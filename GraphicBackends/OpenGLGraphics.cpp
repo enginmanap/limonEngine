@@ -518,40 +518,41 @@ void OpenGLGraphics::bufferVertexData(const std::vector<glm::vec3> &vertices,
                                          const std::vector<glm::mediump_uvec3> &faces,
                                          uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer,
                                          uint_fast32_t &ebo) {
+
+    //FIXME this temp should not be needed, but uint_fast32_t requires a cast. re evaluate using uint32_t
+    uint32_t temp;
+    glGenVertexArrays(1, &temp);
+    glBindVertexArray(temp);
+    vao = temp;
+
     // Set up the element array buffer
     ebo = generateBuffer(1);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::mediump_uvec3), faces.data(), GL_STATIC_DRAW);
 
     // Set up the vertex attributes
-    //FIXME this temp should not be needed, but uint_fast32_t requires a cast. re evaluate using uint32_t
-    uint32_t temp;
-    glGenVertexArrays(1, &temp);
-    glBindVertexArray(temp);
-    vao = temp;
     vbo = generateBuffer(1);
     bufferObjects.push_back(vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
-    //glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize, vertexData);
+
     glVertexAttribPointer(attachPointer, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(attachPointer);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     checkErrors("bufferVertexData");
 }
 
 void OpenGLGraphics::bufferNormalData(const std::vector<glm::vec3> &normals,
                                          uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
+    glBindVertexArray(vao);
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), normals.data(), GL_STATIC_DRAW);
 
-    glBindVertexArray(vao);
     glVertexAttribPointer(attachPointer, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(attachPointer);
     glBindVertexArray(0);
-    checkErrors("bufferVertexColor");
+    checkErrors("bufferNormalData");
 }
 
 void OpenGLGraphics::bufferExtraVertexData(const std::vector<glm::vec4> &extraData,
@@ -570,11 +571,11 @@ void OpenGLGraphics::bufferExtraVertexData(const std::vector<glm::lowp_uvec4> &e
 void OpenGLGraphics::bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
                                               const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
                                               const uint_fast32_t attachPointer) {
+    glBindVertexArray(vao);
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, dataSize, extraData, GL_STATIC_DRAW);
 
-    glBindVertexArray(vao);
     switch (elementType) {
         case GL_UNSIGNED_INT:
         case GL_INT:
@@ -591,17 +592,54 @@ void OpenGLGraphics::bufferExtraVertexData(uint_fast32_t elementPerVertexCount, 
 
 void OpenGLGraphics::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
                                                        uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
+    glBindVertexArray(vao);
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
     glBufferData(GL_ARRAY_BUFFER, textureCoordinates.size() * sizeof(glm::vec2), textureCoordinates.data(),
                  GL_STATIC_DRAW);
 
-    glBindVertexArray(vao);
     glVertexAttribPointer(attachPointer, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(attachPointer);
     glBindVertexArray(0);
     checkErrors("bufferVertexTextureCoordinates");
+}
+
+void OpenGLGraphics::updateVertexData(const std::vector<glm::vec3> &vertices,
+                      const std::vector<glm::mediump_uvec3> &faces,
+                      uint_fast32_t vao, uint_fast32_t vbo, uint_fast32_t ebo) {
+    // Set up the element array buffer
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::mediump_uvec3), faces.data(), GL_STATIC_DRAW);
+
+    // Set up the vertex attributes
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
+
+    checkErrors("updateVertexData");
+}
+void OpenGLGraphics::updateNormalData(const std::vector<glm::vec3> &normals, uint_fast32_t vao, uint_fast32_t vbo){
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), normals.data(), GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+    checkErrors("updateNormalData");
+}
+void OpenGLGraphics::updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo){
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, extraData.size() * sizeof(glm::vec4), extraData.data(), GL_STATIC_DRAW);
+    checkErrors("updateExtraVertexDataV4");
+}
+void OpenGLGraphics::updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo){
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, extraData.size() * sizeof(glm::lowp_uvec4), extraData.data(), GL_STATIC_DRAW);
+    checkErrors("updateExtraVertexDataIV4");
+}
+void OpenGLGraphics::updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint_fast32_t &vao, uint_fast32_t &vbo){
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, textureCoordinates.size() * sizeof(glm::vec2), textureCoordinates.data(),
+                 GL_STATIC_DRAW);
+    checkErrors("updateVertexTextureCoordinates");
 }
 
 void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
@@ -1300,8 +1338,6 @@ void OpenGLGraphics::createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bu
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
     checkErrors("createDebugVAOVBO");
 }
 
@@ -1319,14 +1355,13 @@ void OpenGLGraphics::createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bu
 void OpenGLGraphics::drawLines(GraphicsProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines) {
     state->setProgram(program.getID());
     glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);//FIXME something is broking the vao so we need to attach again
     glBufferSubData(GL_ARRAY_BUFFER, 0, lines.size() * sizeof(Line), lines.data());
     program.setUniform("cameraTransformMatrix", perspectiveProjectionMatrix * cameraMatrix);
 
     renderLineCount = renderLineCount + lines.size();
     glDrawArrays(GL_LINES, 0, lines.size()*2);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     checkErrors("drawLines");
 }

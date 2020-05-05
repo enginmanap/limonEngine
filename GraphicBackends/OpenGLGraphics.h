@@ -340,7 +340,13 @@ public:
 
     void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
                                         uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) override;
-
+    void updateVertexData(const std::vector<glm::vec3> &vertices,
+                                  const std::vector<glm::mediump_uvec3> &faces,
+                                  uint_fast32_t vao, uint_fast32_t vbo, uint_fast32_t ebo);
+    void updateNormalData(const std::vector<glm::vec3> &colors, uint_fast32_t vao, uint_fast32_t vbo);
+    void updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo);
+    void updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo);
+    void updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint_fast32_t &vao, uint_fast32_t &vbo);
     bool freeBuffer(const uint32_t bufferID) override;
 
     bool freeVAO(const uint32_t VAO) override;

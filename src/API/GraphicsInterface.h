@@ -185,6 +185,13 @@ public:
                                uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) = 0;
     virtual void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
                                         uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) = 0;
+    virtual void updateVertexData(const std::vector<glm::vec3> &vertices,
+                                  const std::vector<glm::mediump_uvec3> &faces,
+                                  uint_fast32_t vao, uint_fast32_t vbo, uint_fast32_t ebo) = 0;
+    virtual void updateNormalData(const std::vector<glm::vec3> &colors, uint_fast32_t vao, uint_fast32_t vbo) = 0;
+    virtual void updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo) = 0;
+    virtual void updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo) = 0;
+    virtual void updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint_fast32_t &vao, uint_fast32_t &vbo) = 0;
     virtual bool freeBuffer(const uint32_t bufferID) = 0;
 
     virtual bool freeVAO(const uint32_t VAO) = 0;
@@ -206,15 +213,11 @@ public:
     virtual bool getUniformLocation(const uint32_t programID, const std::string &uniformName, uint32_t &location) = 0;
 
     virtual const glm::mat4& getCameraMatrix() const = 0;
-
     virtual const glm::vec3& getCameraPosition() const = 0;
-
     virtual const glm::mat4& getProjectionMatrix() const  = 0;
-
     virtual const glm::mat4& getOrthogonalProjectionMatrix() const  = 0;
 
     virtual void createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize) = 0;
-
     virtual void drawLines(GraphicsProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines) = 0;
 
     virtual void clearDepthBuffer() = 0; //FIXME this should be removed
