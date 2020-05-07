@@ -38,7 +38,6 @@ void ImGuiHelper::RenderDrawLists()
 
     /************* This part should be done by pipelineSetup **************/
     graphicsWrapper->backupCurrentState();
-    glActiveTexture(GL_TEXTURE0);
     // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, polygon fill
     glEnablei(GL_BLEND, 0);
     glBlendEquation(GL_FUNC_ADD);
@@ -60,9 +59,8 @@ void ImGuiHelper::RenderDrawLists()
         {-1.0f,                  1.0f,                   0.0f, 1.0f },
     };
 
-    program->setUniform("Texture", 0);
+    program->setUniform("Texture", 1);
     program->setUniform("ProjMtx",ortho_projection);
-    glBindSampler(0, 0); // Rely on combined texture/sampler state.
 
     for (int n = 0; n < draw_data->CmdListsCount; n++)
     {
@@ -103,8 +101,7 @@ void ImGuiHelper::RenderDrawLists()
             }
             else
             {
-                glBindTexture(GL_TEXTURE_2D, (uint32_t)(intptr_t)pcmd->TextureId);
-                //graphicsWrapper->attachTexture((uint32_t)(intptr_t)pcmd->TextureId, 1);
+                graphicsWrapper->attachTexture((uint32_t)(intptr_t)pcmd->TextureId, 1);
                 glScissor((int)pcmd->ClipRect.x, (int)(fb_height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
                 graphicsWrapper->render(program->getID(), g_VaoHandle, g_ElementsHandle, pcmd->ElemCount, idx_buffer_offset);
             }

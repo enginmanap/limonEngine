@@ -111,6 +111,7 @@ class OpenGLGraphics : public GraphicsInterface {
             glBindTexture(GL_TEXTURE_2D, last_texture);
             glBindSampler(0, last_sampler);
             glActiveTexture(last_active_texture);
+            activeTextureUnit = last_active_texture;
             glBindVertexArray(last_vertex_array);
             glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, last_element_array_buffer);
