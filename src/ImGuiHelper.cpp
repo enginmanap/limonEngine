@@ -69,8 +69,9 @@ void ImGuiHelper::RenderDrawLists()
     for (int n = 0; n < draw_data->CmdListsCount; n++)
     {
         const ImDrawList* cmd_list = draw_data->CmdLists[n];
-        const ImDrawIdx* idx_buffer_offset = 0;
+        const uint32_t * idx_buffer_offset = 0;
 
+        std::vector<glm::vec3> positions;
         std::vector<glm::vec4> colors;
         std::vector<glm::vec2> textureCoordinates;
         for (int i = 0; i < cmd_list->VtxBuffer.Size; ++i) {
@@ -82,13 +83,18 @@ void ImGuiHelper::RenderDrawLists()
 
             glm::vec2 coordinate = glm::vec2(cmd_list->VtxBuffer[i].uv.x, cmd_list->VtxBuffer[i].uv.y);
             textureCoordinates.emplace_back(coordinate);
+
+            glm::vec3 position = glm::vec3(cmd_list->VtxBuffer[i].pos.x, cmd_list->VtxBuffer[i].pos.y, 0);
+            positions.emplace_back(position);
         }
-
-        glBindBuffer(GL_ARRAY_BUFFER, g_VboHandle);
-        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)cmd_list->VtxBuffer.Size * sizeof(ImDrawVert), (const GLvoid*)cmd_list->VtxBuffer.Data, GL_STREAM_DRAW);
-
+        std::vector<glm::mediump_uvec3> faces;
+        for (int i = 0; i*3+2 < cmd_list->IdxBuffer.Size; i++) {
+            glm::mediump_uvec3 face = glm::mediump_uvec3(cmd_list->IdxBuffer[i*3], cmd_list->IdxBuffer[i*3+1], cmd_list->IdxBuffer[i*3+2]);
+            faces.push_back(face);
+        }
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_ElementsHandle);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx), (const GLvoid*)cmd_list->IdxBuffer.Data, GL_STREAM_DRAW);
+
+        graphicsWrapper->updateVertexData(positions, faces, g_VaoHandle, g_VboHandle, g_ElementsHandle);
         graphicsWrapper->updateExtraVertexData(colors, g_VaoHandle, g_colorHandle);
         graphicsWrapper->updateVertexTextureCoordinates(textureCoordinates, g_VaoHandle, g_UVHandle);
 
@@ -103,7 +109,7 @@ void ImGuiHelper::RenderDrawLists()
             {
                 glBindTexture(GL_TEXTURE_2D, (uint32_t)(intptr_t)pcmd->TextureId);
                 glScissor((int)pcmd->ClipRect.x, (int)(fb_height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
-                glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, idx_buffer_offset);
+                glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, GL_UNSIGNED_INT, idx_buffer_offset);
             }
             idx_buffer_offset += pcmd->ElemCount;
         }
@@ -232,12 +238,13 @@ bool ImGuiHelper::CreateDeviceObjects()
     graphicsWrapper->bufferVertexData(std::vector<glm::vec3>(), std::vector<glm::mediump_uvec3>(), g_VaoHandle, g_VboHandle, g_AttribLocationPosition, g_ElementsHandle);
     glBindVertexArray(g_VaoHandle);//This is because vao is detached after
 
-
+/*
 #define OFFSETOF(TYPE, ELEMENT) ((size_t)&(((TYPE *)0)->ELEMENT))
     glVertexAttribPointer(g_AttribLocationPosition, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, pos));//offset 0
     //glVertexAttribPointer(g_AttribLocationUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, uv));//offset 8
     //glVertexAttribPointer(g_AttribLocationColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, col));//offset 16
 #undef OFFSETOF
+ */
     graphicsWrapper->bufferExtraVertexData(std::vector<glm::vec4>(), g_VaoHandle, g_colorHandle, g_AttribLocationColor);
     graphicsWrapper->bufferVertexTextureCoordinates(std::vector<glm::vec2>(), g_VaoHandle, g_UVHandle, g_AttribLocationUV);
     CreateFontsTexture();
