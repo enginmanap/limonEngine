@@ -30,7 +30,7 @@ class ImGuiHelper {
     float        g_MouseWheel = 0.0f;
     uint32_t     g_FontTexture = 0;
     int          g_AttribLocationPosition = 0, g_AttribLocationUV = 0, g_AttribLocationColor = 0;
-    unsigned int g_VboHandle = 0, g_VaoHandle = 0, g_ElementsHandle = 0;
+    unsigned int g_VboHandle = 0, g_colorHandle, g_UVHandle, g_VaoHandle = 0, g_ElementsHandle = 0;
     // ImGUI Data end"
 
     GraphicsInterface* graphicsWrapper = nullptr;

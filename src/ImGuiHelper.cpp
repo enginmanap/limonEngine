@@ -71,11 +71,26 @@ void ImGuiHelper::RenderDrawLists()
         const ImDrawList* cmd_list = draw_data->CmdLists[n];
         const ImDrawIdx* idx_buffer_offset = 0;
 
+        std::vector<glm::vec4> colors;
+        std::vector<glm::vec2> textureCoordinates;
+        for (int i = 0; i < cmd_list->VtxBuffer.Size; ++i) {
+            ImU32 colorValue = cmd_list->VtxBuffer[i].col;
+            //glm::vec4 colorVec = glm::vec4((float)((uint8_t)(colorValue))/256.0f, (float)((uint8_t)(colorValue>>8))/256.0f, (float)((uint8_t)(colorValue>>16))/256.0f, (float)((uint8_t)(colorValue>>24)/256.0));
+            glm::vec4 colorVec = glm::vec4((uint8_t)colorValue, (uint8_t)(colorValue>>8), (uint8_t)(colorValue>>16), (uint8_t)(colorValue>>24));
+            colorVec = colorVec / 256;
+            colors.emplace_back(colorVec);
+
+            glm::vec2 coordinate = glm::vec2(cmd_list->VtxBuffer[i].uv.x, cmd_list->VtxBuffer[i].uv.y);
+            textureCoordinates.emplace_back(coordinate);
+        }
+
         glBindBuffer(GL_ARRAY_BUFFER, g_VboHandle);
         glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)cmd_list->VtxBuffer.Size * sizeof(ImDrawVert), (const GLvoid*)cmd_list->VtxBuffer.Data, GL_STREAM_DRAW);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_ElementsHandle);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx), (const GLvoid*)cmd_list->IdxBuffer.Data, GL_STREAM_DRAW);
+        graphicsWrapper->updateExtraVertexData(colors, g_VaoHandle, g_colorHandle);
+        graphicsWrapper->updateVertexTextureCoordinates(textureCoordinates, g_VaoHandle, g_UVHandle);
 
         for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
         {
@@ -216,39 +231,26 @@ bool ImGuiHelper::CreateDeviceObjects()
 
     graphicsWrapper->bufferVertexData(std::vector<glm::vec3>(), std::vector<glm::mediump_uvec3>(), g_VaoHandle, g_VboHandle, g_AttribLocationPosition, g_ElementsHandle);
     glBindVertexArray(g_VaoHandle);//This is because vao is detached after
-    //graphicsWrapper->bufferVertexTextureCoordinates(std::vector<glm::vec2>(), g_VaoHandle, g_UVHandle, g_AttribLocationUV);
-    glEnableVertexAttribArray(g_AttribLocationUV);
-    //graphicsWrapper->bufferExtraVertexData(std::vector<glm::vec4>(), g_VaoHandle, g_ColorHandle, g_AttribLocationColor);
 
-    glEnableVertexAttribArray(g_AttribLocationColor);
 
 #define OFFSETOF(TYPE, ELEMENT) ((size_t)&(((TYPE *)0)->ELEMENT))
     glVertexAttribPointer(g_AttribLocationPosition, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, pos));//offset 0
-    glVertexAttribPointer(g_AttribLocationUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, uv));//offset *
-    glVertexAttribPointer(g_AttribLocationColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, col));//offset 16
+    //glVertexAttribPointer(g_AttribLocationUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, uv));//offset 8
+    //glVertexAttribPointer(g_AttribLocationColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, col));//offset 16
 #undef OFFSETOF
-
+    graphicsWrapper->bufferExtraVertexData(std::vector<glm::vec4>(), g_VaoHandle, g_colorHandle, g_AttribLocationColor);
+    graphicsWrapper->bufferVertexTextureCoordinates(std::vector<glm::vec2>(), g_VaoHandle, g_UVHandle, g_AttribLocationUV);
     CreateFontsTexture();
 
     graphicsWrapper->restoreLastState();
     return true;
 }
 
-/*
- * GraphicsWrapper ->
- * delete vao
- * delete vbo
- * delete element buffer
- * delete shader
- * delete shader
- * delete program
- * delete texture (For font)
- */
-void    ImGuiHelper::InvalidateDeviceObjects()
-{
-    if (g_VaoHandle) glDeleteVertexArrays(1, &g_VaoHandle);
-    if (g_VboHandle) glDeleteBuffers(1, &g_VboHandle);
-    if (g_ElementsHandle) glDeleteBuffers(1, &g_ElementsHandle);
+void    ImGuiHelper::InvalidateDeviceObjects() {
+    graphicsWrapper->freeBuffer(g_VboHandle);
+    graphicsWrapper->freeBuffer(g_UVHandle);
+    graphicsWrapper->freeBuffer(g_colorHandle);
+    graphicsWrapper->freeVAO(g_VaoHandle);
     g_VaoHandle = g_VboHandle = g_ElementsHandle = 0;
 
     program = nullptr;
@@ -259,8 +261,6 @@ void    ImGuiHelper::InvalidateDeviceObjects()
         g_FontTexture = 0;
         this->fontTexture = nullptr;
     }
-
-
 }
 
 ImGuiHelper::ImGuiHelper(GraphicsInterface* graphicsWrapper, Options* options) : options(options) {
