@@ -199,6 +199,7 @@ public:
     virtual void clearFrame() = 0;
 
     virtual void render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount) = 0;
+    virtual void render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount, const uint32_t* startIndex) = 0;
 
     virtual void reshape() = 0;
 

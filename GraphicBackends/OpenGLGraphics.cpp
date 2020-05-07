@@ -720,7 +720,7 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
     checkErrors("switchRenderStageLayer");
 }
 
-void OpenGLGraphics::render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount) {
+void OpenGLGraphics::render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount, const uint32_t* startIndex) {
     if (program == 0) {
         std::cerr << "No program render requested." << std::endl;
         return;
@@ -732,7 +732,7 @@ void OpenGLGraphics::render(const uint32_t program, const uint32_t vao, const ui
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
     renderTriangleCount = renderTriangleCount + elementCount;
-    glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, startIndex);
     glBindVertexArray(0);
 
     checkErrors("render");
