@@ -11,14 +11,10 @@
 #include "../libs/ImGui/imgui.h"
 #include "ImGuiHelper.h"
 
-#include "API/GraphicsInterface.h"
 #include "API/GraphicsProgram.h"
 #include "Graphics/Texture.h"
 #include "InputHandler.h"
 #include "Options.h"
-// SDL,GL3W
-#include <SDL.h>
-#include <SDL_syswm.h>
 
 
 // This is the main rendering function that you have to implement and provide to ImGui (via setting up 'RenderDrawListsFn' in the ImGuiIO structure)
@@ -87,7 +83,10 @@ void ImGuiHelper::RenderDrawLists()
             else
             {
                 graphicsWrapper->attachTexture((uint32_t)(intptr_t)pcmd->TextureId, 1);
-                glScissor((int)pcmd->ClipRect.x, (int)(fb_height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
+                graphicsWrapper->setScissorRect((int)pcmd->ClipRect.x,
+                        (int)(fb_height - pcmd->ClipRect.w),
+                        (int)(pcmd->ClipRect.z - pcmd->ClipRect.x),
+                        (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
                 graphicsWrapper->render(program->getID(), g_VaoHandle, g_ElementsHandle, pcmd->ElemCount, idx_buffer_offset);
             }
             idx_buffer_offset += pcmd->ElemCount;
