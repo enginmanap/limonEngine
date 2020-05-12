@@ -208,13 +208,12 @@ GameEngine::~GameEngine() {
         delete iterator->second.second;//delete API
     }
 
+    graphicsWrapper = nullptr;//FIXME this should be part of SdlHelper, because it is created and deleted by it. now it is order dependent because if it.
     delete worldLoader;
     delete inputHandler;
     delete alHelper;
     delete sdlHelper;
     delete options;
-
-
 }
 
 bool getWorldNameFromReleaseXML(std::string &worldName) {
