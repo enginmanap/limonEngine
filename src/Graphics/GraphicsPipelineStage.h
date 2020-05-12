@@ -17,6 +17,8 @@ class GraphicsPipelineStage {
     uint32_t renderHeight;
     uint32_t frameBufferID;
     bool blendEnabled = false;
+    bool depthTestEnabled = false;
+    bool scissorEnabled = false;
     bool colorAttachment = false;
     bool depthAttachment = false;
     GraphicsInterface::CullModes cullMode = GraphicsInterface::CullModes::NO_CHANGE;
@@ -26,8 +28,8 @@ class GraphicsPipelineStage {
 
 public:
 
-    GraphicsPipelineStage(GraphicsInterface* graphicsWrapper, uint32_t renderWidth, uint32_t renderHeight, bool blendEnabled, bool toScreen = false) :
-            graphicsWrapper(graphicsWrapper), renderWidth(renderWidth), renderHeight(renderHeight), blendEnabled(blendEnabled) {
+    GraphicsPipelineStage(GraphicsInterface* graphicsWrapper, uint32_t renderWidth, uint32_t renderHeight, bool blendEnabled, bool depthTestEnabled, bool scissorEnabled, bool toScreen = false) :
+            graphicsWrapper(graphicsWrapper), renderWidth(renderWidth), renderHeight(renderHeight), blendEnabled(blendEnabled), depthTestEnabled(depthTestEnabled), scissorEnabled(scissorEnabled) {
         if(toScreen) {
             frameBufferID = 0;
             //since this is directly to screen, we should clear both color and depth, if clear is requested, because we will not get outputs set.
@@ -81,6 +83,8 @@ public:
     void activate(bool clear = false);
 
     void activate(const std::map<std::shared_ptr<Texture>, std::pair<GraphicsInterface::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear = false);
+
+
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
 

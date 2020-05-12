@@ -523,5 +523,32 @@
                 <Outputs/>
             </GraphicsPipelineStage>
         </StageInformation>
+        <StageInformation>
+            <RenderMethods>
+                <Method>
+                    <Name>Render Editor</Name>
+                    <Index>4</Index>
+                    <GraphicsProgram>
+                        <VertexShader>./Engine/Shaders/Model/vertex.glsl</VertexShader>
+                        <GeometryShader/>
+                        <FragmentShader>./Engine/Shaders/Model/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
+                    </GraphicsProgram>
+                </Method>
+            </RenderMethods>
+            <Clear>False</Clear>
+            <GraphicsPipelineStage>
+                <RenderHeight>1080</RenderHeight>
+                <RenderWidth>1920</RenderWidth>
+                <BlendEnabled>True</BlendEnabled>
+                <DepthTestEnabled>False</DepthTestEnabled>
+                <ScissorEnabled>True</ScissorEnabled>
+                <ColorAttachment>True</ColorAttachment>
+                <ToScreen>True</ToScreen>
+                <CullMode>NONE</CullMode>
+                <Inputs/>
+                <Outputs/>
+            </GraphicsPipelineStage>
+        </StageInformation>
     </Stages>
 </GraphicsPipeline>

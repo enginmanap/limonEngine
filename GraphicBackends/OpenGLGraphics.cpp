@@ -642,8 +642,8 @@ void OpenGLGraphics::updateVertexTextureCoordinates(const std::vector<glm::vec2>
     checkErrors("updateVertexTextureCoordinates");
 }
 
-void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
-                                          std::map<uint32_t, std::shared_ptr<Texture>> &inputs) {
+void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool scissorEnabled, bool clearColor,
+                                        bool clearDepth, CullModes cullMode, std::map<uint32_t, std::shared_ptr<Texture>> &inputs) {
     glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
     if(clearColor && clearDepth) {
@@ -652,6 +652,17 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
         glClear(GL_COLOR_BUFFER_BIT);
     } else if(clearDepth) {
         glClear(GL_DEPTH_BUFFER_BIT);
+    }
+
+    if(depthTestEnabled) {
+        glEnable(GL_DEPTH_TEST);
+    } else {
+        glDisable(GL_DEPTH_TEST);
+    }
+    if(scissorEnabled) {
+        glEnable(GL_SCISSOR_TEST);
+    } else {
+        glDisable(GL_SCISSOR_TEST);
     }
 
     //we combine diffuse+specular lighted with ambient / SSAO
@@ -664,9 +675,9 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
         }
     }
     switch (cullMode) {
-        case OpenGLGraphics::CullModes::FRONT: glCullFace(GL_FRONT); break;
-        case OpenGLGraphics::CullModes::BACK: glCullFace(GL_BACK); break;
-        case OpenGLGraphics::CullModes::NONE: glCullFace(GL_NONE); break;
+        case OpenGLGraphics::CullModes::FRONT: glEnable(GL_CULL_FACE);glCullFace(GL_FRONT); break;
+        case OpenGLGraphics::CullModes::BACK: glEnable(GL_CULL_FACE);glCullFace(GL_BACK); break;
+        case OpenGLGraphics::CullModes::NONE: glDisable(GL_CULL_FACE); break;
         case OpenGLGraphics::CullModes::NO_CHANGE: break;
     }
     if(blendEnabled) {
@@ -678,9 +689,9 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
 }
 
 
-void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
-                                          const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
-                                          const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap) {
+void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool scissorEnabled, bool clearColor,
+                                    bool clearDepth, CullModes cullMode, const std::map<uint32_t, std::shared_ptr<Texture>> &inputs, const std::map<std::shared_ptr<Texture>,
+                                            std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap) {
     //now we should change attachments based on the layer information we got
     for (auto attachmentLayerIt = attachmentLayerMap.begin(); attachmentLayerIt != attachmentLayerMap.end(); ++attachmentLayerIt) {
         attachDrawTextureToFrameBuffer(frameBufferID, attachmentLayerIt->first->getType(),
@@ -697,6 +708,17 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
         glClear(GL_DEPTH_BUFFER_BIT);
     }
 
+    if(depthTestEnabled) {
+        glEnable(GL_DEPTH_TEST);
+    } else {
+        glDisable(GL_DEPTH_TEST);
+    }
+    if(scissorEnabled) {
+        glEnable(GL_SCISSOR_TEST);
+    } else {
+        glDisable(GL_SCISSOR_TEST);
+    }
+
     //we combine diffuse+specular lighted with ambient / SSAO
     for (auto inputIt = inputs.begin(); inputIt != inputs.end(); ++inputIt) {
         switch (inputIt->second->getType()) {
@@ -707,9 +729,9 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
         }
     }
     switch (cullMode) {
-        case OpenGLGraphics::CullModes::FRONT: glCullFace(GL_FRONT); break;
-        case OpenGLGraphics::CullModes::BACK: glCullFace(GL_BACK); break;
-        case OpenGLGraphics::CullModes::NONE: glCullFace(GL_NONE); break;
+        case OpenGLGraphics::CullModes::FRONT: glEnable(GL_CULL_FACE);glCullFace(GL_FRONT); break;
+        case OpenGLGraphics::CullModes::BACK: glEnable(GL_CULL_FACE);glCullFace(GL_BACK); break;
+        case OpenGLGraphics::CullModes::NONE: glDisable(GL_CULL_FACE); break;
         case OpenGLGraphics::CullModes::NO_CHANGE: break;
     }
     if(blendEnabled) {

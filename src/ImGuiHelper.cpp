@@ -36,21 +36,6 @@ void ImGuiHelper::RenderDrawLists()
         return;
     draw_data->ScaleClipRects(io.DisplayFramebufferScale);
 
-    /************* This part should be done by pipelineSetup **************/
-    graphicsWrapper->backupCurrentState();
-    // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, polygon fill
-    glEnablei(GL_BLEND, 0);
-    glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_SCISSOR_TEST);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-    /************* This part should be done by pipelineSetup **************/
-
-    // Setup viewport, orthographic projection matrix
-    glViewport(0, 0, (GLsizei)fb_width, (GLsizei)fb_height);
     glm::mat4 ortho_projection =
     {
         { 2.0f/io.DisplaySize.x, 0.0f,                   0.0f, 0.0f },
@@ -110,7 +95,7 @@ void ImGuiHelper::RenderDrawLists()
     }
 
     /************* This part should be done by pipelineSetup **************/
-    graphicsWrapper->restoreLastState();
+    //graphicsWrapper->restoreLastState();
     /************* This part should be done by pipelineSetup **************/
 }
 
