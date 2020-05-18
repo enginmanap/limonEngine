@@ -401,7 +401,7 @@ public:
 
     std::string getName();
 
-    std::shared_ptr<GraphicsPipeline> buildRestOfPipeline(std::shared_ptr<GraphicsPipeline> pipeline,  std::shared_ptr<AssetManager> assetManager, const Options *options);
+    std::shared_ptr<GraphicsPipeline> buildRestOfPipeline(std::shared_ptr<GraphicsPipeline> pipeline, const Options *options);
 
     GraphicsPipeline::RenderMethods buildRenderMethods();
 

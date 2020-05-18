@@ -120,7 +120,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
 
     std::shared_ptr<GraphicsPipeline> loadedPipeline = GraphicsPipeline::deserialize("./Data/renderPipeline.xml", graphicsWrapper, assetManager, options, buildRenderMethods());
-    this->defaultRenderPipeline = buildRestOfPipeline(loadedPipeline, assetManager, options);
+    this->defaultRenderPipeline = buildRestOfPipeline(loadedPipeline, options);
 
     fpsCounter = new GUIFPSCounter(graphicsWrapper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                                    glm::vec3(204, 204, 0));
@@ -139,7 +139,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 }
 
 
-   std::shared_ptr<GraphicsPipeline> World::buildRestOfPipeline(std::shared_ptr<GraphicsPipeline> pipeline, std::shared_ptr<AssetManager> assetManager, const Options *options) {
+   std::shared_ptr<GraphicsPipeline> World::buildRestOfPipeline(std::shared_ptr<GraphicsPipeline> pipeline, const Options *options) {
 
        std::shared_ptr<GraphicsProgram> ssaoGenerationProgram;
        std::shared_ptr<GraphicsPipelineStage> ssaoGenerationStage;
