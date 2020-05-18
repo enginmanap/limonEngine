@@ -5,6 +5,7 @@
 #include "GraphicsPipeline.h"
 #include "API/GraphicsProgram.h"
 #include "GraphicsProgramLoader.h"
+#include "API/RenderMethodInterface.h"
 
 //Static initialize of the vector
 std::vector<std::string> GraphicsPipeline::renderMethodNames { "None", "All directional shadows", "All point Shadow", "Opaque objects", "Animated objects", "Transparent objects", "GUI Texts", "GUI Images", "Editor", "Sky", "Debug information", "Opaque player attachments", "Animated player attachments", "Transparent player attachments", "Render quad"};
@@ -33,7 +34,7 @@ bool GraphicsPipeline::serialize(const std::string& renderPipelineFileName, Opti
 
     tinyxml2::XMLElement *texturesElement = document.NewElement("Textures");
     uint32_t textureSerializeID = 0;
-    for(std::shared_ptr<Texture> texture:this->textures) {
+    for(const std::shared_ptr<Texture>& texture:this->textures) {
         textureSerializeID++;
         if(texture->getSerializeID() == 0 ) {
             texture->setSerializeID(textureSerializeID);
@@ -83,6 +84,12 @@ bool GraphicsPipeline::StageInfo::serialize(tinyxml2::XMLDocument &document, tin
             GraphicsProgramLoader::serialize(document, methodElement, renderMethods[i].getGlslProgram());
         } else {
             methodElement->SetAttribute("ProgramNull", "True");
+        }
+
+        //now we need to parse the external methods
+        for (auto erIterator = externalRenderMethods.begin(); erIterator != externalRenderMethods.end(); ++erIterator) {
+            tinyxml2::XMLElement* externalMethodElement =  document.NewElement("ExternalMethod");
+            externalMethodElement->SetText(erIterator->first.c_str());
         }
         methodList->InsertEndChild(methodElement);
     }
@@ -249,8 +256,8 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
                 return nullptr;
             }
             graphicsProgram = GraphicsProgramLoader::deserialize(graphicsProgramElement, graphicsWrapper);
-
         }
+
 
         bool isFound = true;
         if(methodName == "All directional shadows") {
@@ -269,12 +276,25 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
             newStageInfo->addRenderMethod(method);
         }
 
+        //now we need to parse the external methods
+        tinyxml2::XMLElement* externalMethodElement =  methodElement->FirstChildElement("ExternalMethod");
+        while(externalMethodElement !=nullptr) {
+            if(externalMethodElement->GetText() != nullptr ) {
+             std::string externalMethodNameString = externalMethodElement->GetText();
+                RenderMethodInterface* externalRenderMethod = RenderMethodInterface::createRenderMethod(externalMethodNameString, graphicsWrapper);
+                externalRenderMethod->initRender(graphicsProgram, std::vector<LimonAPI::ParameterRequest>());
+                newStageInfo->addExternalRenderMethod(externalMethodNameString, externalRenderMethod);
+            }
+            externalMethodElement =  externalMethodElement->NextSiblingElement("ExternalMethod");
+        }
+
         if(graphicsProgram != nullptr) {//debug render program is not loaded by the internal systems
             newStageInfo->programs.emplace_back(graphicsProgram);
         }
 
         methodElement =  methodElement->NextSiblingElement("Method");
     }
+    // end of method list parsing
 
     return newStageInfo;
 }

@@ -359,6 +359,7 @@
                             <Uniform Name="ssaoNoiseSampler">3</Uniform>
                         </PresetValues>
                     </GraphicsProgram>
+                    <ExternalMethod>SSAOKernelRenderMethod</ExternalMethod>
                 </Method>
             </RenderMethods>
             <Clear>True</Clear>
