@@ -119,8 +119,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
 
 
-    std::shared_ptr<GraphicsPipeline> loadedPipeline = GraphicsPipeline::deserialize("./Data/renderPipeline.xml", graphicsWrapper, assetManager, options, buildRenderMethods());
-    this->defaultRenderPipeline = buildRestOfPipeline(loadedPipeline, assetManager, options);
+    defaultRenderPipeline = GraphicsPipeline::deserialize("./Data/renderPipeline.xml", graphicsWrapper, assetManager, options, buildRenderMethods());
 
     fpsCounter = new GUIFPSCounter(graphicsWrapper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                                    glm::vec3(204, 204, 0));
@@ -137,25 +136,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     // Setup ImGui binding
     imgGuiHelper = new ImGuiHelper(graphicsWrapper, options);
 }
-
-
-   std::shared_ptr<GraphicsPipeline> World::buildRestOfPipeline(std::shared_ptr<GraphicsPipeline> pipeline, std::shared_ptr<AssetManager> assetManager, const Options *options) {
-
-       std::shared_ptr<GraphicsProgram> ssaoGenerationProgram;
-       std::shared_ptr<GraphicsPipelineStage> ssaoGenerationStage;
-       std::shared_ptr<Texture> ssaoNoiseTexture = nullptr;
-
-       for(auto stage:pipeline->getStages()) {
-            for(auto program:stage.programs) {
-                if(program->getProgramName().find("SSAOGeneration") != std::string::npos) {
-                    RenderMethodInterface* ssaoKernelGenerator = RenderMethodInterface::createRenderMethod("SSAOKernelRenderMethod", this->graphicsWrapper);
-                    ssaoKernelGenerator->initRender(program, std::vector<LimonAPI::ParameterRequest>{});
-                }
-           }
-        }
-
-        return pipeline;
-   }
 
    GraphicsPipeline::RenderMethods World::buildRenderMethods() {
        GraphicsPipeline::RenderMethods renderMethods;

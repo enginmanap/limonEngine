@@ -5,11 +5,13 @@
 #include "GraphicsPipelineStage.h"
 
 void GraphicsPipelineStage::activate(bool clear) {
-    graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, clear && colorAttachment, clear && depthAttachment, cullMode, inputs);
+    graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, depthTestEnabled, scissorEnabled, clear && colorAttachment,
+            clear && depthAttachment, cullMode, inputs);
 }
 
 void GraphicsPipelineStage::activate(const std::map<std::shared_ptr<Texture>, std::pair<GraphicsInterface::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear) {
-    graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, clear && colorAttachment, clear && depthAttachment, cullMode, inputs, attachmentLayerMap);
+    graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, depthTestEnabled, scissorEnabled, clear && colorAttachment,
+            clear && depthAttachment, cullMode, inputs, attachmentLayerMap);
 }
 
 bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options [[gnu::unused]]) {
@@ -42,6 +44,20 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     stageNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("DepthAttachment");
+    if(depthAttachment) {
+        currentElement->SetText("True");
+    } else {
+        currentElement->SetText("False");
+    }
+
+    currentElement = document.NewElement("DepthTestEnabled");
+    if(depthAttachment) {
+        currentElement->SetText("True");
+    } else {
+        currentElement->SetText("False");
+    }
+
+    currentElement = document.NewElement("ScissorEnabled");
     if(depthAttachment) {
         currentElement->SetText("True");
     } else {
@@ -146,6 +162,40 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
         }
     }
 
+    bool depthTestEnabled = true;
+    stageNodeAttribute = stageNode->FirstChildElement("DepthTestEnabled");
+    if (stageNodeAttribute != nullptr) {
+        if(stageNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Pipeline Stage depth test enabled setting has no text, assuming true!" << std::endl;
+        } else {
+            std::string depthTestEnabledString = stageNodeAttribute->GetText();
+            if(depthTestEnabledString == "True") {
+                depthTestEnabled = true;
+            } else if(depthTestEnabledString == "False") {
+                depthTestEnabled = false;
+            } else {
+                std::cerr << "Pipeline Stage depth test enabled setting is unknown, assuming true!" << std::endl;
+            }
+        }
+    }
+
+    bool scissorEnabled = false;
+    stageNodeAttribute = stageNode->FirstChildElement("ScissorEnabled");
+    if (stageNodeAttribute != nullptr) {
+        if(stageNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Pipeline Stage scissor enabled setting has no text, assuming false!" << std::endl;
+        } else {
+            std::string ScissorEnabledString = stageNodeAttribute->GetText();
+            if(ScissorEnabledString == "True") {
+                scissorEnabled = true;
+            } else if(ScissorEnabledString == "False") {
+                scissorEnabled = false;
+            } else {
+                std::cerr << "Pipeline Stage scissor enabled setting is unknown, assuming false!" << std::endl;
+            }
+        }
+    }
+
     stageNodeAttribute = stageNode->FirstChildElement("ToScreen");
     if (stageNodeAttribute != nullptr) {
         if(stageNodeAttribute->GetText() == nullptr) {
@@ -167,7 +217,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
         return nullptr;
     }
 
-    std::shared_ptr<GraphicsPipelineStage> newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, renderWidth, renderHeight, blendEnabled, toScreen);
+    std::shared_ptr<GraphicsPipelineStage> newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, renderWidth, renderHeight, blendEnabled, depthTestEnabled, scissorEnabled, toScreen);
 
     stageNodeAttribute = stageNode->FirstChildElement("CullMode");
 

@@ -111,6 +111,7 @@ class OpenGLGraphics : public GraphicsInterface {
             glBindTexture(GL_TEXTURE_2D, last_texture);
             glBindSampler(0, last_sampler);
             glActiveTexture(last_active_texture);
+            activeTextureUnit = last_active_texture;
             glBindVertexArray(last_vertex_array);
             glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, last_element_array_buffer);
@@ -277,7 +278,10 @@ private:
 
     bool deleteVAO(const GLuint number, const GLuint bufferID);
 
-    void fillUniformAndOutputMaps(const GLuint program, std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap);
+    void fillUniformAndOutputMaps(const GLuint program,
+            std::unordered_map<std::string, OpenGLGraphics::Uniform const *> &uniformMap,
+            std::unordered_map<std::string, uint32_t> &attributesMap,
+            std::unordered_map<std::string, VariableTypes> &outputMap);
 
     void attachGeneralUBOs(const GLuint program);
     void bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
@@ -318,7 +322,8 @@ public:
     }
 
     uint32_t initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
-                             std::unordered_map<std::string,const Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap) override;
+                               std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, uint32_t> &attributesMap,
+                               std::unordered_map<std::string, VariableTypes> &outputMap) override;
     void destroyProgram(uint32_t programID) override;
 
     void bufferVertexData(const std::vector<glm::vec3> &vertices,
@@ -336,7 +341,13 @@ public:
 
     void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
                                         uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) override;
-
+    void updateVertexData(const std::vector<glm::vec3> &vertices,
+                                  const std::vector<glm::mediump_uvec3> &faces,
+                                  uint_fast32_t vao, uint_fast32_t vbo, uint_fast32_t ebo);
+    void updateNormalData(const std::vector<glm::vec3> &colors, uint_fast32_t vao, uint_fast32_t vbo);
+    void updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo);
+    void updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo);
+    void updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint_fast32_t &vao, uint_fast32_t &vbo);
     bool freeBuffer(const uint32_t bufferID) override;
 
     bool freeVAO(const uint32_t VAO) override;
@@ -359,7 +370,11 @@ public:
         checkErrors("clearFrame");
     }
 
-    void render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount) override;
+    void render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount) {
+        this->render(program, vao, ebo, elementCount, nullptr);
+    }
+
+    void render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount, const uint32_t* startIndex) override;
 
     void reshape() override;
 
@@ -423,9 +438,9 @@ public:
 
     void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix) override;
 
-    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
+    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool scissorEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
                            std::map<uint32_t, std::shared_ptr<Texture>> &inputs) override;
-    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
+    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool scissorEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
                            const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
                            const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap) override;
 
@@ -466,6 +481,10 @@ public:
 
     void renderInstanced(uint32_t program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
                          uint32_t instanceCount) override;
+
+    void setScissorRect(int32_t x, int32_t y, uint32_t width, uint32_t height) {
+        glScissor(x,y,width,height);
+    }
 
 };
 

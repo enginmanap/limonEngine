@@ -13,8 +13,10 @@
 
 #include "GraphicsPipelineStage.h"
 #include "../GameObjects/Light.h"
+
 class World;
 class GraphicsProgram;
+class RenderMethodInterface;
 
 class GraphicsPipeline {
     GraphicsPipeline() = default;//used for deserialize
@@ -173,9 +175,14 @@ public:
         std::shared_ptr<GraphicsPipelineStage> stage;
         bool clear = false;
         std::vector<RenderMethod> renderMethods;
+        std::unordered_map<std::string, RenderMethodInterface*> externalRenderMethods;
 
         void addRenderMethod(RenderMethod method) {
             renderMethods.emplace_back(method);
+        }
+
+        void addExternalRenderMethod(std::string methodName, RenderMethodInterface* externalMethod) {
+            externalRenderMethods[methodName] = externalMethod;
         }
 
         bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);

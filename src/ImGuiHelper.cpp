@@ -11,14 +11,10 @@
 #include "../libs/ImGui/imgui.h"
 #include "ImGuiHelper.h"
 
-#include "API/GraphicsInterface.h"
 #include "API/GraphicsProgram.h"
 #include "Graphics/Texture.h"
 #include "InputHandler.h"
 #include "Options.h"
-// SDL,GL3W
-#include <SDL.h>
-#include <SDL_syswm.h>
 
 
 // This is the main rendering function that you have to implement and provide to ImGui (via setting up 'RenderDrawListsFn' in the ImGuiIO structure)
@@ -36,19 +32,6 @@ void ImGuiHelper::RenderDrawLists()
         return;
     draw_data->ScaleClipRects(io.DisplayFramebufferScale);
 
-    graphicsWrapper->backupCurrentState();
-    glActiveTexture(GL_TEXTURE0);
-    // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, polygon fill
-    glEnablei(GL_BLEND, 0);
-    glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_SCISSOR_TEST);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-    // Setup viewport, orthographic projection matrix
-    glViewport(0, 0, (GLsizei)fb_width, (GLsizei)fb_height);
     glm::mat4 ortho_projection =
     {
         { 2.0f/io.DisplaySize.x, 0.0f,                   0.0f, 0.0f },
@@ -57,22 +40,38 @@ void ImGuiHelper::RenderDrawLists()
         {-1.0f,                  1.0f,                   0.0f, 1.0f },
     };
 
-    glUseProgram(program->getID());
-    program->setUniform("Texture", 0);
+    program->setUniform("Texture", 1);
     program->setUniform("ProjMtx",ortho_projection);
-    glBindVertexArray(g_VaoHandle);
-    glBindSampler(0, 0); // Rely on combined texture/sampler state.
 
     for (int n = 0; n < draw_data->CmdListsCount; n++)
     {
         const ImDrawList* cmd_list = draw_data->CmdLists[n];
-        const ImDrawIdx* idx_buffer_offset = 0;
+        const uint32_t * idx_buffer_offset = 0;
 
-        glBindBuffer(GL_ARRAY_BUFFER, g_VboHandle);
-        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)cmd_list->VtxBuffer.Size * sizeof(ImDrawVert), (const GLvoid*)cmd_list->VtxBuffer.Data, GL_STREAM_DRAW);
+        std::vector<glm::vec3> positions;
+        std::vector<glm::vec4> colors;
+        std::vector<glm::vec2> textureCoordinates;
+        for (int i = 0; i < cmd_list->VtxBuffer.Size; ++i) {
+            ImU32 colorValue = cmd_list->VtxBuffer[i].col;
+            glm::vec4 colorVec = glm::vec4((uint8_t)colorValue, (uint8_t)(colorValue>>8), (uint8_t)(colorValue>>16), (uint8_t)(colorValue>>24));
+            colorVec = colorVec / 256;
+            colors.emplace_back(colorVec);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_ElementsHandle);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx), (const GLvoid*)cmd_list->IdxBuffer.Data, GL_STREAM_DRAW);
+            glm::vec2 coordinate = glm::vec2(cmd_list->VtxBuffer[i].uv.x, cmd_list->VtxBuffer[i].uv.y);
+            textureCoordinates.emplace_back(coordinate);
+
+            glm::vec3 position = glm::vec3(cmd_list->VtxBuffer[i].pos.x, cmd_list->VtxBuffer[i].pos.y, 0);
+            positions.emplace_back(position);
+        }
+        std::vector<glm::mediump_uvec3> faces;
+        for (int i = 0; i*3+2 < cmd_list->IdxBuffer.Size; i++) {
+            glm::mediump_uvec3 face = glm::mediump_uvec3(cmd_list->IdxBuffer[i*3], cmd_list->IdxBuffer[i*3+1], cmd_list->IdxBuffer[i*3+2]);
+            faces.push_back(face);
+        }
+
+        graphicsWrapper->updateVertexData(positions, faces, g_VaoHandle, g_VboHandle, g_ElementsHandle);
+        graphicsWrapper->updateExtraVertexData(colors, g_VaoHandle, g_colorHandle);
+        graphicsWrapper->updateVertexTextureCoordinates(textureCoordinates, g_VaoHandle, g_UVHandle);
 
         for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
         {
@@ -83,15 +82,20 @@ void ImGuiHelper::RenderDrawLists()
             }
             else
             {
-                glBindTexture(GL_TEXTURE_2D, (uint32_t)(intptr_t)pcmd->TextureId);
-                glScissor((int)pcmd->ClipRect.x, (int)(fb_height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
-                glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, idx_buffer_offset);
+                graphicsWrapper->attachTexture((uint32_t)(intptr_t)pcmd->TextureId, 1);
+                graphicsWrapper->setScissorRect((int)pcmd->ClipRect.x,
+                        (int)(fb_height - pcmd->ClipRect.w),
+                        (int)(pcmd->ClipRect.z - pcmd->ClipRect.x),
+                        (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
+                graphicsWrapper->render(program->getID(), g_VaoHandle, g_ElementsHandle, pcmd->ElemCount, idx_buffer_offset);
             }
             idx_buffer_offset += pcmd->ElemCount;
         }
     }
 
-    graphicsWrapper->restoreLastState();
+    /************* This part should be done by pipelineSetup **************/
+    //graphicsWrapper->restoreLastState();
+    /************* This part should be done by pipelineSetup **************/
 }
 
 const char* ImGuiHelper::GetClipboardText(void*)
@@ -185,12 +189,6 @@ void ImGuiHelper::CreateFontsTexture()
 
     g_FontTexture = fontTexture->getTextureID();
 
-    /* this method used to do these too, but they are not done now:
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-     */
-
     io.Fonts->TexID = (void *)(intptr_t)g_FontTexture;
 }
 
@@ -206,72 +204,39 @@ void ImGuiHelper::CreateFontsTexture()
  */
 bool ImGuiHelper::CreateDeviceObjects()
 {
-    // Backup GL state
-    GLint last_texture, last_array_buffer, last_vertex_array;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
-    glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
-    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
+    graphicsWrapper->backupCurrentState();
 
     program = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/ImGui/vertex.glsl",
                                                      "./Engine/Shaders/ImGui/fragment.glsl", true);
 
-    g_AttribLocationPosition = glGetAttribLocation(program->getID(), "Position");
-    g_AttribLocationUV = glGetAttribLocation(program->getID(), "UV");
-    g_AttribLocationColor = glGetAttribLocation(program->getID(), "Color");
+    g_AttribLocationPosition = program->getAttributeLocation("Position");
+    g_AttribLocationUV = program->getAttributeLocation("UV");
+    g_AttribLocationColor = program->getAttributeLocation("Color");
 
-    glGenBuffers(1, &g_VboHandle);
-    glGenBuffers(1, &g_ElementsHandle);
-
-    glGenVertexArrays(1, &g_VaoHandle);
-    glBindVertexArray(g_VaoHandle);
-    glBindBuffer(GL_ARRAY_BUFFER, g_VboHandle);
-    glEnableVertexAttribArray(g_AttribLocationPosition);
-    glEnableVertexAttribArray(g_AttribLocationUV);
-    glEnableVertexAttribArray(g_AttribLocationColor);
-
-#define OFFSETOF(TYPE, ELEMENT) ((size_t)&(((TYPE *)0)->ELEMENT))
-    glVertexAttribPointer(g_AttribLocationPosition, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, pos));
-    glVertexAttribPointer(g_AttribLocationUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, uv));
-    glVertexAttribPointer(g_AttribLocationColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, col));
-#undef OFFSETOF
-
+    graphicsWrapper->bufferVertexData(std::vector<glm::vec3>(), std::vector<glm::mediump_uvec3>(), g_VaoHandle, g_VboHandle, g_AttribLocationPosition, g_ElementsHandle);
+    graphicsWrapper->bufferExtraVertexData(std::vector<glm::vec4>(), g_VaoHandle, g_colorHandle, g_AttribLocationColor);
+    graphicsWrapper->bufferVertexTextureCoordinates(std::vector<glm::vec2>(), g_VaoHandle, g_UVHandle, g_AttribLocationUV);
     CreateFontsTexture();
 
-    // Restore modified GL state
-    glBindTexture(GL_TEXTURE_2D, last_texture);
-    glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
-    glBindVertexArray(last_vertex_array);
-
+    graphicsWrapper->restoreLastState();
     return true;
 }
 
-/*
- * GraphicsWrapper ->
- * delete vao
- * delete vbo
- * delete element buffer
- * delete shader
- * delete shader
- * delete program
- * delete texture (For font)
- */
-void    ImGuiHelper::InvalidateDeviceObjects()
-{
-    if (g_VaoHandle) glDeleteVertexArrays(1, &g_VaoHandle);
-    if (g_VboHandle) glDeleteBuffers(1, &g_VboHandle);
-    if (g_ElementsHandle) glDeleteBuffers(1, &g_ElementsHandle);
+void    ImGuiHelper::InvalidateDeviceObjects() {
+    graphicsWrapper->freeBuffer(g_VboHandle);
+    graphicsWrapper->freeBuffer(g_UVHandle);
+    graphicsWrapper->freeBuffer(g_colorHandle);
+    graphicsWrapper->freeVAO(g_VaoHandle);
     g_VaoHandle = g_VboHandle = g_ElementsHandle = 0;
 
     program = nullptr;
 
     if (g_FontTexture)
     {
-        glDeleteTextures(1, &g_FontTexture);
         ImGui::GetIO().Fonts->TexID = 0;
         g_FontTexture = 0;
+        this->fontTexture = nullptr;
     }
-
-
 }
 
 ImGuiHelper::ImGuiHelper(GraphicsInterface* graphicsWrapper, Options* options) : options(options) {

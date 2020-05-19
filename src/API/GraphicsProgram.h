@@ -22,6 +22,7 @@ class GraphicsProgram {
     std::string geometryShader;
     std::string fragmentShader;
     std::unordered_map<std::string, const GraphicsInterface::Uniform *> uniformMap;
+    std::unordered_map<std::string, uint32_t> attributesMap;
     std::unordered_map<const GraphicsInterface::Uniform *, std::string> presetUniformValues;
     std::unordered_map<std::string, GraphicsInterface::VariableTypes>outputMap;
     bool materialRequired;
@@ -34,6 +35,13 @@ class GraphicsProgram {
     void setSamplersAndUBOs();
 
 public:
+
+    uint32_t getAttributeLocation(const std::string& attributeName) {
+        if(attributesMap.find(attributeName) != attributesMap.end()) {
+            return attributesMap[attributeName];
+        }
+        return 0;
+    }
 
     ~GraphicsProgram();
 

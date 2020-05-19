@@ -107,7 +107,8 @@ GLuint OpenGLGraphics::createProgram(const std::vector<GLuint> &shaderList) {
 
 
 uint32_t OpenGLGraphics::initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
-                                            std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, VariableTypes> &outputMap) {
+                                           std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, uint32_t> &attributesMap,
+                                           std::unordered_map<std::string, VariableTypes> &outputMap) {
     GLuint program;
     std::vector<GLuint> shaderList;
     checkErrors("before create shaders");
@@ -121,7 +122,7 @@ uint32_t OpenGLGraphics::initializeProgram(const std::string &vertexShaderFile, 
     program = createProgram(shaderList);
     std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
 
-    fillUniformAndOutputMaps(program, uniformMap, outputMap);
+    fillUniformAndOutputMaps(program, uniformMap, attributesMap, outputMap);
     attachGeneralUBOs(program);
 
     checkErrors("initializeProgram");
@@ -133,8 +134,10 @@ void OpenGLGraphics::destroyProgram(uint32_t programID) {
     checkErrors("destroyProgram");
 }
 
-void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program, std::unordered_map<std::string, OpenGLGraphics::Uniform const *> &uniformMap,
-                                                 std::unordered_map<std::string, VariableTypes> &outputMap) {
+void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
+        std::unordered_map<std::string, OpenGLGraphics::Uniform const *> &uniformMap,
+        std::unordered_map<std::string, uint32_t> &attributesMap,
+        std::unordered_map<std::string, VariableTypes> &outputMap) {
     GLint i;
     GLint count;
 
@@ -159,6 +162,24 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program, std::unorder
 
         //std::cout << "Uniform " << i << " Location: " << uniformLocation << " Type: " << type << " Name: " << name << std::endl;
         uniformMap[name] = new Uniform(uniformLocation, name, type, size);
+    }
+
+
+    delete[] name;
+
+    glGetProgramiv(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxLength);
+    name = new GLchar[maxLength];
+
+    glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &count);
+    //std::cout << "Active Uniforms:" << count << std::endl;
+
+    uint32_t attributeLocation;
+    for (i = 0; i < count; i++)
+    {
+        glGetActiveAttrib(program, (GLuint)i, maxLength, &length, &size, &type, name);
+        attributeLocation = glGetAttribLocation(program, name);
+
+        attributesMap[name] = attributeLocation;
     }
 
     delete[] name;
@@ -212,6 +233,7 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program, std::unorder
 
     checkErrors("fillUniformAndOutputMaps");
 }
+
 
 void OpenGLGraphics::attachModelUBO(const uint32_t program) {
     GLuint allModelsAttachPoint = 7;
@@ -496,40 +518,41 @@ void OpenGLGraphics::bufferVertexData(const std::vector<glm::vec3> &vertices,
                                          const std::vector<glm::mediump_uvec3> &faces,
                                          uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer,
                                          uint_fast32_t &ebo) {
+
+    //FIXME this temp should not be needed, but uint_fast32_t requires a cast. re evaluate using uint32_t
+    uint32_t temp;
+    glGenVertexArrays(1, &temp);
+    glBindVertexArray(temp);
+    vao = temp;
+
     // Set up the element array buffer
     ebo = generateBuffer(1);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::mediump_uvec3), faces.data(), GL_STATIC_DRAW);
 
     // Set up the vertex attributes
-    //FIXME this temp should not be needed, but uint_fast32_t requires a cast. re evaluate using uint32_t
-    uint32_t temp;
-    glGenVertexArrays(1, &temp);
-    glBindVertexArray(temp);
-    vao = temp;
     vbo = generateBuffer(1);
     bufferObjects.push_back(vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
-    //glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize, vertexData);
+
     glVertexAttribPointer(attachPointer, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(attachPointer);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     checkErrors("bufferVertexData");
 }
 
 void OpenGLGraphics::bufferNormalData(const std::vector<glm::vec3> &normals,
                                          uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
+    glBindVertexArray(vao);
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), normals.data(), GL_STATIC_DRAW);
 
-    glBindVertexArray(vao);
     glVertexAttribPointer(attachPointer, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(attachPointer);
     glBindVertexArray(0);
-    checkErrors("bufferVertexColor");
+    checkErrors("bufferNormalData");
 }
 
 void OpenGLGraphics::bufferExtraVertexData(const std::vector<glm::vec4> &extraData,
@@ -548,11 +571,11 @@ void OpenGLGraphics::bufferExtraVertexData(const std::vector<glm::lowp_uvec4> &e
 void OpenGLGraphics::bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
                                               const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
                                               const uint_fast32_t attachPointer) {
+    glBindVertexArray(vao);
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, dataSize, extraData, GL_STATIC_DRAW);
 
-    glBindVertexArray(vao);
     switch (elementType) {
         case GL_UNSIGNED_INT:
         case GL_INT:
@@ -569,21 +592,58 @@ void OpenGLGraphics::bufferExtraVertexData(uint_fast32_t elementPerVertexCount, 
 
 void OpenGLGraphics::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
                                                        uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
+    glBindVertexArray(vao);
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
     glBufferData(GL_ARRAY_BUFFER, textureCoordinates.size() * sizeof(glm::vec2), textureCoordinates.data(),
                  GL_STATIC_DRAW);
 
-    glBindVertexArray(vao);
     glVertexAttribPointer(attachPointer, 2, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(attachPointer);
     glBindVertexArray(0);
     checkErrors("bufferVertexTextureCoordinates");
 }
 
-void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
-                                          std::map<uint32_t, std::shared_ptr<Texture>> &inputs) {
+void OpenGLGraphics::updateVertexData(const std::vector<glm::vec3> &vertices,
+                      const std::vector<glm::mediump_uvec3> &faces,
+                      uint_fast32_t vao, uint_fast32_t vbo, uint_fast32_t ebo) {
+    // Set up the element array buffer
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::mediump_uvec3), faces.data(), GL_STATIC_DRAW);
+
+    // Set up the vertex attributes
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
+
+    checkErrors("updateVertexData");
+}
+void OpenGLGraphics::updateNormalData(const std::vector<glm::vec3> &normals, uint_fast32_t vao, uint_fast32_t vbo){
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), normals.data(), GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+    checkErrors("updateNormalData");
+}
+void OpenGLGraphics::updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo){
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, extraData.size() * sizeof(glm::vec4), extraData.data(), GL_STATIC_DRAW);
+    checkErrors("updateExtraVertexDataV4");
+}
+void OpenGLGraphics::updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo){
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, extraData.size() * sizeof(glm::lowp_uvec4), extraData.data(), GL_STATIC_DRAW);
+    checkErrors("updateExtraVertexDataIV4");
+}
+void OpenGLGraphics::updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint_fast32_t &vao, uint_fast32_t &vbo){
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, textureCoordinates.size() * sizeof(glm::vec2), textureCoordinates.data(),
+                 GL_STATIC_DRAW);
+    checkErrors("updateVertexTextureCoordinates");
+}
+
+void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool scissorEnabled, bool clearColor,
+                                        bool clearDepth, CullModes cullMode, std::map<uint32_t, std::shared_ptr<Texture>> &inputs) {
     glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
     if(clearColor && clearDepth) {
@@ -592,6 +652,17 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
         glClear(GL_COLOR_BUFFER_BIT);
     } else if(clearDepth) {
         glClear(GL_DEPTH_BUFFER_BIT);
+    }
+
+    if(depthTestEnabled) {
+        glEnable(GL_DEPTH_TEST);
+    } else {
+        glDisable(GL_DEPTH_TEST);
+    }
+    if(scissorEnabled) {
+        glEnable(GL_SCISSOR_TEST);
+    } else {
+        glDisable(GL_SCISSOR_TEST);
     }
 
     //we combine diffuse+specular lighted with ambient / SSAO
@@ -604,9 +675,9 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
         }
     }
     switch (cullMode) {
-        case OpenGLGraphics::CullModes::FRONT: glCullFace(GL_FRONT); break;
-        case OpenGLGraphics::CullModes::BACK: glCullFace(GL_BACK); break;
-        case OpenGLGraphics::CullModes::NONE: glCullFace(GL_NONE); break;
+        case OpenGLGraphics::CullModes::FRONT: glEnable(GL_CULL_FACE);glCullFace(GL_FRONT); break;
+        case OpenGLGraphics::CullModes::BACK: glEnable(GL_CULL_FACE);glCullFace(GL_BACK); break;
+        case OpenGLGraphics::CullModes::NONE: glDisable(GL_CULL_FACE); break;
         case OpenGLGraphics::CullModes::NO_CHANGE: break;
     }
     if(blendEnabled) {
@@ -618,9 +689,9 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
 }
 
 
-void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
-                                          const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
-                                          const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap) {
+void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool scissorEnabled, bool clearColor,
+                                    bool clearDepth, CullModes cullMode, const std::map<uint32_t, std::shared_ptr<Texture>> &inputs, const std::map<std::shared_ptr<Texture>,
+                                            std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap) {
     //now we should change attachments based on the layer information we got
     for (auto attachmentLayerIt = attachmentLayerMap.begin(); attachmentLayerIt != attachmentLayerMap.end(); ++attachmentLayerIt) {
         attachDrawTextureToFrameBuffer(frameBufferID, attachmentLayerIt->first->getType(),
@@ -637,6 +708,17 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
         glClear(GL_DEPTH_BUFFER_BIT);
     }
 
+    if(depthTestEnabled) {
+        glEnable(GL_DEPTH_TEST);
+    } else {
+        glDisable(GL_DEPTH_TEST);
+    }
+    if(scissorEnabled) {
+        glEnable(GL_SCISSOR_TEST);
+    } else {
+        glDisable(GL_SCISSOR_TEST);
+    }
+
     //we combine diffuse+specular lighted with ambient / SSAO
     for (auto inputIt = inputs.begin(); inputIt != inputs.end(); ++inputIt) {
         switch (inputIt->second->getType()) {
@@ -647,9 +729,9 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
         }
     }
     switch (cullMode) {
-        case OpenGLGraphics::CullModes::FRONT: glCullFace(GL_FRONT); break;
-        case OpenGLGraphics::CullModes::BACK: glCullFace(GL_BACK); break;
-        case OpenGLGraphics::CullModes::NONE: glCullFace(GL_NONE); break;
+        case OpenGLGraphics::CullModes::FRONT: glEnable(GL_CULL_FACE);glCullFace(GL_FRONT); break;
+        case OpenGLGraphics::CullModes::BACK: glEnable(GL_CULL_FACE);glCullFace(GL_BACK); break;
+        case OpenGLGraphics::CullModes::NONE: glDisable(GL_CULL_FACE); break;
         case OpenGLGraphics::CullModes::NO_CHANGE: break;
     }
     if(blendEnabled) {
@@ -660,7 +742,7 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
     checkErrors("switchRenderStageLayer");
 }
 
-void OpenGLGraphics::render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount) {
+void OpenGLGraphics::render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount, const uint32_t* startIndex) {
     if (program == 0) {
         std::cerr << "No program render requested." << std::endl;
         return;
@@ -672,7 +754,7 @@ void OpenGLGraphics::render(const uint32_t program, const uint32_t vao, const ui
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
     renderTriangleCount = renderTriangleCount + elementCount;
-    glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, startIndex);
     glBindVertexArray(0);
 
     checkErrors("render");
@@ -1278,8 +1360,6 @@ void OpenGLGraphics::createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bu
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
     checkErrors("createDebugVAOVBO");
 }
 
@@ -1297,14 +1377,13 @@ void OpenGLGraphics::createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bu
 void OpenGLGraphics::drawLines(GraphicsProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines) {
     state->setProgram(program.getID());
     glBindVertexArray(vao);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);//FIXME something is broking the vao so we need to attach again
     glBufferSubData(GL_ARRAY_BUFFER, 0, lines.size() * sizeof(Line), lines.data());
     program.setUniform("cameraTransformMatrix", perspectiveProjectionMatrix * cameraMatrix);
 
     renderLineCount = renderLineCount + lines.size();
     glDrawArrays(GL_LINES, 0, lines.size()*2);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     checkErrors("drawLines");
 }

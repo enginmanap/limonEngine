@@ -227,6 +227,9 @@ bool WorldSaver::fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
 
         tinyxml2::XMLElement *currentElement = document.NewElement("Type");
         switch((*it)->getLightType()) {
+            case Light::NONE:
+                currentElement->SetText("NONE");
+                break;
             case Light::DIRECTIONAL:
                 currentElement->SetText("DIRECTIONAL");
                 break;
