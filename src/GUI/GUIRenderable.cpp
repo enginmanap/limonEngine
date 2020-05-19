@@ -14,7 +14,7 @@ GUIRenderable::GUIRenderable(GraphicsInterface* graphicsWrapper) : Renderable(gr
     faces.push_back(glm::mediump_uvec3(0, 1, 2));//front
     faces.push_back(glm::mediump_uvec3(0, 2, 3));
 
-    uint_fast32_t vbo;
+    uint32_t vbo;
     graphicsWrapper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
     bufferObjects.push_back(vbo);
 

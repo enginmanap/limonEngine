@@ -46,7 +46,7 @@ SkyBox::SkyBox(uint32_t objectID, std::shared_ptr<AssetManager> assetManager, st
     faces.push_back(glm::mediump_uvec3(3, 2, 6));
 
 
-    uint_fast32_t vbo;
+    uint32_t vbo;
     graphicsWrapper->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
     bufferObjects.push_back(vbo);
 }

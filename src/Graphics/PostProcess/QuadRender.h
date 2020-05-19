@@ -15,7 +15,7 @@ class GraphicsInterface;
 class GraphicsProgram;
 
 class QuadRender {
-    uint_fast32_t vao, ebo;
+    uint32_t vao, ebo;
     std::vector<uint32_t> bufferObjects;
 
 protected:

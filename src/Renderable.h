@@ -16,9 +16,9 @@
 class Renderable {
 protected:
     Transformation transformation;
-    std::vector<uint_fast32_t > bufferObjects;
+    std::vector<uint32_t> bufferObjects;
     std::vector<bool> inLightFrustum;
-    uint_fast32_t vao, ebo;
+    uint32_t vao, ebo;
     GraphicsInterface* graphicsWrapper;
     bool isInCameraFrustum = true;
     bool dirtyForFrustum = true;//is this object require a frustum recalculate

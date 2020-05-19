@@ -52,7 +52,7 @@ private:
     std::vector<LimonAPI::ParameterRequest> aiParameters;
     std::string lastSelectedAIName;
     std::vector<glm::mat4> boneTransforms;
-    std::map<uint_fast32_t, uint_fast32_t> boneIdCompoundChildMap;
+    std::map<uint32_t, uint32_t> boneIdCompoundChildMap;
 
     std::vector<MeshMeta *> meshMetaData;
     std::shared_ptr<Sound> stepOnSound = nullptr;
@@ -64,7 +64,7 @@ private:
     int specularMapAttachPoint = 3;
     int opacityMapAttachPoint = 4;
     int normalMapAttachPoint = 5;
-    uint_fast32_t triangleCount;
+    uint32_t triangleCount;
     int32_t selectedBoneID = -1;
     std::map<uint32_t, Transformation*> exposedBoneTransforms;
 

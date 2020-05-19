@@ -33,9 +33,9 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
     baseTransform.setIdentity();
     baseTransform.setOrigin(GLMConverter::GLMToBlt(-1.0f * centerOffset));
     this->animated = modelAsset->isAnimated();
-    std::map<uint_fast32_t, btConvexHullShape *> hullMap;
+    std::map<uint32_t, btConvexHullShape *> hullMap;
 
-    std::map<uint_fast32_t, btTransform> btTransformMap;
+    std::map<uint32_t, btTransform> btTransformMap;
 
     MeshMeta *meshMeta;
     std::vector<std::shared_ptr<MeshAsset>> assetMeshes = modelAsset->getMeshes();
@@ -77,7 +77,7 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
     }
 
     if (animated) {
-        std::map<uint_fast32_t, btConvexHullShape *>::iterator it;
+        std::map<uint32_t, btConvexHullShape *>::iterator it;
         for (unsigned int i = 0;i < 128; i++) {//FIXME 128 is the number of bones supported. It should be an option or an constant
             if (btTransformMap.find(i) != btTransformMap.end() && hullMap.find(i) != hullMap.end()) {
                 boneIdCompoundChildMap[i] = compoundShape->getNumChildShapes();//get numchild actually increase with each new child add below

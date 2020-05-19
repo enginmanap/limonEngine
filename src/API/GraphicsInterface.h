@@ -176,22 +176,22 @@ public:
 
     virtual void bufferVertexData(const std::vector<glm::vec3> &vertices,
                           const std::vector<glm::mediump_uvec3> &faces,
-                          uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer, uint_fast32_t &ebo) = 0;
+                          uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer, uint32_t &ebo) = 0;
     virtual void bufferNormalData(const std::vector<glm::vec3> &colors,
-                          uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) = 0;
+                                  uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) = 0;
     virtual void bufferExtraVertexData(const std::vector<glm::vec4> &extraData,
-                               uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) = 0;
+                                       uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) = 0;
     virtual void bufferExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData,
-                               uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) = 0;
+                                       uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) = 0;
     virtual void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
-                                        uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) = 0;
+                                                uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) = 0;
     virtual void updateVertexData(const std::vector<glm::vec3> &vertices,
                                   const std::vector<glm::mediump_uvec3> &faces,
-                                  uint_fast32_t vao, uint_fast32_t vbo, uint_fast32_t ebo) = 0;
-    virtual void updateNormalData(const std::vector<glm::vec3> &colors, uint_fast32_t vao, uint_fast32_t vbo) = 0;
-    virtual void updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo) = 0;
-    virtual void updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo) = 0;
-    virtual void updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint_fast32_t &vao, uint_fast32_t &vbo) = 0;
+                                  uint32_t &vao, uint32_t &vbo, uint32_t &ebo) = 0;
+    virtual void updateNormalData(const std::vector<glm::vec3> &colors, uint32_t &vao, uint32_t &vbo) = 0;
+    virtual void updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint32_t &vao, uint32_t &vbo) = 0;
+    virtual void updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint32_t &vao, uint32_t &vbo) = 0;
+    virtual void updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint32_t &vao, uint32_t &vbo) = 0;
     virtual bool freeBuffer(const uint32_t bufferID) = 0;
 
     virtual bool freeVAO(const uint32_t VAO) = 0;
@@ -262,8 +262,8 @@ public:
     virtual void setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) = 0;
     virtual void attachModelIndicesUBO(const uint32_t programID) = 0;
 
-    virtual void renderInstanced(uint32_t program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
-                         uint32_t instanceCount) = 0;
+    virtual void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t triangleCount,
+                                 uint32_t instanceCount) = 0;
 
     virtual void setScissorRect(int32_t x, int32_t y, uint32_t width, uint32_t height) = 0;
 

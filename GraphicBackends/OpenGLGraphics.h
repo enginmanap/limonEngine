@@ -206,7 +206,7 @@ private:
 
     Options *options;
 
-    const uint_fast32_t lightUniformSize = (sizeof(glm::mat4) * 7) + (4 * sizeof(glm::vec4));
+    const uint32_t lightUniformSize = (sizeof(glm::mat4) * 7) + (4 * sizeof(glm::vec4));
     const uint32_t playerUniformSize = 5 * sizeof(glm::mat4)+ 3* sizeof(glm::vec4);
     int32_t materialUniformSize = 2 * sizeof(glm::vec3) + sizeof(float) + sizeof(GLuint);
     int32_t modelUniformSize = sizeof(glm::mat4);
@@ -284,9 +284,9 @@ private:
             std::unordered_map<std::string, VariableTypes> &outputMap);
 
     void attachGeneralUBOs(const GLuint program);
-    void bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
-                               const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
-                               const uint_fast32_t attachPointer);
+    void bufferExtraVertexData(uint32_t elementPerVertexCount, GLenum elementType, uint32_t dataSize,
+                               const void *extraData, uint32_t &vao, uint32_t &vbo,
+                               const uint32_t attachPointer);
 
     void testAndRemoveGLSLProgram(GraphicsProgram *program);
 
@@ -328,26 +328,26 @@ public:
 
     void bufferVertexData(const std::vector<glm::vec3> &vertices,
                           const std::vector<glm::mediump_uvec3> &faces,
-                          uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer, uint_fast32_t &ebo) override;
+                          uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer, uint32_t &ebo) override;
 
     void bufferNormalData(const std::vector<glm::vec3> &colors,
-                          uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) override;
+                          uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) override;
 
     void bufferExtraVertexData(const std::vector<glm::vec4> &extraData,
-                               uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) override;
+                               uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) override;
 
     void bufferExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData,
-                               uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) override;
+                               uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) override;
 
     void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
-                                        uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) override;
+                                        uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) override;
     void updateVertexData(const std::vector<glm::vec3> &vertices,
                                   const std::vector<glm::mediump_uvec3> &faces,
-                                  uint_fast32_t vao, uint_fast32_t vbo, uint_fast32_t ebo);
-    void updateNormalData(const std::vector<glm::vec3> &colors, uint_fast32_t vao, uint_fast32_t vbo);
-    void updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo);
-    void updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo);
-    void updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint_fast32_t &vao, uint_fast32_t &vbo);
+                          uint32_t &vao, uint32_t &vbo, uint32_t &ebo);
+    void updateNormalData(const std::vector<glm::vec3> &colors, uint32_t &vao, uint32_t &vbo);
+    void updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint32_t &vao, uint32_t &vbo);
+    void updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint32_t &vao, uint32_t &vbo);
+    void updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint32_t &vao, uint32_t &vbo);
     bool freeBuffer(const uint32_t bufferID) override;
 
     bool freeVAO(const uint32_t VAO) override;
@@ -479,7 +479,7 @@ public:
 
     void attachModelIndicesUBO(const uint32_t programID) override;
 
-    void renderInstanced(uint32_t program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
+    void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t triangleCount,
                          uint32_t instanceCount) override;
 
     void setScissorRect(int32_t x, int32_t y, uint32_t width, uint32_t height) {

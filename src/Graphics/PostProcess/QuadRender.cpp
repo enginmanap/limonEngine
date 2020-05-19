@@ -27,7 +27,7 @@ QuadRender::QuadRender(GraphicsInterface* graphicsWrapper) : graphicsWrapper(gra
     textureCoordinates.push_back(glm::vec2(1.0f, 0.0f));
 
 
-    uint_fast32_t vbo;
+    uint32_t vbo;
     graphicsWrapper->bufferVertexData(vertices, faces, vao, vbo, 1, ebo);
     bufferObjects.push_back(vbo);
 

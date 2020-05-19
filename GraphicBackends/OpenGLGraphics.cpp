@@ -515,9 +515,9 @@ bool OpenGLGraphics::freeVAO(const GLuint bufferID) {
 }
 
 void OpenGLGraphics::bufferVertexData(const std::vector<glm::vec3> &vertices,
-                                         const std::vector<glm::mediump_uvec3> &faces,
-                                         uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer,
-                                         uint_fast32_t &ebo) {
+                                      const std::vector<glm::mediump_uvec3> &faces,
+                                      uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer,
+                                      uint32_t &ebo) {
 
     //FIXME this temp should not be needed, but uint_fast32_t requires a cast. re evaluate using uint32_t
     uint32_t temp;
@@ -543,7 +543,7 @@ void OpenGLGraphics::bufferVertexData(const std::vector<glm::vec3> &vertices,
 }
 
 void OpenGLGraphics::bufferNormalData(const std::vector<glm::vec3> &normals,
-                                         uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
+                                      uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) {
     glBindVertexArray(vao);
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -556,21 +556,21 @@ void OpenGLGraphics::bufferNormalData(const std::vector<glm::vec3> &normals,
 }
 
 void OpenGLGraphics::bufferExtraVertexData(const std::vector<glm::vec4> &extraData,
-                                              uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
+                                           uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) {
     bufferExtraVertexData(4, GL_FLOAT, extraData.size() * sizeof(glm::vec4), extraData.data(), vao, vbo, attachPointer);
     checkErrors("bufferVertexDataVec4");
 }
 
 void OpenGLGraphics::bufferExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData,
-                                              uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
+                                           uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) {
     bufferExtraVertexData(4, GL_UNSIGNED_INT, extraData.size() * sizeof(glm::lowp_uvec4), extraData.data(), vao, vbo,
                           attachPointer);
     checkErrors("bufferVertexDataIVec4");
 }
 
-void OpenGLGraphics::bufferExtraVertexData(uint_fast32_t elementPerVertexCount, GLenum elementType, uint_fast32_t dataSize,
-                                              const void *extraData, uint_fast32_t &vao, uint_fast32_t &vbo,
-                                              const uint_fast32_t attachPointer) {
+void OpenGLGraphics::bufferExtraVertexData(uint32_t elementPerVertexCount, GLenum elementType, uint32_t dataSize,
+                                              const void *extraData, uint32_t &vao, uint32_t &vbo,
+                                              const uint32_t attachPointer) {
     glBindVertexArray(vao);
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -591,7 +591,7 @@ void OpenGLGraphics::bufferExtraVertexData(uint_fast32_t elementPerVertexCount, 
 }
 
 void OpenGLGraphics::bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
-                                                       uint_fast32_t &vao, uint_fast32_t &vbo, const uint_fast32_t attachPointer) {
+                                                    uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) {
     glBindVertexArray(vao);
     vbo = generateBuffer(1);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -607,7 +607,7 @@ void OpenGLGraphics::bufferVertexTextureCoordinates(const std::vector<glm::vec2>
 
 void OpenGLGraphics::updateVertexData(const std::vector<glm::vec3> &vertices,
                       const std::vector<glm::mediump_uvec3> &faces,
-                      uint_fast32_t vao, uint_fast32_t vbo, uint_fast32_t ebo) {
+                                      uint32_t &vao, uint32_t &vbo, uint32_t &ebo) {
     // Set up the element array buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::mediump_uvec3), faces.data(), GL_STATIC_DRAW);
@@ -618,24 +618,24 @@ void OpenGLGraphics::updateVertexData(const std::vector<glm::vec3> &vertices,
 
     checkErrors("updateVertexData");
 }
-void OpenGLGraphics::updateNormalData(const std::vector<glm::vec3> &normals, uint_fast32_t vao, uint_fast32_t vbo){
+void OpenGLGraphics::updateNormalData(const std::vector<glm::vec3> &normals, uint32_t &vao, uint32_t &vbo){
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), normals.data(), GL_STATIC_DRAW);
 
     glBindVertexArray(0);
     checkErrors("updateNormalData");
 }
-void OpenGLGraphics::updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo){
+void OpenGLGraphics::updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint32_t &vao, uint32_t &vbo){
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, extraData.size() * sizeof(glm::vec4), extraData.data(), GL_STATIC_DRAW);
     checkErrors("updateExtraVertexDataV4");
 }
-void OpenGLGraphics::updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint_fast32_t vao, uint_fast32_t vbo){
+void OpenGLGraphics::updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint32_t &vao, uint32_t &vbo){
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, extraData.size() * sizeof(glm::lowp_uvec4), extraData.data(), GL_STATIC_DRAW);
     checkErrors("updateExtraVertexDataIV4");
 }
-void OpenGLGraphics::updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint_fast32_t &vao, uint_fast32_t &vbo){
+void OpenGLGraphics::updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint32_t &vao, uint32_t &vbo){
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, textureCoordinates.size() * sizeof(glm::vec2), textureCoordinates.data(),
                  GL_STATIC_DRAW);
@@ -760,7 +760,7 @@ void OpenGLGraphics::render(const uint32_t program, const uint32_t vao, const ui
     checkErrors("render");
 }
 
-void OpenGLGraphics::renderInstanced(uint32_t program, uint_fast32_t VAO, uint_fast32_t EBO, uint_fast32_t triangleCount,
+void OpenGLGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t triangleCount,
                                         uint32_t instanceCount) {
     if (program == 0) {
         std::cerr << "No program render requested." << std::endl;
