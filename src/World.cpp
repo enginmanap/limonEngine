@@ -2351,7 +2351,15 @@ bool World::removeObject(uint32_t objectID) {
             modelsInLightFrustum[i][modelToRemove->getAssetID()].erase(modelToRemove);
         }
     }
-
+    
+	//remove its children
+	std::vector<PhysicalRenderable*> children=objects[objectID]->getChildren();
+	for (auto child = children.begin(); child != children.end(); ++child) {
+		   Model* model = dynamic_cast<Model*>(*child);
+			if(model!= nullptr) {//FIXME this eliminates non model childs
+               removeObject(model->getWorldObjectID());
+            }
+    }
 
     //delete object itself
     delete modelToRemove;
