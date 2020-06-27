@@ -2311,7 +2311,7 @@ bool World::removeTriggerObject(uint32_t triggerobjectID) {
     return false;//not successful
 }
 
-bool World::removeObject(uint32_t objectID) {
+bool World::removeObject(uint32_t objectID, const bool &removeChildren) {
     Model* modelToRemove = findModelByID(objectID);
     if(modelToRemove == nullptr) {
         return false;
@@ -2353,14 +2353,17 @@ bool World::removeObject(uint32_t objectID) {
     }
     
 	//remove its children
-	std::vector<PhysicalRenderable*> children=objects[objectID]->getChildren();
-	for (auto child = children.begin(); child != children.end(); ++child) {
-		   Model* model = dynamic_cast<Model*>(*child);
-			if(model!= nullptr) {//FIXME this eliminates non model childs
-               removeObject(model->getWorldObjectID());
-            }
+    if(removeChildren)
+    {
+        std::vector<PhysicalRenderable*> children=objects[objectID]->getChildren();
+        for (auto child = children.begin(); child != children.end(); ++child) {
+            Model* model = dynamic_cast<Model*>(*child);
+                if(model!= nullptr) {//FIXME this eliminates non model childs
+                removeObject(model->getWorldObjectID());
+                }
+        }
     }
-
+    
     //delete object itself
     delete modelToRemove;
     objects.erase(objectID);
