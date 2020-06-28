@@ -137,7 +137,7 @@ public:
     uint32_t addObject(const std::string &modelFilePath, float modelWeight, bool physical, const glm::vec3 &position,
                        const glm::vec3 &scale, const glm::quat &orientation);
     bool setObjectTemporary(uint32_t modelID, bool temporary);
-    bool removeObject(uint32_t objectID);
+    bool removeObject(uint32_t objectID, const bool &removeChildren = true);
     bool attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID);//second one is
     bool removeTriggerObject(uint32_t TriggerObjectID);
     bool disconnectObjectFromPhysics(uint32_t modelID);
@@ -266,7 +266,7 @@ private:
     std::function<bool(uint32_t, const std::string &)> worldUpdateGuiText;
     std::function<uint32_t (uint32_t)> worldRemoveGuiElement;
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t , uint32_t )> worldGetResultOfTrigger;
-    std::function<bool (uint32_t)> worldRemoveObject;
+    std::function<bool (uint32_t, bool)> worldRemoveObject;
     std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t)> worldGetObjectTransformation;
     std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldSetObjectTranslate;
     std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldSetObjectScale;

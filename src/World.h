@@ -395,7 +395,7 @@ public:
 
     bool updateGuiText(uint32_t guiTextID, const std::string &newText);
 
-    bool removeObject(uint32_t objectID);
+    bool removeObject(uint32_t objectID, const bool &removeChildren = true);
     bool removeTriggerObject(uint32_t triggerobjectID);
     bool removeGuiElement(uint32_t guiElementID);
 
