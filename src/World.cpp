@@ -3927,7 +3927,7 @@ void World::createNodeGraph() {
     renderMethods.renderLight = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2);
 
 
-    pipelineExtension = new PipelineExtension(graphicsWrapper, GraphicsPipeline::getRenderMethodNames(), renderMethods);
+    pipelineExtension = new PipelineExtension(graphicsWrapper, defaultRenderPipeline, GraphicsPipeline::getRenderMethodNames(), renderMethods);
 
     for(auto program:programs) {
         std::string programName = program.first->getProgramName();

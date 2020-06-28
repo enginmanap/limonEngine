@@ -219,6 +219,9 @@ public:
 
     static std::unique_ptr<GraphicsPipeline> deserialize(const std::string &graphicsPipelineFileName, GraphicsInterface *graphicsWrapper,  std::shared_ptr<AssetManager>, Options *options, RenderMethods renderMethods);
 
+    const std::vector<std::shared_ptr<Texture>> &getTextures() {
+        return textures;
+    };
 private:
     RenderMethods renderMethods;
     std::vector<StageInfo> pipelineStages;

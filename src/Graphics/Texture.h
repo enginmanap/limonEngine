@@ -24,6 +24,7 @@ class Texture {
     uint32_t height, width;
     uint32_t depth;//3D textures, or texture arrays have this as element count
     std::string source;
+    std::string name;
 
     float borderColor[4] = {0};
     bool borderColorSet = false;
@@ -110,6 +111,14 @@ public:
 
     void setSource(const std::string &source) {
         Texture::source = source;
+    }
+
+    const std::string &getName() const {
+        return name;
+    }
+
+    void setName(const std::string &name) {
+        Texture::name = name;
     }
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);

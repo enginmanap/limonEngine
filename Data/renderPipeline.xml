@@ -1,6 +1,7 @@
 <GraphicsPipeline>
     <Textures>
         <Texture>
+            <Name>DirectionalShadow</Name>
             <TextureType>T2D_ARRAY</TextureType>
             <InternalFormat>DEPTH</InternalFormat>
             <Format>DEPTH</Format>
@@ -24,6 +25,7 @@
             </WrapModes>
         </Texture>
         <Texture>
+            <Name>PointShadow</Name>
             <TextureType>TCUBE_MAP_ARRAY</TextureType>
             <InternalFormat>DEPTH</InternalFormat>
             <Format>DEPTH</Format>
@@ -47,6 +49,7 @@
             </WrapModes>
         </Texture>
         <Texture>
+            <Name>DiffuseAndSpecularBuffer</Name>
             <TextureType>T2D</TextureType>
             <InternalFormat>RGBA</InternalFormat>
             <Format>RGBA</Format>
@@ -70,6 +73,7 @@
             </WrapModes>
         </Texture>
         <Texture>
+            <Name>AmbientBuffer</Name>
             <TextureType>T2D</TextureType>
             <InternalFormat>RGB</InternalFormat>
             <Format>RGB</Format>
@@ -93,6 +97,7 @@
             </WrapModes>
         </Texture>
         <Texture>
+            <Name>NormalBuffer</Name>
             <TextureType>T2D</TextureType>
             <InternalFormat>RGB16F</InternalFormat>
             <Format>RGB</Format>
@@ -116,6 +121,7 @@
             </WrapModes>
         </Texture>
         <Texture>
+            <Name>DepthBuffer</Name>
             <TextureType>T2D</TextureType>
             <InternalFormat>DEPTH</InternalFormat>
             <Format>DEPTH</Format>
@@ -139,6 +145,7 @@
             </WrapModes>
         </Texture>
         <Texture>
+            <Name>SSAOGenerationBuffer</Name>
             <TextureType>T2D</TextureType>
             <InternalFormat>RED</InternalFormat>
             <Format>RGB</Format>
@@ -162,6 +169,7 @@
             </WrapModes>
         </Texture>
         <Texture>
+            <Name>SSAONoiseTexture</Name>
             <Source>./Engine/Textures/ssaoNoiseTexture.png</Source>
             <TextureType>T2D</TextureType>
             <InternalFormat>RGBA</InternalFormat>
@@ -186,6 +194,7 @@
             </WrapModes>
         </Texture>
         <Texture>
+            <Name>SSAOBlurBuffer</Name>
             <TextureType>T2D</TextureType>
             <InternalFormat>RED</InternalFormat>
             <Format>RGB</Format>

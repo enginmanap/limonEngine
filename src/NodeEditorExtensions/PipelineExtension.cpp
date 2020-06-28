@@ -12,8 +12,13 @@
 #include "PipelineStageExtension.h"
 #include "API/GraphicsProgram.h"
 
-PipelineExtension::PipelineExtension(GraphicsInterface* graphicsWrapper, const std::vector<std::string>& renderMethodNames, GraphicsPipeline::RenderMethods& renderMethods) : graphicsWrapper(graphicsWrapper), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
+PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline,
+                                     const std::vector<std::string> &renderMethodNames, GraphicsPipeline::RenderMethods &renderMethods)
+        : graphicsWrapper(graphicsWrapper), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
     {
+        for(std::shared_ptr<Texture> texture:currentGraphicsPipeline->getTextures()) {
+            usedTextures[texture->getName()] = texture;
+        }
         //Add a texture to the list as place holder for screen
         auto texture = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 1, 1);
         usedTextures["Screen"] = texture;
@@ -163,6 +168,7 @@ void PipelineExtension::drawDetailPane(const std::vector<const Node *>& nodes, c
                 texture->setWrapModes(textureWrapMode, textureWrapMode);
                 texture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
                 texture->setFilterMode(filterMode);
+                texture->setName(name);
                 this->usedTextures[name] = texture;
                 memset(name, 0, sizeof(name));
                 ImGui::CloseCurrentPopup();

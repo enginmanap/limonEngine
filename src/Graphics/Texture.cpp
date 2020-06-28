@@ -13,10 +13,16 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     tinyxml2::XMLElement *currentElement;
 
     if (this->source.length() > 0) {
-    tinyxml2::XMLElement *currentElement = document.NewElement("Source");
-    currentElement->SetText(this->source.c_str());
-    textureNode->InsertEndChild(currentElement);
-}
+        tinyxml2::XMLElement *currentElement = document.NewElement("Source");
+        currentElement->SetText(this->source.c_str());
+        textureNode->InsertEndChild(currentElement);
+    }
+
+    if (this->name.length() > 0) {
+        tinyxml2::XMLElement *currentElement = document.NewElement("Name");
+        currentElement->SetText(this->name.c_str());
+        textureNode->InsertEndChild(currentElement);
+    }
 
     currentElement = document.NewElement("TextureType");
     switch (textureType) {
@@ -305,6 +311,16 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
     depth = std::stoi(depthString);
 
     std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, textureType, internalFormat, format, dataType, width, height, depth);
+
+    textureNodeAttribute = TextureNode->FirstChildElement("Name");
+    if (textureNodeAttribute != nullptr) {
+        if(textureNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Texture name has no text, skipping! " << std::endl;
+        } else {
+            std::string textureName = textureNodeAttribute->GetText();
+            texture->setName(textureName);
+        }
+    }
 
     texture->setSerializeID(serializeID);
 
