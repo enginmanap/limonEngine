@@ -52,7 +52,7 @@ public:
     int GetItemCount() const { return (int)sections.size(); }
 
     int GetItemTypeCount() const { return 1; }
-    const char *GetItemTypeName(int typeIndex __attribute((unused))) const { return "Section"; }
+    const char *GetItemTypeName(int typeIndex [[gnu::unused]]) const { return "Section"; }
     const char *GetItemLabel(int index) const {
         static char tmps[512];
         sprintf(tmps, "[%02d] %s", index, "Section");
@@ -78,7 +78,7 @@ public:
             *type = 0;//we don't have multiple types
         }
     }
-    void Add(int type __attribute((unused)));
+    void Add(int type [[gnu::unused]]);
     void setTransform(int32_t indexToSet);
 
 

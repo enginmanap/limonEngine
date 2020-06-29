@@ -42,7 +42,7 @@ public:
         NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD, UP
     };
 
-    Player(GUIRenderable *cursor, Options *options, const glm::vec3 &position __attribute((unused)), const glm::vec3 &lookDirection __attribute((unused)))
+    Player(GUIRenderable *cursor, Options *options, const glm::vec3 &position [[gnu::unused]], const glm::vec3 &lookDirection [[gnu::unused]])
             : cursor(cursor), options(options){};
 
     virtual ~Player() {}

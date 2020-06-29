@@ -47,7 +47,7 @@ void AnimationSequenceInterface::Duplicate(int index) {
     }
 }
 
-void AnimationSequenceInterface::Add(int type __attribute((unused))) {
+void AnimationSequenceInterface::Add(int type [[gnu::unused]]) {
     setTransform(selectedEntry);
     Transformation tempTr = sections[sections.size()-1].transformation;//we don't allow removing last element, so this is valid.
     sections.push_back(AnimationSequenceInterface::AnimationSequenceItem{ sections[sections.size()-1].mFrameEnd+60,  tempTr});

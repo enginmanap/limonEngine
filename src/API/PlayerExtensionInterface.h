@@ -87,7 +87,7 @@ class PlayerExtensionRegister : PlayerExtensionInterface {
 
     void processInput(const InputStates &inputHandler, const PlayerExtensionInterface::PlayerInformation &playerInformation,
                           long time) override {}
-    void interact(std::vector<LimonAPI::ParameterRequest> &interactionData __attribute__((unused))) override {}
+    void interact(std::vector<LimonAPI::ParameterRequest> &interactionData [[gnu::unused]]) override {}
 
 public:
     explicit PlayerExtensionRegister(std::string const& s) : PlayerExtensionInterface(nullptr) {

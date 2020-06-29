@@ -69,7 +69,7 @@ public:
                                      int collisionMaskForGround [[gnu::unused]], const glm::vec3 &worldAABBMin [[gnu::unused]], const glm::vec3 &worldAABBMax [[gnu::unused]]) {}
 
 
-    void processPhysicsWorld(const btDiscreteDynamicsWorld *world __attribute__((unused))) {};
+    void processPhysicsWorld(const btDiscreteDynamicsWorld *world [[gnu::unused]]) {};
 
     void rotate(float xPosition, float yPosition, float xChange, float yChange);
 

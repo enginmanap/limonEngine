@@ -11,7 +11,7 @@ std::vector<LimonAPI::ParameterRequest> QuitGameOnTrigger::getParameters() {
     return std::vector<LimonAPI::ParameterRequest>();
 }
 
-bool QuitGameOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters __attribute((unused))) {
+bool QuitGameOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {
     limonAPI->quitGame();
     return true;
 }

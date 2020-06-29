@@ -42,7 +42,7 @@ public:
 
     void render();
 
-    void setupForTime(long time __attribute__((unused))) {};
+    void setupForTime(long time [[gnu::unused]]) {};
 
     ~SkyBox() {
         assetManager->freeAsset(cubeMap->getNames());

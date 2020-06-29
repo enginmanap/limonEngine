@@ -83,7 +83,7 @@ public:
     virtual bool interaction(std::vector<LimonAPI::ParameterRequest> &interactionInformation) = 0;
 
     virtual std::vector<LimonAPI::ParameterRequest> getParameters() const { return std::vector<LimonAPI::ParameterRequest>();};
-    virtual void setParameters(std::vector<LimonAPI::ParameterRequest> parameters __attribute__((unused))) {};
+    virtual void setParameters(std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {};
 
     virtual ~ActorInterface() {};
 
@@ -135,9 +135,9 @@ ActorInterface* createActorT(uint32_t id, LimonAPI* limonAPI) {
 template<typename T>
 class ActorRegister : ActorInterface {
 
-    void play(long time __attribute((unused)), ActorInterface::ActorInformation &information __attribute((unused))) override {};
+    void play(long time [[gnu::unused]], ActorInterface::ActorInformation &information [[gnu::unused]]) override {};
 
-    bool interaction(std::vector<LimonAPI::ParameterRequest> &interactionInformation __attribute((unused))) override {return false;};
+    bool interaction(std::vector<LimonAPI::ParameterRequest> &interactionInformation [[gnu::unused]]) override {return false;};
 
     std::string getName() const override {
         return "This object is not meant to be used";

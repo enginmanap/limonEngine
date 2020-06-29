@@ -71,7 +71,7 @@ public:
 
     void registerToPhysicalWorld(btDiscreteDynamicsWorld *world [[gnu::unused]], int collisionGroup [[gnu::unused]], int collisionMaskForSelf [[gnu::unused]],
                                      int collisionMaskForGround [[gnu::unused]], const glm::vec3 &worldAABBMin [[gnu::unused]], const glm::vec3 &worldAABBMax [[gnu::unused]]) {}
-    void processPhysicsWorld(const btDiscreteDynamicsWorld *world __attribute__((unused))) {};
+    void processPhysicsWorld(const btDiscreteDynamicsWorld *world [[gnu::unused]]) {};
 
     void rotate(float xPosition, float yPosition, float xChange, float yChange);
 

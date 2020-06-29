@@ -23,7 +23,7 @@ protected:
      * @param fileList Asset files to load
      * @return empty asset
      */
-    Asset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList __attribute((unused)))
+    Asset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList [[gnu::unused]])
             : assetManager(assetManager), assetID(assetID) {};
 
 public:

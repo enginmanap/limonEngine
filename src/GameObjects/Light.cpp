@@ -43,7 +43,7 @@ void Light::calculateActiveDistance() {
     }
 }
 
-void Light::step(long time __attribute__((unused))) {
+void Light::step(long time [[gnu::unused]]) {
     if(lightType == DIRECTIONAL) {
         updateLightView();
 
