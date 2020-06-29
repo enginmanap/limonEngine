@@ -267,7 +267,7 @@ public:
     }
 
 private:
-    inline bool checkErrors(const std::string &callerFunc __attribute((unused))) {
+    inline bool checkErrors(const std::string &callerFunc [[gnu::unused]]) {
 #ifndef NDEBUG
         GLenum fbStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (fbStatus != GL_FRAMEBUFFER_COMPLETE) {

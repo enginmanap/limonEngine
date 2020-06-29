@@ -43,7 +43,7 @@ void FreeCursorPlayer::move(moveDirections direction) {
     }
 }
 
-void FreeCursorPlayer::rotate(float xPosition, float yPosition, float xChange __attribute__((unused)), float yChange __attribute__((unused))) {
+void FreeCursorPlayer::rotate(float xPosition, float yPosition, float xChange [[gnu::unused]], float yChange [[gnu::unused]]) {
     glm::vec2 cursorPosition((options->getScreenWidth()/2.0f)  + xPosition * options->getScreenWidth() /2.0f,
                              (options->getScreenHeight()/2.0f) - yPosition * options->getScreenHeight()/2.0f);//y is negative, because sdl reports opposite of OpenGL
 

@@ -73,7 +73,7 @@ class TriggerRegister : TriggerInterface {
     virtual std::vector<LimonAPI::ParameterRequest> getParameters() {
         return std::vector<LimonAPI::ParameterRequest>();
     };
-    virtual bool run(std::vector<LimonAPI::ParameterRequest> parameters __attribute((unused))) override {
+    virtual bool run(std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) override {
         return false;
     };
     std::string getName() const override {

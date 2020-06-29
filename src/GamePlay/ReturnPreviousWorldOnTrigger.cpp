@@ -11,7 +11,7 @@ std::vector<LimonAPI::ParameterRequest> ReturnPreviousWorldOnTrigger::getParamet
     return std::vector<LimonAPI::ParameterRequest>();
 }
 
-bool ReturnPreviousWorldOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters __attribute((unused))) {
+bool ReturnPreviousWorldOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {
     limonAPI->returnPreviousWorld();
     return true;
 }

@@ -42,7 +42,7 @@ void FreeMovingPlayer::move(moveDirections direction) {
     }
 }
 
-void FreeMovingPlayer::rotate(float xPosition __attribute__((unused)), float yPosition __attribute__((unused)), float xChange, float yChange) {
+void FreeMovingPlayer::rotate(float xPosition [[gnu::unused]], float yPosition [[gnu::unused]], float xChange, float yChange) {
     glm::quat viewChange;
     float lookAroundSpeedX = options->getLookAroundSpeed();
     //scale look around speed with the abs(center.y). for 1 -> look around 0, for 0 -> lookaround 1.
