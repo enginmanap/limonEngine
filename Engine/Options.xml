@@ -1,5 +1,5 @@
 <Options>
-    <fullScreen>False</fullScreen>
+    <fullScreen>True</fullScreen>
     <screenWidth>1920</screenWidth>
     <screenHeight>1080</screenHeight>
     <shadowMapDirectionalWidth>4096</shadowMapDirectionalWidth>
