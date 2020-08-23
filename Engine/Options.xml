@@ -22,7 +22,7 @@
     </walkSpeed>
     <runSpeed>
         <X>12</X>
-        <Y>0</Y>
+        <Y>0.2</Y>
         <Z>12</Z>
     </runSpeed>
     <freeMovementSpeed>
@@ -37,6 +37,6 @@
         <W>100.0</W>
     </lightOrthogonalProjectionValues>
     <SSAOEnabled>True</SSAOEnabled>
-    <SSAOSampleCount>9</SSAOSampleCount>
-    <RenderInformations>True</RenderInformations>
+    <SSAOSampleCount>2</SSAOSampleCount>
+    <RenderInformations>False</RenderInformations>
 </Options>
