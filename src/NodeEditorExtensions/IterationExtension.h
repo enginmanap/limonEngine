@@ -11,6 +11,11 @@
 class IterationExtension : public NodeExtension {
 public:
     void drawDetailPane(Node *node) override;
+
+    std::string getName() override {
+        return "IterationExtension";
+    }
+
 private:
     std::string currentIterateOver = "None";
 };

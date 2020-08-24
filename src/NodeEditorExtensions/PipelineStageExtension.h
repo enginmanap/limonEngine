@@ -75,6 +75,10 @@ public:
     GraphicsInterface::CullModes getCullmode() const {
         return cullMode;
     }
+
+    std::string getName() override {
+        return "PipelineStageExtension";
+    }
 };
 
 

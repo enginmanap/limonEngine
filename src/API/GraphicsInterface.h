@@ -153,7 +153,7 @@ protected:
 
 public:
 
-    virtual const std::map<std::shared_ptr<GraphicsProgram>, int> &getLoadedPrograms() const = 0;
+    virtual const std::map<std::string, std::pair<std::shared_ptr<GraphicsProgram>, int>> &getLoadedPrograms() const = 0;
 
     virtual void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) = 0;
     virtual const glm::mat4 &getLightProjectionMatrixPoint() const = 0;

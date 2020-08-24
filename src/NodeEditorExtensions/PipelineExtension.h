@@ -16,9 +16,6 @@
 class GraphicsPipelineStage;
 
 class PipelineExtension : public EditorExtension {
-public:
-
-private:
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;
     GraphicsInterface* graphicsWrapper = nullptr;
     static bool getNameOfTexture(void* data, int index, const char** outText);
@@ -33,6 +30,10 @@ public:
 
     const std::map<std::string, std::shared_ptr<Texture>> &getUsedTextures() const {
         return usedTextures;
+    }
+
+    std::string getName() override {
+        return "PipelineExtension";
     }
 
     void buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline);

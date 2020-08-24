@@ -3886,27 +3886,27 @@ void World::drawNodeEditor() {
 }
 
 void World::createNodeGraph() {
-    std::vector<NodeType> nodeTypeVector;
+    std::vector<NodeType*> nodeTypeVector;
 
     //start with predefined types
 
-    NodeType screen{"Screen", false, nullptr,{}, {}, true};
-    screen.inputConnections.push_back(ConnectionDesc{"Input", "Texture"});
+    NodeType* screen = new NodeType{"Screen", false, "", nullptr,{}, {}, true};
+    screen->inputConnections.push_back(ConnectionDesc{"Input", "Texture"});
     nodeTypeVector.push_back(screen);
 
-    NodeType blend{"Blend", true, nullptr,{}, {}, false};
-    blend.inputConnections.push_back(ConnectionDesc{"Input1", "Texture"});
-    blend.inputConnections.push_back(ConnectionDesc{"Input2", "Texture"});
-    blend.inputConnections.push_back(ConnectionDesc{"Input3", "Texture"});
-    blend.outputConnections.push_back(ConnectionDesc{"output", "Texture"});
+    NodeType* blend = new NodeType{"Blend", true, "", nullptr,{}, {}, false};
+    blend->inputConnections.push_back(ConnectionDesc{"Input1", "Texture"});
+    blend->inputConnections.push_back(ConnectionDesc{"Input2", "Texture"});
+    blend->inputConnections.push_back(ConnectionDesc{"Input3", "Texture"});
+    blend->outputConnections.push_back(ConnectionDesc{"output", "Texture"});
     nodeTypeVector.push_back(blend);
 
     iterationExtension = new IterationExtension();
 
-    NodeType Iterate {"Iterate", false, iterationExtension,
+    NodeType* iterate = new NodeType{"Iterate", false, "IterationExtension", []() -> NodeExtension* {return new IterationExtension();},
                       {{"Input", "Texture"},},
                        {{"Output", "Texture"},},false};
-    nodeTypeVector.push_back(Iterate);
+    nodeTypeVector.push_back(iterate);
 
     auto programs = graphicsWrapper->getLoadedPrograms();
     GraphicsPipeline::RenderMethods renderMethods;
@@ -3930,14 +3930,14 @@ void World::createNodeGraph() {
     pipelineExtension = new PipelineExtension(graphicsWrapper, defaultRenderPipeline, GraphicsPipeline::getRenderMethodNames(), renderMethods);
 
     for(auto program:programs) {
-        std::string programName = program.first->getProgramName();
+        std::string programName = program.first;
         size_t startof, endof;
         endof=programName.find_last_of("/\\");
         startof = programName.substr(0,endof).find_last_of("/\\") +1;
         std::string nodeName = programName.substr(startof, endof - startof);
-        NodeType type{nodeName.c_str(), false, nullptr, {}, {}, true};
+        NodeType* type = new NodeType{nodeName.c_str(), false, "PipelineExtension", nullptr, {}, {}, true};
 
-        auto uniformMap = program.first->getUniformMap();
+        auto uniformMap = program.second.first->getUniformMap();
         for(auto uniform:uniformMap) {
 
             if (uniform.first.rfind("pre_", 0) != 0) {
@@ -3966,10 +3966,10 @@ void World::createNodeGraph() {
                 case GraphicsInterface::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
                 case GraphicsInterface::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
             }
-            type.inputConnections.push_back(desc);
+            type->inputConnections.push_back(desc);
         }
 
-        auto outputMap = program.first->getOutputMap();
+        auto outputMap = program.second.first->getOutputMap();
         for(auto output:outputMap) {
             ConnectionDesc desc;
             desc.name = output.first;
@@ -3986,13 +3986,14 @@ void World::createNodeGraph() {
                 case GraphicsInterface::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
                 case GraphicsInterface::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
             }
-            type.outputConnections.push_back(desc);
+            type->outputConnections.push_back(desc);
         }
-        type.nodeExtension = new PipelineStageExtension(pipelineExtension);
+        type->nodeExtensionConstructor = [=]() ->NodeExtension* {return new PipelineStageExtension(pipelineExtension);};
 
         nodeTypeVector.push_back(type);
     }
 
     nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);
+    nodeGraph->setSerializeFileName("./Engine/graphicsNodes.xml");
 
 }

@@ -223,14 +223,11 @@ private:
     uint32_t renderLineCount;
     uint32_t uniformSetCount=0;
 
-    /**
-     * This is not keeping shared_ptr because getting a shared_ptr from destructor is not logical
-     */
-    std::map<std::shared_ptr<GraphicsProgram>, int> loadedPrograms;
+    std::map<std::string, std::pair<std::shared_ptr<GraphicsProgram>, int>> loadedPrograms;
 
 public:
 
-    const std::map<std::shared_ptr<GraphicsProgram>, int> &getLoadedPrograms() const override {
+    const std::map<std::string, std::pair<std::shared_ptr<GraphicsProgram>, int>> &getLoadedPrograms() const override {
         return loadedPrograms;
     }
 

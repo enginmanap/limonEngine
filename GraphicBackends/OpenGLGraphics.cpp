@@ -883,37 +883,40 @@ OpenGLGraphics::~OpenGLGraphics() {
 }
 
 std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGraphicsProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) {
-    std::shared_ptr<GraphicsProgram> program = createGraphicsProgramInternal(vertexShader, geometryShader, fragmentShader, isMaterialUsed, std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
-    if(loadedPrograms.find(program) == loadedPrograms.end()) {
-        loadedPrograms[program] = 1;
+    std::string programName = vertexShader + "|" + geometryShader + "|" + fragmentShader;
+    if(loadedPrograms.find(programName) == loadedPrograms.end()) {
+        std::shared_ptr<GraphicsProgram> program = createGraphicsProgramInternal(vertexShader, geometryShader, fragmentShader, isMaterialUsed, std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
+        loadedPrograms[programName] = std::pair<std::shared_ptr<GraphicsProgram>, int>(program, 1);
     } else {
-        loadedPrograms[program] += 1;
+        loadedPrograms[programName].second += 1;
     }
-    return program;
+    return loadedPrograms[programName].first;
 }
 std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGraphicsProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) {
-    std::shared_ptr<GraphicsProgram> program = createGraphicsProgramInternal(vertexShader, fragmentShader, isMaterialUsed, std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
-    if(loadedPrograms.find(program) == loadedPrograms.end()) {
-        loadedPrograms[program] = 1;
-    } else {
-        loadedPrograms[program] += 1;
-    }
-    return program;
+    std::string programName = vertexShader + "|" + fragmentShader;
+        if(loadedPrograms.find(programName) == loadedPrograms.end()) {
+            std::shared_ptr<GraphicsProgram> program = createGraphicsProgramInternal(vertexShader, fragmentShader, isMaterialUsed, std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
+            loadedPrograms[programName] = std::pair<std::shared_ptr<GraphicsProgram>, int>(program, 1);
+        } else {
+            loadedPrograms[programName].second += 1;
+        }
+    return loadedPrograms[programName].first;
 }
 
 void OpenGLGraphics::testAndRemoveGLSLProgram(GraphicsProgram *program) {
     //FIXME this is a hack until I remove loadedPrograms altogether.
-    for(auto iterator = loadedPrograms.begin(); iterator != loadedPrograms.end(); iterator++) {
-        if(iterator->first.get() == program) {
-            if(iterator->second == 1) {
-                loadedPrograms.erase(iterator);
-            } else {
-                iterator->second -= 1;
-            }
-            return;
-        }
+    if(loadedPrograms.find(program->getProgramName()) == loadedPrograms.end()) {
+        std::cerr << "Trying to remove a GLSL program ["<< program->getProgramName() <<"] that is not registered. Please check." << std::endl;
+        return;
     }
-    std::cerr << "Trying to remove a GLSL program ["<< program->getProgramName() <<"] that is not registered. Please check." << std::endl;
+
+    int usageCount = loadedPrograms.find(program->getProgramName())->second.second;
+    if(usageCount == 1) {
+        loadedPrograms.erase(program->getProgramName());
+        std::cout << "Program: " << program->getProgramName() << " is removed." << std::endl;
+    } else {
+        usageCount = loadedPrograms.find(program->getProgramName())->second.second -= 1;
+    }
 }
 
 void OpenGLGraphics::reshape() {
