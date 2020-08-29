@@ -26,7 +26,7 @@ public:
     PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline,
                       const std::vector<std::string> &renderMethodNames, GraphicsPipeline::RenderMethods &renderMethods);
 
-    void drawDetailPane(const std::vector<const Node *>& nodes, const Node* selectedNode = nullptr) override;
+    void drawDetailPane(NodeGraph* nodeGraph, const std::vector<const Node *>& nodes, const Node* selectedNode = nullptr) override;
 
     const std::map<std::string, std::shared_ptr<Texture>> &getUsedTextures() const {
         return usedTextures;

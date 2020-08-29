@@ -44,7 +44,7 @@ bool PipelineExtension::getNameOfTexture(void* data, int index, const char** out
 }
 
 
-void PipelineExtension::drawDetailPane(const std::vector<const Node *>& nodes, const Node* selectedNode [[gnu::unused]]) {
+void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<const Node *>& nodes, const Node* selectedNode [[gnu::unused]]) {
     ImGui::Text("Graphics Pipeline Details");
     int listbox_item_current = -1;//not static because I don't want user to select a item.
 
@@ -197,6 +197,8 @@ void PipelineExtension::drawDetailPane(const std::vector<const Node *>& nodes, c
         }
     }
     ImGui::PopStyleVar();
+
+    //"./Engine/graphicsNodes.xml"
 
 }
 

@@ -3879,9 +3879,13 @@ void World::drawNodeEditor() {
     nodeGraph->display();
     if(ImGui::Button("Save")) {
         defaultRenderPipeline->serialize("./Data/renderPipeline.xml", options);
+        nodeGraph->serialize("./Data/nodeGraph.xml");
+        nodeGraph->addMessage("Serialization done.");
     }
     ImGui::SameLine();
-    ImGui::Button("Cancel");
+    if(ImGui::Button("Cancel")){
+        showNodeGraph = false;
+    }
     ImGui::End();
 }
 
@@ -3994,6 +3998,4 @@ void World::createNodeGraph() {
     }
 
     nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);
-    nodeGraph->setSerializeFileName("./Engine/graphicsNodes.xml");
-
 }
