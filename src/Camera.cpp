@@ -7,10 +7,10 @@
 
 Camera::Camera(Options *options, CameraAttachment* cameraAttachment) :
         position(startPosition),
-        center(glm::vec3(0, 0, -1)),
+        center(glm::vec3(0, 0, -6)),
         up(glm::vec3(0, 1, 0)),
         right(glm::vec3(-1, 0, 0)),
-        view(glm::quat(0, 0, 0, -1)),
+        view(glm::quat(0, 0, 0, -6)),
         cameraAttachment(cameraAttachment),
         options(options){
     cameraTransformMatrix = glm::lookAt(position, position + center, up);
