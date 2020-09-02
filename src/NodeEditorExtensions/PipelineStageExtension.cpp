@@ -74,7 +74,7 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
 
         ImGui::Checkbox("Blend", &blendEnabled);
 
-        ImGui::Checkbox("Clear", &blendEnabled);
+        ImGui::Checkbox("Clear", &clearBefore);
         if (ImGui::BeginCombo("Render Method##RenderMethodCombo", currentMethodName.c_str())) {
             static const std::vector<std::string> &methodNames = GraphicsPipeline::getRenderMethodNames();
             for (size_t i = 0; i < methodNames.size(); ++i) {
