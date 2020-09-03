@@ -130,6 +130,7 @@ bool GraphicsProgramLoader::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     } else {
         currentElement->SetText("False");
     }
+    programNode->InsertEndChild(currentElement);
 
     if(!graphicsProgram->presetUniformValues.empty()) {
         currentElement = document.NewElement("PresetValues");
@@ -137,6 +138,7 @@ bool GraphicsProgramLoader::serialize(tinyxml2::XMLDocument &document, tinyxml2:
             tinyxml2::XMLElement *uniformNode = document.NewElement("Uniform");
             uniformNode->SetAttribute("Name", uniformEntry.first->name.c_str());
             uniformNode->SetText(uniformEntry.second.c_str());
+            currentElement->InsertEndChild(uniformNode);
         }
         programNode->InsertEndChild(currentElement);
     }
