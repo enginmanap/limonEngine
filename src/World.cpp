@@ -3997,5 +3997,14 @@ void World::createNodeGraph() {
         nodeTypeVector.push_back(type);
     }
 
-    nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);
+    std::unordered_map<std::string, std::function<EditorExtension*()>> possibleEditorExtensions;
+    possibleEditorExtensions["PipelineExtension"] = [=]() ->EditorExtension* {return pipelineExtension;};
+    std::unordered_map<std::string, std::function<NodeExtension*()>> possibleNodeExtensions;
+    possibleNodeExtensions["PipelineStageExtension"] = [=]() ->NodeExtension* {return new PipelineStageExtension(pipelineExtension);};
+
+    nodeGraph = NodeGraph::deserialize("./Data/nodeGraph.xml", possibleEditorExtensions, possibleNodeExtensions);
+    if(nodeGraph == nullptr) {
+        std::cerr << "Node deserialize failed, using empty node graph" << std::endl;
+        nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);
+    }
 }

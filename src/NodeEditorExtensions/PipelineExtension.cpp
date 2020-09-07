@@ -5,12 +5,14 @@
 #include <ImGui/imgui.h>
 #include <memory>
 #include <nodeGraph/src/Node.h>
+#include <nodeGraph/src/NodeGraph.h>
 #include <Graphics/GraphicsPipeline.h>
 #include <GameObjects/Light.h>
 #include "PipelineExtension.h"
 #include "Graphics/Texture.h"
 #include "PipelineStageExtension.h"
 #include "API/GraphicsProgram.h"
+
 
 PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline,
                                      const std::vector<std::string> &renderMethodNames, GraphicsPipeline::RenderMethods &renderMethods)
@@ -197,9 +199,6 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
         }
     }
     ImGui::PopStyleVar();
-
-    //"./Engine/graphicsNodes.xml"
-
 }
 
 void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline) {
