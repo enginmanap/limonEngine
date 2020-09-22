@@ -3931,7 +3931,7 @@ void World::createNodeGraph() {
     renderMethods.renderLight = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2);
 
 
-    pipelineExtension = new PipelineExtension(graphicsWrapper, defaultRenderPipeline, GraphicsPipeline::getRenderMethodNames(), renderMethods);
+    pipelineExtension = new PipelineExtension(graphicsWrapper, defaultRenderPipeline, options, GraphicsPipeline::getRenderMethodNames(), renderMethods);
 
     for(auto program:programs) {
         std::string programName = program.first;
@@ -3939,7 +3939,7 @@ void World::createNodeGraph() {
         endof=programName.find_last_of("/\\");
         startof = programName.substr(0,endof).find_last_of("/\\") +1;
         std::string nodeName = programName.substr(startof, endof - startof);
-        NodeType* type = new NodeType{nodeName.c_str(), false, "PipelineExtension", nullptr, {}, {}, true};
+        NodeType* type = new NodeType{nodeName.c_str(), false, "PipelineStageExtension", nullptr, {}, {}, true};
 
         auto uniformMap = program.second.first->getUniformMap();
         for(auto uniform:uniformMap) {
@@ -3999,8 +3999,10 @@ void World::createNodeGraph() {
 
     std::unordered_map<std::string, std::function<EditorExtension*()>> possibleEditorExtensions;
     possibleEditorExtensions["PipelineExtension"] = [=]() ->EditorExtension* {return pipelineExtension;};
+
     std::unordered_map<std::string, std::function<NodeExtension*()>> possibleNodeExtensions;
     possibleNodeExtensions["PipelineStageExtension"] = [=]() ->NodeExtension* {return new PipelineStageExtension(pipelineExtension);};
+    possibleNodeExtensions["IterationExtension"] = [=]() -> NodeExtension* {return new IterationExtension();};
 
     nodeGraph = NodeGraph::deserialize("./Data/nodeGraph.xml", possibleEditorExtensions, possibleNodeExtensions);
     if(nodeGraph == nullptr) {

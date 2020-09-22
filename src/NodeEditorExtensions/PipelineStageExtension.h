@@ -16,6 +16,11 @@
 
 class Connection;
 class PipelineStageExtension : public NodeExtension {
+    struct OutputTextureInfo {
+        std::string name;
+        GraphicsInterface::FrameBufferAttachPoints attachPoint = GraphicsInterface::FrameBufferAttachPoints::NONE;
+        std::shared_ptr<Texture> texture = nullptr;
+    };
     PipelineExtension* pipelineExtension = nullptr;
 
     GraphicsInterface::CullModes cullMode = GraphicsInterface::CullModes::NO_CHANGE;
@@ -26,9 +31,8 @@ class PipelineStageExtension : public NodeExtension {
     std::string currentMethodName = "";
     static const std::string LIGHT_TYPES[];
     unsigned int iterateOverLightType = 0;
-    std::map<const Connection*, std::pair<std::string, std::shared_ptr<Texture>>> outputTextures;
     std::map<const Connection*, int> inputTextureIndexes;
-    std::map<const Connection*, GraphicsInterface::FrameBufferAttachPoints > outputTextureIndexes;
+    std::map<const Connection*, OutputTextureInfo> outputTextures;
 public:
     PipelineStageExtension(PipelineExtension* pipelineExtension)  : pipelineExtension(pipelineExtension) {}
     void drawDetailPane(Node *node) override;
@@ -55,11 +59,11 @@ public:
     }
 
     GraphicsInterface::FrameBufferAttachPoints getOutputTextureIndex(const Connection* connection) const {
-        auto indexIt = outputTextureIndexes.find(connection);
-        if(indexIt == outputTextureIndexes.end()) {
+        auto indexIt = outputTextures.find(connection);
+        if(indexIt == outputTextures.end()) {
             return GraphicsInterface::FrameBufferAttachPoints::NONE;
         } else {
-            return indexIt->second;
+            return indexIt->second.attachPoint;
         }
     }
 
@@ -68,7 +72,7 @@ public:
         if(textureIt == outputTextures.end()) {
             return nullptr;
         } else {
-            return textureIt->second.second;
+            return textureIt->second.texture;
         }
     }
 
@@ -79,6 +83,9 @@ public:
     std::string getName() override {
         return "PipelineStageExtension";
     }
+
+    void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement) override;
+
 };
 
 

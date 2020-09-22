@@ -32,18 +32,21 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
         for (const Connection *connection:node->getOutputConnections()) {
             std::string currentTextureName = "None";
             if (outputTextures.find(connection) != outputTextures.end()) {
-                currentTextureName = outputTextures[connection].first;
+                currentTextureName = outputTextures[connection].name;
             }
             if (ImGui::BeginCombo(connection->getName().c_str(), currentTextureName.c_str())) {
                 for (auto it = usedTextures.begin(); it != usedTextures.end(); it++) {
                     if (ImGui::Selectable(it->first.c_str())) {
-                        outputTextures[connection] = std::make_pair(it->first, it->second);
+                        OutputTextureInfo textureInfo;
+                        textureInfo.name = it->first;
+                        textureInfo.texture = it->second;
+                        outputTextures[connection] = textureInfo;
                         //On output change, lets check if any of the outputs is multi layered
                         for(auto setOutput = outputTextures.begin(); setOutput != outputTextures.end(); setOutput++) {
                             this->anyOutputMultiLayered = false;
-                            if(setOutput->second.second->getType() == GraphicsInterface::TextureTypes::T2D_ARRAY ||
-                               setOutput->second.second->getType() == GraphicsInterface::TextureTypes::TCUBE_MAP ||
-                               setOutput->second.second->getType() == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY
+                            if(setOutput->second.texture->getType() == GraphicsInterface::TextureTypes::T2D_ARRAY ||
+                               setOutput->second.texture->getType() == GraphicsInterface::TextureTypes::TCUBE_MAP ||
+                               setOutput->second.texture->getType() == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY
                             ) {
                                 this->anyOutputMultiLayered = true;
                                 break;
@@ -108,4 +111,81 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
     }
 
     ImGui::Unindent( 16.0f );
+}
+
+void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement) {
+    tinyxml2::XMLElement *stageExtensionElement = document.NewElement("NodeExtension");
+    parentElement->InsertEndChild(stageExtensionElement);
+
+    tinyxml2::XMLElement *nameElement = document.NewElement("Name");
+    nameElement->SetText(getName().c_str());
+    stageExtensionElement->InsertEndChild(nameElement);
+
+    tinyxml2::XMLElement *cullModeElement = document.NewElement("CullMode");
+    switch (this->cullMode) {
+        case GraphicsInterface::CullModes::FRONT:       cullModeElement->SetText("Front"); break;
+        case GraphicsInterface::CullModes::BACK:        cullModeElement->SetText("Back"); break;
+        case GraphicsInterface::CullModes::NONE:        cullModeElement->SetText("None"); break;
+        case GraphicsInterface::CullModes::NO_CHANGE:   cullModeElement->SetText("NoChange"); break;
+    }
+    stageExtensionElement->InsertEndChild(cullModeElement);
+
+    tinyxml2::XMLElement *clearBeforeElement = document.NewElement("ClearBefore");
+    clearBeforeElement->SetText(clearBefore ? "True" : "False");
+    stageExtensionElement->InsertEndChild(clearBeforeElement);
+
+    tinyxml2::XMLElement *blendEnabledElement = document.NewElement("BlendEnabled");
+    blendEnabledElement->SetText(blendEnabled ? "True" : "False");
+    stageExtensionElement->InsertEndChild(blendEnabledElement);
+
+    tinyxml2::XMLElement *anyOutputMultilayeredElement = document.NewElement("AnyOutputMultiLayered");
+    anyOutputMultilayeredElement->SetText(anyOutputMultiLayered ? "True" : "False");
+    stageExtensionElement->InsertEndChild(anyOutputMultilayeredElement);
+
+    tinyxml2::XMLElement *toScreenElement = document.NewElement("ToScreen");
+    blendEnabledElement->SetText(toScreen ? "True" : "False");
+    stageExtensionElement->InsertEndChild(toScreenElement);
+
+    tinyxml2::XMLElement *iterateOverLightTypeElement = document.NewElement("IterateLightType");
+    blendEnabledElement->SetText(iterateOverLightType);
+    stageExtensionElement->InsertEndChild(iterateOverLightTypeElement);
+
+    tinyxml2::XMLElement *outputTexturesElements = document.NewElement("OutputTextures");
+    stageExtensionElement->InsertEndChild(outputTexturesElements);
+
+    for(const auto& outputIt:outputTextures) {
+        OutputTextureInfo outputInfo = outputIt.second;
+        tinyxml2::XMLElement *outputInfoElement = document.NewElement("OutputInfo");
+        outputTexturesElements->InsertEndChild(outputInfoElement);
+
+        tinyxml2::XMLElement *connectionElement = document.NewElement("Connection");
+        connectionElement->SetText(outputIt.first->getId());
+        outputInfoElement->InsertEndChild(connectionElement);
+
+        tinyxml2::XMLElement *outputInfoNameElement = document.NewElement("Name");
+        outputInfoNameElement->SetText(outputInfo.name.c_str());
+        outputInfoElement->InsertEndChild(outputInfoNameElement);
+
+        tinyxml2::XMLElement *outputInfoAttachPointElement = document.NewElement("AttachPoint");
+        std::string attachPointName;
+        switch (outputInfo.attachPoint) {
+            case GraphicsInterface::FrameBufferAttachPoints::NONE: attachPointName = "NONE"; break;
+            case GraphicsInterface::FrameBufferAttachPoints::COLOR0: attachPointName = "COLOR0"; break;
+            case GraphicsInterface::FrameBufferAttachPoints::COLOR1: attachPointName = "COLOR1"; break;
+            case GraphicsInterface::FrameBufferAttachPoints::COLOR2: attachPointName = "COLOR2"; break;
+            case GraphicsInterface::FrameBufferAttachPoints::COLOR3: attachPointName = "COLOR3"; break;
+            case GraphicsInterface::FrameBufferAttachPoints::COLOR4: attachPointName = "COLOR4"; break;
+            case GraphicsInterface::FrameBufferAttachPoints::COLOR5: attachPointName = "COLOR5"; break;
+            case GraphicsInterface::FrameBufferAttachPoints::COLOR6: attachPointName = "COLOR6"; break;
+            case GraphicsInterface::FrameBufferAttachPoints::DEPTH: attachPointName = "DEPTH"; break;
+        }
+        outputInfoAttachPointElement->SetText(attachPointName.c_str());
+        outputInfoElement->InsertEndChild(outputInfoAttachPointElement);
+
+        tinyxml2::XMLElement *outputInfoTextureNameElement = document.NewElement("TextureName");
+        outputInfoTextureNameElement->SetText(outputInfo.texture->getName().c_str());
+        outputInfoElement->InsertEndChild(outputInfoTextureNameElement);
+    }
+
+
 }

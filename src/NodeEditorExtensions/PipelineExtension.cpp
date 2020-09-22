@@ -14,9 +14,9 @@
 #include "API/GraphicsProgram.h"
 
 
-PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline,
+PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, Options* options,
                                      const std::vector<std::string> &renderMethodNames, GraphicsPipeline::RenderMethods &renderMethods)
-        : graphicsWrapper(graphicsWrapper), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
+        : graphicsWrapper(graphicsWrapper), options(options), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
     {
         for(std::shared_ptr<Texture> texture:currentGraphicsPipeline->getTextures()) {
             usedTextures[texture->getName()] = texture;
@@ -272,4 +272,27 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsP
         std::cerr << "Extension of the node is not PipelineStageExtension, this is not handled! " << std::endl;
     }
 */
+}
+
+void PipelineExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement) {
+    tinyxml2::XMLElement *graphicsExtensionElement = document.NewElement("EditorExtension");
+    parentElement->InsertEndChild(graphicsExtensionElement);
+
+    tinyxml2::XMLElement *nameElement = document.NewElement("Name");
+    nameElement->SetText(getName().c_str());
+    graphicsExtensionElement->InsertEndChild(nameElement);
+/*
+    std::map<std::string, std::shared_ptr<Texture>> usedTextures;
+*/
+
+    tinyxml2::XMLElement *usedTexturesElement = document.NewElement("UsedTextures");
+    graphicsExtensionElement->InsertEndChild(usedTexturesElement);
+    for(auto textureIt:usedTextures) {
+        std::shared_ptr<Texture>& usedTexture = textureIt.second;
+        if(usedTexture == nullptr) {
+            std::cerr << "There is a texture entry with name " << textureIt.first << " without a texture, skipping" << std::endl;
+            continue;
+        }
+        usedTexture->serialize(document, usedTexturesElement, options);
+    }
 }
