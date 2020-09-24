@@ -30,9 +30,9 @@ class PipelineStageExtension : public NodeExtension {
     bool toScreen = false;
     std::string currentMethodName = "";
     static const std::string LIGHT_TYPES[];
-    unsigned int iterateOverLightType = 0;
-    std::map<const Connection*, int> inputTextureIndexes;
-    std::map<const Connection*, OutputTextureInfo> outputTextures;
+    uint32_t iterateOverLightType = 0;
+    std::map<uint32_t, int> inputTextureIndexes;//connectionId to input texture index
+    std::map<uint32_t, OutputTextureInfo> outputTextures; // connectionId to output information
 public:
     PipelineStageExtension(PipelineExtension* pipelineExtension)  : pipelineExtension(pipelineExtension) {}
     void drawDetailPane(Node *node) override;
@@ -45,36 +45,15 @@ public:
         return blendEnabled;
     }
 
-    int getInputTextureIndex(const Connection* connection) const {
-        auto indexIt = inputTextureIndexes.find(connection);
-        if(indexIt == inputTextureIndexes.end()) {
-            return 0;
-        } else {
-            return indexIt->second;
-        }
-    }
+    int getInputTextureIndex(const Connection* connection) const;
 
     const std::string &getMethodName() const {
         return currentMethodName;
     }
 
-    GraphicsInterface::FrameBufferAttachPoints getOutputTextureIndex(const Connection* connection) const {
-        auto indexIt = outputTextures.find(connection);
-        if(indexIt == outputTextures.end()) {
-            return GraphicsInterface::FrameBufferAttachPoints::NONE;
-        } else {
-            return indexIt->second.attachPoint;
-        }
-    }
+    GraphicsInterface::FrameBufferAttachPoints getOutputTextureIndex(const Connection* connection) const;
 
-    std::shared_ptr<Texture> getOutputTexture(const Connection* connection) const {
-        auto textureIt = outputTextures.find(connection);
-        if(textureIt == outputTextures.end()) {
-            return nullptr;
-        } else {
-            return textureIt->second.texture;
-        }
-    }
+    std::shared_ptr<Texture> getOutputTexture(const Connection* connection) const;
 
     GraphicsInterface::CullModes getCullmode() const {
         return cullMode;
@@ -86,6 +65,7 @@ public:
 
     void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement) override;
 
+    void deserialize(const std::string &fileName, tinyxml2::XMLElement *nodeExtensionElement);
 };
 
 

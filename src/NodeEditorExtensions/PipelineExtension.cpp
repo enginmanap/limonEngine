@@ -14,13 +14,15 @@
 #include "API/GraphicsProgram.h"
 
 
-PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, Options* options,
+PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, Options* options,
                                      const std::vector<std::string> &renderMethodNames, GraphicsPipeline::RenderMethods &renderMethods)
-        : graphicsWrapper(graphicsWrapper), options(options), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
+        : graphicsWrapper(graphicsWrapper), assetManager(assetManager), options(options), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
     {
+
         for(std::shared_ptr<Texture> texture:currentGraphicsPipeline->getTextures()) {
             usedTextures[texture->getName()] = texture;
         }
+
         //Add a texture to the list as place holder for screen
         auto texture = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 1, 1);
         usedTextures["Screen"] = texture;
@@ -201,7 +203,7 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
     ImGui::PopStyleVar();
 }
 
-void PipelineExtension::buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline) {
+void PipelineExtension::buildRenderPipelineRecursive(const Node *node[[gnu::unused]], GraphicsPipeline *graphicsPipeline[[gnu::unused]]) {
     /*
     for(const Connection* connection:node->getInputConnections()) {
         if(connection->getInput() != nullptr) {
@@ -294,5 +296,20 @@ void PipelineExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2::XML
             continue;
         }
         usedTexture->serialize(document, usedTexturesElement, options);
+    }
+}
+
+void PipelineExtension::deserialize(const std::string &fileName[[gnu::unused]], tinyxml2::XMLElement *editorExtensionElement) {
+
+    tinyxml2::XMLElement *usedTexturesElement = editorExtensionElement->FirstChildElement("UsedTextures");
+    if (usedTexturesElement == nullptr) {
+        std::cerr << "Pipeline extension doesn't have Used Textures. It is invalid" << std::endl;
+        return;
+    }
+    tinyxml2::XMLElement *textureElement = usedTexturesElement->FirstChildElement("Texture");
+    while(textureElement != nullptr) {
+        std::shared_ptr<Texture> texture = Texture::deserialize(textureElement,this->graphicsWrapper, assetManager, options);
+        usedTextures[texture->getName()] = texture;
+        textureElement = textureElement->NextSiblingElement("Texture");
     }
 }

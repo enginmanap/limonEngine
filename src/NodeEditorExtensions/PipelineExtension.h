@@ -18,14 +18,15 @@ class GraphicsPipelineStage;
 class PipelineExtension : public EditorExtension {
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;
     GraphicsInterface* graphicsWrapper = nullptr;
-    Options* options;
+    std::shared_ptr<AssetManager> assetManager; //TODO: used for deserialize textures, maybe it would be possible to avoid.
+    Options* options;//TODO: used for texture de/serialize, maybe it would be possible to avoid.
     const std::vector<std::string>& renderMethodNames;
     GraphicsPipeline::RenderMethods& renderMethods;
 
     static bool getNameOfTexture(void* data, int index, const char** outText);
 
 public:
-    PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, Options* options,
+    PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, Options* options,
                       const std::vector<std::string> &renderMethodNames, GraphicsPipeline::RenderMethods &renderMethods);
 
     void drawDetailPane(NodeGraph* nodeGraph, const std::vector<const Node *>& nodes, const Node* selectedNode) override;
@@ -39,6 +40,8 @@ public:
     }
 
     void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement) override;
+
+    void deserialize(const std::string &fileName, tinyxml2::XMLElement *editorExtensionElement) override;
 
     void buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline);
 };
