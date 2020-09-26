@@ -150,6 +150,10 @@ void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2
     iterateOverLightTypeElement->SetText(iterateOverLightType);
     stageExtensionElement->InsertEndChild(iterateOverLightTypeElement);
 
+    tinyxml2::XMLElement *renderMethodNameElement = document.NewElement("RenderMethodName");
+    renderMethodNameElement->SetText(currentMethodName.c_str());
+    stageExtensionElement->InsertEndChild(renderMethodNameElement);
+
     tinyxml2::XMLElement *outputTexturesElements = document.NewElement("OutputTextures");
     stageExtensionElement->InsertEndChild(outputTexturesElements);
 
@@ -251,6 +255,13 @@ void PipelineStageExtension::deserialize(const std::string &fileName[[gnu::unuse
         } else {
             std::cerr << "Pipeline stage extension doesn't AnyOutputMultiLayered flag value is unknown. Defaulting to true" << std::endl;
         }
+    }
+
+    tinyxml2::XMLElement *renderMethodNameElement = nodeExtensionElement->FirstChildElement("RenderMethodName");
+    if(renderMethodNameElement == nullptr || renderMethodNameElement->GetText() == nullptr) {
+        std::cerr << "Pipeline stage extension doesn't have Render method name. " << std::endl;
+    } else {
+        this->currentMethodName = renderMethodNameElement->GetText();
     }
 
     tinyxml2::XMLElement *toScreenElement = nodeExtensionElement->FirstChildElement("ToScreen");
