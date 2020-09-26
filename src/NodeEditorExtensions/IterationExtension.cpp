@@ -17,7 +17,7 @@ void IterationExtension::drawDetailPane(Node *node) {
             if (ImGui::Selectable(iterateOverList[i].c_str())) {
                 currentIterateOver = iterateOverList[i];
                 std::string baseName = node->getName().substr(0, node->getName().find("("));
-                node->setName(baseName + " (" + currentIterateOver + ")");
+                node->setDisplayName(baseName + " (" + currentIterateOver + ")");
             }
             if(currentIterateOver == iterateOverList[i]) {
                 ImGui::SetItemDefaultFocus();
