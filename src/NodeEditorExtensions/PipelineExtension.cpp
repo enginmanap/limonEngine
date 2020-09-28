@@ -201,6 +201,10 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
         }
     }
     ImGui::PopStyleVar();
+
+    for(auto message:errorMessages) {
+        nodeGraph->addError(message);
+    }
 }
 
 void PipelineExtension::buildRenderPipelineRecursive(const Node *node[[gnu::unused]], GraphicsPipeline *graphicsPipeline[[gnu::unused]]) {

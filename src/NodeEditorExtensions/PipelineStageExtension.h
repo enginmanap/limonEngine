@@ -16,6 +16,11 @@
 
 class Connection;
 class PipelineStageExtension : public NodeExtension {
+
+    struct LightType {
+        std::string name;
+        std::string outputType;
+    };
     struct OutputTextureInfo {
         std::string name;
         GraphicsInterface::FrameBufferAttachPoints attachPoint = GraphicsInterface::FrameBufferAttachPoints::NONE;
@@ -29,7 +34,8 @@ class PipelineStageExtension : public NodeExtension {
     bool anyOutputMultiLayered = false;
     bool toScreen = false;
     std::string currentMethodName = "";
-    static const std::string LIGHT_TYPES[];
+    std::string originalOutputType;
+    static const LightType LIGHT_TYPES[];
     uint32_t iterateOverLightType = 0;
     std::map<uint32_t, int> inputTextureIndexes;//connectionId to input texture index
     std::map<uint32_t, OutputTextureInfo> outputTextures; // connectionId to output information

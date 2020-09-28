@@ -21,6 +21,7 @@ class PipelineExtension : public EditorExtension {
     std::shared_ptr<AssetManager> assetManager; //TODO: used for deserialize textures, maybe it would be possible to avoid.
     Options* options;//TODO: used for texture de/serialize, maybe it would be possible to avoid.
     const std::vector<std::string>& renderMethodNames;
+    std::vector<std::string> errorMessages;
     GraphicsPipeline::RenderMethods& renderMethods;
 
     static bool getNameOfTexture(void* data, int index, const char** outText);
@@ -44,6 +45,10 @@ public:
     void deserialize(const std::string &fileName, tinyxml2::XMLElement *editorExtensionElement) override;
 
     void buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline);
+
+    void addError(const std::string& errorMessage) {
+        this->errorMessages.emplace_back(errorMessage);
+    }
 };
 
 

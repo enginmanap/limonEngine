@@ -8,7 +8,10 @@
 #include "../Graphics/Texture.h"
 #include "../Graphics/GraphicsPipeline.h"
 
-const std::string PipelineStageExtension::LIGHT_TYPES[] = {"NONE", "DIRECTIONAL", "POINT" };
+const PipelineStageExtension::LightType PipelineStageExtension::LIGHT_TYPES[] = {
+        {"NONE", ""},
+        {"DIRECTIONAL", "Texture array"},
+        {"POINT", "Cubemap array"} };
 
 void PipelineStageExtension::drawDetailPane(Node *node) {
     ImGui::Indent( 16.0f );
@@ -94,11 +97,28 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
 
         if(anyOutputMultiLayered) {
             ImGui::Text("The output is layered, what Limon should iterate over? ");
-            if (ImGui::BeginCombo("Iterate of##RenderMethodCombo", LIGHT_TYPES[iterateOverLightType].c_str())) {
+            if (ImGui::BeginCombo("Iterate of##RenderMethodCombo", LIGHT_TYPES[iterateOverLightType].name.c_str())) {
                 for (size_t i = 0; i < sizeof(LIGHT_TYPES) / sizeof(LIGHT_TYPES[0]); ++i) {
-                    const std::string &methodName = LIGHT_TYPES[i];
+                    const std::string &methodName = LIGHT_TYPES[i].name;
                     if (ImGui::Selectable(methodName.c_str())) {
-                        iterateOverLightType = i;
+                        std::vector<Connection *> outputs = node->getNonConstOutputConnections();
+                        if(outputs.size() != 1) {
+                            std::cerr << "Multiple outputs can't be handled by the iteration logic." << std::endl;
+                            this->pipelineExtension->addError("Multiple outputs can't be handled by the iteration logic.");
+                        } else {
+                            iterateOverLightType = i;
+                            if(originalOutputType.empty()) {
+                                originalOutputType = outputs[0]->getDataType();
+                            }
+                            if(LIGHT_TYPES[i].outputType.empty()) {
+                                outputs[0]->setDataType(originalOutputType);
+                            } else {
+                                outputs[0]->setDataType(LIGHT_TYPES[i].outputType);
+                            }
+
+
+                        }
+
                     }
                     if (iterateOverLightType == i) {
                         ImGui::SetItemDefaultFocus();
@@ -153,6 +173,10 @@ void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2
     tinyxml2::XMLElement *renderMethodNameElement = document.NewElement("RenderMethodName");
     renderMethodNameElement->SetText(currentMethodName.c_str());
     stageExtensionElement->InsertEndChild(renderMethodNameElement);
+
+    tinyxml2::XMLElement *originalOutputTypeElement = document.NewElement("OriginalOutputType");
+    originalOutputTypeElement->SetText(originalOutputType.c_str());
+    stageExtensionElement->InsertEndChild(originalOutputTypeElement);
 
     tinyxml2::XMLElement *outputTexturesElements = document.NewElement("OutputTextures");
     stageExtensionElement->InsertEndChild(outputTexturesElements);
@@ -258,10 +282,12 @@ void PipelineStageExtension::deserialize(const std::string &fileName[[gnu::unuse
     }
 
     tinyxml2::XMLElement *renderMethodNameElement = nodeExtensionElement->FirstChildElement("RenderMethodName");
-    if(renderMethodNameElement == nullptr || renderMethodNameElement->GetText() == nullptr) {
+    if(renderMethodNameElement == nullptr) {
         std::cerr << "Pipeline stage extension doesn't have Render method name. " << std::endl;
     } else {
-        this->currentMethodName = renderMethodNameElement->GetText();
+        if( renderMethodNameElement->GetText() != nullptr) {
+            this->currentMethodName = renderMethodNameElement->GetText();
+        }
     }
 
     tinyxml2::XMLElement *toScreenElement = nodeExtensionElement->FirstChildElement("ToScreen");
@@ -286,6 +312,16 @@ void PipelineStageExtension::deserialize(const std::string &fileName[[gnu::unuse
     } else {
         std::string iterateLightTypeString = iterateLightTypeElement->GetText();
         this->iterateOverLightType = std::stoul(iterateLightTypeString);
+    }
+
+
+    tinyxml2::XMLElement *originalOutputTypeElement = nodeExtensionElement->FirstChildElement("OriginalOutputType");
+    if(originalOutputTypeElement == nullptr) {
+        std::cerr << "Pipeline stage extension doesn't have OriginalOutputType flag. It would be assumed empty" << std::endl;
+    } else {
+        if(originalOutputTypeElement->GetText() != nullptr) {
+            this->originalOutputType = originalOutputTypeElement->GetText();
+        }
     }
 
     //deserialize the outputs.
