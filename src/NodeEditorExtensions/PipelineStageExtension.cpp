@@ -209,10 +209,11 @@ void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2
         }
         outputInfoAttachPointElement->SetText(attachPointName.c_str());
         outputInfoElement->InsertEndChild(outputInfoAttachPointElement);
-
-        tinyxml2::XMLElement *outputInfoTextureNameElement = document.NewElement("TextureName");
-        outputInfoTextureNameElement->SetText(outputInfo.texture->getName().c_str());
-        outputInfoElement->InsertEndChild(outputInfoTextureNameElement);
+        if(outputInfo.texture != nullptr) {
+            tinyxml2::XMLElement *outputInfoTextureNameElement = document.NewElement("TextureName");
+            outputInfoTextureNameElement->SetText(outputInfo.texture->getName().c_str());
+            outputInfoElement->InsertEndChild(outputInfoTextureNameElement);
+        }
     }
 }
 
