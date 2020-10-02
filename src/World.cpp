@@ -3895,7 +3895,8 @@ void World::createNodeGraph() {
     //start with predefined types
 
     NodeType* screen = new NodeType{"Screen", false, "", nullptr,{}, {}, true};
-    screen->inputConnections.push_back(ConnectionDesc{"Input", "Texture"});
+    screen->inputConnections.push_back(ConnectionDesc{"Color", "Texture"});
+    screen->inputConnections.push_back(ConnectionDesc{"Depth", "Texture"});
     nodeTypeVector.push_back(screen);
 
     NodeType* blend = new NodeType{"Blend", true, "", nullptr,{}, {}, false};

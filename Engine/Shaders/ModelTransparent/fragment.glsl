@@ -3,9 +3,7 @@
 
 #define NR_POINT_LIGHTS 4
 
-layout (location = 0) out vec4 diffuseAndSpecularLightedColor;
-layout (location = 1) out vec3 ambientColor;
-layout (location = 2) out vec3 normalOutput;
+layout (location = 0) out vec4 outputColor;
 
 layout (std140) uniform PlayerTransformBlock {
     mat4 camera;
@@ -170,14 +168,12 @@ void main(void) {
             normal = -1 * vec3(texture(normalSampler, from_vs.textureCoord));
         }
 
-        normalOutput = normal;
-
+    vec3 lightingColorFactor;
         if((material.isMap & 0x0008)!=0) {
-            ambientColor = vec3(texture(ambientSampler, from_vs.textureCoord));
+            lightingColorFactor = vec3(texture(ambientSampler, from_vs.textureCoord));
         } else {
-            ambientColor = material.ambient;
+            lightingColorFactor = material.ambient;
         }
-        vec3 lightingColorFactor = ambientColor;
 
         float shadow;
         for(int i=0; i < NR_POINT_LIGHTS; ++i){
@@ -211,10 +207,9 @@ void main(void) {
                     shadow = ShadowCalculationPoint(from_vs.fragPos, bias, viewDistance, i);
                 }
                 lightingColorFactor += ((1.0 - shadow) * (diffuseRate + specularRate) * LightSources.lights[i].color) + LightSources.lights[i].ambient;
-                ambientColor += LightSources.lights[i].ambient;
             }
         }
-        diffuseAndSpecularLightedColor = vec4(
+        outputColor = vec4(
         min(lightingColorFactor.x, 1.0),
         min(lightingColorFactor.y, 1.0),
         min(lightingColorFactor.z, 1.0),
