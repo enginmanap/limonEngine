@@ -329,5 +329,3 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
 
     return newStage;
 }
-
-

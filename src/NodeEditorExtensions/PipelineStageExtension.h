@@ -31,6 +31,8 @@ class PipelineStageExtension : public NodeExtension {
     GraphicsInterface::CullModes cullMode = GraphicsInterface::CullModes::NO_CHANGE;
     bool clearBefore = false;
     bool blendEnabled = false;
+    bool depthTestEnabled = false;
+    bool scissorTestEnabled = false;
     bool anyOutputMultiLayered = false;
     bool toScreen = false;
     std::string currentMethodName = "";
@@ -67,6 +69,14 @@ public:
 
     std::string getName() override {
         return "PipelineStageExtension";
+    }
+
+    bool isDepthTestEnabled() const {
+        return depthTestEnabled;
+    }
+
+    bool isScissorTestEnabled() const {
+        return scissorTestEnabled;
     }
 
     void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement) override;

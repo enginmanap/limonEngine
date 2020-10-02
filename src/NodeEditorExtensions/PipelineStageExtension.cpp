@@ -79,8 +79,10 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
         if (ImGui::RadioButton("Back##CullModeFromNodeExtension", cullMode == GraphicsInterface::CullModes::BACK)) { cullMode = GraphicsInterface::CullModes::BACK; }
 
         ImGui::Checkbox("Blend", &blendEnabled);
-
+        ImGui::Checkbox("Depth Test", &depthTestEnabled);
+        ImGui::Checkbox("Scissor Test", &scissorTestEnabled);
         ImGui::Checkbox("Clear", &clearBefore);
+
         if (ImGui::BeginCombo("Render Method##RenderMethodCombo", currentMethodName.c_str())) {
             static const std::vector<std::string> &methodNames = GraphicsPipeline::getRenderMethodNames();
             for (size_t i = 0; i < methodNames.size(); ++i) {
@@ -157,6 +159,14 @@ void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2
     tinyxml2::XMLElement *blendEnabledElement = document.NewElement("BlendEnabled");
     blendEnabledElement->SetText(blendEnabled ? "True" : "False");
     stageExtensionElement->InsertEndChild(blendEnabledElement);
+
+    tinyxml2::XMLElement *depthTestEnabledElement = document.NewElement("DepthTestEnabled");
+    depthTestEnabledElement->SetText(depthTestEnabled ? "True" : "False");
+    stageExtensionElement->InsertEndChild(depthTestEnabledElement);
+
+    tinyxml2::XMLElement *scissorTestEnabledElement = document.NewElement("ScissorTestEnabled");
+    scissorTestEnabledElement->SetText(scissorTestEnabled ? "True" : "False");
+    stageExtensionElement->InsertEndChild(scissorTestEnabledElement);
 
     tinyxml2::XMLElement *anyOutputMultilayeredElement = document.NewElement("AnyOutputMultiLayered");
     anyOutputMultilayeredElement->SetText(anyOutputMultiLayered ? "True" : "False");
@@ -266,7 +276,37 @@ void PipelineStageExtension::deserialize(const std::string &fileName[[gnu::unuse
             std::cerr << "Pipeline stage extension doesn't BlendEnabled flag value is unknown. Defaulting to true" << std::endl;    
         }
     }
-    
+
+    tinyxml2::XMLElement *depthTestEnabledElement = nodeExtensionElement->FirstChildElement("DepthTestEnabled");
+    this->depthTestEnabled = true;
+    if(depthTestEnabledElement == nullptr || depthTestEnabledElement->GetText() == nullptr) {
+        std::cerr << "Pipeline stage extension doesn't have DepthTestEnabled flag. Defaulting to true" << std::endl;
+    } else {
+        std::string depthTestEnabledString = depthTestEnabledElement->GetText();
+        if(depthTestEnabledString == "True") {
+            depthTestEnabled = true;
+        } else if(depthTestEnabledString == "False") {
+            depthTestEnabled =false;
+        } else {
+            std::cerr << "Pipeline stage extension doesn't DepthTestEnabled flag value is unknown. Defaulting to true" << std::endl;
+        }
+    }
+
+    tinyxml2::XMLElement *scissorTestEnabledElement = nodeExtensionElement->FirstChildElement("ScissorTestEnabled");
+    this->scissorTestEnabled = true;
+    if(scissorTestEnabledElement == nullptr || scissorTestEnabledElement->GetText() == nullptr) {
+        std::cerr << "Pipeline stage extension doesn't have ScissorTestEnabled flag. Defaulting to true" << std::endl;
+    } else {
+        std::string scissorTestEnabledString = scissorTestEnabledElement->GetText();
+        if(scissorTestEnabledString == "True") {
+            scissorTestEnabled = true;
+        } else if(scissorTestEnabledString == "False") {
+            scissorTestEnabled =false;
+        } else {
+            std::cerr << "Pipeline stage extension doesn't ScissorTestEnabled flag value is unknown. Defaulting to true" << std::endl;
+        }
+    }
+
     tinyxml2::XMLElement *anyOutputMultilayeredElement = nodeExtensionElement->FirstChildElement("AnyOutputMultiLayered");
     this->anyOutputMultiLayered = true;
     if(anyOutputMultilayeredElement == nullptr || anyOutputMultilayeredElement->GetText() == nullptr) {
