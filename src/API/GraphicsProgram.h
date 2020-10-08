@@ -24,7 +24,7 @@ class GraphicsProgram {
     std::unordered_map<std::string, const GraphicsInterface::Uniform *> uniformMap;
     std::unordered_map<std::string, uint32_t> attributesMap;
     std::unordered_map<const GraphicsInterface::Uniform *, std::string> presetUniformValues;
-    std::unordered_map<std::string, GraphicsInterface::VariableTypes>outputMap;
+    std::unordered_map<std::string, std::pair<GraphicsInterface::VariableTypes, GraphicsInterface::FrameBufferAttachPoints>>outputMap;
     bool materialRequired;
     uint32_t programID;
 
@@ -54,7 +54,7 @@ public:
         return uniformMap;
     }
 
-    const std::unordered_map<std::string, GraphicsInterface::VariableTypes> &getOutputMap() const {
+    const std::unordered_map<std::string, std::pair<GraphicsInterface::VariableTypes, GraphicsInterface::FrameBufferAttachPoints>> &getOutputMap() const {
         return outputMap;
     }
 

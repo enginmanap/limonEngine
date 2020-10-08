@@ -171,7 +171,7 @@ public:
 
     virtual uint32_t initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
                                        std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, uint32_t> &attributesMap,
-                                       std::unordered_map<std::string, VariableTypes> &outputMap) = 0;
+                                       std::unordered_map<std::string, std::pair<VariableTypes, FrameBufferAttachPoints>> &outputMap) = 0;
     virtual void destroyProgram(uint32_t programID) = 0;
 
     virtual void bufferVertexData(const std::vector<glm::vec3> &vertices,

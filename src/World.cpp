@@ -3978,7 +3978,7 @@ void World::createNodeGraph() {
         for(auto output:outputMap) {
             ConnectionDesc desc;
             desc.name = output.first;
-            switch (output.second) {
+            switch (output.second.first) {
                 case GraphicsInterface::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
                 case GraphicsInterface::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
                 case GraphicsInterface::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;

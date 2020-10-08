@@ -108,7 +108,7 @@ GLuint OpenGLGraphics::createProgram(const std::vector<GLuint> &shaderList) {
 
 uint32_t OpenGLGraphics::initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
                                            std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, uint32_t> &attributesMap,
-                                           std::unordered_map<std::string, VariableTypes> &outputMap) {
+                                           std::unordered_map<std::string, std::pair<VariableTypes, FrameBufferAttachPoints>> &outputMap) {
     GLuint program;
     std::vector<GLuint> shaderList;
     checkErrors("before create shaders");
@@ -137,7 +137,7 @@ void OpenGLGraphics::destroyProgram(uint32_t programID) {
 void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
         std::unordered_map<std::string, OpenGLGraphics::Uniform const *> &uniformMap,
         std::unordered_map<std::string, uint32_t> &attributesMap,
-        std::unordered_map<std::string, VariableTypes> &outputMap) {
+        std::unordered_map<std::string, std::pair<VariableTypes, FrameBufferAttachPoints>> &outputMap) {
     GLint i;
     GLint count;
 
@@ -191,11 +191,11 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
     bool depthAdded = false;
     for(i = 0; i < count; i++) {
         glGetProgramResourceName(program, GL_PROGRAM_OUTPUT, i, maxLength, &size, name);
-        const GLenum properties[1] = {GL_TYPE};
-        GLint typeInt;
+        const GLenum properties[2] = {GL_TYPE, GL_LOCATION};
+        GLint queryResults[2];
         VariableTypes variableType;
-        glGetProgramResourceiv(program, GL_PROGRAM_OUTPUT, i, 1, properties, 1, nullptr, &typeInt);
-        switch (typeInt) {
+        glGetProgramResourceiv(program, GL_PROGRAM_OUTPUT, i, 2, properties, 2, nullptr, queryResults);
+        switch (queryResults[0]) {
             case GL_SAMPLER_CUBE:
                 variableType = CUBEMAP;
                 break;
@@ -218,16 +218,28 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
             default:
                 variableType = UNDEFINED;
         }
+        FrameBufferAttachPoints attachPoint;
+        switch (queryResults[1]) {
+            case 0:     attachPoint=FrameBufferAttachPoints::COLOR0;  break;
+            case 1:     attachPoint=FrameBufferAttachPoints::COLOR1;  break;
+            case 2:     attachPoint=FrameBufferAttachPoints::COLOR2;  break;
+            case 3:     attachPoint=FrameBufferAttachPoints::COLOR3;  break;
+            case 4:     attachPoint=FrameBufferAttachPoints::COLOR4;  break;
+            case 5:     attachPoint=FrameBufferAttachPoints::COLOR5;  break;
+            case 6:     attachPoint=FrameBufferAttachPoints::COLOR6;  break;
+            default:    attachPoint=FrameBufferAttachPoints::NONE;
+        }
+
         if(strcmp(name, "gl_FragDepth") == 0) {
             depthAdded = true;
-            outputMap["Depth"] = variableType;
+            outputMap["Depth"] = std::make_pair(variableType, FrameBufferAttachPoints::DEPTH);
         } else {
-            outputMap[name] = variableType;
+            outputMap[name] = std::make_pair(variableType, attachPoint);
         }
 
     }
     if(!depthAdded) {
-        outputMap["Depth"] = VariableTypes::TEXTURE_2D;//Depth is always written
+        outputMap["Depth"] =std::make_pair(VariableTypes::TEXTURE_2D, FrameBufferAttachPoints::DEPTH);//Depth is always written
     }
     delete[] name;
 
