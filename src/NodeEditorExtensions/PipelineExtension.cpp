@@ -305,8 +305,9 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                         newStage->setInput(graphicsWrapper->getMaxTextureImageUnits() - 1, inputTexture);
                     } else if (connection->getName() == "pre_shadowPoint") {
                         newStage->setInput(graphicsWrapper->getMaxTextureImageUnits() - 2, inputTexture);
+                    } else {
+                        newStage->setInput(stageProgramUniforms[connection->getName()]->location, inputTexture);
                     }
-                    newStage->setInput(location++, inputTexture);
                 }
             }
         }
