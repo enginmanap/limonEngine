@@ -320,7 +320,7 @@
                     <Index>4</Index>
                 </Method>
                 <Method>
-                    <Name>Render sky</Name>
+                    <Name>Render Sky</Name>
                     <Index>5</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/SkyCube/vertex.glsl</VertexShader>

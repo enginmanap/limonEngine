@@ -47,9 +47,10 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
                         //On output change, lets check if any of the outputs is multi layered
                         for(auto & outputTexture : outputTextures) {
                             this->anyOutputMultiLayered = false;
-                            if(outputTexture.second.texture->getType() == GraphicsInterface::TextureTypes::T2D_ARRAY ||
-                               outputTexture.second.texture->getType() == GraphicsInterface::TextureTypes::TCUBE_MAP ||
-                               outputTexture.second.texture->getType() == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY
+                            if(outputTexture.second.texture != nullptr && (
+                                  outputTexture.second.texture->getType() == GraphicsInterface::TextureTypes::T2D_ARRAY ||
+                                  outputTexture.second.texture->getType() == GraphicsInterface::TextureTypes::TCUBE_MAP ||
+                                  outputTexture.second.texture->getType() == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY)
                             ) {
                                 this->anyOutputMultiLayered = true;
                                 break;
@@ -225,6 +226,23 @@ void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2
             outputInfoElement->InsertEndChild(outputInfoTextureNameElement);
         }
     }
+
+    //serialize program info.
+
+    tinyxml2::XMLElement *programInfoNameElement = document.NewElement("ProgramInfo");
+    stageExtensionElement->InsertEndChild(programInfoNameElement);
+
+    tinyxml2::XMLElement *vertexNameElement = document.NewElement("VertexShaderName");
+    vertexNameElement->SetText(programNameInfo.vertexShaderName.c_str());
+    programInfoNameElement->InsertEndChild(vertexNameElement);
+
+    tinyxml2::XMLElement *geometryNameElement = document.NewElement("GeometryShaderName");
+    geometryNameElement->SetText(programNameInfo.geometryShaderName.c_str());
+    programInfoNameElement->InsertEndChild(geometryNameElement);
+
+    tinyxml2::XMLElement *fragmentNameElement = document.NewElement("FragmentShaderName");
+    fragmentNameElement->SetText(programNameInfo.fragmentShaderName.c_str());
+    programInfoNameElement->InsertEndChild(fragmentNameElement);
 }
 
 void PipelineStageExtension::deserialize(const std::string &fileName[[gnu::unused]], tinyxml2::XMLElement *nodeExtensionElement) {
@@ -425,6 +443,36 @@ void PipelineStageExtension::deserialize(const std::string &fileName[[gnu::unuse
             }
         }
     }
+
+    tinyxml2::XMLElement *programInfoElement = nodeExtensionElement->FirstChildElement("ProgramInfo");
+    if(programInfoElement == nullptr) {
+        std::cerr << "No Program Info found for node, most likely an error." << std::endl;
+    } else {
+        ProgramNameInfo tempProgramNameInfo;
+        tinyxml2::XMLElement *vertexShaderNameElement = programInfoElement->FirstChildElement("VertexShaderName");
+        if(vertexShaderNameElement == nullptr || vertexShaderNameElement->GetText() == nullptr) {
+            std::cerr << "Program Info has no vertex Shader Name, most likely an error." << std::endl;
+        } else {
+            tempProgramNameInfo.vertexShaderName = vertexShaderNameElement->GetText();
+        }
+
+        tinyxml2::XMLElement *geometryShaderNameElement = programInfoElement->FirstChildElement("GeometryShaderName");
+        if(geometryShaderNameElement == nullptr || geometryShaderNameElement->GetText() == nullptr) {
+            std::cerr << "Program Info has no geometry Shader Name." << std::endl;
+        } else {
+            tempProgramNameInfo.geometryShaderName = geometryShaderNameElement->GetText();
+        }
+
+        tinyxml2::XMLElement *fragmentShaderNameElement = programInfoElement->FirstChildElement("FragmentShaderName");
+        if(fragmentShaderNameElement == nullptr || fragmentShaderNameElement->GetText() == nullptr) {
+            std::cerr << "Program Info has no fragment Shader Name, most likely an error." << std::endl;
+        } else {
+            tempProgramNameInfo.fragmentShaderName = fragmentShaderNameElement->GetText();
+        }
+        if(!tempProgramNameInfo.vertexShaderName.empty() && !tempProgramNameInfo.fragmentShaderName.empty()) {
+            this->programNameInfo = tempProgramNameInfo;
+        }
+    }
 }
 
 int PipelineStageExtension::getInputTextureIndex(const Connection *connection) const {
@@ -450,5 +498,14 @@ std::shared_ptr<Texture> PipelineStageExtension::getOutputTexture(const Connecti
         return nullptr;
     } else {
         return textureIt->second.texture;
+    }
+}
+
+const PipelineStageExtension::OutputTextureInfo* PipelineStageExtension::getOutputTextureInfo(const Connection* connection) const {
+    auto textureIt = outputTextures.find(connection->getId());
+    if(textureIt == outputTextures.end()) {
+        return nullptr;
+    } else {
+        return &(textureIt->second);
     }
 }

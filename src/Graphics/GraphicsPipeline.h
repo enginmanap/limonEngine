@@ -86,16 +86,16 @@ public:
                 return renderGUIImages;
             } else if(name == "Render Editor") {
                 return renderEditor;
-            } else if(name == "Render sky") {
+            } else if(name == "Render Sky") {
                 return renderSky;
             } else if(name == "Render Debug Information") {
                 return renderDebug;
             } else if(name == "Render Opaque Player Attachment") {
                 return renderPlayerAttachmentOpaque;
-            } else if(name == "Render Transparent Player Attachment") {
-                return renderPlayerAttachmentTransparent;
             } else if(name == "Render Animated Player Attachment") {
                 return renderPlayerAttachmentAnimated;
+            } else if(name == "Render Transparent Player Attachment") {
+                return renderPlayerAttachmentTransparent;
             } else if(name == "Render quad") {
                 return renderQuad;
             }
@@ -139,8 +139,6 @@ public:
             renderMethod.name = "All directional shadows";
             renderMethod.glslProgram = glslProgram;
             return renderMethod;
-
-
         }
 
         RenderMethod getRenderMethodAllPointLights(std::shared_ptr<GraphicsProgram> glslProgram) const {

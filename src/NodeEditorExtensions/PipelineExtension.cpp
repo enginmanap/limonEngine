@@ -15,7 +15,7 @@
 
 
 PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, Options* options,
-                                     const std::vector<std::string> &renderMethodNames, GraphicsPipeline::RenderMethods &renderMethods)
+                                     const std::vector<std::string> &renderMethodNames, GraphicsPipeline::RenderMethods renderMethods)
         : graphicsWrapper(graphicsWrapper), assetManager(assetManager), options(options), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
     {
 
@@ -197,7 +197,15 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
             std::cout << "Screen output not found. cancelling." << std::endl;
         } else {
             GraphicsPipeline* graphicsPipeline = new GraphicsPipeline(renderMethods);
-            buildRenderPipelineRecursive(rootNode, graphicsPipeline);
+            for(auto usedTexture:usedTextures) {
+                if(usedTexture.second != nullptr) {
+                    graphicsPipeline->addTexture(usedTexture.second);
+                }
+            }
+            std::map<const Node*, std::shared_ptr<GraphicsPipelineStage>> nodeStages;
+            buildRenderPipelineRecursive(rootNode, graphicsPipeline, nodeStages);
+            graphicsPipeline->serialize("./Data/renderPipelineBuilt.xml", options);
+            addMessage("Built new Pipeline");
         }
     }
     ImGui::PopStyleVar();
@@ -205,68 +213,139 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
     for(auto message:errorMessages) {
         nodeGraph->addError(message);
     }
+    errorMessages.clear();
+
+    for(auto message:messages) {
+        nodeGraph->addMessage(message);
+    }
+    messages.clear();
 }
 
-void PipelineExtension::buildRenderPipelineRecursive(const Node *node[[gnu::unused]], GraphicsPipeline *graphicsPipeline[[gnu::unused]]) {
-    /*
+void PipelineExtension::buildRenderPipelineRecursive(const Node *node,
+                                                     GraphicsPipeline *graphicsPipeline,
+                                                     std::map<const Node*, std::shared_ptr<GraphicsPipelineStage>>& nodeStages) {
+
+    if(nodeStages.find(node) != nodeStages.end()) {
+        return;
+    }
     for(const Connection* connection:node->getInputConnections()) {
-        if(connection->getInput() != nullptr) {
-            Node *inputNode = connection->getInput()->getParent();
-            buildRenderPipelineRecursive(inputNode, graphicsPipeline);
+        //each connection can also have multiple inputs.
+        for(Connection* connectionInputs:connection->getInputConnections()) {
+            Node *inputNode = connectionInputs->getParent();
+            if(nodeStages.find(inputNode) == nodeStages.end()) {
+                buildRenderPipelineRecursive(inputNode, graphicsPipeline, nodeStages);
+            }
         }
     }
+
     //after all inputs are put in graphics pipeline, or no input case
     auto stageExtension = dynamic_cast<PipelineStageExtension*>(node->getExtension());
 
     if(stageExtension != nullptr) {
+        //uint32_t nodeAttachmentPoints = 1;
         std::shared_ptr<GraphicsPipelineStage> newStage;
-        //FIXME this should be saved and used, not checked
-        if(node->getOutputConnections().size() == 1 && node->getOutputConnections()[0]->getName() == "Screen") {
-            newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, 1920, 1080, stageExtension->isBlendEnabled(), true);
-        } else {
-            newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, 1920, 1080, stageExtension->isBlendEnabled(), false);
+        bool toScreen = false;
+        if(!node->getOutputConnections().empty() && !node->getOutputConnections()[0]->getConnectedNodes().empty()) {
+            for(auto connection:node->getOutputConnections()) {
+                for(auto connectedNodes:connection->getConnectedNodes()){
+                    if(connectedNodes->getName() == "Screen") {
+                        toScreen = true;
+                        break;
+                    }
+                }
+                if(toScreen) {
+                    break;
+                }
+            }
         }
-        for(const Connection *connection:node->getInputConnections()) {
-            if(connection->getInput() != nullptr) {
-                auto inputStageExtension = dynamic_cast<PipelineStageExtension *>(connection->getInput()->getParent()->getExtension());
-                if (inputStageExtension != nullptr) {
-                    newStage->setInput(stageExtension->getInputTextureIndex(connection), inputStageExtension->getOutputTexture(connection->getInput()));
+        std::shared_ptr<GraphicsProgram> stageProgram;
+        if(stageExtension->getProgramNameInfo().geometryShaderName.empty()) {
+            stageProgram = graphicsWrapper->createGraphicsProgram(stageExtension->getProgramNameInfo().vertexShaderName,
+                                                                                                   stageExtension->getProgramNameInfo().fragmentShaderName,
+                                                                                                   true);//FIXME: is material required should be part of program info
+        } else {
+            stageProgram = graphicsWrapper->createGraphicsProgram(stageExtension->getProgramNameInfo().vertexShaderName,
+                                                                                                   stageExtension->getProgramNameInfo().geometryShaderName,
+                                                                                                   stageExtension->getProgramNameInfo().fragmentShaderName,
+                                                                                                   true);//FIXME: is material required should be part of program info
+        }
+
+        newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper,
+                                                           1920,
+                                                           1080,
+                                                           stageExtension->isBlendEnabled(),
+                                                           stageExtension->isDepthTestEnabled(),
+                                                           stageExtension->isScissorTestEnabled(),
+                                                           toScreen);
+        uint32_t location = 1;
+        for(const Connection *connection:node->getInputConnections()) { //connect the inputs to current stage, since all of them now have a Stage build.
+            std::shared_ptr<Texture> inputTexture = nullptr;
+            for (Connection *inputConnection:connection->getInputConnections()) {
+
+                Node *inputNode = inputConnection->getParent();
+                if (inputNode->getExtension() != nullptr) {
+                    //TODO: Extension should force all connections to use the same texture.
+                    PipelineStageExtension *inputNodeExtension = dynamic_cast<PipelineStageExtension *>(inputNode->getExtension());
+                    if(inputTexture == nullptr) {
+                        inputTexture = inputNodeExtension->getOutputTexture(inputConnection);
+                    } else {
+                        if (inputTexture->getTextureID() != inputNodeExtension->getOutputTexture(inputConnection)->getTextureID()) {
+                            std::cerr << "Different textures are set for same connection. This is illegal." << std::endl;
+                        }
+                    }
                 } else {
                     std::cerr << "Input node extension is not PipelineStageExtension, this is not handled!" << std::endl;
-                };
+                }
             }
-            std::cout << "Found input connection not feed for node " << node->getName() << " input " << connection->getName() << std::endl;
+            if(inputTexture != nullptr) {
+                auto stageProgramUniforms = stageProgram->getUniformMap();
+                if (stageProgramUniforms.find(connection->getName()) != stageProgramUniforms.end()) {
+                    //FIXME these should not be hard coded, but they are because of missing material editor.
+                    if (connection->getName() == "pre_shadowDirectional") {
+                        newStage->setInput(graphicsWrapper->getMaxTextureImageUnits() - 1, inputTexture);
+                    } else if (connection->getName() == "pre_shadowPoint") {
+                        newStage->setInput(graphicsWrapper->getMaxTextureImageUnits() - 2, inputTexture);
+                    }
+                    newStage->setInput(location++, inputTexture);
+                }
+            }
         }
 
-        //TODO for directional lights, we need to determine which one of the outputs is the texture we want. For now, we assume the last one
-        std::shared_ptr<Texture> depthMapDirectional = nullptr;
         //now handle outputs
+        // Directional depth map requires layer settings therefore it is not set by us.
+        std::shared_ptr<Texture> depthMapDirectional = nullptr;
+
         for(const Connection *connection:node->getOutputConnections()) {
-            auto frameBufferAttachmentPoint = stageExtension->getOutputTextureIndex(connection);
-            if(frameBufferAttachmentPoint != GraphicsInterface::FrameBufferAttachPoints::NONE) {
-                newStage->setOutput(frameBufferAttachmentPoint, stageExtension->getOutputTexture(connection));
-                depthMapDirectional = stageExtension->getOutputTexture(connection);
+            auto programOutputsMap = stageProgram->getOutputMap();
+            if(programOutputsMap.find(connection->getName()) != programOutputsMap.end()) {
+                auto frameBufferAttachmentPoint = programOutputsMap.find(connection->getName())->second.second;
+
+                if(stageExtension->getOutputTextureInfo(connection)->name != "Screen" &&
+                        stageExtension->getOutputTextureInfo(connection)->name != "Screen Depth" ) {//for screen we don't need to attach anything
+                    if (stageExtension->getOutputTexture(connection)->getFormat() == GraphicsInterface::FormatTypes::DEPTH &&
+                        stageExtension->getOutputTexture(connection)->getType() == GraphicsInterface::TextureTypes::T2D_ARRAY) {
+                        depthMapDirectional = stageExtension->getOutputTexture(connection);
+                    }
+                    newStage->setOutput(frameBufferAttachmentPoint, stageExtension->getOutputTexture(connection));
+
+                }
             }
         }
-
-        //TODO: The program that was used too create the node should be accessible
-        std::shared_ptr<GraphicsProgram> nodeProgram = nullptr;
         newStage->setCullMode(stageExtension->getCullmode());
         GraphicsPipeline::StageInfo stageInfo;
         stageInfo.clear = stageExtension->isClearBefore();
         stageInfo.stage = newStage;
-
         if(stageExtension->getMethodName() == "All directional shadows") {
-            GraphicsPipeline::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllDirectionalLights(newStage, depthMapDirectional, nodeProgram);
+            GraphicsPipeline::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllDirectionalLights(newStage, depthMapDirectional, stageProgram);
             stageInfo.renderMethods.emplace_back(functionToCall);
             graphicsPipeline->addNewStage(stageInfo);
         } else if(stageExtension->getMethodName() == "All point shadows") {
-            GraphicsPipeline::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllPointLights(nodeProgram);
+            GraphicsPipeline::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllPointLights(stageProgram);
             stageInfo.renderMethods.emplace_back(functionToCall);
             graphicsPipeline->addNewStage(stageInfo);
         } else {
             bool isFound = true;
-            GraphicsPipeline::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethod(stageExtension->getMethodName(), nodeProgram, isFound);
+            GraphicsPipeline::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethod(stageExtension->getMethodName(), stageProgram, isFound);
             if(isFound) {
                 stageInfo.renderMethods.emplace_back(functionToCall);
                 graphicsPipeline->addNewStage(stageInfo);
@@ -274,10 +353,10 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node[[gnu::unus
                 std::cerr << "Selected method name is invalid!" << std::endl;
             }
         }
+        nodeStages[node] = newStage;
     } else {
         std::cerr << "Extension of the node is not PipelineStageExtension, this is not handled! " << std::endl;
     }
-*/
 }
 
 void PipelineExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement) {

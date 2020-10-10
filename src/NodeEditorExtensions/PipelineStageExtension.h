@@ -16,15 +16,21 @@
 
 class Connection;
 class PipelineStageExtension : public NodeExtension {
-
-    struct LightType {
-        std::string name;
-        std::string outputType;
+public:
+    struct ProgramNameInfo {
+        std::string vertexShaderName;
+        std::string geometryShaderName;
+        std::string fragmentShaderName;
     };
     struct OutputTextureInfo {
         std::string name;
         GraphicsInterface::FrameBufferAttachPoints attachPoint = GraphicsInterface::FrameBufferAttachPoints::NONE;
         std::shared_ptr<Texture> texture = nullptr;
+    };
+private:
+    struct LightType {
+        std::string name;
+        std::string outputType;
     };
     PipelineExtension* pipelineExtension = nullptr;
 
@@ -41,8 +47,17 @@ class PipelineStageExtension : public NodeExtension {
     uint32_t iterateOverLightType = 0;
     std::map<uint32_t, int> inputTextureIndexes;//connectionId to input texture index
     std::map<uint32_t, OutputTextureInfo> outputTextures; // connectionId to output information
+    ProgramNameInfo programNameInfo;
+
 public:
-    PipelineStageExtension(PipelineExtension* pipelineExtension)  : pipelineExtension(pipelineExtension) {}
+    void setProgramNameInfo(const ProgramNameInfo &programNameInfo) {
+        PipelineStageExtension::programNameInfo = programNameInfo;
+    }
+
+public:
+
+    PipelineStageExtension(PipelineExtension* pipelineExtension, ProgramNameInfo programName)  : pipelineExtension(pipelineExtension), programNameInfo(programName) {}
+    explicit PipelineStageExtension(PipelineExtension* pipelineExtension)  : pipelineExtension(pipelineExtension) {}
     void drawDetailPane(Node *node) override;
 
     bool isClearBefore() const {
@@ -62,6 +77,7 @@ public:
     GraphicsInterface::FrameBufferAttachPoints getOutputTextureIndex(const Connection* connection) const;
 
     std::shared_ptr<Texture> getOutputTexture(const Connection* connection) const;
+    const OutputTextureInfo* getOutputTextureInfo(const Connection* connection) const;
 
     GraphicsInterface::CullModes getCullmode() const {
         return cullMode;
@@ -77,6 +93,10 @@ public:
 
     bool isScissorTestEnabled() const {
         return scissorTestEnabled;
+    }
+
+    const ProgramNameInfo &getProgramNameInfo() const {
+        return programNameInfo;
     }
 
     void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement) override;

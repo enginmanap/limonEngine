@@ -3975,7 +3975,7 @@ void World::createNodeGraph() {
         }
 
         auto outputMap = program.second.first->getOutputMap();
-        for(auto output:outputMap) {
+        for(const auto& output:outputMap) {
             ConnectionDesc desc;
             desc.name = output.first;
             switch (output.second.first) {
@@ -3993,7 +3993,12 @@ void World::createNodeGraph() {
             }
             type->outputConnections.push_back(desc);
         }
-        type->nodeExtensionConstructor = [=]() ->NodeExtension* {return new PipelineStageExtension(pipelineExtension);};
+        PipelineStageExtension::ProgramNameInfo programNameInfo;
+        programNameInfo.vertexShaderName = program.second.first->getVertexShader();
+        programNameInfo.geometryShaderName = program.second.first->getGeometryShader();
+        programNameInfo.fragmentShaderName = program.second.first->getFragmentShader();
+
+        type->nodeExtensionConstructor = [=]() ->NodeExtension* {return new PipelineStageExtension(pipelineExtension, programNameInfo);};
 
         nodeTypeVector.push_back(type);
     }

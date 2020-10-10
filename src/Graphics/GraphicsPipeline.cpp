@@ -8,7 +8,10 @@
 #include "API/RenderMethodInterface.h"
 
 //Static initialize of the vector
-std::vector<std::string> GraphicsPipeline::renderMethodNames { "None", "All directional shadows", "All point Shadow", "Opaque objects", "Animated objects", "Transparent objects", "GUI Texts", "GUI Images", "Editor", "Sky", "Debug information", "Opaque player attachments", "Animated player attachments", "Transparent player attachments", "Render quad"};
+std::vector<std::string> GraphicsPipeline::renderMethodNames{"None", "All directional shadows", "All point shadows", "Render Opaque Objects", "Render Animated Objects",
+                                                             "Render Transparent Objects", "Render GUI Texts", "Render GUI Images", "Render Editor", "Render Sky",
+                                                             "Render Debug Information", "Render Opaque Player Attachment", "Render Animated Player Attachment",
+                                                             "Render Transparent Player Attachment", "Render quad"};
 
 
 void GraphicsPipeline::render() {
