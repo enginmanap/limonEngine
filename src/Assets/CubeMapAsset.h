@@ -9,7 +9,7 @@
 #include <string>
 #include <SDL2/SDL_image.h>
 
-#include "API/GraphicsInterface.h"
+#include "API/Graphics/GraphicsInterface.h"
 #include "Graphics/Texture.h"
 #include "Asset.h"
 #include "AssetManager.h"

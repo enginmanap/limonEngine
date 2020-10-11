@@ -12,7 +12,7 @@
 #include <SDL_thread.h>
 #include <functional>
 #include <bits/shared_ptr.h>
-#include <API/GraphicsInterface.h>
+#include <API/Graphics/GraphicsInterface.h>
 #include "Options.h"
 #include "API/LimonAPI.h"
 

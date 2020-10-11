@@ -9,8 +9,8 @@
 #include <btBulletDynamicsCommon.h>
 #include <vector>
 
-#include "API/GraphicsInterface.h"
-#include "API/GraphicsProgram.h"
+#include "API/Graphics/GraphicsInterface.h"
+#include "API/Graphics/GraphicsProgram.h"
 #include "Utils/GLMConverter.h"
 #include "Options.h"
 

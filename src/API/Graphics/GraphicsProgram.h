@@ -9,7 +9,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
-#include "API/GraphicsInterface.h"
+#include "API/Graphics/GraphicsInterface.h"
 
 class GraphicsProgramLoader;
 

@@ -3,7 +3,7 @@
 //
 
 #include "OpenGLGraphics.h"
-#include "API/GraphicsProgram.h"
+#include "API/Graphics/GraphicsProgram.h"
 
 #include "GameObjects/Light.h"
 #include "Material.h"

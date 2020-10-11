@@ -176,8 +176,8 @@ set_target_properties(customTriggers PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(customTriggers PROPERTIES SOVERSION 1)
 
 add_library(GraphicsBackend SHARED
-        src/API/GraphicsInterface.cpp
-        src/API/GraphicsProgram.cpp
+        src/API/Graphics/GraphicsInterface.cpp
+        src/API/Graphics/GraphicsProgram.cpp
         GraphicBackends/OpenGLGraphics.cpp
         )
 

@@ -11,7 +11,7 @@
 #include "PipelineExtension.h"
 #include "Graphics/Texture.h"
 #include "PipelineStageExtension.h"
-#include "API/GraphicsProgram.h"
+#include "API/Graphics/GraphicsProgram.h"
 
 
 PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, Options* options,

@@ -6,7 +6,7 @@
 #include "World.h"
 #include <random>
 #include <Graphics/GraphicsPipeline.h>
-#include <API/RenderMethodInterface.h>
+#include <API/Graphics/RenderMethodInterface.h>
 #include "NodeEditorExtensions/PipelineStageExtension.h"
 #include "NodeEditorExtensions/PipelineExtension.h"
 #include "NodeEditorExtensions/IterationExtension.h"

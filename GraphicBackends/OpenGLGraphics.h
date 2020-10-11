@@ -30,7 +30,7 @@
 
 
 #include "Options.h"
-#include "API/GraphicsInterface.h"
+#include "API/Graphics/GraphicsInterface.h"
 
 class Material;
 

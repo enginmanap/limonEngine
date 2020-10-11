@@ -7,7 +7,7 @@
 
 
 #include <tinyxml2.h>
-#include <API/GraphicsProgram.h>
+#include <API/Graphics/GraphicsProgram.h>
 
 class GraphicsProgramLoader {
 public:

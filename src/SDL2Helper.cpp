@@ -10,7 +10,7 @@
 #include "API/TriggerInterface.h"
 #include "API/PlayerExtensionInterface.h"
 #include "API/ActorInterface.h"
-#include "API/RenderMethodInterface.h"
+#include "API/Graphics/RenderMethodInterface.h"
 
 
 SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {

@@ -11,7 +11,7 @@
 #include "../libs/ImGui/imgui.h"
 #include "ImGuiHelper.h"
 
-#include "API/GraphicsProgram.h"
+#include "API/Graphics/GraphicsProgram.h"
 #include "Graphics/Texture.h"
 #include "InputHandler.h"
 #include "Options.h"

@@ -4,7 +4,7 @@
 
 #include "../GraphicBackends/OpenGLGraphics.h"
 #include "main.h"
-#include "API/GraphicsInterface.h"
+#include "API/Graphics/GraphicsInterface.h"
 #include "SDL2Helper.h"
 #include "World.h"
 #include "WorldLoader.h"

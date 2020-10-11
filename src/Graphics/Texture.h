@@ -5,7 +5,7 @@
 #ifndef LIMONENGINE_TEXTURE_H
 #define LIMONENGINE_TEXTURE_H
 
-#include "API/GraphicsInterface.h"
+#include "API/Graphics/GraphicsInterface.h"
 
 class AssetManager;
 

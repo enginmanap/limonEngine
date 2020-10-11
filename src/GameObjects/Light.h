@@ -9,7 +9,7 @@
 #include <glm/gtx/norm.hpp>
 #include "glm/glm.hpp"
 #include "GameObject.h"
-#include "API/GraphicsInterface.h"
+#include "API/Graphics/GraphicsInterface.h"
 #include "../../libs/ImGui/imgui.h"
 #include "../../libs/ImGuizmo/ImGuizmo.h"
 

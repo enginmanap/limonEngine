@@ -3,9 +3,9 @@
 //
 
 #include "GraphicsPipeline.h"
-#include "API/GraphicsProgram.h"
+#include "API/Graphics/GraphicsProgram.h"
 #include "GraphicsProgramLoader.h"
-#include "API/RenderMethodInterface.h"
+#include "API/Graphics/RenderMethodInterface.h"
 
 //Static initialize of the vector
 std::vector<std::string> GraphicsPipeline::renderMethodNames{"None", "All directional shadows", "All point shadows", "Render Opaque Objects", "Render Animated Objects",
