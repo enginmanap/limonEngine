@@ -3949,27 +3949,27 @@ void World::createNodeGraph() {
                 continue;
             }
 
-            if (!(uniform.second->type == GraphicsInterface::VariableTypes::CUBEMAP ||
-                  uniform.second->type == GraphicsInterface::VariableTypes::CUBEMAP_ARRAY ||
-                  uniform.second->type == GraphicsInterface::VariableTypes::TEXTURE_2D ||
-                  uniform.second->type == GraphicsInterface::VariableTypes::TEXTURE_2D_ARRAY)) {//if not texture
+            if (!(uniform.second->type == Uniform::VariableTypes::CUBEMAP ||
+                  uniform.second->type == Uniform::VariableTypes::CUBEMAP_ARRAY ||
+                  uniform.second->type == Uniform::VariableTypes::TEXTURE_2D ||
+                  uniform.second->type == Uniform::VariableTypes::TEXTURE_2D_ARRAY)) {//if not texture
                 continue;
             }
 
             ConnectionDesc desc;
             desc.name = uniform.first;
             switch (uniform.second->type) {
-                case GraphicsInterface::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
-                case GraphicsInterface::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
-                case GraphicsInterface::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
-                case GraphicsInterface::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
-                case GraphicsInterface::VariableTypes::INT               : desc.type = "Integer"; break;
-                case GraphicsInterface::VariableTypes::FLOAT             : desc.type = "Float"; break;
-                case GraphicsInterface::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
-                case GraphicsInterface::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
-                case GraphicsInterface::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
-                case GraphicsInterface::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
-                case GraphicsInterface::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
+                case Uniform::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
+                case Uniform::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
+                case Uniform::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
+                case Uniform::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
+                case Uniform::VariableTypes::INT               : desc.type = "Integer"; break;
+                case Uniform::VariableTypes::FLOAT             : desc.type = "Float"; break;
+                case Uniform::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
+                case Uniform::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
+                case Uniform::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
+                case Uniform::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
+                case Uniform::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
             }
             type->inputConnections.push_back(desc);
         }
@@ -3979,17 +3979,17 @@ void World::createNodeGraph() {
             ConnectionDesc desc;
             desc.name = output.first;
             switch (output.second.first) {
-                case GraphicsInterface::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
-                case GraphicsInterface::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
-                case GraphicsInterface::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
-                case GraphicsInterface::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
-                case GraphicsInterface::VariableTypes::INT               : desc.type = "Integer"; break;
-                case GraphicsInterface::VariableTypes::FLOAT             : desc.type = "Float"; break;
-                case GraphicsInterface::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
-                case GraphicsInterface::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
-                case GraphicsInterface::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
-                case GraphicsInterface::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
-                case GraphicsInterface::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
+                case Uniform::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
+                case Uniform::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
+                case Uniform::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
+                case Uniform::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
+                case Uniform::VariableTypes::INT               : desc.type = "Integer"; break;
+                case Uniform::VariableTypes::FLOAT             : desc.type = "Float"; break;
+                case Uniform::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
+                case Uniform::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
+                case Uniform::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
+                case Uniform::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
+                case Uniform::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
             }
             type->outputConnections.push_back(desc);
         }

@@ -31,7 +31,7 @@ include_directories(${CMAKE_SOURCE_DIR}/src)
 file(GLOB_RECURSE SOURCE_FILES
         src/*.cpp)
 
-add_executable(LimonEngine ${SOURCE_FILES} src/Graphics/GraphicsProgramLoader.cpp src/Graphics/GraphicsProgramLoader.h)
+add_executable(LimonEngine ${SOURCE_FILES})
 
 INCLUDE(FindPkgConfig)
 

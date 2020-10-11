@@ -80,23 +80,23 @@ std::shared_ptr<GraphicsProgram> GraphicsProgramLoader::deserialize(tinyxml2::XM
                 if (newProgram->uniformMap.find(uniformName) != newProgram->uniformMap.end()) {
                     newProgram->presetUniformValues[newProgram->uniformMap[uniformName]] = value;
                     switch (newProgram->uniformMap[uniformName]->type) {
-                        case GraphicsInterface::VariableTypes::INT:
-                        case GraphicsInterface::VariableTypes::CUBEMAP:
-                        case GraphicsInterface::VariableTypes::CUBEMAP_ARRAY:
-                        case GraphicsInterface::VariableTypes::TEXTURE_2D:
-                        case GraphicsInterface::VariableTypes::TEXTURE_2D_ARRAY:
+                        case Uniform::VariableTypes::INT:
+                        case Uniform::VariableTypes::CUBEMAP:
+                        case Uniform::VariableTypes::CUBEMAP_ARRAY:
+                        case Uniform::VariableTypes::TEXTURE_2D:
+                        case Uniform::VariableTypes::TEXTURE_2D_ARRAY:
                             newProgram->setUniform(uniformName, std::stoi(value));
                             std::cout << "found preset uniform " << uniformName << " and set value to " << std::stoi(value) << std::endl;
                             break;
-                        case GraphicsInterface::VariableTypes::FLOAT:
+                        case Uniform::VariableTypes::FLOAT:
                             newProgram->setUniform(uniformName, std::stof(value));
                             std::cout << "found preset uniform " << uniformName << " and set value to " << std::stof(value) << std::endl;
                             break;
-                        case GraphicsInterface::VariableTypes::FLOAT_VEC2:
-                        case GraphicsInterface::VariableTypes::FLOAT_VEC3:
-                        case GraphicsInterface::VariableTypes::FLOAT_VEC4:
-                        case GraphicsInterface::VariableTypes::FLOAT_MAT4:
-                        case GraphicsInterface::VariableTypes::UNDEFINED:
+                        case Uniform::VariableTypes::FLOAT_VEC2:
+                        case Uniform::VariableTypes::FLOAT_VEC3:
+                        case Uniform::VariableTypes::FLOAT_VEC4:
+                        case Uniform::VariableTypes::FLOAT_MAT4:
+                        case Uniform::VariableTypes::UNDEFINED:
                             std::cerr << "Deserializing the given type is not implemented! name: " << uniformName << ", value: " << value << std::endl;
                     }
                 }

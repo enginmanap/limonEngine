@@ -108,7 +108,7 @@ GLuint OpenGLGraphics::createProgram(const std::vector<GLuint> &shaderList) {
 
 uint32_t OpenGLGraphics::initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
                                            std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, uint32_t> &attributesMap,
-                                           std::unordered_map<std::string, std::pair<VariableTypes, FrameBufferAttachPoints>> &outputMap) {
+                                           std::unordered_map<std::string, std::pair<Uniform::VariableTypes, FrameBufferAttachPoints>> &outputMap) {
     GLuint program;
     std::vector<GLuint> shaderList;
     checkErrors("before create shaders");
@@ -135,9 +135,9 @@ void OpenGLGraphics::destroyProgram(uint32_t programID) {
 }
 
 void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
-        std::unordered_map<std::string, OpenGLGraphics::Uniform const *> &uniformMap,
+        std::unordered_map<std::string, Uniform const *> &uniformMap,
         std::unordered_map<std::string, uint32_t> &attributesMap,
-        std::unordered_map<std::string, std::pair<VariableTypes, FrameBufferAttachPoints>> &outputMap) {
+        std::unordered_map<std::string, std::pair<Uniform::VariableTypes, FrameBufferAttachPoints>> &outputMap) {
     GLint i;
     GLint count;
 
@@ -193,30 +193,30 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
         glGetProgramResourceName(program, GL_PROGRAM_OUTPUT, i, maxLength, &size, name);
         const GLenum properties[2] = {GL_TYPE, GL_LOCATION};
         GLint queryResults[2];
-        VariableTypes variableType;
+        Uniform::VariableTypes variableType;
         glGetProgramResourceiv(program, GL_PROGRAM_OUTPUT, i, 2, properties, 2, nullptr, queryResults);
         switch (queryResults[0]) {
             case GL_SAMPLER_CUBE:
-                variableType = CUBEMAP;
+                variableType = Uniform::VariableTypes::CUBEMAP;
                 break;
             case GL_SAMPLER_CUBE_MAP_ARRAY_ARB:
-                variableType = CUBEMAP_ARRAY;
+                variableType = Uniform::VariableTypes::CUBEMAP_ARRAY;
                 break;
             case GL_SAMPLER_2D:
-                variableType = TEXTURE_2D;
+                variableType = Uniform::VariableTypes::TEXTURE_2D;
                 break;
             case GL_SAMPLER_2D_ARRAY:
-                variableType = TEXTURE_2D_ARRAY;
+                variableType = Uniform::VariableTypes::TEXTURE_2D_ARRAY;
                 break;
             case GL_INT:
             case GL_FLOAT:
             case GL_FLOAT_VEC2:
             case GL_FLOAT_VEC3:
             case GL_FLOAT_VEC4:
-                variableType = TEXTURE_2D;
+                variableType = Uniform::VariableTypes::TEXTURE_2D;
                 break;
             default:
-                variableType = UNDEFINED;
+                variableType = Uniform::VariableTypes::UNDEFINED;
         }
         FrameBufferAttachPoints attachPoint;
         switch (queryResults[1]) {
@@ -239,7 +239,7 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
 
     }
     if(!depthAdded) {
-        outputMap["Depth"] =std::make_pair(VariableTypes::TEXTURE_2D, FrameBufferAttachPoints::DEPTH);//Depth is always written
+        outputMap["Depth"] =std::make_pair(Uniform::VariableTypes::TEXTURE_2D, FrameBufferAttachPoints::DEPTH);//Depth is always written
     }
     delete[] name;
 

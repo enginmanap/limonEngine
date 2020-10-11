@@ -28,6 +28,8 @@
 #define NR_MAX_MATERIALS 2000
 
 #include "Options.h"
+#include "Uniform.h"
+
 class Material;
 
 class Light;
@@ -62,65 +64,6 @@ public:
     enum class TextureWrapModes {NONE, REPEAT, BORDER, EDGE};
     enum class FilterModes {NEAREST, LINEAR, TRILINEAR};
     enum class CullModes {FRONT, BACK, NONE, NO_CHANGE};
-    enum VariableTypes {
-        INT,
-        FLOAT,
-        FLOAT_VEC2,
-        FLOAT_VEC3,
-        FLOAT_VEC4,
-        FLOAT_MAT4,
-        CUBEMAP,
-        CUBEMAP_ARRAY,
-        TEXTURE_2D,
-        TEXTURE_2D_ARRAY,
-        UNDEFINED
-    };
-
-    class Uniform{
-    public:
-        unsigned int location;
-        std::string name;
-        VariableTypes type;
-        unsigned int size;
-
-        Uniform(unsigned int location, const std::string &name, GLenum typeEnum, unsigned int size) : location(
-                location), name(name), size(size) {
-            switch (typeEnum) {
-                case GL_SAMPLER_CUBE:
-                    type = CUBEMAP;
-                    break;
-                case GL_SAMPLER_CUBE_MAP_ARRAY_ARB:
-                    type = CUBEMAP_ARRAY;
-                    break;
-                case GL_SAMPLER_2D:
-                    type = TEXTURE_2D;
-                    break;
-                case GL_SAMPLER_2D_ARRAY:
-                    type = TEXTURE_2D_ARRAY;
-                    break;
-                case GL_INT:
-                    type = INT;
-                    break;
-                case GL_FLOAT:
-                    type = FLOAT;
-                    break;
-                case GL_FLOAT_VEC2:
-                    type = FLOAT_VEC2;
-                    break;
-                case GL_FLOAT_VEC3:
-                    type = FLOAT_VEC3;
-                    break;
-                case GL_FLOAT_VEC4:
-                    type = FLOAT_VEC4;
-                    break;
-                case GL_FLOAT_MAT4:
-                    type = FLOAT_MAT4;
-                    break;
-                default:
-                    type = UNDEFINED;
-            }
-        }
-    };
 
     enum FrustumSide
     {
@@ -171,7 +114,7 @@ public:
 
     virtual uint32_t initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
                                        std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, uint32_t> &attributesMap,
-                                       std::unordered_map<std::string, std::pair<VariableTypes, FrameBufferAttachPoints>> &outputMap) = 0;
+                                       std::unordered_map<std::string, std::pair<Uniform::VariableTypes, FrameBufferAttachPoints>> &outputMap) = 0;
     virtual void destroyProgram(uint32_t programID) = 0;
 
     virtual void bufferVertexData(const std::vector<glm::vec3> &vertices,

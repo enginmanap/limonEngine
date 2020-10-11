@@ -276,9 +276,9 @@ private:
     bool deleteVAO(const GLuint number, const GLuint bufferID);
 
     void fillUniformAndOutputMaps(const GLuint program,
-            std::unordered_map<std::string, OpenGLGraphics::Uniform const *> &uniformMap,
+            std::unordered_map<std::string, Uniform const *> &uniformMap,
             std::unordered_map<std::string, uint32_t> &attributesMap,
-            std::unordered_map<std::string, std::pair<VariableTypes, FrameBufferAttachPoints>> &outputMap);
+            std::unordered_map<std::string, std::pair<Uniform::VariableTypes, FrameBufferAttachPoints>> &outputMap);
 
     void attachGeneralUBOs(const GLuint program);
     void bufferExtraVertexData(uint32_t elementPerVertexCount, GLenum elementType, uint32_t dataSize,
@@ -320,7 +320,7 @@ public:
 
     uint32_t initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
                                std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, uint32_t> &attributesMap,
-                               std::unordered_map<std::string, std::pair<VariableTypes, FrameBufferAttachPoints>> &outputMap) override;
+                               std::unordered_map<std::string, std::pair<Uniform::VariableTypes, FrameBufferAttachPoints>> &outputMap) override;
     void destroyProgram(uint32_t programID) override;
 
     void bufferVertexData(const std::vector<glm::vec3> &vertices,

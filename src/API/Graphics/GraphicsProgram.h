@@ -10,21 +10,22 @@
 #include <unordered_map>
 #include <memory>
 #include "API/Graphics/GraphicsInterface.h"
+#include "API/Graphics/Uniform.h"
 
 class GraphicsProgramLoader;
 
 class GraphicsProgram {
     friend class GraphicsProgramLoader;
     GraphicsInterface* graphicsWrapper;
-    std::string programName;
-
     std::string vertexShader;
     std::string geometryShader;
     std::string fragmentShader;
-    std::unordered_map<std::string, const GraphicsInterface::Uniform *> uniformMap;
+    std::string programName;
+
+    std::unordered_map<std::string, const Uniform *> uniformMap;
     std::unordered_map<std::string, uint32_t> attributesMap;
-    std::unordered_map<const GraphicsInterface::Uniform *, std::string> presetUniformValues;
-    std::unordered_map<std::string, std::pair<GraphicsInterface::VariableTypes, GraphicsInterface::FrameBufferAttachPoints>>outputMap;
+    std::unordered_map<std::string, std::pair<Uniform::VariableTypes, GraphicsInterface::FrameBufferAttachPoints>>outputMap;
+    std::unordered_map<const Uniform *, std::string> presetUniformValues;
     bool materialRequired;
     uint32_t programID;
 
@@ -50,37 +51,37 @@ public:
 
     uint32_t getID() const { return programID; }
 
-    const std::unordered_map<std::string, const GraphicsInterface::Uniform *> &getUniformMap() const {
+    const std::unordered_map<std::string, const Uniform *> &getUniformMap() const {
         return uniformMap;
     }
 
-    const std::unordered_map<std::string, std::pair<GraphicsInterface::VariableTypes, GraphicsInterface::FrameBufferAttachPoints>> &getOutputMap() const {
+    const std::unordered_map<std::string, std::pair<Uniform::VariableTypes, GraphicsInterface::FrameBufferAttachPoints>> &getOutputMap() const {
         return outputMap;
     }
 
     bool setUniform(const std::string &uniformName, const glm::mat4 &matrix) {
-        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GraphicsInterface::FLOAT_MAT4) {
+        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == Uniform::VariableTypes::FLOAT_MAT4) {
             return graphicsWrapper->setUniform(programID, uniformMap[uniformName]->location, matrix);
         }
         return false;
     }
 
     bool setUniform(const std::string &uniformName, const glm::vec3 &vector) {
-        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GraphicsInterface::FLOAT_VEC3) {
+        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == Uniform::VariableTypes::FLOAT_VEC3) {
             return graphicsWrapper->setUniform(programID, uniformMap[uniformName]->location, vector);
         }
         return false;
     }
 
     bool setUniform(const std::string &uniformName, const std::vector<glm::vec3> &vectorArray) {
-        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GraphicsInterface::FLOAT_VEC3) {
+        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == Uniform::VariableTypes::FLOAT_VEC3) {
             return graphicsWrapper->setUniform(programID, uniformMap[uniformName]->location, vectorArray);
         }
         return false;
     }
 
     bool setUniform(const std::string &uniformName, const float value) {
-        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == GraphicsInterface::FLOAT) {
+        if (uniformMap.count(uniformName) && uniformMap[uniformName]->type == Uniform::VariableTypes::FLOAT) {
             return graphicsWrapper->setUniform(programID, uniformMap[uniformName]->location, value);
         }
         return false;
@@ -93,18 +94,18 @@ public:
  */
     bool setUniform(const std::string &uniformName, const int value) {
         if (uniformMap.count(uniformName) &&
-                    (uniformMap[uniformName]->type == GraphicsInterface::INT ||
-                     uniformMap[uniformName]->type == GraphicsInterface::CUBEMAP ||
-                     uniformMap[uniformName]->type == GraphicsInterface::CUBEMAP_ARRAY ||
-                     uniformMap[uniformName]->type == GraphicsInterface::TEXTURE_2D ||
-                     uniformMap[uniformName]->type == GraphicsInterface::TEXTURE_2D_ARRAY))  {
+                    (uniformMap[uniformName]->type == Uniform::VariableTypes::INT ||
+                     uniformMap[uniformName]->type == Uniform::VariableTypes::CUBEMAP ||
+                     uniformMap[uniformName]->type == Uniform::VariableTypes::CUBEMAP_ARRAY ||
+                     uniformMap[uniformName]->type == Uniform::VariableTypes::TEXTURE_2D ||
+                     uniformMap[uniformName]->type == Uniform::VariableTypes::TEXTURE_2D_ARRAY))  {
             return graphicsWrapper->setUniform(programID, uniformMap[uniformName]->location, value);
         }
         return false;
     }
 
     bool setUniformArray(const std::string &uniformArrayName, const std::vector<glm::mat4> &matrix) {
-        if (uniformMap.count(uniformArrayName) && uniformMap[uniformArrayName]->type == GraphicsInterface::FLOAT_MAT4) {
+        if (uniformMap.count(uniformArrayName) && uniformMap[uniformArrayName]->type == Uniform::VariableTypes::FLOAT_MAT4) {
             //FIXME this should have a control of some sort
             return graphicsWrapper->setUniformArray(programID, uniformMap[uniformArrayName]->location, matrix);
         }
