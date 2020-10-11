@@ -161,7 +161,7 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
         uniformLocation = glGetUniformLocation(program, name);
 
         //std::cout << "Uniform " << i << " Location: " << uniformLocation << " Type: " << type << " Name: " << name << std::endl;
-        uniformMap[name] = new Uniform(uniformLocation, name, type, size);
+        uniformMap[name] = new Uniform(uniformLocation, name, getVariableType(type), size);
     }
 
 
@@ -195,29 +195,7 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
         GLint queryResults[2];
         Uniform::VariableTypes variableType;
         glGetProgramResourceiv(program, GL_PROGRAM_OUTPUT, i, 2, properties, 2, nullptr, queryResults);
-        switch (queryResults[0]) {
-            case GL_SAMPLER_CUBE:
-                variableType = Uniform::VariableTypes::CUBEMAP;
-                break;
-            case GL_SAMPLER_CUBE_MAP_ARRAY_ARB:
-                variableType = Uniform::VariableTypes::CUBEMAP_ARRAY;
-                break;
-            case GL_SAMPLER_2D:
-                variableType = Uniform::VariableTypes::TEXTURE_2D;
-                break;
-            case GL_SAMPLER_2D_ARRAY:
-                variableType = Uniform::VariableTypes::TEXTURE_2D_ARRAY;
-                break;
-            case GL_INT:
-            case GL_FLOAT:
-            case GL_FLOAT_VEC2:
-            case GL_FLOAT_VEC3:
-            case GL_FLOAT_VEC4:
-                variableType = Uniform::VariableTypes::TEXTURE_2D;
-                break;
-            default:
-                variableType = Uniform::VariableTypes::UNDEFINED;
-        }
+        variableType = getSamplerVariableType(queryResults);
         FrameBufferAttachPoints attachPoint;
         switch (queryResults[1]) {
             case 0:     attachPoint=FrameBufferAttachPoints::COLOR0;  break;
@@ -244,6 +222,51 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
     delete[] name;
 
     checkErrors("fillUniformAndOutputMaps");
+}
+
+
+Uniform::VariableTypes OpenGLGraphics::getVariableType(const GLenum typeEnum) const {
+    switch (typeEnum) {
+        case GL_SAMPLER_CUBE:               return Uniform::VariableTypes::CUBEMAP;
+        case GL_SAMPLER_CUBE_MAP_ARRAY_ARB: return Uniform::VariableTypes::CUBEMAP_ARRAY;
+        case GL_SAMPLER_2D:                 return Uniform::VariableTypes::TEXTURE_2D;
+        case GL_SAMPLER_2D_ARRAY:           return Uniform::VariableTypes::TEXTURE_2D_ARRAY;
+        case GL_INT:                        return Uniform::VariableTypes::INT;
+        case GL_FLOAT:                      return Uniform::VariableTypes::FLOAT;
+        case GL_FLOAT_VEC2:                 return Uniform::VariableTypes::FLOAT_VEC2;
+        case GL_FLOAT_VEC3:                 return Uniform::VariableTypes::FLOAT_VEC3;
+        case GL_FLOAT_VEC4:                 return Uniform::VariableTypes::FLOAT_VEC4;
+        case GL_FLOAT_MAT4:                 return Uniform::VariableTypes::FLOAT_MAT4;
+        default:                            return Uniform::VariableTypes::UNDEFINED;
+    }
+}
+
+Uniform::VariableTypes OpenGLGraphics::getSamplerVariableType(const GLint *queryResults) const {
+    Uniform::VariableTypes variableType;
+    switch (queryResults[0]) {
+        case GL_SAMPLER_CUBE:
+            variableType = Uniform::VariableTypes::CUBEMAP;
+            break;
+        case GL_SAMPLER_CUBE_MAP_ARRAY_ARB:
+            variableType = Uniform::VariableTypes::CUBEMAP_ARRAY;
+            break;
+        case GL_SAMPLER_2D:
+            variableType = Uniform::VariableTypes::TEXTURE_2D;
+            break;
+        case GL_SAMPLER_2D_ARRAY:
+            variableType = Uniform::VariableTypes::TEXTURE_2D_ARRAY;
+            break;
+        case GL_INT:
+        case GL_FLOAT:
+        case GL_FLOAT_VEC2:
+        case GL_FLOAT_VEC3:
+        case GL_FLOAT_VEC4:
+            variableType = Uniform::VariableTypes::TEXTURE_2D;
+            break;
+        default:
+            variableType = Uniform::VariableTypes::UNDEFINED;
+    }
+    return variableType;
 }
 
 

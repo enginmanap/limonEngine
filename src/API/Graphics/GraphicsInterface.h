@@ -6,15 +6,6 @@
 #define LIMONENGINE_GRAPHICSINTERFACE_H
 
 
-#include <GL/glew.h>
-
-#ifdef __APPLE__
-#  include <OpenGL/gl.h>
-#else
-
-#include <GL/gl.h>
-#endif/*__APPLE__*/
-
 #include <memory>
 #include <map>
 #include <unordered_map>

@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <memory>
 
 class World;
 class WorldLoader;

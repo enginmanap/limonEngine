@@ -287,7 +287,9 @@ private:
 
     void testAndRemoveGLSLProgram(GraphicsProgram *program);
 
+    Uniform::VariableTypes getVariableType(const GLenum typeEnum) const;
 
+    Uniform::VariableTypes getSamplerVariableType(const GLint *queryResults) const;
 protected:
     uint32_t createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth) override;
 
@@ -482,7 +484,6 @@ public:
     void setScissorRect(int32_t x, int32_t y, uint32_t width, uint32_t height) {
         glScissor(x,y,width,height);
     }
-
 };
 
 
