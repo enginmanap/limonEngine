@@ -21,7 +21,7 @@ class ALHelper;
 
 class AssetManager {
 public:
-    enum AssetTypes { Asset_type_DIRECTORY, Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND, Asset_type_UNKNOWN };
+    enum AssetTypes { Asset_type_DIRECTORY, Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND, Asset_type_GRAPHICSPROGRAM, Asset_type_UNKNOWN };
 
     struct EmbeddedTexture {
         char format[9] = "\0";
@@ -130,7 +130,21 @@ public:
         loadAssetList();
     }
 
-    void loadUsingCereal(const std::vector<std::string> files);
+    void loadUsingCereal(const std::vector<std::string> files [[gnu::unused]]) {
+#ifdef CEREAL_SUPPORT
+        std::ifstream is(files[0], std::ios::binary);
+        cereal::BinaryInputArchive archive(is);
+        ModelAsset* ma = new ModelAsset();
+        archive(*ma);
+        ma->afterDeserialize(this, files);
+        assets[files] = std::make_pair(ma, 0);
+        nextAssetIndex++;
+#else
+        std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
+        std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
+        exit(-1);
+#endif
+    }
 
     template<class T>
     T *loadAsset(const std::vector<std::string> files) {

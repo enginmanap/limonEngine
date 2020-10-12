@@ -176,9 +176,9 @@ set_target_properties(customTriggers PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(customTriggers PROPERTIES SOVERSION 1)
 
 add_library(GraphicsBackend SHARED
-        src/API/Graphics/GraphicsInterface.cpp
         src/API/Graphics/GraphicsProgram.cpp
         GraphicBackends/OpenGLGraphics.cpp
+        src/Assets/GraphicsProgramAsset.cpp
         )
 
 IF (WIN32 AND NOT ( MINGW OR MSYS))

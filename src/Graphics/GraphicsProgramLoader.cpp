@@ -4,7 +4,7 @@
 
 #include "GraphicsProgramLoader.h"
 
-std::shared_ptr<GraphicsProgram> GraphicsProgramLoader::deserialize(tinyxml2::XMLElement *programNode, GraphicsInterface* graphicsWrapper) {
+std::shared_ptr<GraphicsProgram> GraphicsProgramLoader::deserialize(tinyxml2::XMLElement *programNode, std::shared_ptr<AssetManager> assetManager) {
     std::string vertexShader;
     std::string geometryShader;
     std::string fragmentShader;
@@ -59,9 +59,9 @@ std::shared_ptr<GraphicsProgram> GraphicsProgramLoader::deserialize(tinyxml2::XM
 
     std::shared_ptr<GraphicsProgram> newProgram;
     if(geometryShader.length() > 0 ) {
-        newProgram = graphicsWrapper->createGraphicsProgram(vertexShader, geometryShader, fragmentShader, materialRequired);
+        newProgram = std::make_shared<GraphicsProgram>(assetManager.get(), vertexShader, geometryShader, fragmentShader, materialRequired);
     } else {
-        newProgram = graphicsWrapper->createGraphicsProgram(vertexShader, fragmentShader, materialRequired);
+        newProgram = std::make_shared<GraphicsProgram>(assetManager.get(), vertexShader, fragmentShader, materialRequired);
     }
     if(materialRequired) {
         newProgram->setSamplersAndUBOs();
@@ -77,9 +77,9 @@ std::shared_ptr<GraphicsProgram> GraphicsProgramLoader::deserialize(tinyxml2::XM
             } else {
                 std::string uniformName = nameRaw;
                 std::string value = uniformNode->GetText();
-                if (newProgram->uniformMap.find(uniformName) != newProgram->uniformMap.end()) {
-                    newProgram->presetUniformValues[newProgram->uniformMap[uniformName]] = value;
-                    switch (newProgram->uniformMap[uniformName]->type) {
+                if (newProgram->graphicsProgramAsset->getUniformMap().find(uniformName) != newProgram->graphicsProgramAsset->getUniformMap().end()) {
+                    newProgram->presetUniformValues[newProgram->graphicsProgramAsset->getUniformMap().at(uniformName)] = value;
+                    switch (newProgram->graphicsProgramAsset->getUniformMap().at(uniformName)->type) {
                         case Uniform::VariableTypes::INT:
                         case Uniform::VariableTypes::CUBEMAP:
                         case Uniform::VariableTypes::CUBEMAP_ARRAY:
@@ -113,15 +113,15 @@ bool GraphicsProgramLoader::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     tinyxml2::XMLElement *currentElement = nullptr;
 
     currentElement = document.NewElement("VertexShader");
-    currentElement->SetText(graphicsProgram->vertexShader.c_str());
+    currentElement->SetText(graphicsProgram->graphicsProgramAsset->getVertexShader().c_str());
     programNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("GeometryShader");
-    currentElement->SetText(graphicsProgram->geometryShader.c_str());
+    currentElement->SetText(graphicsProgram->graphicsProgramAsset->getGeometryShader().c_str());
     programNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("FragmentShader");
-    currentElement->SetText(graphicsProgram->fragmentShader.c_str());
+    currentElement->SetText(graphicsProgram->graphicsProgramAsset->getFragmentShader().c_str());
     programNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("MaterialRequired");

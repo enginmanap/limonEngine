@@ -33,6 +33,7 @@ class ImGuiHelper {
     uint32_t     g_VboHandle = 0, g_colorHandle, g_UVHandle, g_VaoHandle = 0, g_ElementsHandle = 0;
     // ImGUI Data end"
 
+    std::shared_ptr<AssetManager> assetManager;
     GraphicsInterface* graphicsWrapper = nullptr;
     std::shared_ptr<GraphicsProgram> program = nullptr;
     Options* options;
@@ -81,7 +82,7 @@ class ImGuiHelper {
     }
 
 public:
-    ImGuiHelper(GraphicsInterface* graphicsWrapper, Options* options);
+    ImGuiHelper(std::shared_ptr<AssetManager> assetManager, Options* options);
     ~ImGuiHelper();
     void        NewFrame();
     bool        ProcessEvent(const InputHandler& inputHandler);

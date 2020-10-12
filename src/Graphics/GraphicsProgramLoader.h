@@ -12,7 +12,7 @@
 class GraphicsProgramLoader {
 public:
     static bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, const std::shared_ptr<GraphicsProgram> graphicsProgram);
-    static std::shared_ptr<GraphicsProgram> deserialize(tinyxml2::XMLElement *programNode, GraphicsInterface* graphicsWrapper);
+    static std::shared_ptr<GraphicsProgram> deserialize(tinyxml2::XMLElement *programNode, std::shared_ptr<AssetManager> assetManager);
 };
 
 

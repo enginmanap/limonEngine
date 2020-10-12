@@ -223,13 +223,7 @@ private:
     uint32_t renderLineCount;
     uint32_t uniformSetCount=0;
 
-    std::map<std::string, std::pair<std::shared_ptr<GraphicsProgram>, int>> loadedPrograms;
-
 public:
-
-    const std::map<std::string, std::pair<std::shared_ptr<GraphicsProgram>, int>> &getLoadedPrograms() const override {
-        return loadedPrograms;
-    }
 
     void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) override {
         triangleCount = renderTriangleCount;
@@ -276,7 +270,7 @@ private:
     bool deleteVAO(const GLuint number, const GLuint bufferID);
 
     void fillUniformAndOutputMaps(const GLuint program,
-            std::unordered_map<std::string, Uniform const *> &uniformMap,
+            std::unordered_map<std::string, std::shared_ptr<Uniform>> &uniformMap,
             std::unordered_map<std::string, uint32_t> &attributesMap,
             std::unordered_map<std::string, std::pair<Uniform::VariableTypes, FrameBufferAttachPoints>> &outputMap);
 
@@ -285,7 +279,6 @@ private:
                                const void *extraData, uint32_t &vao, uint32_t &vbo,
                                const uint32_t attachPointer);
 
-    void testAndRemoveGLSLProgram(GraphicsProgram *program);
 
     Uniform::VariableTypes getVariableType(const GLenum typeEnum) const;
 
@@ -304,13 +297,18 @@ protected:
     void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) override;
 
+    uint32_t createGraphicsProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile) override;
+
 public:
+    std::map<std::string, std::pair<std::shared_ptr<GraphicsProgram>, int>> empty;
+    const std::map<std::string, std::pair<std::shared_ptr<GraphicsProgram>, int>> &getLoadedPrograms() const override {
+
+        return empty;
+    }
+
     explicit OpenGLGraphics(Options *options);
 
     ~OpenGLGraphics();
-
-    std::shared_ptr<GraphicsProgram> createGraphicsProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) override;
-    std::shared_ptr<GraphicsProgram> createGraphicsProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) override;
 
     void attachModelUBO(const uint32_t program) override;
 
@@ -320,9 +318,11 @@ public:
         return nextMaterialIndex++;
     }
 
-    uint32_t initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
-                               std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, uint32_t> &attributesMap,
-                               std::unordered_map<std::string, std::pair<Uniform::VariableTypes, FrameBufferAttachPoints>> &outputMap) override;
+    void initializeProgramAsset(const uint32_t programId,
+                                std::unordered_map<std::string, std::shared_ptr<Uniform>> &uniformMap,
+                                std::unordered_map<std::string, uint32_t> &attributesMap,
+                                std::unordered_map<std::string, std::pair<Uniform::VariableTypes, FrameBufferAttachPoints>> &outputMap) override;
+
     void destroyProgram(uint32_t programID) override;
 
     void bufferVertexData(const std::vector<glm::vec3> &vertices,

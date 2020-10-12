@@ -206,7 +206,7 @@ bool ImGuiHelper::CreateDeviceObjects()
 {
     graphicsWrapper->backupCurrentState();
 
-    program = graphicsWrapper->createGraphicsProgram("./Engine/Shaders/ImGui/vertex.glsl",
+    program = std::make_shared<GraphicsProgram>(assetManager.get(),"./Engine/Shaders/ImGui/vertex.glsl",
                                                      "./Engine/Shaders/ImGui/fragment.glsl", true);
 
     g_AttribLocationPosition = program->getAttributeLocation("Position");
@@ -239,8 +239,8 @@ void    ImGuiHelper::InvalidateDeviceObjects() {
     }
 }
 
-ImGuiHelper::ImGuiHelper(GraphicsInterface* graphicsWrapper, Options* options) : options(options) {
-    this->graphicsWrapper = graphicsWrapper;
+ImGuiHelper::ImGuiHelper(std::shared_ptr<AssetManager> assetManager, Options* options) : assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), options(options) {
+
     context = ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.KeyMap[ImGuiKey_Tab] = SDLK_TAB;                     // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array.

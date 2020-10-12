@@ -167,7 +167,7 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
 
 
     while(stageInfoElement !=nullptr) {
-        std::shared_ptr<StageInfo> stageInfo = StageInfo::deserialize(stageInfoElement, graphicsWrapper, graphicsPipeline, graphicsPipeline->textures, options);
+        std::shared_ptr<StageInfo> stageInfo = StageInfo::deserialize(stageInfoElement, assetManager, graphicsPipeline, graphicsPipeline->textures, options);
         if(stageInfo != nullptr) {
             graphicsPipeline->addNewStage(*(stageInfo.get()));
         }
@@ -178,7 +178,7 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
 }
 
 std::shared_ptr<GraphicsPipeline::StageInfo>
-GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement, GraphicsInterface *graphicsWrapper, std::unique_ptr <GraphicsPipeline>& pipeline,
+GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement, std::shared_ptr<AssetManager> assetManager, std::unique_ptr <GraphicsPipeline>& pipeline,
                                          const std::vector<std::shared_ptr<Texture>> &textures, Options *options) {
 
     tinyxml2::XMLElement * clearElement = stageInfoElement->FirstChildElement("Clear");
@@ -242,7 +242,7 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
             return nullptr;
         }
 
-        newStageInfo->stage = GraphicsPipelineStage::deserialize(graphicsStageElement, graphicsWrapper, textures, options);
+        newStageInfo->stage = GraphicsPipelineStage::deserialize(graphicsStageElement, assetManager->getGraphicsWrapper(), textures, options);
 
         //uint32_t methodIndex = std::stoi(methodIndexElement->GetText()); //this variable is not used
 
@@ -258,7 +258,7 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
                 std::cerr << "StageInfo has no render method, but it is not tagged as such, cancelling!" << std::endl;
                 return nullptr;
             }
-            graphicsProgram = GraphicsProgramLoader::deserialize(graphicsProgramElement, graphicsWrapper);
+            graphicsProgram = GraphicsProgramLoader::deserialize(graphicsProgramElement, assetManager);
         }
 
 
@@ -284,7 +284,7 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
         while(externalMethodElement !=nullptr) {
             if(externalMethodElement->GetText() != nullptr ) {
              std::string externalMethodNameString = externalMethodElement->GetText();
-                RenderMethodInterface* externalRenderMethod = RenderMethodInterface::createRenderMethod(externalMethodNameString, graphicsWrapper);
+                RenderMethodInterface* externalRenderMethod = RenderMethodInterface::createRenderMethod(externalMethodNameString, assetManager->getGraphicsWrapper());
                 externalRenderMethod->initRender(graphicsProgram, std::vector<LimonAPI::ParameterRequest>());
                 newStageInfo->addExternalRenderMethod(externalMethodNameString, externalRenderMethod);
             }

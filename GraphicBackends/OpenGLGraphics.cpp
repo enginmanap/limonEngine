@@ -105,10 +105,7 @@ GLuint OpenGLGraphics::createProgram(const std::vector<GLuint> &shaderList) {
     return program;
 }
 
-
-uint32_t OpenGLGraphics::initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
-                                           std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, uint32_t> &attributesMap,
-                                           std::unordered_map<std::string, std::pair<Uniform::VariableTypes, FrameBufferAttachPoints>> &outputMap) {
+uint32_t OpenGLGraphics::createGraphicsProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile) {
     GLuint program;
     std::vector<GLuint> shaderList;
     checkErrors("before create shaders");
@@ -118,15 +115,22 @@ uint32_t OpenGLGraphics::initializeProgram(const std::string &vertexShaderFile, 
     }
     shaderList.push_back(createShader(GL_FRAGMENT_SHADER, fragmentShaderFile));
 
-
     program = createProgram(shaderList);
     std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
 
-    fillUniformAndOutputMaps(program, uniformMap, attributesMap, outputMap);
-    attachGeneralUBOs(program);
-
-    checkErrors("initializeProgram");
+    checkErrors("createGraphicsProgram");
     return program;
+}
+
+
+void OpenGLGraphics::initializeProgramAsset(const uint32_t programId,
+                                            std::unordered_map<std::string, std::shared_ptr<Uniform>> &uniformMap, std::unordered_map<std::string, uint32_t> &attributesMap,
+                                            std::unordered_map<std::string, std::pair<Uniform::VariableTypes, FrameBufferAttachPoints>> &outputMap) {
+
+    fillUniformAndOutputMaps(programId, uniformMap, attributesMap, outputMap);
+    attachGeneralUBOs(programId);
+
+    checkErrors("initializeProgramAsset");
 }
 
 void OpenGLGraphics::destroyProgram(uint32_t programID) {
@@ -135,7 +139,7 @@ void OpenGLGraphics::destroyProgram(uint32_t programID) {
 }
 
 void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
-        std::unordered_map<std::string, Uniform const *> &uniformMap,
+        std::unordered_map<std::string, std::shared_ptr<Uniform>> &uniformMap,
         std::unordered_map<std::string, uint32_t> &attributesMap,
         std::unordered_map<std::string, std::pair<Uniform::VariableTypes, FrameBufferAttachPoints>> &outputMap) {
     GLint i;
@@ -161,7 +165,7 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
         uniformLocation = glGetUniformLocation(program, name);
 
         //std::cout << "Uniform " << i << " Location: " << uniformLocation << " Type: " << type << " Name: " << name << std::endl;
-        uniformMap[name] = new Uniform(uniformLocation, name, getVariableType(type), size);
+        uniformMap[name] = std::make_shared<Uniform>(uniformLocation, name, getVariableType(type), size);
     }
 
 
@@ -916,7 +920,7 @@ OpenGLGraphics::~OpenGLGraphics() {
 
     //state->setProgram(0);
 }
-
+/*
 std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGraphicsProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) {
     std::string programName = vertexShader + "|" + geometryShader + "|" + fragmentShader;
     if(loadedPrograms.find(programName) == loadedPrograms.end()) {
@@ -937,22 +941,8 @@ std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGraphicsProgram(const std
         }
     return loadedPrograms[programName].first;
 }
+*/
 
-void OpenGLGraphics::testAndRemoveGLSLProgram(GraphicsProgram *program) {
-    //FIXME this is a hack until I remove loadedPrograms altogether.
-    if(loadedPrograms.find(program->getProgramName()) == loadedPrograms.end()) {
-        std::cerr << "Trying to remove a GLSL program ["<< program->getProgramName() <<"] that is not registered. Please check." << std::endl;
-        return;
-    }
-
-    int usageCount = loadedPrograms.find(program->getProgramName())->second.second;
-    if(usageCount == 1) {
-        loadedPrograms.erase(program->getProgramName());
-        std::cout << "Program: " << program->getProgramName() << " is removed." << std::endl;
-    } else {
-        usageCount = loadedPrograms.find(program->getProgramName())->second.second -= 1;
-    }
-}
 
 void OpenGLGraphics::reshape() {
     //reshape actually checks for changes on options->

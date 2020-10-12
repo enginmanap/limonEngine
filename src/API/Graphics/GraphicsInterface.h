@@ -44,7 +44,7 @@ struct Line {
 };
 
 class GraphicsInterface {
-    friend class GraphicsProgram; //TODO This is to allow access of protected method createGraphicsProgramInternal we should come up with something better
+    friend class GraphicsProgram; //TODO This is to allow access of protected method createGraphicsProgram we should come up with something better
 public:
 
     enum class TextureTypes {T2D, T2D_ARRAY, TCUBE_MAP, TCUBE_MAP_ARRAY};//Starting with digits is illegal
@@ -81,10 +81,8 @@ protected:
     virtual void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) = 0;
 
-    std::shared_ptr<GraphicsProgram> createGraphicsProgramInternal(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed, std::function<void(GraphicsProgram*)> deleterMethod);
-    std::shared_ptr<GraphicsProgram> createGraphicsProgramInternal(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed, std::function<void(GraphicsProgram*)> deleterMethod);
-
-
+    //Should be used by GraphicsProgramOnly
+    virtual uint32_t createGraphicsProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile) = 0;
 public:
 
     virtual const std::map<std::string, std::pair<std::shared_ptr<GraphicsProgram>, int>> &getLoadedPrograms() const = 0;
@@ -95,17 +93,14 @@ public:
     explicit GraphicsInterface(Options *options [[gnu::unused]]) {};
     virtual ~GraphicsInterface() {};
 
-    virtual std::shared_ptr<GraphicsProgram> createGraphicsProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) = 0;
-    virtual std::shared_ptr<GraphicsProgram> createGraphicsProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) = 0;
-
     virtual void attachModelUBO(const uint32_t program) = 0;
     virtual void attachMaterialUBO(const uint32_t program, const uint32_t materialID) = 0;
 
     virtual uint32_t getNextMaterialIndex() = 0;
 
-    virtual uint32_t initializeProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile,
-                                       std::unordered_map<std::string, const Uniform *> &uniformMap, std::unordered_map<std::string, uint32_t> &attributesMap,
-                                       std::unordered_map<std::string, std::pair<Uniform::VariableTypes, FrameBufferAttachPoints>> &outputMap) = 0;
+    virtual void initializeProgramAsset(const uint32_t programId,
+                                        std::unordered_map<std::string, std::shared_ptr<Uniform>> &uniformMap, std::unordered_map<std::string, uint32_t> &attributesMap,
+                                        std::unordered_map<std::string, std::pair<Uniform::VariableTypes, FrameBufferAttachPoints>> &outputMap) = 0;
     virtual void destroyProgram(uint32_t programID) = 0;
 
     virtual void bufferVertexData(const std::vector<glm::vec3> &vertices,

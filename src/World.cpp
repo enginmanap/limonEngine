@@ -69,7 +69,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
     dynamicsWorld->setGravity(btVector3(0, -10, 0));
-    debugDrawer = new BulletDebugDrawer(graphicsWrapper, options);
+    debugDrawer = new BulletDebugDrawer(assetManager, options);
     dynamicsWorld->setDebugDrawer(debugDrawer);
     dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_NoDebug);
     //dynamicsWorld->getDebugDrawer()->setDebugMode(dynamicsWorld->getDebugDrawer()->DBG_MAX_DEBUG_DRAW_MODE);
@@ -134,7 +134,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     /************ ImGui *****************************/
     // Setup ImGui binding
-    imgGuiHelper = new ImGuiHelper(graphicsWrapper, options);
+    imgGuiHelper = new ImGuiHelper(assetManager, options);
 }
 
    GraphicsPipeline::RenderMethods World::buildRenderMethods() {
