@@ -300,12 +300,6 @@ protected:
     uint32_t createGraphicsProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile) override;
 
 public:
-    std::map<std::string, std::pair<std::shared_ptr<GraphicsProgram>, int>> empty;
-    const std::map<std::string, std::pair<std::shared_ptr<GraphicsProgram>, int>> &getLoadedPrograms() const override {
-
-        return empty;
-    }
-
     explicit OpenGLGraphics(Options *options);
 
     ~OpenGLGraphics();

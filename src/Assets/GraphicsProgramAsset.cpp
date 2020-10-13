@@ -14,7 +14,6 @@ GraphicsProgramAsset::GraphicsProgramAsset(AssetManager *assetManager, uint32_t 
         exit(-1);
     }
     vertexShader = fileList[0];
-    std::string programName;
     if (fileList.size() == 2) {
         geometryShader = "";
         fragmentShader = fileList[1];

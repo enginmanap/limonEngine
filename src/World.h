@@ -380,6 +380,8 @@ private:
     void renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
     void renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
 
+    std::vector<std::shared_ptr<GraphicsProgram>> getAllAvailablePrograms();
+    void getAllAvailableProgramsRecursive(const AssetManager::AvailableAssetsNode * currentNode, std::vector<std::shared_ptr<GraphicsProgram>> &programs);
 
 public:
     ~World();

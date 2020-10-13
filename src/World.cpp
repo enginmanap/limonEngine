@@ -3913,7 +3913,8 @@ void World::createNodeGraph() {
                        {{"Output", "Texture"},},false};
     nodeTypeVector.push_back(iterate);
 
-    auto programs = graphicsWrapper->getLoadedPrograms();
+    std::vector<std::shared_ptr<GraphicsProgram>> programs = getAllAvailablePrograms();
+
     GraphicsPipeline::RenderMethods renderMethods;
 
     renderMethods.renderOpaqueObjects       = std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1);
@@ -3935,14 +3936,14 @@ void World::createNodeGraph() {
     pipelineExtension = new PipelineExtension(graphicsWrapper, defaultRenderPipeline, assetManager, options, GraphicsPipeline::getRenderMethodNames(), renderMethods);
 
     for(auto program:programs) {
-        std::string programName = program.first;
+        std::string programName = program->getProgramName();
         size_t startof, endof;
         endof=programName.find_last_of("/\\");
         startof = programName.substr(0,endof).find_last_of("/\\") +1;
         std::string nodeName = programName.substr(startof, endof - startof);
         NodeType* type = new NodeType{nodeName.c_str(), false, "PipelineStageExtension", nullptr, {}, {}, true};
 
-        auto uniformMap = program.second.first->getUniformMap();
+        auto uniformMap = program->getUniformMap();
         for(auto uniform:uniformMap) {
 
             if (uniform.first.rfind("pre_", 0) != 0) {
@@ -3974,7 +3975,7 @@ void World::createNodeGraph() {
             type->inputConnections.push_back(desc);
         }
 
-        auto outputMap = program.second.first->getOutputMap();
+        auto outputMap = program->getOutputMap();
         for(const auto& output:outputMap) {
             ConnectionDesc desc;
             desc.name = output.first;
@@ -3994,9 +3995,9 @@ void World::createNodeGraph() {
             type->outputConnections.push_back(desc);
         }
         PipelineStageExtension::ProgramNameInfo programNameInfo;
-        programNameInfo.vertexShaderName = program.second.first->getVertexShader();
-        programNameInfo.geometryShaderName = program.second.first->getGeometryShader();
-        programNameInfo.fragmentShaderName = program.second.first->getFragmentShader();
+        programNameInfo.vertexShaderName = program->getVertexShader();
+        programNameInfo.geometryShaderName = program->getGeometryShader();
+        programNameInfo.fragmentShaderName = program->getFragmentShader();
 
         type->nodeExtensionConstructor = [=]() ->NodeExtension* {return new PipelineStageExtension(pipelineExtension, programNameInfo);};
 
@@ -4016,3 +4017,52 @@ void World::createNodeGraph() {
         nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);
     }
 }
+
+   std::vector<std::shared_ptr<GraphicsProgram>> World::getAllAvailablePrograms() {
+       const AssetManager::AvailableAssetsNode* availableAssetsTree = assetManager->getAvailableAssetsTree();
+       std::vector<std::shared_ptr<GraphicsProgram>> programs;
+       getAllAvailableProgramsRecursive(availableAssetsTree, programs);
+       return programs;
+   }
+
+   void World::getAllAvailableProgramsRecursive(const AssetManager::AvailableAssetsNode *currentNode, std::vector<std::shared_ptr<GraphicsProgram>> &programs) {
+       if (currentNode->assetType == AssetManager::Asset_type_DIRECTORY) {
+           const AssetManager::AvailableAssetsNode *vertexShaderNode = nullptr;
+           const AssetManager::AvailableAssetsNode *geometryShaderNode = nullptr;
+           const AssetManager::AvailableAssetsNode *fragmentShaderNode = nullptr;
+           for (auto childNode:currentNode->children) {
+               if (childNode->assetType == AssetManager::Asset_type_DIRECTORY) {
+                   getAllAvailableProgramsRecursive(childNode, programs);
+               } else if (childNode->assetType == AssetManager::Asset_type_GRAPHICSPROGRAM) {
+                   if ("vertex.glsl" == childNode->name) { vertexShaderNode = childNode; }
+                   else if ("geometry.glsl" == childNode->name) { geometryShaderNode = childNode; }
+                   else if ("fragment.glsl" == childNode->name) { fragmentShaderNode = childNode; }
+               } else {
+                   continue;
+               }
+           }
+           if (vertexShaderNode != nullptr && fragmentShaderNode != nullptr) {
+               //if we have both vertex and fragment, then this is a valid program. Geometry is optional.
+               std::shared_ptr<GraphicsProgram> foundProgram;
+               if (geometryShaderNode != nullptr) {
+                   foundProgram = std::make_shared<GraphicsProgram>(assetManager.get(),
+                                                                    vertexShaderNode->fullPath,
+                                                                    geometryShaderNode->fullPath,
+                                                                    fragmentShaderNode->fullPath,
+                                                                    false);
+               } else {
+                   foundProgram = std::make_shared<GraphicsProgram>(assetManager.get(),
+                                                                    vertexShaderNode->fullPath,
+                                                                    fragmentShaderNode->fullPath,
+                                                                    false);
+               }
+               for(auto oldProgram:programs) {
+                   if(oldProgram->getProgramName() == foundProgram->getProgramName()) {
+                       std::cout << "wtf" << std::endl;
+                   }
+               }
+               programs.emplace_back(foundProgram);
+           }
+       }
+
+   }
