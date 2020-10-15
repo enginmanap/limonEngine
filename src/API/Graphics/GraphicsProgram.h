@@ -97,6 +97,8 @@ public:
         return graphicsProgramAsset->getFragmentShader();
     }
 
+    bool addPresetValue(const std::string& uniformName, const std::string& value);
+
 };
 
 #endif //LIMONENGINE_GRAPHICSPROGRAM_H

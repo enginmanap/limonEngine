@@ -303,10 +303,14 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                     //FIXME these should not be hard coded, but they are because of missing material editor.
                     if (connection->getName() == "pre_shadowDirectional") {
                         newStage->setInput(graphicsWrapper->getMaxTextureImageUnits() - 1, inputTexture);
+                        stageProgram->addPresetValue(connection->getName(), std::to_string(graphicsWrapper->getMaxTextureImageUnits() - 1));
                     } else if (connection->getName() == "pre_shadowPoint") {
                         newStage->setInput(graphicsWrapper->getMaxTextureImageUnits() - 2, inputTexture);
+                        stageProgram->addPresetValue(connection->getName(), std::to_string(graphicsWrapper->getMaxTextureImageUnits() - 2));
                     } else {
-                        newStage->setInput(stageProgramUniforms[connection->getName()]->location, inputTexture);
+                        newStage->setInput(location, inputTexture);
+                        stageProgram->addPresetValue(connection->getName(), std::to_string(location));
+                        location++;
                     }
                 }
             }

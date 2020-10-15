@@ -78,27 +78,7 @@ std::shared_ptr<GraphicsProgram> GraphicsProgramLoader::deserialize(tinyxml2::XM
                 std::string uniformName = nameRaw;
                 std::string value = uniformNode->GetText();
                 if (newProgram->graphicsProgramAsset->getUniformMap().find(uniformName) != newProgram->graphicsProgramAsset->getUniformMap().end()) {
-                    newProgram->presetUniformValues[newProgram->graphicsProgramAsset->getUniformMap().at(uniformName)] = value;
-                    switch (newProgram->graphicsProgramAsset->getUniformMap().at(uniformName)->type) {
-                        case Uniform::VariableTypes::INT:
-                        case Uniform::VariableTypes::CUBEMAP:
-                        case Uniform::VariableTypes::CUBEMAP_ARRAY:
-                        case Uniform::VariableTypes::TEXTURE_2D:
-                        case Uniform::VariableTypes::TEXTURE_2D_ARRAY:
-                            newProgram->setUniform(uniformName, std::stoi(value));
-                            std::cout << "found preset uniform " << uniformName << " and set value to " << std::stoi(value) << std::endl;
-                            break;
-                        case Uniform::VariableTypes::FLOAT:
-                            newProgram->setUniform(uniformName, std::stof(value));
-                            std::cout << "found preset uniform " << uniformName << " and set value to " << std::stof(value) << std::endl;
-                            break;
-                        case Uniform::VariableTypes::FLOAT_VEC2:
-                        case Uniform::VariableTypes::FLOAT_VEC3:
-                        case Uniform::VariableTypes::FLOAT_VEC4:
-                        case Uniform::VariableTypes::FLOAT_MAT4:
-                        case Uniform::VariableTypes::UNDEFINED:
-                            std::cerr << "Deserializing the given type is not implemented! name: " << uniformName << ", value: " << value << std::endl;
-                    }
+                    newProgram->addPresetValue(uniformName, value);
                 }
             }
             uniformNode = uniformNode->NextSiblingElement("Uniform");
