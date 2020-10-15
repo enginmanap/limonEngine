@@ -384,6 +384,7 @@ void PipelineExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2::XML
             continue;
         }
         usedTexture->serialize(document, usedTexturesElement, options);
+        std::cout << "Texture entry with name " << textureIt.first << " is serialized with id " << usedTexture->getSerializeID() << std::endl;
     }
 }
 
@@ -398,6 +399,7 @@ void PipelineExtension::deserialize(const std::string &fileName[[gnu::unused]], 
     while(textureElement != nullptr) {
         std::shared_ptr<Texture> texture = Texture::deserialize(textureElement,this->graphicsWrapper, assetManager, options);
         usedTextures[texture->getName()] = texture;
+        std::cout << "read texture with name [" << texture->getName() << "] and id " << texture->getSerializeID() << std::endl;
         textureElement = textureElement->NextSiblingElement("Texture");
     }
 }

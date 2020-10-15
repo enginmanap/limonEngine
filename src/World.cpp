@@ -3894,12 +3894,12 @@ void World::createNodeGraph() {
 
     //start with predefined types
 
-    NodeType* screen = new NodeType{"Screen", false, "", nullptr,{}, {}, true};
+    NodeType* screen = new NodeType{"Screen", false, "", nullptr,{}, {}, true, {}};
     screen->inputConnections.push_back(ConnectionDesc{"Color", "Texture"});
     screen->inputConnections.push_back(ConnectionDesc{"Depth", "Texture"});
     nodeTypeVector.push_back(screen);
 
-    NodeType* blend = new NodeType{"Blend", true, "", nullptr,{}, {}, false};
+    NodeType* blend = new NodeType{"Blend", true, "", nullptr,{}, {}, false, {}};
     blend->inputConnections.push_back(ConnectionDesc{"Input1", "Texture"});
     blend->inputConnections.push_back(ConnectionDesc{"Input2", "Texture"});
     blend->inputConnections.push_back(ConnectionDesc{"Input3", "Texture"});
@@ -3908,9 +3908,9 @@ void World::createNodeGraph() {
 
     iterationExtension = new IterationExtension();
 
-    NodeType* iterate = new NodeType{"Iterate", false, "IterationExtension", []() -> NodeExtension* {return new IterationExtension();},
+    NodeType* iterate = new NodeType{"Iterate", false, "IterationExtension", [](const NodeType* nodeType[[gnu::unused]]) -> NodeExtension* {return new IterationExtension();},
                       {{"Input", "Texture"},},
-                       {{"Output", "Texture"},},false};
+                       {{"Output", "Texture"},},false, {}};
     nodeTypeVector.push_back(iterate);
 
     std::vector<std::shared_ptr<GraphicsProgram>> programs = getAllAvailablePrograms();
@@ -3941,7 +3941,7 @@ void World::createNodeGraph() {
         endof=programName.find_last_of("/\\");
         startof = programName.substr(0,endof).find_last_of("/\\") +1;
         std::string nodeName = programName.substr(startof, endof - startof);
-        NodeType* type = new NodeType{nodeName.c_str(), false, "PipelineStageExtension", nullptr, {}, {}, true};
+        NodeType* type = new NodeType{nodeName.c_str(), false, "PipelineStageExtension", nullptr, {}, {}, true, {}};
 
         auto uniformMap = program->getUniformMap();
         for(auto uniform:uniformMap) {
@@ -3999,7 +3999,10 @@ void World::createNodeGraph() {
         programNameInfo.geometryShaderName = program->getGeometryShader();
         programNameInfo.fragmentShaderName = program->getFragmentShader();
 
-        type->nodeExtensionConstructor = [=]() ->NodeExtension* {return new PipelineStageExtension(pipelineExtension, programNameInfo);};
+        type->nodeExtensionConstructor = [=](const NodeType* nodeType[[gnu::unused]]) ->NodeExtension* {return new PipelineStageExtension(pipelineExtension, programNameInfo);};
+        type->extraVariables["vertexShaderName"] = program->getVertexShader();
+        type->extraVariables["geometryShaderName"] = program->getGeometryShader();
+        type->extraVariables["fragmentShaderName"] = program->getFragmentShader();
 
         nodeTypeVector.push_back(type);
     }
@@ -4007,11 +4010,12 @@ void World::createNodeGraph() {
     std::unordered_map<std::string, std::function<EditorExtension*()>> possibleEditorExtensions;
     possibleEditorExtensions["PipelineExtension"] = [=]() ->EditorExtension* {return pipelineExtension;};
 
-    std::unordered_map<std::string, std::function<NodeExtension*()>> possibleNodeExtensions;
-    possibleNodeExtensions["PipelineStageExtension"] = [=]() ->NodeExtension* {return new PipelineStageExtension(pipelineExtension);};
-    possibleNodeExtensions["IterationExtension"] = [=]() -> NodeExtension* {return new IterationExtension();};
+    std::unordered_map<std::string, std::function<NodeExtension*(const NodeType*)>> possibleNodeExtensions;
+    possibleNodeExtensions["PipelineStageExtension"] = [=](const NodeType* nodeType) ->NodeExtension* {return new PipelineStageExtension(nodeType, pipelineExtension);};
+    possibleNodeExtensions["IterationExtension"] = [=](const NodeType*) -> NodeExtension* {return new IterationExtension();};
 
     nodeGraph = NodeGraph::deserialize("./Data/nodeGraph.xml", possibleEditorExtensions, possibleNodeExtensions);
+
     if(nodeGraph == nullptr) {
         std::cerr << "Node deserialize failed, using empty node graph" << std::endl;
         nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);

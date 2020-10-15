@@ -56,8 +56,9 @@ public:
 
 public:
 
-    PipelineStageExtension(PipelineExtension* pipelineExtension, ProgramNameInfo programName)  : pipelineExtension(pipelineExtension), programNameInfo(programName) {}
-    explicit PipelineStageExtension(PipelineExtension* pipelineExtension)  : pipelineExtension(pipelineExtension) {}
+    PipelineStageExtension(PipelineExtension* pipelineExtension, ProgramNameInfo programName)  : NodeExtension(nullptr),
+    pipelineExtension(pipelineExtension), programNameInfo(std::move(programName)) {}
+    explicit PipelineStageExtension(const NodeType* nodeType, PipelineExtension* pipelineExtension);
     void drawDetailPane(Node *node) override;
 
     bool isClearBefore() const {

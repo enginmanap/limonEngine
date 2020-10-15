@@ -16,6 +16,8 @@ public:
         return "IterationExtension";
     }
 
+    IterationExtension() : NodeExtension(nullptr) {}
+
 private:
     std::string currentIterateOver = "None";
 };

@@ -509,3 +509,22 @@ const PipelineStageExtension::OutputTextureInfo* PipelineStageExtension::getOutp
         return &(textureIt->second);
     }
 }
+
+PipelineStageExtension::PipelineStageExtension(const NodeType *nodeType, PipelineExtension *pipelineExtension) : NodeExtension(nodeType), pipelineExtension(pipelineExtension) {
+    if(nodeType == nullptr) {
+        std::cerr << "nodeType is not set, program info can't be used." << nodeType->name << std::endl;
+        return;
+    }
+    auto& extraVariables = nodeType->extraVariables;
+    if(extraVariables.find("vertexShaderName") == extraVariables.end() ||
+        extraVariables.find("geometryShaderName") == extraVariables.end()) {
+        std::cerr << "Program info can't be found from nodeType " << nodeType->name << std::endl;
+    } else {
+        this->programNameInfo.vertexShaderName = extraVariables.at("vertexShaderName");
+        this->programNameInfo.fragmentShaderName = extraVariables.at("fragmentShaderName");
+        if(extraVariables.find("geometryShaderName") != extraVariables.end()) {
+            this->programNameInfo.geometryShaderName = extraVariables.at("geometryShaderName");
+        }
+    }
+
+}
