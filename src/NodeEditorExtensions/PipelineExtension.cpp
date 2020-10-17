@@ -244,6 +244,10 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
     //after all inputs are put in graphics pipeline, or no input case
     auto stageExtension = dynamic_cast<PipelineStageExtension*>(node->getExtension());
 
+    if(node->getExtension() != nullptr && stageExtension == nullptr) {
+        std::cerr << " extension type of node [" << node->getDisplayName() << "] is " << node->getName() << std::endl;
+    }
+
     if(stageExtension != nullptr) {
         //uint32_t nodeAttachmentPoints = 1;
         std::shared_ptr<GraphicsPipelineStage> newStage;
@@ -366,8 +370,10 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
         }
         nodeStages[node] = newStage;
     } else {
-        std::cerr << "Extension of the node is not PipelineStageExtension, this is not handled! " << std::endl;
-        return false;
+        if(node->getName() != "Screen") {//Screen is a special case
+            std::cerr << "Extension of the node [" << node->getDisplayName() << "] is not PipelineStageExtension, this is not handled! " << std::endl;
+            return false;
+        }
     }
     return true;
 }
