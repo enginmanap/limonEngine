@@ -117,7 +117,7 @@ uint32_t OpenGLGraphics::createGraphicsProgram(const std::string &vertexShaderFi
 
     program = createProgram(shaderList);
     std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
-
+    attachGeneralUBOs(program);
     checkErrors("createGraphicsProgram");
     return program;
 }
@@ -128,8 +128,6 @@ void OpenGLGraphics::initializeProgramAsset(const uint32_t programId,
                                             std::unordered_map<std::string, std::pair<Uniform::VariableTypes, FrameBufferAttachPoints>> &outputMap) {
 
     fillUniformAndOutputMaps(programId, uniformMap, attributesMap, outputMap);
-    attachGeneralUBOs(programId);
-
     checkErrors("initializeProgramAsset");
 }
 
@@ -920,29 +918,6 @@ OpenGLGraphics::~OpenGLGraphics() {
 
     //state->setProgram(0);
 }
-/*
-std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGraphicsProgram(const std::string &vertexShader, const std::string &geometryShader, const std::string &fragmentShader, bool isMaterialUsed) {
-    std::string programName = vertexShader + "|" + geometryShader + "|" + fragmentShader;
-    if(loadedPrograms.find(programName) == loadedPrograms.end()) {
-        std::shared_ptr<GraphicsProgram> program = createGraphicsProgramInternal(vertexShader, geometryShader, fragmentShader, isMaterialUsed, std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
-        loadedPrograms[programName] = std::pair<std::shared_ptr<GraphicsProgram>, int>(program, 1);
-    } else {
-        loadedPrograms[programName].second += 1;
-    }
-    return loadedPrograms[programName].first;
-}
-std::shared_ptr<GraphicsProgram> OpenGLGraphics::createGraphicsProgram(const std::string &vertexShader, const std::string &fragmentShader, bool isMaterialUsed) {
-    std::string programName = vertexShader + "|" + fragmentShader;
-        if(loadedPrograms.find(programName) == loadedPrograms.end()) {
-            std::shared_ptr<GraphicsProgram> program = createGraphicsProgramInternal(vertexShader, fragmentShader, isMaterialUsed, std::bind(&OpenGLGraphics::testAndRemoveGLSLProgram, this, std::placeholders::_1));
-            loadedPrograms[programName] = std::pair<std::shared_ptr<GraphicsProgram>, int>(program, 1);
-        } else {
-            loadedPrograms[programName].second += 1;
-        }
-    return loadedPrograms[programName].first;
-}
-*/
-
 
 void OpenGLGraphics::reshape() {
     //reshape actually checks for changes on options->
