@@ -48,6 +48,7 @@ private:
     std::map<uint32_t, int> inputTextureIndexes;//connectionId to input texture index
     std::map<uint32_t, OutputTextureInfo> outputTextures; // connectionId to output information
     ProgramNameInfo programNameInfo;
+    int32_t renderResolution[2] = {1920, 1080};
 
 public:
     void setProgramNameInfo(const ProgramNameInfo &programNameInfo) {
@@ -98,6 +99,10 @@ public:
 
     const ProgramNameInfo &getProgramNameInfo() const {
         return programNameInfo;
+    }
+
+    const int32_t *getRenderResolution() const {
+        return renderResolution;
     }
 
     void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement) override;

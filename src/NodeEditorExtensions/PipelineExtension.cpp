@@ -271,8 +271,8 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node,
         }
 
         newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper,
-                                                           1920,
-                                                           1080,
+                                                           stageExtension->getRenderResolution()[0],
+                                                           stageExtension->getRenderResolution()[1],
                                                            stageExtension->isBlendEnabled(),
                                                            stageExtension->isDepthTestEnabled(),
                                                            stageExtension->isScissorTestEnabled(),
