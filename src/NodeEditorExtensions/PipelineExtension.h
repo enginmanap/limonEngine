@@ -45,7 +45,7 @@ public:
 
     void deserialize(const std::string &fileName, tinyxml2::XMLElement *editorExtensionElement) override;
 
-    void buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline, std::map<const Node*, std::shared_ptr<GraphicsPipelineStage>>& nodeStages);
+    bool buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline, std::map<const Node*, std::shared_ptr<GraphicsPipelineStage>>& nodeStages);
 
     void addError(const std::string& errorMessage) {
         this->errorMessages.emplace_back(errorMessage);

@@ -203,9 +203,10 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
                 }
             }
             std::map<const Node*, std::shared_ptr<GraphicsPipelineStage>> nodeStages;
-            buildRenderPipelineRecursive(rootNode, graphicsPipeline, nodeStages);
-            graphicsPipeline->serialize("./Data/renderPipelineBuilt.xml", options);
-            addMessage("Built new Pipeline");
+            if(buildRenderPipelineRecursive(rootNode, graphicsPipeline, nodeStages)) {
+                graphicsPipeline->serialize("./Data/renderPipelineBuilt.xml", options);
+                addMessage("Built new Pipeline");
+            }//error message provided by recursive
         }
     }
     ImGui::PopStyleVar();
@@ -221,19 +222,21 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
     messages.clear();
 }
 
-void PipelineExtension::buildRenderPipelineRecursive(const Node *node,
+bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                                                      GraphicsPipeline *graphicsPipeline,
                                                      std::map<const Node*, std::shared_ptr<GraphicsPipelineStage>>& nodeStages) {
 
     if(nodeStages.find(node) != nodeStages.end()) {
-        return;
+        return true;
     }
     for(const Connection* connection:node->getInputConnections()) {
         //each connection can also have multiple inputs.
         for(Connection* connectionInputs:connection->getInputConnections()) {
             Node *inputNode = connectionInputs->getParent();
             if(nodeStages.find(inputNode) == nodeStages.end()) {
-                buildRenderPipelineRecursive(inputNode, graphicsPipeline, nodeStages);
+                if(!buildRenderPipelineRecursive(inputNode, graphicsPipeline, nodeStages)) {
+                    return false;//if failed in stack, fail.
+                }
             }
         }
     }
@@ -324,7 +327,10 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node,
             auto programOutputsMap = stageProgram->getOutputMap();
             if(programOutputsMap.find(connection->getName()) != programOutputsMap.end()) {
                 auto frameBufferAttachmentPoint = programOutputsMap.find(connection->getName())->second.second;
-
+                if(stageExtension->getOutputTextureInfo(connection) == nullptr) {
+                    addError("Output [" + connection->getName() + "] of node " + node->getName() + " is not set.");
+                    return false;
+                }
                 if(stageExtension->getOutputTextureInfo(connection)->name != "Screen" &&
                         stageExtension->getOutputTextureInfo(connection)->name != "Screen Depth" ) {//for screen we don't need to attach anything
                     if (stageExtension->getOutputTexture(connection)->getFormat() == GraphicsInterface::FormatTypes::DEPTH &&
@@ -361,7 +367,9 @@ void PipelineExtension::buildRenderPipelineRecursive(const Node *node,
         nodeStages[node] = newStage;
     } else {
         std::cerr << "Extension of the node is not PipelineStageExtension, this is not handled! " << std::endl;
+        return false;
     }
+    return true;
 }
 
 void PipelineExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement) {
