@@ -25,9 +25,11 @@ PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, std::sh
 
         //Add a texture to the list as place holder for screen
         auto texture = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 1, 1);
+        texture->setName("ScreenPlaceHolder");
         usedTextures["Screen"] = texture;
         auto texture2 = std::make_shared<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 1, 1);
-        usedTextures["Screen Depth"];
+        texture2->setName("ScreenDepthPlaceHolder");
+        usedTextures["Screen Depth"] = texture2;
     }
 }
 
