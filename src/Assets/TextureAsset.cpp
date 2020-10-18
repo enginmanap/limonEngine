@@ -85,6 +85,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
         exit(1);
     }
     texture->loadData(surface->pixels);
+    texture->setName(name[0]);
     SDL_FreeSurface(surface);
 }
 
