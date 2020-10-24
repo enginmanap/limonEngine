@@ -53,11 +53,13 @@ public:
 
     virtual std::vector<LimonAPI::ParameterRequest> getParameters() const = 0;
 
-    virtual bool initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonAPI::ParameterRequest> parameters) = 0;
+    virtual bool initRender(std::shared_ptr<GraphicsProgram> program[[gnu::unused]],
+                            std::vector<LimonAPI::ParameterRequest> parameters[[gnu::unused]]) { return true;};
 
-    virtual bool renderFrame(std::shared_ptr<GraphicsProgram> program, std::vector<LimonAPI::ParameterRequest> parameters) = 0;
+    virtual void renderFrame(std::shared_ptr<GraphicsProgram> program[[gnu::unused]]) {};
 
-    virtual bool cleanupRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonAPI::ParameterRequest> parameters) = 0;
+    virtual bool cleanupRender(std::shared_ptr<GraphicsProgram> program[[gnu::unused]],
+                               std::vector<LimonAPI::ParameterRequest> parameters[[gnu::unused]]) { return true;};
 
     virtual ~RenderMethodInterface() = default;
 

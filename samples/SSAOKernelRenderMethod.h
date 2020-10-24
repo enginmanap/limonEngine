@@ -20,14 +20,6 @@ public:
 
     bool initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) override;
 
-    bool renderFrame(std::shared_ptr<GraphicsProgram> program [[gnu::unused]], std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) override {
-        return true;
-    }
-
-    bool cleanupRender(std::shared_ptr<GraphicsProgram> program [[gnu::unused]], std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) override {
-        return true;
-    }
-
     std::string getName() const override {
         return "SSAOKernelRenderMethod";
     }

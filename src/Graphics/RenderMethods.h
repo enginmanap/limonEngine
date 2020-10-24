@@ -21,14 +21,41 @@ public:
         friend class RenderMethods;
 
         std::string name;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::vector<LimonAPI::ParameterRequest>&)> initializer;
         std::function<void(const std::shared_ptr<GraphicsProgram>&)> method;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::vector<LimonAPI::ParameterRequest>&)> finalizer;
         std::shared_ptr<GraphicsProgram> glslProgram;
+        bool isInitialized = false;
 
         explicit RenderMethod()= default; //private
 
     public:
         void operator()() {
+#ifndef NDEBUG
+        //only check on debug builds
+            if(!isInitialized) {
+                if(initializer == nullptr) {
+                    isInitialized = true;
+                } else {
+                    std::cerr << "RenderMethod " << name << " is not initialized, skipping." << std::endl;
+                }
+            }
+#endif
             method(glslProgram);
+        }
+
+        void initialize(const std::vector<LimonAPI::ParameterRequest>& parameters) {
+            if(this->initializer != nullptr) {
+                initializer(glslProgram, parameters);
+            }
+            isInitialized = true;
+        }
+
+        void finalize(const std::vector<LimonAPI::ParameterRequest>& parameters) {
+            if(this->finalizer != nullptr) {
+                finalizer(glslProgram, parameters);
+            }
+            isInitialized = false;
         }
 
         const std::string &getName() const {
