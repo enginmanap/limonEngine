@@ -23,13 +23,13 @@ class PipelineExtension : public EditorExtension {
     const std::vector<std::string>& renderMethodNames;
     std::vector<std::string> messages;
     std::vector<std::string> errorMessages;
-    GraphicsPipeline::RenderMethods renderMethods;
+    RenderMethods renderMethods;
 
     static bool getNameOfTexture(void* data, int index, const char** outText);
 
 public:
     PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, Options* options,
-                      const std::vector<std::string> &renderMethodNames, GraphicsPipeline::RenderMethods renderMethods);
+                      const std::vector<std::string> &renderMethodNames, RenderMethods renderMethods);
 
     void drawDetailPane(NodeGraph* nodeGraph, const std::vector<const Node *>& nodes, const Node* selectedNode) override;
 

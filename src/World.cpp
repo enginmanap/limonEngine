@@ -137,8 +137,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     imgGuiHelper = new ImGuiHelper(assetManager, options);
 }
 
-   GraphicsPipeline::RenderMethods World::buildRenderMethods() {
-       GraphicsPipeline::RenderMethods renderMethods;
+   RenderMethods World::buildRenderMethods() {
+       RenderMethods renderMethods;
 
        renderMethods.renderOpaqueObjects       = std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1);
        renderMethods.renderAnimatedObjects     = std::bind(&World::renderAnimatedObjects, this, std::placeholders::_1);
@@ -3915,7 +3915,7 @@ void World::createNodeGraph() {
 
     std::vector<std::shared_ptr<GraphicsProgram>> programs = getAllAvailablePrograms();
 
-    GraphicsPipeline::RenderMethods renderMethods;
+    RenderMethods renderMethods;
 
     renderMethods.renderOpaqueObjects       = std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1);
     renderMethods.renderAnimatedObjects     = std::bind(&World::renderAnimatedObjects, this, std::placeholders::_1);

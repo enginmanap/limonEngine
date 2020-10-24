@@ -265,13 +265,13 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
         bool isFound = true;
         if(methodName == "All directional shadows") {
             std::shared_ptr<Texture> depthMap = newStageInfo->stage->getOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH);
-            RenderMethod method  = pipeline->getRenderMethods().getRenderMethodAllDirectionalLights(newStageInfo->stage, depthMap, graphicsProgram);
+            RenderMethods::RenderMethod method  = pipeline->getRenderMethods().getRenderMethodAllDirectionalLights(newStageInfo->stage, depthMap, graphicsProgram);
             newStageInfo->addRenderMethod(method);
         } else if(methodName == "All point shadows") {
-            RenderMethod method = pipeline->getRenderMethods().getRenderMethodAllPointLights(graphicsProgram);
+            RenderMethods::RenderMethod method = pipeline->getRenderMethods().getRenderMethodAllPointLights(graphicsProgram);
             newStageInfo->addRenderMethod(method);
         } else {
-            RenderMethod method = pipeline->getRenderMethods().getRenderMethod(methodName, graphicsProgram, isFound);
+            RenderMethods::RenderMethod method = pipeline->getRenderMethods().getRenderMethod(methodName, graphicsProgram, isFound);
             if(!isFound) {
                 std::cerr << "Render method build failed, please check!" << std::endl;
                 return nullptr;

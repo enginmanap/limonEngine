@@ -403,7 +403,7 @@ public:
 
     std::string getName();
 
-    GraphicsPipeline::RenderMethods buildRenderMethods();
+    RenderMethods buildRenderMethods();
 
         /************************************ Methods LimonAPI exposes *************/
     /**

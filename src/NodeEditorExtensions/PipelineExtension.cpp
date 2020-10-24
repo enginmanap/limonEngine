@@ -15,7 +15,7 @@
 
 
 PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, Options* options,
-                                     const std::vector<std::string> &renderMethodNames, GraphicsPipeline::RenderMethods renderMethods)
+                                     const std::vector<std::string> &renderMethodNames, RenderMethods renderMethods)
         : graphicsWrapper(graphicsWrapper), assetManager(assetManager), options(options), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
     {
 
@@ -353,16 +353,16 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
         stageInfo.clear = stageExtension->isClearBefore();
         stageInfo.stage = newStage;
         if(stageExtension->getMethodName() == "All directional shadows") {
-            GraphicsPipeline::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllDirectionalLights(newStage, depthMapDirectional, stageProgram);
+            RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllDirectionalLights(newStage, depthMapDirectional, stageProgram);
             stageInfo.renderMethods.emplace_back(functionToCall);
             graphicsPipeline->addNewStage(stageInfo);
         } else if(stageExtension->getMethodName() == "All point shadows") {
-            GraphicsPipeline::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllPointLights(stageProgram);
+            RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllPointLights(stageProgram);
             stageInfo.renderMethods.emplace_back(functionToCall);
             graphicsPipeline->addNewStage(stageInfo);
         } else {
             bool isFound = true;
-            GraphicsPipeline::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethod(stageExtension->getMethodName(), stageProgram, isFound);
+            RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethod(stageExtension->getMethodName(), stageProgram, isFound);
             if(isFound) {
                 stageInfo.renderMethods.emplace_back(functionToCall);
                 graphicsPipeline->addNewStage(stageInfo);
