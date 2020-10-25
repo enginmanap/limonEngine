@@ -200,7 +200,7 @@ bool SDL2Helper::loadRenderMethods(void *objectHandle) const {
         registerFunction(&elements);
         //now add this elements to registered map
         for (auto it = elements.begin(); it != elements.end(); it++) {
-            RenderMethodInterface::registerType(it->first, it->second);
+            RenderMethodInterface::registerDynamicRenderMethod(it->first, it->second);
             std::cout << "registered RenderMethod: " << it->first << std::endl;
         }
         return true;

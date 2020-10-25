@@ -16,38 +16,38 @@ class GraphicsInterface;
 
 class RenderMethodInterface {
 /**
- * On shared library load, void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>*) function should be callable.
+ * On dynamic library load, void registerDynamicRenderMethod(std::map<std::string, RenderMethodInterface *(*constructor)(GraphicsInterface *)) function should be callable.
  *
  * This method will be called after object load.
- * For each trigger, the name of trigger and a constructor should be put in the map.
+ * For each render method, the name of trigger and a constructor should be put in the map.
  */
-    static std::map<std::string, RenderMethodInterface *(*)(GraphicsInterface *)> *typeMap;
+    static std::map<std::string, RenderMethodInterface *(*)(GraphicsInterface *)> *RenderMethodsMap;
 protected:
     GraphicsInterface *graphicsInterface = nullptr;
     static std::map<std::string, RenderMethodInterface * (*)(GraphicsInterface * )> *getMap() {
         // never delete'ed. (exist until program termination)
         // because we can't guarantee correct destruction order
-        if (!typeMap) {
-            typeMap = new std::map<std::string, RenderMethodInterface * (*)(GraphicsInterface * )>();
+        if (!RenderMethodsMap) {
+            RenderMethodsMap = new std::map<std::string, RenderMethodInterface * (*)(GraphicsInterface * )>();
         }
-        return typeMap;
+        return RenderMethodsMap;
     }
 
-    RenderMethodInterface(GraphicsInterface
+    explicit RenderMethodInterface(GraphicsInterface
     * graphicsInterface):
             graphicsInterface(graphicsInterface) {}
 
 public:
     // Not virtual
-    static std::vector<std::string> getTriggerNames() {
+    static std::vector<std::string> getRenderMethodNames() {
         std::vector<std::string> names;
-        for (auto it = typeMap->begin(); it != typeMap->end(); it++) {
-            names.push_back(it->first);
+        for (auto & it : *RenderMethodsMap) {
+            names.push_back(it.first);
         }
         return names;
     }
 
-    static void registerType(const std::string &typeName, RenderMethodInterface *(*constructor)(GraphicsInterface *)) {
+    static void registerDynamicRenderMethod(const std::string &typeName, RenderMethodInterface *(*constructor)(GraphicsInterface *)) {
         (*getMap())[typeName] = constructor;
     }
 
@@ -88,7 +88,7 @@ class RenderMethodRegister : RenderMethodInterface {
 
     virtual bool initRender(std::shared_ptr<GraphicsProgram> program [[gnu::unused]], std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {return false;};
 
-    virtual bool renderFrame(std::shared_ptr<GraphicsProgram> program [[gnu::unused]], std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {return false;};
+    virtual void renderFrame(std::shared_ptr<GraphicsProgram> program [[gnu::unused]], std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {};
 
     virtual bool cleanupRender(std::shared_ptr<GraphicsProgram> program [[gnu::unused]], std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {return false;};
 
@@ -101,8 +101,6 @@ public:
     RenderMethodRegister(std::string const &s) : RenderMethodInterface(nullptr) {
         getMap()->insert(std::make_pair(s, &createT<T>));
     }
-
-
 };
 
 
