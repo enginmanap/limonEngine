@@ -65,8 +65,8 @@ public:
 
     virtual std::string getName() const = 0;
 
-    static RenderMethodInterface *createRenderMethod(std::string const &s, GraphicsInterface *graphicsInterface) {
-        std::map<std::string, RenderMethodInterface * (*)(GraphicsInterface * )>::iterator it = getMap()->find(s);
+    static RenderMethodInterface *createRenderMethodInterfaceInstance(std::string const &methodName, GraphicsInterface *graphicsInterface) {
+        auto it = getMap()->find(methodName);
         if (it == getMap()->end()) {
             return nullptr;
         }

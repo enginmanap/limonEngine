@@ -271,7 +271,9 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
             RenderMethods::RenderMethod method = pipeline->getRenderMethods().getRenderMethodAllPointLights(graphicsProgram);
             newStageInfo->addRenderMethod(method);
         } else {
-            RenderMethods::RenderMethod method = pipeline->getRenderMethods().getRenderMethod(methodName, graphicsProgram, isFound);
+            RenderMethods::RenderMethod method = pipeline->getRenderMethods().getRenderMethod(assetManager->getGraphicsWrapper(), methodName,
+                                                                                                     graphicsProgram,
+                                                                                                     isFound);
             if(!isFound) {
                 std::cerr << "Render method build failed, please check!" << std::endl;
                 return nullptr;
@@ -284,7 +286,8 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
         while(externalMethodElement !=nullptr) {
             if(externalMethodElement->GetText() != nullptr ) {
              std::string externalMethodNameString = externalMethodElement->GetText();
-                RenderMethodInterface* externalRenderMethod = RenderMethodInterface::createRenderMethod(externalMethodNameString, assetManager->getGraphicsWrapper());
+                RenderMethodInterface* externalRenderMethod = RenderMethodInterface::createRenderMethodInterfaceInstance(
+                        externalMethodNameString, assetManager->getGraphicsWrapper());
                 externalRenderMethod->initRender(graphicsProgram, std::vector<LimonAPI::ParameterRequest>());
                 newStageInfo->addExternalRenderMethod(externalMethodNameString, externalRenderMethod);
             }

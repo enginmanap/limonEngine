@@ -362,7 +362,8 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
             graphicsPipeline->addNewStage(stageInfo);
         } else {
             bool isFound = true;
-            RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethod(stageExtension->getMethodName(), stageProgram, isFound);
+            RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethod(
+                    graphicsWrapper, stageExtension->getMethodName(), stageProgram, isFound);
             if(isFound) {
                 stageInfo.renderMethods.emplace_back(functionToCall);
                 graphicsPipeline->addNewStage(stageInfo);

@@ -21,11 +21,18 @@ class GraphicsProgram;
 class RenderMethodInterface;
 
 class GraphicsPipeline {
+    friend class SDL2Helper;
     GraphicsPipeline() = default;//used for deserialize
+
 public:
     static std::vector<std::string> renderMethodNames;//This is not array, because custom effects might be loaded on runtime as extensions.
 
-    explicit GraphicsPipeline(RenderMethods renderMethods) : renderMethods(std::move(renderMethods)) {}
+    explicit GraphicsPipeline(RenderMethods renderMethods) : renderMethods(std::move(renderMethods)) {
+        auto tempNameVector = RenderMethodInterface::getRenderMethodNames();
+        renderMethodNames.insert(renderMethodNames.end(),
+                                 tempNameVector.begin(),
+                                 tempNameVector.end());
+    }
 
     const RenderMethods &getRenderMethods() const {
         return renderMethods;

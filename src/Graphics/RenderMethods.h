@@ -10,6 +10,7 @@
 #include <functional>
 #include <utility>
 #include <API/Graphics/GraphicsProgram.h>
+#include <API/Graphics/RenderMethodInterface.h>
 #include "../GameObjects/Light.h"
 #include "GraphicsPipelineStage.h"
 
@@ -32,7 +33,11 @@ public:
                      std::function<void(const std::shared_ptr<GraphicsProgram> &, const std::vector<LimonAPI::ParameterRequest> &)> finalizer,
                      std::shared_ptr<GraphicsProgram> glslProgram) :
                      name(std::move(name)), initializer(std::move(initializer)), method(std::move(method)), finalizer(std::move(finalizer)),
-                     glslProgram(std::move(glslProgram)) {}
+                     glslProgram(std::move(glslProgram)) {
+            if(initializer == nullptr) {
+                isInitialized = true;
+            }
+        }
 
     public:
         void operator()() {
@@ -86,6 +91,7 @@ private:
 
     std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderQuad;//For offscreen stuff
 
+    mutable std::unordered_map<std::string, RenderMethodInterface*> dynamicRenderMethodInstances;// Not allowing more than one instance for now, used like a cache so mutable
     //These methods are not exposed to the interface
     //They are also not possible to add to render pipeline, so a method should be created and assigned.
     std::function<std::vector<size_t>(Light::LightTypes)> getLightsByType;
@@ -139,13 +145,46 @@ private:
         return renderLight;
     }
 
-public:
-    RenderMethod getRenderMethod(const std::string& methodName, const std::shared_ptr<GraphicsProgram>& glslProgram, bool& isFound) const {
+    RenderMethod getBuiltInRenderMethod(const std::string& methodName, const std::shared_ptr<GraphicsProgram>& glslProgram, bool& isFound) const {
         std::function<void(const std::shared_ptr<GraphicsProgram>&)> method = getRenderMethodByName(methodName, isFound);
         if(!isFound) {
             return RenderMethod("NotFound", nullptr, method, nullptr, glslProgram);
         }
         return RenderMethod(methodName, nullptr, method, nullptr, glslProgram);
+    }
+
+public:
+    RenderMethod getRenderMethod(GraphicsInterface* graphicsInterface, const std::string& methodName, const std::shared_ptr<GraphicsProgram>& glslProgram, bool& isFound) const {
+        //First check if we already created an instance
+        auto instanceIt = dynamicRenderMethodInstances.find(methodName);
+        if(instanceIt != dynamicRenderMethodInstances.end()) {
+            //use instance  for creation
+        }
+
+        //second try to get the render method from exposed interface
+        auto dynamicRenderMethodNames = RenderMethodInterface::getRenderMethodNames();
+        for (const std::string& dynamicMethodName:dynamicRenderMethodNames) {
+            if(dynamicMethodName == methodName) {
+                RenderMethodInterface * methodInterface = RenderMethodInterface::createRenderMethodInterfaceInstance(methodName, graphicsInterface);
+                dynamicRenderMethodInstances[methodName] = methodInterface;
+                if(methodInterface != nullptr) {
+                    return RenderMethod(methodName,
+                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonAPI::ParameterRequest> & params)
+                                        {return methodInterface->initRender(program, params);},
+                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program)
+                                        {return methodInterface->renderFrame(program);},
+                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonAPI::ParameterRequest> &params)
+                                        {return methodInterface->cleanupRender(program, params);},
+                        glslProgram
+                    );
+                } else {
+                    std::cerr << "Dynamic render method found but instance creation failed, check API doc for proper register steps." << std::endl;
+                }
+                break;//found but couldn't build.
+            }
+        }
+        //if we hit here, no dynamic match found, search for built in
+        return getBuiltInRenderMethod(methodName, glslProgram, isFound);
     }
 
     RenderMethod getRenderMethodAllDirectionalLights(std::shared_ptr<GraphicsPipelineStage>& stage, std::shared_ptr<Texture>& layeredDepthMap, const std::shared_ptr<GraphicsProgram>& glslProgram) const {
