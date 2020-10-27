@@ -48,12 +48,13 @@ public:
         borderColor[2] = blue;
         borderColor[3] = alpha;
         borderColorSet = true;
-        graphicsWrapper->setTextureBorder(*this);
+        graphicsWrapper->setTextureBorder(textureID, textureType, borderColorSet,
+                                          getBorderColor());
     }
 
     void setWrapModes(GraphicsInterface::TextureWrapModes wrapModeS, GraphicsInterface::TextureWrapModes wrapModeT, GraphicsInterface::TextureWrapModes wrapModeR = GraphicsInterface::TextureWrapModes::NONE) {
         if(this->wrapModeS != wrapModeS || this->wrapModeT != wrapModeT || this->wrapModeR != wrapModeR ) {
-            graphicsWrapper->setWrapMode(*this, wrapModeS, wrapModeT, wrapModeR);
+            graphicsWrapper->setWrapMode(this->getTextureID(), this->getType(), wrapModeS, wrapModeT, wrapModeR);
             this->wrapModeS = wrapModeS;
             this->wrapModeT = wrapModeT;
             this->wrapModeR = wrapModeR;
@@ -61,13 +62,14 @@ public:
     }
 
     void setFilterMode(GraphicsInterface::FilterModes filterMode) {
-        graphicsWrapper->setFilterMode(*this, filterMode);
+        graphicsWrapper->setFilterMode(textureID, textureType, filterMode);
         this->filterMode = filterMode;
     }
 
     void removeBorderColor() {
         borderColorSet = false;
-        graphicsWrapper->setTextureBorder(*this);
+        graphicsWrapper->setTextureBorder(textureID, textureType, borderColorSet,
+                                          getBorderColor());
     }
 
     bool isBorderColorSet() {

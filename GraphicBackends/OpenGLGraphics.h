@@ -288,11 +288,13 @@ protected:
 
     bool deleteTexture(GLuint textureID) override;
 
-    void setWrapMode(Texture& texture, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR) override;
+    void setWrapMode(uint32_t textureID, TextureTypes textureType, TextureWrapModes wrapModeS,
+                     TextureWrapModes wrapModeT, TextureWrapModes wrapModeR) override;
 
-    void setTextureBorder(Texture& texture) override;
+    void setTextureBorder(uint32_t textureID, TextureTypes textureType, bool isBorderColorSet,
+                          const std::vector<float> &borderColors) override;
 
-    void setFilterMode(Texture& texture, FilterModes filterMode) override;
+    void setFilterMode(uint32_t textureID, TextureTypes textureType, FilterModes filterMode) override;
 
     void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) override;

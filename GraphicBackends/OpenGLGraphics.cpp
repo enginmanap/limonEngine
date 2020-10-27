@@ -931,9 +931,10 @@ void OpenGLGraphics::reshape() {
     checkErrors("reshape");
 }
 
-void OpenGLGraphics::setWrapMode(Texture& texture, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR) {
+void OpenGLGraphics::setWrapMode(uint32_t textureID, TextureTypes textureType, TextureWrapModes wrapModeS,
+                                 TextureWrapModes wrapModeT, TextureWrapModes wrapModeR) {
     GLenum glTextureType;
-    switch (texture.getType()) {
+    switch (textureType) {
         case TextureTypes::T2D: {
             glTextureType = GL_TEXTURE_2D;
         }
@@ -955,7 +956,7 @@ void OpenGLGraphics::setWrapMode(Texture& texture, TextureWrapModes wrapModeS, T
             break;
     }
 
-    glBindTexture(glTextureType, texture.getTextureID());
+    glBindTexture(glTextureType, textureID);
     switch(wrapModeS) {
         case TextureWrapModes::NONE: std::cerr << "Wrap mode S not set, this is unexpected" << std::endl; break;
         case TextureWrapModes::BORDER: glTexParameteri(glTextureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); break;
@@ -980,9 +981,9 @@ void OpenGLGraphics::setWrapMode(Texture& texture, TextureWrapModes wrapModeS, T
     checkErrors("setWrapMode");
 }
 
-void OpenGLGraphics::setFilterMode(Texture& texture, OpenGLGraphics::FilterModes filterMode) {
+void OpenGLGraphics::setFilterMode(uint32_t textureID, TextureTypes textureType, FilterModes filterMode) {
     GLenum glTextureType;
-    switch (texture.getType()) {
+    switch (textureType) {
         case TextureTypes::T2D: {
             glTextureType = GL_TEXTURE_2D;
         }
@@ -1004,7 +1005,7 @@ void OpenGLGraphics::setFilterMode(Texture& texture, OpenGLGraphics::FilterModes
             break;
     }
 
-    glBindTexture(glTextureType, texture.getTextureID());
+    glBindTexture(glTextureType, textureID);
 
     switch (filterMode) {
         case FilterModes::NEAREST:
@@ -1024,9 +1025,10 @@ void OpenGLGraphics::setFilterMode(Texture& texture, OpenGLGraphics::FilterModes
 }
 
 
-void OpenGLGraphics::setTextureBorder(Texture& texture) {
+void OpenGLGraphics::setTextureBorder(uint32_t textureID, TextureTypes textureType, bool isBorderColorSet,
+                                      const std::vector<float> &borderColors) {
     GLenum glTextureType;
-    switch (texture.getType()) {
+    switch (textureType) {
         case TextureTypes::T2D: {
             glTextureType = GL_TEXTURE_2D;
         }
@@ -1048,18 +1050,17 @@ void OpenGLGraphics::setTextureBorder(Texture& texture) {
             break;
     }
 
-    glBindTexture(glTextureType, texture.getTextureID());
+    glBindTexture(glTextureType, textureID);
 
-    if(texture.isBorderColorSet()) {
+    if(isBorderColorSet) {
 
         glTexParameteri(glTextureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        std::vector<float> borderRequest = texture.getBorderColor();
-        if(borderRequest.size() < 4) {
+        if(borderColors.size() < 4) {
             std::cerr << "Border color don't have 4 elements, this should never happen!" << std::endl;
             std::exit(-1);
         }
-        GLfloat borderColor[] = {borderRequest[0], borderRequest[1], borderRequest[2], borderRequest[3]};
+        GLfloat borderColor[] = {borderColors[0], borderColors[1], borderColors[2], borderColors[3]};
         glTexParameterfv(glTextureType, GL_TEXTURE_BORDER_COLOR, borderColor);
     } else {
         glTexParameteri(glTextureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

@@ -72,11 +72,13 @@ protected:
 
     virtual bool deleteTexture(uint32_t textureID) = 0;
 
-    virtual void setWrapMode(Texture& texture, TextureWrapModes wrapModeS, TextureWrapModes wrapModeT, TextureWrapModes wrapModeR) = 0;
+    virtual void setWrapMode(uint32_t textureID, TextureTypes textureType, TextureWrapModes wrapModeS,
+                             TextureWrapModes wrapModeT, TextureWrapModes wrapModeR) = 0;
 
-    virtual void setTextureBorder(Texture& texture) = 0;
+    virtual void setTextureBorder(uint32_t textureID, TextureTypes textureType, bool isBorderColorSet,
+                                  const std::vector<float> &borderColors) = 0;
 
-    virtual void setFilterMode(Texture& texture, FilterModes filterMode) = 0;
+    virtual void setFilterMode(uint32_t textureID, TextureTypes textureType, FilterModes filterMode) = 0;
 
     virtual void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) = 0;
