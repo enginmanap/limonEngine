@@ -26,10 +26,9 @@ class Model : public PhysicalRenderable, public GameObject {
     uint32_t objectID;
     struct MeshMeta {
         std::shared_ptr<MeshAsset> mesh = nullptr;
-        GLSLProgram* program = nullptr;
     };
     ActorInterface *AIActor = nullptr;
-    AssetManager *assetManager;
+    std::shared_ptr<AssetManager> assetManager;
     ModelAsset *modelAsset;
 private:
     std::string animationName;
@@ -53,7 +52,7 @@ private:
     std::vector<LimonAPI::ParameterRequest> aiParameters;
     std::string lastSelectedAIName;
     std::vector<glm::mat4> boneTransforms;
-    std::map<uint_fast32_t, uint_fast32_t> boneIdCompoundChildMap;
+    std::map<uint32_t, uint32_t> boneIdCompoundChildMap;
 
     std::vector<MeshMeta *> meshMetaData;
     std::shared_ptr<Sound> stepOnSound = nullptr;
@@ -65,7 +64,7 @@ private:
     int specularMapAttachPoint = 3;
     int opacityMapAttachPoint = 4;
     int normalMapAttachPoint = 5;
-    uint_fast32_t triangleCount;
+    uint32_t triangleCount;
     int32_t selectedBoneID = -1;
     std::map<uint32_t, Transformation*> exposedBoneTransforms;
 
@@ -73,38 +72,34 @@ private:
                                   const ImGuiRequest &request, std::string &lastSelectedAIName);
 
 public:
-    Model(uint32_t objectID, AssetManager *assetManager, const std::string &modelFile) : Model(objectID, assetManager,
+    Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const std::string &modelFile) : Model(objectID, assetManager,
                                                                                                0, modelFile, false) {};
 
-    Model(uint32_t objectID, AssetManager *assetManager, const float mass, const std::string &modelFile,
+    Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const float mass, const std::string &modelFile,
               bool disconnected);
 
     Model(const Model& otherModel, uint32_t objectID); //kind of copy constructor, except ID
 
     void transformChangeCallback() {
         PhysicalRenderable::updatePhysicsFromTransform();
-        glHelper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
+        graphicsWrapper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
     }
 
     void updateTransformFromPhysics() override {
         PhysicalRenderable::updateTransformFromPhysics();
-        glHelper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
+        graphicsWrapper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
     }
 
-    void setSamplersAndUBOs(GLSLProgram *program, bool setOpacity);
     void activateTexturesOnly(std::shared_ptr<const Material> material);
 
     bool setupRenderVariables(MeshMeta *meshMetaData);
 
     void setupForTime(long time);
 
-    void render();
+    void renderWithProgram(std::shared_ptr<GraphicsProgram> program);
 
-    void renderWithProgram(GLSLProgram &program);
 
-    void renderInstanced(std::vector<uint32_t> &modelIndices);
-
-    void renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GLSLProgram &program);
+    void renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GraphicsProgram &program);
 
     bool isAnimated() const { return animated;}
 

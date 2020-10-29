@@ -135,6 +135,15 @@ public:
     }
 
     ~Transformation() {
+        disconnectFromStack();
+    }
+
+    Transformation(const Transformation& otherTransformation) {
+        generateWorldTransform = std::bind(&Transformation::generateWorldTransformDefault, this);
+        copyFromOtherTransform(otherTransformation);
+    }
+
+    void disconnectFromStack() {
         std::vector<Transformation*> childTransformsBackup = childTransforms;//why backup? because remove parent invalidates
         for (auto iterator = childTransformsBackup.begin(); iterator != childTransformsBackup.end(); ++iterator) {
             (*iterator)->removeParentTransform();
@@ -142,50 +151,33 @@ public:
         removeParentTransform();
     }
 
-    Transformation(const Transformation& otherTransformation) {
-        generateWorldTransform = std::bind(&Transformation::generateWorldTransformDefault, this);
+    void copyFromOtherTransform(const Transformation &otherTransformation) {
         if(otherTransformation.parentTransform != nullptr) {
-            this->setParentTransform(otherTransformation.parentTransform);
+            setParentTransform(otherTransformation.parentTransform);
         }
-        translate         = otherTransformation.translate;
-        scale             = otherTransformation.scale;
-        orientation       = otherTransformation.orientation;
 
-        translateSingle   = otherTransformation.translateSingle;
-        scaleSingle       = otherTransformation.scaleSingle;
+        translate = otherTransformation.translate;
+        scale = otherTransformation.scale;
+        orientation = otherTransformation.orientation;
+
+        translateSingle = otherTransformation.translateSingle;
+        scaleSingle = otherTransformation.scaleSingle;
         orientationSingle = otherTransformation.orientationSingle;
 
-        isDirty           = otherTransformation.isDirty;
-        rotated           = otherTransformation.rotated;
-        worldTransform    = otherTransformation.worldTransform;
-
+        isDirty = otherTransformation.isDirty;
+        rotated = otherTransformation.rotated;
+        worldTransform = otherTransformation.worldTransform;
     }
 
-    /**
-     * Since actually copying world transform and update callback, instead of overloading =, I implement this method,
-     * as a reminder that the result is not the same.
-     *
-     * @param otherTransformation
-     * @return
-     */
-    void copy(const Transformation& otherTransformation) {
-        generateWorldTransform = std::bind(&Transformation::generateWorldTransformDefault, this);
+    Transformation& operator=(const Transformation& otherTransformation) {
+        //this operator is required by std::vector. This will be a bumpy ride
 
-        if(otherTransformation.parentTransform != nullptr) {
-            this->setParentTransform(otherTransformation.parentTransform);
-        }
+        //first of, disconnect this method from any child and parent.
+        disconnectFromStack();
+        //now set the parent as the other transformation
+        copyFromOtherTransform(otherTransformation);
 
-        translate         = otherTransformation.translate;
-        scale             = otherTransformation.scale;
-        orientation       = otherTransformation.orientation;
-
-        translateSingle   = otherTransformation.translateSingle;
-        scaleSingle       = otherTransformation.scaleSingle;
-        orientationSingle = otherTransformation.orientationSingle;
-
-        isDirty           = otherTransformation.isDirty;
-        rotated           = otherTransformation.rotated;
-        worldTransform    = otherTransformation.worldTransform;
+        return *this;
     }
 
     const Transformation* getParentTransform() const {

@@ -96,6 +96,8 @@ std::vector<std::pair<std::string, AssetManager::AssetTypes>> AssetManager::load
                 currentAssetType = Asset_type_TEXTURE;
             } else if(typeName == "Sound") {
                 currentAssetType = Asset_type_SOUND;
+            } else if(typeName == "Graphics Program") {
+                currentAssetType = Asset_type_GRAPHICSPROGRAM;
             } else {
                 std::cerr << "Requested asset type is not implemented yet. exiting.." << std::endl;
                 exit(1);

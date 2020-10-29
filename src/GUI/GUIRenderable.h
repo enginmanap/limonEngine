@@ -18,13 +18,13 @@ class GUIRenderable : public Renderable {
 protected:
     //TODO maybe this should not be protected, but private
     std::vector<glm::mediump_uvec3> faces;
-    GLuint textureID;
+    uint32_t textureID;
 
 public:
-    explicit GUIRenderable(GLHelper *glHelper);
+    explicit GUIRenderable(GraphicsInterface* graphicsWrapper);
 
 
-    virtual ~GUIRenderable() {}
+    virtual ~GUIRenderable() = default;
     /**
      * the position on x,y coordinates, and clockwise rotation as radian
      */

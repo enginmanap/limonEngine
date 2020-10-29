@@ -6,7 +6,7 @@
 #include "GUITextDynamic.h"
 
 
-void GUITextDynamic::render() {
+void GUITextDynamic::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) {
     //first move all logs to our list
     Logger::LogLine* logLine = source->getLog();
     while(logLine != nullptr) {
@@ -18,7 +18,7 @@ void GUITextDynamic::render() {
 
     renderProgram->setUniform("inColor", color);
 
-    renderProgram->setUniform("orthogonalProjectionMatrix", glHelper->getOrthogonalProjectionMatrix());
+    renderProgram->setUniform("orthogonalProjectionMatrix", graphicsWrapper->getOrthogonalProjectionMatrix());
 
     glm::mat4 currentTransform;
 
@@ -94,8 +94,8 @@ void GUITextDynamic::render() {
                 if (!renderProgram->setUniform("GUISampler", glyphAttachPoint)) {
                     std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
                 }
-                glHelper->attachTexture(glyph->getTextureID(), glyphAttachPoint);
-                glHelper->render(renderProgram->getID(), vao, ebo, (GLuint) (faces.size() * 3));
+                graphicsWrapper->attachTexture(glyph->getTextureID(), glyphAttachPoint);
+                graphicsWrapper->render(renderProgram->getID(), vao, ebo, (uint32_t) (faces.size() * 3));
 
                 totalAdvance += glyph->getAdvance() / 64;
                 if(totalAdvance + maxCharWidth >= width) {

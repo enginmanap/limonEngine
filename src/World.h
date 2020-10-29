@@ -14,18 +14,19 @@
 #include "InputHandler.h"
 #include "FontManager.h"
 #include "GameObjects/SkyBox.h"
+#include "GameObjects/Light.h"
 #include "API/LimonAPI.h"
 #include "API/ActorInterface.h"
 #include "ALHelper.h"
 #include "GameObjects/Players/Player.h"
 #include "SDL2Helper.h"
-
+#include "Graphics/GraphicsPipeline.h"
 
 class btGhostPairCallback;
 class Camera;
 class Model;
 class BulletDebugDrawer;
-class Light;
+
 class AIMovementGrid;
 class TriggerInterface;
 
@@ -55,13 +56,16 @@ class AnimationSequenceInterface;
 class LimonAPI;
 class ModelGroup;
 
-class QuadRenderBase;
-class CombinePostProcess;
-class SSAOPostProcess;
-class SSAOBlurPostProcess;
+class QuadRender;
 
-class GLHelper;
+class GraphicsInterface;
+class GraphicsPipelineStage;
+class TextureAsset;
 class ALHelper;
+
+class PipelineExtension;
+class IterationExtension;
+class NodeGraph;
 
 class World {
 public:
@@ -165,11 +169,13 @@ private:
         COLLIDE_END_ELEMENT      = -1
     };
 
+    enum class ModelTypes { NON_ANIMATED_OPAQUE, ANIMATED, TRANSPARENT };
+
     friend class WorldLoader;
     friend class WorldSaver; //Those classes require direct access to some of the internal data
 
-    std::vector<uint32_t > modelIndicesBuffer;
-    AssetManager* assetManager;
+    mutable std::vector<uint32_t > modelIndicesBuffer;
+    std::shared_ptr<AssetManager> assetManager;
     Options* options;
     uint32_t nextWorldID = 2;
     std::queue<uint32_t> unusedIDs;
@@ -212,7 +218,7 @@ private:
     std::unordered_map<uint32_t, ActorInterface*> actors;
     AIMovementGrid *grid = nullptr;
     SkyBox *sky = nullptr;
-    GLHelper *glHelper;
+    GraphicsInterface* graphicsWrapper;
     ALHelper *alHelper;
     std::string name;
     std::string loadingImage;
@@ -224,8 +230,6 @@ private:
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
 
-    GLSLProgram *shadowMapProgramDirectional = nullptr;
-    GLSLProgram *shadowMapProgramPoint = nullptr;
     FontManager fontManager;
 
     PlayerInfo startingPlayer;
@@ -264,9 +268,8 @@ private:
     GameObject* pickedObject = nullptr;
     uint32_t pickedObjectID = 0xFFFFFFFF;//FIXME not 0 because 0 is used by player and lights, they should get real ids.
     Model* objectToAttach = nullptr;
-    CombinePostProcess* combiningObject;
-    SSAOPostProcess* ssaoPostProcess;
-    SSAOBlurPostProcess* ssaoBlurPostProcess;
+
+    std::shared_ptr<QuadRender> quadRender;
     std::map<uint32_t, SDL2Helper::Thread*> routeThreads;
 
     bool guiPickMode = false;
@@ -277,6 +280,12 @@ private:
         LOAD_WORLD
     };
     QuitResponse currentQuitResponse = QuitResponse::QUIT_GAME;
+    bool showNodeGraph = false;
+    PipelineExtension *pipelineExtension;
+    IterationExtension *iterationExtension;
+    NodeGraph* nodeGraph = nullptr;
+    std::shared_ptr<GraphicsPipeline> defaultRenderPipeline = nullptr;
+
 
     bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
 
@@ -312,13 +321,13 @@ private:
     void addLight(Light *light);
 
     World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
-              AssetManager *assetManager, Options *options);
+          std::shared_ptr<AssetManager> assetManager, Options *options);
 
     void afterLoadFinished();
 
     void switchPlayer(Player* targetPlayer, InputHandler &inputHandler);
 
-    void ImGuiFrameSetup();
+    void ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram);
 
     void setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bool removePossible);
 
@@ -333,16 +342,46 @@ private:
     void addGUIAnimationControls();
     void addGUILayerControls();
 /********** Editor Methods *********************/
-    //API methods
+    void drawNodeEditor();
 
+    //API methods
     Model* findModelByID(uint32_t modelID) const;
     Model* findModelByIDChildren(PhysicalRenderable* parent ,uint32_t modelID) const;
 
     std::vector<LimonAPI::ParameterRequest>
     fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) const;
 
-    void renderPlayerAttachments(GameObject *attachment) const;
+    void renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes renderingModelType, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
+
     void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment);
+
+    void createNodeGraph();
+
+    std::vector<size_t> getLightIndexes(Light::LightTypes lightType) {
+        std::vector<size_t> lights;
+        for (unsigned int i = 0; i < activeLights.size(); ++i) {
+            if(activeLights[i]->getLightType() != lightType) {
+                continue;
+            }
+            lights.emplace_back(i);
+        }
+        return lights;
+    }
+
+    void renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
+    void renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderPlayerAttachmentTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+
+    std::vector<std::shared_ptr<GraphicsProgram>> getAllAvailablePrograms();
+    void getAllAvailableProgramsRecursive(const AssetManager::AvailableAssetsNode * currentNode, std::vector<std::shared_ptr<GraphicsProgram>> &programs);
 
 public:
     ~World();
@@ -364,7 +403,9 @@ public:
 
     std::string getName();
 
-    /************************************ Methods LimonAPI exposes *************/
+    RenderMethods buildRenderMethods();
+
+        /************************************ Methods LimonAPI exposes *************/
     /**
     * This method fills the parameters required to run the trigger
     * @param runParameters

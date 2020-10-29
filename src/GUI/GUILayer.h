@@ -6,21 +6,22 @@
 #define LIMONENGINE_GUILAYER_H
 
 #include <tinyxml2.h>
-#include "../GLHelper.h"
+#include "API/Graphics/GraphicsInterface.h"
 
 class BulletDebugDrawer;
 class GUIRenderable;
 class GameObject;
 
 class GUILayer {
-    GLHelper *glHelper;
+    GraphicsInterface* graphicsWrapper;
     BulletDebugDrawer* debugDrawer;
     uint32_t level;
     bool isDebug;
-    std::vector<GUIRenderable *> guiElements;
+    enum class RenderTypes {TEXT, IMAGE };
+    std::vector<std::pair<GUIRenderable *, RenderTypes>> guiElements;
 
 public:
-    GUILayer(GLHelper *glHelper, BulletDebugDrawer* debugDrawer, uint32_t level) : glHelper(glHelper), debugDrawer(debugDrawer), level(level), isDebug(false) { };
+    GUILayer(GraphicsInterface* graphicsWrapper, BulletDebugDrawer* debugDrawer, uint32_t level) : graphicsWrapper(graphicsWrapper), debugDrawer(debugDrawer), level(level), isDebug(false) { };
 
     uint32_t getLevel() { return level; }
 
@@ -38,7 +39,8 @@ public:
 
     std::vector<GameObject*> getGuiElements();
 
-    void render();
+    void renderTextWithProgram(std::shared_ptr<GraphicsProgram> renderProgram);
+    void renderImageWithProgram(std::shared_ptr<GraphicsProgram> renderProgram);
 
     void setupForTime(long time);
 

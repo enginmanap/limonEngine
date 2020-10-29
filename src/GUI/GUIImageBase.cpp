@@ -6,16 +6,11 @@
 #include "../Assets/AssetManager.h"
 #include "../Assets/TextureAsset.h"
 
-GLSLProgram* GUIImageBase::imageRenderProgram = nullptr;
+std::shared_ptr<GraphicsProgram> GUIImageBase::imageRenderProgram = nullptr;
 
 
-GUIImageBase::GUIImageBase(GLHelper *glHelper, AssetManager *assetManager, const std::string &imageFile) : GUIRenderable(glHelper), assetManager(assetManager), imageFile(imageFile) {
+GUIImageBase::GUIImageBase(GraphicsInterface* graphicsWrapper,  std::shared_ptr<AssetManager> assetManager, const std::string &imageFile) : GUIRenderable(graphicsWrapper), assetManager(assetManager), imageFile(imageFile) {
     image = assetManager->loadAsset<TextureAsset>({imageFile});
-    if(imageRenderProgram == nullptr) {
-        imageRenderProgram = new GLSLProgram(glHelper, "./Engine/Shaders/GUI/vertexImage.glsl", "./Engine/Shaders/GUI/fragmentImage.glsl", false);
-    }
-    this->renderProgram = imageRenderProgram;
-
     this->setScale(image->getHeight() /2.0f,image->getWidth() /2.0f);// split in half, because the quad is -1 to 1, meaning it is 2 units long.
 }
 
@@ -24,9 +19,9 @@ GUIImageBase::~GUIImageBase() {
     //delete renderProgram;// since the program is shared, don't remove
 }
 
-void GUIImageBase::render() {
+void GUIImageBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram){
 
-    renderProgram->setUniform("orthogonalProjectionMatrix", glHelper->getOrthogonalProjectionMatrix());
+    renderProgram->setUniform("orthogonalProjectionMatrix", graphicsWrapper->getOrthogonalProjectionMatrix());
 
     if (!renderProgram->setUniform("worldTransformMatrix", this->getTransformation()->getWorldTransform())) {//translate.z is alpha channel, we are sending it too!
         std::cerr << "failed to set uniform \"worldTransformMatrix\"" << std::endl;
@@ -35,8 +30,8 @@ void GUIImageBase::render() {
     if (!renderProgram->setUniform("GUISampler", imageAttachPoint)) {
         std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
     }
-    glHelper->attachTexture(image->getID(), imageAttachPoint);
-    glHelper->render(renderProgram->getID(), vao, ebo, (GLuint) (faces.size() * 3));
+    graphicsWrapper->attachTexture(image->getID(), imageAttachPoint);
+    graphicsWrapper->render(renderProgram->getID(), vao, ebo, (uint32_t) (faces.size() * 3));
 }
 
 void GUIImageBase::getAABB(glm::vec2 &aabbMin, glm::vec2 &aabbMax) const {

@@ -14,7 +14,7 @@
 class BoneNode {
 public:
     std::string name;
-    uint_fast32_t boneID;
+    uint32_t boneID;
     std::vector<std::shared_ptr<BoneNode>> children;
     glm::mat4 transformation;
 

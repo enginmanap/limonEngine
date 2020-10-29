@@ -18,7 +18,7 @@ protected:
     uint32_t assetID;
     /**
      * This is an empty constructor, used to indicate what parameters the Asset constructors should have
-     * @param glHelper pointer to render subsystem
+     * @param graphicsWrapper pointer to render subsystem
      * @param assetID id of the asset, used to check if assets are shared
      * @param fileList Asset files to load
      * @return empty asset

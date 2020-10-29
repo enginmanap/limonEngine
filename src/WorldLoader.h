@@ -17,9 +17,9 @@
 
 class World;
 class Options;
-class GLHelper;
+class GraphicsInterface;
 class AssetManager;
-class GLHelper;
+class GraphicsInterface;
 class ALHelper;
 class InputHandler;
 class Model;
@@ -36,9 +36,9 @@ public:
 private:
 
     Options *options;
-    GLHelper *glHelper;
+    GraphicsInterface* graphicsWrapper;
     ALHelper *alHelper;
-    AssetManager *assetManager;
+    std::shared_ptr<AssetManager> assetManager;
     InputHandler* inputHandler;
 
     World *loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const;
@@ -58,12 +58,12 @@ private:
     void attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) const;
 
 public:
-    WorldLoader(AssetManager *assetManager, InputHandler *inputHandler, Options *options);
+    WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, Options *options);
     std::unique_ptr<std::string> getLoadingImage(const std::string &worldFile) const;
 
     World *loadWorld(const std::string &worldFile, LimonAPI *limonAPI) const;
 
-    static std::vector<std::unique_ptr<ObjectInformation>> loadObject(AssetManager *assetManager, tinyxml2::XMLElement *objectNode,
+    static std::vector<std::unique_ptr<ObjectInformation>> loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
                                                                           std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI,
                                                                           PhysicalRenderable *parentObject);
 };

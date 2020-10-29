@@ -6,6 +6,7 @@
 #define LIMONENGINE_SOUND_H
 
 
+#include <memory>
 #include "GameObject.h"
 
 class SoundAsset;
@@ -18,7 +19,7 @@ private:
     std::string name;
     uint32_t worldID;
     uint32_t soundHandleID = 0;
-    AssetManager *assetManager;
+    std::shared_ptr<AssetManager> assetManager;
 
     glm::vec3 position = glm::vec3(0,0,0);
     bool listenerRelative = true; //by default plays at the listener position
@@ -30,7 +31,7 @@ private:
     bool looped = false;
 
 public:
-    Sound(uint32_t worldID, AssetManager *assetManager, const std::string &filename);
+    Sound(uint32_t worldID,  std::shared_ptr<AssetManager> assetManager, const std::string &filename);
     ~Sound();
 
     void setLoop(bool looped);

@@ -11,14 +11,13 @@
 class GUICursor: public GUIImageBase {
     bool hidden=false;
 public:
-    GUICursor(GLHelper *glHelper, AssetManager *assetManager, const std::string &imageFile) : GUIImageBase(glHelper,
-                                                                                                       assetManager,
-                                                                                                       imageFile) {}
+    GUICursor(GraphicsInterface* graphicsWrapper,  std::shared_ptr<AssetManager> assetManager, const std::string &imageFile) : GUIImageBase(graphicsWrapper,
+                                                                                                                    assetManager,
+                                                                                                                    imageFile) {}
 
 public:
 
-    void render() override;
-
+    void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) override;
 
     bool isHidden() {
         return hidden;

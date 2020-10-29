@@ -9,12 +9,13 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <memory>
 
 class World;
 class WorldLoader;
 class Options;
 class ALHelper;
-class GLHelper;
+class GraphicsInterface;
 class InputHandler;
 class AssetManager;
 class SDL2Helper;
@@ -28,9 +29,9 @@ class GameEngine {
 
     Options* options = nullptr;
     ALHelper* alHelper = nullptr;
-    GLHelper* glHelper = nullptr;
+    std::shared_ptr<GraphicsInterface> graphicsWrapper = nullptr;
     InputHandler* inputHandler = nullptr;
-    AssetManager* assetManager = nullptr;
+    std::shared_ptr<AssetManager> assetManager = nullptr;
     SDL2Helper* sdlHelper = nullptr;
 
     std::unordered_map<std::string, std::pair<World*, LimonAPI*>> loadedWorlds;

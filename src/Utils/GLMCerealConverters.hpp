@@ -5,6 +5,7 @@
 #ifndef LIMONENGINE_GLMCEREALCONVERTERS_HPP
 #define LIMONENGINE_GLMCEREALCONVERTERS_HPP
 
+#include <glm/glm.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec2.hpp>

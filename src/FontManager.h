@@ -8,28 +8,31 @@
 #include <iostream>
 #include <string>
 #include <map>
-
+#include <memory>
 #include <freetype2/ft2build.h>
 #include <set>
-#include FT_FREETYPE_H
-#include "GLHelper.h"
 
+#include FT_FREETYPE_H
+#include "API/Graphics/GraphicsInterface.h"
+#include "Graphics/Texture.h"
 
 class Glyph {
-    GLuint textureID;
+    std::unique_ptr<Texture> texture;
     glm::mediump_ivec2 size;
     glm::mediump_ivec2 bearing;
-    GLuint advance;
+    uint32_t advance;
 public:
-    Glyph(GLHelper *glHelper, FT_Face face, const int size, const char character) :
-            textureID(0), size(glm::mediump_vec2(0)), bearing(glm::mediump_vec2(0)), advance(0) {
+    Glyph(GraphicsInterface* graphicsWrapper, FT_Face face, const int size, const char character) :
+            size(glm::mediump_vec2(0)), bearing(glm::mediump_vec2(0)), advance(0) {
         //FIXME this is not correct, there is a better function in API
         FT_Set_Pixel_Sizes(face, 0, size);
         if (FT_Load_Char(face, character, FT_LOAD_RENDER)) {
             std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
         } else {
-            textureID = glHelper->loadTexture(face->glyph->bitmap.rows, face->glyph->bitmap.width, GL_RED,
-                                              face->glyph->bitmap.buffer);
+            texture = std::make_unique<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D,
+                                                GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RED, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
+                                                face->glyph->bitmap.width, face->glyph->bitmap.rows);
+            texture->loadData(face->glyph->bitmap.buffer);
             this->size = glm::mediump_ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows);
             bearing = glm::mediump_ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top);
             advance = face->glyph->advance.x;
@@ -44,17 +47,17 @@ public:
 
     }
 
-    GLuint getTextureID() const { return textureID; }
+    uint32_t getTextureID() const { return texture->getTextureID(); }
 
     const glm::mediump_ivec2 &getSize() const { return size; }
 
     const glm::mediump_ivec2 &getBearing() const { return bearing; }
 
-    GLuint getAdvance() const { return advance; }
+    uint32_t getAdvance() const { return advance; }
 };
 
 class Face {
-    GLHelper *glHelper;
+    GraphicsInterface* graphicsWrapper;
     std::string path;
     unsigned int size;
     FT_Face face;
@@ -62,15 +65,15 @@ class Face {
     int maxCharWidth;
     std::map<const char, Glyph *> glyphs;
 public:
-    Face(GLHelper *glHelper, std::string path, int size, FT_Face face) : glHelper(glHelper), path(path), size(size),
-                                                                         face(face) {
+    Face(GraphicsInterface* graphicsWrapper, std::string path, int size, FT_Face face) : graphicsWrapper(graphicsWrapper), path(path), size(size),
+                                                                                  face(face) {
         lineHeight = face->height;
         maxCharWidth = face->max_advance_width;
     }
 
     const Glyph *getGlyph(const char character) {
         if (glyphs.count(character) == 0) {
-            glyphs[character] = new Glyph(glHelper, face, size, character);
+            glyphs[character] = new Glyph(graphicsWrapper, face, size, character);
         }
         return glyphs[character];
     }
@@ -101,13 +104,13 @@ public:
 };
 
 class FontManager {
-    GLHelper *glHelper;
+    GraphicsInterface* graphicsWrapper;
     std::map<std::pair<std::string, uint32_t>, Face *> fonts;
     static const std::string DEFAULT_FONT_PATH;
     static const int DEFAULT_FONT_SIZE = 32;
     FT_Library ft;
 public:
-    explicit FontManager(GLHelper *glHelper);
+    explicit FontManager(GraphicsInterface* graphicsWrapper);
 
     Face *getFont(const std::string &fontPath, const uint32_t size);
 

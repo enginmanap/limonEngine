@@ -3,7 +3,7 @@
 //
 
 #include "MeshAsset.h"
-#include "../GLHelper.h"
+#include "API/Graphics/GraphicsInterface.h"
 
 MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
                      std::shared_ptr<const Material> material, std::shared_ptr<const BoneNode> meshSkeleton,
@@ -20,15 +20,15 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
         throw "No triangle found";
     }
 
-    uint_fast32_t vbo;
-    assetManager->getGlHelper()->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
+    uint32_t vbo;
+    assetManager->getGraphicsWrapper()->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
     bufferObjects.push_back(vbo);
 
-    assetManager->getGlHelper()->bufferNormalData(normals, vao, vbo, 4);
+    assetManager->getGraphicsWrapper()->bufferNormalData(normals, vao, vbo, 4);
     bufferObjects.push_back(vbo);
 
     if (!textureCoordinates.empty()) {
-        assetManager->getGlHelper()->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
+        assetManager->getGraphicsWrapper()->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
         bufferObjects.push_back(vbo);
     }
 
@@ -48,7 +48,7 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
         boneIDs.resize(vertices.size());
         boneWeights.resize(vertices.size());
         for (unsigned int j = 0; j < currentMesh->mNumBones; ++j) {
-            uint_fast32_t boneID = boneIdMap[currentMesh->mBones[j]->mName.C_Str()];
+            uint32_t boneID = boneIdMap[currentMesh->mBones[j]->mName.C_Str()];
             /*
              * Assimp has a bone array with weight lists for vertices,
              * we need a vertex array with weight list for bones.
@@ -58,7 +58,7 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
              * I want to split BulletCollision meshes to move them with real mesh, for that
              * I will use this information
              */
-            for (uint_fast32_t k = 0; k < currentMesh->mBones[j]->mNumWeights; ++k) {
+            for (uint32_t k = 0; k < currentMesh->mBones[j]->mNumWeights; ++k) {
                 if(currentMesh->mBones[j]->mWeights[k].mWeight > 0.0f) {
                     addWeightToVertex(boneID, currentMesh->mBones[j]->mWeights[k].mVertexId,
                                       currentMesh->mBones[j]->mWeights[k].mWeight);
@@ -70,10 +70,10 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
         }
         //std::cout << "Animation added for mesh" << std::endl;
 
-        assetManager->getGlHelper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
+        assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
         bufferObjects.push_back(vbo);
 
-        assetManager->getGlHelper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
+        assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
         bufferObjects.push_back(vbo);
     } else {
         if(isPartOfAnimated) {
@@ -90,7 +90,7 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
 
             boneIDs.resize(vertices.size());
             boneWeights.resize(vertices.size());
-            uint_fast32_t boneID = boneIdMap[name];
+            uint32_t boneID = boneIdMap[name];
             /*
              * Assimp has a bone array with weight lists for vertices,
              * we need a vertex array with weight list for bones.
@@ -100,17 +100,17 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
              * I want to split BulletCollision meshes to move them with real mesh, for that
              * I will use this information
              */
-            for (uint_fast32_t k = 0; k < currentMesh->mNumVertices; ++k) {
+            for (uint32_t k = 0; k < currentMesh->mNumVertices; ++k) {
                 addWeightToVertex(boneID, k, 1.0f);
                 boneAttachedMeshes[boneID].push_back(k);
             }
 
             //std::cout << "Animation added for mesh" << std::endl;
 
-            assetManager->getGlHelper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
+            assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
             bufferObjects.push_back(vbo);
 
-            assetManager->getGlHelper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
+            assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
             bufferObjects.push_back(vbo);
 
 
@@ -138,23 +138,23 @@ void MeshAsset::afterDeserialize(AssetManager *assetManager) {
     // boneIDMap
 
 
-    uint_fast32_t vbo;
-    assetManager->getGlHelper()->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
+    uint32_t vbo;
+    assetManager->getGraphicsWrapper()->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
     bufferObjects.push_back(vbo);
 
-    assetManager->getGlHelper()->bufferNormalData(normals, vao, vbo, 4);
+    assetManager->getGraphicsWrapper()->bufferNormalData(normals, vao, vbo, 4);
     bufferObjects.push_back(vbo);
 
     if (!textureCoordinates.empty()) {
-        assetManager->getGlHelper()->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
+        assetManager->getGraphicsWrapper()->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
         bufferObjects.push_back(vbo);
     }
 
     if (this->bones) {
-        assetManager->getGlHelper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
+        assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
         bufferObjects.push_back(vbo);
 
-        assetManager->getGlHelper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
+        assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
         bufferObjects.push_back(vbo);
     }
 }
@@ -233,7 +233,7 @@ void MeshAsset::normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const
     textureCoordinates.y = fractionPart;
 }
 
-bool MeshAsset::addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, float weight) {
+bool MeshAsset::addWeightToVertex(uint32_t boneID, unsigned int vertex, float weight) {
     //the weights are suppose to be ordered,
     for (int i = 0; i < 4; ++i) { //we allow only 4 bones per vertex
         if (boneWeights[vertex][i] < weight) {
@@ -258,8 +258,8 @@ bool MeshAsset::addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, flo
  * @param compoundShape
  * @return
  */
-btTriangleMesh *MeshAsset::getBulletMesh(std::map<uint_fast32_t, btConvexHullShape *> *hullMap,
-                                         std::map<uint_fast32_t, btTransform> *parentTransformMap) {
+btTriangleMesh *MeshAsset::getBulletMesh(std::map<uint32_t, btConvexHullShape *> *hullMap,
+                                         std::map<uint32_t, btTransform> *parentTransformMap) {
     //Turns out bullet shapes does not copy meshes, so we should return a copy, not the original;
     btTriangleMesh *copyMesh = nullptr;
     if(!isPartOfAnimated) {
@@ -273,7 +273,7 @@ btTriangleMesh *MeshAsset::getBulletMesh(std::map<uint_fast32_t, btConvexHullSha
         shapeCopies.push_back(copyMesh);
     } else {
         //in this case, we don't use faces directly, instead we use per bone vertex information.
-        std::map<uint_fast32_t, std::vector<uint_fast32_t >>::iterator it;
+        std::map<uint32_t, std::vector<uint32_t>>::iterator it;
         for (it = boneAttachedMeshes.begin(); it != boneAttachedMeshes.end(); it++) {
             btConvexHullShape *hullshape = new btConvexHullShape();
             for (unsigned int index = 0; index < it->second.size(); index++) {

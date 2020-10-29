@@ -7,10 +7,10 @@
 
 #include <iostream>
 
-#include "../GLHelper.h"
+#include "API/Graphics/GraphicsInterface.h"
 #include "GUIRenderable.h"
 #include "../FontManager.h"
-#include "../GLHelper.h"
+#include "API/Graphics/GraphicsInterface.h"
 
 
 class GUITextBase : public GUIRenderable {
@@ -24,12 +24,12 @@ protected:
     int height, width;
     int bearingUp;
 
-    static GLSLProgram* textRenderProgram;
+    static std::shared_ptr<GraphicsProgram> textRenderProgram;
 
     //Don't allow constructing of this object itself
-    GUITextBase(GLHelper *glHelper, Face *font, const std::string text, const glm::vec3 color);
-    GUITextBase(GLHelper *glHelper, Face *font, const glm::vec3 color) : GUITextBase(glHelper, font, "",
-                                                                                                  color) {};
+    GUITextBase(GraphicsInterface* graphicsWrapper, Face *font, const std::string text, const glm::vec3 color);
+    GUITextBase(GraphicsInterface* graphicsWrapper, Face *font, const glm::vec3 color) : GUITextBase(graphicsWrapper, font, "",
+                                                                                              color) {};
 
 public:
     virtual ~GUITextBase(){
@@ -37,7 +37,7 @@ public:
     };
 
 
-    virtual void render();
+    virtual void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) override;
 
     virtual void renderDebug(BulletDebugDrawer *debugDrawer);
 

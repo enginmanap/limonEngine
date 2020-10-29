@@ -16,12 +16,12 @@
 #include "../ALHelper.h"
 
 
-class GLHelper;
+class GraphicsInterface;
 class ALHelper;
 
 class AssetManager {
 public:
-    enum AssetTypes { Asset_type_DIRECTORY, Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND, Asset_type_UNKNOWN };
+    enum AssetTypes { Asset_type_DIRECTORY, Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND, Asset_type_GRAPHICSPROGRAM, Asset_type_UNKNOWN };
 
     struct EmbeddedTexture {
         char format[9] = "\0";
@@ -98,7 +98,7 @@ private:
     //std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
     AvailableAssetsNode* availableAssetsRootNode = nullptr;
     std::map<std::pair<AssetTypes, std::string>, AvailableAssetsNode*> filteredResults;
-    GLHelper *glHelper;
+    GraphicsInterface* graphicsWrapper;
     ALHelper *alHelper;
 
     void addAssetsRecursively(const std::string &directoryPath, const std::string &fileName,
@@ -126,11 +126,25 @@ private:
 
 public:
 
-    explicit AssetManager(GLHelper *glHelper, ALHelper *alHelper) : glHelper(glHelper), alHelper(alHelper) {
+    explicit AssetManager(GraphicsInterface* graphicsWrapper, ALHelper *alHelper) : graphicsWrapper(graphicsWrapper), alHelper(alHelper) {
         loadAssetList();
     }
 
-    void loadUsingCereal(const std::vector<std::string> files);
+    void loadUsingCereal(const std::vector<std::string> files [[gnu::unused]]) {
+#ifdef CEREAL_SUPPORT
+        std::ifstream is(files[0], std::ios::binary);
+        cereal::BinaryInputArchive archive(is);
+        ModelAsset* ma = new ModelAsset();
+        archive(*ma);
+        ma->afterDeserialize(this, files);
+        assets[files] = std::make_pair(ma, 0);
+        nextAssetIndex++;
+#else
+        std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
+        std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
+        exit(-1);
+#endif
+    }
 
     template<class T>
     T *loadAsset(const std::vector<std::string> files) {
@@ -204,8 +218,8 @@ public:
     }
 
 
-    GLHelper *getGlHelper() const {
-        return glHelper;
+    GraphicsInterface* getGraphicsWrapper() const {
+        return graphicsWrapper;
     }
 
     ALHelper *getAlHelper() const {

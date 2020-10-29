@@ -3,7 +3,7 @@
 //
 
 #include "Material.h"
-#include "GLHelper.h"
+#include "API/Graphics/GraphicsInterface.h"
 
 void Material::afterDeserialize(AssetManager *assetManager, std::string modelAssetFileName) {
     if(textureNameListList == nullptr || textureNameListList->size() != 5) {
@@ -48,5 +48,5 @@ void Material::afterDeserialize(AssetManager *assetManager, std::string modelAss
     }
     textureNameListList.reset();
 
-    this->materialIndex = assetManager->getGlHelper()->getNextMaterialIndex();
+    this->materialIndex = assetManager->getGraphicsWrapper()->getNextMaterialIndex();
 }

@@ -51,16 +51,16 @@ void Light::step(long time [[gnu::unused]]) {
 }
 
 void Light::updateLightView() {
-    glm::vec3 playerPos = glHelper->getCameraPosition();
+    glm::vec3 playerPos = graphicsWrapper->getCameraPosition();
     renderPosition = position + playerPos;
 
     glm::mat4 lightView = lookAt(renderPosition,
                                  playerPos,
                                  glm::vec3(0.0f, 1.0f, 0.0f));
 
-    lightSpaceMatrix = glHelper->getLightProjectionMatrixDirectional() * lightView;
+    lightSpaceMatrix = graphicsWrapper->getLightProjectionMatrixDirectional() * lightView;
 
-    glHelper->calculateFrustumPlanes(lightView, glHelper->getLightProjectionMatrixDirectional(), frustumPlanes);
+    graphicsWrapper->calculateFrustumPlanes(lightView, graphicsWrapper->getLightProjectionMatrixDirectional(), frustumPlanes);
     frustumChanged = true;
 }
 
@@ -71,6 +71,8 @@ const glm::mat4 &Light::getLightSpaceMatrix() const {
 void Light::setPosition(glm::vec3 position) {
     this->position = position;
     switch (lightType) {
+        case NONE:
+            return;
         case POINT: setShadowMatricesForPosition();
             break;
         case DIRECTIONAL: updateLightView();
@@ -99,6 +101,8 @@ GameObject::ImGuiResult Light::addImGuiEditorElements(const GameObject::ImGuiReq
     ImGui::NewLine();
     bool attenuationUpdate = false;
     switch (lightType) {
+        case LightTypes::NONE:
+            break;
         case LightTypes::POINT: {
             attenuationUpdate = ImGui::DragFloat("Constant", &(this->attenuation.x), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
             attenuationUpdate = ImGui::DragFloat("Linear", &(this->attenuation.y), 0.01f, 0.0f, 1.0f) || attenuationUpdate;

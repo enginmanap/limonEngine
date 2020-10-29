@@ -6,7 +6,7 @@
 #include "Model.h"
 #include "../../libs/ImGui/imgui.h"
 
-void ModelGroup::renderWithProgram(GLSLProgram &program) {
+void ModelGroup::renderWithProgram(std::shared_ptr<GraphicsProgram> program){
     std::cerr << "Model Groups render with program used, it was not planned, nor tested." << std::endl;
     for (auto renderable = children.begin(); renderable != children.end(); ++renderable) {
         (*renderable)->renderWithProgram(program);
@@ -45,13 +45,6 @@ bool ModelGroup::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLEleme
     return true;
 }
 
-void ModelGroup::render() {
-    std::cerr << "Model Groups render used, it was not planned, nor tested." << std::endl;
-    for (auto renderable = children.begin(); renderable != children.end(); ++renderable) {
-        (*renderable)->render();
-    }
-}
-
 void ModelGroup::setupForTime(long time) {
     std::cerr << "Model Groups setup for time used, it was not planned, nor tested." << std::endl;
     for (auto renderable = children.begin(); renderable != children.end(); ++renderable) {
@@ -72,7 +65,7 @@ GameObject::ImGuiResult ModelGroup::addImGuiEditorElements(const GameObject::ImG
     return result;
 }
 
-ModelGroup *ModelGroup::deserialize(GLHelper *glHelper, AssetManager *assetManager, tinyxml2::XMLElement *ModelGroupsNode,
+ModelGroup *ModelGroup::deserialize(GraphicsInterface* graphicsWrapper, std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *ModelGroupsNode,
                                     std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds,
                                     std::map<uint32_t, ModelGroup *> &childGroups,
                                     std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> &childObjects, LimonAPI *limonAPI,
@@ -96,7 +89,7 @@ ModelGroup *ModelGroup::deserialize(GLHelper *glHelper, AssetManager *assetManag
     }
     readID = std::stoul(groupAttribute->GetText());
 
-    modelGroup = new ModelGroup(glHelper, readID, readName);
+    modelGroup = new ModelGroup(graphicsWrapper, readID, readName);
 
     modelGroup->setParentObject(parentGroup);
 
@@ -150,7 +143,7 @@ ModelGroup *ModelGroup::deserialize(GLHelper *glHelper, AssetManager *assetManag
 
                 modelGroup->children[childIndex]->getTransformation()->setParentTransform(modelGroup->getTransformation());
             } else if(childNode->FirstChildElement("ObjectGroup")) {
-                ModelGroup* newModelGroup = ModelGroup::deserialize(glHelper, assetManager,
+                ModelGroup* newModelGroup = ModelGroup::deserialize(graphicsWrapper, assetManager,
                                                                     childNode->FirstChildElement("ObjectGroup"),
                                                                     requiredSounds, childGroups, childObjects, limonAPI,
                                                                     modelGroup);

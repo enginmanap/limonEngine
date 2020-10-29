@@ -10,11 +10,11 @@
 #include "../Assets/TextureAsset.h"
 
 
-GUIAnimation::GUIAnimation(uint32_t worldID, AssetManager *assetManager, const std::string name,
+GUIAnimation::GUIAnimation(uint32_t worldID,  std::shared_ptr<AssetManager> assetManager, const std::string name,
                            const std::vector<std::string> &imageFiles, long creationTime, uint32_t frameSpeed,
                            bool isLooped)
         : GUIImageBase(
-        assetManager->getGlHelper(), assetManager, imageFiles[0]), worldID(worldID), name(name), creationTime(creationTime), imagePerFrame(frameSpeed), looped(isLooped) {
+        assetManager->getGraphicsWrapper(), assetManager, imageFiles[0]), worldID(worldID), name(name), creationTime(creationTime), imagePerFrame(frameSpeed), looped(isLooped) {
     this->imageFiles = imageFiles;
     this->images.push_back(this->image);//the first element is generated and held by base
 
@@ -109,7 +109,7 @@ bool GUIAnimation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLEleme
 }
 
 
-GUIAnimation *GUIAnimation::deserialize(tinyxml2::XMLElement *GUIRenderableNode, AssetManager *assetManager, Options *options) {
+GUIAnimation *GUIAnimation::deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std::shared_ptr<AssetManager> assetManager, Options *options) {
 
     tinyxml2::XMLElement* GUIRenderableAttribute;
 

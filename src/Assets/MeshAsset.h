@@ -28,8 +28,8 @@
 
 
 class MeshAsset {
-    uint_fast32_t vao, ebo;
-    uint_fast32_t triangleCount, vertexCount;
+    uint32_t vao, ebo;
+    uint32_t triangleCount, vertexCount;
 
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> normals;
@@ -37,10 +37,10 @@ class MeshAsset {
     std::vector<glm::vec2> textureCoordinates;
     std::string name;
 
-    std::map<uint_fast32_t, std::vector<uint_fast32_t >> boneAttachedMeshes;
+    std::map<uint32_t, std::vector<uint32_t>> boneAttachedMeshes;
 
     std::shared_ptr<const BoneNode> skeleton;
-    std::map<std::string, uint_fast32_t> boneIdMap;
+    std::map<std::string, uint32_t> boneIdMap;
 
     bool bones;
 
@@ -54,7 +54,7 @@ class MeshAsset {
 
     std::vector<btTriangleMesh *> shapeCopies;
 
-    std::vector<uint_fast32_t> bufferObjects;
+    std::vector<uint32_t> bufferObjects;
     bool setTriangles(const aiMesh *currentMesh);
 
     void normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const;
@@ -69,22 +69,22 @@ public:
               const bool isPartOfAnimated);
 
     /**
-     * This method sets GPU side of the deserialization, and uses AssetManager to access GPU with getGLHelper
+     * This method sets GPU side of the deserialization, and uses AssetManager to access GPU with getGraphicsWrapper
      *
      * @param assetManager
      */
     void afterDeserialize(AssetManager *assetManager);
 
-    uint_fast32_t getTriangleCount() const { return triangleCount; }
+    uint32_t getTriangleCount() const { return triangleCount; }
 
-    uint_fast32_t getVao() const { return vao; }
+    uint32_t getVao() const { return vao; }
 
-    uint_fast32_t getEbo() const { return ebo; }
+    uint32_t getEbo() const { return ebo; }
 
-    btTriangleMesh *getBulletMesh(std::map<uint_fast32_t, btConvexHullShape *> *hullMap,
-                                  std::map<uint_fast32_t, btTransform> *parentTransformMap);
+    btTriangleMesh *getBulletMesh(std::map<uint32_t, btConvexHullShape *> *hullMap,
+                                  std::map<uint32_t, btTransform> *parentTransformMap);
 
-    bool addWeightToVertex(uint_fast32_t boneID, unsigned int vertex, float weight);
+    bool addWeightToVertex(uint32_t boneID, unsigned int vertex, float weight);
 
     std::shared_ptr<const Material> getMaterial() const {
         return material;

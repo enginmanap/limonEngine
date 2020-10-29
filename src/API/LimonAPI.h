@@ -24,7 +24,7 @@ class APISerializer;
 
 
 class LimonAPI {
-    friend class SDKSerializer;
+    friend class APISerializer;
 public:
 
     struct Vec2 {

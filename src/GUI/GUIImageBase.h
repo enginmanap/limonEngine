@@ -14,16 +14,16 @@ class TextureAsset;
 class GUIImageBase : public GUIRenderable {
     int imageAttachPoint = 1;
 
-    static GLSLProgram* imageRenderProgram;
+    static std::shared_ptr<GraphicsProgram> imageRenderProgram;
 protected:
-    AssetManager* assetManager;
+    std::shared_ptr<AssetManager> assetManager;
     std::string imageFile;
     TextureAsset *image;
 public:
-    GUIImageBase(GLHelper *glHelper, AssetManager *assetManager, const std::string &imageFile);
+    GUIImageBase(GraphicsInterface* graphicsWrapper,  std::shared_ptr<AssetManager> assetManager, const std::string &imageFile);
     virtual ~GUIImageBase();
 
-    virtual void render() override;
+    virtual void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) override;
 
     void getAABB(glm::vec2 &aabbMin, glm::vec2 &aabbMax) const override;
 

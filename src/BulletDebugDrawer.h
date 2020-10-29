@@ -9,26 +9,21 @@
 #include <btBulletDynamicsCommon.h>
 #include <vector>
 
-#include "GLHelper.h"
-#include "GLSLProgram.h"
+#include "API/Graphics/GraphicsInterface.h"
+#include "API/Graphics/GraphicsProgram.h"
 #include "Utils/GLMConverter.h"
 #include "Options.h"
 
 class BulletDebugDrawer : public btIDebugDraw {
     DebugDrawModes currentMode;
-    GLHelper *glHelper;
-    GLSLProgram *renderProgram;
-    GLuint vao, vbo, ebo;
+    std::shared_ptr<AssetManager> assetManager;
+    GraphicsInterface* graphicsWrapper;
+    std::shared_ptr<GraphicsProgram> renderProgram;
+    uint32_t vao, vbo, ebo;
     std::vector<Line> lineBuffer;
     Options* options;
-
 public:
-    BulletDebugDrawer(GLHelper *glHelper, Options* options) : glHelper(glHelper), vao(0), vbo(0), ebo(0), options(options) {
-        renderProgram = new GLSLProgram(glHelper, "./Engine/Shaders/Lines/vertex.glsl",
-                                        "./Engine/Shaders/Lines/fragment.glsl", false);
-        //std::cout << "Render program is ready with id " << renderProgram->getID() << std::endl;
-        glHelper->createDebugVAOVBO(vao, vbo, options->getDebugDrawBufferSize());
-    }
+    BulletDebugDrawer(std::shared_ptr<AssetManager> assetManager, Options* options);
 
     void drawLine(const glm::vec3 &from, const glm::vec3 &to, const glm::vec3 &fromColor, const glm::vec3 &toColor, bool needsCameraTransform);
 

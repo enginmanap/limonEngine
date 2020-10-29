@@ -5,7 +5,7 @@ set(PROJECT_VERSION 0.6)
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 add_definitions(-DGLM_FORCE_SILENT_WARNINGS)
 add_definitions(-DASSIMP_VALIDATE_WORKAROUND)
-add_definitions(-DCEREAL_SUPPORT)
+#add_definitions(-DCEREAL_SUPPORT)
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -14,9 +14,15 @@ include(cotire)
 
 IF (WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -mconsole -Wall -Wextra -Wnon-virtual-dtor -pedantic")
+    set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld ${CMAKE_EXE_LINKER_FLAGS}")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra -Wnon-virtual-dtor -pedantic")
 ENDIF()
+
+IF (UNIX)
+    cmake_policy (SET CMP0072 NEW)
+ENDIF()
+
 
 include(libs/CmakeLists.txt)
 
@@ -90,7 +96,7 @@ add_custom_target(copyData
         ${CMAKE_SOURCE_DIR}/Engine ${CMAKE_BINARY_DIR}/Engine)
 add_dependencies(LimonEngine copyData)
 
-TARGET_LINK_LIBRARIES(LimonEngine ImGui ImGuizmo OpenAL ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${GLEW_LIBRARIES} ${OPENGL_LIBRARIES} ${ASSIMP_LIBRARIES})
+TARGET_LINK_LIBRARIES(LimonEngine ImGui ImGuizmo OpenAL nodeGraph ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${ASSIMP_LIBRARIES})
 
 IF (WIN32)
     #add icon to windows binary
@@ -155,6 +161,7 @@ add_library(customTriggers SHARED
         samples/WesternStoryAtSaloonAction.cpp
         samples/WesternStoryAtTrainAction.cpp
         samples/WesternStoryNewGameAction.cpp
+        samples/SSAOKernelRenderMethod.cpp
         )
 
 IF (WIN32 AND NOT ( MINGW OR MSYS))
@@ -165,8 +172,24 @@ ENDIF()
 
 add_dependencies(customTriggers LimonAPI)
 
-
 set_target_properties(customTriggers PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(customTriggers PROPERTIES SOVERSION 1)
+
+add_library(GraphicsBackend SHARED
+        src/API/Graphics/GraphicsProgram.cpp
+        GraphicBackends/OpenGLGraphics.cpp
+        src/Assets/GraphicsProgramAsset.cpp
+        )
+
+IF (WIN32 AND NOT ( MINGW OR MSYS))
+    TARGET_LINK_LIBRARIES(GraphicsBackend ${CMAKE_BINARY_DIR}/libLimonAPI.lib GLEW::GLEW ${OPENGL_LIBRARIES})
+else()
+    TARGET_LINK_LIBRARIES(GraphicsBackend ${CMAKE_BINARY_DIR}/libLimonAPI.a GLEW::GLEW ${OPENGL_LIBRARIES})
+ENDIF()
+
+add_dependencies(GraphicsBackend LimonAPI)
+
+set_target_properties(GraphicsBackend PROPERTIES VERSION ${PROJECT_VERSION})
+set_target_properties(GraphicsBackend PROPERTIES SOVERSION 1)
 
 #cotire(LimonEngine)

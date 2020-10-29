@@ -7,8 +7,8 @@
 
 
 #include "GameObjects/GameObject.h"
-#include "GLHelper.h"
-#include "GLSLProgram.h"
+#include "API/Graphics/GraphicsInterface.h"
+#include "API/Graphics/GraphicsProgram.h"
 #include "Transformation.h"
 #include <btBulletDynamicsCommon.h>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -16,32 +16,31 @@
 class Renderable {
 protected:
     Transformation transformation;
-    std::vector<uint_fast32_t > bufferObjects;
+    std::vector<uint32_t> bufferObjects;
     std::vector<bool> inLightFrustum;
-    uint_fast32_t vao, ebo;
-    GLHelper *glHelper;
-    GLSLProgram *renderProgram = nullptr;
+    uint32_t vao, ebo;
+    GraphicsInterface* graphicsWrapper;
     bool isInCameraFrustum = true;
     bool dirtyForFrustum = true;//is this object require a frustum recalculate
     bool customAnimation = false;
 
-    explicit Renderable(GLHelper *glHelper) :
-            glHelper(glHelper) {
+    explicit Renderable(GraphicsInterface* graphicsWrapper) :
+            graphicsWrapper(graphicsWrapper) {
         this->inLightFrustum.resize(NR_TOTAL_LIGHTS);
     }
 
 public:
 
-    virtual void render() = 0;
+    virtual void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) = 0;
 
     virtual void setupForTime(long time) = 0;
 
     virtual ~Renderable() {
         for (unsigned int i = 0; i < bufferObjects.size(); ++i) {
-            glHelper->freeBuffer(bufferObjects[i]);
+            graphicsWrapper->freeBuffer(bufferObjects[i]);
         }
-        glHelper->freeBuffer(ebo);
-        glHelper->freeVAO(vao);
+        graphicsWrapper->freeBuffer(ebo);
+        graphicsWrapper->freeVAO(vao);
 
     }
 
