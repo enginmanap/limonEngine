@@ -175,9 +175,11 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
 
 
     while(stageInfoElement !=nullptr) {
-        std::shared_ptr<StageInfo> stageInfo = StageInfo::deserialize(stageInfoElement, assetManager, graphicsPipeline, graphicsPipeline->textures, options);
-        if(stageInfo != nullptr) {
-            graphicsPipeline->addNewStage(*(stageInfo.get()));
+        StageInfo stageInfo;
+        if(StageInfo::deserialize(stageInfoElement, assetManager, graphicsPipeline,
+                                  graphicsPipeline->textures, options,
+                                  stageInfo)) {
+            graphicsPipeline->addNewStage(std::move(stageInfo));
         }
         stageInfoElement =  stageInfoElement->NextSiblingElement("StageInformation");
     }
@@ -186,9 +188,12 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
     return graphicsPipeline;
 }
 
-std::shared_ptr<GraphicsPipeline::StageInfo>
-GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement, std::shared_ptr<AssetManager> assetManager, std::unique_ptr <GraphicsPipeline>& pipeline,
-                                         const std::vector<std::shared_ptr<Texture>> &textures, Options *options) {
+bool
+GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
+                                         std::shared_ptr<AssetManager> assetManager,
+                                         std::unique_ptr<GraphicsPipeline> &pipeline,
+                                         const std::vector<std::shared_ptr<Texture>> &textures,
+                                         Options *options, GraphicsPipeline::StageInfo &newStageInfo) {
 
     tinyxml2::XMLElement * clearElement = stageInfoElement->FirstChildElement("Clear");
     bool clear = true;
@@ -206,41 +211,41 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
             }
         }
     }
-    std::shared_ptr<GraphicsPipeline::StageInfo> newStageInfo = std::make_shared<GraphicsPipeline::StageInfo>();
-    newStageInfo->clear = clear;
+
+    newStageInfo.clear = clear;
 
     tinyxml2::XMLElement* renderMethodsElement =  stageInfoElement->FirstChildElement("RenderMethods");
     if (renderMethodsElement == nullptr) {
         std::cerr << "StageInfo has no render methods, this is definitely a mistake, cancelling!" << std::endl;
-        return nullptr;
+        return false;
     }
 
     tinyxml2::XMLElement* methodElement =  renderMethodsElement->FirstChildElement("Method");
     if (methodElement == nullptr) { //I know we check this in while, but in while it doesn't hard fail
         std::cerr << "StageInfo has no render methods, this is definitely a mistake, cancelling!" << std::endl;
-        return nullptr;
+        return false;
     }
 
     while(methodElement !=nullptr) {
         tinyxml2::XMLElement* methodNameElement =  methodElement->FirstChildElement("Name");
         if (methodNameElement == nullptr) {
             std::cerr << "StageInfo Method has no name, this is definitely a mistake, cancelling!" << std::endl;
-            return nullptr;
+            return false;
         }
         if(methodNameElement->GetText() == nullptr) {
             std::cerr << "Method name has no text, this is a mistake, cancelling!" << std::endl;
-            return nullptr;
+            return false;
         }
         std::string methodName = methodNameElement->GetText();
 
         tinyxml2::XMLElement* methodIndexElement =  methodElement->FirstChildElement("Index");
         if (methodIndexElement == nullptr) {
             std::cerr << "StageInfo Method has no index, this is definitely a mistake, cancelling!" << std::endl;
-            return nullptr;
+            return false;
         }
         if(methodIndexElement->GetText() == nullptr) {
             std::cerr << "Method name has no index, this is a mistake, cancelling!" << std::endl;
-            return nullptr;
+            return false;
         }
 
         //This is not the last part because lights require the stage
@@ -248,10 +253,10 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
         tinyxml2::XMLElement* graphicsStageElement =  stageInfoElement->FirstChildElement("GraphicsPipelineStage");
         if (graphicsStageElement == nullptr) {
             std::cerr << "StageInfo has no stage, this is definitely a mistake, cancelling!" << std::endl;
-            return nullptr;
+            return false;
         }
 
-        newStageInfo->stage = GraphicsPipelineStage::deserialize(graphicsStageElement, assetManager->getGraphicsWrapper(), textures, options);
+        newStageInfo.stage = GraphicsPipelineStage::deserialize(graphicsStageElement, assetManager->getGraphicsWrapper(), textures, options);
 
         //uint32_t methodIndex = std::stoi(methodIndexElement->GetText()); //this variable is not used
 
@@ -265,7 +270,7 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
             tinyxml2::XMLElement* graphicsProgramElement =  methodElement->FirstChildElement("GraphicsProgram");
             if (graphicsProgramElement == nullptr) {
                 std::cerr << "StageInfo has no render method, but it is not tagged as such, cancelling!" << std::endl;
-                return nullptr;
+                return false;
             }
             graphicsProgram = GraphicsProgramLoader::deserialize(graphicsProgramElement, assetManager);
         }
@@ -273,21 +278,21 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
 
         bool isFound = true;
         if(methodName == "All directional shadows") {
-            std::shared_ptr<Texture> depthMap = newStageInfo->stage->getOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH);
-            RenderMethods::RenderMethod method  = pipeline->getRenderMethods().getRenderMethodAllDirectionalLights(newStageInfo->stage, depthMap, graphicsProgram);
-            newStageInfo->addRenderMethod(method);
+            std::shared_ptr<Texture> depthMap = newStageInfo.stage->getOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH);
+            RenderMethods::RenderMethod method  = pipeline->getRenderMethods().getRenderMethodAllDirectionalLights(newStageInfo.stage, depthMap, graphicsProgram);
+            newStageInfo.addRenderMethod(method);
         } else if(methodName == "All point shadows") {
             RenderMethods::RenderMethod method = pipeline->getRenderMethods().getRenderMethodAllPointLights(graphicsProgram);
-            newStageInfo->addRenderMethod(method);
+            newStageInfo.addRenderMethod(method);
         } else {
             RenderMethods::RenderMethod method = pipeline->getRenderMethods().getRenderMethod(assetManager->getGraphicsWrapper(), methodName,
                                                                                                      graphicsProgram,
                                                                                                      isFound);
             if(!isFound) {
                 std::cerr << "Render method build failed, please check!" << std::endl;
-                return nullptr;
+                return false;
             }
-            newStageInfo->addRenderMethod(method);
+            newStageInfo.addRenderMethod(method);
         }
 
         //now we need to parse the external methods
@@ -298,19 +303,19 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
                 RenderMethodInterface* externalRenderMethod = RenderMethodInterface::createRenderMethodInterfaceInstance(
                         externalMethodNameString, assetManager->getGraphicsWrapper());
                 externalRenderMethod->initRender(graphicsProgram, std::vector<LimonAPI::ParameterRequest>());
-                newStageInfo->addExternalRenderMethod(externalMethodNameString, externalRenderMethod);
+                newStageInfo.addExternalRenderMethod(externalMethodNameString, externalRenderMethod);
             }
             externalMethodElement =  externalMethodElement->NextSiblingElement("ExternalMethod");
         }
 
         if(graphicsProgram != nullptr) {//debug render program is not loaded by the internal systems
-            newStageInfo->programs.emplace_back(graphicsProgram);
+            newStageInfo.programs.emplace_back(graphicsProgram);
         }
 
         methodElement =  methodElement->NextSiblingElement("Method");
     }
     // end of method list parsing
 
-    return newStageInfo;
+    return true;
 }
 
