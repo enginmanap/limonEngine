@@ -90,7 +90,7 @@ SSAOKernelRenderMethod::generateSSAONoiseTexture() {
         glm::vec3 noise(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, 0.0f); // rotate around z-axis (in tangent space)
         ssaoNoise.push_back(noise);
     }
-    ssaoNoiseTexture = createTexture("ssaoNoiseTexture", 4, 4, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGB32F, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, 0);
+    ssaoNoiseTexture = createTexture(4, 4, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGB32F, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, 0);
     std::cerr << "ssaoNoise texture id is " << ssaoNoiseTexture << std::endl;
     setFilterMode(ssaoNoiseTexture, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::FilterModes::NEAREST);
     setWrapMode(ssaoNoiseTexture, GraphicsInterface::TextureTypes::T2D,

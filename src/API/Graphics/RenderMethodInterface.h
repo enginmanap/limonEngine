@@ -38,7 +38,7 @@ protected:
             graphicsInterface(graphicsInterface) {}
 
     //proxy the texture methods
-    uint32_t createTexture(const std::string& debugName, int height, int width, GraphicsInterface::TextureTypes type,
+    uint32_t createTexture(int height, int width, GraphicsInterface::TextureTypes type,
                            GraphicsInterface::InternalFormatTypes internalFormat,
                            GraphicsInterface::FormatTypes format,
                            GraphicsInterface::DataTypes dataType,
