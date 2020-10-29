@@ -157,6 +157,21 @@ void Model::setupForTime(long time) {
             compoundShape->recalculateLocalAabb();
         }
     }
+
+    for (auto boneIterator = exposedBoneTransforms.begin();
+         boneIterator != exposedBoneTransforms.end(); ++boneIterator) {
+        glm::vec3 temp1;//these are not used
+        glm::vec4 temp2;
+        glm::vec3 translate, scale;
+        glm::quat orientation;
+
+        glm::decompose(this->transformation.getWorldTransform() * boneTransforms[boneIterator->first], scale, orientation, translate, temp1, temp2);
+
+        exposedBoneTransforms[boneIterator->first]->setTranslate(translate);
+        exposedBoneTransforms[boneIterator->first]->setScale(scale);
+        exposedBoneTransforms[boneIterator->first]->setOrientation(orientation);
+    }
+
     lastSetupTime = time;
 }
 
@@ -204,20 +219,6 @@ void Model::renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, Grap
 
     graphicsWrapper->attachModelUBO(program.getID());
     graphicsWrapper->attachModelIndicesUBO(program.getID());
-
-    for (auto boneIterator = exposedBoneTransforms.begin();
-         boneIterator != exposedBoneTransforms.end(); ++boneIterator) {
-        glm::vec3 temp1;//these are not used
-        glm::vec4 temp2;
-        glm::vec3 translate, scale;
-        glm::quat orientation;
-
-        glm::decompose(this->transformation.getWorldTransform() * boneTransforms[boneIterator->first], scale, orientation, translate, temp1, temp2);
-
-        exposedBoneTransforms[boneIterator->first]->setTranslate(translate);
-        exposedBoneTransforms[boneIterator->first]->setScale(scale);
-        exposedBoneTransforms[boneIterator->first]->setOrientation(orientation);
-    }
 
     for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
         if (animated) {
