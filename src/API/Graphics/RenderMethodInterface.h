@@ -37,6 +37,38 @@ protected:
     * graphicsInterface):
             graphicsInterface(graphicsInterface) {}
 
+    //proxy the texture methods
+    uint32_t createTexture(const std::string& debugName, int height, int width, GraphicsInterface::TextureTypes type,
+                           GraphicsInterface::InternalFormatTypes internalFormat,
+                           GraphicsInterface::FormatTypes format,
+                           GraphicsInterface::DataTypes dataType,
+                           uint32_t depth) {
+        return graphicsInterface->createTexture(height, width, type, internalFormat, format, dataType, depth);
+    }
+
+    bool deleteTexture(uint32_t textureID) {
+        return graphicsInterface->deleteTexture(textureID);
+    }
+
+    void setWrapMode(uint32_t textureID, GraphicsInterface::TextureTypes textureType, GraphicsInterface::TextureWrapModes wrapModeS,
+                             GraphicsInterface::TextureWrapModes wrapModeT, GraphicsInterface::TextureWrapModes wrapModeR) {
+        graphicsInterface->setWrapMode(textureID, textureType, wrapModeS, wrapModeT, wrapModeR);
+    }
+
+    void setTextureBorder(uint32_t textureID, GraphicsInterface::TextureTypes textureType, bool isBorderColorSet,
+                                  const std::vector<float> &borderColors) {
+        graphicsInterface->setTextureBorder(textureID, textureType, isBorderColorSet, borderColors);
+    }
+
+    void setFilterMode(uint32_t textureID, GraphicsInterface::TextureTypes textureType, GraphicsInterface::FilterModes filterMode) {
+        graphicsInterface->setFilterMode(textureID, textureType, filterMode);
+    }
+
+    void loadTextureData(uint32_t textureID, int height, int width, GraphicsInterface::TextureTypes type, GraphicsInterface::InternalFormatTypes internalFormat, GraphicsInterface::FormatTypes format, GraphicsInterface::DataTypes dataType, uint32_t depth,
+                                 void *data, void *data2, void *data3, void *data4, void *data5, void *data6) {
+        graphicsInterface->loadTextureData(textureID, height, width, type, internalFormat, format, dataType, depth, data, data2, data3, data4, data5, data6);
+    }
+
 public:
     // Not virtual
     static std::vector<std::string> getRenderMethodNames() {

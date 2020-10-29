@@ -13,12 +13,20 @@ std::vector<std::string> GraphicsPipeline::renderMethodNames{"None", "All direct
                                                              "Render Debug Information", "Render Opaque Player Attachment", "Render Animated Player Attachment",
                                                              "Render Transparent Player Attachment", "Render quad"};
 
-
-void GraphicsPipeline::render() {
-    for(auto stageInfo:pipelineStages) {
+void GraphicsPipeline::initialize() {
+    for(auto& stageInfo:pipelineStages) {
         stageInfo.stage->activate(stageInfo.clear);
-        for(auto renderMethod:stageInfo.renderMethods) {
-            renderMethod();
+        for(auto& renderMethod:stageInfo.renderMethods) {
+            renderMethod.initialize(std::vector<LimonAPI::ParameterRequest>());
+        }
+    }
+}
+
+void GraphicsPipeline::finalize() {
+    for(auto& stageInfo:pipelineStages) {
+        stageInfo.stage->activate(stageInfo.clear);
+        for(auto& renderMethod:stageInfo.renderMethods) {
+            renderMethod.finalize(std::vector<LimonAPI::ParameterRequest>());
         }
     }
 }
@@ -174,6 +182,7 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
         stageInfoElement =  stageInfoElement->NextSiblingElement("StageInformation");
     }
 
+    graphicsPipeline->initialize();
     return graphicsPipeline;
 }
 

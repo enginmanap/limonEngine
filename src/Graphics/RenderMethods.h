@@ -34,7 +34,7 @@ public:
                      std::shared_ptr<GraphicsProgram> glslProgram) :
                      name(std::move(name)), initializer(std::move(initializer)), method(std::move(method)), finalizer(std::move(finalizer)),
                      glslProgram(std::move(glslProgram)) {
-            if(initializer == nullptr) {
+            if(!this->initializer) {
                 isInitialized = true;
             }
         }
@@ -156,33 +156,35 @@ private:
 public:
     RenderMethod getRenderMethod(GraphicsInterface* graphicsInterface, const std::string& methodName, const std::shared_ptr<GraphicsProgram>& glslProgram, bool& isFound) const {
         //First check if we already created an instance
-        auto instanceIt = dynamicRenderMethodInstances.find(methodName);
-        if(instanceIt != dynamicRenderMethodInstances.end()) {
-            //use instance  for creation
-        }
-
-        //second try to get the render method from exposed interface
-        auto dynamicRenderMethodNames = RenderMethodInterface::getRenderMethodNames();
-        for (const std::string& dynamicMethodName:dynamicRenderMethodNames) {
-            if(dynamicMethodName == methodName) {
-                RenderMethodInterface * methodInterface = RenderMethodInterface::createRenderMethodInterfaceInstance(methodName, graphicsInterface);
-                dynamicRenderMethodInstances[methodName] = methodInterface;
-                if(methodInterface != nullptr) {
-                    return RenderMethod(methodName,
-                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonAPI::ParameterRequest> & params)
-                                        {return methodInterface->initRender(program, params);},
-                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program)
-                                        {return methodInterface->renderFrame(program);},
-                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonAPI::ParameterRequest> &params)
-                                        {return methodInterface->cleanupRender(program, params);},
-                        glslProgram
-                    );
-                } else {
-                    std::cerr << "Dynamic render method found but instance creation failed, check API doc for proper register steps." << std::endl;
+        if(dynamicRenderMethodInstances.find(methodName) == dynamicRenderMethodInstances.end()) {
+            //create an instance for usage
+            auto dynamicRenderMethodNames = RenderMethodInterface::getRenderMethodNames();
+            for (const std::string& dynamicMethodName:dynamicRenderMethodNames) {
+                if(dynamicMethodName == methodName) {
+                    RenderMethodInterface * methodInterface = RenderMethodInterface::createRenderMethodInterfaceInstance(methodName, graphicsInterface);
+                    dynamicRenderMethodInstances[methodName] = methodInterface;
+                    break;
                 }
-                break;//found but couldn't build.
             }
         }
+        if(dynamicRenderMethodInstances.find(methodName) != dynamicRenderMethodInstances.end()) {
+            //we built it at some point
+            RenderMethodInterface * methodInterface = dynamicRenderMethodInstances[methodName];
+            if(methodInterface != nullptr) {
+                return RenderMethod(methodName,
+                                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonAPI::ParameterRequest> & params)
+                                    {return methodInterface->initRender(program, params);},
+                                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program)
+                                    {return methodInterface->renderFrame(program);},
+                                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonAPI::ParameterRequest> &params)
+                                    {return methodInterface->cleanupRender(program, params);},
+                                    glslProgram
+                );
+            } else {
+                std::cerr << "Dynamic render method found but instance creation failed, check API doc for proper register steps." << std::endl;
+            }
+        }
+
         //if we hit here, no dynamic match found, search for built in
         return getBuiltInRenderMethod(methodName, glslProgram, isFound);
     }

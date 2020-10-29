@@ -27,6 +27,7 @@ class Light;
 
 class GraphicsProgram;
 class Texture;
+class RenderMethodInterface;
 
 struct Line {
     glm::vec3 from;
@@ -68,6 +69,7 @@ public:
 
 protected:
     friend class Texture;
+    friend class RenderMethodInterface;
     virtual uint32_t createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth) = 0;
 
     virtual bool deleteTexture(uint32_t textureID) = 0;

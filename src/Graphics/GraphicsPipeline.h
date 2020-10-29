@@ -85,7 +85,18 @@ public:
         return nullptr;
     }
 
-    void render();
+    void initialize();
+
+    inline void render() {
+        for(auto& stageInfo:pipelineStages) {
+            stageInfo.stage->activate(stageInfo.clear);
+            for(auto& renderMethod:stageInfo.renderMethods) {
+                renderMethod();
+            }
+        }
+    }
+
+    void finalize();
 
     bool serialize(const std::string& renderPipelineFileName, Options *options);
 

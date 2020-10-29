@@ -1117,11 +1117,8 @@ void OpenGLGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Text
         case TextureTypes::T2D_ARRAY: {
             if(layer == -1 ) {
                 glFramebufferTexture(GL_FRAMEBUFFER, glAttachment, textureID, 0);
-
             } else {
-
                 glFramebufferTextureLayer(GL_FRAMEBUFFER, glAttachment, textureID, 0, layer);
-
             }
         }
             break;

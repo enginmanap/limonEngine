@@ -320,7 +320,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
                 if (outputTexture == nullptr) {
                     std::cerr << "For output " << attachmentString << " texture deserialize failed, skipping" << std::endl;
                 } else {
-                    newStage->setOutput(attachmentPoint, outputTexture, false, 0);
+                    newStage->setOutput(attachmentPoint, outputTexture, false, -1);
                 }
             }
         }
