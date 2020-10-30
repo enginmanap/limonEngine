@@ -91,6 +91,10 @@ if (NOT assimp_FOUND)
 endif (NOT assimp_FOUND)
 INCLUDE_DIRECTORIES(${ASSIMP_INCLUDE_DIRS})
 
+if (APPLE)
+    set(ASSIMP_LIBRARIES "/usr/local/lib/libassimp.5.dylib")
+endif(APPLE)
+
 add_custom_target(copyData
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/Engine ${CMAKE_BINARY_DIR}/Engine)

@@ -441,15 +441,15 @@ void AIMovementGrid::serializeNode(tinyxml2::XMLDocument &aiGridDocument, tinyxm
     currentElement = aiGridDocument.NewElement("Ps");
     {
             tinyxml2::XMLElement *positionXElement = aiGridDocument.NewElement("X");
-            positionXElement->SetText(std::__cxx11::to_string(nodeToSerialize->getPosition().x).c_str());
+            positionXElement->SetText(std::to_string(nodeToSerialize->getPosition().x).c_str());
             currentElement->InsertEndChild(positionXElement);
 
             tinyxml2::XMLElement *positionYElement = aiGridDocument.NewElement("Y");
-            positionYElement->SetText(std::__cxx11::to_string(nodeToSerialize->getPosition().y).c_str());
+            positionYElement->SetText(std::to_string(nodeToSerialize->getPosition().y).c_str());
             currentElement->InsertEndChild(positionYElement);
 
             tinyxml2::XMLElement *positionZElement = aiGridDocument.NewElement("Z");
-            positionZElement->SetText(std::__cxx11::to_string(nodeToSerialize->getPosition().z).c_str());
+            positionZElement->SetText(std::to_string(nodeToSerialize->getPosition().z).c_str());
             currentElement->InsertEndChild(positionZElement);
 
         }
@@ -463,7 +463,7 @@ void AIMovementGrid::serializeNode(tinyxml2::XMLDocument &aiGridDocument, tinyxm
             currentElement = aiGridDocument.NewElement("Nb");//neighbour
             currentElement->SetAttribute("Ps", std::to_string(i).c_str());//position
             if(nodeToSerialize->getNeighbour(i) != nullptr) {
-                currentElement->SetText(std::__cxx11::to_string(nodeToSerialize->getNeighbour(i)->getID()).c_str());
+                currentElement->SetText(std::to_string(nodeToSerialize->getNeighbour(i)->getID()).c_str());
             } else {
                 currentElement->SetText("0");//writing 0 if null
             }
