@@ -25,12 +25,14 @@ class HumanEnemy: public ActorInterface {
     long shootPlayerTimer = 0;
     uint32_t hitPoints = 100;
 
-    std::vector<glm::vec3> routeTorequest;
+    std::vector<glm::vec3> routeToRequest;
     long routeGetTime = 0;
     bool routeRequested = false;
 
 public:
-    HumanEnemy(uint32_t id, LimonAPI *limonAPI) : ActorInterface(id, limonAPI) {}
+    HumanEnemy(uint32_t id, LimonAPI *limonAPI) : ActorInterface(id, limonAPI) {
+        lastWalkDirection = this->getPosition();
+    }
 
     void play(long time, ActorInterface::ActorInformation &information) override;
 

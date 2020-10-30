@@ -9,9 +9,9 @@
 
 void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) {
     if(information.routeReady) {
-        this->routeTorequest = information.routeToRequest;
+        this->routeToRequest = information.routeToRequest;
         if(information.routeFound) {
-            lastWalkDirection = routeTorequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
+            lastWalkDirection = routeToRequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
         }
         routeGetTime = time;
         routeRequested = false;
@@ -100,12 +100,12 @@ void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) 
             limonAPI->setModelAnimationWithBlend(modelID,"run forward|mixamo.com");
             hitAnimationStartTime = 0;
         }
-        if(!routeTorequest.empty()) {
-            float distanceToRouteNode = glm::length2(getPosition() + glm::vec3(0, 2.0f, 0) - routeTorequest[0]);
+        if(!routeToRequest.empty()) {
+            float distanceToRouteNode = glm::length2(getPosition() + glm::vec3(0, 2.0f, 0) - routeToRequest[0]);
             if (distanceToRouteNode < 0.1f) {//if reached first element
-                routeTorequest.erase(routeTorequest.begin());
-                if (!routeTorequest.empty() ) {
-                    lastWalkDirection = routeTorequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
+                routeToRequest.erase(routeToRequest.begin());
+                if (!routeToRequest.empty() ) {
+                    lastWalkDirection = routeToRequest[0] - getPosition() - glm::vec3(0, 2.0f, 0);
                 } else {
                     lastWalkDirection = glm::vec3(0, 0, 0);
                 }
