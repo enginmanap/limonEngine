@@ -11,7 +11,7 @@
 #include <SDL_atomic.h>
 #include <SDL_thread.h>
 #include <functional>
-#include <bits/shared_ptr.h>
+#include <memory>
 #include <API/Graphics/GraphicsInterface.h>
 #include "Options.h"
 #include "API/LimonAPI.h"
