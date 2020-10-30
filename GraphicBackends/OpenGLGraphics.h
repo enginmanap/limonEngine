@@ -223,6 +223,9 @@ private:
     uint32_t renderLineCount;
     uint32_t uniformSetCount=0;
 
+    bool isProgramInterfaceQuerySupported = false;
+    bool isFrameBufferParameterSupported = false;
+
 public:
 
     void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) override {
@@ -236,6 +239,10 @@ public:
 
     const glm::mat4 &getLightProjectionMatrixDirectional() const override {
         return lightProjectionMatrixDirectional;
+    }
+
+    const bool getFrameBufferParameterSupported() const {
+        return isFrameBufferParameterSupported;
     }
 
 private:

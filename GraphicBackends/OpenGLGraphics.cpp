@@ -186,42 +186,44 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
 
     delete[] name;
 
-    glGetProgramInterfaceiv(program, GL_PROGRAM_OUTPUT, GL_MAX_NAME_LENGTH, &maxLength);
-    name = new GLchar[maxLength];
+    if (isProgramInterfaceQuerySupported) {
+        glGetProgramInterfaceiv(program, GL_PROGRAM_OUTPUT, GL_MAX_NAME_LENGTH, &maxLength);
+        name = new GLchar[maxLength];
 
-    glGetProgramInterfaceiv(program, GL_PROGRAM_OUTPUT, GL_ACTIVE_RESOURCES, &count);
-    bool depthAdded = false;
-    for(i = 0; i < count; i++) {
-        glGetProgramResourceName(program, GL_PROGRAM_OUTPUT, i, maxLength, &size, name);
-        const GLenum properties[2] = {GL_TYPE, GL_LOCATION};
-        GLint queryResults[2];
-        Uniform::VariableTypes variableType;
-        glGetProgramResourceiv(program, GL_PROGRAM_OUTPUT, i, 2, properties, 2, nullptr, queryResults);
-        variableType = getSamplerVariableType(queryResults);
-        FrameBufferAttachPoints attachPoint;
-        switch (queryResults[1]) {
-            case 0:     attachPoint=FrameBufferAttachPoints::COLOR0;  break;
-            case 1:     attachPoint=FrameBufferAttachPoints::COLOR1;  break;
-            case 2:     attachPoint=FrameBufferAttachPoints::COLOR2;  break;
-            case 3:     attachPoint=FrameBufferAttachPoints::COLOR3;  break;
-            case 4:     attachPoint=FrameBufferAttachPoints::COLOR4;  break;
-            case 5:     attachPoint=FrameBufferAttachPoints::COLOR5;  break;
-            case 6:     attachPoint=FrameBufferAttachPoints::COLOR6;  break;
-            default:    attachPoint=FrameBufferAttachPoints::NONE;
+        glGetProgramInterfaceiv(program, GL_PROGRAM_OUTPUT, GL_ACTIVE_RESOURCES, &count);
+        bool depthAdded = false;
+        for(i = 0; i < count; i++) {
+            glGetProgramResourceName(program, GL_PROGRAM_OUTPUT, i, maxLength, &size, name);
+            const GLenum properties[2] = {GL_TYPE, GL_LOCATION};
+            GLint queryResults[2];
+            Uniform::VariableTypes variableType;
+            glGetProgramResourceiv(program, GL_PROGRAM_OUTPUT, i, 2, properties, 2, nullptr, queryResults);
+            variableType = getSamplerVariableType(queryResults);
+            FrameBufferAttachPoints attachPoint;
+            switch (queryResults[1]) {
+                case 0:     attachPoint=FrameBufferAttachPoints::COLOR0;  break;
+                case 1:     attachPoint=FrameBufferAttachPoints::COLOR1;  break;
+                case 2:     attachPoint=FrameBufferAttachPoints::COLOR2;  break;
+                case 3:     attachPoint=FrameBufferAttachPoints::COLOR3;  break;
+                case 4:     attachPoint=FrameBufferAttachPoints::COLOR4;  break;
+                case 5:     attachPoint=FrameBufferAttachPoints::COLOR5;  break;
+                case 6:     attachPoint=FrameBufferAttachPoints::COLOR6;  break;
+                default:    attachPoint=FrameBufferAttachPoints::NONE;
+            }
+
+            if(strcmp(name, "gl_FragDepth") == 0) {
+                depthAdded = true;
+                outputMap["Depth"] = std::make_pair(variableType, FrameBufferAttachPoints::DEPTH);
+            } else {
+                outputMap[name] = std::make_pair(variableType, attachPoint);
+            }
+
         }
-
-        if(strcmp(name, "gl_FragDepth") == 0) {
-            depthAdded = true;
-            outputMap["Depth"] = std::make_pair(variableType, FrameBufferAttachPoints::DEPTH);
-        } else {
-            outputMap[name] = std::make_pair(variableType, attachPoint);
+        if(!depthAdded) {
+            outputMap["Depth"] =std::make_pair(Uniform::VariableTypes::TEXTURE_2D, FrameBufferAttachPoints::DEPTH);//Depth is always written
         }
-
+        delete[] name;
     }
-    if(!depthAdded) {
-        outputMap["Depth"] =std::make_pair(Uniform::VariableTypes::TEXTURE_2D, FrameBufferAttachPoints::DEPTH);//Depth is always written
-    }
-    delete[] name;
 
     checkErrors("fillUniformAndOutputMaps");
 }
@@ -401,21 +403,26 @@ OpenGLGraphics::OpenGLGraphics(Options *options): GraphicsInterface(options), op
     glGetIntegerv(GL_NUM_EXTENSIONS, &n);
     std::cout << "found " << n << " extensions." << std::endl;
     bool isCubeMapArraySupported = false;
-    bool isProgramInterfaceQuerySupported = false;
     char extensionNameBuffer[100];
+    int foundExtensionCount = 0;
     for (i = 0; i < n; i++) {
         sprintf(extensionNameBuffer, "%s", glGetStringi(GL_EXTENSIONS, i));
         if(std::strcmp(extensionNameBuffer, "GL_ARB_texture_cube_map_array") == 0) {
             isCubeMapArraySupported = true;
-            if(isProgramInterfaceQuerySupported) {
-                break;
-            }
+            ++foundExtensionCount;
         }
         if(std::strcmp(extensionNameBuffer, "GL_ARB_program_interface_query") == 0) {
             isProgramInterfaceQuerySupported = true;
-            if(isCubeMapArraySupported) {
-                break;
-            }
+            ++foundExtensionCount;
+        }
+
+        if(std::strcmp(extensionNameBuffer, "ARB_framebuffer_no_attachments") == 0) {
+            isFrameBufferParameterSupported = true;
+            ++foundExtensionCount;
+        }
+
+        if (foundExtensionCount == 3) {
+            break;
         }
     }
     if(!isCubeMapArraySupported) {
@@ -424,8 +431,7 @@ OpenGLGraphics::OpenGLGraphics(Options *options): GraphicsInterface(options), op
     }
 
     if(!isProgramInterfaceQuerySupported) {
-        std::cerr << "Program Interface Query support is mandatory, exiting.. " << std::endl;
-        exit(-1);
+        std::cerr << "Program Interface Query support is missing, auto discovery of shaders will not work... " << std::endl;
     }
 
     std::cout << "Cubemap array support is present. " << std::endl;
@@ -1073,8 +1079,10 @@ uint32_t OpenGLGraphics::createFrameBuffer(uint32_t width, uint32_t height) {
     GLuint newFrameBufferLocation;
     glGenFramebuffers(1, &newFrameBufferLocation);
     glBindFramebuffer(GL_FRAMEBUFFER, newFrameBufferLocation);
-    glFramebufferParameteri(GL_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_WIDTH, width);
-    glFramebufferParameteri(GL_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_HEIGHT, height);
+    if(getFrameBufferParameterSupported()) {
+        glFramebufferParameteri(GL_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_WIDTH, width);
+        glFramebufferParameteri(GL_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_HEIGHT, height);
+    }
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -1156,7 +1164,7 @@ void OpenGLGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Text
     }
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        std::cerr << "created frame buffer is not complete!" << std::endl;
+        std::cerr << "frame buffer texture to attach is not complete" << std::endl;
     }
     checkErrors("attachDrawTextureToFrameBuffer");
 
