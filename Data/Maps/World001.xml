@@ -17,7 +17,7 @@
             <Object>
                 <File>./Data/Models/EasyFPS/EasyFPS.fbx</File>
                 <Animation>Idle</Animation>
-                <Disconnected>False</Disconnected>
+                <Disconnected>True</Disconnected>
                 <Mass>0</Mass>
                 <ID>24</ID>
                 <Transformation>
