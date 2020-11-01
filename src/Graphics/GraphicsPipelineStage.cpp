@@ -49,20 +49,23 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     } else {
         currentElement->SetText("False");
     }
+    stageNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("DepthTestEnabled");
-    if(depthAttachment) {
+    if(depthTestEnabled) {
         currentElement->SetText("True");
     } else {
         currentElement->SetText("False");
     }
+    stageNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("ScissorEnabled");
-    if(depthAttachment) {
+    if(scissorEnabled) {
         currentElement->SetText("True");
     } else {
         currentElement->SetText("False");
     }
+    stageNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("ToScreen");
     if(depthAttachment && colorAttachment && frameBufferID == 0) {
@@ -307,7 +310,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
                 } else {
                     bool found = false;
                     for (const auto& texture:textures) {
-                        if (texture->getSerializeID() == std::stoi(textureID)) {
+                        if (texture->getSerializeID() == std::stoul(textureID)) {
                             outputTexture = texture;
                             found = true;
                             break;
