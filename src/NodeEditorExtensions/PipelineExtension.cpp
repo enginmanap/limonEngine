@@ -8,6 +8,7 @@
 #include <nodeGraph/src/NodeGraph.h>
 #include <Graphics/GraphicsPipeline.h>
 #include <GameObjects/Light.h>
+#include <algorithm>
 #include "PipelineExtension.h"
 #include "Graphics/Texture.h"
 #include "PipelineStageExtension.h"
@@ -198,6 +199,17 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
         if(rootNode == nullptr) {
             std::cout << "Screen output not found. cancelling." << std::endl;
         } else {
+            std::unordered_map<const Node*, std::set<const Node*>> dependencies;
+            buildDependencyInfoRecursive(rootNode, dependencies);
+            for(const auto& node:dependencies) {
+                std::cerr << "Node: " <<  node.first->getName() << std::endl;
+                for(auto dependency: node.second) {
+                    std::cerr << "\t\tfor depends: " <<  dependency->getName() << std::endl;
+                }
+            }
+            buildGroupsByDependency(dependencies);
+
+            /*
             GraphicsPipeline* graphicsPipeline = new GraphicsPipeline(renderMethods);
             for(auto usedTexture:usedTextures) {
                 if(usedTexture.second != nullptr) {
@@ -209,6 +221,7 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
                 graphicsPipeline->serialize("./Data/renderPipelineBuilt.xml", options);
                 addMessage("Built new Pipeline");
             }//error message provided by recursive
+             */
         }
     }
     ImGui::PopStyleVar();
@@ -223,6 +236,186 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
     }
     messages.clear();
 }
+
+void PipelineExtension::buildDependencyInfoRecursive(const Node *node, std::unordered_map<const Node*, std::set<const Node*>>& dependencies) {
+    std::set<const Node*> currentNodeDependencies;
+    for(auto inputConnection:node->getInputConnections()) {
+        for(auto inputNode:inputConnection->getConnectedNodes()){
+            if(dependencies.find(inputNode) == dependencies.end()) {
+                buildDependencyInfoRecursive(inputNode, dependencies);
+            }
+            currentNodeDependencies.insert(dependencies.at(inputNode).begin(), dependencies.at(inputNode).end());
+            currentNodeDependencies.insert(inputNode);
+        }
+    }
+    dependencies[node] = currentNodeDependencies;
+}
+
+bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, const std::set<const Node*>& existingDependencies, const Node* currentNode, const std::set<const Node*>& currentDependencies) {
+    std::string existingNodeName = "emptyList";
+    if(!existingNodes.empty()) {
+        existingNodeName = (*existingNodes.begin())->getDisplayName();
+    }
+    if(existingDependencies.find(currentNode) != existingDependencies.end()) {
+        std::cerr << "Failed to join because existing set "<< existingNodeName <<"depends to current " << std::endl;
+        return false;//existing nodes depend on this node
+    }
+    std::set<const Node*> intersection;
+    std::set_intersection(currentDependencies.begin(), currentDependencies.end(), existingNodes.begin(), existingNodes.end(), std::inserter(intersection, intersection.begin()));
+    if(!intersection.empty()) {
+        std::cerr << "Failed to join because current node depends to existing set "<< existingNodeName <<" " << std::endl;
+        return false;//current node is depending on one of the nodes. can't merge
+    }
+    //old and new don't depend each other.
+
+    //now get if this node outputs any depth map, and if it does, what is it.
+    auto stageExtension = dynamic_cast<PipelineStageExtension*>(currentNode->getExtension());
+    if(stageExtension == nullptr) {
+        //stage extension not found, can't take the chance. fail
+        std::cerr << "Failed to join because current node have no extension " << std::endl;
+        return false;
+    }
+    std::shared_ptr<Texture> newDepthMap;
+
+    for(auto outputConnection:currentNode->getOutputConnections()) {
+        auto outputTextureInfo = stageExtension->getOutputTextureInfo(outputConnection);
+        if(outputTextureInfo == nullptr) {
+            //there is an output that is not set. Return false
+            std::cerr << "Failed to join because current node have not set output  " << std::endl;
+            return false;
+        }
+        if(outputTextureInfo->texture != nullptr && outputTextureInfo->texture->getFormat() == GraphicsInterface::FormatTypes::DEPTH) {
+            newDepthMap = outputTextureInfo->texture;
+            break;
+        }
+    }
+
+    //now find what depthmap is used by existing set
+    std::shared_ptr<Texture> existingDepthMap = nullptr;
+    for(auto existingNode:existingNodes) {
+        auto stageExtension = dynamic_cast<PipelineStageExtension*>(existingNode->getExtension());
+        if(stageExtension == nullptr) {
+            //stage extension not found, can't take the chance. fail
+            std::cerr << "Failed to join because existing node have no extension " << std::endl;
+            return false;
+        }
+        for (auto outputConnection:existingNode->getOutputConnections()) {
+            auto outputTextureInfo = stageExtension->getOutputTextureInfo(outputConnection);
+            if (outputTextureInfo == nullptr) {
+                //there is an output that is not set. Return false
+                std::cerr << "Failed to join because existing set "<< existingNodeName <<" have not set outputs" << std::endl;
+                return false;
+            }
+            if(outputTextureInfo->texture != nullptr && outputTextureInfo->texture->getFormat() == GraphicsInterface::FormatTypes::DEPTH) {
+                existingDepthMap = outputTextureInfo->texture;
+                break;
+            }
+        }
+        if(existingDepthMap != nullptr) {
+            //already found the output, break
+            break;
+        }
+    }
+    if(existingDepthMap == nullptr) {
+        std::cerr << "Success to join because existing set "<< existingNodeName <<" has no depth map" << std::endl;
+        return true;
+    }
+    if(newDepthMap == nullptr) {
+        std::cerr << "Success to join because current node "<< currentNode->getDisplayName() <<" has no depth map" << std::endl;
+        return true;
+    }
+    if(existingDepthMap == newDepthMap) {
+        std::cerr << "Success to join because current node and existing "<< existingNodeName <<" has same depth map" << std::endl;
+        return true;
+    }
+    std::cerr << "Failed to join because existing set "<< existingNodeName <<" have other depth map" << std::endl;
+    return false;
+}
+
+/**
+ * groups node so they can be rendered in parallel. Rules:
+ *
+ * 1) they can't be outputting different depth maps
+ * 2) they can't be depending one another, neither directly or indirectly
+ *
+ * This method might take some time to finish
+ *
+ */
+std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> PipelineExtension::buildGroupsByDependency(std::unordered_map<const Node*, std::set<const Node*>> dependencies) {
+    /**
+     * result is an array of dependency[],node[]
+     *
+     */
+    std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> resultGroup;//dependencies, nodes
+    uint32_t selectingDependencySize = 0;
+    while(true) {
+        std::set<const Node*> nodesToRemove;
+        std::cerr << "searching for dependency size" << selectingDependencySize << " while waiting dependency size " << dependencies.size() << std::endl;
+        for (auto nodeDependencyIt = dependencies.begin(); nodeDependencyIt != dependencies.end();) {
+            bool nodeMerged = false;
+            if(nodeDependencyIt->second.size() == selectingDependencySize) {
+                std::cerr << "processing node " << nodeDependencyIt->first->getDisplayName() << std::endl;
+                //these are the ones we want to try to join
+                for (auto resultGroupIt = resultGroup.begin(); resultGroupIt != resultGroup.end(); ++resultGroupIt) {
+                    //searching for a result that can be merged
+                    if(canBeJoined(resultGroupIt->second, resultGroupIt->first, nodeDependencyIt->first, nodeDependencyIt->second)) {
+                        std::cerr << "Joining " << nodeDependencyIt->first->getDisplayName() << " with: ";
+                        for(auto oldNodes:resultGroupIt->second) {
+                            std::cerr <<  oldNodes->getDisplayName() << ", ";
+                        }
+                        std::cerr << std::endl;
+                        std::set<const Node*> joinedDependencies;
+                        joinedDependencies.insert(resultGroupIt->first.begin(), resultGroupIt->first.end());
+                        joinedDependencies.insert(nodeDependencyIt->second.begin(), nodeDependencyIt->second.end());
+                        std::set<const Node*> joinedNodes;
+                        joinedNodes.insert(resultGroupIt->second.begin(), resultGroupIt->second.end());
+                        joinedNodes.insert(nodeDependencyIt->first);
+                        resultGroup.erase(resultGroupIt);
+                        resultGroup.emplace_back(std::make_pair(joinedDependencies,joinedNodes));
+                        nodeDependencyIt = dependencies.erase(nodeDependencyIt);
+                        nodeMerged = true;
+                        break;
+                    }
+                }
+
+                if(!nodeMerged) {
+                    std::cerr << "Adding itself " << nodeDependencyIt->first->getDisplayName() << std::endl;
+                    std::set<const Node*> tempDependencies;
+                    tempDependencies.insert(nodeDependencyIt->second.begin(), nodeDependencyIt->second.end());
+                    std::set<const Node*> tempNodes;
+                    tempNodes.insert(nodeDependencyIt->first);
+                    resultGroup.emplace_back(std::make_pair(tempDependencies, tempNodes));
+                    nodeDependencyIt = dependencies.erase(nodeDependencyIt);
+                }
+                if(nodeDependencyIt == dependencies.end()) {
+                    break;//if we removed elements, it is possible we are already in the end
+                }
+            } else {
+                ++nodeDependencyIt;
+            }
+        }
+        if(dependencies.empty()) {
+            break;
+        }
+        if(selectingDependencySize > 30) {
+            break;
+        }
+        selectingDependencySize++;
+    }
+    for(auto result: resultGroup) {
+        std::cerr << "Nodes: ";
+        for(auto node:result.second) {
+            std::cerr << node->getDisplayName() << ", ";
+        }
+        std::cerr << "\n\t\t depends: ";
+        for(auto depends:result.first) {
+            std::cerr << depends->getDisplayName() << ", ";
+        }
+        std::cerr << std::endl;
+    }
+    return resultGroup;
+}
+
 
 bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                                                      GraphicsPipeline *graphicsPipeline,

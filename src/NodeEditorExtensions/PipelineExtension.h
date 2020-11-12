@@ -12,6 +12,7 @@
 
 #include <functional>
 #include <vector>
+#include <unordered_set>
 
 class GraphicsPipelineStage;
 
@@ -46,6 +47,10 @@ public:
     void deserialize(const std::string &fileName, tinyxml2::XMLElement *editorExtensionElement) override;
 
     bool buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline, std::map<const Node*, std::shared_ptr<GraphicsPipelineStage>>& nodeStages);
+
+    void buildDependencyInfoRecursive(const Node *node, std::unordered_map<const Node*, std::set<const Node*>>& dependencies);
+    std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> buildGroupsByDependency(std::unordered_map<const Node*, std::set<const Node*>>);
+    bool canBeJoined(const std::set<const Node*>& existingNodes, const std::set<const Node*>& existingDependencies, const Node* currentNode, const std::set<const Node*>& currentDependencies);
 
     void addError(const std::string& errorMessage) {
         this->errorMessages.emplace_back(errorMessage);
