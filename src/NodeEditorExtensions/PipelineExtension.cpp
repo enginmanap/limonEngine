@@ -394,11 +394,16 @@ void PipelineExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2::XML
 
     tinyxml2::XMLElement *usedTexturesElement = document.NewElement("UsedTextures");
     graphicsExtensionElement->InsertEndChild(usedTexturesElement);
+    uint32_t textureSerializeID = 1;
     for(auto textureIt:usedTextures) {
         std::shared_ptr<Texture>& usedTexture = textureIt.second;
         if(usedTexture == nullptr) {
             std::cerr << "There is a texture entry with name " << textureIt.first << " without a texture, skipping" << std::endl;
             continue;
+        }
+        textureSerializeID++;
+        if(usedTexture->getSerializeID() == 0 ) {
+            usedTexture->setSerializeID(textureSerializeID);
         }
         usedTexture->serialize(document, usedTexturesElement, options);
         std::cout << "Texture entry with name " << textureIt.first << " is serialized with id " << usedTexture->getSerializeID() << std::endl;
