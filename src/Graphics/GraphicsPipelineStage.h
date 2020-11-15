@@ -16,6 +16,7 @@ class GraphicsPipelineStage {
     uint32_t renderWidth;
     uint32_t renderHeight;
     uint32_t frameBufferID;
+    uint32_t nextPresetIndex = 1;//used by pipeline builder. If multiple programs are set per stage, we might want to attach n to first program, then when building second, we should start from n+1.
     bool blendEnabled = false;
     bool depthTestEnabled = false;
     bool scissorEnabled = false;
@@ -78,6 +79,38 @@ public:
         }
         std::cerr << "Requested output can't be found, exiting" << std::endl;
         exit(1);
+    }
+
+    uint32_t getLastPresetIndex() const {
+        return nextPresetIndex;
+    }
+
+    void setLastPresetIndex(uint32_t lastPresetIndex) {
+        GraphicsPipelineStage::nextPresetIndex = lastPresetIndex;
+    }
+
+    bool isBlendEnabled() const {
+        return blendEnabled;
+    }
+
+    void setBlendEnabled(bool blendEnabled) {
+        GraphicsPipelineStage::blendEnabled = blendEnabled;
+    }
+
+    bool isDepthTestEnabled() const {
+        return depthTestEnabled;
+    }
+
+    void setDepthTestEnabled(bool depthTestEnabled) {
+        GraphicsPipelineStage::depthTestEnabled = depthTestEnabled;
+    }
+
+    bool isScissorEnabled() const {
+        return scissorEnabled;
+    }
+
+    void setScissorEnabled(bool scissorEnabled) {
+        GraphicsPipelineStage::scissorEnabled = scissorEnabled;
     }
 
     void activate(bool clear = false);

@@ -46,7 +46,9 @@ public:
 
     void deserialize(const std::string &fileName, tinyxml2::XMLElement *editorExtensionElement) override;
 
-    bool buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline, std::map<const Node*, std::shared_ptr<GraphicsPipelineStage>>& nodeStages);
+    bool buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline, std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>>& nodeStages,
+                                      const std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>>& groupsByDependency,
+                                      std::vector<std::shared_ptr<GraphicsPipeline::StageInfo>>& builtStages);
 
     void buildDependencyInfoRecursive(const Node *node, std::unordered_map<const Node*, std::set<const Node*>>& dependencies);
     std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> buildGroupsByDependency(std::unordered_map<const Node*, std::set<const Node*>>);
@@ -59,6 +61,10 @@ public:
     void addMessage(const std::string& message) {
         this->messages.emplace_back(message);
     }
+
+    static std::shared_ptr<GraphicsPipeline::StageInfo>
+    findSharedStage(const Node *currentNode, std::map<const Node *, std::shared_ptr<GraphicsPipeline::StageInfo>> &builtStages,
+                    const std::vector<std::pair<std::set<const Node *>, std::set<const Node *>>> &dependencyGroups);
 };
 
 

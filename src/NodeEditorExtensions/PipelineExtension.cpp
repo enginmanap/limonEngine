@@ -207,21 +207,25 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
                     std::cerr << "\t\tfor depends: " <<  dependency->getName() << std::endl;
                 }
             }
-            buildGroupsByDependency(dependencies);
+            std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> dependencyGroups = buildGroupsByDependency(dependencies);
 
-            /*
+
             GraphicsPipeline* graphicsPipeline = new GraphicsPipeline(renderMethods);
             for(auto usedTexture:usedTextures) {
                 if(usedTexture.second != nullptr) {
                     graphicsPipeline->addTexture(usedTexture.second);
                 }
             }
-            std::map<const Node*, std::shared_ptr<GraphicsPipelineStage>> nodeStages;
-            if(buildRenderPipelineRecursive(rootNode, graphicsPipeline, nodeStages)) {
+            std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>> nodeStages;
+            std::vector<std::shared_ptr<GraphicsPipeline::StageInfo>> builtStages;
+            if(buildRenderPipelineRecursive(rootNode, graphicsPipeline, nodeStages, dependencyGroups,builtStages)) {
+                for(const auto& stageInfo:builtStages) {
+                    graphicsPipeline->addNewStage(*stageInfo);
+                }
                 graphicsPipeline->serialize("./Data/renderPipelineBuilt.xml", options);
                 addMessage("Built new Pipeline");
             }//error message provided by recursive
-             */
+
         }
     }
     ImGui::PopStyleVar();
@@ -269,8 +273,8 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
     //old and new don't depend each other.
 
     //now get if this node outputs any depth map, and if it does, what is it.
-    auto stageExtension = dynamic_cast<PipelineStageExtension*>(currentNode->getExtension());
-    if(stageExtension == nullptr) {
+    auto currentStageExtension = dynamic_cast<PipelineStageExtension*>(currentNode->getExtension());
+    if(currentStageExtension == nullptr) {
         //stage extension not found, can't take the chance. fail
         std::cerr << "Failed to join because current node have no extension " << std::endl;
         return false;
@@ -278,7 +282,7 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
     std::shared_ptr<Texture> newDepthMap;
 
     for(auto outputConnection:currentNode->getOutputConnections()) {
-        auto outputTextureInfo = stageExtension->getOutputTextureInfo(outputConnection);
+        auto outputTextureInfo = currentStageExtension->getOutputTextureInfo(outputConnection);
         if(outputTextureInfo == nullptr) {
             //there is an output that is not set. Return false
             std::cerr << "Failed to join because current node have not set output  " << std::endl;
@@ -292,6 +296,9 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
 
     //now find what depthmap is used by existing set
     std::shared_ptr<Texture> existingDepthMap = nullptr;
+    int32_t existingRenderResolution[2];
+    GraphicsInterface::CullModes existingCullMode = GraphicsInterface::CullModes::NO_CHANGE;
+    bool existingScissorTestState = false;
     for(auto existingNode:existingNodes) {
         auto stageExtension = dynamic_cast<PipelineStageExtension*>(existingNode->getExtension());
         if(stageExtension == nullptr) {
@@ -299,6 +306,13 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
             std::cerr << "Failed to join because existing node have no extension " << std::endl;
             return false;
         }
+        existingRenderResolution[0] = stageExtension->getRenderResolution()[0];
+        existingRenderResolution[1] = stageExtension->getRenderResolution()[1];
+        if(existingCullMode == GraphicsInterface::CullModes::NO_CHANGE) {//no change can be ignored
+            existingCullMode = stageExtension->getCullmode();
+        }
+        existingScissorTestState = stageExtension->isScissorTestEnabled();
+
         for (auto outputConnection:existingNode->getOutputConnections()) {
             auto outputTextureInfo = stageExtension->getOutputTextureInfo(outputConnection);
             if (outputTextureInfo == nullptr) {
@@ -316,20 +330,42 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
             break;
         }
     }
+    /* left for debug */
     if(existingDepthMap == nullptr) {
         std::cerr << "Success to join because existing set "<< existingNodeName <<" has no depth map" << std::endl;
-        return true;
     }
     if(newDepthMap == nullptr) {
         std::cerr << "Success to join because current node "<< currentNode->getDisplayName() <<" has no depth map" << std::endl;
-        return true;
     }
     if(existingDepthMap == newDepthMap) {
         std::cerr << "Success to join because current node and existing "<< existingNodeName <<" has same depth map" << std::endl;
-        return true;
     }
-    std::cerr << "Failed to join because existing set "<< existingNodeName <<" have other depth map" << std::endl;
-    return false;
+    /* left for debug */
+    if(existingDepthMap != nullptr && newDepthMap != nullptr && existingDepthMap != newDepthMap) {
+        std::cerr << "Failed to join because existing set " << existingNodeName << " have other depth map" << std::endl;
+        return false;
+    }
+    if(existingRenderResolution[0] != currentStageExtension->getRenderResolution()[0] ||
+            existingRenderResolution[1] != currentStageExtension->getRenderResolution()[1] ) {
+        std::cerr << "Failed because Render Resolution is different" << std::endl;
+        return false;
+    }
+
+    //they should have the same cull mode for joining.
+    if(existingCullMode != GraphicsInterface::CullModes::NO_CHANGE &&
+        currentStageExtension->getCullmode() != GraphicsInterface::CullModes::NO_CHANGE &&
+        existingCullMode != currentStageExtension->getCullmode()) {
+        std::cerr << "Failed because Cull Mode is different" << std::endl;
+        return false;
+    }
+
+    if(existingScissorTestState != currentStageExtension->isScissorTestEnabled()) {
+        std::cerr << "Failed because Scissor Mode is different" << std::endl;
+        return false;
+    }
+
+
+return true;
 }
 
 /**
@@ -419,7 +455,9 @@ std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> PipelineExt
 
 bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                                                      GraphicsPipeline *graphicsPipeline,
-                                                     std::map<const Node*, std::shared_ptr<GraphicsPipelineStage>>& nodeStages) {
+                                                     std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>>& nodeStages,
+                                                     const std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>>& groupsByDependency,
+                                                     std::vector<std::shared_ptr<GraphicsPipeline::StageInfo>>& builtStages) {
 
     if(nodeStages.find(node) != nodeStages.end()) {
         return true;
@@ -429,7 +467,7 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
         for(Connection* connectionInputs:connection->getInputConnections()) {
             Node *inputNode = connectionInputs->getParent();
             if(nodeStages.find(inputNode) == nodeStages.end()) {
-                if(!buildRenderPipelineRecursive(inputNode, graphicsPipeline, nodeStages)) {
+                if(!buildRenderPipelineRecursive(inputNode, graphicsPipeline, nodeStages, groupsByDependency, builtStages)) {
                     return false;//if failed in stack, fail.
                 }
             }
@@ -444,43 +482,60 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
     }
 
     if(stageExtension != nullptr) {
-        //uint32_t nodeAttachmentPoints = 1;
-        std::shared_ptr<GraphicsPipelineStage> newStage;
         bool toScreen = false;
-        if(!node->getOutputConnections().empty() && !node->getOutputConnections()[0]->getConnectedNodes().empty()) {
-            for(auto connection:node->getOutputConnections()) {
-                for(auto connectedNodes:connection->getConnectedNodes()){
-                    if(connectedNodes->getName() == "Screen") {
+        if (!node->getOutputConnections().empty() && !node->getOutputConnections()[0]->getConnectedNodes().empty()) {
+            for (auto connection:node->getOutputConnections()) {
+                for (auto connectedNodes:connection->getConnectedNodes()) {
+                    if (connectedNodes->getName() == "Screen") {
                         toScreen = true;
                         break;
                     }
                 }
-                if(toScreen) {
+                if (toScreen) {
                     break;
                 }
             }
         }
         std::shared_ptr<GraphicsProgram> stageProgram;
-        if(stageExtension->getProgramNameInfo().geometryShaderName.empty()) {
-            stageProgram = std::make_shared<GraphicsProgram>(assetManager.get(),stageExtension->getProgramNameInfo().vertexShaderName,
-                                                                                                   stageExtension->getProgramNameInfo().fragmentShaderName,
-                                                                                                   true);//FIXME: is material required should be part of program info
+        if (stageExtension->getProgramNameInfo().geometryShaderName.empty()) {
+            stageProgram = std::make_shared<GraphicsProgram>(assetManager.get(),
+                                                             stageExtension->getProgramNameInfo().vertexShaderName,
+                                                             stageExtension->getProgramNameInfo().fragmentShaderName,
+                                                             true);//FIXME: is material required should be part of program info
         } else {
-            stageProgram = std::make_shared<GraphicsProgram>(assetManager.get(),stageExtension->getProgramNameInfo().vertexShaderName,
-                                                                                                   stageExtension->getProgramNameInfo().geometryShaderName,
-                                                                                                   stageExtension->getProgramNameInfo().fragmentShaderName,
-                                                                                                   true);//FIXME: is material required should be part of program info
+            stageProgram = std::make_shared<GraphicsProgram>(assetManager.get(),
+                                                             stageExtension->getProgramNameInfo().vertexShaderName,
+                                                             stageExtension->getProgramNameInfo().geometryShaderName,
+                                                             stageExtension->getProgramNameInfo().fragmentShaderName,
+                                                             true);//FIXME: is material required should be part of program info
         }
 
-        newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper,
-                                                           stageExtension->getRenderResolution()[0],
-                                                           stageExtension->getRenderResolution()[1],
-                                                           stageExtension->isBlendEnabled(),
-                                                           stageExtension->isDepthTestEnabled(),
-                                                           stageExtension->isScissorTestEnabled(),
-                                                           toScreen);
-        uint32_t location = 1;
-        for(const Connection *connection:node->getInputConnections()) { //connect the inputs to current stage, since all of them now have a Stage build.
+        std::shared_ptr<GraphicsPipeline::StageInfo> stageInfo;
+        stageInfo = findSharedStage(node, nodeStages, groupsByDependency);
+        if (stageInfo == nullptr) {
+            stageInfo = std::make_shared<GraphicsPipeline::StageInfo>();
+            stageInfo->clear = stageExtension->isClearBefore();
+            stageInfo->stage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper,
+                                                               stageExtension->getRenderResolution()[0],
+                                                               stageExtension->getRenderResolution()[1],
+                                                               stageExtension->isBlendEnabled(),
+                                                               stageExtension->isDepthTestEnabled(),
+                                                               stageExtension->isScissorTestEnabled(),
+                                                               toScreen);
+            stageInfo->stage->setCullMode(stageExtension->getCullmode());
+            builtStages.emplace_back(stageInfo);//only add the stage at the first time. Because this method works from back to front, the order in the vector will be correct.
+        } else {
+            stageInfo->clear = stageInfo->clear || stageExtension->isClearBefore();
+            stageInfo->stage->setBlendEnabled(stageInfo->stage->isBlendEnabled() || stageExtension->isBlendEnabled());
+            stageInfo->stage->setDepthTestEnabled(stageInfo->stage->isDepthTestEnabled() || stageExtension->isDepthTestEnabled());
+            stageInfo->stage->setScissorEnabled(stageInfo->stage->isScissorEnabled() || stageExtension->isScissorTestEnabled());
+            if(stageInfo->stage->getCullMode() == GraphicsInterface::CullModes::NO_CHANGE) {//no change can be ignored. Otherwise they are guaranteed to have the same by canJoin
+                stageInfo->stage->setCullMode(stageExtension->getCullmode());
+            }
+        }
+
+        uint32_t location = stageInfo->stage->getLastPresetIndex();
+        for (const Connection *connection:node->getInputConnections()) { //connect the inputs to current stage, since all of them now have a Stage build.
             std::shared_ptr<Texture> inputTexture = nullptr;
             for (Connection *inputConnection:connection->getInputConnections()) {
 
@@ -488,83 +543,86 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                 if (inputNode->getExtension() != nullptr) {
                     //TODO: Extension should force all connections to use the same texture.
                     PipelineStageExtension *inputNodeExtension = dynamic_cast<PipelineStageExtension *>(inputNode->getExtension());
-                    if(inputTexture == nullptr) {
+                    if (inputTexture == nullptr) {
                         inputTexture = inputNodeExtension->getOutputTexture(inputConnection);
                     } else {
-                        if (inputTexture->getTextureID() != inputNodeExtension->getOutputTexture(inputConnection)->getTextureID()) {
-                            std::cerr << "Different textures are set for same connection. This is illegal." << std::endl;
+                        if (inputTexture->getTextureID() !=
+                            inputNodeExtension->getOutputTexture(inputConnection)->getTextureID()) {
+                            std::cerr << "Different textures are set for same connection. This is illegal."
+                                      << std::endl;
                         }
                     }
                 } else {
-                    std::cerr << "Input node extension is not PipelineStageExtension, this is not handled!" << std::endl;
+                    std::cerr << "Input node extension is not PipelineStageExtension, this is not handled!"
+                              << std::endl;
                 }
             }
-            if(inputTexture != nullptr) {
+            if (inputTexture != nullptr) {
                 auto stageProgramUniforms = stageProgram->getUniformMap();
                 if (stageProgramUniforms.find(connection->getName()) != stageProgramUniforms.end()) {
                     //FIXME these should not be hard coded, but they are because of missing material editor.
                     if (connection->getName() == "pre_shadowDirectional") {
-                        newStage->setInput(graphicsWrapper->getMaxTextureImageUnits() - 1, inputTexture);
-                        stageProgram->addPresetValue(connection->getName(), std::to_string(graphicsWrapper->getMaxTextureImageUnits() - 1));
+                        stageInfo->stage->setInput(graphicsWrapper->getMaxTextureImageUnits() - 1, inputTexture);
+                        stageProgram->addPresetValue(connection->getName(),
+                                                     std::to_string(graphicsWrapper->getMaxTextureImageUnits() - 1));
                     } else if (connection->getName() == "pre_shadowPoint") {
-                        newStage->setInput(graphicsWrapper->getMaxTextureImageUnits() - 2, inputTexture);
-                        stageProgram->addPresetValue(connection->getName(), std::to_string(graphicsWrapper->getMaxTextureImageUnits() - 2));
+                        stageInfo->stage->setInput(graphicsWrapper->getMaxTextureImageUnits() - 2, inputTexture);
+                        stageProgram->addPresetValue(connection->getName(),
+                                                     std::to_string(graphicsWrapper->getMaxTextureImageUnits() - 2));
                     } else {
-                        newStage->setInput(location, inputTexture);
+                        stageInfo->stage->setInput(location, inputTexture);
                         stageProgram->addPresetValue(connection->getName(), std::to_string(location));
                         location++;
                     }
                 }
             }
+            stageInfo->stage->setLastPresetIndex(location);
         }
 
         //now handle outputs
         // Directional depth map requires layer settings therefore it is not set by us.
         std::shared_ptr<Texture> depthMapDirectional = nullptr;
 
-        for(const Connection *connection:node->getOutputConnections()) {
+        for (const Connection *connection:node->getOutputConnections()) {
             auto programOutputsMap = stageProgram->getOutputMap();
-            if(programOutputsMap.find(connection->getName()) != programOutputsMap.end()) {
+            if (programOutputsMap.find(connection->getName()) != programOutputsMap.end()) {
                 auto frameBufferAttachmentPoint = programOutputsMap.find(connection->getName())->second.second;
-                if(stageExtension->getOutputTextureInfo(connection) == nullptr) {
+                if (stageExtension->getOutputTextureInfo(connection) == nullptr) {
                     addError("Output [" + connection->getName() + "] of node " + node->getName() + " is not set.");
                     return false;
                 }
-                if(stageExtension->getOutputTextureInfo(connection)->name != "Screen" &&
-                        stageExtension->getOutputTextureInfo(connection)->name != "Screen Depth" ) {//for screen we don't need to attach anything
-                    if (stageExtension->getOutputTexture(connection)->getFormat() == GraphicsInterface::FormatTypes::DEPTH &&
-                        stageExtension->getOutputTexture(connection)->getType() == GraphicsInterface::TextureTypes::T2D_ARRAY) {
+                if (stageExtension->getOutputTextureInfo(connection)->name != "Screen" &&
+                    stageExtension->getOutputTextureInfo(connection)->name !=
+                    "Screen Depth") {//for screen we don't need to attach anything
+                    if (stageExtension->getOutputTexture(connection)->getFormat() ==
+                        GraphicsInterface::FormatTypes::DEPTH &&
+                        stageExtension->getOutputTexture(connection)->getType() ==
+                        GraphicsInterface::TextureTypes::T2D_ARRAY) {
                         depthMapDirectional = stageExtension->getOutputTexture(connection);
                     }
-                    newStage->setOutput(frameBufferAttachmentPoint, stageExtension->getOutputTexture(connection));
+                    stageInfo->stage->setOutput(frameBufferAttachmentPoint, stageExtension->getOutputTexture(connection));
 
                 }
             }
         }
-        newStage->setCullMode(stageExtension->getCullmode());
-        GraphicsPipeline::StageInfo stageInfo;
-        stageInfo.clear = stageExtension->isClearBefore();
-        stageInfo.stage = newStage;
+
         if(stageExtension->getMethodName() == "All directional shadows") {
-            RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllDirectionalLights(newStage, depthMapDirectional, stageProgram);
-            stageInfo.renderMethods.emplace_back(functionToCall);
-            graphicsPipeline->addNewStage(stageInfo);
+            RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllDirectionalLights(stageInfo->stage, depthMapDirectional, stageProgram);
+            stageInfo->renderMethods.emplace_back(functionToCall);
         } else if(stageExtension->getMethodName() == "All point shadows") {
             RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllPointLights(stageProgram);
-            stageInfo.renderMethods.emplace_back(functionToCall);
-            graphicsPipeline->addNewStage(stageInfo);
+            stageInfo->renderMethods.emplace_back(functionToCall);
         } else {
             bool isFound = true;
             RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethod(
                     graphicsWrapper, stageExtension->getMethodName(), stageProgram, isFound);
             if(isFound) {
-                stageInfo.renderMethods.emplace_back(functionToCall);
-                graphicsPipeline->addNewStage(stageInfo);
+                stageInfo->renderMethods.emplace_back(functionToCall);
             } else {
                 std::cerr << "Selected method name is invalid!" << std::endl;
             }
         }
-        nodeStages[node] = newStage;
+        nodeStages[node] = stageInfo;//contains newStage
     } else {
         if(node->getName() != "Screen") {//Screen is a special case
             std::cerr << "Extension of the node [" << node->getDisplayName() << "] is not PipelineStageExtension, this is not handled! " << std::endl;
@@ -617,4 +675,24 @@ void PipelineExtension::deserialize(const std::string &fileName[[gnu::unused]], 
         std::cout << "read texture with name [" << texture->getName() << "] and id " << texture->getSerializeID() << std::endl;
         textureElement = textureElement->NextSiblingElement("Texture");
     }
+}
+
+std::shared_ptr<GraphicsPipeline::StageInfo> PipelineExtension::findSharedStage(const Node *currentNode,
+                                                                          std::map<const Node *, std::shared_ptr<GraphicsPipeline::StageInfo>> &builtStages,
+                                                                          const std::vector<std::pair<std::set<const Node *>, std::set<const Node *>>> &dependencyGroups) {
+    for (auto dependencyGroup:dependencyGroups) {
+        if(dependencyGroup.second.find(currentNode) != dependencyGroup.second.end()) {
+            //this is the group we should process, lets search for a stage that this node can share
+            for(auto groupNode:dependencyGroup.second) {
+                auto foundElementIt = builtStages.find(groupNode);
+                if(foundElementIt != builtStages.end()) {
+                    //we found a match. return the match
+                    std::cerr << "found sharable node " << currentNode->getDisplayName() << " will re use " << groupNode->getDisplayName() << std::endl;
+                    return foundElementIt->second;
+                }
+            }
+        }
+    }
+    std::cerr << "not found sharable node " << currentNode->getDisplayName() << std::endl;
+    return nullptr;
 }
