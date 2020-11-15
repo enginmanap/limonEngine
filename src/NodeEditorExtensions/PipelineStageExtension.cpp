@@ -346,7 +346,6 @@ void PipelineStageExtension::deserialize(const std::string &fileName[[gnu::unuse
     }
 
     tinyxml2::XMLElement *renderResolutionElement = nodeExtensionElement->FirstChildElement("RenderResolution");
-    this->scissorTestEnabled = true;
     if(renderResolutionElement == nullptr) {
         std::cerr << "Pipeline stage extension doesn't have RenderResolution saved. Defaulting to 1920x1080" << std::endl;
     } else {
