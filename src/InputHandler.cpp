@@ -13,6 +13,14 @@ InputHandler::InputHandler(SDL_Window *window, Options *options) :
 }
 
 void InputHandler::mapInput() {
+    //for linux, if we lost focus, we should allow mouse to move
+    if(options->isIsWindowInFocus()) {
+        SDL_SetWindowGrab(window, SDL_TRUE);
+        SDL_SetRelativeMouseMode(SDL_TRUE);
+    } else {
+        SDL_SetWindowGrab(window, SDL_FALSE);
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+    }
     inputState.resetAllEvents();
 
     while (SDL_PollEvent(&event)) {
