@@ -24,16 +24,18 @@ public:
         std::function<void(const std::shared_ptr<GraphicsProgram>&)> method;
         std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::vector<LimonAPI::ParameterRequest>&)> finalizer;
         std::shared_ptr<GraphicsProgram> glslProgram;
+        uint32_t priority{};
         bool isInitialized = false;
 
     public:
-        RenderMethod(std::string name,
+        RenderMethod(std::string  name,
+                     uint32_t priority,
                      std::function<void(const std::shared_ptr<GraphicsProgram> &, const std::vector<LimonAPI::ParameterRequest> &)> initializer,
                      std::function<void(const std::shared_ptr<GraphicsProgram> &)> method,
                      std::function<void(const std::shared_ptr<GraphicsProgram> &, const std::vector<LimonAPI::ParameterRequest> &)> finalizer,
                      std::shared_ptr<GraphicsProgram> glslProgram) :
                      name(std::move(name)), initializer(std::move(initializer)), method(std::move(method)), finalizer(std::move(finalizer)),
-                     glslProgram(std::move(glslProgram)) {
+                     glslProgram(std::move(glslProgram)), priority(priority) {
             if(!this->initializer) {
                 isInitialized = true;
             }
@@ -72,6 +74,10 @@ public:
             return name;
         }
 
+        uint32_t getPriority() const {
+            return priority;
+        }
+
         const std::shared_ptr<GraphicsProgram> &getGlslProgram() const {
             return glslProgram;
         }
@@ -103,33 +109,46 @@ private:
      * @param found     Is the method found
      * @return          The given method, or noop method
      */
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> getRenderMethodByName(const std::string& name, bool& found) const {
+    std::function<void(const std::shared_ptr<GraphicsProgram>&)> getRenderMethodByName(const std::string& name, bool& found, uint32_t& priority) const {
         found  = true;
         if(name == "Render Opaque Objects") {
+            priority = 3;
             return  renderOpaqueObjects;
         } else if(name == "Render Animated Objects") {
+            priority = 4;
             return renderAnimatedObjects;
         } else if(name == "Render Transparent Objects") {
+            priority = 12;
             return renderTransparentObjects;
         } else if(name == "Render GUI Texts") {
+            priority = 21;
             return renderGUITexts;
         } else if(name == "Render GUI Images") {
+            priority = 22;
             return renderGUIImages;
         } else if(name == "Render Editor") {
+            priority = 23;
             return renderEditor;
         } else if(name == "Render Sky") {
+            priority = 20;
             return renderSky;
         } else if(name == "Render Debug Information") {
+            priority = 24;
             return renderDebug;
         } else if(name == "Render Opaque Player Attachment") {
+            priority = 1;
             return renderPlayerAttachmentOpaque;
         } else if(name == "Render Animated Player Attachment") {
+            priority = 2;
             return renderPlayerAttachmentAnimated;
         } else if(name == "Render Transparent Player Attachment") {
+            priority = 11;
             return renderPlayerAttachmentTransparent;
         } else if(name == "Render quad") {
+            priority = 10;
             return renderQuad;
         } else if(name == "None") {
+            priority = 0;
             std::cerr << "Building graphics pipeline with empty method, are you sure that was set correctly?" << std::endl;
         } else {
             found = false;
@@ -146,15 +165,17 @@ private:
     }
 
     RenderMethod getBuiltInRenderMethod(const std::string& methodName, const std::shared_ptr<GraphicsProgram>& glslProgram, bool& isFound) const {
-        std::function<void(const std::shared_ptr<GraphicsProgram>&)> method = getRenderMethodByName(methodName, isFound);
+        uint32_t priority = 0;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&)> method = getRenderMethodByName(methodName, isFound, priority);
         if(!isFound) {
-            return RenderMethod("NotFound", nullptr, method, nullptr, glslProgram);
+            return RenderMethod("NotFound", priority, nullptr, method, nullptr, glslProgram);
         }
-        return RenderMethod(methodName, nullptr, method, nullptr, glslProgram);
+        return RenderMethod(methodName, priority, nullptr, method, nullptr, glslProgram);
     }
 
 public:
     RenderMethod getRenderMethod(GraphicsInterface* graphicsInterface, const std::string& methodName, const std::shared_ptr<GraphicsProgram>& glslProgram, bool& isFound) const {
+        uint32_t priority = 0;
         //First check if we already created an instance
         if(dynamicRenderMethodInstances.find(methodName) == dynamicRenderMethodInstances.end()) {
             //create an instance for usage
@@ -172,6 +193,7 @@ public:
             RenderMethodInterface * methodInterface = dynamicRenderMethodInstances[methodName];
             if(methodInterface != nullptr) {
                 return RenderMethod(methodName,
+                                    priority,
                                     [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonAPI::ParameterRequest> & params)
                                     {return methodInterface->initRender(program, params);},
                                     [methodInterface](const std::shared_ptr<GraphicsProgram>& program)
@@ -191,6 +213,7 @@ public:
 
     RenderMethod getRenderMethodAllDirectionalLights(std::shared_ptr<GraphicsPipelineStage>& stage, std::shared_ptr<Texture>& layeredDepthMap, const std::shared_ptr<GraphicsProgram>& glslProgram) const {
         return RenderMethod("All directional shadows",
+                            1,
                             nullptr,
                             [=](const std::shared_ptr<GraphicsProgram> &renderProgram) {
                                 std::vector<size_t> lights = getLightIndexes(Light::LightTypes::DIRECTIONAL);
@@ -209,6 +232,7 @@ public:
 
     RenderMethod getRenderMethodAllPointLights(const std::shared_ptr<GraphicsProgram>& glslProgram) const {
         return RenderMethod("All point shadows",
+                            1,
                             nullptr,
                             [&] (const std::shared_ptr<GraphicsProgram> &renderProgram) {
                                 std::vector<size_t> lights = getLightIndexes(Light::LightTypes::POINT);

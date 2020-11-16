@@ -608,16 +608,16 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
 
         if(stageExtension->getMethodName() == "All directional shadows") {
             RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllDirectionalLights(stageInfo->stage, depthMapDirectional, stageProgram);
-            stageInfo->renderMethods.emplace_back(functionToCall);
+            stageInfo->addRenderMethod(functionToCall);
         } else if(stageExtension->getMethodName() == "All point shadows") {
             RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllPointLights(stageProgram);
-            stageInfo->renderMethods.emplace_back(functionToCall);
+            stageInfo->addRenderMethod(functionToCall);
         } else {
             bool isFound = true;
             RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethod(
                     graphicsWrapper, stageExtension->getMethodName(), stageProgram, isFound);
             if(isFound) {
-                stageInfo->renderMethods.emplace_back(functionToCall);
+                stageInfo->addRenderMethod(functionToCall);
             } else {
                 std::cerr << "Selected method name is invalid!" << std::endl;
             }

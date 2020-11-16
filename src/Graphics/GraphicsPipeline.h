@@ -50,6 +50,12 @@ public:
         std::unordered_map<std::string, RenderMethodInterface*> externalRenderMethods;
 
         void addRenderMethod(RenderMethods::RenderMethod method) {
+            for (auto iterator = renderMethods.begin(); iterator != renderMethods.end();++iterator) {
+                if(iterator->getPriority() > method.getPriority()) {
+                    renderMethods.insert(iterator, method);
+                    return;
+                }
+            }
             renderMethods.emplace_back(method);
         }
 
