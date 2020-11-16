@@ -11,6 +11,9 @@
 #include <utility>
 #include <tinyxml2.h>
 #include <fstream>
+#ifdef CEREAL_SUPPORT
+#include <cereal/archives/xml.hpp>
+#endif
 
 #include "Asset.h"
 #include "../ALHelper.h"
@@ -130,21 +133,7 @@ public:
         loadAssetList();
     }
 
-    void loadUsingCereal(const std::vector<std::string> files [[gnu::unused]]) {
-#ifdef CEREAL_SUPPORT
-        std::ifstream is(files[0], std::ios::binary);
-        cereal::BinaryInputArchive archive(is);
-        ModelAsset* ma = new ModelAsset();
-        archive(*ma);
-        ma->afterDeserialize(this, files);
-        assets[files] = std::make_pair(ma, 0);
-        nextAssetIndex++;
-#else
-        std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
-        std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
-        exit(-1);
-#endif
-    }
+    void loadUsingCereal(const std::vector<std::string> files [[gnu::unused]]);
 
     template<class T>
     T *loadAsset(const std::vector<std::string> files) {
