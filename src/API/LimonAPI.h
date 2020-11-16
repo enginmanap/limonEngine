@@ -5,12 +5,14 @@
 #ifndef LIMONENGINE_LIMONAPI_H
 #define LIMONENGINE_LIMONAPI_H
 
+#include <utility>
 #include <vector>
 #include <string>
 #include <map>
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <functional>
+#include <iostream>
 
 #include "InputStates.h"
 
@@ -36,10 +38,17 @@ public:
         float operator [] (int i) const { switch (i) {
                 case 0: return x;
                 case 1: return y;
+                default:
+                    static_assert(true, "Access to undefined element of vector" );
+                    return x;//this is to make static analyzer happy
+
             }}
         float& operator [] (int i) {switch (i) {
                 case 0: return x;
                 case 1: return y;
+                default:
+                    static_assert(true, "Access to undefined element of vector" );
+                    return x;//this is to make static analyzer happy
             }}
         };
 
@@ -56,16 +65,22 @@ public:
             case 1: return y;
             case 2: return z;
             case 3: return w;
+            default:
+                static_assert(true, "Access to undefined element of vector" );
+                return x;//this is to make static analyzer happy
         }}
         float& operator [] (int i) {switch (i) {
             case 0: return x;
             case 1: return y;
             case 2: return z;
             case 3: return w;
+            default:
+                static_assert(true, "Access to undefined element of vector" );
+                return x;//this is to make static analyzer happy
         }}
 
-        const Vec4 operator+(const Vec4 &second) {
-            Vec4 result;
+        Vec4 operator+(const Vec4 &second) const {
+            Vec4 result{};
             result.x = this->x + second.x;
             result.y = this->y + second.y;
             result.z = this->z + second.z;
@@ -73,8 +88,8 @@ public:
             return result;
         }
 
-        const Vec4 operator-(const Vec4 &second) {
-            Vec4 result;
+        Vec4 operator-(const Vec4 &second) const {
+            Vec4 result{};
             result.x = this->x - second.x;
             result.y = this->y - second.y;
             result.z = this->z - second.z;
@@ -86,7 +101,7 @@ public:
         Vec4 rows[4];
 
         Mat4() = default;
-        Mat4(Vec4 row0, Vec4 row1, Vec4 row2, Vec4 row3) {
+        Mat4(Vec4 row0, Vec4 row1, Vec4 row2, Vec4 row3) : rows(){//rows init is just to make static analyzer happy
             rows[0] = row0;
             rows[1] = row1;
             rows[2] = row2;
@@ -102,10 +117,10 @@ public:
         RequestParameterTypes requestType = FREE_NUMBER;
         std::string description;
         enum ValueTypes { STRING, DOUBLE, LONG, LONG_ARRAY, BOOLEAN, VEC4, MAT4 };
-        ValueTypes valueType;
+        ValueTypes valueType = ParameterRequest::ValueTypes::VEC4;
         //Up part used for requesting parameter, down part used as values of that request.
         union Value {
-            char stringValue[64] = {0};
+            char stringValue[64];
             long longValue;
             long longValues[16];//first element is the size
             double doubleValue;
@@ -114,10 +129,12 @@ public:
             bool boolValue;
         };
 
-        Value value;
+        Value value{};
         bool isSet = false;
 
-        ParameterRequest() {}
+        ParameterRequest() {
+            memset(&value, 0, sizeof(value));
+        };
 
     };
 
@@ -246,11 +263,11 @@ public:
              std::function<bool (const std::string&)> worldLoadNewAndRemoveCurrentMethod,
              std::function<void ()> worldExitMethod,
              std::function<void ()> worldReturnPreviousMethod) {
-        limonLoadWorld = worldLoadMethod;
-        limonReturnOrLoadWorld = worldReturnOrLoadMethod;
-        limonLoadNewAndRemoveCurrentWorld = worldLoadNewAndRemoveCurrentMethod;
-        limonExitGame = worldExitMethod;
-        limonReturnPrevious = worldReturnPreviousMethod;
+        limonLoadWorld = std::move(worldLoadMethod);
+        limonReturnOrLoadWorld = std::move(worldReturnOrLoadMethod);
+        limonLoadNewAndRemoveCurrentWorld = std::move(worldLoadNewAndRemoveCurrentMethod);
+        limonExitGame = std::move(worldExitMethod);
+        limonReturnPrevious = std::move(worldReturnPreviousMethod);
     }
 private:
     friend class WorldLoader;
