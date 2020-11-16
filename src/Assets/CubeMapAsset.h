@@ -21,6 +21,12 @@ class CubeMapAsset : public Asset {
     std::unique_ptr<Texture> texture;
 public:
     CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
+#ifdef CEREAL_SUPPORT
+    CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive) :
+    Asset(assetManager, assetID, fileList, binaryArchive) {
+        static_assert(true, "Cubemap doesn't support Cereal Loading");
+    }
+#endif
 
     ~CubeMapAsset() {}
 

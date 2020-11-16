@@ -21,7 +21,12 @@ protected:
 
 public:
     TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files);
-
+#ifdef CEREAL_SUPPORT
+    TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive) :
+    Asset(assetManager, assetID, fileList, binaryArchive) {
+        static_assert(true, "TextureAsset doesn't support Cereal Loading");
+    }
+#endif
     ~TextureAsset();
 
     uint32_t getID() const {

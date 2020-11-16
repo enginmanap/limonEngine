@@ -18,6 +18,12 @@ class SoundAsset : public Asset {
 public:
 
     SoundAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
+#ifdef CEREAL_SUPPORT
+    SoundAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive) :
+    Asset(assetManager, assetID, fileList, binaryArchive) {
+        static_assert(true, "SoundAsset doesn't support Cereal Loading");
+    }
+#endif
     ~SoundAsset();
 
     unsigned int getChannels() const {

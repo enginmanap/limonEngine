@@ -121,7 +121,13 @@ class ModelAsset : public Asset {
 
 public:
     ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
-
+#ifdef CEREAL_SUPPORT
+    ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive) :
+            Asset(assetManager, assetID, fileList, binaryArchive) {
+        binaryArchive(*this);
+        this->afterDeserialize(assetManager, fileList);
+    }
+#endif
     void afterDeserialize(AssetManager *assetManager, std::vector<std::string> files);
     bool addAnimationAsSubSequence(const std::string &baseAnimationName, const std::string newAnimationName,
                                    float startTime, float endTime);

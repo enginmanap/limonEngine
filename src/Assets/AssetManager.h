@@ -13,6 +13,7 @@
 #include <fstream>
 #ifdef CEREAL_SUPPORT
 #include <cereal/archives/xml.hpp>
+#include <Cereal/include/cereal/archives/binary.hpp>
 #endif
 
 #include "Asset.h"
@@ -143,7 +144,16 @@ public:
             if(files.size() == 1) {
                 std::string extension = files[0].substr(files[0].find_last_of(".") + 1);
                 if (extension == "limonmodel") {
-                    loadUsingCereal(files);
+#ifdef CEREAL_SUPPORT
+                    std::ifstream is(files[0], std::ios::binary);
+                    cereal::BinaryInputArchive archive(is);
+                    assets[files] = std::make_pair(new T(this, nextAssetIndex, files, archive), 0);
+                    nextAssetIndex++;
+#else
+                    std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
+                    std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
+                    exit(-1);
+#endif
                     loaded = true;
                 }
             }

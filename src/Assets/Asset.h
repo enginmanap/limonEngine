@@ -7,6 +7,9 @@
 
 #include <vector>
 #include <string>
+#ifdef CEREAL_SUPPORT
+#include <cereal/archives/xml.hpp>
+#endif
 
 
 class AssetManager;//avoid cyclic include
@@ -17,7 +20,7 @@ protected:
     AssetManager* assetManager;
     uint32_t assetID;
     /**
-     * This is an empty constructor, used to indicate what parameters the Asset constructors should have
+     * This is an empty constructor, used to indicate what parameters the Asset constructors must have.
      * @param graphicsWrapper pointer to render subsystem
      * @param assetID id of the asset, used to check if assets are shared
      * @param fileList Asset files to load
@@ -26,13 +29,21 @@ protected:
     Asset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList [[gnu::unused]])
             : assetManager(assetManager), assetID(assetID) {};
 
+    /**
+ * This is a constructor that is used for cereal loading.
+ */
+#ifdef CEREAL_SUPPORT
+    Asset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList [[gnu::unused]], cereal::BinaryInputArchive& binaryArchive [[gnu::unused]])
+            : assetManager(assetManager), assetID(assetID) {};
+#endif
+
 public:
 
-    uint32_t getAssetID() {
+    uint32_t getAssetID() const {
         return assetID;
     }
 
-    virtual ~Asset() {};
+    virtual ~Asset() = default;
 };
 
 
