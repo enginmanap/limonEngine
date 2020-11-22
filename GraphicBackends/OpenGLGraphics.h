@@ -53,6 +53,7 @@ class OpenGLGraphics : public GraphicsInterface {
         GLenum last_active_texture;
         GLint last_program;
         GLint last_texture;
+        GLint last_Texture2DArray;
         GLint last_sampler;
         GLint last_array_buffer;
         GLint last_element_array_buffer;
@@ -86,6 +87,7 @@ class OpenGLGraphics : public GraphicsInterface {
             glGetIntegerv(GL_ACTIVE_TEXTURE, (GLint*)&last_active_texture);
             glGetIntegerv(GL_CURRENT_PROGRAM, &last_program);
             glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
+            glGetIntegerv(GL_TEXTURE_BINDING_2D_ARRAY, &last_Texture2DArray);
             glGetIntegerv(GL_SAMPLER_BINDING, &last_sampler);
             glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
             glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &last_element_array_buffer);
@@ -109,6 +111,7 @@ class OpenGLGraphics : public GraphicsInterface {
             // Restore modified GL state
             glUseProgram(last_program);
             glBindTexture(GL_TEXTURE_2D, last_texture);
+            glBindTexture(GL_TEXTURE_2D_ARRAY, last_Texture2DArray);
             glBindSampler(0, last_sampler);
             glActiveTexture(last_active_texture);
             activeTextureUnit = last_active_texture;
@@ -386,6 +389,7 @@ public:
                                         FrameBufferAttachPoints attachPoint, int32_t layer = 0 , bool clear = false) override;
 
     void attachTexture(unsigned int textureID, unsigned int attachPoint) override;
+    void attach2DArrayTexture(unsigned int textureID, unsigned int attachPoint) override;
 
     void attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint) override;
 

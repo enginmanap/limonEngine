@@ -56,6 +56,8 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     currentElement = document.NewElement("DataType");
     switch (dataType) {
         case GraphicsInterface::DataTypes::UNSIGNED_BYTE: currentElement->SetText("UNSIGNED_BYTE"); break;
+        case GraphicsInterface::DataTypes::UNSIGNED_SHORT: currentElement->SetText("UNSIGNED_SHORT"); break;
+        case GraphicsInterface::DataTypes::UNSIGNED_INT: currentElement->SetText("UNSIGNED_INT"); break;
         case GraphicsInterface::DataTypes::FLOAT: currentElement->SetText("FLOAT"); break;
     }
     textureNode->InsertEndChild(currentElement);
@@ -267,6 +269,10 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
     std::string dataTypeString = textureNodeAttribute->GetText();
     if(dataTypeString == "UNSIGNED_BYTE") {
         dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE;
+    } else if(dataTypeString == "UNSIGNED_SHORT") {
+        dataType = GraphicsInterface::DataTypes::UNSIGNED_SHORT;
+    } else if(dataTypeString == "UNSIGNED_INT") {
+        dataType = GraphicsInterface::DataTypes::UNSIGNED_INT;
     } else if(dataTypeString == "FLOAT") {
         dataType = GraphicsInterface::DataTypes::FLOAT;
     } else {

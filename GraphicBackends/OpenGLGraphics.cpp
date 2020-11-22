@@ -1177,7 +1177,7 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
 
     GLint glInternalDataFormat;
     switch (internalFormat) {
-        case InternalFormatTypes::RED: glInternalDataFormat = GL_RED; break;
+        case InternalFormatTypes::RED: glInternalDataFormat = GL_R8; break;
         case InternalFormatTypes::RGB: glInternalDataFormat = GL_RGB; break;
         case InternalFormatTypes::RGBA: glInternalDataFormat = GL_RGBA; break;
         case InternalFormatTypes::RGB16F: glInternalDataFormat = GL_RGB16F; break;
@@ -1197,6 +1197,8 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
     switch (dataType) {
         case DataTypes::FLOAT: glDataType = GL_FLOAT; break;
         case DataTypes::UNSIGNED_BYTE: glDataType = GL_UNSIGNED_BYTE; break;
+        case DataTypes::UNSIGNED_SHORT: glDataType = GL_UNSIGNED_SHORT; break;
+        case DataTypes::UNSIGNED_INT: glDataType = GL_UNSIGNED_INT; break;
     }
 
     GLenum glTextureType;
@@ -1262,7 +1264,7 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
 
     GLint glInternalDataFormat;
     switch (internalFormat) {
-        case InternalFormatTypes::RED: glInternalDataFormat = GL_RED; break;
+        case InternalFormatTypes::RED: glInternalDataFormat = GL_R8; break;
         case InternalFormatTypes::RGB: glInternalDataFormat = GL_RGB; break;
         case InternalFormatTypes::RGBA: glInternalDataFormat = GL_RGBA; break;
         case InternalFormatTypes::RGB16F: glInternalDataFormat = GL_RGB16F; break;
@@ -1282,6 +1284,8 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
     switch (dataType) {
         case DataTypes::FLOAT: glDataType = GL_FLOAT; break;
         case DataTypes::UNSIGNED_BYTE: glDataType = GL_UNSIGNED_BYTE; break;
+        case DataTypes::UNSIGNED_SHORT: glDataType = GL_UNSIGNED_SHORT; break;
+        case DataTypes::UNSIGNED_INT: glDataType = GL_UNSIGNED_INT; break;
     }
 
     GLenum glTextureType;
@@ -1329,6 +1333,11 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
 
 void OpenGLGraphics::attachTexture(unsigned int textureID, unsigned int attachPoint) {
     state->attachTexture(textureID, attachPoint);
+    checkErrors("attachTexture");
+}
+
+void OpenGLGraphics::attach2DArrayTexture(unsigned int textureID, unsigned int attachPoint) {
+    state->attach2DTextureArray(textureID, attachPoint);
     checkErrors("attachTexture");
 }
 

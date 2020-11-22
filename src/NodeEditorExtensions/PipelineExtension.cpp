@@ -105,6 +105,10 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
         ImGui::Text("Data type:");
         if(ImGui::RadioButton("UNSIGNED_BYTE##data_type_PipelineExtension", dataType == GraphicsInterface::DataTypes::UNSIGNED_BYTE)) { dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE; }
         ImGui::SameLine();
+        if(ImGui::RadioButton("UNSIGNED_SHORT##data_type_PipelineExtension", dataType == GraphicsInterface::DataTypes::UNSIGNED_SHORT)) { dataType = GraphicsInterface::DataTypes::FLOAT; }
+        ImGui::SameLine();
+        if(ImGui::RadioButton("UNSIGNED_INT##data_type_PipelineExtension", dataType == GraphicsInterface::DataTypes::UNSIGNED_INT)) { dataType = GraphicsInterface::DataTypes::FLOAT; }
+        ImGui::SameLine();
         if(ImGui::RadioButton("FLOAT##data_type_PipelineExtension", dataType == GraphicsInterface::DataTypes::FLOAT)) { dataType = GraphicsInterface::DataTypes::FLOAT; }
 
         static GraphicsInterface::TextureWrapModes  textureWrapMode = GraphicsInterface::TextureWrapModes::NONE;

@@ -69,7 +69,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
             surface = surfaceTemp;
         }
         texture = std::make_unique<Texture>(assetManager->getGraphicsWrapper(), GraphicsInterface::TextureTypes::T2D,
-                                            GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
+                                            GraphicsInterface::InternalFormatTypes::RGB, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
                                             surface->w, surface->h);
     } else if (surface->format->BytesPerPixel == 1) {
             SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(surface,

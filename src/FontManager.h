@@ -30,7 +30,7 @@ public:
             std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
         } else {
             texture = std::make_unique<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D,
-                                                GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RED, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
+                                                GraphicsInterface::InternalFormatTypes::RED, GraphicsInterface::FormatTypes::RED, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
                                                 face->glyph->bitmap.width, face->glyph->bitmap.rows);
             texture->loadData(face->glyph->bitmap.buffer);
             this->size = glm::mediump_ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows);
