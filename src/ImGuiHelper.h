@@ -21,9 +21,14 @@ class InputHandler;
 class Options;
 typedef union SDL_Event SDL_Event;
 
+struct ImGuiImageWrapper {
+    std::shared_ptr<Texture> texture;
+    int32_t layer;
+};
+
 class ImGuiHelper {
 
-    std::unique_ptr<Texture> fontTexture;
+    ImGuiImageWrapper fontTexture;
     // ImGUI Data
     double       g_Time = 0.0f;
     bool         g_MousePressed[3] = { false, false, false };

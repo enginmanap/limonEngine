@@ -1350,6 +1350,13 @@ void OpenGLGraphics::attachCubeMap(unsigned int cubeMapID, unsigned int attachPo
     checkErrors("attachCubeMap");
 }
 
+void OpenGLGraphics::attachCubeMapArrayTexture(unsigned int cubeMapID, unsigned int attachPoint) {
+    state->attachCubemapArray(cubeMapID, attachPoint);
+    checkErrors("attachCubeMap");
+}
+
+
+
 bool OpenGLGraphics::deleteTexture(GLuint textureID) {
     bool result = state->deleteTexture(textureID);
     checkErrors("deleteTexture");

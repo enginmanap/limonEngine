@@ -41,6 +41,8 @@ void ImGuiHelper::RenderDrawLists()
     };
 
     program->setUniform("Texture", 1);
+    program->setUniform("TextureArray", 2);
+    program->setUniform("TextureCubeArray", 3);
     program->setUniform("ProjMtx",ortho_projection);
 
     for (int n = 0; n < draw_data->CmdListsCount; n++)
@@ -82,7 +84,26 @@ void ImGuiHelper::RenderDrawLists()
             }
             else
             {
-                graphicsWrapper->attachTexture((uint32_t)(intptr_t)pcmd->TextureId, 1);
+                ImGuiImageWrapper* imGuiImageWrapper = static_cast<ImGuiImageWrapper*>((pcmd->TextureId));
+                switch (imGuiImageWrapper->texture->getType()) {
+                    case GraphicsInterface::TextureTypes::T2D:
+                        graphicsWrapper->attachTexture(imGuiImageWrapper->texture->getTextureID(), 1);
+                        program->setUniform("isArray", 0);
+                        break;
+                    case GraphicsInterface::TextureTypes::T2D_ARRAY:
+                        graphicsWrapper->attach2DArrayTexture(imGuiImageWrapper->texture->getTextureID(), 2);
+                        program->setUniform("isArray", 1);
+                        program->setUniform("layer", (float)imGuiImageWrapper->layer);
+                        break;
+                    case GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY:
+                        graphicsWrapper->attachCubeMapArrayTexture(imGuiImageWrapper->texture->getTextureID(), 3);
+                        program->setUniform("isArray", 2);
+                        program->setUniform("layer", (float)imGuiImageWrapper->layer);
+                        break;
+                    default:
+                        std::cerr << "Unsupported texture type for IMGUI" << std::endl;
+                }
+
                 graphicsWrapper->setScissorRect((int)pcmd->ClipRect.x,
                         (int)(fb_height - pcmd->ClipRect.w),
                         (int)(pcmd->ClipRect.z - pcmd->ClipRect.x),
@@ -182,14 +203,14 @@ void ImGuiHelper::CreateFontsTexture()
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bits for OpenGL3 demo because it is more likely to be compatible with user's existing shader.
 
-    fontTexture = std::make_unique<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D,
+    fontTexture.texture = std::make_unique<Texture>(graphicsWrapper, GraphicsInterface::TextureTypes::T2D,
                                             GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
                                             width, height);
-    fontTexture->loadData(pixels);
+    fontTexture.texture->loadData(pixels);
 
-    g_FontTexture = fontTexture->getTextureID();
+    g_FontTexture = fontTexture.texture->getTextureID();
 
-    io.Fonts->TexID = (void *)(intptr_t)g_FontTexture;
+    io.Fonts->TexID = &fontTexture;
 }
 
 /**
@@ -206,8 +227,8 @@ bool ImGuiHelper::CreateDeviceObjects()
 {
     graphicsWrapper->backupCurrentState();
 
-    program = std::make_shared<GraphicsProgram>(assetManager.get(),"./Engine/Shaders/ImGui/vertex.glsl",
-                                                     "./Engine/Shaders/ImGui/fragment.glsl", true);
+    program = std::make_shared<GraphicsProgram>(assetManager.get(),"./Data/Shaders/ImGui/vertex.glsl",
+                                                     "./Data/Shaders/ImGui/fragment.glsl", true);
 
     g_AttribLocationPosition = program->getAttributeLocation("Position");
     g_AttribLocationUV = program->getAttributeLocation("UV");
@@ -233,9 +254,9 @@ void    ImGuiHelper::InvalidateDeviceObjects() {
 
     if (g_FontTexture)
     {
-        ImGui::GetIO().Fonts->TexID = 0;
+        ImGui::GetIO().Fonts->TexID = nullptr;
         g_FontTexture = 0;
-        this->fontTexture = nullptr;
+        this->fontTexture.texture = nullptr;
     }
 }
 

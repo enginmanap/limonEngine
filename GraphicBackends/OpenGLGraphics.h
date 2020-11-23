@@ -392,6 +392,8 @@ public:
     void attach2DArrayTexture(unsigned int textureID, unsigned int attachPoint) override;
 
     void attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint) override;
+    void attachCubeMapArrayTexture(unsigned int textureID, unsigned int attachPoint) override;
+
 
     bool getUniformLocation(const uint32_t programID, const std::string &uniformName, uint32_t &location) override;
 

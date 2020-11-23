@@ -528,6 +528,21 @@ public:
     void
     removeActiveCustomAnimation(const AnimationCustom &animationToRemove, const AnimationStatus *animationStatusToRemove,
                                 float animationTime);
+
+    static bool getNameOfTexture(void* data, int index, const char** outText) {
+        auto& textures = *static_cast<std::vector<std::shared_ptr<Texture>>*>(data);
+        if(index < 0 || (uint32_t)index >= textures.size()) {
+            return false;
+        }
+        auto it = textures.begin();
+        for (int i = 0; i < index; ++i) {
+            it++;
+        }
+
+        *outText = it->get()->getName().c_str();
+        return true;
+
+    }
 };
 
 #endif //LIMONENGINE_WORLD_H

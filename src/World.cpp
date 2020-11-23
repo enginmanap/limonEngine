@@ -1406,6 +1406,35 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram) {/
        if(ImGui::Button("Change Render Pipeline")) {
            this->showNodeGraph = true;
        }
+       if (ImGui::CollapsingHeader("Render Debugging")) {
+           static int listbox_item_current = -1;//not static because I don't want user to select a item.
+           static ImGuiImageWrapper wrapper;//keeps selected texture and layer;
+           std::vector<std::shared_ptr<Texture>> allTextures = defaultRenderPipeline->getTextures();
+
+           if(ImGui::ListBox("Current Textures##Render Debugging", &listbox_item_current, World::getNameOfTexture,
+                          static_cast<void *>(&allTextures), allTextures.size(), 10)) {
+               wrapper.layer = 0;
+           }
+           if(listbox_item_current != -1) {
+               wrapper.texture = allTextures[listbox_item_current];
+               float aspect = (float) wrapper.texture->getHeight() / (float)wrapper.texture->getWidth();
+               ImVec2 size;
+               size.x = 320;
+               size.y = std::floor((float)320 * aspect);
+               ImGui::Text("%s", ("Texture id selected is: " + std::to_string(wrapper.texture->getTextureID())).c_str());
+
+               if(wrapper.texture->getType() == GraphicsInterface::TextureTypes::T2D_ARRAY ||
+                  wrapper.texture->getType() == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY) {
+                   ImGui::InputInt("Layer##CurrentTextures", &wrapper.layer);
+
+               }
+               ImGui::Dummy(ImVec2(0.0f, size.y));
+               size.y = -1 * size.y;//This is because ImGui assumes y up. Since this code is shared with fonts, and fixing font generation is hard, I am using this hack for upside down fix.
+               ImGui::Image(&wrapper, size);
+           }
+
+
+       }
 
         ImGui::End();
 
