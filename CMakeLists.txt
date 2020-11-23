@@ -19,7 +19,7 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra -Wnon-virtual-dtor -pedantic")
 ENDIF()
 
-IF (UNIX)
+IF (UNIX AND ${CMAKE_VERSION} VERSION_GREATER "3.11.0")
     cmake_policy (SET CMP0072 NEW)
 ENDIF()
 
