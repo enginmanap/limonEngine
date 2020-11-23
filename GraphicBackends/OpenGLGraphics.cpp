@@ -1183,6 +1183,8 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
         case InternalFormatTypes::RGB16F: glInternalDataFormat = GL_RGB16F; break;
         case InternalFormatTypes::RGB32F: glInternalDataFormat = GL_RGB32F; break;
         case InternalFormatTypes::DEPTH: glInternalDataFormat = GL_DEPTH_COMPONENT; break;
+        case InternalFormatTypes::COMPRESSED_RGB: glInternalDataFormat = GL_COMPRESSED_RGB; break;
+        case InternalFormatTypes::COMPRESSED_RGBA: glInternalDataFormat = GL_COMPRESSED_RGBA; break;
     }
 
     GLenum glFormat;
@@ -1270,6 +1272,8 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
         case InternalFormatTypes::RGB16F: glInternalDataFormat = GL_RGB16F; break;
         case InternalFormatTypes::RGB32F: glInternalDataFormat = GL_RGB32F; break;
         case InternalFormatTypes::DEPTH: glInternalDataFormat = GL_DEPTH_COMPONENT; break;
+        case InternalFormatTypes::COMPRESSED_RGB: glInternalDataFormat = GL_COMPRESSED_RGB; break;
+        case InternalFormatTypes::COMPRESSED_RGBA: glInternalDataFormat = GL_COMPRESSED_RGBA; break;
     }
 
     GLenum glFormat;

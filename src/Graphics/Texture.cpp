@@ -41,6 +41,8 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
         case GraphicsInterface::InternalFormatTypes::RGB16F: currentElement->SetText("RGB16F"); break;
         case GraphicsInterface::InternalFormatTypes::RGB32F: currentElement->SetText("RGB32F"); break;
         case GraphicsInterface::InternalFormatTypes::DEPTH: currentElement->SetText("DEPTH"); break;
+        case GraphicsInterface::InternalFormatTypes::COMPRESSED_RGB: currentElement->SetText("COMPRESSED_RGB"); break;
+        case GraphicsInterface::InternalFormatTypes::COMPRESSED_RGBA: currentElement->SetText("COMPRESSED_RGBA"); break;
     }
     textureNode->InsertEndChild(currentElement);
 
@@ -229,6 +231,10 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
         internalFormat = GraphicsInterface::InternalFormatTypes ::RGB32F;
     } else if(internalFormatString == "DEPTH") {
         internalFormat = GraphicsInterface::InternalFormatTypes ::DEPTH;
+    } else if(internalFormatString == "COMPRESSED_RGB") {
+        internalFormat = GraphicsInterface::InternalFormatTypes ::COMPRESSED_RGB;
+    } else if(internalFormatString == "COMPRESSED_RGBA") {
+        internalFormat = GraphicsInterface::InternalFormatTypes ::COMPRESSED_RGBA;
     } else {
         std::cerr << "Texture internal format is unknown, skipping! " << std::endl;
         return nullptr;
