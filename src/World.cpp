@@ -379,6 +379,7 @@ void World::animateCustomAnimations() {
     if(camera->isDirty()) {
         modelsInCameraFrustum.clear();
         animatedModelsInFrustum.clear();
+        transparentModelsInCameraFrustum.clear();
         for (auto objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
             setVisibilityAndPutToSets(objectIt->second, false);
         }
