@@ -215,7 +215,7 @@ GameObject::ImGuiResult GUIText::addImGuiEditorElements(const ImGuiRequest &requ
 
     this->updateText(GUITextBuffer);
 
-    result.updated = this->transformation.addImGuiEditorElements(request.ortogonalCameraMatrix, request.ortogonalMatrix, true);
+    result.updated = this->transformation.addImGuiEditorElements(request.orthogonalCameraMatrix, request.orthogonalMatrix, true);
 
 
     ImGui::NewLine();

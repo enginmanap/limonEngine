@@ -18,7 +18,7 @@ protected:
     Transformation transformation;
     std::vector<uint32_t> bufferObjects;
     std::vector<bool> inLightFrustum;
-    uint32_t vao, ebo;
+    uint32_t vao = 0, ebo = 0;
     GraphicsInterface* graphicsWrapper;
     bool isInCameraFrustum = true;
     bool dirtyForFrustum = true;//is this object require a frustum recalculate
@@ -78,7 +78,7 @@ public:
         this->customAnimation = customAnimation;
     }
 
-    bool getCustomAnimation() {
+    bool getCustomAnimation() const {
         return customAnimation;
     }
 };

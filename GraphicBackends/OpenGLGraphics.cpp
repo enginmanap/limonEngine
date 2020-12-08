@@ -1511,7 +1511,7 @@ void OpenGLGraphics::setPlayerMatrices(const glm::vec3 &cameraPosition, const gl
     glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4), sizeof(glm::vec3), glm::value_ptr(cameraPosition));//changes with camera
     glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4)+ sizeof(glm::vec4), sizeof(glm::vec3), glm::value_ptr(cameraSpacePosition));//changes with camera
 
-    glm::vec2 noiseScale(this->screenHeight / 4, this->screenWidth / 4);
+    glm::vec2 noiseScale(this->screenWidth / 4, this->screenHeight / 4);
     glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4)+ 2* sizeof(glm::vec4), sizeof(glm::vec2), glm::value_ptr(noiseScale));//never changes
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
