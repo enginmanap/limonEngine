@@ -220,7 +220,7 @@ GameObject::ImGuiResult GUIAnimation::addImGuiEditorElements(const ImGuiRequest 
     ImGui::InputText("Name##SelectedGUIButtonNameField", GUINameBuffer, sizeof(GUINameBuffer));
     this->name = GUINameBuffer;
 
-    result.updated = this->transformation.addImGuiEditorElements(request.ortogonalCameraMatrix, request.ortogonalMatrix, true);
+    result.updated = this->transformation.addImGuiEditorElements(request.orthogonalCameraMatrix, request.orthogonalMatrix, true);
 
     if (ImGui::Button("Remove")) {
         result.remove = true;

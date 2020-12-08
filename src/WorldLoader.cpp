@@ -244,6 +244,8 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
 
     //load lights
     loadLights(worldNode, world);
+    //load emitters
+    loadParticleEmitters(worldNode, world);
 
     loadGUILayersAndElements(worldNode, world);
 
@@ -732,6 +734,141 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
 
         world->addLight(xmlLight);
         lightNode =  lightNode->NextSiblingElement("Light");
+    }
+    return true;
+}
+
+
+bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* world) const {
+    tinyxml2::XMLElement* EmittersListNode =  EmittersNode->FirstChildElement("Emitters");
+    if (EmittersListNode == nullptr) {
+        std::cerr << "Emitters clause not found." << std::endl;
+        return false;
+    }
+
+
+    tinyxml2::XMLElement* EmitterNode =  EmittersListNode->FirstChildElement("Emitter");
+    if (EmitterNode == nullptr) {
+        std::cerr << "Emitters did not have at least one Emitter." << std::endl;
+        return false;
+    }
+
+    long id;
+    std::string name;
+    glm::vec2 size;
+    long maxCount;
+    long lifeTime;
+    glm::vec3 startPosition;
+    float startSphereR;
+    std::string textureFile;
+
+    tinyxml2::XMLElement* emitterAttributeElement;
+    tinyxml2::XMLElement* emitterAttributeAttributeElement;
+
+    while(EmitterNode != nullptr) {
+        emitterAttributeElement = EmitterNode->FirstChildElement("MaxCount");
+        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
+            std::cerr << "Particle emitter must have a maximum particle count." << std::endl;
+            return false;
+        }
+        std::string maxCountString = emitterAttributeElement->GetText();
+        maxCount = std::stoul(maxCountString);
+
+        emitterAttributeElement = EmitterNode->FirstChildElement("LifeTime");
+        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
+            std::cerr << "Particle emitter must have a life time." << std::endl;
+            return false;
+        }
+        std::string lifeTimeString = emitterAttributeElement->GetText();
+        lifeTime = std::stoul(lifeTimeString);
+
+        emitterAttributeElement = EmitterNode->FirstChildElement("StartSphereR");
+        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
+            std::cerr << "Particle emitter must have Start sphere size." << std::endl;
+            return false;
+        }
+        std::string startSphereRString = emitterAttributeElement->GetText();
+        startSphereR = std::stof(startSphereRString);
+
+        emitterAttributeElement = EmitterNode->FirstChildElement("Texture");
+        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
+            std::cerr << "Particle emitter must have a Texture." << std::endl;
+            return false;
+        }
+        textureFile = emitterAttributeElement->GetText();
+
+
+        emitterAttributeElement =  EmitterNode->FirstChildElement("ID");
+        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
+            std::cerr << "Particle emitter does not have ID. This is invalid!" << std::endl;
+            return false;
+        } else {
+            id = std::stoul(emitterAttributeElement->GetText());
+        }
+
+        emitterAttributeElement =  EmitterNode->FirstChildElement("Name");
+        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
+            std::cerr << "Particle emitter does not have Name. This is invalid!" << std::endl;
+            return false;
+        } else {
+            name = emitterAttributeElement->GetText();
+        }
+
+        emitterAttributeElement = EmitterNode->FirstChildElement("StartPosition");
+        if (emitterAttributeElement == nullptr) {
+            std::cerr << "Particle Emitter must have a position/direction." << std::endl;
+            return false;
+        } else {
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
+            if (emitterAttributeAttributeElement != nullptr) {
+                std::cout << "x element: " << emitterAttributeAttributeElement->GetText() << "and float " << std::stof(emitterAttributeAttributeElement->GetText()) << std::endl;
+                startPosition.x = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter position/direction missing x." << std::endl;
+                return false;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
+            if (emitterAttributeAttributeElement != nullptr) {
+                startPosition.y = std::stof(emitterAttributeAttributeElement->GetText());
+                std::cout << "y element: " << emitterAttributeAttributeElement->GetText() << "and float " << std::stof(emitterAttributeAttributeElement->GetText()) << std::endl;
+            } else {
+                std::cerr << "Particle Emitter position/direction missing y." << std::endl;
+                return false;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
+            if (emitterAttributeAttributeElement != nullptr) {
+                startPosition.z = std::stof(emitterAttributeAttributeElement->GetText());
+                std::cout << "z element: " << emitterAttributeAttributeElement->GetText() << "and float " << std::stof(emitterAttributeAttributeElement->GetText()) << std::endl;
+            } else {
+                std::cerr << "Particle Emitter position/direction missing z." << std::endl;
+                return false;
+            }
+        }
+
+
+        emitterAttributeElement = EmitterNode->FirstChildElement("Size");
+        if (emitterAttributeElement == nullptr) {
+        } else {
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
+            if (emitterAttributeAttributeElement != nullptr) {
+                size.x = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                size.x = 1.0f;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
+            if (emitterAttributeAttributeElement != nullptr) {
+                size.y = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                size.y = 1.0f;
+            }
+        }
+
+        std::shared_ptr<Emitter> emitter = std::make_shared<Emitter>(id, name, this->assetManager, textureFile,
+                                                                     startPosition, startSphereR, size, maxCount,
+                                                                     lifeTime);
+
+        world->emitters.push_back(emitter);
+        EmitterNode =  EmitterNode->NextSiblingElement("Emitter");
     }
     return true;
 }

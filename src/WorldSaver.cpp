@@ -156,11 +156,17 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     };
     rootNode->InsertEndChild(currentElement);//add lights
 
+    currentElement = mapDocument.NewElement("Emitters");
+    if(!fillEmitters(mapDocument, currentElement, world)) {
+        return false;
+    };
+    rootNode->InsertEndChild(currentElement);//add emitters
+
     currentElement = mapDocument.NewElement("Sky");
     if(!addSky(mapDocument, currentElement, world)) {
         return false;
     };
-    rootNode->InsertEndChild(currentElement);//add lights
+    rootNode->InsertEndChild(currentElement);//add Sky
 
     currentElement = mapDocument.NewElement("LoadedAnimations");
     if(!fillLoadedAnimations(mapDocument, currentElement, world)) {
@@ -294,6 +300,59 @@ bool WorldSaver::fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
         currentElement->SetText(ambientColor.z);
         parent->InsertEndChild(currentElement);
         lightElement->InsertEndChild(parent);
+    }
+    return true;
+}
+
+
+bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *EmittersNode, const World *world) {
+    for(auto it=world->emitters.begin(); it != world->emitters.end(); it++) {//object ids are not constant, so they can be removed.
+
+        tinyxml2::XMLElement *emitterElement = document.NewElement("Emitter");
+        EmittersNode->InsertEndChild(emitterElement);
+
+        tinyxml2::XMLElement *currentElement = document.NewElement("ID");
+        currentElement->SetText(std::to_string((*it)->getWorldObjectID()).c_str());
+        emitterElement->InsertEndChild(currentElement);
+
+        tinyxml2::XMLElement *parent = document.NewElement("StartPosition");
+        glm::vec3 starPosition = (*it)->getStartPosition();
+        currentElement = document.NewElement("X");
+        currentElement->SetText(starPosition.x);
+        parent->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Y");
+        currentElement->SetText(starPosition.y);
+        parent->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Z");
+        currentElement->SetText(starPosition.z);
+        parent->InsertEndChild(currentElement);
+        emitterElement->InsertEndChild(parent);
+
+        parent = document.NewElement("Size");
+        glm::vec2 size = (*it)->getSize();
+        currentElement = document.NewElement("X");
+        currentElement->SetText(size.x);
+        parent->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Y");
+        currentElement->SetText(size.y);
+        parent->InsertEndChild(currentElement);
+        emitterElement->InsertEndChild(parent);
+
+        currentElement = document.NewElement("MaxCount");
+        currentElement->SetText(std::to_string((*it)->getMaxCount()).c_str());
+        emitterElement->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("LifeTime");
+        currentElement->SetText(std::to_string((*it)->getLifeTime()).c_str());
+        emitterElement->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("StarSphereR");
+        currentElement->SetText(std::to_string((*it)->getStartSphereR()).c_str());
+        emitterElement->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("Texture");
+        currentElement->SetText((*it)->getTexture()->getName().c_str());
+        emitterElement->InsertEndChild(currentElement);
     }
     return true;
 }

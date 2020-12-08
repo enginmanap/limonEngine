@@ -28,9 +28,9 @@ public:
 
     struct ImGuiRequest {
         const glm::mat4& perspectiveCameraMatrix;
-        const glm::mat4 ortogonalCameraMatrix = glm::lookAt(glm::vec3(0,0,1), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        const glm::mat4 orthogonalCameraMatrix = glm::lookAt(glm::vec3(0, 0, 1), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         const glm::mat4& perspectiveMatrix;
-        const glm::mat4& ortogonalMatrix;
+        const glm::mat4& orthogonalMatrix;
 
         const uint32_t& screenHeight;
         const uint32_t& screenWidth;
@@ -38,12 +38,12 @@ public:
         LimonAPI* limonAPI = nullptr;
 
         ImGuiRequest(const glm::mat4 &perspectiveCameraMatrix, const glm::mat4 &perspectiveMatrix,
-                     const glm::mat4 &ortogonalMatrix, const uint32_t &screenHeight, const uint32_t &screenWidth, LimonAPI* limonAPI)
+                     const glm::mat4 &orthogonalMatrix, const uint32_t &screenHeight, const uint32_t &screenWidth, LimonAPI* limonAPI)
                 : perspectiveCameraMatrix(perspectiveCameraMatrix), perspectiveMatrix(perspectiveMatrix),
-                  ortogonalMatrix(ortogonalMatrix), screenHeight(screenHeight), screenWidth(screenWidth), limonAPI(limonAPI) {}
+                  orthogonalMatrix(orthogonalMatrix), screenHeight(screenHeight), screenWidth(screenWidth), limonAPI(limonAPI) {}
     };
 
-    enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT, GUI_IMAGE, GUI_BUTTON, GUI_ANIMATION, SOUND, MODEL_GROUP };
+    enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT, GUI_IMAGE, GUI_BUTTON, GUI_ANIMATION, SOUND, MODEL_GROUP, PARTICLE_EMITTER };
 
     virtual ObjectTypes getTypeID() const = 0;
     virtual std::string getName() const = 0;
@@ -52,7 +52,7 @@ public:
     virtual void interact(LimonAPI *limonAPI [[gnu::unused]], std::vector<LimonAPI::ParameterRequest> &interactionData [[gnu::unused]]) {};
 
     virtual uint32_t getWorldObjectID() const = 0;
-    virtual ~GameObject() {};
+    virtual ~GameObject() = default;
 };
 
 

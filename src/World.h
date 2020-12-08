@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <set>
 #include <queue>
+#include <Graphics/Particles/Emitter.h>
 
 #include "InputHandler.h"
 #include "FontManager.h"
@@ -286,6 +287,7 @@ private:
     NodeGraph* nodeGraph = nullptr;
     std::shared_ptr<GraphicsPipeline> renderPipeline = nullptr;
 
+    std::vector<std::shared_ptr<Emitter>> emitters;
 
     bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
 
@@ -341,6 +343,7 @@ private:
     void addGUIButtonControls();
     void addGUIAnimationControls();
     void addGUILayerControls();
+    void addParticleEmitter();
 /********** Editor Methods *********************/
     void drawNodeEditor();
 
@@ -370,6 +373,7 @@ private:
 
     void renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
     void renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
     void renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
     void renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
     void renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram) const;

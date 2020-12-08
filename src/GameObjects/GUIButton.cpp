@@ -210,7 +210,7 @@ GameObject::ImGuiResult GUIButton::addImGuiEditorElements(const ImGuiRequest &re
             }
         }
     }
-    result.updated = this->transformation.addImGuiEditorElements(request.ortogonalCameraMatrix, request.ortogonalMatrix, true);
+    result.updated = this->transformation.addImGuiEditorElements(request.orthogonalCameraMatrix, request.orthogonalMatrix, true);
 
     if (ImGui::CollapsingHeader("Click To Trigger")) {
         TriggerObject::PutTriggerInGui(limonAPI, this->onClickTriggerCode, this->onClickParameters, enabled, 0);

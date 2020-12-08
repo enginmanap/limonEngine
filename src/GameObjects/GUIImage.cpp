@@ -205,7 +205,7 @@ GameObject::ImGuiResult GUIImage::addImGuiEditorElements(const ImGuiRequest &req
     }
 
     if(!this->fullScreen) {
-        result.updated = this->transformation.addImGuiEditorElements(request.ortogonalCameraMatrix, request.ortogonalMatrix, true);
+        result.updated = this->transformation.addImGuiEditorElements(request.orthogonalCameraMatrix, request.orthogonalMatrix, true);
     }
 
     float alphaTemp = this->transformation.getTranslate().z;//since translate z is unused, we use it to store Alpha

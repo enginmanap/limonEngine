@@ -43,8 +43,7 @@ layout (std140) uniform ModelIndexBlock {
     uvec4 models[NR_MAX_MODELS];
 } instance;
 
-layout (std140) uniform LightSourceBlock
-{
+layout (std140) uniform LightSourceBlock {
     LightSource lights[NR_POINT_LIGHTS];
 } LightSources;
 

@@ -39,8 +39,6 @@
 #include "GameObjects/GUIAnimation.h"
 #include "GameObjects/ModelGroup.h"
 #include "Graphics/PostProcess/QuadRender.h"
-#include "SDL2Helper.h"
-#include "Graphics/GraphicsPipelineStage.h"
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -52,8 +50,18 @@
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
              std::shared_ptr<AssetManager> assetManager, Options *options)
-        : assetManager(assetManager), options(options), graphicsWrapper(assetManager->getGraphicsWrapper()), alHelper(assetManager->getAlHelper()), name(name), fontManager(graphicsWrapper), startingPlayer(startingPlayerType) {
+        : assetManager(assetManager), options(options), graphicsWrapper(assetManager->getGraphicsWrapper()),
+        alHelper(assetManager->getAlHelper()), name(name), fontManager(graphicsWrapper),
+        startingPlayer(startingPlayerType) {
+/*
+    //Particle Emitter temp variables
+    TextureAsset* textureAsset(assetManager->loadAsset<TextureAsset>({"./Data/Textures/fire4.png"}));
+    std::shared_ptr<Texture> fireTexture(textureAsset->getTexture());
 
+    std::shared_ptr<Emitter>emitter = std::make_shared<Emitter>(graphicsWrapper, fireTexture, glm::vec3(0, 5, 0), 0.01f, glm::vec2(0.1f, 0.1f), 2000, 15000);
+    emitters.emplace_back(emitter);
+    //Particle Emitter temp variables
+*/
     strncpy(worldSaveNameBuffer, name.c_str(), sizeof(worldSaveNameBuffer) -1 );
 
     // physics init
@@ -148,6 +156,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
        renderMethods.renderOpaqueObjects       = std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1);
        renderMethods.renderAnimatedObjects     = std::bind(&World::renderAnimatedObjects, this, std::placeholders::_1);
        renderMethods.renderTransparentObjects  = std::bind(&World::renderTransparentObjects, this, std::placeholders::_1);
+       renderMethods.renderParticleEmitters  = std::bind(&World::renderParticleEmitters, this, std::placeholders::_1);
        renderMethods.renderGUITexts            = std::bind(&World::renderGUITexts, this, std::placeholders::_1);
        renderMethods.renderGUIImages           = std::bind(&World::renderGUIImages, this, std::placeholders::_1);
        renderMethods.renderEditor              = std::bind(&World::ImGuiFrameSetup, this, std::placeholders::_1);
@@ -229,13 +238,17 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          gameTime += simulationTimeFrame;
          dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
          currentPlayer->processPhysicsWorld(dynamicsWorld);
+         checkAndRunTimedEvents();
      }
      if(camera->isDirty()) {
          graphicsWrapper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
          alHelper->setListenerPositionAndOrientation(camera->getPosition(), camera->getCenter(), camera->getUp());
      }
-     checkAndRunTimedEvents();
      if(currentPlayersSettings->worldSimulation) {
+         for(const auto& emitter:emitters) {
+             emitter->setupForTime(gameTime);
+         }
+
          for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
              trigger->second->checkAndTrigger();
          }
@@ -734,6 +747,16 @@ void World::renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& ren
    }
 }
 
+void World::renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
+    std::cout << "Emitters " << std::endl;
+     for(const auto& emitter:emitters) {
+         std::cout << "Emitter rendering " << std::endl;
+         emitter->renderWithProgram(renderProgram);
+         std::cout << "Emitter rendering 2" << std::endl;
+     }
+    std::cout << "Emitters 2" << std::endl;
+}
+
 void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[gnu::unused]]) const {
    dynamicsWorld->debugDrawWorld();
    if (dynamicsWorld->getDebugDrawer()->getDebugMode() != btIDebugDraw::DBG_NoDebug) {
@@ -1142,7 +1165,9 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram) {/
             }
             ImGui::Unindent( 16.0f );
         }
-
+        if (ImGui::CollapsingHeader("Add Particle Emitter ##The header")) {
+            addParticleEmitter();
+        }
 
         if (ImGui::CollapsingHeader("Custom Animations")) {
             //list loaded animations
@@ -1425,8 +1450,8 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram) {/
                wrapper.texture = allTextures[listbox_item_current];
                float aspect = (float) wrapper.texture->getHeight() / (float)wrapper.texture->getWidth();
                ImVec2 size;
-               size.x = 320;
-               size.y = std::floor((float)320 * aspect);
+               size.x = 640;
+               size.y = std::floor(size.x * aspect);
                ImGui::Text("%s", ("Texture id selected is: " + std::to_string(wrapper.texture->getTextureID())).c_str());
 
                if(wrapper.texture->getType() == GraphicsInterface::TextureTypes::T2D_ARRAY ||
@@ -2570,6 +2595,51 @@ void World::addGUIImageControls() {
     }
 }
 
+   void World::addParticleEmitter() {
+       /**
+        * For a new GUI Image we need only name and filename
+        */
+       static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
+
+       static char textureAssetFilter[32] = {0};
+       ImGui::InputText("Filter Assets ##TextureAssetTreeEmitterFilter", textureAssetFilter, sizeof(textureAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
+       std::string textureAssetFilterStr = textureAssetFilter;
+       std::transform(textureAssetFilterStr.begin(), textureAssetFilterStr.end(), textureAssetFilterStr.begin(), ::tolower);
+       const AssetManager::AvailableAssetsNode* filteredAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureAssetFilterStr);
+       imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
+                                         "ParticleEmitter",
+                                         &selectedAsset);
+       static char particleEmitterName[32] = {0};
+       ImGui::InputText("Particle Emitter Name", particleEmitterName, sizeof(particleEmitterName), ImGuiInputTextFlags_CharsNoBlank);
+       static glm::vec3 startPosition;
+       ImGui::InputFloat3("Particle Emitter Position", glm::value_ptr(startPosition));
+       static float startSphereR;
+       ImGui::InputFloat("Particle Emitter radius", &startSphereR);
+       static int maxCount;
+       ImGui::InputInt("Maximum particle count", &maxCount);
+       static int lifeTime;
+       ImGui::InputInt("Particle life time", &lifeTime);
+       static glm::vec2 size;
+       ImGui::InputFloat2("Particle size", glm::value_ptr(size));
+
+       if(selectedAsset == nullptr) {
+           ImGui::Button("Add Particle Emitter");
+           ImGui::SameLine();
+           ImGuiHelper::ShowHelpMarker("No Asset Selected!");
+       } else if(strlen(particleEmitterName) == 0) {
+           ImGui::Button("Add Particle Emitter");
+           ImGui::SameLine();
+           ImGuiHelper::ShowHelpMarker("No Name Set!");
+       } else {
+           if (ImGui::Button("Add Particle Emitter")) {
+               std::shared_ptr<Emitter> newEmitter = std::make_shared<Emitter>(this->getNextObjectID(), name, this->assetManager, selectedAsset->fullPath,
+                                                                               startPosition, startSphereR, size, maxCount,
+                                                                               lifeTime);
+               this->emitters.emplace_back(newEmitter);
+           }
+       }
+   }
+
 void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
     //we should reconnect disconnected object if switching to editor mode, because we use physics for pickup
     if(targetPlayer->getWorldSettings().editorShown && (currentPlayersSettings == nullptr ||!currentPlayersSettings->editorShown)) {
@@ -3103,7 +3173,7 @@ void World::addTimedEventAPI(long waitTime, std::function<void(const std::vector
 }
 
 void World::checkAndRunTimedEvents() {
-    while (timedEvents.size() > 0 && timedEvents.top().callTime <= gameTime) {
+    while (!timedEvents.empty() && timedEvents.top().callTime <= gameTime) {
         timedEvents.top().run();
         timedEvents.pop();
     }
@@ -3966,6 +4036,7 @@ void World::createNodeGraph() {
     renderMethods.renderOpaqueObjects       = std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1);
     renderMethods.renderAnimatedObjects     = std::bind(&World::renderAnimatedObjects, this, std::placeholders::_1);
     renderMethods.renderTransparentObjects  = std::bind(&World::renderTransparentObjects, this, std::placeholders::_1);
+    renderMethods.renderParticleEmitters    = std::bind(&World::renderParticleEmitters, this, std::placeholders::_1);
     renderMethods.renderGUITexts            = std::bind(&World::renderGUITexts, this, std::placeholders::_1);
     renderMethods.renderGUIImages           = std::bind(&World::renderGUIImages, this, std::placeholders::_1);
     renderMethods.renderEditor              = std::bind(&World::ImGuiFrameSetup, this, std::placeholders::_1);

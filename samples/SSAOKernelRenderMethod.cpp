@@ -19,7 +19,7 @@ std::vector<glm::vec3> SSAOKernelRenderMethod::generateSSAOKernels(uint32_t kern
     for (unsigned int i = 0; i < kernelSize; ++i){
         glm::vec3 sample(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, randomFloats(generator));
         sample = glm::normalize(sample);
-        //sample *= randomFloats(generator);
+        sample *= randomFloats(generator);
         float scale = float(i) / kernelSize;
 
         // scale samples s.t. they're more aligned to center of kernel
@@ -35,7 +35,7 @@ std::vector<glm::vec3> SSAOKernelRenderMethod::generateSSAOKernels(uint32_t kern
 bool SSAOKernelRenderMethod::initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {
     setupQuad();
 
-    std::vector<glm::vec3> kernels = generateSSAOKernels(64);
+    std::vector<glm::vec3> kernels = generateSSAOKernels(9);
     if(!program->setUniform("ssaoKernel[0]", kernels)) {
         std::cerr << "uniform variable \"ssaoKernel\" couldn't be set" << std::endl;
     }
@@ -46,7 +46,6 @@ bool SSAOKernelRenderMethod::initRender(std::shared_ptr<GraphicsProgram> program
     if(!program->setUniform("ssaoNoiseSampler", graphicsInterface->getMaxTextureImageUnits()-3)) {
         std::cerr << "uniform variable \"ssaoNoiseSampler\" couldn't be set" << std::endl;
     }
-    std::cerr << "SSAOKernelRenderMethod initialized." << std::endl;
     return false;
 }
 
@@ -91,8 +90,7 @@ SSAOKernelRenderMethod::generateSSAONoiseTexture() {
         ssaoNoise.push_back(noise);
     }
     ssaoNoiseTexture = createTexture(4, 4, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGB32F, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, 0);
-    std::cerr << "ssaoNoise texture id is " << ssaoNoiseTexture << std::endl;
-    setFilterMode(ssaoNoiseTexture, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::FilterModes::NEAREST);
+    setFilterMode(ssaoNoiseTexture, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::FilterModes::LINEAR);
     setWrapMode(ssaoNoiseTexture, GraphicsInterface::TextureTypes::T2D,
                 GraphicsInterface::TextureWrapModes::REPEAT, GraphicsInterface::TextureWrapModes::REPEAT, GraphicsInterface::TextureWrapModes::REPEAT);
     loadTextureData(ssaoNoiseTexture, 4, 4, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGB32F, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::FLOAT, 0, ssaoNoise.data(),
