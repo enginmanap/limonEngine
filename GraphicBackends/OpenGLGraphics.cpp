@@ -1486,6 +1486,11 @@ void OpenGLGraphics::setModel(const uint32_t modelID, const glm::mat4& worldTran
 }
 
 void OpenGLGraphics::setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) {
+    /**
+     * std140 layout requires arrays to be padded to 16 bytes. std430 is not supported for uniform buffers.
+     * we can upload the array as is and calculate the vector component in shader, but since we are GPU bound I am
+     * choosing to pad it in CPU instead.
+     */
     for (uint32_t i = 0; i < modelIndicesList.size(); ++i) {
         modelIndexesTemp[i*4] = modelIndicesList[i];
     }
