@@ -442,7 +442,7 @@
             <GraphicsPipelineStage>
                 <RenderHeight>1080</RenderHeight>
                 <RenderWidth>1920</RenderWidth>
-                <BlendEnabled>True</BlendEnabled>
+                <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
                 <ToScreen>True</ToScreen>
                 <CullMode>NO_CHANGE</CullMode>
@@ -477,9 +477,22 @@
                         <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
+<!--                <Method>-->
+<!--                    <Name>Render Particle Emitters</Name>-->
+<!--                    <Index>2</Index>-->
+<!--                    <GraphicsProgram>-->
+<!--                        <VertexShader>./Engine/Shaders/Particles/vertex.glsl</VertexShader>-->
+<!--                        <GeometryShader></GeometryShader>-->
+<!--                        <FragmentShader>./Engine/Shaders/Particles/fragment.glsl</FragmentShader>-->
+<!--                        <MaterialRequired>False</MaterialRequired>-->
+<!--                        <PresetValues>-->
+<!--                            <Uniform Name="pre_depthMap">1</Uniform>-->
+<!--                        </PresetValues>-->
+<!--                    </GraphicsProgram>-->
+<!--                </Method>-->
                 <Method>
                     <Name>Render GUI Texts</Name>
-                    <Index>2</Index>
+                    <Index>3</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/GUIText/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
@@ -489,7 +502,7 @@
                 </Method>
                 <Method>
                     <Name>Render GUI Images</Name>
-                    <Index>3</Index>
+                    <Index>4</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/GUIImage/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
@@ -499,7 +512,7 @@
                 </Method>
                 <Method>
                     <Name>Render Editor</Name>
-                    <Index>4</Index>
+                    <Index>5</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/Model/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
@@ -515,12 +528,10 @@
                 <BlendEnabled>True</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
                 <ToScreen>True</ToScreen>
-                <CullMode>NO_CHANGE</CullMode>
+<!--                <CullMode>NONE</CullMode>-->
+<!--                <DepthTestEnabled>False</DepthTestEnabled>-->
                 <Inputs>
-                    <Input Index="1" textureID="3"/>
-                    <Input Index="2" textureID="4"/>
-                    <Input Index="3" textureID="9"/>
-                    <Input Index="4" textureID="6"/>
+                    <Input Index="1" textureID="6"/>
                 </Inputs>
                 <Outputs/>
             </GraphicsPipelineStage>

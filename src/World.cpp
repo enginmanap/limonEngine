@@ -119,7 +119,12 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
 
 
-    defaultRenderPipeline = GraphicsPipeline::deserialize("./Data/renderPipeline.xml", graphicsWrapper, assetManager, options, buildRenderMethods());
+    renderPipeline = GraphicsPipeline::deserialize("./Data/renderPipeline.xml", graphicsWrapper, assetManager, options, buildRenderMethods());
+
+    if(renderPipeline == nullptr) {
+        //use default if no custom is found
+        renderPipeline = GraphicsPipeline::deserialize("./Engine/renderPipeline.xml", graphicsWrapper, assetManager, options, buildRenderMethods());
+    }
 
     fpsCounter = new GUIFPSCounter(graphicsWrapper, fontManager.getFont("./Data/Fonts/Helvetica-Normal.ttf", 16), "0",
                                    glm::vec3(204, 204, 0));
@@ -681,7 +686,7 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
 }
 
 void World:: render() {
-    defaultRenderPipeline->render();
+    renderPipeline->render();
 }
 
 void World::renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
@@ -1410,7 +1415,7 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram) {/
        if (ImGui::CollapsingHeader("Render Debugging")) {
            static int listbox_item_current = -1;//not static because I don't want user to select a item.
            static ImGuiImageWrapper wrapper;//keeps selected texture and layer;
-           std::vector<std::shared_ptr<Texture>> allTextures = defaultRenderPipeline->getTextures();
+           std::vector<std::shared_ptr<Texture>> allTextures = renderPipeline->getTextures();
 
            if(ImGui::ListBox("Current Textures##Render Debugging", &listbox_item_current, World::getNameOfTexture,
                           static_cast<void *>(&allTextures), allTextures.size(), 10)) {
@@ -3919,7 +3924,7 @@ void World::drawNodeEditor() {
 
     nodeGraph->display();
     if(ImGui::Button("Save")) {
-        defaultRenderPipeline->serialize("./Data/renderPipeline.xml", options);
+        renderPipeline->serialize("./Data/renderPipeline.xml", options);
         nodeGraph->serialize("./Data/nodeGraph.xml");
         nodeGraph->addMessage("Serialization done.");
     }
@@ -3974,7 +3979,7 @@ void World::createNodeGraph() {
     renderMethods.renderLight = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2);
 
 
-    pipelineExtension = new PipelineExtension(graphicsWrapper, defaultRenderPipeline, assetManager, options, GraphicsPipeline::getRenderMethodNames(), renderMethods);
+    pipelineExtension = new PipelineExtension(graphicsWrapper, renderPipeline, assetManager, options, GraphicsPipeline::getRenderMethodNames(), renderMethods);
 
     for(auto program:programs) {
         std::string programName = program->getProgramName();
@@ -4058,8 +4063,12 @@ void World::createNodeGraph() {
     nodeGraph = NodeGraph::deserialize("./Data/nodeGraph.xml", possibleEditorExtensions, possibleNodeExtensions);
 
     if(nodeGraph == nullptr) {
-        std::cerr << "Node deserialize failed, using empty node graph" << std::endl;
-        nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);
+        std::cerr << "No custom Nodegraph found, using the default." << std::endl;
+        nodeGraph = NodeGraph::deserialize("./Engine/nodeGraph.xml", possibleEditorExtensions, possibleNodeExtensions);
+        if(nodeGraph == nullptr) {
+            std::cerr << "Default Node deserialize failed too, using empty node graph" << std::endl;
+            nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);
+        }
     }
 }
 

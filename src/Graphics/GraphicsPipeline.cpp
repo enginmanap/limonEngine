@@ -130,8 +130,8 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
     tinyxml2::XMLDocument xmlDoc;
     tinyxml2::XMLError eResult = xmlDoc.LoadFile(graphicsPipelineFileName.c_str());
     if (eResult != tinyxml2::XML_SUCCESS) {
-        std::cerr << "Error loading XML " << graphicsPipelineFileName << ": " << xmlDoc.ErrorName() << std::endl;
-        exit(-1);
+        std::cout << "Error loading XML " << graphicsPipelineFileName << ": " << xmlDoc.ErrorName() << std::endl;
+        return nullptr;
     }
 
     tinyxml2::XMLNode * graphicsPipelineNode = xmlDoc.FirstChildElement("GraphicsPipeline");

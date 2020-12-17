@@ -284,7 +284,7 @@ private:
     PipelineExtension *pipelineExtension;
     IterationExtension *iterationExtension;
     NodeGraph* nodeGraph = nullptr;
-    std::shared_ptr<GraphicsPipeline> defaultRenderPipeline = nullptr;
+    std::shared_ptr<GraphicsPipeline> renderPipeline = nullptr;
 
 
     bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
