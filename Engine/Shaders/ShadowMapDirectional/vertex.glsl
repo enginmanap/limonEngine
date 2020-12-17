@@ -32,9 +32,7 @@ layout (std140) uniform MaterialInformationBlock {
     int isMap; 	//using the last 4, ambient=8, diffuse=4, specular=2, opacity = 1
 } material;
 
-layout (std140) uniform ModelInformationBlock {
-    mat4 worldTransform[NR_MAX_MODELS];
-} model;
+uniform sampler2D allModelTransformsTexture;
 
 layout (std140) uniform ModelIndexBlock {
     uvec4 models[NR_MAX_MODELS];
@@ -55,7 +53,13 @@ void main() {
     }
     for(int i = 0; i < NR_POINT_LIGHTS; i++){
         if(i == renderLightIndex){
-            gl_Position = LightSources.lights[i].lightSpaceMatrix * (model.worldTransform[instance.models[gl_InstanceID].x] * (BoneTransform * vec4(vec3(position), 1.0)));
+            mat4 modelTransform;
+            int modelOffset = 4*int(instance.models[gl_InstanceID].x);
+            modelTransform[0] = texelFetch(allModelTransformsTexture, ivec2(modelOffset    , 0), 0);
+            modelTransform[1] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 1, 0), 0);
+            modelTransform[2] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 2, 0), 0);
+            modelTransform[3] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 3, 0), 0);
+            gl_Position = LightSources.lights[i].lightSpaceMatrix * (modelTransform * (BoneTransform * vec4(vec3(position), 1.0)));
         }
     }
 }

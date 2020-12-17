@@ -37,9 +37,7 @@ struct LightSource {
 	vec3 ambient;
 };
 
-layout (std140) uniform ModelInformationBlock {
-    mat4 worldTransform[NR_MAX_MODELS];
-} model;
+uniform sampler2D allModelTransformsTexture;
 
 layout (std140) uniform ModelIndexBlock {
     uvec4 models[NR_MAX_MODELS];
@@ -53,13 +51,23 @@ layout (std140) uniform LightSourceBlock
 void main(void)
 {
     to_fs.textureCoord = textureCoordinate;
-    mat4 currentWorldTransform = model.worldTransform[instance.models[gl_InstanceID].x];
-    to_fs.normal = normalize(mat3(transpose(inverse(currentWorldTransform))) * normal);
-    to_fs.fragPos = vec3(currentWorldTransform * position);
+    mat4 modelTransform;
+    int modelOffset = 4*int(instance.models[gl_InstanceID].x);
+    modelTransform[0] = texelFetch(allModelTransformsTexture, ivec2(modelOffset    , 0), 0);
+    modelTransform[1] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 1, 0), 0);
+    modelTransform[2] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 2, 0), 0);
+    modelTransform[3] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 3, 0), 0);
+    mat3 transposeInverseModelTransform;
+    transposeInverseModelTransform[0] = texelFetch(allModelTransformsTexture, ivec2(modelOffset    , 1), 0).xyz;
+    transposeInverseModelTransform[1] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 1, 1), 0).xyz;
+    transposeInverseModelTransform[2] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 2, 1), 0).xyz;
+
+    to_fs.normal = normalize(transposeInverseModelTransform * normal);
+    to_fs.fragPos = vec3(modelTransform * position);
     for(int i = 0; i < NR_POINT_LIGHTS; i++){
         if(LightSources.lights[i].type == 1) {
             to_fs.fragPosLightSpace[i] = LightSources.lights[i].lightSpaceMatrix * vec4(to_fs.fragPos, 1.0);
         }
     }
-    gl_Position = playerTransforms.cameraProjection * (currentWorldTransform * position);
+    gl_Position = playerTransforms.cameraProjection * (modelTransform * position);
 }

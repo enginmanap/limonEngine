@@ -143,6 +143,10 @@ class OpenGLGraphics : public GraphicsInterface {
             }
         }
 
+        void attach1DTexture(GLuint textureID, GLuint textureUnit) {
+            attachTexture(textureID, textureUnit, GL_TEXTURE_1D);
+        }
+
         void attachTexture(GLuint textureID, GLuint textureUnit) {
             attachTexture(textureID, textureUnit, GL_TEXTURE_2D);
         }
@@ -200,7 +204,6 @@ private:
     GLuint lightUBOLocation;
     GLuint playerUBOLocation;
     GLuint allMaterialsUBOLocation;
-    GLuint allModelsUBOLocation;
     GLuint allModelIndexesUBOLocation;
 
     uint32_t activeMaterialIndex;
@@ -213,6 +216,8 @@ private:
     const uint32_t playerUniformSize = 5 * sizeof(glm::mat4)+ 3* sizeof(glm::vec4);
     int32_t materialUniformSize = 2 * sizeof(glm::vec3) + sizeof(float) + sizeof(GLuint);
     int32_t modelUniformSize = sizeof(glm::mat4);
+
+    GLuint allModelTransformsTexture;
 
     glm::mat4 cameraMatrix;
     glm::mat4 perspectiveProjectionMatrix;

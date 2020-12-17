@@ -20,9 +20,7 @@ layout (std140) uniform PlayerTransformBlock {
     vec2 noiseScale;
 } playerTransforms;
 
-layout (std140) uniform ModelInformationBlock {
-    mat4 worldTransform[NR_MAX_MODELS];
-} model;
+uniform sampler2D allModelTransformsTexture;
 
 layout (std140) uniform ModelIndexBlock {
     uvec4 models[NR_MAX_MODELS];
@@ -32,14 +30,22 @@ uniform mat4 boneTransformArray[NR_BONE];
 uniform int isAnimated;
 
 void main() {
+    mat4 modelTransform;
+    int modelOffset = 4*int(instance.models[gl_InstanceID].x);
+    modelTransform[0] = texelFetch(allModelTransformsTexture, ivec2(modelOffset    , 0), 0);
+    modelTransform[1] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 1, 0), 0);
+    modelTransform[2] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 2, 0), 0);
+    modelTransform[3] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 3, 0), 0);
+
     if(isAnimated==1) {
         mat4 BoneTransform = mat4(1.0);
         BoneTransform = boneTransformArray[boneIDs[0]] * boneWeights[0];
         BoneTransform += boneTransformArray[boneIDs[1]] * boneWeights[1];
         BoneTransform += boneTransformArray[boneIDs[2]] * boneWeights[2];
         BoneTransform += boneTransformArray[boneIDs[3]] * boneWeights[3];
-        gl_Position = playerTransforms.cameraProjection * (model.worldTransform[instance.models[gl_InstanceID].x] * (BoneTransform * vec4(vec3(position), 1.0)));
+
+        gl_Position = playerTransforms.cameraProjection * (modelTransform * (BoneTransform * vec4(vec3(position), 1.0)));
     } else {
-        gl_Position = playerTransforms.cameraProjection * (model.worldTransform[instance.models[gl_InstanceID].x] * position);
+        gl_Position = playerTransforms.cameraProjection * (modelTransform * position);
     }
 }

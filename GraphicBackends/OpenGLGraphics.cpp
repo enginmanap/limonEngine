@@ -275,16 +275,9 @@ Uniform::VariableTypes OpenGLGraphics::getSamplerVariableType(const GLint *query
 
 
 void OpenGLGraphics::attachModelUBO(const uint32_t program) {
-    GLuint allModelsAttachPoint = 7;
-
-    int uniformIndex = glGetUniformBlockIndex(program, "ModelInformationBlock");
-    if (uniformIndex >= 0) {
-        glBindBuffer(GL_UNIFORM_BUFFER, allModelsUBOLocation);
-        glUniformBlockBinding(program, uniformIndex, allModelsAttachPoint);
-        glBindBufferRange(GL_UNIFORM_BUFFER, allModelsAttachPoint, allModelsUBOLocation, 0,
-                          sizeof(glm::mat4)* NR_MAX_MODELS);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
-    }
+    GLint allModelsAttachPoint = glGetUniformLocation(program, "allModelTransformsTexture");
+    this->setUniform(program, allModelsAttachPoint, maxTextureImageUnits-4);
+    state->attachTexture(allModelTransformsTexture, maxTextureImageUnits-4);
     checkErrors("attachModelUBO");
 }
 
@@ -471,11 +464,13 @@ OpenGLGraphics::OpenGLGraphics(Options *options): GraphicsInterface(options), op
     glBufferData(GL_UNIFORM_BUFFER, materialUniformSize * NR_MAX_MATERIALS, nullptr, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    //create model uniform buffer object
-    glGenBuffers(1, &allModelsUBOLocation);
-    glBindBuffer(GL_UNIFORM_BUFFER, allModelsUBOLocation);
-    glBufferData(GL_UNIFORM_BUFFER, modelUniformSize * NR_MAX_MODELS, nullptr, GL_STATIC_DRAW);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    glGenTextures(1, &allModelTransformsTexture);
+    state->activateTextureUnit(maxTextureImageUnits-4);
+    glBindTexture(GL_TEXTURE_2D, allModelTransformsTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4 * NR_MAX_MODELS, 2, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    state->activateTextureUnit(0);
 
     //create model index uniform buffer object
     glGenBuffers(1, &allModelIndexesUBOLocation);
@@ -1479,9 +1474,14 @@ void OpenGLGraphics::setMaterial(std::shared_ptr<const Material> material) {
 }
 
 void OpenGLGraphics::setModel(const uint32_t modelID, const glm::mat4& worldTransform) {
-    glBindBuffer(GL_UNIFORM_BUFFER, allModelsUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, modelID * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(worldTransform));
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    state->activateTextureUnit(maxTextureImageUnits-4);
+    state->attachTexture(allModelTransformsTexture, maxTextureImageUnits-4);
+    glm::mat4 transposeInverse = glm::transpose(glm::inverse(worldTransform));
+    float data[32];
+    memcpy(data, glm::value_ptr(worldTransform), sizeof(float)*16);
+    memcpy((data+16), glm::value_ptr(transposeInverse), sizeof(float)*12);
+    glTexSubImage2D(GL_TEXTURE_2D,0,4*modelID, 0, 4, 2, GL_RGBA, GL_FLOAT, data);
+    //std::cout << "setting for model id " << modelID << std::endl;
     checkErrors("setModel");
 }
 
