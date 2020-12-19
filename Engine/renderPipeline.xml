@@ -510,16 +510,6 @@
                         <MaterialRequired>False</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
-                <Method>
-                    <Name>Render Editor</Name>
-                    <Index>5</Index>
-                    <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/Model/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/Model/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
-                    </GraphicsProgram>
-                </Method>
             </RenderMethods>
             <Clear>False</Clear>
             <GraphicsPipelineStage>
@@ -555,6 +545,7 @@
                 <RenderWidth>1920</RenderWidth>
                 <BlendEnabled>True</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
+                <ScissorEnabled>True</ScissorEnabled>
                 <ToScreen>True</ToScreen>
                 <CullMode>NONE</CullMode>
                 <Inputs/>

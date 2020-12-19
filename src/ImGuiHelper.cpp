@@ -28,8 +28,9 @@ void ImGuiHelper::RenderDrawLists()
     ImGuiIO& io = ImGui::GetIO();
     int fb_width = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
     int fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
-    if (fb_width == 0 || fb_height == 0)
+    if (fb_width == 0 || fb_height == 0) {
         return;
+    }
     draw_data->ScaleClipRects(io.DisplayFramebufferScale);
 
     glm::mat4 ortho_projection =
@@ -44,9 +45,7 @@ void ImGuiHelper::RenderDrawLists()
     program->setUniform("TextureArray", 2);
     program->setUniform("TextureCubeArray", 3);
     program->setUniform("ProjMtx",ortho_projection);
-
-    for (int n = 0; n < draw_data->CmdListsCount; n++)
-    {
+    for (int n = 0; n < draw_data->CmdListsCount; n++) {
         const ImDrawList* cmd_list = draw_data->CmdLists[n];
         const uint32_t * idx_buffer_offset = 0;
 
@@ -75,40 +74,39 @@ void ImGuiHelper::RenderDrawLists()
         graphicsWrapper->updateExtraVertexData(colors, g_VaoHandle, g_colorHandle);
         graphicsWrapper->updateVertexTextureCoordinates(textureCoordinates, g_VaoHandle, g_UVHandle);
 
-        for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
-        {
+        for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++) {
             const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
-            if (pcmd->UserCallback)
-            {
+            if (pcmd->UserCallback) {
                 pcmd->UserCallback(cmd_list, pcmd);
-            }
-            else
-            {
-                ImGuiImageWrapper* imGuiImageWrapper = static_cast<ImGuiImageWrapper*>((pcmd->TextureId));
-                switch (imGuiImageWrapper->texture->getType()) {
-                    case GraphicsInterface::TextureTypes::T2D:
-                        graphicsWrapper->attachTexture(imGuiImageWrapper->texture->getTextureID(), 1);
-                        program->setUniform("isArray", 0);
-                        break;
-                    case GraphicsInterface::TextureTypes::T2D_ARRAY:
-                        graphicsWrapper->attach2DArrayTexture(imGuiImageWrapper->texture->getTextureID(), 2);
-                        program->setUniform("isArray", 1);
-                        program->setUniform("layer", (float)imGuiImageWrapper->layer);
-                        break;
-                    case GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY:
-                        graphicsWrapper->attachCubeMapArrayTexture(imGuiImageWrapper->texture->getTextureID(), 3);
-                        program->setUniform("isArray", 2);
-                        program->setUniform("layer", (float)imGuiImageWrapper->layer);
-                        break;
-                    default:
-                        std::cerr << "Unsupported texture type for IMGUI" << std::endl;
-                }
+            } else {
+                //ImVec4 clip_rect = ImVec4(pcmd->ClipRect.x, pcmd->ClipRect.y, pcmd->ClipRect.z, pcmd->ClipRect.w);
+                if (pcmd->ClipRect.x < fb_width && pcmd->ClipRect.y < fb_height && pcmd->ClipRect.z >= 0.0f && pcmd->ClipRect.w >= 0.0f) {
+                    graphicsWrapper->setScissorRect(pcmd->ClipRect.x,
+                                                    (fb_height - pcmd->ClipRect.w),
+                                                    (pcmd->ClipRect.z - pcmd->ClipRect.x),
+                                                    (pcmd->ClipRect.w - pcmd->ClipRect.y));
 
-                graphicsWrapper->setScissorRect((int)pcmd->ClipRect.x,
-                        (int)(fb_height - pcmd->ClipRect.w),
-                        (int)(pcmd->ClipRect.z - pcmd->ClipRect.x),
-                        (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
-                graphicsWrapper->render(program->getID(), g_VaoHandle, g_ElementsHandle, pcmd->ElemCount, idx_buffer_offset);
+                    ImGuiImageWrapper* imGuiImageWrapper = static_cast<ImGuiImageWrapper*>((pcmd->TextureId));
+                    switch (imGuiImageWrapper->texture->getType()) {
+                        case GraphicsInterface::TextureTypes::T2D:
+                            graphicsWrapper->attachTexture(imGuiImageWrapper->texture->getTextureID(), 1);
+                            program->setUniform("isArray", 0);
+                            break;
+                        case GraphicsInterface::TextureTypes::T2D_ARRAY:
+                            graphicsWrapper->attach2DArrayTexture(imGuiImageWrapper->texture->getTextureID(), 2);
+                            program->setUniform("isArray", 1);
+                            program->setUniform("layer", (float)imGuiImageWrapper->layer);
+                            break;
+                        case GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY:
+                            graphicsWrapper->attachCubeMapArrayTexture(imGuiImageWrapper->texture->getTextureID(), 3);
+                            program->setUniform("isArray", 2);
+                            program->setUniform("layer", (float)imGuiImageWrapper->layer);
+                            break;
+                        default:
+                            std::cerr << "Unsupported texture type for IMGUI" << std::endl;
+                    }
+                    graphicsWrapper->render(program->getID(), g_VaoHandle, g_ElementsHandle, pcmd->ElemCount, idx_buffer_offset);
+                }
             }
             idx_buffer_offset += pcmd->ElemCount;
         }
