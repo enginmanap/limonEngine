@@ -2632,7 +2632,7 @@ void World::addGUIImageControls() {
            ImGuiHelper::ShowHelpMarker("No Name Set!");
        } else {
            if (ImGui::Button("Add Particle Emitter")) {
-               std::shared_ptr<Emitter> newEmitter = std::make_shared<Emitter>(this->getNextObjectID(), name, this->assetManager, selectedAsset->fullPath,
+               std::shared_ptr<Emitter> newEmitter = std::make_shared<Emitter>(this->getNextObjectID(), particleEmitterName, this->assetManager, selectedAsset->fullPath,
                                                                                startPosition, startSphereR, size, maxCount,
                                                                                lifeTime);
                this->emitters.emplace_back(newEmitter);
@@ -3530,6 +3530,24 @@ void World::buildTreeFromAllGameObjects() {
                 ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
                 if (ImGui::IsItemClicked()) {
                     pickedObject = currentObject;
+                }
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    if(!parentageList.empty()) {
+        ImGui::SetNextTreeNodeOpen(false);
+    }
+    //Particles
+    if (ImGui::TreeNode("Particle Emitters##ParticleEmittersTreeRoot")) {
+        for (auto iterator = this->emitters.begin(); iterator != this->emitters.end(); ++iterator) {
+            std::shared_ptr<GameObject> currentObject = std::dynamic_pointer_cast<GameObject>(*iterator);
+            if(currentObject != nullptr) {
+                ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+                if (ImGui::IsItemClicked()) {
+                    pickedObject = currentObject.get();//FIXME this is an unsafe use
+                    pickedObjectID =pickedObject->getWorldObjectID();
                 }
             }
         }

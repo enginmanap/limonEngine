@@ -143,5 +143,8 @@ public:
     }
 
     void addRandomParticle(const glm::vec3 &startPosition, float startSphereR, long time);
+
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request [[gnu::unused]]) override;
+
 };
 #endif //LIMONENGINE_EMITTER_H

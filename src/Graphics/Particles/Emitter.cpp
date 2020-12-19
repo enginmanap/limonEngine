@@ -5,6 +5,7 @@
 #include <Assets/TextureAsset.h>
 
 #include <utility>
+#include "ImGui/imgui.h"
 #include "Emitter.h"
 
 Emitter::Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
@@ -75,4 +76,13 @@ void Emitter::setupVAO() {
 
     graphicsWrapper->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
     bufferObjects.push_back(vbo);
+}
+
+GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
+    ImGui::InputFloat3("startPosition##ParticleEmitter", glm::value_ptr(startPosition));
+    ImGuiResult imGuiResult;
+    if(ImGui::Button("Remove##ParticleEmitter")) {
+        imGuiResult.remove = true;
+    }
+    return imGuiResult;
 }
