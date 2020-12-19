@@ -315,6 +315,10 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
         currentElement->SetText(std::to_string((*it)->getWorldObjectID()).c_str());
         emitterElement->InsertEndChild(currentElement);
 
+        currentElement = document.NewElement("Name");
+        currentElement->SetText((*it)->getName().c_str());
+        emitterElement->InsertEndChild(currentElement);
+
         tinyxml2::XMLElement *parent = document.NewElement("StartPosition");
         glm::vec3 starPosition = (*it)->getStartPosition();
         currentElement = document.NewElement("X");
@@ -346,7 +350,7 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
         currentElement->SetText(std::to_string((*it)->getLifeTime()).c_str());
         emitterElement->InsertEndChild(currentElement);
 
-        currentElement = document.NewElement("StarSphereR");
+        currentElement = document.NewElement("StartSphereR");
         currentElement->SetText(std::to_string((*it)->getStartSphereR()).c_str());
         emitterElement->InsertEndChild(currentElement);
 
