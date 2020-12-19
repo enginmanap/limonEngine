@@ -477,19 +477,19 @@
                         <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
-<!--                <Method>-->
-<!--                    <Name>Render Particle Emitters</Name>-->
-<!--                    <Index>2</Index>-->
-<!--                    <GraphicsProgram>-->
-<!--                        <VertexShader>./Engine/Shaders/Particles/vertex.glsl</VertexShader>-->
-<!--                        <GeometryShader></GeometryShader>-->
-<!--                        <FragmentShader>./Engine/Shaders/Particles/fragment.glsl</FragmentShader>-->
-<!--                        <MaterialRequired>False</MaterialRequired>-->
-<!--                        <PresetValues>-->
-<!--                            <Uniform Name="pre_depthMap">1</Uniform>-->
-<!--                        </PresetValues>-->
-<!--                    </GraphicsProgram>-->
-<!--                </Method>-->
+                <Method>
+                    <Name>Render Particle Emitters</Name>
+                    <Index>2</Index>
+                    <GraphicsProgram>
+                        <VertexShader>./Engine/Shaders/Particles/vertex.glsl</VertexShader>
+                        <GeometryShader></GeometryShader>
+                        <FragmentShader>./Engine/Shaders/Particles/fragment.glsl</FragmentShader>
+                        <MaterialRequired>False</MaterialRequired>
+                        <PresetValues>
+                            <Uniform Name="pre_depthMap">1</Uniform>
+                        </PresetValues>
+                    </GraphicsProgram>
+                </Method>
                 <Method>
                     <Name>Render GUI Texts</Name>
                     <Index>3</Index>
