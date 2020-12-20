@@ -36,7 +36,8 @@ class Emitter : public Renderable, public GameObject {
 
     std::random_device randomDevice;
     std::default_random_engine randomFloatGenerator;
-    std::uniform_real_distribution<float> randomFloats;
+    std::uniform_real_distribution<float> randomStartingPoints;
+    std::uniform_real_distribution<float> randomSpeedDistribution;
 
     void setupVAO();
 
