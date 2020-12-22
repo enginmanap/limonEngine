@@ -12,10 +12,10 @@ Emitter::Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetMana
                  const std::string &textureFile, glm::vec3 startPosition, float startSphereR, glm::vec2 size, long count,
                  long lifeTime) :
         Renderable(assetManager->getGraphicsWrapper()), worldObjectID(worldObjectId), name(std::move(name)), size(size),
-        maxCount(count), lifeTime(lifeTime), startPosition(startPosition), startSphereR(startSphereR),
+        maxCount(count), lifeTime(lifeTime), startSphereR(startSphereR),
         randomFloatGenerator(randomDevice()), randomStartingPoints(-1, 1),
         randomSpeedDistribution(-0.1f, 0.1f){ // generates random floats between - startSphereR and startSphereR
-
+    this->transformation.setTranslate(startPosition);
     textureAsset.reset(assetManager->loadAsset<TextureAsset>({textureFile}));
     this->texture = textureAsset->getTexture();
 
@@ -80,12 +80,13 @@ void Emitter::setupVAO() {
     bufferObjects.push_back(vbo);
 }
 
-GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
-    float* startPositionValues = glm::value_ptr(startPosition);
+GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiRequest &request [[gnu::unused]]) {
+    float startPositionValues[3];
+    startPositionValues[0] = transformation.getTranslate().x;
+    startPositionValues[1] = transformation.getTranslate().y;
+    startPositionValues[2] = transformation.getTranslate().z;
     if(ImGui::InputFloat3("Start Position##ParticleEmitter", startPositionValues)) {
-        startPosition.x = startPositionValues[0];
-        startPosition.y = startPositionValues[1];
-        startPosition.z = startPositionValues[2];
+        transformation.setTranslate(glm::vec3(startPositionValues[0], startPositionValues[1], startPositionValues[2]));
     }
 
     ImGui::InputFloat("Start Sphere R##ParticleEmitter", &startSphereR);

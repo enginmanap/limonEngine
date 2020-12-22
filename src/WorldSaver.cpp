@@ -320,7 +320,7 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
         emitterElement->InsertEndChild(currentElement);
 
         tinyxml2::XMLElement *parent = document.NewElement("StartPosition");
-        glm::vec3 starPosition = (*it)->getStartPosition();
+        glm::vec3 starPosition = (*it)->getTransformation()->getTranslate();
         currentElement = document.NewElement("X");
         currentElement->SetText(starPosition.x);
         parent->InsertEndChild(currentElement);

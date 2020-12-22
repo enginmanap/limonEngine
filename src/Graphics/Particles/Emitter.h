@@ -24,7 +24,6 @@ class Emitter : public Renderable, public GameObject {
     std::shared_ptr<Texture> texture;
     long maxCount;
     long lifeTime;
-    glm::vec3 startPosition;
     float startSphereR;
 
     std::shared_ptr<TextureAsset> textureAsset;//it is the root asset for texture
@@ -83,7 +82,7 @@ public:
                 lastCreationTime = time;
             }
             for (int i = 0; i < creationParticleCount; ++i) {
-                addRandomParticle(startPosition, startSphereR, time);
+                addRandomParticle(this->transformation.getTranslate(), startSphereR, time);
             }
             currentCount += creationParticleCount;
         }
@@ -133,10 +132,6 @@ public:
 
     long getLifeTime() const {
         return lifeTime;
-    }
-
-    const glm::vec3 &getStartPosition() const {
-        return startPosition;
     }
 
     float getStartSphereR() const {
