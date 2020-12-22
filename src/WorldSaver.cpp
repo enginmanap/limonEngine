@@ -332,6 +332,46 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
         parent->InsertEndChild(currentElement);
         emitterElement->InsertEndChild(parent);
 
+        parent = document.NewElement("Gravity");
+        glm::vec3 gravity = (*it)->getGravity();
+        currentElement = document.NewElement("X");
+        currentElement->SetText(gravity.x);
+        parent->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Y");
+        currentElement->SetText(gravity.y);
+        parent->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Z");
+        currentElement->SetText(gravity.z);
+        parent->InsertEndChild(currentElement);
+        emitterElement->InsertEndChild(parent);
+
+
+        parent = document.NewElement("SpeedMultiplier");
+        glm::vec3 speedMultiplier = (*it)->getSpeedMultiplier();
+        currentElement = document.NewElement("X");
+        currentElement->SetText(speedMultiplier.x);
+        parent->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Y");
+        currentElement->SetText(speedMultiplier.y);
+        parent->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Z");
+        currentElement->SetText(speedMultiplier.z);
+        parent->InsertEndChild(currentElement);
+        emitterElement->InsertEndChild(parent);
+
+        parent = document.NewElement("SpeedOffset");
+        glm::vec3 speedOffset = (*it)->getSpeedOffset();
+        currentElement = document.NewElement("X");
+        currentElement->SetText(speedOffset.x);
+        parent->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Y");
+        currentElement->SetText(speedOffset.y);
+        parent->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Z");
+        currentElement->SetText(speedOffset.z);
+        parent->InsertEndChild(currentElement);
+        emitterElement->InsertEndChild(parent);
+
         parent = document.NewElement("Size");
         glm::vec2 size = (*it)->getSize();
         currentElement = document.NewElement("X");

@@ -25,6 +25,9 @@ class Emitter : public Renderable, public GameObject {
     long maxCount;
     long lifeTime;
     float startSphereR;
+    glm::vec3 gravity;
+    glm::vec3 speedMultiplier;
+    glm::vec3 speedOffset;
 
     std::shared_ptr<TextureAsset> textureAsset;//it is the root asset for texture
     long currentCount = 0;
@@ -46,7 +49,6 @@ public:
             long lifeTime);
 
     void setupForTime(long time) override {
-        std::cout << "Emitter rendering " << __LINE__ << std::endl;
         if(lastSetupTime == 0) {
             lastSetupTime = time;//don't try to create massive amounts in first setup.
             lastCreationTime = time;
@@ -54,7 +56,8 @@ public:
         size_t removalStart, removalEnd = 0;
         bool removalSet = false;
         for (int i = 0; i < currentCount; ++i) {
-            positions[i] = positions[i] + (speeds[i] * 1.0f);
+            positions[i] = positions[i] + speeds[i];
+            speeds[i] +=(gravity/60.0);
             if(!removalSet && ((time - this->creationTime[i]) > lifeTime )) {
                 removalStart = i;
                 removalSet = true;
@@ -73,9 +76,8 @@ public:
             creationTime.erase(creationTime.begin() + removalStart, creationTime.begin() + removalEnd);
 
             currentCount = currentCount - (removalEnd - removalStart);
-            //std::cout << "removing " << (removalEnd - removalStart) << "particles" << std::endl;
+            std::cout << "removing " << (removalEnd - removalStart) << "particles" << std::endl;
         }
-        std::cout << "Emitter rendering " << __LINE__ << std::endl;
         if(currentCount < maxCount) {
             long creationParticleCount = (time - lastCreationTime) * perMsParticleCount;
             if(creationParticleCount > 0) {
@@ -86,14 +88,12 @@ public:
             }
             currentCount += creationParticleCount;
         }
-        std::cout << "Emitter rendering " << __LINE__ << std::endl;
         std::vector<glm::vec3> temp;
         temp.insert(temp.end(), positions.begin(), positions.end());
         for (int i = temp.size(); i < maxCount; ++i) {
             temp.emplace_back(glm::vec3(0,0,0));
         }
         positionTexture->loadData(temp.data());
-        std::cout << "Emitter rendering " << __LINE__ << std::endl;
         lastSetupTime = time;
     }
 
@@ -136,6 +136,30 @@ public:
 
     float getStartSphereR() const {
         return startSphereR;
+    }
+
+    const glm::vec3 &getGravity() const {
+        return gravity;
+    }
+
+    void setGravity(const glm::vec3 &gravity) {
+        Emitter::gravity = gravity;
+    }
+
+    const glm::vec3 &getSpeedMultiplier() const {
+        return speedMultiplier;
+    }
+
+    void setSpeedMultiplier(const glm::vec3 &speedMultiplier) {
+        Emitter::speedMultiplier = speedMultiplier;
+    }
+
+    const glm::vec3 &getSpeedOffset() const {
+        return speedOffset;
+    }
+
+    void setSpeedOffset(const glm::vec3 &speedOffset) {
+        Emitter::speedOffset = speedOffset;
     }
 
     void addRandomParticle(const glm::vec3 &startPosition, float startSphereR, long time);

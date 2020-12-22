@@ -30,7 +30,7 @@ void main(){
     //gl_Position = worldPosition;
     vec4 worldPosition = vec4(centerPosition, 1.0);
     vec4 cameraCenterPosition = playerTransforms.cameraProjection * worldPosition;
-    cameraCenterPosition.xy = cameraCenterPosition.xy + (position.xy * size);//we don't want to modify z.
+    cameraCenterPosition.xyz = cameraCenterPosition.xyz + (position.xyz * size);
 
     gl_Position = cameraCenterPosition;
 }

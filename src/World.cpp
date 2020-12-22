@@ -748,13 +748,9 @@ void World::renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& ren
 }
 
 void World::renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
-    std::cout << "Emitters " << std::endl;
      for(const auto& emitter:emitters) {
-         std::cout << "Emitter rendering " << std::endl;
          emitter->renderWithProgram(renderProgram);
-         std::cout << "Emitter rendering 2" << std::endl;
      }
-    std::cout << "Emitters 2" << std::endl;
 }
 
 void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[gnu::unused]]) const {

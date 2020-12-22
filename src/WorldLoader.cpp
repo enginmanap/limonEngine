@@ -821,7 +821,6 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
         } else {
             emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
             if (emitterAttributeAttributeElement != nullptr) {
-                std::cout << "x element: " << emitterAttributeAttributeElement->GetText() << "and float " << std::stof(emitterAttributeAttributeElement->GetText()) << std::endl;
                 startPosition.x = std::stof(emitterAttributeAttributeElement->GetText());
             } else {
                 std::cerr << "Particle Emitter position/direction missing x." << std::endl;
@@ -830,7 +829,6 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
             emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
             if (emitterAttributeAttributeElement != nullptr) {
                 startPosition.y = std::stof(emitterAttributeAttributeElement->GetText());
-                std::cout << "y element: " << emitterAttributeAttributeElement->GetText() << "and float " << std::stof(emitterAttributeAttributeElement->GetText()) << std::endl;
             } else {
                 std::cerr << "Particle Emitter position/direction missing y." << std::endl;
                 return false;
@@ -838,13 +836,11 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
             emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
             if (emitterAttributeAttributeElement != nullptr) {
                 startPosition.z = std::stof(emitterAttributeAttributeElement->GetText());
-                std::cout << "z element: " << emitterAttributeAttributeElement->GetText() << "and float " << std::stof(emitterAttributeAttributeElement->GetText()) << std::endl;
             } else {
                 std::cerr << "Particle Emitter position/direction missing z." << std::endl;
                 return false;
             }
         }
-
 
         emitterAttributeElement = EmitterNode->FirstChildElement("Size");
         if (emitterAttributeElement == nullptr) {
@@ -863,10 +859,90 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
             }
         }
 
+        glm::vec3 gravity = glm::vec3(0,0,0);
+        emitterAttributeElement = EmitterNode->FirstChildElement("Gravity");
+        if (emitterAttributeElement == nullptr) {
+            std::cout << "Particle Emitter has no gravity." << std::endl;
+        } else {
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
+            if (emitterAttributeAttributeElement != nullptr) {
+
+                gravity.x = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter gravity missing x." << std::endl;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
+            if (emitterAttributeAttributeElement != nullptr) {
+                gravity.y = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter gravity missing y." << std::endl;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
+            if (emitterAttributeAttributeElement != nullptr) {
+                gravity.z = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter gravity missing z." << std::endl;
+            }
+        }
+
+        glm::vec3 speedMultiplier = glm::vec3(1,1,1);
+        emitterAttributeElement = EmitterNode->FirstChildElement("SpeedMultiplier");
+        if (emitterAttributeElement == nullptr) {
+            std::cout << "Particle Emitter has no speedMultiplier." << std::endl;
+        } else {
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
+            if (emitterAttributeAttributeElement != nullptr) {
+
+                speedMultiplier.x = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter speedMultiplier missing x." << std::endl;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
+            if (emitterAttributeAttributeElement != nullptr) {
+                speedMultiplier.y = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter speedMultiplier missing y." << std::endl;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
+            if (emitterAttributeAttributeElement != nullptr) {
+                speedMultiplier.z = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter speedMultiplier missing z." << std::endl;
+            }
+        }
+
+        glm::vec3 speedOffset = glm::vec3(0,0,0);
+        emitterAttributeElement = EmitterNode->FirstChildElement("SpeedOffset");
+        if (emitterAttributeElement == nullptr) {
+            std::cout << "Particle Emitter has no gravity." << std::endl;
+        } else {
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
+            if (emitterAttributeAttributeElement != nullptr) {
+
+                speedOffset.x = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter speedOffset missing x." << std::endl;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
+            if (emitterAttributeAttributeElement != nullptr) {
+                speedOffset.y = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter speedOffset missing y." << std::endl;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
+            if (emitterAttributeAttributeElement != nullptr) {
+                speedOffset.z = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter speedOffset missing z." << std::endl;
+            }
+        }
+
         std::shared_ptr<Emitter> emitter = std::make_shared<Emitter>(id, name, this->assetManager, textureFile,
                                                                      startPosition, startSphereR, size, maxCount,
                                                                      lifeTime);
-
+        emitter->setGravity(gravity);
+        emitter->setSpeedMultiplier(speedMultiplier);
+        emitter->setSpeedOffset(speedOffset);
         world->emitters.push_back(emitter);
         EmitterNode =  EmitterNode->NextSiblingElement("Emitter");
     }

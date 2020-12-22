@@ -27,7 +27,7 @@ Emitter::Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetMana
                                                 GraphicsInterface::FormatTypes::RGB,
                                                 GraphicsInterface::DataTypes::FLOAT,
                                                 count, 1);
-    this->perMsParticleCount = (float) count / lifeTime;
+    this->perMsParticleCount = (float) maxCount / lifeTime;
 }
 
 void Emitter::addRandomParticle(const glm::vec3 &startPosition, float startSphereR, long time) {
@@ -42,10 +42,9 @@ void Emitter::addRandomParticle(const glm::vec3 &startPosition, float startSpher
     glm::vec3 position = startPosition +
                          glm::vec3(x, y, z);
     positions.emplace_back(position);
-    glm::vec3 speed = glm::vec3(randomSpeedDistribution(randomFloatGenerator),
-                                randomSpeedDistribution(randomFloatGenerator),
-                                randomSpeedDistribution(randomFloatGenerator));
-    speed.y += 0.1f;
+    glm::vec3 speed = glm::vec3(randomSpeedDistribution(randomFloatGenerator) * speedMultiplier.x + speedOffset.x,
+                                randomSpeedDistribution(randomFloatGenerator) * speedMultiplier.y + speedOffset.y,
+                                randomSpeedDistribution(randomFloatGenerator) * speedMultiplier.z + speedOffset.z);
     speeds.emplace_back(speed);
     creationTime.emplace_back(time);
     std::cout << "Add particle with position " << position.x << ", " <<position.y << ", " <<position.z << std::endl;
@@ -110,6 +109,30 @@ GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiR
     if(ImGui::InputFloat2("Size##ParticleEmitter", sizeValues)) {
         size.x = sizeValues[0];
         size.y = sizeValues[1];
+    }
+
+    float speedOffsetValues[3];
+    speedOffsetValues[0] = speedOffset.x;
+    speedOffsetValues[1] = speedOffset.y;
+    speedOffsetValues[2] = speedOffset.z;
+    if(ImGui::InputFloat3("Speed Offset##ParticleEmitter", speedOffsetValues)) {
+        speedOffset = glm::vec3(speedOffsetValues[0], speedOffsetValues[1], speedOffsetValues[2]);
+    }
+
+    float speedMultiplierValues[3];
+    speedMultiplierValues[0] = speedMultiplier.x;
+    speedMultiplierValues[1] = speedMultiplier.y;
+    speedMultiplierValues[2] = speedMultiplier.z;
+    if(ImGui::InputFloat3("Speed multiplier##ParticleEmitter", speedMultiplierValues)) {
+        speedMultiplier = glm::vec3(speedMultiplierValues[0], speedMultiplierValues[1], speedMultiplierValues[2]);
+    }
+
+    float gravityValues[3];
+    gravityValues[0] = gravity.x;
+    gravityValues[1] = gravity.y;
+    gravityValues[2] = gravity.z;
+    if(ImGui::InputFloat3("Gravity##ParticleEmitter", gravityValues)) {
+        gravity = glm::vec3(gravityValues[0], gravityValues[1], gravityValues[2]);
     }
 
     ImGuiResult imGuiResult;
