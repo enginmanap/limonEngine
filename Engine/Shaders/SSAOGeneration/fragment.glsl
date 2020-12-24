@@ -7,9 +7,10 @@ layout (std140) uniform PlayerTransformBlock {
     mat4 projection;
     mat4 cameraProjection;
     mat4 inverseProjection;
-	mat4 inverseCamera;
+    mat4 inverseCamera;
+    mat3 transposeInverseCamera;
     vec3 position;
-	vec3 cameraSpacePosition;
+    vec3 cameraSpacePosition;
     vec2 noiseScale;
 } playerTransforms;
 
@@ -36,10 +37,10 @@ vec3 calcViewSpacePos(vec3 screen) {
 void main(){
 
     vec3 normal = texture(pre_normalMap, from_vs.textureCoordinates.xy).xyz;
-         normal = normalize(mat3(transpose(playerTransforms.inverseCamera)) * normal);
+         normal = normalize(playerTransforms.transposeInverseCamera * normal);
     float depth = texture(pre_depthMap, from_vs.textureCoordinates.xy).r;
 
-    vec3 randomVec = normalize(texture(ssaoNoiseSampler, from_vs.textureCoordinates * playerTransforms.noiseScale).xyz);
+    vec3 randomVec = texture(ssaoNoiseSampler, from_vs.textureCoordinates * playerTransforms.noiseScale).xyz;
 
     vec3 tangent   = normalize(randomVec - normal * dot(randomVec, normal));
     vec3 bitangent = cross(normal, tangent);

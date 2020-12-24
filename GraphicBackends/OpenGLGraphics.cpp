@@ -1513,11 +1513,13 @@ void OpenGLGraphics::setPlayerMatrices(const glm::vec3 &cameraPosition, const gl
     glBufferSubData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(inverseProjection));//never changes
 
     glBufferSubData(GL_UNIFORM_BUFFER, 4 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(inverseCameraMatrix));//changes with camera
-    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4), sizeof(glm::vec3), glm::value_ptr(cameraPosition));//changes with camera
-    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4)+ sizeof(glm::vec4), sizeof(glm::vec3), glm::value_ptr(cameraSpacePosition));//changes with camera
+    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(glm::transpose(inverseCameraMatrix)));//changes with camera
+    //transpose inverse is used as mat3, but std140 pads it to mat43 so it looks like we are overriding 1 row
+    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4) + 3 * sizeof(glm::vec4), sizeof(glm::vec3), glm::value_ptr(cameraPosition));//changes with camera
+    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4) + 4 * sizeof(glm::vec4), sizeof(glm::vec3), glm::value_ptr(cameraSpacePosition));//changes with camera
 
     glm::vec2 noiseScale(this->screenWidth / 4, this->screenHeight / 4);
-    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4)+ 2* sizeof(glm::vec4), sizeof(glm::vec2), glm::value_ptr(noiseScale));//never changes
+    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4) + 5 * sizeof(glm::vec4), sizeof(glm::vec2), glm::value_ptr(noiseScale));//never changes
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     calculateFrustumPlanes(cameraMatrix, perspectiveProjectionMatrix, frustumPlanes);
