@@ -429,7 +429,7 @@ bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld,
                 //parent above means parent transform of the mesh node, not the parent of bone.
             }
         }
-        std::cout << "bind pose returned. for animation name [" << animationNameOld << "]"<< std::endl;
+        //std::cout << "bind pose returned. for animation name [" << animationNameOld << "]"<< std::endl;
         return true;
     }
 
@@ -542,7 +542,7 @@ bool ModelAsset::getTransform(long time, bool looped, std::string animationName,
                 //parent above means parent transform of the mesh node, not the parent of bone.
             }
         }
-        std::cout << "bind pose returned. for animation name [" << animationName << "]"<< std::endl;
+        //std::cout << "bind pose returned. for animation name [" << animationName << "]"<< std::endl;
         return true;
     }
 
@@ -667,7 +667,7 @@ ModelAsset::fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimation
     for (unsigned int i = 0; i < numAnimation; ++i) {
         currentAnimation = pAnimations[i];
         std::string animationName = animationNamePrefix + currentAnimation->mName.C_Str();
-        std::cout << "add animation with name " << animationNamePrefix << animationName << std::endl;
+        //std::cout << "add animation with name " << animationNamePrefix << animationName << std::endl;
 
         std::shared_ptr<AnimationAssimp> animationObject = std::make_shared<AnimationAssimp>(currentAnimation);
         animations[animationName] = animationObject;
