@@ -37,7 +37,8 @@ private:
     GraphicsInterface::CullModes cullMode = GraphicsInterface::CullModes::NO_CHANGE;
     bool clearBefore = false;
     bool blendEnabled = false;
-    bool depthTestEnabled = false;
+    bool depthTestEnabled = true;
+    bool depthWriteEnabled = true;
     bool scissorTestEnabled = false;
     bool anyOutputMultiLayered = false;
     bool toScreen = false;
@@ -91,6 +92,10 @@ public:
 
     bool isDepthTestEnabled() const {
         return depthTestEnabled;
+    }
+
+    bool isDepthWriteEnabled() const {
+        return depthWriteEnabled;
     }
 
     bool isScissorTestEnabled() const {

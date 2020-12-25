@@ -524,6 +524,7 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                                                                stageExtension->getRenderResolution()[1],
                                                                stageExtension->isBlendEnabled(),
                                                                stageExtension->isDepthTestEnabled(),
+                                                               stageExtension->isDepthWriteEnabled(),
                                                                stageExtension->isScissorTestEnabled(),
                                                                toScreen);
             stageInfo->stage->setCullMode(stageExtension->getCullmode());

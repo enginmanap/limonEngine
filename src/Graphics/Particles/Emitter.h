@@ -14,7 +14,7 @@
 #include "../../Assets/TextureAsset.h"
 
 class Emitter : public Renderable, public GameObject {
-    std::vector<glm::vec3> positions;
+    std::vector<glm::vec4> positions;
     std::vector<glm::vec3> speeds;
     std::vector<long> creationTime;
 
@@ -33,7 +33,7 @@ class Emitter : public Renderable, public GameObject {
     long currentCount = 0;
     long lastSetupTime = 0;
     long lastCreationTime = 0;
-    std::shared_ptr<Texture> positionTexture;
+    std::shared_ptr<Texture> particleDataTexture;
     float perMsParticleCount;
 
     std::random_device randomDevice;
@@ -53,10 +53,14 @@ public:
             lastSetupTime = time;//don't try to create massive amounts in first setup.
             lastCreationTime = time;
         }
+        float alphaChange = (float)(time - lastSetupTime) / (float)this->lifeTime;
+        if(alphaChange > 1 ) {
+            alphaChange = 1;
+        }
         size_t removalStart, removalEnd = 0;
         bool removalSet = false;
         for (int i = 0; i < currentCount; ++i) {
-            positions[i] = positions[i] + speeds[i];
+            positions[i] = positions[i] + glm::vec4(speeds[i], -1 * alphaChange);
             speeds[i] +=(gravity/60.0);
             if(!removalSet && ((time - this->creationTime[i]) > lifeTime )) {
                 removalStart = i;
@@ -76,7 +80,6 @@ public:
             creationTime.erase(creationTime.begin() + removalStart, creationTime.begin() + removalEnd);
 
             currentCount = currentCount - (removalEnd - removalStart);
-            std::cout << "removing " << (removalEnd - removalStart) << "particles" << std::endl;
         }
         if(currentCount < maxCount) {
             long creationParticleCount = (time - lastCreationTime) * perMsParticleCount;
@@ -88,12 +91,12 @@ public:
             }
             currentCount += creationParticleCount;
         }
-        std::vector<glm::vec3> temp;
-        temp.insert(temp.end(), positions.begin(), positions.end());
+        std::vector<glm::vec4> temp;
+        temp.insert(temp.end(), positions.rbegin(), positions.rend());
         for (int i = temp.size(); i < maxCount; ++i) {
-            temp.emplace_back(glm::vec3(0,0,0));
+            temp.emplace_back(glm::vec4(0,0,0, 0));
         }
-        positionTexture->loadData(temp.data());
+        particleDataTexture->loadData(temp.data());
         lastSetupTime = time;
     }
 
@@ -101,7 +104,7 @@ public:
         renderProgram->setUniform("sprite", 6);
         graphicsWrapper->attachTexture((int) texture->getTextureID(), 6);
         renderProgram->setUniform("positions", 7);
-        graphicsWrapper->attachTexture((int) positionTexture->getTextureID(), 7);
+        graphicsWrapper->attachTexture((int) particleDataTexture->getTextureID(), 7);
         renderProgram->setUniform("size", size.x);
         graphicsWrapper->renderInstanced(renderProgram->getID(), vao, ebo, 3 * 2, currentCount);
     }

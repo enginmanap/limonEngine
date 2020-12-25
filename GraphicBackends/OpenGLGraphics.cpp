@@ -680,7 +680,7 @@ void OpenGLGraphics::updateVertexTextureCoordinates(const std::vector<glm::vec2>
     checkErrors("updateVertexTextureCoordinates");
 }
 
-void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool scissorEnabled, bool clearColor,
+void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled, bool clearColor,
                                         bool clearDepth, CullModes cullMode, std::map<uint32_t, std::shared_ptr<Texture>> &inputs) {
     glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
@@ -696,6 +696,11 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
         glEnable(GL_DEPTH_TEST);
     } else {
         glDisable(GL_DEPTH_TEST);
+    }
+    if(depthWriteEnabled) {
+        glDepthMask(GL_TRUE);
+    } else {
+        glDepthMask(GL_FALSE);
     }
     if(scissorEnabled) {
         glEnable(GL_SCISSOR_TEST);
@@ -727,7 +732,7 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
 }
 
 
-void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool scissorEnabled, bool clearColor,
+void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled, bool clearColor,
                                     bool clearDepth, CullModes cullMode, const std::map<uint32_t, std::shared_ptr<Texture>> &inputs, const std::map<std::shared_ptr<Texture>,
                                             std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap) {
     //now we should change attachments based on the layer information we got
@@ -750,6 +755,11 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
         glEnable(GL_DEPTH_TEST);
     } else {
         glDisable(GL_DEPTH_TEST);
+    }
+    if(depthWriteEnabled) {
+        glDepthMask(GL_TRUE);
+    } else {
+        glDepthMask(GL_FALSE);
     }
     if(scissorEnabled) {
         glEnable(GL_SCISSOR_TEST);
@@ -1177,6 +1187,7 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
         case InternalFormatTypes::RGBA: glInternalDataFormat = GL_RGBA; break;
         case InternalFormatTypes::RGB16F: glInternalDataFormat = GL_RGB16F; break;
         case InternalFormatTypes::RGB32F: glInternalDataFormat = GL_RGB32F; break;
+        case InternalFormatTypes::RGBA32F: glInternalDataFormat = GL_RGBA32F; break;
         case InternalFormatTypes::DEPTH: glInternalDataFormat = GL_DEPTH_COMPONENT; break;
         case InternalFormatTypes::COMPRESSED_RGB: glInternalDataFormat = GL_COMPRESSED_RGB; break;
         case InternalFormatTypes::COMPRESSED_RGBA: glInternalDataFormat = GL_COMPRESSED_RGBA; break;
@@ -1266,6 +1277,7 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
         case InternalFormatTypes::RGBA: glInternalDataFormat = GL_RGBA; break;
         case InternalFormatTypes::RGB16F: glInternalDataFormat = GL_RGB16F; break;
         case InternalFormatTypes::RGB32F: glInternalDataFormat = GL_RGB32F; break;
+        case InternalFormatTypes::RGBA32F: glInternalDataFormat = GL_RGBA32F; break;
         case InternalFormatTypes::DEPTH: glInternalDataFormat = GL_DEPTH_COMPONENT; break;
         case InternalFormatTypes::COMPRESSED_RGB: glInternalDataFormat = GL_COMPRESSED_RGB; break;
         case InternalFormatTypes::COMPRESSED_RGBA: glInternalDataFormat = GL_COMPRESSED_RGBA; break;

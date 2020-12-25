@@ -19,6 +19,7 @@ class GraphicsPipelineStage {
     uint32_t nextPresetIndex = 1;//used by pipeline builder. If multiple programs are set per stage, we might want to attach n to first program, then when building second, we should start from n+1.
     bool blendEnabled = false;
     bool depthTestEnabled = false;
+    bool depthWriteEnabled = true;
     bool scissorEnabled = false;
     bool colorAttachment = false;
     bool depthAttachment = false;
@@ -29,8 +30,8 @@ class GraphicsPipelineStage {
 
 public:
 
-    GraphicsPipelineStage(GraphicsInterface* graphicsWrapper, uint32_t renderWidth, uint32_t renderHeight, bool blendEnabled, bool depthTestEnabled, bool scissorEnabled, bool toScreen = false) :
-            graphicsWrapper(graphicsWrapper), renderWidth(renderWidth), renderHeight(renderHeight), blendEnabled(blendEnabled), depthTestEnabled(depthTestEnabled), scissorEnabled(scissorEnabled) {
+    GraphicsPipelineStage(GraphicsInterface* graphicsWrapper, uint32_t renderWidth, uint32_t renderHeight, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled, bool toScreen = false) :
+            graphicsWrapper(graphicsWrapper), renderWidth(renderWidth), renderHeight(renderHeight), blendEnabled(blendEnabled), depthTestEnabled(depthTestEnabled), depthWriteEnabled(depthWriteEnabled), scissorEnabled(scissorEnabled) {
         if(toScreen) {
             frameBufferID = 0;
             //since this is directly to screen, we should clear both color and depth, if clear is requested, because we will not get outputs set.
@@ -103,6 +104,14 @@ public:
 
     void setDepthTestEnabled(bool depthTestEnabled) {
         GraphicsPipelineStage::depthTestEnabled = depthTestEnabled;
+    }
+
+    bool isDepthWriteEnabled() const {
+        return depthWriteEnabled;
+    }
+
+    void setDepthWriteEnabled(bool depthWriteEnabled) {
+        GraphicsPipelineStage::depthWriteEnabled = depthWriteEnabled;
     }
 
     bool isScissorEnabled() const {

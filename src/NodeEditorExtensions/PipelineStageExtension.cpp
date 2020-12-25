@@ -81,6 +81,7 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
 
         ImGui::Checkbox("Blend", &blendEnabled);
         ImGui::Checkbox("Depth Test", &depthTestEnabled);
+        ImGui::Checkbox("Depth Write", &depthWriteEnabled);
         ImGui::Checkbox("Scissor Test", &scissorTestEnabled);
         ImGui::Checkbox("Clear", &clearBefore);
 

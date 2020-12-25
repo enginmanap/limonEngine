@@ -5,12 +5,12 @@
 #include "GraphicsPipelineStage.h"
 
 void GraphicsPipelineStage::activate(bool clear) {
-    graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, depthTestEnabled, scissorEnabled, clear && colorAttachment,
+    graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, clear && colorAttachment,
             clear && depthAttachment, cullMode, inputs);
 }
 
 void GraphicsPipelineStage::activate(const std::map<std::shared_ptr<Texture>, std::pair<GraphicsInterface::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear) {
-    graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, depthTestEnabled, scissorEnabled, clear && colorAttachment,
+    graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, clear && colorAttachment,
             clear && depthAttachment, cullMode, inputs, attachmentLayerMap);
 }
 
@@ -53,6 +53,14 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
 
     currentElement = document.NewElement("DepthTestEnabled");
     if(depthTestEnabled) {
+        currentElement->SetText("True");
+    } else {
+        currentElement->SetText("False");
+    }
+    stageNode->InsertEndChild(currentElement);
+
+    currentElement = document.NewElement("DepthWriteEnabled");
+    if(depthWriteEnabled) {
         currentElement->SetText("True");
     } else {
         currentElement->SetText("False");
@@ -182,6 +190,23 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
         }
     }
 
+    bool depthWriteEnabled = true;
+    stageNodeAttribute = stageNode->FirstChildElement("DepthWriteEnabled");
+    if (stageNodeAttribute != nullptr) {
+        if(stageNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Pipeline Stage depth write enabled setting has no text, assuming true!" << std::endl;
+        } else {
+            std::string depthWriteEnabledString = stageNodeAttribute->GetText();
+            if(depthWriteEnabledString == "True") {
+                depthWriteEnabled = true;
+            } else if(depthWriteEnabledString == "False") {
+                depthWriteEnabled = false;
+            } else {
+                std::cerr << "Pipeline Stage depth write enabled setting is unknown, assuming true!" << std::endl;
+            }
+        }
+    }
+
     bool scissorEnabled = false;
     stageNodeAttribute = stageNode->FirstChildElement("ScissorEnabled");
     if (stageNodeAttribute != nullptr) {
@@ -220,7 +245,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
         return nullptr;
     }
 
-    std::shared_ptr<GraphicsPipelineStage> newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, renderWidth, renderHeight, blendEnabled, depthTestEnabled, scissorEnabled, toScreen);
+    std::shared_ptr<GraphicsPipelineStage> newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, renderWidth, renderHeight, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, toScreen);
 
     stageNodeAttribute = stageNode->FirstChildElement("CullMode");
 

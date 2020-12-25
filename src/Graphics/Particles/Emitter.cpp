@@ -21,12 +21,12 @@ Emitter::Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetMana
 
     setupVAO();
 
-    positionTexture = std::make_shared<Texture>(this->graphicsWrapper,
-                                                GraphicsInterface::TextureTypes::T2D,
-                                                GraphicsInterface::InternalFormatTypes::RGB32F,
-                                                GraphicsInterface::FormatTypes::RGB,
-                                                GraphicsInterface::DataTypes::FLOAT,
-                                                count, 1);
+    particleDataTexture = std::make_shared<Texture>(this->graphicsWrapper,
+                                                    GraphicsInterface::TextureTypes::T2D,
+                                                    GraphicsInterface::InternalFormatTypes::RGBA32F,
+                                                    GraphicsInterface::FormatTypes::RGBA,
+                                                    GraphicsInterface::DataTypes::FLOAT,
+                                                    maxCount, 1);
     this->perMsParticleCount = (float) maxCount / lifeTime;
 }
 
@@ -39,15 +39,15 @@ void Emitter::addRandomParticle(const glm::vec3 &startPosition, float startSpher
     } else {
         z = -1 * sqrt(-1 * z);
     }
-    glm::vec3 position = startPosition +
-                         glm::vec3(x, y, z);
+    glm::vec4 position = glm::vec4(startPosition, 0) +
+                         glm::vec4(x, y, z, 1);
     positions.emplace_back(position);
     glm::vec3 speed = glm::vec3(randomSpeedDistribution(randomFloatGenerator) * speedMultiplier.x + speedOffset.x,
                                 randomSpeedDistribution(randomFloatGenerator) * speedMultiplier.y + speedOffset.y,
                                 randomSpeedDistribution(randomFloatGenerator) * speedMultiplier.z + speedOffset.z);
     speeds.emplace_back(speed);
     creationTime.emplace_back(time);
-    std::cout << "Add particle with position " << position.x << ", " <<position.y << ", " <<position.z << std::endl;
+    //std::cout << "Add particle with position " << position.x << ", " <<position.y << ", " <<position.z << std::endl;
 }
 
 void Emitter::setupVAO() {
@@ -92,6 +92,13 @@ GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiR
 
     uint32_t maxCountTemp = maxCount;
     if(ImGui::InputScalar("Maximum particle count##ParticleEmitter", ImGuiDataType_U32, &maxCountTemp)) {
+        particleDataTexture = std::make_shared<Texture>(this->graphicsWrapper,
+                                                        GraphicsInterface::TextureTypes::T2D,
+                                                        GraphicsInterface::InternalFormatTypes::RGBA32F,
+                                                        GraphicsInterface::FormatTypes::RGB,
+                                                        GraphicsInterface::DataTypes::FLOAT,
+                                                        maxCount, 1);
+
         maxCount = maxCountTemp;
         perMsParticleCount = (float) maxCount / lifeTime;
         currentCount = 0;

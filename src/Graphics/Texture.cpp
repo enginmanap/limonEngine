@@ -40,6 +40,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
         case GraphicsInterface::InternalFormatTypes::RGBA: currentElement->SetText("RGBA"); break;
         case GraphicsInterface::InternalFormatTypes::RGB16F: currentElement->SetText("RGB16F"); break;
         case GraphicsInterface::InternalFormatTypes::RGB32F: currentElement->SetText("RGB32F"); break;
+        case GraphicsInterface::InternalFormatTypes::RGBA32F: currentElement->SetText("RGB32AF"); break;
         case GraphicsInterface::InternalFormatTypes::DEPTH: currentElement->SetText("DEPTH"); break;
         case GraphicsInterface::InternalFormatTypes::COMPRESSED_RGB: currentElement->SetText("COMPRESSED_RGB"); break;
         case GraphicsInterface::InternalFormatTypes::COMPRESSED_RGBA: currentElement->SetText("COMPRESSED_RGBA"); break;

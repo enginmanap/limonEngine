@@ -520,6 +520,7 @@
                 <ToScreen>True</ToScreen>
 <!--                <CullMode>NONE</CullMode>-->
 <!--                <DepthTestEnabled>False</DepthTestEnabled>-->
+                <DepthWriteEnabled>False</DepthWriteEnabled>
                 <Inputs>
                     <Input Index="1" textureID="6"/>
                 </Inputs>
