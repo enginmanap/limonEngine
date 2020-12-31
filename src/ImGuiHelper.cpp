@@ -112,6 +112,10 @@ void ImGuiHelper::RenderDrawLists()
         }
     }
 
+    graphicsWrapper->setScissorRect(0,
+                                    0,
+                                    fb_width,
+                                    fb_height);
     /************* This part should be done by pipelineSetup **************/
     //graphicsWrapper->restoreLastState();
     /************* This part should be done by pipelineSetup **************/

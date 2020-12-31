@@ -937,12 +937,83 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
             }
         }
 
+        std::vector<Emitter::TimedColorMultiplier> multipliers;
+        emitterAttributeElement = EmitterNode->FirstChildElement("TimedColorMultipliers");
+        if (emitterAttributeElement == nullptr) {
+            std::cout << "Particle Emitter has no Timed color shift." << std::endl;
+        } else {
+            tinyxml2::XMLElement* timedColorMultiplierElement = emitterAttributeElement->FirstChildElement("TimedColorMultiplier");
+            while(timedColorMultiplierElement != nullptr) {
+                Emitter::TimedColorMultiplier timedColorMultiplier;
+
+                tinyxml2::XMLElement* colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("Time");
+                if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
+                    std::cerr << "time can't be found for timed color multiplier, skipping!" << std::endl;
+                } else {
+                    timedColorMultiplier.time = std::atol(colorMultiplierComponentElement->GetText());
+
+                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("R");
+                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
+                        std::cerr << "color R can't be found for timed color multiplier, assuming 255" << std::endl;
+                    } else {
+                        timedColorMultiplier.colorMultiplier.r = std::atoi(colorMultiplierComponentElement->GetText());
+                    }
+
+                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("G");
+                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
+                        std::cerr << "color G can't be found for timed color multiplier, assuming 255" << std::endl;
+                    } else {
+                        timedColorMultiplier.colorMultiplier.g = std::atoi(colorMultiplierComponentElement->GetText());
+                    }
+
+                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("B");
+                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
+                        std::cerr << "color B can't be found for timed color multiplier, assuming 255" << std::endl;
+                    } else {
+                        timedColorMultiplier.colorMultiplier.b = std::atoi(colorMultiplierComponentElement->GetText());
+                    }
+
+                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("A");
+                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
+                        std::cerr << "color A can't be found for timed color multiplier, assuming 255" << std::endl;
+                    } else {
+                        timedColorMultiplier.colorMultiplier.a = std::atoi(colorMultiplierComponentElement->GetText());
+                    }
+
+                    multipliers.emplace_back(timedColorMultiplier);
+                }
+
+                timedColorMultiplierElement = timedColorMultiplierElement->NextSiblingElement("TimedColorMultiplier");
+            }
+
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
+            if (emitterAttributeAttributeElement != nullptr) {
+
+                speedOffset.x = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter speedOffset missing x." << std::endl;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
+            if (emitterAttributeAttributeElement != nullptr) {
+                speedOffset.y = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter speedOffset missing y." << std::endl;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
+            if (emitterAttributeAttributeElement != nullptr) {
+                speedOffset.z = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter speedOffset missing z." << std::endl;
+            }
+        }
+
         std::shared_ptr<Emitter> emitter = std::make_shared<Emitter>(id, name, this->assetManager, textureFile,
                                                                      startPosition, startSphereR, size, maxCount,
                                                                      lifeTime);
         emitter->setGravity(gravity);
         emitter->setSpeedMultiplier(speedMultiplier);
         emitter->setSpeedOffset(speedOffset);
+        emitter->setTimedColorMultipliers(multipliers);
         world->emitters.push_back(emitter);
         EmitterNode =  EmitterNode->NextSiblingElement("Emitter");
     }

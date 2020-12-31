@@ -16,7 +16,7 @@ layout (std140) uniform PlayerTransformBlock {
 
 in VS_FS {
     vec2 textureCoordinates;
-    float alpha;
+    vec4 colorMultiplier;
 } from_vs;
 
 uniform sampler2D sprite;
@@ -25,5 +25,6 @@ uniform sampler2D pre_depthMap;
 
 void main(void){
     color = (texture(sprite, from_vs.textureCoordinates));
-    color.a *= from_vs.alpha;
+    color *= from_vs.colorMultiplier;
+
 }

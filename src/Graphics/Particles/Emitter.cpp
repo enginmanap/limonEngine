@@ -13,8 +13,8 @@ Emitter::Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetMana
                  long lifeTime) :
         Renderable(assetManager->getGraphicsWrapper()), worldObjectID(worldObjectId), name(std::move(name)), size(size),
         maxCount(count), lifeTime(lifeTime), startSphereR(startSphereR),
-        randomFloatGenerator(randomDevice()), randomStartingPoints(-1, 1),
-        randomSpeedDistribution(-0.1f, 0.1f){ // generates random floats between - startSphereR and startSphereR
+        randomFloatGenerator(randomDevice()), randomStartingPoints(-1.0f, 1.0f),
+        randomSpeedDistribution(-1.0f, 1.0f){
     this->transformation.setTranslate(startPosition);
     textureAsset.reset(assetManager->loadAsset<TextureAsset>({textureFile}));
     this->texture = textureAsset->getTexture();
@@ -28,16 +28,21 @@ Emitter::Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetMana
                                                     GraphicsInterface::DataTypes::FLOAT,
                                                     maxCount, 1);
     this->perMsParticleCount = (float) maxCount / lifeTime;
+    std::cout << "Per ms " << perMsParticleCount << std::endl;
 }
 
 void Emitter::addRandomParticle(const glm::vec3 &startPosition, float startSphereR, long time) {
     float x = randomStartingPoints(randomFloatGenerator) * startSphereR;
     float y = randomStartingPoints(randomFloatGenerator) * startSphereR;
-    float z = startSphereR * startSphereR - (x * x + y * y);
-    if (z > 0) {
-        z = sqrt(z);
-    } else {
-        z = -1 * sqrt(-1 * z);
+    float z = randomStartingPoints(randomFloatGenerator) * startSphereR;
+    if(x*x + y*y + z*z > startSphereR * startSphereR) {
+        if(x > y && x > z) {
+            x = 0;
+        } else if(y > x && y > z) {
+            y = 0;
+        } else {
+            z = 0;
+        }
     }
     glm::vec4 position = glm::vec4(startPosition, 0) +
                          glm::vec4(x, y, z, 1);
@@ -141,10 +146,127 @@ GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiR
     if(ImGui::InputFloat3("Gravity##ParticleEmitter", gravityValues)) {
         gravity = glm::vec3(gravityValues[0], gravityValues[1], gravityValues[2]);
     }
+    static int listbox_item_current = -1;
+    ImGui::ListBox("ColorMultipliers##ParticleEmitter", &listbox_item_current, Emitter::getNameForTimedColorMultiplier,
+                   static_cast<void *>(&this->timedColorMultipliers), this->timedColorMultipliers.size(), 10);
+    
+    if(listbox_item_current != -1) {
+        ImGui::Indent( 16.0f );
+        TimedColorMultiplier& multiplier = timedColorMultipliers[listbox_item_current];
+        int colorValues[4];
+        colorValues[0] = multiplier.colorMultiplier.x;
+        colorValues[1] = multiplier.colorMultiplier.y;
+        colorValues[2] = multiplier.colorMultiplier.z;
+        colorValues[3] = multiplier.colorMultiplier.w;
+        if(ImGui::DragInt4(("ColorMultiplier##" + std::to_string(listbox_item_current) + "ParticleEmitter").c_str(), colorValues, 1, 0, 255)) {
+            for (int i = 0; i < 4; ++i) {
+                if(colorValues[i] > 255) {
+                    colorValues[i] = 255;
+                } else if(colorValues[i] < 0) {
+                    colorValues[i] = 0;
+                }
+            }
+            multiplier.colorMultiplier.x = colorValues[0];
+            multiplier.colorMultiplier.y = colorValues[1];
+            multiplier.colorMultiplier.z = colorValues[2];
+            multiplier.colorMultiplier.w = colorValues[3];
+        }
+        int minTime, maxTime;
+        if(listbox_item_current == 0) {
+            minTime = 0;
+        } else {
+            minTime = timedColorMultipliers[listbox_item_current-1].time +1;
+        }
+
+        if((size_t)listbox_item_current == timedColorMultipliers.size()-1) {
+            maxTime = lifeTime;
+        } else {
+            maxTime = timedColorMultipliers[listbox_item_current+1].time -1;
+        }
+
+        //ImGui::SameLine();
+        int time = multiplier.time;
+        if(ImGui::DragInt(("Time##" + std::to_string(listbox_item_current) + "ParticleEmitter").c_str(), &time, 10, minTime, maxTime)) {
+            if(time > maxTime) {
+                time = maxTime;
+            } else if(time < minTime) {
+                time = minTime;
+                time = minTime;
+            }
+            multiplier.time = time;
+        }
+        if(ImGui::Button(("Remove Timed Color Shift##" + std::to_string(listbox_item_current) + "ParticleEmitter").c_str())) {
+            timedColorMultipliers.erase(timedColorMultipliers.begin()+listbox_item_current);
+        }
+        //At this point, the multiplier is invalid because of the removal, must verify
+        ImGui::Unindent( 16.0f );
+    }
+
+    if(ImGui::Button(("Add Timed Color Shift##" + std::to_string(listbox_item_current) + "ParticleEmitter").c_str())) {
+        TimedColorMultiplier multiplier;
+        if(listbox_item_current < 0) {
+            if(timedColorMultipliers.empty()) {
+                multiplier.time = 0;
+            } else {
+                multiplier.colorMultiplier = timedColorMultipliers[timedColorMultipliers.size()-1].colorMultiplier;
+                multiplier.time            = timedColorMultipliers[timedColorMultipliers.size()-1].time;
+            }
+            timedColorMultipliers.emplace_back(multiplier);
+        } else {
+            multiplier.colorMultiplier = timedColorMultipliers[listbox_item_current].colorMultiplier;
+            multiplier.time            = timedColorMultipliers[listbox_item_current].time +1;
+            timedColorMultipliers.insert(timedColorMultipliers.begin() + listbox_item_current+1, multiplier);
+        }
+    }
 
     ImGuiResult imGuiResult;
     if(ImGui::Button("Remove##ParticleEmitter")) {
         imGuiResult.remove = true;
     }
     return imGuiResult;
+}
+
+ bool Emitter::getNameForTimedColorMultiplier(void* data, int index, const char** outText) {
+    std::vector<TimedColorMultiplier> multipliers = *static_cast<std::vector<TimedColorMultiplier>*>(data);
+    if(index < 0 || (uint32_t)index >= multipliers.size()) {
+        return false;
+    }
+    auto it = multipliers.begin();
+    for (int i = 0; i < index; ++i) {
+        it++;
+    }
+     char tempTextBuffer[128] = {0};//used for editor text buffer
+
+    std::string timeString = std::to_string(it->time);
+    std::copy(timeString.begin(), timeString.end(), tempTextBuffer);
+    *outText = tempTextBuffer;
+    return true;
+}
+
+float Emitter::calculateTimedColorShift(const long time, const long particleCreateTime) {
+    if(timedColorMultipliers.empty()) {
+        return packToFloat(glm::uvec4 (255,255,255,255));
+    }
+    if(timedColorMultipliers.size() == 1) {
+        return packToFloat(timedColorMultipliers[0].colorMultiplier);
+    }
+    long spendTime = time - particleCreateTime;
+
+    if(timedColorMultipliers[timedColorMultipliers.size() - 1].time <= spendTime) {
+        //last element, no need to interpolate
+        return packToFloat(timedColorMultipliers[timedColorMultipliers.size() - 1].colorMultiplier);
+    }
+
+    size_t timedColorMultiplierIndex = 1;
+    while(timedColorMultiplierIndex < timedColorMultipliers.size() - 1 &&
+          spendTime > timedColorMultipliers[timedColorMultiplierIndex].time ){
+        timedColorMultiplierIndex++;
+    }
+
+    const TimedColorMultiplier& from = timedColorMultipliers[timedColorMultiplierIndex - 1];
+    const TimedColorMultiplier& to   = timedColorMultipliers[timedColorMultiplierIndex];
+    //spend time interpolation factor
+    float factor = (float)(spendTime - from.time) / (float)(to.time - from.time);
+    glm::uvec4 result = glm::mix(from.colorMultiplier, to.colorMultiplier, factor);
+    return packToFloat(result);
 }

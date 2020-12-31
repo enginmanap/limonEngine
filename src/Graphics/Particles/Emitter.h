@@ -14,6 +14,13 @@
 #include "../../Assets/TextureAsset.h"
 
 class Emitter : public Renderable, public GameObject {
+public:
+    struct TimedColorMultiplier {
+        glm::uvec4 colorMultiplier = glm::uvec4(255,255,255,255);
+        long time;
+    };
+private:
+
     std::vector<glm::vec4> positions;
     std::vector<glm::vec3> speeds;
     std::vector<long> creationTime;
@@ -28,6 +35,7 @@ class Emitter : public Renderable, public GameObject {
     glm::vec3 gravity;
     glm::vec3 speedMultiplier;
     glm::vec3 speedOffset;
+    std::vector<TimedColorMultiplier> timedColorMultipliers;//elements must be incremental ordered by time, first element must be time=0
 
     std::shared_ptr<TextureAsset> textureAsset;//it is the root asset for texture
     long currentCount = 0;
@@ -43,24 +51,40 @@ class Emitter : public Renderable, public GameObject {
 
     void setupVAO();
 
+    void addRandomParticle(const glm::vec3 &startPosition, float startSphereR, long time);
+
+    float calculateTimedColorShift(const long time, const long particleCreateTime);
+
+    static bool getNameForTimedColorMultiplier(void *data, int index, const char **outText);
+
 public:
     Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
             const std::string &textureFile, glm::vec3 startPosition, float startSphereR, glm::vec2 size, long count,
             long lifeTime);
+
 
     void setupForTime(long time) override {
         if(lastSetupTime == 0) {
             lastSetupTime = time;//don't try to create massive amounts in first setup.
             lastCreationTime = time;
         }
-        float alphaChange = (float)(time - lastSetupTime) / (float)this->lifeTime;
-        if(alphaChange > 1 ) {
-            alphaChange = 1;
+        if(currentCount < maxCount) {
+            long creationParticleCount = (time - lastCreationTime) * perMsParticleCount;
+            if(creationParticleCount > 0) {
+                lastCreationTime = time;
+            }
+            for (int i = 0; i < creationParticleCount; ++i) {
+                addRandomParticle(this->transformation.getTranslate(), startSphereR, time);
+            }
+            currentCount += creationParticleCount;
         }
+
         size_t removalStart, removalEnd = 0;
         bool removalSet = false;
         for (int i = 0; i < currentCount; ++i) {
-            positions[i] = positions[i] + glm::vec4(speeds[i], -1 * alphaChange);
+            float colorShift = calculateTimedColorShift(time, creationTime[i]);
+            positions[i].w = colorShift;
+            positions[i] = positions[i] + glm::vec4(speeds[i], 0);
             speeds[i] +=(gravity/60.0);
             if(!removalSet && ((time - this->creationTime[i]) > lifeTime )) {
                 removalStart = i;
@@ -81,20 +105,10 @@ public:
 
             currentCount = currentCount - (removalEnd - removalStart);
         }
-        if(currentCount < maxCount) {
-            long creationParticleCount = (time - lastCreationTime) * perMsParticleCount;
-            if(creationParticleCount > 0) {
-                lastCreationTime = time;
-            }
-            for (int i = 0; i < creationParticleCount; ++i) {
-                addRandomParticle(this->transformation.getTranslate(), startSphereR, time);
-            }
-            currentCount += creationParticleCount;
-        }
         std::vector<glm::vec4> temp;
         temp.insert(temp.end(), positions.rbegin(), positions.rend());
         for (int i = temp.size(); i < maxCount; ++i) {
-            temp.emplace_back(glm::vec4(0,0,0, 0));
+            temp.emplace_back(glm::vec4(0,0,0, 1));
         }
         particleDataTexture->loadData(temp.data());
         lastSetupTime = time;
@@ -165,9 +179,40 @@ public:
         Emitter::speedOffset = speedOffset;
     }
 
-    void addRandomParticle(const glm::vec3 &startPosition, float startSphereR, long time);
+    const std::vector<TimedColorMultiplier> &getTimedColorMultipliers() const {
+        return timedColorMultipliers;
+    }
+
+    void setTimedColorMultipliers(const std::vector<TimedColorMultiplier> &timedColorMultipliers) {
+        Emitter::timedColorMultipliers = timedColorMultipliers;
+    }
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request [[gnu::unused]]) override;
+
+    static float packToFloat(glm::uvec4 vec) {
+        uint8_t values[4];
+        values[0] = vec.x;
+        values[1] = vec.y;
+        values[2] = vec.z;
+        values[3] = vec.w;
+
+        float result;
+        std::copy(reinterpret_cast<const char*>(&values[0]),
+                  reinterpret_cast<const char*>(&values[4]),
+                  reinterpret_cast<char*>(&result));
+        return result;
+    }
+
+    static glm::uvec4 unpackFloat(float value) {
+        uint8_t *values = (uint8_t*) & value;
+
+        glm::uvec4 result;
+        result.x = values[0];
+        result.y = values[1];
+        result.z = values[2];
+        result.w = values[3];
+        return result;
+    }
 
 };
 #endif //LIMONENGINE_EMITTER_H

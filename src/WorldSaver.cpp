@@ -397,6 +397,30 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
         currentElement = document.NewElement("Texture");
         currentElement->SetText((*it)->getTexture()->getName().c_str());
         emitterElement->InsertEndChild(currentElement);
+
+        parent = document.NewElement("TimedColorMultipliers");
+        std::vector<Emitter::TimedColorMultiplier>multipliers = (*it)->getTimedColorMultipliers();
+        for (size_t i = 0; i < multipliers.size(); ++i) {
+            const Emitter::TimedColorMultiplier& multiplier = multipliers[i];
+            tinyxml2::XMLElement *timedColorElement = document.NewElement("TimedColorMultiplier");
+            currentElement = document.NewElement("R");
+            currentElement->SetText(multiplier.colorMultiplier.x);
+            timedColorElement->InsertEndChild(currentElement);
+            currentElement = document.NewElement("G");
+            currentElement->SetText(multiplier.colorMultiplier.y);
+            timedColorElement->InsertEndChild(currentElement);
+            currentElement = document.NewElement("B");
+            currentElement->SetText(multiplier.colorMultiplier.z);
+            timedColorElement->InsertEndChild(currentElement);
+            currentElement = document.NewElement("A");
+            currentElement->SetText(multiplier.colorMultiplier.w);
+            timedColorElement->InsertEndChild(currentElement);
+            currentElement = document.NewElement("Time");
+            currentElement->SetText(std::to_string(multiplier.time).c_str());
+            timedColorElement->InsertEndChild(currentElement);
+            parent->InsertEndChild(timedColorElement);
+        }
+        emitterElement->InsertEndChild(parent);
     }
     return true;
 }
