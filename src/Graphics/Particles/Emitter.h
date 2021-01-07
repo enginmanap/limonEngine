@@ -36,18 +36,20 @@ private:
     glm::vec3 speedMultiplier;
     glm::vec3 speedOffset;
     std::vector<TimedColorMultiplier> timedColorMultipliers;//elements must be incremental ordered by time, first element must be time=0
+    float perMsParticleCount;
+    bool continuousEmit = true;//emit until reaching maximum, or emit as particles are removed;
 
     std::shared_ptr<TextureAsset> textureAsset;//it is the root asset for texture
     long currentCount = 0;
     long lastSetupTime = 0;
     long lastCreationTime = 0;
     std::shared_ptr<Texture> particleDataTexture;
-    float perMsParticleCount;
 
     std::random_device randomDevice;
     std::default_random_engine randomFloatGenerator;
     std::uniform_real_distribution<float> randomStartingPoints;
     std::uniform_real_distribution<float> randomSpeedDistribution;
+    long totalCreatedCount = 0;
 
     void setupVAO();
 
@@ -60,23 +62,26 @@ private:
 public:
     Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
             const std::string &textureFile, glm::vec3 startPosition, float startSphereR, glm::vec2 size, long count,
-            long lifeTime);
-
+            long lifeTime, float particlePerMs = -1);
 
     void setupForTime(long time) override {
         if(lastSetupTime == 0) {
             lastSetupTime = time;//don't try to create massive amounts in first setup.
             lastCreationTime = time;
         }
-        if(currentCount < maxCount) {
+        if((continuousEmit && currentCount < maxCount) || (!continuousEmit && totalCreatedCount < maxCount)) {
             long creationParticleCount = (time - lastCreationTime) * perMsParticleCount;
             if(creationParticleCount > 0) {
                 lastCreationTime = time;
+            }
+            if(currentCount + creationParticleCount > maxCount) {
+                creationParticleCount = maxCount - currentCount;
             }
             for (int i = 0; i < creationParticleCount; ++i) {
                 addRandomParticle(this->transformation.getTranslate(), startSphereR, time);
             }
             currentCount += creationParticleCount;
+            totalCreatedCount += creationParticleCount;
         }
 
         size_t removalStart, removalEnd = 0;

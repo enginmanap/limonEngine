@@ -10,7 +10,7 @@
 
 Emitter::Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
                  const std::string &textureFile, glm::vec3 startPosition, float startSphereR, glm::vec2 size, long count,
-                 long lifeTime) :
+                 long lifeTime, float particlePerMs) :
         Renderable(assetManager->getGraphicsWrapper()), worldObjectID(worldObjectId), name(std::move(name)), size(size),
         maxCount(count), lifeTime(lifeTime), startSphereR(startSphereR),
         randomFloatGenerator(randomDevice()), randomStartingPoints(-1.0f, 1.0f),
@@ -27,8 +27,11 @@ Emitter::Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetMana
                                                     GraphicsInterface::FormatTypes::RGBA,
                                                     GraphicsInterface::DataTypes::FLOAT,
                                                     maxCount, 1);
-    this->perMsParticleCount = (float) maxCount / lifeTime;
-    std::cout << "Per ms " << perMsParticleCount << std::endl;
+    if(particlePerMs > 0) {
+        this->perMsParticleCount = particlePerMs;
+    } else {
+        this->perMsParticleCount = (float) maxCount / lifeTime;
+    }
 }
 
 void Emitter::addRandomParticle(const glm::vec3 &startPosition, float startSphereR, long time) {
@@ -115,6 +118,13 @@ GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiR
     uint32_t lifeTimeTemp = lifeTime;
     if(ImGui::InputScalar("Life time##ParticleEmitter", ImGuiDataType_U32, &lifeTimeTemp)) {
         lifeTime = lifeTimeTemp;
+        lastSetupTime = 0;//sets up creation
+    }
+
+    ImGui::DragFloat("Particle per ms##ParticleEmitter", &perMsParticleCount, 0.01);
+
+    if(ImGui::Checkbox("Continuous Emitting##ParticleEmitter", &continuousEmit)) {
+        lastSetupTime = 0;//sets up creation
     }
 
     float* sizeValues = glm::value_ptr(size);
