@@ -31,7 +31,7 @@ private:
     std::shared_ptr<Texture> texture;
     long maxCount;
     long lifeTime;
-    float startSphereR;
+    glm::vec3 maxStartDistances;
     glm::vec3 gravity;
     glm::vec3 speedMultiplier;
     glm::vec3 speedOffset;
@@ -53,7 +53,7 @@ private:
 
     void setupVAO();
 
-    void addRandomParticle(const glm::vec3 &startPosition, float startSphereR, long time);
+    void addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 &maxStartDistances, long time);
 
     float calculateTimedColorShift(const long time, const long particleCreateTime);
 
@@ -61,7 +61,7 @@ private:
 
 public:
     Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
-            const std::string &textureFile, glm::vec3 startPosition, float startSphereR, glm::vec2 size, long count,
+            const std::string &textureFile, glm::vec3 startPosition, glm::vec3 maxStartDistances, glm::vec2 size, long count,
             long lifeTime, float particlePerMs = -1);
 
     void setupForTime(long time) override {
@@ -78,7 +78,7 @@ public:
                 creationParticleCount = maxCount - currentCount;
             }
             for (int i = 0; i < creationParticleCount; ++i) {
-                addRandomParticle(this->transformation.getTranslate(), startSphereR, time);
+                addRandomParticle(this->transformation.getTranslate(), maxStartDistances, time);
             }
             currentCount += creationParticleCount;
             totalCreatedCount += creationParticleCount;
@@ -156,8 +156,8 @@ public:
         return lifeTime;
     }
 
-    float getStartSphereR() const {
-        return startSphereR;
+    const glm::vec3 &getMaximumStartDistances() const {
+        return maxStartDistances;
     }
 
     const glm::vec3 &getGravity() const {

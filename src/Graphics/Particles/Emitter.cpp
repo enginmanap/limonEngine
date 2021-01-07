@@ -9,10 +9,10 @@
 #include "Emitter.h"
 
 Emitter::Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
-                 const std::string &textureFile, glm::vec3 startPosition, float startSphereR, glm::vec2 size, long count,
+                 const std::string &textureFile, glm::vec3 startPosition, glm::vec3 maxStartDistances, glm::vec2 size, long count,
                  long lifeTime, float particlePerMs) :
         Renderable(assetManager->getGraphicsWrapper()), worldObjectID(worldObjectId), name(std::move(name)), size(size),
-        maxCount(count), lifeTime(lifeTime), startSphereR(startSphereR),
+        maxCount(count), lifeTime(lifeTime), maxStartDistances(maxStartDistances),
         randomFloatGenerator(randomDevice()), randomStartingPoints(-1.0f, 1.0f),
         randomSpeedDistribution(-1.0f, 1.0f){
     this->transformation.setTranslate(startPosition);
@@ -34,10 +34,11 @@ Emitter::Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetMana
     }
 }
 
-void Emitter::addRandomParticle(const glm::vec3 &startPosition, float startSphereR, long time) {
-    float x = randomStartingPoints(randomFloatGenerator) * startSphereR;
-    float y = randomStartingPoints(randomFloatGenerator) * startSphereR;
-    float z = randomStartingPoints(randomFloatGenerator) * startSphereR;
+void Emitter::addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 &maxStartDistances, long time) {
+    float x = randomStartingPoints(randomFloatGenerator) * maxStartDistances.x;
+    float y = randomStartingPoints(randomFloatGenerator) * maxStartDistances.y;
+    float z = randomStartingPoints(randomFloatGenerator) * maxStartDistances.z;
+    /* Leaving here if I want to add a toggle for sphere
     if(x*x + y*y + z*z > startSphereR * startSphereR) {
         if(x > y && x > z) {
             x = 0;
@@ -47,6 +48,7 @@ void Emitter::addRandomParticle(const glm::vec3 &startPosition, float startSpher
             z = 0;
         }
     }
+    */
     glm::vec4 position = glm::vec4(startPosition, 0) +
                          glm::vec4(x, y, z, 1);
     positions.emplace_back(position);
@@ -96,7 +98,15 @@ GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiR
         transformation.setTranslate(glm::vec3(startPositionValues[0], startPositionValues[1], startPositionValues[2]));
     }
 
-    ImGui::InputFloat("Start Sphere R##ParticleEmitter", &startSphereR);
+    float startDistanceValues[3];
+    startDistanceValues[0] = maxStartDistances.x;
+    startDistanceValues[1] = maxStartDistances.y;
+    startDistanceValues[2] = maxStartDistances.z;
+    if(ImGui::InputFloat3("Maximum Start Distances##ParticleEmitter", startDistanceValues)) {
+        maxStartDistances.x = startDistanceValues[0];
+        maxStartDistances.y = startDistanceValues[1];
+        maxStartDistances.z = startDistanceValues[2];
+    }
 
     uint32_t maxCountTemp = maxCount;
     if(ImGui::InputScalar("Maximum particle count##ParticleEmitter", ImGuiDataType_U32, &maxCountTemp)) {

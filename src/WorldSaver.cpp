@@ -390,9 +390,18 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
         currentElement->SetText(std::to_string((*it)->getLifeTime()).c_str());
         emitterElement->InsertEndChild(currentElement);
 
-        currentElement = document.NewElement("StartSphereR");
-        currentElement->SetText(std::to_string((*it)->getStartSphereR()).c_str());
-        emitterElement->InsertEndChild(currentElement);
+        parent = document.NewElement("MaximumStartDistances");
+        glm::vec3 maximumStartDistance = (*it)->getMaximumStartDistances();
+        currentElement = document.NewElement("X");
+        currentElement->SetText(maximumStartDistance.x);
+        parent->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Y");
+        currentElement->SetText(maximumStartDistance.y);
+        parent->InsertEndChild(currentElement);
+        currentElement = document.NewElement("Z");
+        currentElement->SetText(maximumStartDistance.z);
+        parent->InsertEndChild(currentElement);
+        emitterElement->InsertEndChild(parent);
 
         currentElement = document.NewElement("Texture");
         currentElement->SetText((*it)->getTexture()->getName().c_str());

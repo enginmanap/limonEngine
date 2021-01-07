@@ -2629,7 +2629,7 @@ void World::addGUIImageControls() {
        } else {
            if (ImGui::Button("Add Particle Emitter")) {
                std::shared_ptr<Emitter> newEmitter = std::make_shared<Emitter>(this->getNextObjectID(), particleEmitterName, this->assetManager, selectedAsset->fullPath,
-                                                                               startPosition, startSphereR, size, maxCount,
+                                                                               startPosition, glm::vec3(startSphereR, startSphereR, startSphereR), size, maxCount,
                                                                                lifeTime);
                this->emitters.emplace_back(newEmitter);
            }

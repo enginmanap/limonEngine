@@ -759,7 +759,7 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
     long maxCount;
     long lifeTime;
     glm::vec3 startPosition;
-    float startSphereR;
+    glm::vec3 maxStartDistances;
     std::string textureFile;
 
     tinyxml2::XMLElement* emitterAttributeElement;
@@ -782,13 +782,6 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
         std::string lifeTimeString = emitterAttributeElement->GetText();
         lifeTime = std::stoul(lifeTimeString);
 
-        emitterAttributeElement = EmitterNode->FirstChildElement("StartSphereR");
-        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
-            std::cerr << "Particle emitter must have Start sphere size." << std::endl;
-            return false;
-        }
-        std::string startSphereRString = emitterAttributeElement->GetText();
-        startSphereR = std::stof(startSphereRString);
 
         emitterAttributeElement = EmitterNode->FirstChildElement("Texture");
         if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
@@ -838,6 +831,34 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
                 startPosition.z = std::stof(emitterAttributeAttributeElement->GetText());
             } else {
                 std::cerr << "Particle Emitter position/direction missing z." << std::endl;
+                return false;
+            }
+        }
+
+        emitterAttributeElement = EmitterNode->FirstChildElement("MaximumStartDistances");
+        if (emitterAttributeElement == nullptr) {
+            std::cerr << "Particle Emitter must have a Maximum Start distance." << std::endl;
+            return false;
+        } else {
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
+            if (emitterAttributeAttributeElement != nullptr) {
+                maxStartDistances.x = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter Maximum Start distance missing x." << std::endl;
+                return false;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
+            if (emitterAttributeAttributeElement != nullptr) {
+                maxStartDistances.y = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter Maximum Start distance missing y." << std::endl;
+                return false;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
+            if (emitterAttributeAttributeElement != nullptr) {
+                maxStartDistances.z = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "Particle Emitter Maximum Start distance missing z." << std::endl;
                 return false;
             }
         }
@@ -1008,7 +1029,7 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
         }
 
         std::shared_ptr<Emitter> emitter = std::make_shared<Emitter>(id, name, this->assetManager, textureFile,
-                                                                     startPosition, startSphereR, size, maxCount,
+                                                                     startPosition, maxStartDistances, size, maxCount,
                                                                      lifeTime);
         emitter->setGravity(gravity);
         emitter->setSpeedMultiplier(speedMultiplier);
