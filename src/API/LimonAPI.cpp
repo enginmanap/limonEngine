@@ -141,7 +141,12 @@ void LimonAPI::addTimedEvent(long waitTime,
     worldAddTimedEvent(waitTime, methodToCall, parameters);
 }
 
-
+bool LimonAPI::disableParticleEmitter(uint32_t particleEmitterId) {
+    return worldDisableParticleEmitter(particleEmitterId);
+}
+bool LimonAPI::enableParticleEmitter(uint32_t particleEmitterId) {
+    return worldEnableParticleEmitter(particleEmitterId);
+}
 
 LimonAPI::Vec4 LimonAPI::getPlayerAttachedModelOffset() {
     return worldGetPlayerAttachmentOffset();

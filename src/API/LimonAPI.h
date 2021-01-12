@@ -169,6 +169,9 @@ public:
 
     bool interactWithAI(uint32_t AIID, std::vector<LimonAPI::ParameterRequest> &interactionInformation);
 
+    bool disableParticleEmitter(uint32_t particleEmitterId);
+    bool enableParticleEmitter(uint32_t particleEmitterId);
+
 
 
     /**
@@ -314,6 +317,8 @@ private:
     std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldSetLightColor;
 
     std::function<void (long, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)>, std::vector<LimonAPI::ParameterRequest>)> worldAddTimedEvent;
+    std::function<bool (uint32_t)> worldEnableParticleEmitter;
+    std::function<bool (uint32_t)> worldDisableParticleEmitter;
 
     std::function<LimonAPI::Vec4 ()> worldGetPlayerAttachmentOffset;
     std::function<bool (LimonAPI::Vec4)> worldSetPlayerAttachmentOffset;

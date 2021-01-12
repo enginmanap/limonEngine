@@ -103,6 +103,8 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldSetModelAnimationSpeed = std::bind(&World::setModelAnimationSpeedAPI, world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGetPlayerAttachmentOffset = std::bind(&World::getPlayerModelOffsetAPI, world);
     limonAPI->worldSetPlayerAttachmentOffset = std::bind(&World::setPlayerModelOffsetAPI, world, std::placeholders::_1);
+    limonAPI->worldEnableParticleEmitter = std::bind(&World::enableParticleEmitter, world, std::placeholders::_1);
+    limonAPI->worldDisableParticleEmitter = std::bind(&World::disableParticleEmitter, world, std::placeholders::_1);
 
     limonAPI->worldAddLightTranslate =   std::bind(&World::addLightTranslateAPI,   world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldSetLightColor     =   std::bind(&World::setLightColorAPI,       world, std::placeholders::_1, std::placeholders::_2);
@@ -799,6 +801,30 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
             id = std::stoul(emitterAttributeElement->GetText());
         }
 
+        bool continuousEmit = true;
+        emitterAttributeElement =  EmitterNode->FirstChildElement("ContinuousEmitting");
+        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
+            std::cerr << "Particle emitter does not have Continuous emitting set. Assuming true" << std::endl;
+        } else {
+            if(std::string(emitterAttributeElement->GetText()) == "False") {
+                continuousEmit = false;
+            } else if(std::string(emitterAttributeElement->GetText()) != "True") {
+                std::cerr << "Continuous emit setting unknown, assuming true " << std::endl;
+            }
+        }
+
+        bool enabled = true;
+        emitterAttributeElement =  EmitterNode->FirstChildElement("Enabled");
+        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
+            std::cerr << "Particle emitter does not have Enabled set. Assuming true" << std::endl;
+        } else {
+            if(std::string(emitterAttributeElement->GetText()) == "False") {
+                enabled = false;
+            } else if(std::string(emitterAttributeElement->GetText()) != "True") {
+                std::cerr << "Enabled setting unknown, assuming true " << std::endl;
+            }
+        }
+
         emitterAttributeElement =  EmitterNode->FirstChildElement("Name");
         if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
             std::cerr << "Particle emitter does not have Name. This is invalid!" << std::endl;
@@ -1035,7 +1061,9 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
         emitter->setSpeedMultiplier(speedMultiplier);
         emitter->setSpeedOffset(speedOffset);
         emitter->setTimedColorMultipliers(multipliers);
-        world->emitters.push_back(emitter);
+        emitter->setContinuousEmit(continuousEmit);
+        emitter->setEnabled(enabled);
+        world->emitters[emitter->getWorldObjectID()] = emitter;
         EmitterNode =  EmitterNode->NextSiblingElement("Emitter");
     }
     return true;

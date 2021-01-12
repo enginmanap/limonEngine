@@ -287,7 +287,7 @@ private:
     NodeGraph* nodeGraph = nullptr;
     std::shared_ptr<GraphicsPipeline> renderPipeline = nullptr;
 
-    std::vector<std::shared_ptr<Emitter>> emitters;
+    std::map<uint32_t, std::shared_ptr<Emitter>> emitters;
 
     bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
 
@@ -354,8 +354,6 @@ private:
     std::vector<LimonAPI::ParameterRequest>
     fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) const;
 
-    void renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes renderingModelType, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
-
     void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment);
 
     void createNodeGraph();
@@ -383,6 +381,7 @@ private:
     void renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
     void renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
     void renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes renderingModelType, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
 
     std::vector<std::shared_ptr<GraphicsProgram>> getAllAvailablePrograms();
     void getAllAvailableProgramsRecursive(const AssetManager::AvailableAssetsNode * currentNode, std::vector<std::shared_ptr<GraphicsProgram>> &programs);
@@ -510,6 +509,9 @@ public:
 
     bool addLightTranslateAPI(uint32_t lightID, const LimonAPI::Vec4& position);
     bool setLightColorAPI(uint32_t lightID, const LimonAPI::Vec4& color);
+
+    bool enableParticleEmitter(uint32_t particleEmitterID);
+    bool disableParticleEmitter(uint32_t particleEmitterID);
 
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);

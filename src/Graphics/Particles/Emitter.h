@@ -38,6 +38,7 @@ private:
     std::vector<TimedColorMultiplier> timedColorMultipliers;//elements must be incremental ordered by time, first element must be time=0
     float perMsParticleCount;
     bool continuousEmit = true;//emit until reaching maximum, or emit as particles are removed;
+    bool enabled = true;
 
     std::shared_ptr<TextureAsset> textureAsset;//it is the root asset for texture
     long currentCount = 0;
@@ -69,7 +70,11 @@ public:
             lastSetupTime = time;//don't try to create massive amounts in first setup.
             lastCreationTime = time;
         }
-        if((continuousEmit && currentCount < maxCount) || (!continuousEmit && totalCreatedCount < maxCount)) {
+        if(enabled && (
+                    (continuousEmit && currentCount < maxCount) ||
+                    (!continuousEmit && totalCreatedCount < maxCount)
+                    )
+            ) {
             long creationParticleCount = (time - lastCreationTime) * perMsParticleCount;
             if(creationParticleCount > 0) {
                 lastCreationTime = time;
@@ -190,6 +195,25 @@ public:
 
     void setTimedColorMultipliers(const std::vector<TimedColorMultiplier> &timedColorMultipliers) {
         Emitter::timedColorMultipliers = timedColorMultipliers;
+    }
+
+    bool isContinuousEmit() const {
+        return continuousEmit;
+    }
+
+    void setContinuousEmit(bool continuousEmit) {
+        Emitter::continuousEmit = continuousEmit;
+    }
+
+    bool isEnabled() const {
+        return enabled;
+    }
+
+    void setEnabled(bool enabled) {
+        if(!this->enabled) {
+            lastSetupTime = 0;
+        }
+        this->enabled = enabled;
     }
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request [[gnu::unused]]) override;

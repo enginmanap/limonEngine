@@ -89,6 +89,14 @@ bool MayanCoinPickup::run(std::vector<LimonAPI::ParameterRequest> parameters) {
     //remove the coin
     result = limonAPI->removeObject(parameters[0].value.longValue) == 0 && result;
 
+    //Start particle emitter
+    if(!limonAPI->enableParticleEmitter(575)){
+        std::cerr << "Particle Emitter not found!" << std::endl;
+    } else {
+        std::vector<LimonAPI::ParameterRequest> empty;
+        limonAPI->addTimedEvent(7000, [=](const std::vector<LimonAPI::ParameterRequest>&) { limonAPI->disableParticleEmitter(575);}  , empty);
+    }
+
 
     //move the stairs
     std::string stairsMoveSound = "./Data/Sounds/rumble.wav";

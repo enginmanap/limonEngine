@@ -90,6 +90,9 @@ void Emitter::setupVAO() {
 }
 
 GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiRequest &request [[gnu::unused]]) {
+    if(ImGui::Checkbox("Enabled##ParticleEmitter", &enabled)) {
+        lastSetupTime = 0;//sets up creation
+    }
     float startPositionValues[3];
     startPositionValues[0] = transformation.getTranslate().x;
     startPositionValues[1] = transformation.getTranslate().y;

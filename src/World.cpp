@@ -246,7 +246,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
      }
      if(currentPlayersSettings->worldSimulation) {
          for(const auto& emitter:emitters) {
-             emitter->setupForTime(gameTime);
+             emitter.second->setupForTime(gameTime);
          }
 
          for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
@@ -749,7 +749,7 @@ void World::renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& ren
 
 void World::renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
      for(const auto& emitter:emitters) {
-         emitter->renderWithProgram(renderProgram);
+         emitter.second->renderWithProgram(renderProgram);
      }
 }
 
@@ -2631,7 +2631,7 @@ void World::addGUIImageControls() {
                std::shared_ptr<Emitter> newEmitter = std::make_shared<Emitter>(this->getNextObjectID(), particleEmitterName, this->assetManager, selectedAsset->fullPath,
                                                                                startPosition, glm::vec3(startSphereR, startSphereR, startSphereR), size, maxCount,
                                                                                lifeTime);
-               this->emitters.emplace_back(newEmitter);
+               this->emitters[newEmitter->getWorldObjectID()] = (newEmitter);
            }
        }
    }
@@ -3538,7 +3538,7 @@ void World::buildTreeFromAllGameObjects() {
     //Particles
     if (ImGui::TreeNode("Particle Emitters##ParticleEmittersTreeRoot")) {
         for (auto iterator = this->emitters.begin(); iterator != this->emitters.end(); ++iterator) {
-            std::shared_ptr<GameObject> currentObject = std::dynamic_pointer_cast<GameObject>(*iterator);
+            std::shared_ptr<GameObject> currentObject = std::dynamic_pointer_cast<GameObject>(iterator->second);
             if(currentObject != nullptr) {
                 ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
                 if (ImGui::IsItemClicked()) {
@@ -4204,4 +4204,22 @@ void World::createNodeGraph() {
            }
        }
 
+   }
+
+   bool World::enableParticleEmitter(uint32_t particleEmitterId) {
+    auto emitterIt = emitters.find(particleEmitterId);
+    if(emitterIt == emitters.end()) {
+        return false;
+    }
+    emitterIt->second->setEnabled(true);
+    return true;
+   }
+
+   bool World::disableParticleEmitter(uint32_t particleEmitterId) {
+       auto emitterIt = emitters.find(particleEmitterId);
+       if(emitterIt == emitters.end()) {
+           return false;
+       }
+       emitterIt->second->setEnabled(false);
+       return true;
    }

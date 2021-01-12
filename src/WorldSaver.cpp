@@ -307,20 +307,20 @@ bool WorldSaver::fillLights(tinyxml2::XMLDocument &document, tinyxml2::XMLElemen
 
 bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *EmittersNode, const World *world) {
     for(auto it=world->emitters.begin(); it != world->emitters.end(); it++) {//object ids are not constant, so they can be removed.
-
+        std::shared_ptr<Emitter> currentEmitter = it->second;
         tinyxml2::XMLElement *emitterElement = document.NewElement("Emitter");
         EmittersNode->InsertEndChild(emitterElement);
 
         tinyxml2::XMLElement *currentElement = document.NewElement("ID");
-        currentElement->SetText(std::to_string((*it)->getWorldObjectID()).c_str());
+        currentElement->SetText(std::to_string(currentEmitter->getWorldObjectID()).c_str());
         emitterElement->InsertEndChild(currentElement);
 
         currentElement = document.NewElement("Name");
-        currentElement->SetText((*it)->getName().c_str());
+        currentElement->SetText(currentEmitter->getName().c_str());
         emitterElement->InsertEndChild(currentElement);
 
         tinyxml2::XMLElement *parent = document.NewElement("StartPosition");
-        glm::vec3 starPosition = (*it)->getTransformation()->getTranslate();
+        glm::vec3 starPosition = currentEmitter->getTransformation()->getTranslate();
         currentElement = document.NewElement("X");
         currentElement->SetText(starPosition.x);
         parent->InsertEndChild(currentElement);
@@ -333,7 +333,7 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
         emitterElement->InsertEndChild(parent);
 
         parent = document.NewElement("Gravity");
-        glm::vec3 gravity = (*it)->getGravity();
+        glm::vec3 gravity = currentEmitter->getGravity();
         currentElement = document.NewElement("X");
         currentElement->SetText(gravity.x);
         parent->InsertEndChild(currentElement);
@@ -347,7 +347,7 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
 
 
         parent = document.NewElement("SpeedMultiplier");
-        glm::vec3 speedMultiplier = (*it)->getSpeedMultiplier();
+        glm::vec3 speedMultiplier = currentEmitter->getSpeedMultiplier();
         currentElement = document.NewElement("X");
         currentElement->SetText(speedMultiplier.x);
         parent->InsertEndChild(currentElement);
@@ -360,7 +360,7 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
         emitterElement->InsertEndChild(parent);
 
         parent = document.NewElement("SpeedOffset");
-        glm::vec3 speedOffset = (*it)->getSpeedOffset();
+        glm::vec3 speedOffset = currentEmitter->getSpeedOffset();
         currentElement = document.NewElement("X");
         currentElement->SetText(speedOffset.x);
         parent->InsertEndChild(currentElement);
@@ -373,7 +373,7 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
         emitterElement->InsertEndChild(parent);
 
         parent = document.NewElement("Size");
-        glm::vec2 size = (*it)->getSize();
+        glm::vec2 size = currentEmitter->getSize();
         currentElement = document.NewElement("X");
         currentElement->SetText(size.x);
         parent->InsertEndChild(currentElement);
@@ -383,15 +383,30 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
         emitterElement->InsertEndChild(parent);
 
         currentElement = document.NewElement("MaxCount");
-        currentElement->SetText(std::to_string((*it)->getMaxCount()).c_str());
+        currentElement->SetText(std::to_string(currentEmitter->getMaxCount()).c_str());
         emitterElement->InsertEndChild(currentElement);
 
         currentElement = document.NewElement("LifeTime");
-        currentElement->SetText(std::to_string((*it)->getLifeTime()).c_str());
+        currentElement->SetText(std::to_string(currentEmitter->getLifeTime()).c_str());
         emitterElement->InsertEndChild(currentElement);
 
+        currentElement = document.NewElement("ContinuousEmitting");
+        if(currentEmitter->isContinuousEmit()) {
+            currentElement->SetText("True");
+        } else {
+            currentElement->SetText("False");
+        }
+        emitterElement->InsertEndChild(currentElement);
+
+        currentElement = document.NewElement("Enabled");
+        if(currentEmitter->isEnabled()) {
+            currentElement->SetText("True");
+        } else {
+            currentElement->SetText("False");
+        }        emitterElement->InsertEndChild(currentElement);
+
         parent = document.NewElement("MaximumStartDistances");
-        glm::vec3 maximumStartDistance = (*it)->getMaximumStartDistances();
+        glm::vec3 maximumStartDistance = currentEmitter->getMaximumStartDistances();
         currentElement = document.NewElement("X");
         currentElement->SetText(maximumStartDistance.x);
         parent->InsertEndChild(currentElement);
@@ -404,11 +419,11 @@ bool WorldSaver::fillEmitters(tinyxml2::XMLDocument &document, tinyxml2::XMLElem
         emitterElement->InsertEndChild(parent);
 
         currentElement = document.NewElement("Texture");
-        currentElement->SetText((*it)->getTexture()->getName().c_str());
+        currentElement->SetText(currentEmitter->getTexture()->getName().c_str());
         emitterElement->InsertEndChild(currentElement);
 
         parent = document.NewElement("TimedColorMultipliers");
-        std::vector<Emitter::TimedColorMultiplier>multipliers = (*it)->getTimedColorMultipliers();
+        std::vector<Emitter::TimedColorMultiplier>multipliers = currentEmitter->getTimedColorMultipliers();
         for (size_t i = 0; i < multipliers.size(); ++i) {
             const Emitter::TimedColorMultiplier& multiplier = multipliers[i];
             tinyxml2::XMLElement *timedColorElement = document.NewElement("TimedColorMultiplier");
