@@ -148,6 +148,35 @@ bool LimonAPI::enableParticleEmitter(uint32_t particleEmitterId) {
     return worldEnableParticleEmitter(particleEmitterId);
 }
 
+uint32_t LimonAPI::addParticleEmitter(const std::string &name,
+                            const std::string& textureFile,
+                            const LimonAPI::Vec4& startPosition,
+                            const LimonAPI::Vec4& maxStartDistances,
+                            const LimonAPI::Vec2& size,
+                            uint32_t count,
+                            uint32_t lifeTime,
+                            float particlePerMs,
+                            bool continuouslyEmit){
+    return this->worldAddParticleEmitter(name,
+    textureFile,
+    startPosition,
+    maxStartDistances,
+    size,
+    count,
+    lifeTime,
+    particlePerMs,
+    continuouslyEmit);
+}
+bool LimonAPI::removeParticleEmitter(uint32_t emitterID) {
+    return worldRemoveParticleEmitter(emitterID);
+}
+bool LimonAPI::setEmitterParticleSpeed(uint32_t emitterID, const LimonAPI::Vec4& speedMultiplier, const LimonAPI::Vec4& speedOffset){
+    return worldSetEmitterParticleSpeed(emitterID, speedMultiplier, speedOffset);
+}
+bool LimonAPI::setEmitterParticleGravity(uint32_t emitterID, const LimonAPI::Vec4& gravity){
+    return worldSetEmitterParticleGravity(emitterID, gravity);
+}
+
 LimonAPI::Vec4 LimonAPI::getPlayerAttachedModelOffset() {
     return worldGetPlayerAttachmentOffset();
 }

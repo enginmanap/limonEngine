@@ -35,6 +35,10 @@ public:
         return glm::vec4(vector.x, vector.y, vector.z, vector.w);
     }
 
+    static glm::vec3 LimonToGLMV3(const LimonAPI::Vec4 &vector) {
+        return glm::vec3(vector.x, vector.y, vector.z);
+    }
+
     static glm::vec2 LimonToGLM(const LimonAPI::Vec2 &vector) {
         return glm::vec2(vector.x, vector.y);
     }

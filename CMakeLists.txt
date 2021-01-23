@@ -192,6 +192,8 @@ else()
 ENDIF()
 
 add_dependencies(GraphicsBackend LimonAPI)
+add_dependencies(LimonEngine GraphicsBackend)
+add_dependencies(LimonEngine customTriggers)
 
 set_target_properties(GraphicsBackend PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(GraphicsBackend PROPERTIES SOVERSION 1)

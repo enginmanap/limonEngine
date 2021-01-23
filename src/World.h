@@ -343,7 +343,7 @@ private:
     void addGUIButtonControls();
     void addGUIAnimationControls();
     void addGUILayerControls();
-    void addParticleEmitter();
+    void addParticleEmitterEditor();
 /********** Editor Methods *********************/
     void drawNodeEditor();
 
@@ -512,6 +512,18 @@ public:
 
     bool enableParticleEmitter(uint32_t particleEmitterID);
     bool disableParticleEmitter(uint32_t particleEmitterID);
+    uint32_t addParticleEmitter(const std::string &name,
+                                const std::string& textureFile,
+                                const LimonAPI::Vec4& startPosition,
+                                const LimonAPI::Vec4& maxStartDistances,
+                                const LimonAPI::Vec2& size,
+                                uint32_t count,
+                                uint32_t lifeTime,
+                                float particlePerMs,
+                                bool continuouslyEmit);
+    bool removeParticleEmitter(uint32_t emitterID);
+    bool setEmitterParticleSpeed(uint32_t emitterID, const LimonAPI::Vec4& speedMultiplier, const LimonAPI::Vec4& speedOffset);
+    bool setEmitterParticleGravity(uint32_t emitterID, const LimonAPI::Vec4& gravity);
 
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);

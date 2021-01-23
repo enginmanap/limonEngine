@@ -105,6 +105,25 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldSetPlayerAttachmentOffset = std::bind(&World::setPlayerModelOffsetAPI, world, std::placeholders::_1);
     limonAPI->worldEnableParticleEmitter = std::bind(&World::enableParticleEmitter, world, std::placeholders::_1);
     limonAPI->worldDisableParticleEmitter = std::bind(&World::disableParticleEmitter, world, std::placeholders::_1);
+    limonAPI->worldAddParticleEmitter = std::bind(&World::addParticleEmitter, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4,
+                                                  std::placeholders::_5, std::placeholders::_6, std::placeholders::_7, std::placeholders::_8, std::placeholders::_9);
+    limonAPI->worldRemoveParticleEmitter = std::bind(&World::removeParticleEmitter, world, std::placeholders::_1);
+    limonAPI->worldSetEmitterParticleSpeed = std::bind(&World::setEmitterParticleSpeed, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    limonAPI->worldSetEmitterParticleGravity = std::bind(&World::setEmitterParticleGravity, world, std::placeholders::_1, std::placeholders::_2);
+
+
+
+    uint32_t addParticleEmitter(const std::string &name, const std::string& textureFile,
+                                const LimonAPI::Vec4& startPosition,
+                                const LimonAPI::Vec4& maxStartDistances,
+                                const LimonAPI::Vec2& size,
+                                uint32_t count,
+                                uint32_t lifeTime,
+                                float particlePerMs,
+                                bool continuouslyEmit);
+    bool removeParticleEmitter(uint32_t emitterID);
+    bool setEmitterParticleSpeed(uint32_t emitterID, const LimonAPI::Vec4& speedMultiplier, const LimonAPI::Vec4& speedOffset);
+    bool setEmitterParticleGravity(uint32_t emitterID, const LimonAPI::Vec4& gravity);
 
     limonAPI->worldAddLightTranslate =   std::bind(&World::addLightTranslateAPI,   world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldSetLightColor     =   std::bind(&World::setLightColorAPI,       world, std::placeholders::_1, std::placeholders::_2);

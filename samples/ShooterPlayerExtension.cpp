@@ -66,6 +66,16 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
                     std::vector<LimonAPI::ParameterRequest> prList;
                     prList.push_back(parameterRequest);
                     limonAPI->interactWithAI(rayResult[3].value.longValue, prList);
+
+                    //How about some particles?
+                    uint32_t particleEmitterID = limonAPI->addParticleEmitter("HitEmitter", "./Data/Textures/bloodParticle.png", rayResult[1].value.vectorValue, LimonAPI::Vec4(0.01, 0.01, 0.01, 0),
+                                                                              LimonAPI::Vec2(0.05, 0.05), 50, 2000, 2000, false);
+                    //For speed we want to use the normal, first parameter is multiplier for random, second is applied to all.
+                    LimonAPI::Vec4 randomStartMultiplier = LimonAPI::Vec4(0.05, 0.05, 0.05, 0.05);
+                    LimonAPI::Vec4 offset = rayResult[2].value.vectorValue * 0.05;
+                    std::cout << "creating particles with " << offset.x << ", " << offset.y << ", " << offset.z << ", " << offset.w << " ." << std::endl;
+                    limonAPI->setEmitterParticleSpeed(particleEmitterID, randomStartMultiplier, offset);
+                    limonAPI->setEmitterParticleGravity(particleEmitterID, LimonAPI::Vec4(0,-1, 0));
                 } else {
                     std::cout << "hit non AI" << std::endl;
                     //means we hit something that doesn't have AI, put a hole
@@ -134,8 +144,17 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
                         glm::vec3 forceDirection = glm::normalize(hitPos - glm::vec3(LimonConverter::LimonToGLM(playerInformation.position)));
                         limonAPI->applyForce(rayResult[0].value.longValue, LimonConverter::GLMToLimon(hitPos), LimonConverter::GLMToLimon(forceDirection * bulletForce));
 
-
                     }
+                    //How about some particles?
+                    uint32_t particleEmitterID = limonAPI->addParticleEmitter("HitEmitter", "./Data/Textures/baseParticle.png", rayResult[1].value.vectorValue, LimonAPI::Vec4(0.01, 0.01, 0.01, 0),
+                                                 LimonAPI::Vec2(0.05, 0.05), 50, 2000, 2000, false);
+                    //For speed we want to use the normal, first parameter is multiplier for random, second is applied to all.
+                    LimonAPI::Vec4 randomStartMultiplier = LimonAPI::Vec4(0.1, 0.1, 0.1, 0.1);
+                    LimonAPI::Vec4 offset = rayResult[2].value.vectorValue * 0.2;
+                    std::cout << "creating particles with " << offset.x << ", " << offset.y << ", " << offset.z << ", " << offset.w << " ." << std::endl;
+                    limonAPI->setEmitterParticleSpeed(particleEmitterID, randomStartMultiplier, offset);
+                    limonAPI->setEmitterParticleGravity(particleEmitterID, LimonAPI::Vec4(0,-1, 0));
+
                 }
 
             } else {

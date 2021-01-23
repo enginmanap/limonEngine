@@ -1162,7 +1162,7 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram) {/
             ImGui::Unindent( 16.0f );
         }
         if (ImGui::CollapsingHeader("Add Particle Emitter ##The header")) {
-            addParticleEmitter();
+            addParticleEmitterEditor();
         }
 
         if (ImGui::CollapsingHeader("Custom Animations")) {
@@ -2591,7 +2591,7 @@ void World::addGUIImageControls() {
     }
 }
 
-   void World::addParticleEmitter() {
+   void World::addParticleEmitterEditor() {
        /**
         * For a new GUI Image we need only name and filename
         */
@@ -4223,3 +4223,71 @@ void World::createNodeGraph() {
        emitterIt->second->setEnabled(false);
        return true;
    }
+
+uint32_t World::addParticleEmitter(const std::string &name,
+                                   const std::string& textureFile,
+                                   const LimonAPI::Vec4& startPosition,
+                                   const LimonAPI::Vec4& maxStartDistances,
+                                   const LimonAPI::Vec2& size,
+                                   uint32_t count,
+                                   uint32_t lifeTime,
+                                   float particlePerMs,
+                                   bool continuouslyEmit){
+   //validate first:
+   if(count > 10000) {
+       std::cerr << "Can't create particle emitter with more than 10000 particles" << std::endl;
+       return 0;
+   }
+
+    if(count < 1) {
+        std::cerr << "Can't create particle emitter with 0 particles" << std::endl;
+        return 0;
+    }
+   std::shared_ptr<Emitter> newEmitter;
+   if(particlePerMs <= 0) {
+       newEmitter = std::make_shared<Emitter>(this->getNextObjectID(), name,
+                                              this->assetManager, textureFile,
+                                              GLMConverter::LimonToGLMV3(startPosition),
+                                              GLMConverter::LimonToGLMV3(maxStartDistances),
+                                              GLMConverter::LimonToGLM(size),
+                                              count, lifeTime);
+   } else {
+       newEmitter = std::make_shared<Emitter>(this->getNextObjectID(), name,
+                                              this->assetManager, textureFile,
+                                              GLMConverter::LimonToGLMV3(startPosition),
+                                              GLMConverter::LimonToGLMV3(maxStartDistances),
+                                              GLMConverter::LimonToGLM(size), count,
+                                              lifeTime, particlePerMs);
+   }
+   newEmitter->setContinuousEmit(continuouslyEmit);
+   this->emitters[newEmitter->getWorldObjectID()] = (newEmitter);
+   return newEmitter->getWorldObjectID();
+}
+
+bool World::removeParticleEmitter(uint32_t emitterID) {
+       auto emitterIT = this->emitters.find(emitterID);
+        if(emitterIT == this->emitters.end()) {
+            return false;
+        }
+        this->emitters.erase(emitterIT);
+        return true;
+}
+
+bool World::setEmitterParticleSpeed(uint32_t emitterID, const LimonAPI::Vec4& speedMultiplier, const LimonAPI::Vec4& speedOffset) {
+       auto emitterIT = this->emitters.find(emitterID);
+       if(emitterIT == this->emitters.end()) {
+           return false;
+       }
+       emitterIT->second->setSpeedMultiplier(GLMConverter::LimonToGLMV3(speedMultiplier));
+       emitterIT->second->setSpeedOffset(GLMConverter::LimonToGLMV3(speedOffset));
+       return true;
+}
+
+bool World::setEmitterParticleGravity(uint32_t emitterID, const LimonAPI::Vec4& gravity) {
+       auto emitterIT = this->emitters.find(emitterID);
+       if(emitterIT == this->emitters.end()) {
+           return false;
+       }
+       emitterIT->second->setGravity(GLMConverter::LimonToGLMV3(gravity));
+       return true;
+}

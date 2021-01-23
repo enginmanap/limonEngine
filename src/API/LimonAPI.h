@@ -96,6 +96,15 @@ public:
             result.w = this->w - second.w;
             return result;
         }
+
+        Vec4 operator*(float scalar) const {
+            Vec4 result{};
+            result.x = this->x * scalar;
+            result.y = this->y * scalar;
+            result.z = this->z * scalar;
+            result.w = this->w * scalar;
+            return result;
+        }
     };
     struct Mat4 {
         Vec4 rows[4];
@@ -172,7 +181,18 @@ public:
     bool disableParticleEmitter(uint32_t particleEmitterId);
     bool enableParticleEmitter(uint32_t particleEmitterId);
 
-
+    uint32_t addParticleEmitter(const std::string &name,
+                                const std::string& textureFile,
+                                const LimonAPI::Vec4& startPosition,
+                                const LimonAPI::Vec4& maxStartDistances,
+                                const LimonAPI::Vec2& size,
+                                uint32_t count,
+                                uint32_t lifeTime,
+                                float particlePerMs,
+                                bool continuouslyEmit);
+    bool removeParticleEmitter(uint32_t emitterID);
+    bool setEmitterParticleSpeed(uint32_t emitterID, const LimonAPI::Vec4& speedMultiplier, const LimonAPI::Vec4& speedOffset);
+    bool setEmitterParticleGravity(uint32_t emitterID, const LimonAPI::Vec4& gravity);
 
     /**
      * * If nothing is hit, returns empty vector
@@ -319,6 +339,10 @@ private:
     std::function<void (long, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)>, std::vector<LimonAPI::ParameterRequest>)> worldAddTimedEvent;
     std::function<bool (uint32_t)> worldEnableParticleEmitter;
     std::function<bool (uint32_t)> worldDisableParticleEmitter;
+    std::function<uint32_t (const std::string&, const std::string&, const LimonAPI::Vec4&, const LimonAPI::Vec4&, const LimonAPI::Vec2&, uint32_t, uint32_t, float, bool)> worldAddParticleEmitter;
+    std::function<bool (uint32_t)> worldRemoveParticleEmitter;
+    std::function<bool (uint32_t, const LimonAPI::Vec4& speedMultiplier, const LimonAPI::Vec4& speedOffset)> worldSetEmitterParticleSpeed;
+    std::function<bool (uint32_t, const LimonAPI::Vec4& gravity)> worldSetEmitterParticleGravity;
 
     std::function<LimonAPI::Vec4 ()> worldGetPlayerAttachmentOffset;
     std::function<bool (LimonAPI::Vec4)> worldSetPlayerAttachmentOffset;
