@@ -6,6 +6,7 @@ set(IMGUI_SOURCES
         "libs/ImGui/imgui.cpp"
         "libs/ImGui/imgui_demo.cpp"
         "libs/ImGui/imgui_draw.cpp"
+		"libs/ImGui/imgui_tables.cpp"
 		"libs/ImGui/imgui_widgets.cpp")
 
 set(IMGUI_HEADERS

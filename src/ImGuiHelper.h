@@ -30,7 +30,7 @@ class ImGuiHelper {
 
     ImGuiImageWrapper fontTexture;
     // ImGUI Data
-    double       g_Time = 0.0f;
+    uint64_t     g_Time = 0.0f;
     bool         g_MousePressed[3] = { false, false, false };
     float        g_MouseWheel = 0.0f;
     uint32_t     g_FontTexture = 0;

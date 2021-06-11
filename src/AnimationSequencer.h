@@ -49,17 +49,17 @@ public:
     int mFrameCount = 120;
 
     int GetFrameCount() const { return mFrameCount; }
-    int GetItemCount() const { return (int)sections.size(); }
+    int GetItemCount() const override { return (int)sections.size(); }
 
-    int GetItemTypeCount() const { return 1; }
-    const char *GetItemTypeName(int typeIndex [[gnu::unused]]) const { return "Section"; }
-    const char *GetItemLabel(int index) const {
+    int GetItemTypeCount() const override { return 1; }
+    const char *GetItemTypeName(int typeIndex [[gnu::unused]]) const override { return "Section"; }
+    const char *GetItemLabel(int index) const override {
         static char tmps[512];
         sprintf(tmps, "[%02d] %s", index, "Section");
         return tmps;
     }
 
-    void Get(int index, int** start, int** end, int *type, unsigned int *color) {
+    void Get(int index, int** start, int** end, int *type, unsigned int *color) override {
         AnimationSequenceItem &item = sections[index];
         if (color) {
             *color = 0xFFAA8080; // same color for everyone, return color based on type
@@ -78,25 +78,25 @@ public:
             *type = 0;//we don't have multiple types
         }
     }
-    void Add(int type [[gnu::unused]]);
+    void Add(int type [[gnu::unused]]) override;
     void setTransform(int32_t indexToSet);
 
 
-    void Del(int index) {
+    void Del(int index) override {
         //don't allow deleting last element
         if(sections.size()>1) {
             sections.erase(sections.begin() + index);
         }
     }
 
-    void Duplicate(int index);
+    void Duplicate(int index) override;
 
     const Renderable *getAnimatingObject() const {
         return animatingObject;
     }
 
-    AnimationSequenceInterface(Renderable* animatingObject);
-    ~AnimationSequenceInterface();
+    explicit AnimationSequenceInterface(Renderable* animatingObject);
+    ~AnimationSequenceInterface() override;
     AnimationCustom* buildAnimationFromCurrentItems();
 
     /**
@@ -104,6 +104,9 @@ public:
      * @return
      */
     void addAnimationSequencerToEditor(bool &finished, bool &cancelled);
+
+    int GetFrameMin() const override {return 0;};
+    int GetFrameMax() const override {return mFrameCount;};
 };
 
 

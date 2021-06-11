@@ -3439,7 +3439,7 @@ void World::buildTreeFromAllGameObjects() {
     ImGuiTreeNodeFlags leafFlags = nodeFlags | ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;//no recursion after this point
 
     if(!parentageList.empty()) {
-        ImGui::SetNextTreeNodeOpen(true);
+        ImGui::SetNextItemOpen(true);
     }
     //objects
     if (ImGui::TreeNode("Objects##ObjectsTreeRoot")) {
@@ -3478,7 +3478,7 @@ void World::buildTreeFromAllGameObjects() {
     }
 
     if(!parentageList.empty()) {
-        ImGui::SetNextTreeNodeOpen(false);
+        ImGui::SetNextItemOpen(false);
     }
     //GUI elements
     if (ImGui::TreeNode("GUI Elements##guiElementsTreeRoot")) {
@@ -3499,7 +3499,7 @@ void World::buildTreeFromAllGameObjects() {
     }
 
     if(!parentageList.empty()) {
-        ImGui::SetNextTreeNodeOpen(false);
+        ImGui::SetNextItemOpen(false);
     }
     //Lights
     if (ImGui::TreeNode("Lights##LightsTreeRoot")) {
@@ -3516,7 +3516,7 @@ void World::buildTreeFromAllGameObjects() {
     }
 
     if(!parentageList.empty()) {
-        ImGui::SetNextTreeNodeOpen(false);
+        ImGui::SetNextItemOpen(false);
     }
     //Triggers
     if (ImGui::TreeNode("Trigger Volumes##TriggersTreeRoot")) {
@@ -3533,7 +3533,7 @@ void World::buildTreeFromAllGameObjects() {
     }
 
     if(!parentageList.empty()) {
-        ImGui::SetNextTreeNodeOpen(false);
+        ImGui::SetNextItemOpen(false);
     }
     //Particles
     if (ImGui::TreeNode("Particle Emitters##ParticleEmittersTreeRoot")) {
@@ -3586,9 +3586,9 @@ void World::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, ui
     }
     if(!parentage.empty()) {
         if(gameObjectOfSame->getWorldObjectID() == parentage[0]) {
-            ImGui::SetNextTreeNodeOpen(true);
+            ImGui::SetNextItemOpen(true);
         } else {
-            ImGui::SetNextTreeNodeOpen(false);
+            ImGui::SetNextItemOpen(false);
         }
 
     }
@@ -3999,7 +3999,7 @@ void World::drawNodeEditor() {
         createNodeGraph();
     }
 
-    ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiSetCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
 
     if (!ImGui::Begin("Example: Custom Node Graph", &showNodeGraph)) {
         ImGui::End();

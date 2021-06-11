@@ -318,9 +318,10 @@ void ImGuiHelper::NewFrame() {
                                         options->getWindowHeight() > 0 ? ((float)options->getWindowHeight() / options->getWindowHeight()) : 0);
 
     // Setup time step
-    Uint32	time = SDL_GetTicks();
-    double current_time = time / 1000.0;
-    io.DeltaTime = g_Time > 0.0 ? (float)(current_time - g_Time) : (float)(1.0f / 60.0f);
+    static Uint64 frequency = SDL_GetPerformanceFrequency();
+    Uint64 current_time = SDL_GetPerformanceCounter();
+    io.DeltaTime = (float)g_Time > 0.0 ? (float)(current_time - g_Time) / (float)frequency: (float)(1.0f / 60.0f);
+    assert(io.DeltaTime > 0.0);
     g_Time = current_time;
 
     // Setup inputs
