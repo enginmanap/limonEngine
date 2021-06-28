@@ -89,7 +89,13 @@ void Emitter::setupVAO() {
     bufferObjects.push_back(vbo);
 }
 
-GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiRequest &request [[gnu::unused]]) {
+GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
+
+    //Allow transformation editing.
+    if(transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix)) {
+        //true means transformation changed, activate rigid body
+    }
+
     if(ImGui::Checkbox("Enabled##ParticleEmitter", &enabled)) {
         lastSetupTime = 0;//sets up creation
     }
