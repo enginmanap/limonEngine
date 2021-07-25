@@ -10,7 +10,7 @@ uint32_t LimonAPI::animateModel(uint32_t modelID, uint32_t animationID, bool loo
     return worldAddAnimationToObject(modelID, animationID, looped, soundPath);
 }
 
-bool LimonAPI::generateEditorElementsForParameters(std::vector<ParameterRequest> &runParameters, uint32_t index) {
+bool LimonAPI::generateEditorElementsForParameters(std::vector<LimonTypes::GenericParameter> &runParameters, uint32_t index) {
     return worldGenerateEditorElementsForParameters(runParameters, index);
 }
 
@@ -19,8 +19,8 @@ uint32_t LimonAPI::addGuiText(const std::string &fontFilePath, uint32_t fontSize
     return worldAddGuiText(fontFilePath, fontSize, name, text, color, position,rotation);
 }
 
-uint32_t LimonAPI::addGuiImage(const std::string &imageFilePath, const std::string &name, const Vec2 &position,
-                               const Vec2 &scale, float rotation) {
+uint32_t LimonAPI::addGuiImage(const std::string &imageFilePath, const std::string &name, const LimonTypes::Vec2 &position,
+                               const LimonTypes::Vec2 &scale, float rotation) {
     return worldAddGuiImage(imageFilePath, name, position, scale, rotation);
 }
 
@@ -43,8 +43,8 @@ uint32_t LimonAPI::removeGuiElement(uint32_t guiElementID) {
 
 }
 
-std::vector<LimonAPI::ParameterRequest> LimonAPI::getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID) {
-    std::vector<LimonAPI::ParameterRequest> results = worldGetResultOfTrigger(TriggerObjectID, TriggerCodeID);
+std::vector<LimonTypes::GenericParameter> LimonAPI::getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID) {
+    std::vector<LimonTypes::GenericParameter> results = worldGetResultOfTrigger(TriggerObjectID, TriggerCodeID);
     return results;
 }
 
@@ -64,11 +64,11 @@ bool LimonAPI::reconnectObjectToPhysics(uint32_t modelID) {
     return worldReconnectObjectToPhysics(modelID);
 }
 
-bool LimonAPI::applyForce(uint32_t modelID, const LimonAPI::Vec4 &forcePosition, const LimonAPI::Vec4 &forceAmount) {
+bool LimonAPI::applyForce(uint32_t modelID, const LimonTypes::Vec4 &forcePosition, const LimonTypes::Vec4 &forceAmount) {
     return worldApplyForce(modelID, forcePosition, forceAmount);
 }
 
-bool LimonAPI::applyForceToPlayer(const LimonAPI::Vec4 &forceAmount) {
+bool LimonAPI::applyForceToPlayer(const LimonTypes::Vec4 &forceAmount) {
     return worldApplyForceToPlayer(forceAmount);
 }
 
@@ -103,23 +103,23 @@ void LimonAPI::quitGame() {
     limonExitGame();
 }
 
-std::vector<LimonAPI::ParameterRequest> LimonAPI::rayCastToCursor() {
+std::vector<LimonTypes::GenericParameter> LimonAPI::rayCastToCursor() {
     return worldRayCastToCursor();
 }
 
-std::vector<LimonAPI::ParameterRequest> LimonAPI::getObjectTransformation(uint32_t objectID) {
+std::vector<LimonTypes::GenericParameter> LimonAPI::getObjectTransformation(uint32_t objectID) {
     return worldGetObjectTransformation(objectID);
 }
 
-std::vector<LimonAPI::ParameterRequest> LimonAPI::getObjectTransformationMatrix(uint32_t objectID) {
+std::vector<LimonTypes::GenericParameter> LimonAPI::getObjectTransformationMatrix(uint32_t objectID) {
     return worldGetObjectTransformationMatrix(objectID);
 }
 
-bool LimonAPI::interactWithAI(uint32_t AIID, std::vector<LimonAPI::ParameterRequest> &interactionInformation) {
+bool LimonAPI::interactWithAI(uint32_t AIID, std::vector<LimonTypes::GenericParameter> &interactionInformation) {
     return worldInteractWithAI(AIID, interactionInformation);
 }
 
-void LimonAPI::interactWithPlayer(std::vector<LimonAPI::ParameterRequest> &input) {
+void LimonAPI::interactWithPlayer(std::vector<LimonTypes::GenericParameter> &input) {
     return this->worldInteractWithPlayer(input);
 }
 
@@ -127,17 +127,17 @@ void LimonAPI::simulateInput(const InputStates& input) {
     this->worldSimulateInput(input);
 }
 
-bool LimonAPI::addLightTranslate(uint32_t lightID, const LimonAPI::Vec4 &position) {
+bool LimonAPI::addLightTranslate(uint32_t lightID, const LimonTypes::Vec4 &position) {
     return worldAddLightTranslate(lightID, position);
 }
 
-bool LimonAPI::setLightColor(uint32_t lightID, const LimonAPI::Vec4 &color){
+bool LimonAPI::setLightColor(uint32_t lightID, const LimonTypes::Vec4 &color){
     return worldSetLightColor(lightID, color);
 }
 
 void LimonAPI::addTimedEvent(long waitTime,
-                             std::function<void(const std::vector<LimonAPI::ParameterRequest> &)> methodToCall,
-                             std::vector<LimonAPI::ParameterRequest> parameters) {
+                             std::function<void(const std::vector<LimonTypes::GenericParameter> &)> methodToCall,
+                             std::vector<LimonTypes::GenericParameter> parameters) {
     worldAddTimedEvent(waitTime, methodToCall, parameters);
 }
 
@@ -150,9 +150,9 @@ bool LimonAPI::enableParticleEmitter(uint32_t particleEmitterId) {
 
 uint32_t LimonAPI::addParticleEmitter(const std::string &name,
                             const std::string& textureFile,
-                            const LimonAPI::Vec4& startPosition,
-                            const LimonAPI::Vec4& maxStartDistances,
-                            const LimonAPI::Vec2& size,
+                            const LimonTypes::Vec4& startPosition,
+                            const LimonTypes::Vec4& maxStartDistances,
+                            const LimonTypes::Vec2& size,
                             uint32_t count,
                             uint32_t lifeTime,
                             float particlePerMs,
@@ -170,18 +170,18 @@ uint32_t LimonAPI::addParticleEmitter(const std::string &name,
 bool LimonAPI::removeParticleEmitter(uint32_t emitterID) {
     return worldRemoveParticleEmitter(emitterID);
 }
-bool LimonAPI::setEmitterParticleSpeed(uint32_t emitterID, const LimonAPI::Vec4& speedMultiplier, const LimonAPI::Vec4& speedOffset){
+bool LimonAPI::setEmitterParticleSpeed(uint32_t emitterID, const LimonTypes::Vec4& speedMultiplier, const LimonTypes::Vec4& speedOffset){
     return worldSetEmitterParticleSpeed(emitterID, speedMultiplier, speedOffset);
 }
-bool LimonAPI::setEmitterParticleGravity(uint32_t emitterID, const LimonAPI::Vec4& gravity){
+bool LimonAPI::setEmitterParticleGravity(uint32_t emitterID, const LimonTypes::Vec4& gravity){
     return worldSetEmitterParticleGravity(emitterID, gravity);
 }
 
-LimonAPI::Vec4 LimonAPI::getPlayerAttachedModelOffset() {
+LimonTypes::Vec4 LimonAPI::getPlayerAttachedModelOffset() {
     return worldGetPlayerAttachmentOffset();
 }
 
-bool LimonAPI::setPlayerAttachedModelOffset(LimonAPI::Vec4 newOffset) {
+bool LimonAPI::setPlayerAttachedModelOffset(LimonTypes::Vec4 newOffset) {
     return worldSetPlayerAttachmentOffset(newOffset);
 }
 
@@ -217,27 +217,27 @@ void LimonAPI::killPlayer() {
     worldKillPlayer();
 }
 
-bool LimonAPI::setObjectTranslate(uint32_t objectID, const LimonAPI::Vec4 &position) {
+bool LimonAPI::setObjectTranslate(uint32_t objectID, const LimonTypes::Vec4 &position) {
     return worldSetObjectTranslate(objectID, position);
 }
 
-bool LimonAPI::setObjectScale(uint32_t objectID, const LimonAPI::Vec4 &scale) {
+bool LimonAPI::setObjectScale(uint32_t objectID, const LimonTypes::Vec4 &scale) {
     return worldSetObjectScale(objectID, scale);
 }
 
-bool LimonAPI::setObjectOrientation(uint32_t objectID, const LimonAPI::Vec4 &orientation) {
+bool LimonAPI::setObjectOrientation(uint32_t objectID, const LimonTypes::Vec4 &orientation) {
     return worldSetObjectOrientation(objectID, orientation);
 }
 
-bool LimonAPI::addObjectTranslate(uint32_t objectID, const LimonAPI::Vec4 &position) {
+bool LimonAPI::addObjectTranslate(uint32_t objectID, const LimonTypes::Vec4 &position) {
     return worldAddObjectTranslate(objectID, position);
 }
 
-bool LimonAPI::addObjectScale(uint32_t objectID, const LimonAPI::Vec4 &scale) {
+bool LimonAPI::addObjectScale(uint32_t objectID, const LimonTypes::Vec4 &scale) {
     return worldAddObjectScale(objectID, scale);
 }
 
-bool LimonAPI::addObjectOrientation(uint32_t objectID, const LimonAPI::Vec4 &orientation) {
+bool LimonAPI::addObjectOrientation(uint32_t objectID, const LimonTypes::Vec4 &orientation) {
     return worldAddObjectOrientation(objectID, orientation);
 }
 

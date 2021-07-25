@@ -13,14 +13,14 @@ class WesternStoryAtGraveAction : public TriggerInterface {
     bool hasRun = false;
 public:
     WesternStoryAtGraveAction(LimonAPI* limonAPI) : TriggerInterface(limonAPI) {}
-    void showMessages1(const std::vector<LimonAPI::ParameterRequest> &emptyParamList);
-    void showMessages2(const std::vector<LimonAPI::ParameterRequest> &emptyParamList);
+    void showMessages1(const std::vector<LimonTypes::GenericParameter> &emptyParamList);
+    void showMessages2(const std::vector<LimonTypes::GenericParameter> &emptyParamList);
 
-    std::vector<LimonAPI::ParameterRequest> getParameters() override;
+    std::vector<LimonTypes::GenericParameter> getParameters() override;
 
-    bool run(std::vector<LimonAPI::ParameterRequest> parameters) override;
+    bool run(std::vector<LimonTypes::GenericParameter> parameters) override;
 
-    std::vector<LimonAPI::ParameterRequest> getResults() override;
+    std::vector<LimonTypes::GenericParameter> getResults() override;
 
     std::string getName() const override;
 };

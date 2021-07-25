@@ -15,7 +15,7 @@
 #include <iostream>
 
 #include "InputStates.h"
-
+#include "LimonTypes.h"
 
 class Model;
 class AnimationCustom;
@@ -29,133 +29,15 @@ class LimonAPI {
     friend class APISerializer;
 public:
 
-    struct Vec2 {
-        float x,y;
-
-        Vec2() = default;
-        Vec2(float x, float y): x(x), y(y){}
-
-        float operator [] (int i) const { switch (i) {
-                case 0: return x;
-                case 1: return y;
-                default:
-                    static_assert(true, "Access to undefined element of vector" );
-                    return x;//this is to make static analyzer happy
-
-            }}
-        float& operator [] (int i) {switch (i) {
-                case 0: return x;
-                case 1: return y;
-                default:
-                    static_assert(true, "Access to undefined element of vector" );
-                    return x;//this is to make static analyzer happy
-            }}
-        };
-
-
-    struct Vec4 {
-        float x,y,z,w;
-
-        Vec4() = default;
-        Vec4(float x, float y, float z, float w): x(x), y(y), z(z), w(w) {}
-        Vec4(float x, float y, float z): x(x), y(y), z(z), w(0) {}
-
-        float operator [] (int i) const {switch (i) {
-            case 0: return x;
-            case 1: return y;
-            case 2: return z;
-            case 3: return w;
-            default:
-                static_assert(true, "Access to undefined element of vector" );
-                return x;//this is to make static analyzer happy
-        }}
-        float& operator [] (int i) {switch (i) {
-            case 0: return x;
-            case 1: return y;
-            case 2: return z;
-            case 3: return w;
-            default:
-                static_assert(true, "Access to undefined element of vector" );
-                return x;//this is to make static analyzer happy
-        }}
-
-        Vec4 operator+(const Vec4 &second) const {
-            Vec4 result{};
-            result.x = this->x + second.x;
-            result.y = this->y + second.y;
-            result.z = this->z + second.z;
-            result.w = this->w + second.w;
-            return result;
-        }
-
-        Vec4 operator-(const Vec4 &second) const {
-            Vec4 result{};
-            result.x = this->x - second.x;
-            result.y = this->y - second.y;
-            result.z = this->z - second.z;
-            result.w = this->w - second.w;
-            return result;
-        }
-
-        Vec4 operator*(float scalar) const {
-            Vec4 result{};
-            result.x = this->x * scalar;
-            result.y = this->y * scalar;
-            result.z = this->z * scalar;
-            result.w = this->w * scalar;
-            return result;
-        }
-    };
-    struct Mat4 {
-        Vec4 rows[4];
-
-        Mat4() = default;
-        Mat4(Vec4 row0, Vec4 row1, Vec4 row2, Vec4 row3) : rows(){//rows init is just to make static analyzer happy
-            rows[0] = row0;
-            rows[1] = row1;
-            rows[2] = row2;
-            rows[3] = row3;
-        }
-
-        Vec4 operator [] (int i) const {return rows[i];}
-        Vec4& operator [] (int i) {return rows[i];}
-    };
-
-    struct ParameterRequest {
-        enum RequestParameterTypes { MODEL, ANIMATION, SWITCH, FREE_TEXT, TRIGGER, GUI_TEXT, FREE_NUMBER, COORDINATE, TRANSFORM, MULTI_SELECT };
-        RequestParameterTypes requestType = FREE_NUMBER;
-        std::string description;
-        enum ValueTypes { STRING, DOUBLE, LONG, LONG_ARRAY, BOOLEAN, VEC4, MAT4 };
-        ValueTypes valueType = ParameterRequest::ValueTypes::VEC4;
-        //Up part used for requesting parameter, down part used as values of that request.
-        union Value {
-            char stringValue[64];
-            long longValue;
-            long longValues[16];//first element is the size
-            double doubleValue;
-            Vec4 vectorValue;
-            Mat4 matrixValue;
-            bool boolValue;
-        };
-
-        Value value{};
-        bool isSet = false;
-
-        ParameterRequest() {
-            memset(&value, 0, sizeof(value));
-        };
-
-    };
-
-    bool generateEditorElementsForParameters(std::vector<ParameterRequest> &runParameters, uint32_t index);
+    bool generateEditorElementsForParameters(std::vector<LimonTypes::GenericParameter> &runParameters, uint32_t index);
 
     uint32_t animateModel(uint32_t modelID, uint32_t animationID, bool looped, const std::string *soundPath);
     uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize,
                         const std::string &name, const std::string &text,
                                const glm::vec3 &color,
                                const glm::vec2 &position, float rotation);
-    uint32_t addGuiImage(const std::string &imageFilePath, const std::string &name, const Vec2 &position,
-                             const Vec2 &scale, float rotation);
+    uint32_t addGuiImage(const std::string &imageFilePath, const std::string &name, const LimonTypes::Vec2 &position,
+                             const LimonTypes::Vec2 &scale, float rotation);
 
     bool updateGuiText(uint32_t guiTextID, const std::string &newText);
     uint32_t removeGuiElement(uint32_t guiElementID);
@@ -168,31 +50,31 @@ public:
     bool removeTriggerObject(uint32_t TriggerObjectID);
     bool disconnectObjectFromPhysics(uint32_t modelID);
     bool reconnectObjectToPhysics(uint32_t modelID);
-    bool applyForce(uint32_t modelID, const LimonAPI::Vec4 &forcePosition, const LimonAPI::Vec4 &forceAmount);
-    bool applyForceToPlayer(const LimonAPI::Vec4 &forceAmount);
+    bool applyForce(uint32_t modelID, const LimonTypes::Vec4 &forcePosition, const LimonTypes::Vec4 &forceAmount);
+    bool applyForceToPlayer(const LimonTypes::Vec4 &forceAmount);
 
 
     bool attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string &soundPath);
     bool detachSoundFromObject(uint32_t objectWorldID);
     uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative = false, bool looped = false);
 
-    bool interactWithAI(uint32_t AIID, std::vector<LimonAPI::ParameterRequest> &interactionInformation);
+    bool interactWithAI(uint32_t AIID, std::vector<LimonTypes::GenericParameter> &interactionInformation);
 
     bool disableParticleEmitter(uint32_t particleEmitterId);
     bool enableParticleEmitter(uint32_t particleEmitterId);
 
     uint32_t addParticleEmitter(const std::string &name,
                                 const std::string& textureFile,
-                                const LimonAPI::Vec4& startPosition,
-                                const LimonAPI::Vec4& maxStartDistances,
-                                const LimonAPI::Vec2& size,
+                                const LimonTypes::Vec4& startPosition,
+                                const LimonTypes::Vec4& maxStartDistances,
+                                const LimonTypes::Vec2& size,
                                 uint32_t count,
                                 uint32_t lifeTime,
                                 float particlePerMs,
                                 bool continuouslyEmit);
     bool removeParticleEmitter(uint32_t emitterID);
-    bool setEmitterParticleSpeed(uint32_t emitterID, const LimonAPI::Vec4& speedMultiplier, const LimonAPI::Vec4& speedOffset);
-    bool setEmitterParticleGravity(uint32_t emitterID, const LimonAPI::Vec4& gravity);
+    bool setEmitterParticleSpeed(uint32_t emitterID, const LimonTypes::Vec4& speedMultiplier, const LimonTypes::Vec4& speedOffset);
+    bool setEmitterParticleGravity(uint32_t emitterID, const LimonTypes::Vec4& gravity);
 
     /**
      * * If nothing is hit, returns empty vector
@@ -202,7 +84,7 @@ public:
      * 3) hit normal
      * 4) If object has AI, id of that AI
      */
-    std::vector<ParameterRequest> rayCastToCursor();
+    std::vector<LimonTypes::GenericParameter> rayCastToCursor();
 
     /**
      * If object not found, returns empty vector
@@ -212,15 +94,15 @@ public:
      * 2) scale
      * 3) orientation
      */
-    std::vector<LimonAPI::ParameterRequest> getObjectTransformation(uint32_t objectID);
+    std::vector<LimonTypes::GenericParameter> getObjectTransformation(uint32_t objectID);
 
-    bool setObjectTranslate(uint32_t objectID, const LimonAPI::Vec4& position);
-    bool setObjectScale(uint32_t objectID, const LimonAPI::Vec4& scale);
-    bool setObjectOrientation(uint32_t objectID, const LimonAPI::Vec4& orientation);
+    bool setObjectTranslate(uint32_t objectID, const LimonTypes::Vec4& position);
+    bool setObjectScale(uint32_t objectID, const LimonTypes::Vec4& scale);
+    bool setObjectOrientation(uint32_t objectID, const LimonTypes::Vec4& orientation);
 
-    bool addObjectTranslate(uint32_t objectID, const LimonAPI::Vec4& position);
-    bool addObjectScale(uint32_t objectID, const LimonAPI::Vec4& scale);
-    bool addObjectOrientation(uint32_t objectID, const LimonAPI::Vec4& orientation);
+    bool addObjectTranslate(uint32_t objectID, const LimonTypes::Vec4& position);
+    bool addObjectScale(uint32_t objectID, const LimonTypes::Vec4& scale);
+    bool addObjectOrientation(uint32_t objectID, const LimonTypes::Vec4& orientation);
 
     /**
      * Returns mat4 with objects transform
@@ -229,11 +111,11 @@ public:
      * @param objectID
      * @return
      */
-    std::vector<LimonAPI::ParameterRequest> getObjectTransformationMatrix(uint32_t objectID);
+    std::vector<LimonTypes::GenericParameter> getObjectTransformationMatrix(uint32_t objectID);
 
     uint32_t getPlayerAttachedModel();
-    LimonAPI::Vec4 getPlayerAttachedModelOffset();
-    bool setPlayerAttachedModelOffset(LimonAPI::Vec4 newOffset);
+    LimonTypes::Vec4 getPlayerAttachedModelOffset();
+    bool setPlayerAttachedModelOffset(LimonTypes::Vec4 newOffset);
     void killPlayer();
 
     std::string getModelAnimationName(uint32_t modelID);
@@ -244,12 +126,12 @@ public:
     std::vector<uint32_t> getModelChildren(uint32_t modelID);
 
 
-    void interactWithPlayer(std::vector<ParameterRequest>& input);
+    void interactWithPlayer(std::vector<LimonTypes::GenericParameter>& input);
     void simulateInput(const InputStates& input);
 
 
-    bool addLightTranslate(uint32_t lightID, const LimonAPI::Vec4& translate);
-    bool setLightColor(uint32_t lightID, const LimonAPI::Vec4& color);
+    bool addLightTranslate(uint32_t lightID, const LimonTypes::Vec4& translate);
+    bool setLightColor(uint32_t lightID, const LimonTypes::Vec4& color);
 
     bool loadAndSwitchWorld(const std::string& worldFileName);
     bool returnToWorld(const std::string& worldFileName);//if world is not loaded, loads first
@@ -261,7 +143,7 @@ public:
 
 
 
-    std::vector<ParameterRequest> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
+    std::vector<LimonTypes::GenericParameter> getResultOfTrigger(uint32_t TriggerObjectID, uint32_t TriggerCodeID);
 
     /**
      * This method Returns a parameter request reference that you can update. If the variable was never set,
@@ -272,14 +154,14 @@ public:
      * @param variableName
      * @return variable itself
      */
-    LimonAPI::ParameterRequest& getVariable(const std::string& variableName) {
+    LimonTypes::GenericParameter& getVariable(const std::string& variableName) {
         if(variableStore.find(variableName) == variableStore.end()) {
-            variableStore[variableName] = LimonAPI::ParameterRequest();
+            variableStore[variableName] = LimonTypes::GenericParameter();
         }
         return variableStore[variableName];
     }
 
-    void addTimedEvent(long waitTime, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall, std::vector<LimonAPI::ParameterRequest> parameters);
+    void addTimedEvent(long waitTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall, std::vector<LimonTypes::GenericParameter> parameters);
 
     LimonAPI(std::function<bool (const std::string&)> worldLoadMethod,
              std::function<bool (const std::string&)> worldReturnOrLoadMethod,
@@ -295,57 +177,57 @@ public:
 private:
     friend class WorldLoader;
 
-    std::map<std::string, LimonAPI::ParameterRequest> variableStore;
+    std::map<std::string, LimonTypes::GenericParameter> variableStore;
 
-    std::function<bool(std::vector<LimonAPI::ParameterRequest> &, uint32_t)> worldGenerateEditorElementsForParameters;
+    std::function<bool(std::vector<LimonTypes::GenericParameter> &, uint32_t)> worldGenerateEditorElementsForParameters;
     std::function<uint32_t(uint32_t , uint32_t , bool, const std::string* )> worldAddAnimationToObject;
     std::function<uint32_t(const std::string &, uint32_t, const std::string &, const std::string &, const glm::vec3 &, const glm::vec2 &, float)> worldAddGuiText;
-    std::function<uint32_t(const std::string &, const std::string &, const Vec2 &, const Vec2 &, float)> worldAddGuiImage;
+    std::function<uint32_t(const std::string &, const std::string &, const LimonTypes::Vec2 &, const LimonTypes::Vec2 &, float)> worldAddGuiImage;
     std::function<uint32_t(const std::string &, float, bool, const glm::vec3 &, const glm::vec3 &, const glm::quat &)> worldAddModel;
     std::function<bool(uint32_t, bool)> worldSetModelTemporary;
     std::function<bool(uint32_t, const std::string &)> worldUpdateGuiText;
     std::function<uint32_t (uint32_t)> worldRemoveGuiElement;
-    std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t , uint32_t )> worldGetResultOfTrigger;
+    std::function<std::vector<LimonTypes::GenericParameter>(uint32_t , uint32_t )> worldGetResultOfTrigger;
     std::function<bool (uint32_t, bool)> worldRemoveObject;
-    std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t)> worldGetObjectTransformation;
-    std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldSetObjectTranslate;
-    std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldSetObjectScale;
-    std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldSetObjectOrientation;
-    std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldAddObjectTranslate;
-    std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldAddObjectScale;
-    std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldAddObjectOrientation;
+    std::function<std::vector<LimonTypes::GenericParameter>(uint32_t)> worldGetObjectTransformation;
+    std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetObjectTranslate;
+    std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetObjectScale;
+    std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetObjectOrientation;
+    std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldAddObjectTranslate;
+    std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldAddObjectScale;
+    std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldAddObjectOrientation;
 
-    std::function<std::vector<LimonAPI::ParameterRequest>(uint32_t)> worldGetObjectTransformationMatrix;
+    std::function<std::vector<LimonTypes::GenericParameter>(uint32_t)> worldGetObjectTransformationMatrix;
     std::function<bool (uint32_t, uint32_t)> worldAttachObjectToObject;
     std::function<bool (uint32_t)> worldRemoveTriggerObject;
     std::function<bool (uint32_t)> worldDisconnectObjectFromPhysics;
     std::function<bool (uint32_t)> worldReconnectObjectToPhysics;
 
-    std::function<bool (uint32_t, const LimonAPI::Vec4&, const LimonAPI::Vec4&)> worldApplyForce;
-    std::function<bool (const LimonAPI::Vec4&)> worldApplyForceToPlayer;
+    std::function<bool (uint32_t, const LimonTypes::Vec4&, const LimonTypes::Vec4&)> worldApplyForce;
+    std::function<bool (const LimonTypes::Vec4&)> worldApplyForceToPlayer;
 
     std::function<bool (uint32_t, const std::string&)> worldAttachSoundToObjectAndPlay;
     std::function<bool (uint32_t)> worldDetachSoundFromObject;
     std::function<uint32_t (const std::string&, const glm::vec3&, bool, bool)> worldPlaySound;
 
-    std::function<std::vector<ParameterRequest>()> worldRayCastToCursor;
-    std::function<bool (uint32_t, std::vector<ParameterRequest>&)> worldInteractWithAI;
-    std::function<void (std::vector<ParameterRequest>&)> worldInteractWithPlayer;
+    std::function<std::vector<LimonTypes::GenericParameter>()> worldRayCastToCursor;
+    std::function<bool (uint32_t, std::vector<LimonTypes::GenericParameter>&)> worldInteractWithAI;
+    std::function<void (std::vector<LimonTypes::GenericParameter>&)> worldInteractWithPlayer;
     std::function<void (InputStates)> worldSimulateInput;
 
-    std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldAddLightTranslate;
-    std::function<bool (uint32_t, const LimonAPI::Vec4&)> worldSetLightColor;
+    std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldAddLightTranslate;
+    std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetLightColor;
 
-    std::function<void (long, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)>, std::vector<LimonAPI::ParameterRequest>)> worldAddTimedEvent;
+    std::function<void (long, std::function<void(const std::vector<LimonTypes::GenericParameter>&)>, std::vector<LimonTypes::GenericParameter>)> worldAddTimedEvent;
     std::function<bool (uint32_t)> worldEnableParticleEmitter;
     std::function<bool (uint32_t)> worldDisableParticleEmitter;
-    std::function<uint32_t (const std::string&, const std::string&, const LimonAPI::Vec4&, const LimonAPI::Vec4&, const LimonAPI::Vec2&, uint32_t, uint32_t, float, bool)> worldAddParticleEmitter;
+    std::function<uint32_t (const std::string&, const std::string&, const LimonTypes::Vec4&, const LimonTypes::Vec4&, const LimonTypes::Vec2&, uint32_t, uint32_t, float, bool)> worldAddParticleEmitter;
     std::function<bool (uint32_t)> worldRemoveParticleEmitter;
-    std::function<bool (uint32_t, const LimonAPI::Vec4& speedMultiplier, const LimonAPI::Vec4& speedOffset)> worldSetEmitterParticleSpeed;
-    std::function<bool (uint32_t, const LimonAPI::Vec4& gravity)> worldSetEmitterParticleGravity;
+    std::function<bool (uint32_t, const LimonTypes::Vec4& speedMultiplier, const LimonTypes::Vec4& speedOffset)> worldSetEmitterParticleSpeed;
+    std::function<bool (uint32_t, const LimonTypes::Vec4& gravity)> worldSetEmitterParticleGravity;
 
-    std::function<LimonAPI::Vec4 ()> worldGetPlayerAttachmentOffset;
-    std::function<bool (LimonAPI::Vec4)> worldSetPlayerAttachmentOffset;
+    std::function<LimonTypes::Vec4 ()> worldGetPlayerAttachmentOffset;
+    std::function<bool (LimonTypes::Vec4)> worldSetPlayerAttachmentOffset;
     std::function<uint32_t ()> worldGetPlayerAttachedModel;
     std::function<std::vector<uint32_t> (uint32_t)> worldGetModelChildren;
     std::function<void ()> worldKillPlayer;

@@ -49,7 +49,7 @@ private:
     bool animated = false;
     bool isAIParametersDirty = true;
     bool temporary = false;
-    std::vector<LimonAPI::ParameterRequest> aiParameters;
+    std::vector<LimonTypes::GenericParameter> aiParameters;
     std::string lastSelectedAIName;
     std::vector<glm::mat4> boneTransforms;
     std::map<uint32_t, uint32_t> boneIdCompoundChildMap;
@@ -68,7 +68,7 @@ private:
     int32_t selectedBoneID = -1;
     std::map<uint32_t, Transformation*> exposedBoneTransforms;
 
-    static ImGuiResult putAIonGUI(ActorInterface *actorInterface, std::vector<LimonAPI::ParameterRequest> &parameters,
+    static ImGuiResult putAIonGUI(ActorInterface *actorInterface, std::vector<LimonTypes::GenericParameter> &parameters,
                                   const ImGuiRequest &request, std::string &lastSelectedAIName);
 
 public:

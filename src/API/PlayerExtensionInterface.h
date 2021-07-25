@@ -36,8 +36,8 @@ protected:
 public:
 
     struct PlayerInformation {
-        LimonAPI::Vec4 position;
-        LimonAPI::Vec4 lookDirection;
+        LimonTypes::Vec4 position;
+        LimonTypes::Vec4 lookDirection;
     };
 
     // Not virtual
@@ -55,7 +55,7 @@ public:
 
     virtual void processInput(const InputStates &inputHandler, const PlayerExtensionInterface::PlayerInformation &playerInformation,
                                   long time) = 0;
-    virtual void interact(std::vector<LimonAPI::ParameterRequest> &interactionData) = 0;
+    virtual void interact(std::vector<LimonTypes::GenericParameter> &interactionData) = 0;
 
     virtual ~PlayerExtensionInterface() = default;
 
@@ -87,7 +87,7 @@ class PlayerExtensionRegister : PlayerExtensionInterface {
 
     void processInput(const InputStates &inputHandler, const PlayerExtensionInterface::PlayerInformation &playerInformation,
                           long time) override {}
-    void interact(std::vector<LimonAPI::ParameterRequest> &interactionData [[gnu::unused]]) override {}
+    void interact(std::vector<LimonTypes::GenericParameter> &interactionData [[gnu::unused]]) override {}
 
 public:
     explicit PlayerExtensionRegister(std::string const& s) : PlayerExtensionInterface(nullptr) {

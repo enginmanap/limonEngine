@@ -92,11 +92,11 @@ public:
 
     void play(long time, ActorInterface::ActorInformation &information) override;
 
-    bool interaction(std::vector<LimonAPI::ParameterRequest> &interactionInformation) override;
+    bool interaction(std::vector<LimonTypes::GenericParameter> &interactionInformation) override;
 
-    std::vector<LimonAPI::ParameterRequest> getParameters() const override;
+    std::vector<LimonTypes::GenericParameter> getParameters() const override;
 
-    void setParameters(std::vector<LimonAPI::ParameterRequest> parameters) override;
+    void setParameters(std::vector<LimonTypes::GenericParameter> parameters) override;
 
 
     std::string getName() const override {

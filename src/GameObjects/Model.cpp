@@ -469,7 +469,7 @@ Model::Model(const Model &otherModel, uint32_t objectID) :
 }
 
 GameObject::ImGuiResult Model::putAIonGUI(ActorInterface *actorInterface,
-                                          std::vector<LimonAPI::ParameterRequest> &parameters,
+                                          std::vector<LimonTypes::GenericParameter> &parameters,
                                           const ImGuiRequest &request, std::string &lastSelectedAIName) {
     GameObject::ImGuiResult result;
     std::string currentAIName;

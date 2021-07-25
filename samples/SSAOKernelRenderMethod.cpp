@@ -32,7 +32,7 @@ std::vector<glm::vec3> SSAOKernelRenderMethod::generateSSAOKernels(uint32_t kern
 }
 
 
-bool SSAOKernelRenderMethod::initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {
+bool SSAOKernelRenderMethod::initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) {
     setupQuad();
 
     std::vector<glm::vec3> kernels = generateSSAOKernels(9);
@@ -97,7 +97,7 @@ SSAOKernelRenderMethod::generateSSAONoiseTexture() {
                     nullptr, nullptr, nullptr, nullptr, nullptr);
     }
 
-bool SSAOKernelRenderMethod::cleanupRender(std::shared_ptr<GraphicsProgram> program[[gnu::unused]], std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {
+bool SSAOKernelRenderMethod::cleanupRender(std::shared_ptr<GraphicsProgram> program[[gnu::unused]], std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) {
     deleteTexture(ssaoNoiseTexture);
     ssaoNoiseTexture = 0;
     return true;

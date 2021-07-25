@@ -578,25 +578,25 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
         }
         ActorInterface::InformationRequest requests = actor->getRequests();
         if (requests.routeToPlayer == true && routeThreads.find(actor->getWorldID()) == routeThreads.end()) {//if no thread is working for route to player
-            std::vector<LimonAPI::ParameterRequest> parameters;
-            parameters.push_back(LimonAPI::ParameterRequest());
+            std::vector<LimonTypes::GenericParameter> parameters;
+            parameters.push_back(LimonTypes::GenericParameter());
 
             parameters[0].value.vectorValue = GLMConverter::GLMToLimon(
                     actor->getPosition() + glm::vec3(0, AIMovementGrid::floatingHeight, 0));
-            parameters.push_back(LimonAPI::ParameterRequest());
+            parameters.push_back(LimonTypes::GenericParameter());
             parameters[1].value.longValues[0] = 2;
             parameters[1].value.longValues[1] = actor->getWorldID();
             parameters[1].value.longValues[2] = information.maximumRouteDistance;
 
-            std::function<std::vector<LimonAPI::ParameterRequest>(
-                    std::vector<LimonAPI::ParameterRequest>)> functionToRun =
+            std::function<std::vector<LimonTypes::GenericParameter>(
+                    std::vector<LimonTypes::GenericParameter>)> functionToRun =
                     std::bind(&World::fillRouteInformation, this, std::placeholders::_1);
             routeThreads[actor->getWorldID()] = new SDL2Helper::Thread("FillRouteForActor", functionToRun, parameters);
             routeThreads[actor->getWorldID()]->run();
         }
 
         if (routeThreads.find(actor->getWorldID()) != routeThreads.end() && routeThreads[actor->getWorldID()]->isThreadDone()) {
-            const std::vector<LimonAPI::ParameterRequest>* route = routeThreads[actor->getWorldID()]->getResult();
+            const std::vector<LimonTypes::GenericParameter>* route = routeThreads[actor->getWorldID()]->getResult();
             for (size_t i = 0; i < route->size(); ++i) {
                 information.routeToRequest.push_back(glm::vec3(GLMConverter::LimonToGLM(route->at(i).value.vectorValue)));
             }
@@ -615,10 +615,10 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
 }
 
 
-   //std::function<std::vector<LimonAPI::ParameterRequest>(std::vector<LimonAPI::ParameterRequest>)> functionToRun
+   //std::function<std::vector<LimonTypes::ParameterRequest>(std::vector<LimonTypes::ParameterRequest>)> functionToRun
 
-std::vector<LimonAPI::ParameterRequest>
-World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) const {
+std::vector<LimonTypes::GenericParameter>
+World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters) const {
     glm::vec3 fromPosition = glm::vec3(GLMConverter::LimonToGLM(parameters[0].value.vectorValue));
     uint32_t actorID = (uint32_t)parameters[1].value.longValues[1];
     uint32_t maximumDistance = (uint32_t)parameters[1].value.longValues[2];
@@ -632,9 +632,9 @@ World::fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) 
             reverse(std::begin(route), std::end(route));
             }
        }
-    std::vector<LimonAPI::ParameterRequest> routeList;
+    std::vector<LimonTypes::GenericParameter> routeList;
     for (size_t i = 0; i < route.size(); ++i) {
-        LimonAPI::ParameterRequest pr;
+        LimonTypes::GenericParameter pr;
         pr.value.vectorValue = GLMConverter::GLMToLimon(route[i]);
         routeList.push_back(pr);
     }
@@ -2053,22 +2053,22 @@ uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animati
 
 
 bool
-World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest> &runParameters, uint32_t index) {
+World::generateEditorElementsForParameters(std::vector<LimonTypes::GenericParameter> &runParameters, uint32_t index) {
     bool isAllSet = true;
     std::set<std::string> passDescriptions;//multi select is build on first occurance, so pass other times
     for (size_t i = 0; i < runParameters.size(); ++i) {
-        LimonAPI::ParameterRequest& parameter = runParameters[i];
+        LimonTypes::GenericParameter& parameter = runParameters[i];
         if(passDescriptions.find(parameter.description) != passDescriptions.end()) {
             continue;
         }
         switch(parameter.requestType) {
 
-            case LimonAPI::ParameterRequest::RequestParameterTypes::MULTI_SELECT: {
+            case LimonTypes::GenericParameter::RequestParameterTypes::MULTI_SELECT: {
                 //we get a multi select, we should build the multiselect. first one is the selected element
-                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::STRING;
                 if (ImGui::BeginCombo((parameter.description + "##triggerParam" + std::to_string(i) + "##" + std::to_string(index)).c_str(), parameter.value.stringValue)) {
                     for (size_t j = i+1; j < runParameters.size(); ++j) {//passing i because it should be repeated in the list
-                        if(runParameters[j].requestType == LimonAPI::ParameterRequest::RequestParameterTypes::MULTI_SELECT && runParameters[j].description == runParameters[i].description) {
+                        if(runParameters[j].requestType == LimonTypes::GenericParameter::RequestParameterTypes::MULTI_SELECT && runParameters[j].description == runParameters[i].description) {
                             bool isThisElementSelected = (std::strcmp(runParameters[j].value.stringValue,parameter.value.stringValue) == 0);
 
                             if (ImGui::Selectable(runParameters[j].value.stringValue, isThisElementSelected)) {
@@ -2086,8 +2086,8 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
             //now add this to pass list
             passDescriptions.insert(parameter.description);
             break;
-            case LimonAPI::ParameterRequest::RequestParameterTypes::MODEL: {
-                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+            case LimonTypes::GenericParameter::RequestParameterTypes::MODEL: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
                 std::string currentObject;
                 if (parameter.isSet) {
                     if(objects.find((uint32_t) (parameter.value.longValue)) != objects.end()) {
@@ -2123,8 +2123,8 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 }
             }
                 break;
-            case LimonAPI::ParameterRequest::RequestParameterTypes::ANIMATION: {
-                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+            case LimonTypes::GenericParameter::RequestParameterTypes::ANIMATION: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
                 std::string currentAnimation;
                 if (parameter.isSet) {
                     currentAnimation = loadedAnimations[static_cast<uint32_t >(parameter.value.longValue)].getName();
@@ -2152,8 +2152,8 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 }
                 break;
             }
-            case LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT: {
-                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+            case LimonTypes::GenericParameter::RequestParameterTypes::GUI_TEXT: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
                 std::string currentGUIText;
                 if (parameter.isSet) {
                     if(guiElements.find(static_cast<uint32_t >(parameter.value.longValue)) != guiElements.end()) {
@@ -2191,8 +2191,8 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 }
             }
                 break;
-            case LimonAPI::ParameterRequest::RequestParameterTypes::SWITCH: {
-                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::BOOLEAN;
+            case LimonTypes::GenericParameter::RequestParameterTypes::SWITCH: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::BOOLEAN;
                 bool isSelected;
                 if (parameter.isSet) {
                     isSelected = parameter.value.boolValue;
@@ -2207,8 +2207,8 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 };
             }
                 break;
-            case LimonAPI::ParameterRequest::RequestParameterTypes::FREE_TEXT: {
-                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+            case LimonTypes::GenericParameter::RequestParameterTypes::FREE_TEXT: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::STRING;
                 if (!parameter.isSet) {
                     isAllSet = false;
                 }
@@ -2218,10 +2218,10 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 };
             }
                 break;
-            case LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER: {
+            case LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER: {
                 switch (parameter.valueType) {
-                    case LimonAPI::ParameterRequest::ValueTypes::DOUBLE: {
-                        parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+                    case LimonTypes::GenericParameter::ValueTypes::DOUBLE: {
+                        parameter.valueType = LimonTypes::GenericParameter::ValueTypes::DOUBLE;
                         if (!parameter.isSet) {
                             isAllSet = false;
                         }
@@ -2234,9 +2234,9 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                         };
                     }
                     break;
-                    case LimonAPI::ParameterRequest::ValueTypes::LONG:
+                    case LimonTypes::GenericParameter::ValueTypes::LONG:
                     default: {
-                        parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+                        parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
                         if (!parameter.isSet) {
                             isAllSet = false;
                         }
@@ -2252,8 +2252,8 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
                 }
             }
             break;
-            case LimonAPI::ParameterRequest::RequestParameterTypes::TRIGGER: {
-                parameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG_ARRAY;
+            case LimonTypes::GenericParameter::RequestParameterTypes::TRIGGER: {
+                parameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG_ARRAY;
                 parameter.value.longValues[0] = 3;//including self
                 std::string currentObject;
                 if (parameter.isSet) {
@@ -2292,8 +2292,8 @@ World::generateEditorElementsForParameters(std::vector<LimonAPI::ParameterReques
             }
             break;
 
-            case LimonAPI::ParameterRequest::RequestParameterTypes::COORDINATE:
-            case LimonAPI::ParameterRequest::RequestParameterTypes::TRANSFORM:
+            case LimonTypes::GenericParameter::RequestParameterTypes::COORDINATE:
+            case LimonTypes::GenericParameter::RequestParameterTypes::TRANSFORM:
                 std::cerr << "These parameter types are not handled!" << std::endl;
 
         }
@@ -2317,7 +2317,7 @@ uint32_t World::addGuiText(const std::string &fontFilePath, uint32_t fontSize, c
 }
 
 uint32_t World::addGuiImageAPI(const std::string &imageFilePath, const std::string &name,
-                            const LimonAPI::Vec2 &position, const LimonAPI::Vec2 &scale, float rotation) {
+                            const LimonTypes::Vec2 &position, const LimonTypes::Vec2 &scale, float rotation) {
     GUIImage* guiImage = new GUIImage(getNextObjectID(), options, assetManager, name, imageFilePath);
 
     glm::vec2 screenPosition;
@@ -2355,8 +2355,8 @@ bool World::removeGuiElement(uint32_t guiElementID) {
     return false;
 }
 
-std::vector<LimonAPI::ParameterRequest> World::getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID) {
-    std::vector<LimonAPI::ParameterRequest> result;
+std::vector<LimonTypes::GenericParameter> World::getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID) {
+    std::vector<LimonTypes::GenericParameter> result;
     if(triggers.find(triggerObjectID) != triggers.end()) {
         TriggerObject* to = triggers[triggerObjectID];
         result = to->getResultOfCode(triggerCodeID);
@@ -2962,7 +2962,7 @@ uint32_t World::addModelApi(const std::string &modelFilePath, float modelWeight,
     return objectID;
 }
 
-bool World::applyForceAPI(uint32_t objectID, const LimonAPI::Vec4 &forcePosition, const LimonAPI::Vec4 &forceAmount) {
+bool World::applyForceAPI(uint32_t objectID, const LimonTypes::Vec4 &forcePosition, const LimonTypes::Vec4 &forceAmount) {
     Model* model = findModelByID(objectID);
     if(model == nullptr) {
         return false;
@@ -2974,7 +2974,7 @@ bool World::applyForceAPI(uint32_t objectID, const LimonAPI::Vec4 &forcePosition
     return true;
 }
 
-bool World::applyForceToPlayerAPI(const LimonAPI::Vec4 &forceAmount) {
+bool World::applyForceToPlayerAPI(const LimonTypes::Vec4 &forceAmount) {
     if(physicalPlayer == nullptr) {
         return false;
     }
@@ -2994,7 +2994,7 @@ bool World::setModelTemporaryAPI(uint32_t modelID, bool temporary) {
     }
 }
 
-std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
+std::vector<LimonTypes::GenericParameter> World::rayCastToCursorAPI() {
    /**
     * * If nothing is hit, returns empty vector
     * returns these values:
@@ -3003,27 +3003,27 @@ std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
     * 3) hit normal
     * 4) If object has AI, id of that AI
     */
-   std::vector<LimonAPI::ParameterRequest>result;
+   std::vector<LimonTypes::GenericParameter>result;
    glm::vec3 position, normal;
    GameObject* gameObject = this->getPointedObject(COLLIDE_EVERYTHING, COLLIDE_MODELS |COLLIDE_EVERYTHING, &position, &normal);
 
    if(gameObject == nullptr) {
        return result;
    }
-   LimonAPI::ParameterRequest objectIDParam;
-   objectIDParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+   LimonTypes::GenericParameter objectIDParam;
+   objectIDParam.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
    objectIDParam.value.longValue = gameObject->getWorldObjectID();
    result.push_back(objectIDParam);
 
-   LimonAPI::ParameterRequest positionParam;
-   positionParam.valueType = LimonAPI::ParameterRequest::ValueTypes::VEC4;
+   LimonTypes::GenericParameter positionParam;
+   positionParam.valueType = LimonTypes::GenericParameter::ValueTypes::VEC4;
    positionParam.value.vectorValue.x = position.x;
    positionParam.value.vectorValue.y = position.y;
    positionParam.value.vectorValue.z = position.z;
    result.push_back(positionParam);
 
-   LimonAPI::ParameterRequest normalParam;
-   normalParam.valueType = LimonAPI::ParameterRequest::ValueTypes::VEC4;
+   LimonTypes::GenericParameter normalParam;
+   normalParam.valueType = LimonTypes::GenericParameter::ValueTypes::VEC4;
    normalParam.value.vectorValue.x = normal.x;
    normalParam.value.vectorValue.y = normal.y;
    normalParam.value.vectorValue.z = normal.z;
@@ -3032,8 +3032,8 @@ std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
    if(gameObject->getTypeID() == GameObject::MODEL) {
        Model * foundModel = dynamic_cast<Model *>(gameObject);
        if (foundModel != nullptr && foundModel->getAIID() != 0) {
-           LimonAPI::ParameterRequest aiIDParam;
-           aiIDParam.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+           LimonTypes::GenericParameter aiIDParam;
+           aiIDParam.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
            aiIDParam.value.longValue = foundModel->getAIID();
            result.push_back(aiIDParam);
        }
@@ -3042,26 +3042,26 @@ std::vector<LimonAPI::ParameterRequest> World::rayCastToCursorAPI() {
    return result;
 }
 
-std::vector<LimonAPI::ParameterRequest> World::getObjectTransformationAPI(uint32_t objectID) const {
-    std::vector<LimonAPI::ParameterRequest> result;
+std::vector<LimonTypes::GenericParameter> World::getObjectTransformationAPI(uint32_t objectID) const {
+    std::vector<LimonTypes::GenericParameter> result;
     Model* model = findModelByID(objectID);
     if(model == nullptr) {
         return result;
     }
     const Transformation* transformation = model->getTransformation();
 
-    LimonAPI::ParameterRequest translate;
-    translate.valueType = LimonAPI::ParameterRequest::ValueTypes::VEC4;
+    LimonTypes::GenericParameter translate;
+    translate.valueType = LimonTypes::GenericParameter::ValueTypes::VEC4;
     translate.value.vectorValue = GLMConverter::GLMToLimon(transformation->getTranslate());
     result.push_back(translate);
 
-    LimonAPI::ParameterRequest scale;
-    scale.valueType = LimonAPI::ParameterRequest::ValueTypes::VEC4;
+    LimonTypes::GenericParameter scale;
+    scale.valueType = LimonTypes::GenericParameter::ValueTypes::VEC4;
     scale.value.vectorValue = GLMConverter::GLMToLimon(transformation->getScale());
     result.push_back(scale);
 
-    LimonAPI::ParameterRequest orientation;
-    orientation.valueType = LimonAPI::ParameterRequest::ValueTypes::VEC4;
+    LimonTypes::GenericParameter orientation;
+    orientation.valueType = LimonTypes::GenericParameter::ValueTypes::VEC4;
     orientation.value.vectorValue.x = transformation->getOrientation().x;
     orientation.value.vectorValue.y = transformation->getOrientation().y;
     orientation.value.vectorValue.z = transformation->getOrientation().z;
@@ -3071,14 +3071,14 @@ std::vector<LimonAPI::ParameterRequest> World::getObjectTransformationAPI(uint32
     return result;
 }
 
-std::vector<LimonAPI::ParameterRequest> World::getObjectTransformationMatrixAPI(uint32_t objectID) const {
-   std::vector<LimonAPI::ParameterRequest> result;
+std::vector<LimonTypes::GenericParameter> World::getObjectTransformationMatrixAPI(uint32_t objectID) const {
+   std::vector<LimonTypes::GenericParameter> result;
    if(objects.find(objectID) == objects.end()) {
        return result;
    }
 
-   LimonAPI::ParameterRequest transform;
-   transform.valueType = LimonAPI::ParameterRequest::ValueTypes::MAT4;
+   LimonTypes::GenericParameter transform;
+   transform.valueType = LimonTypes::GenericParameter::ValueTypes::MAT4;
    transform.value.matrixValue = GLMConverter::GLMToLimon(objects.at(objectID)->getTransformation()->getWorldTransform());
 
    result.push_back(transform);
@@ -3154,14 +3154,14 @@ GameObject * World::getPointedObject(int collisionType, int filterMask,
     }
 }
 
-bool World::interactWithAIAPI(uint32_t AIID, std::vector<LimonAPI::ParameterRequest> &interactionInformation) const {
+bool World::interactWithAIAPI(uint32_t AIID, std::vector<LimonTypes::GenericParameter> &interactionInformation) const {
    if(actors.find(AIID) == actors.end()) {
        return false;
    }
    return actors.at(AIID)->interaction(interactionInformation);
 }
 
-void World::interactWithPlayerAPI(std::vector<LimonAPI::ParameterRequest> &interactionInformation) const {
+void World::interactWithPlayerAPI(std::vector<LimonTypes::GenericParameter> &interactionInformation) const {
     if(this->physicalPlayer != nullptr) {
        this->physicalPlayer->interact(apiInstance, interactionInformation);
     }
@@ -3174,8 +3174,8 @@ void World::simulateInputAPI(InputStates input) {
     }
 }
 
-void World::addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall,
-                              std::vector<LimonAPI::ParameterRequest> parameters) {
+void World::addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
+                              std::vector<LimonTypes::GenericParameter> parameters) {
     timedEvents.push(TimedEvent(waitTime + gameTime, methodToCall, parameters));
 }
 
@@ -3256,16 +3256,16 @@ bool World::setModelAnimationWithBlendAPI(uint32_t modelID, const std::string& a
     return false;
 }
 
-LimonAPI::Vec4 World::getPlayerModelOffsetAPI() {
+LimonTypes::Vec4 World::getPlayerModelOffsetAPI() {
    if(this->startingPlayer.attachedModel != nullptr) {
        if(physicalPlayer != nullptr) {
            return GLMConverter::GLMToLimon(physicalPlayer->getAttachedModelOffset());
        }
    }
-   return LimonAPI::Vec4(0,0,0);
+   return LimonTypes::Vec4(0,0,0);
 }
 
-bool World::setPlayerModelOffsetAPI(LimonAPI::Vec4 newOffset) {
+bool World::setPlayerModelOffsetAPI(LimonTypes::Vec4 newOffset) {
     if(this->startingPlayer.attachedModel != nullptr) {
         if(physicalPlayer != nullptr) {
             physicalPlayer->setAttachedModelOffset(glm::vec3(GLMConverter::LimonToGLM(newOffset)));
@@ -3350,7 +3350,7 @@ bool World::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID)
 
 }
 
-bool World::setObjectTranslateAPI(uint32_t objectID, const LimonAPI::Vec4 &position) {
+bool World::setObjectTranslateAPI(uint32_t objectID, const LimonTypes::Vec4 &position) {
     Model* model = findModelByID(objectID);
     if(model == nullptr) {
         return false;
@@ -3360,7 +3360,7 @@ bool World::setObjectTranslateAPI(uint32_t objectID, const LimonAPI::Vec4 &posit
     return true;
 }
 
-bool World::setObjectScaleAPI(uint32_t objectID, const LimonAPI::Vec4 &scale) {
+bool World::setObjectScaleAPI(uint32_t objectID, const LimonTypes::Vec4 &scale) {
     Model* model = findModelByID(objectID);
     if(model == nullptr) {
         return false;
@@ -3370,7 +3370,7 @@ bool World::setObjectScaleAPI(uint32_t objectID, const LimonAPI::Vec4 &scale) {
     return true;
 }
 
-bool World::setObjectOrientationAPI(uint32_t objectID, const LimonAPI::Vec4 &orientation) {
+bool World::setObjectOrientationAPI(uint32_t objectID, const LimonTypes::Vec4 &orientation) {
     Model* model = findModelByID(objectID);
     if(model == nullptr) {
         return false;
@@ -3384,7 +3384,7 @@ bool World::setObjectOrientationAPI(uint32_t objectID, const LimonAPI::Vec4 &ori
     return true;
 }
 
-bool World::addObjectTranslateAPI(uint32_t objectID, const LimonAPI::Vec4 &position) {
+bool World::addObjectTranslateAPI(uint32_t objectID, const LimonTypes::Vec4 &position) {
    Model* model = findModelByID(objectID);
    if(model == nullptr) {
        return false;
@@ -3394,7 +3394,7 @@ bool World::addObjectTranslateAPI(uint32_t objectID, const LimonAPI::Vec4 &posit
    return true;
 }
 
-bool World::addObjectScaleAPI(uint32_t objectID, const LimonAPI::Vec4 &scale) {
+bool World::addObjectScaleAPI(uint32_t objectID, const LimonTypes::Vec4 &scale) {
    Model* model = findModelByID(objectID);
    if(model == nullptr) {
        return false;
@@ -3404,7 +3404,7 @@ bool World::addObjectScaleAPI(uint32_t objectID, const LimonAPI::Vec4 &scale) {
    return true;
 }
 
-bool World::addObjectOrientationAPI(uint32_t objectID, const LimonAPI::Vec4 &orientation) {
+bool World::addObjectOrientationAPI(uint32_t objectID, const LimonTypes::Vec4 &orientation) {
    Model* model = findModelByID(objectID);
    if(model == nullptr) {
        return false;
@@ -3973,7 +3973,7 @@ void World::addSkyBoxControls() {
 
 }
 
-bool World::addLightTranslateAPI(uint32_t lightID, const LimonAPI::Vec4 &position) {
+bool World::addLightTranslateAPI(uint32_t lightID, const LimonTypes::Vec4 &position) {
     Light* light = nullptr;
     for (size_t i = 0; i < lights.size(); ++i) {
         if(lights[i]->getWorldObjectID() == lightID){
@@ -3989,7 +3989,7 @@ bool World::addLightTranslateAPI(uint32_t lightID, const LimonAPI::Vec4 &positio
     return true;
 }
 
-bool World::setLightColorAPI(uint32_t lightID, const LimonAPI::Vec4& color) {
+bool World::setLightColorAPI(uint32_t lightID, const LimonTypes::Vec4& color) {
     Light* light = nullptr;
     for (size_t i = 0; i < lights.size(); ++i) {
         if(lights[i]->getWorldObjectID() == lightID){
@@ -4238,9 +4238,9 @@ void World::createNodeGraph() {
 
 uint32_t World::addParticleEmitter(const std::string &name,
                                    const std::string& textureFile,
-                                   const LimonAPI::Vec4& startPosition,
-                                   const LimonAPI::Vec4& maxStartDistances,
-                                   const LimonAPI::Vec2& size,
+                                   const LimonTypes::Vec4& startPosition,
+                                   const LimonTypes::Vec4& maxStartDistances,
+                                   const LimonTypes::Vec2& size,
                                    uint32_t count,
                                    uint32_t lifeTime,
                                    float particlePerMs,
@@ -4285,7 +4285,7 @@ bool World::removeParticleEmitter(uint32_t emitterID) {
         return true;
 }
 
-bool World::setEmitterParticleSpeed(uint32_t emitterID, const LimonAPI::Vec4& speedMultiplier, const LimonAPI::Vec4& speedOffset) {
+bool World::setEmitterParticleSpeed(uint32_t emitterID, const LimonTypes::Vec4& speedMultiplier, const LimonTypes::Vec4& speedOffset) {
        auto emitterIT = this->emitters.find(emitterID);
        if(emitterIT == this->emitters.end()) {
            return false;
@@ -4295,7 +4295,7 @@ bool World::setEmitterParticleSpeed(uint32_t emitterID, const LimonAPI::Vec4& sp
        return true;
 }
 
-bool World::setEmitterParticleGravity(uint32_t emitterID, const LimonAPI::Vec4& gravity) {
+bool World::setEmitterParticleGravity(uint32_t emitterID, const LimonTypes::Vec4& gravity) {
        auto emitterIT = this->emitters.find(emitterID);
        if(emitterIT == this->emitters.end()) {
            return false;

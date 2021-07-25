@@ -9,7 +9,7 @@
 std::map<std::string, ActorInterface*(*)(uint32_t, LimonAPI*)>* ActorInterface::typeMap;
 
 glm::vec3 ActorInterface::getFrontVector() const {
-    std::vector<LimonAPI::ParameterRequest> parameters = limonAPI->getObjectTransformation(modelID);
+    std::vector<LimonTypes::GenericParameter> parameters = limonAPI->getObjectTransformation(modelID);
     glm::quat rotation(0,0,1,0);
     if(parameters.size() >= 3) {
         rotation = glm::quat(parameters[2].value.vectorValue.x,
@@ -34,7 +34,7 @@ glm::vec3 ActorInterface::getFrontVector() const {
 }
 
 glm::vec3 ActorInterface::getPosition() const {
-    std::vector<LimonAPI::ParameterRequest> parameters = limonAPI->getObjectTransformation(modelID);
+    std::vector<LimonTypes::GenericParameter> parameters = limonAPI->getObjectTransformation(modelID);
     glm::vec3 position(0,0,0);
     if(parameters.size() >= 1) {
         position = glm::vec3(parameters[0].value.vectorValue.x,

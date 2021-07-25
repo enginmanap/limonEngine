@@ -49,7 +49,7 @@ public:
     virtual std::string getName() const = 0;
     virtual ImGuiResult addImGuiEditorElements(const ImGuiRequest &request [[gnu::unused]]) {ImGuiResult imGuiResult; return imGuiResult;};
 
-    virtual void interact(LimonAPI *limonAPI [[gnu::unused]], std::vector<LimonAPI::ParameterRequest> &interactionData [[gnu::unused]]) {};
+    virtual void interact(LimonAPI *limonAPI [[gnu::unused]], std::vector<LimonTypes::GenericParameter> &interactionData [[gnu::unused]]) {};
 
     virtual uint32_t getWorldObjectID() const = 0;
     virtual ~GameObject() = default;

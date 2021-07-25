@@ -114,16 +114,16 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
 
 
     uint32_t addParticleEmitter(const std::string &name, const std::string& textureFile,
-                                const LimonAPI::Vec4& startPosition,
-                                const LimonAPI::Vec4& maxStartDistances,
-                                const LimonAPI::Vec2& size,
+                                const LimonTypes::Vec4& startPosition,
+                                const LimonTypes::Vec4& maxStartDistances,
+                                const LimonTypes::Vec2& size,
                                 uint32_t count,
                                 uint32_t lifeTime,
                                 float particlePerMs,
                                 bool continuouslyEmit);
     bool removeParticleEmitter(uint32_t emitterID);
-    bool setEmitterParticleSpeed(uint32_t emitterID, const LimonAPI::Vec4& speedMultiplier, const LimonAPI::Vec4& speedOffset);
-    bool setEmitterParticleGravity(uint32_t emitterID, const LimonAPI::Vec4& gravity);
+    bool setEmitterParticleSpeed(uint32_t emitterID, const LimonTypes::Vec4& speedMultiplier, const LimonTypes::Vec4& speedOffset);
+    bool setEmitterParticleGravity(uint32_t emitterID, const LimonTypes::Vec4& gravity);
 
     limonAPI->worldAddLightTranslate =   std::bind(&World::addLightTranslateAPI,   world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldSetLightColor     =   std::bind(&World::setLightColorAPI,       world, std::placeholders::_1, std::placeholders::_2);
@@ -1472,7 +1472,7 @@ bool WorldLoader::loadOnLoadActions(tinyxml2::XMLNode *worldNode, World *world) 
             tinyxml2::XMLElement* parameterNode = parametersListNode->FirstChildElement("Parameter");
             uint32_t index;
             while(parameterNode != nullptr) {
-                std::shared_ptr<LimonAPI::ParameterRequest> request = APISerializer::deserializeParameterRequest(parameterNode, index);
+                std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(parameterNode, index);
                 if(request == nullptr) {
                     return false;
                 }

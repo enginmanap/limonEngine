@@ -7,17 +7,17 @@
 TriggerRegister<ReturnPreviousWorldOnTrigger> ReturnPreviousWorldOnTrigger::reg("ReturnPreviousWorldOnTrigger");
 
 
-std::vector<LimonAPI::ParameterRequest> ReturnPreviousWorldOnTrigger::getParameters() {
-    return std::vector<LimonAPI::ParameterRequest>();
+std::vector<LimonTypes::GenericParameter> ReturnPreviousWorldOnTrigger::getParameters() {
+    return std::vector<LimonTypes::GenericParameter>();
 }
 
-bool ReturnPreviousWorldOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {
+bool ReturnPreviousWorldOnTrigger::run(std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) {
     limonAPI->returnPreviousWorld();
     return true;
 }
 
-std::vector<LimonAPI::ParameterRequest> ReturnPreviousWorldOnTrigger::getResults() {
-    return std::vector<LimonAPI::ParameterRequest>();
+std::vector<LimonTypes::GenericParameter> ReturnPreviousWorldOnTrigger::getResults() {
+    return std::vector<LimonTypes::GenericParameter>();
 }
 
 ReturnPreviousWorldOnTrigger::ReturnPreviousWorldOnTrigger(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}

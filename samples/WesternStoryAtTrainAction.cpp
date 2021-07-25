@@ -5,22 +5,22 @@
 #include <iostream>
 #include "WesternStoryAtTrainAction.h"
 
-std::vector<LimonAPI::ParameterRequest> WesternStoryAtTrainAction::getParameters() {
-    std::vector<LimonAPI::ParameterRequest> parameters;
-    LimonAPI::ParameterRequest param;
-    param.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::TRIGGER;
+std::vector<LimonTypes::GenericParameter> WesternStoryAtTrainAction::getParameters() {
+    std::vector<LimonTypes::GenericParameter> parameters;
+    LimonTypes::GenericParameter param;
+    param.requestType = LimonTypes::GenericParameter::RequestParameterTypes::TRIGGER;
     param.description = "Check Trigger before";
     param.isSet = false;
     parameters.push_back(param);
 
-    LimonAPI::ParameterRequest param2;
-    param2.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::SWITCH;
+    LimonTypes::GenericParameter param2;
+    param2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::SWITCH;
     param2.description = "Should Trigger be run?";
     param2.isSet = true;
     parameters.push_back(param2);
 
-    LimonAPI::ParameterRequest param3;
-    param3.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_TEXT;
+    LimonTypes::GenericParameter param3;
+    param3.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_TEXT;
     param3.description = "World to load";
     param3.isSet = false;
     parameters.push_back(param3);
@@ -28,13 +28,13 @@ std::vector<LimonAPI::ParameterRequest> WesternStoryAtTrainAction::getParameters
     return parameters;
 }
 
-bool WesternStoryAtTrainAction::run(std::vector<LimonAPI::ParameterRequest> parameters) {
+bool WesternStoryAtTrainAction::run(std::vector<LimonTypes::GenericParameter> parameters) {
     if(parameters.size() != 3) {
         std::cerr << this->getName() << " didn't get the parameters, it won't run. " << std::endl;
         return false;
     }
 
-    std::vector<LimonAPI::ParameterRequest>triggerResult = limonAPI->getResultOfTrigger(
+    std::vector<LimonTypes::GenericParameter>triggerResult = limonAPI->getResultOfTrigger(
             static_cast<uint32_t>(parameters[0].value.longValues[1]),
             static_cast<uint32_t>(parameters[0].value.longValues[2]));
 
@@ -54,8 +54,8 @@ bool WesternStoryAtTrainAction::run(std::vector<LimonAPI::ParameterRequest> para
     return true;
 }
 
-std::vector<LimonAPI::ParameterRequest> WesternStoryAtTrainAction::getResults() {
-    return std::vector<LimonAPI::ParameterRequest>();
+std::vector<LimonTypes::GenericParameter> WesternStoryAtTrainAction::getResults() {
+    return std::vector<LimonTypes::GenericParameter>();
 }
 
 std::string WesternStoryAtTrainAction::getName() const {

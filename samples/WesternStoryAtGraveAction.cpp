@@ -5,22 +5,22 @@
 #include <iostream>
 #include "WesternStoryAtGraveAction.h"
 
-std::vector<LimonAPI::ParameterRequest> WesternStoryAtGraveAction::getParameters() {
-    std::vector<LimonAPI::ParameterRequest> parameters;
-    LimonAPI::ParameterRequest param;
-    param.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::TRIGGER;
+std::vector<LimonTypes::GenericParameter> WesternStoryAtGraveAction::getParameters() {
+    std::vector<LimonTypes::GenericParameter> parameters;
+    LimonTypes::GenericParameter param;
+    param.requestType = LimonTypes::GenericParameter::RequestParameterTypes::TRIGGER;
     param.description = "Check Trigger before";
     param.isSet = false;
     parameters.push_back(param);
-    LimonAPI::ParameterRequest param2;
-    param2.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::SWITCH;
+    LimonTypes::GenericParameter param2;
+    param2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::SWITCH;
     param2.description = "Should Trigger be run?";
     param2.isSet = true;
     parameters.push_back(param2);
     return parameters;
 }
 
-bool WesternStoryAtGraveAction::run(std::vector<LimonAPI::ParameterRequest> parameters) {
+bool WesternStoryAtGraveAction::run(std::vector<LimonTypes::GenericParameter> parameters) {
     //this action is for showing text when player is at grave
     if(this->hasRun) {
         return false;
@@ -30,7 +30,7 @@ bool WesternStoryAtGraveAction::run(std::vector<LimonAPI::ParameterRequest> para
         return false;
     }
 
-    std::vector<LimonAPI::ParameterRequest>triggerResult = limonAPI->getResultOfTrigger(
+    std::vector<LimonTypes::GenericParameter>triggerResult = limonAPI->getResultOfTrigger(
             static_cast<uint32_t>(parameters[0].value.longValues[1]),
             static_cast<uint32_t>(parameters[0].value.longValues[2]));
 
@@ -46,26 +46,26 @@ bool WesternStoryAtGraveAction::run(std::vector<LimonAPI::ParameterRequest> para
     }
 
     textID1 = limonAPI->addGuiText("./Data/Fonts/InsaneRodeo.ttf", 64, "firstText", "Gold is not here", glm::vec3(170, 170, 50), glm::vec2(0.5f, 0.2f), 0.0f);
-    std::vector<LimonAPI::ParameterRequest> emptyParamList;
+    std::vector<LimonTypes::GenericParameter> emptyParamList;
     limonAPI->addTimedEvent( 3000, std::bind(&WesternStoryAtGraveAction::showMessages1, this, std::placeholders::_1), emptyParamList);
     limonAPI->addTimedEvent(7000, std::bind(&WesternStoryAtGraveAction::showMessages2, this, std::placeholders::_1), emptyParamList);
     this->hasRun = true;
     return true;
 }
 
-std::vector<LimonAPI::ParameterRequest> WesternStoryAtGraveAction::getResults() {
-    return std::vector<LimonAPI::ParameterRequest>();
+std::vector<LimonTypes::GenericParameter> WesternStoryAtGraveAction::getResults() {
+    return std::vector<LimonTypes::GenericParameter>();
 }
 
 std::string WesternStoryAtGraveAction::getName() const {
     return "WesternStoryAtGrave";
 }
 
-void WesternStoryAtGraveAction::showMessages1(const std::vector<LimonAPI::ParameterRequest> &emptyParamList [[gnu::unused]]) {
+void WesternStoryAtGraveAction::showMessages1(const std::vector<LimonTypes::GenericParameter> &emptyParamList [[gnu::unused]]) {
     limonAPI->removeGuiElement(textID1);
     textID2 = limonAPI->addGuiText("./Data/Fonts/InsaneRodeo.ttf", 64, "secondText", "undertaker must have taken them", glm::vec3(170, 170, 50), glm::vec2(0.5f, 0.2f), 0.0f);
 }
 
-void WesternStoryAtGraveAction::showMessages2(const std::vector<LimonAPI::ParameterRequest> &emptyParamList [[gnu::unused]]) {
+void WesternStoryAtGraveAction::showMessages2(const std::vector<LimonTypes::GenericParameter> &emptyParamList [[gnu::unused]]) {
     limonAPI->removeGuiElement(textID2);
 }

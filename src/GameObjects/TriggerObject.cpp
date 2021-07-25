@@ -65,7 +65,7 @@ GameObject::ImGuiResult TriggerObject::addImGuiEditorElements(const ImGuiRequest
     return result;
 }
 
-void TriggerObject::PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&triggerCode, std::vector<LimonAPI::ParameterRequest> &parameters,
+void TriggerObject::PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&triggerCode, std::vector<LimonTypes::GenericParameter> &parameters,
                                     bool &enabled, uint32_t index) {
     //index is used because imgui doesn't allow repeating labels
         //now we should put 3 triggers,
@@ -202,7 +202,7 @@ TriggerObject * TriggerObject::deserialize(tinyxml2::XMLElement *triggersNode, L
     return triggerObject;
 }
 
-std::vector<LimonAPI::ParameterRequest> TriggerObject::getResultOfCode(uint32_t codeID) {
+std::vector<LimonTypes::GenericParameter> TriggerObject::getResultOfCode(uint32_t codeID) {
     switch (codeID) {
         case 1: {
             if(firstEnterTriggerCode != nullptr) {
@@ -221,7 +221,7 @@ std::vector<LimonAPI::ParameterRequest> TriggerObject::getResultOfCode(uint32_t 
         } break;
 
     }
-    return std::vector<LimonAPI::ParameterRequest>();
+    return std::vector<LimonTypes::GenericParameter>();
 }
 
 

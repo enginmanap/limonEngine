@@ -20,9 +20,9 @@ class RenderMethods {
 public:
     class RenderMethod {
         std::string name;
-        std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::vector<LimonAPI::ParameterRequest>&)> initializer;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::vector<LimonTypes::GenericParameter>&)> initializer;
         std::function<void(const std::shared_ptr<GraphicsProgram>&)> method;
-        std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::vector<LimonAPI::ParameterRequest>&)> finalizer;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::vector<LimonTypes::GenericParameter>&)> finalizer;
         std::shared_ptr<GraphicsProgram> glslProgram;
         uint32_t priority{};
         bool isInitialized = false;
@@ -30,9 +30,9 @@ public:
     public:
         RenderMethod(std::string  name,
                      uint32_t priority,
-                     std::function<void(const std::shared_ptr<GraphicsProgram> &, const std::vector<LimonAPI::ParameterRequest> &)> initializer,
+                     std::function<void(const std::shared_ptr<GraphicsProgram> &, const std::vector<LimonTypes::GenericParameter> &)> initializer,
                      std::function<void(const std::shared_ptr<GraphicsProgram> &)> method,
-                     std::function<void(const std::shared_ptr<GraphicsProgram> &, const std::vector<LimonAPI::ParameterRequest> &)> finalizer,
+                     std::function<void(const std::shared_ptr<GraphicsProgram> &, const std::vector<LimonTypes::GenericParameter> &)> finalizer,
                      std::shared_ptr<GraphicsProgram> glslProgram) :
                      name(std::move(name)), initializer(std::move(initializer)), method(std::move(method)), finalizer(std::move(finalizer)),
                      glslProgram(std::move(glslProgram)), priority(priority) {
@@ -56,14 +56,14 @@ public:
             method(glslProgram);
         }
 
-        void initialize(const std::vector<LimonAPI::ParameterRequest>& parameters) {
+        void initialize(const std::vector<LimonTypes::GenericParameter>& parameters) {
             if(this->initializer != nullptr) {
                 initializer(glslProgram, parameters);
             }
             isInitialized = true;
         }
 
-        void finalize(const std::vector<LimonAPI::ParameterRequest>& parameters) {
+        void finalize(const std::vector<LimonTypes::GenericParameter>& parameters) {
             if(this->finalizer != nullptr) {
                 finalizer(glslProgram, parameters);
             }
@@ -202,11 +202,11 @@ public:
             if(methodInterface != nullptr) {
                 return RenderMethod(methodName,
                                     priority,
-                                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonAPI::ParameterRequest> & params)
+                                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonTypes::GenericParameter> & params)
                                     {return methodInterface->initRender(program, params);},
                                     [methodInterface](const std::shared_ptr<GraphicsProgram>& program)
                                     {return methodInterface->renderFrame(program);},
-                                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonAPI::ParameterRequest> &params)
+                                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonTypes::GenericParameter> &params)
                                     {return methodInterface->cleanupRender(program, params);},
                                     glslProgram
                 );

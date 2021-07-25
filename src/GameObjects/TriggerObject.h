@@ -18,9 +18,9 @@
 class TriggerObject : public GameObject {
     std::string name;
     Transformation transformation;
-    std::vector<LimonAPI::ParameterRequest> firstEnterParameters;
-    std::vector<LimonAPI::ParameterRequest> enterParameters;
-    std::vector<LimonAPI::ParameterRequest> exitParameters;
+    std::vector<LimonTypes::GenericParameter> firstEnterParameters;
+    std::vector<LimonTypes::GenericParameter> enterParameters;
+    std::vector<LimonTypes::GenericParameter> exitParameters;
 
     uint32_t objectID;
     LimonAPI* limonAPI;
@@ -52,7 +52,7 @@ class TriggerObject : public GameObject {
 
 public:
 
-    static void PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&triggerCode, std::vector<LimonAPI::ParameterRequest> &parameters,
+    static void PutTriggerInGui(LimonAPI *limonAPI, TriggerInterface *&triggerCode, std::vector<LimonTypes::GenericParameter> &parameters,
                                     bool &enabled, uint32_t index);
 
     TriggerObject(uint32_t id, LimonAPI* limonAPI): objectID(id), limonAPI(limonAPI) {
@@ -159,7 +159,7 @@ public:
     void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *triggersNode) const;
     static TriggerObject *deserialize(tinyxml2::XMLElement *triggerNode, LimonAPI *limonAPI);
 
-    std::vector<LimonAPI::ParameterRequest> getResultOfCode(uint32_t codeID);
+    std::vector<LimonTypes::GenericParameter> getResultOfCode(uint32_t codeID);
 };
 
 

@@ -28,7 +28,7 @@ class GUIButton : public GUIImageBase, public GameObject{
 
     LimonAPI* limonAPI;
     TriggerInterface* onClickTriggerCode = nullptr;
-    std::vector<LimonAPI::ParameterRequest> onClickParameters;
+    std::vector<LimonTypes::GenericParameter> onClickParameters;
 
 
     const char editorFileNameFields[4][45] = {"Normal file##SelectedGUIButtonFileField", "On hover file##SelectedGUIButtonFileField", "On click file##SelectedGUIButtonFileField", "Disabled File##SelectedGUIButtonFileField"};

@@ -58,8 +58,8 @@ void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) 
         } else {
             if(time - shootPlayerTimer > PLAYER_SHOOT_TIMEOUT) {
                 limonAPI->setModelAnimationWithBlend(modelID,"Shoot Rifle|mixamo.com", false);
-                std::vector<LimonAPI::ParameterRequest> prList;
-                LimonAPI::ParameterRequest pr;
+                std::vector<LimonTypes::GenericParameter> prList;
+                LimonTypes::GenericParameter pr;
                 pr.valueType = pr.STRING;
                 strncpy(pr.value.stringValue, "SHOOT_PLAYER", 63);
                 prList.push_back(pr);
@@ -116,14 +116,14 @@ void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) 
         limonAPI->addObjectTranslate(modelID, LimonConverter::GLMToLimon(moveDirection));
         if(information.isPlayerLeft) {
             if(information.cosineBetweenPlayerForSide < 0.95) {
-                LimonAPI::Vec4 rotateLeft(0.0f, 0.015f, 0.0f, 1.0f);
+                LimonTypes::Vec4 rotateLeft(0.0f, 0.015f, 0.0f, 1.0f);
                 limonAPI->addObjectOrientation(modelID, rotateLeft);
             }
         }
         if(information.isPlayerRight) {
             //turn just a little bit to right
             if(information.cosineBetweenPlayerForSide < 0.95) {
-                LimonAPI::Vec4 rotateRight(0.0f, -0.015f, 0.0f, 1.0f);
+                LimonTypes::Vec4 rotateRight(0.0f, -0.015f, 0.0f, 1.0f);
                 limonAPI->addObjectOrientation(modelID, rotateRight);
             }
         }
@@ -136,12 +136,12 @@ void HumanEnemy::play(long time, ActorInterface::ActorInformation &information) 
     }
 }
 
-bool HumanEnemy::interaction(std::vector<LimonAPI::ParameterRequest> &interactionInformation) {
+bool HumanEnemy::interaction(std::vector<LimonTypes::GenericParameter> &interactionInformation) {
     if(interactionInformation.size() < 1) {
         return false;
     }
 
-    if(interactionInformation[0].valueType == LimonAPI::ParameterRequest::ValueTypes::STRING && std::string(interactionInformation[0].value.stringValue) == "GOT_HIT") {
+    if(interactionInformation[0].valueType == LimonTypes::GenericParameter::ValueTypes::STRING && std::string(interactionInformation[0].value.stringValue) == "GOT_HIT") {
         playerPursuitStartTime = lastSetupTime;
         hitAnimationAwaiting = true;
         if(hitPoints < 20) {
@@ -154,22 +154,22 @@ bool HumanEnemy::interaction(std::vector<LimonAPI::ParameterRequest> &interactio
     return false;
 }
 
-std::vector<LimonAPI::ParameterRequest> HumanEnemy::getParameters() const {
-    std::vector<LimonAPI::ParameterRequest> parameters;
+std::vector<LimonTypes::GenericParameter> HumanEnemy::getParameters() const {
+    std::vector<LimonTypes::GenericParameter> parameters;
 
-    LimonAPI::ParameterRequest hitPointParameter;
-    hitPointParameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+    LimonTypes::GenericParameter hitPointParameter;
+    hitPointParameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     hitPointParameter.description = "Hit points";
-    hitPointParameter.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+    hitPointParameter.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
     hitPointParameter.value.longValue = (long) this->hitPoints;
     hitPointParameter.isSet = true;//don't force change
     parameters.push_back(hitPointParameter);
     return parameters;
 }
 
-void HumanEnemy::setParameters(std::vector<LimonAPI::ParameterRequest> parameters) {
+void HumanEnemy::setParameters(std::vector<LimonTypes::GenericParameter> parameters) {
     if(parameters.size() > 0) {
-        if(parameters[0].description == "Hit points" && parameters[0].valueType == LimonAPI::ParameterRequest::ValueTypes::LONG) {
+        if(parameters[0].description == "Hit points" && parameters[0].valueType == LimonTypes::GenericParameter::ValueTypes::LONG) {
             this->hitPoints = parameters[0].value.longValue;
         }
 

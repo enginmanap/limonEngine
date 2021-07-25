@@ -236,12 +236,12 @@ void CowboyEnemyAI::play(long time, ActorInterface::ActorInformation &informatio
 
 }
 
-bool CowboyEnemyAI::interaction(std::vector<LimonAPI::ParameterRequest> &interactionInformation) {
+bool CowboyEnemyAI::interaction(std::vector<LimonTypes::GenericParameter> &interactionInformation) {
     if(interactionInformation.size() < 1) {
         return false;
     }
 
-    if(interactionInformation[0].valueType == LimonAPI::ParameterRequest::ValueTypes::STRING && std::string(interactionInformation[0].value.stringValue) == "GOT_HIT") {
+    if(interactionInformation[0].valueType == LimonTypes::GenericParameter::ValueTypes::STRING && std::string(interactionInformation[0].value.stringValue) == "GOT_HIT") {
         if(hitPoints < 20) {
             hitPoints =0;
         } else {
@@ -257,53 +257,53 @@ bool CowboyEnemyAI::interaction(std::vector<LimonAPI::ParameterRequest> &interac
     return false;
 }
 
-std::vector<LimonAPI::ParameterRequest> CowboyEnemyAI::getParameters() const {
-    std::vector<LimonAPI::ParameterRequest> parameters;
+std::vector<LimonTypes::GenericParameter> CowboyEnemyAI::getParameters() const {
+    std::vector<LimonTypes::GenericParameter> parameters;
 
-    LimonAPI::ParameterRequest hitPointParameter;
-    hitPointParameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+    LimonTypes::GenericParameter hitPointParameter;
+    hitPointParameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     hitPointParameter.description = "Hit points";
-    hitPointParameter.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+    hitPointParameter.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
     hitPointParameter.value.longValue = (long) this->hitPoints;
     hitPointParameter.isSet = true;//don't force change
     parameters.push_back(hitPointParameter);
 
-    LimonAPI::ParameterRequest kneelDownChance;
-    kneelDownChance.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+    LimonTypes::GenericParameter kneelDownChance;
+    kneelDownChance.valueType = LimonTypes::GenericParameter::ValueTypes::DOUBLE;
     kneelDownChance.description = "AI kneel down chance in %";
-    kneelDownChance.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+    kneelDownChance.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
     kneelDownChance.value.doubleValue = this->kneelDownChance;
     kneelDownChance.isSet = true;//don't force change
     parameters.push_back(kneelDownChance);
 
-    LimonAPI::ParameterRequest kneelStandChance;
-    kneelStandChance.valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+    LimonTypes::GenericParameter kneelStandChance;
+    kneelStandChance.valueType = LimonTypes::GenericParameter::ValueTypes::DOUBLE;
     kneelStandChance.description = "AI kneel stay chance in %";
-    kneelStandChance.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+    kneelStandChance.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
     kneelStandChance.value.doubleValue = this->kneelStayChance;
     kneelStandChance.isSet = true;//don't force change
     parameters.push_back(kneelStandChance);
 
-    LimonAPI::ParameterRequest minShootWait;
-    minShootWait.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+    LimonTypes::GenericParameter minShootWait;
+    minShootWait.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     minShootWait.description = "Wait until shoot again (in ms.)";
-    minShootWait.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+    minShootWait.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
     minShootWait.value.longValue = this->minShootTimeWait;
     minShootWait.isSet = true;//don't force change
     parameters.push_back(minShootWait);
 
-    LimonAPI::ParameterRequest gunDamage;
-    gunDamage.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+    LimonTypes::GenericParameter gunDamage;
+    gunDamage.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     gunDamage.description = "Damage of Gun";
-    gunDamage.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+    gunDamage.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
     gunDamage.value.longValue = (long)this->gunDamage;
     gunDamage.isSet = true;//don't force change
     parameters.push_back(gunDamage);
 
-    LimonAPI::ParameterRequest gunType;// first one is the name of selected one
-    gunType.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+    LimonTypes::GenericParameter gunType;// first one is the name of selected one
+    gunType.valueType = LimonTypes::GenericParameter::ValueTypes::STRING;
     gunType.description = "Gun type";
-    gunType.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MULTI_SELECT;
+    gunType.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MULTI_SELECT;
     switch (currentGun) {
         case Gun::PISTOL:
             strncpy(gunType.value.stringValue, "Pistol", sizeof(gunType.value.stringValue) - 1);
@@ -318,26 +318,26 @@ std::vector<LimonAPI::ParameterRequest> CowboyEnemyAI::getParameters() const {
     gunType.isSet = true;//don't force change
     parameters.push_back(gunType);
 
-    LimonAPI::ParameterRequest gunType2;
-    gunType2.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+    LimonTypes::GenericParameter gunType2;
+    gunType2.valueType = LimonTypes::GenericParameter::ValueTypes::STRING;
     gunType2.description = "Gun type";
-    gunType2.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MULTI_SELECT;
+    gunType2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MULTI_SELECT;
     strncpy(gunType2.value.stringValue, "Pistol", sizeof(gunType.value.stringValue) -1);
     gunType2.isSet = true;//don't force change
     parameters.push_back(gunType2);
 
-    LimonAPI::ParameterRequest gunType3;
-    gunType3.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+    LimonTypes::GenericParameter gunType3;
+    gunType3.valueType = LimonTypes::GenericParameter::ValueTypes::STRING;
     gunType3.description = "Gun type";
-    gunType3.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MULTI_SELECT;
+    gunType3.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MULTI_SELECT;
     strncpy(gunType3.value.stringValue, "Rifle", sizeof(gunType3.value.stringValue) -1);
     gunType3.isSet = true;//don't force change
     parameters.push_back(gunType3);
 
-    LimonAPI::ParameterRequest gunType4;
-    gunType4.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+    LimonTypes::GenericParameter gunType4;
+    gunType4.valueType = LimonTypes::GenericParameter::ValueTypes::STRING;
     gunType4.description = "Gun type";
-    gunType4.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MULTI_SELECT;
+    gunType4.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MULTI_SELECT;
     strncpy(gunType4.value.stringValue, "Shotgun", sizeof(gunType4.value.stringValue) -1);
     gunType4.isSet = true;//don't force change
     parameters.push_back(gunType4);
@@ -345,7 +345,7 @@ std::vector<LimonAPI::ParameterRequest> CowboyEnemyAI::getParameters() const {
     return parameters;
 }
 
-void CowboyEnemyAI::setParameters(std::vector<LimonAPI::ParameterRequest> parameters) {
+void CowboyEnemyAI::setParameters(std::vector<LimonTypes::GenericParameter> parameters) {
     bool gunTypeSet = false;
     for (size_t i = 0; i < parameters.size(); ++i) {
         if(parameters[i].description == "Hit points") {
@@ -384,13 +384,13 @@ void CowboyEnemyAI::transitionToMelee(const ActorInformation &information) {
         case Gun::PISTOL: {
             limonAPI->setModelAnimationWithBlend(modelID, "Pistol Whip|", false);
             damage = 10;
-            std::vector<LimonAPI::ParameterRequest> prList;
-            LimonAPI::ParameterRequest pr;
+            std::vector<LimonTypes::GenericParameter> prList;
+            LimonTypes::GenericParameter pr;
             pr.valueType = pr.STRING;
             strncpy(pr.value.stringValue, "MELEE_PLAYER", 63);
             prList.push_back(pr);
 
-            LimonAPI::ParameterRequest pr2;
+            LimonTypes::GenericParameter pr2;
             pr2.valueType = pr.LONG;
             pr2.value.longValue = damage;
             prList.push_back(pr2);
@@ -653,18 +653,18 @@ void CowboyEnemyAI::shootPlayer(float playerDistance) {
         return; // miss
     }
 
-    std::vector<LimonAPI::ParameterRequest> prList;
-    LimonAPI::ParameterRequest pr;
+    std::vector<LimonTypes::GenericParameter> prList;
+    LimonTypes::GenericParameter pr;
     pr.valueType = pr.STRING;
     strncpy(pr.value.stringValue, "SHOOT_PLAYER", 63);
     prList.push_back(pr);
 
-    LimonAPI::ParameterRequest pr2;
+    LimonTypes::GenericParameter pr2;
     pr2.valueType = pr.LONG;
     pr2.value.longValue = gunDamage;
     prList.push_back(pr2);
 
-    LimonAPI::ParameterRequest pr3;
+    LimonTypes::GenericParameter pr3;
     pr3.valueType = pr.VEC4;
     pr3.value.vectorValue= LimonConverter::GLMToLimon(this->getPosition() + glm::vec3(0,2,0));//2 is the offset of model. 3d modeller should give this.
     prList.push_back(pr3);
@@ -700,20 +700,20 @@ void CowboyEnemyAI::turnFaceToPlayer(const ActorInterface::ActorInformation &inf
     //face the player
     if(information.isPlayerLeft) {
         if(information.cosineBetweenPlayerForSide < 0.65) {
-            LimonAPI::Vec4 rotateLeft(0.0f, 0.030f, 0.0f, 1.0f);
+            LimonTypes::Vec4 rotateLeft(0.0f, 0.030f, 0.0f, 1.0f);
             limonAPI->addObjectOrientation(modelID, rotateLeft);
         } else if(information.cosineBetweenPlayerForSide < 0.95) {
-            LimonAPI::Vec4 rotateLeft(0.0f, 0.015f, 0.0f, 1.0f);
+            LimonTypes::Vec4 rotateLeft(0.0f, 0.015f, 0.0f, 1.0f);
             limonAPI->addObjectOrientation(modelID, rotateLeft);
         }
     }
     if(information.isPlayerRight) {
         //turn just a little bit to right
         if(information.cosineBetweenPlayerForSide < 0.65) {
-            LimonAPI::Vec4 rotateRight(0.0f, -0.030f, 0.0f, 1.0f);
+            LimonTypes::Vec4 rotateRight(0.0f, -0.030f, 0.0f, 1.0f);
             limonAPI->addObjectOrientation(modelID, rotateRight);
         } else if(information.cosineBetweenPlayerForSide < 0.95) {
-            LimonAPI::Vec4 rotateRight(0.0f, -0.015f, 0.0f, 1.0f);
+            LimonTypes::Vec4 rotateRight(0.0f, -0.015f, 0.0f, 1.0f);
             limonAPI->addObjectOrientation(modelID, rotateRight);
         }
     }

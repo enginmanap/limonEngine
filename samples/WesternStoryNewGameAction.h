@@ -11,14 +11,14 @@
 class WesternStoryNewGameAction : public TriggerInterface {
 public:
     WesternStoryNewGameAction(LimonAPI* limonAPI) : TriggerInterface(limonAPI) {}
-    void animateThoughts(const std::vector<LimonAPI::ParameterRequest> &emptyParamList);
-    void switchWorld(const std::vector<LimonAPI::ParameterRequest> &emptyParamList);
+    void animateThoughts(const std::vector<LimonTypes::GenericParameter> &emptyParamList);
+    void switchWorld(const std::vector<LimonTypes::GenericParameter> &emptyParamList);
 
-    std::vector<LimonAPI::ParameterRequest> getParameters() override;
+    std::vector<LimonTypes::GenericParameter> getParameters() override;
 
-    bool run(std::vector<LimonAPI::ParameterRequest> parameters) override;
+    bool run(std::vector<LimonTypes::GenericParameter> parameters) override;
 
-    std::vector<LimonAPI::ParameterRequest> getResults() override;
+    std::vector<LimonTypes::GenericParameter> getResults() override;
 
     std::string getName() const override;
 };

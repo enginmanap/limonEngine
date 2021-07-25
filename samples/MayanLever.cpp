@@ -8,7 +8,7 @@
 
 MayanLever::MayanLever(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}
 
-std::vector<LimonAPI::ParameterRequest> MayanLever::getParameters() {
+std::vector<LimonTypes::GenericParameter> MayanLever::getParameters() {
 
     /*
      * parameters:
@@ -18,46 +18,46 @@ std::vector<LimonAPI::ParameterRequest> MayanLever::getParameters() {
         5) animation to move the door
      */
 
-    std::vector<LimonAPI::ParameterRequest> parameters;
+    std::vector<LimonTypes::GenericParameter> parameters;
 
-    LimonAPI::ParameterRequest leverModelParameter;
-    leverModelParameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-    leverModelParameter.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MODEL;
+    LimonTypes::GenericParameter leverModelParameter;
+    leverModelParameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+    leverModelParameter.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     leverModelParameter.description = "Model to move as lever";
     parameters.push_back(leverModelParameter);
 
-    LimonAPI::ParameterRequest leverAnimation;
-    leverAnimation.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::ANIMATION;
+    LimonTypes::GenericParameter leverAnimation;
+    leverAnimation.requestType = LimonTypes::GenericParameter::RequestParameterTypes::ANIMATION;
     leverAnimation.description = "Lever activation animation";
     parameters.push_back(leverAnimation);
 
-    LimonAPI::ParameterRequest animateModelParameter1;
-    animateModelParameter1.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-    animateModelParameter1.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MODEL;
+    LimonTypes::GenericParameter animateModelParameter1;
+    animateModelParameter1.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+    animateModelParameter1.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     animateModelParameter1.description = "Door part 1";
     parameters.push_back(animateModelParameter1);
 
-    LimonAPI::ParameterRequest animateModelParameter2;
-    animateModelParameter2.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-    animateModelParameter2.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MODEL;
+    LimonTypes::GenericParameter animateModelParameter2;
+    animateModelParameter2.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+    animateModelParameter2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     animateModelParameter2.description = "Door part 2";
     parameters.push_back(animateModelParameter2);
 
-    LimonAPI::ParameterRequest animateModelParameter3;
-    animateModelParameter3.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-    animateModelParameter3.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MODEL;
+    LimonTypes::GenericParameter animateModelParameter3;
+    animateModelParameter3.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+    animateModelParameter3.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     animateModelParameter3.description = "Door part 3";
     parameters.push_back(animateModelParameter3);
 
-    LimonAPI::ParameterRequest stairAnimation;
-    leverAnimation.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::ANIMATION;
+    LimonTypes::GenericParameter stairAnimation;
+    leverAnimation.requestType = LimonTypes::GenericParameter::RequestParameterTypes::ANIMATION;
     leverAnimation.description = "Door opening animation";
     parameters.push_back(leverAnimation);
 
     return parameters;
 }
 
-bool MayanLever::run(std::vector<LimonAPI::ParameterRequest> parameters) {
+bool MayanLever::run(std::vector<LimonTypes::GenericParameter> parameters) {
     bool result;
 
     //animate the lever
@@ -72,6 +72,6 @@ bool MayanLever::run(std::vector<LimonAPI::ParameterRequest> parameters) {
     return result;
 }
 
-std::vector<LimonAPI::ParameterRequest> MayanLever::getResults() {
-    return std::vector<LimonAPI::ParameterRequest>();
+std::vector<LimonTypes::GenericParameter> MayanLever::getResults() {
+    return std::vector<LimonTypes::GenericParameter>();
 }

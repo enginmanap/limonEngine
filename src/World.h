@@ -121,11 +121,11 @@ private:
 
     struct TimedEvent {
         long callTime;
-        std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall;
-        std::vector<LimonAPI::ParameterRequest> parameters;
+        std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall;
+        std::vector<LimonTypes::GenericParameter> parameters;
 
-        TimedEvent(long callTime, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall,
-                   std::vector<LimonAPI::ParameterRequest> parameters) :
+        TimedEvent(long callTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
+                   std::vector<LimonTypes::GenericParameter> parameters) :
         callTime(callTime), methodToCall(std::move(methodToCall)), parameters(std::move(parameters)) {}
 
         bool operator>(const TimedEvent &timedEventRight) const {
@@ -154,7 +154,7 @@ private:
 
     struct ActionForOnload {
         TriggerInterface* action = nullptr;
-        std::vector<LimonAPI::ParameterRequest> parameters;
+        std::vector<LimonTypes::GenericParameter> parameters;
         bool enabled = false;
     };
 
@@ -353,8 +353,8 @@ private:
     Model* findModelByID(uint32_t modelID) const;
     Model* findModelByIDChildren(PhysicalRenderable* parent ,uint32_t modelID) const;
 
-    std::vector<LimonAPI::ParameterRequest>
-    fillRouteInformation(std::vector<LimonAPI::ParameterRequest> parameters) const;
+    std::vector<LimonTypes::GenericParameter>
+    fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters) const;
 
     void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment);
 
@@ -417,7 +417,7 @@ public:
     * @param runParameters
     * @return true if all requied parameters are set, otherwise false
     */
-    bool generateEditorElementsForParameters(std::vector<LimonAPI::ParameterRequest> &runParameters, uint32_t index);
+    bool generateEditorElementsForParameters(std::vector<LimonTypes::GenericParameter> &runParameters, uint32_t index);
 
     uint32_t addAnimationToObjectWithSound(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad,
                                            const std::string *soundToPlay);
@@ -432,7 +432,7 @@ public:
                         const glm::vec2 &position, float rotation);
 
     uint32_t addGuiImageAPI(const std::string &imageFilePath, const std::string &name,
-                                   const LimonAPI::Vec2 &position, const LimonAPI::Vec2 &scale, float rotation);
+                                   const LimonTypes::Vec2 &position, const LimonTypes::Vec2 &scale, float rotation);
 
     uint32_t addModelApi(const std::string &modelFilePath, float modelWeight, bool physical, const glm::vec3 &position,
                          const glm::vec3 &scale, const glm::quat &orientation);
@@ -452,7 +452,7 @@ public:
 
     uint32_t playSound(const std::string &soundPath, const glm::vec3 &position, bool positionRelative, bool looped);
 
-    std::vector<LimonAPI::ParameterRequest> getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID);
+    std::vector<LimonTypes::GenericParameter> getResultOfTrigger(uint32_t triggerObjectID, uint32_t triggerCodeID);
 
     bool disconnectObjectFromPhysics(uint32_t objectWorldID);
 
@@ -462,9 +462,9 @@ public:
 
     bool reconnectObjectToPhysicsRequest(uint32_t objectWorldID);
 
-    bool applyForceAPI(uint32_t objectID, const LimonAPI::Vec4 &forcePosition, const LimonAPI::Vec4 &forceAmount);
+    bool applyForceAPI(uint32_t objectID, const LimonTypes::Vec4 &forcePosition, const LimonTypes::Vec4 &forceAmount);
 
-    bool applyForceToPlayerAPI(const LimonAPI::Vec4 &forceAmount);
+    bool applyForceToPlayerAPI(const LimonTypes::Vec4 &forceAmount);
 
     /**
      * If nothing is hit, returns empty vector
@@ -474,28 +474,28 @@ public:
      * 3) hit normal
      *
      */
-    std::vector<LimonAPI::ParameterRequest> rayCastToCursorAPI();
+    std::vector<LimonTypes::GenericParameter> rayCastToCursorAPI();
 
 
-    std::vector<LimonAPI::ParameterRequest> getObjectTransformationAPI(uint32_t objectID) const;
+    std::vector<LimonTypes::GenericParameter> getObjectTransformationAPI(uint32_t objectID) const;
 
-    std::vector<LimonAPI::ParameterRequest> getObjectTransformationMatrixAPI(uint32_t objectID) const;
+    std::vector<LimonTypes::GenericParameter> getObjectTransformationMatrixAPI(uint32_t objectID) const;
 
-    bool setObjectTranslateAPI(uint32_t objectID, const LimonAPI::Vec4& position);
-    bool setObjectScaleAPI(uint32_t objectID, const LimonAPI::Vec4& scale);
-    bool setObjectOrientationAPI(uint32_t objectID, const LimonAPI::Vec4& orientation);
+    bool setObjectTranslateAPI(uint32_t objectID, const LimonTypes::Vec4& position);
+    bool setObjectScaleAPI(uint32_t objectID, const LimonTypes::Vec4& scale);
+    bool setObjectOrientationAPI(uint32_t objectID, const LimonTypes::Vec4& orientation);
 
-    bool addObjectTranslateAPI(uint32_t objectID, const LimonAPI::Vec4& position);
-    bool addObjectScaleAPI(uint32_t objectID, const LimonAPI::Vec4& scale);
-    bool addObjectOrientationAPI(uint32_t objectID, const LimonAPI::Vec4& orientation);
+    bool addObjectTranslateAPI(uint32_t objectID, const LimonTypes::Vec4& position);
+    bool addObjectScaleAPI(uint32_t objectID, const LimonTypes::Vec4& scale);
+    bool addObjectOrientationAPI(uint32_t objectID, const LimonTypes::Vec4& orientation);
 
-    bool interactWithAIAPI(uint32_t AIID, std::vector<LimonAPI::ParameterRequest> &interactionInformation) const;
+    bool interactWithAIAPI(uint32_t AIID, std::vector<LimonTypes::GenericParameter> &interactionInformation) const;
 
-    void interactWithPlayerAPI(std::vector<LimonAPI::ParameterRequest> &interactionInformation) const;
+    void interactWithPlayerAPI(std::vector<LimonTypes::GenericParameter> &interactionInformation) const;
     void simulateInputAPI(InputStates input);
 
-    void addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall,
-                              std::vector<LimonAPI::ParameterRequest> parameters);
+    void addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
+                              std::vector<LimonTypes::GenericParameter> parameters);
 
     uint32_t getPlayerAttachedModelAPI();
     std::vector<uint32_t> getModelChildrenAPI(uint32_t modelID);
@@ -506,27 +506,27 @@ public:
     bool setModelAnimationWithBlendAPI(uint32_t modelID, const std::string& animationName, bool isLooped, long blendTime);
     bool setModelAnimationSpeedAPI(uint32_t modelID, float speed);
 
-    LimonAPI::Vec4 getPlayerModelOffsetAPI();
-    bool setPlayerModelOffsetAPI(LimonAPI::Vec4 newOffset);
+    LimonTypes::Vec4 getPlayerModelOffsetAPI();
+    bool setPlayerModelOffsetAPI(LimonTypes::Vec4 newOffset);
     void killPlayerAPI();
 
-    bool addLightTranslateAPI(uint32_t lightID, const LimonAPI::Vec4& position);
-    bool setLightColorAPI(uint32_t lightID, const LimonAPI::Vec4& color);
+    bool addLightTranslateAPI(uint32_t lightID, const LimonTypes::Vec4& position);
+    bool setLightColorAPI(uint32_t lightID, const LimonTypes::Vec4& color);
 
     bool enableParticleEmitter(uint32_t particleEmitterID);
     bool disableParticleEmitter(uint32_t particleEmitterID);
     uint32_t addParticleEmitter(const std::string &name,
                                 const std::string& textureFile,
-                                const LimonAPI::Vec4& startPosition,
-                                const LimonAPI::Vec4& maxStartDistances,
-                                const LimonAPI::Vec2& size,
+                                const LimonTypes::Vec4& startPosition,
+                                const LimonTypes::Vec4& maxStartDistances,
+                                const LimonTypes::Vec2& size,
                                 uint32_t count,
                                 uint32_t lifeTime,
                                 float particlePerMs,
                                 bool continuouslyEmit);
     bool removeParticleEmitter(uint32_t emitterID);
-    bool setEmitterParticleSpeed(uint32_t emitterID, const LimonAPI::Vec4& speedMultiplier, const LimonAPI::Vec4& speedOffset);
-    bool setEmitterParticleGravity(uint32_t emitterID, const LimonAPI::Vec4& gravity);
+    bool setEmitterParticleSpeed(uint32_t emitterID, const LimonTypes::Vec4& speedMultiplier, const LimonTypes::Vec4& speedOffset);
+    bool setEmitterParticleGravity(uint32_t emitterID, const LimonTypes::Vec4& gravity);
 
     /************************************ Methods LimonAPI exposes *************/
     void setupForPlay(InputHandler &inputHandler);

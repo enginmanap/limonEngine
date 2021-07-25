@@ -6,38 +6,38 @@
 #include "DoorAnimationAction.h"
 #include "API/LimonAPI.h"
 
-std::vector<LimonAPI::ParameterRequest> DoorAnimationAction::getParameters() {
-    std::vector<LimonAPI::ParameterRequest> parameters;
-    LimonAPI::ParameterRequest param1;
-    param1.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MODEL;
+std::vector<LimonTypes::GenericParameter> DoorAnimationAction::getParameters() {
+    std::vector<LimonTypes::GenericParameter> parameters;
+    LimonTypes::GenericParameter param1;
+    param1.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     param1.description = "Model to animate";
     parameters.push_back(param1);
 
-    LimonAPI::ParameterRequest param2;
-    param2.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::ANIMATION;
+    LimonTypes::GenericParameter param2;
+    param2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::ANIMATION;
     param2.description = "Animation to apply";
     parameters.push_back(param2);
 
-    LimonAPI::ParameterRequest param3;
-    param3.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::SWITCH;
+    LimonTypes::GenericParameter param3;
+    param3.requestType = LimonTypes::GenericParameter::RequestParameterTypes::SWITCH;
     param3.description = "Is animation looped";
     param3.isSet = true;
     parameters.push_back(param3);
 
-    LimonAPI::ParameterRequest param4;
-    param4.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_TEXT;
+    LimonTypes::GenericParameter param4;
+    param4.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_TEXT;
     param4.description = "Sound to play";
     param4.isSet = true;
     parameters.push_back(param4);
 
-    LimonAPI::ParameterRequest param5;
-    param5.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::TRIGGER;
+    LimonTypes::GenericParameter param5;
+    param5.requestType = LimonTypes::GenericParameter::RequestParameterTypes::TRIGGER;
     param5.description = "Wait for trigger finish";
     param5.isSet = false;
     parameters.push_back(param5);
 
-    LimonAPI::ParameterRequest param6;
-    param6.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+    LimonTypes::GenericParameter param6;
+    param6.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
     param6.description = "wait time";
     param6.isSet = true;
     parameters.push_back(param6);
@@ -45,7 +45,7 @@ std::vector<LimonAPI::ParameterRequest> DoorAnimationAction::getParameters() {
     return parameters;
 }
 
-bool DoorAnimationAction::run(std::vector<LimonAPI::ParameterRequest> parameters) {
+bool DoorAnimationAction::run(std::vector<LimonTypes::GenericParameter> parameters) {
 
     if(parameters.size() != 6 ) {
         std::cerr << "Parameters for DoorAnimationAction is missing, skipping." << std::endl;
@@ -54,9 +54,9 @@ bool DoorAnimationAction::run(std::vector<LimonAPI::ParameterRequest> parameters
     this->stateResetTime = parameters[5].value.longValue;
 
     if(parameters[4].value.longValues[0] != 0) {
-        std::vector<LimonAPI::ParameterRequest>enterResult = limonAPI->getResultOfTrigger(
+        std::vector<LimonTypes::GenericParameter>enterResult = limonAPI->getResultOfTrigger(
                 static_cast<uint32_t>(parameters[4].value.longValues[1]), 2);                   //is entered?
-        std::vector<LimonAPI::ParameterRequest>exitResult  = limonAPI->getResultOfTrigger(
+        std::vector<LimonTypes::GenericParameter>exitResult  = limonAPI->getResultOfTrigger(
                 static_cast<uint32_t>(parameters[4].value.longValues[1]), 3);                   //is exited?
         if(enterResult.size() == 1 && enterResult[0].value.boolValue == true &&
                 exitResult.size() == 1 && exitResult[0].value.boolValue == false
@@ -80,8 +80,8 @@ bool DoorAnimationAction::run(std::vector<LimonAPI::ParameterRequest> parameters
     this->animationRun = true;//set this animation run.
 
     //set timer for this animation run reset.
-    std::function<void(const std::vector<LimonAPI::ParameterRequest>&)> methodToCall = std::bind(&DoorAnimationAction::resetAnimationRun, this, std::placeholders::_1);
-    std::vector<LimonAPI::ParameterRequest> emptyParams;
+    std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall = std::bind(&DoorAnimationAction::resetAnimationRun, this, std::placeholders::_1);
+    std::vector<LimonTypes::GenericParameter> emptyParams;
 
     limonAPI->addTimedEvent(this->stateResetTime, methodToCall, emptyParams);
 
@@ -89,9 +89,9 @@ bool DoorAnimationAction::run(std::vector<LimonAPI::ParameterRequest> parameters
 }
 
 
-std::vector<LimonAPI::ParameterRequest> DoorAnimationAction::getResults() {
-    std::vector<LimonAPI::ParameterRequest> result;
-    LimonAPI::ParameterRequest request;
+std::vector<LimonTypes::GenericParameter> DoorAnimationAction::getResults() {
+    std::vector<LimonTypes::GenericParameter> result;
+    LimonTypes::GenericParameter request;
     request.value.boolValue = this->animationRun;
     result.push_back(request);
     return result;
@@ -99,6 +99,6 @@ std::vector<LimonAPI::ParameterRequest> DoorAnimationAction::getResults() {
 
 DoorAnimationAction::DoorAnimationAction(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}
 
-void DoorAnimationAction::resetAnimationRun(const std::vector<LimonAPI::ParameterRequest> &) {
+void DoorAnimationAction::resetAnimationRun(const std::vector<LimonTypes::GenericParameter> &) {
     this->animationRun = false;
 }

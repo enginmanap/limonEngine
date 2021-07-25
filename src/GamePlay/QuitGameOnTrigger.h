@@ -12,11 +12,11 @@ class QuitGameOnTrigger : public TriggerInterface {
 public:
     QuitGameOnTrigger(LimonAPI *limonAPI);
 
-    std::vector<LimonAPI::ParameterRequest> getParameters() override;
+    std::vector<LimonTypes::GenericParameter> getParameters() override;
 
-    std::vector<LimonAPI::ParameterRequest> getResults() override;
+    std::vector<LimonTypes::GenericParameter> getResults() override;
 
-    bool run(std::vector<LimonAPI::ParameterRequest> parameters) override;
+    bool run(std::vector<LimonTypes::GenericParameter> parameters) override;
 
     std::string getName() const override {
         return "QuitGameOnTrigger";

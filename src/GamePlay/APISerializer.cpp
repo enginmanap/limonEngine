@@ -6,7 +6,7 @@
 #include "APISerializer.h"
 #include "API/TriggerInterface.h"
 
-bool APISerializer::serializeParameterRequest(const LimonAPI::ParameterRequest &parameterRequest,
+bool APISerializer::serializeParameterRequest(const LimonTypes::GenericParameter &parameterRequest,
                                               tinyxml2::XMLDocument &document, tinyxml2::XMLElement *ParametersNode,
                                               uint32_t index) {
 
@@ -15,43 +15,43 @@ bool APISerializer::serializeParameterRequest(const LimonAPI::ParameterRequest &
 
     tinyxml2::XMLElement *currentElement = document.NewElement("RequestType");
     switch (parameterRequest.requestType) {
-        case LimonAPI::ParameterRequest::MODEL: {
+        case LimonTypes::GenericParameter::MODEL: {
             currentElement->SetText("Model");
         }
             break;
-        case LimonAPI::ParameterRequest::ANIMATION: {
+        case LimonTypes::GenericParameter::ANIMATION: {
             currentElement->SetText("Animation");
         }
             break;
-        case LimonAPI::ParameterRequest::SWITCH: {
+        case LimonTypes::GenericParameter::SWITCH: {
             currentElement->SetText("Switch");
         }
             break;
-        case LimonAPI::ParameterRequest::FREE_TEXT: {
+        case LimonTypes::GenericParameter::FREE_TEXT: {
             currentElement->SetText("FreeText");
         }
             break;
-        case LimonAPI::ParameterRequest::TRIGGER: {
+        case LimonTypes::GenericParameter::TRIGGER: {
             currentElement->SetText("Trigger");
         }
             break;
-        case LimonAPI::ParameterRequest::GUI_TEXT: {
+        case LimonTypes::GenericParameter::GUI_TEXT: {
             currentElement->SetText("GUIText");
         }
             break;
-        case LimonAPI::ParameterRequest::FREE_NUMBER: {
+        case LimonTypes::GenericParameter::FREE_NUMBER: {
             currentElement->SetText("FreeNumber");
         }
             break;
-        case LimonAPI::ParameterRequest::COORDINATE: {
+        case LimonTypes::GenericParameter::COORDINATE: {
             currentElement->SetText("Coordinate");
         }
             break;
-        case LimonAPI::ParameterRequest::TRANSFORM: {
+        case LimonTypes::GenericParameter::TRANSFORM: {
             currentElement->SetText("Transform");
         }
             break;
-        case LimonAPI::ParameterRequest::MULTI_SELECT: {
+        case LimonTypes::GenericParameter::MULTI_SELECT: {
             currentElement->SetText("MultiSelect");
         }
 
@@ -65,22 +65,22 @@ bool APISerializer::serializeParameterRequest(const LimonAPI::ParameterRequest &
     currentElement = document.NewElement("valueType");
     tinyxml2::XMLElement *valueElement = document.NewElement("Value");
     switch (parameterRequest.valueType) {
-        case LimonAPI::ParameterRequest::STRING: {
+        case LimonTypes::GenericParameter::STRING: {
             currentElement->SetText("String");
             valueElement->SetText(parameterRequest.value.stringValue);
         }
             break;
-        case LimonAPI::ParameterRequest::DOUBLE: {
+        case LimonTypes::GenericParameter::DOUBLE: {
             currentElement->SetText("Double");
             valueElement->SetText(std::to_string(parameterRequest.value.doubleValue).c_str());
         }
             break;
-        case LimonAPI::ParameterRequest::LONG: {
+        case LimonTypes::GenericParameter::LONG: {
             currentElement->SetText("Long");
             valueElement->SetText(std::to_string(parameterRequest.value.longValue).c_str());
         }
             break;
-        case LimonAPI::ParameterRequest::BOOLEAN: {
+        case LimonTypes::GenericParameter::BOOLEAN: {
             currentElement->SetText("Boolean");
             if(parameterRequest.value.boolValue) {
                 valueElement->SetText("True");
@@ -89,7 +89,7 @@ bool APISerializer::serializeParameterRequest(const LimonAPI::ParameterRequest &
             }
         }
             break;
-        case LimonAPI::ParameterRequest::LONG_ARRAY: {
+        case LimonTypes::GenericParameter::LONG_ARRAY: {
             currentElement->SetText("LongArray");
             std::string commaSeperatedArray = "";
             for (int32_t i = 0; i < parameterRequest.value.longValues[0]; ++i) {
@@ -101,7 +101,7 @@ bool APISerializer::serializeParameterRequest(const LimonAPI::ParameterRequest &
             valueElement->SetText(commaSeperatedArray.c_str());
         }
             break;
-        case LimonAPI::ParameterRequest::VEC4: {
+        case LimonTypes::GenericParameter::VEC4: {
             currentElement->SetText("Vec4");
             tinyxml2::XMLElement *xELement = document.NewElement("X");
             xELement->SetText(std::to_string(parameterRequest.value.vectorValue.x).c_str());
@@ -117,7 +117,7 @@ bool APISerializer::serializeParameterRequest(const LimonAPI::ParameterRequest &
             valueElement->InsertEndChild(wELement);
         }
             break;
-        case LimonAPI::ParameterRequest::MAT4: {
+        case LimonTypes::GenericParameter::MAT4: {
             currentElement->SetText("Mat4");
 
             for (int32_t i = 0; i < 4; ++i) {
@@ -158,7 +158,7 @@ bool APISerializer::serializeParameterRequest(const LimonAPI::ParameterRequest &
     parameterNode->InsertEndChild(currentElement);
     return true;}
 
-std::shared_ptr<LimonAPI::ParameterRequest>
+std::shared_ptr<LimonTypes::GenericParameter>
 APISerializer::deserializeParameterRequest(tinyxml2::XMLElement *parameterNode, uint32_t &index) {
     tinyxml2::XMLElement* parameterAttribute;
 
@@ -167,27 +167,27 @@ APISerializer::deserializeParameterRequest(tinyxml2::XMLElement *parameterNode, 
         std::cerr << "Trigger parameter must have a Request type." << std::endl;
         return nullptr;
     }
-    std::shared_ptr<LimonAPI::ParameterRequest> newParameterRequest = std::make_shared<LimonAPI::ParameterRequest>();
+    std::shared_ptr<LimonTypes::GenericParameter> newParameterRequest = std::make_shared<LimonTypes::GenericParameter>();
     if(strcmp(parameterAttribute->GetText(), "Model") == 0) {
-        newParameterRequest->requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MODEL;
+        newParameterRequest->requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     } else if(strcmp(parameterAttribute->GetText(), "Animation") == 0) {
-        newParameterRequest->requestType = LimonAPI::ParameterRequest::RequestParameterTypes::ANIMATION;
+        newParameterRequest->requestType = LimonTypes::GenericParameter::RequestParameterTypes::ANIMATION;
     } else if(strcmp(parameterAttribute->GetText(), "Switch") == 0) {
-        newParameterRequest->requestType = LimonAPI::ParameterRequest::RequestParameterTypes::SWITCH;
+        newParameterRequest->requestType = LimonTypes::GenericParameter::RequestParameterTypes::SWITCH;
     } else if(strcmp(parameterAttribute->GetText(), "FreeText") == 0) {
-        newParameterRequest->requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_TEXT;
+        newParameterRequest->requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_TEXT;
     } else if(strcmp(parameterAttribute->GetText(), "Trigger") == 0) {
-        newParameterRequest->requestType = LimonAPI::ParameterRequest::RequestParameterTypes::TRIGGER;
+        newParameterRequest->requestType = LimonTypes::GenericParameter::RequestParameterTypes::TRIGGER;
     } else if(strcmp(parameterAttribute->GetText(), "GUIText") == 0) {
-        newParameterRequest->requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
+        newParameterRequest->requestType = LimonTypes::GenericParameter::RequestParameterTypes::GUI_TEXT;
     } else if(strcmp(parameterAttribute->GetText(), "FreeNumber") == 0) {
-        newParameterRequest->requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+        newParameterRequest->requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
     } else if(strcmp(parameterAttribute->GetText(), "Coordinate") == 0) {
-        newParameterRequest->requestType = LimonAPI::ParameterRequest::RequestParameterTypes::COORDINATE;
+        newParameterRequest->requestType = LimonTypes::GenericParameter::RequestParameterTypes::COORDINATE;
     } else if(strcmp(parameterAttribute->GetText(), "Transform") == 0) {
-        newParameterRequest->requestType = LimonAPI::ParameterRequest::RequestParameterTypes::TRANSFORM;
+        newParameterRequest->requestType = LimonTypes::GenericParameter::RequestParameterTypes::TRANSFORM;
     } else if(strcmp(parameterAttribute->GetText(), "MultiSelect") == 0) {
-        newParameterRequest->requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MULTI_SELECT;
+        newParameterRequest->requestType = LimonTypes::GenericParameter::RequestParameterTypes::MULTI_SELECT;
     } else {
         std::cerr << "Trigger parameter request type was unknown. " << parameterAttribute->GetText() << std::endl;
         return nullptr;
@@ -221,7 +221,7 @@ APISerializer::deserializeParameterRequest(tinyxml2::XMLElement *parameterNode, 
         return nullptr;
     }
     if(strcmp(parameterAttribute->GetText(),"String") == 0)  {
-        newParameterRequest->valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+        newParameterRequest->valueType = LimonTypes::GenericParameter::ValueTypes::STRING;
         if(newParameterRequest->isSet) {
             parameterAttribute = parameterNode->FirstChildElement("Value");
             if(parameterAttribute != nullptr && parameterAttribute->GetText() != nullptr) {
@@ -230,19 +230,19 @@ APISerializer::deserializeParameterRequest(tinyxml2::XMLElement *parameterNode, 
             }
         }
     } else if(strcmp(parameterAttribute->GetText(),"Double") == 0) {
-        newParameterRequest->valueType = LimonAPI::ParameterRequest::ValueTypes::DOUBLE;
+        newParameterRequest->valueType = LimonTypes::GenericParameter::ValueTypes::DOUBLE;
         if(newParameterRequest->isSet) {
             parameterAttribute = parameterNode->FirstChildElement("Value");
             newParameterRequest->value.doubleValue = std::stod(parameterAttribute->GetText());
         }
     } else if(strcmp(parameterAttribute->GetText(),"Long")== 0) {
-        newParameterRequest->valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+        newParameterRequest->valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
         if(newParameterRequest->isSet) {
             parameterAttribute = parameterNode->FirstChildElement("Value");
             newParameterRequest->value.longValue = std::stol(parameterAttribute->GetText());
         }
     } else if(strcmp(parameterAttribute->GetText(), "Boolean")== 0) {
-        newParameterRequest->valueType = LimonAPI::ParameterRequest::ValueTypes::BOOLEAN;
+        newParameterRequest->valueType = LimonTypes::GenericParameter::ValueTypes::BOOLEAN;
         if(newParameterRequest->isSet) {
             parameterAttribute = parameterNode->FirstChildElement("Value");
             if(strcmp(parameterAttribute->GetText(), "True") == 0) {
@@ -255,7 +255,7 @@ APISerializer::deserializeParameterRequest(tinyxml2::XMLElement *parameterNode, 
             }
         }
     } else if(strcmp(parameterAttribute->GetText(),"LongArray")== 0) {
-        newParameterRequest->valueType = LimonAPI::ParameterRequest::ValueTypes::LONG_ARRAY;
+        newParameterRequest->valueType = LimonTypes::GenericParameter::ValueTypes::LONG_ARRAY;
         if(newParameterRequest->isSet) {
             parameterAttribute = parameterNode->FirstChildElement("Value");
             std::string commaSeperatedParameterString = parameterAttribute->GetText();
@@ -270,13 +270,13 @@ APISerializer::deserializeParameterRequest(tinyxml2::XMLElement *parameterNode, 
             }
         }
     } else if(strcmp(parameterAttribute->GetText(),"Vec4")== 0) {
-        newParameterRequest->valueType = LimonAPI::ParameterRequest::ValueTypes::VEC4;
+        newParameterRequest->valueType = LimonTypes::GenericParameter::ValueTypes::VEC4;
         if(newParameterRequest->isSet) {
             parameterAttribute = parameterNode->FirstChildElement("Value");
             loadVec4(parameterAttribute, newParameterRequest->value.vectorValue);
         }
     } else if(strcmp(parameterAttribute->GetText(),"Mat4")== 0) {
-        newParameterRequest->valueType = LimonAPI::ParameterRequest::ValueTypes::MAT4;
+        newParameterRequest->valueType = LimonTypes::GenericParameter::ValueTypes::MAT4;
         if(newParameterRequest->isSet) {
             parameterAttribute = parameterNode->FirstChildElement("Value");
             for(long i = 1; i < newParameterRequest->value.longValues[0]; i++) {
@@ -298,7 +298,7 @@ APISerializer::deserializeParameterRequest(tinyxml2::XMLElement *parameterNode, 
     return newParameterRequest;
 }
 
-void APISerializer::loadVec4(tinyxml2::XMLNode *vectorNode, LimonAPI::Vec4 &vector) {
+void APISerializer::loadVec4(tinyxml2::XMLNode *vectorNode, LimonTypes::Vec4 &vector) {
     tinyxml2::XMLElement *vectorElementNode = vectorNode->FirstChildElement("X");
     if(vectorElementNode != nullptr) {
         vector.x = std::stof(vectorElementNode->GetText());
@@ -327,7 +327,7 @@ void APISerializer::loadVec4(tinyxml2::XMLNode *vectorNode, LimonAPI::Vec4 &vect
 
 bool APISerializer::serializeTriggerCode(const TriggerInterface &trigger, tinyxml2::XMLDocument &document,
                                          tinyxml2::XMLElement *triggerNode, const std::string &triggerCodeNodeName,
-                                         const std::vector<LimonAPI::ParameterRequest> &parameters,
+                                         const std::vector<LimonTypes::GenericParameter> &parameters,
                                          bool enabled) {
     tinyxml2::XMLElement *currentElement = document.NewElement(triggerCodeNodeName.c_str());
 
@@ -357,7 +357,7 @@ bool APISerializer::serializeTriggerCode(const TriggerInterface &trigger, tinyxm
 TriggerInterface*
 APISerializer::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxml2::XMLElement *triggerAttribute,
                                       const std::string &nodeName, LimonAPI *limonAPI,
-                                      std::vector<LimonAPI::ParameterRequest> &parameters, bool &enabled) {
+                                      std::vector<LimonTypes::GenericParameter> &parameters, bool &enabled) {
     TriggerInterface* triggerCode = nullptr;
     enabled= false;
     triggerAttribute = triggersNode->FirstChildElement(nodeName.c_str());
@@ -371,7 +371,7 @@ APISerializer::deserializeTriggerCode(tinyxml2::XMLElement *triggersNode, tinyxm
 
         uint32_t index;
         while(triggerCodeParameter != nullptr) {
-            std::shared_ptr<LimonAPI::ParameterRequest> request = APISerializer::deserializeParameterRequest(triggerCodeParameter, index);
+            std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(triggerCodeParameter, index);
 
             if(request == nullptr) {
                 delete triggerCode;
@@ -414,7 +414,7 @@ void APISerializer::serializeActorInterface(const ActorInterface& actor, tinyxml
     AINode->InsertEndChild(nameNode);
 
     tinyxml2::XMLElement *parametersNode = document.NewElement("parameters");
-    std::vector<LimonAPI::ParameterRequest> parameters = actor.getParameters();
+    std::vector<LimonTypes::GenericParameter> parameters = actor.getParameters();
     for (size_t i = 0; i < parameters.size(); ++i) {
         serializeParameterRequest(parameters[i], document, parametersNode, i);
     }
@@ -450,10 +450,10 @@ ActorInterface *APISerializer::deserializeActorInterface(tinyxml2::XMLElement *a
 
         tinyxml2::XMLElement* parameterNode = allParametersNode->FirstChildElement("Parameter");
         uint32_t index;
-        std::vector<LimonAPI::ParameterRequest> parameters;
+        std::vector<LimonTypes::GenericParameter> parameters;
         bool parameterLoadSuccess = true;
         while(parameterNode != nullptr) {
-            std::shared_ptr<LimonAPI::ParameterRequest> request = APISerializer::deserializeParameterRequest(parameterNode, index);
+            std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(parameterNode, index);
             if(request == nullptr) {
                 std::cerr << "Parameter load failed for Actor, it will be using default values." << std::endl;
                 parameterLoadSuccess = false;

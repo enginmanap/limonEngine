@@ -201,9 +201,9 @@ void CowboyShooterExtension::shootingTransition() {
     /*************** Create muzzle flash *********************/
 
     /*************** Set timed event for muzzle flash removal *********************/
-    std::vector<LimonAPI::ParameterRequest> removeParameters;
-    LimonAPI::ParameterRequest removeID;
-    removeID.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+    std::vector<LimonTypes::GenericParameter> removeParameters;
+    LimonTypes::GenericParameter removeID;
+    removeID.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     removeID.value.longValue = (long)muzzleFlashObjectID;
     removeParameters.push_back(removeID);
     limonAPI->addTimedEvent(250, std::bind(&CowboyShooterExtension::removeMuzzleFlash, this, std::placeholders::_1), removeParameters);
@@ -211,16 +211,16 @@ void CowboyShooterExtension::shootingTransition() {
 
 
     /*************** Check hit *********************/
-    std::vector<LimonAPI::ParameterRequest>rayResult = limonAPI->rayCastToCursor();
+    std::vector<LimonTypes::GenericParameter>rayResult = limonAPI->rayCastToCursor();
 
     if(rayResult.size() > 0 ) {// we hit something
         if(rayResult.size() == 4) { // 4 parameter input means we hit an AI actor
 
             /*************** Inform AI that it got hit *********************/
-            LimonAPI::ParameterRequest parameterRequest;
-            parameterRequest.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+            LimonTypes::GenericParameter parameterRequest;
+            parameterRequest.valueType = LimonTypes::GenericParameter::ValueTypes::STRING;
             strncpy(parameterRequest.value.stringValue, "GOT_HIT", sizeof(parameterRequest.value.stringValue)-1);
-            std::vector<LimonAPI::ParameterRequest> prList;
+            std::vector<LimonTypes::GenericParameter> prList;
             prList.push_back(parameterRequest);
             limonAPI->interactWithAI(rayResult[3].value.longValue, prList);
             /*************** Inform AI that it got hit *********************/
@@ -252,7 +252,7 @@ void CowboyShooterExtension::shootingTransition() {
 #endif
             }
 
-            std::vector<LimonAPI::ParameterRequest>modelTransformationMat = limonAPI->getObjectTransformationMatrix(rayResult[0].value.longValue);
+            std::vector<LimonTypes::GenericParameter>modelTransformationMat = limonAPI->getObjectTransformationMatrix(rayResult[0].value.longValue);
             if(modelTransformationMat.size() == 0) {
                 std::cerr << "Hit an object, but its ID "<< (uint32_t)rayResult[0].value.longValue << " is invalid!" << std::endl;
 
@@ -293,30 +293,30 @@ void CowboyShooterExtension::shootingTransition() {
 
 }
 
-void CowboyShooterExtension::removeDamageIndicator(std::vector<LimonAPI::ParameterRequest> parameters) {
-    if(parameters.size() > 0 && parameters[0].valueType == LimonAPI::ParameterRequest::ValueTypes::LONG_ARRAY) {
+void CowboyShooterExtension::removeDamageIndicator(std::vector<LimonTypes::GenericParameter> parameters) {
+    if(parameters.size() > 0 && parameters[0].valueType == LimonTypes::GenericParameter::ValueTypes::LONG_ARRAY) {
         for (int i = 0; i < parameters[0].value.longValues[0]; ++i) {
             limonAPI->removeGuiElement(parameters[0].value.longValues[i+1]);
         }
     }
 }
 
-void CowboyShooterExtension::removeMuzzleFlash(std::vector<LimonAPI::ParameterRequest> parameters) {
-    if(parameters.size() > 0 && parameters[0].valueType == LimonAPI::ParameterRequest::ValueTypes::LONG) {
+void CowboyShooterExtension::removeMuzzleFlash(std::vector<LimonTypes::GenericParameter> parameters) {
+    if(parameters.size() > 0 && parameters[0].valueType == LimonTypes::GenericParameter::ValueTypes::LONG) {
         limonAPI->removeObject(parameters[0].value.longValue);
     }
 }
 
-void CowboyShooterExtension::interact(std::vector<LimonAPI::ParameterRequest> &interactionData) {
+void CowboyShooterExtension::interact(std::vector<LimonTypes::GenericParameter> &interactionData) {
     if(interactionData.size() == 0 ) {
         return;
     }
 
-    if(interactionData[0].valueType == LimonAPI::ParameterRequest::ValueTypes::STRING &&
-            (std::string(interactionData[0].value.stringValue) == "SHOOT_PLAYER" || std::string(interactionData[0].value.stringValue) == "MELEE_PLAYER")) {
+    if(interactionData[0].valueType == LimonTypes::GenericParameter::ValueTypes::STRING &&
+       (std::string(interactionData[0].value.stringValue) == "SHOOT_PLAYER" || std::string(interactionData[0].value.stringValue) == "MELEE_PLAYER")) {
         if(interactionData.size() < 2 ) {
             hitPoints -= 20;
-        } else if(interactionData[1].valueType == LimonAPI::ParameterRequest::ValueTypes::LONG) {
+        } else if(interactionData[1].valueType == LimonTypes::GenericParameter::ValueTypes::LONG) {
             hitPoints -= interactionData[1].value.longValue;
         }
 
@@ -340,17 +340,17 @@ void CowboyShooterExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
 
 }
 
-void CowboyShooterExtension::addDamageIndicator(const std::vector<LimonAPI::ParameterRequest> &interactionData) {
+void CowboyShooterExtension::addDamageIndicator(const std::vector<LimonTypes::GenericParameter> &interactionData) {
     uint32_t addedElementCount = 0;
-    std::vector<LimonAPI::ParameterRequest> removeParameters;
-    LimonAPI::ParameterRequest removeIDs;
-    removeIDs.valueType = LimonAPI::ParameterRequest::LONG_ARRAY;
+    std::vector<LimonTypes::GenericParameter> removeParameters;
+    LimonTypes::GenericParameter removeIDs;
+    removeIDs.valueType = LimonTypes::GenericParameter::LONG_ARRAY;
 
     //find which way the damage came from
     if(interactionData.size() < 3) {
             //damage origin not sent, can't calculate indicator position, render full damage indicator
-            uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicator.png", "damageIndicator", LimonAPI::Vec2(0.5f, 0.5f),
-                                                          LimonAPI::Vec2(0.7f, 0.8f), 0);
+            uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicator.png", "damageIndicator", LimonTypes::Vec2(0.5f, 0.5f),
+                                                          LimonTypes::Vec2(0.7f, 0.8f), 0);
             removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
 
         } else {
@@ -389,35 +389,35 @@ void CowboyShooterExtension::addDamageIndicator(const std::vector<LimonAPI::Para
 
             if(fabs(crossToCheckLeftRight) <= 0.2 && fabs(crossToCheckUpDown) <= 0.2) {
                 // the damage came from front, show full damage indicator
-                uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicator.png", "damageIndicator", LimonAPI::Vec2(0.5f, 0.5f),
-                                                              LimonAPI::Vec2(0.7f, 0.8f), 0);
+                uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicator.png", "damageIndicator", LimonTypes::Vec2(0.5f, 0.5f),
+                                                              LimonTypes::Vec2(0.7f, 0.8f), 0);
                 removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
             } else {
                 if (fabs(crossToCheckLeftRight) > 0.2) { // if around the center, don't render anything
                     if (crossToCheckLeftRight < 0) {
                         uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorLeft.png",
                                                                       "damageIndicatorLeft",
-                                                                      LimonAPI::Vec2(0.5f, 0.5f),
-                                                                      LimonAPI::Vec2(0.7f, 0.8f), 0);
+                                                                      LimonTypes::Vec2(0.5f, 0.5f),
+                                                                      LimonTypes::Vec2(0.7f, 0.8f), 0);
                         removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
                     } else {
                         uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorRight.png",
                                                                       "damageIndicatorRight",
-                                                                      LimonAPI::Vec2(0.5f, 0.5f),
-                                                                      LimonAPI::Vec2(0.7f, 0.8f), 0);
+                                                                      LimonTypes::Vec2(0.5f, 0.5f),
+                                                                      LimonTypes::Vec2(0.7f, 0.8f), 0);
                         removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
                     }
                 }
                 if (fabs(crossToCheckUpDown) > 0.2) { // if around center, don't render anything
                     if (crossToCheckUpDown < 0) {
                         uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorDown.png",
-                                                                      "damageIndicatorDown", LimonAPI::Vec2(0.5f, 0.5f),
-                                                                      LimonAPI::Vec2(0.7f, 0.8f), 0);
+                                                                      "damageIndicatorDown", LimonTypes::Vec2(0.5f, 0.5f),
+                                                                      LimonTypes::Vec2(0.7f, 0.8f), 0);
                         removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
                     } else {
                         uint32_t addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicatorUp.png",
-                                                                      "damageIndicatorUp", LimonAPI::Vec2(0.5f, 0.5f),
-                                                                      LimonAPI::Vec2(0.7f, 0.8f), 0);
+                                                                      "damageIndicatorUp", LimonTypes::Vec2(0.5f, 0.5f),
+                                                                      LimonTypes::Vec2(0.7f, 0.8f), 0);
                         removeIDs.value.longValues[++addedElementCount] = static_cast<long>(addedElement);
                     }
                 }

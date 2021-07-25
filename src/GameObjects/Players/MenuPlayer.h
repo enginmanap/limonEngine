@@ -88,7 +88,7 @@ public:
         }
     }
 
-    void interact(LimonAPI *limonAPI __attribute__((unused)), std::vector<LimonAPI::ParameterRequest> &interactionData) {
+    void interact(LimonAPI *limonAPI __attribute__((unused)), std::vector<LimonTypes::GenericParameter> &interactionData) {
         if(playerExtension != nullptr) {
             playerExtension->interact(interactionData);
         }

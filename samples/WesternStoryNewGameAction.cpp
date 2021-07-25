@@ -4,11 +4,11 @@
 
 #include "WesternStoryNewGameAction.h"
 
-std::vector<LimonAPI::ParameterRequest> WesternStoryNewGameAction::getParameters() {
-    return std::vector<LimonAPI::ParameterRequest>();
+std::vector<LimonTypes::GenericParameter> WesternStoryNewGameAction::getParameters() {
+    return std::vector<LimonTypes::GenericParameter>();
 }
 
-bool WesternStoryNewGameAction::run(std::vector<LimonAPI::ParameterRequest> parameters[[gnu::unused]]) {
+bool WesternStoryNewGameAction::run(std::vector<LimonTypes::GenericParameter> parameters[[gnu::unused]]) {
     /**
      * when player clicks new game do the following:
      * 1) Remove "New Game" and "Quit" buttons
@@ -44,13 +44,13 @@ bool WesternStoryNewGameAction::run(std::vector<LimonAPI::ParameterRequest> para
     limonAPI->animateModel(98,0,false, nullptr);
 
     //now register timed events
-    std::vector<LimonAPI::ParameterRequest> emptyParamList;
+    std::vector<LimonTypes::GenericParameter> emptyParamList;
     limonAPI->addTimedEvent(730 * 1000 / 60, std::bind(&WesternStoryNewGameAction::animateThoughts, this, std::placeholders::_1), emptyParamList);
     limonAPI->addTimedEvent((730 + 310) *  1000 / 60, std::bind(&WesternStoryNewGameAction::switchWorld, this, std::placeholders::_1), emptyParamList);
     return true;
 }
 
-void WesternStoryNewGameAction::animateThoughts(const std::vector<LimonAPI::ParameterRequest> &emptyParamList [[gnu::unused]]) {
+void WesternStoryNewGameAction::animateThoughts(const std::vector<LimonTypes::GenericParameter> &emptyParamList [[gnu::unused]]) {
     //animate letter
     limonAPI->removeGuiElement(5);
     limonAPI->removeGuiElement(93);
@@ -63,12 +63,12 @@ void WesternStoryNewGameAction::animateThoughts(const std::vector<LimonAPI::Para
     limonAPI->animateModel(100,1,false, nullptr);
 }
 
-void WesternStoryNewGameAction::switchWorld(const std::vector<LimonAPI::ParameterRequest> &emptyParamList [[gnu::unused]]) {
+void WesternStoryNewGameAction::switchWorld(const std::vector<LimonTypes::GenericParameter> &emptyParamList [[gnu::unused]]) {
     limonAPI->loadAndSwitchWorld("./Data/Maps/Western006.xml");
 }
 
-std::vector<LimonAPI::ParameterRequest> WesternStoryNewGameAction::getResults() {
-    return std::vector<LimonAPI::ParameterRequest>();
+std::vector<LimonTypes::GenericParameter> WesternStoryNewGameAction::getResults() {
+    return std::vector<LimonTypes::GenericParameter>();
 }
 
 std::string WesternStoryNewGameAction::getName() const {

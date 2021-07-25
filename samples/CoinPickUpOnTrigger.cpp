@@ -16,33 +16,33 @@
 
 CoinPickUpOnTrigger::CoinPickUpOnTrigger(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}
 
-std::vector<LimonAPI::ParameterRequest> CoinPickUpOnTrigger::getParameters() {
-    std::vector<LimonAPI::ParameterRequest> parameters;
-    LimonAPI::ParameterRequest pr;
-    pr.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-    pr.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
+std::vector<LimonTypes::GenericParameter> CoinPickUpOnTrigger::getParameters() {
+    std::vector<LimonTypes::GenericParameter> parameters;
+    LimonTypes::GenericParameter pr;
+    pr.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+    pr.requestType = LimonTypes::GenericParameter::RequestParameterTypes::GUI_TEXT;
     pr.description = "Counter GUI Element";
     parameters.push_back(pr);
 
-    LimonAPI::ParameterRequest pr2;
-    pr2.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-    pr2.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MODEL;
+    LimonTypes::GenericParameter pr2;
+    pr2.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+    pr2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     pr2.description = "Model to remove";
     parameters.push_back(pr2);
 
-    LimonAPI::ParameterRequest pr3;
-    pr3.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-    pr3.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+    LimonTypes::GenericParameter pr3;
+    pr3.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+    pr3.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
     pr3.description = "Count to finish";
     parameters.push_back(pr3);
 
     return parameters;
 }
 
-bool CoinPickUpOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters) {
+bool CoinPickUpOnTrigger::run(std::vector<LimonTypes::GenericParameter> parameters) {
     bool result;
     //FIXME there is no enum value for variable, there should be
-    LimonAPI::ParameterRequest& coinPickupCount = limonAPI->getVariable("coinPickupCount");
+    LimonTypes::GenericParameter& coinPickupCount = limonAPI->getVariable("coinPickupCount");
 
     coinPickupCount.value.longValue++;
     if(coinPickupCount.value.longValue < parameters[2].value.longValue) {
@@ -58,8 +58,8 @@ bool CoinPickUpOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters
     return result;
 }
 
-std::vector<LimonAPI::ParameterRequest> CoinPickUpOnTrigger::getResults() {
-    return std::vector<LimonAPI::ParameterRequest>();//not feeding other triggers the result
+std::vector<LimonTypes::GenericParameter> CoinPickUpOnTrigger::getResults() {
+    return std::vector<LimonTypes::GenericParameter>();//not feeding other triggers the result
 }
 
 void registerAsTrigger(std::map<std::string, TriggerInterface*(*)(LimonAPI*)>* triggerMap) {

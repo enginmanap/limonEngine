@@ -20,11 +20,11 @@ class SSAOKernelRenderMethod : public RenderMethodInterface{
 public:
     explicit SSAOKernelRenderMethod(GraphicsInterface* graphicsInterface) : RenderMethodInterface(graphicsInterface) {}
 
-    std::vector<LimonAPI::ParameterRequest> getParameters() const override {
-        return std::vector<LimonAPI::ParameterRequest>();
+    std::vector<LimonTypes::GenericParameter> getParameters() const override {
+        return std::vector<LimonTypes::GenericParameter>();
     }
 
-    bool initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) override;
+    bool initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) override;
 
     virtual void renderFrame(std::shared_ptr<GraphicsProgram> program[[gnu::unused]]) {
         graphicsInterface->attachTexture(ssaoNoiseTexture, graphicsInterface->getMaxTextureImageUnits()-3);
@@ -32,7 +32,7 @@ public:
         graphicsInterface->render(program->getID(), vao, ebo, 3 * 2);//2 triangles
     };
 
-    bool cleanupRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) override;
+    bool cleanupRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) override;
 
     std::string getName() const override {
         return "SSAOKernelRenderMethod";

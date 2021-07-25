@@ -495,7 +495,7 @@ void PhysicalPlayer::processInput(const InputStates &inputHandler, long time) {
     }
 }
 
-void PhysicalPlayer::interact(LimonAPI *limonAPI __attribute__((unused)), std::vector<LimonAPI::ParameterRequest> &interactionData) {
+void PhysicalPlayer::interact(LimonAPI *limonAPI __attribute__((unused)), std::vector<LimonTypes::GenericParameter> &interactionData) {
     if(playerExtension != nullptr) {
         playerExtension->interact(interactionData);
     }

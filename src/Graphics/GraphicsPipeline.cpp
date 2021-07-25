@@ -17,7 +17,7 @@ void GraphicsPipeline::initialize() {
     for(auto& stageInfo:pipelineStages) {
         stageInfo.stage->activate(stageInfo.clear);
         for(auto& renderMethod:stageInfo.renderMethods) {
-            renderMethod.initialize(std::vector<LimonAPI::ParameterRequest>());
+            renderMethod.initialize(std::vector<LimonTypes::GenericParameter>());
         }
     }
 }
@@ -26,7 +26,7 @@ void GraphicsPipeline::finalize() {
     for(auto& stageInfo:pipelineStages) {
         stageInfo.stage->activate(stageInfo.clear);
         for(auto& renderMethod:stageInfo.renderMethods) {
-            renderMethod.finalize(std::vector<LimonAPI::ParameterRequest>());
+            renderMethod.finalize(std::vector<LimonTypes::GenericParameter>());
         }
     }
 }
@@ -302,7 +302,7 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
              std::string externalMethodNameString = externalMethodElement->GetText();
                 RenderMethodInterface* externalRenderMethod = RenderMethodInterface::createRenderMethodInterfaceInstance(
                         externalMethodNameString, assetManager->getGraphicsWrapper());
-                externalRenderMethod->initRender(graphicsProgram, std::vector<LimonAPI::ParameterRequest>());
+                externalRenderMethod->initRender(graphicsProgram, std::vector<LimonTypes::GenericParameter>());
                 newStageInfo.addExternalRenderMethod(externalMethodNameString, externalRenderMethod);
             }
             externalMethodElement =  externalMethodElement->NextSiblingElement("ExternalMethod");

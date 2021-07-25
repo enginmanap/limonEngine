@@ -14,13 +14,13 @@ class DoorAnimationAction : public TriggerInterface {
 public:
     DoorAnimationAction(LimonAPI *limonAPI);
 
-    std::vector<LimonAPI::ParameterRequest> getParameters() override;
+    std::vector<LimonTypes::GenericParameter> getParameters() override;
 
-    bool run(std::vector<LimonAPI::ParameterRequest> parameters) override;
+    bool run(std::vector<LimonTypes::GenericParameter> parameters) override;
 
-    void resetAnimationRun(const std::vector<LimonAPI::ParameterRequest>&);
+    void resetAnimationRun(const std::vector<LimonTypes::GenericParameter>&);
 
-    std::vector<LimonAPI::ParameterRequest> getResults() override;
+    std::vector<LimonTypes::GenericParameter> getResults() override;
 
     std::string getName() const override {
         return "DoorAnimationAction";

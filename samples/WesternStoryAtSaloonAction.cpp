@@ -5,22 +5,22 @@
 #include <iostream>
 #include "WesternStoryAtSaloonAction.h"
 
-std::vector<LimonAPI::ParameterRequest> WesternStoryAtSaloonAction::getParameters() {
-    std::vector<LimonAPI::ParameterRequest> parameters;
-    LimonAPI::ParameterRequest param;
-    param.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::TRIGGER;
+std::vector<LimonTypes::GenericParameter> WesternStoryAtSaloonAction::getParameters() {
+    std::vector<LimonTypes::GenericParameter> parameters;
+    LimonTypes::GenericParameter param;
+    param.requestType = LimonTypes::GenericParameter::RequestParameterTypes::TRIGGER;
     param.description = "Check Trigger before";
     param.isSet = false;
     parameters.push_back(param);
 
-    LimonAPI::ParameterRequest param2;
-    param2.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::SWITCH;
+    LimonTypes::GenericParameter param2;
+    param2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::SWITCH;
     param2.description = "Should be run?";
     param2.isSet = true;
     parameters.push_back(param2);
 
-    LimonAPI::ParameterRequest param3;
-    param3.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MODEL;
+    LimonTypes::GenericParameter param3;
+    param3.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     param3.description = "Object to remove";
     param3.isSet = false;
     parameters.push_back(param3);
@@ -28,7 +28,7 @@ std::vector<LimonAPI::ParameterRequest> WesternStoryAtSaloonAction::getParameter
     return parameters;
 }
 
-bool WesternStoryAtSaloonAction::run(std::vector<LimonAPI::ParameterRequest> parameters[[gnu::unused]]) {
+bool WesternStoryAtSaloonAction::run(std::vector<LimonTypes::GenericParameter> parameters[[gnu::unused]]) {
     //this action is for showing text after player takes the map from the room
     if(this->hasRun) {
         return false;
@@ -38,7 +38,7 @@ bool WesternStoryAtSaloonAction::run(std::vector<LimonAPI::ParameterRequest> par
         return false;
     }
 
-    std::vector<LimonAPI::ParameterRequest>triggerResult = limonAPI->getResultOfTrigger(
+    std::vector<LimonTypes::GenericParameter>triggerResult = limonAPI->getResultOfTrigger(
             static_cast<uint32_t>(parameters[0].value.longValues[1]),
             static_cast<uint32_t>(parameters[0].value.longValues[2]));
 
@@ -60,7 +60,7 @@ bool WesternStoryAtSaloonAction::run(std::vector<LimonAPI::ParameterRequest> par
     }
 
     textID1 = limonAPI->addGuiText("./Data/Fonts/InsaneRodeo.ttf", 64, "firstText", "They didn't take it", glm::vec3(170, 170, 50), glm::vec2(0.5f, 0.2f), 0.0f);
-    std::vector<LimonAPI::ParameterRequest> emptyParamList;
+    std::vector<LimonTypes::GenericParameter> emptyParamList;
     limonAPI->addTimedEvent( 4000, std::bind(&WesternStoryAtSaloonAction::showMessages1, this, std::placeholders::_1), emptyParamList);
     limonAPI->addTimedEvent( 6000, std::bind(&WesternStoryAtSaloonAction::showMessages2, this, std::placeholders::_1), emptyParamList);
     limonAPI->addTimedEvent( 8000, std::bind(&WesternStoryAtSaloonAction::showMessages3, this, std::placeholders::_1), emptyParamList);
@@ -68,10 +68,10 @@ bool WesternStoryAtSaloonAction::run(std::vector<LimonAPI::ParameterRequest> par
     return true;
 }
 
-std::vector<LimonAPI::ParameterRequest> WesternStoryAtSaloonAction::getResults() {
-    std::vector<LimonAPI::ParameterRequest> result;
-    LimonAPI::ParameterRequest hasRunParameter;
-    hasRunParameter.valueType = LimonAPI::ParameterRequest::ValueTypes::BOOLEAN;
+std::vector<LimonTypes::GenericParameter> WesternStoryAtSaloonAction::getResults() {
+    std::vector<LimonTypes::GenericParameter> result;
+    LimonTypes::GenericParameter hasRunParameter;
+    hasRunParameter.valueType = LimonTypes::GenericParameter::ValueTypes::BOOLEAN;
     hasRunParameter.value.boolValue = hasRun;
     result.push_back(hasRunParameter);
     return result;
@@ -81,17 +81,17 @@ std::string WesternStoryAtSaloonAction::getName() const {
     return "WesternStoryAtSaloon";
 }
 
-void WesternStoryAtSaloonAction::showMessages1(const std::vector<LimonAPI::ParameterRequest> &emptyParamList [[gnu::unused]]) {
+void WesternStoryAtSaloonAction::showMessages1(const std::vector<LimonTypes::GenericParameter> &emptyParamList [[gnu::unused]]) {
     limonAPI->removeGuiElement(textID1);
     textID2 = limonAPI->addGuiText("./Data/Fonts/InsaneRodeo.ttf", 64, "secondText", "Time to skip town", glm::vec3(170, 170, 50), glm::vec2(0.5f, 0.2f), 0.0f);
 }
 
-void WesternStoryAtSaloonAction::showMessages2(const std::vector<LimonAPI::ParameterRequest> &emptyParamList [[gnu::unused]]) {
+void WesternStoryAtSaloonAction::showMessages2(const std::vector<LimonTypes::GenericParameter> &emptyParamList [[gnu::unused]]) {
     glm::vec3 trainPosition = glm::vec3(82.581146f, 6.7320518f, 36.58247f);
     limonAPI->playSound("./Data/Sounds/steam-train-whistle.wav", trainPosition);
 
 }
 
-void WesternStoryAtSaloonAction::showMessages3(const std::vector<LimonAPI::ParameterRequest> &emptyParamList [[gnu::unused]]) {
+void WesternStoryAtSaloonAction::showMessages3(const std::vector<LimonTypes::GenericParameter> &emptyParamList [[gnu::unused]]) {
     limonAPI->removeGuiElement(textID2);
 }

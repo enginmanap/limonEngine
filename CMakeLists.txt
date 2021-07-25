@@ -116,6 +116,7 @@ add_library(LimonAPI STATIC
         src/API/LimonAPI.cpp
         src/API/InputStates.cpp
         src/API/LimonConverter.h
+        src/API/LimonTypes.h
         )
 
 file(GLOB API_HEADERS

@@ -50,9 +50,9 @@ public:
     class Thread {
     private:
         SDL_Thread* thread = nullptr;
-        std::function<std::vector<LimonAPI::ParameterRequest>(std::vector<LimonAPI::ParameterRequest>)> functionToRun;
-        std::vector<LimonAPI::ParameterRequest> parameters;
-        std::vector<LimonAPI::ParameterRequest> result;
+        std::function<std::vector<LimonTypes::GenericParameter>(std::vector<LimonTypes::GenericParameter>)> functionToRun;
+        std::vector<LimonTypes::GenericParameter> parameters;
+        std::vector<LimonTypes::GenericParameter> result;
         SpinLock lock;
         std::string name;
         static int threadRunner(void* ptr) {
@@ -64,7 +64,7 @@ public:
             return 0;
         }
     public:
-        Thread(const std::string &threadName, std::function<std::vector<LimonAPI::ParameterRequest>(std::vector<LimonAPI::ParameterRequest>)> functionToRun, const std::vector<LimonAPI::ParameterRequest> &parameters) {
+        Thread(const std::string &threadName, std::function<std::vector<LimonTypes::GenericParameter>(std::vector<LimonTypes::GenericParameter>)> functionToRun, const std::vector<LimonTypes::GenericParameter> &parameters) {
             this->parameters = parameters;
             this->functionToRun = functionToRun;
             this->name = threadName;
@@ -82,7 +82,7 @@ public:
             return isDone;
         }
 
-        const std::vector<LimonAPI::ParameterRequest>* getResult() {
+        const std::vector<LimonTypes::GenericParameter>* getResult() {
             if(!isThreadDone()) {
                 return nullptr;
             }

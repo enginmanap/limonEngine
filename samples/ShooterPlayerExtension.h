@@ -22,11 +22,11 @@ public:
     ShooterPlayerExtension(LimonAPI* limonAPI) : PlayerExtensionInterface(limonAPI) {
         playerAttachedModelID = limonAPI->getPlayerAttachedModel();
     }
-    void removeDamageIndicator(std::vector<LimonAPI::ParameterRequest> parameters);
+    void removeDamageIndicator(std::vector<LimonTypes::GenericParameter> parameters);
     void processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
                           long time) override;
 
-    void interact(std::vector<LimonAPI::ParameterRequest> &interactionData) override;
+    void interact(std::vector<LimonTypes::GenericParameter> &interactionData) override;
 
     std::string getName() const override;
 

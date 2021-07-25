@@ -83,15 +83,15 @@ public:
         (*getMap())[typeName] = constructor;
     }
 
-    virtual std::vector<LimonAPI::ParameterRequest> getParameters() const = 0;
+    virtual std::vector<LimonTypes::GenericParameter> getParameters() const = 0;
 
     virtual bool initRender(std::shared_ptr<GraphicsProgram> program[[gnu::unused]],
-                            std::vector<LimonAPI::ParameterRequest> parameters[[gnu::unused]]) { return true;};
+                            std::vector<LimonTypes::GenericParameter> parameters[[gnu::unused]]) { return true;};
 
     virtual void renderFrame(std::shared_ptr<GraphicsProgram> program[[gnu::unused]]) {};
 
     virtual bool cleanupRender(std::shared_ptr<GraphicsProgram> program[[gnu::unused]],
-                               std::vector<LimonAPI::ParameterRequest> parameters[[gnu::unused]]) { return true;};
+                               std::vector<LimonTypes::GenericParameter> parameters[[gnu::unused]]) { return true;};
 
     virtual ~RenderMethodInterface() = default;
 
@@ -114,15 +114,15 @@ RenderMethodInterface *createT(GraphicsInterface *graphicsInterface) {
 
 template<typename T>
 class RenderMethodRegister : RenderMethodInterface {
-    virtual std::vector<LimonAPI::ParameterRequest> getParameters() const override {
-        return std::vector<LimonAPI::ParameterRequest>();
+    virtual std::vector<LimonTypes::GenericParameter> getParameters() const override {
+        return std::vector<LimonTypes::GenericParameter>();
     };
 
-    virtual bool initRender(std::shared_ptr<GraphicsProgram> program [[gnu::unused]], std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {return false;};
+    virtual bool initRender(std::shared_ptr<GraphicsProgram> program [[gnu::unused]], std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) {return false;};
 
-    virtual void renderFrame(std::shared_ptr<GraphicsProgram> program [[gnu::unused]], std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {};
+    virtual void renderFrame(std::shared_ptr<GraphicsProgram> program [[gnu::unused]], std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) {};
 
-    virtual bool cleanupRender(std::shared_ptr<GraphicsProgram> program [[gnu::unused]], std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {return false;};
+    virtual bool cleanupRender(std::shared_ptr<GraphicsProgram> program [[gnu::unused]], std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) {return false;};
 
     std::string getName() const override {
         return "This object is not meant to be used";

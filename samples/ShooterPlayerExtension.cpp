@@ -53,29 +53,29 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
 
             //now put bullet hole to the hit position:
 
-            std::vector<LimonAPI::ParameterRequest>rayResult = limonAPI->rayCastToCursor();
+            std::vector<LimonTypes::GenericParameter>rayResult = limonAPI->rayCastToCursor();
             if(rayResult.size() > 0 ) {
 
                 //means we hit something
                 if(rayResult.size() == 4) {
                     std::cout << "hit AI" << std::endl;
                     // means we hit something with AI, handle AI interaction
-                    LimonAPI::ParameterRequest parameterRequest;
-                    parameterRequest.valueType = LimonAPI::ParameterRequest::ValueTypes::STRING;
+                    LimonTypes::GenericParameter parameterRequest;
+                    parameterRequest.valueType = LimonTypes::GenericParameter::ValueTypes::STRING;
                     strncpy(parameterRequest.value.stringValue, "GOT_HIT", 63);
-                    std::vector<LimonAPI::ParameterRequest> prList;
+                    std::vector<LimonTypes::GenericParameter> prList;
                     prList.push_back(parameterRequest);
                     limonAPI->interactWithAI(rayResult[3].value.longValue, prList);
 
                     //How about some particles?
-                    uint32_t particleEmitterID = limonAPI->addParticleEmitter("HitEmitter", "./Data/Textures/bloodParticle.png", rayResult[1].value.vectorValue, LimonAPI::Vec4(0.01, 0.01, 0.01, 0),
-                                                                              LimonAPI::Vec2(0.05, 0.05), 50, 2000, 2000, false);
+                    uint32_t particleEmitterID = limonAPI->addParticleEmitter("HitEmitter", "./Data/Textures/bloodParticle.png", rayResult[1].value.vectorValue, LimonTypes::Vec4(0.01, 0.01, 0.01, 0),
+                                                                              LimonTypes::Vec2(0.05, 0.05), 50, 2000, 2000, false);
                     //For speed we want to use the normal, first parameter is multiplier for random, second is applied to all.
-                    LimonAPI::Vec4 randomStartMultiplier = LimonAPI::Vec4(0.05, 0.05, 0.05, 0.05);
-                    LimonAPI::Vec4 offset = rayResult[2].value.vectorValue * 0.05;
+                    LimonTypes::Vec4 randomStartMultiplier = LimonTypes::Vec4(0.05, 0.05, 0.05, 0.05);
+                    LimonTypes::Vec4 offset = rayResult[2].value.vectorValue * 0.05;
                     std::cout << "creating particles with " << offset.x << ", " << offset.y << ", " << offset.z << ", " << offset.w << " ." << std::endl;
                     limonAPI->setEmitterParticleSpeed(particleEmitterID, randomStartMultiplier, offset);
-                    limonAPI->setEmitterParticleGravity(particleEmitterID, LimonAPI::Vec4(0,-1, 0));
+                    limonAPI->setEmitterParticleGravity(particleEmitterID, LimonTypes::Vec4(0,-1, 0));
                 } else {
                     std::cout << "hit non AI" << std::endl;
                     //means we hit something that doesn't have AI, put a hole
@@ -105,7 +105,7 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
                     }
 
 
-                    std::vector<LimonAPI::ParameterRequest>modelTransformationMat = limonAPI->getObjectTransformationMatrix(rayResult[0].value.longValue);
+                    std::vector<LimonTypes::GenericParameter>modelTransformationMat = limonAPI->getObjectTransformationMatrix(rayResult[0].value.longValue);
                     if(modelTransformationMat.size() == 0) {
                         std::cerr << "Hit an object, but its ID "<< (uint32_t)rayResult[0].value.longValue << " is invalid!" << std::endl;
 
@@ -146,14 +146,14 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
 
                     }
                     //How about some particles?
-                    uint32_t particleEmitterID = limonAPI->addParticleEmitter("HitEmitter", "./Data/Textures/baseParticle.png", rayResult[1].value.vectorValue, LimonAPI::Vec4(0.01, 0.01, 0.01, 0),
-                                                 LimonAPI::Vec2(0.05, 0.05), 50, 2000, 2000, false);
+                    uint32_t particleEmitterID = limonAPI->addParticleEmitter("HitEmitter", "./Data/Textures/baseParticle.png", rayResult[1].value.vectorValue, LimonTypes::Vec4(0.01, 0.01, 0.01, 0),
+                                                 LimonTypes::Vec2(0.05, 0.05), 50, 2000, 2000, false);
                     //For speed we want to use the normal, first parameter is multiplier for random, second is applied to all.
-                    LimonAPI::Vec4 randomStartMultiplier = LimonAPI::Vec4(0.1, 0.1, 0.1, 0.1);
-                    LimonAPI::Vec4 offset = rayResult[2].value.vectorValue * 0.2;
+                    LimonTypes::Vec4 randomStartMultiplier = LimonTypes::Vec4(0.1, 0.1, 0.1, 0.1);
+                    LimonTypes::Vec4 offset = rayResult[2].value.vectorValue * 0.2;
                     std::cout << "creating particles with " << offset.x << ", " << offset.y << ", " << offset.z << ", " << offset.w << " ." << std::endl;
                     limonAPI->setEmitterParticleSpeed(particleEmitterID, randomStartMultiplier, offset);
-                    limonAPI->setEmitterParticleGravity(particleEmitterID, LimonAPI::Vec4(0,-1, 0));
+                    limonAPI->setEmitterParticleGravity(particleEmitterID, LimonTypes::Vec4(0,-1, 0));
 
                 }
 
@@ -163,8 +163,8 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
         }
     } else {
         if (inputState.getInputEvents(InputStates::Inputs::MOUSE_BUTTON_RIGHT)) {
-            LimonAPI::Vec4 newOffset = LimonAPI::Vec4(0.075f, 0.03f,-0.045f);
-            LimonAPI::Vec4 attachedModelOffset = limonAPI->getPlayerAttachedModelOffset();
+            LimonTypes::Vec4 newOffset = LimonTypes::Vec4(0.075f, 0.03f,-0.045f);
+            LimonTypes::Vec4 attachedModelOffset = limonAPI->getPlayerAttachedModelOffset();
             if(inputState.getInputStatus(InputStates::Inputs::MOUSE_BUTTON_RIGHT)) {
                 limonAPI->setModelAnimationWithBlend(playerAttachedModelID, "AimPose", true);
 
@@ -225,13 +225,13 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
 
 }
 
-void ShooterPlayerExtension::removeDamageIndicator(std::vector<LimonAPI::ParameterRequest> parameters) {
-    if(parameters.size() > 0 && parameters[0].valueType == LimonAPI::ParameterRequest::ValueTypes::LONG) {
+void ShooterPlayerExtension::removeDamageIndicator(std::vector<LimonTypes::GenericParameter> parameters) {
+    if(parameters.size() > 0 && parameters[0].valueType == LimonTypes::GenericParameter::ValueTypes::LONG) {
         limonAPI->removeGuiElement(parameters[0].value.longValue);
     }
 }
 
-void ShooterPlayerExtension::interact(std::vector<LimonAPI::ParameterRequest> &interactionData) {
+void ShooterPlayerExtension::interact(std::vector<LimonTypes::GenericParameter> &interactionData) {
     static uint32_t removeCounter = 0;
     static uint32_t addedElement = 0;
 
@@ -239,7 +239,7 @@ void ShooterPlayerExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
         return;
     }
 
-    if(interactionData[0].valueType == LimonAPI::ParameterRequest::ValueTypes::STRING && std::string(interactionData[0].value.stringValue) == "SHOOT_PLAYER") {
+    if(interactionData[0].valueType == LimonTypes::GenericParameter::ValueTypes::STRING && std::string(interactionData[0].value.stringValue) == "SHOOT_PLAYER") {
         hitPoints -= 20;
 
         limonAPI->updateGuiText(40, std::to_string(hitPoints));
@@ -250,13 +250,13 @@ void ShooterPlayerExtension::interact(std::vector<LimonAPI::ParameterRequest> &i
         }
 
         if(addedElement == 0) {
-            addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicator.png", "damageIndicator", LimonAPI::Vec2(0.5f, 0.5f),
-                                                 LimonAPI::Vec2(0.7f, 0.8f), 0);
+            addedElement = limonAPI->addGuiImage("./Data/Textures/damageIndicator.png", "damageIndicator", LimonTypes::Vec2(0.5f, 0.5f),
+                                                 LimonTypes::Vec2(0.7f, 0.8f), 0);
 
         }
-        std::vector<LimonAPI::ParameterRequest> removeParameters;
-        LimonAPI::ParameterRequest removeID;
-        removeID.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+        std::vector<LimonTypes::GenericParameter> removeParameters;
+        LimonTypes::GenericParameter removeID;
+        removeID.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
         removeID.value.longValue = addedElement;
         removeParameters.push_back(removeID);
         limonAPI->addTimedEvent(250, std::bind(&ShooterPlayerExtension::removeDamageIndicator, this, std::placeholders::_1), removeParameters);

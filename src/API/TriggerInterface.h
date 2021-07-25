@@ -44,9 +44,9 @@ public:
         (*typeMap)[typeName] = constructor;
     }
 
-    virtual std::vector<LimonAPI::ParameterRequest> getParameters() = 0;
-    virtual bool run(std::vector<LimonAPI::ParameterRequest> parameters) = 0;
-    virtual std::vector<LimonAPI::ParameterRequest> getResults() = 0;
+    virtual std::vector<LimonTypes::GenericParameter> getParameters() = 0;
+    virtual bool run(std::vector<LimonTypes::GenericParameter> parameters) = 0;
+    virtual std::vector<LimonTypes::GenericParameter> getResults() = 0;
 
     virtual ~TriggerInterface() = default;
 
@@ -70,18 +70,18 @@ TriggerInterface* createT(LimonAPI* limonAPI) {
 
 template<typename T>
 class TriggerRegister : TriggerInterface {
-    virtual std::vector<LimonAPI::ParameterRequest> getParameters() {
-        return std::vector<LimonAPI::ParameterRequest>();
+    virtual std::vector<LimonTypes::GenericParameter> getParameters() {
+        return std::vector<LimonTypes::GenericParameter>();
     };
-    virtual bool run(std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) override {
+    virtual bool run(std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) override {
         return false;
     };
     std::string getName() const override {
         return "This object is not meant to be used";
     }
 
-    std::vector<LimonAPI::ParameterRequest> getResults() override {
-        return std::vector<LimonAPI::ParameterRequest>();
+    std::vector<LimonTypes::GenericParameter> getResults() override {
+        return std::vector<LimonTypes::GenericParameter>();
     }
 
 public:

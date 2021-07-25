@@ -7,26 +7,26 @@
 
 TriggerRegister<AnimateOnTrigger> AnimateOnTrigger::reg("AnimateOnTrigger");
 
-std::vector<LimonAPI::ParameterRequest> AnimateOnTrigger::getParameters() {
-    std::vector<LimonAPI::ParameterRequest> parameters;
-    LimonAPI::ParameterRequest param1;
-    param1.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MODEL;
+std::vector<LimonTypes::GenericParameter> AnimateOnTrigger::getParameters() {
+    std::vector<LimonTypes::GenericParameter> parameters;
+    LimonTypes::GenericParameter param1;
+    param1.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     param1.description = "Model to animate";
     parameters.push_back(param1);
 
-    LimonAPI::ParameterRequest param2;
-    param2.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::ANIMATION;
+    LimonTypes::GenericParameter param2;
+    param2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::ANIMATION;
     param2.description = "Animation to apply";
     parameters.push_back(param2);
 
-    LimonAPI::ParameterRequest param3;
-    param3.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::SWITCH;
+    LimonTypes::GenericParameter param3;
+    param3.requestType = LimonTypes::GenericParameter::RequestParameterTypes::SWITCH;
     param3.description = "Is animation looped";
     param3.isSet = true;
     parameters.push_back(param3);
 
-    LimonAPI::ParameterRequest param4;
-    param4.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_TEXT;
+    LimonTypes::GenericParameter param4;
+    param4.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_TEXT;
     param4.description = "Sound to play";
     param4.isSet = true;
     parameters.push_back(param4);
@@ -34,7 +34,7 @@ std::vector<LimonAPI::ParameterRequest> AnimateOnTrigger::getParameters() {
     return parameters;
 }
 
-bool AnimateOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters) {
+bool AnimateOnTrigger::run(std::vector<LimonTypes::GenericParameter> parameters) {
 
     std::string* sound = nullptr;
 
@@ -50,8 +50,8 @@ bool AnimateOnTrigger::run(std::vector<LimonAPI::ParameterRequest> parameters) {
 }
 
 
-std::vector<LimonAPI::ParameterRequest> AnimateOnTrigger::getResults() {
-    return std::vector<LimonAPI::ParameterRequest>();
+std::vector<LimonTypes::GenericParameter> AnimateOnTrigger::getResults() {
+    return std::vector<LimonTypes::GenericParameter>();
 }
 
 AnimateOnTrigger::AnimateOnTrigger(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}

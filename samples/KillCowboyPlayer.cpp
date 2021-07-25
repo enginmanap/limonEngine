@@ -5,18 +5,18 @@
 #include <cstring>
 #include "KillCowboyPlayer.h"
 
-std::vector<LimonAPI::ParameterRequest> KillCowboyPlayer::getParameters() {
-    return std::vector<LimonAPI::ParameterRequest>();//no parameters
+std::vector<LimonTypes::GenericParameter> KillCowboyPlayer::getParameters() {
+    return std::vector<LimonTypes::GenericParameter>();//no parameters
 }
 
-bool KillCowboyPlayer::run(std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {
-    std::vector<LimonAPI::ParameterRequest> prList;
-    LimonAPI::ParameterRequest pr;
+bool KillCowboyPlayer::run(std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) {
+    std::vector<LimonTypes::GenericParameter> prList;
+    LimonTypes::GenericParameter pr;
     pr.valueType = pr.STRING;
     std::strncpy(pr.value.stringValue, "SHOOT_PLAYER", 63);
     prList.push_back(pr);
 
-    LimonAPI::ParameterRequest pr2;
+    LimonTypes::GenericParameter pr2;
     pr2.valueType = pr.LONG;
     pr2.value.longValue = 1000;//just to make sure
     prList.push_back(pr2);
@@ -24,8 +24,8 @@ bool KillCowboyPlayer::run(std::vector<LimonAPI::ParameterRequest> parameters [[
     return true;
 }
 
-std::vector<LimonAPI::ParameterRequest> KillCowboyPlayer::getResults() {
-    return std::vector<LimonAPI::ParameterRequest>();//no result set
+std::vector<LimonTypes::GenericParameter> KillCowboyPlayer::getResults() {
+    return std::vector<LimonTypes::GenericParameter>();//no result set
 }
 
 std::string KillCowboyPlayer::getName() const {

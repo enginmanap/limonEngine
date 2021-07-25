@@ -54,7 +54,7 @@ void WesternMenuPlayerExtension::processInput(const InputStates &inputState, con
     }
 }
 
-void WesternMenuPlayerExtension::interact(std::vector<LimonAPI::ParameterRequest> &interactionData [[gnu::unused]]) {
+void WesternMenuPlayerExtension::interact(std::vector<LimonTypes::GenericParameter> &interactionData [[gnu::unused]]) {
 
 }
 

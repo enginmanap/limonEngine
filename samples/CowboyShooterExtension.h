@@ -47,8 +47,8 @@ class CowboyShooterExtension : public  PlayerExtensionInterface {
     long lastInputTime = 0;
     long hitTime = 0;
 
-    const LimonAPI::Vec4 removeOffset = LimonAPI::Vec4(0, 0, -50);
-    const LimonAPI::Vec4 addOffset = LimonAPI::Vec4(0, 0, 50);
+    const LimonTypes::Vec4 removeOffset = LimonTypes::Vec4(0, 0, -50);
+    const LimonTypes::Vec4 addOffset = LimonTypes::Vec4(0, 0, 50);
     PlayerExtensionInterface::PlayerInformation latestPlayerInformation;
 
     int hitPoints = 100;
@@ -79,18 +79,18 @@ public:
             }
         }
     }
-    void removeDamageIndicator(std::vector<LimonAPI::ParameterRequest> parameters);
-    void removeMuzzleFlash(std::vector<LimonAPI::ParameterRequest> parameters);
+    void removeDamageIndicator(std::vector<LimonTypes::GenericParameter> parameters);
+    void removeMuzzleFlash(std::vector<LimonTypes::GenericParameter> parameters);
     void processInput(const InputStates &inputState, const PlayerExtensionInterface::PlayerInformation &playerInformation,
                           long time) override;
 
-    void interact(std::vector<LimonAPI::ParameterRequest> &interactionData) override;
+    void interact(std::vector<LimonTypes::GenericParameter> &interactionData) override;
 
     std::string getName() const override;
 
     void processHitReaction();
 
-    void addDamageIndicator(const std::vector<LimonAPI::ParameterRequest> &interactionData);
+    void addDamageIndicator(const std::vector<LimonTypes::GenericParameter> &interactionData);
 };
 
 

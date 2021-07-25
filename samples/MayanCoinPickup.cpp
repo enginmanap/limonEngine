@@ -7,7 +7,7 @@
 
 MayanCoinPickup::MayanCoinPickup(LimonAPI *limonAPI) : TriggerInterface(limonAPI) {}
 
-std::vector<LimonAPI::ParameterRequest> MayanCoinPickup::getParameters() {
+std::vector<LimonTypes::GenericParameter> MayanCoinPickup::getParameters() {
 
     /*
      * parameters:
@@ -18,51 +18,51 @@ std::vector<LimonAPI::ParameterRequest> MayanCoinPickup::getParameters() {
         6) animation itself
      */
 
-    std::vector<LimonAPI::ParameterRequest> parameters;
+    std::vector<LimonTypes::GenericParameter> parameters;
 
-    LimonAPI::ParameterRequest removeModelParameter;
-    removeModelParameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-    removeModelParameter.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MODEL;
+    LimonTypes::GenericParameter removeModelParameter;
+    removeModelParameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+    removeModelParameter.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     removeModelParameter.description = "Model to remove";
     parameters.push_back(removeModelParameter);
 
-    LimonAPI::ParameterRequest counterParameter;
-    counterParameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-    counterParameter.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
+    LimonTypes::GenericParameter counterParameter;
+    counterParameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+    counterParameter.requestType = LimonTypes::GenericParameter::RequestParameterTypes::GUI_TEXT;
     counterParameter.description = "Counter GUI Element";
     parameters.push_back(counterParameter);
 
-    LimonAPI::ParameterRequest counterStartParameter;
-    counterStartParameter.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-    counterStartParameter.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_NUMBER;
+    LimonTypes::GenericParameter counterStartParameter;
+    counterStartParameter.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+    counterStartParameter.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_NUMBER;
     counterStartParameter.description = "Count start from";
     parameters.push_back(counterStartParameter);
 
-    LimonAPI::ParameterRequest animateModelParameter1;
-    animateModelParameter1.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-    animateModelParameter1.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MODEL;
+    LimonTypes::GenericParameter animateModelParameter1;
+    animateModelParameter1.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+    animateModelParameter1.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     animateModelParameter1.description = "stairs part 1";
     parameters.push_back(animateModelParameter1);
 
-    LimonAPI::ParameterRequest animateModelParameter2;
-    animateModelParameter2.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-    animateModelParameter2.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MODEL;
+    LimonTypes::GenericParameter animateModelParameter2;
+    animateModelParameter2.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+    animateModelParameter2.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     animateModelParameter2.description = "stairs part 2";
     parameters.push_back(animateModelParameter2);
 
-    LimonAPI::ParameterRequest animateModelParameter3;
-    animateModelParameter3.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
-    animateModelParameter3.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::MODEL;
+    LimonTypes::GenericParameter animateModelParameter3;
+    animateModelParameter3.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+    animateModelParameter3.requestType = LimonTypes::GenericParameter::RequestParameterTypes::MODEL;
     animateModelParameter3.description = "stairs part 3";
     parameters.push_back(animateModelParameter3);
 
-    LimonAPI::ParameterRequest stairAnimation;
-    stairAnimation.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::ANIMATION;
+    LimonTypes::GenericParameter stairAnimation;
+    stairAnimation.requestType = LimonTypes::GenericParameter::RequestParameterTypes::ANIMATION;
     stairAnimation.description = "Animation to apply";
     parameters.push_back(stairAnimation);
 
-    LimonAPI::ParameterRequest textToAdd;
-    textToAdd.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::FREE_TEXT;
+    LimonTypes::GenericParameter textToAdd;
+    textToAdd.requestType = LimonTypes::GenericParameter::RequestParameterTypes::FREE_TEXT;
     textToAdd.description = "Text to show when coin picked up.(Optional)";
     textToAdd.isSet = true;
     parameters.push_back(textToAdd);
@@ -70,10 +70,10 @@ std::vector<LimonAPI::ParameterRequest> MayanCoinPickup::getParameters() {
     return parameters;
 }
 
-bool MayanCoinPickup::run(std::vector<LimonAPI::ParameterRequest> parameters) {
+bool MayanCoinPickup::run(std::vector<LimonTypes::GenericParameter> parameters) {
     bool result;
     //FIXME there is no enum value for variable, there should be
-    LimonAPI::ParameterRequest& coinPickupCount = limonAPI->getVariable("coinPickupCount");
+    LimonTypes::GenericParameter& coinPickupCount = limonAPI->getVariable("coinPickupCount");
     if(coinPickupCount.value.longValue == 0) {
         //means this is the first coin that gets picked up
         coinPickupCount.value.longValue = parameters[2].value.longValue;
@@ -93,8 +93,8 @@ bool MayanCoinPickup::run(std::vector<LimonAPI::ParameterRequest> parameters) {
     if(!limonAPI->enableParticleEmitter(575)){
         std::cerr << "Particle Emitter not found!" << std::endl;
     } else {
-        std::vector<LimonAPI::ParameterRequest> empty;
-        limonAPI->addTimedEvent(7000, [=](const std::vector<LimonAPI::ParameterRequest>&) { limonAPI->disableParticleEmitter(575);}  , empty);
+        std::vector<LimonTypes::GenericParameter> empty;
+        limonAPI->addTimedEvent(7000, [=](const std::vector<LimonTypes::GenericParameter>&) { limonAPI->disableParticleEmitter(575);}  , empty);
     }
 
 
@@ -118,12 +118,12 @@ bool MayanCoinPickup::run(std::vector<LimonAPI::ParameterRequest> parameters) {
     return result;
 }
 
-std::vector<LimonAPI::ParameterRequest> MayanCoinPickup::getResults() {
-    std::vector<LimonAPI::ParameterRequest> result;
-    LimonAPI::ParameterRequest resultValue;
+std::vector<LimonTypes::GenericParameter> MayanCoinPickup::getResults() {
+    std::vector<LimonTypes::GenericParameter> result;
+    LimonTypes::GenericParameter resultValue;
     resultValue.isSet = true;
-    resultValue.requestType = LimonAPI::ParameterRequest::RequestParameterTypes::GUI_TEXT;
-    resultValue.valueType = LimonAPI::ParameterRequest::ValueTypes::LONG;
+    resultValue.requestType = LimonTypes::GenericParameter::RequestParameterTypes::GUI_TEXT;
+    resultValue.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     resultValue.value.longValue = addedTextId;
     result.push_back(resultValue);
     return result;

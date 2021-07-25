@@ -200,7 +200,7 @@ public:
 
     void processInput(const InputStates &inputHandler, long time) override;
 
-    void interact(LimonAPI *limonAPI, std::vector<LimonAPI::ParameterRequest> &interactionData) override;
+    void interact(LimonAPI *limonAPI, std::vector<LimonTypes::GenericParameter> &interactionData) override;
 
     void setDead() override;
 
