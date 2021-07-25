@@ -643,9 +643,9 @@ void OpenGLGraphics::bufferVertexTextureCoordinates(const std::vector<glm::vec2>
     checkErrors("bufferVertexTextureCoordinates");
 }
 
-void OpenGLGraphics::updateVertexData(const std::vector<glm::vec3> &vertices,
-                      const std::vector<glm::mediump_uvec3> &faces,
-                                      uint32_t &vao, uint32_t &vbo, uint32_t &ebo) {
+void
+OpenGLGraphics::updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::mediump_uvec3> &faces,
+                                 uint32_t &vbo, uint32_t &ebo) {
     // Set up the element array buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::mediump_uvec3), faces.data(), GL_STATIC_DRAW);
@@ -656,24 +656,24 @@ void OpenGLGraphics::updateVertexData(const std::vector<glm::vec3> &vertices,
 
     checkErrors("updateVertexData");
 }
-void OpenGLGraphics::updateNormalData(const std::vector<glm::vec3> &normals, uint32_t &vao, uint32_t &vbo){
+void OpenGLGraphics::updateNormalData(const std::vector<glm::vec3> &normals, uint32_t &vbo) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), normals.data(), GL_STATIC_DRAW);
 
     glBindVertexArray(0);
     checkErrors("updateNormalData");
 }
-void OpenGLGraphics::updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint32_t &vao, uint32_t &vbo){
+void OpenGLGraphics::updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint32_t &vbo) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, extraData.size() * sizeof(glm::vec4), extraData.data(), GL_STATIC_DRAW);
     checkErrors("updateExtraVertexDataV4");
 }
-void OpenGLGraphics::updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint32_t &vao, uint32_t &vbo){
+void OpenGLGraphics::updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint32_t &vbo) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, extraData.size() * sizeof(glm::lowp_uvec4), extraData.data(), GL_STATIC_DRAW);
     checkErrors("updateExtraVertexDataIV4");
 }
-void OpenGLGraphics::updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint32_t &vao, uint32_t &vbo){
+void OpenGLGraphics::updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint32_t &vbo) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, textureCoordinates.size() * sizeof(glm::vec2), textureCoordinates.data(),
                  GL_STATIC_DRAW);

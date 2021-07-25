@@ -70,9 +70,9 @@ void ImGuiHelper::RenderDrawLists()
             faces.push_back(face);
         }
 
-        graphicsWrapper->updateVertexData(positions, faces, g_VaoHandle, g_VboHandle, g_ElementsHandle);
-        graphicsWrapper->updateExtraVertexData(colors, g_VaoHandle, g_colorHandle);
-        graphicsWrapper->updateVertexTextureCoordinates(textureCoordinates, g_VaoHandle, g_UVHandle);
+        graphicsWrapper->updateVertexData(positions, faces, g_VboHandle, g_ElementsHandle);
+        graphicsWrapper->updateExtraVertexData(colors, g_colorHandle);
+        graphicsWrapper->updateVertexTextureCoordinates(textureCoordinates, g_UVHandle);
 
         for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++) {
             const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];

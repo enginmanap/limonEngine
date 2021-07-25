@@ -97,7 +97,7 @@ SSAOKernelRenderMethod::generateSSAONoiseTexture() {
                     nullptr, nullptr, nullptr, nullptr, nullptr);
     }
 
-bool SSAOKernelRenderMethod::cleanupRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {
+bool SSAOKernelRenderMethod::cleanupRender(std::shared_ptr<GraphicsProgram> program[[gnu::unused]], std::vector<LimonAPI::ParameterRequest> parameters [[gnu::unused]]) {
     deleteTexture(ssaoNoiseTexture);
     ssaoNoiseTexture = 0;
     return true;

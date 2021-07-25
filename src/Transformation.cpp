@@ -213,6 +213,16 @@ bool Transformation::addImGuizmoElements(const ImGuizmoState &editorState, const
             }
             break;
         case ImGuizmo::BOUNDS://not used
+        case ImGuizmo::TRANSLATE_X://not used
+        case ImGuizmo::TRANSLATE_Z://not used
+        case ImGuizmo::TRANSLATE_Y://not used
+        case ImGuizmo::ROTATE_X://not used
+        case ImGuizmo::ROTATE_Y://not used
+        case ImGuizmo::ROTATE_Z://not used
+        case ImGuizmo::ROTATE_SCREEN://not used
+        case ImGuizmo::SCALE_X://not used
+        case ImGuizmo::SCALE_Y://not used
+        case ImGuizmo::SCALE_Z://not used
             break;
     }
     return false;

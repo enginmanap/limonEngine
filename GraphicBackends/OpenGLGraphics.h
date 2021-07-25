@@ -249,7 +249,7 @@ public:
         return lightProjectionMatrixDirectional;
     }
 
-    const bool getFrameBufferParameterSupported() const {
+    bool getFrameBufferParameterSupported() const {
         return isFrameBufferParameterSupported;
     }
 
@@ -351,13 +351,12 @@ public:
 
     void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
                                         uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) override;
-    void updateVertexData(const std::vector<glm::vec3> &vertices,
-                                  const std::vector<glm::mediump_uvec3> &faces,
-                          uint32_t &vao, uint32_t &vbo, uint32_t &ebo);
-    void updateNormalData(const std::vector<glm::vec3> &colors, uint32_t &vao, uint32_t &vbo);
-    void updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint32_t &vao, uint32_t &vbo);
-    void updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint32_t &vao, uint32_t &vbo);
-    void updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint32_t &vao, uint32_t &vbo);
+    void updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::mediump_uvec3> &faces,
+                          uint32_t &vbo, uint32_t &ebo);
+    void updateNormalData(const std::vector<glm::vec3> &normals, uint32_t &vbo);
+    void updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint32_t &vbo);
+    void updateExtraVertexData(const std::vector<glm::lowp_uvec4> &extraData, uint32_t &vbo);
+    void updateVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates, uint32_t &vbo);
     bool freeBuffer(const uint32_t bufferID) override;
 
     bool freeVAO(const uint32_t VAO) override;
