@@ -156,7 +156,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
        renderMethods.renderOpaqueObjects       = std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1);
        renderMethods.renderAnimatedObjects     = std::bind(&World::renderAnimatedObjects, this, std::placeholders::_1);
        renderMethods.renderTransparentObjects  = std::bind(&World::renderTransparentObjects, this, std::placeholders::_1);
-       renderMethods.renderParticleEmitters  = std::bind(&World::renderParticleEmitters, this, std::placeholders::_1);
+       renderMethods.renderParticleEmitters    = std::bind(&World::renderParticleEmitters, this, std::placeholders::_1);
+       renderMethods.renderGPUParticleEmitters = std::bind(&World::renderGPUParticleEmitters, this, std::placeholders::_1);
        renderMethods.renderGUITexts            = std::bind(&World::renderGUITexts, this, std::placeholders::_1);
        renderMethods.renderGUIImages           = std::bind(&World::renderGUIImages, this, std::placeholders::_1);
        renderMethods.renderEditor              = std::bind(&World::ImGuiFrameSetup, this, std::placeholders::_1);
@@ -241,12 +242,16 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          checkAndRunTimedEvents();
      }
      if(camera->isDirty()) {
-         graphicsWrapper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix());//this is required for any render
+         graphicsWrapper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix(), gameTime);//this is required for any render
          alHelper->setListenerPositionAndOrientation(camera->getPosition(), camera->getCenter(), camera->getUp());
      }
      if(currentPlayersSettings->worldSimulation) {
          for(const auto& emitter:emitters) {
              emitter.second->setupForTime(gameTime);
+         }
+
+         for(const auto& gpuEmitter:gpuParticleEmitters) {
+             gpuEmitter.second->setupForTime(gameTime);
          }
 
          for(auto trigger = triggers.begin(); trigger != triggers.end(); trigger++) {
@@ -751,6 +756,12 @@ void World::renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& rende
      for(const auto& emitter:emitters) {
          emitter.second->renderWithProgram(renderProgram);
      }
+}
+
+void World::renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
+   for(const auto& gpuParticleEmitter:gpuParticleEmitters) {
+       gpuParticleEmitter.second->renderWithProgram(renderProgram);
+   }
 }
 
 void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[gnu::unused]]) const {
@@ -4051,6 +4062,7 @@ void World::createNodeGraph() {
     renderMethods.renderAnimatedObjects     = std::bind(&World::renderAnimatedObjects, this, std::placeholders::_1);
     renderMethods.renderTransparentObjects  = std::bind(&World::renderTransparentObjects, this, std::placeholders::_1);
     renderMethods.renderParticleEmitters    = std::bind(&World::renderParticleEmitters, this, std::placeholders::_1);
+    renderMethods.renderGPUParticleEmitters = std::bind(&World::renderGPUParticleEmitters, this, std::placeholders::_1);
     renderMethods.renderGUITexts            = std::bind(&World::renderGUITexts, this, std::placeholders::_1);
     renderMethods.renderGUIImages           = std::bind(&World::renderGUIImages, this, std::placeholders::_1);
     renderMethods.renderEditor              = std::bind(&World::ImGuiFrameSetup, this, std::placeholders::_1);

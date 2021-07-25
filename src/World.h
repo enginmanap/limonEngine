@@ -11,6 +11,7 @@
 #include <set>
 #include <queue>
 #include <Graphics/Particles/Emitter.h>
+#include <Graphics/Particles/GPUParticleEmitter.h>
 
 #include "InputHandler.h"
 #include "FontManager.h"
@@ -288,6 +289,7 @@ private:
     std::shared_ptr<GraphicsPipeline> renderPipeline = nullptr;
 
     std::map<uint32_t, std::shared_ptr<Emitter>> emitters;
+    std::map<uint32_t, std::shared_ptr<GPUParticleEmitter>> gpuParticleEmitters;
 
     bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
 
@@ -372,6 +374,7 @@ private:
     void renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
     void renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
     void renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
     void renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
     void renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
     void renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram) const;

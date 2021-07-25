@@ -449,7 +449,7 @@ public:
         checkErrors("removeLight");
     }
 
-    void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix) override;
+    void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix, long currentTime) override;
 
     void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool scissorEnabled, bool depthWriteEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
                            std::map<uint32_t, std::shared_ptr<Texture>> &inputs) override;

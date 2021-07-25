@@ -6,23 +6,16 @@
 
 #include <utility>
 #include "ImGui/imgui.h"
-#include "Emitter.h"
+#include "GPUParticleEmitter.h"
+#include "Utils/GLMUtils.h"
 
-Emitter::Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
+GPUParticleEmitter::GPUParticleEmitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
                  const std::string &textureFile, glm::vec3 startPosition, glm::vec3 maxStartDistances, glm::vec2 size, long count,
-                 long lifeTime, float particlePerMs) :
-        Renderable(assetManager->getGraphicsWrapper()),
-        assetManager(assetManager),
-        worldObjectID(worldObjectId),
-        name(std::move(name)),
-        size(size),
-        maxCount(count),
-        lifeTime(lifeTime),
-        maxStartDistances(maxStartDistances),
-        randomFloatGenerator(randomDevice()),
-        randomStartingPoints(-1.0f, 1.0f),
-        randomSpeedDistribution(-1.0f, 1.0f)
-        {
+                 long lifeTime, long startTime, float particlePerMs) :
+        Renderable(assetManager->getGraphicsWrapper()), assetManager(assetManager), worldObjectID(worldObjectId), name(std::move(name)), size(size),
+        maxCount(count), lifeTime(lifeTime), maxStartDistances(maxStartDistances),
+        randomFloatGenerator(randomDevice()), randomStartingPoints(-1.0f, 1.0f),
+        randomSpeedDistribution(-1.0f, 1.0f){
     this->transformation.setTranslate(startPosition);
     textureAsset = assetManager->loadAsset<TextureAsset>({textureFile});
     this->texture = textureAsset->getTexture();
@@ -34,15 +27,34 @@ Emitter::Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetMana
                                                     GraphicsInterface::InternalFormatTypes::RGBA32F,
                                                     GraphicsInterface::FormatTypes::RGBA,
                                                     GraphicsInterface::DataTypes::FLOAT,
-                                                    maxCount, 1);
+                                                    maxCount, 2);
+    particleDataTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
+    particleDataTexture->setWrapModes(GraphicsInterface::TextureWrapModes::BORDER, GraphicsInterface::TextureWrapModes::BORDER);
+    /*
+     * we want 4 piece of info per particle,
+     * 1) Current Position
+     * 2) Current Speed
+     * 3) Start time in game time
+     * 4) Destroy time in game time
+     * times are long values, which might need encoding.
+     * we also need gravity and current time, which should be provided by something else
+     */
+
     if(particlePerMs > 0) {
         this->perMsParticleCount = particlePerMs;
     } else {
         this->perMsParticleCount = (float) maxCount / lifeTime;
     }
+    this->dirty = true;
 }
 
-void Emitter::addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 &maxStartDistances, long time) {
+GPUParticleEmitter::~GPUParticleEmitter() {
+    particleDataTexture.reset();
+    assetManager->freeAsset(textureAsset->getName());
+}
+
+GPUParticleEmitter::ParticleData
+GPUParticleEmitter::addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 &maxStartDistances, long creationTime) {
     float x = randomStartingPoints(randomFloatGenerator) * maxStartDistances.x;
     float y = randomStartingPoints(randomFloatGenerator) * maxStartDistances.y;
     float z = randomStartingPoints(randomFloatGenerator) * maxStartDistances.z;
@@ -57,18 +69,25 @@ void Emitter::addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 
         }
     }
     */
-    glm::vec4 position = glm::vec4(startPosition, 0) +
-                         glm::vec4(x, y, z, 1);
-    positions.emplace_back(position);
+    glm::vec3 position = glm::vec3(startPosition) +
+                         glm::vec3(x, y, z);
     glm::vec3 speed = glm::vec3(randomSpeedDistribution(randomFloatGenerator) * speedMultiplier.x + speedOffset.x,
                                 randomSpeedDistribution(randomFloatGenerator) * speedMultiplier.y + speedOffset.y,
                                 randomSpeedDistribution(randomFloatGenerator) * speedMultiplier.z + speedOffset.z);
-    speeds.emplace_back(speed);
-    creationTime.emplace_back(time);
-    //std::cout << "Add particle with position " << position.x << ", " <<position.y << ", " <<position.z << std::endl;
+    ParticleData particleData;
+    particleData.creationTime = creationTime;
+    particleData.destroyTime = creationTime + lifeTime;
+    particleData.position = position;
+    particleData.speed = speed;
+    if(particleData.speed.x > 1.0f || particleData.speed.y > 1.0f || particleData.speed.z > 1.0f ) {
+        std::cerr << "particle with " << creationTime << " has an odd speed of " << GLMUtils::vectorToString(particleData.speed) << std::endl;
+        std::cerr << "it had" << GLMUtils::vectorToString(speedMultiplier) << " and offset as " << GLMUtils::vectorToString(speedOffset) << std::endl;
+    }
+    return particleData;
+
 }
 
-void Emitter::setupVAO() {
+void GPUParticleEmitter::setupVAO() {
     std::vector<glm::vec3> vertices;
 
     vertices.emplace_back(glm::vec3(-1.0f, 1.0f, 0.0f));
@@ -97,7 +116,7 @@ void Emitter::setupVAO() {
     bufferObjects.push_back(vbo);
 }
 
-GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
+GameObject::ImGuiResult GPUParticleEmitter::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
 
     //Allow transformation editing.
     if(transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix)) {
@@ -105,7 +124,7 @@ GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiR
     }
 
     if(ImGui::Checkbox("Enabled##ParticleEmitter", &enabled)) {
-        lastSetupTime = 0;//sets up creation
+            dirty = true;
     }
     float startPositionValues[3];
     startPositionValues[0] = transformation.getTranslate().x;
@@ -123,6 +142,7 @@ GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiR
         maxStartDistances.x = startDistanceValues[0];
         maxStartDistances.y = startDistanceValues[1];
         maxStartDistances.z = startDistanceValues[2];
+        dirty = true;
     }
 
     uint32_t maxCountTemp = maxCount;
@@ -130,28 +150,27 @@ GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiR
         particleDataTexture = std::make_shared<Texture>(this->graphicsWrapper,
                                                         GraphicsInterface::TextureTypes::T2D,
                                                         GraphicsInterface::InternalFormatTypes::RGBA32F,
-                                                        GraphicsInterface::FormatTypes::RGB,
+                                                        GraphicsInterface::FormatTypes::RGBA,
                                                         GraphicsInterface::DataTypes::FLOAT,
-                                                        maxCount, 1);
+                                                        maxCount, 2);
+        particleDataTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
+
 
         maxCount = maxCountTemp;
         perMsParticleCount = (float) maxCount / lifeTime;
-        currentCount = 0;
-        positions.clear();
-        speeds.clear();
-        creationTime.clear();
+        dirty = true;
     }
 
     uint32_t lifeTimeTemp = lifeTime;
     if(ImGui::InputScalar("Life time##ParticleEmitter", ImGuiDataType_U32, &lifeTimeTemp)) {
         lifeTime = lifeTimeTemp;
-        lastSetupTime = 0;//sets up creation
+        dirty = true;
     }
 
     ImGui::DragFloat("Particle per ms##ParticleEmitter", &perMsParticleCount, 0.01);
 
     if(ImGui::Checkbox("Continuous Emitting##ParticleEmitter", &continuousEmit)) {
-        lastSetupTime = 0;//sets up creation
+        dirty = true;
     }
 
     float* sizeValues = glm::value_ptr(size);
@@ -184,7 +203,7 @@ GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiR
         gravity = glm::vec3(gravityValues[0], gravityValues[1], gravityValues[2]);
     }
     static int listbox_item_current = -1;
-    ImGui::ListBox("ColorMultipliers##ParticleEmitter", &listbox_item_current, Emitter::getNameForTimedColorMultiplier,
+    ImGui::ListBox("ColorMultipliers##ParticleEmitter", &listbox_item_current, GPUParticleEmitter::getNameForTimedColorMultiplier,
                    static_cast<void *>(&this->timedColorMultipliers), this->timedColorMultipliers.size(), 10);
     
     if(listbox_item_current != -1) {
@@ -263,7 +282,7 @@ GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiR
     return imGuiResult;
 }
 
- bool Emitter::getNameForTimedColorMultiplier(void* data, int index, const char** outText) {
+ bool GPUParticleEmitter::getNameForTimedColorMultiplier(void* data, int index, const char** outText) {
     std::vector<TimedColorMultiplier> multipliers = *static_cast<std::vector<TimedColorMultiplier>*>(data);
     if(index < 0 || (uint32_t)index >= multipliers.size()) {
         return false;
@@ -280,7 +299,7 @@ GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiR
     return true;
 }
 
-float Emitter::calculateTimedColorShift(const long time, const long particleCreateTime) {
+float GPUParticleEmitter::calculateTimedColorShift(const long time, const long particleCreateTime) {
     if(timedColorMultipliers.empty()) {
         return packToFloat(glm::uvec4 (255,255,255,255));
     }

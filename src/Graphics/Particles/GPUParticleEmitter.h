@@ -2,8 +2,8 @@
 // Created by engin on 24.11.2020.
 //
 
-#ifndef LIMONENGINE_EMITTER_H
-#define LIMONENGINE_EMITTER_H
+#ifndef LIMONENGINE_GPUPARTICLEEMITTER_H
+#define LIMONENGINE_GPUPARTICLEEMITTER_H
 
 
 #include <Graphics/Texture.h>
@@ -13,21 +13,23 @@
 #include <Renderable.h>
 #include "../../Assets/TextureAsset.h"
 
-class Emitter : public Renderable, public GameObject {
+// This is a partial implementation I did just to check the performance difference, it is not ready to use
+class GPUParticleEmitter : public Renderable, public GameObject {
 public:
     struct TimedColorMultiplier {
         glm::uvec4 colorMultiplier = glm::uvec4(255,255,255,255);
         long time;
     };
-    ~Emitter() {
-        particleDataTexture.reset();
-        assetManager->freeAsset(textureAsset->getName());
-    }
 private:
+    struct ParticleData {
+        glm::vec3 position;
+        long creationTime;
+        glm::vec3 speed;
+        long destroyTime;
+        ParticleData() = default;
+    };
     std::shared_ptr<AssetManager> assetManager;
-    std::vector<glm::vec4> positions;
-    std::vector<glm::vec3> speeds;
-    std::vector<long> creationTime;
+    std::vector<ParticleData> particles;
 
     long worldObjectID;
     std::string name;
@@ -35,19 +37,17 @@ private:
     std::shared_ptr<Texture> texture;
     long maxCount;
     long lifeTime;
-    glm::vec3 maxStartDistances;
-    glm::vec3 gravity;
-    glm::vec3 speedMultiplier;
-    glm::vec3 speedOffset;
+    glm::vec3 maxStartDistances = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 gravity = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 speedMultiplier = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 speedOffset = glm::vec3(0.0f, 0.0f, 0.0f);
     std::vector<TimedColorMultiplier> timedColorMultipliers;//elements must be incremental ordered by time, first element must be time=0
     float perMsParticleCount;
     bool continuousEmit = true;//emit until reaching maximum, or emit as particles are removed;
     bool enabled = true;
+    bool dirty;
 
     TextureAsset* textureAsset;//it is the root asset for texture
-    long currentCount = 0;
-    long lastSetupTime = 0;
-    long lastCreationTime = 0;
     std::shared_ptr<Texture> particleDataTexture;
 
     std::random_device randomDevice;
@@ -58,74 +58,64 @@ private:
 
     void setupVAO();
 
-    void addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 &maxStartDistances, long time);
+    ParticleData addRandomParticle(const glm::vec3 &startPosition, const glm::vec3 &maxStartDistances, long creationTime);
 
     float calculateTimedColorShift(const long time, const long particleCreateTime);
 
     static bool getNameForTimedColorMultiplier(void *data, int index, const char **outText);
 
 public:
-    Emitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
+    GPUParticleEmitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
             const std::string &textureFile, glm::vec3 startPosition, glm::vec3 maxStartDistances, glm::vec2 size, long count,
-            long lifeTime, float particlePerMs = -1);
+            long lifeTime, long startTime, float particlePerMs = -1);
+
+    ~GPUParticleEmitter() override;
 
     void setupForTime(long time) override {
-        if(lastSetupTime == 0) {
-            lastSetupTime = time;//don't try to create massive amounts in first setup.
-            lastCreationTime = time;
+        if(dirty) {
+            setupParticles(time);
+            dirty = false;
         }
-        if(enabled && (
-                    (continuousEmit && currentCount < maxCount) ||
-                    (!continuousEmit && totalCreatedCount < maxCount)
-                    )
-            ) {
-            long creationParticleCount = (time - lastCreationTime) * perMsParticleCount;
-            if(creationParticleCount > 0) {
-                lastCreationTime = time;
-            }
-            if(currentCount + creationParticleCount > maxCount) {
-                creationParticleCount = maxCount - currentCount;
-            }
-            for (int i = 0; i < creationParticleCount; ++i) {
-                addRandomParticle(this->transformation.getTranslate(), maxStartDistances, time);
-            }
-            currentCount += creationParticleCount;
-            totalCreatedCount += creationParticleCount;
-        }
+    }
 
-        size_t removalStart, removalEnd = 0;
-        bool removalSet = false;
-        for (int i = 0; i < currentCount; ++i) {
-            float colorShift = calculateTimedColorShift(time, creationTime[i]);
-            positions[i].w = colorShift;
-            positions[i] = positions[i] + glm::vec4(speeds[i], 0);
-            speeds[i] +=(gravity/60.0);
-            if(!removalSet && ((time - this->creationTime[i]) > lifeTime )) {
-                removalStart = i;
-                removalSet = true;
-            }
-            if(removalSet && ((time - this->creationTime[i]) > lifeTime )) {
-                removalEnd = i+1;
-            }
-        }
-        if(removalSet) {
-            if(removalEnd == 0 || removalEnd > (size_t)currentCount) {
-                removalEnd = currentCount;
-            }
-            //now remove
-            positions.erase(positions.begin() + removalStart, positions.begin() + removalEnd);
-            speeds.erase(speeds.begin() + removalStart, speeds.begin() + removalEnd);
-            creationTime.erase(creationTime.begin() + removalStart, creationTime.begin() + removalEnd);
-
-            currentCount = currentCount - (removalEnd - removalStart);
-        }
+    void setupParticles(long time) {
         std::vector<glm::vec4> temp;
-        temp.insert(temp.end(), positions.rbegin(), positions.rend());
-        for (int i = temp.size(); i < maxCount; ++i) {
-            temp.emplace_back(glm::vec4(0,0,0, 1));
+        float particleBeforeTimeIncrease = perMsParticleCount;
+        float timeLeftBeforeNextParticle = 0;
+        long startingTime = time;
+        for(long currentCount = 0; currentCount < maxCount; ++ currentCount) {
+            //there are 2 ways to reach max count, if we create 1 or more particles per ms, or not
+            if(perMsParticleCount > 1.0) {
+                ParticleData particleData = addRandomParticle(this->transformation.getTranslate(), maxStartDistances,
+                                                              startingTime);
+                particleBeforeTimeIncrease--;
+                if (particleBeforeTimeIncrease <= 0) {
+                    //rest of the particles should start after now.
+                    startingTime++;
+
+                    particleBeforeTimeIncrease += perMsParticleCount;
+                }
+                particles.emplace_back(particleData);
+            } else {
+                //we don't want to create 1 particle per second, so we will go with time
+                ParticleData particleData = addRandomParticle(this->transformation.getTranslate(), maxStartDistances,
+                                                              startingTime);
+                particles.emplace_back(particleData);
+                float timeShift = 1.0f/ perMsParticleCount;
+                timeShift = timeShift + timeLeftBeforeNextParticle;
+                startingTime += floor(timeShift);
+                timeLeftBeforeNextParticle = timeShift - floor(timeShift);
+
+            }
+        }
+        for(long currentCount = 0; currentCount < maxCount; ++ currentCount) {
+            temp.emplace_back(glm::vec4(particles[currentCount].position, particles[currentCount].creationTime));
+        }
+        for(long currentCount = 0; currentCount < maxCount; ++ currentCount) {
+            temp.emplace_back(glm::vec4(particles[currentCount].speed, particles[currentCount].destroyTime));
         }
         particleDataTexture->loadData(temp.data());
-        lastSetupTime = time;
+
     }
 
     void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) override {
@@ -134,11 +124,14 @@ public:
         renderProgram->setUniform("positions", 7);
         graphicsWrapper->attachTexture((int) particleDataTexture->getTextureID(), 7);
         renderProgram->setUniform("size", size.x);
-        graphicsWrapper->renderInstanced(renderProgram->getID(), vao, ebo, 3 * 2, currentCount);
+        renderProgram->setUniform("gravity", gravity);
+        renderProgram->setUniform("continuousEmit", continuousEmit);
+        renderProgram->setUniform("lifeTime", (float) lifeTime);
+        graphicsWrapper->renderInstanced(renderProgram->getID(), vao, ebo, 3 * 2, maxCount);
     }
 
     ObjectTypes getTypeID() const override {
-        return PARTICLE_EMITTER;
+        return GPU_PARTICLE_EMITTER;
     }
 
     std::string getName() const override {
@@ -174,7 +167,10 @@ public:
     }
 
     void setGravity(const glm::vec3 &gravity) {
-        Emitter::gravity = gravity;
+        if(gravity != this->gravity) {
+            dirty = true;
+        }
+        GPUParticleEmitter::gravity = gravity;
     }
 
     const glm::vec3 &getSpeedMultiplier() const {
@@ -182,7 +178,10 @@ public:
     }
 
     void setSpeedMultiplier(const glm::vec3 &speedMultiplier) {
-        Emitter::speedMultiplier = speedMultiplier;
+        if(speedMultiplier != this->speedMultiplier) {
+            dirty = true;
+        }
+        GPUParticleEmitter::speedMultiplier = speedMultiplier;
     }
 
     const glm::vec3 &getSpeedOffset() const {
@@ -190,7 +189,10 @@ public:
     }
 
     void setSpeedOffset(const glm::vec3 &speedOffset) {
-        Emitter::speedOffset = speedOffset;
+        if(speedOffset != this->speedOffset) {
+            dirty = true;
+        }
+        GPUParticleEmitter::speedOffset = speedOffset;
     }
 
     const std::vector<TimedColorMultiplier> &getTimedColorMultipliers() const {
@@ -198,7 +200,7 @@ public:
     }
 
     void setTimedColorMultipliers(const std::vector<TimedColorMultiplier> &timedColorMultipliers) {
-        Emitter::timedColorMultipliers = timedColorMultipliers;
+        GPUParticleEmitter::timedColorMultipliers = timedColorMultipliers;
     }
 
     bool isContinuousEmit() const {
@@ -206,7 +208,10 @@ public:
     }
 
     void setContinuousEmit(bool continuousEmit) {
-        Emitter::continuousEmit = continuousEmit;
+        if(continuousEmit != this->continuousEmit) {
+            dirty = true;
+        }
+        GPUParticleEmitter::continuousEmit = continuousEmit;
     }
 
     bool isEnabled() const {
@@ -214,8 +219,8 @@ public:
     }
 
     void setEnabled(bool enabled) {
-        if(!this->enabled) {
-            lastSetupTime = 0;
+        if(this->enabled != enabled) {
+            dirty = true;
         }
         this->enabled = enabled;
     }
@@ -247,5 +252,6 @@ public:
         return result;
     }
 
+
 };
-#endif //LIMONENGINE_EMITTER_H
+#endif //LIMONENGINE_GPUPARTICLEEMITTER_H

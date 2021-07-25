@@ -87,6 +87,7 @@ private:
     std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderAnimatedObjects;
     std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderTransparentObjects;
     std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderParticleEmitters;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderGPUParticleEmitters;
     std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderGUITexts;
     std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderGUIImages;
     std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderPlayerAttachmentOpaque;
@@ -124,6 +125,9 @@ private:
         } else if(name == "Render Particle Emitters") {
             priority = 13;
             return renderParticleEmitters;
+        } else if(name == "Render GPU Particle Emitters") {
+            priority = 14;
+            return renderGPUParticleEmitters;
         } else if(name == "Render GUI Texts") {
             priority = 21;
             return renderGUITexts;

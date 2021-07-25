@@ -13,6 +13,7 @@ layout (std140) uniform PlayerTransformBlock {
     vec3 position;
     vec3 cameraSpacePosition;
     vec2 noiseScale;
+    int time;
 } playerTransforms;
 
 out VS_FS {

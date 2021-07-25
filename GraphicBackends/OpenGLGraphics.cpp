@@ -1304,7 +1304,7 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
         case TextureTypes::T2D: {
             glTextureType = GL_TEXTURE_2D;
             glBindTexture(glTextureType, textureID);
-            glTexImage2D(GL_TEXTURE_2D,       0, glInternalDataFormat, width, height,       0, glFormat, glDataType, data);
+            glTexImage2D(GL_TEXTURE_2D, 0, glInternalDataFormat, width, height, 0, glFormat, glDataType, data);
         }
             break;
         case TextureTypes::T2D_ARRAY: {
@@ -1512,7 +1512,7 @@ void OpenGLGraphics::setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList)
     checkErrors("setModelIndexesUBO");
 }
 
-void OpenGLGraphics::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform) {
+void OpenGLGraphics::setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraTransform, long currentTime) {
     this->cameraMatrix = cameraTransform;
     this->cameraPosition= cameraPosition;
     glm::vec3 cameraSpacePosition = glm::vec3(cameraMatrix * glm::vec4(cameraPosition, 1.0));
@@ -1532,6 +1532,7 @@ void OpenGLGraphics::setPlayerMatrices(const glm::vec3 &cameraPosition, const gl
 
     glm::vec2 noiseScale(this->screenWidth / 4, this->screenHeight / 4);
     glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4) + 5 * sizeof(glm::vec4), sizeof(glm::vec2), glm::value_ptr(noiseScale));//never changes
+    glBufferSubData(GL_UNIFORM_BUFFER, 5 * sizeof(glm::mat4) + 5 * sizeof(glm::vec4) + sizeof(glm::vec2), sizeof(GLfloat), &currentTime);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     calculateFrustumPlanes(cameraMatrix, perspectiveProjectionMatrix, frustumPlanes);

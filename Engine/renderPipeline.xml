@@ -491,8 +491,21 @@
                     </GraphicsProgram>
                 </Method>
                 <Method>
-                    <Name>Render GUI Texts</Name>
+                    <Name>Render GPU Particle Emitters</Name>
                     <Index>3</Index>
+                    <GraphicsProgram>
+                        <VertexShader>./Engine/Shaders/GPUParticles/vertex.glsl</VertexShader>
+                        <GeometryShader></GeometryShader>
+                        <FragmentShader>./Engine/Shaders/GPUParticles/fragment.glsl</FragmentShader>
+                        <MaterialRequired>False</MaterialRequired>
+                        <PresetValues>
+                            <Uniform Name="pre_depthMap">1</Uniform>
+                        </PresetValues>
+                    </GraphicsProgram>
+                </Method>
+                <Method>
+                    <Name>Render GUI Texts</Name>
+                    <Index>4</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/GUIText/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
@@ -502,7 +515,7 @@
                 </Method>
                 <Method>
                     <Name>Render GUI Images</Name>
-                    <Index>4</Index>
+                    <Index>5</Index>
                     <GraphicsProgram>
                         <VertexShader>./Engine/Shaders/GUIImage/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
@@ -519,8 +532,8 @@
                 <ColorAttachment>True</ColorAttachment>
                 <ToScreen>True</ToScreen>
 <!--                <CullMode>NONE</CullMode>-->
-<!--                <DepthTestEnabled>False</DepthTestEnabled>-->
-                <DepthWriteEnabled>False</DepthWriteEnabled>
+                <DepthTestEnabled>False</DepthTestEnabled>
+                <DepthWriteEnabled>True</DepthWriteEnabled>
                 <Inputs>
                     <Input Index="1" textureID="6"/>
                 </Inputs>

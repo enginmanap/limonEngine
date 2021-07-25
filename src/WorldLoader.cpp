@@ -267,6 +267,8 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     loadLights(worldNode, world);
     //load emitters
     loadParticleEmitters(worldNode, world);
+    //load GPU emitters
+    loadGPUParticleEmitters(worldNode, world);
 
     loadGUILayersAndElements(worldNode, world);
 
@@ -1052,25 +1054,6 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
                 timedColorMultiplierElement = timedColorMultiplierElement->NextSiblingElement("TimedColorMultiplier");
             }
 
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
-            if (emitterAttributeAttributeElement != nullptr) {
-
-                speedOffset.x = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter speedOffset missing x." << std::endl;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
-            if (emitterAttributeAttributeElement != nullptr) {
-                speedOffset.y = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter speedOffset missing y." << std::endl;
-            }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
-            if (emitterAttributeAttributeElement != nullptr) {
-                speedOffset.z = std::stof(emitterAttributeAttributeElement->GetText());
-            } else {
-                std::cerr << "Particle Emitter speedOffset missing z." << std::endl;
-            }
         }
 
         std::shared_ptr<Emitter> emitter = std::make_shared<Emitter>(id, name, this->assetManager, textureFile,
@@ -1084,6 +1067,314 @@ bool WorldLoader::loadParticleEmitters(tinyxml2::XMLNode *EmittersNode, World* w
         emitter->setEnabled(enabled);
         world->emitters[emitter->getWorldObjectID()] = emitter;
         EmitterNode =  EmitterNode->NextSiblingElement("Emitter");
+    }
+    return true;
+}
+
+bool WorldLoader::loadGPUParticleEmitters(tinyxml2::XMLNode *GPUEmittersNode, World* world) const {
+    tinyxml2::XMLElement* gpuEmittersListNode =  GPUEmittersNode->FirstChildElement("GPUEmitters");
+    if (gpuEmittersListNode == nullptr) {
+        std::cerr << "GPUEmitters clause not found." << std::endl;
+        return false;
+    }
+
+
+    tinyxml2::XMLElement* gpuEmitterNode =  gpuEmittersListNode->FirstChildElement("GPUEmitter");
+    if (gpuEmitterNode == nullptr) {
+        std::cerr << "GPU Emitters did not have at least one GPUEmitter." << std::endl;
+        return false;
+    }
+
+    long id;
+    std::string name;
+    glm::vec2 size;
+    long maxCount;
+    long lifeTime;
+    glm::vec3 startPosition;
+    glm::vec3 maxStartDistances;
+    std::string textureFile;
+
+    tinyxml2::XMLElement* emitterAttributeElement;
+    tinyxml2::XMLElement* emitterAttributeAttributeElement;
+
+    while(gpuEmitterNode != nullptr) {
+        emitterAttributeElement = gpuEmitterNode->FirstChildElement("MaxCount");
+        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
+            std::cerr << "GPU Particle emitter must have a maximum particle count." << std::endl;
+            return false;
+        }
+        std::string maxCountString = emitterAttributeElement->GetText();
+        maxCount = std::stoul(maxCountString);
+
+        emitterAttributeElement = gpuEmitterNode->FirstChildElement("LifeTime");
+        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
+            std::cerr << "GPU Particle emitter must have a life time." << std::endl;
+            return false;
+        }
+        std::string lifeTimeString = emitterAttributeElement->GetText();
+        lifeTime = std::stoul(lifeTimeString);
+
+
+        emitterAttributeElement = gpuEmitterNode->FirstChildElement("Texture");
+        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
+            std::cerr << "GPU Particle emitter must have a Texture." << std::endl;
+            return false;
+        }
+        textureFile = emitterAttributeElement->GetText();
+
+
+        emitterAttributeElement =  gpuEmitterNode->FirstChildElement("ID");
+        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
+            std::cerr << "GPU Particle emitter does not have ID. This is invalid!" << std::endl;
+            return false;
+        } else {
+            id = std::stoul(emitterAttributeElement->GetText());
+        }
+
+        bool continuousEmit = true;
+        emitterAttributeElement =  gpuEmitterNode->FirstChildElement("ContinuousEmitting");
+        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
+            std::cerr << "GPU Particle emitter does not have Continuous emitting set. Assuming true" << std::endl;
+        } else {
+            if(std::string(emitterAttributeElement->GetText()) == "False") {
+                continuousEmit = false;
+            } else if(std::string(emitterAttributeElement->GetText()) != "True") {
+                std::cerr << "Continuous emit setting unknown, assuming true " << std::endl;
+            }
+        }
+
+        bool enabled = true;
+        emitterAttributeElement =  gpuEmitterNode->FirstChildElement("Enabled");
+        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
+            std::cerr << "GPU Particle emitter does not have Enabled set. Assuming true" << std::endl;
+        } else {
+            if(std::string(emitterAttributeElement->GetText()) == "False") {
+                enabled = false;
+            } else if(std::string(emitterAttributeElement->GetText()) != "True") {
+                std::cerr << "Enabled setting unknown, assuming true " << std::endl;
+            }
+        }
+
+        emitterAttributeElement =  gpuEmitterNode->FirstChildElement("Name");
+        if (emitterAttributeElement == nullptr || emitterAttributeElement->GetText() == nullptr) {
+            std::cerr << "GPU Particle emitter does not have Name. This is invalid!" << std::endl;
+            return false;
+        } else {
+            name = emitterAttributeElement->GetText();
+        }
+
+        emitterAttributeElement = gpuEmitterNode->FirstChildElement("StartPosition");
+        if (emitterAttributeElement == nullptr) {
+            std::cerr << "GPU Particle Emitter must have a position/direction." << std::endl;
+            return false;
+        } else {
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
+            if (emitterAttributeAttributeElement != nullptr) {
+                startPosition.x = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "GPU Particle Emitter position/direction missing x." << std::endl;
+                return false;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
+            if (emitterAttributeAttributeElement != nullptr) {
+                startPosition.y = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "GPU Particle Emitter position/direction missing y." << std::endl;
+                return false;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
+            if (emitterAttributeAttributeElement != nullptr) {
+                startPosition.z = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "GPU Particle Emitter position/direction missing z." << std::endl;
+                return false;
+            }
+        }
+
+        emitterAttributeElement = gpuEmitterNode->FirstChildElement("MaximumStartDistances");
+        if (emitterAttributeElement == nullptr) {
+            std::cerr << "GPU Particle Emitter must have a Maximum Start distance." << std::endl;
+            return false;
+        } else {
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
+            if (emitterAttributeAttributeElement != nullptr) {
+                maxStartDistances.x = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "GPU Particle Emitter Maximum Start distance missing x." << std::endl;
+                return false;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
+            if (emitterAttributeAttributeElement != nullptr) {
+                maxStartDistances.y = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "GPU Particle Emitter Maximum Start distance missing y." << std::endl;
+                return false;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
+            if (emitterAttributeAttributeElement != nullptr) {
+                maxStartDistances.z = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "GPU Particle Emitter Maximum Start distance missing z." << std::endl;
+                return false;
+            }
+        }
+
+        emitterAttributeElement = gpuEmitterNode->FirstChildElement("Size");
+        if (emitterAttributeElement == nullptr) {
+        } else {
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
+            if (emitterAttributeAttributeElement != nullptr) {
+                size.x = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                size.x = 1.0f;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
+            if (emitterAttributeAttributeElement != nullptr) {
+                size.y = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                size.y = 1.0f;
+            }
+        }
+
+        glm::vec3 gravity = glm::vec3(0,0,0);
+        emitterAttributeElement = gpuEmitterNode->FirstChildElement("Gravity");
+        if (emitterAttributeElement == nullptr) {
+            std::cout << "GPU Particle Emitter has no gravity." << std::endl;
+        } else {
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
+            if (emitterAttributeAttributeElement != nullptr) {
+
+                gravity.x = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "GPU Particle Emitter gravity missing x." << std::endl;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
+            if (emitterAttributeAttributeElement != nullptr) {
+                gravity.y = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "GPU Particle Emitter gravity missing y." << std::endl;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
+            if (emitterAttributeAttributeElement != nullptr) {
+                gravity.z = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "GPU Particle Emitter gravity missing z." << std::endl;
+            }
+        }
+
+        glm::vec3 speedMultiplier = glm::vec3(1,1,1);
+        emitterAttributeElement = gpuEmitterNode->FirstChildElement("SpeedMultiplier");
+        if (emitterAttributeElement == nullptr) {
+            std::cout << "GPU Particle Emitter has no speedMultiplier." << std::endl;
+        } else {
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
+            if (emitterAttributeAttributeElement != nullptr) {
+
+                speedMultiplier.x = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "GPU Particle Emitter speedMultiplier missing x." << std::endl;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
+            if (emitterAttributeAttributeElement != nullptr) {
+                speedMultiplier.y = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "GPU Particle Emitter speedMultiplier missing y." << std::endl;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
+            if (emitterAttributeAttributeElement != nullptr) {
+                speedMultiplier.z = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "GPU Particle Emitter speedMultiplier missing z." << std::endl;
+            }
+        }
+
+        glm::vec3 speedOffset = glm::vec3(0,0,0);
+        emitterAttributeElement = gpuEmitterNode->FirstChildElement("SpeedOffset");
+        if (emitterAttributeElement == nullptr) {
+            std::cout << "GPU Particle Emitter has no SpeedOffset." << std::endl;
+        } else {
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("X");
+            if (emitterAttributeAttributeElement != nullptr) {
+
+                speedOffset.x = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "GPU Particle Emitter SpeedOffset missing x." << std::endl;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Y");
+            if (emitterAttributeAttributeElement != nullptr) {
+                speedOffset.y = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "GPU Particle Emitter SpeedOffset missing y." << std::endl;
+            }
+            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
+            if (emitterAttributeAttributeElement != nullptr) {
+                speedOffset.z = std::stof(emitterAttributeAttributeElement->GetText());
+            } else {
+                std::cerr << "GPU Particle Emitter SpeedOffset missing z." << std::endl;
+            }
+        }
+
+        std::vector<GPUParticleEmitter::TimedColorMultiplier> multipliers;
+        emitterAttributeElement = gpuEmitterNode->FirstChildElement("TimedColorMultipliers");
+        if (emitterAttributeElement == nullptr) {
+            std::cout << "GPU Particle Emitter has no Timed color shift." << std::endl;
+        } else {
+            tinyxml2::XMLElement* timedColorMultiplierElement = emitterAttributeElement->FirstChildElement("TimedColorMultiplier");
+            while(timedColorMultiplierElement != nullptr) {
+                GPUParticleEmitter::TimedColorMultiplier timedColorMultiplier;
+
+                tinyxml2::XMLElement* colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("Time");
+                if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
+                    std::cerr << "time can't be found for timed color multiplier, skipping!" << std::endl;
+                } else {
+                    timedColorMultiplier.time = std::atol(colorMultiplierComponentElement->GetText());
+
+                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("R");
+                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
+                        std::cerr << "color R can't be found for timed color multiplier, assuming 255" << std::endl;
+                    } else {
+                        timedColorMultiplier.colorMultiplier.r = std::atoi(colorMultiplierComponentElement->GetText());
+                    }
+
+                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("G");
+                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
+                        std::cerr << "color G can't be found for timed color multiplier, assuming 255" << std::endl;
+                    } else {
+                        timedColorMultiplier.colorMultiplier.g = std::atoi(colorMultiplierComponentElement->GetText());
+                    }
+
+                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("B");
+                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
+                        std::cerr << "color B can't be found for timed color multiplier, assuming 255" << std::endl;
+                    } else {
+                        timedColorMultiplier.colorMultiplier.b = std::atoi(colorMultiplierComponentElement->GetText());
+                    }
+
+                    colorMultiplierComponentElement = timedColorMultiplierElement->FirstChildElement("A");
+                    if(colorMultiplierComponentElement == nullptr || colorMultiplierComponentElement->GetText() == nullptr) {
+                        std::cerr << "color A can't be found for timed color multiplier, assuming 255" << std::endl;
+                    } else {
+                        timedColorMultiplier.colorMultiplier.a = std::atoi(colorMultiplierComponentElement->GetText());
+                    }
+
+                    multipliers.emplace_back(timedColorMultiplier);
+                }
+
+                timedColorMultiplierElement = timedColorMultiplierElement->NextSiblingElement("TimedColorMultiplier");
+            }
+        }
+
+        std::shared_ptr<GPUParticleEmitter> emitter = std::make_shared<GPUParticleEmitter>(id, name, this->assetManager, textureFile,
+                                                                     startPosition, maxStartDistances, size, maxCount,
+                                                                     lifeTime, 0);
+        emitter->setGravity(gravity);
+        emitter->setSpeedMultiplier(speedMultiplier);
+        emitter->setSpeedOffset(speedOffset);
+        emitter->setTimedColorMultipliers(multipliers);
+        emitter->setContinuousEmit(continuousEmit);
+        emitter->setEnabled(enabled);
+        world->gpuParticleEmitters[emitter->getWorldObjectID()] = emitter;
+        gpuEmitterNode =  gpuEmitterNode->NextSiblingElement("GPUEmitter");
     }
     return true;
 }
