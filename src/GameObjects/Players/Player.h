@@ -99,9 +99,9 @@ public:
 
         if (inputState.getInputEvents(InputStates::Inputs::RUN)) {
             if(inputState.getInputStatus(InputStates::Inputs::RUN)) {
-                options->setMoveSpeed(Options::RUN);
+                options->setMoveSpeed(Options::MoveModes::RUN);
             } else {
-                options->setMoveSpeed(Options::WALK);
+                options->setMoveSpeed(Options::MoveModes::WALK);
             }
         }
 

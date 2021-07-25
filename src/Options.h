@@ -14,7 +14,7 @@ public:
 
     static constexpr float PI = 3.14159265358979f;
     static constexpr float PI_DOUBLE = 3.141592653589793238463;
-    enum MoveModes {WALK, RUN};
+    enum class MoveModes {WALK, RUN};
     enum class TextureFilteringModes { NEAREST, BILINEAR, TRILINEAR };
 private:
     Logger *logger{};
@@ -201,10 +201,10 @@ public:
 
     void setMoveSpeed(const MoveModes moveMode) {
         switch(moveMode) {
-            case RUN:
+            case MoveModes::RUN:
                 moveSpeed = runSpeed;
                 break;
-            case WALK:
+            case MoveModes::WALK:
             default:
                 moveSpeed = walkSpeed;
 
