@@ -1,4 +1,28 @@
 <Options>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>dataDirectory</Description>
+        <Value>../dataLocal/</Value>
+        <valueType>String</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>screenHeight</Description>
+        <Value>1080</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>1</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>screenWidth</Description>
+        <Value>1920</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>2</Index>
+    </Parameter>
     <fullScreen>False</fullScreen>
     <screenWidth>1920</screenWidth>
     <screenHeight>1080</screenHeight>

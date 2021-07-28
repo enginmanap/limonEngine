@@ -136,7 +136,7 @@ namespace LimonTypes {
         enum ValueTypes {
             STRING, DOUBLE, LONG, LONG_ARRAY, BOOLEAN, VEC4, MAT4
         };
-        ValueTypes valueType = GenericParameter::ValueTypes::VEC4;
+        ValueTypes valueType = ValueTypes::VEC4;
         //Up part used for requesting parameter, down part used as values of that request.
         union Value {
             char stringValue[64];

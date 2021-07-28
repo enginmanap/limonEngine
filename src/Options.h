@@ -7,8 +7,13 @@
 
 #include <glm/glm.hpp>
 #include <iostream>
-#include "Utils/Logger.h"
 #include <tinyxml2.h>
+#include <unordered_map>
+#include <memory>
+
+#include "Utils/Logger.h"
+#include "API/LimonTypes.h"
+
 class Options {
 public:
 
@@ -16,8 +21,92 @@ public:
     static constexpr float PI_DOUBLE = 3.141592653589793238463;
     enum class MoveModes {WALK, RUN};
     enum class TextureFilteringModes { NEAREST, BILINEAR, TRILINEAR };
+
+    bool getOption(const std::string& optionName, long &value){
+        auto it = this->options.find(optionName);
+        if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::LONG) {
+            return false;
+        }
+        value = it->second->value.longValue;
+        return true;
+    }
+
+    bool getOptionOrDefault(const std::string& optionName, long &value, long defaultValue){
+        auto it = this->options.find(optionName);
+        if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::LONG) {
+            value = defaultValue;
+            return false;
+        }
+        value = it->second->value.longValue;
+        return true;
+    }
+
+    void setOption(const std::string& optionName, long &value){
+        auto it = this->options.find(optionName);
+        if(it == this->options.end()) {
+            std::shared_ptr<LimonTypes::GenericParameter> parameter;
+            parameter->description = optionName;
+            this->options[optionName] = parameter;
+            it = this->options.find(optionName);
+        }
+        it->second->valueType = LimonTypes::GenericParameter::LONG;
+        it->second->value.longValue = value;
+    }
+    bool getOption(const std::string& optionName, double &value){
+        auto it = this->options.find(optionName);
+        if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::DOUBLE) {
+            return false;
+        }
+        value = it->second->value.doubleValue;
+        return true;
+    }
+
+    bool getOptionOrDefault(const std::string& optionName, double &value, double defaultValue){
+        auto it = this->options.find(optionName);
+        if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::DOUBLE) {
+            value = defaultValue;
+            return false;
+        }
+        value = it->second->value.doubleValue;
+        return true;
+    }
+
+    void setOption(const std::string& optionName, double &value){
+        auto it = this->options.find(optionName);
+        if(it == this->options.end()) {
+            std::shared_ptr<LimonTypes::GenericParameter> parameter;
+            parameter->description = optionName;
+            this->options[optionName] = parameter;
+            it = this->options.find(optionName);
+        }
+        it->second->valueType = LimonTypes::GenericParameter::DOUBLE;
+        it->second->value.doubleValue = value;
+    }
+
+    bool getOption(const std::string& optionName, LimonTypes::Vec4 &value){
+        auto it = this->options.find(optionName);
+        if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::VEC4) {
+            return false;
+        }
+        value = it->second->value.vectorValue;
+        return true;
+    }
+
+    void setOption(const std::string& optionName, LimonTypes::Vec4 &value){
+        auto it = this->options.find(optionName);
+        if(it == this->options.end()) {
+            std::shared_ptr<LimonTypes::GenericParameter> parameter;
+            parameter->description = optionName;
+            this->options[optionName] = parameter;
+            it = this->options.find(optionName);
+        }
+        it->second->valueType = LimonTypes::GenericParameter::VEC4;
+        it->second->value.vectorValue = value;
+    }
+
 private:
     Logger *logger{};
+    std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>> options;
 
     glm::vec3 walkSpeed = glm::vec3(8, 0, 8);
     glm::vec3 runSpeed = glm::vec3(12, 0, 12);
@@ -55,11 +144,16 @@ private:
     bool ssaoEnabled = false;
     bool renderInformations = true;
 
-    void loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec3&);
-    void loadVec4(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec4&);
+    bool loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec3&);
+    bool loadVec4(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec4&);
+    bool loadDouble(tinyxml2::XMLNode *optionsNode, const std::string &name, double&);
+    bool loadLong(tinyxml2::XMLNode *optionsNode, const std::string &name, long&);
+    bool loadString(tinyxml2::XMLNode *optionsNode, const std::string &name, std::string&);
+    bool loadBool(tinyxml2::XMLNode *optionsNode, const std::string &name, bool&);
 public:
 
     bool loadOptions(const std::string& optionsFileName);
+    bool loadOptionsNew(const std::string& optionsFileName);
 
     void *getImeWindowHandle() const {
         return imeWindowHandle;
