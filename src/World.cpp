@@ -278,6 +278,10 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          for (auto modelIt = animatedModelsInAnyFrustum.begin(); modelIt != animatedModelsInAnyFrustum.end(); ++modelIt) {
              (*modelIt)->setupForTime(gameTime);
          }
+         //Player setup
+         if(startingPlayer.attachedModel != nullptr) {
+             startingPlayer.attachedModel->setupForTime(gameTime);
+         }
      }
 
      for (size_t j = 0; j < activeLights.size(); ++j) {
@@ -855,7 +859,6 @@ void World::renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsP
 void World::renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes renderingModelType, const std::shared_ptr<GraphicsProgram> &renderProgram) const {
  if(attachment->getTypeID() == GameObject::MODEL) {
      Model* attachedModel = static_cast<Model*>(attachment);
-     attachedModel->setupForTime(gameTime);
      std::vector<uint32_t> temp;
      temp.push_back(attachedModel->getWorldObjectID());
      //These if checks are not combined because they are not checking the same thing. Outer one checks model type, inner one checks what type of model we are rendering
@@ -886,7 +889,6 @@ void World::renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes 
      }
  } else if(attachment->getTypeID() == GameObject::MODEL_GROUP) {
      ModelGroup* attachedModelGroup = static_cast<ModelGroup*>(attachment);
-     attachedModelGroup->setupForTime(gameTime);
      std::vector<uint32_t> temp;
      temp.push_back(attachedModelGroup->getWorldObjectID());
      if (attachedModelGroup->hasChildren()) {
