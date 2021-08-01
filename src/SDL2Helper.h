@@ -55,12 +55,15 @@ public:
         std::vector<LimonTypes::GenericParameter> result;
         SpinLock lock;
         std::string name;
-        static int threadRunner(void* ptr) {
-            Thread* runable = static_cast<Thread*>(ptr);
+        bool finished = false;
 
-            runable->lock.lock();
-            runable->result = runable->functionToRun(runable->parameters);
-            runable->lock.unlock();
+        static int threadRunner(void* ptr) {
+            Thread* runnable = static_cast<Thread*>(ptr);
+
+            runnable->lock.lock();
+            runnable->result = runnable->functionToRun(runnable->parameters);
+            runnable->finished = true;//since this is written in the lock, we don't need to sync it.
+            runnable->lock.unlock();
             return 0;
         }
     public:
@@ -75,11 +78,7 @@ public:
         }
 
         bool isThreadDone() {
-            bool isDone = lock.tryLock();
-            if(isDone) {
-                lock.unlock();
-            }
-            return isDone;
+            return finished;
         }
 
         const std::vector<LimonTypes::GenericParameter>* getResult() {
