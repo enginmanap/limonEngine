@@ -204,7 +204,7 @@ bool ALHelper::resume(uint32_t soundID) {
     }
 }
 
-uint32_t ALHelper::play(const SoundAsset *soundAsset, bool looped, float gain) {
+uint32_t ALHelper::play(std::shared_ptr<SoundAsset> soundAsset, bool looped, float gain) {
     uint32_t id = getNextRequestID();
     auto sound = std::unique_ptr<PlayingSound>(new PlayingSound(id));
     sound->asset = soundAsset;

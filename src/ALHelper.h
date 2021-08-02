@@ -30,7 +30,7 @@ class ALHelper {
 
     struct PlayingSound {
         uint32_t soundID;
-        const SoundAsset *asset;
+        std::shared_ptr<SoundAsset> asset;
         uint64_t sampleCountToPlay;
         ALuint source = 0;
         ALenum format;
@@ -128,7 +128,7 @@ public:
 
     ~ALHelper();
 
-    uint32_t play(const SoundAsset *soundAsset, bool looped, float gain = 1000.0f);
+    uint32_t play(const std::shared_ptr<SoundAsset> soundAsset, bool looped, float gain = 1000.0f);
 
     bool isPlaying(uint32_t soundID) {
         if(playingSounds.find(soundID) != playingSounds.end()) {

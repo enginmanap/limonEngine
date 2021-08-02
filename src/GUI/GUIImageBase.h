@@ -18,7 +18,7 @@ class GUIImageBase : public GUIRenderable {
 protected:
     std::shared_ptr<AssetManager> assetManager;
     std::string imageFile;
-    TextureAsset *image;
+    std::shared_ptr<TextureAsset> image;
 public:
     GUIImageBase(GraphicsInterface* graphicsWrapper,  std::shared_ptr<AssetManager> assetManager, const std::string &imageFile);
     virtual ~GUIImageBase();

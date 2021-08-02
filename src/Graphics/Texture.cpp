@@ -179,7 +179,7 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
             std::cerr << "Texture source color setting has no text, skipping! " << std::endl;
         } else {
             std::string textureSource = textureNodeAttribute->GetText();
-            TextureAsset* asset = assetManager->loadAsset<TextureAsset>({ textureSource });
+            std::shared_ptr<TextureAsset> asset = assetManager->loadAsset<TextureAsset>({ textureSource });
             std::shared_ptr<Texture> texture = asset->getTexture();
             texture->setSource(textureSource);
             texture->setSerializeID(serializeID);

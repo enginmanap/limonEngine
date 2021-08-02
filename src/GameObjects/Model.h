@@ -29,7 +29,7 @@ class Model : public PhysicalRenderable, public GameObject {
     };
     ActorInterface *AIActor = nullptr;
     std::shared_ptr<AssetManager> assetManager;
-    ModelAsset *modelAsset;
+    std::shared_ptr<ModelAsset> modelAsset;
 private:
     std::string animationName;
     long animationTime = 0;

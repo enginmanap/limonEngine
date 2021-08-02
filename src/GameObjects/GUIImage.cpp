@@ -186,7 +186,7 @@ GameObject::ImGuiResult GUIImage::addImGuiEditorElements(const ImGuiRequest &req
     ImGui::InputText("File##SelectedGUIImageFileField", GUIFileNameBuffer, sizeof(GUIFileNameBuffer));
     if(ImGui::Button("change image")) {
         std::string enteredFileName = std::string(GUIFileNameBuffer);
-        TextureAsset *newAsset = assetManager->loadAsset<TextureAsset>({enteredFileName});
+        std::shared_ptr<TextureAsset> newAsset = assetManager->loadAsset<TextureAsset>({enteredFileName});
         if (newAsset != nullptr) {
             assetManager->freeAsset({image->getName()});
             this->image = newAsset;

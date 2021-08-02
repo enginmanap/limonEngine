@@ -47,7 +47,7 @@ private:
     bool enabled = true;
     bool dirty;
 
-    TextureAsset* textureAsset;//it is the root asset for texture
+    std::shared_ptr<TextureAsset> textureAsset;//it is the root asset for texture
     std::shared_ptr<Texture> particleDataTexture;
 
     std::random_device randomDevice;

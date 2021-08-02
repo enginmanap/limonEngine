@@ -95,7 +95,7 @@ private:
     const std::string ASSET_EXTENSIONS_FILE = "./Engine/assetExtensions.xml";
 
     //second of the pair is how many times load requested. prework for unload
-    std::map<const std::vector<std::string>, std::pair<Asset *, uint32_t>> assets;
+    std::map<const std::vector<std::string>, std::pair<std::shared_ptr<Asset>, uint32_t>> assets;
     std::unordered_map<std::string, std::vector<std::shared_ptr<const EmbeddedTexture>>> embeddedTextures;
     uint32_t nextAssetIndex = 1;
 
@@ -137,7 +137,7 @@ public:
     void loadUsingCereal(const std::vector<std::string> files [[gnu::unused]]);
 
     template<class T>
-    T *loadAsset(const std::vector<std::string> files) {
+    std::shared_ptr<T>loadAsset(const std::vector<std::string> files) {
         if (assets.count(files) == 0) {
             bool loaded = false;
             //check if asset is cereal deserialize file.
@@ -158,13 +158,13 @@ public:
                 }
             }
             if(!loaded) {
-                assets[files] = std::make_pair(new T(this, nextAssetIndex, files), 0);
+                assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files), 0);
                 nextAssetIndex++;
             }
         }
 
         assets[files].second++;
-        return (T *) assets[files].first;
+        return std::dynamic_pointer_cast<T>(assets[files].first);
     }
 
     void freeAsset(const std::vector<std::string> files) {
@@ -183,9 +183,11 @@ public:
         }
         assets[files].second--;
         if (assets[files].second == 0) {
-            //last element that requested the load freed, delete the object
-            Asset *assetToRemove = assets[files].first;
-            delete assetToRemove;
+            //last element that requested the load freed, remove our own reference to it, so it gets freed.
+            if (assets[files].first.use_count() > 2) {
+                //possible issue
+                std::cerr << "Reference counter for asset " << files[0] << " is more than 2, there is a leak" << std::endl;
+            }
             assets.erase(files);
             if(embeddedTextures.find(files[0]) != embeddedTextures.end()) {
                 embeddedTextures.erase(files[0]);
@@ -227,10 +229,6 @@ public:
 
     ~AssetManager() {
         //free all the assets
-        for (std::map<const std::vector<std::string>, std::pair<Asset *, uint32_t>>::iterator it = assets.begin();
-             it != assets.end(); it++) {
-            delete it->second.first;
-        }
 
         delete availableAssetsRootNode;
 

@@ -44,7 +44,7 @@ private:
     bool continuousEmit = true;//emit until reaching maximum, or emit as particles are removed;
     bool enabled = true;
 
-    TextureAsset* textureAsset;//it is the root asset for texture
+    std::shared_ptr<TextureAsset> textureAsset;//it is the root asset for texture
     long currentCount = 0;
     long lastSetupTime = 0;
     long lastCreationTime = 0;

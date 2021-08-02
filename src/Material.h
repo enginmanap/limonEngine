@@ -34,7 +34,11 @@ private:
 
     std::unique_ptr<std::vector<std::vector<std::string>>> textureNameListList = nullptr;
 
-    TextureAsset *ambientTexture = nullptr, *diffuseTexture = nullptr, *specularTexture = nullptr, *normalTexture = nullptr, *opacityTexture = nullptr;
+    std::shared_ptr<TextureAsset> ambientTexture = nullptr;
+    std::shared_ptr<TextureAsset> diffuseTexture = nullptr;
+    std::shared_ptr<TextureAsset> specularTexture = nullptr;
+    std::shared_ptr<TextureAsset> normalTexture = nullptr;
+    std::shared_ptr<TextureAsset> opacityTexture = nullptr;
 #ifdef CEREAL_SUPPORT
     friend class cereal::access;
 #endif
@@ -112,7 +116,7 @@ public:
         this->refractionIndex = refractionIndex;
     }
 
-    TextureAsset *getAmbientTexture() const {
+    std::shared_ptr<TextureAsset> getAmbientTexture() const {
         return ambientTexture;
     }
 
@@ -126,7 +130,7 @@ public:
         this->isAmbientMap = true;
     }
 
-    TextureAsset *getDiffuseTexture() const {
+    std::shared_ptr<TextureAsset> getDiffuseTexture() const {
         if (!isDiffuseMap) {
             std::cerr << "access to nullptr element for " << this->name << std::endl;
             return nullptr;
@@ -144,7 +148,7 @@ public:
         this->isDiffuseMap = true;
     }
 
-    TextureAsset *getSpecularTexture() const {
+    std::shared_ptr<TextureAsset>getSpecularTexture() const {
         return specularTexture;
     }
 
@@ -170,7 +174,7 @@ public:
 
     }
 
-    TextureAsset *getNormalTexture() const {
+    std::shared_ptr<TextureAsset> getNormalTexture() const {
         return normalTexture;
     }
 
@@ -185,7 +189,7 @@ public:
         this->isOpacityMap = true;
     }
 
-    TextureAsset *getOpacityTexture() const {
+    std::shared_ptr<TextureAsset> getOpacityTexture() const {
         return opacityTexture;
     }
 

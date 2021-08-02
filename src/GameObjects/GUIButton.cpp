@@ -196,7 +196,7 @@ GameObject::ImGuiResult GUIButton::addImGuiEditorElements(const ImGuiRequest &re
         ImGui::InputText(editorFileNameFields[i], GUIFileNameBuffer[i], sizeof(GUIFileNameBuffer));
         if (ImGui::Button(editorApplyFields[i])) {
             std::string enteredFileName = std::string(GUIFileNameBuffer[i]);
-            TextureAsset *newAsset = assetManager->loadAsset<TextureAsset>({enteredFileName});
+            std::shared_ptr<TextureAsset> newAsset = assetManager->loadAsset<TextureAsset>({enteredFileName});
             if (newAsset != nullptr) {
                 if(images[i] != nullptr) {
                     assetManager->freeAsset({images[i]->getName()});

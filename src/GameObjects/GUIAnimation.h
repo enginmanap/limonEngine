@@ -21,7 +21,7 @@ class GUIAnimation : public GUIImageBase, public GameObject{
     //ATTENTION don't use imageFile variable use this one
     std::vector<std::string> imageFiles;
     //ATTENTION don't use image variable, use this one
-    std::vector<TextureAsset *> images;
+    std::vector<std::shared_ptr<TextureAsset>> images;
 
     //Editor variables
     char GUINameBuffer[128];

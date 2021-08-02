@@ -34,7 +34,7 @@ private:
     std::vector<glm::vec3> vertices;
     std::vector<glm::mediump_uvec3> faces;
 
-    CubeMapAsset *cubeMap;
+    std::shared_ptr<CubeMapAsset> cubeMap;
 
 public:
     SkyBox(uint32_t objectID, std::shared_ptr<AssetManager> assetManager, std::string path, std::string right, std::string left,

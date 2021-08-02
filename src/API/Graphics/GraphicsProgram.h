@@ -19,7 +19,7 @@ class GraphicsProgram {
     friend class GraphicsProgramLoader;
     AssetManager* assetManager;
     GraphicsInterface* graphicsWrapper;
-    GraphicsProgramAsset* graphicsProgramAsset;
+    std::shared_ptr<GraphicsProgramAsset> graphicsProgramAsset;
     std::unordered_map<std::shared_ptr<Uniform>, std::string> presetUniformValues;
     bool materialRequired;
     uint32_t programID;

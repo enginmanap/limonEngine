@@ -22,7 +22,7 @@ std::shared_ptr<GraphicsProgram> GraphicsProgramLoader::deserialize(tinyxml2::XM
     programNodeAttribute = programNode->FirstChildElement("GeometryShader");
     if (programNodeAttribute != nullptr) {
         if(programNodeAttribute->GetText() == nullptr) {
-            std::cout << "Graphics Program geometry shader has no text." << std::endl;
+            //std::cout << "Graphics Program geometry shader has no text." << std::endl;
         } else {
             geometryShader = programNodeAttribute->GetText();
         }
