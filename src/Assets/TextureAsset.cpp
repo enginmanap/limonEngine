@@ -15,12 +15,16 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
         std::cerr << "multiple files are sent to Texture constructor, extra elements ignored." << std::endl;
     }
 
+}
+
+void TextureAsset::loadInternal() {
+
     SDL_Surface *surface = nullptr;
-    if (files.size() == 2) {//If embedded texture is needed, first element is the index, second is the owner asset file
+    if (name.size() == 2) {//If embedded texture is needed, first element is the index, second is the owner asset file
         //index is a string, first char is * second char is the index
         std::cout << "Texture request has 2 elements. Attempting to extract embedded texture. " << std::endl;
-        int textureID = std::atoi(&files[0][1]);
-        std::shared_ptr<const AssetManager::EmbeddedTexture> embeddedTexture = assetManager->getEmbeddedTextures(files[1], textureID);
+        int textureID = std::atoi(&name[0][1]);
+        std::shared_ptr<const AssetManager::EmbeddedTexture> embeddedTexture = assetManager->getEmbeddedTextures(name[1], textureID);
         if(embeddedTexture != nullptr) {
             SDL_RWops* rwop = nullptr;
             if(embeddedTexture->height == 0) {
@@ -30,7 +34,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
             }
             surface = IMG_Load_RW(rwop, 0);
         } else {
-            std::cerr << "Embedded texture can't be found with following information: " << files[1] << ":" << textureID << std::endl;
+            std::cerr << "Embedded texture can't be found with following information: " << name[1] << ":" << textureID << std::endl;
         }
     } else {
         /**

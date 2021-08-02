@@ -1031,6 +1031,8 @@ void OpenGLGraphics::setFilterMode(uint32_t textureID, TextureTypes textureType,
             glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glTexParameteri(glTextureType, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             break;
+        default:
+            std::cerr << "Unknown filter mode set, this should never happen. " << std::endl;
     }
     checkErrors("setFilterMode");
 }
@@ -1059,6 +1061,9 @@ void OpenGLGraphics::setTextureBorder(uint32_t textureID, TextureTypes textureTy
 
         }
             break;
+        default:
+            std::cerr << "Unknown texture type set, this should never happen. " << std::endl;
+            exit(-1);
     }
 
     glBindTexture(glTextureType, textureID);

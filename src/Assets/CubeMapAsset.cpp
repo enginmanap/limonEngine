@@ -21,7 +21,9 @@ CubeMapAsset::CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const s
     if (fileList.size() > 7) {
         std::cerr << "more than 7 files are sent to CubeMap constructor, extra elements ignored." << std::endl;
     }
+}
 
+void CubeMapAsset::loadInternal() {
     SDL_Surface *surfaces[6] = {0};
 
     for (int i = 0; i < 6; i++) {
@@ -47,5 +49,4 @@ CubeMapAsset::CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const s
     for (int i = 0; i < 6; i++) {
         delete surfaces[i];
     }
-
 }

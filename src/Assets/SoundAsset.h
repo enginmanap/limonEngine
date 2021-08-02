@@ -14,9 +14,10 @@ class SoundAsset : public Asset {
     uint64_t sampleCount;
     int16_t* soundData = nullptr; //PCM 16bit, prefer single channel
     std::string name;
+protected:
+    void loadInternal() override;
 
 public:
-
     SoundAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
 #ifdef CEREAL_SUPPORT
     SoundAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive) :

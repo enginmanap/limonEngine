@@ -159,6 +159,7 @@ public:
             }
             if(!loaded) {
                 assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files), 0);
+                assets[files].first->load();
                 nextAssetIndex++;
             }
         }

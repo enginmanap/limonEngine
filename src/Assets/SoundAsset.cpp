@@ -19,7 +19,9 @@ SoundAsset::SoundAsset(AssetManager *assetManager, uint32_t assetID, const std::
     if (fileList.size() > 1) {
         std::cerr << "multiple files are sent to Sound Asset constructor, extra elements ignored." << std::endl;
     }
+}
 
+void SoundAsset::loadInternal() {
     soundData = drwav_open_and_read_file_s16(name.c_str(), &channels, &sampleRate, &sampleCount);
     if (soundData == nullptr) {
         // Error opening and reading WAV file.

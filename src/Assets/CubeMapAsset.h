@@ -19,6 +19,10 @@ class CubeMapAsset : public Asset {
     std::string path;
     std::string names[6];
     std::unique_ptr<Texture> texture;
+
+protected:
+    void loadInternal() override;
+
 public:
     CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
 #ifdef CEREAL_SUPPORT

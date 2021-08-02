@@ -18,7 +18,7 @@ class TextureAsset : public Asset {
 protected:
     std::vector<std::string> name;//1) single element filename, 2) First element embedded texture ID, second element model.
     std::shared_ptr<Texture> texture;
-
+    void loadInternal() override;
 public:
     TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files);
 #ifdef CEREAL_SUPPORT

@@ -119,6 +119,9 @@ class ModelAsset : public Asset {
      */
     ModelAsset() : Asset(nullptr, 0, std::vector<std::string>()) {};
 
+protected:
+    void loadInternal() override;
+
 public:
     ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
 #ifdef CEREAL_SUPPORT

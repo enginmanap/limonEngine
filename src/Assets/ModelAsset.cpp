@@ -25,6 +25,10 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     if (fileList.size() > 1) {
         std::cerr << "multiple files are sent to Model constructor, extra elements ignored." << std::endl;
     }
+}
+
+void ModelAsset::loadInternal() {
+
     //std::cout << "ASSIMP::Loading::" << name << std::endl;
     const aiScene *scene;
     Assimp::Importer import;

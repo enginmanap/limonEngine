@@ -25,6 +25,8 @@ class GraphicsProgramAsset : public Asset {
     std::unordered_map<std::string, std::shared_ptr<Uniform>> uniformMap;
     std::unordered_map<std::string, uint32_t> attributesMap;
     std::unordered_map<std::string, std::pair<Uniform::VariableTypes, GraphicsInterface::FrameBufferAttachPoints>>outputMap;
+protected:
+    void loadInternal() override {};//we don't need to load anything
 public:
     GraphicsProgramAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
 #ifdef CEREAL_SUPPORT
@@ -38,6 +40,8 @@ public:
             uniformEntry.second = nullptr;
         }
     }
+
+
 
     void lateInitialize(uint32_t programId);
 
