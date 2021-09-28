@@ -70,6 +70,7 @@ class IterationExtension;
 class NodeGraph;
 
 class World {
+    friend class Editor;
 public:
     struct PlayerInfo {
         enum class Types {
@@ -158,7 +159,7 @@ private:
         bool enabled = false;
     };
 
-    enum collisiontypes {
+    enum CollisionTypes {
         COLLIDE_NOTHING          = 0, //Collide with nothing
         COLLIDE_EVERYTHING       = 1 << 0, //Pick object etc needs to collide everything
         COLLIDE_MODELS           = 1 << 1, //Collide with All Models
@@ -404,8 +405,6 @@ public:
         }
         return nextWorldID++;
     }
-
-    void addAnimationDefinitionToEditor();
 
     std::string getName();
 
