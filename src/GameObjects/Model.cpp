@@ -43,6 +43,7 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
     for (auto iter = assetMeshes.begin(); iter != assetMeshes.end(); ++iter) {
         meshMeta = new MeshMeta();
         meshMeta->mesh = (*iter);
+        meshMeta->material = (*iter)->getMaterial();
         meshMetaData.push_back(meshMeta);
     }
 
@@ -429,6 +430,17 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
             selectedBoneID = -1;
         }
     }
+    //add material listing
+    static uint32_t selectedIndex = 0;
+    bool isSelected = false;
+    ImGui::BeginListBox("Meshes");
+    for (size_t i = 0; i < meshMetaData.size(); ++i) {
+        isSelected = selectedIndex == i;
+        if (ImGui::Selectable((meshMetaData[i]->mesh->getName() + " -> " + meshMetaData[i]->material->getName()).c_str(), isSelected)) {
+            selectedIndex = i;
+        }
+    }
+    ImGui::EndListBox();
     return result;
 }
 

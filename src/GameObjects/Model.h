@@ -26,6 +26,7 @@ class Model : public PhysicalRenderable, public GameObject {
     uint32_t objectID;
     struct MeshMeta {
         std::shared_ptr<MeshAsset> mesh = nullptr;
+        std::shared_ptr<const Material> material = nullptr;
     };
     ActorInterface *AIActor = nullptr;
     std::shared_ptr<AssetManager> assetManager;
