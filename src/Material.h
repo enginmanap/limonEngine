@@ -13,6 +13,8 @@
 #include "Assets/TextureAsset.h"
 #include "Assets/AssetManager.h"
 
+#include "GameObjects/GameObject.h" //FIXME used for ImGUI request/response, should be extracted.
+
 
 class Material {
 private:
@@ -32,6 +34,17 @@ private:
     bool isOpacityMap = false;
     float refractionIndex = 0;
 
+    /**
+     * This is a list of texture names.
+     * items:
+     * 0 -> ambient
+     * 1 -> diffuse
+     * 2 -> specular
+     * 3 -> normal
+     * 4 -> opacity
+     *
+     * vector has vector<string>, because embedded textures are saved with pairs, first element is the index, second element is the model file itself.
+     */
     std::unique_ptr<std::vector<std::vector<std::string>>> textureNameListList = nullptr;
 
     std::shared_ptr<TextureAsset> ambientTexture = nullptr;
@@ -238,6 +251,11 @@ public:
     uint32_t getMaps() const {
         return maps;
     }
+
+    size_t getHash() const;
+
+    GameObject::ImGuiResult addImGuiEditorElements(const GameObject::ImGuiRequest &request);
+
 #ifdef CEREAL_SUPPORT
     template<class Archive>
     void save(Archive & archive) const {
@@ -282,6 +300,72 @@ public:
     }
 #endif
 };
+
+namespace std {
+
+    inline void hash_combine(std::size_t& seed [[gnu::unused]]) { }
+
+    template <typename T, typename... Rest>
+    inline void hash_combine(std::size_t& seed, const T& v, Rest... rest) {
+        std::hash<T> hasher;
+        seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+        hash_combine(seed, rest...);
+    }
+
+    template <>
+    struct hash<glm::vec3> {
+        size_t operator()(const glm::vec3& v) const {
+            size_t hash = 0;
+            hash_combine(hash, v.x, v.y, v.z);
+            return hash;
+        }
+    };
+
+    template <>
+    struct hash<std::vector<std::string>> {
+        size_t operator()(const std::vector<std::string>& vs) const {
+            size_t hash = 0;
+            for (size_t i = 0; i < vs.size(); ++i) {
+                hash_combine(hash, vs.at(i));
+            }
+            return hash;
+        }
+    };
+
+    template <>
+    struct hash<Material> {
+        size_t operator()(const Material& m) const {
+            size_t hash = 0;
+            hash_combine(hash,
+                                m.getSpecularExponent(),
+                                m.getMaps(),
+                                m.getAmbientColor(),
+                                m.getDiffuseColor(),
+                                m.getSpecularColor(),
+                                m.getRefractionIndex()
+                                );
+            //std::cout << "for material " << m.getName() << " hash is calculated as " << hash << std::endl;
+            //now check the texture info
+            if(m.getAmbientTexture() != nullptr) {
+                hash_combine(hash, m.getAmbientTexture()->getName());
+            }
+            if(m.getDiffuseTexture() != nullptr) {
+                hash_combine(hash, m.getDiffuseTexture()->getName());
+            }
+            if(m.getSpecularTexture() != nullptr) {
+                hash_combine(hash, m.getSpecularTexture()->getName());
+            }
+            if(m.getNormalTexture() != nullptr) {
+                hash_combine(hash, m.getNormalTexture()->getName());
+            }
+            if(m.getOpacityTexture() != nullptr) {
+                hash_combine(hash, m.getOpacityTexture()->getName());
+            }
+
+            return hash;
+        }
+    };
+}
 
 
 #endif //LIMONENGINE_MATERIAL_H
