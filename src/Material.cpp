@@ -2,6 +2,7 @@
 // Created by engin on 19.06.2016.
 //
 
+#include <ImGui/imgui.h>
 #include "Material.h"
 #include "API/Graphics/GraphicsInterface.h"
 
@@ -49,4 +50,50 @@ void Material::afterDeserialize(AssetManager *assetManager, std::string modelAss
     textureNameListList.reset();
 
     this->materialIndex = assetManager->getGraphicsWrapper()->getNextMaterialIndex();
+}
+
+GameObject::ImGuiResult Material::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
+    GameObject::ImGuiResult result;
+
+    //let s dump everything for now:
+    ImGui::InputFloat("Specular Exponent", &this->specularExponent);
+    ImGui::InputFloat3("Ambient Color", &this->ambientColor.x);
+    ImGui::InputFloat3("Diffuse Color", &this->diffuseColor.x);
+    ImGui::InputFloat3("Specular Color", &this->specularColor.x);
+    ImGui::InputFloat("Refraction Index", &this->refractionIndex);
+    ImGui::Text("%s", (std::string("Maps is ") +  std::to_string(this->maps)).c_str());
+
+    if(this->ambientTexture == nullptr) {
+        ImGui::Text("Ambient Texture: not set");
+    } else {
+        ImGui::Text("%s", (std::string("Ambient Texture: ") + this->ambientTexture->getName().at(0)).c_str());
+    }
+    if(this->diffuseTexture == nullptr) {
+        ImGui::Text("Diffuse Texture: not set");
+    } else {
+        ImGui::Text("%s", (std::string("Diffuse Texture: ") + this->diffuseTexture->getName().at(0)).c_str());
+    }
+    if(this->specularTexture == nullptr) {
+        ImGui::Text("Specular Texture: not set");
+    } else {
+        ImGui::Text("%s", (std::string("Specular Texture: ") + this->specularTexture->getName().at(0)).c_str());
+    }
+    if(this->normalTexture == nullptr) {
+        ImGui::Text("Normal Texture: not set");
+    } else {
+        ImGui::Text("%s", (std::string("Normal Texture: ") + this->normalTexture->getName().at(0)).c_str());
+    }
+    if(this->opacityTexture == nullptr) {
+        ImGui::Text("Opacity Texture: not set");
+    } else {
+        ImGui::Text("%s", (std::string("Opacity Texture: ") + this->opacityTexture->getName().at(0)).c_str());
+    }
+
+
+    return result;
+}
+
+size_t Material::getHash() const {
+    std::hash<Material> hashGenerator;
+    return hashGenerator(*this);
 }

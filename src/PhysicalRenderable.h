@@ -170,6 +170,8 @@ public:
     const glm::vec3 &getCenterOffset() const {
         return centerOffset;
     }
+
+    virtual std::vector<std::shared_ptr<Material>> getMaterials() const = 0;
 };
 
 

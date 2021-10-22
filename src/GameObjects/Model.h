@@ -246,6 +246,15 @@ public:
     void setTemporary(bool temporary) {
         this->temporary = temporary;
     }
+
+    std::vector<std::shared_ptr<Material>> getMaterials() const override {
+        std::vector<std::shared_ptr<Material>> materials;
+        for(const auto& element:this->modelAsset->getMaterialMap()){
+            materials.emplace_back(element.second);
+        }
+        return materials;
+    }
+
 };
 
 #endif //LIMONENGINE_MODEL_H

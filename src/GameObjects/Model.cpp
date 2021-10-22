@@ -339,7 +339,7 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
         result.updated = true;
     }
 
-        ImGui::NewLine();
+    ImGui::NewLine();
     if (isAnimated()) {
         if (ImGui::CollapsingHeader("Model animation properties")) {
             if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {

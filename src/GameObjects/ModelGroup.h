@@ -63,6 +63,15 @@ public:
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
 
+    std::vector<std::shared_ptr<Material>> getMaterials() const override {
+        std::vector<std::shared_ptr<Material>> materials;
+        for(const auto& element:this->children){
+            std::vector<std::shared_ptr<Material>> childMaterials = element->getMaterials();
+            materials.insert(std::end(materials), std::begin(childMaterials), std::end(childMaterials));
+        }
+        return materials;
+    }
+
 };
 
 
