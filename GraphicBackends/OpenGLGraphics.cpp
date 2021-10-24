@@ -1463,7 +1463,7 @@ void OpenGLGraphics::setLight(const int lightIndex,
     checkErrors("setLight");
 }
 
-void OpenGLGraphics::setMaterial(std::shared_ptr<const Material> material) {
+void OpenGLGraphics::setMaterial(const Material& material) {
     /*
      * this buffer has 2 objects, model has mat4 and then the material below:
      *
@@ -1474,17 +1474,17 @@ void OpenGLGraphics::setMaterial(std::shared_ptr<const Material> material) {
             int isMap;
     } material;
     */
-    float shininess = material->getSpecularExponent();
-    uint32_t maps = material->getMaps();
+    float shininess = material.getSpecularExponent();
+    uint32_t maps = material.getMaps();
 
     glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, material->getMaterialIndex() * materialUniformSize,
-                    sizeof(glm::vec3), glm::value_ptr(material->getAmbientColor()));
-    glBufferSubData(GL_UNIFORM_BUFFER, material->getMaterialIndex() * materialUniformSize + sizeof(glm::vec3),
+    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize,
+                    sizeof(glm::vec3), glm::value_ptr(material.getAmbientColor()));
+    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + sizeof(glm::vec3),
                     sizeof(GLfloat), &shininess);
-    glBufferSubData(GL_UNIFORM_BUFFER, material->getMaterialIndex() * materialUniformSize + sizeof(glm::vec3) + sizeof(GLfloat),
-                    sizeof(glm::vec3), glm::value_ptr(material->getDiffuseColor()));
-    glBufferSubData(GL_UNIFORM_BUFFER, material->getMaterialIndex() * materialUniformSize + 2 *sizeof(glm::vec3) + sizeof(GLfloat),
+    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + sizeof(glm::vec3) + sizeof(GLfloat),
+                    sizeof(glm::vec3), glm::value_ptr(material.getDiffuseColor()));
+    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + 2 *sizeof(glm::vec3) + sizeof(GLfloat),
                     sizeof(GLint), &maps);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setMaterial");

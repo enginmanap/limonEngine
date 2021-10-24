@@ -53,14 +53,15 @@ void Material::afterDeserialize(AssetManager *assetManager, std::string modelAss
 }
 
 GameObject::ImGuiResult Material::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
+    bool dirty = false;
     GameObject::ImGuiResult result;
 
     //let s dump everything for now:
-    ImGui::InputFloat("Specular Exponent", &this->specularExponent);
-    ImGui::InputFloat3("Ambient Color", &this->ambientColor.x);
-    ImGui::InputFloat3("Diffuse Color", &this->diffuseColor.x);
-    ImGui::InputFloat3("Specular Color", &this->specularColor.x);
-    ImGui::InputFloat("Refraction Index", &this->refractionIndex);
+    dirty = ImGui::SliderFloat("Specular Exponent", &this->specularExponent, 0, 99999);
+    dirty = ImGui::SliderFloat3("Ambient Color", &this->ambientColor.x, 0, 1) || dirty;
+    dirty = ImGui::SliderFloat3("Diffuse Color", &this->diffuseColor.x, 0, 1) || dirty;
+    dirty = ImGui::SliderFloat3("Specular Color", &this->specularColor.x, 0, 1) || dirty;
+    dirty = ImGui::SliderFloat("Refraction Index", &this->refractionIndex, 0, 99999) || dirty;
     ImGui::Text("%s", (std::string("Maps is ") +  std::to_string(this->maps)).c_str());
 
     if(this->ambientTexture == nullptr) {
@@ -89,7 +90,9 @@ GameObject::ImGuiResult Material::addImGuiEditorElements(const GameObject::ImGui
         ImGui::Text("%s", (std::string("Opacity Texture: ") + this->opacityTexture->getName().at(0)).c_str());
     }
 
-
+    if(dirty) {
+        assetManager->getGraphicsWrapper()->setMaterial(*this);
+    }
     return result;
 }
 

@@ -188,7 +188,7 @@ public:
     virtual  bool isInFrustum(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const = 0;
     virtual bool isInFrustum(const glm::vec3& aabbMin, const glm::vec3& aabbMax, const std::vector<glm::vec4>& frustumPlaneVector) const = 0;
 
-    virtual void setMaterial(std::shared_ptr<const Material>material) = 0;
+    virtual void setMaterial(const Material& material) = 0;
     virtual void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) = 0;
     virtual void setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) = 0;
     virtual void attachModelIndicesUBO(const uint32_t programID) = 0;

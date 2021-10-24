@@ -483,7 +483,7 @@ public:
         return inside;
     }
 
-    void setMaterial(std::shared_ptr<const Material>material) override;
+    void setMaterial(const Material& material) override;
 
     void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) override;
 
