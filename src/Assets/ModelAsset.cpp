@@ -167,7 +167,7 @@ void ModelAsset::afterDeserialize(AssetManager *assetManager, std::vector<std::s
 
     for (auto material = materialMap.begin(); material != materialMap.end(); ++material) {
         material->second->afterDeserialize(assetManager, name);
-        assetManager->getGraphicsWrapper()->setMaterial(material->second);
+        assetManager->getGraphicsWrapper()->setMaterial(*material->second);
     }
 
     for (auto mesh = meshes.begin(); mesh != meshes.end(); ++mesh) {
@@ -316,7 +316,7 @@ std::shared_ptr<Material>ModelAsset::loadMaterials(const aiScene *scene, unsigne
 
         newMaterial->setMaps(maps);
 
-        assetManager->getGraphicsWrapper()->setMaterial(newMaterial);
+        assetManager->getGraphicsWrapper()->setMaterial(*newMaterial);
 
         materialMap[newMaterial->getName()] = newMaterial;
     } else {
