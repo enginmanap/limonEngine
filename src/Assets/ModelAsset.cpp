@@ -318,7 +318,6 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         std::string requestedName = newMaterial->getName();
 
         newMaterial = assetManager->registerMaterial(newMaterial);
-
         assetManager->getGraphicsWrapper()->setMaterial(*newMaterial);
         materialMap[requestedName] = newMaterial;
     } else {
