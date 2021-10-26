@@ -10,11 +10,11 @@ void GUIFPSCounter::updateFPS() {
     Uint32 newFrameTime = currentTime - lastRenderTime;
     lastFrameTime += newFrameTime - previousFrameTimes[framePointer];
     previousFrameTimes[framePointer] = newFrameTime;
-    framePointer = (framePointer + 1) % 100;
+    framePointer = (framePointer + 1) % PREVIOUS_FRAME_COUNT;
     lastRenderTime = currentTime;
 
-    int normalizedFrameRate = (unsigned int) (1000.0f / (lastFrameTime / 100.0f));
-    if(currentTime - lastUpdateTime > 250) {//4 update per second max
+    int normalizedFrameRate = (unsigned int) (1000.0f / (lastFrameTime / (float)PREVIOUS_FRAME_COUNT));
+    if(currentTime - lastUpdateTime > 1000) {//1 update per second max
         text = std::to_string(normalizedFrameRate);
         lastUpdateTime = currentTime;
     }
