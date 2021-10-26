@@ -20,11 +20,11 @@ public:
         transformation.setUpdateCallback(nullptr);
     }
 
-    GameObject::ObjectTypes getTypeID() const {
+    GameObject::ObjectTypes getTypeID() const override {
         return MODEL_GROUP;
     }
 
-    std::string getName() const {
+    std::string getName() const override {
         return name;
     }
 
