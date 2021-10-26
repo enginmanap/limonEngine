@@ -184,3 +184,36 @@ AssetManager::getAvailableAssetsTreeFilteredRecursive(const AvailableAssetsNode 
     }
     return newAssetsNode;
 }
+
+/**
+ * Registers the material if it is not found, and returns the material that should be used.
+ * if the material is not found, itself is returned, if it is found, the original one is returned.
+ * @param material to register or search for the original
+ * @return material that should be used.
+ */
+std::shared_ptr<Material> AssetManager::registerMaterial(std::shared_ptr<Material> material) {
+    auto foundIt = materials.find(material->getHash());
+    if(foundIt != materials.end()) {
+        std::cerr << "Material found, return "<< material->getName() << std::endl;
+        foundIt->second.second++;
+        return foundIt->second.first;
+    }
+    //not found, add
+    std::cerr << "Material not found, create for " << material->getName() << std::endl;
+    materials[material->getHash()] = std::make_pair(material, 1);
+    return material;
+
+}
+void AssetManager::unregisterMaterial(std::shared_ptr<Material> material) {
+    auto materialIt = materials.find(material->getHash());
+    if(materialIt == materials.end()) {
+        std::cerr << "Unregister for non existent material found!" << std::endl;
+    }
+    std::cerr << "Material unregister " << material->getName() << std::endl;
+    materialIt->second.second--;
+    if(materialIt->second.second == 0) {
+        //time to remove the item
+        materials.erase(materialIt);
+        std::cerr << "Material getting deleted " << material->getName() << std::endl;
+    }
+}

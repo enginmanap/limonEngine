@@ -99,6 +99,8 @@ private:
     std::unordered_map<std::string, std::vector<std::shared_ptr<const EmbeddedTexture>>> embeddedTextures;
     uint32_t nextAssetIndex = 1;
 
+    std::map<size_t, std::pair<std::shared_ptr<Material>, uint32_t>> materials;//this is used to make objects share materials.
+
     //std::map<std::string, AssetTypes> availableAssetsList;//this map should be ordered, or editor list order would be unpredictable
     AvailableAssetsNode* availableAssetsRootNode = nullptr;
     std::map<std::pair<AssetTypes, std::string>, AvailableAssetsNode*> filteredResults;
@@ -219,6 +221,8 @@ public:
 
     }
 
+    std::shared_ptr<Material> registerMaterial(std::shared_ptr<Material> material);
+    void unregisterMaterial(std::shared_ptr<Material> material);
 
     GraphicsInterface* getGraphicsWrapper() const {
         return graphicsWrapper;
