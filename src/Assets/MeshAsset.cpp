@@ -6,7 +6,7 @@
 #include "API/Graphics/GraphicsInterface.h"
 
 MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
-                     std::shared_ptr<const Material> material, std::shared_ptr<const BoneNode> meshSkeleton,
+                     std::shared_ptr<Material> material, std::shared_ptr<const BoneNode> meshSkeleton,
                      const glm::mat4 &parentTransform,
                      const bool isPartOfAnimated)
         : name(name), material(material), parentTransform(parentTransform), isPartOfAnimated(isPartOfAnimated) {

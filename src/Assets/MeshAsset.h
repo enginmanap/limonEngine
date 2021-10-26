@@ -48,7 +48,7 @@ class MeshAsset {
     std::vector<glm::lowp_uvec4> boneIDs;
     std::vector<glm::vec4> boneWeights;
 
-    std::shared_ptr<const Material> material;
+    std::shared_ptr<Material> material;
     glm::mat4 parentTransform;
     bool isPartOfAnimated;
 
@@ -64,7 +64,7 @@ class MeshAsset {
     MeshAsset(){}
 public:
     MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
-              std::shared_ptr<const Material> material, std::shared_ptr<const BoneNode> meshSkeleton,
+              std::shared_ptr<Material> material, std::shared_ptr<const BoneNode> meshSkeleton,
               const glm::mat4 &parentTransform,
               const bool isPartOfAnimated);
 
@@ -96,7 +96,6 @@ public:
         for (unsigned int i = 0; i < shapeCopies.size(); ++i) {
             delete shapeCopies[i];
         }
-
         //FIXME buffer objects are not freed!
 
     }

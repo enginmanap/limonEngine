@@ -166,6 +166,9 @@ public:
     const std::unordered_map<std::string, std::shared_ptr<Material>> &getMaterialMap() const { return materialMap; };
 
     ~ModelAsset() {
+        for (auto materialIt: materialMap) {
+            assetManager->unregisterMaterial(materialIt.second);
+        }
         //FIXME GPU side is not freed
     }
 

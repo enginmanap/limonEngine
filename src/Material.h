@@ -144,10 +144,6 @@ public:
     }
 
     std::shared_ptr<TextureAsset> getDiffuseTexture() const {
-        if (!isDiffuseMap) {
-            std::cerr << "access to nullptr element for " << this->name << std::endl;
-            return nullptr;
-        }
         return diffuseTexture;
     }
 
@@ -207,6 +203,7 @@ public:
     }
 
     ~Material() {
+        std::cerr << "Destructor for " << name << std::endl;
         if (ambientTexture != nullptr) {
             assetManager->freeAsset({ambientTexture->getName()});
         }

@@ -176,7 +176,7 @@ void ModelAsset::afterDeserialize(AssetManager *assetManager, std::vector<std::s
 }
 
 
-std::shared_ptr<Material>ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialIndex) {
+std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsigned int materialIndex) {
     // create material uniform buffer
     aiMaterial *currentMaterial = scene->mMaterials[materialIndex];
     aiString property;    //contains filename of texture
@@ -315,10 +315,11 @@ std::shared_ptr<Material>ModelAsset::loadMaterials(const aiScene *scene, unsigne
         }
 
         newMaterial->setMaps(maps);
+        std::string requestedName = newMaterial->getName();
 
+        newMaterial = assetManager->registerMaterial(newMaterial);
         assetManager->getGraphicsWrapper()->setMaterial(*newMaterial);
-
-        materialMap[newMaterial->getName()] = newMaterial;
+        materialMap[requestedName] = newMaterial;
     } else {
         newMaterial = materialMap[property.C_Str()];
     }
@@ -343,7 +344,7 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
             boneInformationMap[aiNode->mName.C_Str()].globalMeshInverse = glm::mat4(1.0f);
         }
 
-        std::shared_ptr<Material>meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
+        std::shared_ptr<Material> meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
         std::shared_ptr<MeshAsset> mesh;
         try {
             mesh = std::make_shared<MeshAsset>(assetManager, currentMesh, aiNode->mName.C_Str(), meshMaterial, rootNode,
