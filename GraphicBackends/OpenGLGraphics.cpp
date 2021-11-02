@@ -684,13 +684,7 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
                                         bool clearDepth, CullModes cullMode, std::map<uint32_t, std::shared_ptr<Texture>> &inputs) {
     glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
-    if(clearColor && clearDepth) {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    } else if(clearColor) {
-        glClear(GL_COLOR_BUFFER_BIT);
-    } else if(clearDepth) {
-        glClear(GL_DEPTH_BUFFER_BIT);
-    }
+
 
     if(depthTestEnabled) {
         glEnable(GL_DEPTH_TEST);
@@ -706,6 +700,14 @@ void OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t
         glEnable(GL_SCISSOR_TEST);
     } else {
         glDisable(GL_SCISSOR_TEST);
+    }
+
+    if(clearColor && clearDepth) {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    } else if(clearColor) {
+        glClear(GL_COLOR_BUFFER_BIT);
+    } else if(clearDepth) {
+        glClear(GL_DEPTH_BUFFER_BIT);
     }
 
     //we combine diffuse+specular lighted with ambient / SSAO

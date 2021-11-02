@@ -110,7 +110,6 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
         tinyxml2::XMLElement *outputElement = document.NewElement("Output");
         switch(output.first) {
             case GraphicsInterface::FrameBufferAttachPoints::NONE : outputElement->SetAttribute("Attachment", "NONE"); break;
-            case GraphicsInterface::FrameBufferAttachPoints::DEPTH : outputElement->SetAttribute("Attachment", "DEPTH"); break;
             case GraphicsInterface::FrameBufferAttachPoints::COLOR0 : outputElement->SetAttribute("Attachment", "COLOR0"); break;
             case GraphicsInterface::FrameBufferAttachPoints::COLOR1 : outputElement->SetAttribute("Attachment", "COLOR1"); break;
             case GraphicsInterface::FrameBufferAttachPoints::COLOR2 : outputElement->SetAttribute("Attachment", "COLOR2"); break;
@@ -118,8 +117,17 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
             case GraphicsInterface::FrameBufferAttachPoints::COLOR4 : outputElement->SetAttribute("Attachment", "COLOR4"); break;
             case GraphicsInterface::FrameBufferAttachPoints::COLOR5 : outputElement->SetAttribute("Attachment", "COLOR5"); break;
             case GraphicsInterface::FrameBufferAttachPoints::COLOR6 : outputElement->SetAttribute("Attachment", "COLOR6"); break;
+            case GraphicsInterface::FrameBufferAttachPoints::DEPTH : {
+                outputElement->SetAttribute("Attachment", "DEPTH");
+                if (!depthWriteEnabled && !depthTestEnabled) {
+                    //means depth is not used, don't attach it
+                    continue;
+                }
+            }
+            break;
         }
         outputElement->SetAttribute("textureID", output.second->getSerializeID());
+
         currentElement->InsertEndChild(outputElement);
     }
     return true;

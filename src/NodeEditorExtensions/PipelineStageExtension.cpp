@@ -175,6 +175,10 @@ void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2
     depthTestEnabledElement->SetText(depthTestEnabled ? "True" : "False");
     stageExtensionElement->InsertEndChild(depthTestEnabledElement);
 
+    tinyxml2::XMLElement *depthWriteEnabledElement = document.NewElement("DepthWriteEnabled");
+    depthWriteEnabledElement->SetText(depthWriteEnabled ? "True" : "False");
+    stageExtensionElement->InsertEndChild(depthWriteEnabledElement);
+
     tinyxml2::XMLElement *scissorTestEnabledElement = document.NewElement("ScissorTestEnabled");
     scissorTestEnabledElement->SetText(scissorTestEnabled ? "True" : "False");
     stageExtensionElement->InsertEndChild(scissorTestEnabledElement);
@@ -328,6 +332,21 @@ void PipelineStageExtension::deserialize(const std::string &fileName[[gnu::unuse
             depthTestEnabled =false;
         } else {
             std::cerr << "Pipeline stage extension doesn't DepthTestEnabled flag value is unknown. Defaulting to true" << std::endl;
+        }
+    }
+
+    tinyxml2::XMLElement *depthWriteEnabledElement = nodeExtensionElement->FirstChildElement("DepthTestEnabled");
+    this->depthWriteEnabled = true;
+    if(depthWriteEnabledElement == nullptr || depthWriteEnabledElement->GetText() == nullptr) {
+        std::cerr << "Pipeline stage extension doesn't have Depth Write Enabled flag. Defaulting to true" << std::endl;
+    } else {
+        std::string depthWriteEnabledString = depthWriteEnabledElement->GetText();
+        if(depthWriteEnabledString == "True") {
+            depthWriteEnabled = true;
+        } else if(depthWriteEnabledString == "False") {
+            depthWriteEnabled =false;
+        } else {
+            std::cerr << "Pipeline stage extension doesn't Depth Write Enabled flag value is unknown. Defaulting to true" << std::endl;
         }
     }
 

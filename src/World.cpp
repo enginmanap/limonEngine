@@ -132,6 +132,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     if(renderPipeline == nullptr) {
         //use default if no custom is found
+        std::cerr << "Render pipeline not found, loading default." << std::endl;
         renderPipeline = GraphicsPipeline::deserialize("./Engine/renderPipeline.xml", graphicsWrapper, assetManager, options, buildRenderMethods());
     }
 
@@ -3245,7 +3246,7 @@ void World::drawNodeEditor() {
 
     nodeGraph->display();
     if(ImGui::Button("Save")) {
-        renderPipeline->serialize("./Data/renderPipeline.xml", options);
+        renderPipeline->serialize("./Data/renderPipelineBuilt.xml", options);
         nodeGraph->serialize("./Data/nodeGraph.xml");
         nodeGraph->addMessage("Serialization done.");
     }
