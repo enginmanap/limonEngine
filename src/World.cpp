@@ -3246,7 +3246,6 @@ void World::drawNodeEditor() {
 
     nodeGraph->display();
     if(ImGui::Button("Save")) {
-        renderPipeline->serialize("./Data/renderPipelineBuilt.xml", options);
         nodeGraph->serialize("./Data/nodeGraph.xml");
         nodeGraph->addMessage("Serialization done.");
     }
