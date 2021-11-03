@@ -188,8 +188,13 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
         ImGui::EndPopup();
     }
     if(ImGui::Button("Build Pipeline")) {
-        GraphicsPipeline* builtPipeline = buildRenderPipeline(nodes);
-        builtPipeline->serialize("./Data/renderPipelineBuilt.xml", options);
+        std::shared_ptr<GraphicsPipeline> builtPipelineNew = buildRenderPipeline(nodes);
+        if(builtPipelineNew == nullptr) {
+            addError("Build failed");
+        } else {
+            builtPipeline = builtPipelineNew;//old one is auto removed
+            //builtPipeline->serialize("./Data/renderPipelineBuilt.xml", options);
+        }
     }
     ImGui::PopStyleVar();
 
@@ -204,8 +209,8 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
     messages.clear();
 }
 
-GraphicsPipeline* PipelineExtension::buildRenderPipeline(const std::vector<const Node *> &nodes) {
-    GraphicsPipeline* builtGraphicsPipeline = nullptr;
+std::shared_ptr<GraphicsPipeline> PipelineExtension::buildRenderPipeline(const std::vector<const Node *> &nodes) {
+    std::shared_ptr<GraphicsPipeline> builtGraphicsPipeline = nullptr;
     const Node* rootNode = nullptr;
     for(const Node* node: nodes) {
         /**
@@ -220,6 +225,7 @@ GraphicsPipeline* PipelineExtension::buildRenderPipeline(const std::vector<const
     }
     if(rootNode == nullptr) {
         std::cout << "Screen output not found. cancelling." << std::endl;
+        return nullptr;
     } else {
         std::unordered_map<const Node*, std::set<const Node*>> dependencies;
         buildDependencyInfoRecursive(rootNode, dependencies);
@@ -232,7 +238,7 @@ GraphicsPipeline* PipelineExtension::buildRenderPipeline(const std::vector<const
         std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> dependencyGroups = buildGroupsByDependency(dependencies);
 
 
-        builtGraphicsPipeline = new GraphicsPipeline(renderMethods);
+        builtGraphicsPipeline = std::make_shared<GraphicsPipeline>(renderMethods);
         for(auto usedTexture: usedTextures) {
             if(usedTexture.second != nullptr) {
                 builtGraphicsPipeline->addTexture(usedTexture.second);
@@ -464,7 +470,7 @@ std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> PipelineExt
 
 
 bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
-                                                     GraphicsPipeline *graphicsPipeline,
+                                                     std::shared_ptr<GraphicsPipeline> graphicsPipeline,
                                                      std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>>& nodeStages,
                                                      const std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>>& groupsByDependency,
                                                      std::vector<std::shared_ptr<GraphicsPipeline::StageInfo>>& builtStages) {

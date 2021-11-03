@@ -81,6 +81,10 @@ public:
         const std::shared_ptr<GraphicsProgram> &getGlslProgram() const {
             return glslProgram;
         }
+
+        bool getInitialized() const {
+            return isInitialized;
+        }
     };
 private:
     std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderOpaqueObjects;
@@ -251,6 +255,7 @@ public:
                             nullptr,
                             glslProgram);
     }
+
 
 };
 

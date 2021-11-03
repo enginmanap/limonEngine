@@ -3245,6 +3245,20 @@ void World::drawNodeEditor() {
     }
 
     nodeGraph->display();
+    if(pipelineExtension->isPipelineBuilt()) {
+        if (ImGui::Button("Activate")) {
+            std::shared_ptr<GraphicsPipeline> renderPipeline2 = pipelineExtension->handOverBuiltPipeline();
+            std::vector<LimonTypes::GenericParameter> emptyParameters;
+            for(auto& stage:renderPipeline2->getStages()) {
+                for(auto& method:stage.renderMethods) {
+                    if(!method.getInitialized()) {
+                        method.initialize(emptyParameters);
+                    }
+                }
+            }
+            this->renderPipeline = renderPipeline2;
+        }
+    }
     if(ImGui::Button("Save")) {
         nodeGraph->serialize("./Data/nodeGraph.xml");
         nodeGraph->addMessage("Serialization done.");
@@ -3297,6 +3311,7 @@ void World::createNodeGraph() {
     renderMethods.renderPlayerAttachmentOpaque    = std::bind(&World::renderPlayerAttachmentOpaqueObjects, this, std::placeholders::_1);
     renderMethods.renderPlayerAttachmentTransparent    = std::bind(&World::renderPlayerAttachmentTransparentObjects, this, std::placeholders::_1);
     renderMethods.renderPlayerAttachmentAnimated    = std::bind(&World::renderPlayerAttachmentAnimatedObjects, this, std::placeholders::_1);
+    renderMethods.renderQuad                = std::bind(&QuadRender::render, this->quadRender, std::placeholders::_1);
 
     renderMethods.getLightsByType = std::bind(&World::getLightIndexes, this, std::placeholders::_1);
     renderMethods.renderLight = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2);

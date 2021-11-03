@@ -26,9 +26,11 @@ class PipelineExtension : public EditorExtension {
     std::vector<std::string> errorMessages;
     RenderMethods renderMethods;
 
+    std::shared_ptr<GraphicsPipeline> builtPipeline = nullptr;
+
     static bool getNameOfTexture(void* data, int index, const char** outText);
 
-    bool buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline, std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>>& nodeStages,
+    bool buildRenderPipelineRecursive(const Node *node, std::shared_ptr<GraphicsPipeline> graphicsPipeline, std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>>& nodeStages,
                                       const std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>>& groupsByDependency,
                                       std::vector<std::shared_ptr<GraphicsPipeline::StageInfo>>& builtStages);
     void buildDependencyInfoRecursive(const Node *node, std::unordered_map<const Node*, std::set<const Node*>>& dependencies);
@@ -57,7 +59,7 @@ public:
 
     void deserialize(const std::string &fileName, tinyxml2::XMLElement *editorExtensionElement) override;
 
-    GraphicsPipeline* buildRenderPipeline(const std::vector<const Node *> &nodes);
+    std::shared_ptr<GraphicsPipeline> buildRenderPipeline(const std::vector<const Node *> &nodes);
 
 
     void addError(const std::string& errorMessage) {
@@ -66,6 +68,16 @@ public:
 
     void addMessage(const std::string& message) {
         this->messages.emplace_back(message);
+    }
+
+    bool isPipelineBuilt() {
+        return builtPipeline != nullptr;
+    }
+
+    std::shared_ptr<GraphicsPipeline> handOverBuiltPipeline() {
+        std::shared_ptr<GraphicsPipeline> temp = builtPipeline;
+        builtPipeline = nullptr;
+        return temp;
     }
 
 };
