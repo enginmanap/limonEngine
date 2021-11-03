@@ -68,7 +68,7 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
                     limonAPI->interactWithAI(rayResult[3].value.longValue, prList);
 
                     //How about some particles?
-                    uint32_t particleEmitterID = limonAPI->addParticleEmitter("HitEmitter", "./Data/Textures/bloodParticle.png", rayResult[1].value.vectorValue, LimonTypes::Vec4(0.01, 0.01, 0.01, 0),
+                    uint32_t particleEmitterID = limonAPI->addParticleEmitter("HitEmitter", "./Data/Textures/BloodParticle.png", rayResult[1].value.vectorValue, LimonTypes::Vec4(0.01, 0.01, 0.01, 0),
                                                                               LimonTypes::Vec2(0.05, 0.05), 50, 2000, 2000, false);
                     //For speed we want to use the normal, first parameter is multiplier for random, second is applied to all.
                     LimonTypes::Vec4 randomStartMultiplier = LimonTypes::Vec4(0.05, 0.05, 0.05, 0.05);
@@ -146,7 +146,7 @@ void ShooterPlayerExtension::processInput(const InputStates &inputState, const P
 
                     }
                     //How about some particles?
-                    uint32_t particleEmitterID = limonAPI->addParticleEmitter("HitEmitter", "./Data/Textures/baseParticle.png", rayResult[1].value.vectorValue, LimonTypes::Vec4(0.01, 0.01, 0.01, 0),
+                    uint32_t particleEmitterID = limonAPI->addParticleEmitter("HitEmitter", "./Data/Textures/BaseParticle.png", rayResult[1].value.vectorValue, LimonTypes::Vec4(0.01, 0.01, 0.01, 0),
                                                  LimonTypes::Vec2(0.05, 0.05), 50, 2000, 2000, false);
                     //For speed we want to use the normal, first parameter is multiplier for random, second is applied to all.
                     LimonTypes::Vec4 randomStartMultiplier = LimonTypes::Vec4(0.1, 0.1, 0.1, 0.1);
