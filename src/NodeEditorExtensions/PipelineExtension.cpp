@@ -188,49 +188,8 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
         ImGui::EndPopup();
     }
     if(ImGui::Button("Build Pipeline")) {
-        const Node* rootNode = nullptr;
-        for(const Node* node: nodes) {
-            /**
-             * what to do?
-             * find node that outputs to screen, iterate back to find all other nodes that needs rendering
-             */
-
-             if(node->getName() == "Screen") {
-                 rootNode = node;
-                 break;
-             }
-        }
-        if(rootNode == nullptr) {
-            std::cout << "Screen output not found. cancelling." << std::endl;
-        } else {
-            std::unordered_map<const Node*, std::set<const Node*>> dependencies;
-            buildDependencyInfoRecursive(rootNode, dependencies);
-            for(const auto& node:dependencies) {
-                std::cerr << "Node: " <<  node.first->getName() << std::endl;
-                for(auto dependency: node.second) {
-                    std::cerr << "\t\tfor depends: " <<  dependency->getName() << std::endl;
-                }
-            }
-            std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> dependencyGroups = buildGroupsByDependency(dependencies);
-
-
-            GraphicsPipeline* graphicsPipeline = new GraphicsPipeline(renderMethods);
-            for(auto usedTexture:usedTextures) {
-                if(usedTexture.second != nullptr) {
-                    graphicsPipeline->addTexture(usedTexture.second);
-                }
-            }
-            std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>> nodeStages;
-            std::vector<std::shared_ptr<GraphicsPipeline::StageInfo>> builtStages;
-            if(buildRenderPipelineRecursive(rootNode, graphicsPipeline, nodeStages, dependencyGroups,builtStages)) {
-                for(const auto& stageInfo:builtStages) {
-                    graphicsPipeline->addNewStage(*stageInfo);
-                }
-                graphicsPipeline->serialize("./Data/renderPipelineBuilt.xml", options);
-                addMessage("Built new Pipeline");
-            }//error message provided by recursive
-
-        }
+        GraphicsPipeline* builtPipeline = buildRenderPipeline(nodes);
+        builtPipeline->serialize("./Data/renderPipelineBuilt.xml", options);
     }
     ImGui::PopStyleVar();
 
@@ -243,6 +202,53 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
         nodeGraph->addMessage(message);
     }
     messages.clear();
+}
+
+GraphicsPipeline* PipelineExtension::buildRenderPipeline(const std::vector<const Node *> &nodes) {
+    GraphicsPipeline* builtGraphicsPipeline = nullptr;
+    const Node* rootNode = nullptr;
+    for(const Node* node: nodes) {
+        /**
+         * what to do?
+         * find node that outputs to screen, iterate back to find all other nodes that needs rendering
+         */
+
+         if(node->getName() == "Screen") {
+             rootNode = node;
+             break;
+         }
+    }
+    if(rootNode == nullptr) {
+        std::cout << "Screen output not found. cancelling." << std::endl;
+    } else {
+        std::unordered_map<const Node*, std::set<const Node*>> dependencies;
+        buildDependencyInfoRecursive(rootNode, dependencies);
+        for(const auto& node:dependencies) {
+            std::cerr << "Node: " <<  node.first->getName() << std::endl;
+            for(auto dependency: node.second) {
+                std::cerr << "\t\tfor depends: " <<  dependency->getName() << std::endl;
+            }
+        }
+        std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> dependencyGroups = buildGroupsByDependency(dependencies);
+
+
+        builtGraphicsPipeline = new GraphicsPipeline(renderMethods);
+        for(auto usedTexture: usedTextures) {
+            if(usedTexture.second != nullptr) {
+                builtGraphicsPipeline->addTexture(usedTexture.second);
+            }
+        }
+        std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>> nodeStages;
+        std::vector<std::shared_ptr<GraphicsPipeline::StageInfo>> builtStages;
+        if(buildRenderPipelineRecursive(rootNode, builtGraphicsPipeline, nodeStages, dependencyGroups, builtStages)) {
+            for(const auto& stageInfo:builtStages) {
+                builtGraphicsPipeline->addNewStage(*stageInfo);
+            }
+            addMessage("Built new Pipeline");
+            return builtGraphicsPipeline;
+        }//error message provided by recursive
+        return nullptr;
+    }
 }
 
 void PipelineExtension::buildDependencyInfoRecursive(const Node *node, std::unordered_map<const Node*, std::set<const Node*>>& dependencies) {

@@ -28,6 +28,17 @@ class PipelineExtension : public EditorExtension {
 
     static bool getNameOfTexture(void* data, int index, const char** outText);
 
+    bool buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline, std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>>& nodeStages,
+                                      const std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>>& groupsByDependency,
+                                      std::vector<std::shared_ptr<GraphicsPipeline::StageInfo>>& builtStages);
+    void buildDependencyInfoRecursive(const Node *node, std::unordered_map<const Node*, std::set<const Node*>>& dependencies);
+    std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> buildGroupsByDependency(std::unordered_map<const Node*, std::set<const Node*>>);
+    bool canBeJoined(const std::set<const Node*>& existingNodes, const std::set<const Node*>& existingDependencies, const Node* currentNode, const std::set<const Node*>& currentDependencies);
+
+    static std::shared_ptr<GraphicsPipeline::StageInfo>
+    findSharedStage(const Node *currentNode, std::map<const Node *, std::shared_ptr<GraphicsPipeline::StageInfo>> &builtStages,
+                    const std::vector<std::pair<std::set<const Node *>, std::set<const Node *>>> &dependencyGroups);
+
 public:
     PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, Options* options,
                       const std::vector<std::string> &renderMethodNames, RenderMethods renderMethods);
@@ -46,13 +57,8 @@ public:
 
     void deserialize(const std::string &fileName, tinyxml2::XMLElement *editorExtensionElement) override;
 
-    bool buildRenderPipelineRecursive(const Node *node, GraphicsPipeline *graphicsPipeline, std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>>& nodeStages,
-                                      const std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>>& groupsByDependency,
-                                      std::vector<std::shared_ptr<GraphicsPipeline::StageInfo>>& builtStages);
+    GraphicsPipeline* buildRenderPipeline(const std::vector<const Node *> &nodes);
 
-    void buildDependencyInfoRecursive(const Node *node, std::unordered_map<const Node*, std::set<const Node*>>& dependencies);
-    std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> buildGroupsByDependency(std::unordered_map<const Node*, std::set<const Node*>>);
-    bool canBeJoined(const std::set<const Node*>& existingNodes, const std::set<const Node*>& existingDependencies, const Node* currentNode, const std::set<const Node*>& currentDependencies);
 
     void addError(const std::string& errorMessage) {
         this->errorMessages.emplace_back(errorMessage);
@@ -62,9 +68,6 @@ public:
         this->messages.emplace_back(message);
     }
 
-    static std::shared_ptr<GraphicsPipeline::StageInfo>
-    findSharedStage(const Node *currentNode, std::map<const Node *, std::shared_ptr<GraphicsPipeline::StageInfo>> &builtStages,
-                    const std::vector<std::pair<std::set<const Node *>, std::set<const Node *>>> &dependencyGroups);
 };
 
 
