@@ -117,14 +117,7 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
             case GraphicsInterface::FrameBufferAttachPoints::COLOR4 : outputElement->SetAttribute("Attachment", "COLOR4"); break;
             case GraphicsInterface::FrameBufferAttachPoints::COLOR5 : outputElement->SetAttribute("Attachment", "COLOR5"); break;
             case GraphicsInterface::FrameBufferAttachPoints::COLOR6 : outputElement->SetAttribute("Attachment", "COLOR6"); break;
-            case GraphicsInterface::FrameBufferAttachPoints::DEPTH : {
-                outputElement->SetAttribute("Attachment", "DEPTH");
-                if (!depthWriteEnabled && !depthTestEnabled) {
-                    //means depth is not used, don't attach it
-                    continue;
-                }
-            }
-            break;
+            case GraphicsInterface::FrameBufferAttachPoints::DEPTH :  outputElement->SetAttribute("Attachment", "DEPTH"); break;
         }
         outputElement->SetAttribute("textureID", output.second->getSerializeID());
 

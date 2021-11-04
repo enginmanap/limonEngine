@@ -617,6 +617,13 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                         GraphicsInterface::TextureTypes::T2D_ARRAY) {
                         depthMapDirectional = stageExtension->getOutputTexture(connection);
                     }
+                    // at this point, we have a problem. All programs have depth output mapped, because it is not possible at program level whether it should or not.
+                    // but for some programs, it should not be, and it should be skipped.
+                    if (frameBufferAttachmentPoint == GraphicsInterface::FrameBufferAttachPoints::DEPTH &&
+                            (!stageInfo->stage->isDepthWriteEnabled() && !stageInfo->stage->isDepthTestEnabled())) {
+                        //means depth is not used, don't set it
+                        continue;
+                    }
                     stageInfo->stage->setOutput(frameBufferAttachmentPoint, stageExtension->getOutputTexture(connection));
 
                 }
