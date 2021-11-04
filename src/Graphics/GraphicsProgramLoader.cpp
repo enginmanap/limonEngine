@@ -63,9 +63,6 @@ std::shared_ptr<GraphicsProgram> GraphicsProgramLoader::deserialize(tinyxml2::XM
     } else {
         newProgram = std::make_shared<GraphicsProgram>(assetManager.get(), vertexShader, fragmentShader, materialRequired);
     }
-    if(materialRequired) {
-        newProgram->setSamplersAndUBOs();
-    }
 
     tinyxml2::XMLElement *presetValuesNode = programNode->FirstChildElement("PresetValues");
     if(presetValuesNode != nullptr) {

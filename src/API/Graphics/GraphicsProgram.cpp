@@ -10,6 +10,9 @@ GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& 
     graphicsProgramAsset = assetManager->loadAsset<GraphicsProgramAsset>({vertexShader, fragmentShader});
     programID = graphicsWrapper->createGraphicsProgram(vertexShader, "", fragmentShader);
     graphicsProgramAsset->lateInitialize(programID);
+    if(materialRequired) {
+        setSamplersAndUBOs();
+    }
 }
 
 GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, bool isMaterialUsed) :
@@ -17,6 +20,9 @@ GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& 
     graphicsProgramAsset = assetManager->loadAsset<GraphicsProgramAsset>({vertexShader, geometryShader, fragmentShader});
     programID = graphicsWrapper->createGraphicsProgram(vertexShader, geometryShader, fragmentShader);
     graphicsProgramAsset->lateInitialize(programID);
+    if(materialRequired) {
+        setSamplersAndUBOs();
+    }
 
 }
 
