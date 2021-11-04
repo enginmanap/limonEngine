@@ -220,6 +220,9 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
 
         }
         if(!depthAdded) {
+            /**
+             * FIXME this is causing a lot of headache. We need a better way to detect if a program writes to depth or not.
+             */
             outputMap["Depth"] =std::make_pair(Uniform::VariableTypes::TEXTURE_2D, FrameBufferAttachPoints::DEPTH);//Depth is always written
         }
         delete[] name;
