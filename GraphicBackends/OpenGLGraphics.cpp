@@ -157,8 +157,7 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
     //std::cout << "Active Uniforms:" << count << std::endl;
 
     uint32_t uniformLocation;
-    for (i = 0; i < count; i++)
-    {
+    for (i = 0; i < count; i++) {
         glGetActiveUniform(program, (GLuint)i, maxLength, &length, &size, &type, name);
         uniformLocation = glGetUniformLocation(program, name);
 
@@ -176,8 +175,7 @@ void OpenGLGraphics::fillUniformAndOutputMaps(const GLuint program,
     //std::cout << "Active Uniforms:" << count << std::endl;
 
     uint32_t attributeLocation;
-    for (i = 0; i < count; i++)
-    {
+    for (i = 0; i < count; i++) {
         glGetActiveAttrib(program, (GLuint)i, maxLength, &length, &size, &type, name);
         attributeLocation = glGetAttribLocation(program, name);
 
