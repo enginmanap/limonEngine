@@ -187,13 +187,19 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
         }
         ImGui::EndPopup();
     }
-    if(ImGui::Button("Build Pipeline")) {
-        std::shared_ptr<GraphicsPipeline> builtPipelineNew = buildRenderPipeline(nodes);
-        if(builtPipelineNew == nullptr) {
-            addError("Build failed");
-        } else {
-            builtPipeline = builtPipelineNew;//old one is auto removed
-            //builtPipeline->serialize("./Data/renderPipelineBuilt.xml", options);
+    if(!isNodeGraphValid()) {
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+        ImGui::Button("Build Pipeline");
+        ImGui::PopStyleVar();
+    } else {
+        if (ImGui::Button("Build Pipeline")) {
+            std::shared_ptr<GraphicsPipeline> builtPipelineNew = buildRenderPipeline(nodes);
+            if (builtPipelineNew == nullptr) {
+                addError("Build failed");
+            } else {
+                builtPipeline = builtPipelineNew;//old one is auto removed
+                builtPipeline->serialize("./Data/renderPipelineBuilt.xml", options);
+            }
         }
     }
     ImGui::PopStyleVar();
@@ -380,12 +386,11 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
         return false;
     }
 
-
 return true;
 }
 
 /**
- * groups node so they can be rendered in parallel. Rules:
+ * groups node so they can be rendered in without expensive GPU state changes. Rules:
  *
  * 1) they can't be outputting different depth maps
  * 2) they can't be depending one another, neither directly or indirectly

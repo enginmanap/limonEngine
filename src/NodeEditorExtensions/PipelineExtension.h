@@ -27,6 +27,7 @@ class PipelineExtension : public EditorExtension {
     RenderMethods renderMethods;
 
     std::shared_ptr<GraphicsPipeline> builtPipeline = nullptr;
+    bool nodeGraphValid = true; //if there are nodes that are unknown, then we can't build.
 
     static bool getNameOfTexture(void* data, int index, const char** outText);
 
@@ -78,6 +79,17 @@ public:
         std::shared_ptr<GraphicsPipeline> temp = builtPipeline;
         builtPipeline = nullptr;
         return temp;
+    }
+
+    bool isNodeGraphValid() const {
+        return nodeGraphValid;
+    }
+
+    void setNodeGraphValid(bool nodeGraphValid) {
+        PipelineExtension::nodeGraphValid = nodeGraphValid;
+        if(!nodeGraphValid) {
+            addError("Node Graph is not valid, can't build pipeline!");
+        }
     }
 
 };

@@ -3400,12 +3400,52 @@ void World::createNodeGraph() {
 
     nodeGraph = NodeGraph::deserialize("./Data/nodeGraph.xml", possibleEditorExtensions, possibleNodeExtensions);
 
+    bool freshNodeGraphCreated = false;
     if(nodeGraph == nullptr) {
         std::cerr << "No custom Nodegraph found, using the default." << std::endl;
         nodeGraph = NodeGraph::deserialize("./Engine/nodeGraph.xml", possibleEditorExtensions, possibleNodeExtensions);
         if(nodeGraph == nullptr) {
             std::cerr << "Default Node deserialize failed too, using empty node graph" << std::endl;
             nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);
+            freshNodeGraphCreated = true;
+        }
+    }
+
+    if(!freshNodeGraphCreated) {
+        // we loaded an old nodegraph. What if the available programs changed? if user add new programs, we should add them. If user removed programs, we should mark the pipeline as invalid, and warn.
+        // First check if any node type we don't have is defined
+        std::vector<const NodeType *> oldDefinedNodeTypes = nodeGraph->getNodeTypes();
+        for(const NodeType* oldNodeType: oldDefinedNodeTypes) {
+            bool nodeTypeFound = false;
+            for(NodeType* newNodeType: nodeTypeVector) {
+                if(newNodeType->isSameNodeType(*oldNodeType)) {
+                    nodeTypeFound = true;
+                    break;
+                }
+            }
+            if(!nodeTypeFound) {
+                // a node type that is unknown is found mark pipeline as invalid
+                pipelineExtension->setNodeGraphValid(false);
+                std::cerr << "Old Node type " << oldNodeType->name << " Not found, this graph is invalid" << std::endl;
+            }
+        }
+        //now do it in reverse, and try to add new programs we found, to the nodeGraph
+        for( NodeType* newNodeType: nodeTypeVector) {
+            bool nodeTypeFound = false;
+            for (const NodeType *oldNodeType: oldDefinedNodeTypes) {
+                if (newNodeType->name == oldNodeType->name) {
+                    //TODO it is possible, that there is a node type that has the same name, but it is different. we need to replace them
+                    nodeTypeFound = true;
+                    break;
+                }
+            }
+            if (!nodeTypeFound) {
+                if (nodeGraph->addNodeType(newNodeType)) {
+                    std::cout << "New node type " << newNodeType->name << " added" << std::endl;
+                } else {
+                    std::cerr << "New node type " << newNodeType->name << " should be added, but rejected!" << std::endl;
+                }
+            }
         }
     }
 }
@@ -3435,6 +3475,12 @@ void World::createNodeGraph() {
            }
            if (vertexShaderNode != nullptr && fragmentShaderNode != nullptr) {
                //if we have both vertex and fragment, then this is a valid program. Geometry is optional.
+               if(vertexShaderNode->fullPath == "./Data/Shaders/Particles/vertex.glsl" &&
+               fragmentShaderNode->fullPath == "./Data/Shaders/Particles/fragment.glsl"
+               ) {
+                   std::cerr << "Found the particles asset" << std::endl;
+               }
+
                std::shared_ptr<GraphicsProgram> foundProgram;
                if (geometryShaderNode != nullptr) {
                    foundProgram = std::make_shared<GraphicsProgram>(assetManager.get(),
