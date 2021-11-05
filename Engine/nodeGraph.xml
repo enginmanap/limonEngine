@@ -427,28 +427,6 @@
             <NodeExtension>IterationExtension</NodeExtension>
         </NodeType>
         <NodeType>
-            <Name>CombineAll</Name>
-            <CombineInputs>True</CombineInputs>
-            <Editable>False</Editable>
-            <Inputs/>
-            <Outputs>
-                <ConnectionDesc>
-                    <Name>Depth</Name>
-                    <Type>Texture</Type>
-                </ConnectionDesc>
-                <ConnectionDesc>
-                    <Name>finalColor</Name>
-                    <Type>Texture</Type>
-                </ConnectionDesc>
-            </Outputs>
-            <NodeExtension>PipelineStageExtension</NodeExtension>
-            <ExtraVariables>
-                <Variable Value="./Data/Shaders/CombineAll/fragment.glsl">fragmentShaderName</Variable>
-                <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/CombineAll/vertex.glsl">vertexShaderName</Variable>
-            </ExtraVariables>
-        </NodeType>
-        <NodeType>
             <Name>CombineColors</Name>
             <CombineInputs>True</CombineInputs>
             <Editable>False</Editable>
@@ -815,28 +793,6 @@
                 <Variable Value="./Data/Shaders/SkyCube/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
                 <Variable Value="./Data/Shaders/SkyCube/vertex.glsl">vertexShaderName</Variable>
-            </ExtraVariables>
-        </NodeType>
-        <NodeType>
-            <Name>SSAO</Name>
-            <CombineInputs>True</CombineInputs>
-            <Editable>False</Editable>
-            <Inputs/>
-            <Outputs>
-                <ConnectionDesc>
-                    <Name>Depth</Name>
-                    <Type>Texture</Type>
-                </ConnectionDesc>
-                <ConnectionDesc>
-                    <Name>occlusion</Name>
-                    <Type>Texture</Type>
-                </ConnectionDesc>
-            </Outputs>
-            <NodeExtension>PipelineStageExtension</NodeExtension>
-            <ExtraVariables>
-                <Variable Value="./Data/Shaders/SSAO/fragment.glsl">fragmentShaderName</Variable>
-                <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/SSAO/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
