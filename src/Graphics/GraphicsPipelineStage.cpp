@@ -174,6 +174,40 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
         }
     }
 
+    bool colorAttachmentEnabled = true;
+    stageNodeAttribute = stageNode->FirstChildElement("ColorAttachment");
+    if (stageNodeAttribute != nullptr) {
+        if(stageNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Pipeline Stage Color attachment setting has no text, assuming true!" << std::endl;
+        } else {
+            std::string colorAttachmentString = stageNodeAttribute->GetText();
+            if(colorAttachmentString == "True") {
+                colorAttachmentEnabled = true;
+            } else if(colorAttachmentString == "False") {
+                colorAttachmentEnabled = false;
+            } else {
+                std::cerr << "Pipeline Stage depth test enabled setting is unknown, assuming true!" << std::endl;
+            }
+        }
+    }
+
+    bool depthAttachmentEnabled = true;
+    stageNodeAttribute = stageNode->FirstChildElement("DepthAttachment");
+    if (stageNodeAttribute != nullptr) {
+        if(stageNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Pipeline Stage Depth attachment setting has no text, assuming true!" << std::endl;
+        } else {
+            std::string depthAttachmentString = stageNodeAttribute->GetText();
+            if(depthAttachmentString == "True") {
+                depthAttachmentEnabled = true;
+            } else if(depthAttachmentString == "False") {
+                depthAttachmentEnabled = false;
+            } else {
+                std::cerr << "Pipeline Stage depth test enabled setting is unknown, assuming true!" << std::endl;
+            }
+        }
+    }
+
     bool depthTestEnabled = true;
     stageNodeAttribute = stageNode->FirstChildElement("DepthTestEnabled");
     if (stageNodeAttribute != nullptr) {
@@ -242,11 +276,13 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
             }
         }
     } else {
-        std::cerr << "Pipeline Stage To screen setting couldn't be found, skippin!" << std::endl;
+        std::cerr << "Pipeline Stage To screen setting couldn't be found, skipping!" << std::endl;
         return nullptr;
     }
 
     std::shared_ptr<GraphicsPipelineStage> newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, renderWidth, renderHeight, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, toScreen);
+    newStage->depthAttachment = depthAttachmentEnabled;
+    newStage->colorAttachment = colorAttachmentEnabled;
 
     stageNodeAttribute = stageNode->FirstChildElement("CullMode");
 
@@ -349,7 +385,10 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
                 if (outputTexture == nullptr) {
                     std::cerr << "For output " << attachmentString << " texture deserialize failed, skipping" << std::endl;
                 } else {
-                    newStage->setOutput(attachmentPoint, outputTexture, false, -1);
+                    if(attachmentPoint != GraphicsInterface::FrameBufferAttachPoints::DEPTH ||
+                            (depthWriteEnabled || depthTestEnabled)) { //if depth is not read or written, then don't attach it.
+                        newStage->setOutput(attachmentPoint, outputTexture, false, -1);
+                    }
                 }
             }
         }
