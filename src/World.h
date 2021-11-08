@@ -465,6 +465,8 @@ public:
 
     bool applyForceToPlayerAPI(const LimonTypes::Vec4 &forceAmount);
 
+    bool changeRenderPipeline(const std::string &pipelineFileName);
+
     /**
      * If nothing is hit, returns empty vector
      * returns these values:

@@ -2526,6 +2526,15 @@ Model* World::findModelByIDChildren(PhysicalRenderable* parent,uint32_t modelID)
     return nullptr;
 }
 
+bool World::changeRenderPipeline(const std::string &pipelineFileName) {
+    std::unique_ptr<GraphicsPipeline> newPipeline = GraphicsPipeline::deserialize(pipelineFileName, this->graphicsWrapper, assetManager, options, buildRenderMethods());
+    if(newPipeline != nullptr) {
+        this->renderPipeline = std::move(newPipeline);
+        return true;
+    }
+    return false;
+}
+
 
 Model *World::findModelByID(uint32_t modelID) const {
     if(startingPlayer.attachedModel != nullptr) {
@@ -3256,6 +3265,9 @@ void World::drawNodeEditor() {
                     }
                 }
             }
+            std::vector<LimonTypes::GenericParameter> empty;
+            addTimedEventAPI(5000,
+                             [&](const std::vector<LimonTypes::GenericParameter>&) {this->changeRenderPipeline("./Engine/renderPipeline.xml");},  empty);
             this->renderPipeline = renderPipeline2;
         }
     }

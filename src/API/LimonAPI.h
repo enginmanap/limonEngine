@@ -133,6 +133,10 @@ public:
     bool addLightTranslate(uint32_t lightID, const LimonTypes::Vec4& translate);
     bool setLightColor(uint32_t lightID, const LimonTypes::Vec4& color);
 
+    bool changeRenderPipeline(const std::string& pipelineFileName) {
+        return worldChangeRenderPipeline(pipelineFileName);
+    }
+
     bool loadAndSwitchWorld(const std::string& worldFileName);
     bool returnToWorld(const std::string& worldFileName);//if world is not loaded, loads first
     bool LoadAndRemove(const std::string& worldFileName); // removes current world after loading the new one
@@ -237,6 +241,8 @@ private:
     std::function<bool(uint32_t, const std::string&, bool)> worldSetAnimationOfModel;
     std::function<bool(uint32_t, const std::string&, bool, long)> worldSetAnimationOfModelWithBlend;
     std::function<bool(uint32_t, float)> worldSetModelAnimationSpeed;
+
+    std::function<bool(const std::string&)> worldChangeRenderPipeline;
 
     /*** Non World API calls *******************************************************/
     std::function<bool (const std::string&)> limonLoadWorld;

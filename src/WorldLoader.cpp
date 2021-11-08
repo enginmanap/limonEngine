@@ -110,7 +110,7 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldRemoveParticleEmitter = std::bind(&World::removeParticleEmitter, world, std::placeholders::_1);
     limonAPI->worldSetEmitterParticleSpeed = std::bind(&World::setEmitterParticleSpeed, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     limonAPI->worldSetEmitterParticleGravity = std::bind(&World::setEmitterParticleGravity, world, std::placeholders::_1, std::placeholders::_2);
-
+    limonAPI->worldChangeRenderPipeline = std::bind(&World::changeRenderPipeline, world, std::placeholders::_1);
 
 
     uint32_t addParticleEmitter(const std::string &name, const std::string& textureFile,
