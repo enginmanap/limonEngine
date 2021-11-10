@@ -126,6 +126,10 @@ public:
     std::vector<uint32_t> getModelChildren(uint32_t modelID);
 
 
+    long addTimedEvent(long waitTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall, std::vector<LimonTypes::GenericParameter> parameters);
+    bool cancelTimedEvent(long handleId);
+
+
     void interactWithPlayer(std::vector<LimonTypes::GenericParameter>& input);
     void simulateInput(const InputStates& input);
 
@@ -164,8 +168,6 @@ public:
         }
         return variableStore[variableName];
     }
-
-    void addTimedEvent(long waitTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall, std::vector<LimonTypes::GenericParameter> parameters);
 
     LimonAPI(std::function<bool (const std::string&)> worldLoadMethod,
              std::function<bool (const std::string&)> worldReturnOrLoadMethod,
@@ -222,7 +224,9 @@ private:
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldAddLightTranslate;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetLightColor;
 
-    std::function<void (long, std::function<void(const std::vector<LimonTypes::GenericParameter>&)>, std::vector<LimonTypes::GenericParameter>)> worldAddTimedEvent;
+    std::function<long (long, std::function<void(const std::vector<LimonTypes::GenericParameter>&)>, std::vector<LimonTypes::GenericParameter>)> worldAddTimedEvent;
+    std::function<bool (long)> worldCancelTimedEvent;
+
     std::function<bool (uint32_t)> worldEnableParticleEmitter;
     std::function<bool (uint32_t)> worldDisableParticleEmitter;
     std::function<uint32_t (const std::string&, const std::string&, const LimonTypes::Vec4&, const LimonTypes::Vec4&, const LimonTypes::Vec2&, uint32_t, uint32_t, float, bool)> worldAddParticleEmitter;

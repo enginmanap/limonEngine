@@ -2401,10 +2401,24 @@ void World::simulateInputAPI(InputStates input) {
     }
 }
 
-void World::addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
+long World::addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
                               std::vector<LimonTypes::GenericParameter> parameters) {
-    timedEvents.push(TimedEvent(waitTime + gameTime, methodToCall, parameters));
+    long handleId = timedEventHandleIndex++;
+    timedEvents.push(TimedEvent(handleId, waitTime + gameTime, methodToCall, parameters));
+    return handleId;
 }
+
+bool World::cancelTimedEventAPI(long handleId) {
+    std::vector<TimedEvent>& container = Container(timedEvents);
+    for (size_t i = 0; i < container.size(); ++i) {
+        if(container[i].handleId == handleId) {
+            container[i].active = false;
+            return true;
+        }
+    }
+    return false;
+}
+
 
 void World::checkAndRunTimedEvents() {
     while (!timedEvents.empty() && timedEvents.top().callTime <= gameTime) {
@@ -3266,7 +3280,7 @@ void World::drawNodeEditor() {
                 }
             }
             std::vector<LimonTypes::GenericParameter> empty;
-            addTimedEventAPI(5000,
+            long handleId = addTimedEventAPI(5000,
                              [&](const std::vector<LimonTypes::GenericParameter>&) {this->changeRenderPipeline("./Engine/renderPipeline.xml");},  empty);
             this->renderPipeline = renderPipeline2;
         }

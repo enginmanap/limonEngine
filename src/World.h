@@ -69,6 +69,20 @@ class PipelineExtension;
 class IterationExtension;
 class NodeGraph;
 
+/*
+ * This is a workaround to access the timedEvent priority queue container.
+ * https://stackoverflow.com/a/1385520
+ */
+template <class T, class S, class C>
+S& Container(std::priority_queue<T, S, C>& q) {
+struct HackedQueue : private std::priority_queue<T, S, C> {
+        static S& Container(std::priority_queue<T, S, C>& q) {
+            return q.*&HackedQueue::c;
+        }
+    };
+    return HackedQueue::Container(q);
+}
+
 class World {
     friend class Editor;
 public:
@@ -122,18 +136,20 @@ private:
 
     struct TimedEvent {
         long callTime;
+        long handleId;
+        bool active = true;
         std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall;
         std::vector<LimonTypes::GenericParameter> parameters;
 
-        TimedEvent(long callTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
+        TimedEvent(long handleId, long callTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
                    std::vector<LimonTypes::GenericParameter> parameters) :
-        callTime(callTime), methodToCall(std::move(methodToCall)), parameters(std::move(parameters)) {}
+                   handleId(handleId), callTime(callTime), methodToCall(std::move(methodToCall)), parameters(std::move(parameters)) {}
 
         bool operator>(const TimedEvent &timedEventRight) const {
             return callTime > timedEventRight.callTime;
         }
         void run() const {
-            if(this->methodToCall != nullptr) {
+            if(active && this->methodToCall != nullptr) {
                 this->methodToCall(parameters);
             } else {
                 std::cerr << "Timed method call failed, because method is null" << std::endl;
@@ -203,6 +219,7 @@ private:
 
     /************************* End of redundant variables ******************************************/
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<TimedEvent>> timedEvents;
+    long timedEventHandleIndex = 1;//we don't need to keep them, just have them unique
 
 
     std::map<uint32_t, GUIRenderable*> guiElements;
@@ -495,8 +512,9 @@ public:
     void interactWithPlayerAPI(std::vector<LimonTypes::GenericParameter> &interactionInformation) const;
     void simulateInputAPI(InputStates input);
 
-    void addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
+    long addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
                               std::vector<LimonTypes::GenericParameter> parameters);
+    bool cancelTimedEventAPI(long handleId);
 
     uint32_t getPlayerAttachedModelAPI();
     std::vector<uint32_t> getModelChildrenAPI(uint32_t modelID);

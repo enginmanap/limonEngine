@@ -135,10 +135,14 @@ bool LimonAPI::setLightColor(uint32_t lightID, const LimonTypes::Vec4 &color){
     return worldSetLightColor(lightID, color);
 }
 
-void LimonAPI::addTimedEvent(long waitTime,
+long LimonAPI::addTimedEvent(long waitTime,
                              std::function<void(const std::vector<LimonTypes::GenericParameter> &)> methodToCall,
                              std::vector<LimonTypes::GenericParameter> parameters) {
-    worldAddTimedEvent(waitTime, methodToCall, parameters);
+    return worldAddTimedEvent(waitTime, methodToCall, parameters);
+}
+
+bool LimonAPI::cancelTimedEvent(long handleId) {
+    return worldCancelTimedEvent(handleId);
 }
 
 bool LimonAPI::disableParticleEmitter(uint32_t particleEmitterId) {
