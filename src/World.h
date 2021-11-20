@@ -305,6 +305,7 @@ private:
     IterationExtension *iterationExtension;
     NodeGraph* nodeGraph = nullptr;
     std::shared_ptr<GraphicsPipeline> renderPipeline = nullptr;
+    std::shared_ptr<GraphicsPipeline> renderPipelineBackup = nullptr;
 
     std::map<uint32_t, std::shared_ptr<Emitter>> emitters;
     std::map<uint32_t, std::shared_ptr<GPUParticleEmitter>> gpuParticleEmitters;

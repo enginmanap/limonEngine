@@ -3270,9 +3270,9 @@ void World::drawNodeEditor() {
     nodeGraph->display();
     if(pipelineExtension->isPipelineBuilt()) {
         if (ImGui::Button("Activate")) {
-            std::shared_ptr<GraphicsPipeline> renderPipeline2 = pipelineExtension->handOverBuiltPipeline();
+            std::shared_ptr<GraphicsPipeline> builtRenderPipeline = pipelineExtension->handOverBuiltPipeline();
             std::vector<LimonTypes::GenericParameter> emptyParameters;
-            for(auto& stage:renderPipeline2->getStages()) {
+            for(auto& stage:builtRenderPipeline->getStages()) {
                 for(auto& method:stage.renderMethods) {
                     if(!method.getInitialized()) {
                         method.initialize(emptyParameters);
@@ -3281,8 +3281,11 @@ void World::drawNodeEditor() {
             }
             std::vector<LimonTypes::GenericParameter> empty;
             long handleId = addTimedEventAPI(5000,
-                             [&](const std::vector<LimonTypes::GenericParameter>&) {this->changeRenderPipeline("./Engine/renderPipeline.xml");},  empty);
-            this->renderPipeline = renderPipeline2;
+                             [&](const std::vector<LimonTypes::GenericParameter>&) {
+                                                        this->renderPipeline = this->renderPipelineBackup;
+                                                        this->renderPipelineBackup = nullptr;},
+                                    empty);
+            this->renderPipeline = builtRenderPipeline;
         }
     }
     if(ImGui::Button("Save")) {
