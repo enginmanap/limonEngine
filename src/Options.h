@@ -118,9 +118,9 @@ private:
     uint32_t screenWidth = 1920;
 
     uint32_t shadowMapDirectionalWidth = 2048;
-    uint32_t shadowMapDirectionalHeight = 2048; //TODO these values should be parameters
+    uint32_t shadowMapDirectionalHeight = 2048;
     uint32_t shadowMapPointWidth = 512;
-    uint32_t shadowMapPointHeight = 512; //TODO these values should be parameters
+    uint32_t shadowMapPointHeight = 512;
     float lightOrthogonalProjectionNearPlane = 1.0f;
     float  lightOrthogonalProjectionFarPlane = 100.0f;
     glm::vec4 lightOrthogonalProjectionValues = glm::vec4(-100.0f, 100.0f, -100.0f, 100.0f);
