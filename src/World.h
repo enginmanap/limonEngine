@@ -143,7 +143,7 @@ private:
 
         TimedEvent(long handleId, long callTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
                    std::vector<LimonTypes::GenericParameter> parameters) :
-                   handleId(handleId), callTime(callTime), methodToCall(std::move(methodToCall)), parameters(std::move(parameters)) {}
+                   callTime(callTime), handleId(handleId), methodToCall(std::move(methodToCall)), parameters(std::move(parameters)) {}
 
         bool operator>(const TimedEvent &timedEventRight) const {
             return callTime > timedEventRight.callTime;
