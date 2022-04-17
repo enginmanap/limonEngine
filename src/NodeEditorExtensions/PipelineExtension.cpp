@@ -144,14 +144,32 @@ void PipelineExtension::drawTextureSettings() {
     if(ImGui::RadioButton("FLOAT##data_type_PipelineExtension", currentTextureInfo.dataType == GraphicsInterface::DataTypes::FLOAT)) { currentTextureInfo.dataType = GraphicsInterface::DataTypes::FLOAT; }
 
 
-    ImGui::Text("Wrap Mode:");
-    if(ImGui::RadioButton("NONE##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapMode == GraphicsInterface::TextureWrapModes::NONE)) { currentTextureInfo.textureWrapMode = GraphicsInterface::TextureWrapModes::NONE; }
+    ImGui::Text("Wrap Mode S:");
+    if(ImGui::RadioButton("NONE##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapModeS == GraphicsInterface::TextureWrapModes::NONE)) { currentTextureInfo.textureWrapModeS = GraphicsInterface::TextureWrapModes::NONE; }
     ImGui::SameLine();
-    if(ImGui::RadioButton("REPEAT##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapMode == GraphicsInterface::TextureWrapModes::REPEAT)) { currentTextureInfo.textureWrapMode = GraphicsInterface::TextureWrapModes::REPEAT; }
+    if(ImGui::RadioButton("REPEAT##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapModeS == GraphicsInterface::TextureWrapModes::REPEAT)) { currentTextureInfo.textureWrapModeS = GraphicsInterface::TextureWrapModes::REPEAT; }
     ImGui::SameLine();
-    if(ImGui::RadioButton("BORDER##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapMode == GraphicsInterface::TextureWrapModes::BORDER)) { currentTextureInfo.textureWrapMode = GraphicsInterface::TextureWrapModes::BORDER; }
+    if(ImGui::RadioButton("BORDER##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapModeS == GraphicsInterface::TextureWrapModes::BORDER)) { currentTextureInfo.textureWrapModeS = GraphicsInterface::TextureWrapModes::BORDER; }
     ImGui::SameLine();
-    if(ImGui::RadioButton("EDGE##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapMode == GraphicsInterface::TextureWrapModes::EDGE)) { currentTextureInfo.textureWrapMode = GraphicsInterface::TextureWrapModes::EDGE; }
+    if(ImGui::RadioButton("EDGE##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapModeS == GraphicsInterface::TextureWrapModes::EDGE)) { currentTextureInfo.textureWrapModeS = GraphicsInterface::TextureWrapModes::EDGE; }
+
+    ImGui::Text("Wrap Mode T:");
+    if(ImGui::RadioButton("NONE##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapModeT == GraphicsInterface::TextureWrapModes::NONE)) { currentTextureInfo.textureWrapModeT = GraphicsInterface::TextureWrapModes::NONE; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("REPEAT##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapModeT == GraphicsInterface::TextureWrapModes::REPEAT)) { currentTextureInfo.textureWrapModeT = GraphicsInterface::TextureWrapModes::REPEAT; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("BORDER##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapModeT == GraphicsInterface::TextureWrapModes::BORDER)) { currentTextureInfo.textureWrapModeT = GraphicsInterface::TextureWrapModes::BORDER; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("EDGE##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapModeT == GraphicsInterface::TextureWrapModes::EDGE)) { currentTextureInfo.textureWrapModeT = GraphicsInterface::TextureWrapModes::EDGE; }
+
+    ImGui::Text("Wrap Mode R:");
+    if(ImGui::RadioButton("NONE##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapModeR == GraphicsInterface::TextureWrapModes::NONE)) { currentTextureInfo.textureWrapModeR = GraphicsInterface::TextureWrapModes::NONE; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("REPEAT##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapModeR == GraphicsInterface::TextureWrapModes::REPEAT)) { currentTextureInfo.textureWrapModeR = GraphicsInterface::TextureWrapModes::REPEAT; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("BORDER##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapModeR == GraphicsInterface::TextureWrapModes::BORDER)) { currentTextureInfo.textureWrapModeR = GraphicsInterface::TextureWrapModes::BORDER; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("EDGE##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapModeR == GraphicsInterface::TextureWrapModes::EDGE)) { currentTextureInfo.textureWrapModeR = GraphicsInterface::TextureWrapModes::EDGE; }
 
     ImGui::Text("Filter Mode:");
     if(ImGui::RadioButton("NEAREST##wrap_mode_PipelineExtension", currentTextureInfo.filterMode == GraphicsInterface::FilterModes::NEAREST)) { currentTextureInfo.filterMode = GraphicsInterface::FilterModes::NEAREST; }
@@ -205,12 +223,10 @@ void PipelineExtension::drawTextureSettings() {
     }
     if(ImGui::Button("Create Texture##create_button_PipelineExtension")) {
         if(strlen(currentTextureInfo.name) != 0) {
-            std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, currentTextureInfo.textureType, currentTextureInfo.internalFormatType, currentTextureInfo.formatType, currentTextureInfo.dataType, currentTextureInfo.size[0], currentTextureInfo.size[1],
-                                                                         currentTextureInfo.depth);
-            texture->setWrapModes(currentTextureInfo.textureWrapMode, currentTextureInfo.textureWrapMode);
-            texture->setBorderColor(currentTextureInfo.borderColor[0], currentTextureInfo.borderColor[1], currentTextureInfo.borderColor[2], currentTextureInfo.borderColor[3]);
-            texture->setFilterMode(currentTextureInfo.filterMode);
-            texture->setName(currentTextureInfo.name);
+//            std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, currentTextureInfo.textureType, currentTextureInfo.internalFormatType, currentTextureInfo.formatType, currentTextureInfo.dataType, currentTextureInfo.size[0], currentTextureInfo.size[1],
+//                                                                         currentTextureInfo.depth);
+//
+            std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, currentTextureInfo);
             usedTextures[currentTextureInfo.name] = texture;
             memset(currentTextureInfo.name, 0, sizeof(currentTextureInfo.name));
             ImGui::CloseCurrentPopup();

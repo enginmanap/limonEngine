@@ -18,21 +18,7 @@ class GraphicsPipelineStage;
 
 class PipelineExtension : public EditorExtension {
 
-    struct TextureInfo {
-        GraphicsInterface::TextureTypes  textureType = GraphicsInterface::TextureTypes::T2D;
-        GraphicsInterface::InternalFormatTypes internalFormatType = GraphicsInterface::InternalFormatTypes::RED;
-        GraphicsInterface::FormatTypes formatType = GraphicsInterface::FormatTypes::RGB;
-        GraphicsInterface::DataTypes dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE;
-        GraphicsInterface::TextureWrapModes  textureWrapMode = GraphicsInterface::TextureWrapModes::NONE;
-        GraphicsInterface::FilterModes  filterMode = GraphicsInterface::FilterModes::NEAREST;
-        int size[2] = {1920, 1080};
-        int depth = 0;
-        float borderColor[4] = {1.0, 1.0, 1.0, 1.0};
-        char name[256] = {0};
-        std::string sizeOption[2] = {"",""};
-    };
-
-    TextureInfo currentTextureInfo;
+    Texture::TextureInfo currentTextureInfo;
 
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;
     GraphicsInterface* graphicsWrapper = nullptr;

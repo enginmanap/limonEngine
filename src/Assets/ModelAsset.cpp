@@ -40,7 +40,7 @@ void ModelAsset::loadInternal() {
     scene = import.ReadFile(name, flags);
 
     if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-        std::cerr << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
+        std::cerr << "ERROR::ASSIMP::"<<name<<"::" << import.GetErrorString() << std::endl;
         exit(-1);
     }
 

@@ -18,14 +18,14 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
         textureNode->InsertEndChild(currentElement);
     }
 
-    if (this->name.length() > 0) {
+    if (strlen(textureInfo.name) > 0) {
         tinyxml2::XMLElement *currentElement = document.NewElement("Name");
-        currentElement->SetText(this->name.c_str());
+        currentElement->SetText(textureInfo.name);
         textureNode->InsertEndChild(currentElement);
     }
 
     currentElement = document.NewElement("TextureType");
-    switch (textureType) {
+    switch (textureInfo.textureType) {
         case GraphicsInterface::TextureTypes::T2D: currentElement->SetText("T2D"); break;
         case GraphicsInterface::TextureTypes::T2D_ARRAY: currentElement->SetText("T2D_ARRAY"); break;
         case GraphicsInterface::TextureTypes::TCUBE_MAP: currentElement->SetText("TCUBE_MAP"); break;
@@ -34,7 +34,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("InternalFormat");
-    switch (internalFormat) {
+    switch (textureInfo.internalFormatType) {
         case GraphicsInterface::InternalFormatTypes::RED: currentElement->SetText("RED"); break;
         case GraphicsInterface::InternalFormatTypes::RGB: currentElement->SetText("RGB"); break;
         case GraphicsInterface::InternalFormatTypes::RGBA: currentElement->SetText("RGBA"); break;
@@ -48,7 +48,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("Format");
-    switch (format) {
+    switch (textureInfo.formatType) {
         case GraphicsInterface::FormatTypes::RED: currentElement->SetText("RED"); break;
         case GraphicsInterface::FormatTypes::RGB: currentElement->SetText("RGB"); break;
         case GraphicsInterface::FormatTypes::RGBA: currentElement->SetText("RGBA"); break;
@@ -57,7 +57,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("DataType");
-    switch (dataType) {
+    switch (textureInfo.dataType) {
         case GraphicsInterface::DataTypes::UNSIGNED_BYTE: currentElement->SetText("UNSIGNED_BYTE"); break;
         case GraphicsInterface::DataTypes::UNSIGNED_SHORT: currentElement->SetText("UNSIGNED_SHORT"); break;
         case GraphicsInterface::DataTypes::UNSIGNED_INT: currentElement->SetText("UNSIGNED_INT"); break;
@@ -66,38 +66,38 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("Height");
-    currentElement->SetText(std::to_string(this->height).c_str());
+    currentElement->SetText(std::to_string(textureInfo.size[1]).c_str());
     textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("Width");
-    currentElement->SetText(std::to_string(this->width).c_str());
+    currentElement->SetText(std::to_string(textureInfo.size[0]).c_str());
     textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("Depth");
-    currentElement->SetText(std::to_string(this->depth).c_str());
+    currentElement->SetText(std::to_string(textureInfo.depth).c_str());
     textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("borderColor");
 
     tinyxml2::XMLElement *borderElement = document.NewElement("R");
-    borderElement->SetText(borderColor[0]);
+    borderElement->SetText(textureInfo.borderColor[0]);
     currentElement->InsertEndChild(borderElement);
 
     borderElement = document.NewElement("G");
-    borderElement->SetText(borderColor[1]);
+    borderElement->SetText(textureInfo.borderColor[1]);
     currentElement->InsertEndChild(borderElement);
 
     borderElement = document.NewElement("B");
-    borderElement->SetText(borderColor[2]);
+    borderElement->SetText(textureInfo.borderColor[2]);
     currentElement->InsertEndChild(borderElement);
 
     borderElement = document.NewElement("A");
-    borderElement->SetText(borderColor[3]);
+    borderElement->SetText(textureInfo.borderColor[3]);
     currentElement->InsertEndChild(borderElement);
     textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("BorderColorSet");
-    if(borderColorSet) {
+    if(textureInfo.borderColorSet) {
         currentElement->SetText("True");
     } else {
         currentElement->SetText("False");
@@ -109,7 +109,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("FilterMode");
-    switch (filterMode) {
+    switch (textureInfo.filterMode) {
         case GraphicsInterface::FilterModes::NEAREST: currentElement->SetText("NEAREST"); break;
         case GraphicsInterface::FilterModes::LINEAR: currentElement->SetText("LINEAR"); break;
         case GraphicsInterface::FilterModes::TRILINEAR: currentElement->SetText("TRILINEAR"); break;
@@ -118,7 +118,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
 
     currentElement = document.NewElement("WrapModes");
     tinyxml2::XMLElement *wrapModeNode= document.NewElement("S");
-    switch (wrapModeS) {
+    switch (textureInfo.textureWrapModeS) {
         case GraphicsInterface::TextureWrapModes::NONE: wrapModeNode->SetText("NONE"); break;
         case GraphicsInterface::TextureWrapModes::BORDER: wrapModeNode->SetText("BORDER"); break;
         case GraphicsInterface::TextureWrapModes::EDGE: wrapModeNode->SetText("EDGE"); break;
@@ -127,7 +127,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     currentElement->InsertEndChild(wrapModeNode);
 
     wrapModeNode= document.NewElement("T");
-    switch (wrapModeT) {
+    switch (textureInfo.textureWrapModeT) {
         case GraphicsInterface::TextureWrapModes::NONE: wrapModeNode->SetText("NONE"); break;
         case GraphicsInterface::TextureWrapModes::BORDER: wrapModeNode->SetText("BORDER"); break;
         case GraphicsInterface::TextureWrapModes::EDGE: wrapModeNode->SetText("EDGE"); break;
@@ -136,7 +136,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     currentElement->InsertEndChild(wrapModeNode);
 
     wrapModeNode= document.NewElement("R");
-    switch (wrapModeR) {
+    switch (textureInfo.textureWrapModeR) {
         case GraphicsInterface::TextureWrapModes::NONE: wrapModeNode->SetText("NONE"); break;
         case GraphicsInterface::TextureWrapModes::BORDER: wrapModeNode->SetText("BORDER"); break;
         case GraphicsInterface::TextureWrapModes::EDGE: wrapModeNode->SetText("EDGE"); break;
