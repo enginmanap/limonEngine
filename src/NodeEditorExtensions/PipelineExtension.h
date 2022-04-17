@@ -17,6 +17,23 @@
 class GraphicsPipelineStage;
 
 class PipelineExtension : public EditorExtension {
+
+    struct TextureInfo {
+        GraphicsInterface::TextureTypes  textureType = GraphicsInterface::TextureTypes::T2D;
+        GraphicsInterface::InternalFormatTypes internalFormatType = GraphicsInterface::InternalFormatTypes::RED;
+        GraphicsInterface::FormatTypes formatType = GraphicsInterface::FormatTypes::RGB;
+        GraphicsInterface::DataTypes dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE;
+        GraphicsInterface::TextureWrapModes  textureWrapMode = GraphicsInterface::TextureWrapModes::NONE;
+        GraphicsInterface::FilterModes  filterMode = GraphicsInterface::FilterModes::NEAREST;
+        int size[2] = {1920, 1080};
+        int depth = 0;
+        float borderColor[4] = {1.0, 1.0, 1.0, 1.0};
+        char name[256] = {0};
+        std::string sizeOption[2] = {"",""};
+    };
+
+    TextureInfo currentTextureInfo;
+
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;
     GraphicsInterface* graphicsWrapper = nullptr;
     std::shared_ptr<AssetManager> assetManager; //TODO: used for deserialize textures, maybe it would be possible to avoid.
@@ -41,6 +58,8 @@ class PipelineExtension : public EditorExtension {
     static std::shared_ptr<GraphicsPipeline::StageInfo>
     findSharedStage(const Node *currentNode, std::map<const Node *, std::shared_ptr<GraphicsPipeline::StageInfo>> &builtStages,
                     const std::vector<std::pair<std::set<const Node *>, std::set<const Node *>>> &dependencyGroups);
+
+    void drawTextureSettings();
 
 public:
     PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, Options* options,
@@ -91,7 +110,6 @@ public:
             addError("Node Graph is not valid, can't build pipeline!");
         }
     }
-
 };
 
 

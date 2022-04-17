@@ -67,125 +67,8 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
     if (ImGui::BeginPopup("create_texture_popup")) {
 
-        static GraphicsInterface::TextureTypes  textureType = GraphicsInterface::TextureTypes::T2D;
-        ImGui::Text("Texture type:");
-        if(ImGui::RadioButton("2D##Texture_type_PipelineExtension", textureType == GraphicsInterface::TextureTypes::T2D)) { textureType = GraphicsInterface::TextureTypes::T2D; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("2D Array##Texture_type_PipelineExtension", textureType == GraphicsInterface::TextureTypes::T2D_ARRAY)) { textureType = GraphicsInterface::TextureTypes::T2D_ARRAY; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("Cubemap##Texture_type_PipelineExtension", textureType == GraphicsInterface::TextureTypes::TCUBE_MAP)) { textureType = GraphicsInterface::TextureTypes::TCUBE_MAP; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("Cubemap Array##Texture_type_PipelineExtension", textureType == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY)) { textureType = GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY; }
+        drawTextureSettings();
 
-        static GraphicsInterface::InternalFormatTypes internalFormatType = GraphicsInterface::InternalFormatTypes::RED;
-        ImGui::Text("Internal Format type:");
-        if(ImGui::RadioButton("RED##internalFormat_type_PipelineExtension", internalFormatType == GraphicsInterface::InternalFormatTypes::RED)) { internalFormatType = GraphicsInterface::InternalFormatTypes::RED; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("RGB##internalFormat_type_PipelineExtension", internalFormatType == GraphicsInterface::InternalFormatTypes::RGB)) { internalFormatType = GraphicsInterface::InternalFormatTypes::RGB; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("RGBA##internalFormat_type_PipelineExtension", internalFormatType == GraphicsInterface::InternalFormatTypes::RGBA)) { internalFormatType = GraphicsInterface::InternalFormatTypes::RGBA; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("RGB16F##internalFormat_type_PipelineExtension", internalFormatType == GraphicsInterface::InternalFormatTypes::RGB16F)) { internalFormatType = GraphicsInterface::InternalFormatTypes::RGB16F; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("RGB32F##internalFormat_type_PipelineExtension", internalFormatType == GraphicsInterface::InternalFormatTypes::RGB32F)) { internalFormatType = GraphicsInterface::InternalFormatTypes::RGB32F; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("DEPTH##internalFormat_type_PipelineExtension", internalFormatType == GraphicsInterface::InternalFormatTypes::DEPTH)) { internalFormatType = GraphicsInterface::InternalFormatTypes::DEPTH; }
-
-        static GraphicsInterface::FormatTypes formatType = GraphicsInterface::FormatTypes::RGB;
-        ImGui::Text("Format type:");
-        if(ImGui::RadioButton("RED##format_type_PipelineExtension", formatType == GraphicsInterface::FormatTypes::RED)) { formatType = GraphicsInterface::FormatTypes::RED; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("RGB##format_type_PipelineExtension", formatType == GraphicsInterface::FormatTypes::RGB)) { formatType = GraphicsInterface::FormatTypes::RGB; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("RGBA##format_type_PipelineExtension", formatType == GraphicsInterface::FormatTypes::RGBA)) { formatType = GraphicsInterface::FormatTypes::RGBA; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("DEPTH##format_type_PipelineExtension", formatType == GraphicsInterface::FormatTypes::DEPTH)) { formatType = GraphicsInterface::FormatTypes::DEPTH; }
-
-        static GraphicsInterface::DataTypes dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE;
-        ImGui::Text("Data type:");
-        if(ImGui::RadioButton("UNSIGNED_BYTE##data_type_PipelineExtension", dataType == GraphicsInterface::DataTypes::UNSIGNED_BYTE)) { dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("UNSIGNED_SHORT##data_type_PipelineExtension", dataType == GraphicsInterface::DataTypes::UNSIGNED_SHORT)) { dataType = GraphicsInterface::DataTypes::FLOAT; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("UNSIGNED_INT##data_type_PipelineExtension", dataType == GraphicsInterface::DataTypes::UNSIGNED_INT)) { dataType = GraphicsInterface::DataTypes::FLOAT; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("FLOAT##data_type_PipelineExtension", dataType == GraphicsInterface::DataTypes::FLOAT)) { dataType = GraphicsInterface::DataTypes::FLOAT; }
-
-        static GraphicsInterface::TextureWrapModes  textureWrapMode = GraphicsInterface::TextureWrapModes::NONE;
-        ImGui::Text("Wrap Mode:");
-        if(ImGui::RadioButton("NONE##wrap_mode_PipelineExtension", textureWrapMode == GraphicsInterface::TextureWrapModes::NONE)) { textureWrapMode = GraphicsInterface::TextureWrapModes::NONE; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("REPEAT##wrap_mode_PipelineExtension", textureWrapMode == GraphicsInterface::TextureWrapModes::REPEAT)) { textureWrapMode = GraphicsInterface::TextureWrapModes::REPEAT; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("BORDER##wrap_mode_PipelineExtension", textureWrapMode == GraphicsInterface::TextureWrapModes::BORDER)) { textureWrapMode = GraphicsInterface::TextureWrapModes::BORDER; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("EDGE##wrap_mode_PipelineExtension", textureWrapMode == GraphicsInterface::TextureWrapModes::EDGE)) { textureWrapMode = GraphicsInterface::TextureWrapModes::EDGE; }
-
-        static GraphicsInterface::FilterModes  filterMode = GraphicsInterface::FilterModes::NEAREST;
-        ImGui::Text("Filter Mode:");
-        if(ImGui::RadioButton("NEAREST##wrap_mode_PipelineExtension", filterMode == GraphicsInterface::FilterModes::NEAREST)) { filterMode = GraphicsInterface::FilterModes::NEAREST; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("LINEAR##wrap_mode_PipelineExtension", filterMode == GraphicsInterface::FilterModes::LINEAR)) { filterMode = GraphicsInterface::FilterModes::LINEAR; }
-        ImGui::SameLine();
-        if(ImGui::RadioButton("TRILINEAR##wrap_mode_PipelineExtension", filterMode == GraphicsInterface::FilterModes::TRILINEAR)) { filterMode = GraphicsInterface::FilterModes::TRILINEAR; }
-
-        static int size[2] = {1920, 1080};
-        if(ImGui::InputInt2("Size##texture_size_PipelineExtension", size)) {
-            for (int i = 0; i < 2; ++i) {
-                if (size[i] < 1) {
-                    size[i] = 1;
-                }
-                if (size[i] > 8192) {
-                    size[i] = 8192;
-                }
-            }
-        }
-        static int depth = 0;
-        if(textureType == GraphicsInterface::TextureTypes::T2D_ARRAY || textureType == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY) {
-            if(ImGui::InputInt("Depth##texture_depth_PipelineExtension", &depth)) {
-                if(depth < 0 ) {
-                    depth = 0;
-                }
-                if(depth > 1024) {
-                    depth = 1024;
-                }
-            }
-        }
-        static float borderColor[] = {1.0, 1.0, 1.0, 1.0};
-        if(ImGui::InputFloat4("Border Color##texture_borderColor_PipelineExtension", borderColor)) {
-            for (int i = 0; i < 4; ++i) {
-                if (borderColor[i] < 0) {
-                    borderColor[i] = 0;
-                }
-                if (borderColor[i] > 1.0) {
-                    borderColor[i] = 1;
-                }
-            }
-        }
-        static char name[256] = {0};
-        ImGui::InputText("##texture_name_PipelineExtension",name, sizeof(name)-1, ImGuiInputTextFlags_CharsNoBlank);
-        ImGui::SameLine();
-        if(std::strlen(name) == 0) {
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
-            ImGui::Text("TextureName");
-            ImGui::PopStyleColor();
-        } else {
-            ImGui::Text("TextureName");
-        }
-        if(ImGui::Button("Create Texture##create_button_PipelineExtension")) {
-            if(std::strlen(name) != 0) {
-                std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, textureType, internalFormatType, formatType, dataType, size[0], size[1],
-                                                                                                 depth);
-                texture->setWrapModes(textureWrapMode, textureWrapMode);
-                texture->setBorderColor(borderColor[0], borderColor[1], borderColor[2], borderColor[3]);
-                texture->setFilterMode(filterMode);
-                texture->setName(name);
-                this->usedTextures[name] = texture;
-                memset(name, 0, sizeof(name));
-                ImGui::CloseCurrentPopup();
-            }
-        }
-        ImGui::EndPopup();
     }
     if(!isNodeGraphValid()) {
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
@@ -213,6 +96,127 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
         nodeGraph->addMessage(message);
     }
     messages.clear();
+}
+
+void PipelineExtension::drawTextureSettings() {
+
+    ImGui::Text("Texture type:");
+    if(ImGui::RadioButton("2D##Texture_type_PipelineExtension", currentTextureInfo.textureType == GraphicsInterface::TextureTypes::T2D)) { currentTextureInfo.textureType = GraphicsInterface::TextureTypes::T2D; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("2D Array##Texture_type_PipelineExtension", currentTextureInfo.textureType == GraphicsInterface::TextureTypes::T2D_ARRAY)) { currentTextureInfo.textureType = GraphicsInterface::TextureTypes::T2D_ARRAY; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("Cubemap##Texture_type_PipelineExtension", currentTextureInfo.textureType == GraphicsInterface::TextureTypes::TCUBE_MAP)) { currentTextureInfo.textureType = GraphicsInterface::TextureTypes::TCUBE_MAP; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("Cubemap Array##Texture_type_PipelineExtension", currentTextureInfo.textureType == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY)) { currentTextureInfo.textureType = GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY; }
+
+
+    ImGui::Text("Internal Format type:");
+    if(ImGui::RadioButton("RED##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RED)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RED; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("RGB##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RGB)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RGB; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("RGBA##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RGBA)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RGBA; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("RGB16F##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RGB16F)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RGB16F; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("RGB32F##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RGB32F)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RGB32F; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("DEPTH##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::DEPTH)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::DEPTH; }
+
+
+    ImGui::Text("Format type:");
+    if(ImGui::RadioButton("RED##format_type_PipelineExtension", currentTextureInfo.formatType == GraphicsInterface::FormatTypes::RED)) { currentTextureInfo.formatType = GraphicsInterface::FormatTypes::RED; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("RGB##format_type_PipelineExtension", currentTextureInfo.formatType == GraphicsInterface::FormatTypes::RGB)) { currentTextureInfo.formatType = GraphicsInterface::FormatTypes::RGB; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("RGBA##format_type_PipelineExtension", currentTextureInfo.formatType == GraphicsInterface::FormatTypes::RGBA)) { currentTextureInfo.formatType = GraphicsInterface::FormatTypes::RGBA; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("DEPTH##format_type_PipelineExtension", currentTextureInfo.formatType == GraphicsInterface::FormatTypes::DEPTH)) { currentTextureInfo.formatType = GraphicsInterface::FormatTypes::DEPTH; }
+
+
+    ImGui::Text("Data type:");
+    if(ImGui::RadioButton("UNSIGNED_BYTE##data_type_PipelineExtension", currentTextureInfo.dataType == GraphicsInterface::DataTypes::UNSIGNED_BYTE)) { currentTextureInfo.dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("UNSIGNED_SHORT##data_type_PipelineExtension", currentTextureInfo.dataType == GraphicsInterface::DataTypes::UNSIGNED_SHORT)) { currentTextureInfo.dataType = GraphicsInterface::DataTypes::FLOAT; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("UNSIGNED_INT##data_type_PipelineExtension", currentTextureInfo.dataType == GraphicsInterface::DataTypes::UNSIGNED_INT)) { currentTextureInfo.dataType = GraphicsInterface::DataTypes::FLOAT; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("FLOAT##data_type_PipelineExtension", currentTextureInfo.dataType == GraphicsInterface::DataTypes::FLOAT)) { currentTextureInfo.dataType = GraphicsInterface::DataTypes::FLOAT; }
+
+
+    ImGui::Text("Wrap Mode:");
+    if(ImGui::RadioButton("NONE##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapMode == GraphicsInterface::TextureWrapModes::NONE)) { currentTextureInfo.textureWrapMode = GraphicsInterface::TextureWrapModes::NONE; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("REPEAT##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapMode == GraphicsInterface::TextureWrapModes::REPEAT)) { currentTextureInfo.textureWrapMode = GraphicsInterface::TextureWrapModes::REPEAT; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("BORDER##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapMode == GraphicsInterface::TextureWrapModes::BORDER)) { currentTextureInfo.textureWrapMode = GraphicsInterface::TextureWrapModes::BORDER; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("EDGE##wrap_mode_PipelineExtension", currentTextureInfo.textureWrapMode == GraphicsInterface::TextureWrapModes::EDGE)) { currentTextureInfo.textureWrapMode = GraphicsInterface::TextureWrapModes::EDGE; }
+
+    ImGui::Text("Filter Mode:");
+    if(ImGui::RadioButton("NEAREST##wrap_mode_PipelineExtension", currentTextureInfo.filterMode == GraphicsInterface::FilterModes::NEAREST)) { currentTextureInfo.filterMode = GraphicsInterface::FilterModes::NEAREST; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("LINEAR##wrap_mode_PipelineExtension", currentTextureInfo.filterMode == GraphicsInterface::FilterModes::LINEAR)) { currentTextureInfo.filterMode = GraphicsInterface::FilterModes::LINEAR; }
+    ImGui::SameLine();
+    if(ImGui::RadioButton("TRILINEAR##wrap_mode_PipelineExtension", currentTextureInfo.filterMode == GraphicsInterface::FilterModes::TRILINEAR)) { currentTextureInfo.filterMode = GraphicsInterface::FilterModes::TRILINEAR; }
+
+
+    if(ImGui::InputInt2("Size##texture_size_PipelineExtension", currentTextureInfo.size)) {
+        for (int i = 0; i < 2; ++i) {
+            if (currentTextureInfo.size[i] < 1) {
+                currentTextureInfo.size[i] = 1;
+            }
+            if (currentTextureInfo.size[i] > 8192) {
+                currentTextureInfo.size[i] = 8192;
+            }
+        }
+    }
+
+    if(currentTextureInfo.textureType == GraphicsInterface::TextureTypes::T2D_ARRAY || currentTextureInfo.textureType == GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY) {
+        if(ImGui::InputInt("Depth##texture_depth_PipelineExtension", &currentTextureInfo.depth)) {
+            if(currentTextureInfo.depth < 0 ) {
+                currentTextureInfo.depth = 0;
+            }
+            if(currentTextureInfo.depth > 1024) {
+                currentTextureInfo.depth = 1024;
+            }
+        }
+    }
+
+    if(ImGui::InputFloat4("Border Color##texture_borderColor_PipelineExtension", currentTextureInfo.borderColor)) {
+        for (int i = 0; i < 4; ++i) {
+            if (currentTextureInfo.borderColor[i] < 0) {
+                currentTextureInfo.borderColor[i] = 0;
+            }
+            if (currentTextureInfo.borderColor[i] > 1.0) {
+                currentTextureInfo.borderColor[i] = 1;
+            }
+        }
+    }
+
+    ImGui::InputText("##texture_name_PipelineExtension",currentTextureInfo.name, sizeof(currentTextureInfo.name)-1, ImGuiInputTextFlags_CharsNoBlank);
+    ImGui::SameLine();
+    if(strlen(currentTextureInfo.name) == 0) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+        ImGui::Text("TextureName");
+        ImGui::PopStyleColor();
+    } else {
+        ImGui::Text("TextureName");
+    }
+    if(ImGui::Button("Create Texture##create_button_PipelineExtension")) {
+        if(strlen(currentTextureInfo.name) != 0) {
+            std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, currentTextureInfo.textureType, currentTextureInfo.internalFormatType, currentTextureInfo.formatType, currentTextureInfo.dataType, currentTextureInfo.size[0], currentTextureInfo.size[1],
+                                                                         currentTextureInfo.depth);
+            texture->setWrapModes(currentTextureInfo.textureWrapMode, currentTextureInfo.textureWrapMode);
+            texture->setBorderColor(currentTextureInfo.borderColor[0], currentTextureInfo.borderColor[1], currentTextureInfo.borderColor[2], currentTextureInfo.borderColor[3]);
+            texture->setFilterMode(currentTextureInfo.filterMode);
+            texture->setName(currentTextureInfo.name);
+            usedTextures[currentTextureInfo.name] = texture;
+            memset(currentTextureInfo.name, 0, sizeof(currentTextureInfo.name));
+            ImGui::CloseCurrentPopup();
+        }
+    }
+    ImGui::EndPopup();
 }
 
 std::shared_ptr<GraphicsPipeline> PipelineExtension::buildRenderPipeline(const std::vector<const Node *> &nodes) {
