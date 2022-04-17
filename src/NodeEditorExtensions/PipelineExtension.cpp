@@ -211,10 +211,10 @@ void PipelineExtension::drawTextureSettings() {
             }
         }
     }
-
-    ImGui::InputText("##texture_name_PipelineExtension",currentTextureInfo.name, sizeof(currentTextureInfo.name)-1, ImGuiInputTextFlags_CharsNoBlank);
+    static char tempName[256] = {0};
+    ImGui::InputText("##texture_name_PipelineExtension",tempName, sizeof(tempName)-1, ImGuiInputTextFlags_CharsNoBlank);
     ImGui::SameLine();
-    if(strlen(currentTextureInfo.name) == 0) {
+    if(currentTextureInfo.name.empty()) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
         ImGui::Text("TextureName");
         ImGui::PopStyleColor();
@@ -222,13 +222,12 @@ void PipelineExtension::drawTextureSettings() {
         ImGui::Text("TextureName");
     }
     if(ImGui::Button("Create Texture##create_button_PipelineExtension")) {
-        if(strlen(currentTextureInfo.name) != 0) {
-//            std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, currentTextureInfo.textureType, currentTextureInfo.internalFormatType, currentTextureInfo.formatType, currentTextureInfo.dataType, currentTextureInfo.size[0], currentTextureInfo.size[1],
-//                                                                         currentTextureInfo.depth);
-//
+        if(strnlen(tempName, sizeof(tempName)/sizeof tempName[0]) != 0) {
+            currentTextureInfo.name = std::string(tempName);
             std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, currentTextureInfo);
             usedTextures[currentTextureInfo.name] = texture;
-            memset(currentTextureInfo.name, 0, sizeof(currentTextureInfo.name));
+            memset(tempName, 0, sizeof(currentTextureInfo.name));
+            currentTextureInfo = Texture::TextureInfo();
             ImGui::CloseCurrentPopup();
         }
     }

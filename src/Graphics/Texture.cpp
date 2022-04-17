@@ -18,9 +18,9 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
         textureNode->InsertEndChild(currentElement);
     }
 
-    if (strlen(textureInfo.name) > 0) {
+    if (!textureInfo.name.empty()) {
         tinyxml2::XMLElement *currentElement = document.NewElement("Name");
-        currentElement->SetText(textureInfo.name);
+        currentElement->SetText(textureInfo.name.c_str());
         textureNode->InsertEndChild(currentElement);
     }
 

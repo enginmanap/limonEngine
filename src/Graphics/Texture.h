@@ -23,8 +23,9 @@ public:
         int size[2] = {1920, 1080};
         int depth = 0;//3D textures, or texture arrays have this as element count
         float borderColor[4] = {0.0, 0.0, 0.0, 0.0};
-        char name[256] = {0};
+        std::string name;
         bool borderColorSet = false;
+
     };
 private:
     GraphicsInterface* graphicsWrapper;
@@ -136,12 +137,12 @@ public:
         Texture::source = source;
     }
 
-    const std::string getName() const {
-        return std::string(textureInfo.name);
+    const std::string &getName() const {
+        return textureInfo.name;
     }
 
     void setName(const std::string &name) {
-        std::strncpy(textureInfo.name, name.c_str(), sizeof(textureInfo.name)/sizeof(textureInfo.name[0]));
+        textureInfo.name = name;
     }
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
