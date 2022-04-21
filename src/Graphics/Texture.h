@@ -145,6 +145,10 @@ public:
         textureInfo.name = name;
     }
 
+    const TextureInfo &getTextureInfo() const {
+        return textureInfo;
+    }
+
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
 
     static std::shared_ptr<Texture>

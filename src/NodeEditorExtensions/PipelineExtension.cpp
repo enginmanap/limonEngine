@@ -53,22 +53,46 @@ bool PipelineExtension::getNameOfTexture(void* data, int index, const char** out
 
 void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<const Node *>& nodes, const Node* selectedNode [[gnu::unused]]) {
     ImGui::Text("Graphics Pipeline Details");
-    int listbox_item_current = -1;//not static because I don't want user to select a item.
 
     if(ImGui::CollapsingHeader("Textures")) {
         ImGui::Text("Current Textures");
-        ImGui::ListBox("##CurrentTextures", &listbox_item_current, PipelineExtension::getNameOfTexture,
-                       static_cast<void *>(&this->usedTextures), this->usedTextures.size(), 10);
+        if(ImGui::ListBox("##CurrentTextures", &selectedTexture, PipelineExtension::getNameOfTexture,
+                       static_cast<void *>(&this->usedTextures), this->usedTextures.size(), 10)) {
+            //in case the selected texture is changed
+            if(selectedTexture != -1) {
+                //find the selected texture
+                const char* selectedName;
+                PipelineExtension::getNameOfTexture(static_cast<void *>(&this->usedTextures), selectedTexture, &selectedName);
+                std::string selectedNameString(selectedName);
+                std::map<std::string, std::shared_ptr<Texture>>::iterator it = usedTextures.find(selectedNameString);
+                if(it == usedTextures.end()) {
+                    std::cerr << "Selected texture not found. This seems like an error." << std::endl;
+                } else {
+                    //found texture case
+                    this->currentTextureInfo = it->second->getTextureInfo();
+                }
+            }
+        }
+        if(selectedTexture== -1) {
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+            ImGui::Button("View Texture");
+            ImGui::PopStyleVar();
+
+        } else {
+            if (ImGui::Button("View Texture")) {
+                ImGui::OpenPopup("create_texture_popup");
+            }
+        }
         if(ImGui::Button("Create Texture")) {
+            currentTextureInfo = Texture::TextureInfo();
+            selectedTexture = -1;
             ImGui::OpenPopup("create_texture_popup");
         }
     }
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
     if (ImGui::BeginPopup("create_texture_popup")) {
-
         drawTextureSettings();
-
     }
     if(!isNodeGraphValid()) {
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
@@ -221,14 +245,16 @@ void PipelineExtension::drawTextureSettings() {
     } else {
         ImGui::Text("TextureName");
     }
-    if(ImGui::Button("Create Texture##create_button_PipelineExtension")) {
-        if(strnlen(tempName, sizeof(tempName)/sizeof tempName[0]) != 0) {
-            currentTextureInfo.name = std::string(tempName);
-            std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, currentTextureInfo);
-            usedTextures[currentTextureInfo.name] = texture;
-            memset(tempName, 0, sizeof(currentTextureInfo.name));
-            currentTextureInfo = Texture::TextureInfo();
-            ImGui::CloseCurrentPopup();
+    if(selectedTexture == -1 ) {
+        if (ImGui::Button("Create Texture##create_button_PipelineExtension")) {
+            if (strnlen(tempName, sizeof(tempName) / sizeof tempName[0]) != 0) {
+                currentTextureInfo.name = std::string(tempName);
+                std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, currentTextureInfo);
+                usedTextures[currentTextureInfo.name] = texture;
+                memset(tempName, 0, sizeof(currentTextureInfo.name));
+                currentTextureInfo = Texture::TextureInfo();
+                ImGui::CloseCurrentPopup();
+            }
         }
     }
     ImGui::EndPopup();

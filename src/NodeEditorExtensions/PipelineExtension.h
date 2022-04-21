@@ -31,6 +31,7 @@ class PipelineExtension : public EditorExtension {
 
     std::shared_ptr<GraphicsPipeline> builtPipeline = nullptr;
     bool nodeGraphValid = true; //if there are nodes that are unknown, then we can't build.
+    int32_t selectedTexture = -1;//-1 means it is not selected, there for we are building a new one
 
     static bool getNameOfTexture(void* data, int index, const char** outText);
 
