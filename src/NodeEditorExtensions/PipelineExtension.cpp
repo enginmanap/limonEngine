@@ -203,13 +203,13 @@ void PipelineExtension::drawTextureSettings() {
     if(ImGui::RadioButton("TRILINEAR##wrap_mode_PipelineExtension", currentTextureInfo.filterMode == GraphicsInterface::FilterModes::TRILINEAR)) { currentTextureInfo.filterMode = GraphicsInterface::FilterModes::TRILINEAR; }
 
 
-    if(ImGui::InputInt2("Size##texture_size_PipelineExtension", currentTextureInfo.size)) {
+    if(ImGui::InputInt2("Size##texture_size_PipelineExtension", currentTextureInfo.defaultSize)) {
         for (int i = 0; i < 2; ++i) {
-            if (currentTextureInfo.size[i] < 1) {
-                currentTextureInfo.size[i] = 1;
+            if (currentTextureInfo.defaultSize[i] < 1) {
+                currentTextureInfo.defaultSize[i] = 1;
             }
-            if (currentTextureInfo.size[i] > 8192) {
-                currentTextureInfo.size[i] = 8192;
+            if (currentTextureInfo.defaultSize[i] > 8192) {
+                currentTextureInfo.defaultSize[i] = 8192;
             }
         }
     }

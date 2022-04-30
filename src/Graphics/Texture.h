@@ -20,7 +20,7 @@ public:
         GraphicsInterface::TextureWrapModes  textureWrapModeT = GraphicsInterface::TextureWrapModes::NONE;
         GraphicsInterface::TextureWrapModes  textureWrapModeR = GraphicsInterface::TextureWrapModes::NONE;
         GraphicsInterface::FilterModes  filterMode = GraphicsInterface::FilterModes::LINEAR;
-        int size[2] = {1920, 1080};
+        int defaultSize[2] = {1920, 1080};
         int depth = 0;//3D textures, or texture arrays have this as element count
         float borderColor[4] = {0.0, 0.0, 0.0, 0.0};
         std::string name;
@@ -37,7 +37,7 @@ private:
 public:
     Texture(GraphicsInterface* graphicsWrapper, const TextureInfo &textureInfo)
             : graphicsWrapper(graphicsWrapper), textureInfo(textureInfo), serializeID(0) {
-        this->textureID = graphicsWrapper->createTexture(textureInfo.size[1], textureInfo.size[0], textureInfo.textureType, textureInfo.internalFormatType, textureInfo.formatType, textureInfo.dataType, textureInfo.depth);
+        this->textureID = graphicsWrapper->createTexture(textureInfo.defaultSize[1], textureInfo.defaultSize[0], textureInfo.textureType, textureInfo.internalFormatType, textureInfo.formatType, textureInfo.dataType, textureInfo.depth);
         //there are things that are not auto set. Lets set them
         setFilterMode(textureInfo.filterMode);
         setWrapModes(textureInfo.textureWrapModeS, textureInfo.textureWrapModeT, textureInfo.textureWrapModeR);
@@ -52,14 +52,14 @@ public:
         textureInfo.internalFormatType = internalFormat;
         textureInfo.formatType = format;
         textureInfo.dataType = dataType;
-        textureInfo.size[0] = width;
-        textureInfo.size[1] = height;
+        textureInfo.defaultSize[0] = width;
+        textureInfo.defaultSize[1] = height;
         textureInfo.depth = depth;
-        this->textureID = graphicsWrapper->createTexture(textureInfo.size[1], textureInfo.size[0], textureInfo.textureType, textureInfo.internalFormatType, textureInfo.formatType, textureInfo.dataType, textureInfo.depth);
+        this->textureID = graphicsWrapper->createTexture(textureInfo.defaultSize[1], textureInfo.defaultSize[0], textureInfo.textureType, textureInfo.internalFormatType, textureInfo.formatType, textureInfo.dataType, textureInfo.depth);
     }
 
     void loadData(void *data, void *data2 = nullptr, void *data3 = nullptr, void *data4 = nullptr, void *data5 = nullptr, void *data6 = nullptr) {
-        graphicsWrapper->loadTextureData(this->textureID, textureInfo.size[1], textureInfo.size[0], textureInfo.textureType, textureInfo.internalFormatType, textureInfo.formatType, textureInfo.dataType, textureInfo.depth, data, data2, data3, data4, data5, data6);
+        graphicsWrapper->loadTextureData(this->textureID, textureInfo.defaultSize[1], textureInfo.defaultSize[0], textureInfo.textureType, textureInfo.internalFormatType, textureInfo.formatType, textureInfo.dataType, textureInfo.depth, data, data2, data3, data4, data5, data6);
     }
 
     ~Texture() {
@@ -114,11 +114,11 @@ public:
     }
 
     uint32_t getHeight() const {
-        return textureInfo.size[1];
+        return textureInfo.defaultSize[1];
     }
 
     uint32_t getWidth() const {
-        return textureInfo.size[0];
+        return textureInfo.defaultSize[0];
     }
 
     uint32_t getSerializeID() const {
