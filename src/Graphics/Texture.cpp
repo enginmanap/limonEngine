@@ -13,13 +13,13 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     tinyxml2::XMLElement *currentElement;
 
     if (this->source.length() > 0) {
-        tinyxml2::XMLElement *currentElement = document.NewElement("Source");
+        currentElement = document.NewElement("Source");
         currentElement->SetText(this->source.c_str());
         textureNode->InsertEndChild(currentElement);
     }
 
     if (!textureInfo.name.empty()) {
-        tinyxml2::XMLElement *currentElement = document.NewElement("Name");
+        currentElement = document.NewElement("Name");
         currentElement->SetText(textureInfo.name.c_str());
         textureNode->InsertEndChild(currentElement);
     }
