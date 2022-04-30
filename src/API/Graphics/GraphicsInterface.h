@@ -200,6 +200,8 @@ public:
 
     virtual void backupCurrentState() = 0;
     virtual void restoreLastState() = 0;
+
+    virtual Options* getOptions() = 0;
 };
 
 #endif //LIMONENGINE_GRAPHICSINTERFACE_H

@@ -497,6 +497,10 @@ public:
     void setScissorRect(int32_t x, int32_t y, uint32_t width, uint32_t height) {
         glScissor(x,y,width,height);
     }
+
+    Options* getOptions() {
+        return options;
+    }
 };
 
 
