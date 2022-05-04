@@ -35,7 +35,7 @@ private:
     TextureInfo textureInfo;
     uint32_t textureID;
     std::string source;
-    size_t height, width;//These are current values, as it might be either a default, or coming from an option.
+    uint32_t height, width;//These are current values, as it might be either a default, or coming from an option.
 
 public:
     Texture(GraphicsInterface* graphicsWrapper, const TextureInfo &textureInfo)
@@ -43,9 +43,7 @@ public:
         if(textureInfo.heightOption.empty()) {
             height = textureInfo.defaultSize[1];
         } else {
-            long tempHeight;
-            if (graphicsWrapper->getOptions()->getOption(textureInfo.heightOption, tempHeight)) {
-                height = tempHeight;
+            if (graphicsWrapper->getOptions()->getOption(textureInfo.heightOption, height)) {
             } else {
                 height = textureInfo.defaultSize[1];
             }
@@ -53,9 +51,7 @@ public:
         if(textureInfo.widthOption.empty()) {
             width = textureInfo.defaultSize[0];
         } else {
-            long tempWidth;
-            if (graphicsWrapper->getOptions()->getOption(textureInfo.widthOption, tempWidth)) {
-                width = tempWidth;
+            if (graphicsWrapper->getOptions()->getOption(textureInfo.widthOption, width)) {
             } else {
                 width = textureInfo.defaultSize[0];
             }

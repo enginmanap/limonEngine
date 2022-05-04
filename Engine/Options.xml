@@ -10,7 +10,7 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>screenHeight</Description>
-        <Value>1080</Value>
+        <Value>1440</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>1</Index>
@@ -18,10 +18,26 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>screenWidth</Description>
-        <Value>1920</Value>
+        <Value>2560</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>SSAOHeight</Description>
+        <Value>1440</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>3</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>SSAOWidth</Description>
+        <Value>2560</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>4</Index>
     </Parameter>
     <Parameter>
         <RequestType>FreeText</RequestType>
@@ -189,8 +205,8 @@
     </Parameter>
 
     <fullScreen>False</fullScreen>
-    <screenWidth>1920</screenWidth>
-    <screenHeight>1080</screenHeight>
+    <screenWidth>2560</screenWidth>
+    <screenHeight>1440</screenHeight>
     <shadowMapDirectionalWidth>4096</shadowMapDirectionalWidth>
     <shadowMapDirectionalHeight>4096</shadowMapDirectionalHeight>
     <shadowMapPointWidth>512</shadowMapPointWidth>

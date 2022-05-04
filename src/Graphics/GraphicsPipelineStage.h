@@ -13,6 +13,10 @@
 
 class GraphicsPipelineStage {
     GraphicsInterface* graphicsWrapper = nullptr;
+    std::string renderWidthOption;
+    std::string renderHeightOption;
+    uint32_t defaultRenderWidth;
+    uint32_t defaultRenderHeight;
     uint32_t renderWidth;
     uint32_t renderHeight;
     uint32_t frameBufferID;
@@ -30,15 +34,21 @@ class GraphicsPipelineStage {
 
 public:
 
-    GraphicsPipelineStage(GraphicsInterface* graphicsWrapper, uint32_t renderWidth, uint32_t renderHeight, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled, bool toScreen = false) :
-            graphicsWrapper(graphicsWrapper), renderWidth(renderWidth), renderHeight(renderHeight), blendEnabled(blendEnabled), depthTestEnabled(depthTestEnabled), depthWriteEnabled(depthWriteEnabled), scissorEnabled(scissorEnabled) {
+    GraphicsPipelineStage(GraphicsInterface* graphicsWrapper, uint32_t renderWidth, uint32_t renderHeight, const std::string& renderWidthOption, const std::string& renderHeightOption, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled, bool toScreen = false) :
+            graphicsWrapper(graphicsWrapper), renderWidthOption(renderWidthOption), renderHeightOption(renderHeightOption), defaultRenderWidth(renderWidth), defaultRenderHeight(renderHeight), renderWidth(renderWidth), renderHeight(renderHeight), blendEnabled(blendEnabled), depthTestEnabled(depthTestEnabled), depthWriteEnabled(depthWriteEnabled), scissorEnabled(scissorEnabled) {
+        if(!renderHeightOption.empty()) {
+            graphicsWrapper->getOptions()->getOption(renderHeightOption, this->renderHeight);//if not found, it will not change, but we already set it to default
+        }
+        if(!renderWidthOption.empty()) {
+            graphicsWrapper->getOptions()->getOption(renderWidthOption, this->renderWidth);//if not found, it will not change, but we already set it to default
+        }
         if(toScreen) {
             frameBufferID = 0;
             //since this is directly to screen, we should clear both color and depth, if clear is requested, because we will not get outputs set.
             colorAttachment = true;
             depthAttachment = true;
         } else {
-            frameBufferID = graphicsWrapper->createFrameBuffer(renderWidth, renderHeight);
+            frameBufferID = graphicsWrapper->createFrameBuffer(this->renderWidth, this->renderHeight);
         }
     }
 

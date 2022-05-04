@@ -22,6 +22,16 @@ public:
     enum class MoveModes {WALK, RUN};
     enum class TextureFilteringModes { NEAREST, BILINEAR, TRILINEAR };
 
+
+    bool getOption(const std::string& optionName, uint32_t &value) const {
+        auto it = this->options.find(optionName);
+        if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::LONG) {
+            return false;
+        }
+        value = it->second->value.longValue;
+        return true;
+    }
+
     bool getOption(const std::string& optionName, long &value) const {
         auto it = this->options.find(optionName);
         if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::LONG) {
@@ -262,7 +272,7 @@ public:
     }
 
     uint32_t getScreenHeight() const {
-        long height;
+        uint32_t height;
         getOption("screenHeight", height);
         return height;
     }
@@ -272,7 +282,7 @@ public:
     }
 
     uint32_t getScreenWidth() const {
-        long width;
+        uint32_t width;
         getOption("screenWidth", width);
         return width;
     }

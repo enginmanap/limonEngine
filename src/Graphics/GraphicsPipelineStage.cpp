@@ -19,12 +19,20 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     parentNode->InsertEndChild(stageNode);
     tinyxml2::XMLElement *currentElement = nullptr;
 
-    currentElement = document.NewElement("RenderHeight");
-    currentElement->SetText(std::to_string(this->renderHeight).c_str());
+    currentElement = document.NewElement("DefaultRenderHeight");
+    currentElement->SetText(std::to_string(this->defaultRenderHeight).c_str());
     stageNode->InsertEndChild(currentElement);
 
-    currentElement = document.NewElement("RenderWidth");
-    currentElement->SetText(std::to_string(this->renderWidth).c_str());
+    currentElement = document.NewElement("DefaultRenderWidth");
+    currentElement->SetText(std::to_string(this->defaultRenderWidth).c_str());
+    stageNode->InsertEndChild(currentElement);
+
+    currentElement = document.NewElement("RenderHeightOption");
+    currentElement->SetText(this->renderHeightOption.c_str());
+    stageNode->InsertEndChild(currentElement);
+
+    currentElement = document.NewElement("RenderWidthOption");
+    currentElement->SetText(this->renderHeightOption.c_str());
     stageNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("BlendEnabled");
@@ -129,12 +137,12 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
 std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface* graphicsWrapper, const std::vector<std::shared_ptr<Texture>>& textures, Options *options) {
     tinyxml2::XMLElement* stageNodeAttribute = nullptr;
 
-    uint32_t renderHeight, renderWidth;
+    uint32_t defaultRenderHeight, defaultRenderWidth;
     bool blendEnabled = false;
     bool toScreen = false;
     GraphicsInterface::CullModes cullMode = GraphicsInterface::CullModes::NO_CHANGE;
 
-    stageNodeAttribute = stageNode->FirstChildElement("RenderHeight");
+    stageNodeAttribute = stageNode->FirstChildElement("DefaultRenderHeight");
     if (stageNodeAttribute == nullptr) {
         std::cerr << "Pipeline stage must have Render Height. Skipping" << std::endl;
         return nullptr;
@@ -144,9 +152,9 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
         return nullptr;
     }
     std::string heightString = stageNodeAttribute->GetText();
-    renderHeight = std::stoi(heightString);
+    defaultRenderHeight = std::stoi(heightString);
 
-    stageNodeAttribute = stageNode->FirstChildElement("RenderWidth");
+    stageNodeAttribute = stageNode->FirstChildElement("DefaultRenderWidth");
     if (stageNodeAttribute == nullptr) {
         std::cerr << "Pipeline stage must have Render Width. Skipping" << std::endl;
         return nullptr;
@@ -156,7 +164,28 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
         return nullptr;
     }
     std::string widthString = stageNodeAttribute->GetText();
-    renderWidth = std::stoi(widthString);
+    defaultRenderWidth = std::stoi(widthString);
+
+    std::string widthOption;
+    stageNodeAttribute = stageNode->FirstChildElement("RenderWidthOption");
+    if (stageNodeAttribute != nullptr) {
+        if(stageNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Stage RenderWidthOption has no text, skipping! " << std::endl;
+        } else {
+            widthOption = stageNodeAttribute->GetText();
+        }
+    }
+
+    std::string heightOption;
+    stageNodeAttribute = stageNode->FirstChildElement("RenderHeightOption");
+    if (stageNodeAttribute != nullptr) {
+        if(stageNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Stage RenderHeightOption has no text, skipping! " << std::endl;
+        } else {
+            heightOption = stageNodeAttribute->GetText();
+        }
+    }
+
 
     stageNodeAttribute = stageNode->FirstChildElement("BlendEnabled");
     if (stageNodeAttribute != nullptr) {
@@ -280,7 +309,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
         return nullptr;
     }
 
-    std::shared_ptr<GraphicsPipelineStage> newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, renderWidth, renderHeight, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, toScreen);
+    std::shared_ptr<GraphicsPipelineStage> newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, defaultRenderWidth, defaultRenderHeight, widthOption, heightOption, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, toScreen);
     newStage->depthAttachment = depthAttachmentEnabled;
     newStage->colorAttachment = colorAttachmentEnabled;
 
