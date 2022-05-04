@@ -151,7 +151,7 @@ bool Options::loadOptions(const std::string &optionsFileName) {
         std::cerr << "options xml is not a valid XML." << std::endl;
         return false;
     }
-
+/*
     tinyxml2::XMLElement *screenHeightNode = optionsNode->FirstChildElement("screenHeight");
     if (screenHeightNode != nullptr) {
         screenHeight = std::stoi(screenHeightNode->GetText());
@@ -161,7 +161,7 @@ bool Options::loadOptions(const std::string &optionsFileName) {
     if (screenWidthNode != nullptr) {
         screenWidth = std::stoul(screenWidthNode->GetText());
     }
-
+*/
     tinyxml2::XMLElement *shadowMapDirectionalWidthNode = optionsNode->FirstChildElement(
             "shadowMapDirectionalWidth");
     if (shadowMapDirectionalWidthNode != nullptr) {

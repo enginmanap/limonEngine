@@ -22,7 +22,7 @@ public:
     enum class MoveModes {WALK, RUN};
     enum class TextureFilteringModes { NEAREST, BILINEAR, TRILINEAR };
 
-    bool getOption(const std::string& optionName, long &value){
+    bool getOption(const std::string& optionName, long &value) const {
         auto it = this->options.find(optionName);
         if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::LONG) {
             return false;
@@ -31,7 +31,7 @@ public:
         return true;
     }
 
-    bool getOptionOrDefault(const std::string& optionName, long &value, long defaultValue){
+    bool getOptionOrDefault(const std::string& optionName, long &value, long defaultValue) const {
         auto it = this->options.find(optionName);
         if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::LONG) {
             value = defaultValue;
@@ -41,7 +41,7 @@ public:
         return true;
     }
 
-    void setOption(const std::string& optionName, long &value){
+    void setOption(const std::string& optionName, long value){
         auto it = this->options.find(optionName);
         if(it == this->options.end()) {
             std::shared_ptr<LimonTypes::GenericParameter> parameter;
@@ -52,7 +52,7 @@ public:
         it->second->valueType = LimonTypes::GenericParameter::LONG;
         it->second->value.longValue = value;
     }
-    bool getOption(const std::string& optionName, double &value){
+    bool getOption(const std::string& optionName, double &value) const {
         auto it = this->options.find(optionName);
         if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::DOUBLE) {
             return false;
@@ -61,7 +61,7 @@ public:
         return true;
     }
 
-    bool getOptionOrDefault(const std::string& optionName, double &value, double defaultValue){
+    bool getOptionOrDefault(const std::string& optionName, double &value, double defaultValue) const {
         auto it = this->options.find(optionName);
         if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::DOUBLE) {
             value = defaultValue;
@@ -71,7 +71,7 @@ public:
         return true;
     }
 
-    void setOption(const std::string& optionName, double &value){
+    void setOption(const std::string& optionName, double value){
         auto it = this->options.find(optionName);
         if(it == this->options.end()) {
             std::shared_ptr<LimonTypes::GenericParameter> parameter;
@@ -83,7 +83,7 @@ public:
         it->second->value.doubleValue = value;
     }
 
-    bool getOption(const std::string& optionName, LimonTypes::Vec4 &value){
+    bool getOption(const std::string& optionName, LimonTypes::Vec4 &value) const {
         auto it = this->options.find(optionName);
         if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::VEC4) {
             return false;
@@ -92,7 +92,7 @@ public:
         return true;
     }
 
-    void setOption(const std::string& optionName, LimonTypes::Vec4 &value){
+    void setOption(const std::string& optionName, LimonTypes::Vec4 value){
         auto it = this->options.find(optionName);
         if(it == this->options.end()) {
             std::shared_ptr<LimonTypes::GenericParameter> parameter;
@@ -114,8 +114,8 @@ private:
     glm::vec3 freeMovementSpeed = glm::vec3(0.1f,0.1f,0.1f);
     float jumpFactor = 7.0f;
     float lookAroundSpeed = -6.5f;
-    uint32_t screenHeight = 1080;
-    uint32_t screenWidth = 1920;
+/*    uint32_t screenHeight = 1080;
+    uint32_t screenWidth = 1920;*/
 
     uint32_t shadowMapDirectionalWidth = 2048;
     uint32_t shadowMapDirectionalHeight = 2048;
@@ -261,20 +261,24 @@ public:
         Options::lightPerspectiveProjectionValues = lightPerspectiveProjectionValues;
     }
 
-    const uint32_t& getScreenHeight() const {
-        return screenHeight;
+    uint32_t getScreenHeight() const {
+        long height;
+        getOption("screenHeight", height);
+        return height;
     }
 
     void setScreenHeight(unsigned int height) {
-        Options::screenHeight = height;
+        setOption("screenHeight", (long)height);
     }
 
-    const uint32_t& getScreenWidth() const {
-        return screenWidth;
+    uint32_t getScreenWidth() const {
+        long width;
+        getOption("screenWidth", width);
+        return width;
     }
 
     void setScreenWidth(unsigned int width) {
-        Options::screenWidth = width;
+        setOption("screenWidth", (long)width);
     }
 
     const glm::vec3 &getMoveSpeed() const {

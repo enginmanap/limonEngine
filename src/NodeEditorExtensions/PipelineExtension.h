@@ -19,6 +19,9 @@ class GraphicsPipelineStage;
 class PipelineExtension : public EditorExtension {
 
     Texture::TextureInfo currentTextureInfo;
+    char tempName[256] = {0};           //
+    char tempHeightOption[256] = {0};   // These 3 are used for ImGui strings.
+    char tempWidthOption[256] = {0};    //
 
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;
     GraphicsInterface* graphicsWrapper = nullptr;

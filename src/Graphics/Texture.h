@@ -20,10 +20,13 @@ public:
         GraphicsInterface::TextureWrapModes  textureWrapModeT = GraphicsInterface::TextureWrapModes::NONE;
         GraphicsInterface::TextureWrapModes  textureWrapModeR = GraphicsInterface::TextureWrapModes::NONE;
         GraphicsInterface::FilterModes  filterMode = GraphicsInterface::FilterModes::LINEAR;
+        std::string name;
+        std::string heightOption;//size can be set using an option parameter. This variable keeps thee name of that parameter.
+        std::string widthOption;//same
         int defaultSize[2] = {1920, 1080};
         int depth = 0;//3D textures, or texture arrays have this as element count
         float borderColor[4] = {0.0, 0.0, 0.0, 0.0};
-        std::string name;
+        uint32_t serializeID;
         bool borderColorSet = false;
 
     };
@@ -31,13 +34,33 @@ private:
     GraphicsInterface* graphicsWrapper;
     TextureInfo textureInfo;
     uint32_t textureID;
-    uint32_t serializeID;
     std::string source;
+    size_t height, width;//These are current values, as it might be either a default, or coming from an option.
 
 public:
     Texture(GraphicsInterface* graphicsWrapper, const TextureInfo &textureInfo)
-            : graphicsWrapper(graphicsWrapper), textureInfo(textureInfo), serializeID(0) {
-        this->textureID = graphicsWrapper->createTexture(textureInfo.defaultSize[1], textureInfo.defaultSize[0], textureInfo.textureType, textureInfo.internalFormatType, textureInfo.formatType, textureInfo.dataType, textureInfo.depth);
+            : graphicsWrapper(graphicsWrapper), textureInfo(textureInfo) {
+        if(textureInfo.heightOption.empty()) {
+            height = textureInfo.defaultSize[1];
+        } else {
+            long tempHeight;
+            if (graphicsWrapper->getOptions()->getOption(textureInfo.heightOption, tempHeight)) {
+                height = tempHeight;
+            } else {
+                height = textureInfo.defaultSize[1];
+            }
+        }
+        if(textureInfo.widthOption.empty()) {
+            width = textureInfo.defaultSize[0];
+        } else {
+            long tempWidth;
+            if (graphicsWrapper->getOptions()->getOption(textureInfo.widthOption, tempWidth)) {
+                width = tempWidth;
+            } else {
+                width = textureInfo.defaultSize[0];
+            }
+        }
+        this->textureID = graphicsWrapper->createTexture(height, width, textureInfo.textureType, textureInfo.internalFormatType, textureInfo.formatType, textureInfo.dataType, textureInfo.depth);
         //there are things that are not auto set. Lets set them
         setFilterMode(textureInfo.filterMode);
         setWrapModes(textureInfo.textureWrapModeS, textureInfo.textureWrapModeT, textureInfo.textureWrapModeR);
@@ -47,7 +70,7 @@ public:
     }
 
     Texture(GraphicsInterface* graphicsWrapper, GraphicsInterface::TextureTypes textureType, GraphicsInterface::InternalFormatTypes internalFormat, GraphicsInterface::FormatTypes format, GraphicsInterface::DataTypes dataType, uint32_t width, uint32_t height, uint32_t depth = 0)
-            : graphicsWrapper(graphicsWrapper), serializeID(0) {
+            : graphicsWrapper(graphicsWrapper) {
         textureInfo.textureType = textureType;
         textureInfo.internalFormatType = internalFormat;
         textureInfo.formatType = format;
@@ -122,11 +145,11 @@ public:
     }
 
     uint32_t getSerializeID() const {
-        return serializeID;
+        return textureInfo.serializeID;
     }
 
     void setSerializeID(uint32_t serializeID) {
-        this->serializeID = serializeID;
+        this->textureInfo.serializeID = serializeID;
     }
 
     const std::string &getSource() const {

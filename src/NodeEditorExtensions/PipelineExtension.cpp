@@ -76,6 +76,10 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
                 } else {
                     //found texture case
                     this->currentTextureInfo = it->second->getTextureInfo();
+                    //now set the ImGui char buffers with strings
+                    strncpy(this->tempName,currentTextureInfo.name.c_str(), sizeof(tempName)/ sizeof(tempName[0]));
+                    strncpy(this->tempHeightOption,currentTextureInfo.heightOption.c_str(), sizeof(tempHeightOption)/ sizeof(tempHeightOption[0]));
+                    strncpy(this->tempWidthOption,currentTextureInfo.widthOption.c_str(), sizeof(tempWidthOption)/ sizeof(tempWidthOption[0]));
                 }
             }
         }
@@ -91,6 +95,10 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
         }
         if(ImGui::Button("Create Texture")) {
             currentTextureInfo = Texture::TextureInfo();
+            //now set the ImGui char buffers with strings
+            strncpy(this->tempName,currentTextureInfo.name.c_str(), sizeof(tempName)/ sizeof(tempName[0]));
+            strncpy(this->tempHeightOption,currentTextureInfo.heightOption.c_str(), sizeof(tempHeightOption)/ sizeof(tempHeightOption[0]));
+            strncpy(this->tempWidthOption,currentTextureInfo.widthOption.c_str(), sizeof(tempWidthOption)/ sizeof(tempWidthOption[0]));
             selectedTexture = -1;
             ImGui::OpenPopup("create_texture_popup");
         }
@@ -231,6 +239,13 @@ void PipelineExtension::drawTextureSettings() {
         }
     }
 
+    ImGui::InputText("##texture_Height_Option_PipelineExtension",tempHeightOption, sizeof(tempHeightOption)-1, ImGuiInputTextFlags_CharsNoBlank);
+    ImGui::SameLine();
+    ImGui::Text("TextureHeightOption");
+    ImGui::InputText("##texture_Width_Option_PipelineExtension",tempWidthOption, sizeof(tempWidthOption)-1, ImGuiInputTextFlags_CharsNoBlank);
+    ImGui::SameLine();
+    ImGui::Text("TextureWidthOption");
+
     if(ImGui::InputFloat4("Border Color##texture_borderColor_PipelineExtension", currentTextureInfo.borderColor)) {
         for (int i = 0; i < 4; ++i) {
             if (currentTextureInfo.borderColor[i] < 0) {
@@ -241,7 +256,6 @@ void PipelineExtension::drawTextureSettings() {
             }
         }
     }
-    static char tempName[256] = {0};
     ImGui::InputText("##texture_name_PipelineExtension",tempName, sizeof(tempName)-1, ImGuiInputTextFlags_CharsNoBlank);
     ImGui::SameLine();
     if(currentTextureInfo.name.empty()) {
@@ -255,6 +269,8 @@ void PipelineExtension::drawTextureSettings() {
         if (ImGui::Button("Create Texture##create_button_PipelineExtension")) {
             if (strnlen(tempName, sizeof(tempName) / sizeof tempName[0]) != 0) {
                 currentTextureInfo.name = std::string(tempName);
+                currentTextureInfo.heightOption = std::string(tempHeightOption);
+                currentTextureInfo.widthOption = std::string(tempWidthOption);
                 std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, currentTextureInfo);
                 usedTextures[currentTextureInfo.name] = texture;
                 memset(tempName, 0, sizeof(currentTextureInfo.name));

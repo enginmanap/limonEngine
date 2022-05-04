@@ -73,6 +73,18 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     currentElement->SetText(std::to_string(textureInfo.defaultSize[0]).c_str());
     textureNode->InsertEndChild(currentElement);
 
+    if (!textureInfo.heightOption.empty()) {
+        currentElement = document.NewElement("HeightOption");
+        currentElement->SetText(textureInfo.heightOption.c_str());
+        textureNode->InsertEndChild(currentElement);
+    }
+
+    if (!textureInfo.widthOption.empty()) {
+        currentElement = document.NewElement("WidthOption");
+        currentElement->SetText(textureInfo.widthOption.c_str());
+        textureNode->InsertEndChild(currentElement);
+    }
+
     currentElement = document.NewElement("Depth");
     currentElement->SetText(std::to_string(textureInfo.depth).c_str());
     textureNode->InsertEndChild(currentElement);
@@ -105,7 +117,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("TextureSerializeID");
-    currentElement->SetText(this->serializeID);
+    currentElement->SetText(this->textureInfo.serializeID);
     textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("FilterMode");
@@ -151,13 +163,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
 std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface* graphicsWrapper, std::shared_ptr<AssetManager> assetManager, Options *options [[gnu::unused]]) {
     tinyxml2::XMLElement* textureNodeAttribute = nullptr;
 
-    GraphicsInterface::TextureTypes textureType;
-    GraphicsInterface::InternalFormatTypes internalFormat;
-    GraphicsInterface::FormatTypes format;
-    GraphicsInterface::DataTypes dataType;
-    uint32_t height, width;
-    uint32_t depth;
-    uint32_t serializeID;
+    TextureInfo textureInfo;
 
     //if no serializeId is set, then we will not be able to assign textures to where they should, so it is the first thing.
     textureNodeAttribute = TextureNode->FirstChildElement("TextureSerializeID");
@@ -170,7 +176,7 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
         return nullptr;
     }
     std::string serializeIDString = textureNodeAttribute->GetText();
-    serializeID = std::stoi(serializeIDString);
+    textureInfo.serializeID = std::stoi(serializeIDString);
 
     //there is a possibility, that this texture is intended as a custom texture with data within, check for the file tags
     textureNodeAttribute = TextureNode->FirstChildElement("Source");
@@ -182,7 +188,7 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
             std::shared_ptr<TextureAsset> asset = assetManager->loadAsset<TextureAsset>({ textureSource });
             std::shared_ptr<Texture> texture = asset->getTexture();
             texture->setSource(textureSource);
-            texture->setSerializeID(serializeID);
+            texture->setSerializeID(textureInfo.serializeID);
             return texture;
         }
     }
@@ -198,13 +204,13 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
     }
     std::string textureTypeString = textureNodeAttribute->GetText();
     if(textureTypeString == "T2D") {
-        textureType = GraphicsInterface::TextureTypes::T2D;
+        textureInfo.textureType = GraphicsInterface::TextureTypes::T2D;
     } else if(textureTypeString == "T2D_ARRAY") {
-        textureType = GraphicsInterface::TextureTypes::T2D_ARRAY;
+        textureInfo.textureType = GraphicsInterface::TextureTypes::T2D_ARRAY;
     } else if(textureTypeString == "TCUBE_MAP") {
-        textureType = GraphicsInterface::TextureTypes::TCUBE_MAP;
+        textureInfo.textureType = GraphicsInterface::TextureTypes::TCUBE_MAP;
     } else if(textureTypeString == "TCUBE_MAP_ARRAY") {
-        textureType = GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY;
+        textureInfo.textureType = GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY;
     } else {
         std::cerr << "Texture type is unknown, skipping! " << std::endl;
         return nullptr;
@@ -221,21 +227,21 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
     }
     std::string internalFormatString = textureNodeAttribute->GetText();
     if(internalFormatString == "RED") {
-        internalFormat = GraphicsInterface::InternalFormatTypes ::RED;
+        textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RED;
     } else if(internalFormatString == "RGB") {
-        internalFormat = GraphicsInterface::InternalFormatTypes ::RGB;
+        textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RGB;
     } else if(internalFormatString == "RGBA") {
-        internalFormat = GraphicsInterface::InternalFormatTypes ::RGBA;
+        textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RGBA;
     } else if(internalFormatString == "RGB16F") {
-        internalFormat = GraphicsInterface::InternalFormatTypes ::RGB16F;
+        textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RGB16F;
     } else if(internalFormatString == "RGB32F") {
-        internalFormat = GraphicsInterface::InternalFormatTypes ::RGB32F;
+        textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RGB32F;
     } else if(internalFormatString == "DEPTH") {
-        internalFormat = GraphicsInterface::InternalFormatTypes ::DEPTH;
+        textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::DEPTH;
     } else if(internalFormatString == "COMPRESSED_RGB") {
-        internalFormat = GraphicsInterface::InternalFormatTypes ::COMPRESSED_RGB;
+        textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::COMPRESSED_RGB;
     } else if(internalFormatString == "COMPRESSED_RGBA") {
-        internalFormat = GraphicsInterface::InternalFormatTypes ::COMPRESSED_RGBA;
+        textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::COMPRESSED_RGBA;
     } else {
         std::cerr << "Texture internal format is unknown, skipping! " << std::endl;
         return nullptr;
@@ -252,13 +258,13 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
     }
     std::string formatString = textureNodeAttribute->GetText();
     if(formatString == "RED") {
-        format = GraphicsInterface::FormatTypes::RED;
+        textureInfo.formatType = GraphicsInterface::FormatTypes::RED;
     } else if(formatString == "RGB") {
-        format = GraphicsInterface::FormatTypes::RGB;
+        textureInfo.formatType = GraphicsInterface::FormatTypes::RGB;
     } else if(formatString == "RGBA") {
-        format = GraphicsInterface::FormatTypes::RGBA;
+        textureInfo.formatType = GraphicsInterface::FormatTypes::RGBA;
     } else if(formatString == "DEPTH") {
-        format = GraphicsInterface::FormatTypes::DEPTH;
+        textureInfo.formatType = GraphicsInterface::FormatTypes::DEPTH;
     } else {
         std::cerr << "Texture format is unknown, skipping! " << std::endl;
         return nullptr;
@@ -275,13 +281,13 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
     }
     std::string dataTypeString = textureNodeAttribute->GetText();
     if(dataTypeString == "UNSIGNED_BYTE") {
-        dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE;
+        textureInfo.dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE;
     } else if(dataTypeString == "UNSIGNED_SHORT") {
-        dataType = GraphicsInterface::DataTypes::UNSIGNED_SHORT;
+        textureInfo.dataType = GraphicsInterface::DataTypes::UNSIGNED_SHORT;
     } else if(dataTypeString == "UNSIGNED_INT") {
-        dataType = GraphicsInterface::DataTypes::UNSIGNED_INT;
+        textureInfo.dataType = GraphicsInterface::DataTypes::UNSIGNED_INT;
     } else if(dataTypeString == "FLOAT") {
-        dataType = GraphicsInterface::DataTypes::FLOAT;
+        textureInfo.dataType = GraphicsInterface::DataTypes::FLOAT;
     } else {
         std::cerr << "Texture data type is unknown, skipping! " << std::endl;
         return nullptr;
@@ -297,7 +303,7 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
         return nullptr;
     }
     std::string heightString = textureNodeAttribute->GetText();
-    height = std::stoi(heightString);
+    textureInfo.defaultSize[1] = std::stoi(heightString);
 
     textureNodeAttribute = TextureNode->FirstChildElement("Width");
     if (textureNodeAttribute == nullptr) {
@@ -309,7 +315,25 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
         return nullptr;
     }
     std::string widthString = textureNodeAttribute->GetText();
-    width = std::stoi(widthString);
+    textureInfo.defaultSize[0] = std::stoi(widthString);
+
+    textureNodeAttribute = TextureNode->FirstChildElement("HeightOption");
+    if (textureNodeAttribute != nullptr) {
+        if(textureNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Texture HeightOption has no text, skipping! " << std::endl;
+        } else {
+            textureInfo.heightOption = textureNodeAttribute->GetText();
+        }
+    }
+
+    textureNodeAttribute = TextureNode->FirstChildElement("WidthOption");
+    if (textureNodeAttribute != nullptr) {
+        if(textureNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Texture WidthOption has no text, skipping! " << std::endl;
+        } else {
+            textureInfo.widthOption = textureNodeAttribute->GetText();
+        }
+    }
 
     textureNodeAttribute = TextureNode->FirstChildElement("Depth");
     if (textureNodeAttribute == nullptr) {
@@ -321,9 +345,9 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
         return nullptr;
     }
     std::string depthString = textureNodeAttribute->GetText();
-    depth = std::stoi(depthString);
+    textureInfo.depth = std::stoi(depthString);
 
-    std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, textureType, internalFormat, format, dataType, width, height, depth);
+    std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, textureInfo);
 
     textureNodeAttribute = TextureNode->FirstChildElement("Name");
     if (textureNodeAttribute != nullptr) {
@@ -335,7 +359,7 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
         }
     }
 
-    texture->setSerializeID(serializeID);
+    texture->setSerializeID(textureInfo.serializeID);
 
     textureNodeAttribute = TextureNode->FirstChildElement("FilterMode");
     if (textureNodeAttribute != nullptr) {
