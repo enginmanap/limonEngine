@@ -85,14 +85,16 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
         ImGui::Checkbox("Scissor Test", &scissorTestEnabled);
         ImGui::Checkbox("Clear", &clearBefore);
 
-        ImGui::InputInt2("Render Resolution#perPipelineStage", renderResolution);
-        if(renderResolution[0] <1) {
-            renderResolution[0] = 1920;
+        ImGui::InputInt2("Render Resolution#perPipelineStage", defaultRenderResolution);
+        if(defaultRenderResolution[0] < 1) {
+            defaultRenderResolution[0] = 1920;
         };
-        if(renderResolution[1] <1) {
-            renderResolution[1] = 1080;
+        if(defaultRenderResolution[1] < 1) {
+            defaultRenderResolution[1] = 1080;
         };
 
+        ImGui::InputText("Height Option##perPipelineStage",tempHeightOption, sizeof(tempHeightOption)-1, ImGuiInputTextFlags_CharsNoBlank);
+        ImGui::InputText("Width Option##perPipelineStage",tempWidthOption, sizeof(tempWidthOption)-1, ImGuiInputTextFlags_CharsNoBlank);
 
         if (ImGui::BeginCombo("Render Method##RenderMethodCombo", currentMethodName.c_str())) {
             static const std::vector<std::string> &methodNames = GraphicsPipeline::getRenderMethodNames();
@@ -191,16 +193,26 @@ void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2
     toScreenElement->SetText(toScreen ? "True" : "False");
     stageExtensionElement->InsertEndChild(toScreenElement);
 
-    tinyxml2::XMLElement *renderResolutionElement = document.NewElement("RenderResolution");
+    tinyxml2::XMLElement *renderResolutionElement = document.NewElement("DefaultRenderResolution");
     stageExtensionElement->InsertEndChild(renderResolutionElement);
 
     tinyxml2::XMLElement *resolutionXElement = document.NewElement("X");
-    resolutionXElement->SetText(renderResolution[0]);
+    resolutionXElement->SetText(defaultRenderResolution[0]);
     renderResolutionElement->InsertEndChild(resolutionXElement);
 
     tinyxml2::XMLElement *resolutionYElement = document.NewElement("Y");
-    resolutionYElement->SetText(renderResolution[1]);
+    resolutionYElement->SetText(defaultRenderResolution[1]);
     renderResolutionElement->InsertEndChild(resolutionYElement);
+
+    renderHeightOption = tempHeightOption;
+    renderWidthOption = tempWidthOption;
+    tinyxml2::XMLElement *heightOptionElement = document.NewElement("RenderHeightOption");
+    heightOptionElement->SetText(renderHeightOption.c_str());
+    stageExtensionElement->InsertEndChild(heightOptionElement);
+
+    tinyxml2::XMLElement *widthOptionElement = document.NewElement("renderWidthOption");
+    widthOptionElement->SetText(renderWidthOption.c_str());
+    stageExtensionElement->InsertEndChild(widthOptionElement);
 
     tinyxml2::XMLElement *iterateOverLightTypeElement = document.NewElement("IterateLightType");
     iterateOverLightTypeElement->SetText(iterateOverLightType);
@@ -365,7 +377,7 @@ void PipelineStageExtension::deserialize(const std::string &fileName[[gnu::unuse
         }
     }
 
-    tinyxml2::XMLElement *renderResolutionElement = nodeExtensionElement->FirstChildElement("RenderResolution");
+    tinyxml2::XMLElement *renderResolutionElement = nodeExtensionElement->FirstChildElement("DefaultRenderResolution");
     if(renderResolutionElement == nullptr) {
         std::cerr << "Pipeline stage extension doesn't have RenderResolution saved. Defaulting to 1920x1080" << std::endl;
     } else {
@@ -373,15 +385,36 @@ void PipelineStageExtension::deserialize(const std::string &fileName[[gnu::unuse
         if(resolutionXElement == nullptr || resolutionXElement->GetText() == nullptr) {
             std::cerr << "Pipeline stage extension doesn't have resolution X set. Defaulting to 1920" << std::endl;
         } else {
-            renderResolution[0] = std::stoi(resolutionXElement->GetText());
+            defaultRenderResolution[0] = std::stoi(resolutionXElement->GetText());
         }
         tinyxml2::XMLElement *resolutionYElement = renderResolutionElement->FirstChildElement("Y");
         if(resolutionYElement == nullptr || resolutionYElement->GetText() == nullptr) {
             std::cerr << "Pipeline stage extension doesn't have resolution X set. Defaulting to 1080" << std::endl;
         } else {
-            renderResolution[1] = std::stoi(resolutionYElement->GetText());
+            defaultRenderResolution[1] = std::stoi(resolutionYElement->GetText());
         }
     }
+
+    tinyxml2::XMLElement *renderWidthOptionElement = nodeExtensionElement->FirstChildElement("RenderWidthOption");
+    if(renderWidthOptionElement == nullptr) {
+        std::cout << "Pipeline stage extension doesn't have Render width. " << std::endl;
+    } else {
+        if( renderWidthOptionElement->GetText() != nullptr) {
+            this->renderWidthOption = renderWidthOptionElement->GetText();
+        }
+    }
+
+    tinyxml2::XMLElement *renderHeightOptionElement = nodeExtensionElement->FirstChildElement("RenderHeightOption");
+    if(renderHeightOptionElement == nullptr) {
+        std::cout << "Pipeline stage extension doesn't have Render height option. " << std::endl;
+    } else {
+        if( renderHeightOptionElement->GetText() != nullptr) {
+            this->renderHeightOption = renderHeightOptionElement->GetText();
+        }
+    }
+    strncpy(this->tempHeightOption,renderHeightOption.c_str(), sizeof(tempHeightOption)/ sizeof(tempHeightOption[0]));
+    strncpy(this->tempWidthOption,renderWidthOption.c_str(), sizeof(tempWidthOption)/ sizeof(tempWidthOption[0]));
+
 
     tinyxml2::XMLElement *anyOutputMultilayeredElement = nodeExtensionElement->FirstChildElement("AnyOutputMultiLayered");
     this->anyOutputMultiLayered = true;

@@ -395,8 +395,8 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
             std::cerr << "Failed to join because existing node have no extension " << std::endl;
             return false;
         }
-        existingRenderResolution[0] = stageExtension->getRenderResolution()[0];
-        existingRenderResolution[1] = stageExtension->getRenderResolution()[1];
+        existingRenderResolution[0] = stageExtension->getDefaultRenderResolution()[0];
+        existingRenderResolution[1] = stageExtension->getDefaultRenderResolution()[1];
         if(existingCullMode == GraphicsInterface::CullModes::NO_CHANGE) {//no change can be ignored
             existingCullMode = stageExtension->getCullmode();
         }
@@ -434,8 +434,8 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
         std::cerr << "Failed to join because existing set " << existingNodeName << " have other depth map" << std::endl;
         return false;
     }
-    if(existingRenderResolution[0] != currentStageExtension->getRenderResolution()[0] ||
-            existingRenderResolution[1] != currentStageExtension->getRenderResolution()[1] ) {
+    if(existingRenderResolution[0] != currentStageExtension->getDefaultRenderResolution()[0] ||
+            existingRenderResolution[1] != currentStageExtension->getDefaultRenderResolution()[1] ) {
         std::cerr << "Failed because Render Resolution is different" << std::endl;
         return false;
     }
@@ -604,10 +604,10 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
             stageInfo = std::make_shared<GraphicsPipeline::StageInfo>();
             stageInfo->clear = stageExtension->isClearBefore();
             stageInfo->stage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper,
-                                                               stageExtension->getRenderResolution()[0],
-                                                               stageExtension->getRenderResolution()[1],
-                                                               "",
-                                                               "",
+                                                                       stageExtension->getDefaultRenderResolution()[0],
+                                                                       stageExtension->getDefaultRenderResolution()[1],
+                                                               stageExtension->getRenderWidthOption(),
+                                                               stageExtension->getRenderHeightOption(),
                                                                stageExtension->isBlendEnabled(),
                                                                stageExtension->isDepthTestEnabled(),
                                                                stageExtension->isDepthWriteEnabled(),

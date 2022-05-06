@@ -44,12 +44,16 @@ private:
     bool toScreen = false;
     std::string currentMethodName = "";
     std::string originalOutputType;
+    std::string renderWidthOption;
+    std::string renderHeightOption;
     static const LightType LIGHT_TYPES[];
     uint32_t iterateOverLightType = 0;
     std::map<uint32_t, int> inputTextureIndexes;//connectionId to input texture index
     std::map<uint32_t, OutputTextureInfo> outputTextures; // connectionId to output information
     ProgramNameInfo programNameInfo;
-    int32_t renderResolution[2] = {1920, 1080};
+    int32_t defaultRenderResolution[2] = {1920, 1080};
+    char tempHeightOption[256] = {0};   // These 2 are used for ImGui strings.
+    char tempWidthOption[256] = {0};    //
 
 public:
     void setProgramNameInfo(const ProgramNameInfo &programNameInfo) {
@@ -106,8 +110,16 @@ public:
         return programNameInfo;
     }
 
-    const int32_t *getRenderResolution() const {
-        return renderResolution;
+    const int32_t *getDefaultRenderResolution() const {
+        return defaultRenderResolution;
+    }
+
+    const std::string &getRenderWidthOption() const {
+        return renderWidthOption;
+    }
+
+    const std::string &getRenderHeightOption() const {
+        return renderHeightOption;
     }
 
     void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement) override;
