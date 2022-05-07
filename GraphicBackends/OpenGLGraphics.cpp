@@ -1246,6 +1246,9 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
             glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
             glBindTexture(glTextureType, texture);
             glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, glInternalDataFormat, width,height, depth, 0,glFormat, glDataType, nullptr);
+            if(height != width) {
+                std::cerr << "Cubemaps require square textures, this will fail!" << std::endl;
+            }
         }
             break;
     }
