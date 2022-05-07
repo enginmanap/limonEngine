@@ -32,7 +32,7 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     stageNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("RenderWidthOption");
-    currentElement->SetText(this->renderHeightOption.c_str());
+    currentElement->SetText(this->renderWidthOption.c_str());
     stageNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("BlendEnabled");
