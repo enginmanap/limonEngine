@@ -214,7 +214,7 @@ void SDL2Helper::setFullScreen(bool isFullScreen) {
     if(isFullScreen == true) {
         SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
     } else {
-        SDL_SetWindowFullscreen(window, SDL_WINDOW_OPENGL);
+        SDL_SetWindowFullscreen(window, SDL_FALSE);
     }
 
 }
