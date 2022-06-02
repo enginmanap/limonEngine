@@ -233,6 +233,7 @@ private:
 
     bool isProgramInterfaceQuerySupported = false;
     bool isFrameBufferParameterSupported = false;
+    bool isDebugOutputSupported = false;
 
 public:
 
@@ -271,6 +272,21 @@ private:
         return false;
 #endif
     };
+
+    inline void pushDebugGroup(const std::string& groupName) {
+#ifndef NDEBUG
+        if(isDebugOutputSupported) {
+            glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, groupName.length(), groupName.c_str());
+        }
+#endif
+    }
+    inline void popDebugGroup() {
+#ifndef NDEBUG
+        if(isDebugOutputSupported) {
+            glPopDebugGroup();
+        }
+#endif
+    }
 
     GLuint createShader(GLenum, const std::string &);
 
@@ -450,11 +466,12 @@ public:
 
     void setPlayerMatrices(const glm::vec3 &cameraPosition, const glm::mat4 &cameraMatrix, long currentTime) override;
 
-    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool scissorEnabled, bool depthWriteEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
-                           std::map<uint32_t, std::shared_ptr<Texture>> &inputs) override;
-    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool scissorEnabled, bool depthWriteEnabled, bool clearColor, bool clearDepth, CullModes cullMode,
-                           const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
-                           const std::map<std::shared_ptr<Texture>, std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap) override;
+    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled,
+                           bool clearColor, bool clearDepth, CullModes cullMode, std::map<uint32_t, std::shared_ptr<Texture>> &inputs, const std::string &name) override;
+    void switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled,
+                           bool clearColor, bool clearDepth, CullModes cullMode, const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
+                           const std::map<std::shared_ptr<Texture>,
+                                   std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap, const std::string &name) override;
 
     int getMaxTextureImageUnits() const override {
         return maxTextureImageUnits;

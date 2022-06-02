@@ -6,12 +6,12 @@
 
 void GraphicsPipelineStage::activate(bool clear) {
     graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, clear && colorAttachment,
-            clear && depthAttachment, cullMode, inputs);
+                                       clear && depthAttachment, cullMode, inputs, foundName);
 }
 
 void GraphicsPipelineStage::activate(const std::map<std::shared_ptr<Texture>, std::pair<GraphicsInterface::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear) {
     graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, clear && colorAttachment,
-            clear && depthAttachment, cullMode, inputs, attachmentLayerMap);
+                                       clear && depthAttachment, cullMode, inputs, attachmentLayerMap, foundName);
 }
 
 bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options [[gnu::unused]]) {

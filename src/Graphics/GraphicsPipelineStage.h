@@ -15,6 +15,7 @@ class GraphicsPipelineStage {
     GraphicsInterface* graphicsWrapper = nullptr;
     std::string renderWidthOption;
     std::string renderHeightOption;
+    std::string foundName;
     uint32_t defaultRenderWidth;
     uint32_t defaultRenderHeight;
     uint32_t renderWidth;
@@ -47,6 +48,7 @@ public:
             //since this is directly to screen, we should clear both color and depth, if clear is requested, because we will not get outputs set.
             colorAttachment = true;
             depthAttachment = true;
+            foundName = "Screen";
         } else {
             frameBufferID = graphicsWrapper->createFrameBuffer(this->renderWidth, this->renderHeight);
         }
@@ -75,6 +77,9 @@ public:
             case GraphicsInterface::FrameBufferAttachPoints::NONE: break;
         }
         this->outputs[attachmentPoint] = texture;
+        if(this->foundName != "Screen" && texture->getName() != "") {
+            this->foundName = texture->getName();
+        }
     }
 
     GraphicsInterface::CullModes getCullMode() const {
