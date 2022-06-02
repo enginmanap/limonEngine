@@ -372,22 +372,38 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
 
     for(auto outputConnection:currentNode->getOutputConnections()) {
         auto outputTextureInfo = currentStageExtension->getOutputTextureInfo(outputConnection);
-        if(outputTextureInfo == nullptr) {
-            //there is an output that is not set. Return false
-            std::cerr << "Failed to join because current node have not set output  " << std::endl;
-            return false;
-        }
-        if(outputTextureInfo->texture != nullptr && outputTextureInfo->texture->getFormat() == GraphicsInterface::FormatTypes::DEPTH) {
-            newDepthMap = outputTextureInfo->texture;
-            break;
+        if(outputTextureInfo == nullptr ) {
+            //there is an output that is not set. We allow it if it is depth, and depth read/write are disabled
+            if(outputConnection->getName() !="Depth") {
+                std::cerr << "Failed to join because current node have not set output  " << std::endl;
+                return false;
+            }
+            //now we know it is depth, but we don't know if depth read write is enabled, lets check
+            currentStageExtension = dynamic_cast<PipelineStageExtension*>(currentNode->getExtension());
+            if(currentStageExtension == nullptr ) {
+                std::cerr << "ERROR: Limon should not have any other extension type then PipelineStageExtension!" << std::endl;
+                return false;
+            }
+            if(currentStageExtension->isDepthTestEnabled() || currentStageExtension->isDepthWriteEnabled()) {
+                std::cerr << "Failed to join because current node have not set Depth output but uses Depth." << std::endl;
+                return false;
+            }
+
+        } else {
+            if (outputTextureInfo->texture != nullptr && outputTextureInfo->texture->getFormat() == GraphicsInterface::FormatTypes::DEPTH) {
+                newDepthMap = outputTextureInfo->texture;
+                break;
+            }
         }
     }
 
-    //now find what depthmap is used by existing set
+    //now find what depthmap is used by existing set. Current Depth map might be null.
     std::shared_ptr<Texture> existingDepthMap = nullptr;
     int32_t existingRenderResolution[2];
     GraphicsInterface::CullModes existingCullMode = GraphicsInterface::CullModes::NO_CHANGE;
     bool existingScissorTestState = false;
+    bool existingDepthReadState = false;
+    bool existingDepthWriteState = false;
     for(auto existingNode:existingNodes) {
         auto stageExtension = dynamic_cast<PipelineStageExtension*>(existingNode->getExtension());
         if(stageExtension == nullptr) {
@@ -401,7 +417,8 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
             existingCullMode = stageExtension->getCullmode();
         }
         existingScissorTestState = stageExtension->isScissorTestEnabled();
-
+        existingDepthReadState = stageExtension->isDepthTestEnabled();
+        existingDepthWriteState = stageExtension->isDepthWriteEnabled();
         for (auto outputConnection:existingNode->getOutputConnections()) {
             auto outputTextureInfo = stageExtension->getOutputTextureInfo(outputConnection);
             if (outputTextureInfo == nullptr) {
@@ -450,6 +467,14 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
 
     if(existingScissorTestState != currentStageExtension->isScissorTestEnabled()) {
         std::cerr << "Failed because Scissor Mode is different" << std::endl;
+        return false;
+    }
+    if(existingDepthReadState != currentStageExtension->isDepthTestEnabled()) {
+        std::cerr << "Failed because DepthReadState is different" << std::endl;
+        return false;
+    }
+    if(existingDepthWriteState != currentStageExtension->isDepthWriteEnabled()) {
+        std::cerr << "Failed because DepthWriteState is different" << std::endl;
         return false;
     }
 
@@ -679,6 +704,10 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
             if (programOutputsMap.find(connection->getName()) != programOutputsMap.end()) {
                 auto frameBufferAttachmentPoint = programOutputsMap.find(connection->getName())->second.second;
                 if (stageExtension->getOutputTextureInfo(connection) == nullptr) {
+                    //We add depth automatically to all programs, but it is possible that depth is not written. We can check it with the flag
+                    if(connection->getName() == "Depth" && !stageExtension->isDepthWriteEnabled() && !stageExtension->isDepthTestEnabled()) {
+                        continue;
+                    }
                     addError("Output [" + connection->getName() + "] of node " + node->getName() + " is not set.");
                     return false;
                 }

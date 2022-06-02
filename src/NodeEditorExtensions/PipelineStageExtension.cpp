@@ -282,7 +282,7 @@ void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2
     programInfoNameElement->InsertEndChild(fragmentNameElement);
 }
 
-void PipelineStageExtension::deserialize(const std::string &fileName[[gnu::unused]], tinyxml2::XMLElement *nodeExtensionElement) {
+void PipelineStageExtension::deserialize(const std::string &nodeName, tinyxml2::XMLElement *nodeExtensionElement) {
     tinyxml2::XMLElement *cullModeElement = nodeExtensionElement->FirstChildElement("CullMode");
     this->cullMode = GraphicsInterface::CullModes::NONE;
     if (cullModeElement == nullptr || cullModeElement->GetText() == nullptr) {
@@ -397,7 +397,7 @@ void PipelineStageExtension::deserialize(const std::string &fileName[[gnu::unuse
 
     tinyxml2::XMLElement *renderWidthOptionElement = nodeExtensionElement->FirstChildElement("RenderWidthOption");
     if(renderWidthOptionElement == nullptr) {
-        std::cout << "Pipeline stage extension doesn't have Render width. " << std::endl;
+        std::cout << "Pipeline stage extension for "<< nodeName << " doesn't have Render width option. " << std::endl;
     } else {
         if( renderWidthOptionElement->GetText() != nullptr) {
             this->renderWidthOption = renderWidthOptionElement->GetText();
