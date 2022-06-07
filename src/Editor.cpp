@@ -510,7 +510,7 @@ void Editor::renderEditor(World& world) {
                 std::ofstream os(AIWalkName, std::ios::binary);
                 cereal::BinaryOutputArchive archive( os );
 
-                archive(*grid);
+                archive(*(world.grid));
             }
         }
 #endif

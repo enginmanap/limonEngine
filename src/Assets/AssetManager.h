@@ -149,7 +149,7 @@ public:
 #ifdef CEREAL_SUPPORT
                     std::ifstream is(files[0], std::ios::binary);
                     cereal::BinaryInputArchive archive(is);
-                    assets[files] = std::make_pair(new T(this, nextAssetIndex, files, archive), 0);
+                    assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files, archive), 0);
                     nextAssetIndex++;
 #else
                     std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
