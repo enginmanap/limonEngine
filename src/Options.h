@@ -272,7 +272,7 @@ public:
     }
 
     uint32_t getScreenHeight() const {
-        uint32_t height;
+        uint32_t height = 1080;//default
         getOption("screenHeight", height);
         return height;
     }
@@ -282,7 +282,7 @@ public:
     }
 
     uint32_t getScreenWidth() const {
-        uint32_t width;
+        uint32_t width = 1920;//default
         getOption("screenWidth", width);
         return width;
     }
