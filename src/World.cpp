@@ -3266,8 +3266,37 @@ void World::drawNodeEditor() {
         ImGui::End();
         return;
     }
+    ImGui::ShowDemoWindow();
 
     nodeGraph->display();
+    static long handleId = 0;
+    if (handleId != 0) {
+        ImGui::OpenPopup("Keep pipeline active");
+    }
+    if (ImGui::BeginPopupModal("Keep pipeline active", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        if(handleId == 0) {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::Text("Do you want to keep the pipeline active?\n\nIt will reset automatically in 10 seconds of game time, after you close the editor.");
+        ImGui::Separator();
+
+        if (ImGui::Button("Keep", ImVec2(120, 0))) {
+            cancelTimedEventAPI(handleId);
+            handleId = 0;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SetItemDefaultFocus();
+        ImGui::SameLine();
+        if (ImGui::Button("Revert", ImVec2(120, 0))) {
+            cancelTimedEventAPI(handleId);
+            this->renderPipeline = this->renderPipelineBackup;
+            this->renderPipelineBackup = nullptr;
+            handleId = 0;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
     if(pipelineExtension->isPipelineBuilt()) {
         if (ImGui::Button("Activate")) {
             std::shared_ptr<GraphicsPipeline> builtRenderPipeline = pipelineExtension->handOverBuiltPipeline();
@@ -3280,16 +3309,17 @@ void World::drawNodeEditor() {
                 }
             }
             std::vector<LimonTypes::GenericParameter> empty;
-            long handleId = addTimedEventAPI(5000,
+            handleId = addTimedEventAPI(10000,
                              [&](const std::vector<LimonTypes::GenericParameter>&) {
                                                         this->renderPipeline = this->renderPipelineBackup;
-                                                        this->renderPipelineBackup = nullptr;},
+                                                        this->renderPipelineBackup = nullptr;
+                                                        handleId = 0;},
                                     empty);
             this->renderPipelineBackup = this->renderPipeline;
             this->renderPipeline = builtRenderPipeline;
-            //TODO: This handle ID is going to be used to revert to the old render pipeline incase this one doesn't work as intended.
         }
     }
+
     if(ImGui::Button("Save")) {
         nodeGraph->serialize("./Data/nodeGraph.xml");
         nodeGraph->addMessage("Serialization done.");
