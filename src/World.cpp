@@ -3285,6 +3285,7 @@ void World::drawNodeEditor() {
                                                         this->renderPipeline = this->renderPipelineBackup;
                                                         this->renderPipelineBackup = nullptr;},
                                     empty);
+            this->renderPipelineBackup = this->renderPipeline;
             this->renderPipeline = builtRenderPipeline;
             //TODO: This handle ID is going to be used to revert to the old render pipeline incase this one doesn't work as intended.
         }
