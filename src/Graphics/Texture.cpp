@@ -73,17 +73,17 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     currentElement->SetText(std::to_string(textureInfo.defaultSize[0]).c_str());
     textureNode->InsertEndChild(currentElement);
 
+    currentElement = document.NewElement("HeightOption");
     if (!textureInfo.heightOption.empty()) {
-        currentElement = document.NewElement("HeightOption");
         currentElement->SetText(textureInfo.heightOption.c_str());
-        textureNode->InsertEndChild(currentElement);
     }
+    textureNode->InsertEndChild(currentElement);
 
+    currentElement = document.NewElement("WidthOption");
     if (!textureInfo.widthOption.empty()) {
-        currentElement = document.NewElement("WidthOption");
         currentElement->SetText(textureInfo.widthOption.c_str());
-        textureNode->InsertEndChild(currentElement);
     }
+    textureNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("Depth");
     currentElement->SetText(std::to_string(textureInfo.depth).c_str());
