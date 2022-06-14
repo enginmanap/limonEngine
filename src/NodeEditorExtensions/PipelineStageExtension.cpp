@@ -210,7 +210,7 @@ void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2
     heightOptionElement->SetText(renderHeightOption.c_str());
     stageExtensionElement->InsertEndChild(heightOptionElement);
 
-    tinyxml2::XMLElement *widthOptionElement = document.NewElement("renderWidthOption");
+    tinyxml2::XMLElement *widthOptionElement = document.NewElement("RenderWidthOption");
     widthOptionElement->SetText(renderWidthOption.c_str());
     stageExtensionElement->InsertEndChild(widthOptionElement);
 
