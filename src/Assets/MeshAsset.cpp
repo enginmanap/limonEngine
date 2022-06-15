@@ -4,6 +4,7 @@
 
 #include "MeshAsset.h"
 #include "API/Graphics/GraphicsInterface.h"
+#include "../../libs/meshoptimizer/src/meshoptimizer.h"
 
 MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
                      std::shared_ptr<Material> material, std::shared_ptr<const BoneNode> meshSkeleton,
@@ -204,7 +205,29 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
                                       currentMesh->mFaces[j].mIndices[2]));
         }
     }
+    if(faces.size() == 0) {
+        return false;
+    }
 
+    //lets try to simplify
+    float threshold = 0.1f;
+    size_t target_index_count = size_t(faces.size()*3 * threshold);
+    float target_error = 1e-2f;
+
+    std::vector<unsigned int> lod(faces.size()*3);
+    float lod_error = 0.1f;
+    lod.resize(meshopt_simplify(&lod[0], &(faces[0].x), faces.size()*3, &vertices[0].x, vertices.size(), sizeof(glm::vec3),
+                                target_index_count, target_error, &lod_error));
+    //now we have new faces. lets assign.
+    size_t oldSize = faces.size();
+    faces.clear();
+    for (size_t i = 0; i <lod.size(); i = i+3) {
+        faces.push_back(glm::vec3(lod[i + 0],
+                                  lod[i + 1],
+                                  lod[i + 2]));
+    }
+    std::cerr << "simplification result: \t" << oldSize << "\t->\t" << faces.size() << std::endl;
+    triangleCount = faces.size();
     if(faces.size() > 0) {
         return true;
     }

@@ -37,5 +37,7 @@ add_subdirectory("libs/nodeGraph")
 add_subdirectory("libs/OpenAL-Soft/")
 #target_include_directories(test PRIVATE "libs/OpenAL-Soft/CmakeLists.txt)
 
+add_subdirectory("libs/meshoptimizer/")
+
 include_directories("libs/Cereal/include/")
 

@@ -4,3 +4,6 @@
 [submodule "libs/nodeGraph"]
 	path = libs/nodeGraph
 	url = https://github.com/enginmanap/nodeGraph.git
+[submodule "libs/meshoptimizer"]
+	path = libs/meshoptimizer
+	url = https://github.com/zeux/meshoptimizer.git
