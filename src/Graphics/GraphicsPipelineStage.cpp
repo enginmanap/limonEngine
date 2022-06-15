@@ -134,7 +134,7 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     return true;
 }
 
-std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface* graphicsWrapper, const std::vector<std::shared_ptr<Texture>>& textures, Options *options) {
+std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface* graphicsWrapper, const std::vector<std::shared_ptr<Texture>>& textures) {
     tinyxml2::XMLElement* stageNodeAttribute = nullptr;
 
     uint32_t defaultRenderHeight, defaultRenderWidth;

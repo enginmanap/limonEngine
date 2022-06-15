@@ -69,7 +69,7 @@ public:
                     std::shared_ptr<AssetManager> assetManager,
                     std::unique_ptr<GraphicsPipeline> &pipeline,
                     const std::vector<std::shared_ptr<Texture>> &textures,
-                    Options *options, GraphicsPipeline::StageInfo &newStageInfo);
+                    GraphicsPipeline::StageInfo &newStageInfo);
         std::vector<std::shared_ptr<GraphicsProgram>> programs;
     };
 

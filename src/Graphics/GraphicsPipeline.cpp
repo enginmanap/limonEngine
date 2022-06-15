@@ -177,7 +177,7 @@ GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, Graph
     while(stageInfoElement !=nullptr) {
         StageInfo stageInfo;
         if(StageInfo::deserialize(stageInfoElement, assetManager, graphicsPipeline,
-                                  graphicsPipeline->textures, options,
+                                  graphicsPipeline->textures,
                                   stageInfo)) {
             graphicsPipeline->addNewStage(std::move(stageInfo));
         }
@@ -193,7 +193,7 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
                                          std::shared_ptr<AssetManager> assetManager,
                                          std::unique_ptr<GraphicsPipeline> &pipeline,
                                          const std::vector<std::shared_ptr<Texture>> &textures,
-                                         Options *options, GraphicsPipeline::StageInfo &newStageInfo) {
+                                         GraphicsPipeline::StageInfo &newStageInfo) {
 
     tinyxml2::XMLElement * clearElement = stageInfoElement->FirstChildElement("Clear");
     bool clear = true;
@@ -256,7 +256,7 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
             return false;
         }
 
-        newStageInfo.stage = GraphicsPipelineStage::deserialize(graphicsStageElement, assetManager->getGraphicsWrapper(), textures, options);
+        newStageInfo.stage = GraphicsPipelineStage::deserialize(graphicsStageElement, assetManager->getGraphicsWrapper(), textures);
 
         //uint32_t methodIndex = std::stoi(methodIndexElement->GetText()); //this variable is not used
 
