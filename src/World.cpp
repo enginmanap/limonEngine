@@ -3487,7 +3487,7 @@ void World::createNodeGraph() {
             if(!nodeTypeFound) {
                 // a node type that is unknown is found mark pipeline as invalid
                 pipelineExtension->setNodeGraphValid(false);
-                std::cerr << "Old Node type " << oldNodeType->name << " Not found, this graph is invalid" << std::endl;
+                pipelineExtension->addError("Old Node type " + oldNodeType->name + " Not found, this graph is invalid");
             }
         }
         //now do it in reverse, and try to add new programs we found, to the nodeGraph
