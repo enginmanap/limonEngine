@@ -29,7 +29,7 @@
 
 class MeshAsset {
     uint32_t vao, ebo;
-    uint32_t triangleCount, vertexCount;
+    uint32_t triangleCount[4], offsets[4], vertexCount;
 
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> normals;
@@ -75,7 +75,14 @@ public:
      */
     void afterDeserialize(AssetManager *assetManager);
 
-    uint32_t getTriangleCount() const { return triangleCount; }
+    // always returns 4 elements
+    const uint32_t *getTriangleCount() const {
+        return triangleCount;
+    }
+
+    const uint32_t *getOffsets() const{
+        return offsets;
+    }
 
     uint32_t getVao() const { return vao; }
 

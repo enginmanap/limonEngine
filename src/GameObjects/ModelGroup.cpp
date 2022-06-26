@@ -6,10 +6,10 @@
 #include "Model.h"
 #include "../../libs/ImGui/imgui.h"
 
-void ModelGroup::renderWithProgram(std::shared_ptr<GraphicsProgram> program){
+void ModelGroup::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) {
     std::cerr << "Model Groups render with program used, it was not planned, nor tested." << std::endl;
     for (auto renderable = children.begin(); renderable != children.end(); ++renderable) {
-        (*renderable)->renderWithProgram(program);
+        (*renderable)->renderWithProgram(program, 0);
     }
 }
 

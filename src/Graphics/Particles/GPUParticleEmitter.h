@@ -118,7 +118,7 @@ public:
 
     }
 
-    void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) override {
+    void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel[[gnu::unused]]) override {
         renderProgram->setUniform("sprite", 6);
         graphicsWrapper->attachTexture((int) texture->getTextureID(), 6);
         renderProgram->setUniform("positions", 7);

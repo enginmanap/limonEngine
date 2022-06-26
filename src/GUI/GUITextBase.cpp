@@ -44,7 +44,7 @@ GUITextBase::GUITextBase(GraphicsInterface* graphicsWrapper, Face *face, const s
     calculateSizes();
 }
 
-void GUITextBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram){
+void GUITextBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel[[gnu::unused]]) {
 
     float totalAdvance = 0.0f;
 

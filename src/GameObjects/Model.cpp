@@ -197,7 +197,7 @@ void Model::activateTexturesOnly(std::shared_ptr<const Material>material) {
     }
 }
 
-void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program){
+void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) {
     graphicsWrapper->attachModelUBO(program->getID());
     for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
 
@@ -211,11 +211,11 @@ void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program){
         if(program->IsMaterialRequired()) {
             graphicsWrapper->attachMaterialUBO(program->getID(), (*iter)->mesh->getMaterial()->getMaterialIndex());
         }
-        graphicsWrapper->render(program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount() * 3);
+        graphicsWrapper->render(program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount()[lodLevel] * 3);
     }
 }
 
-void Model::renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GraphicsProgram &program) {
+void Model::renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GraphicsProgram &program, uint32_t lodLevel) {
     graphicsWrapper->setModelIndexesUBO(modelIndices);
 
     graphicsWrapper->attachModelUBO(program.getID());
@@ -234,7 +234,7 @@ void Model::renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, Grap
             this->activateTexturesOnly((*iter)->mesh->getMaterial());
 
         }
-        graphicsWrapper->renderInstanced(program.getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount() * 3, modelIndices.size());
+        graphicsWrapper->renderInstanced(program.getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount()[lodLevel] * 3, (*iter)->mesh->getOffsets()[lodLevel], modelIndices.size());
     }
 }
 
@@ -433,14 +433,15 @@ GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &reques
     //add material listing
     static uint32_t selectedIndex = 0;
     bool isSelected = false;
-    ImGui::BeginListBox("Meshes");
-    for (size_t i = 0; i < meshMetaData.size(); ++i) {
-        isSelected = selectedIndex == i;
-        if (ImGui::Selectable((meshMetaData[i]->mesh->getName() + " -> " + meshMetaData[i]->material->getName()).c_str(), isSelected)) {
-            selectedIndex = i;
+    if(ImGui::BeginListBox("Meshes##GODWHY")) {
+        for (size_t i = 0; i < meshMetaData.size(); ++i) {
+            isSelected = selectedIndex == i;
+            if (ImGui::Selectable((meshMetaData[i]->mesh->getName() + " -> " + meshMetaData[i]->material->getName()).c_str(), isSelected)) {
+                selectedIndex = i;
+            }
         }
+        ImGui::EndListBox();
     }
-    ImGui::EndListBox();
     return result;
 }
 

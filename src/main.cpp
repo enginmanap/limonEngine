@@ -49,7 +49,7 @@ void GameEngine::renderLoadingImage() const {
         std::shared_ptr<GraphicsProgram> imageRenderProgram = std::make_shared<GraphicsProgram>(assetManager.get(),"./Engine/Shaders/GUIImage/vertex.glsl",
                                                                                                      "./Engine/Shaders/GUIImage/fragment.glsl", false);
         sdlHelper->swap();
-        loadingImage->renderWithProgram(imageRenderProgram);
+        loadingImage->renderWithProgram(imageRenderProgram, 0);
         sdlHelper->swap();
     }
 }

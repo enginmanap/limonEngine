@@ -59,7 +59,7 @@ public:
         this->duration = duration;
     }
 
-    void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) override;
+    void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel) override;
 
 };
 

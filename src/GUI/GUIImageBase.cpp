@@ -19,7 +19,7 @@ GUIImageBase::~GUIImageBase() {
     //delete renderProgram;// since the program is shared, don't remove
 }
 
-void GUIImageBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram){
+void GUIImageBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel[[gnu::unused]]) {
 
     renderProgram->setUniform("orthogonalProjectionMatrix", graphicsWrapper->getOrthogonalProjectionMatrix());
 

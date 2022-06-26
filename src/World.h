@@ -23,7 +23,7 @@
 #include "GameObjects/Players/Player.h"
 #include "SDL2Helper.h"
 #include "Graphics/GraphicsPipeline.h"
-
+#include "PhysicalRenderable.h"
 class btGhostPairCallback;
 class Camera;
 class Model;
@@ -208,14 +208,14 @@ private:
      * The variables below are redundant, but they allow instanced rendering, and saving frustum occlusion results.
      */
     std::vector<Model*> updatedModels;
-    std::vector<std::map<uint32_t , std::set<Model*>>> modelsInLightFrustum;
+    std::vector<std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>>> modelsInLightFrustum;// each element in vector is a single light. map is same as modelsInFrustum
     std::vector<std::set<Model*>> animatedModelsInLightFrustum; //since animated models can't be instanced, they don't need to be in a map etc.
 
-    std::map<uint32_t , std::set<Model*>> modelsInCameraFrustum;
+    std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>> modelsInCameraFrustum; //key: asset id, value: set of models, and LOD to use. 0 - best, 4 worst
+    std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>> transparentModelsInCameraFrustum; //key: asset id, value: set of models, and LOD to use. 0 - best, 4 worst
     std::set<Model*> animatedModelsInFrustum; //since animated models can't be instanced, they don't need to be in a map etc.
     std::set<Model*> animatedModelsInAnyFrustum;
 
-    std::map<uint32_t , std::set<Model*>> transparentModelsInCameraFrustum;
 
     /************************* End of redundant variables ******************************************/
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<TimedEvent>> timedEvents;
@@ -583,6 +583,21 @@ public:
         *outText = it->get()->getName().c_str();
         return true;
 
+    }
+
+    uint32_t getLodLevel(PhysicalRenderable *currentRenderable) const {
+        uint32_t lod;
+        uint32_t distance = (currentRenderable->getTransformation()->getTranslate() - currentPlayer->getPosition()).length();
+        if(distance > 3) {
+            lod = 3;
+        } else if(distance > 2) {
+            lod = 2;
+        } else if(distance > 1) {
+            lod = 1;
+        } else {
+            lod = 0;
+        }
+        return lod;
     }
 };
 

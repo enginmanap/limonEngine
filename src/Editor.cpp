@@ -611,6 +611,16 @@ void Editor::renderEditor(World& world) {
         world.buildTreeFromAllGameObjects();
 
         if(world.pickedObject != nullptr) {
+            //search for the selected element in the rendered elements
+            uint32_t lod = 4;
+            Model *pickedModel = dynamic_cast<Model *>(world.pickedObject);
+            if (pickedModel != nullptr) {
+                if (world.modelsInCameraFrustum.find(pickedModel->getAssetID()) != world.modelsInCameraFrustum.end()){
+                        lod = world.modelsInCameraFrustum[pickedModel->getAssetID()].second;
+                    }
+            }
+            std::string lodText =  std::to_string(lod);
+            ImGui::Text(("Picked object LOD" + lodText).c_str());
             GameObject::ImGuiResult objectEditorResult = world.pickedObject->addImGuiEditorElements(*world.request);
 
             switch(world.pickedObject->getTypeID()) {

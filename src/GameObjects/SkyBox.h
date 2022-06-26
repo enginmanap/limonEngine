@@ -40,7 +40,7 @@ public:
     SkyBox(uint32_t objectID, std::shared_ptr<AssetManager> assetManager, std::string path, std::string right, std::string left,
            std::string top, std::string down, std::string back, std::string front);
 
-    void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) override;
+    void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel) override;
 
     void setupForTime(long time [[gnu::unused]]) {};
 

@@ -273,7 +273,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
              }
          }
          for (auto modelAssetIterator = modelsInCameraFrustum.begin(); modelAssetIterator != modelsInCameraFrustum.end(); ++modelAssetIterator) {
-             for (auto modelIterator = modelAssetIterator->second.begin(); modelIterator != modelAssetIterator->second.end(); ++modelIterator) {
+             for (auto modelIterator = modelAssetIterator->second.first.begin(); modelIterator != modelAssetIterator->second.first.end(); ++modelIterator) {
                  (*modelIterator)->setupForTime(gameTime);
              }
          }
@@ -452,9 +452,12 @@ void World::setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRen
         } else {
             if (modelsInLightFrustum[currentLightIndex].find(currentModel->getAssetID()) ==
                 modelsInLightFrustum[currentLightIndex].end()) {
-                modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()] = std::set<Model *>();
+                modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), 3);
             }
-            modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()].insert(currentModel);
+            uint32_t lod = getLodLevel(currentModel);
+            modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()].first.insert(currentModel);
+            modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()].second = std::min(transparentModelsInCameraFrustum[currentModel->getAssetID()].second, lod);
+
         }
     } else if(removePossible) {
         //if remove possible, and not in light frustum, search for the model, and remove
@@ -475,7 +478,7 @@ void World::setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRen
             }
         } else {
             //if not animated
-            modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()].erase(currentModel);
+            modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()].first.erase(currentModel);
         }
     }
 }
@@ -487,13 +490,17 @@ void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bo
     if(currentModel->isTransparent()) {
         if(currentModel->isIsInFrustum()) {
             if (transparentModelsInCameraFrustum.find(currentModel->getAssetID()) == transparentModelsInCameraFrustum.end()) {
-                transparentModelsInCameraFrustum[currentModel->getAssetID()] = std::set<Model *>();
+                transparentModelsInCameraFrustum[currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), 3);
             }
-            transparentModelsInCameraFrustum[currentModel->getAssetID()].insert(currentModel);
+            uint32_t lod = getLodLevel(currentModel);
+            transparentModelsInCameraFrustum[currentModel->getAssetID()].first.insert(currentModel);
+            transparentModelsInCameraFrustum[currentModel->getAssetID()].second = std::min(transparentModelsInCameraFrustum[currentModel->getAssetID()].second, lod);
+
+
         } else {
             if(removePossible) {
-                if(transparentModelsInCameraFrustum[currentModel->getAssetID()].find(currentModel) != transparentModelsInCameraFrustum[currentModel->getAssetID()].end()) {
-                    transparentModelsInCameraFrustum[currentModel->getAssetID()].erase(currentModel);
+                if(transparentModelsInCameraFrustum[currentModel->getAssetID()].first.find(currentModel) != transparentModelsInCameraFrustum[currentModel->getAssetID()].first.end()) {
+                    transparentModelsInCameraFrustum[currentModel->getAssetID()].first.erase(currentModel);
                 }
             }
         }
@@ -504,9 +511,22 @@ void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bo
                 animatedModelsInAnyFrustum.insert(currentModel);
             } else {
                 if (modelsInCameraFrustum.find(currentModel->getAssetID()) == modelsInCameraFrustum.end()) {
-                    modelsInCameraFrustum[currentModel->getAssetID()] = std::set<Model *>();
+                    modelsInCameraFrustum[currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), 3);
                 }
-                modelsInCameraFrustum[currentModel->getAssetID()].insert(currentModel);
+                //model is in frustum, check the distance:
+                uint32_t lod;
+                uint32_t distance = (currentModel->getTransformation()->getTranslate() - currentPlayer->getPosition()).length();
+                if(distance > 3) {
+                    lod = 3;
+                } else if(distance > 2) {
+                    lod = 2;
+                } else if(distance > 1) {
+                    lod = 1;
+                } else {
+                    lod = 0;
+                }
+                modelsInCameraFrustum[currentModel->getAssetID()].first.insert(currentModel);
+                modelsInCameraFrustum[currentModel->getAssetID()].second = std::min(modelsInCameraFrustum[currentModel->getAssetID()].second, lod);
             }
         } else if (removePossible) {
             //if remove possible, and not in frustum, search for the model, and remove
@@ -525,13 +545,13 @@ void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bo
                 }
             } else {
                 //if not animated
-                modelsInCameraFrustum[currentModel->getAssetID()].erase(currentModel);
+                modelsInCameraFrustum[currentModel->getAssetID()].first.erase(currentModel);
             }
         }
     }
 }
 
-ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *actor) {
+   ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *actor) {
     ActorInterface::ActorInformation information;
     Model* actorModel = dynamic_cast<Model*>(objects[actor->getModelID()]);
     if(actorModel != nullptr) {
@@ -714,7 +734,7 @@ void World:: render() {
 }
 
 void World::renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
-    cursor->renderWithProgram(renderProgram);
+    cursor->renderWithProgram(renderProgram, 0);
 
     for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
         (*it)->renderImageWithProgram(renderProgram);
@@ -735,38 +755,38 @@ void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram
     graphicsWrapper->getRenderTriangleAndLineCount(triangle, line);
     renderCounts->updateText("Tris: " + std::to_string(triangle) + ", lines: " + std::to_string(line));
     if (options->getRenderInformations()) {
-        renderCounts->renderWithProgram(renderProgram);
-        debugOutputGUI->renderWithProgram(renderProgram);
-        fpsCounter->renderWithProgram(renderProgram);
+        renderCounts->renderWithProgram(renderProgram, 0);
+        debugOutputGUI->renderWithProgram(renderProgram, 0);
+        fpsCounter->renderWithProgram(renderProgram, 0);
     }
 }
 
 void World::renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
    for (auto modelIterator = transparentModelsInCameraFrustum.begin(); modelIterator != transparentModelsInCameraFrustum.end(); ++modelIterator) {
        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-       std::set<Model *> modelSet = modelIterator->second;
+       std::pair<std::set<Model *>, uint32_t> modelSetWithLod = modelIterator->second;
        modelIndicesBuffer.clear();
        Model *sampleModel = nullptr;
-       for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
+       for (auto model = modelSetWithLod.first.begin(); model != modelSetWithLod.first.end(); ++model) {
            //all of these models will be rendered
            modelIndicesBuffer.push_back((*model)->getWorldObjectID());
            sampleModel = *model;
        }
        if (sampleModel != nullptr) {
-           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(renderProgram.get()));
+           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(renderProgram.get()), modelSetWithLod.second);
        }
    }
 }
 
 void World::renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
      for(const auto& emitter:emitters) {
-         emitter.second->renderWithProgram(renderProgram);
+         emitter.second->renderWithProgram(renderProgram, 0);
      }
 }
 
 void World::renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
    for(const auto& gpuParticleEmitter:gpuParticleEmitters) {
-       gpuParticleEmitter.second->renderWithProgram(renderProgram);
+       gpuParticleEmitter.second->renderWithProgram(renderProgram, 0);
    }
 }
 
@@ -807,29 +827,29 @@ void World::renderAnimatedObjects(const std::shared_ptr<GraphicsProgram>& render
     for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
        std::vector<uint32_t> temp;
        temp.push_back((*modelIterator)->getWorldObjectID());
-       (*modelIterator)->renderWithProgramInstanced(temp, *(renderProgram.get()));
+        (*modelIterator)->renderWithProgramInstanced(temp, *(renderProgram.get()), 0);
     }
 }
 
 void World::renderOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
    for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-       std::set<Model *> modelSet = modelIterator->second;
-       if(modelSet.size() > 0 ) {
+       std::pair<std::set<Model *>, uint32_t> modelSetWithLod = modelIterator->second;
+       if(modelSetWithLod.first.size() > 0 ) {
            modelIndicesBuffer.clear();
-           Model *sampleModel = *(modelSet.begin());
-           for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
+           Model *sampleModel = *(modelSetWithLod.first.begin());
+           for (auto model = modelSetWithLod.first.begin(); model != modelSetWithLod.first.end(); ++model) {
                //all of these models will be rendered
                modelIndicesBuffer.push_back((*model)->getWorldObjectID());
            }
-           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(renderProgram.get()));
+           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(renderProgram.get()), modelSetWithLod.second);
        }
    }
 }
 
 void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
    if (sky != nullptr) {
-       sky->renderWithProgram(renderProgram);
+       sky->renderWithProgram(renderProgram, 0);
    }
 }
 
@@ -837,16 +857,16 @@ void World::renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsP
    renderProgram->setUniform("renderLightIndex", (int) lightIndex);
    for (auto modelIterator = modelsInLightFrustum[lightIndex].begin(); modelIterator != modelsInLightFrustum[lightIndex].end(); ++modelIterator) {
        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-       std::set<Model *> modelSet = modelIterator->second;
+       std::pair<std::set<Model *>, uint32_t> modelSetWithLod = modelIterator->second;
        modelIndicesBuffer.clear();
        Model *sampleModel = nullptr;
-       for (auto model = modelSet.begin(); model != modelSet.end(); ++model) {
+       for (auto model = modelSetWithLod.first.begin(); model != modelSetWithLod.first.end(); ++model) {
            //all of these models will be rendered
            modelIndicesBuffer.push_back((*model)->getWorldObjectID());
            sampleModel = *model;
        }
        if (sampleModel != nullptr) {
-           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *renderProgram);
+           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *renderProgram, modelSetWithLod.second);
        }
    }
 
@@ -854,7 +874,7 @@ void World::renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsP
         animatedModelIterator != animatedModelsInLightFrustum[lightIndex].end(); ++animatedModelIterator) {
        std::vector<uint32_t> temp;
        temp.push_back((*animatedModelIterator)->getWorldObjectID());
-       (*animatedModelIterator)->renderWithProgramInstanced(temp, *renderProgram);
+       (*animatedModelIterator)->renderWithProgramInstanced(temp, *renderProgram, 0);//FIXME animated models always use lod 0
    }
 }
 
@@ -866,16 +886,16 @@ void World::renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes 
      //These if checks are not combined because they are not checking the same thing. Outer one checks model type, inner one checks what type of model we are rendering
      if(attachedModel->isAnimated()) {
          if(renderingModelType == ModelTypes::ANIMATED) {
-             attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()));
+             attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()), 0);
          }
      } else {
          if(attachedModel->isTransparent()) {
              if(renderingModelType == ModelTypes::TRANSPARENT) {
-                 attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()));
+                 attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()), 0);
              }
          } else {
              if(renderingModelType == ModelTypes::NON_ANIMATED_OPAQUE) {
-                 attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()));
+                 attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()), 0);
              }
          }
      }
@@ -938,7 +958,7 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram) {/
        playerPlaceHolder->getTransformation()->setOrientation(physicalPlayer->getLookDirectionQuaternion());
        std::vector<uint32_t> temp;
        temp.push_back(playerPlaceHolder->getWorldObjectID());
-       playerPlaceHolder->renderWithProgramInstanced(temp, *(graphicsProgram.get()));
+       playerPlaceHolder->renderWithProgramInstanced(temp, *(graphicsProgram.get()), 0);
    }
    Editor::renderEditor(*this);
 }
@@ -1635,8 +1655,8 @@ bool World::removeObject(uint32_t objectID, const bool &removeChildren) {
 
     if(modelToRemove->isTransparent()) {
         if(transparentModelsInCameraFrustum.find(modelToRemove->getAssetID()) != transparentModelsInCameraFrustum.end()) {
-            if(transparentModelsInCameraFrustum[modelToRemove->getAssetID()].find(modelToRemove) !=transparentModelsInCameraFrustum[modelToRemove->getAssetID()].end())
-            transparentModelsInCameraFrustum[modelToRemove->getAssetID()].erase(modelToRemove);
+            if(transparentModelsInCameraFrustum[modelToRemove->getAssetID()].first.find(modelToRemove) !=transparentModelsInCameraFrustum[modelToRemove->getAssetID()].first.end())
+            transparentModelsInCameraFrustum[modelToRemove->getAssetID()].first.erase(modelToRemove);
         }
     }
 
@@ -1649,9 +1669,9 @@ bool World::removeObject(uint32_t objectID, const bool &removeChildren) {
 
         animatedModelsInAnyFrustum.erase(modelToRemove);
     } else {
-        modelsInCameraFrustum[modelToRemove->getAssetID()].erase(modelToRemove);
+        modelsInCameraFrustum[modelToRemove->getAssetID()].first.erase(modelToRemove);
         for (size_t i = 0; i < activeLights.size(); ++i) {
-            modelsInLightFrustum[i][modelToRemove->getAssetID()].erase(modelToRemove);
+            modelsInLightFrustum[i][modelToRemove->getAssetID()].first.erase(modelToRemove);
         }
     }
     

@@ -17,7 +17,7 @@ public:
 
 public:
 
-    void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) override;
+    void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel) override;
 
     bool isHidden() {
         return hidden;

@@ -76,7 +76,7 @@ public:
 
     virtual void updateTransformFromPhysics();
 
-    virtual void renderWithProgram(std::shared_ptr<GraphicsProgram> program) = 0;
+    virtual void renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) = 0;
 
     float getMass() const {
         return mass;

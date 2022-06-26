@@ -838,9 +838,26 @@ void OpenGLGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t EB
     glDrawElementsInstanced(GL_TRIANGLES, triangleCount, GL_UNSIGNED_INT, nullptr, instanceCount);
     glBindVertexArray(0);
     //state->setProgram(0);
-
     checkErrors("renderInstanced");
+}
 
+void OpenGLGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t triangleCount, uint32_t startOffset,
+                                     uint32_t instanceCount) {
+    if (program == 0) {
+        std::cerr << "No program render requested." << std::endl;
+        return;
+    }
+    state->setProgram(program);
+
+    // Set up for a glDrawElements call
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+
+    renderTriangleCount = renderTriangleCount + (triangleCount * instanceCount);
+    glDrawElementsInstancedBaseInstance(GL_TRIANGLES, triangleCount, GL_UNSIGNED_INT, nullptr, instanceCount, startOffset);
+    glBindVertexArray(0);
+    //state->setProgram(0);
+    checkErrors("renderInstancedOffset");
 }
 
 bool OpenGLGraphics::setUniform(const uint32_t programID, const uint32_t uniformID, const glm::mat4 &matrix) {

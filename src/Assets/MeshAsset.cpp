@@ -11,7 +11,6 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
                      const glm::mat4 &parentTransform,
                      const bool isPartOfAnimated)
         : name(name), material(material), parentTransform(parentTransform), isPartOfAnimated(isPartOfAnimated) {
-    triangleCount = currentMesh->mNumFaces;
     if (!currentMesh->HasPositions()) {
         throw "No position found"; //Not going to process if mesh is empty
     }
@@ -205,33 +204,50 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
                                       currentMesh->mFaces[j].mIndices[2]));
         }
     }
-    if(faces.size() == 0) {
+    triangleCount[0] = faces.size();
+    offsets[0] = 0;
+    if(faces.empty()) {
         return false;
     }
 
     //lets try to simplify
-    float threshold = 0.1f;
+    float threshold = 0.01f;
     size_t target_index_count = size_t(faces.size()*3 * threshold);
-    float target_error = 1e-2f;
+    float target_error = 0.1f;
 
     std::vector<unsigned int> lod(faces.size()*3);
     float lod_error = 0.1f;
     lod.resize(meshopt_simplify(&lod[0], &(faces[0].x), faces.size()*3, &vertices[0].x, vertices.size(), sizeof(glm::vec3),
                                 target_index_count, target_error, &lod_error));
     //now we have new faces. lets assign.
-    size_t oldSize = faces.size();
-    faces.clear();
     for (size_t i = 0; i <lod.size(); i = i+3) {
         faces.push_back(glm::vec3(lod[i + 0],
                                   lod[i + 1],
                                   lod[i + 2]));
     }
-    std::cerr << "simplification result: \t" << oldSize << "\t->\t" << faces.size() << std::endl;
-    triangleCount = faces.size();
-    if(faces.size() > 0) {
-        return true;
+    triangleCount[1] = lod.size()/3;
+    offsets[1] = triangleCount[0];
+
+    std::cerr << "simplification result: \t" << triangleCount[0] << "\t->\t" << triangleCount[1] << std::endl;
+
+    //FIXME simplify 2 more times, instead of using the same
+    for (size_t i = 0; i <lod.size(); i = i+3) {
+        faces.push_back(glm::vec3(lod[i + 0],
+                                  lod[i + 1],
+                                  lod[i + 2]));
     }
-    return false;
+    triangleCount[2] = lod.size()/3;
+    offsets[2] = triangleCount[1] + offsets[1];
+
+    for (size_t i = 0; i <lod.size(); i = i+3) {
+        faces.push_back(glm::vec3(lod[i + 0],
+                                  lod[i + 1],
+                                  lod[i + 2]));
+    }
+    triangleCount[3] = lod.size()/3;
+
+    offsets[3] = triangleCount[2] + offsets[2];
+    return true;
 }
 
 void MeshAsset::normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const {

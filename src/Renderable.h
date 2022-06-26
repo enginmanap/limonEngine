@@ -31,7 +31,7 @@ protected:
 
 public:
 
-    virtual void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) = 0;
+    virtual void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel) = 0;
 
     virtual void setupForTime(long time) = 0;
 

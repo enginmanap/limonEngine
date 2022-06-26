@@ -16,7 +16,7 @@ GUIImage::GUIImage(uint32_t worldID, Options *options,  std::shared_ptr<AssetMan
     : GUIImageBase(
         assetManager->getGraphicsWrapper(), assetManager, imageFile), worldID(worldID), name(name), options(options) {
         strncpy(GUINameBuffer, this->name.c_str(), sizeof(GUINameBuffer) - 1);
-        strncpy(GUIFileNameBuffer, this->imageFile.c_str(), sizeof(GUIFileNameBuffer));
+        strncpy(GUIFileNameBuffer, this->imageFile.c_str(), sizeof(GUIFileNameBuffer)-1);
     }
 
 

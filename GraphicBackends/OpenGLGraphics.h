@@ -511,6 +511,9 @@ public:
     void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t triangleCount,
                          uint32_t instanceCount) override;
 
+    void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t triangleCount, uint32_t startOffset,
+                         uint32_t instanceCount) override;
+
     void setScissorRect(int32_t x, int32_t y, uint32_t width, uint32_t height) {
         glScissor(x,y,width,height);
     }

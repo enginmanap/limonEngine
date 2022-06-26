@@ -97,10 +97,10 @@ public:
 
     void setupForTime(long time);
 
-    void renderWithProgram(std::shared_ptr<GraphicsProgram> program);
+    void renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel);
 
 
-    void renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GraphicsProgram &program);
+    void renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GraphicsProgram &program, uint32_t lodLevel);
 
     bool isAnimated() const { return animated;}
 

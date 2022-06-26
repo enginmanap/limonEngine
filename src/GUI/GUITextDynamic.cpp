@@ -6,7 +6,7 @@
 #include "GUITextDynamic.h"
 
 
-void GUITextDynamic::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram) {
+void GUITextDynamic::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel[[gnu::unused]]) {
     //first move all logs to our list
     Logger::LogLine* logLine = source->getLog();
     while(logLine != nullptr) {
@@ -16,9 +16,9 @@ void GUITextDynamic::renderWithProgram(std::shared_ptr<GraphicsProgram> renderPr
     }
     float totalAdvance = 0.0f;
 
-    renderProgram->setUniform("inColor", color);
+    program->setUniform("inColor", color);
 
-    renderProgram->setUniform("orthogonalProjectionMatrix", graphicsWrapper->getOrthogonalProjectionMatrix());
+    program->setUniform("orthogonalProjectionMatrix", graphicsWrapper->getOrthogonalProjectionMatrix());
 
     glm::mat4 currentTransform;
 
@@ -87,15 +87,15 @@ void GUITextDynamic::renderWithProgram(std::shared_ptr<GraphicsProgram> renderPr
                     );
                 }
 
-                if (!renderProgram->setUniform("worldTransformMatrix", currentTransform)) {
+                if (!program->setUniform("worldTransformMatrix", currentTransform)) {
                     std::cerr << "failed to set uniform \"worldTransformMatrix\"" << std::endl;
                 }
 
-                if (!renderProgram->setUniform("GUISampler", glyphAttachPoint)) {
+                if (!program->setUniform("GUISampler", glyphAttachPoint)) {
                     std::cerr << "failed to set uniform \"GUISampler\"" << std::endl;
                 }
                 graphicsWrapper->attachTexture(glyph->getTextureID(), glyphAttachPoint);
-                graphicsWrapper->render(renderProgram->getID(), vao, ebo, (uint32_t) (faces.size() * 3));
+                graphicsWrapper->render(program->getID(), vao, ebo, (uint32_t) (faces.size() * 3));
 
                 totalAdvance += glyph->getAdvance() / 64;
                 if(totalAdvance + maxCharWidth >= width) {

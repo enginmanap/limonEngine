@@ -4,8 +4,8 @@
 
 #include "GUICursor.h"
 
-void GUICursor::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram){
+void GUICursor::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel) {
     if(!this->hidden) {
-        GUIImageBase::renderWithProgram(renderProgram);
+        GUIImageBase::renderWithProgram(renderProgram, lodLevel);
     }
 }
