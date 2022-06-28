@@ -587,12 +587,12 @@ public:
 
     uint32_t getLodLevel(PhysicalRenderable *currentRenderable) const {
         uint32_t lod;
-        uint32_t distance = (currentRenderable->getTransformation()->getTranslate() - currentPlayer->getPosition()).length();
-        if(distance > 3) {
+        double distance = glm::length(currentRenderable->getTransformation()->getTranslate() - currentPlayer->getPosition());
+        if(distance > 15) {
             lod = 3;
-        } else if(distance > 2) {
+        } else if(distance > 10) {
             lod = 2;
-        } else if(distance > 1) {
+        } else if(distance > 5) {
             lod = 1;
         } else {
             lod = 0;

@@ -514,17 +514,7 @@ void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bo
                     modelsInCameraFrustum[currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), 3);
                 }
                 //model is in frustum, check the distance:
-                uint32_t lod;
-                uint32_t distance = (currentModel->getTransformation()->getTranslate() - currentPlayer->getPosition()).length();
-                if(distance > 3) {
-                    lod = 3;
-                } else if(distance > 2) {
-                    lod = 2;
-                } else if(distance > 1) {
-                    lod = 1;
-                } else {
-                    lod = 0;
-                }
+                uint32_t lod = getLodLevel(currentModel);
                 modelsInCameraFrustum[currentModel->getAssetID()].first.insert(currentModel);
                 modelsInCameraFrustum[currentModel->getAssetID()].second = std::min(modelsInCameraFrustum[currentModel->getAssetID()].second, lod);
             }
