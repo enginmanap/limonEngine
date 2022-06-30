@@ -211,12 +211,12 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
     }
 
     //lets try to simplify
-    float threshold = 0.01f;
+    float threshold = 0.2f;
     size_t target_index_count = size_t(faces.size()*3 * threshold);
-    float target_error = 0.1f;
+    float target_error = 0.001f;
 
     std::vector<unsigned int> lod(faces.size()*3);
-    float lod_error = 0.1f;
+    float lod_error = 0.f;
     lod.resize(meshopt_simplify(&lod[0], &(faces[0].x), faces.size()*3, &vertices[0].x, vertices.size(), sizeof(glm::vec3),
                                 target_index_count, target_error, &lod_error));
     //now we have new faces. lets assign.
@@ -226,27 +226,51 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
                                   lod[i + 2]));
     }
     triangleCount[1] = lod.size()/3;
-    offsets[1] = triangleCount[0];
+    offsets[1] = triangleCount[0]*3;
+    std::cerr << "simplification1 result: \t" << triangleCount[0] << "\t->\t" << triangleCount[1] << std::endl;
 
-    std::cerr << "simplification result: \t" << triangleCount[0] << "\t->\t" << triangleCount[1] << std::endl;
+    //lets try to simplify
+    float threshold2 = 0.1f;
+    size_t target_index_count2 = size_t(triangleCount[0]*3 * threshold2);
+    float target_error2 = 0.01f;
 
-    //FIXME simplify 2 more times, instead of using the same
-    for (size_t i = 0; i <lod.size(); i = i+3) {
-        faces.push_back(glm::vec3(lod[i + 0],
-                                  lod[i + 1],
-                                  lod[i + 2]));
+    std::vector<unsigned int> lod2(triangleCount[0]*3);
+    float lod_error2 = 0.f;
+    lod2.resize(meshopt_simplify(&lod2[0], &(faces[0].x), triangleCount[0]*3, &vertices[0].x, vertices.size(), sizeof(glm::vec3),
+                                target_index_count2, target_error2, &lod_error2));
+    //now we have new faces. lets assign.
+    for (size_t i = 0; i <lod2.size(); i = i+3) {
+        faces.push_back(glm::vec3(lod2[i + 0],
+                                  lod2[i + 1],
+                                  lod2[i + 2]));
     }
-    triangleCount[2] = lod.size()/3;
-    offsets[2] = triangleCount[1] + offsets[1];
+    triangleCount[2] = lod2.size()/3;
+    offsets[2] = (triangleCount[1]*3) + offsets[1];
+    std::cerr << "simplification2 result: \t" << triangleCount[1] << "\t->\t" << triangleCount[2] << std::endl;
 
-    for (size_t i = 0; i <lod.size(); i = i+3) {
-        faces.push_back(glm::vec3(lod[i + 0],
-                                  lod[i + 1],
-                                  lod[i + 2]));
+
+    //lets try to simplify
+    float threshold3 = 0.05f;
+    size_t target_index_count3 = size_t(triangleCount[0]*3 * threshold3);
+    float target_error3 = 0.5f;
+
+    std::vector<unsigned int> lod3(triangleCount[0]*3);
+    float lod_error3 = 0.f;
+    lod3.resize(meshopt_simplify(&lod3[0], &(faces[0].x), triangleCount[0]*3, &vertices[0].x, vertices.size(), sizeof(glm::vec3),
+                                 target_index_count3, target_error3, &lod_error3));
+    //now we have new faces. lets assign.
+    for (size_t i = 0; i <lod3.size(); i = i+3) {
+        faces.push_back(glm::vec3(lod3[i + 0],
+                                  lod3[i + 1],
+                                  lod3[i + 2]));
     }
-    triangleCount[3] = lod.size()/3;
+    triangleCount[3] = lod3.size()/3;
 
-    offsets[3] = triangleCount[2] + offsets[2];
+    offsets[3] = (triangleCount[2]*3) + offsets[2];
+    std::cerr << "simplification3 result: \t" << triangleCount[2] << "\t->\t" << triangleCount[3] << std::endl;
+
+    std::cerr << "after simplification triangle counts: \t" << triangleCount[0] << ", " << triangleCount[1] << ", " << triangleCount[2] << ", " << triangleCount[3] << std::endl;
+    std::cerr << "after simplification offsets: \t" << offsets[0] << ", " << offsets[1] << ", " << offsets[2] << ", " << offsets[3] << std::endl;
     return true;
 }
 
