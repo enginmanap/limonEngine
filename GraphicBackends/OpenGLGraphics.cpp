@@ -854,7 +854,7 @@ void OpenGLGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t EB
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
     renderTriangleCount = renderTriangleCount + (triangleCount * instanceCount);
-    glDrawElementsInstancedBaseInstance(GL_TRIANGLES, triangleCount, GL_UNSIGNED_INT, nullptr, instanceCount, startOffset);
+    glDrawElementsInstanced(GL_TRIANGLES, triangleCount, GL_UNSIGNED_INT, (void*)(startOffset*sizeof(GLuint)), instanceCount);
     glBindVertexArray(0);
     //state->setProgram(0);
     checkErrors("renderInstancedOffset");
