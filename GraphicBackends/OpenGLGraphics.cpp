@@ -1211,7 +1211,7 @@ void OpenGLGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Text
 
 }
 
-uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth) {
+uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t textureLayers) {
     GLuint texture;
     glGenTextures(1, &texture);
     state->activateTextureUnit(0);//this is the default working texture
@@ -1256,7 +1256,7 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
         case TextureTypes::T2D_ARRAY: {
             glTextureType = GL_TEXTURE_2D_ARRAY;
             glBindTexture(glTextureType, texture);
-            glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, glInternalDataFormat, width,height, depth, 0, glFormat, glDataType, nullptr);
+            glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, glInternalDataFormat, width,height, textureLayers, 0, glFormat, glDataType, nullptr);
         }
             break;
         case TextureTypes::TCUBE_MAP: {
@@ -1273,7 +1273,7 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
         case TextureTypes::TCUBE_MAP_ARRAY: {
             glTextureType = GL_TEXTURE_CUBE_MAP_ARRAY_ARB;
             glBindTexture(glTextureType, texture);
-            glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, glInternalDataFormat, width,height, depth, 0,glFormat, glDataType, nullptr);
+            glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY_ARB, 0, glInternalDataFormat, width,height, textureLayers, 0,glFormat, glDataType, nullptr);
             if(height != width) {
                 std::cerr << "Cubemaps require square textures, this will fail!" << std::endl;
             }

@@ -315,7 +315,7 @@ private:
 
     Uniform::VariableTypes getSamplerVariableType(const GLint *queryResults) const;
 protected:
-    uint32_t createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth) override;
+    uint32_t createTexture(int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t textureLayers) override;
 
     bool deleteTexture(GLuint textureID) override;
 
