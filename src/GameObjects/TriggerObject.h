@@ -65,7 +65,7 @@ public:
         transformation.setUpdateCallback(std::bind(&TriggerObject::updatePhysicsFromTransform, this));
     }
 
-    ~TriggerObject() {
+    ~TriggerObject() override {
         delete ghostObject;
         delete ghostShape;
         delete this->firstEnterTriggerCode;
