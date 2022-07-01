@@ -1435,7 +1435,7 @@ bool WorldLoader::loadTriggers(tinyxml2::XMLNode *worldNode, World *world) const
     tinyxml2::XMLElement* triggerNode =  triggerListNode->FirstChildElement("Trigger");
 
     while(triggerNode != nullptr) {
-        TriggerObject* triggerObject = triggerObject->deserialize(triggerNode, world->apiInstance);
+        TriggerObject* triggerObject = TriggerObject::deserialize(triggerNode, world->apiInstance);
         if(triggerObject == nullptr) {
             //this trigger is now headless
             return false;
