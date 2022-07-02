@@ -5,6 +5,8 @@
 #ifndef LIMONENGINE_WORLD_H
 #define LIMONENGINE_WORLD_H
 
+static const int LOWEST_LOD_LEVEL = 3;
+
 #include <vector>
 #include <tinyxml2.h>
 #include <unordered_map>

@@ -452,7 +452,7 @@ void World::setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRen
         } else {
             if (modelsInLightFrustum[currentLightIndex].find(currentModel->getAssetID()) ==
                 modelsInLightFrustum[currentLightIndex].end()) {
-                modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), 3);
+                modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), LOWEST_LOD_LEVEL);
             }
             uint32_t lod = getLodLevel(currentModel);
             modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()].first.insert(currentModel);
@@ -490,7 +490,7 @@ void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bo
     if(currentModel->isTransparent()) {
         if(currentModel->isIsInFrustum()) {
             if (transparentModelsInCameraFrustum.find(currentModel->getAssetID()) == transparentModelsInCameraFrustum.end()) {
-                transparentModelsInCameraFrustum[currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), 3);
+                transparentModelsInCameraFrustum[currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), LOWEST_LOD_LEVEL);
             }
             uint32_t lod = getLodLevel(currentModel);
             transparentModelsInCameraFrustum[currentModel->getAssetID()].first.insert(currentModel);
@@ -511,7 +511,7 @@ void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bo
                 animatedModelsInAnyFrustum.insert(currentModel);
             } else {
                 if (modelsInCameraFrustum.find(currentModel->getAssetID()) == modelsInCameraFrustum.end()) {
-                    modelsInCameraFrustum[currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), 3);
+                    modelsInCameraFrustum[currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), LOWEST_LOD_LEVEL);//we set 3, as it is the lowest LOD.
                 }
                 //model is in frustum, check the distance:
                 uint32_t lod = getLodLevel(currentModel);
