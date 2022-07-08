@@ -24,6 +24,10 @@ IF (UNIX AND ${CMAKE_VERSION} VERSION_GREATER "3.11.0")
     cmake_policy (SET CMP0072 NEW)
 ENDIF()
 
+option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
+option(ASSIMP_BUILD_TESTS "If the test suite for Assimp is built in addition to the library." OFF)
+option(ASSIMP_INSTALL "Disable this if you want to use assimp as a submodule." OFF)
+option(ASSIMP_NO_EXPORT "Disable Assimp's export functionality." ON)
 
 include(libs/CmakeLists.txt)
 
@@ -86,22 +90,23 @@ if (NOT glm_FOUND)
 endif (NOT glm_FOUND)
 INCLUDE_DIRECTORIES(SYSTEM ${GLM_INCLUDE_DIRS})
 
-find_package(assimp REQUIRED)
-if (NOT assimp_FOUND)
-    message(ERROR " Assimp not found!")
-endif (NOT assimp_FOUND)
-INCLUDE_DIRECTORIES(${ASSIMP_INCLUDE_DIRS})
-
-if (APPLE)
-    set(ASSIMP_LIBRARIES "/usr/local/lib/libassimp.5.dylib")
-endif(APPLE)
+# Now we are compiling assimp ourself, this is not needed. If you want to try the system version you can use this block
+#find_package(assimp REQUIRED)
+#if (NOT assimp_FOUND)
+#    message(ERROR " Assimp not found!")
+#endif (NOT assimp_FOUND)
+#INCLUDE_DIRECTORIES(${ASSIMP_INCLUDE_DIRS})
+#
+#if (APPLE)
+#    set(ASSIMP_LIBRARIES "/usr/local/lib/libassimp.5.dylib")
+#endif(APPLE)
 
 add_custom_target(copyData
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/Engine ${CMAKE_BINARY_DIR}/Engine)
 add_dependencies(LimonEngine copyData)
-
-TARGET_LINK_LIBRARIES(LimonEngine ImGui ImGuizmo OpenAL meshoptimizer nodeGraph ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${ASSIMP_LIBRARIES})
+target_include_directories(LimonEngine PRIVATE "libs/assimp/include")
+TARGET_LINK_LIBRARIES(LimonEngine ImGui ImGuizmo OpenAL meshoptimizer nodeGraph assimp ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES})
 
 IF (WIN32)
     #add icon to windows binary
