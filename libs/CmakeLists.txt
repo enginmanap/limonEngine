@@ -39,5 +39,7 @@ add_subdirectory("libs/OpenAL-Soft/")
 
 add_subdirectory("libs/meshoptimizer/")
 
+add_subdirectory("libs/assimp/")
+
 include_directories("libs/Cereal/include/")
 

@@ -7,3 +7,6 @@
 [submodule "libs/meshoptimizer"]
 	path = libs/meshoptimizer
 	url = https://github.com/zeux/meshoptimizer.git
+[submodule "libs/assimp"]
+	path = libs/assimp
+	url = https://github.com/enginmanap/assimp.git
