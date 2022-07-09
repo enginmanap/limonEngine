@@ -1,38 +1,15 @@
 <GraphicsPipeline>
     <Textures>
         <Texture>
-            <Name>DirectionalShadow</Name>
-            <TextureType>T2D_ARRAY</TextureType>
-            <InternalFormat>DEPTH</InternalFormat>
-            <Format>DEPTH</Format>
-            <DataType>FLOAT</DataType>
-            <Height>4096</Height>
-            <Width>4096</Width>
-            <Depth>4</Depth>
-            <borderColor>
-                <R>1</R>
-                <G>1</G>
-                <B>1</B>
-                <A>1</A>
-            </borderColor>
-            <BorderColorSet>True</BorderColorSet>
-            <TextureSerializeID>1</TextureSerializeID>
-            <FilterMode>LINEAR</FilterMode>
-            <WrapModes>
-                <S>BORDER</S>
-                <T>BORDER</T>
-                <R>NONE</R>
-            </WrapModes>
-        </Texture>
-        <Texture>
-            <Name>PointShadow</Name>
-            <TextureType>TCUBE_MAP_ARRAY</TextureType>
-            <InternalFormat>DEPTH</InternalFormat>
-            <Format>DEPTH</Format>
-            <DataType>FLOAT</DataType>
-            <Height>512</Height>
-            <Width>512</Width>
-            <Depth>18</Depth>
+            <TextureType>T2D</TextureType>
+            <InternalFormat>RGBA</InternalFormat>
+            <Format>RGBA</Format>
+            <DataType>UNSIGNED_BYTE</DataType>
+            <Height>1</Height>
+            <Width>1</Width>
+            <HeightOption/>
+            <WidthOption/>
+            <Depth>0</Depth>
             <borderColor>
                 <R>0</R>
                 <G>0</G>
@@ -40,127 +17,7 @@
                 <A>0</A>
             </borderColor>
             <BorderColorSet>False</BorderColorSet>
-            <TextureSerializeID>2</TextureSerializeID>
-            <FilterMode>LINEAR</FilterMode>
-            <WrapModes>
-                <S>EDGE</S>
-                <T>EDGE</T>
-                <R>EDGE</R>
-            </WrapModes>
-        </Texture>
-        <Texture>
-            <Name>DiffuseAndSpecularBuffer</Name>
-            <TextureType>T2D</TextureType>
-            <InternalFormat>RGBA</InternalFormat>
-            <Format>RGBA</Format>
-            <DataType>FLOAT</DataType>
-            <Height>1080</Height>
-            <Width>1920</Width>
-            <Depth>0</Depth>
-            <borderColor>
-                <R>1</R>
-                <G>1</G>
-                <B>1</B>
-                <A>1</A>
-            </borderColor>
-            <BorderColorSet>True</BorderColorSet>
-            <TextureSerializeID>3</TextureSerializeID>
-            <FilterMode>LINEAR</FilterMode>
-            <WrapModes>
-                <S>BORDER</S>
-                <T>BORDER</T>
-                <R>NONE</R>
-            </WrapModes>
-        </Texture>
-        <Texture>
-            <Name>AmbientBuffer</Name>
-            <TextureType>T2D</TextureType>
-            <InternalFormat>RGB</InternalFormat>
-            <Format>RGB</Format>
-            <DataType>FLOAT</DataType>
-            <Height>1080</Height>
-            <Width>1920</Width>
-            <Depth>0</Depth>
-            <borderColor>
-                <R>1</R>
-                <G>1</G>
-                <B>1</B>
-                <A>1</A>
-            </borderColor>
-            <BorderColorSet>True</BorderColorSet>
-            <TextureSerializeID>4</TextureSerializeID>
-            <FilterMode>LINEAR</FilterMode>
-            <WrapModes>
-                <S>BORDER</S>
-                <T>BORDER</T>
-                <R>NONE</R>
-            </WrapModes>
-        </Texture>
-        <Texture>
-            <Name>NormalBuffer</Name>
-            <TextureType>T2D</TextureType>
-            <InternalFormat>RGB16F</InternalFormat>
-            <Format>RGB</Format>
-            <DataType>FLOAT</DataType>
-            <Height>1080</Height>
-            <Width>1920</Width>
-            <Depth>0</Depth>
-            <borderColor>
-                <R>1</R>
-                <G>1</G>
-                <B>1</B>
-                <A>1</A>
-            </borderColor>
-            <BorderColorSet>True</BorderColorSet>
-            <TextureSerializeID>5</TextureSerializeID>
-            <FilterMode>LINEAR</FilterMode>
-            <WrapModes>
-                <S>BORDER</S>
-                <T>BORDER</T>
-                <R>NONE</R>
-            </WrapModes>
-        </Texture>
-        <Texture>
-            <Name>DepthBuffer</Name>
-            <TextureType>T2D</TextureType>
-            <InternalFormat>DEPTH</InternalFormat>
-            <Format>DEPTH</Format>
-            <DataType>FLOAT</DataType>
-            <Height>1080</Height>
-            <Width>1920</Width>
-            <Depth>0</Depth>
-            <borderColor>
-                <R>1</R>
-                <G>1</G>
-                <B>1</B>
-                <A>1</A>
-            </borderColor>
-            <BorderColorSet>True</BorderColorSet>
-            <TextureSerializeID>6</TextureSerializeID>
-            <FilterMode>LINEAR</FilterMode>
-            <WrapModes>
-                <S>BORDER</S>
-                <T>BORDER</T>
-                <R>NONE</R>
-            </WrapModes>
-        </Texture>
-        <Texture>
-            <Name>SSAOGenerationBuffer</Name>
-            <TextureType>T2D</TextureType>
-            <InternalFormat>RED</InternalFormat>
-            <Format>RGB</Format>
-            <DataType>FLOAT</DataType>
-            <Height>1080</Height>
-            <Width>1920</Width>
-            <Depth>0</Depth>
-            <borderColor>
-                <R>1</R>
-                <G>1</G>
-                <B>1</B>
-                <A>1</A>
-            </borderColor>
-            <BorderColorSet>True</BorderColorSet>
-            <TextureSerializeID>7</TextureSerializeID>
+            <TextureSerializeID>11</TextureSerializeID>
             <FilterMode>LINEAR</FilterMode>
             <WrapModes>
                 <S>NONE</S>
@@ -170,12 +27,15 @@
         </Texture>
         <Texture>
             <Source>./Engine/Textures/ssaoNoiseTexture.png</Source>
+            <Name>./Engine/Textures/ssaoNoiseTexture.png</Name>
             <TextureType>T2D</TextureType>
             <InternalFormat>RGBA</InternalFormat>
             <Format>RGBA</Format>
             <DataType>UNSIGNED_BYTE</DataType>
             <Height>4</Height>
             <Width>4</Width>
+            <HeightOption/>
+            <WidthOption/>
             <Depth>0</Depth>
             <borderColor>
                 <R>0</R>
@@ -193,6 +53,162 @@
             </WrapModes>
         </Texture>
         <Texture>
+            <Name>AmbientBuffer</Name>
+            <TextureType>T2D</TextureType>
+            <InternalFormat>RGB</InternalFormat>
+            <Format>RGB</Format>
+            <DataType>FLOAT</DataType>
+            <Height>1080</Height>
+            <Width>1920</Width>
+            <HeightOption>screenHeight</HeightOption>
+            <WidthOption>screenWidth</WidthOption>
+            <Depth>0</Depth>
+            <borderColor>
+                <R>1</R>
+                <G>1</G>
+                <B>1</B>
+                <A>1</A>
+            </borderColor>
+            <BorderColorSet>True</BorderColorSet>
+            <TextureSerializeID>4</TextureSerializeID>
+            <FilterMode>LINEAR</FilterMode>
+            <WrapModes>
+                <S>BORDER</S>
+                <T>BORDER</T>
+                <R>NONE</R>
+            </WrapModes>
+        </Texture>
+        <Texture>
+            <Name>DepthBuffer</Name>
+            <TextureType>T2D</TextureType>
+            <InternalFormat>DEPTH</InternalFormat>
+            <Format>DEPTH</Format>
+            <DataType>FLOAT</DataType>
+            <Height>1080</Height>
+            <Width>1920</Width>
+            <HeightOption>screenHeight</HeightOption>
+            <WidthOption>screenWidth</WidthOption>
+            <Depth>0</Depth>
+            <borderColor>
+                <R>1</R>
+                <G>1</G>
+                <B>1</B>
+                <A>1</A>
+            </borderColor>
+            <BorderColorSet>True</BorderColorSet>
+            <TextureSerializeID>6</TextureSerializeID>
+            <FilterMode>LINEAR</FilterMode>
+            <WrapModes>
+                <S>BORDER</S>
+                <T>BORDER</T>
+                <R>NONE</R>
+            </WrapModes>
+        </Texture>
+        <Texture>
+            <Name>DiffuseAndSpecularBuffer</Name>
+            <TextureType>T2D</TextureType>
+            <InternalFormat>RGBA</InternalFormat>
+            <Format>RGBA</Format>
+            <DataType>FLOAT</DataType>
+            <Height>1080</Height>
+            <Width>1920</Width>
+            <HeightOption>screenHeight</HeightOption>
+            <WidthOption>screenWidth</WidthOption>
+            <Depth>0</Depth>
+            <borderColor>
+                <R>1</R>
+                <G>1</G>
+                <B>1</B>
+                <A>1</A>
+            </borderColor>
+            <BorderColorSet>True</BorderColorSet>
+            <TextureSerializeID>3</TextureSerializeID>
+            <FilterMode>LINEAR</FilterMode>
+            <WrapModes>
+                <S>BORDER</S>
+                <T>BORDER</T>
+                <R>NONE</R>
+            </WrapModes>
+        </Texture>
+        <Texture>
+            <Name>DirectionalShadow</Name>
+            <TextureType>T2D_ARRAY</TextureType>
+            <InternalFormat>DEPTH</InternalFormat>
+            <Format>DEPTH</Format>
+            <DataType>FLOAT</DataType>
+            <Height>4096</Height>
+            <Width>4096</Width>
+            <HeightOption>shadowMapDirectionalHeight</HeightOption>
+            <WidthOption>shadowMapDirectionalWidth</WidthOption>
+            <Depth>4</Depth>
+            <borderColor>
+                <R>1</R>
+                <G>1</G>
+                <B>1</B>
+                <A>1</A>
+            </borderColor>
+            <BorderColorSet>True</BorderColorSet>
+            <TextureSerializeID>1</TextureSerializeID>
+            <FilterMode>LINEAR</FilterMode>
+            <WrapModes>
+                <S>BORDER</S>
+                <T>BORDER</T>
+                <R>NONE</R>
+            </WrapModes>
+        </Texture>
+        <Texture>
+            <Name>NormalBuffer</Name>
+            <TextureType>T2D</TextureType>
+            <InternalFormat>RGB16F</InternalFormat>
+            <Format>RGB</Format>
+            <DataType>FLOAT</DataType>
+            <Height>1080</Height>
+            <Width>1920</Width>
+            <HeightOption>screenHeight</HeightOption>
+            <WidthOption>screenWidth</WidthOption>
+            <Depth>0</Depth>
+            <borderColor>
+                <R>1</R>
+                <G>1</G>
+                <B>1</B>
+                <A>1</A>
+            </borderColor>
+            <BorderColorSet>True</BorderColorSet>
+            <TextureSerializeID>5</TextureSerializeID>
+            <FilterMode>LINEAR</FilterMode>
+            <WrapModes>
+                <S>BORDER</S>
+                <T>BORDER</T>
+                <R>NONE</R>
+            </WrapModes>
+        </Texture>
+        <Texture>
+            <Name>PointShadow</Name>
+            <TextureType>TCUBE_MAP_ARRAY</TextureType>
+            <InternalFormat>DEPTH</InternalFormat>
+            <Format>DEPTH</Format>
+            <DataType>FLOAT</DataType>
+            <Height>512</Height>
+            <Width>512</Width>
+            <HeightOption>shadowMapPointWidth</HeightOption>
+            <WidthOption>shadowMapPointWidth</WidthOption>
+            <Depth>18</Depth>
+            <borderColor>
+                <R>0</R>
+                <G>0</G>
+                <B>0</B>
+                <A>0</A>
+            </borderColor>
+            <BorderColorSet>False</BorderColorSet>
+            <TextureSerializeID>2</TextureSerializeID>
+            <FilterMode>LINEAR</FilterMode>
+            <WrapModes>
+                <S>EDGE</S>
+                <T>EDGE</T>
+                <R>EDGE</R>
+            </WrapModes>
+        </Texture>
+        <Texture>
             <Name>SSAOBlurBuffer</Name>
             <TextureType>T2D</TextureType>
             <InternalFormat>RED</InternalFormat>
@@ -200,6 +216,8 @@
             <DataType>FLOAT</DataType>
             <Height>1080</Height>
             <Width>1920</Width>
+            <HeightOption>SSAOHeight</HeightOption>
+            <WidthOption>SSAOWidth</WidthOption>
             <Depth>0</Depth>
             <borderColor>
                 <R>0</R>
@@ -216,6 +234,110 @@
                 <R>NONE</R>
             </WrapModes>
         </Texture>
+        <Texture>
+            <Name>SSAOGenerationBuffer</Name>
+            <TextureType>T2D</TextureType>
+            <InternalFormat>RED</InternalFormat>
+            <Format>RGB</Format>
+            <DataType>FLOAT</DataType>
+            <Height>1080</Height>
+            <Width>1920</Width>
+            <HeightOption>SSAOHeight</HeightOption>
+            <WidthOption>SSAOWidth</WidthOption>
+            <Depth>0</Depth>
+            <borderColor>
+                <R>1</R>
+                <G>1</G>
+                <B>1</B>
+                <A>1</A>
+            </borderColor>
+            <BorderColorSet>True</BorderColorSet>
+            <TextureSerializeID>7</TextureSerializeID>
+            <FilterMode>LINEAR</FilterMode>
+            <WrapModes>
+                <S>NONE</S>
+                <T>NONE</T>
+                <R>NONE</R>
+            </WrapModes>
+        </Texture>
+        <Texture>
+            <Name>ScreenDepthPlaceHolder</Name>
+            <TextureType>T2D</TextureType>
+            <InternalFormat>DEPTH</InternalFormat>
+            <Format>DEPTH</Format>
+            <DataType>UNSIGNED_BYTE</DataType>
+            <Height>1</Height>
+            <Width>1</Width>
+            <HeightOption/>
+            <WidthOption/>
+            <Depth>0</Depth>
+            <borderColor>
+                <R>0</R>
+                <G>0</G>
+                <B>0</B>
+                <A>0</A>
+            </borderColor>
+            <BorderColorSet>False</BorderColorSet>
+            <TextureSerializeID>14</TextureSerializeID>
+            <FilterMode>LINEAR</FilterMode>
+            <WrapModes>
+                <S>NONE</S>
+                <T>NONE</T>
+                <R>NONE</R>
+            </WrapModes>
+        </Texture>
+        <Texture>
+            <Name>ScreenPlaceHolder</Name>
+            <TextureType>T2D</TextureType>
+            <InternalFormat>RGBA</InternalFormat>
+            <Format>RGBA</Format>
+            <DataType>UNSIGNED_BYTE</DataType>
+            <Height>1</Height>
+            <Width>1</Width>
+            <HeightOption/>
+            <WidthOption/>
+            <Depth>0</Depth>
+            <borderColor>
+                <R>0</R>
+                <G>0</G>
+                <B>0</B>
+                <A>0</A>
+            </borderColor>
+            <BorderColorSet>False</BorderColorSet>
+            <TextureSerializeID>15</TextureSerializeID>
+            <FilterMode>LINEAR</FilterMode>
+            <WrapModes>
+                <S>NONE</S>
+                <T>NONE</T>
+                <R>NONE</R>
+            </WrapModes>
+        </Texture>
+        <Texture>
+            <Name>VoidDepthPlaceHolder</Name>
+            <TextureType>T2D</TextureType>
+            <InternalFormat>DEPTH</InternalFormat>
+            <Format>DEPTH</Format>
+            <DataType>UNSIGNED_BYTE</DataType>
+            <Height>1</Height>
+            <Width>1</Width>
+            <HeightOption/>
+            <WidthOption/>
+            <Depth>0</Depth>
+            <borderColor>
+                <R>0</R>
+                <G>0</G>
+                <B>0</B>
+                <A>0</A>
+            </borderColor>
+            <BorderColorSet>False</BorderColorSet>
+            <TextureSerializeID>16</TextureSerializeID>
+            <FilterMode>LINEAR</FilterMode>
+            <WrapModes>
+                <S>NONE</S>
+                <T>NONE</T>
+                <R>NONE</R>
+            </WrapModes>
+        </Texture>
     </Textures>
     <Stages>
         <StageInformation>
@@ -224,19 +346,25 @@
                     <Name>All directional shadows</Name>
                     <Index>0</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/ShadowMapDirectional/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/ShadowMapDirectional/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/ShadowMapDirectional/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <FragmentShader>./Data/Shaders/ShadowMapDirectional/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
-            <Clear>False</Clear>
+            <Clear>True</Clear>
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>4096</DefaultRenderHeight>
                 <DefaultRenderWidth>4096</DefaultRenderWidth>
+                <RenderHeightOption>shadowMapDirectionalHeight</RenderHeightOption>
+                <RenderWidthOption>shadowMapDirectionalWidth</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>False</ColorAttachment>
+                <DepthAttachment>True</DepthAttachment>
+                <DepthTestEnabled>True</DepthTestEnabled>
+                <DepthWriteEnabled>True</DepthWriteEnabled>
+                <ScissorEnabled>False</ScissorEnabled>
                 <ToScreen>False</ToScreen>
                 <CullMode>FRONT</CullMode>
                 <Inputs/>
@@ -251,10 +379,10 @@
                     <Name>All point shadows</Name>
                     <Index>0</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/ShadowMapPoint/vertex.glsl</VertexShader>
-                        <GeometryShader>./Engine/Shaders/ShadowMapPoint/geometry.glsl</GeometryShader>
-                        <FragmentShader>./Engine/Shaders/ShadowMapPoint/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <VertexShader>./Data/Shaders/ShadowMapPoint/vertex.glsl</VertexShader>
+                        <GeometryShader>./Data/Shaders/ShadowMapPoint/geometry.glsl</GeometryShader>
+                        <FragmentShader>./Data/Shaders/ShadowMapPoint/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -262,10 +390,16 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>512</DefaultRenderHeight>
                 <DefaultRenderWidth>512</DefaultRenderWidth>
+                <RenderHeightOption>shadowMapPointWidth</RenderHeightOption>
+                <RenderWidthOption>shadowMapPointWidth</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>False</ColorAttachment>
+                <DepthAttachment>True</DepthAttachment>
+                <DepthTestEnabled>True</DepthTestEnabled>
+                <DepthWriteEnabled>True</DepthWriteEnabled>
+                <ScissorEnabled>False</ScissorEnabled>
                 <ToScreen>False</ToScreen>
-                <CullMode>FRONT</CullMode>
+                <CullMode>BACK</CullMode>
                 <Inputs/>
                 <Outputs>
                     <Output Attachment="DEPTH" textureID="2"/>
@@ -275,57 +409,69 @@
         <StageInformation>
             <RenderMethods>
                 <Method>
-                    <Name>Render Animated Player Attachment</Name>
+                    <Name>Render Opaque Player Attachment</Name>
                     <Index>0</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/ModelAnimated/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/Model/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/ModelAnimated/fragment.glsl</FragmentShader>
+                        <FragmentShader>./Data/Shaders/Model/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
+                        <PresetValues>
+                            <Uniform Name="pre_shadowPoint">30</Uniform>
+                            <Uniform Name="pre_shadowDirectional">31</Uniform>
+                        </PresetValues>
                     </GraphicsProgram>
                 </Method>
                 <Method>
-                    <Name>Render Opaque Player Attachment</Name>
+                    <Name>Render Animated Player Attachment</Name>
                     <Index>1</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/Model/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/ModelAnimated/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/Model/fragment.glsl</FragmentShader>
+                        <FragmentShader>./Data/Shaders/ModelAnimated/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
+                        <PresetValues>
+                            <Uniform Name="pre_shadowPoint">30</Uniform>
+                            <Uniform Name="pre_shadowDirectional">31</Uniform>
+                        </PresetValues>
                     </GraphicsProgram>
                 </Method>
                 <Method>
                     <Name>Render Opaque Objects</Name>
                     <Index>2</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/Model/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/Model/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/Model/fragment.glsl</FragmentShader>
+                        <FragmentShader>./Data/Shaders/Model/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
+                        <PresetValues>
+                            <Uniform Name="pre_shadowPoint">30</Uniform>
+                            <Uniform Name="pre_shadowDirectional">31</Uniform>
+                        </PresetValues>
                     </GraphicsProgram>
                 </Method>
                 <Method>
                     <Name>Render Animated Objects</Name>
                     <Index>3</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/ModelAnimated/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/ModelAnimated/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/ModelAnimated/fragment.glsl</FragmentShader>
+                        <FragmentShader>./Data/Shaders/ModelAnimated/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
+                        <PresetValues>
+                            <Uniform Name="pre_shadowPoint">30</Uniform>
+                            <Uniform Name="pre_shadowDirectional">31</Uniform>
+                        </PresetValues>
                     </GraphicsProgram>
-                </Method>
-                <Method ProgramNull="True">
-                    <Name>Render Debug Information</Name>
-                    <Index>4</Index>
                 </Method>
                 <Method>
                     <Name>Render Sky</Name>
-                    <Index>5</Index>
+                    <Index>4</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/SkyCube/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/SkyCube/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/SkyCube/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <FragmentShader>./Data/Shaders/SkyCube/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -333,13 +479,17 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
+                <RenderHeightOption>screenHeight</RenderHeightOption>
+                <RenderWidthOption>screenWidth</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
+                <DepthAttachment>True</DepthAttachment>
+                <DepthTestEnabled>True</DepthTestEnabled>
+                <DepthWriteEnabled>True</DepthWriteEnabled>
+                <ScissorEnabled>False</ScissorEnabled>
                 <ToScreen>False</ToScreen>
                 <CullMode>BACK</CullMode>
                 <Inputs>
-                    <Input Index="28" textureID="8"/>
-                    <Input Index="29" textureID="6"/>
                     <Input Index="30" textureID="2"/>
                     <Input Index="31" textureID="1"/>
                 </Inputs>
@@ -357,14 +507,13 @@
                     <Name>SSAOKernelRenderMethod</Name>
                     <Index>0</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/SSAOGeneration/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/SSAOGeneration/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/SSAOGeneration/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <FragmentShader>./Data/Shaders/SSAOGeneration/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
                         <PresetValues>
-                            <Uniform Name="ssaoNoiseSampler">3</Uniform>
-                            <Uniform Name="pre_depthMap">1</Uniform>
-                            <Uniform Name="pre_normalMap">2</Uniform>
+                            <Uniform Name="pre_depthMap">2</Uniform>
+                            <Uniform Name="pre_normalMap">1</Uniform>
                         </PresetValues>
                     </GraphicsProgram>
                 </Method>
@@ -373,14 +522,19 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
+                <RenderHeightOption>SSAOHeight</RenderHeightOption>
+                <RenderWidthOption>SSAOWidth</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
+                <DepthAttachment>False</DepthAttachment>
+                <DepthTestEnabled>False</DepthTestEnabled>
+                <DepthWriteEnabled>False</DepthWriteEnabled>
+                <ScissorEnabled>False</ScissorEnabled>
                 <ToScreen>False</ToScreen>
-                <CullMode>NO_CHANGE</CullMode>
+                <CullMode>BACK</CullMode>
                 <Inputs>
-                    <Input Index="1" textureID="6"/>
-                    <Input Index="2" textureID="5"/>
-                    <Input Index="3" textureID="8"/>
+                    <Input Index="1" textureID="5"/>
+                    <Input Index="2" textureID="6"/>
                 </Inputs>
                 <Outputs>
                     <Output Attachment="COLOR1" textureID="7"/>
@@ -393,10 +547,10 @@
                     <Name>Render quad</Name>
                     <Index>0</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/SSAOBlur/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/SSAOBlur/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/SSAOBlur/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <FragmentShader>./Data/Shaders/SSAOBlur/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
                         <PresetValues>
                             <Uniform Name="pre_ssaoResult">1</Uniform>
                         </PresetValues>
@@ -407,10 +561,16 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
+                <RenderHeightOption>SSAOHeight</RenderHeightOption>
+                <RenderWidthOption>SSAOWidth</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
+                <DepthAttachment>False</DepthAttachment>
+                <DepthTestEnabled>False</DepthTestEnabled>
+                <DepthWriteEnabled>False</DepthWriteEnabled>
+                <ScissorEnabled>False</ScissorEnabled>
                 <ToScreen>False</ToScreen>
-                <CullMode>NO_CHANGE</CullMode>
+                <CullMode>BACK</CullMode>
                 <Inputs>
                     <Input Index="1" textureID="7"/>
                 </Inputs>
@@ -425,15 +585,15 @@
                     <Name>Render quad</Name>
                     <Index>0</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/CombineColorsWithSSAO/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <FragmentShader>./Data/Shaders/CombineColorsWithSSAO/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
                         <PresetValues>
-                            <Uniform Name="pre_ambient">2</Uniform>
-                            <Uniform Name="pre_diffuseSpecularLighted">1</Uniform>
                             <Uniform Name="pre_depthMap">4</Uniform>
-                            <Uniform Name="pre_ssao">3</Uniform>
+                            <Uniform Name="pre_diffuseSpecularLighted">3</Uniform>
+                            <Uniform Name="pre_ambient">2</Uniform>
+                            <Uniform Name="pre_ssao">1</Uniform>
                         </PresetValues>
                     </GraphicsProgram>
                 </Method>
@@ -442,14 +602,20 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
+                <RenderHeightOption>screenHeight</RenderHeightOption>
+                <RenderWidthOption>screenWidth</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
+                <DepthAttachment>True</DepthAttachment>
+                <DepthTestEnabled>True</DepthTestEnabled>
+                <DepthWriteEnabled>True</DepthWriteEnabled>
+                <ScissorEnabled>True</ScissorEnabled>
                 <ToScreen>True</ToScreen>
-                <CullMode>NO_CHANGE</CullMode>
+                <CullMode>BACK</CullMode>
                 <Inputs>
-                    <Input Index="1" textureID="3"/>
+                    <Input Index="1" textureID="9"/>
                     <Input Index="2" textureID="4"/>
-                    <Input Index="3" textureID="9"/>
+                    <Input Index="3" textureID="3"/>
                     <Input Index="4" textureID="6"/>
                 </Inputs>
                 <Outputs/>
@@ -461,66 +627,58 @@
                     <Name>Render Transparent Player Attachment</Name>
                     <Index>0</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/ModelTransparent/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/ModelTransparent/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/ModelTransparent/fragment.glsl</FragmentShader>
+                        <FragmentShader>./Data/Shaders/ModelTransparent/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
+                        <PresetValues>
+                            <Uniform Name="pre_shadowPoint">30</Uniform>
+                            <Uniform Name="pre_shadowDirectional">31</Uniform>
+                        </PresetValues>
                     </GraphicsProgram>
                 </Method>
                 <Method>
                     <Name>Render Transparent Objects</Name>
                     <Index>1</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/ModelTransparent/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/ModelTransparent/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/ModelTransparent/fragment.glsl</FragmentShader>
+                        <FragmentShader>./Data/Shaders/ModelTransparent/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
-                    </GraphicsProgram>
-                </Method>
-                <Method>
-                    <Name>Render Particle Emitters</Name>
-                    <Index>2</Index>
-                    <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/Particles/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/Particles/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
                         <PresetValues>
-                            <Uniform Name="pre_depthMap">1</Uniform>
-                        </PresetValues>
-                    </GraphicsProgram>
-                </Method>
-                <Method>
-                    <Name>Render GPU Particle Emitters</Name>
-                    <Index>3</Index>
-                    <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/GPUParticles/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/GPUParticles/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                        <PresetValues>
-                            <Uniform Name="pre_depthMap">1</Uniform>
+                            <Uniform Name="pre_shadowPoint">30</Uniform>
+                            <Uniform Name="pre_shadowDirectional">31</Uniform>
                         </PresetValues>
                     </GraphicsProgram>
                 </Method>
                 <Method>
                     <Name>Render GUI Texts</Name>
-                    <Index>4</Index>
+                    <Index>2</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/GUIText/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/GUIText/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/GUIText/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <FragmentShader>./Data/Shaders/GUIText/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
                 <Method>
                     <Name>Render GUI Images</Name>
-                    <Index>5</Index>
+                    <Index>3</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/GUIImage/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/GUIImage/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/GUIImage/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <FragmentShader>./Data/Shaders/GUIImage/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
+                    </GraphicsProgram>
+                </Method>
+                <Method>
+                    <Name>Render Debug Information</Name>
+                    <Index>4</Index>
+                    <GraphicsProgram>
+                        <VertexShader>./Data/Shaders/Lines/vertex.glsl</VertexShader>
+                        <GeometryShader></GeometryShader>
+                        <FragmentShader>./Data/Shaders/Lines/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -528,14 +686,19 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
+                <RenderHeightOption>screenHeight</RenderHeightOption>
+                <RenderWidthOption>screenWidth</RenderWidthOption>
                 <BlendEnabled>True</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
+                <DepthAttachment>True</DepthAttachment>
+                <DepthTestEnabled>True</DepthTestEnabled>
+                <DepthWriteEnabled>True</DepthWriteEnabled>
+                <ScissorEnabled>False</ScissorEnabled>
                 <ToScreen>True</ToScreen>
-<!--                <CullMode>NONE</CullMode>-->
-<!--                <DepthTestEnabled>False</DepthTestEnabled>-->
-                <DepthWriteEnabled>False</DepthWriteEnabled>
+                <CullMode>BACK</CullMode>
                 <Inputs>
-                    <Input Index="1" textureID="6"/>
+                    <Input Index="30" textureID="2"/>
+                    <Input Index="31" textureID="1"/>
                 </Inputs>
                 <Outputs/>
             </GraphicsPipelineStage>
@@ -546,9 +709,9 @@
                     <Name>Render Editor</Name>
                     <Index>0</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Engine/Shaders/Model/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/ImGui/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Engine/Shaders/Model/fragment.glsl</FragmentShader>
+                        <FragmentShader>./Data/Shaders/ImGui/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
@@ -557,8 +720,13 @@
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1080</DefaultRenderHeight>
                 <DefaultRenderWidth>1920</DefaultRenderWidth>
+                <RenderHeightOption>screenHeight</RenderHeightOption>
+                <RenderWidthOption>screenWidth</RenderWidthOption>
                 <BlendEnabled>True</BlendEnabled>
                 <ColorAttachment>True</ColorAttachment>
+                <DepthAttachment>True</DepthAttachment>
+                <DepthTestEnabled>True</DepthTestEnabled>
+                <DepthWriteEnabled>True</DepthWriteEnabled>
                 <ScissorEnabled>True</ScissorEnabled>
                 <ToScreen>True</ToScreen>
                 <CullMode>NONE</CullMode>
