@@ -447,7 +447,7 @@ void World::setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRen
                                                                                             currentModel->getTransformation()->getTranslate()));
     if(currentModel->isInLightFrustum(currentLightIndex)) {
         if(currentModel->isAnimated()) {
-            animatedModelsInLightFrustum[currentLightIndex].insert(currentModel);
+            animatedModelsInLightFrustum[currentLightIndex].insert(ModelWithLod(currentModel, getLodLevel(currentModel)));
             animatedModelsInAnyFrustum.insert(currentModel);
         } else {
             if (modelsInLightFrustum[currentLightIndex].find(currentModel->getAssetID()) ==
@@ -507,7 +507,7 @@ void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bo
     } else {
         if (currentModel->isIsInFrustum()) {
             if (currentModel->isAnimated()) {
-                animatedModelsInFrustum.insert(currentModel);
+                animatedModelsInFrustum.insert(ModelWithLod(currentModel, getLodLevel(currentModel)));
                 animatedModelsInAnyFrustum.insert(currentModel);
             } else {
                 if (modelsInCameraFrustum.find(currentModel->getAssetID()) == modelsInCameraFrustum.end()) {
@@ -816,8 +816,8 @@ void World::renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GraphicsPr
 void World::renderAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
     for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
        std::vector<uint32_t> temp;
-       temp.push_back((*modelIterator)->getWorldObjectID());
-        (*modelIterator)->renderWithProgramInstanced(temp, *(renderProgram.get()), 0);
+       temp.push_back((*modelIterator).model->getWorldObjectID());
+        (*modelIterator).model->renderWithProgramInstanced(temp, *(renderProgram.get()), modelIterator->lod);
     }
 }
 
@@ -863,8 +863,8 @@ void World::renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsP
    for (auto animatedModelIterator = animatedModelsInLightFrustum[lightIndex].begin();
         animatedModelIterator != animatedModelsInLightFrustum[lightIndex].end(); ++animatedModelIterator) {
        std::vector<uint32_t> temp;
-       temp.push_back((*animatedModelIterator)->getWorldObjectID());
-       (*animatedModelIterator)->renderWithProgramInstanced(temp, *renderProgram, 0);//FIXME animated models always use lod 0
+       temp.push_back((*animatedModelIterator).model->getWorldObjectID());
+       (*animatedModelIterator).model->renderWithProgramInstanced(temp, *renderProgram, (*animatedModelIterator).lod);
    }
 }
 
