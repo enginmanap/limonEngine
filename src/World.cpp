@@ -456,7 +456,7 @@ void World::setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRen
             }
             uint32_t lod = getLodLevel(currentModel);
             modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()].first.insert(currentModel);
-            modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()].second = std::min(transparentModelsInCameraFrustum[currentModel->getAssetID()].second, lod);
+            modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()].second = std::min(modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()].second, lod);
 
         }
     } else if(removePossible) {
