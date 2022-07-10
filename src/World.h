@@ -599,7 +599,16 @@ public:
 
     uint32_t getLodLevel(PhysicalRenderable *currentRenderable) const {
         uint32_t lod;
-        double distance = glm::length(currentRenderable->getTransformation()->getTranslate() - currentPlayer->getPosition());
+        //find the biggest axis of this object
+        glm::vec3 max = currentRenderable->getAabbMax();
+        glm::vec3 min = currentRenderable->getAabbMin();
+        glm::vec3 playerPosition = currentPlayer->getPosition();
+
+        float dx = std::max(min.x - playerPosition.x, std::max(0.0f, playerPosition.x - max.x));
+        float dy = std::max(min.y - playerPosition.y, std::max(0.0f, playerPosition.y - max.y));
+        float dz = std::max(min.z - playerPosition.z, std::max(0.0f, playerPosition.z - max.z));
+        float distance = std::sqrt(dx*dx + dy*dy + dz*dz);
+
         if(distance > 15) {
             lod = 3;
         } else if(distance > 10) {
