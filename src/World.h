@@ -216,7 +216,7 @@ private:
         {
             return model < rhs.model;
         }
-        ModelWithLod(Model* model) : model(model), lod(3) {}//intentionally not explicit
+        ModelWithLod(Model* model) : model(model), lod(LOWEST_LOD_LEVEL) {}//intentionally not explicit
         ModelWithLod(Model* model, uint32_t lod) : model(model), lod(lod) {}
     };
     std::vector<Model*> updatedModels;
