@@ -49,7 +49,7 @@ $ cd build && make && cp -a ../Data .
 
 Windows platform is compiled using MSYS2. after installing MSYS2 as any Windows application,  open up the msys2-terminal, and install the dependencies:
 ```bash
-$ pacman -S cmake mingw-w64-x86_64-make mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb cmake mingw-w64-x86_64-assimp cmake mingw-w64-x86_64-bullet mingw-w64-x86_64-bullet-debug mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_image mingw-w64-x86_64-tinyxml2 mingw-w64-x86_64-glew mingw-w64-x86_64-glm mingw-w64-x86_64-freetype
+$ pacman -S cmake mingw-w64-x86_64-make mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb cmake mingw-w64-x86_64-assimp cmake mingw-w64-x86_64-bullet mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_image mingw-w64-x86_64-tinyxml2 mingw-w64-x86_64-glew mingw-w64-x86_64-glm mingw-w64-x86_64-freetype
 ```
 
 after that, you can use step 2 - 4 of Ubuntu instructions, on the same terminal.
