@@ -9,6 +9,7 @@
 #include <iostream>
 #include <memory>
 #include <unordered_map>
+#include <cassert>
 #include <API/Graphics/Uniform.h>
 #include <API/Graphics/GraphicsInterface.h>
 #include "Asset.h"
@@ -32,7 +33,7 @@ public:
 #ifdef CEREAL_SUPPORT
     GraphicsProgramAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive) :
     Asset(assetManager, assetID, fileList, binaryArchive) {
-        static_assert(true, "GraphicsProgramAsset doesn't support Cereal Loading");
+        assert(false && "GraphicsProgramAsset doesn't support Cereal Loading");
     }
 #endif
     ~GraphicsProgramAsset() override {
