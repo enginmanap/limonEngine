@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <string>
+#include <cassert>
 #include <SDL2/SDL_image.h>
 
 #include "API/Graphics/GraphicsInterface.h"
@@ -28,7 +29,7 @@ public:
 #ifdef CEREAL_SUPPORT
     CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive) :
     Asset(assetManager, assetID, fileList, binaryArchive) {
-        static_assert(true, "Cubemap doesn't support Cereal Loading");
+        assert(false && "Cubemap doesn't support Cereal Loading");
     }
 #endif
 
