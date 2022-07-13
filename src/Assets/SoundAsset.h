@@ -7,6 +7,7 @@
 
 
 #include "Asset.h"
+#include <cassert>
 
 class SoundAsset : public Asset {
     unsigned int channels;
