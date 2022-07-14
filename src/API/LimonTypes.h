@@ -5,6 +5,8 @@
 #ifndef LIMONENGINE_LIMONTYPES_H
 #define LIMONENGINE_LIMONTYPES_H
 
+#include <cassert>
+
 namespace LimonTypes {
 
     struct Vec2 {
@@ -15,27 +17,24 @@ namespace LimonTypes {
         Vec2(float x, float y) : x(x), y(y) {}
 
         float operator[](int i) const {
+            assert(i == 0 || i == 1 && "Access to undefined element of vector");
             switch (i) {
+                default:
                 case 0:
                     return x;
                 case 1:
                     return y;
-                default:
-                    static_assert(true, "Access to undefined element of vector");
-                    return x;//this is to make static analyzer happy
-
             }
         }
 
         float &operator[](int i) {
+            assert(i == 0 || i == 1 && "Access to undefined element of vector");
             switch (i) {
+                default:
                 case 0:
                     return x;
                 case 1:
                     return y;
-                default:
-                    static_assert(true, "Access to undefined element of vector");
-                    return x;//this is to make static analyzer happy
             }
         }
     };
@@ -50,8 +49,10 @@ namespace LimonTypes {
 
         Vec4(float x, float y, float z) : x(x), y(y), z(z), w(0) {}
 
-        float operator[](int i) const {
+        float operator[](int i) const {{
+            assert(i >= 0 && i < 4 && "Access to undefined element of vector");
             switch (i) {
+                default:
                 case 0:
                     return x;
                 case 1:
@@ -60,14 +61,13 @@ namespace LimonTypes {
                     return z;
                 case 3:
                     return w;
-                default:
-                    static_assert(true, "Access to undefined element of vector");
-                    return x;//this is to make static analyzer happy
             }
         }
 
         float &operator[](int i) {
+            assert(i >= 0 && i < 4 && "Access to undefined element of vector");
             switch (i) {
+                default:
                 case 0:
                     return x;
                 case 1:
@@ -76,9 +76,6 @@ namespace LimonTypes {
                     return z;
                 case 3:
                     return w;
-                default:
-                    static_assert(true, "Access to undefined element of vector");
-                    return x;//this is to make static analyzer happy
             }
         }
 

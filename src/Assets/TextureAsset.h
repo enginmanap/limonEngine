@@ -7,6 +7,7 @@
 
 #include <string>
 #include <iostream>
+#include <cassert>
 #include <SDL2/SDL_image.h>
 #include "API/Graphics/GraphicsInterface.h"
 #include "Graphics/Texture.h"
@@ -24,7 +25,7 @@ public:
 #ifdef CEREAL_SUPPORT
     TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive) :
     Asset(assetManager, assetID, fileList, binaryArchive) {
-        static_assert(true, "TextureAsset doesn't support Cereal Loading");
+        assert(false && "TextureAsset doesn't support Cereal Loading");
     }
 #endif
     ~TextureAsset();
