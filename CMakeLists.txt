@@ -28,6 +28,7 @@ option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 option(ASSIMP_BUILD_TESTS "If the test suite for Assimp is built in addition to the library." OFF)
 option(ASSIMP_INSTALL "Disable this if you want to use assimp as a submodule." OFF)
 option(ASSIMP_NO_EXPORT "Disable Assimp's export functionality." ON)
+option(ASSIMP_WARNINGS_AS_ERRORS "Treat all warnings as errors." OFF)
 
 include(libs/CmakeLists.txt)
 
