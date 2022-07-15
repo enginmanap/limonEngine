@@ -49,7 +49,7 @@ namespace LimonTypes {
 
         Vec4(float x, float y, float z) : x(x), y(y), z(z), w(0) {}
 
-        float operator[](int i) const {{
+        float operator[](int i) const {
             assert(i >= 0 && i < 4 && "Access to undefined element of vector");
             switch (i) {
                 default:
