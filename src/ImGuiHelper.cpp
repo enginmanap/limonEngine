@@ -266,6 +266,10 @@ ImGuiHelper::ImGuiHelper(std::shared_ptr<AssetManager> assetManager, Options* op
 
     context = ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
+    
+    io.Fonts->Clear();
+    io.Fonts->AddFontFromFileTTF("./Data/Fonts/Helvetica-Normal.ttf", 12.f);
+    
     io.KeyMap[ImGuiKey_Tab] = SDLK_TAB;                     // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array.
     io.KeyMap[ImGuiKey_LeftArrow] = SDL_SCANCODE_LEFT;
     io.KeyMap[ImGuiKey_RightArrow] = SDL_SCANCODE_RIGHT;
