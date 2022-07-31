@@ -596,7 +596,7 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
 
     if(stageExtension != nullptr) {
         bool toScreen = false;
-        if (!node->getOutputConnections().empty() && !node->getOutputConnections()[0]->getConnectedNodes().empty()) {
+        if (!node->getOutputConnections().empty()) {
             for (auto connection:node->getOutputConnections()) {
                 for (auto connectedNodes:connection->getConnectedNodes()) {
                     if (connectedNodes->getName() == "Screen") {
