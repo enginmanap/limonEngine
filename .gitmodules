@@ -10,3 +10,6 @@
 [submodule "libs/assimp"]
 	path = libs/assimp
 	url = https://github.com/enginmanap/assimp.git
+[submodule "libs/cityhash"]
+	path = libs/cityhash
+	url = https://github.com/enginmanap/cityhash.git
