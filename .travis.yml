@@ -1,7 +1,7 @@
 sudo: required
 
 language: cpp
-
+dist: focal
 services:
   - docker
 
