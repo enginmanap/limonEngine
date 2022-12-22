@@ -25,9 +25,14 @@ IF (UNIX AND ${CMAKE_VERSION} VERSION_GREATER "3.11.0")
 ENDIF()
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
-option(ASSIMP_BUILD_TESTS "If the test suite for Assimp is built in addition to the library." OFF)
-option(ASSIMP_INSTALL "Disable this if you want to use assimp as a submodule." OFF)
-option(ASSIMP_NO_EXPORT "Disable Assimp's export functionality." ON)
+option(LIBS_EXTERNAL_ASSIMP "Provide external assimp library." OFF)
+
+# suppress new entries if they were deleted and subproject is disabled
+if (NOT LIBS_EXTERNAL_ASSIMP)
+    option(ASSIMP_BUILD_TESTS "If the test suite for Assimp is built in addition to the library." OFF)
+    option(ASSIMP_INSTALL "Disable this if you want to use assimp as a submodule." OFF)
+    option(ASSIMP_NO_EXPORT "Disable Assimp's export functionality." ON)
+endif()
 
 include(libs/CmakeLists.txt)
 
@@ -78,11 +83,10 @@ if (NOT OPENGL_FOUND)
 endif (NOT OPENGL_FOUND)
 
 find_package(Bullet REQUIRED)
-INCLUDE_DIRECTORIES(SYSTEM ${BULLET_INCLUDE_DIRS})
-
 if (NOT BULLET_FOUND)
     message(ERROR " Bullet not found!")
 endif (NOT BULLET_FOUND)
+INCLUDE_DIRECTORIES(SYSTEM ${BULLET_INCLUDE_DIRS})
 
 find_package(glm REQUIRED)
 if (NOT glm_FOUND)
@@ -90,16 +94,41 @@ if (NOT glm_FOUND)
 endif (NOT glm_FOUND)
 INCLUDE_DIRECTORIES(SYSTEM ${GLM_INCLUDE_DIRS})
 
+if (LIBS_EXTERNAL_ASSIMP)
+    set(LIBS_ASSIMP_INCLUDE_DIR "" CACHE PATH "The main include path")
+    set(LIBS_ASSIMP_CONFIG_DIR "" CACHE PATH "The include path with generated config.h")
+    set(LIBS_ASSIMP_LIBRARY_DIR "" CACHE PATH "")
+
+    # Let's leave the choice of usage between system-provided libraries and custom-built
+    if (LIBS_ASSIMP_INCLUDE_DIR STREQUAL "" OR LIBS_ASSIMP_CONFIG_DIR STREQUAL "" OR LIBS_ASSIMP_LIBRARY_DIR STREQUAL "")
+        message(STATUS "Using system Assimp")
+        find_package(assimp REQUIRED)
+        if (NOT assimp_FOUND)
+            message(ERROR " Assimp not found!")
+        endif ()
+        INCLUDE_DIRECTORIES(SYSTEM ${ASSIMP_INCLUDE_DIRS})
+
+        # TODO test on Apple
+        if (APPLE)
+            set(ASSIMP_LIBRARIES "/usr/local/lib/libassimp.5.dylib")
+        endif(APPLE)
+    else()
+        message(STATUS "Using external Assimp")
+        target_include_directories(LimonEngine PRIVATE ${LIBS_ASSIMP_INCLUDE_DIR} ${LIBS_ASSIMP_CONFIG_DIR})
+        target_link_directories(LimonEngine PRIVATE ${LIBS_ASSIMP_LIBRARY_DIR})
+    endif()
+endif()
+
 # Now we are compiling assimp ourself, this is not needed. If you want to try the system version you can use this block
-#find_package(assimp REQUIRED)
-#if (NOT assimp_FOUND)
+# find_package(assimp REQUIRED)
+# if (NOT assimp_FOUND)
 #    message(ERROR " Assimp not found!")
-#endif (NOT assimp_FOUND)
-#INCLUDE_DIRECTORIES(${ASSIMP_INCLUDE_DIRS})
+# endif (NOT assimp_FOUND)
+# INCLUDE_DIRECTORIES(${ASSIMP_INCLUDE_DIRS})
 #
-#if (APPLE)
+# if (APPLE)
 #    set(ASSIMP_LIBRARIES "/usr/local/lib/libassimp.5.dylib")
-#endif(APPLE)
+# endif(APPLE)
 
 add_custom_target(copyData
         COMMAND ${CMAKE_COMMAND} -E copy_directory
