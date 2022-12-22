@@ -119,17 +119,6 @@ if (LIBS_EXTERNAL_ASSIMP)
     endif()
 endif()
 
-# Now we are compiling assimp ourself, this is not needed. If you want to try the system version you can use this block
-# find_package(assimp REQUIRED)
-# if (NOT assimp_FOUND)
-#    message(ERROR " Assimp not found!")
-# endif (NOT assimp_FOUND)
-# INCLUDE_DIRECTORIES(${ASSIMP_INCLUDE_DIRS})
-#
-# if (APPLE)
-#    set(ASSIMP_LIBRARIES "/usr/local/lib/libassimp.5.dylib")
-# endif(APPLE)
-
 add_custom_target(copyData
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/Engine ${CMAKE_BINARY_DIR}/Engine)
