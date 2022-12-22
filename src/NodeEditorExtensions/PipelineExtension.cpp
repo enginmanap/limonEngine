@@ -404,6 +404,7 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
     bool existingScissorTestState = false;
     bool existingDepthReadState = false;
     bool existingDepthWriteState = false;
+    bool existingBlendingState = false;
     for(auto existingNode:existingNodes) {
         auto stageExtension = dynamic_cast<PipelineStageExtension*>(existingNode->getExtension());
         if(stageExtension == nullptr) {
@@ -419,6 +420,7 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
         existingScissorTestState = stageExtension->isScissorTestEnabled();
         existingDepthReadState = stageExtension->isDepthTestEnabled();
         existingDepthWriteState = stageExtension->isDepthWriteEnabled();
+        existingBlendingState = stageExtension->isBlendEnabled();
         for (auto outputConnection:existingNode->getOutputConnections()) {
             auto outputTextureInfo = stageExtension->getOutputTextureInfo(outputConnection);
             if (outputTextureInfo == nullptr) {
@@ -477,8 +479,17 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
         std::cerr << "Failed because DepthWriteState is different" << std::endl;
         return false;
     }
+    if(existingDepthWriteState != currentStageExtension->isDepthWriteEnabled()) {
+        std::cerr << "Failed because DepthWriteState is different" << std::endl;
+        return false;
+    }
+    if(existingBlendingState != currentStageExtension->isBlendEnabled()) {
+        std::cerr << "Failed because BlendState is different" << std::endl;
+        return false;
+    }
 
-return true;
+
+    return true;
 }
 
 /**
@@ -596,7 +607,7 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
 
     if(stageExtension != nullptr) {
         bool toScreen = false;
-        if (!node->getOutputConnections().empty() && !node->getOutputConnections()[0]->getConnectedNodes().empty()) {
+        if (!node->getOutputConnections().empty()) {
             for (auto connection:node->getOutputConnections()) {
                 for (auto connectedNodes:connection->getConnectedNodes()) {
                     if (connectedNodes->getName() == "Screen") {
@@ -747,6 +758,8 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                 stageInfo->addRenderMethod(functionToCall);
             } else {
                 std::cerr << "Selected method name is invalid!" << std::endl;
+                addError("Selected method name in node " + node->getDisplayName()+ " is invalid!");
+                return false;
             }
         }
         nodeStages[node] = stageInfo;//contains newStage

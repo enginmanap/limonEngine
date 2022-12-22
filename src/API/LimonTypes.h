@@ -17,7 +17,7 @@ namespace LimonTypes {
         Vec2(float x, float y) : x(x), y(y) {}
 
         float operator[](int i) const {
-            assert(i == 0 || i == 1 && "Access to undefined element of vector");
+            assert((i == 0 || i == 1) && "Access to undefined element of vector");
             switch (i) {
                 default:
                 case 0:
@@ -28,7 +28,7 @@ namespace LimonTypes {
         }
 
         float &operator[](int i) {
-            assert(i == 0 || i == 1 && "Access to undefined element of vector");
+            assert((i == 0 || i == 1) && "Access to undefined element of vector");
             switch (i) {
                 default:
                 case 0:
@@ -50,7 +50,7 @@ namespace LimonTypes {
         Vec4(float x, float y, float z) : x(x), y(y), z(z), w(0) {}
 
         float operator[](int i) const {
-            assert(i >= 0 && i < 4 && "Access to undefined element of vector");
+            assert((i >= 0 && i < 4) && "Access to undefined element of vector");
             switch (i) {
                 default:
                 case 0:
@@ -65,7 +65,7 @@ namespace LimonTypes {
         }
 
         float &operator[](int i) {
-            assert(i >= 0 && i < 4 && "Access to undefined element of vector");
+            assert((i >= 0 && i < 4) && "Access to undefined element of vector");
             switch (i) {
                 default:
                 case 0:

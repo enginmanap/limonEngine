@@ -187,7 +187,7 @@ private:
 
 public:
     RenderMethod getRenderMethod(GraphicsInterface* graphicsInterface, const std::string& methodName, const std::shared_ptr<GraphicsProgram>& glslProgram, bool& isFound) const {
-        uint32_t priority = 0;
+        uint32_t priority = 999;
         //First check if we already created an instance
         if(dynamicRenderMethodInstances.find(methodName) == dynamicRenderMethodInstances.end()) {
             //create an instance for usage

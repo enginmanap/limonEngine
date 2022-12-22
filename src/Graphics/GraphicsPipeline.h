@@ -44,6 +44,7 @@ public:
     }
 
     struct StageInfo {
+        int highestPriority = 999;//keeps the highest priority, used for render ordering, which is lower. priority 1 is higher priority then priority 10.
         std::shared_ptr<GraphicsPipelineStage> stage;
         bool clear = false;
         std::vector<RenderMethods::RenderMethod> renderMethods;
@@ -56,6 +57,7 @@ public:
                     return;
                 }
             }
+            highestPriority = method.getPriority();
             renderMethods.emplace_back(method);
         }
 
@@ -74,7 +76,14 @@ public:
     };
 
     void addNewStage(const StageInfo& stageInformation) {
-        pipelineStages.push_back(stageInformation);
+        //we need to sort based on priority
+        for (auto stageInfo = pipelineStages.rbegin(); stageInfo != pipelineStages.rend(); ++stageInfo ) {
+            if(stageInfo->highestPriority <= stageInformation.highestPriority) {
+                pipelineStages.insert(stageInfo.base(), stageInformation);//oddly, reverse iterator base is pointing to after the iterator
+                return;
+            }
+        }
+        pipelineStages.insert(pipelineStages.begin(),stageInformation);//if not found, it means that should be inserted to beginning
     }
 
     void addTexture(const std::shared_ptr<Texture>& texture) {
