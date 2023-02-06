@@ -50,7 +50,9 @@ add_subdirectory("libs/OpenAL-Soft/")
 
 add_subdirectory("libs/meshoptimizer/")
 
-add_subdirectory("libs/assimp/")
+if (NOT LIBS_EXTERNAL_ASSIMP)
+    add_subdirectory("libs/assimp/")
+endif()
 
 include_directories("libs/Cereal/include/")
 
