@@ -23,8 +23,7 @@ public:
 private:
     GraphicsInterface* graphicsWrapper;
     glm::mat4 shadowMatrices[6];//these are used only for point lights for now
-    glm::mat4 lightSpaceMatrix;
-// and this is used only for directional lights
+    glm::mat4 lightSpaceMatrix;// and this is used only for directional lights
     std::vector<glm::vec4> frustumPlanes;
 
     uint32_t objectID;
@@ -35,6 +34,7 @@ private:
     float activeDistance = 10;//will auto recalculate on constructor
     LightTypes lightType;
     bool frustumChanged = true;
+
     void setShadowMatricesForPosition(){
         shadowMatrices[0] =graphicsWrapper->getLightProjectionMatrixPoint() *
                            glm::lookAt(position, position + glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0));
@@ -51,6 +51,8 @@ private:
     }
 
     void calculateActiveDistance();
+
+    void updateLightView();
 
 public:
     Light(GraphicsInterface* graphicsWrapper, uint32_t objectID, LightTypes lightType, const glm::vec3 &position,
@@ -136,11 +138,11 @@ public:
         return objectID;
     };
 
-    ObjectTypes getTypeID() const {
+    ObjectTypes getTypeID() const override {
         return GameObject::LIGHT;
     };
 
-    std::string getName() const {
+    std::string getName() const override {
         std::string goName;
         switch (this->lightType) {
             case Light::DIRECTIONAL:
@@ -155,11 +157,8 @@ public:
         return goName;
     };
 
-    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
     /************Game Object methods **************/
-
-    void updateLightView();
-
 
     glm::vec3 getAttenuation() const {
         return attenuation;

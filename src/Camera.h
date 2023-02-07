@@ -48,11 +48,11 @@ public:
         return cameraAttachment->isDirty();
     }
 
-    glm::vec3 const getPosition() const {
+    glm::vec3 const& getPosition() const {
         return position;
     }
 
-    glm::vec3 const getCenter() const {
+    glm::vec3 const& getCenter() const {
         return center;
     }
 
