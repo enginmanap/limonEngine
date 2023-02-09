@@ -6,7 +6,7 @@
 #include "Editor.h"
 #include "World.h"
 #include "ImGuiHelper.h"
-#include "Camera.h"
+#include "Camera/PerspectiveCamera.h"
 #include "GameObjects/Model.h"
 #include "GameObjects/ModelGroup.h"
 #include "GameObjects/Players/PhysicalPlayer.h"

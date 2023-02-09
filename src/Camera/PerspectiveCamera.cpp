@@ -2,10 +2,10 @@
 // Created by Engin Manap on 17.02.2016.
 //
 
-#include "Camera.h"
+#include "PerspectiveCamera.h"
 
 
-Camera::Camera(Options *options, CameraAttachment* cameraAttachment) :
+PerspectiveCamera::PerspectiveCamera(Options *options, CameraAttachment* cameraAttachment) :
         position(startPosition),
         center(glm::vec3(0, 0, -1)),
         up(glm::vec3(0, 1, 0)),

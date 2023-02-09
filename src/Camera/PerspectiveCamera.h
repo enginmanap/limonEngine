@@ -2,8 +2,8 @@
 // Created by Engin Manap on 17.02.2016.
 //
 
-#ifndef LIMONENGINE_CAMERA_H
-#define LIMONENGINE_CAMERA_H
+#ifndef LIMONENGINE_PERSPECTIVECAMERA_H
+#define LIMONENGINE_PERSPECTIVECAMERA_H
 
 
 #include <btBulletDynamicsCommon.h>
@@ -20,7 +20,7 @@
 #include "CameraAttachment.h"
 
 
-class Camera {
+class PerspectiveCamera {
     const glm::vec3 startPosition = glm::vec3(0, 10, 15);
     glm::vec3 position, center, up, right;
     glm::quat view;
@@ -30,10 +30,10 @@ class Camera {
     Options *options;
 public:
 
-    Camera(Options *options, CameraAttachment* cameraAttachment);
+    PerspectiveCamera(Options *options, CameraAttachment* cameraAttachment);
 
     void setCameraAttachment(CameraAttachment *cameraAttachment) {
-        Camera::cameraAttachment = cameraAttachment;
+        PerspectiveCamera::cameraAttachment = cameraAttachment;
     }
 
     glm::mat4 getCameraMatrix() {
@@ -63,4 +63,4 @@ public:
 };
 
 
-#endif //LIMONENGINE_CAMERA_H
+#endif //LIMONENGINE_PERSPECTIVECAMERA_H

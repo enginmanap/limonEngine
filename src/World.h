@@ -27,7 +27,7 @@ static const int LOWEST_LOD_LEVEL = 3;
 #include "Graphics/GraphicsPipeline.h"
 #include "PhysicalRenderable.h"
 class btGhostPairCallback;
-class Camera;
+class PerspectiveCamera;
 class Model;
 class BulletDebugDrawer;
 
@@ -275,7 +275,7 @@ private:
     Player* beforePlayer = nullptr;
     const Player::WorldSettings* currentPlayersSettings = nullptr;
 
-    Camera* camera;
+    PerspectiveCamera* camera;
     BulletDebugDrawer *debugDrawer;
     GameObject::ImGuiRequest* request = nullptr;
 
