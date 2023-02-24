@@ -688,6 +688,7 @@ void OpenGLGraphics::updateVertexTextureCoordinates(const std::vector<glm::vec2>
 void
 OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t frameBufferID, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled,
                                   bool clearColor, bool clearDepth, CullModes cullMode, std::map<uint32_t, std::shared_ptr<Texture>> &inputs, const std::string &name) {
+    popDebugGroup();
     pushDebugGroup(name);
     glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
@@ -738,7 +739,6 @@ OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fram
         glDisablei(GL_BLEND, 0);
     }
     checkErrors("switchRenderStage");
-    popDebugGroup();
 }
 
 
@@ -747,6 +747,7 @@ OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fram
                                   bool clearColor, bool clearDepth, CullModes cullMode, const std::map<uint32_t, std::shared_ptr<Texture>> &inputs,
                                   const std::map<std::shared_ptr<Texture>,
                                           std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap, const std::string &name) {
+    popDebugGroup();
     pushDebugGroup(name);
     //now we should change attachments based on the layer information we got
     for (auto attachmentLayerIt = attachmentLayerMap.begin(); attachmentLayerIt != attachmentLayerMap.end(); ++attachmentLayerIt) {
@@ -801,7 +802,6 @@ OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fram
         glDisablei(GL_BLEND, 0);
     }
     checkErrors("switchRenderStageLayer");
-    popDebugGroup();
 }
 
 void OpenGLGraphics::render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount, const uint32_t* startIndex) {
