@@ -442,9 +442,7 @@ void World::setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRen
     Model* currentModel = dynamic_cast<Model*>(PhysicalRenderable);
     assert(currentModel != nullptr);
     currentModel->setIsInLightFrustum(currentLightIndex,
-                                      activeLights[currentLightIndex]->isShadowCaster(currentModel->getAabbMin(),
-                                                                                            currentModel->getAabbMax(),
-                                                                                            currentModel->getTransformation()->getTranslate()));
+                                      activeLights[currentLightIndex]->isShadowCaster(*currentModel));
     if(currentModel->isInLightFrustum(currentLightIndex)) {
         if(currentModel->isAnimated()) {
             animatedModelsInLightFrustum[currentLightIndex].insert(ModelWithLod(currentModel, getLodLevel(currentModel)));
@@ -486,7 +484,7 @@ void World::setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRen
 void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bool removePossible) {
     Model* currentModel = dynamic_cast<Model*>(PhysicalRenderable);
     assert(currentModel != nullptr);
-    currentModel->setIsInFrustum(graphicsWrapper->isInFrustum(currentModel->getAabbMin(), currentModel->getAabbMax()));
+    currentModel->setIsInFrustum(camera->isVisible(*currentModel));
     if(currentModel->isTransparent()) {
         if(currentModel->isIsInFrustum()) {
             if (transparentModelsInCameraFrustum.find(currentModel->getAssetID()) == transparentModelsInCameraFrustum.end()) {
@@ -1195,7 +1193,7 @@ void World::setSky(SkyBox *skyBox) {
 
 void World::addLight(Light *light) {
     this->lights.push_back(light);
-    if(light->getLightType() == Light::DIRECTIONAL) {
+    if(light->getLightType() == Light::LightTypes::DIRECTIONAL) {
         directionalLightIndex = (uint32_t)lights.size()-1;
     }
     updateActiveLights(false);
@@ -2977,7 +2975,7 @@ void World::updateActiveLights(bool forceUpdate) {
                 currentLight->getPosition(),
                 currentLight->getColor(),
                 currentLight->getAmbientColor(),
-                currentLight->getLightType(),
+                static_cast<int>(currentLight->getLightType()),
                 currentLight->getActiveDistance()
                 );
     }

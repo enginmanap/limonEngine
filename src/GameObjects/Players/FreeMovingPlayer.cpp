@@ -9,6 +9,7 @@ void FreeMovingPlayer::move(moveDirections direction) {
     if (direction == NONE) {
         return;
     }
+    dirty = true;
 
     switch (direction) {
         case UP:
@@ -43,6 +44,7 @@ void FreeMovingPlayer::move(moveDirections direction) {
 }
 
 void FreeMovingPlayer::rotate(float xPosition [[gnu::unused]], float yPosition [[gnu::unused]], float xChange, float yChange) {
+    dirty = true;
     glm::quat viewChange;
     float lookAroundSpeedX = options->getLookAroundSpeed();
     //scale look around speed with the abs(center.y). for 1 -> look around 0, for 0 -> lookaround 1.

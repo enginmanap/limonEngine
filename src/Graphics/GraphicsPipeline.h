@@ -77,13 +77,16 @@ public:
 
     void addNewStage(const StageInfo& stageInformation) {
         //we need to sort based on priority
+        /*
         for (auto stageInfo = pipelineStages.rbegin(); stageInfo != pipelineStages.rend(); ++stageInfo ) {
             if(stageInfo->highestPriority <= stageInformation.highestPriority) {
                 pipelineStages.insert(stageInfo.base(), stageInformation);//oddly, reverse iterator base is pointing to after the iterator
                 return;
             }
         }
-        pipelineStages.insert(pipelineStages.begin(),stageInformation);//if not found, it means that should be inserted to beginning
+        */
+        pipelineStages.push_back(stageInformation);
+        //pipelineStages.insert(pipelineStages.begin(),stageInformation);//if not found, it means that should be inserted to beginning
     }
 
     void addTexture(const std::shared_ptr<Texture>& texture) {

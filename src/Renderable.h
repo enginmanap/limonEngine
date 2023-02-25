@@ -73,6 +73,9 @@ public:
     Transformation* getTransformation() {
         return &transformation;
     }
+    Transformation const * getTransformation() const {
+        return &transformation;
+    }
 
     void setCustomAnimation(bool customAnimation) {
         this->customAnimation = customAnimation;

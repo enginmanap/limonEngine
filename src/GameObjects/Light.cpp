@@ -44,7 +44,7 @@ void Light::calculateActiveDistance() {
 }
 
 void Light::step(long time [[gnu::unused]]) {
-    if(lightType == DIRECTIONAL) {
+    if(lightType == LightTypes::DIRECTIONAL) {
         updateLightView();
     }
 }
@@ -55,26 +55,27 @@ void Light::updateLightView() {
 
     glm::mat4 lightView = lookAt(renderPosition,
                                  playerPos,
-                                 glm::vec3(0.0f, 1.0f, 0.0f));
+                                 UP);
 
-    lightSpaceMatrix = graphicsWrapper->getLightProjectionMatrixDirectional() * lightView;
-
-    graphicsWrapper->calculateFrustumPlanes(lightView, graphicsWrapper->getLightProjectionMatrixDirectional(), frustumPlanes);
+    directionalCamera->getCameraMatrix();
     frustumChanged = true;
 }
 
-const glm::mat4 &Light::getLightSpaceMatrix() const {
-    return lightSpaceMatrix;
+const glm::mat4 Light::getLightSpaceMatrix() const {
+    if(this->lightType == LightTypes::DIRECTIONAL) {
+        return directionalCamera->getCameraMatrix();
+    }
+    return glm::mat4(1.0);//for point lights, this is useless
 }
 
 void Light::setPosition(glm::vec3 position) {
     this->position = position;
     switch (lightType) {
-        case NONE:
+        case LightTypes::NONE:
             return;
-        case POINT: setShadowMatricesForPosition();
+        case LightTypes::POINT: setShadowMatricesForPosition();
             break;
-        case DIRECTIONAL: updateLightView();
+        case LightTypes::DIRECTIONAL: updateLightView();
         break;
     }
 }

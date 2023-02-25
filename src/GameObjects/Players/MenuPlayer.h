@@ -26,11 +26,15 @@ public:
     MenuPlayer(Options* options, GUIRenderable* cursor, const glm::vec3 &position,
                const glm::vec3 &lookDirection);
 
-    bool isDirty() {
+    bool isDirty() const override {
         return dirty;
     }
 
-    void getCameraVariables(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right) {
+    void clearDirty() override {
+        this->dirty = false;
+    }
+
+    void getCameraVariables(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right) override {
         position = this->position;
         center = this->center;
         up = this->up;

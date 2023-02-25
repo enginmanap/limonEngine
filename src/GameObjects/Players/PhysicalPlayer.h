@@ -110,10 +110,15 @@ public:
 
     void processPhysicsWorld(const btDiscreteDynamicsWorld *world);
 
-    bool isDirty() {
-        return dirty;//FIXME this always returns true because nothing sets it false;
+    bool isDirty() const override {
+        return dirty;
     }
-    void getCameraVariables(glm::vec3& position, glm::vec3 &center, glm::vec3& up, glm::vec3& right) {
+
+    void clearDirty() override {
+        this->dirty = false;
+    }
+
+    void getCameraVariables(glm::vec3& position, glm::vec3 &center, glm::vec3& up, glm::vec3& right) override {
         position = GLMConverter::BltToGLM(this->getRigidBody()->getWorldTransform().getOrigin());
         position.y += 1.0f;//for putting the camera up portion of capsule
         center = this->center;

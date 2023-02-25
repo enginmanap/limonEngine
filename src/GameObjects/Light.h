@@ -9,29 +9,32 @@
 #include <glm/gtx/norm.hpp>
 #include "glm/glm.hpp"
 #include "GameObject.h"
+#include "CameraAttachment.h"
 #include "API/Graphics/GraphicsInterface.h"
 #include "../../libs/ImGui/imgui.h"
 #include "../../libs/ImGuizmo/ImGuizmo.h"
+#include "../Camera/OrthographicCamera.h"
 
-class Light : public GameObject {
+class Light : public GameObject, public CameraAttachment {
 public:
-    enum LightTypes {
+    enum class LightTypes {
         NONE, DIRECTIONAL, POINT
     };
-    const glm::mat4 &getLightSpaceMatrix() const;
+    const glm::mat4 getLightSpaceMatrix() const;
 
 private:
     GraphicsInterface* graphicsWrapper;
     glm::mat4 shadowMatrices[6];//these are used only for point lights for now
-    glm::mat4 lightSpaceMatrix;// and this is used only for directional lights
-    std::vector<glm::vec4> frustumPlanes;
 
     uint32_t objectID;
     glm::vec3 position, color;
-    glm::vec3 renderPosition;
+    const glm::vec3 CENTER =  glm::vec3(0.0f, 0.0f, 0.0f);
+    const glm::vec3 UP = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 renderPosition; //for directional lights, moves with player.
     glm::vec3 attenuation = glm::vec3(1,0.1,0.01);//const, linear, exponential
     glm::vec3 ambientColor = glm::vec3(0,0,0); //this will be added to all objects on shading phase
     float activeDistance = 10;//will auto recalculate on constructor
+    OrthographicCamera* directionalCamera;
     LightTypes lightType;
     bool frustumChanged = true;
 
@@ -68,11 +71,12 @@ public:
         setShadowMatricesForPosition();
 
         glm::mat4 lightView = glm::lookAt(this->position,
-                                          glm::vec3(0.0f, 0.0f, 0.0f),
-                                          glm::vec3(0.0f, 1.0f, 0.0f));
-
-        this->frustumPlanes.resize(6);
-        graphicsWrapper->calculateFrustumPlanes(lightView, graphicsWrapper->getLightProjectionMatrixDirectional(), this->frustumPlanes);
+                                          CENTER,
+                                          UP);
+        if(lightType == LightTypes::DIRECTIONAL) {
+            directionalCamera = new OrthographicCamera(graphicsWrapper->getOptions(), this);
+            directionalCamera->getCameraMatrix();
+        }
         if(lightType == LightTypes::POINT) {
             calculateActiveDistance();
         }
@@ -112,22 +116,19 @@ public:
         Light::frustumChanged = frustumChanged;
     }
 
-    const std::vector<glm::vec4>& getFrustumPlanes() const {
-        return frustumPlanes;
-    }
 
-    bool isShadowCaster(const glm::vec3& aabbMin, const glm::vec3& aabbMax, const glm::vec3& position) const {
+    bool isShadowCaster(const PhysicalRenderable& physicalRenderable) const {
         //there are 2 possibilities.
         // 1) if directional light -> check if in frustum
         // 2) point light -> check if within range
 
         switch (this->lightType) {
-            case NONE:
+            case LightTypes::NONE:
                 return false;
-            case DIRECTIONAL:
-                return graphicsWrapper->isInFrustum(aabbMin, aabbMax, this->frustumPlanes);
-            case POINT:
-            return (glm::distance2(position, this->position) < activeDistance * activeDistance);
+            case LightTypes::DIRECTIONAL:
+                return directionalCamera->isVisible(physicalRenderable);
+            case LightTypes::POINT:
+            return (glm::distance2(physicalRenderable.getTransformation()->getTranslate(), this->position) < activeDistance * activeDistance);
         }
         return true;//for safety only
     }
@@ -145,10 +146,10 @@ public:
     std::string getName() const override {
         std::string goName;
         switch (this->lightType) {
-            case Light::DIRECTIONAL:
+            case LightTypes::DIRECTIONAL:
                 goName = "DIRECTIONAL_" + std::to_string(objectID);
                 break;
-            case Light::POINT:
+            case LightTypes::POINT:
                 goName = "POINT_" + std::to_string(objectID);
                 break;
             default:
@@ -180,6 +181,20 @@ public:
 
     void setAmbientColor(const glm::vec3 &ambientColor) {
         Light::ambientColor = ambientColor;
+    }
+
+    void getCameraVariables(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right) override {
+        position = this->renderPosition;
+        center = this->renderPosition - this->position;
+        up = this->UP;
+    }
+
+    bool isDirty() const override {
+        return this->frustumChanged;
+    }
+
+    void clearDirty() override {
+        this->frustumChanged = false;
     }
 };
 

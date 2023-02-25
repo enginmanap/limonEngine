@@ -62,6 +62,7 @@ void PhysicalPlayer::move(moveDirections direction) {
     if(dead) {
         return;
     }
+    dirty = true;
     if (!positionSet && onAir) {//this is because, if player is just moved from editor etc, we need to process
         return;
     }
@@ -142,6 +143,7 @@ void PhysicalPlayer::rotate(float   xPosition __attribute__((unused)), float yPo
     if(this->dead) {
         return;
     }
+    dirty = true;
     glm::quat viewChange;
     float lookAroundSpeedX = options->getLookAroundSpeed();
     //scale look around speed with the abs(center.y). for 1 -> look around 0, for 0 -> lookaround 1.
@@ -184,6 +186,9 @@ void PhysicalPlayer::rotate(float   xPosition __attribute__((unused)), float yPo
 void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
     onAir = true;//base assumption is we are flying
     player->getMotionState()->getWorldTransform(worldTransformHolder);
+    if(player->getActivationState() == ACTIVE_TAG) {
+        dirty = true; //Happens if player is inadvertently moving, or dead.
+    }
 
     setAttachedModelTransformation(attachedModel);
     btVector3 linearVelocity = player->getLinearVelocity();

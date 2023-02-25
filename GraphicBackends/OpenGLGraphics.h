@@ -477,29 +477,6 @@ public:
         return maxTextureImageUnits;
     }
 
-    void calculateFrustumPlanes(const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix,
-                                std::vector<glm::vec4> &planes) const override;
-
-    inline bool isInFrustum(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const override {
-        return isInFrustum(aabbMin, aabbMax, frustumPlanes);
-    }
-
-    inline bool isInFrustum(const glm::vec3& aabbMin, const glm::vec3& aabbMax, const std::vector<glm::vec4>& frustumPlaneVector) const override {
-        bool inside = true;
-        //test all 6 frustum planes
-        for (int i = 0; i<6; i++) {
-            //pick closest point to plane and check if it behind the plane
-            //if yes - object outside frustum
-            float d =   std::fmax(aabbMin.x * frustumPlaneVector[i].x, aabbMax.x * frustumPlaneVector[i].x)
-                        + std::fmax(aabbMin.y * frustumPlaneVector[i].y, aabbMax.y * frustumPlaneVector[i].y)
-                        + std::fmax(aabbMin.z * frustumPlaneVector[i].z, aabbMax.z * frustumPlaneVector[i].z)
-                        + frustumPlaneVector[i].w;
-            inside &= d > 0;
-            //return false; //with flag works faster
-        }
-        return inside;
-    }
-
     void setMaterial(const Material& material) override;
 
     void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) override;

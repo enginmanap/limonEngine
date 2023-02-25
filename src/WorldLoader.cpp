@@ -664,9 +664,9 @@ bool WorldLoader::loadLights(tinyxml2::XMLNode *lightsNode, World* world) const 
 
         std::string typeString = lightAttribute->GetText();
         if (typeString == "POINT") {
-            type = Light::POINT;
+            type = Light::LightTypes::POINT;
         } else if (typeString == "DIRECTIONAL") {
-            type = Light::DIRECTIONAL;
+            type = Light::LightTypes::DIRECTIONAL;
         } else {
             std::cerr << "Light type is not POINT or DIRECTIONAL. it is " << lightAttribute->GetText() << std::endl;
             return false;

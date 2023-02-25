@@ -57,16 +57,6 @@ public:
     enum class FilterModes {NEAREST, LINEAR, TRILINEAR};
     enum class CullModes {FRONT, BACK, NONE, NO_CHANGE};
 
-    enum FrustumSide
-    {
-        RIGHT	= 0,		// The RIGHT side of the frustum
-        LEFT	= 1,		// The LEFT	 side of the frustum
-        BOTTOM	= 2,		// The BOTTOM side of the frustum
-        TOP		= 3,		// The TOP side of the frustum
-        BACK	= 4,		// The BACK	side of the frustum
-        FRONT	= 5			// The FRONT side of the frustum
-    };
-
 protected:
     friend class Texture;
     friend class RenderMethodInterface;
@@ -183,11 +173,6 @@ public:
                                            std::pair<FrameBufferAttachPoints, int>> &attachmentLayerMap, const std::string &name) = 0;
 
     virtual int getMaxTextureImageUnits() const = 0;
-
-    virtual void calculateFrustumPlanes(const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix,
-                                std::vector<glm::vec4> &planes) const = 0;
-    virtual  bool isInFrustum(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const = 0;
-    virtual bool isInFrustum(const glm::vec3& aabbMin, const glm::vec3& aabbMax, const std::vector<glm::vec4>& frustumPlaneVector) const = 0;
 
     virtual void setMaterial(const Material& material) = 0;
     virtual void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) = 0;

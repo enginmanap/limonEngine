@@ -10,10 +10,12 @@
 
 class CameraAttachment {
 public:
-    virtual bool isDirty() = 0;
+    virtual bool isDirty() const = 0;
+
+    virtual void clearDirty() = 0;
     virtual void getCameraVariables(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right) = 0;
 
-    virtual ~CameraAttachment() {};
+    virtual ~CameraAttachment() = default;
 };
 
 
