@@ -34,7 +34,7 @@ class PerspectiveCamera : public Camera {
 
 public:
 
-    PerspectiveCamera(Options *options, CameraAttachment* cameraAttachment) :
+    PerspectiveCamera(const std::string& name, Options *options, CameraAttachment* cameraAttachment) :
             view(glm::quat(0, 0, 0, -1)),
             position(startPosition),
             center(glm::vec3(0, 0, -1)),
@@ -42,6 +42,7 @@ public:
             right(glm::vec3(-1, 0, 0)),
             cameraAttachment(cameraAttachment),
             options(options){
+        this->name = name;
         cameraTransformMatrix = glm::lookAt(position, position + center, up);
         aspect = float(options->getScreenHeight()) / float(options->getScreenWidth());
         this->frustumPlanes.resize(6);

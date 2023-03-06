@@ -9,6 +9,7 @@
 
 class Camera {
 protected:
+    std::string name;
 
     static void calculateFrustumPlanes(const glm::mat4 &cameraMatrix,
                                        const glm::mat4 &projectionMatrix, std::vector<glm::vec4> &planes) {
@@ -78,6 +79,10 @@ public:
     };
 
     enum class CameraTypes {PERSPECTIVE, ORTHOGRAPHIC, CUBE, INVALID};
+
+    const std::string& getName() const {
+        return name;
+    }
 
     virtual ~Camera() = default;
 

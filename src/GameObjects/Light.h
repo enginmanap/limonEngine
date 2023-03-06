@@ -74,7 +74,7 @@ public:
                                           CENTER,
                                           UP);
         if(lightType == LightTypes::DIRECTIONAL) {
-            directionalCamera = new OrthographicCamera(graphicsWrapper->getOptions(), this);
+            directionalCamera = new OrthographicCamera(this->getName() + " camera",graphicsWrapper->getOptions(), this);
             directionalCamera->getCameraMatrix();
         }
         if(lightType == LightTypes::POINT) {

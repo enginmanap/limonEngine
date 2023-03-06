@@ -119,7 +119,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     
     quadRender = std::make_shared<QuadRender>(graphicsWrapper);
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
-    camera = new PerspectiveCamera(options, currentPlayer->getCameraAttachment());//register is just below
+    camera = new PerspectiveCamera("Player camera", options, currentPlayer->getCameraAttachment());//register is just below
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
                                            COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                            COLLIDE_MODELS | COLLIDE_EVERYTHING, worldAABBMin,

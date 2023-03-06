@@ -24,6 +24,7 @@ class PipelineExtension : public EditorExtension {
     char tempWidthOption[256] = {0};    //
 
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;
+    std::map<std::string, std::shared_ptr<Camera>> usedCameras;
     GraphicsInterface* graphicsWrapper = nullptr;
     std::shared_ptr<AssetManager> assetManager; //TODO: used for deserialize textures, maybe it would be possible to avoid.
     Options* options;//TODO: used for texture de/serialize, maybe it would be possible to avoid.
@@ -35,8 +36,10 @@ class PipelineExtension : public EditorExtension {
     std::shared_ptr<GraphicsPipeline> builtPipeline = nullptr;
     bool nodeGraphValid = true; //if there are nodes that are unknown, then we can't build.
     int32_t selectedTexture = -1;//-1 means it is not selected, there for we are building a new one
+    int32_t selectedCamera = -1;//-1 means it is not selected, there for we are building a new one
 
     static bool getNameOfTexture(void* data, int index, const char** outText);
+    static bool getNameOfCamera(void* data, int index, const char** outText);
 
     bool buildRenderPipelineRecursive(const Node *node, std::shared_ptr<GraphicsPipeline> graphicsPipeline, std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>>& nodeStages,
                                       const std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>>& groupsByDependency,

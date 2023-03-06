@@ -21,13 +21,14 @@ class OrthographicCamera : public Camera {
 
 public:
 
-    OrthographicCamera(Options *options, CameraAttachment* cameraAttachment) :
+    OrthographicCamera(const std::string& name, Options *options, CameraAttachment* cameraAttachment) :
             cameraAttachment(cameraAttachment),
             position(0,20,0),
             center(glm::vec3(0, 0, -1)),
             up(glm::vec3(0, 1, 0)),
             right(glm::vec3(-1, 0, 0)),
             options(options){
+        this->name = name;
         this->frustumPlanes.resize(6);
         orthogonalProjectionMatrix = glm::ortho(options->getLightOrthogonalProjectionValues().x,
                                                       options->getLightOrthogonalProjectionValues().y,
