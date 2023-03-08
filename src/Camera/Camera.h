@@ -90,6 +90,8 @@ public:
 
     virtual bool isDirty() const = 0;
 
+    virtual void clearDirty() = 0;
+
     virtual bool isVisible(const PhysicalRenderable& renderable) const = 0;
 
     virtual glm::mat4 getCameraMatrix() = 0;

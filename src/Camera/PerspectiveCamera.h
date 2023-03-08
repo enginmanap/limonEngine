@@ -31,6 +31,7 @@ class PerspectiveCamera : public Camera {
     float aspect;
 
     Options *options;
+    bool dirty = true;
 
 public:
 
@@ -56,6 +57,7 @@ public:
 
     glm::mat4 getCameraMatrix() override {
         if (cameraAttachment->isDirty()) {
+            this->dirty = true;
             cameraAttachment->getCameraVariables(position, center, up, right);
             this->cameraTransformMatrix = glm::lookAt(position, position + center, up);
             calculateFrustumPlanes(cameraTransformMatrix, perspectiveProjectionMatrix, frustumPlanes);
@@ -65,7 +67,11 @@ public:
     }
 
     bool isDirty() const override {
-        return cameraAttachment->isDirty();
+        return this->dirty || cameraAttachment->isDirty();
+    }
+
+    void clearDirty() override {
+        this->dirty = false;
     }
 
     glm::vec3 const& getPosition() const {

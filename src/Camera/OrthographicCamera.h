@@ -18,6 +18,8 @@ class OrthographicCamera : public Camera {
     std::vector<glm::vec4>frustumPlanes;
     Options *options;
 
+    bool dirty = true;
+
 
 public:
 
@@ -43,8 +45,12 @@ public:
     };
 
     bool isDirty() const override {
-        return cameraAttachment->isDirty();
+        return this->dirty || cameraAttachment->isDirty();
     };
+
+    void clearDirty() override {
+        this->dirty = false;
+    }
 
     bool isVisible(const PhysicalRenderable& renderable) const override {
         glm::vec3 aabbMin = renderable.getAabbMin();
@@ -65,7 +71,8 @@ public:
     };
 
     glm::mat4 getCameraMatrix() override {
-        if (isDirty()) {
+        if (cameraAttachment->isDirty()) {
+            this->dirty = true;
             cameraAttachment->getCameraVariables(position, center, up, right);
             glm::mat4 lightView = glm::lookAt(this->position,
                                               glm::vec3(0.0f, 0.0f, 0.0f),

@@ -114,6 +114,9 @@ public:
 
     void setFrustumChanged(bool frustumChanged) {
         Light::frustumChanged = frustumChanged;
+        if(this->lightType == LightTypes::DIRECTIONAL) {
+            this->directionalCamera->clearDirty();
+        }
     }
 
 

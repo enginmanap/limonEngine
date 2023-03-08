@@ -436,6 +436,7 @@ void World::animateCustomAnimations() {
     }
 
     updatedModels.clear();
+    camera->clearDirty();
 }
 
 void World::setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRenderable *PhysicalRenderable, bool removePossible) {
