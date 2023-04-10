@@ -79,8 +79,6 @@ protected:
     virtual uint32_t createGraphicsProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile) = 0;
 public:
     virtual void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) = 0;
-    virtual const glm::mat4 &getLightProjectionMatrixPoint() const = 0;
-    virtual const glm::mat4 &getLightProjectionMatrixDirectional() const = 0;
     explicit GraphicsInterface(Options *options [[gnu::unused]]) {};
     virtual ~GraphicsInterface() {};
 

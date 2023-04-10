@@ -358,18 +358,6 @@ OpenGLGraphics::OpenGLGraphics(Options *options): GraphicsInterface(options), op
     std::cout << "Maximum number of texture image units is " << maxTextureImageUnits << std::endl;
     state = new OpenglState(maxTextureImageUnits);
 
-    lightProjectionMatrixDirectional = glm::ortho(options->getLightOrthogonalProjectionValues().x,
-                                                  options->getLightOrthogonalProjectionValues().y,
-                                                  options->getLightOrthogonalProjectionValues().z,
-                                                  options->getLightOrthogonalProjectionValues().w,
-                                                  options->getLightOrthogonalProjectionNearPlane(),
-                                                  options->getLightOrthogonalProjectionFarPlane());
-
-    lightProjectionMatrixPoint = glm::perspective(glm::radians(90.0f),
-                                                  options->getLightPerspectiveProjectionValues().x,
-                                                  options->getLightPerspectiveProjectionValues().y,
-                                                  options->getLightPerspectiveProjectionValues().z);
-
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     // Setup
     //glDisable(GL_CULL_FACE);

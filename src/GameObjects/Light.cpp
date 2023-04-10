@@ -5,44 +5,6 @@
 #include <glm/ext.hpp>
 #include "Light.h"
 
-void Light::calculateActiveDistance() {
-    /*
-     * to cut off at 0.1,
-     * for a = const, b = linear, c = exp attenuation
-     * c*d^2 + b*d + a = 1000;
-     *
-     * since we want 10, we should calculate for (a - 1000)
-     */
-
-    //calculate discriminant
-    //b^2 - 4*a*c
-
-    if(attenuation.z == 0) {
-        if(attenuation.y == 0) {
-            activeDistance = 500;//max
-        } else {
-            //z = 0 means this is not a second degree equation. handle it
-            // mx + n = y
-            // when y < sqrt(1000) is active limit
-            activeDistance = (sqrt(1000) - attenuation.x) / attenuation.y;
-        }
-    } else {
-        float discriminant = attenuation.y * attenuation.y - (4 * (attenuation.x - 1000) * attenuation.z);
-        if (discriminant < 0) {
-            activeDistance = 0;
-        } else {
-            activeDistance = (-1 * attenuation.y);
-            if (activeDistance > discriminant) {
-                activeDistance = activeDistance - std::sqrt(discriminant);
-            } else {
-                activeDistance = activeDistance + std::sqrt(discriminant);
-            }
-
-            activeDistance = activeDistance / (2 * attenuation.z);
-        }
-    }
-}
-
 void Light::step(long time [[gnu::unused]]) {
     if(lightType == LightTypes::DIRECTIONAL) {
         updateLightView();
@@ -53,12 +15,8 @@ void Light::updateLightView() {
     glm::vec3 playerPos = graphicsWrapper->getCameraPosition();
     renderPosition = position + playerPos;
 
-    glm::mat4 lightView = lookAt(renderPosition,
-                                 playerPos,
-                                 UP);
-
-    directionalCamera->getCameraMatrix();
     frustumChanged = true;
+    directionalCamera->getCameraMatrix();
 }
 
 const glm::mat4 Light::getLightSpaceMatrix() const {
@@ -73,7 +31,7 @@ void Light::setPosition(glm::vec3 position) {
     switch (lightType) {
         case LightTypes::NONE:
             return;
-        case LightTypes::POINT: setShadowMatricesForPosition();
+        case LightTypes::POINT: this->frustumChanged = true; cubeCamera->getCameraMatrix();
             break;
         case LightTypes::DIRECTIONAL: updateLightView();
         break;
@@ -108,7 +66,7 @@ GameObject::ImGuiResult Light::addImGuiEditorElements(const GameObject::ImGuiReq
             attenuationUpdate = ImGui::DragFloat("Linear", &(this->attenuation.y), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
             attenuationUpdate = ImGui::DragFloat("Exponential", &(this->attenuation.z), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
             if (attenuationUpdate) {
-                calculateActiveDistance();
+                this->setFrustumChanged(true);
                 result.updated = true;
             }
             ImGui::NewLine();

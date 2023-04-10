@@ -13,7 +13,8 @@
 #include "API/Graphics/GraphicsInterface.h"
 #include "../../libs/ImGui/imgui.h"
 #include "../../libs/ImGuizmo/ImGuizmo.h"
-#include "../Camera/OrthographicCamera.h"
+#include "Camera/OrthographicCamera.h"
+#include "Camera/CubeCamera.h"
 
 class Light : public GameObject, public CameraAttachment {
 public:
@@ -24,7 +25,6 @@ public:
 
 private:
     GraphicsInterface* graphicsWrapper;
-    glm::mat4 shadowMatrices[6];//these are used only for point lights for now
 
     uint32_t objectID;
     glm::vec3 position, color;
@@ -33,27 +33,10 @@ private:
     glm::vec3 renderPosition; //for directional lights, moves with player.
     glm::vec3 attenuation = glm::vec3(1,0.1,0.01);//const, linear, exponential
     glm::vec3 ambientColor = glm::vec3(0,0,0); //this will be added to all objects on shading phase
-    float activeDistance = 10;//will auto recalculate on constructor
-    OrthographicCamera* directionalCamera;
+    OrthographicCamera* directionalCamera = nullptr;
+    CubeCamera* cubeCamera = nullptr;
     LightTypes lightType;
     bool frustumChanged = true;
-
-    void setShadowMatricesForPosition(){
-        shadowMatrices[0] =graphicsWrapper->getLightProjectionMatrixPoint() *
-                           glm::lookAt(position, position + glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0));
-        shadowMatrices[1] =graphicsWrapper->getLightProjectionMatrixPoint() *
-                           glm::lookAt(position, position + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0));
-        shadowMatrices[2] =graphicsWrapper->getLightProjectionMatrixPoint() *
-                           glm::lookAt(position, position + glm::vec3( 0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
-        shadowMatrices[3] =graphicsWrapper->getLightProjectionMatrixPoint() *
-                           glm::lookAt(position, position + glm::vec3( 0.0,-1.0, 0.0), glm::vec3(0.0, 0.0,-1.0));
-        shadowMatrices[4] =graphicsWrapper->getLightProjectionMatrixPoint() *
-                           glm::lookAt(position, position + glm::vec3( 0.0, 0.0, 1.0), glm::vec3(0.0,-1.0, 0.0));
-        shadowMatrices[5] =graphicsWrapper->getLightProjectionMatrixPoint() *
-                           glm::lookAt(position, position + glm::vec3( 0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0));
-    }
-
-    void calculateActiveDistance();
 
     void updateLightView();
 
@@ -68,17 +51,12 @@ public:
         this->color.g = color.g < 1.0f ? color.g : 1.0f;
         this->color.b = color.b < 1.0f ? color.b : 1.0f;
 
-        setShadowMatricesForPosition();
-
-        glm::mat4 lightView = glm::lookAt(this->position,
-                                          CENTER,
-                                          UP);
         if(lightType == LightTypes::DIRECTIONAL) {
-            directionalCamera = new OrthographicCamera(this->getName() + " camera",graphicsWrapper->getOptions(), this);
+            directionalCamera = new OrthographicCamera(this->getName() + " camera", graphicsWrapper->getOptions(), this);
             directionalCamera->getCameraMatrix();
-        }
-        if(lightType == LightTypes::POINT) {
-            calculateActiveDistance();
+        } else if(lightType == LightTypes::POINT) {
+            cubeCamera = new CubeCamera(this->getName() + " camera", graphicsWrapper->getOptions(), this);
+            cubeCamera->getCameraMatrix();
         }
         frustumChanged = true;
     }
@@ -104,8 +82,12 @@ public:
         return lightType;
     }
 
-     const glm::mat4 * getShadowMatrices() const {
-        return shadowMatrices;
+     const glm::mat4* getShadowMatrices() const {
+        if (this->lightType == LightTypes::POINT) {
+            return cubeCamera->getRenderMatrices();
+        } else {
+            return nullptr;
+        }
     }
 
     bool isFrustumChanged() const {
@@ -114,9 +96,16 @@ public:
 
     void setFrustumChanged(bool frustumChanged) {
         Light::frustumChanged = frustumChanged;
-        if(!frustumChanged && this->lightType == LightTypes::DIRECTIONAL) {
-            //If frustum changed, we automatically set it, so this is only for clear
-            this->directionalCamera->clearDirty();
+        //If frustum changed, we automatically set it, so this is only for clear
+        if(!frustumChanged) {
+            switch (this->lightType) {
+                case LightTypes::NONE:
+                    return;
+                case LightTypes::DIRECTIONAL:
+                    return directionalCamera->clearDirty();
+                case LightTypes::POINT:
+                    return cubeCamera->clearDirty();
+            }
         }
     }
 
@@ -132,7 +121,7 @@ public:
             case LightTypes::DIRECTIONAL:
                 return directionalCamera->isVisible(physicalRenderable);
             case LightTypes::POINT:
-            return (glm::distance2(physicalRenderable.getTransformation()->getTranslate(), this->position) < activeDistance * activeDistance);
+                return cubeCamera->isVisible(physicalRenderable);
         }
         return true;//for safety only
     }
@@ -171,12 +160,14 @@ public:
 
     void setAttenuation(const glm::vec3& attenuation) {
         this->attenuation = attenuation;
-        calculateActiveDistance();
         this->setFrustumChanged(true);
     }
 
     float getActiveDistance() const {
-        return activeDistance;
+        if(this->lightType == LightTypes::POINT) {
+            return cubeCamera->getActiveDistance();
+        }
+        return 0.0f;//Only used by point lights
     }
 
     const glm::vec3 &getAmbientColor() const {
@@ -188,9 +179,10 @@ public:
     }
 
     void getCameraVariables(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right) override {
-        position = this->renderPosition;
-        center = this->renderPosition - this->position;
+        position = this->position;
+        center = this->renderPosition;
         up = this->UP;
+        right = this->attenuation;
     }
 
     bool isDirty() const override {

@@ -224,8 +224,6 @@ private:
     glm::mat4 inverseProjection;
     std::vector<glm::vec4>frustumPlanes;
     glm::mat4 orthogonalProjectionMatrix;
-    glm::mat4 lightProjectionMatrixDirectional;
-    glm::mat4 lightProjectionMatrixPoint;
     glm::vec3 cameraPosition;
     uint32_t renderTriangleCount;
     uint32_t renderLineCount;
@@ -240,14 +238,6 @@ public:
     void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) override {
         triangleCount = renderTriangleCount;
         lineCount = renderLineCount;
-    }
-
-    const glm::mat4 &getLightProjectionMatrixPoint() const override {
-        return lightProjectionMatrixPoint;
-    }
-
-    const glm::mat4 &getLightProjectionMatrixDirectional() const override {
-        return lightProjectionMatrixDirectional;
     }
 
     bool getFrameBufferParameterSupported() const {

@@ -73,7 +73,7 @@ public:
     glm::mat4 getCameraMatrix() override {
         if (cameraAttachment->isDirty()) {
             this->dirty = true;
-            cameraAttachment->getCameraVariables(position, center, up, right);
+            cameraAttachment->getCameraVariables(center, position, up, right);
             glm::mat4 lightView = glm::lookAt(this->position,
                                               glm::vec3(0.0f, 0.0f, 0.0f),
                                               glm::vec3(0.0f, 1.0f, 0.0f));
