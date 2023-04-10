@@ -28,8 +28,7 @@ private:
 
     uint32_t objectID;
     glm::vec3 position, color;
-    const glm::vec3 CENTER =  glm::vec3(0.0f, 0.0f, 0.0f);
-    const glm::vec3 UP = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 playerPosition;
     glm::vec3 renderPosition; //for directional lights, moves with player.
     glm::vec3 attenuation = glm::vec3(1,0.1,0.01);//const, linear, exponential
     glm::vec3 ambientColor = glm::vec3(0,0,0); //this will be added to all objects on shading phase
@@ -178,10 +177,17 @@ public:
         Light::ambientColor = ambientColor;
     }
 
+    /**
+     * we send parameters, that might not actually match what the name suggests, please make sure you are checking it
+     * @param position  -> position (Directional light has direction instead of light)
+     * @param center    -> player position (as directional light centers around the player)
+     * @param up        -> renderPosition (Position that follows the player)
+     * @param right     -> attenuation
+     */
     void getCameraVariables(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right) override {
         position = this->position;
-        center = this->renderPosition;
-        up = this->UP;
+        center = this->playerPosition;
+        up = this->renderPosition;
         right = this->attenuation;
     }
 

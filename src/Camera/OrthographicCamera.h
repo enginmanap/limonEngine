@@ -73,9 +73,9 @@ public:
     glm::mat4 getCameraMatrix() override {
         if (cameraAttachment->isDirty()) {
             this->dirty = true;
-            cameraAttachment->getCameraVariables(center, position, up, right);
+            cameraAttachment->getCameraVariables(up, center, position, right);
             glm::mat4 lightView = glm::lookAt(this->position,
-                                              glm::vec3(0.0f, 0.0f, 0.0f),
+                                              this->center,
                                               glm::vec3(0.0f, 1.0f, 0.0f));
 
             cameraTransformMatrix = orthogonalProjectionMatrix * lightView;

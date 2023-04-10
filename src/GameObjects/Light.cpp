@@ -12,11 +12,12 @@ void Light::step(long time [[gnu::unused]]) {
 }
 
 void Light::updateLightView() {
-    glm::vec3 playerPos = graphicsWrapper->getCameraPosition();
-    renderPosition = position + playerPos;
+    playerPosition = graphicsWrapper->getCameraPosition();
+    renderPosition = position + playerPosition;
 
     frustumChanged = true;
     directionalCamera->getCameraMatrix();
+    frustumChanged = true;
 }
 
 const glm::mat4 Light::getLightSpaceMatrix() const {
@@ -31,7 +32,7 @@ void Light::setPosition(glm::vec3 position) {
     switch (lightType) {
         case LightTypes::NONE:
             return;
-        case LightTypes::POINT: this->frustumChanged = true; cubeCamera->getCameraMatrix();
+        case LightTypes::POINT: this->frustumChanged = true; cubeCamera->getCameraMatrix(); this->frustumChanged = true;
             break;
         case LightTypes::DIRECTIONAL: updateLightView();
         break;
