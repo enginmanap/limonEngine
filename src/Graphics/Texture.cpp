@@ -288,6 +288,8 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
         textureInfo.dataType = GraphicsInterface::DataTypes::UNSIGNED_INT;
     } else if(dataTypeString == "FLOAT") {
         textureInfo.dataType = GraphicsInterface::DataTypes::FLOAT;
+    } else if(dataTypeString == "HALF_FLOAT") {
+        textureInfo.dataType = GraphicsInterface::DataTypes::HALF_FLOAT;
     } else {
         std::cerr << "Texture data type is unknown, skipping! " << std::endl;
         return nullptr;

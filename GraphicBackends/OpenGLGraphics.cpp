@@ -1227,6 +1227,7 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
     GLenum glDataType;
     switch (dataType) {
         case DataTypes::FLOAT: glDataType = GL_FLOAT; break;
+        case DataTypes::HALF_FLOAT: glDataType = GL_FLOAT; break;
         case DataTypes::UNSIGNED_BYTE: glDataType = GL_UNSIGNED_BYTE; break;
         case DataTypes::UNSIGNED_SHORT: glDataType = GL_UNSIGNED_SHORT; break;
         case DataTypes::UNSIGNED_INT: glDataType = GL_UNSIGNED_INT; break;
