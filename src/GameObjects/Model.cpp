@@ -6,6 +6,7 @@
 #include "API/ActorInterface.h"
 #include "../ImGuiHelper.h"
 #include "GamePlay/APISerializer.h"
+#include "Utils/HardCodedTags.h"
 #include <random>
 
 #ifdef CEREAL_SUPPORT
@@ -107,6 +108,19 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
         rigidBody->setActivationState(DISABLE_DEACTIVATION);
         //for animated bodies, setup the first frame
         this->setupForTime(0);
+    }
+
+    //FIXME temporarily set the tags as hard coded
+    if(animated) {
+        this->addTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+    }
+    if(this->isTransparent()) {
+        this->addTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
+    }
+    if(this->mass > 0) {
+        this->addTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+    } else {
+        this->addTag(HardCodedTags::OBJECT_MODEL_STATIC);
     }
 }
 

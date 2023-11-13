@@ -119,13 +119,16 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     
     quadRender = std::make_shared<QuadRender>(graphicsWrapper);
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
-    camera = new PerspectiveCamera("Player camera", options, currentPlayer->getCameraAttachment());//register is just below
+    playerCamera = new PerspectiveCamera("Player camera", options, currentPlayer->getCameraAttachment());//register is just below
+    playerCamera->addTag(HardCodedTags::OBJECT_MODEL_STATIC);
+    playerCamera->addTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+    playerCamera->addTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
+    playerCamera->addTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
                                            COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                            COLLIDE_MODELS | COLLIDE_EVERYTHING, worldAABBMin,
                                            worldAABBMax);
     switchPlayer(currentPlayer, *inputHandler); //switching to itself, to set the states properly. It uses camera so done after camera creation
-
 
 
     renderPipeline = GraphicsPipeline::deserialize("./Data/renderPipeline.xml", graphicsWrapper, assetManager, options, buildRenderMethods());
@@ -243,9 +246,9 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          currentPlayer->processPhysicsWorld(dynamicsWorld);
          checkAndRunTimedEvents();
      }
-     if(camera->isDirty()) {
-         graphicsWrapper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix(), gameTime);//this is required for any render
-         alHelper->setListenerPositionAndOrientation(camera->getPosition(), camera->getCenter(), camera->getUp());
+     if(playerCamera->isDirty()) {
+         graphicsWrapper->setPlayerMatrices(playerCamera->getPosition(), playerCamera->getCameraMatrix(), gameTime);//this is required for any render
+         alHelper->setListenerPositionAndOrientation(playerCamera->getPosition(), playerCamera->getCenter(), playerCamera->getUp());
      }
      if(currentPlayersSettings->worldSimulation) {
          for(const auto& emitter:emitters) {
@@ -291,6 +294,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
      }
      updateActiveLights(false);
 
+     fillVisibleObjectsUsingTags();
      fillVisibleObjects();
 
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
@@ -404,8 +408,50 @@ void World::animateCustomAnimations() {
     }
 }
 
+void World::fillVisibleObjectsUsingTags() {
+     //first clear up dirty cameras
+    for (auto it: allUsedCameraVisibilities) {
+        if (it.first->isDirty()) {
+            it.second.clear();
+        }
+    }
+    for (auto objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
+        for (auto it: allUsedCameraVisibilities) {
+
+            Model *currentModel = dynamic_cast<Model *>(objectIt->second);
+            bool tagMatch = false;
+            for(const auto& tag: currentModel->getTags()) {
+                if(it.first->hasTag(tag.hash)){
+                    tagMatch = true;
+                    break;
+                }
+            }
+            if (tagMatch) {
+                bool isVisible = it.first->isVisible(*currentModel);//find if visible
+                auto modelVisibilityEntry = it.second.find(currentModel->getAssetID());
+                if(isVisible) {
+                    if (modelVisibilityEntry == it.second.end()) {
+                        it.second[currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), LOWEST_LOD_LEVEL);
+                    }
+                    uint32_t lod = getLodLevel(currentModel);
+                    it.second[currentModel->getAssetID()].second = std::min(transparentModelsInCameraFrustum[currentModel->getAssetID()].second, lod);
+                } else { //not visible
+                    if(modelVisibilityEntry->second.first.size() == 1) {
+                        it.second.erase(modelVisibilityEntry);
+                    } else {
+                        if (modelVisibilityEntry != it.second.end()) {
+                            //but has an entry in visibility. check and remove
+                            modelVisibilityEntry->second.first.erase(currentModel);//FIXME we didn't change the LOD info, possibly unnecessary high LOD
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
    void World::fillVisibleObjects(){
-    if(camera->isDirty()) {
+    if(playerCamera->isDirty()) {
         modelsInCameraFrustum.clear();
         animatedModelsInFrustum.clear();
         transparentModelsInCameraFrustum.clear();
@@ -436,7 +482,7 @@ void World::animateCustomAnimations() {
     }
 
     updatedModels.clear();
-    camera->clearDirty();
+    playerCamera->clearDirty();
 }
 
 void World::setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRenderable *PhysicalRenderable, bool removePossible) {
@@ -485,7 +531,7 @@ void World::setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRen
 void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bool removePossible) {
     Model* currentModel = dynamic_cast<Model*>(PhysicalRenderable);
     assert(currentModel != nullptr);
-    currentModel->setIsInFrustum(camera->isVisible(*currentModel));
+    currentModel->setIsInFrustum(playerCamera->isVisible(*currentModel));
     if(currentModel->isTransparent()) {
         if(currentModel->isIsInFrustum()) {
             if (transparentModelsInCameraFrustum.find(currentModel->getAssetID()) == transparentModelsInCameraFrustum.end()) {
@@ -1079,6 +1125,7 @@ World::~World() {
     delete sky;
 
     for (std::vector<Light *>::iterator it = lights.begin(); it != lights.end(); ++it) {
+        allUsedCameraVisibilities.erase((*it)->getCamera());
         delete (*it);
     }
 
@@ -1095,7 +1142,7 @@ World::~World() {
     delete ghostPairCallback;
 
     delete grid;
-    delete camera;
+    delete playerCamera;
     delete physicalPlayer;
     delete debugPlayer;
     delete editorPlayer;
@@ -1197,6 +1244,7 @@ void World::addLight(Light *light) {
     if(light->getLightType() == Light::LightTypes::DIRECTIONAL) {
         directionalLightIndex = (uint32_t)lights.size()-1;
     }
+    allUsedCameraVisibilities.emplace(light->getCamera(), std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>>());//new camera, new visibility
     updateActiveLights(false);
 }
 
@@ -1766,7 +1814,7 @@ bool World::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string
     if(objects.find(objectWorldID) == objects.end()) {
         return false;//fail
     }
-    objects[objectWorldID]->setSoundAttachementAndPlay(std::move(std::make_unique<Sound>(getNextObjectID(), assetManager, soundPath)));
+    objects[objectWorldID]->setSoundAttachementAndPlay(std::make_unique<Sound>(getNextObjectID(), assetManager, soundPath));
     return true;
 }
 
@@ -1907,7 +1955,9 @@ void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
     targetPlayer->ownControl(beforePlayer->getPosition(), beforePlayer->getLookDirection());
 
     dynamicsWorld->updateAabbs();
-    camera->setCameraAttachment(currentPlayer->getCameraAttachment());
+    playerCamera->setCameraAttachment(currentPlayer->getCameraAttachment());
+    //allUsedCameraVisibilities.emplace(currentPlayer->getCameraAttachment(), std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>>());
+    allUsedCameraVisibilities.erase(playerCamera);
 
 }
 

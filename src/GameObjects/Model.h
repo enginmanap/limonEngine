@@ -19,6 +19,7 @@
 #include "GameObject.h"
 
 #include "Sound.h"
+#include "Utils/HashUtil.hpp"
 
 class ActorInterface;
 
@@ -31,7 +32,6 @@ class Model : public PhysicalRenderable, public GameObject {
     ActorInterface *AIActor = nullptr;
     std::shared_ptr<AssetManager> assetManager;
     std::shared_ptr<ModelAsset> modelAsset;
-private:
     std::string animationName;
     long animationTime = 0;
     bool animationLooped = true;
@@ -68,6 +68,8 @@ private:
     uint32_t triangleCount;
     int32_t selectedBoneID = -1;
     std::map<uint32_t, Transformation*> exposedBoneTransforms;
+    std::vector<HashUtil::HashedString> tags;
+
 
     static ImGuiResult putAIonGUI(ActorInterface *actorInterface, std::vector<LimonTypes::GenericParameter> &parameters,
                                   const ImGuiRequest &request, std::string &lastSelectedAIName);
@@ -253,6 +255,38 @@ public:
             materials.emplace_back(element.second);
         }
         return materials;
+    }
+
+    void addTag(const std::string& text) {
+        HashUtil::HashedString tag(text);
+        bool found = false;
+        for (HashUtil::HashedString hashedString:tags) {
+            if(hashedString.hash == tag.hash) {
+                if(hashedString.text != tag.text) {
+                    std::cerr << "Hash collision found between " << hashedString.text << " and " << tag.text << " exiting." << std::endl;
+                    std::exit(-1);
+                }
+                //found case
+                found = true;
+                break;
+            }
+        }
+        if(!found) {
+            tags.emplace_back(tag);
+        }
+    }
+
+    bool hasTag(uint64_t hash) {
+        for (HashUtil::HashedString hashedString:tags) {
+            if(hashedString.hash == hash) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    const std::vector<HashUtil::HashedString>& getTags() {
+        return tags;
     }
 
 };

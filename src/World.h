@@ -228,6 +228,7 @@ private:
     std::set<ModelWithLod> animatedModelsInFrustum; //since animated models can't be instanced, they don't need to be in a map etc.
     std::set<Model*> animatedModelsInAnyFrustum;
 
+    std::unordered_map<Camera*, std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>>> allUsedCameraVisibilities;
 
     /************************* End of redundant variables ******************************************/
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<TimedEvent>> timedEvents;
@@ -275,7 +276,7 @@ private:
     Player* beforePlayer = nullptr;
     const Player::WorldSettings* currentPlayersSettings = nullptr;
 
-    PerspectiveCamera* camera;
+    PerspectiveCamera* playerCamera;
     BulletDebugDrawer *debugDrawer;
     GameObject::ImGuiRequest* request = nullptr;
 
@@ -343,6 +344,7 @@ private:
     bool addGUIElementToWorld(GUIRenderable *guiRenderable, GUILayer *guiLayer);
 
     void fillVisibleObjects();
+    void fillVisibleObjectsUsingTags();
 
     GameObject *getPointedObject(int collisionType, int filterMask,
                                  glm::vec3 *collisionPosition = nullptr, glm::vec3 *collisionNormal = nullptr) const;

@@ -6,8 +6,13 @@
 #define LIMONENGINE_CAMERA_H
 
 #include "Renderable.h"
+#include "vector"
+#include "Utils/HashUtil.hpp"
+#include "iostream"
 
 class Camera {
+    std::vector<HashUtil::HashedString> tags;
+
 protected:
     std::string name;
 
@@ -95,6 +100,40 @@ public:
     virtual bool isVisible(const PhysicalRenderable& renderable) const = 0;
 
     virtual glm::mat4 getCameraMatrix() = 0;
+
+
+    void addTag(const std::string& text) {
+        HashUtil::HashedString tag(text);
+        bool found = false;
+        for (HashUtil::HashedString hashedString:tags) {
+            if(hashedString.hash == tag.hash) {
+                if(hashedString.text != tag.text) {
+                    std::cerr << "Hash collision found between " << hashedString.text << " and " << tag.text << " exiting." << std::endl;
+                    std::exit(-1);
+                }
+                //found case
+                found = true;
+                break;
+            }
+        }
+        if(!found) {
+            tags.emplace_back(tag);
+        }
+    }
+
+    //FIXME this is slower than it needs to be
+    bool hasTag(uint64_t hash) {
+        for (HashUtil::HashedString hashedString:tags) {
+            if(hashedString.hash == hash) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    const std::vector<const HashUtil::HashedString>& getTags() {
+        return getTags();
+    }
 
 };
 

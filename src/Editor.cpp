@@ -55,7 +55,7 @@ void Editor::renderEditor(World& world) {
 
         //list available elements
         static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
-        glm::vec3 newObjectPosition = world.camera->getPosition() + 10.0f * world.camera->getCenter();
+        glm::vec3 newObjectPosition = world.playerCamera->getPosition() + 10.0f * world.playerCamera->getCenter();
 
 
         if (ImGui::CollapsingHeader("Add New Object")) {
@@ -770,6 +770,7 @@ void Editor::renderEditor(World& world) {
                         for (auto iterator = world.lights.begin(); iterator != world.lights.end(); ++iterator) {
                             if((*iterator)->getWorldObjectID() == world.pickedObject->getWorldObjectID()) {
                                 world.unusedIDs.push(world.pickedObject->getWorldObjectID());
+                                world.allUsedCameraVisibilities.erase((*iterator)->getCamera());
                                 world.lights.erase(iterator);
                                 break;
                             }
