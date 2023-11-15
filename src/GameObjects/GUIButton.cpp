@@ -18,16 +18,16 @@ GUIButton::GUIButton(uint32_t worldID,  std::shared_ptr<AssetManager> assetManag
     this->imageFiles = imageFiles;
     this->images.push_back(this->image);
     strncpy(GUINameBuffer, this->name.c_str(), sizeof(GUINameBuffer) - 1);
-    strncpy(GUIFileNameBuffer[0], this->imageFiles[0].c_str(), sizeof(GUIFileNameBuffer[0]));
+    strncpy(GUIFileNameBuffer[0], this->imageFiles[0].c_str(), sizeof(GUIFileNameBuffer[0])-1);
 
     if(this->imageFiles.size() > 1) {
-        strncpy(GUIFileNameBuffer[1], this->imageFiles[1].c_str(), sizeof(GUIFileNameBuffer[1]));
+        strncpy(GUIFileNameBuffer[1], this->imageFiles[1].c_str(), sizeof(GUIFileNameBuffer[1])-1);
         this->images.push_back(assetManager->loadAsset<TextureAsset>({imageFiles[1]}));
         if (this->imageFiles.size() > 2) {
-            strncpy(GUIFileNameBuffer[2], this->imageFiles[2].c_str(), sizeof(GUIFileNameBuffer[2]));
+            strncpy(GUIFileNameBuffer[2], this->imageFiles[2].c_str(), sizeof(GUIFileNameBuffer[2])-1);
             this->images.push_back(assetManager->loadAsset<TextureAsset>({imageFiles[2]}));
             if (this->imageFiles.size() > 3) {
-                strncpy(GUIFileNameBuffer[3], this->imageFiles[3].c_str(), sizeof(GUIFileNameBuffer[3]));
+                strncpy(GUIFileNameBuffer[3], this->imageFiles[3].c_str(), sizeof(GUIFileNameBuffer[3])-1);
                 this->images.push_back(assetManager->loadAsset<TextureAsset>({imageFiles[3]}));
             }
         }
