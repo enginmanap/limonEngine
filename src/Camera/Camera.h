@@ -11,7 +11,9 @@
 #include "iostream"
 
 class Camera {
-    std::vector<HashUtil::HashedString> tags;
+    std::vector<HashUtil::HashedString> renderTags;
+    std::vector<HashUtil::HashedString> selfTags;
+
 
 protected:
     std::string name;
@@ -101,11 +103,10 @@ public:
 
     virtual glm::mat4 getCameraMatrix() = 0;
 
-
-    void addTag(const std::string& text) {
+    void addRenderTag(const std::string& text) {
         HashUtil::HashedString tag(text);
         bool found = false;
-        for (HashUtil::HashedString hashedString:tags) {
+        for (HashUtil::HashedString hashedString:renderTags) {
             if(hashedString.hash == tag.hash) {
                 if(hashedString.text != tag.text) {
                     std::cerr << "Hash collision found between " << hashedString.text << " and " << tag.text << " exiting." << std::endl;
@@ -117,13 +118,13 @@ public:
             }
         }
         if(!found) {
-            tags.emplace_back(tag);
+            renderTags.emplace_back(tag);
         }
     }
 
     //FIXME this is slower than it needs to be
-    bool hasTag(uint64_t hash) {
-        for (HashUtil::HashedString hashedString:tags) {
+    bool hasRenderTag(uint64_t hash) {
+        for (HashUtil::HashedString hashedString:renderTags) {
             if(hashedString.hash == hash) {
                 return true;
             }
@@ -131,8 +132,41 @@ public:
         return false;
     }
 
-    const std::vector<const HashUtil::HashedString>& getTags() {
-        return getTags();
+    const std::vector<HashUtil::HashedString>& getRenderTags() {
+        return renderTags;
+    }
+
+    void addTag(const std::string& text) {
+        HashUtil::HashedString tag(text);
+        bool found = false;
+        for (HashUtil::HashedString hashedString:selfTags) {
+            if(hashedString.hash == tag.hash) {
+                if(hashedString.text != tag.text) {
+                    std::cerr << "Hash collision found between " << hashedString.text << " and " << tag.text << " exiting." << std::endl;
+                    std::exit(-1);
+                }
+                //found case
+                found = true;
+                break;
+            }
+        }
+        if(!found) {
+            selfTags.emplace_back(tag);
+        }
+    }
+
+    //FIXME this is slower than it needs to be
+    bool hasTag(uint64_t hash) {
+        for (HashUtil::HashedString hashedString:selfTags) {
+            if(hashedString.hash == hash) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    const std::vector<HashUtil::HashedString>& getTags() {
+        return selfTags;
     }
 
 };

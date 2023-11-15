@@ -54,15 +54,18 @@ public:
         if(lightType == LightTypes::DIRECTIONAL) {
             directionalCamera = new OrthographicCamera(this->getName() + " camera", graphicsWrapper->getOptions(), this);
             directionalCamera->getCameraMatrix();
-            directionalCamera->addTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
-            directionalCamera->addTag(HardCodedTags::OBJECT_MODEL_STATIC);
-            directionalCamera->addTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+            directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+            directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
+            directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+            directionalCamera->addTag(HardCodedTags::CAMERA_LIGHT_DIRECTIONAL);
         } else if(lightType == LightTypes::POINT) {
             cubeCamera = new CubeCamera(this->getName() + " camera", graphicsWrapper->getOptions(), this);
             cubeCamera->getCameraMatrix();
-            cubeCamera->addTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
-            cubeCamera->addTag(HardCodedTags::OBJECT_MODEL_STATIC);
-            cubeCamera->addTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+            cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+            cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
+            cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+            cubeCamera->addTag(HardCodedTags::CAMERA_LIGHT_POINT);
+
         }
         //FIXME we are not rendering transparent objects when working with lights, yet.
         frustumChanged = true;

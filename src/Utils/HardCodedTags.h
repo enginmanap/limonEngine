@@ -19,6 +19,9 @@ public:
     static const std::string OBJECT_MODEL_ANIMATED;
     static const std::string OBJECT_MODEL_TRANSPARENT;
 
+    static const std::string CAMERA_LIGHT_DIRECTIONAL;
+    static const std::string CAMERA_LIGHT_POINT;
+    static const std::string CAMERA_PLAYER;
 };
 
 #endif //LIMONENGINE_HARDCODEDTAGS_H

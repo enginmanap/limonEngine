@@ -120,10 +120,11 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     quadRender = std::make_shared<QuadRender>(graphicsWrapper);
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
     playerCamera = new PerspectiveCamera("Player camera", options, currentPlayer->getCameraAttachment());//register is just below
-    playerCamera->addTag(HardCodedTags::OBJECT_MODEL_STATIC);
-    playerCamera->addTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
-    playerCamera->addTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
-    playerCamera->addTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+    playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
+    playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+    playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
+    playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+    playerCamera->addTag(HardCodedTags::CAMERA_PLAYER);
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
                                            COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                            COLLIDE_MODELS | COLLIDE_EVERYTHING, worldAABBMin,
@@ -421,7 +422,7 @@ void World::fillVisibleObjectsUsingTags() {
             Model *currentModel = dynamic_cast<Model *>(objectIt->second);
             bool tagMatch = false;
             for(const auto& tag: currentModel->getTags()) {
-                if(it.first->hasTag(tag.hash)){
+                if(it.first->hasRenderTag(tag.hash)){
                     tagMatch = true;
                     break;
                 }
