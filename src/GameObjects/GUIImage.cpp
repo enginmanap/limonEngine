@@ -173,7 +173,7 @@ GUIImage *GUIImage::deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std::s
     return nullptr;
 }
 
-GameObject::ImGuiResult GUIImage::addImGuiEditorElements(const ImGuiRequest &request) {
+ImGuiResult GUIImage::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult result;
 
     //double # because I don't want to show it

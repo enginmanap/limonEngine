@@ -213,7 +213,7 @@ GUIAnimation *GUIAnimation::deserialize(tinyxml2::XMLElement *GUIRenderableNode,
     return nullptr;
 }
 
-GameObject::ImGuiResult GUIAnimation::addImGuiEditorElements(const ImGuiRequest &request) {
+ImGuiResult GUIAnimation::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult result;
 
     //double # because I don't want to show it

@@ -278,7 +278,7 @@ private:
 
     PerspectiveCamera* playerCamera;
     BulletDebugDrawer *debugDrawer;
-    GameObject::ImGuiRequest* request = nullptr;
+    ImGuiRequest* request = nullptr;
 
     GUILayer *apiGUILayer;
     GUIText* renderCounts;

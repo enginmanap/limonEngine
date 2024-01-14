@@ -39,7 +39,7 @@
 #include "GameObjects/GUIAnimation.h"
 #include "GameObjects/ModelGroup.h"
 #include "Graphics/PostProcess/QuadRender.h"
-#include "Editor.h"
+#include "Editor/Editor.h"
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -1752,7 +1752,7 @@ void World::afterLoadFinished() {
     }
 
     //setup request
-    request = new GameObject::ImGuiRequest(graphicsWrapper->getCameraMatrix(), graphicsWrapper->getProjectionMatrix(),
+    request = new ImGuiRequest(graphicsWrapper->getCameraMatrix(), graphicsWrapper->getProjectionMatrix(),
                                            graphicsWrapper->getOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), apiInstance);
 
     if(startingPlayer.extensionName != "") {

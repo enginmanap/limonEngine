@@ -71,7 +71,7 @@ public:
         frustumChanged = true;
     }
 
-    Camera* getCamera(){
+    Camera* getCamera() const {
         switch (this->lightType) {
             case LightTypes::DIRECTIONAL:
                 return directionalCamera;

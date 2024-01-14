@@ -184,7 +184,7 @@ GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std:
     return nullptr;
 }
 
-GameObject::ImGuiResult GUIButton::addImGuiEditorElements(const ImGuiRequest &request) {
+ImGuiResult GUIButton::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult result;
 
     //double # because I don't want to show it

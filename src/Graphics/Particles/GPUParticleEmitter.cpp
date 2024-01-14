@@ -116,7 +116,7 @@ void GPUParticleEmitter::setupVAO() {
     bufferObjects.push_back(vbo);
 }
 
-GameObject::ImGuiResult GPUParticleEmitter::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
+ImGuiResult GPUParticleEmitter::addImGuiEditorElements(const ImGuiRequest &request) {
 
     //Allow transformation editing.
     if(transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix)) {

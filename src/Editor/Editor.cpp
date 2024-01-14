@@ -590,7 +590,7 @@ void Editor::renderEditor(World& world) {
             ImGui::EndListBox();
             auto selectedMaterialIt = allMaterials.find(selectedHash);
             if(selectedMaterialIt != allMaterials.end()) {
-                GameObject::ImGuiRequest request(glm::mat4(0), glm::mat4(0),
+                ImGuiRequest request(glm::mat4(0), glm::mat4(0),
                                                                                 glm::mat4(0), 0, 0, world.apiInstance);
 
                 selectedMaterialIt->second->addImGuiEditorElements(request);
@@ -621,7 +621,7 @@ void Editor::renderEditor(World& world) {
             }
             std::string lodText =  std::to_string(lod);
             ImGui::Text(("Picked object LOD" + lodText).c_str());
-            GameObject::ImGuiResult objectEditorResult = world.pickedObject->addImGuiEditorElements(*world.request);
+            ImGuiResult objectEditorResult = world.pickedObject->addImGuiEditorElements(*world.request);
 
             switch(world.pickedObject->getTypeID()) {
                 case GameObject::MODEL: {

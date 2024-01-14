@@ -343,7 +343,7 @@ uint32_t Model::getAIID() {
     return this->AIActor->getWorldID();
 }
 
-GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
+ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult result;
 
     //Allow transformation editing.
@@ -495,10 +495,10 @@ Model::Model(const Model &otherModel, uint32_t objectID) :
     this->animationTime = otherModel.animationTime;
 }
 
-GameObject::ImGuiResult Model::putAIonGUI(ActorInterface *actorInterface,
+ImGuiResult Model::putAIonGUI(ActorInterface *actorInterface,
                                           std::vector<LimonTypes::GenericParameter> &parameters,
                                           const ImGuiRequest &request, std::string &lastSelectedAIName) {
-    GameObject::ImGuiResult result;
+    ImGuiResult result;
     std::string currentAIName;
     if (actorInterface == nullptr && lastSelectedAIName == "") {
         currentAIName = "Not selected";

@@ -196,7 +196,7 @@ GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GraphicsI
     return nullptr;
 }
 
-GameObject::ImGuiResult GUIText::addImGuiEditorElements(const ImGuiRequest &request) {
+ImGuiResult GUIText::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult result;
 
 

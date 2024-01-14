@@ -39,7 +39,7 @@ void Light::setPosition(glm::vec3 position) {
     }
 }
 
-GameObject::ImGuiResult Light::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
+ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult result;
 
     ImGui::Text("Please note, Directional lights position setting is relative to player.");

@@ -44,7 +44,7 @@ void TriggerObject::render(BulletDebugDrawer *debugDrawer) {
     debugDrawer->drawLine(glm::vec3(boxTransform* glm::vec4(-1, 1,-1,1)), glm::vec3(boxTransform* glm::vec4(-1,-1,-1,1)), glm::vec3( 0, 0,1), glm::vec3( 0, 0,1), true);// 4 -> 4
 }
 
-GameObject::ImGuiResult TriggerObject::addImGuiEditorElements(const ImGuiRequest &request) {
+ImGuiResult TriggerObject::addImGuiEditorElements(const ImGuiRequest &request) {
     static ImGuiResult result;
 
     result.updated = transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix);
