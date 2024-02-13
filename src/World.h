@@ -571,10 +571,6 @@ public:
 
     void animateCustomAnimations();
 
-    void buildTreeFromAllGameObjects();
-
-    void createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID, int nodeFlags, int leafFlags,
-                                       std::vector<uint32_t> parentage);
 
     void updateActiveLights(bool forceUpdate = false);
 
