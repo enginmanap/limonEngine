@@ -7,6 +7,7 @@
 #include "PipelineStageExtension.h"
 #include "../Graphics/Texture.h"
 #include "../Graphics/GraphicsPipeline.h"
+#include "../Utils/StringUtils.hpp"
 
 const PipelineStageExtension::LightType PipelineStageExtension::LIGHT_TYPES[] = {
         {"NONE", ""},
@@ -66,6 +67,12 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
             }
         }
         ImGui::EndChild();
+    }
+    if (ImGui::CollapsingHeader("Camera to use##PipelineStageExtension")) {
+        std::string joinedString = StringUtils::join(cameraTags, ",");
+        strncpy(tempCameraTags, joinedString.c_str(), joinedString.length());
+        ImGui::InputText("Camera Tags##perPipelineStage", tempCameraTags, sizeof(tempCameraTags), ImGuiInputTextFlags_CharsNoBlank);
+        cameraTags = StringUtils::split(std::string(tempCameraTags), ",");
     }
 
     if (ImGui::CollapsingHeader("Render Settings##PipelineStageExtension")) {
@@ -192,6 +199,10 @@ void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2
     tinyxml2::XMLElement *toScreenElement = document.NewElement("ToScreen");
     toScreenElement->SetText(toScreen ? "True" : "False");
     stageExtensionElement->InsertEndChild(toScreenElement);
+
+    tinyxml2::XMLElement *cameraTagsElement = document.NewElement("CameraTags");
+    cameraTagsElement->SetText(StringUtils::join(cameraTags, ",").c_str());
+    stageExtensionElement->InsertEndChild(cameraTagsElement);
 
     tinyxml2::XMLElement *renderResolutionElement = document.NewElement("DefaultRenderResolution");
     stageExtensionElement->InsertEndChild(renderResolutionElement);
@@ -428,6 +439,16 @@ void PipelineStageExtension::deserialize(const std::string &nodeName, tinyxml2::
             anyOutputMultiLayered =false;
         } else {
             std::cerr << "Pipeline stage extension doesn't AnyOutputMultiLayered flag value is unknown. Defaulting to true" << std::endl;
+        }
+    }
+
+    tinyxml2::XMLElement *cameraTagsElement = nodeExtensionElement->FirstChildElement("CameraTags");
+    if (cameraTagsElement != nullptr) {
+        if(cameraTagsElement->GetText() == nullptr) {
+            std::cerr << "Pipeline Stage CameraTags setting has no text, assuming empty!" << std::endl;
+        } else {
+            std::string cameraTagsString = cameraTagsElement->GetText();
+            cameraTags = StringUtils::split(cameraTagsString, ",");
         }
     }
 

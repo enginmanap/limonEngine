@@ -55,21 +55,6 @@ bool PipelineExtension::getNameOfTexture(void* data, int index, const char** out
     return true;
 }
 
-//This method is used only for ImGui texture name generation
-bool PipelineExtension::getNameOfCamera(void* data, int index, const char** outText) {
-    auto& cameras = *static_cast<std::map<std::string, std::shared_ptr<Camera>>*>(data);
-    if(index < 0 || (uint32_t)index >= cameras.size()) {
-        return false;
-    }
-    auto it = cameras.begin();
-    for (int i = 0; i < index; ++i) {
-        it++;
-    }
-
-    *outText = it->first.c_str();
-    return true;
-}
-
 void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<const Node *>& nodes, const Node* selectedNode [[gnu::unused]]) {
     ImGui::Text("Graphics Pipeline Details");
 
@@ -114,30 +99,6 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
             strncpy(this->tempWidthOption,currentTextureInfo.widthOption.c_str(), sizeof(tempWidthOption)/ sizeof(tempWidthOption[0]));
             selectedTexture = -1;
             ImGui::OpenPopup("create_texture_popup");
-        }
-    }
-    if(ImGui::CollapsingHeader("Cameras")) {
-        ImGui::Text("Current Cameras");
-        if(ImGui::ListBox("##CurrentCameras", &selectedCamera, PipelineExtension::getNameOfCamera,
-                          static_cast<void *>(&this->usedCameras), this->usedCameras.size(), 10)) {
-            //in case the selected texture is changed
-            if(selectedCamera != -1) {
-                //find the selected texture
-                const char* selectedName;
-                PipelineExtension::getNameOfCamera(static_cast<void *>(&this->usedCameras), selectedCamera, &selectedName);
-                std::string selectedNameString(selectedName);
-                std::map<std::string, std::shared_ptr<Camera>>::iterator it = usedCameras.find(selectedNameString);
-                if(it == usedCameras.end()) {
-                    std::cerr << "Selected Camera not found. This seems like an error." << std::endl;
-                } else {
-                    //found texture case
-                    //this->currentTextureInfo = it->second->getTextureInfo();
-                    //now set the ImGui char buffers with strings
-                    //strncpy(this->tempName,currentTextureInfo.name.c_str(), sizeof(tempName)/ sizeof(tempName[0]));
-                    //strncpy(this->tempHeightOption,currentTextureInfo.heightOption.c_str(), sizeof(tempHeightOption)/ sizeof(tempHeightOption[0]));
-                    //strncpy(this->tempWidthOption,currentTextureInfo.widthOption.c_str(), sizeof(tempWidthOption)/ sizeof(tempWidthOption[0]));
-                }
-            }
         }
     }
 

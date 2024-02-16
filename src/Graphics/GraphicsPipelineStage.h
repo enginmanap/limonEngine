@@ -22,6 +22,8 @@ class GraphicsPipelineStage {
     uint32_t renderHeight;
     uint32_t frameBufferID;
     uint32_t nextPresetIndex = 1;//used by pipeline builder. If multiple programs are set per stage, we might want to attach n to first program, then when building second, we should start from n+1.
+    std::vector<std::string> cameraTags;//These tags are used to select which cameras are suppose to render in this stage.
+    //TODO how multiple cameras will render to same input/output is not clear to me. For lights they can select different layers, but what else? Atlases etc. not clear yet.
     bool blendEnabled = false;
     bool depthTestEnabled = false;
     bool depthWriteEnabled = true;
@@ -142,6 +144,13 @@ public:
     void activate(const std::map<std::shared_ptr<Texture>, std::pair<GraphicsInterface::FrameBufferAttachPoints, int>> &attachmentLayerMap, bool clear = false);
 
 
+    std::vector<std::string> camera_tags() const {
+        return cameraTags;
+    }
+
+    void set_camera_tags(const std::vector<std::string> &camera_tags) {
+        cameraTags = camera_tags;
+    }
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
 

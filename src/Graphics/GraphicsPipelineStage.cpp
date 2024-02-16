@@ -4,6 +4,8 @@
 
 #include "GraphicsPipelineStage.h"
 
+#include <Utils/StringUtils.hpp>
+
 void GraphicsPipelineStage::activate(bool clear) {
     graphicsWrapper->switchRenderStage(renderWidth, renderHeight, frameBufferID, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, clear && colorAttachment,
                                        clear && depthAttachment, cullMode, inputs, foundName);
@@ -89,7 +91,10 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     } else {
         currentElement->SetText("False");
     }
+    stageNode->InsertEndChild(currentElement);
 
+    currentElement = document.NewElement("CameraTags");
+    currentElement->SetText(StringUtils::join(cameraTags, ",").c_str());
     stageNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("CullMode");
@@ -140,6 +145,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
     uint32_t defaultRenderHeight, defaultRenderWidth;
     bool blendEnabled = false;
     bool toScreen = false;
+    std::vector<std::string> cameraTags;
     GraphicsInterface::CullModes cullMode = GraphicsInterface::CullModes::NO_CHANGE;
 
     stageNodeAttribute = stageNode->FirstChildElement("DefaultRenderHeight");
@@ -200,6 +206,16 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
             } else {
                 std::cerr << "Pipeline Stage blend enabled setting is unknown, assuming false!" << std::endl;
             }
+        }
+    }
+
+    stageNodeAttribute = stageNode->FirstChildElement("CameraTags");
+    if (stageNodeAttribute != nullptr) {
+        if(stageNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Pipeline Stage CameraTags setting has no text, assuming empty!" << std::endl;
+        } else {
+            std::string cameraTagsString = stageNodeAttribute->GetText();
+            cameraTags = StringUtils::split(cameraTagsString, ",");
         }
     }
 
@@ -312,6 +328,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
     std::shared_ptr<GraphicsPipelineStage> newStage = std::make_shared<GraphicsPipelineStage>(graphicsWrapper, defaultRenderWidth, defaultRenderHeight, widthOption, heightOption, blendEnabled, depthTestEnabled, depthWriteEnabled, scissorEnabled, toScreen);
     newStage->depthAttachment = depthAttachmentEnabled;
     newStage->colorAttachment = colorAttachmentEnabled;
+    newStage->cameraTags = cameraTags;
 
     stageNodeAttribute = stageNode->FirstChildElement("CullMode");
 
