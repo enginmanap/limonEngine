@@ -124,7 +124,7 @@ public:
 
     //FIXME this is slower than it needs to be
     bool hasRenderTag(uint64_t hash) {
-        for (HashUtil::HashedString hashedString:renderTags) {
+        for (const HashUtil::HashedString& hashedString:renderTags) {
             if(hashedString.hash == hash) {
                 return true;
             }
@@ -139,7 +139,7 @@ public:
     void addTag(const std::string& text) {
         HashUtil::HashedString tag(text);
         bool found = false;
-        for (HashUtil::HashedString hashedString:selfTags) {
+        for (const HashUtil::HashedString& hashedString:selfTags) {
             if(hashedString.hash == tag.hash) {
                 if(hashedString.text != tag.text) {
                     std::cerr << "Hash collision found between " << hashedString.text << " and " << tag.text << " exiting." << std::endl;
@@ -157,7 +157,7 @@ public:
 
     //FIXME this is slower than it needs to be
     bool hasTag(uint64_t hash) {
-        for (HashUtil::HashedString hashedString:selfTags) {
+        for (const HashUtil::HashedString& hashedString:selfTags) {
             if(hashedString.hash == hash) {
                 return true;
             }
