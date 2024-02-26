@@ -72,6 +72,14 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
         std::string joinedString = StringUtils::join(cameraTags, ",");
         strncpy(tempCameraTags, joinedString.c_str(), joinedString.length());
         ImGui::InputText("Camera Tags##perPipelineStage", tempCameraTags, sizeof(tempCameraTags), ImGuiInputTextFlags_CharsNoBlank);
+        if(ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::Text("Builtin Camera tags are:");
+            ImGui::Text(("   " + HardCodedTags::CAMERA_PLAYER).c_str());
+            ImGui::Text(("   " + HardCodedTags::CAMERA_LIGHT_DIRECTIONAL).c_str());
+            ImGui::Text(("   " + HardCodedTags::CAMERA_LIGHT_POINT).c_str());
+            ImGui::EndTooltip();
+        }
         cameraTags = StringUtils::split(std::string(tempCameraTags), ",");
     }
 
