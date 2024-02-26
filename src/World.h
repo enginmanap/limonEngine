@@ -276,7 +276,7 @@ private:
     Player* beforePlayer = nullptr;
     const Player::WorldSettings* currentPlayersSettings = nullptr;
 
-    PerspectiveCamera* playerCamera;
+    PerspectiveCamera* playerCamera;// This camera itself never changes, but the attachment does.
     BulletDebugDrawer *debugDrawer;
     ImGuiRequest* request = nullptr;
 

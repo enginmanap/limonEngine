@@ -125,6 +125,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
     playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
     playerCamera->addTag(HardCodedTags::CAMERA_PLAYER);
+    allUsedCameraVisibilities.emplace(playerCamera, std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>>());//new camera, new visibility
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
                                            COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                            COLLIDE_MODELS | COLLIDE_EVERYTHING, worldAABBMin,
@@ -295,8 +296,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
      }
      updateActiveLights(false);
 
-     fillVisibleObjectsUsingTags();
      fillVisibleObjects();
+     fillVisibleObjectsUsingTags();
 
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
         guiLayers[i]->setupForTime(gameTime);
@@ -411,13 +412,13 @@ void World::animateCustomAnimations() {
 
 void World::fillVisibleObjectsUsingTags() {
      //first clear up dirty cameras
-    for (auto it: allUsedCameraVisibilities) {
-        if (it.first->isDirty()) {
+    for (auto &it: allUsedCameraVisibilities) {
+        //if (it.first->isDirty()) {
             it.second.clear();
-        }
+        //}
     }
     for (auto objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
-        for (auto it: allUsedCameraVisibilities) {
+        for (auto &it: allUsedCameraVisibilities) {
 
             Model *currentModel = dynamic_cast<Model *>(objectIt->second);
             bool tagMatch = false;
@@ -1957,8 +1958,6 @@ void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
 
     dynamicsWorld->updateAabbs();
     playerCamera->setCameraAttachment(currentPlayer->getCameraAttachment());
-    //allUsedCameraVisibilities.emplace(currentPlayer->getCameraAttachment(), std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>>());
-    allUsedCameraVisibilities.erase(playerCamera);
 
 }
 
