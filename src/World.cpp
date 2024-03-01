@@ -413,12 +413,15 @@ void World::animateCustomAnimations() {
 void World::fillVisibleObjectsUsingTags() {
      //first clear up dirty cameras
     for (auto &it: allUsedCameraVisibilities) {
-        //if (it.first->isDirty()) {
+        if (it.first->isDirty()) {
             it.second.clear();
-        //}
+        }
     }
     for (auto objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
         for (auto &it: allUsedCameraVisibilities) {
+            if(!objectIt->second->isDirtyForFrustum() && !it.first->isDirty()) {
+                continue; //if neither object nor camera dirty, no need to recalculate
+            }
 
             Model *currentModel = dynamic_cast<Model *>(objectIt->second);
             bool tagMatch = false;
@@ -448,6 +451,13 @@ void World::fillVisibleObjectsUsingTags() {
                     }
                 }
             }
+        }
+        //all cameras calculated, clear dirty for object
+        objectIt->second->setCleanForFrustum();
+    }
+    for (auto &it: allUsedCameraVisibilities) {
+        if (it.first->isDirty()) {
+            it.first->clearDirty();//clear after processing so we can check while processing
         }
     }
 }
