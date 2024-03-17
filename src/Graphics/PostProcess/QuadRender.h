@@ -23,7 +23,7 @@ protected:
 public:
     QuadRender(GraphicsInterface* graphicsWrapper);
 
-    void render(std::shared_ptr<GraphicsProgram> renderProgram);
+    void render(std::shared_ptr<GraphicsProgram> renderProgram, const std::string &tags [[gnu::unused]]);
 
 };
 

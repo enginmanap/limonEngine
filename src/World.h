@@ -364,7 +364,7 @@ private:
 
     void switchPlayer(Player* targetPlayer, InputHandler &inputHandler);
 
-    void ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram);
+    void ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, const std::string& tags[[gnu::unused]]);
 
     void setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bool removePossible);
 
@@ -405,22 +405,24 @@ private:
     }
 
     void renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
-    void renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderPlayerAttachmentTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const;
+    void renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const;
+    void renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const;
+    void renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const;
+    void renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const;
+    void renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const;
+    void renderOpaqueObjects(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &tags) const;
+    void renderAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const;
+    void renderPlayerAttachmentTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const;
+    void renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const;
+    void renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const;
+    void renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const;
     void renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes renderingModelType, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
 
     std::vector<std::shared_ptr<GraphicsProgram>> getAllAvailablePrograms();
     void getAllAvailableProgramsRecursive(const AssetManager::AvailableAssetsNode * currentNode, std::vector<std::shared_ptr<GraphicsProgram>> &programs);
+
+    void renderCameraByTag(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags) const;
 
 public:
     ~World();

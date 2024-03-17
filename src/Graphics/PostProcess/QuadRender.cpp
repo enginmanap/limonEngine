@@ -36,6 +36,6 @@ QuadRender::QuadRender(GraphicsInterface* graphicsWrapper) : graphicsWrapper(gra
 
 }
 
-void QuadRender::render(std::shared_ptr<GraphicsProgram> renderProgram) {
+void QuadRender::render(std::shared_ptr<GraphicsProgram> renderProgram, const std::string &tags [[gnu::unused]]) {
     graphicsWrapper->render(renderProgram->getID(), vao, ebo, 3 * 2);//2 triangles
 }

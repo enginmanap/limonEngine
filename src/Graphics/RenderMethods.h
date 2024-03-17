@@ -21,7 +21,7 @@ public:
     class RenderMethod {
         std::string name;
         std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::vector<LimonTypes::GenericParameter>&)> initializer;
-        std::function<void(const std::shared_ptr<GraphicsProgram>&)> method;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string &tags [[gnu::unused]])> method;
         std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::vector<LimonTypes::GenericParameter>&)> finalizer;
         std::shared_ptr<GraphicsProgram> glslProgram;
         uint32_t priority{};
@@ -31,7 +31,7 @@ public:
         RenderMethod(std::string  name,
                      uint32_t priority,
                      std::function<void(const std::shared_ptr<GraphicsProgram> &, const std::vector<LimonTypes::GenericParameter> &)> initializer,
-                     std::function<void(const std::shared_ptr<GraphicsProgram> &)> method,
+                     std::function<void(const std::shared_ptr<GraphicsProgram> &, const std::string &tags [[gnu::unused]])> method,
                      std::function<void(const std::shared_ptr<GraphicsProgram> &, const std::vector<LimonTypes::GenericParameter> &)> finalizer,
                      std::shared_ptr<GraphicsProgram> glslProgram) :
                      name(std::move(name)), initializer(std::move(initializer)), method(std::move(method)), finalizer(std::move(finalizer)),
@@ -53,7 +53,7 @@ public:
                 }
             }
 #endif
-            method(glslProgram);
+            method(glslProgram, "");
         }
 
         void initialize(const std::vector<LimonTypes::GenericParameter>& parameters) {
@@ -87,21 +87,23 @@ public:
         }
     };
 private:
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderOpaqueObjects;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderAnimatedObjects;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderTransparentObjects;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderParticleEmitters;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderGPUParticleEmitters;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderGUITexts;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderGUIImages;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderPlayerAttachmentOpaque;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderPlayerAttachmentTransparent;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderPlayerAttachmentAnimated;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderSky;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderEditor;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderDebug;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderOpaqueObjects;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderAnimatedObjects;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderTransparentObjects;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderParticleEmitters;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderGPUParticleEmitters;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderGUITexts;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderGUIImages;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderPlayerAttachmentOpaque;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderPlayerAttachmentTransparent;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderPlayerAttachmentAnimated;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderSky;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderEditor;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderDebug;
 
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> renderQuad;//For offscreen stuff
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderQuad;//For offscreen stuff
+
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderCameraByTag;//For offscreen stuff
 
     mutable std::unordered_map<std::string, RenderMethodInterface*> dynamicRenderMethodInstances;// Not allowing more than one instance for now, used like a cache so mutable
     //These methods are not exposed to the interface
@@ -115,7 +117,7 @@ private:
      * @param found     Is the method found
      * @return          The given method, or noop method
      */
-    std::function<void(const std::shared_ptr<GraphicsProgram>&)> getRenderMethodByName(const std::string& name, bool& found, uint32_t& priority) const {
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string &tags)> getRenderMethodByName(const std::string& name, bool& found, uint32_t& priority) const {
         found  = true;
         if(name == "Render Opaque Objects") {
             priority = 3;
@@ -165,7 +167,7 @@ private:
         } else {
             found = false;
         }
-        return [](const std::shared_ptr<GraphicsProgram>& notUsed[[gnu::unused]]){};//this is returned for both None and not found
+        return [](const std::shared_ptr<GraphicsProgram>& notUsed[[gnu::unused]], const std::string &tags [[gnu::unused]]){};//this is returned for both None and not found
     }
 
     std::vector<size_t> getLightIndexes(Light::LightTypes lightType) const {
@@ -178,7 +180,7 @@ private:
 
     RenderMethod getBuiltInRenderMethod(const std::string& methodName, const std::shared_ptr<GraphicsProgram>& glslProgram, bool& isFound) const {
         uint32_t priority = 0;
-        std::function<void(const std::shared_ptr<GraphicsProgram>&)> method = getRenderMethodByName(methodName, isFound, priority);
+        std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string &tags [[gnu::unused]])> method = getRenderMethodByName(methodName, isFound, priority);
         if(!isFound) {
             return RenderMethod("NotFound", priority, nullptr, method, nullptr, glslProgram);
         }
@@ -208,7 +210,7 @@ public:
                                     priority,
                                     [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonTypes::GenericParameter> & params)
                                     {return methodInterface->initRender(program, params);},
-                                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program)
+                                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::string &tags [[gnu::unused]])
                                     {return methodInterface->renderFrame(program);},
                                     [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonTypes::GenericParameter> &params)
                                     {return methodInterface->cleanupRender(program, params);},
@@ -227,7 +229,7 @@ public:
         return RenderMethod("All directional shadows",
                             1,
                             nullptr,
-                            [=](const std::shared_ptr<GraphicsProgram> &renderProgram) {
+                            [=](const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &tags [[gnu::unused]]) {
                                 std::vector<size_t> lights = getLightIndexes(Light::LightTypes::DIRECTIONAL);
                                 for (size_t light:lights) {
                                     //set the layer that will be rendered. Also set clear so attached layer will be cleared right away.
@@ -246,7 +248,7 @@ public:
         return RenderMethod("All point shadows",
                             1,
                             nullptr,
-                            [&] (const std::shared_ptr<GraphicsProgram> &renderProgram) {
+                            [&] (const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &tags [[gnu::unused]]) {
                                 std::vector<size_t> lights = getLightIndexes(Light::LightTypes::POINT);
                                 for (size_t light:lights) {
                                     renderLight(light, renderProgram);
