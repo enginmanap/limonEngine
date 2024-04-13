@@ -68,10 +68,10 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
         }
         ImGui::EndChild();
     }
-    if (ImGui::CollapsingHeader("Camera to use##PipelineStageExtension")) {
+    if (ImGui::CollapsingHeader("Camera tags to use##PipelineStageExtension")) {
         std::string joinedString = StringUtils::join(cameraTags, ",");
-        strncpy(tempCameraTags, joinedString.c_str(), joinedString.length());
-        ImGui::InputText("Camera Tags##perPipelineStage", tempCameraTags, sizeof(tempCameraTags), ImGuiInputTextFlags_CharsNoBlank);
+        strncpy(tempTags, joinedString.c_str(), joinedString.length());
+        ImGui::InputText("Camera Tags##perPipelineStage", tempTags, sizeof(tempTags), ImGuiInputTextFlags_CharsNoBlank);
         if(ImGui::IsItemHovered()) {
             ImGui::BeginTooltip();
             ImGui::Text("Builtin Camera tags are:");
@@ -80,7 +80,22 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
             ImGui::Text(("   " + HardCodedTags::CAMERA_LIGHT_POINT).c_str());
             ImGui::EndTooltip();
         }
-        cameraTags = StringUtils::split(std::string(tempCameraTags), ",");
+        cameraTags = StringUtils::split(std::string(tempTags), ",");
+    }
+    if (ImGui::CollapsingHeader("Object Tags to render##PipelineStageExtension")) {
+        std::string joinedString = StringUtils::join(objectTags, ",");
+        strncpy(tempTags, joinedString.c_str(), joinedString.length());
+        ImGui::InputText("Object Tags##perPipelineStage", tempTags, sizeof(tempTags), ImGuiInputTextFlags_CharsNoBlank);
+        if(ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::Text("Builtin Object tags are:");
+            ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_ANIMATED).c_str());
+            ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_PHYSICAL).c_str());
+            ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_STATIC).c_str());
+            ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_TRANSPARENT).c_str());
+            ImGui::EndTooltip();
+        }
+        objectTags = StringUtils::split(std::string(tempTags), ",");
     }
 
     if (ImGui::CollapsingHeader("Render Settings##PipelineStageExtension")) {
@@ -211,6 +226,10 @@ void PipelineStageExtension::serialize(tinyxml2::XMLDocument &document, tinyxml2
     tinyxml2::XMLElement *cameraTagsElement = document.NewElement("CameraTags");
     cameraTagsElement->SetText(StringUtils::join(cameraTags, ",").c_str());
     stageExtensionElement->InsertEndChild(cameraTagsElement);
+
+    tinyxml2::XMLElement *objectTagsElement = document.NewElement("ObjectTags");
+    objectTagsElement->SetText(StringUtils::join(objectTags, ",").c_str());
+    stageExtensionElement->InsertEndChild(objectTagsElement);
 
     tinyxml2::XMLElement *renderResolutionElement = document.NewElement("DefaultRenderResolution");
     stageExtensionElement->InsertEndChild(renderResolutionElement);
@@ -447,6 +466,16 @@ void PipelineStageExtension::deserialize(const std::string &nodeName, tinyxml2::
             anyOutputMultiLayered =false;
         } else {
             std::cerr << "Pipeline stage extension doesn't AnyOutputMultiLayered flag value is unknown. Defaulting to true" << std::endl;
+        }
+    }
+
+    tinyxml2::XMLElement *objectTagsElement = nodeExtensionElement->FirstChildElement("ObjectTags");
+    if (objectTagsElement != nullptr) {
+        if(objectTagsElement->GetText() == nullptr) {
+            std::cerr << "Pipeline Stage ObjectTags setting has no text, assuming empty!" << std::endl;
+        } else {
+            std::string objectTagsString = objectTagsElement->GetText();
+            objectTags = StringUtils::split(objectTagsString, ",");
         }
     }
 

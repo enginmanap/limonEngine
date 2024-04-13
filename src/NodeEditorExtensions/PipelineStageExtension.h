@@ -47,6 +47,7 @@ private:
     std::string renderWidthOption;
     std::string renderHeightOption;
     std::vector<std::string> cameraTags;
+    std::vector<std::string> objectTags;
     static const LightType LIGHT_TYPES[];
     uint32_t iterateOverLightType = 0;
     std::map<uint32_t, int> inputTextureIndexes;//connectionId to input texture index
@@ -55,7 +56,7 @@ private:
     int32_t defaultRenderResolution[2] = {1920, 1080};
     char tempHeightOption[256] = {0};   // These 3 are used for ImGui strings.
     char tempWidthOption[256] = {0};    //
-    char tempCameraTags[512] = {0};     //
+    char tempTags[512] = {0};     //
 
 public:
     void setProgramNameInfo(const ProgramNameInfo &programNameInfo) {
