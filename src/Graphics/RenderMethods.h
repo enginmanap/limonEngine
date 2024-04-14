@@ -20,6 +20,7 @@ class RenderMethods {
 public:
     class RenderMethod {
         std::string name;
+        std::string tags;//FIXME I am not sure if we want multiple tags in single call or single, needs decision.
         std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::vector<LimonTypes::GenericParameter>&)> initializer;
         std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string &tags [[gnu::unused]])> method;
         std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::vector<LimonTypes::GenericParameter>&)> finalizer;
@@ -53,7 +54,7 @@ public:
                 }
             }
 #endif
-            method(glslProgram, "");
+            method(glslProgram, tags);
         }
 
         void initialize(const std::vector<LimonTypes::GenericParameter>& parameters) {
@@ -84,6 +85,14 @@ public:
 
         bool getInitialized() const {
             return isInitialized;
+        }
+
+        const std::string &getTags() const {
+            return tags;
+        }
+
+        void setTags(const std::string &tags) {
+            RenderMethod::tags = tags;
         }
     };
 private:
@@ -119,7 +128,10 @@ private:
      */
     std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string &tags)> getRenderMethodByName(const std::string& name, bool& found, uint32_t& priority) const {
         found  = true;
-        if(name == "Render Opaque Objects") {
+        if(name == "Render Tagged Objects") {
+            priority = 2;
+            return renderCameraByTag;
+        } else if(name == "Render Opaque Objects") {
             priority = 3;
             return  renderOpaqueObjects;
         } else if(name == "Render Animated Objects") {

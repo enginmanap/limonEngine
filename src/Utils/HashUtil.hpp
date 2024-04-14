@@ -16,7 +16,7 @@ public:
         HashedString(const std::string& text): hash(CityHash64(text.c_str(), text.length())), text(text){}
     };
 
-    uint64_t hashString(const std::string& text) {
+    static uint64_t hashString(const std::string& text) {
         return CityHash64(text.c_str(), text.length());
     }
 

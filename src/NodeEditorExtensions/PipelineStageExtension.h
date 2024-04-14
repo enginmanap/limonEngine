@@ -97,6 +97,10 @@ public:
         return "PipelineStageExtension";
     }
 
+    const std::vector<std::string> &getObjectTags() const {
+        return objectTags;
+    }
+
     bool isDepthTestEnabled() const {
         return depthTestEnabled;
     }

@@ -439,7 +439,8 @@ void World::fillVisibleObjectsUsingTags() {
                         it.second[currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), LOWEST_LOD_LEVEL);
                     }
                     uint32_t lod = getLodLevel(currentModel);
-                    it.second[currentModel->getAssetID()].second = std::min(transparentModelsInCameraFrustum[currentModel->getAssetID()].second, lod);
+                    it.second[currentModel->getAssetID()].second = std::min(it.second[currentModel->getAssetID()].second, lod);
+                    it.second[currentModel->getAssetID()].first.insert(currentModel);
                 } else { //not visible
                     if(modelVisibilityEntry->second.first.size() == 1) {
                         it.second.erase(modelVisibilityEntry);
@@ -894,8 +895,27 @@ void World::renderOpaqueObjects(const std::shared_ptr<GraphicsProgram> &renderPr
    }
 }
 
-void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const {
-
+void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &tags) const {
+   uint64_t hashedTag = HashUtil::hashString(tags);//TODO this supports single tags, we should support multiple.
+    for (auto entry:allUsedCameraVisibilities) {
+        if(entry.first->hasRenderTag(hashedTag)) {
+           std::map<uint32_t, std::pair<std::set<Model *>, uint32_t>> gameObjectsToRender = entry.second;
+           //this camera needs rendering, use the culled list and render.
+           for (auto & objectIterator : gameObjectsToRender) {
+               //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
+               std::pair<std::set<Model *>, uint32_t> modelSetWithLod = objectIterator.second;
+               if (!modelSetWithLod.first.empty()) {
+                   modelIndicesBuffer.clear();
+                   Model *sampleModel = *(modelSetWithLod.first.begin());
+                   for (auto model = modelSetWithLod.first.begin(); model != modelSetWithLod.first.end(); ++model) {
+                       //all of these models will be rendered
+                       modelIndicesBuffer.push_back((*model)->getWorldObjectID());
+                   }
+                   sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(renderProgram), modelSetWithLod.second);
+               }
+           }
+       }
+   }
 }
 
 void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const {

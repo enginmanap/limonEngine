@@ -277,6 +277,7 @@ private:
     const Player::WorldSettings* currentPlayersSettings = nullptr;
 
     PerspectiveCamera* playerCamera;// This camera itself never changes, but the attachment does.
+    //std::vector<Camera*> allCameras;//the info about all cameras is inferred by culling results, might need fixing.
     BulletDebugDrawer *debugDrawer;
     ImGuiRequest* request = nullptr;
 

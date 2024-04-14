@@ -13,6 +13,7 @@
 #include "Graphics/Texture.h"
 #include "PipelineStageExtension.h"
 #include "API/Graphics/GraphicsProgram.h"
+#include "Utils/StringUtils.hpp"
 
 
 PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, Options* options,
@@ -753,6 +754,7 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
             RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethod(
                     graphicsWrapper, stageExtension->getMethodName(), stageProgram, isFound);
             if(isFound) {
+                functionToCall.setTags(StringUtils::join(stageExtension->getObjectTags(), ","));
                 stageInfo->addRenderMethod(functionToCall);
             } else {
                 std::cerr << "Selected method name is invalid!" << std::endl;
