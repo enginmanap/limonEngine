@@ -1747,6 +1747,22 @@ bool World::removeObject(uint32_t objectID, const bool &removeChildren) {
             modelsInLightFrustum[i][modelToRemove->getAssetID()].first.erase(modelToRemove);
         }
     }
+    //of course we need to remove from the tag visibility lists too
+    for (auto &perCameraVisibilityIt: allUsedCameraVisibilities) {
+        auto assetSet = perCameraVisibilityIt.second.find(modelToRemove->getAssetID());
+        if(assetSet != perCameraVisibilityIt.second.end()) {
+            //found the asset, is the model in it?
+            auto removeIt = assetSet->second.first.find(modelToRemove);
+            if(removeIt != assetSet->second.first.end()) {
+                //model in it, remove
+                assetSet->second.first.erase(removeIt);
+                if(assetSet->second.first.empty()) {
+                    // the model we removed was the only model, we should drop the whole asset.
+                    perCameraVisibilityIt.second.erase(modelToRemove->getAssetID());
+                }
+            }
+        }
+    }
     
 	//remove its children
     if(removeChildren)
