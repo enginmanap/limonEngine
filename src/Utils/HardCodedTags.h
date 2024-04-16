@@ -16,6 +16,8 @@ class HardCodedTags {
 public:
     static const std::string OBJECT_MODEL_STATIC;
     static const std::string OBJECT_MODEL_PHYSICAL;//kinematics are also physical
+
+    static const std::string OBJECT_MODEL_BASIC; //Non animated, non transparent
     static const std::string OBJECT_MODEL_ANIMATED;
     static const std::string OBJECT_MODEL_TRANSPARENT;
 

@@ -122,6 +122,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     playerCamera = new PerspectiveCamera("Player camera", options, currentPlayer->getCameraAttachment());//register is just below
     playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
     playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+    playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_BASIC);
     playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
     playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
     playerCamera->addTag(HardCodedTags::CAMERA_PLAYER);

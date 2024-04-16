@@ -56,14 +56,20 @@ public:
             directionalCamera->getCameraMatrix();
             directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
             directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
+
+            directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_BASIC);
             directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+
             directionalCamera->addTag(HardCodedTags::CAMERA_LIGHT_DIRECTIONAL);
         } else if(lightType == LightTypes::POINT) {
             cubeCamera = new CubeCamera(this->getName() + " camera", graphicsWrapper->getOptions(), this);
             cubeCamera->getCameraMatrix();
             cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
             cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
+
+            cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_BASIC);
             cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+
             cubeCamera->addTag(HardCodedTags::CAMERA_LIGHT_POINT);
 
         }

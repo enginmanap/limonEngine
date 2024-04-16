@@ -117,6 +117,10 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
     if(this->isTransparent()) {
         this->addTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
     }
+    if(!animated && !this->isTransparent()) {
+        this->addTag(HardCodedTags::OBJECT_MODEL_BASIC);
+    }
+
     if(this->mass > 0) {
         this->addTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
     } else {
