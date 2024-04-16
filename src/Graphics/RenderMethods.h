@@ -20,9 +20,10 @@ class RenderMethods {
 public:
     class RenderMethod {
         std::string name;
-        std::string tags;//FIXME I am not sure if we want multiple tags in single call or single, needs decision.
+        std::string cameraName;//FIXME I am not sure if we want multiple tags in single call or single, needs decision.
+        std::vector<HashUtil::HashedString> renderTags;
         std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::vector<LimonTypes::GenericParameter>&)> initializer;
-        std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string &tags [[gnu::unused]])> method;
+        std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]])> method;
         std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::vector<LimonTypes::GenericParameter>&)> finalizer;
         std::shared_ptr<GraphicsProgram> glslProgram;
         uint32_t priority{};
@@ -32,7 +33,7 @@ public:
         RenderMethod(std::string  name,
                      uint32_t priority,
                      std::function<void(const std::shared_ptr<GraphicsProgram> &, const std::vector<LimonTypes::GenericParameter> &)> initializer,
-                     std::function<void(const std::shared_ptr<GraphicsProgram> &, const std::string &tags [[gnu::unused]])> method,
+                     std::function<void(const std::shared_ptr<GraphicsProgram> &, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]])> method,
                      std::function<void(const std::shared_ptr<GraphicsProgram> &, const std::vector<LimonTypes::GenericParameter> &)> finalizer,
                      std::shared_ptr<GraphicsProgram> glslProgram) :
                      name(std::move(name)), initializer(std::move(initializer)), method(std::move(method)), finalizer(std::move(finalizer)),
@@ -54,7 +55,7 @@ public:
                 }
             }
 #endif
-            method(glslProgram, tags);
+            method(glslProgram, cameraName, renderTags);
         }
 
         void initialize(const std::vector<LimonTypes::GenericParameter>& parameters) {
@@ -87,32 +88,43 @@ public:
             return isInitialized;
         }
 
-        const std::string &getTags() const {
-            return tags;
+        const std::string &getCameraName() const {
+            return cameraName;
         }
 
-        void setTags(const std::string &tags) {
-            RenderMethod::tags = tags;
+        void setCameraName(const std::string &cameraName) {
+            RenderMethod::cameraName = cameraName;
+        }
+
+        const std::vector<HashUtil::HashedString> &getRenderTags() const {
+            return renderTags;
+        }
+
+        void setRenderTags(const std::vector<HashUtil::HashedString> &renderTags) {
+            this->renderTags.clear();
+            for (const auto &item: renderTags) {
+                this->renderTags.emplace_back(item);
+            }
         }
     };
 private:
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderOpaqueObjects;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderAnimatedObjects;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderTransparentObjects;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderParticleEmitters;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderGPUParticleEmitters;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderGUITexts;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderGUIImages;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderPlayerAttachmentOpaque;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderPlayerAttachmentTransparent;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderPlayerAttachmentAnimated;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderSky;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderEditor;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderDebug;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderOpaqueObjects;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderAnimatedObjects;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderTransparentObjects;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderParticleEmitters;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderGPUParticleEmitters;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderGUITexts;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderGUIImages;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderPlayerAttachmentOpaque;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderPlayerAttachmentTransparent;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderPlayerAttachmentAnimated;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderSky;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderEditor;
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderDebug;
 
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderQuad;//For offscreen stuff
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderQuad;//For offscreen stuff
 
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&)> renderCameraByTag;//For offscreen stuff
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderCameraByTag;//For offscreen stuff
 
     mutable std::unordered_map<std::string, RenderMethodInterface*> dynamicRenderMethodInstances;// Not allowing more than one instance for now, used like a cache so mutable
     //These methods are not exposed to the interface
@@ -126,7 +138,7 @@ private:
      * @param found     Is the method found
      * @return          The given method, or noop method
      */
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string &tags)> getRenderMethodByName(const std::string& name, bool& found, uint32_t& priority) const {
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string &cameraName, const std::vector<HashUtil::HashedString> &)> getRenderMethodByName(const std::string& name, bool& found, uint32_t& priority) const {
         found  = true;
         if(name == "Render Tagged Objects") {
             priority = 2;
@@ -179,7 +191,7 @@ private:
         } else {
             found = false;
         }
-        return [](const std::shared_ptr<GraphicsProgram>& notUsed[[gnu::unused]], const std::string &tags [[gnu::unused]]){};//this is returned for both None and not found
+        return [](const std::shared_ptr<GraphicsProgram>& notUsed[[gnu::unused]], const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]){};//this is returned for both None and not found
     }
 
     std::vector<size_t> getLightIndexes(Light::LightTypes lightType) const {
@@ -192,7 +204,7 @@ private:
 
     RenderMethod getBuiltInRenderMethod(const std::string& methodName, const std::shared_ptr<GraphicsProgram>& glslProgram, bool& isFound) const {
         uint32_t priority = 0;
-        std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string &tags [[gnu::unused]])> method = getRenderMethodByName(methodName, isFound, priority);
+        std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]])> method = getRenderMethodByName(methodName, isFound, priority);
         if(!isFound) {
             return RenderMethod("NotFound", priority, nullptr, method, nullptr, glslProgram);
         }
@@ -222,7 +234,7 @@ public:
                                     priority,
                                     [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonTypes::GenericParameter> & params)
                                     {return methodInterface->initRender(program, params);},
-                                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::string &tags [[gnu::unused]])
+                                    [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]])
                                     {return methodInterface->renderFrame(program);},
                                     [methodInterface](const std::shared_ptr<GraphicsProgram>& program, const std::vector<LimonTypes::GenericParameter> &params)
                                     {return methodInterface->cleanupRender(program, params);},
@@ -241,7 +253,7 @@ public:
         return RenderMethod("All directional shadows",
                             1,
                             nullptr,
-                            [=](const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &tags [[gnu::unused]]) {
+                            [=](const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) {
                                 std::vector<size_t> lights = getLightIndexes(Light::LightTypes::DIRECTIONAL);
                                 for (size_t light:lights) {
                                     //set the layer that will be rendered. Also set clear so attached layer will be cleared right away.
@@ -260,7 +272,7 @@ public:
         return RenderMethod("All point shadows",
                             1,
                             nullptr,
-                            [&] (const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &tags [[gnu::unused]]) {
+                            [&] (const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) {
                                 std::vector<size_t> lights = getLightIndexes(Light::LightTypes::POINT);
                                 for (size_t light:lights) {
                                     renderLight(light, renderProgram);

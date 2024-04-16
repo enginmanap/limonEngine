@@ -97,6 +97,10 @@ public:
         return "PipelineStageExtension";
     }
 
+    const std::vector<std::string> &getCameraTags() const {
+        return cameraTags;
+    }
+
     const std::vector<std::string> &getObjectTags() const {
         return objectTags;
     }

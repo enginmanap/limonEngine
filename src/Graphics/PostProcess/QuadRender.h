@@ -10,6 +10,7 @@
 #include <map>
 #include <string>
 #include <memory>
+#include "Utils/HashUtil.hpp"
 
 class GraphicsInterface;
 class GraphicsProgram;
@@ -23,7 +24,7 @@ protected:
 public:
     QuadRender(GraphicsInterface* graphicsWrapper);
 
-    void render(std::shared_ptr<GraphicsProgram> renderProgram, const std::string &tags [[gnu::unused]]);
+    void render(std::shared_ptr<GraphicsProgram> renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]);
 
 };
 

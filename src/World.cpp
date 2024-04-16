@@ -161,21 +161,21 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
    RenderMethods World::buildRenderMethods() {
        RenderMethods renderMethods;
 
-       renderMethods.renderOpaqueObjects                = std::bind(&World::renderOpaqueObjects,                        this,               std::placeholders::_1, std::placeholders::_2);
-       renderMethods.renderAnimatedObjects              = std::bind(&World::renderAnimatedObjects,                      this,               std::placeholders::_1, std::placeholders::_2);
-       renderMethods.renderTransparentObjects           = std::bind(&World::renderTransparentObjects,                   this,               std::placeholders::_1, std::placeholders::_2);
-       renderMethods.renderParticleEmitters             = std::bind(&World::renderParticleEmitters,                     this,               std::placeholders::_1, std::placeholders::_2);
-       renderMethods.renderGPUParticleEmitters          = std::bind(&World::renderGPUParticleEmitters,                  this,               std::placeholders::_1, std::placeholders::_2);
-       renderMethods.renderGUITexts                     = std::bind(&World::renderGUITexts,                             this,               std::placeholders::_1, std::placeholders::_2);
-       renderMethods.renderGUIImages                    = std::bind(&World::renderGUIImages,                            this,               std::placeholders::_1, std::placeholders::_2);
-       renderMethods.renderEditor                       = std::bind(&World::ImGuiFrameSetup,                            this,               std::placeholders::_1, std::placeholders::_2);
-       renderMethods.renderSky                          = std::bind(&World::renderSky,                                  this,               std::placeholders::_1, std::placeholders::_2);
-       renderMethods.renderDebug                        = std::bind(&World::renderDebug,                                this,               std::placeholders::_1, std::placeholders::_2);
-       renderMethods.renderPlayerAttachmentOpaque       = std::bind(&World::renderPlayerAttachmentOpaqueObjects,        this,               std::placeholders::_1, std::placeholders::_2);
-       renderMethods.renderPlayerAttachmentTransparent  = std::bind(&World::renderPlayerAttachmentTransparentObjects,   this,               std::placeholders::_1, std::placeholders::_2);
-       renderMethods.renderPlayerAttachmentAnimated     = std::bind(&World::renderPlayerAttachmentAnimatedObjects,      this,               std::placeholders::_1, std::placeholders::_2);
-       renderMethods.renderCameraByTag                  = std::bind(&World::renderCameraByTag,      this,               std::placeholders::_1, std::placeholders::_2);
-       renderMethods.renderQuad                         = std::bind(&QuadRender::render,                                this->quadRender,   std::placeholders::_1, std::placeholders::_2);
+       renderMethods.renderOpaqueObjects                = std::bind(&World::renderOpaqueObjects,                        this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderAnimatedObjects              = std::bind(&World::renderAnimatedObjects,                      this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderTransparentObjects           = std::bind(&World::renderTransparentObjects,                   this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderParticleEmitters             = std::bind(&World::renderParticleEmitters,                     this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderGPUParticleEmitters          = std::bind(&World::renderGPUParticleEmitters,                  this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderGUITexts                     = std::bind(&World::renderGUITexts,                             this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderGUIImages                    = std::bind(&World::renderGUIImages,                            this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderEditor                       = std::bind(&World::ImGuiFrameSetup,                            this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderSky                          = std::bind(&World::renderSky,                                  this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderDebug                        = std::bind(&World::renderDebug,                                this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderPlayerAttachmentOpaque       = std::bind(&World::renderPlayerAttachmentOpaqueObjects,        this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderPlayerAttachmentTransparent  = std::bind(&World::renderPlayerAttachmentTransparentObjects,   this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderPlayerAttachmentAnimated     = std::bind(&World::renderPlayerAttachmentAnimatedObjects,      this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderCameraByTag                  = std::bind(&World::renderCameraByTag,                          this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderQuad                         = std::bind(&QuadRender::render,                                this->quadRender,   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
        renderMethods.getLightsByType = std::bind(&World::getLightIndexes, this, std::placeholders::_1);
        renderMethods.renderLight = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2);
@@ -300,6 +300,10 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
      fillVisibleObjects();
      fillVisibleObjectsUsingTags();
 
+     //FIXME moved out of fillVisible because for the time being we have 2 (fillVisibleObjects(), fillVisibleObjectsUsingTags()) once one is gone, these 2 clears should go in.
+     updatedModels.clear();
+     playerCamera->clearDirty();
+
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
         guiLayers[i]->setupForTime(gameTime);
     }
@@ -411,7 +415,12 @@ void World::animateCustomAnimations() {
     }
 }
 
-void World::fillVisibleObjectsUsingTags() {
+void World::resetVisibilityBufferForRenderPipelineChange() {
+     //this->allUsedCameraVisibilities.clear();
+ }
+
+
+   void World::fillVisibleObjectsUsingTags() {
      //first clear up dirty cameras
     for (auto &it: allUsedCameraVisibilities) {
         if (it.first->isDirty()) {
@@ -443,12 +452,15 @@ void World::fillVisibleObjectsUsingTags() {
                     it.second[currentModel->getAssetID()].second = std::min(it.second[currentModel->getAssetID()].second, lod);
                     it.second[currentModel->getAssetID()].first.insert(currentModel);
                 } else { //not visible
-                    if(modelVisibilityEntry->second.first.size() == 1) {
-                        it.second.erase(modelVisibilityEntry);
+                    if(modelVisibilityEntry == it.second.end()) {
+                        //it was never in the visible set, ignore.
                     } else {
-                        if (modelVisibilityEntry != it.second.end()) {
-                            //but has an entry in visibility. check and remove
-                            modelVisibilityEntry->second.first.erase(currentModel);//FIXME we didn't change the LOD info, possibly unnecessary high LOD
+                        //this asset was in visible set, but was this game object in the visible set?
+                        if(modelVisibilityEntry->second.first.erase(currentModel)) {
+                            //so we removed the element. should we drop the entry itself?
+                            if(modelVisibilityEntry->second.first.empty()) {
+                                it.second.erase(modelVisibilityEntry);//FIXME we didn't change the LOD info, possibly unnecessary high LOD
+                            }
                         }
                     }
                 }
@@ -495,8 +507,6 @@ void World::fillVisibleObjectsUsingTags() {
         }
     }
 
-    updatedModels.clear();
-    playerCamera->clearDirty();
 }
 
 void World::setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRenderable *PhysicalRenderable, bool removePossible) {
@@ -782,7 +792,7 @@ void World:: render() {
     renderPipeline->render();
 }
 
-void World::renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const {
+void World::renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
     cursor->renderWithProgram(renderProgram, 0);
 
     for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
@@ -793,7 +803,7 @@ void World::renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgra
 
 }
 
-void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const {
+void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
     for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
         (*it)->renderTextWithProgram(renderProgram);
     }
@@ -810,7 +820,7 @@ void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram
     }
 }
 
-void World::renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const {
+void World::renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
    for (auto modelIterator = transparentModelsInCameraFrustum.begin(); modelIterator != transparentModelsInCameraFrustum.end(); ++modelIterator) {
        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
        std::pair<std::set<Model *>, uint32_t> modelSetWithLod = modelIterator->second;
@@ -827,19 +837,19 @@ void World::renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& ren
    }
 }
 
-void World::renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const {
+void World::renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
      for(const auto& emitter:emitters) {
          emitter.second->renderWithProgram(renderProgram, 0);
      }
 }
 
-void World::renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const {
+void World::renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
    for(const auto& gpuParticleEmitter:gpuParticleEmitters) {
        gpuParticleEmitter.second->renderWithProgram(renderProgram, 0);
    }
 }
 
-void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[gnu::unused]], const std::string &tags [[gnu::unused]]) const {
+void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[gnu::unused]], const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
    dynamicsWorld->debugDrawWorld();
    if (dynamicsWorld->getDebugDrawer()->getDebugMode() != btIDebugDraw::DBG_NoDebug) {
        debugDrawer->drawLine(btVector3(0, 0, 0), btVector3(0, 250, 0), btVector3(1, 1, 1));
@@ -851,28 +861,28 @@ void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[
    debugDrawer->flushDraws();
 }
 
-void World::renderPlayerAttachmentTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const {
+void World::renderPlayerAttachmentTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
    if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
        Model *attachedModel = startingPlayer.attachedModel;
        renderPlayerAttachmentsRecursive(attachedModel, ModelTypes::TRANSPARENT, renderProgram);
    }
 }
 
-void World::renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &tags [[gnu::unused]]) const {
+void World::renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
    if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
        Model *attachedModel = startingPlayer.attachedModel;
        renderPlayerAttachmentsRecursive(attachedModel, ModelTypes::ANIMATED, renderProgram);
    }
 }
 
-void World::renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &tags [[gnu::unused]]) const {
+void World::renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
    if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
        Model *attachedModel = startingPlayer.attachedModel;
        renderPlayerAttachmentsRecursive(attachedModel, ModelTypes::NON_ANIMATED_OPAQUE, renderProgram);
    }
 }
 
-void World::renderAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const {
+void World::renderAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
     for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
        std::vector<uint32_t> temp;
        temp.push_back((*modelIterator).model->getWorldObjectID());
@@ -880,7 +890,7 @@ void World::renderAnimatedObjects(const std::shared_ptr<GraphicsProgram>& render
     }
 }
 
-void World::renderOpaqueObjects(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &tags [[gnu::unused]]) const {
+void World::renderOpaqueObjects(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
    for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
        std::pair<std::set<Model *>, uint32_t> modelSetWithLod = modelIterator->second;
@@ -896,10 +906,10 @@ void World::renderOpaqueObjects(const std::shared_ptr<GraphicsProgram> &renderPr
    }
 }
 
-void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &tags) const {
-   uint64_t hashedTag = HashUtil::hashString(tags);//TODO this supports single tags, we should support multiple.
+void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
+   uint64_t hashedTag = HashUtil::hashString(cameraName);//TODO this supports single tags, we should support multiple.
     for (auto entry:allUsedCameraVisibilities) {
-        if(entry.first->hasRenderTag(hashedTag)) {
+        if(entry.first->hasTag(hashedTag)) {
            std::map<uint32_t, std::pair<std::set<Model *>, uint32_t>> gameObjectsToRender = entry.second;
            //this camera needs rendering, use the culled list and render.
            for (auto & objectIterator : gameObjectsToRender) {
@@ -909,17 +919,23 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
                    modelIndicesBuffer.clear();
                    Model *sampleModel = *(modelSetWithLod.first.begin());
                    for (auto model = modelSetWithLod.first.begin(); model != modelSetWithLod.first.end(); ++model) {
-                       //all of these models will be rendered
-                       modelIndicesBuffer.push_back((*model)->getWorldObjectID());
+                       for (const auto &item: tags) {
+                           if((*model)->hasTag(item.hash)) {
+                               modelIndicesBuffer.push_back((*model)->getWorldObjectID());
+                               break;
+                           }
+                       } // only ones with the correct tag will be rendered.
                    }
-                   sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(renderProgram), modelSetWithLod.second);
+                   if(!modelIndicesBuffer.empty()) {
+                       sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(renderProgram), modelSetWithLod.second);
+                   }
                }
            }
        }
    }
 }
 
-void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &tags [[gnu::unused]]) const {
+void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
    if (sky != nullptr) {
        sky->renderWithProgram(renderProgram, 0);
    }
@@ -1004,7 +1020,7 @@ void World::renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes 
  * This method checks if we are in editor mode, and if we are, enables ImGui windows
  * It also fills the windows with relevant parameters.
  */
-void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, const std::string &tags [[gnu::unused]]) {//TODO not const because it removes the object. Should be separated
+void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) {//TODO not const because it removes the object. Should be separated
    if(!currentPlayersSettings->editorShown) {
        return;
    }
@@ -2654,6 +2670,9 @@ bool World::changeRenderPipeline(const std::string &pipelineFileName) {
     std::unique_ptr<GraphicsPipeline> newPipeline = GraphicsPipeline::deserialize(pipelineFileName, this->graphicsWrapper, assetManager, options, buildRenderMethods());
     if(newPipeline != nullptr) {
         this->renderPipeline = std::move(newPipeline);
+        //reset the
+        this->resetVisibilityBufferForRenderPipelineChange();
+        this->fillVisibleObjectsUsingTags();
         return true;
     }
     return false;

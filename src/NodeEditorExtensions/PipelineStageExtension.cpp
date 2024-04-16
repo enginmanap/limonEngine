@@ -70,6 +70,7 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
     }
     if (ImGui::CollapsingHeader("Camera tags to use##PipelineStageExtension")) {
         std::string joinedString = StringUtils::join(cameraTags, ",");
+        memset(tempTags, 0, sizeof(tempTags));
         strncpy(tempTags, joinedString.c_str(), joinedString.length());
         ImGui::InputText("Camera Tags##perPipelineStage", tempTags, sizeof(tempTags), ImGuiInputTextFlags_CharsNoBlank);
         if(ImGui::IsItemHovered()) {
@@ -82,8 +83,10 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
         }
         cameraTags = StringUtils::split(std::string(tempTags), ",");
     }
+
     if (ImGui::CollapsingHeader("Object Tags to render##PipelineStageExtension")) {
         std::string joinedString = StringUtils::join(objectTags, ",");
+        memset(tempTags, 0, sizeof(tempTags));
         strncpy(tempTags, joinedString.c_str(), joinedString.length());
         ImGui::InputText("Object Tags##perPipelineStage", tempTags, sizeof(tempTags), ImGuiInputTextFlags_CharsNoBlank);
         if(ImGui::IsItemHovered()) {

@@ -49,6 +49,8 @@ public:
         bool clear = false;
         std::vector<RenderMethods::RenderMethod> renderMethods;
         std::unordered_map<std::string, RenderMethodInterface*> externalRenderMethods;
+        std::vector<std::string> cameraTags;
+        std::vector<std::string> renderTags;
 
         void addRenderMethod(RenderMethods::RenderMethod method) {
             for (auto iterator = renderMethods.begin(); iterator != renderMethods.end();++iterator) {
@@ -85,6 +87,18 @@ public:
             }
         }
         */
+        for (const std::string &cameraTag: stageInformation.cameraTags) {
+            std::map<std::string, std::vector<std::string>>::iterator item = cameraTagToRenderTagMap.find(cameraTag);
+            if(item == cameraTagToRenderTagMap.end() || item->second.empty()) {
+                cameraTagToRenderTagMap[cameraTag] = stageInformation.renderTags;
+            } else {
+                for (const std::string &renderTag: stageInformation.renderTags) {
+                    if(std::find(item->second.begin(), item->second.end(),renderTag) != item->second.end()) {
+                        item->second.emplace_back(renderTag);
+                    }
+                }
+            }
+        }
         pipelineStages.push_back(stageInformation);
         //pipelineStages.insert(pipelineStages.begin(),stageInformation);//if not found, it means that should be inserted to beginning
     }
@@ -126,7 +140,13 @@ public:
     const std::vector<std::shared_ptr<Texture>> &getTextures() {
         return textures;
     };
+
+    const std::map<std::string, std::vector<std::string>> &getCameraTagToRenderTagMap() const {
+        return cameraTagToRenderTagMap;
+    }
+
 private:
+    std::map<std::string, std::vector<std::string>> cameraTagToRenderTagMap;//Per stage, we configure camera name(tag) and renderTags(objects to render). We should combine them and make accessible so culling can use the info.
     RenderMethods renderMethods;
     std::vector<StageInfo> pipelineStages;
     std::vector<std::shared_ptr<Texture>> textures;

@@ -404,6 +404,8 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
     bool existingDepthReadState = false;
     bool existingDepthWriteState = false;
     bool existingBlendingState = false;
+    std::vector<std::string> existingCameraTags;
+    std::vector<std::string> existingObjectTags;
     for(auto existingNode:existingNodes) {
         auto stageExtension = dynamic_cast<PipelineStageExtension*>(existingNode->getExtension());
         if(stageExtension == nullptr) {
@@ -420,6 +422,8 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
         existingDepthReadState = stageExtension->isDepthTestEnabled();
         existingDepthWriteState = stageExtension->isDepthWriteEnabled();
         existingBlendingState = stageExtension->isBlendEnabled();
+        existingCameraTags = stageExtension->getCameraTags();
+        existingObjectTags = stageExtension->getObjectTags();
         for (auto outputConnection:existingNode->getOutputConnections()) {
             auto outputTextureInfo = stageExtension->getOutputTextureInfo(outputConnection);
             if (outputTextureInfo == nullptr) {
@@ -437,6 +441,29 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
             break;
         }
     }
+    if(currentStageExtension->getCameraTags().size() != existingCameraTags.size()) {
+        std::cerr << "Failed to join because existing camera tags "<< StringUtils::join(existingCameraTags,",") << " is not same as " << StringUtils::join(currentStageExtension->getCameraTags(),",") << std::endl;
+        return false;
+    }
+    if(currentStageExtension->getObjectTags().size() != existingObjectTags.size()) {
+        std::cerr << "Failed to join because existing object tags "<< StringUtils::join(existingObjectTags,",") << " is not same as " << StringUtils::join(currentStageExtension->getObjectTags(),",") << std::endl;
+        return false;
+    }
+
+    for (const std::string &tag: currentStageExtension->getCameraTags()) {
+        if(std::find(existingCameraTags.begin(), existingCameraTags.end(),tag) == existingCameraTags.end()) {
+            std::cerr << "Failed to join because existing camera tags "<< StringUtils::join(existingCameraTags,",") << " is not same as " << StringUtils::join(currentStageExtension->getCameraTags(),",") << std::endl;
+            return false;
+        }
+    }
+
+    for (const std::string &tag: currentStageExtension->getObjectTags()) {
+        if(std::find(existingObjectTags.begin(), existingObjectTags.end(),tag) == existingObjectTags.end()) {
+            std::cerr << "Failed to join because existing object tags "<< StringUtils::join(existingObjectTags,",") << " is not same as " << StringUtils::join(currentStageExtension->getObjectTags(),",") << std::endl;
+            return false;
+        }
+    }
+
     /* left for debug */
     if(existingDepthMap == nullptr) {
         std::cerr << "Success to join because existing set "<< existingNodeName <<" has no depth map" << std::endl;
@@ -648,6 +675,8 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                                                                stageExtension->isDepthWriteEnabled(),
                                                                stageExtension->isScissorTestEnabled(),
                                                                toScreen);
+            stageInfo->renderTags = stageExtension->getObjectTags();
+            stageInfo->cameraTags = stageExtension->getCameraTags();
             stageInfo->stage->setCullMode(stageExtension->getCullmode());
             builtStages.emplace_back(stageInfo);//only add the stage at the first time. Because this method works from back to front, the order in the vector will be correct.
         } else {
@@ -754,7 +783,12 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
             RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethod(
                     graphicsWrapper, stageExtension->getMethodName(), stageProgram, isFound);
             if(isFound) {
-                functionToCall.setTags(StringUtils::join(stageExtension->getObjectTags(), ","));
+                functionToCall.setCameraName(StringUtils::join(stageExtension->getCameraTags(), ","));
+                std::vector<HashUtil::HashedString> renderTags;
+                for (const auto &item: stageExtension->getObjectTags()){
+                    renderTags.emplace_back(item);
+                }
+                functionToCall.setRenderTags(renderTags);
                 stageInfo->addRenderMethod(functionToCall);
             } else {
                 std::cerr << "Selected method name is invalid!" << std::endl;
