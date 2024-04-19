@@ -97,6 +97,10 @@ bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     currentElement->SetText(StringUtils::join(cameraTags, ",").c_str());
     stageNode->InsertEndChild(currentElement);
 
+    currentElement = document.NewElement("ObjectTags");
+    currentElement->SetText(StringUtils::join(objectTags, ",").c_str());
+    stageNode->InsertEndChild(currentElement);
+
     currentElement = document.NewElement("CullMode");
     switch (cullMode) {
         case GraphicsInterface::CullModes::NONE: currentElement->SetText("NONE"); break;
@@ -146,6 +150,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
     bool blendEnabled = false;
     bool toScreen = false;
     std::vector<std::string> cameraTags;
+    std::vector<std::string> objectTags;
     GraphicsInterface::CullModes cullMode = GraphicsInterface::CullModes::NO_CHANGE;
 
     stageNodeAttribute = stageNode->FirstChildElement("DefaultRenderHeight");
@@ -216,6 +221,16 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
         } else {
             std::string cameraTagsString = stageNodeAttribute->GetText();
             cameraTags = StringUtils::split(cameraTagsString, ",");
+        }
+    }
+
+    stageNodeAttribute = stageNode->FirstChildElement("ObjectTags");
+    if (stageNodeAttribute != nullptr) {
+        if(stageNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Pipeline Stage ObjectTags setting has no text, assuming empty!" << std::endl;
+        } else {
+            std::string objectTagsString = stageNodeAttribute->GetText();
+            objectTags = StringUtils::split(objectTagsString, ",");
         }
     }
 
@@ -329,6 +344,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
     newStage->depthAttachment = depthAttachmentEnabled;
     newStage->colorAttachment = colorAttachmentEnabled;
     newStage->cameraTags = cameraTags;
+    newStage->objectTags = objectTags;
 
     stageNodeAttribute = stageNode->FirstChildElement("CullMode");
 

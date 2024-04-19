@@ -967,53 +967,50 @@ void World::renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsP
 }
 
 void World::renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes renderingModelType, const std::shared_ptr<GraphicsProgram> &renderProgram) const {
- if(attachment->getTypeID() == GameObject::MODEL) {
-     Model* attachedModel = static_cast<Model*>(attachment);
-     std::vector<uint32_t> temp;
-     temp.push_back(attachedModel->getWorldObjectID());
-     //These if checks are not combined because they are not checking the same thing. Outer one checks model type, inner one checks what type of model we are rendering
-     if(attachedModel->isAnimated()) {
-         if(renderingModelType == ModelTypes::ANIMATED) {
-             attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()), 0);
-         }
-     } else {
-         if(attachedModel->isTransparent()) {
-             if(renderingModelType == ModelTypes::TRANSPARENT) {
-                 attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()), 0);
-             }
-         } else {
-             if(renderingModelType == ModelTypes::NON_ANIMATED_OPAQUE) {
-                 attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()), 0);
-             }
-         }
-     }
+   if(attachment->getTypeID() == GameObject::MODEL) {
+       Model* attachedModel = static_cast<Model*>(attachment);
+       std::vector<uint32_t> temp;
+       temp.push_back(attachedModel->getWorldObjectID());
+       //These if checks are not combined because they are not checking the same thing. Outer one checks model type, inner one checks what type of model we are rendering
+       if(attachedModel->isAnimated()) {
+           if(renderingModelType == ModelTypes::ANIMATED) {
+               attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()), 0);
+           }
+       } else {
+           if(attachedModel->isTransparent()) {
+               if(renderingModelType == ModelTypes::TRANSPARENT) {
+                   attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()), 0);
+               }
+           } else {
+               if(renderingModelType == ModelTypes::NON_ANIMATED_OPAQUE) {
+                   attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()), 0);
+               }
+           }
+       }
 
-     if (attachedModel->hasChildren()) {
-         const std::vector<PhysicalRenderable *> &children = attachedModel->getChildren();
-         for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
-             GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
-             if(gameObject != nullptr) {
-                 renderPlayerAttachmentsRecursive(gameObject, renderingModelType, renderProgram);
-             }
-         }
-     }
- } else if(attachment->getTypeID() == GameObject::MODEL_GROUP) {
-     ModelGroup* attachedModelGroup = static_cast<ModelGroup*>(attachment);
-     std::vector<uint32_t> temp;
-     temp.push_back(attachedModelGroup->getWorldObjectID());
-     if (attachedModelGroup->hasChildren()) {
-         const std::vector<PhysicalRenderable *> &children = attachedModelGroup->getChildren();
-         for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
-             GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
-             if(gameObject != nullptr) {
-                 renderPlayerAttachmentsRecursive(gameObject, renderingModelType, renderProgram);
-             }
-         }
-     }
- }
-
-
-
+       if (attachedModel->hasChildren()) {
+           const std::vector<PhysicalRenderable *> &children = attachedModel->getChildren();
+           for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
+               GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
+               if(gameObject != nullptr) {
+                   renderPlayerAttachmentsRecursive(gameObject, renderingModelType, renderProgram);
+               }
+           }
+       }
+   } else if(attachment->getTypeID() == GameObject::MODEL_GROUP) {
+       ModelGroup* attachedModelGroup = static_cast<ModelGroup*>(attachment);
+       std::vector<uint32_t> temp;
+       temp.push_back(attachedModelGroup->getWorldObjectID());
+       if (attachedModelGroup->hasChildren()) {
+           const std::vector<PhysicalRenderable *> &children = attachedModelGroup->getChildren();
+           for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
+               GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
+               if(gameObject != nullptr) {
+                   renderPlayerAttachmentsRecursive(gameObject, renderingModelType, renderProgram);
+               }
+           }
+       }
+   }
 }
 
 /**

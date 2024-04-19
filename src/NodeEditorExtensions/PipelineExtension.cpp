@@ -676,7 +676,10 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                                                                stageExtension->isScissorTestEnabled(),
                                                                toScreen);
             stageInfo->renderTags = stageExtension->getObjectTags();
+            stageInfo->stage->setObjectTags(stageExtension->getObjectTags());
+
             stageInfo->cameraTags = stageExtension->getCameraTags();
+            stageInfo->stage->setCameraTags(stageExtension->getCameraTags());
             stageInfo->stage->setCullMode(stageExtension->getCullmode());
             builtStages.emplace_back(stageInfo);//only add the stage at the first time. Because this method works from back to front, the order in the vector will be correct.
         } else {
@@ -784,10 +787,12 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                     graphicsWrapper, stageExtension->getMethodName(), stageProgram, isFound);
             if(isFound) {
                 functionToCall.setCameraName(StringUtils::join(stageExtension->getCameraTags(), ","));
+                stageInfo->cameraTags = stageExtension->getCameraTags();
                 std::vector<HashUtil::HashedString> renderTags;
                 for (const auto &item: stageExtension->getObjectTags()){
                     renderTags.emplace_back(item);
                 }
+                stageInfo->renderTags = stageExtension->getObjectTags();
                 functionToCall.setRenderTags(renderTags);
                 stageInfo->addRenderMethod(functionToCall);
             } else {

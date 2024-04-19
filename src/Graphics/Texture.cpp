@@ -320,7 +320,7 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
     textureNodeAttribute = TextureNode->FirstChildElement("HeightOption");
     if (textureNodeAttribute != nullptr) {
         if(textureNodeAttribute->GetText() == nullptr) {
-            std::cerr << "Texture HeightOption has no text, skipping! " << std::endl;
+            std::cout << "Texture HeightOption has no text, skipping! " << std::endl;
         } else {
             textureInfo.heightOption = textureNodeAttribute->GetText();
         }
@@ -329,7 +329,7 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
     textureNodeAttribute = TextureNode->FirstChildElement("WidthOption");
     if (textureNodeAttribute != nullptr) {
         if(textureNodeAttribute->GetText() == nullptr) {
-            std::cerr << "Texture WidthOption has no text, skipping! " << std::endl;
+            std::cout << "Texture WidthOption has no text, skipping! " << std::endl;
         } else {
             textureInfo.widthOption = textureNodeAttribute->GetText();
         }
