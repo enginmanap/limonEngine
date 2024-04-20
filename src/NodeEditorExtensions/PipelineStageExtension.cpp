@@ -97,6 +97,8 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
             ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_BASIC).c_str());
             ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_ANIMATED).c_str());
             ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_TRANSPARENT).c_str());
+            ImGui::Text("   ");
+            ImGui::Text("Objects render in same order as the tags you set");
             ImGui::EndTooltip();
         }
         objectTags = StringUtils::split(std::string(tempTags), ",");

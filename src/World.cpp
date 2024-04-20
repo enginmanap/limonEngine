@@ -907,32 +907,37 @@ void World::renderOpaqueObjects(const std::shared_ptr<GraphicsProgram> &renderPr
 }
 
 void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
-   uint64_t hashedTag = HashUtil::hashString(cameraName);//TODO this supports single tags, we should support multiple.
-    for (auto entry:allUsedCameraVisibilities) {
-        if(entry.first->hasTag(hashedTag)) {
-           std::map<uint32_t, std::pair<std::set<Model *>, uint32_t>> gameObjectsToRender = entry.second;
-           //this camera needs rendering, use the culled list and render.
-           for (auto & objectIterator : gameObjectsToRender) {
-               //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-               std::pair<std::set<Model *>, uint32_t> modelSetWithLod = objectIterator.second;
-               if (!modelSetWithLod.first.empty()) {
-                   modelIndicesBuffer.clear();
-                   Model *sampleModel = *(modelSetWithLod.first.begin());
-                   for (auto model = modelSetWithLod.first.begin(); model != modelSetWithLod.first.end(); ++model) {
-                       for (const auto &item: tags) {
-                           if((*model)->hasTag(item.hash)) {
-                               modelIndicesBuffer.push_back((*model)->getWorldObjectID());
-                               break;
-                           }
-                       } // only ones with the correct tag will be rendered.
-                   }
-                   if(!modelIndicesBuffer.empty()) {
-                       sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(renderProgram), modelSetWithLod.second);
-                   }
-               }
-           }
-       }
-   }
+   uint64_t hashedTag = HashUtil::hashString(cameraName);
+   tempRenderedObjectsSet.clear();
+    for (const auto &renderTag: tags) {
+        for (auto visibilityEntry: allUsedCameraVisibilities) {
+            if (visibilityEntry.first->hasTag(hashedTag)) {
+                std::map<uint32_t, std::pair<std::set<Model *>, uint32_t>> gameObjectsToRender = visibilityEntry.second;
+                //this camera needs rendering, use the culled list and render.
+                for (auto &objectIterator: gameObjectsToRender) {
+                    //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
+                    std::pair<std::set<Model *>, uint32_t> modelSetWithLod = objectIterator.second;
+                    if (!modelSetWithLod.first.empty()) {
+                        modelIndicesBuffer.clear();
+                        Model *sampleModel = *(modelSetWithLod.first.begin());
+                        for (auto model = modelSetWithLod.first.begin(); model != modelSetWithLod.first.end(); ++model) {
+                            if ((*model)->hasTag(renderTag.hash)) {
+                                if(tempRenderedObjectsSet.find((*model)->getWorldObjectID()) != tempRenderedObjectsSet.end()) {
+                                    //we already rendered this object because of another tag, skip
+                                    continue;
+                                }
+                                modelIndicesBuffer.push_back((*model)->getWorldObjectID());
+                                tempRenderedObjectsSet.insert((*model)->getWorldObjectID());
+                            }
+                        }
+                        if (!modelIndicesBuffer.empty()) {
+                            sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(renderProgram), modelSetWithLod.second);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {

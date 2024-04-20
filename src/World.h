@@ -201,6 +201,7 @@ private:
     uint32_t nextWorldID = 2;
     std::queue<uint32_t> unusedIDs;
     std::map<uint32_t, PhysicalRenderable *> objects;
+    mutable std::set<uint32_t> tempRenderedObjectsSet;
     std::set<uint32_t> disconnectedModels;
     std::map<uint32_t, ModelGroup*> modelGroups;
 

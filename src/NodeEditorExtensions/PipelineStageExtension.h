@@ -35,13 +35,7 @@ private:
     PipelineExtension* pipelineExtension = nullptr;
 
     GraphicsInterface::CullModes cullMode = GraphicsInterface::CullModes::NO_CHANGE;
-    bool clearBefore = false;
-    bool blendEnabled = false;
-    bool depthTestEnabled = true;
-    bool depthWriteEnabled = true;
-    bool scissorTestEnabled = false;
-    bool anyOutputMultiLayered = false;
-    bool toScreen = false;
+
     std::string currentMethodName = "";
     std::string originalOutputType;
     std::string renderWidthOption;
@@ -56,7 +50,14 @@ private:
     int32_t defaultRenderResolution[2] = {1920, 1080};
     char tempHeightOption[256] = {0};   // These 3 are used for ImGui strings.
     char tempWidthOption[256] = {0};    //
-    char tempTags[512] = {0};     //
+    char tempTags[512] = {0};           //
+    bool clearBefore = false;
+    bool blendEnabled = false;
+    bool depthTestEnabled = true;
+    bool depthWriteEnabled = true;
+    bool scissorTestEnabled = false;
+    bool anyOutputMultiLayered = false;
+    bool toScreen = false;
 
 public:
     void setProgramNameInfo(const ProgramNameInfo &programNameInfo) {
