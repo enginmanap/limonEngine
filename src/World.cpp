@@ -3299,6 +3299,7 @@ void World::createNodeGraph() {
                 case Uniform::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
                 case Uniform::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
                 case Uniform::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
+                case Uniform::VariableTypes::BOOL              : desc.type = "Boolean"; break;
                 case Uniform::VariableTypes::INT               : desc.type = "Integer"; break;
                 case Uniform::VariableTypes::FLOAT             : desc.type = "Float"; break;
                 case Uniform::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
@@ -3319,6 +3320,7 @@ void World::createNodeGraph() {
                 case Uniform::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
                 case Uniform::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
                 case Uniform::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
+                case Uniform::VariableTypes::BOOL              : desc.type = "Boolean"; break;
                 case Uniform::VariableTypes::INT               : desc.type = "Integer"; break;
                 case Uniform::VariableTypes::FLOAT             : desc.type = "Float"; break;
                 case Uniform::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;

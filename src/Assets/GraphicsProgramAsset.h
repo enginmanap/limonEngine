@@ -102,7 +102,8 @@ public:
     bool setUniform(const uint32_t programID, const std::string &uniformName, const int value) {
         auto uniformIt = uniformMap.find(uniformName);
         if(uniformIt != uniformMap.end() &&
-            (uniformIt->second->type == Uniform::VariableTypes::INT ||
+            (uniformIt->second->type == Uniform::VariableTypes::BOOL ||
+             uniformIt->second->type == Uniform::VariableTypes::INT ||
              uniformIt->second->type == Uniform::VariableTypes::CUBEMAP ||
              uniformIt->second->type == Uniform::VariableTypes::CUBEMAP_ARRAY ||
              uniformIt->second->type == Uniform::VariableTypes::TEXTURE_2D ||

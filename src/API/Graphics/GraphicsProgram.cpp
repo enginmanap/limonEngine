@@ -84,6 +84,7 @@ bool GraphicsProgram::addPresetValue(const std::string& uniformName, const std::
     }
     this->presetUniformValues[processingUniformIt->second] = value;
     switch (processingUniformIt->second->type) {
+        case Uniform::VariableTypes::BOOL:
         case Uniform::VariableTypes::INT:
         case Uniform::VariableTypes::CUBEMAP:
         case Uniform::VariableTypes::CUBEMAP_ARRAY:

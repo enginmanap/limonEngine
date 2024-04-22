@@ -11,6 +11,7 @@
 class Uniform{
 public:
     enum class VariableTypes {
+        BOOL,
         INT,
         FLOAT,
         FLOAT_VEC2,
