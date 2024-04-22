@@ -49,8 +49,7 @@ layout (std140) uniform LightSourceBlock {
     LightSource lights[NR_POINT_LIGHTS];
 } LightSources;
 
-void main(void)
-{
+void main(void) {
     to_fs.textureCoord = textureCoordinate;
     mat4 modelTransform;
     int modelOffset = 4*int(instance.models[gl_InstanceID].x);
@@ -58,6 +57,7 @@ void main(void)
     modelTransform[1] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 1, 0), 0);
     modelTransform[2] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 2, 0), 0);
     modelTransform[3] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 3, 0), 0);
+
     mat3 transposeInverseModelTransform;
     transposeInverseModelTransform[0] = texelFetch(allModelTransformsTexture, ivec2(modelOffset    , 1), 0).xyz;
     transposeInverseModelTransform[1] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 1, 1), 0).xyz;
@@ -70,5 +70,5 @@ void main(void)
             to_fs.fragPosLightSpace[i] = LightSources.lights[i].lightSpaceMatrix * vec4(to_fs.fragPos, 1.0);
         }
     }
-    gl_Position = playerTransforms.cameraProjection * (modelTransform * position);
+    gl_Position = playerTransforms.cameraProjection * vec4(to_fs.fragPos, 1.0);
 }

@@ -122,7 +122,7 @@ public:
         }
     }
 
-    void setSoundAttachementAndPlay(std::unique_ptr<Sound> soundAttachment) {
+    void setSoundAttachmentAndPlay(std::unique_ptr<Sound> soundAttachment) {
         this->soundAttachment2 = std::move(soundAttachment);
         this->soundAttachment2->setLoop(true);
         this->soundAttachment2->setWorldPosition(this->transformation.getTranslate());

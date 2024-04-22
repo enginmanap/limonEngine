@@ -190,9 +190,9 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
             }
         }
 
-        tinyxml2::XMLElement* playerAttachementModel =  worldStartPlayer->FirstChildElement("Attachement");
-        if(playerAttachementModel != nullptr) {
-            tinyxml2::XMLElement* objectNode =  playerAttachementModel->FirstChildElement("Object");
+        tinyxml2::XMLElement* playerAttachmentModel =  worldStartPlayer->FirstChildElement("Attachment");
+        if(playerAttachmentModel != nullptr) {
+            tinyxml2::XMLElement* objectNode =  playerAttachmentModel->FirstChildElement("Object");
             if (objectNode != nullptr) {
                 std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds; //required. Should not be used normally.
 

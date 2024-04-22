@@ -1885,7 +1885,7 @@ bool World::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string
     if(objects.find(objectWorldID) == objects.end()) {
         return false;//fail
     }
-    objects[objectWorldID]->setSoundAttachementAndPlay(std::make_unique<Sound>(getNextObjectID(), assetManager, soundPath));
+    objects[objectWorldID]->setSoundAttachmentAndPlay(std::make_unique<Sound>(getNextObjectID(), assetManager, soundPath));
     return true;
 }
 

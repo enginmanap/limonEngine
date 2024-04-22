@@ -49,19 +49,14 @@ layout (std140) uniform ModelIndexBlock {
     uvec4 models[NR_MAX_MODELS];
 } instance;
 
-layout (std140) uniform LightSourceBlock
-{
+layout (std140) uniform LightSourceBlock {
     LightSource lights[NR_POINT_LIGHTS];
 } LightSources;
 
+uniform bool isAnimated;
 uniform mat4 boneTransformArray[NR_BONE];
 
 void main(void) {
-    mat4 BoneTransform = boneTransformArray[boneIDs[0]] * boneWeights[0];
-    BoneTransform += boneTransformArray[boneIDs[1]] * boneWeights[1];
-    BoneTransform += boneTransformArray[boneIDs[2]] * boneWeights[2];
-    BoneTransform += boneTransformArray[boneIDs[3]] * boneWeights[3];
-
     to_fs.textureCoord = textureCoordinate;
     mat4 modelTransform;
     int modelOffset = 4*int(instance.models[gl_InstanceID].x);
@@ -75,13 +70,23 @@ void main(void) {
     transposeInverseModelTransform[1] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 1, 1), 0).xyz;
     transposeInverseModelTransform[2] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 2, 1), 0).xyz;
 
-    to_fs.normal = normalize(transposeInverseModelTransform * vec3(BoneTransform * vec4(normal, 0.0)));
+    if(isAnimated) {
+        mat4 BoneTransform = boneTransformArray[boneIDs[0]] * boneWeights[0];
+        BoneTransform += boneTransformArray[boneIDs[1]] * boneWeights[1];
+        BoneTransform += boneTransformArray[boneIDs[2]] * boneWeights[2];
+        BoneTransform += boneTransformArray[boneIDs[3]] * boneWeights[3];
+
+        to_fs.normal = normalize(transposeInverseModelTransform * vec3(BoneTransform * vec4(normal, 0.0)));
         to_fs.fragPos = vec3(modelTransform * (BoneTransform * position));
+    }
+     else {
+        to_fs.normal = normalize(transposeInverseModelTransform * normal);
+        to_fs.fragPos = vec3(modelTransform * position);
+    }
     for(int i = 0; i < NR_POINT_LIGHTS; i++){
         if(LightSources.lights[i].type == 1) {
             to_fs.fragPosLightSpace[i] = LightSources.lights[i].lightSpaceMatrix * vec4(to_fs.fragPos, 1.0);
         }
     }
-    //The transform is calculated twice, it can be reused from to_fs.fragPos
-    gl_Position = playerTransforms.cameraProjection * (modelTransform * (BoneTransform * position));
+    gl_Position = playerTransforms.cameraProjection * vec4(to_fs.fragPos, 1.0);
 }

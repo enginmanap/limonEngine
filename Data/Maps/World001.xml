@@ -13,7 +13,7 @@
             <Z>0.9929983</Z>
         </Orientation>
         <ExtensionName>ShooterPlayerExtension</ExtensionName>
-        <Attachement>
+        <Attachment>
             <Object>
                 <File>./Data/Models/EasyFPS/EasyFPS.fbx</File>
                 <Animation>Idle</Animation>
@@ -39,7 +39,7 @@
                     </Rotate>
                 </Transformation>
             </Object>
-        </Attachement>
+        </Attachment>
     </Player>
     <QuitResponse>QuitGame</QuitResponse>
     <QuitWorldName></QuitWorldName>
