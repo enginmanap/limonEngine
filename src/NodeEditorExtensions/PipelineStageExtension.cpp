@@ -478,7 +478,7 @@ void PipelineStageExtension::deserialize(const std::string &nodeName, tinyxml2::
     tinyxml2::XMLElement *objectTagsElement = nodeExtensionElement->FirstChildElement("ObjectTags");
     if (objectTagsElement != nullptr) {
         if(objectTagsElement->GetText() == nullptr) {
-            std::cerr << "Pipeline Stage ObjectTags setting has no text, assuming empty!" << std::endl;
+            std::cout << "Pipeline Stage ObjectTags setting has no text, assuming empty!" << std::endl;
         } else {
             std::string objectTagsString = objectTagsElement->GetText();
             objectTags = StringUtils::split(objectTagsString, ",");

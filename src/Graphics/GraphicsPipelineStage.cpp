@@ -227,7 +227,7 @@ std::shared_ptr<GraphicsPipelineStage> GraphicsPipelineStage::deserialize(tinyxm
     stageNodeAttribute = stageNode->FirstChildElement("ObjectTags");
     if (stageNodeAttribute != nullptr) {
         if(stageNodeAttribute->GetText() == nullptr) {
-            std::cerr << "Pipeline Stage ObjectTags setting has no text, assuming empty!" << std::endl;
+            std::cout << "Pipeline Stage ObjectTags setting has no text, assuming empty!" << std::endl;
         } else {
             std::string objectTagsString = stageNodeAttribute->GetText();
             objectTags = StringUtils::split(objectTagsString, ",");
