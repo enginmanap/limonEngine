@@ -10,6 +10,7 @@
 #include "API/LimonAPI.h"
 #include "Editor/ImGuiRequest.h"
 #include "Editor/ImGuiResult.h"
+#include "Utils/HashUtil.hpp"
 
 /**
  * This class is used to provide a polymorphic way of determining type and name of the object.
@@ -28,7 +29,41 @@ public:
 
     virtual uint32_t getWorldObjectID() const = 0;
     virtual ~GameObject() = default;
-};
 
+    void addTag(const std::string& text) {
+        HashUtil::HashedString tag(text);
+        bool found = false;
+        for (HashUtil::HashedString hashedString:tags) {
+            if(hashedString.hash == tag.hash) {
+                if(hashedString.text != tag.text) {
+                    std::cerr << "Hash collision found between " << hashedString.text << " and " << tag.text << " exiting." << std::endl;
+                    std::exit(-1);
+                }
+                //found case
+                found = true;
+                break;
+            }
+        }
+        if(!found) {
+            tags.emplace_back(tag);
+        }
+    }
+
+    bool hasTag(uint64_t hash) {
+        for (const HashUtil::HashedString& hashedString:tags) {
+            if(hashedString.hash == hash) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    const std::vector<HashUtil::HashedString>& getTags() {
+        return tags;
+    }
+private:
+    std::vector<HashUtil::HashedString> tags;
+
+};
 
 #endif //LIMONENGINE_GAMEOBJECT_H

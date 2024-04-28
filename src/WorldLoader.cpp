@@ -206,6 +206,13 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
                         delete (*objectIterator)->modelActor;
                     }
                     startingPlayer.attachedModel = (*objectIterator)->model;
+                    if(startingPlayer.attachedModel->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_BASIC))) {
+                        startingPlayer.attachedModel->addTag(HardCodedTags::OBJECT_PLAYER_BASIC);
+                    } else if(startingPlayer.attachedModel->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_ANIMATED))) {
+                        startingPlayer.attachedModel->addTag(HardCodedTags::OBJECT_PLAYER_ANIMATED);
+                    } else if(startingPlayer.attachedModel->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_TRANSPARENT))) {
+                        startingPlayer.attachedModel->addTag(HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
+                    }
                 }
             }
         }

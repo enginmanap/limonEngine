@@ -94,9 +94,14 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
             ImGui::Text("Builtin Object tags are:");
             ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_PHYSICAL).c_str());
             ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_STATIC).c_str());
+            ImGui::Text("   ");
             ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_BASIC).c_str());
             ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_ANIMATED).c_str());
             ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_TRANSPARENT).c_str());
+            ImGui::Text("   ");
+            ImGui::Text(("   " + HardCodedTags::OBJECT_PLAYER_BASIC).c_str());
+            ImGui::Text(("   " + HardCodedTags::OBJECT_PLAYER_ANIMATED).c_str());
+            ImGui::Text(("   " + HardCodedTags::OBJECT_PLAYER_TRANSPARENT).c_str());
             ImGui::Text("   ");
             ImGui::Text("Objects render in same order as the tags you set");
             ImGui::EndTooltip();

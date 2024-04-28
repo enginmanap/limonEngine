@@ -906,7 +906,7 @@ void World::renderOpaqueObjects(const std::shared_ptr<GraphicsProgram> &renderPr
    }
 }
 
-void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
+void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName, const std::vector<HashUtil::HashedString> &tags) const {
    uint64_t hashedTag = HashUtil::hashString(cameraName);
    tempRenderedObjectsSet.clear();
     for (const auto &renderTag: tags) {
@@ -937,8 +937,41 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
                 }
             }
         }
+        //now recursively render the player attachments, no visibility check.
+        if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
+            renderPlayerAttachmentsRecursiveByTag(startingPlayer.attachedModel, renderTag.hash, renderProgram);//Starting player, because we don't wanna render when in editor mode
+        }
     }
 }
+
+void World::renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment, uint64_t renderTag, const std::shared_ptr<GraphicsProgram> &renderProgram) const{
+    if(attachment == nullptr) {
+        return;
+    }
+    GameObject* attachmentObject = dynamic_cast<GameObject*>(attachment);
+    if(attachmentObject == nullptr) {
+        //FIXME there is no logical explanation for something to be a PhysicalRenderable and not a game object
+        // the object is not a game object. We should render and return, as no tag checks possible
+        attachment->renderWithProgram(renderProgram, 0);
+        return;
+    }
+    std::vector<PhysicalRenderable *> children;
+
+    if(attachmentObject->hasTag(renderTag)) {
+        std::vector<uint32_t> temp;
+        temp.push_back(attachmentObject->getWorldObjectID());
+        if(attachmentObject->getTypeID() == GameObject::MODEL) {
+            (static_cast<Model*>(attachment))->renderWithProgramInstanced(temp, *(renderProgram), 0);//it is guaranteed to be very close to the player.
+            children = (static_cast<Model*>(attachment))->getChildren();
+        } else if(attachmentObject->getTypeID() == GameObject::MODEL_GROUP) {
+            //the group has the tag, everything under should be rendered.
+            children = (static_cast<ModelGroup*>(attachment))->getChildren();
+        }
+    }
+    for (const auto &child: children) {
+        renderPlayerAttachmentsRecursiveByTag(child, renderTag, renderProgram);
+    }
+ }
 
 void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
    if (sky != nullptr) {
