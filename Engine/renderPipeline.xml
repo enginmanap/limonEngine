@@ -343,13 +343,50 @@
         <StageInformation>
             <RenderMethods>
                 <Method>
+                    <Name>Render Sky</Name>
+                    <Index>0</Index>
+                    <GraphicsProgram>
+                        <VertexShader>./Data/Shaders/SkyCube/vertex.glsl</VertexShader>
+                        <GeometryShader></GeometryShader>
+                        <FragmentShader>./Data/Shaders/SkyCube/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
+                    </GraphicsProgram>
+                </Method>
+            </RenderMethods>
+            <Clear>True</Clear>
+            <GraphicsPipelineStage>
+                <DefaultRenderHeight>1080</DefaultRenderHeight>
+                <DefaultRenderWidth>1920</DefaultRenderWidth>
+                <RenderHeightOption>screenHeight</RenderHeightOption>
+                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <BlendEnabled>False</BlendEnabled>
+                <ColorAttachment>True</ColorAttachment>
+                <DepthAttachment>True</DepthAttachment>
+                <DepthTestEnabled>True</DepthTestEnabled>
+                <DepthWriteEnabled>True</DepthWriteEnabled>
+                <ScissorEnabled>False</ScissorEnabled>
+                <ToScreen>False</ToScreen>
+                <CameraTags>player_camera</CameraTags>
+                <ObjectTags></ObjectTags>
+                <CullMode>BACK</CullMode>
+                <Inputs/>
+                <Outputs>
+                    <Output Attachment="COLOR0" textureID="3"/>
+                    <Output Attachment="COLOR1" textureID="5"/>
+                    <Output Attachment="DEPTH" textureID="6"/>
+                </Outputs>
+            </GraphicsPipelineStage>
+        </StageInformation>
+        <StageInformation>
+            <RenderMethods>
+                <Method>
                     <Name>All directional shadows</Name>
                     <Index>0</Index>
                     <GraphicsProgram>
                         <VertexShader>./Data/Shaders/ShadowMapDirectional/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Data/Shaders/ShadowMapDirectional/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -384,7 +421,7 @@
                         <VertexShader>./Data/Shaders/ShadowMapPoint/vertex.glsl</VertexShader>
                         <GeometryShader>./Data/Shaders/ShadowMapPoint/geometry.glsl</GeometryShader>
                         <FragmentShader>./Data/Shaders/ShadowMapPoint/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -416,51 +453,6 @@
                     <Name>Render Tagged Objects</Name>
                     <Index>0</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Data/Shaders/Model/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
-                        <FragmentShader>./Data/Shaders/Model/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
-                        <PresetValues>
-                            <Uniform Name="pre_shadowPoint">30</Uniform>
-                            <Uniform Name="pre_shadowDirectional">31</Uniform>
-                        </PresetValues>
-                    </GraphicsProgram>
-                </Method>
-            </RenderMethods>
-            <Clear>True</Clear>
-            <GraphicsPipelineStage>
-                <DefaultRenderHeight>1080</DefaultRenderHeight>
-                <DefaultRenderWidth>1920</DefaultRenderWidth>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
-                <BlendEnabled>False</BlendEnabled>
-                <ColorAttachment>True</ColorAttachment>
-                <DepthAttachment>True</DepthAttachment>
-                <DepthTestEnabled>True</DepthTestEnabled>
-                <DepthWriteEnabled>True</DepthWriteEnabled>
-                <ScissorEnabled>False</ScissorEnabled>
-                <ToScreen>False</ToScreen>
-                <CameraTags>player_camera</CameraTags>
-                <ObjectTags>basic_model_object</ObjectTags>
-                <CullMode>BACK</CullMode>
-                <Inputs>
-                    <Input Index="30" textureID="2"/>
-                    <Input Index="31" textureID="1"/>
-                </Inputs>
-                <Outputs>
-                    <Output Attachment="COLOR0" textureID="3"/>
-                    <Output Attachment="COLOR1" textureID="4"/>
-                    <Output Attachment="COLOR2" textureID="5"/>
-                    <Output Attachment="DEPTH" textureID="6"/>
-                </Outputs>
-            </GraphicsPipelineStage>
-        </StageInformation>
-        <StageInformation>
-            <RenderMethods>
-                <Method>
-                    <Name>Render Tagged Objects</Name>
-                    <Index>0</Index>
-                    <GraphicsProgram>
                         <VertexShader>./Data/Shaders/ModelAnimated/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Data/Shaders/ModelAnimated/fragment.glsl</FragmentShader>
@@ -486,76 +478,7 @@
                 <ScissorEnabled>False</ScissorEnabled>
                 <ToScreen>False</ToScreen>
                 <CameraTags>player_camera</CameraTags>
-                <ObjectTags>animated_model_object</ObjectTags>
-                <CullMode>BACK</CullMode>
-                <Inputs>
-                    <Input Index="30" textureID="2"/>
-                    <Input Index="31" textureID="1"/>
-                </Inputs>
-                <Outputs>
-                    <Output Attachment="COLOR0" textureID="3"/>
-                    <Output Attachment="COLOR1" textureID="4"/>
-                    <Output Attachment="COLOR2" textureID="5"/>
-                    <Output Attachment="DEPTH" textureID="6"/>
-                </Outputs>
-            </GraphicsPipelineStage>
-        </StageInformation>
-        <StageInformation>
-            <RenderMethods>
-                <Method>
-                    <Name>Render Opaque Player Attachment</Name>
-                    <Index>0</Index>
-                    <GraphicsProgram>
-                        <VertexShader>./Data/Shaders/Model/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
-                        <FragmentShader>./Data/Shaders/Model/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
-                        <PresetValues>
-                            <Uniform Name="pre_shadowPoint">30</Uniform>
-                            <Uniform Name="pre_shadowDirectional">31</Uniform>
-                        </PresetValues>
-                    </GraphicsProgram>
-                </Method>
-                <Method>
-                    <Name>Render Animated Player Attachment</Name>
-                    <Index>1</Index>
-                    <GraphicsProgram>
-                        <VertexShader>./Data/Shaders/ModelAnimated/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
-                        <FragmentShader>./Data/Shaders/ModelAnimated/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
-                        <PresetValues>
-                            <Uniform Name="pre_shadowPoint">30</Uniform>
-                            <Uniform Name="pre_shadowDirectional">31</Uniform>
-                        </PresetValues>
-                    </GraphicsProgram>
-                </Method>
-                <Method>
-                    <Name>Render Sky</Name>
-                    <Index>2</Index>
-                    <GraphicsProgram>
-                        <VertexShader>./Data/Shaders/SkyCube/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
-                        <FragmentShader>./Data/Shaders/SkyCube/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                    </GraphicsProgram>
-                </Method>
-            </RenderMethods>
-            <Clear>False</Clear>
-            <GraphicsPipelineStage>
-                <DefaultRenderHeight>1080</DefaultRenderHeight>
-                <DefaultRenderWidth>1920</DefaultRenderWidth>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
-                <BlendEnabled>False</BlendEnabled>
-                <ColorAttachment>True</ColorAttachment>
-                <DepthAttachment>True</DepthAttachment>
-                <DepthTestEnabled>True</DepthTestEnabled>
-                <DepthWriteEnabled>True</DepthWriteEnabled>
-                <ScissorEnabled>False</ScissorEnabled>
-                <ToScreen>False</ToScreen>
-                <CameraTags>player_camera</CameraTags>
-                <ObjectTags></ObjectTags>
+                <ObjectTags>basic_player_attachment,animated_player_attachment,basic_model_object,animated_model_object</ObjectTags>
                 <CullMode>BACK</CullMode>
                 <Inputs>
                     <Input Index="30" textureID="2"/>
@@ -578,7 +501,7 @@
                         <VertexShader>./Data/Shaders/SSAOGeneration/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Data/Shaders/SSAOGeneration/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <MaterialRequired>True</MaterialRequired>
                         <PresetValues>
                             <Uniform Name="pre_depthMap">2</Uniform>
                             <Uniform Name="pre_normalMap">1</Uniform>
@@ -620,7 +543,7 @@
                         <VertexShader>./Data/Shaders/SSAOBlur/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Data/Shaders/SSAOBlur/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <MaterialRequired>True</MaterialRequired>
                         <PresetValues>
                             <Uniform Name="pre_ssaoResult">1</Uniform>
                         </PresetValues>
@@ -660,7 +583,7 @@
                         <VertexShader>./Data/Shaders/CombineColorsWithSSAO/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Data/Shaders/CombineColorsWithSSAO/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <MaterialRequired>True</MaterialRequired>
                         <PresetValues>
                             <Uniform Name="pre_depthMap">4</Uniform>
                             <Uniform Name="pre_diffuseSpecularLighted">3</Uniform>
@@ -726,77 +649,7 @@
                 <ScissorEnabled>False</ScissorEnabled>
                 <ToScreen>True</ToScreen>
                 <CameraTags>player_camera</CameraTags>
-                <ObjectTags>transparent_model_object</ObjectTags>
-                <CullMode>BACK</CullMode>
-                <Inputs>
-                    <Input Index="30" textureID="2"/>
-                    <Input Index="31" textureID="1"/>
-                </Inputs>
-                <Outputs/>
-            </GraphicsPipelineStage>
-        </StageInformation>
-        <StageInformation>
-            <RenderMethods>
-                <Method>
-                    <Name>Render Transparent Player Attachment</Name>
-                    <Index>0</Index>
-                    <GraphicsProgram>
-                        <VertexShader>./Data/Shaders/ModelTransparent/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
-                        <FragmentShader>./Data/Shaders/ModelTransparent/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
-                        <PresetValues>
-                            <Uniform Name="pre_shadowPoint">30</Uniform>
-                            <Uniform Name="pre_shadowDirectional">31</Uniform>
-                        </PresetValues>
-                    </GraphicsProgram>
-                </Method>
-                <Method>
-                    <Name>Render GUI Texts</Name>
-                    <Index>1</Index>
-                    <GraphicsProgram>
-                        <VertexShader>./Data/Shaders/GUIText/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
-                        <FragmentShader>./Data/Shaders/GUIText/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                    </GraphicsProgram>
-                </Method>
-                <Method>
-                    <Name>Render GUI Images</Name>
-                    <Index>2</Index>
-                    <GraphicsProgram>
-                        <VertexShader>./Data/Shaders/GUIImage/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
-                        <FragmentShader>./Data/Shaders/GUIImage/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                    </GraphicsProgram>
-                </Method>
-                <Method>
-                    <Name>Render Debug Information</Name>
-                    <Index>3</Index>
-                    <GraphicsProgram>
-                        <VertexShader>./Data/Shaders/Lines/vertex.glsl</VertexShader>
-                        <GeometryShader></GeometryShader>
-                        <FragmentShader>./Data/Shaders/Lines/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                    </GraphicsProgram>
-                </Method>
-            </RenderMethods>
-            <Clear>False</Clear>
-            <GraphicsPipelineStage>
-                <DefaultRenderHeight>1080</DefaultRenderHeight>
-                <DefaultRenderWidth>1920</DefaultRenderWidth>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
-                <BlendEnabled>True</BlendEnabled>
-                <ColorAttachment>True</ColorAttachment>
-                <DepthAttachment>True</DepthAttachment>
-                <DepthTestEnabled>True</DepthTestEnabled>
-                <DepthWriteEnabled>True</DepthWriteEnabled>
-                <ScissorEnabled>False</ScissorEnabled>
-                <ToScreen>True</ToScreen>
-                <CameraTags>player_camera</CameraTags>
-                <ObjectTags></ObjectTags>
+                <ObjectTags>transparent_player_attachment,transparent_model_object</ObjectTags>
                 <CullMode>BACK</CullMode>
                 <Inputs>
                     <Input Index="30" textureID="2"/>
@@ -814,7 +667,7 @@
                         <VertexShader>./Data/Shaders/ImGui/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Data/Shaders/ImGui/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -841,23 +694,33 @@
         <StageInformation>
             <RenderMethods>
                 <Method>
-                    <Name>Render Particle Emitters</Name>
+                    <Name>Render GUI Texts</Name>
                     <Index>0</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Data/Shaders/Particles/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/GUIText/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Data/Shaders/Particles/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <FragmentShader>./Data/Shaders/GUIText/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
                 <Method>
-                    <Name>Render GPU Particle Emitters</Name>
+                    <Name>Render GUI Images</Name>
                     <Index>1</Index>
                     <GraphicsProgram>
-                        <VertexShader>./Data/Shaders/GPUParticles/vertex.glsl</VertexShader>
+                        <VertexShader>./Data/Shaders/GUIImage/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
-                        <FragmentShader>./Data/Shaders/GPUParticles/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <FragmentShader>./Data/Shaders/GUIImage/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
+                    </GraphicsProgram>
+                </Method>
+                <Method>
+                    <Name>Render Debug Information</Name>
+                    <Index>2</Index>
+                    <GraphicsProgram>
+                        <VertexShader>./Data/Shaders/Lines/vertex.glsl</VertexShader>
+                        <GeometryShader></GeometryShader>
+                        <FragmentShader>./Data/Shaders/Lines/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -872,6 +735,49 @@
                 <DepthAttachment>True</DepthAttachment>
                 <DepthTestEnabled>True</DepthTestEnabled>
                 <DepthWriteEnabled>True</DepthWriteEnabled>
+                <ScissorEnabled>False</ScissorEnabled>
+                <ToScreen>True</ToScreen>
+                <CameraTags>player_camera</CameraTags>
+                <ObjectTags></ObjectTags>
+                <CullMode>NO_CHANGE</CullMode>
+                <Inputs/>
+                <Outputs/>
+            </GraphicsPipelineStage>
+        </StageInformation>
+        <StageInformation>
+            <RenderMethods>
+                <Method>
+                    <Name>Render Particle Emitters</Name>
+                    <Index>0</Index>
+                    <GraphicsProgram>
+                        <VertexShader>./Data/Shaders/Particles/vertex.glsl</VertexShader>
+                        <GeometryShader></GeometryShader>
+                        <FragmentShader>./Data/Shaders/Particles/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
+                    </GraphicsProgram>
+                </Method>
+                <Method>
+                    <Name>Render GPU Particle Emitters</Name>
+                    <Index>1</Index>
+                    <GraphicsProgram>
+                        <VertexShader>./Data/Shaders/GPUParticles/vertex.glsl</VertexShader>
+                        <GeometryShader></GeometryShader>
+                        <FragmentShader>./Data/Shaders/GPUParticles/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
+                    </GraphicsProgram>
+                </Method>
+            </RenderMethods>
+            <Clear>False</Clear>
+            <GraphicsPipelineStage>
+                <DefaultRenderHeight>1080</DefaultRenderHeight>
+                <DefaultRenderWidth>1920</DefaultRenderWidth>
+                <RenderHeightOption>screenHeight</RenderHeightOption>
+                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <BlendEnabled>True</BlendEnabled>
+                <ColorAttachment>True</ColorAttachment>
+                <DepthAttachment>True</DepthAttachment>
+                <DepthTestEnabled>True</DepthTestEnabled>
+                <DepthWriteEnabled>False</DepthWriteEnabled>
                 <ScissorEnabled>False</ScissorEnabled>
                 <ToScreen>True</ToScreen>
                 <CameraTags></CameraTags>
