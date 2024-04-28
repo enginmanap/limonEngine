@@ -956,16 +956,17 @@ void World::renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment
         return;
     }
     std::vector<PhysicalRenderable *> children;
-
+    if(attachmentObject->getTypeID() == GameObject::MODEL) {
+        children = (static_cast<Model*>(attachment))->getChildren();
+    } else if(attachmentObject->getTypeID() == GameObject::MODEL_GROUP) {
+        //the group has the tag, everything under should be rendered.
+        children = (static_cast<ModelGroup*>(attachment))->getChildren();
+    }
     if(attachmentObject->hasTag(renderTag)) {
         std::vector<uint32_t> temp;
         temp.push_back(attachmentObject->getWorldObjectID());
         if(attachmentObject->getTypeID() == GameObject::MODEL) {
-            (static_cast<Model*>(attachment))->renderWithProgramInstanced(temp, *(renderProgram), 0);//it is guaranteed to be very close to the player.
-            children = (static_cast<Model*>(attachment))->getChildren();
-        } else if(attachmentObject->getTypeID() == GameObject::MODEL_GROUP) {
-            //the group has the tag, everything under should be rendered.
-            children = (static_cast<ModelGroup*>(attachment))->getChildren();
+            (static_cast<Model *>(attachment))->renderWithProgramInstanced(temp, *(renderProgram), 0);//it is guaranteed to be very close to the player.
         }
     }
     for (const auto &child: children) {
