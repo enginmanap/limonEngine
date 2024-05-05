@@ -222,14 +222,7 @@ private:
         ModelWithLod(Model* model, uint32_t lod) : model(model), lod(lod) {}
     };
     std::vector<Model*> updatedModels;
-    std::vector<std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>>> modelsInLightFrustum;// each element in vector is a single light. map is same as modelsInFrustum
-    std::vector<std::set<ModelWithLod>> animatedModelsInLightFrustum; //since animated models can't be instanced, they don't need to be in a map etc.
-
-    std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>> modelsInCameraFrustum; //key: asset id, value: set of models, and LOD to use. 0 - best, 3 worst
-    std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>> transparentModelsInCameraFrustum; //key: asset id, value: set of models, and LOD to use. 0 - best, 3 worst
-    std::set<ModelWithLod> animatedModelsInFrustum; //since animated models can't be instanced, they don't need to be in a map etc.
-    std::set<Model*> animatedModelsInAnyFrustum;
-
+                                //Key is assetID, value is pair of Model pointers, and min lod, which we use.
     std::unordered_map<Camera*, std::unordered_map<uint32_t , std::pair<std::unordered_set<Model*>, uint32_t>>> allUsedCameraVisibilities;
 
     /************************* End of redundant variables ******************************************/

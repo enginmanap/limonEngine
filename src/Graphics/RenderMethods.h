@@ -108,23 +108,17 @@ public:
         }
     };
 private:
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderOpaqueObjects;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderAnimatedObjects;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderTransparentObjects;
     std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderParticleEmitters;
     std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderGPUParticleEmitters;
     std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderGUITexts;
     std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderGUIImages;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderPlayerAttachmentOpaque;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderPlayerAttachmentTransparent;
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderPlayerAttachmentAnimated;
     std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderSky;
     std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderEditor;
     std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderDebug;
 
     std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderQuad;//For offscreen stuff
 
-    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderCameraByTag;//For offscreen stuff
+    std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string&, const std::vector<HashUtil::HashedString> &)> renderCameraByTag;//For 3d rendering
 
     mutable std::unordered_map<std::string, RenderMethodInterface*> dynamicRenderMethodInstances;// Not allowing more than one instance for now, used like a cache so mutable
     //These methods are not exposed to the interface
@@ -143,15 +137,6 @@ private:
         if(name == "Render Tagged Objects") {
             priority = 2;
             return renderCameraByTag;
-        } else if(name == "Render Opaque Objects") {
-            priority = 3;
-            return  renderOpaqueObjects;
-        } else if(name == "Render Animated Objects") {
-            priority = 4;
-            return renderAnimatedObjects;
-        } else if(name == "Render Transparent Objects") {
-            priority = 12;
-            return renderTransparentObjects;
         } else if(name == "Render Particle Emitters") {
             priority = 13;
             return renderParticleEmitters;
@@ -173,15 +158,6 @@ private:
         } else if(name == "Render Debug Information") {
             priority = 24;
             return renderDebug;
-        } else if(name == "Render Opaque Player Attachment") {
-            priority = 1;
-            return renderPlayerAttachmentOpaque;
-        } else if(name == "Render Animated Player Attachment") {
-            priority = 2;
-            return renderPlayerAttachmentAnimated;
-        } else if(name == "Render Transparent Player Attachment") {
-            priority = 11;
-            return renderPlayerAttachmentTransparent;
         } else if(name == "Render quad") {
             priority = 10;
             return renderQuad;
