@@ -126,7 +126,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
     playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
     playerCamera->addTag(HardCodedTags::CAMERA_PLAYER);
-    allUsedCameraVisibilities.emplace(playerCamera, std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>>());//new camera, new visibility
+    allUsedCameraVisibilities.emplace(playerCamera, std::unordered_map<uint32_t , std::pair<std::unordered_set<Model*>, uint32_t>>());//new camera, new visibility
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
                                            COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                            COLLIDE_MODELS | COLLIDE_EVERYTHING, worldAABBMin,
@@ -149,6 +149,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     onLoadActions.push_back(new ActionForOnload());//this is here for editor, as if no action is added, editor would fail to allow setting the first one.
 
     modelIndicesBuffer.reserve(NR_MAX_MODELS);
+    tempRenderedObjectsSet.reserve(NR_MAX_MODELS);
     modelsInLightFrustum.resize(NR_TOTAL_LIGHTS);
     animatedModelsInLightFrustum.resize(NR_TOTAL_LIGHTS);
     activeLights.reserve(NR_TOTAL_LIGHTS);
@@ -446,7 +447,7 @@ void World::resetVisibilityBufferForRenderPipelineChange() {
                 auto modelVisibilityEntry = it.second.find(currentModel->getAssetID());
                 if(isVisible) {
                     if (modelVisibilityEntry == it.second.end()) {
-                        it.second[currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), LOWEST_LOD_LEVEL);
+                        it.second[currentModel->getAssetID()] = std::make_pair(std::unordered_set<Model *>(), LOWEST_LOD_LEVEL);
                     }
                     uint32_t lod = getLodLevel(currentModel);
                     it.second[currentModel->getAssetID()].second = std::min(it.second[currentModel->getAssetID()].second, lod);
@@ -909,14 +910,15 @@ void World::renderOpaqueObjects(const std::shared_ptr<GraphicsProgram> &renderPr
 void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName, const std::vector<HashUtil::HashedString> &tags) const {
    uint64_t hashedTag = HashUtil::hashString(cameraName);
    tempRenderedObjectsSet.clear();
+
     for (const auto &renderTag: tags) {
-        for (auto visibilityEntry: allUsedCameraVisibilities) {
+        for (const auto &visibilityEntry: allUsedCameraVisibilities) {
             if (visibilityEntry.first->hasTag(hashedTag)) {
-                std::map<uint32_t, std::pair<std::set<Model *>, uint32_t>> gameObjectsToRender = visibilityEntry.second;
+                const std::unordered_map<uint32_t, std::pair<std::unordered_set<Model *>, uint32_t>> &gameObjectsToRender = visibilityEntry.second;
                 //this camera needs rendering, use the culled list and render.
                 for (auto &objectIterator: gameObjectsToRender) {
                     //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-                    std::pair<std::set<Model *>, uint32_t> modelSetWithLod = objectIterator.second;
+                    const std::pair<std::unordered_set<Model *>, uint32_t> &modelSetWithLod = objectIterator.second;
                     if (!modelSetWithLod.first.empty()) {
                         modelIndicesBuffer.clear();
                         Model *sampleModel = *(modelSetWithLod.first.begin());
@@ -984,7 +986,7 @@ void World::renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsP
    renderProgram->setUniform("renderLightIndex", (int) lightIndex);
    for (auto modelIterator = modelsInLightFrustum[lightIndex].begin(); modelIterator != modelsInLightFrustum[lightIndex].end(); ++modelIterator) {
        //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-       std::pair<std::set<Model *>, uint32_t> modelSetWithLod = modelIterator->second;
+       const std::pair<std::set<Model *>, uint32_t>& modelSetWithLod = modelIterator->second;
        modelIndicesBuffer.clear();
        Model *sampleModel = nullptr;
        for (auto model = modelSetWithLod.first.begin(); model != modelSetWithLod.first.end(); ++model) {
@@ -1333,7 +1335,7 @@ void World::addLight(Light *light) {
     if(light->getLightType() == Light::LightTypes::DIRECTIONAL) {
         directionalLightIndex = (uint32_t)lights.size()-1;
     }
-    allUsedCameraVisibilities.emplace(light->getCamera(), std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>>());//new camera, new visibility
+    allUsedCameraVisibilities.emplace(light->getCamera(), std::unordered_map<uint32_t , std::pair<std::unordered_set<Model*>, uint32_t>>());//new camera, new visibility
     updateActiveLights(false);
 }
 

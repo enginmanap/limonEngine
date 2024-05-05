@@ -10,6 +10,7 @@ static const int LOWEST_LOD_LEVEL = 3;
 #include <vector>
 #include <tinyxml2.h>
 #include <unordered_map>
+#include <unordered_set>
 #include <set>
 #include <queue>
 #include <Graphics/Particles/Emitter.h>
@@ -201,7 +202,7 @@ private:
     uint32_t nextWorldID = 2;
     std::queue<uint32_t> unusedIDs;
     std::map<uint32_t, PhysicalRenderable *> objects;
-    mutable std::set<uint32_t> tempRenderedObjectsSet;
+    mutable std::unordered_set<uint32_t> tempRenderedObjectsSet;
     std::set<uint32_t> disconnectedModels;
     std::map<uint32_t, ModelGroup*> modelGroups;
 
@@ -229,7 +230,7 @@ private:
     std::set<ModelWithLod> animatedModelsInFrustum; //since animated models can't be instanced, they don't need to be in a map etc.
     std::set<Model*> animatedModelsInAnyFrustum;
 
-    std::unordered_map<Camera*, std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>>> allUsedCameraVisibilities;
+    std::unordered_map<Camera*, std::unordered_map<uint32_t , std::pair<std::unordered_set<Model*>, uint32_t>>> allUsedCameraVisibilities;
 
     /************************* End of redundant variables ******************************************/
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<TimedEvent>> timedEvents;
