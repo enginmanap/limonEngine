@@ -11,7 +11,7 @@
 
 GPUParticleEmitter::GPUParticleEmitter(long worldObjectId, std::string name, std::shared_ptr<AssetManager> assetManager,
                  const std::string &textureFile, glm::vec3 startPosition, glm::vec3 maxStartDistances, glm::vec2 size, long count,
-                 long lifeTime, long startTime, float particlePerMs) :
+                 long lifeTime, long startTime [[gnu::unused]], float particlePerMs) :
         Renderable(assetManager->getGraphicsWrapper()), assetManager(assetManager), worldObjectID(worldObjectId), name(std::move(name)), size(size),
         maxCount(count), lifeTime(lifeTime), maxStartDistances(maxStartDistances),
         randomFloatGenerator(randomDevice()), randomStartingPoints(-1.0f, 1.0f),

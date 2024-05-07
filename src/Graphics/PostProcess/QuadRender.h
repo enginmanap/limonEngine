@@ -10,7 +10,7 @@
 #include <map>
 #include <string>
 #include <memory>
-#include "Utils/HashUtil.hpp"
+#include "Utils/HashUtil.h"
 
 class GraphicsInterface;
 class GraphicsProgram;

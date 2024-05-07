@@ -233,7 +233,7 @@ void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t
     }
 }
 
-void Model::renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GraphicsProgram &program, uint32_t lodLevel) {
+void Model::renderWithProgramInstanced(const std::vector<uint32_t> &modelIndices, GraphicsProgram &program, uint32_t lodLevel) {
     graphicsWrapper->setModelIndexesUBO(modelIndices);
 
     graphicsWrapper->attachModelUBO(program.getID());

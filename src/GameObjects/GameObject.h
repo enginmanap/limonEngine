@@ -10,7 +10,7 @@
 #include "API/LimonAPI.h"
 #include "Editor/ImGuiRequest.h"
 #include "Editor/ImGuiResult.h"
-#include "Utils/HashUtil.hpp"
+#include "Utils/HashUtil.h"
 
 /**
  * This class is used to provide a polymorphic way of determining type and name of the object.

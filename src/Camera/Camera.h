@@ -7,7 +7,7 @@
 
 #include "Renderable.h"
 #include "vector"
-#include "Utils/HashUtil.hpp"
+#include "Utils/HashUtil.h"
 #include "iostream"
 
 class Camera {

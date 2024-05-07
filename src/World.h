@@ -201,7 +201,7 @@ private:
     Options* options;
     uint32_t nextWorldID = 2;
     std::queue<uint32_t> unusedIDs;
-    std::map<uint32_t, PhysicalRenderable *> objects;
+    std::unordered_map<uint32_t, PhysicalRenderable *> objects;
     mutable std::unordered_set<uint32_t> tempRenderedObjectsSet;
     std::set<uint32_t> disconnectedModels;
     std::map<uint32_t, ModelGroup*> modelGroups;
@@ -222,8 +222,13 @@ private:
         ModelWithLod(Model* model, uint32_t lod) : model(model), lod(lod) {}
     };
     std::vector<Model*> updatedModels;
-                                //Key is assetID, value is pair of Model pointers, and min lod, which we use.
-    std::unordered_map<Camera*, std::unordered_map<uint32_t , std::pair<std::unordered_set<Model*>, uint32_t>>> allUsedCameraVisibilities;
+    //For each camera do culling,
+        //for each tag(kept as hash) do the culling
+            //for each asset id do the culling
+                //keep a list of modelIds for rendering, and the LOD as the single value
+    // This map is also used as a list of Cameras, and Hashes, so if a camera is removed, it should be removed from this map
+    // In case of a clear, we should not clear the hashes, as it is basically meaningless.
+    std::unordered_map<Camera*, std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>> cullingResults;
 
     /************************* End of redundant variables ******************************************/
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<TimedEvent>> timedEvents;

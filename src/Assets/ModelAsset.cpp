@@ -445,7 +445,7 @@ bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld,
         if (animations.find(animationNameOld) != animations.end()) {
             currentAnimationOld = animations.at(animationNameOld);
         } else {
-            std::cerr << "Animation " << animationNameOld << " not found, playing first animation. " << std::endl;
+            //std::cerr << "Animation " << animationNameOld << " not found, playing first animation. " << std::endl;
             currentAnimationOld = animations.begin()->second;
         }
 
@@ -476,7 +476,7 @@ bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld,
         if (animations.find(animationNameNew) != animations.end()) {
             currentAnimationNew = animations.at(animationNameNew);
         } else {
-            std::cerr << "Animation " << animationNameNew << " not found, playing first animation. " << std::endl;
+            //std::cerr << "Animation " << animationNameNew << " not found, playing first animation. " << std::endl;
             currentAnimationNew = animations.begin()->second;
         }
 
@@ -555,7 +555,7 @@ bool ModelAsset::getTransform(long time, bool looped, std::string animationName,
     if(animations.find(animationName) != animations.end()) {
         currentAnimation = animations.at(animationName);
     } else {
-        std::cerr << "Animation " << animationName << " not found, playing first animation. " << std::endl;
+        //std::cerr << "Animation " << animationName << " not found, playing first animation. " << std::endl;
         currentAnimation = animations.begin()->second;
     }
 

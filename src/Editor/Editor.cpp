@@ -616,9 +616,11 @@ void Editor::renderEditor(World& world) {
             uint32_t lod = 4;
             Model *pickedModel = dynamic_cast<Model *>(world.pickedObject);
             if (pickedModel != nullptr) {
-                for (const auto &cameraVisibility: world.allUsedCameraVisibilities) {
-                    if(cameraVisibility.second.find(pickedModel->getAssetID()) != cameraVisibility.second.end()) {
-                        lod = std::min(cameraVisibility.second.find(pickedModel->getAssetID())->second.second, lod);
+                for(const auto& cameraResult :world.cullingResults) {
+                    for(const auto& tagResult : cameraResult.second) {
+                        if (tagResult.second.find(pickedModel->getAssetID()) != tagResult.second.end()) {
+                            lod = std::min(tagResult.second.find(pickedModel->getAssetID())->second.second, lod);
+                        }
                     }
                 }
             }
@@ -773,7 +775,7 @@ void Editor::renderEditor(World& world) {
                         for (auto iterator = world.lights.begin(); iterator != world.lights.end(); ++iterator) {
                             if((*iterator)->getWorldObjectID() == world.pickedObject->getWorldObjectID()) {
                                 world.unusedIDs.push(world.pickedObject->getWorldObjectID());
-                                world.allUsedCameraVisibilities.erase((*iterator)->getCamera());
+                                world.cullingResults.erase((*iterator)->getCamera());
                                 world.lights.erase(iterator);
                                 break;
                             }

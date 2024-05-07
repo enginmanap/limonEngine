@@ -52,7 +52,7 @@ void Material::afterDeserialize(AssetManager *assetManager, std::string modelAss
     this->materialIndex = assetManager->getGraphicsWrapper()->getNextMaterialIndex();
 }
 
-ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request) {
+ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request [[gnu::unused]]) {
     bool dirty = false;
     ImGuiResult result;
 
