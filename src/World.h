@@ -344,7 +344,6 @@ private:
     bool addModelToWorld(Model *xmlModel);
     bool addGUIElementToWorld(GUIRenderable *guiRenderable, GUILayer *guiLayer);
 
-    void fillVisibleObjects();
     void resetVisibilityBufferForRenderPipelineChange();
     void fillVisibleObjectsUsingTags();
 
