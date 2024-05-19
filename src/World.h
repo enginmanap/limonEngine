@@ -15,6 +15,7 @@ static const int LOWEST_LOD_LEVEL = 3;
 #include <queue>
 #include <Graphics/Particles/Emitter.h>
 #include <Graphics/Particles/GPUParticleEmitter.h>
+#include <atomic>
 
 #include "InputHandler.h"
 #include "FontManager.h"
@@ -228,7 +229,7 @@ private:
                 //keep a list of modelIds for rendering, and the LOD as the single value
     // This map is also used as a list of Cameras, and Hashes, so if a camera is removed, it should be removed from this map
     // In case of a clear, we should not clear the hashes, as it is basically meaningless.
-    std::unordered_map<Camera*, std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>> cullingResults;
+    std::unordered_map<Camera*, std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>*> cullingResults;
 
     /************************* End of redundant variables ******************************************/
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<TimedEvent>> timedEvents;
@@ -304,7 +305,7 @@ private:
     Model* objectToAttach = nullptr;
 
     std::shared_ptr<QuadRender> quadRender;
-    std::map<uint32_t, SDL2Helper::Thread*> routeThreads;
+    std::map<uint32_t, SDL2MultiThreading::Thread*> routeThreads;
 
     bool guiPickMode = false;
     enum class QuitResponse
@@ -323,6 +324,7 @@ private:
 
     std::map<uint32_t, std::shared_ptr<Emitter>> emitters;
     std::map<uint32_t, std::shared_ptr<GPUParticleEmitter>> gpuParticleEmitters;
+    bool multiThreadedCulling = true;
 
     bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
 
@@ -346,6 +348,22 @@ private:
 
     void resetVisibilityBufferForRenderPipelineChange();
     void fillVisibleObjectsUsingTags();
+public:
+    struct VisibilityRequest {
+        static SDL2MultiThreading::Condition condition;
+        const Camera* const camera;
+        const std::unordered_map<uint32_t, PhysicalRenderable *>* const objects;
+        std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>> * const visibility;
+        bool running = true;
+        std::atomic<uint32_t> frameCount;
+        SDL2MultiThreading::SpinLock inProgressLock;
+        SDL_mutex* blockMutex = SDL_CreateMutex();
+        VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, PhysicalRenderable *>* objects, std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>> * visibility) :
+        camera(camera), objects(objects), visibility(visibility), frameCount(0) {};
+    };
+private:
+    std::map<VisibilityRequest*, SDL_Thread *> occlusionThreadManager();
+    std::map<VisibilityRequest*, SDL_Thread *> visibilityThreadPool;
 
     GameObject *getPointedObject(int collisionType, int filterMask,
                                  glm::vec3 *collisionPosition = nullptr, glm::vec3 *collisionNormal = nullptr) const;

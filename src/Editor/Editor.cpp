@@ -617,7 +617,7 @@ void Editor::renderEditor(World& world) {
             Model *pickedModel = dynamic_cast<Model *>(world.pickedObject);
             if (pickedModel != nullptr) {
                 for(const auto& cameraResult :world.cullingResults) {
-                    for(const auto& tagResult : cameraResult.second) {
+                    for(const auto& tagResult : *cameraResult.second) {
                         if (tagResult.second.find(pickedModel->getAssetID()) != tagResult.second.end()) {
                             lod = std::min(tagResult.second.find(pickedModel->getAssetID())->second.second, lod);
                         }

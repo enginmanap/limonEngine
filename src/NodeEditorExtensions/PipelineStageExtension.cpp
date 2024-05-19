@@ -461,8 +461,8 @@ void PipelineStageExtension::deserialize(const std::string &nodeName, tinyxml2::
             this->renderHeightOption = renderHeightOptionElement->GetText();
         }
     }
-    strncpy(this->tempHeightOption,renderHeightOption.c_str(), sizeof(tempHeightOption)/ sizeof(tempHeightOption[0]));
-    strncpy(this->tempWidthOption,renderWidthOption.c_str(), sizeof(tempWidthOption)/ sizeof(tempWidthOption[0]));
+    strncpy(this->tempHeightOption,renderHeightOption.c_str(), sizeof(tempHeightOption)/ sizeof(tempHeightOption[0]) - 1);
+    strncpy(this->tempWidthOption,renderWidthOption.c_str(), sizeof(tempWidthOption)/ sizeof(tempWidthOption[0]) - 1);
 
 
     tinyxml2::XMLElement *anyOutputMultilayeredElement = nodeExtensionElement->FirstChildElement("AnyOutputMultiLayered");

@@ -105,25 +105,12 @@ public:
 
     void addRenderTag(const std::string& text) {
         HashUtil::HashedString tag(text);
-        bool found = false;
-        for (HashUtil::HashedString hashedString:renderTags) {
-            if(hashedString.hash == tag.hash) {
-                if(hashedString.text != tag.text) {
-                    std::cerr << "Hash collision found between " << hashedString.text << " and " << tag.text << " exiting." << std::endl;
-                    std::exit(-1);
-                }
-                //found case
-                found = true;
-                break;
-            }
-        }
-        if(!found) {
+        if(!hasRenderTag(tag.hash)) {
             renderTags.emplace_back(tag);
         }
     }
 
-    //FIXME this is slower than it needs to be
-    bool hasRenderTag(uint64_t hash) {
+    bool hasRenderTag(uint64_t hash) const {
         for (const HashUtil::HashedString& hashedString:renderTags) {
             if(hashedString.hash == hash) {
                 return true;
@@ -132,25 +119,13 @@ public:
         return false;
     }
 
-    const std::vector<HashUtil::HashedString>& getRenderTags() {
+    const std::vector<HashUtil::HashedString>& getRenderTags() const {
         return renderTags;
     }
 
     void addTag(const std::string& text) {
         HashUtil::HashedString tag(text);
-        bool found = false;
-        for (const HashUtil::HashedString& hashedString:selfTags) {
-            if(hashedString.hash == tag.hash) {
-                if(hashedString.text != tag.text) {
-                    std::cerr << "Hash collision found between " << hashedString.text << " and " << tag.text << " exiting." << std::endl;
-                    std::exit(-1);
-                }
-                //found case
-                found = true;
-                break;
-            }
-        }
-        if(!found) {
+        if(!hasTag(tag.hash)) {
             selfTags.emplace_back(tag);
         }
     }
@@ -165,7 +140,7 @@ public:
         return false;
     }
 
-    const std::vector<HashUtil::HashedString>& getTags() {
+    const std::vector<HashUtil::HashedString>& getTags() const{
         return selfTags;
     }
 

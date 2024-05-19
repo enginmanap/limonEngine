@@ -19,6 +19,7 @@
 #include <SDL_atomic.h>
 #include <SDL_thread.h>
 #include "SDL2Helper.h"
+#include "SDL2MultiThreading.h"
 
 class SoundAsset;
 
@@ -50,7 +51,7 @@ class ALHelper {
 
     SDL_SpinLock playRequestLock;
     SDL_Thread *thread = nullptr;
-    SDL2Helper::SpinLock removeSoundLock;
+    SDL2MultiThreading::SpinLock removeSoundLock;
 
     ALCdevice *dev;
     ALCcontext *ctx;
