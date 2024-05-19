@@ -203,6 +203,14 @@
         <IsSet>True</IsSet>
         <Index>2</Index>
     </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>multiThreadedCulling</Description>
+        <Value>1</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>2</Index>
+    </Parameter>
 
     <fullScreen>False</fullScreen>
     <screenWidth>2560</screenWidth>
