@@ -307,25 +307,118 @@ std::shared_ptr<GraphicsPipeline> PipelineExtension::buildRenderPipeline(const s
                 std::cerr << "\t\tfor depends: " <<  dependency->getName() << std::endl;
             }
         }
-        std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> dependencyGroups = buildGroupsByDependency(dependencies);
-
-
         builtGraphicsPipeline = std::make_shared<GraphicsPipeline>(renderMethods);
         for(auto usedTexture: usedTextures) {
             if(usedTexture.second != nullptr) {
                 builtGraphicsPipeline->addTexture(usedTexture.second);
             }
         }
+        //first element of the pair is what is required(dependencies, recursively filled, contains indirect), second is the group that can be rendered with them
+        std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> dependencyGroups = buildGroupsByDependency(dependencies);
         std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>> nodeStages;
-        std::vector<std::shared_ptr<GraphicsPipeline::StageInfo>> builtStages;
+        std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node*>> builtStages;//A stage can contain more than one node, so the nodes used to build it is also here.
+        std::vector<std::pair<std::set<const Node*>, std::shared_ptr<GraphicsPipeline::StageInfo>>> orderedStages;
         if(buildRenderPipelineRecursive(rootNode, builtGraphicsPipeline, nodeStages, dependencyGroups, builtStages)) {
-            for(const auto& stageInfo:builtStages) {
-                builtGraphicsPipeline->addNewStage(*stageInfo);
+            //we have dependency info, and the stage info. Stage info contains highest priority. Order based on that
+            for(const auto& builtStageInfo:builtStages) {
+                //Build stages are individual, but they have dependencies, and if a high priority node needs a low priority node, low priority should become high priority.
+                // To figure this chain, we need to track them back to forward.
+                recursiveUpdatePriority(dependencyGroups, builtStages, builtStageInfo);
+            }
+            //now move the elements to ordered
+            while(!builtStages.empty()) {
+                std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node*>>::iterator builtStageInfo = builtStages.begin();
+                //Special case, first one always gets inserted
+                if(orderedStages.empty()) {
+                    orderedStages.emplace_back(builtStageInfo->second, builtStageInfo->first);
+                    builtStages.erase(builtStageInfo);
+                    continue;
+                }
+                //a stage can only be inserted in between things it is depending on, and things that depend on it.
+                size_t maxDependencyIndex = 0; //last entry that this node is depending on
+                size_t minDependentIndex = 999; //first entry that this node is depending on
+
+                //lets find which dependency group this stage  was in.
+                for (const auto &dependencyGroup: dependencyGroups) {
+                    if (dependencyGroup.second.find(*(builtStageInfo->second.begin())) != dependencyGroup.second.end()) {
+                        //this is the dependency group this stage belongs to, any stage that is required needs to be before
+                        for (const auto &dependency: dependencyGroup.first) {
+                            for (size_t i = 0; i < orderedStages.size(); ++i) {
+                                if (orderedStages[i].first.find(dependency) != orderedStages[i].first.end()) {
+                                    maxDependencyIndex = i;
+                                }
+                            }
+                        }
+                    }
+                }
+                //we found what we are depending on in the current state. Lets find what depends on us
+                std::set<const Node*> dependentNodes;
+                for (const auto &dependencyGroup: dependencyGroups) {
+                    if (dependencyGroup.first.find(*(builtStageInfo->second.begin())) != dependencyGroup.first.end()) {
+                        //This dependency group was depending on us. collect all nodes
+                        dependentNodes.insert(dependencyGroup.second.begin(), dependencyGroup.second.end());
+                    }
+                }
+                std::vector<const Node*> tempNodes;
+                for (size_t i = 0; i < orderedStages.size(); ++i) {
+                    std::set_intersection(dependentNodes.begin(), dependentNodes.end(), orderedStages[i].first.begin(), orderedStages[i].first.end(), std::back_inserter(tempNodes));
+                    if(!tempNodes.empty()) {
+                        minDependentIndex = i;
+                        break;//since we are iterating forward, finding once is enough.
+                    }
+                }
+                //now we need to insert this new stage in order of its priority, after the last dependency index
+                bool inserted = false;
+                size_t itStart = maxDependencyIndex == 0 ? 0 : maxDependencyIndex;
+                size_t itEnd = minDependentIndex == 999 ? orderedStages.size() : minDependentIndex;
+                for (size_t i = itStart; i < itEnd; ++i) {
+                    uint32_t minPriorityOfStage = 999;
+                    minPriorityOfStage = std::min(orderedStages[i].second->getHighestPriority(), minPriorityOfStage);
+                    if(minPriorityOfStage > builtStageInfo->first->getHighestPriority()) {
+                        //insert here
+                        orderedStages.insert(orderedStages.begin() + i, {builtStageInfo->second, builtStageInfo->first});
+                        inserted = true;
+                        break;
+                    }
+                }
+                if(!inserted) {
+                    //so we are the last
+                    orderedStages.insert(orderedStages.begin() + itEnd, {builtStageInfo->second, builtStageInfo->first});
+                }
+                builtStages.erase(builtStageInfo);
+            }
+
+            for (size_t i = 0; i < orderedStages.size(); ++i) {
+                builtGraphicsPipeline->addNewStage(*(orderedStages[i].second));
             }
             addMessage("Built new Pipeline");
             return builtGraphicsPipeline;
         }//error message provided by recursive
         return nullptr;
+    }
+}
+
+void PipelineExtension::recursiveUpdatePriority(std::vector<std::pair<std::set<const Node *>, std::set<const Node *>>> &dependencyGroups,
+                                                std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStages,
+                                                const std::pair<const std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStageInfo) const {
+    for (const auto &stageNode: builtStageInfo.second) {
+        //a build stage might be combination of multiple nodes, for each of those nodes, update the priority of its dependencies
+        for (const auto &dependencyGroup: dependencyGroups) {
+            if(dependencyGroup.second.find(stageNode) != dependencyGroup.second.end()) {
+                //this is the dependency group, and all dependencies are at the first entry of the pair
+                for (const auto &nodeDependency: dependencyGroup.first) {
+                    //search for them in the builtStages to update the requirement
+                    for (const auto &builtStage2: builtStages) {
+                        if(builtStage2.second.find(nodeDependency) != builtStage2.second.end()) {
+                            //this stage is a dependency for the one we were iterating over, update the priority
+                            builtStage2.first->setHighestPriority(std::min(builtStage2.first->getHighestPriority(), builtStageInfo.first->getHighestPriority()));
+                            //what about the nodes that were depending on this stage? we should update them too
+                            recursiveUpdatePriority(dependencyGroups, builtStages, builtStage2);
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -607,7 +700,7 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                                                      std::shared_ptr<GraphicsPipeline> graphicsPipeline,
                                                      std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>>& nodeStages,
                                                      const std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>>& groupsByDependency,
-                                                     std::vector<std::shared_ptr<GraphicsPipeline::StageInfo>>& builtStages) {
+                                                     std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStages) {
 
     if(nodeStages.find(node) != nodeStages.end()) {
         return true;
@@ -681,10 +774,18 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
             stageInfo->cameraTags = stageExtension->getCameraTags();
             stageInfo->stage->setCameraTags(stageExtension->getCameraTags());
             stageInfo->stage->setCullMode(stageExtension->getCullmode());
-            builtStages.emplace_back(stageInfo);//only add the stage at the first time. Because this method works from back to front, the order in the vector will be correct.
+            if(stageInfo->stage->isBlendEnabled()) {
+                stageInfo->setHighestPriority(stageInfo->getHighestPriority() - 1);//if 2 stage with same priority is present, we want blending one later
+            }
+            std::set<const Node*> nodeList{node};
+            builtStages[stageInfo] = nodeList;//only add the stage at the first time. Because this method works from back to front, the order in the vector will be correct.
         } else {
+            builtStages[stageInfo].insert(node);
             stageInfo->clear = stageInfo->clear || stageExtension->isClearBefore();
             stageInfo->stage->setBlendEnabled(stageInfo->stage->isBlendEnabled() || stageExtension->isBlendEnabled());
+            if(stageInfo->stage->isBlendEnabled()) {
+                stageInfo->setHighestPriority(stageInfo->getHighestPriority() - 1);//if 2 stage with same priority is present, we want blending one later
+            }
             stageInfo->stage->setDepthTestEnabled(stageInfo->stage->isDepthTestEnabled() || stageExtension->isDepthTestEnabled());
             stageInfo->stage->setScissorEnabled(stageInfo->stage->isScissorEnabled() || stageExtension->isScissorTestEnabled());
             if(stageInfo->stage->getCullMode() == GraphicsInterface::CullModes::NO_CHANGE) {//no change can be ignored. Otherwise they are guaranteed to have the same by canJoin

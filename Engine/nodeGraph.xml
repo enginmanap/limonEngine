@@ -1000,185 +1000,6 @@
     </NodeTypes>
     <Nodes>
         <Node>
-            <ID>21</ID>
-            <Name>Particles</Name>
-            <DisplayName>Particles</DisplayName>
-            <Editable>False</Editable>
-            <CombineInputs>True</CombineInputs>
-            <Position>
-                <X>1156.000000</X>
-                <Y>832.000000</Y>
-            </Position>
-            <Size>
-                <X>72.000000</X>
-                <Y>68.000000</Y>
-            </Size>
-            <Inputs/>
-            <Outputs>
-                <Connection>
-                    <ID>1</ID>
-                    <Name>Depth</Name>
-                    <Type>Texture</Type>
-                    <Direction>Output</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>72.000000</X>
-                        <Y>42.000000</Y>
-                    </Position>
-                    <Inputs/>
-                    <Outputs>
-                        <Output NodeId="3" ConnectionID="2">Depth</Output>
-                        <Output NodeId="3" ConnectionID="2">Depth</Output>
-                    </Outputs>
-                </Connection>
-                <Connection>
-                    <ID>2</ID>
-                    <Name>color</Name>
-                    <Type>Texture</Type>
-                    <Direction>Output</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>72.000000</X>
-                        <Y>58.000000</Y>
-                    </Position>
-                    <Inputs/>
-                    <Outputs>
-                        <Output NodeId="3" ConnectionID="1">Color</Output>
-                    </Outputs>
-                </Connection>
-            </Outputs>
-            <NodeExtension>
-                <Name>PipelineStageExtension</Name>
-                <CullMode>NoChange</CullMode>
-                <ClearBefore>False</ClearBefore>
-                <BlendEnabled>True</BlendEnabled>
-                <DepthTestEnabled>True</DepthTestEnabled>
-                <DepthWriteEnabled>False</DepthWriteEnabled>
-                <ScissorTestEnabled>False</ScissorTestEnabled>
-                <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
-                <ToScreen>False</ToScreen>
-                <CameraTags></CameraTags>
-                <ObjectTags></ObjectTags>
-                <DefaultRenderResolution>
-                    <X>1920</X>
-                    <Y>1080</Y>
-                </DefaultRenderResolution>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
-                <IterateLightType>0</IterateLightType>
-                <RenderMethodName>Render Particle Emitters</RenderMethodName>
-                <OriginalOutputType></OriginalOutputType>
-                <OutputTextures>
-                    <OutputInfo>
-                        <Connection>1</Connection>
-                        <Name>ScreenDepthPlaceHolder</Name>
-                        <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenDepthPlaceHolder</TextureName>
-                    </OutputInfo>
-                    <OutputInfo>
-                        <Connection>2</Connection>
-                        <Name>ScreenPlaceHolder</Name>
-                        <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenPlaceHolder</TextureName>
-                    </OutputInfo>
-                </OutputTextures>
-                <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/Particles/vertex.glsl</VertexShaderName>
-                    <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/Particles/fragment.glsl</FragmentShaderName>
-                </ProgramInfo>
-            </NodeExtension>
-        </Node>
-        <Node>
-            <ID>20</ID>
-            <Name>GPUParticles</Name>
-            <DisplayName>GPUParticles</DisplayName>
-            <Editable>False</Editable>
-            <CombineInputs>True</CombineInputs>
-            <Position>
-                <X>1162.000000</X>
-                <Y>726.000000</Y>
-            </Position>
-            <Size>
-                <X>77.000000</X>
-                <Y>68.000000</Y>
-            </Size>
-            <Inputs/>
-            <Outputs>
-                <Connection>
-                    <ID>1</ID>
-                    <Name>Depth</Name>
-                    <Type>Texture</Type>
-                    <Direction>Output</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>77.000000</X>
-                        <Y>42.000000</Y>
-                    </Position>
-                    <Inputs/>
-                    <Outputs>
-                        <Output NodeId="3" ConnectionID="2">Depth</Output>
-                    </Outputs>
-                </Connection>
-                <Connection>
-                    <ID>2</ID>
-                    <Name>color</Name>
-                    <Type>Texture</Type>
-                    <Direction>Output</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>77.000000</X>
-                        <Y>58.000000</Y>
-                    </Position>
-                    <Inputs/>
-                    <Outputs>
-                        <Output NodeId="3" ConnectionID="1">Color</Output>
-                    </Outputs>
-                </Connection>
-            </Outputs>
-            <NodeExtension>
-                <Name>PipelineStageExtension</Name>
-                <CullMode>NoChange</CullMode>
-                <ClearBefore>False</ClearBefore>
-                <BlendEnabled>True</BlendEnabled>
-                <DepthTestEnabled>True</DepthTestEnabled>
-                <DepthWriteEnabled>False</DepthWriteEnabled>
-                <ScissorTestEnabled>False</ScissorTestEnabled>
-                <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
-                <ToScreen>False</ToScreen>
-                <CameraTags></CameraTags>
-                <ObjectTags></ObjectTags>
-                <DefaultRenderResolution>
-                    <X>1920</X>
-                    <Y>1080</Y>
-                </DefaultRenderResolution>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
-                <IterateLightType>0</IterateLightType>
-                <RenderMethodName>Render GPU Particle Emitters</RenderMethodName>
-                <OriginalOutputType></OriginalOutputType>
-                <OutputTextures>
-                    <OutputInfo>
-                        <Connection>1</Connection>
-                        <Name>ScreenDepthPlaceHolder</Name>
-                        <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenDepthPlaceHolder</TextureName>
-                    </OutputInfo>
-                    <OutputInfo>
-                        <Connection>2</Connection>
-                        <Name>ScreenPlaceHolder</Name>
-                        <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenPlaceHolder</TextureName>
-                    </OutputInfo>
-                </OutputTextures>
-                <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/GPUParticles/vertex.glsl</VertexShaderName>
-                    <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/GPUParticles/fragment.glsl</FragmentShaderName>
-                </ProgramInfo>
-            </NodeExtension>
-        </Node>
-        <Node>
             <ID>11</ID>
             <Name>ModelTransparent</Name>
             <DisplayName>TransparentObjects</DisplayName>
@@ -1259,7 +1080,7 @@
             <NodeExtension>
                 <Name>PipelineStageExtension</Name>
                 <CullMode>Back</CullMode>
-                <ClearBefore>False</ClearBefore>
+                <ClearBefore>True</ClearBefore>
                 <BlendEnabled>True</BlendEnabled>
                 <DepthTestEnabled>True</DepthTestEnabled>
                 <DepthWriteEnabled>True</DepthWriteEnabled>
@@ -1280,183 +1101,21 @@
                 <OutputTextures>
                     <OutputInfo>
                         <Connection>3</Connection>
-                        <Name>Screen Depth</Name>
+                        <Name>ScreenDepthPlaceHolder</Name>
                         <AttachPoint>NONE</AttachPoint>
                         <TextureName>ScreenDepthPlaceHolder</TextureName>
                     </OutputInfo>
                     <OutputInfo>
                         <Connection>4</Connection>
-                        <Name>Screen</Name>
+                        <Name>ScreenPlaceHolder</Name>
                         <AttachPoint>NONE</AttachPoint>
+                        <TextureName>ScreenPlaceHolder</TextureName>
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
                     <VertexShaderName>./Data/Shaders/ModelTransparent/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
                     <FragmentShaderName>./Data/Shaders/ModelTransparent/fragment.glsl</FragmentShaderName>
-                </ProgramInfo>
-            </NodeExtension>
-        </Node>
-        <Node>
-            <ID>22</ID>
-            <Name>ModelAnimated</Name>
-            <DisplayName>ModelAnimated</DisplayName>
-            <Editable>False</Editable>
-            <CombineInputs>True</CombineInputs>
-            <Position>
-                <X>221.000000</X>
-                <Y>293.000000</Y>
-            </Position>
-            <Size>
-                <X>331.000000</X>
-                <Y>100.000000</Y>
-            </Size>
-            <Inputs>
-                <Connection>
-                    <ID>1</ID>
-                    <Name>pre_shadowDirectional</Name>
-                    <Type>Texture array</Type>
-                    <Direction>Input</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>0.000000</X>
-                        <Y>42.000000</Y>
-                    </Position>
-                    <Inputs>
-                        <Input NodeId="0" ConnectionID="1">Depth</Input>
-                    </Inputs>
-                    <Outputs/>
-                </Connection>
-                <Connection>
-                    <ID>2</ID>
-                    <Name>pre_shadowPoint</Name>
-                    <Type>Cubemap array</Type>
-                    <Direction>Input</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>0.000000</X>
-                        <Y>58.000000</Y>
-                    </Position>
-                    <Inputs>
-                        <Input NodeId="5" ConnectionID="1">Depth</Input>
-                    </Inputs>
-                    <Outputs/>
-                </Connection>
-            </Inputs>
-            <Outputs>
-                <Connection>
-                    <ID>3</ID>
-                    <Name>Depth</Name>
-                    <Type>Texture</Type>
-                    <Direction>Output</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>331.000000</X>
-                        <Y>42.000000</Y>
-                    </Position>
-                    <Inputs/>
-                    <Outputs>
-                        <Output NodeId="13" ConnectionID="4">pre_depthMap</Output>
-                        <Output NodeId="15" ConnectionID="2">pre_depthMap</Output>
-                    </Outputs>
-                </Connection>
-                <Connection>
-                    <ID>4</ID>
-                    <Name>normalOutput</Name>
-                    <Type>Texture</Type>
-                    <Direction>Output</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>331.000000</X>
-                        <Y>58.000000</Y>
-                    </Position>
-                    <Inputs/>
-                    <Outputs>
-                        <Output NodeId="15" ConnectionID="1">pre_normalMap</Output>
-                    </Outputs>
-                </Connection>
-                <Connection>
-                    <ID>5</ID>
-                    <Name>ambientColor</Name>
-                    <Type>Texture</Type>
-                    <Direction>Output</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>331.000000</X>
-                        <Y>74.000000</Y>
-                    </Position>
-                    <Inputs/>
-                    <Outputs>
-                        <Output NodeId="13" ConnectionID="2">pre_ambient</Output>
-                    </Outputs>
-                </Connection>
-                <Connection>
-                    <ID>6</ID>
-                    <Name>diffuseAndSpecularLightedColor</Name>
-                    <Type>Texture</Type>
-                    <Direction>Output</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>331.000000</X>
-                        <Y>90.000000</Y>
-                    </Position>
-                    <Inputs/>
-                    <Outputs>
-                        <Output NodeId="13" ConnectionID="3">pre_diffuseSpecularLighted</Output>
-                    </Outputs>
-                </Connection>
-            </Outputs>
-            <NodeExtension>
-                <Name>PipelineStageExtension</Name>
-                <CullMode>Back</CullMode>
-                <ClearBefore>False</ClearBefore>
-                <BlendEnabled>False</BlendEnabled>
-                <DepthTestEnabled>True</DepthTestEnabled>
-                <DepthWriteEnabled>True</DepthWriteEnabled>
-                <ScissorTestEnabled>False</ScissorTestEnabled>
-                <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
-                <ToScreen>False</ToScreen>
-                <CameraTags>player_camera</CameraTags>
-                <ObjectTags>basic_player_attachment,animated_player_attachment,basic_model_object,animated_model_object</ObjectTags>
-                <DefaultRenderResolution>
-                    <X>1920</X>
-                    <Y>1080</Y>
-                </DefaultRenderResolution>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
-                <IterateLightType>0</IterateLightType>
-                <RenderMethodName>Render Tagged Objects</RenderMethodName>
-                <OriginalOutputType></OriginalOutputType>
-                <OutputTextures>
-                    <OutputInfo>
-                        <Connection>3</Connection>
-                        <Name>DepthBuffer</Name>
-                        <AttachPoint>NONE</AttachPoint>
-                        <TextureName>DepthBuffer</TextureName>
-                    </OutputInfo>
-                    <OutputInfo>
-                        <Connection>4</Connection>
-                        <Name>NormalBuffer</Name>
-                        <AttachPoint>NONE</AttachPoint>
-                        <TextureName>NormalBuffer</TextureName>
-                    </OutputInfo>
-                    <OutputInfo>
-                        <Connection>5</Connection>
-                        <Name>AmbientBuffer</Name>
-                        <AttachPoint>NONE</AttachPoint>
-                        <TextureName>AmbientBuffer</TextureName>
-                    </OutputInfo>
-                    <OutputInfo>
-                        <Connection>6</Connection>
-                        <Name>DiffuseAndSpecularBuffer</Name>
-                        <AttachPoint>NONE</AttachPoint>
-                        <TextureName>DiffuseAndSpecularBuffer</TextureName>
-                    </OutputInfo>
-                </OutputTextures>
-                <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/ModelAnimated/vertex.glsl</VertexShaderName>
-                    <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/ModelAnimated/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -1573,7 +1232,7 @@
             <NodeExtension>
                 <Name>PipelineStageExtension</Name>
                 <CullMode>Back</CullMode>
-                <ClearBefore>True</ClearBefore>
+                <ClearBefore>False</ClearBefore>
                 <BlendEnabled>False</BlendEnabled>
                 <DepthTestEnabled>True</DepthTestEnabled>
                 <DepthWriteEnabled>True</DepthWriteEnabled>
@@ -1594,14 +1253,15 @@
                 <OutputTextures>
                     <OutputInfo>
                         <Connection>5</Connection>
-                        <Name>Screen Depth</Name>
+                        <Name>ScreenDepthPlaceHolder</Name>
                         <AttachPoint>NONE</AttachPoint>
                         <TextureName>ScreenDepthPlaceHolder</TextureName>
                     </OutputInfo>
                     <OutputInfo>
                         <Connection>6</Connection>
-                        <Name>Screen</Name>
+                        <Name>ScreenPlaceHolder</Name>
                         <AttachPoint>NONE</AttachPoint>
+                        <TextureName>ScreenPlaceHolder</TextureName>
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
@@ -1612,64 +1272,126 @@
             </NodeExtension>
         </Node>
         <Node>
-            <ID>19</ID>
-            <Name>Lines</Name>
-            <DisplayName>Lines</DisplayName>
+            <ID>22</ID>
+            <Name>ModelAnimated</Name>
+            <DisplayName>ModelAnimated</DisplayName>
             <Editable>False</Editable>
             <CombineInputs>True</CombineInputs>
             <Position>
-                <X>1154.000000</X>
-                <Y>925.000000</Y>
+                <X>221.000000</X>
+                <Y>293.000000</Y>
             </Position>
             <Size>
-                <X>72.000000</X>
-                <Y>68.000000</Y>
+                <X>331.000000</X>
+                <Y>100.000000</Y>
             </Size>
-            <Inputs/>
-            <Outputs>
+            <Inputs>
                 <Connection>
                     <ID>1</ID>
+                    <Name>pre_shadowDirectional</Name>
+                    <Type>Texture array</Type>
+                    <Direction>Input</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>0.000000</X>
+                        <Y>42.000000</Y>
+                    </Position>
+                    <Inputs>
+                        <Input NodeId="0" ConnectionID="1">Depth</Input>
+                    </Inputs>
+                    <Outputs/>
+                </Connection>
+                <Connection>
+                    <ID>2</ID>
+                    <Name>pre_shadowPoint</Name>
+                    <Type>Cubemap array</Type>
+                    <Direction>Input</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>0.000000</X>
+                        <Y>58.000000</Y>
+                    </Position>
+                    <Inputs>
+                        <Input NodeId="5" ConnectionID="1">Depth</Input>
+                    </Inputs>
+                    <Outputs/>
+                </Connection>
+            </Inputs>
+            <Outputs>
+                <Connection>
+                    <ID>3</ID>
                     <Name>Depth</Name>
                     <Type>Texture</Type>
                     <Direction>Output</Direction>
                     <CombineInputs>True</CombineInputs>
                     <Position>
-                        <X>72.000000</X>
+                        <X>331.000000</X>
                         <Y>42.000000</Y>
                     </Position>
                     <Inputs/>
                     <Outputs>
-                        <Output NodeId="3" ConnectionID="2">Depth</Output>
+                        <Output NodeId="13" ConnectionID="4">pre_depthMap</Output>
+                        <Output NodeId="15" ConnectionID="2">pre_depthMap</Output>
                     </Outputs>
                 </Connection>
                 <Connection>
-                    <ID>2</ID>
-                    <Name>color</Name>
+                    <ID>4</ID>
+                    <Name>normalOutput</Name>
                     <Type>Texture</Type>
                     <Direction>Output</Direction>
                     <CombineInputs>True</CombineInputs>
                     <Position>
-                        <X>72.000000</X>
+                        <X>331.000000</X>
                         <Y>58.000000</Y>
                     </Position>
                     <Inputs/>
                     <Outputs>
-                        <Output NodeId="3" ConnectionID="1">Color</Output>
+                        <Output NodeId="15" ConnectionID="1">pre_normalMap</Output>
+                    </Outputs>
+                </Connection>
+                <Connection>
+                    <ID>5</ID>
+                    <Name>ambientColor</Name>
+                    <Type>Texture</Type>
+                    <Direction>Output</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>331.000000</X>
+                        <Y>74.000000</Y>
+                    </Position>
+                    <Inputs/>
+                    <Outputs>
+                        <Output NodeId="13" ConnectionID="2">pre_ambient</Output>
+                    </Outputs>
+                </Connection>
+                <Connection>
+                    <ID>6</ID>
+                    <Name>diffuseAndSpecularLightedColor</Name>
+                    <Type>Texture</Type>
+                    <Direction>Output</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>331.000000</X>
+                        <Y>90.000000</Y>
+                    </Position>
+                    <Inputs/>
+                    <Outputs>
+                        <Output NodeId="13" ConnectionID="3">pre_diffuseSpecularLighted</Output>
                     </Outputs>
                 </Connection>
             </Outputs>
             <NodeExtension>
                 <Name>PipelineStageExtension</Name>
-                <CullMode>NoChange</CullMode>
-                <ClearBefore>False</ClearBefore>
-                <BlendEnabled>True</BlendEnabled>
+                <CullMode>Back</CullMode>
+                <ClearBefore>True</ClearBefore>
+                <BlendEnabled>False</BlendEnabled>
                 <DepthTestEnabled>True</DepthTestEnabled>
                 <DepthWriteEnabled>True</DepthWriteEnabled>
                 <ScissorTestEnabled>False</ScissorTestEnabled>
                 <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
                 <ToScreen>False</ToScreen>
                 <CameraTags>player_camera</CameraTags>
-                <ObjectTags></ObjectTags>
+                <ObjectTags>basic_player_attachment,animated_player_attachment,basic_model_object,animated_model_object</ObjectTags>
                 <DefaultRenderResolution>
                     <X>1920</X>
                     <Y>1080</Y>
@@ -1677,292 +1399,38 @@
                 <RenderHeightOption>screenHeight</RenderHeightOption>
                 <RenderWidthOption>screenWidth</RenderWidthOption>
                 <IterateLightType>0</IterateLightType>
-                <RenderMethodName>Render Debug Information</RenderMethodName>
+                <RenderMethodName>Render Tagged Objects</RenderMethodName>
                 <OriginalOutputType></OriginalOutputType>
                 <OutputTextures>
                     <OutputInfo>
-                        <Connection>1</Connection>
-                        <Name>Screen Depth</Name>
+                        <Connection>3</Connection>
+                        <Name>DepthBuffer</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenDepthPlaceHolder</TextureName>
+                        <TextureName>DepthBuffer</TextureName>
                     </OutputInfo>
                     <OutputInfo>
-                        <Connection>2</Connection>
-                        <Name>Screen</Name>
+                        <Connection>4</Connection>
+                        <Name>NormalBuffer</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenPlaceHolder</TextureName>
+                        <TextureName>NormalBuffer</TextureName>
+                    </OutputInfo>
+                    <OutputInfo>
+                        <Connection>5</Connection>
+                        <Name>AmbientBuffer</Name>
+                        <AttachPoint>NONE</AttachPoint>
+                        <TextureName>AmbientBuffer</TextureName>
+                    </OutputInfo>
+                    <OutputInfo>
+                        <Connection>6</Connection>
+                        <Name>DiffuseAndSpecularBuffer</Name>
+                        <AttachPoint>NONE</AttachPoint>
+                        <TextureName>DiffuseAndSpecularBuffer</TextureName>
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/Lines/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Data/Shaders/ModelAnimated/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/Lines/fragment.glsl</FragmentShaderName>
-                </ProgramInfo>
-            </NodeExtension>
-        </Node>
-        <Node>
-            <ID>18</ID>
-            <Name>GUIImage</Name>
-            <DisplayName>GUIImage</DisplayName>
-            <Editable>False</Editable>
-            <CombineInputs>True</CombineInputs>
-            <Position>
-                <X>1155.000000</X>
-                <Y>628.000000</Y>
-            </Position>
-            <Size>
-                <X>72.000000</X>
-                <Y>68.000000</Y>
-            </Size>
-            <Inputs/>
-            <Outputs>
-                <Connection>
-                    <ID>1</ID>
-                    <Name>Depth</Name>
-                    <Type>Texture</Type>
-                    <Direction>Output</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>72.000000</X>
-                        <Y>42.000000</Y>
-                    </Position>
-                    <Inputs/>
-                    <Outputs>
-                        <Output NodeId="3" ConnectionID="2">Depth</Output>
-                    </Outputs>
-                </Connection>
-                <Connection>
-                    <ID>2</ID>
-                    <Name>color</Name>
-                    <Type>Texture</Type>
-                    <Direction>Output</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>72.000000</X>
-                        <Y>58.000000</Y>
-                    </Position>
-                    <Inputs/>
-                    <Outputs>
-                        <Output NodeId="3" ConnectionID="1">Color</Output>
-                    </Outputs>
-                </Connection>
-            </Outputs>
-            <NodeExtension>
-                <Name>PipelineStageExtension</Name>
-                <CullMode>NoChange</CullMode>
-                <ClearBefore>False</ClearBefore>
-                <BlendEnabled>True</BlendEnabled>
-                <DepthTestEnabled>True</DepthTestEnabled>
-                <DepthWriteEnabled>True</DepthWriteEnabled>
-                <ScissorTestEnabled>False</ScissorTestEnabled>
-                <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
-                <ToScreen>False</ToScreen>
-                <CameraTags>player_camera</CameraTags>
-                <ObjectTags></ObjectTags>
-                <DefaultRenderResolution>
-                    <X>1920</X>
-                    <Y>1080</Y>
-                </DefaultRenderResolution>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
-                <IterateLightType>0</IterateLightType>
-                <RenderMethodName>Render GUI Images</RenderMethodName>
-                <OriginalOutputType></OriginalOutputType>
-                <OutputTextures>
-                    <OutputInfo>
-                        <Connection>1</Connection>
-                        <Name>Screen Depth</Name>
-                        <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenDepthPlaceHolder</TextureName>
-                    </OutputInfo>
-                    <OutputInfo>
-                        <Connection>2</Connection>
-                        <Name>Screen</Name>
-                        <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenPlaceHolder</TextureName>
-                    </OutputInfo>
-                </OutputTextures>
-                <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/GUIImage/vertex.glsl</VertexShaderName>
-                    <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/GUIImage/fragment.glsl</FragmentShaderName>
-                </ProgramInfo>
-            </NodeExtension>
-        </Node>
-        <Node>
-            <ID>17</ID>
-            <Name>GUIText</Name>
-            <DisplayName>GUIText</DisplayName>
-            <Editable>False</Editable>
-            <CombineInputs>True</CombineInputs>
-            <Position>
-                <X>1164.000000</X>
-                <Y>529.000000</Y>
-            </Position>
-            <Size>
-                <X>72.000000</X>
-                <Y>68.000000</Y>
-            </Size>
-            <Inputs/>
-            <Outputs>
-                <Connection>
-                    <ID>1</ID>
-                    <Name>Depth</Name>
-                    <Type>Texture</Type>
-                    <Direction>Output</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>72.000000</X>
-                        <Y>42.000000</Y>
-                    </Position>
-                    <Inputs/>
-                    <Outputs>
-                        <Output NodeId="3" ConnectionID="2">Depth</Output>
-                    </Outputs>
-                </Connection>
-                <Connection>
-                    <ID>2</ID>
-                    <Name>color</Name>
-                    <Type>Texture</Type>
-                    <Direction>Output</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>72.000000</X>
-                        <Y>58.000000</Y>
-                    </Position>
-                    <Inputs/>
-                    <Outputs>
-                        <Output NodeId="3" ConnectionID="1">Color</Output>
-                    </Outputs>
-                </Connection>
-            </Outputs>
-            <NodeExtension>
-                <Name>PipelineStageExtension</Name>
-                <CullMode>NoChange</CullMode>
-                <ClearBefore>False</ClearBefore>
-                <BlendEnabled>True</BlendEnabled>
-                <DepthTestEnabled>True</DepthTestEnabled>
-                <DepthWriteEnabled>True</DepthWriteEnabled>
-                <ScissorTestEnabled>False</ScissorTestEnabled>
-                <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
-                <ToScreen>False</ToScreen>
-                <CameraTags>player_camera</CameraTags>
-                <ObjectTags></ObjectTags>
-                <DefaultRenderResolution>
-                    <X>1920</X>
-                    <Y>1080</Y>
-                </DefaultRenderResolution>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
-                <IterateLightType>0</IterateLightType>
-                <RenderMethodName>Render GUI Texts</RenderMethodName>
-                <OriginalOutputType></OriginalOutputType>
-                <OutputTextures>
-                    <OutputInfo>
-                        <Connection>1</Connection>
-                        <Name>Screen Depth</Name>
-                        <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenDepthPlaceHolder</TextureName>
-                    </OutputInfo>
-                    <OutputInfo>
-                        <Connection>2</Connection>
-                        <Name>Screen</Name>
-                        <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenPlaceHolder</TextureName>
-                    </OutputInfo>
-                </OutputTextures>
-                <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/GUIText/vertex.glsl</VertexShaderName>
-                    <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/GUIText/fragment.glsl</FragmentShaderName>
-                </ProgramInfo>
-            </NodeExtension>
-        </Node>
-        <Node>
-            <ID>4</ID>
-            <Name>ImGui</Name>
-            <DisplayName>ImGui</DisplayName>
-            <Editable>False</Editable>
-            <CombineInputs>True</CombineInputs>
-            <Position>
-                <X>1141.000000</X>
-                <Y>432.000000</Y>
-            </Position>
-            <Size>
-                <X>94.000000</X>
-                <Y>68.000000</Y>
-            </Size>
-            <Inputs/>
-            <Outputs>
-                <Connection>
-                    <ID>1</ID>
-                    <Name>Depth</Name>
-                    <Type>Texture</Type>
-                    <Direction>Output</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>94.000000</X>
-                        <Y>42.000000</Y>
-                    </Position>
-                    <Inputs/>
-                    <Outputs>
-                        <Output NodeId="3" ConnectionID="2">Depth</Output>
-                    </Outputs>
-                </Connection>
-                <Connection>
-                    <ID>2</ID>
-                    <Name>Out_Color</Name>
-                    <Type>Texture</Type>
-                    <Direction>Output</Direction>
-                    <CombineInputs>True</CombineInputs>
-                    <Position>
-                        <X>94.000000</X>
-                        <Y>58.000000</Y>
-                    </Position>
-                    <Inputs/>
-                    <Outputs>
-                        <Output NodeId="3" ConnectionID="1">Color</Output>
-                    </Outputs>
-                </Connection>
-            </Outputs>
-            <NodeExtension>
-                <Name>PipelineStageExtension</Name>
-                <CullMode>None</CullMode>
-                <ClearBefore>False</ClearBefore>
-                <BlendEnabled>True</BlendEnabled>
-                <DepthTestEnabled>True</DepthTestEnabled>
-                <DepthWriteEnabled>True</DepthWriteEnabled>
-                <ScissorTestEnabled>True</ScissorTestEnabled>
-                <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
-                <ToScreen>False</ToScreen>
-                <CameraTags>player_camera</CameraTags>
-                <ObjectTags></ObjectTags>
-                <DefaultRenderResolution>
-                    <X>1920</X>
-                    <Y>1080</Y>
-                </DefaultRenderResolution>
-                <RenderHeightOption>screenHeight</RenderHeightOption>
-                <RenderWidthOption>screenWidth</RenderWidthOption>
-                <IterateLightType>0</IterateLightType>
-                <RenderMethodName>Render Editor</RenderMethodName>
-                <OriginalOutputType></OriginalOutputType>
-                <OutputTextures>
-                    <OutputInfo>
-                        <Connection>1</Connection>
-                        <Name>Screen Depth</Name>
-                        <AttachPoint>NONE</AttachPoint>
-                        <TextureName>ScreenDepthPlaceHolder</TextureName>
-                    </OutputInfo>
-                    <OutputInfo>
-                        <Connection>2</Connection>
-                        <Name>Screen</Name>
-                        <AttachPoint>NONE</AttachPoint>
-                    </OutputInfo>
-                </OutputTextures>
-                <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/ImGui/vertex.glsl</VertexShaderName>
-                    <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/ImGui/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Data/Shaders/ModelAnimated/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -2255,7 +1723,7 @@
             <NodeExtension>
                 <Name>PipelineStageExtension</Name>
                 <CullMode>Back</CullMode>
-                <ClearBefore>True</ClearBefore>
+                <ClearBefore>False</ClearBefore>
                 <BlendEnabled>False</BlendEnabled>
                 <DepthTestEnabled>True</DepthTestEnabled>
                 <DepthWriteEnabled>True</DepthWriteEnabled>
@@ -2301,140 +1769,537 @@
             </NodeExtension>
         </Node>
         <Node>
-            <ID>5</ID>
-            <Name>ShadowMapPoint</Name>
-            <DisplayName>ShadowMapPoint</DisplayName>
+            <ID>21</ID>
+            <Name>Particles</Name>
+            <DisplayName>Particles</DisplayName>
             <Editable>False</Editable>
             <CombineInputs>True</CombineInputs>
             <Position>
-                <X>60.000000</X>
-                <Y>198.000000</Y>
+                <X>1156.000000</X>
+                <Y>832.000000</Y>
             </Position>
             <Size>
-                <X>98.000000</X>
-                <Y>52.000000</Y>
+                <X>72.000000</X>
+                <Y>68.000000</Y>
             </Size>
             <Inputs/>
             <Outputs>
                 <Connection>
                     <ID>1</ID>
                     <Name>Depth</Name>
-                    <Type>Cubemap array</Type>
+                    <Type>Texture</Type>
                     <Direction>Output</Direction>
                     <CombineInputs>True</CombineInputs>
                     <Position>
-                        <X>98.000000</X>
+                        <X>72.000000</X>
                         <Y>42.000000</Y>
                     </Position>
                     <Inputs/>
                     <Outputs>
-                        <Output NodeId="11" ConnectionID="2">pre_shadowPoint</Output>
-                        <Output NodeId="22" ConnectionID="2">pre_shadowPoint</Output>
+                        <Output NodeId="3" ConnectionID="2">Depth</Output>
+                        <Output NodeId="3" ConnectionID="2">Depth</Output>
+                    </Outputs>
+                </Connection>
+                <Connection>
+                    <ID>2</ID>
+                    <Name>color</Name>
+                    <Type>Texture</Type>
+                    <Direction>Output</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>72.000000</X>
+                        <Y>58.000000</Y>
+                    </Position>
+                    <Inputs/>
+                    <Outputs>
+                        <Output NodeId="3" ConnectionID="1">Color</Output>
                     </Outputs>
                 </Connection>
             </Outputs>
             <NodeExtension>
                 <Name>PipelineStageExtension</Name>
-                <CullMode>Back</CullMode>
-                <ClearBefore>True</ClearBefore>
-                <BlendEnabled>False</BlendEnabled>
+                <CullMode>NoChange</CullMode>
+                <ClearBefore>False</ClearBefore>
+                <BlendEnabled>True</BlendEnabled>
                 <DepthTestEnabled>True</DepthTestEnabled>
                 <DepthWriteEnabled>True</DepthWriteEnabled>
                 <ScissorTestEnabled>False</ScissorTestEnabled>
-                <AnyOutputMultiLayered>True</AnyOutputMultiLayered>
+                <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
                 <ToScreen>False</ToScreen>
-                <CameraTags>point_camera</CameraTags>
+                <CameraTags></CameraTags>
                 <ObjectTags></ObjectTags>
                 <DefaultRenderResolution>
-                    <X>512</X>
-                    <Y>512</Y>
+                    <X>1920</X>
+                    <Y>1080</Y>
                 </DefaultRenderResolution>
-                <RenderHeightOption>shadowMapPointWidth</RenderHeightOption>
-                <RenderWidthOption>shadowMapPointWidth</RenderWidthOption>
-                <IterateLightType>2</IterateLightType>
-                <RenderMethodName>All point shadows</RenderMethodName>
-                <OriginalOutputType>Texture</OriginalOutputType>
+                <RenderHeightOption>screenHeight</RenderHeightOption>
+                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <IterateLightType>0</IterateLightType>
+                <RenderMethodName>Render Particle Emitters</RenderMethodName>
+                <OriginalOutputType></OriginalOutputType>
                 <OutputTextures>
                     <OutputInfo>
                         <Connection>1</Connection>
-                        <Name>PointShadow</Name>
+                        <Name>ScreenDepthPlaceHolder</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>PointShadow</TextureName>
+                        <TextureName>ScreenDepthPlaceHolder</TextureName>
+                    </OutputInfo>
+                    <OutputInfo>
+                        <Connection>2</Connection>
+                        <Name>ScreenPlaceHolder</Name>
+                        <AttachPoint>NONE</AttachPoint>
+                        <TextureName>ScreenPlaceHolder</TextureName>
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/ShadowMapPoint/vertex.glsl</VertexShaderName>
-                    <GeometryShaderName>./Data/Shaders/ShadowMapPoint/geometry.glsl</GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/ShadowMapPoint/fragment.glsl</FragmentShaderName>
+                    <VertexShaderName>./Data/Shaders/Particles/vertex.glsl</VertexShaderName>
+                    <GeometryShaderName></GeometryShaderName>
+                    <FragmentShaderName>./Data/Shaders/Particles/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
         <Node>
-            <ID>0</ID>
-            <Name>ShadowMapDirectional</Name>
-            <DisplayName>ShadowMapDirectional</DisplayName>
+            <ID>19</ID>
+            <Name>Lines</Name>
+            <DisplayName>Lines</DisplayName>
             <Editable>False</Editable>
             <CombineInputs>True</CombineInputs>
             <Position>
-                <X>42.000000</X>
-                <Y>81.000000</Y>
+                <X>1154.000000</X>
+                <Y>925.000000</Y>
             </Position>
             <Size>
-                <X>127.000000</X>
-                <Y>52.000000</Y>
+                <X>72.000000</X>
+                <Y>68.000000</Y>
             </Size>
             <Inputs/>
             <Outputs>
                 <Connection>
                     <ID>1</ID>
                     <Name>Depth</Name>
-                    <Type>Texture array</Type>
+                    <Type>Texture</Type>
                     <Direction>Output</Direction>
                     <CombineInputs>True</CombineInputs>
                     <Position>
-                        <X>127.000000</X>
+                        <X>72.000000</X>
                         <Y>42.000000</Y>
                     </Position>
                     <Inputs/>
                     <Outputs>
-                        <Output NodeId="11" ConnectionID="1">pre_shadowDirectional</Output>
-                        <Output NodeId="22" ConnectionID="1">pre_shadowDirectional</Output>
+                        <Output NodeId="3" ConnectionID="2">Depth</Output>
+                    </Outputs>
+                </Connection>
+                <Connection>
+                    <ID>2</ID>
+                    <Name>color</Name>
+                    <Type>Texture</Type>
+                    <Direction>Output</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>72.000000</X>
+                        <Y>58.000000</Y>
+                    </Position>
+                    <Inputs/>
+                    <Outputs>
+                        <Output NodeId="3" ConnectionID="1">Color</Output>
                     </Outputs>
                 </Connection>
             </Outputs>
             <NodeExtension>
                 <Name>PipelineStageExtension</Name>
-                <CullMode>Front</CullMode>
-                <ClearBefore>True</ClearBefore>
-                <BlendEnabled>False</BlendEnabled>
+                <CullMode>NoChange</CullMode>
+                <ClearBefore>False</ClearBefore>
+                <BlendEnabled>True</BlendEnabled>
                 <DepthTestEnabled>True</DepthTestEnabled>
                 <DepthWriteEnabled>True</DepthWriteEnabled>
                 <ScissorTestEnabled>False</ScissorTestEnabled>
-                <AnyOutputMultiLayered>True</AnyOutputMultiLayered>
+                <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
                 <ToScreen>False</ToScreen>
-                <CameraTags>directional_camera</CameraTags>
-                <ObjectTags>basic_model_object,animated_model_object</ObjectTags>
+                <CameraTags>player_camera</CameraTags>
+                <ObjectTags></ObjectTags>
                 <DefaultRenderResolution>
-                    <X>4096</X>
-                    <Y>4096</Y>
+                    <X>1920</X>
+                    <Y>1080</Y>
                 </DefaultRenderResolution>
-                <RenderHeightOption>shadowMapDirectionalHeight</RenderHeightOption>
-                <RenderWidthOption>shadowMapDirectionalWidth</RenderWidthOption>
-                <IterateLightType>1</IterateLightType>
-                <RenderMethodName>All directional shadows</RenderMethodName>
-                <OriginalOutputType>Texture</OriginalOutputType>
+                <RenderHeightOption>screenHeight</RenderHeightOption>
+                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <IterateLightType>0</IterateLightType>
+                <RenderMethodName>Render Debug Information</RenderMethodName>
+                <OriginalOutputType></OriginalOutputType>
                 <OutputTextures>
                     <OutputInfo>
                         <Connection>1</Connection>
-                        <Name>DirectionalShadow</Name>
+                        <Name>ScreenDepthPlaceHolder</Name>
                         <AttachPoint>NONE</AttachPoint>
-                        <TextureName>DirectionalShadow</TextureName>
+                        <TextureName>ScreenDepthPlaceHolder</TextureName>
+                    </OutputInfo>
+                    <OutputInfo>
+                        <Connection>2</Connection>
+                        <Name>ScreenPlaceHolder</Name>
+                        <AttachPoint>NONE</AttachPoint>
+                        <TextureName>ScreenPlaceHolder</TextureName>
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/ShadowMapDirectional/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Data/Shaders/Lines/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/ShadowMapDirectional/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Data/Shaders/Lines/fragment.glsl</FragmentShaderName>
+                </ProgramInfo>
+            </NodeExtension>
+        </Node>
+        <Node>
+            <ID>20</ID>
+            <Name>GPUParticles</Name>
+            <DisplayName>GPUParticles</DisplayName>
+            <Editable>False</Editable>
+            <CombineInputs>True</CombineInputs>
+            <Position>
+                <X>1162.000000</X>
+                <Y>726.000000</Y>
+            </Position>
+            <Size>
+                <X>77.000000</X>
+                <Y>68.000000</Y>
+            </Size>
+            <Inputs/>
+            <Outputs>
+                <Connection>
+                    <ID>1</ID>
+                    <Name>Depth</Name>
+                    <Type>Texture</Type>
+                    <Direction>Output</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>77.000000</X>
+                        <Y>42.000000</Y>
+                    </Position>
+                    <Inputs/>
+                    <Outputs>
+                        <Output NodeId="3" ConnectionID="2">Depth</Output>
+                    </Outputs>
+                </Connection>
+                <Connection>
+                    <ID>2</ID>
+                    <Name>color</Name>
+                    <Type>Texture</Type>
+                    <Direction>Output</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>77.000000</X>
+                        <Y>58.000000</Y>
+                    </Position>
+                    <Inputs/>
+                    <Outputs>
+                        <Output NodeId="3" ConnectionID="1">Color</Output>
+                    </Outputs>
+                </Connection>
+            </Outputs>
+            <NodeExtension>
+                <Name>PipelineStageExtension</Name>
+                <CullMode>NoChange</CullMode>
+                <ClearBefore>False</ClearBefore>
+                <BlendEnabled>True</BlendEnabled>
+                <DepthTestEnabled>True</DepthTestEnabled>
+                <DepthWriteEnabled>True</DepthWriteEnabled>
+                <ScissorTestEnabled>False</ScissorTestEnabled>
+                <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
+                <ToScreen>False</ToScreen>
+                <CameraTags></CameraTags>
+                <ObjectTags></ObjectTags>
+                <DefaultRenderResolution>
+                    <X>1920</X>
+                    <Y>1080</Y>
+                </DefaultRenderResolution>
+                <RenderHeightOption>screenHeight</RenderHeightOption>
+                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <IterateLightType>0</IterateLightType>
+                <RenderMethodName>Render GPU Particle Emitters</RenderMethodName>
+                <OriginalOutputType></OriginalOutputType>
+                <OutputTextures>
+                    <OutputInfo>
+                        <Connection>1</Connection>
+                        <Name>ScreenDepthPlaceHolder</Name>
+                        <AttachPoint>NONE</AttachPoint>
+                        <TextureName>ScreenDepthPlaceHolder</TextureName>
+                    </OutputInfo>
+                    <OutputInfo>
+                        <Connection>2</Connection>
+                        <Name>ScreenPlaceHolder</Name>
+                        <AttachPoint>NONE</AttachPoint>
+                        <TextureName>ScreenPlaceHolder</TextureName>
+                    </OutputInfo>
+                </OutputTextures>
+                <ProgramInfo>
+                    <VertexShaderName>./Data/Shaders/GPUParticles/vertex.glsl</VertexShaderName>
+                    <GeometryShaderName></GeometryShaderName>
+                    <FragmentShaderName>./Data/Shaders/GPUParticles/fragment.glsl</FragmentShaderName>
+                </ProgramInfo>
+            </NodeExtension>
+        </Node>
+        <Node>
+            <ID>18</ID>
+            <Name>GUIImage</Name>
+            <DisplayName>GUIImage</DisplayName>
+            <Editable>False</Editable>
+            <CombineInputs>True</CombineInputs>
+            <Position>
+                <X>1155.000000</X>
+                <Y>628.000000</Y>
+            </Position>
+            <Size>
+                <X>72.000000</X>
+                <Y>68.000000</Y>
+            </Size>
+            <Inputs/>
+            <Outputs>
+                <Connection>
+                    <ID>1</ID>
+                    <Name>Depth</Name>
+                    <Type>Texture</Type>
+                    <Direction>Output</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>72.000000</X>
+                        <Y>42.000000</Y>
+                    </Position>
+                    <Inputs/>
+                    <Outputs>
+                        <Output NodeId="3" ConnectionID="2">Depth</Output>
+                    </Outputs>
+                </Connection>
+                <Connection>
+                    <ID>2</ID>
+                    <Name>color</Name>
+                    <Type>Texture</Type>
+                    <Direction>Output</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>72.000000</X>
+                        <Y>58.000000</Y>
+                    </Position>
+                    <Inputs/>
+                    <Outputs>
+                        <Output NodeId="3" ConnectionID="1">Color</Output>
+                    </Outputs>
+                </Connection>
+            </Outputs>
+            <NodeExtension>
+                <Name>PipelineStageExtension</Name>
+                <CullMode>NoChange</CullMode>
+                <ClearBefore>False</ClearBefore>
+                <BlendEnabled>True</BlendEnabled>
+                <DepthTestEnabled>True</DepthTestEnabled>
+                <DepthWriteEnabled>True</DepthWriteEnabled>
+                <ScissorTestEnabled>False</ScissorTestEnabled>
+                <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
+                <ToScreen>False</ToScreen>
+                <CameraTags>player_camera</CameraTags>
+                <ObjectTags></ObjectTags>
+                <DefaultRenderResolution>
+                    <X>1920</X>
+                    <Y>1080</Y>
+                </DefaultRenderResolution>
+                <RenderHeightOption>screenHeight</RenderHeightOption>
+                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <IterateLightType>0</IterateLightType>
+                <RenderMethodName>Render GUI Images</RenderMethodName>
+                <OriginalOutputType></OriginalOutputType>
+                <OutputTextures>
+                    <OutputInfo>
+                        <Connection>1</Connection>
+                        <Name>ScreenDepthPlaceHolder</Name>
+                        <AttachPoint>NONE</AttachPoint>
+                        <TextureName>ScreenDepthPlaceHolder</TextureName>
+                    </OutputInfo>
+                    <OutputInfo>
+                        <Connection>2</Connection>
+                        <Name>ScreenPlaceHolder</Name>
+                        <AttachPoint>NONE</AttachPoint>
+                        <TextureName>ScreenPlaceHolder</TextureName>
+                    </OutputInfo>
+                </OutputTextures>
+                <ProgramInfo>
+                    <VertexShaderName>./Data/Shaders/GUIImage/vertex.glsl</VertexShaderName>
+                    <GeometryShaderName></GeometryShaderName>
+                    <FragmentShaderName>./Data/Shaders/GUIImage/fragment.glsl</FragmentShaderName>
+                </ProgramInfo>
+            </NodeExtension>
+        </Node>
+        <Node>
+            <ID>17</ID>
+            <Name>GUIText</Name>
+            <DisplayName>GUIText</DisplayName>
+            <Editable>False</Editable>
+            <CombineInputs>True</CombineInputs>
+            <Position>
+                <X>1164.000000</X>
+                <Y>529.000000</Y>
+            </Position>
+            <Size>
+                <X>72.000000</X>
+                <Y>68.000000</Y>
+            </Size>
+            <Inputs/>
+            <Outputs>
+                <Connection>
+                    <ID>1</ID>
+                    <Name>Depth</Name>
+                    <Type>Texture</Type>
+                    <Direction>Output</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>72.000000</X>
+                        <Y>42.000000</Y>
+                    </Position>
+                    <Inputs/>
+                    <Outputs>
+                        <Output NodeId="3" ConnectionID="2">Depth</Output>
+                    </Outputs>
+                </Connection>
+                <Connection>
+                    <ID>2</ID>
+                    <Name>color</Name>
+                    <Type>Texture</Type>
+                    <Direction>Output</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>72.000000</X>
+                        <Y>58.000000</Y>
+                    </Position>
+                    <Inputs/>
+                    <Outputs>
+                        <Output NodeId="3" ConnectionID="1">Color</Output>
+                    </Outputs>
+                </Connection>
+            </Outputs>
+            <NodeExtension>
+                <Name>PipelineStageExtension</Name>
+                <CullMode>NoChange</CullMode>
+                <ClearBefore>False</ClearBefore>
+                <BlendEnabled>True</BlendEnabled>
+                <DepthTestEnabled>True</DepthTestEnabled>
+                <DepthWriteEnabled>True</DepthWriteEnabled>
+                <ScissorTestEnabled>False</ScissorTestEnabled>
+                <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
+                <ToScreen>False</ToScreen>
+                <CameraTags>player_camera</CameraTags>
+                <ObjectTags></ObjectTags>
+                <DefaultRenderResolution>
+                    <X>1920</X>
+                    <Y>1080</Y>
+                </DefaultRenderResolution>
+                <RenderHeightOption>screenHeight</RenderHeightOption>
+                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <IterateLightType>0</IterateLightType>
+                <RenderMethodName>Render GUI Texts</RenderMethodName>
+                <OriginalOutputType></OriginalOutputType>
+                <OutputTextures>
+                    <OutputInfo>
+                        <Connection>1</Connection>
+                        <Name>ScreenDepthPlaceHolder</Name>
+                        <AttachPoint>NONE</AttachPoint>
+                        <TextureName>ScreenDepthPlaceHolder</TextureName>
+                    </OutputInfo>
+                    <OutputInfo>
+                        <Connection>2</Connection>
+                        <Name>ScreenPlaceHolder</Name>
+                        <AttachPoint>NONE</AttachPoint>
+                        <TextureName>ScreenPlaceHolder</TextureName>
+                    </OutputInfo>
+                </OutputTextures>
+                <ProgramInfo>
+                    <VertexShaderName>./Data/Shaders/GUIText/vertex.glsl</VertexShaderName>
+                    <GeometryShaderName></GeometryShaderName>
+                    <FragmentShaderName>./Data/Shaders/GUIText/fragment.glsl</FragmentShaderName>
+                </ProgramInfo>
+            </NodeExtension>
+        </Node>
+        <Node>
+            <ID>4</ID>
+            <Name>ImGui</Name>
+            <DisplayName>ImGui</DisplayName>
+            <Editable>False</Editable>
+            <CombineInputs>True</CombineInputs>
+            <Position>
+                <X>1141.000000</X>
+                <Y>432.000000</Y>
+            </Position>
+            <Size>
+                <X>94.000000</X>
+                <Y>68.000000</Y>
+            </Size>
+            <Inputs/>
+            <Outputs>
+                <Connection>
+                    <ID>1</ID>
+                    <Name>Depth</Name>
+                    <Type>Texture</Type>
+                    <Direction>Output</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>94.000000</X>
+                        <Y>42.000000</Y>
+                    </Position>
+                    <Inputs/>
+                    <Outputs>
+                        <Output NodeId="3" ConnectionID="2">Depth</Output>
+                    </Outputs>
+                </Connection>
+                <Connection>
+                    <ID>2</ID>
+                    <Name>Out_Color</Name>
+                    <Type>Texture</Type>
+                    <Direction>Output</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>94.000000</X>
+                        <Y>58.000000</Y>
+                    </Position>
+                    <Inputs/>
+                    <Outputs>
+                        <Output NodeId="3" ConnectionID="1">Color</Output>
+                    </Outputs>
+                </Connection>
+            </Outputs>
+            <NodeExtension>
+                <Name>PipelineStageExtension</Name>
+                <CullMode>None</CullMode>
+                <ClearBefore>False</ClearBefore>
+                <BlendEnabled>True</BlendEnabled>
+                <DepthTestEnabled>True</DepthTestEnabled>
+                <DepthWriteEnabled>True</DepthWriteEnabled>
+                <ScissorTestEnabled>True</ScissorTestEnabled>
+                <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
+                <ToScreen>False</ToScreen>
+                <CameraTags>player_camera</CameraTags>
+                <ObjectTags></ObjectTags>
+                <DefaultRenderResolution>
+                    <X>1920</X>
+                    <Y>1080</Y>
+                </DefaultRenderResolution>
+                <RenderHeightOption>screenHeight</RenderHeightOption>
+                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <IterateLightType>0</IterateLightType>
+                <RenderMethodName>Render Editor</RenderMethodName>
+                <OriginalOutputType></OriginalOutputType>
+                <OutputTextures>
+                    <OutputInfo>
+                        <Connection>1</Connection>
+                        <Name>ScreenDepthPlaceHolder</Name>
+                        <AttachPoint>NONE</AttachPoint>
+                        <TextureName>ScreenDepthPlaceHolder</TextureName>
+                    </OutputInfo>
+                    <OutputInfo>
+                        <Connection>2</Connection>
+                        <Name>ScreenPlaceHolder</Name>
+                        <AttachPoint>NONE</AttachPoint>
+                        <TextureName>ScreenPlaceHolder</TextureName>
+                    </OutputInfo>
+                </OutputTextures>
+                <ProgramInfo>
+                    <VertexShaderName>./Data/Shaders/ImGui/vertex.glsl</VertexShaderName>
+                    <GeometryShaderName></GeometryShaderName>
+                    <FragmentShaderName>./Data/Shaders/ImGui/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -2445,8 +2310,8 @@
             <Editable>False</Editable>
             <CombineInputs>True</CombineInputs>
             <Position>
-                <X>1844.000000</X>
-                <Y>723.000000</Y>
+                <X>1570.000000</X>
+                <Y>536.000000</Y>
             </Position>
             <Size>
                 <X>72.000000</X>
@@ -2500,6 +2365,144 @@
                 </Connection>
             </Inputs>
             <Outputs/>
+        </Node>
+        <Node>
+            <ID>5</ID>
+            <Name>ShadowMapPoint</Name>
+            <DisplayName>ShadowMapPoint</DisplayName>
+            <Editable>False</Editable>
+            <CombineInputs>True</CombineInputs>
+            <Position>
+                <X>60.000000</X>
+                <Y>198.000000</Y>
+            </Position>
+            <Size>
+                <X>98.000000</X>
+                <Y>52.000000</Y>
+            </Size>
+            <Inputs/>
+            <Outputs>
+                <Connection>
+                    <ID>1</ID>
+                    <Name>Depth</Name>
+                    <Type>Cubemap array</Type>
+                    <Direction>Output</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>98.000000</X>
+                        <Y>42.000000</Y>
+                    </Position>
+                    <Inputs/>
+                    <Outputs>
+                        <Output NodeId="22" ConnectionID="2">pre_shadowPoint</Output>
+                        <Output NodeId="11" ConnectionID="2">pre_shadowPoint</Output>
+                    </Outputs>
+                </Connection>
+            </Outputs>
+            <NodeExtension>
+                <Name>PipelineStageExtension</Name>
+                <CullMode>Back</CullMode>
+                <ClearBefore>True</ClearBefore>
+                <BlendEnabled>False</BlendEnabled>
+                <DepthTestEnabled>True</DepthTestEnabled>
+                <DepthWriteEnabled>True</DepthWriteEnabled>
+                <ScissorTestEnabled>False</ScissorTestEnabled>
+                <AnyOutputMultiLayered>True</AnyOutputMultiLayered>
+                <ToScreen>False</ToScreen>
+                <CameraTags>point_camera</CameraTags>
+                <ObjectTags>basic_model_object,animated_model_object</ObjectTags>
+                <DefaultRenderResolution>
+                    <X>512</X>
+                    <Y>512</Y>
+                </DefaultRenderResolution>
+                <RenderHeightOption>shadowMapPointWidth</RenderHeightOption>
+                <RenderWidthOption>shadowMapPointWidth</RenderWidthOption>
+                <IterateLightType>2</IterateLightType>
+                <RenderMethodName>All point shadows</RenderMethodName>
+                <OriginalOutputType>Texture</OriginalOutputType>
+                <OutputTextures>
+                    <OutputInfo>
+                        <Connection>1</Connection>
+                        <Name>PointShadow</Name>
+                        <AttachPoint>NONE</AttachPoint>
+                        <TextureName>PointShadow</TextureName>
+                    </OutputInfo>
+                </OutputTextures>
+                <ProgramInfo>
+                    <VertexShaderName>./Data/Shaders/ShadowMapPoint/vertex.glsl</VertexShaderName>
+                    <GeometryShaderName>./Data/Shaders/ShadowMapPoint/geometry.glsl</GeometryShaderName>
+                    <FragmentShaderName>./Data/Shaders/ShadowMapPoint/fragment.glsl</FragmentShaderName>
+                </ProgramInfo>
+            </NodeExtension>
+        </Node>
+        <Node>
+            <ID>0</ID>
+            <Name>ShadowMapDirectional</Name>
+            <DisplayName>ShadowMapDirectional</DisplayName>
+            <Editable>False</Editable>
+            <CombineInputs>True</CombineInputs>
+            <Position>
+                <X>42.000000</X>
+                <Y>81.000000</Y>
+            </Position>
+            <Size>
+                <X>127.000000</X>
+                <Y>52.000000</Y>
+            </Size>
+            <Inputs/>
+            <Outputs>
+                <Connection>
+                    <ID>1</ID>
+                    <Name>Depth</Name>
+                    <Type>Texture array</Type>
+                    <Direction>Output</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>127.000000</X>
+                        <Y>42.000000</Y>
+                    </Position>
+                    <Inputs/>
+                    <Outputs>
+                        <Output NodeId="22" ConnectionID="1">pre_shadowDirectional</Output>
+                        <Output NodeId="11" ConnectionID="1">pre_shadowDirectional</Output>
+                    </Outputs>
+                </Connection>
+            </Outputs>
+            <NodeExtension>
+                <Name>PipelineStageExtension</Name>
+                <CullMode>Front</CullMode>
+                <ClearBefore>True</ClearBefore>
+                <BlendEnabled>False</BlendEnabled>
+                <DepthTestEnabled>True</DepthTestEnabled>
+                <DepthWriteEnabled>True</DepthWriteEnabled>
+                <ScissorTestEnabled>False</ScissorTestEnabled>
+                <AnyOutputMultiLayered>True</AnyOutputMultiLayered>
+                <ToScreen>False</ToScreen>
+                <CameraTags>directional_camera</CameraTags>
+                <ObjectTags>basic_model_object,animated_model_object</ObjectTags>
+                <DefaultRenderResolution>
+                    <X>4096</X>
+                    <Y>4096</Y>
+                </DefaultRenderResolution>
+                <RenderHeightOption>shadowMapDirectionalHeight</RenderHeightOption>
+                <RenderWidthOption>shadowMapDirectionalWidth</RenderWidthOption>
+                <IterateLightType>1</IterateLightType>
+                <RenderMethodName>All directional shadows</RenderMethodName>
+                <OriginalOutputType>Texture</OriginalOutputType>
+                <OutputTextures>
+                    <OutputInfo>
+                        <Connection>1</Connection>
+                        <Name>DirectionalShadow</Name>
+                        <AttachPoint>NONE</AttachPoint>
+                        <TextureName>DirectionalShadow</TextureName>
+                    </OutputInfo>
+                </OutputTextures>
+                <ProgramInfo>
+                    <VertexShaderName>./Data/Shaders/ShadowMapDirectional/vertex.glsl</VertexShaderName>
+                    <GeometryShaderName></GeometryShaderName>
+                    <FragmentShaderName>./Data/Shaders/ShadowMapDirectional/fragment.glsl</FragmentShaderName>
+                </ProgramInfo>
+            </NodeExtension>
         </Node>
     </Nodes>
 </NodeGraph>

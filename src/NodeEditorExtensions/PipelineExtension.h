@@ -43,7 +43,7 @@ class PipelineExtension : public EditorExtension {
 
     bool buildRenderPipelineRecursive(const Node *node, std::shared_ptr<GraphicsPipeline> graphicsPipeline, std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>>& nodeStages,
                                       const std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>>& groupsByDependency,
-                                      std::vector<std::shared_ptr<GraphicsPipeline::StageInfo>>& builtStages);
+                                      std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStages);//A stage can contain more than one node, so the nodes used to build it is also here.
     void buildDependencyInfoRecursive(const Node *node, std::unordered_map<const Node*, std::set<const Node*>>& dependencies);
     std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> buildGroupsByDependency(std::unordered_map<const Node*, std::set<const Node*>>);
     bool canBeJoined(const std::set<const Node*>& existingNodes, const std::set<const Node*>& existingDependencies, const Node* currentNode, const std::set<const Node*>& currentDependencies);
@@ -103,6 +103,10 @@ public:
             addError("Node Graph is not valid, can't build pipeline!");
         }
     }
+
+    void recursiveUpdatePriority(std::vector<std::pair<std::set<const Node *>, std::set<const Node *>>> &dependencyGroups,
+                                 std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStages,
+                                 const std::pair<const std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStageInfo) const;
 };
 
 
