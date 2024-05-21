@@ -774,18 +774,12 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
             stageInfo->cameraTags = stageExtension->getCameraTags();
             stageInfo->stage->setCameraTags(stageExtension->getCameraTags());
             stageInfo->stage->setCullMode(stageExtension->getCullmode());
-            if(stageInfo->stage->isBlendEnabled()) {
-                stageInfo->setHighestPriority(stageInfo->getHighestPriority() - 1);//if 2 stage with same priority is present, we want blending one later
-            }
             std::set<const Node*> nodeList{node};
             builtStages[stageInfo] = nodeList;//only add the stage at the first time. Because this method works from back to front, the order in the vector will be correct.
         } else {
             builtStages[stageInfo].insert(node);
             stageInfo->clear = stageInfo->clear || stageExtension->isClearBefore();
             stageInfo->stage->setBlendEnabled(stageInfo->stage->isBlendEnabled() || stageExtension->isBlendEnabled());
-            if(stageInfo->stage->isBlendEnabled()) {
-                stageInfo->setHighestPriority(stageInfo->getHighestPriority() - 1);//if 2 stage with same priority is present, we want blending one later
-            }
             stageInfo->stage->setDepthTestEnabled(stageInfo->stage->isDepthTestEnabled() || stageExtension->isDepthTestEnabled());
             stageInfo->stage->setScissorEnabled(stageInfo->stage->isScissorEnabled() || stageExtension->isScissorTestEnabled());
             if(stageInfo->stage->getCullMode() == GraphicsInterface::CullModes::NO_CHANGE) {//no change can be ignored. Otherwise they are guaranteed to have the same by canJoin
@@ -901,6 +895,9 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                 addError("Selected method name in node " + node->getDisplayName()+ " is invalid!");
                 return false;
             }
+        }
+        if(stageInfo->stage->isBlendEnabled()) {
+            stageInfo->setHighestPriority(stageInfo->getHighestPriority() + 1);//if 2 stage with same priority is present, we want blending one later
         }
         nodeStages[node] = stageInfo;//contains newStage
     } else {
