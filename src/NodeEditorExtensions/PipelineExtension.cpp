@@ -321,9 +321,11 @@ std::shared_ptr<GraphicsPipeline> PipelineExtension::buildRenderPipeline(const s
         if(buildRenderPipelineRecursive(rootNode, builtGraphicsPipeline, nodeStages, dependencyGroups, builtStages)) {
             //we have dependency info, and the stage info. Stage info contains highest priority. Order based on that
             for(const auto& builtStageInfo:builtStages) {
-                //Build stages are individual, but they have dependencies, and if a high priority node needs a low priority node, low priority should become high priority.
+                // Build stages are individual, but they have dependencies, and if a high priority node needs a low priority node, low priority should become high priority.
+                // Also if a high priority node is rendered to frame buffer but not finished processing because a stage after is low priority, that one should get updated too
                 // To figure this chain, we need to track them back to forward.
-                recursiveUpdatePriority(dependencyGroups, builtStages, builtStageInfo);
+                recursiveUpdatePriorityForDependencies(dependencyGroups, builtStages, builtStageInfo);
+                recursiveUpdatePriorityForDependents(dependencyGroups, builtStages,builtStageInfo);
             }
             //now move the elements to ordered
             while(!builtStages.empty()) {
@@ -398,22 +400,46 @@ std::shared_ptr<GraphicsPipeline> PipelineExtension::buildRenderPipeline(const s
     }
 }
 
-void PipelineExtension::recursiveUpdatePriority(std::vector<std::pair<std::set<const Node *>, std::set<const Node *>>> &dependencyGroups,
-                                                std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStages,
-                                                const std::pair<const std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStageInfo) const {
+void PipelineExtension::recursiveUpdatePriorityForDependencies(std::vector<std::pair<std::set<const Node *>, std::set<const Node *>>> &dependencyGroups,
+                                                               std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStages,
+                                                               const std::pair<const std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStageInfo) const {
     for (const auto &stageNode: builtStageInfo.second) {
         //a build stage might be combination of multiple nodes, for each of those nodes, update the priority of its dependencies
         for (const auto &dependencyGroup: dependencyGroups) {
-            if(dependencyGroup.second.find(stageNode) != dependencyGroup.second.end()) {
+            if (dependencyGroup.second.find(stageNode) != dependencyGroup.second.end()) {
                 //this is the dependency group, and all dependencies are at the first entry of the pair
                 for (const auto &nodeDependency: dependencyGroup.first) {
                     //search for them in the builtStages to update the requirement
                     for (const auto &builtStage2: builtStages) {
-                        if(builtStage2.second.find(nodeDependency) != builtStage2.second.end()) {
+                        if (builtStage2.second.find(nodeDependency) != builtStage2.second.end()) {
                             //this stage is a dependency for the one we were iterating over, update the priority
                             builtStage2.first->setHighestPriority(std::min(builtStage2.first->getHighestPriority(), builtStageInfo.first->getHighestPriority()));
                             //what about the nodes that were depending on this stage? we should update them too
-                            recursiveUpdatePriority(dependencyGroups, builtStages, builtStage2);
+                            recursiveUpdatePriorityForDependencies(dependencyGroups, builtStages, builtStage2);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void PipelineExtension::recursiveUpdatePriorityForDependents(std::vector<std::pair<std::set<const Node *>, std::set<const Node *>>> &dependencyGroups,
+                                                               std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStages,
+                                                               const std::pair<const std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStageInfo) const {
+    for (const auto &stageNode: builtStageInfo.second) {
+        //a build stage might be combination of multiple nodes, for each of those nodes, update the dependents so the output will reach the screen before others
+        for (const auto &dependencyGroup: dependencyGroups) {
+            if (dependencyGroup.first.find(stageNode) != dependencyGroup.first.end()) {
+                //this is the dependency group, and all dependencies are at the first entry of the pair
+                for (const auto &nodeDependent: dependencyGroup.second) {
+                    //search for them in the builtStages to update the requirement
+                    for (const auto &builtStage2: builtStages) {
+                        if (builtStage2.second.find(nodeDependent) != builtStage2.second.end()) {
+                            //this stage is a dependency for the one we were iterating over, update the priority
+                            builtStage2.first->setHighestPriority(std::min(builtStage2.first->getHighestPriority(), builtStageInfo.first->getHighestPriority()));
+                            //what about the nodes that are dependents  on this stage? we should update them too
+                            recursiveUpdatePriorityForDependents(dependencyGroups, builtStages, builtStage2);
                         }
                     }
                 }
