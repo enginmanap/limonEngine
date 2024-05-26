@@ -39,7 +39,7 @@
 #include "GameObjects/GUIAnimation.h"
 #include "GameObjects/ModelGroup.h"
 #include "Graphics/PostProcess/QuadRender.h"
-#include "Editor.h"
+#include "Editor/Editor.h"
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -48,6 +48,8 @@
             { Types::EDITOR_PLAYER, "Editor"},
             { Types::MENU_PLAYER, "Menu" }
     };
+
+   SDL2MultiThreading::Condition World::VisibilityRequest::condition;
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
              std::shared_ptr<AssetManager> assetManager, Options *options)
@@ -119,13 +121,19 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     
     quadRender = std::make_shared<QuadRender>(graphicsWrapper);
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
-    camera = new PerspectiveCamera("Player camera", options, currentPlayer->getCameraAttachment());//register is just below
+    playerCamera = new PerspectiveCamera("Player camera", options, currentPlayer->getCameraAttachment());//register is just below
+    playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
+    playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+    playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_BASIC);
+    playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
+    playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+    playerCamera->addTag(HardCodedTags::CAMERA_PLAYER);
+    cullingResults.emplace(playerCamera, new std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>());//new camera, new visibility
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
                                            COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                            COLLIDE_MODELS | COLLIDE_EVERYTHING, worldAABBMin,
                                            worldAABBMax);
     switchPlayer(currentPlayer, *inputHandler); //switching to itself, to set the states properly. It uses camera so done after camera creation
-
 
 
     renderPipeline = GraphicsPipeline::deserialize("./Data/renderPipeline.xml", graphicsWrapper, assetManager, options, buildRenderMethods());
@@ -143,9 +151,14 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     onLoadActions.push_back(new ActionForOnload());//this is here for editor, as if no action is added, editor would fail to allow setting the first one.
 
     modelIndicesBuffer.reserve(NR_MAX_MODELS);
-    modelsInLightFrustum.resize(NR_TOTAL_LIGHTS);
-    animatedModelsInLightFrustum.resize(NR_TOTAL_LIGHTS);
+    tempRenderedObjectsSet.reserve(NR_MAX_MODELS);
+
     activeLights.reserve(NR_TOTAL_LIGHTS);
+
+    long tempValue;
+    if(options->getOption("multiThreadedCulling", tempValue)) {
+        multiThreadedCulling = tempValue != 0;
+    }
 
     /************ ImGui *****************************/
     // Setup ImGui binding
@@ -155,21 +168,15 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
    RenderMethods World::buildRenderMethods() {
        RenderMethods renderMethods;
 
-       renderMethods.renderOpaqueObjects       = std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1);
-       renderMethods.renderAnimatedObjects     = std::bind(&World::renderAnimatedObjects, this, std::placeholders::_1);
-       renderMethods.renderTransparentObjects  = std::bind(&World::renderTransparentObjects, this, std::placeholders::_1);
-       renderMethods.renderParticleEmitters    = std::bind(&World::renderParticleEmitters, this, std::placeholders::_1);
-       renderMethods.renderGPUParticleEmitters = std::bind(&World::renderGPUParticleEmitters, this, std::placeholders::_1);
-       renderMethods.renderGUITexts            = std::bind(&World::renderGUITexts, this, std::placeholders::_1);
-       renderMethods.renderGUIImages           = std::bind(&World::renderGUIImages, this, std::placeholders::_1);
-       renderMethods.renderEditor              = std::bind(&World::ImGuiFrameSetup, this, std::placeholders::_1);
-       renderMethods.renderSky                 = std::bind(&World::renderSky, this, std::placeholders::_1);
-       renderMethods.renderDebug               = std::bind(&World::renderDebug, this, std::placeholders::_1);
-       renderMethods.renderPlayerAttachmentOpaque    = std::bind(&World::renderPlayerAttachmentOpaqueObjects, this, std::placeholders::_1);
-       renderMethods.renderPlayerAttachmentTransparent    = std::bind(&World::renderPlayerAttachmentTransparentObjects, this, std::placeholders::_1);
-       renderMethods.renderPlayerAttachmentAnimated    = std::bind(&World::renderPlayerAttachmentAnimatedObjects, this, std::placeholders::_1);
-       renderMethods.renderQuad                = std::bind(&QuadRender::render, this->quadRender, std::placeholders::_1);
-
+       renderMethods.renderParticleEmitters             = std::bind(&World::renderParticleEmitters,                     this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderGPUParticleEmitters          = std::bind(&World::renderGPUParticleEmitters,                  this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderGUITexts                     = std::bind(&World::renderGUITexts,                             this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderGUIImages                    = std::bind(&World::renderGUIImages,                            this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderEditor                       = std::bind(&World::ImGuiFrameSetup,                            this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderSky                          = std::bind(&World::renderSky,                                  this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderDebug                        = std::bind(&World::renderDebug,                                this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderCameraByTag                  = std::bind(&World::renderCameraByTag,                          this,               std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+       renderMethods.renderQuad                         = std::bind(&QuadRender::render,                                this->quadRender,   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
        renderMethods.getLightsByType = std::bind(&World::getLightIndexes, this, std::placeholders::_1);
        renderMethods.renderLight = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2);
@@ -243,9 +250,9 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          currentPlayer->processPhysicsWorld(dynamicsWorld);
          checkAndRunTimedEvents();
      }
-     if(camera->isDirty()) {
-         graphicsWrapper->setPlayerMatrices(camera->getPosition(), camera->getCameraMatrix(), gameTime);//this is required for any render
-         alHelper->setListenerPositionAndOrientation(camera->getPosition(), camera->getCenter(), camera->getUp());
+     if(playerCamera->isDirty()) {
+         graphicsWrapper->setPlayerMatrices(playerCamera->getPosition(), playerCamera->getCameraMatrix(), gameTime);//this is required for any render
+         alHelper->setListenerPositionAndOrientation(playerCamera->getPosition(), playerCamera->getCenter(), playerCamera->getUp());
      }
      if(currentPlayersSettings->worldSimulation) {
          for(const auto& emitter:emitters) {
@@ -272,14 +279,21 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                  updatedModels.push_back(model);
              }
          }
-         for (auto modelAssetIterator = modelsInCameraFrustum.begin(); modelAssetIterator != modelsInCameraFrustum.end(); ++modelAssetIterator) {
-             for (auto modelIterator = modelAssetIterator->second.first.begin(); modelIterator != modelAssetIterator->second.first.end(); ++modelIterator) {
-                 (*modelIterator)->setupForTime(gameTime);
+
+         tempRenderedObjectsSet.clear();
+         for (const auto &visibility: cullingResults) {
+             for (const auto &visibleTags: *visibility.second){
+                 for (const auto &visibleAssets: visibleTags.second) {
+                     for (const auto &visibleObjectId: visibleAssets.second.first) {
+                         if (tempRenderedObjectsSet.find(visibleObjectId) == tempRenderedObjectsSet.end()) {
+                             objects[visibleObjectId]->setupForTime(gameTime);
+                             tempRenderedObjectsSet.insert(visibleObjectId);
+                         }
+                     }
+                 }
              }
          }
-         for (auto modelIt = animatedModelsInAnyFrustum.begin(); modelIt != animatedModelsInAnyFrustum.end(); ++modelIt) {
-             (*modelIt)->setupForTime(gameTime);
-         }
+
          //Player setup
          if(startingPlayer.attachedModel != nullptr) {
              startingPlayer.attachedModel->setupForTime(gameTime);
@@ -291,7 +305,11 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
      }
      updateActiveLights(false);
 
-     fillVisibleObjects();
+     fillVisibleObjectsUsingTags();
+
+     //FIXME moved out of fillVisible because for the time being we have 2 (fillVisibleObjects(), fillVisibleObjectsUsingTags()) once one is gone, these 2 clears should go in.
+     updatedModels.clear();
+     playerCamera->clearDirty();
 
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
         guiLayers[i]->setupForTime(gameTime);
@@ -404,143 +422,144 @@ void World::animateCustomAnimations() {
     }
 }
 
-   void World::fillVisibleObjects(){
-    if(camera->isDirty()) {
-        modelsInCameraFrustum.clear();
-        animatedModelsInFrustum.clear();
-        transparentModelsInCameraFrustum.clear();
-        for (auto objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
-            setVisibilityAndPutToSets(objectIt->second, false);
+void World::resetVisibilityBufferForRenderPipelineChange() {
+    for (auto &item: this->cullingResults) {
+        item.second->clear();
+    }
+}
+
+void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
+       const World::VisibilityRequest* visibilityRequest = static_cast<const World::VisibilityRequest *>(visibilityRequestRaw);
+       for (auto objectIt = visibilityRequest->objects->begin(); objectIt != visibilityRequest->objects->end(); ++objectIt) {
+           if(!visibilityRequest->camera->isDirty() && !objectIt->second->isDirtyForFrustum()) {
+               continue; //if neither object nor camera dirty, no need to recalculate
+           }
+           Model *currentModel = dynamic_cast<Model *>(objectIt->second);
+           for(const auto& tag: currentModel->getTags()) {
+               if(visibilityRequest->camera->hasRenderTag(tag.hash)){
+                   //does this camera have the entry for this tag?
+                   const auto& tagEntries = visibilityRequest->visibility->find(tag.hash);
+                   if(tagEntries == visibilityRequest->visibility->end()) {
+                       //create the tag entry
+                       (*visibilityRequest->visibility)[tag.hash] = std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>();
+                   }
+                   //we matched a tag for this camera, we should add here, and then break so we don't add to others
+                   bool isVisible = visibilityRequest->camera->isVisible(*currentModel);//find if visible
+                   auto tagVisibilityEntry = visibilityRequest->visibility->find(tag.hash);//no need to check, as we already created if didn't exist
+                   auto assetVisibilityEntry = tagVisibilityEntry->second.find(currentModel->getAssetID());
+                   if(isVisible) {
+                       if (assetVisibilityEntry == tagVisibilityEntry->second.end()) {
+                           tagVisibilityEntry->second[currentModel->getAssetID()] = std::make_pair(std::vector<uint32_t>(), LOWEST_LOD_LEVEL);
+                       }
+                       //uint32_t lod = getLodLevel(currentModel);
+                       uint32_t lod = 1;
+                       tagVisibilityEntry->second[currentModel->getAssetID()].second = std::min(tagVisibilityEntry->second[currentModel->getAssetID()].second, lod);
+                       //check if this thing is already in the list of things to render
+                       auto objectIndexIterator = std::find(tagVisibilityEntry->second[currentModel->getAssetID()].first.begin(), tagVisibilityEntry->second[currentModel->getAssetID()].first.end(), currentModel->getWorldObjectID());
+                       if(objectIndexIterator == tagVisibilityEntry->second[currentModel->getAssetID()].first.end()) {
+                           tagVisibilityEntry->second[currentModel->getAssetID()].first.emplace_back(currentModel->getWorldObjectID());
+                       }
+                   } else { //not visible
+                       if(assetVisibilityEntry == tagVisibilityEntry->second.end()) {
+                           //it was never in the visible set, ignore.
+                       } else {
+
+                           //this asset was in visible set, but was this game object in the visible set?
+                           for (auto modelIdIterator = assetVisibilityEntry->second.first.begin(); modelIdIterator != assetVisibilityEntry->second.first.end(); modelIdIterator++) {
+                               if((*modelIdIterator) == currentModel->getWorldObjectID()) {
+                                   assetVisibilityEntry->second.first.erase(modelIdIterator);
+                                   //so we removed the element. should we drop the entry itself?
+                                   if(assetVisibilityEntry->second.first.empty()) {
+                                       tagVisibilityEntry->second.erase(assetVisibilityEntry);
+                                       break;
+                                   }
+                               }
+                           }
+                       }
+                   }
+                   break; //since per camera rendering multiple times is not logical, we will add once and ignore the rest
+               }
+           }
+       }
+       return visibilityRequest->visibility;
+   }
+
+static int staticOcclusionThread(void* visibilityRequestRaw) {
+    World::VisibilityRequest* visibilityRequest = static_cast<World::VisibilityRequest *>(visibilityRequestRaw);
+    //std::cout << "Thread for  " << visibilityRequest->camera->getName() << " launched, waiting for condition" << std::endl;
+    //std::cout << "Thread for  " << visibilityRequest->camera->getName() << " started" << std::endl;
+    while(visibilityRequest->running) {
+        visibilityRequest->frameCount.fetch_add(1);
+        fillVisibleObjectPerCamera(visibilityRequestRaw);
+        visibilityRequest->inProgressLock.unlock();
+        //std::cout << "Processing done for camera " << visibilityRequest->camera->getName() << " now waiting for condition" << std::endl;
+        World::VisibilityRequest::condition.waitCondition(visibilityRequest->blockMutex);
+        visibilityRequest->inProgressLock.lock();
+        //std::cout << "signal received by " << visibilityRequest->camera->getName() << " starting processing again" << std::endl;
+    }
+    return 0;
+}
+
+std::map<World::VisibilityRequest*, SDL_Thread *> World::occlusionThreadManager() {
+    std::map<VisibilityRequest*, SDL_Thread*> visibilityProcessing;
+    for (auto &cameraVisibility: cullingResults) {
+        VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &this->objects, cameraVisibility.second);
+        SDL_Thread* thread = SDL_CreateThread(staticOcclusionThread, request->camera->getName().c_str(), request);
+        visibilityProcessing[request] = thread;
+    }
+    return visibilityProcessing;
+}
+
+void World::fillVisibleObjectsUsingTags() {
+     //first clear up dirty cameras
+    for (auto &it: cullingResults) {
+        if (it.first->isDirty()) {
+            it.second->clear();
+        }
+    }
+    if(multiThreadedCulling) {
+        if (visibilityThreadPool.empty()) {
+            visibilityThreadPool = occlusionThreadManager();
+            for (const auto &item: visibilityThreadPool) {
+                item.first->inProgressLock.lock();
+                item.first->inProgressLock.unlock();
+            }
+        }
+
+        //std::cout << "          new frame, trigger occlusion threads" << std::endl;
+        uint32_t lastFrameCount = visibilityThreadPool.begin()->first->frameCount.load();
+        VisibilityRequest::condition.signalWaiting();
+
+        for (const auto &item: visibilityThreadPool) {
+            while (item.first->frameCount == lastFrameCount) {
+                //busy wait until frame starts
+            }
+            item.first->inProgressLock.lock();
+            item.first->inProgressLock.unlock();
         }
     } else {
-        //if camera frustum not changed, but object itself changed case
-        for (size_t i = 0; i < updatedModels.size(); ++i) {
-            setVisibilityAndPutToSets(updatedModels[i], true);
+        if(visibilityThreadPool.empty()) {
+            for (auto &cameraVisibility: cullingResults) {
+                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &this->objects, cameraVisibility.second);
+                visibilityThreadPool[request] = nullptr;
+            }
+        }
+        for (const auto &item: visibilityThreadPool) {
+            fillVisibleObjectPerCamera(item.first);
         }
     }
-
-    for (size_t currentLightIndex = 0; currentLightIndex < activeLights.size(); ++currentLightIndex) {
-        if(activeLights[currentLightIndex]->isFrustumChanged()) {
-            modelsInLightFrustum[currentLightIndex].clear();
-            animatedModelsInLightFrustum[currentLightIndex].clear();
-            for (auto objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
-                setLightVisibilityAndPutToSets(currentLightIndex, objectIt->second, false);
-            }
-            activeLights[currentLightIndex]->setFrustumChanged(false);
-        } else {
-            //if camera frustum not changed, but object itself changed case
-            for (size_t i = 0; i < updatedModels.size(); ++i) {
-                setLightVisibilityAndPutToSets(currentLightIndex, updatedModels[i], true);
-            }
-        }
+    for (auto objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
+        //all cameras calculated, clear dirty for object
+        objectIt->second->setCleanForFrustum();
     }
-
-    updatedModels.clear();
-    camera->clearDirty();
-}
-
-void World::setLightVisibilityAndPutToSets(size_t currentLightIndex, PhysicalRenderable *PhysicalRenderable, bool removePossible) {
-    Model* currentModel = dynamic_cast<Model*>(PhysicalRenderable);
-    assert(currentModel != nullptr);
-    currentModel->setIsInLightFrustum(currentLightIndex,
-                                      activeLights[currentLightIndex]->isShadowCaster(*currentModel));
-    if(currentModel->isInLightFrustum(currentLightIndex)) {
-        if(currentModel->isAnimated()) {
-            animatedModelsInLightFrustum[currentLightIndex].insert(ModelWithLod(currentModel, getLodLevel(currentModel)));
-            animatedModelsInAnyFrustum.insert(currentModel);
-        } else {
-            if (modelsInLightFrustum[currentLightIndex].find(currentModel->getAssetID()) ==
-                modelsInLightFrustum[currentLightIndex].end()) {
-                modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), LOWEST_LOD_LEVEL);
-            }
-            uint32_t lod = getLodLevel(currentModel);
-            modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()].first.insert(currentModel);
-            modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()].second = std::min(modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()].second, lod);
-
-        }
-    } else if(removePossible) {
-        //if remove possible, and not in light frustum, search for the model, and remove
-        if(currentModel->isAnimated()) {
-            bool isInAnyFrustum = false;
-            animatedModelsInLightFrustum[currentLightIndex].erase(currentModel);
-            //now check if it is in any other frustums
-            if(animatedModelsInFrustum.find(currentModel) == animatedModelsInFrustum.end()) {
-                for (uint32_t i = 0; i < animatedModelsInLightFrustum.size(); ++i) {
-                    if(animatedModelsInLightFrustum[i].find(currentModel) != animatedModelsInLightFrustum[i].end()) {
-                        isInAnyFrustum = true;
-                        break;
-                    }
-                }
-            }
-            if(!isInAnyFrustum) {
-                animatedModelsInAnyFrustum.erase(currentModel);
-            }
-        } else {
-            //if not animated
-            modelsInLightFrustum[currentLightIndex][currentModel->getAssetID()].first.erase(currentModel);
+    for (auto &it: cullingResults) {
+        if (it.first->isDirty()) {
+            it.first->clearDirty();//clear after processing so we can check while processing
         }
     }
 }
 
-void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bool removePossible) {
-    Model* currentModel = dynamic_cast<Model*>(PhysicalRenderable);
-    assert(currentModel != nullptr);
-    currentModel->setIsInFrustum(camera->isVisible(*currentModel));
-    if(currentModel->isTransparent()) {
-        if(currentModel->isIsInFrustum()) {
-            if (transparentModelsInCameraFrustum.find(currentModel->getAssetID()) == transparentModelsInCameraFrustum.end()) {
-                transparentModelsInCameraFrustum[currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), LOWEST_LOD_LEVEL);
-            }
-            uint32_t lod = getLodLevel(currentModel);
-            transparentModelsInCameraFrustum[currentModel->getAssetID()].first.insert(currentModel);
-            transparentModelsInCameraFrustum[currentModel->getAssetID()].second = std::min(transparentModelsInCameraFrustum[currentModel->getAssetID()].second, lod);
-
-
-        } else {
-            if(removePossible) {
-                if(transparentModelsInCameraFrustum[currentModel->getAssetID()].first.find(currentModel) != transparentModelsInCameraFrustum[currentModel->getAssetID()].first.end()) {
-                    transparentModelsInCameraFrustum[currentModel->getAssetID()].first.erase(currentModel);
-                }
-            }
-        }
-    } else {
-        if (currentModel->isIsInFrustum()) {
-            if (currentModel->isAnimated()) {
-                animatedModelsInFrustum.insert(ModelWithLod(currentModel, getLodLevel(currentModel)));
-                animatedModelsInAnyFrustum.insert(currentModel);
-            } else {
-                if (modelsInCameraFrustum.find(currentModel->getAssetID()) == modelsInCameraFrustum.end()) {
-                    modelsInCameraFrustum[currentModel->getAssetID()] = std::make_pair(std::set<Model *>(), LOWEST_LOD_LEVEL);//we set 3, as it is the lowest LOD.
-                }
-                //model is in frustum, check the distance:
-                uint32_t lod = getLodLevel(currentModel);
-                modelsInCameraFrustum[currentModel->getAssetID()].first.insert(currentModel);
-                modelsInCameraFrustum[currentModel->getAssetID()].second = std::min(modelsInCameraFrustum[currentModel->getAssetID()].second, lod);
-            }
-        } else if (removePossible) {
-            //if remove possible, and not in frustum, search for the model, and remove
-            if (currentModel->isAnimated()) {
-                bool isInAnyFrustum = false;
-                animatedModelsInFrustum.erase(currentModel);
-                //now check if it is in any other frustums
-                for (uint32_t i = 0; i < animatedModelsInLightFrustum.size(); ++i) {
-                    if (animatedModelsInLightFrustum[i].find(currentModel) != animatedModelsInLightFrustum[i].end()) {
-                        isInAnyFrustum = true;
-                        break;
-                    }
-                }
-                if (!isInAnyFrustum) {
-                    animatedModelsInAnyFrustum.erase(currentModel);
-                }
-            } else {
-                //if not animated
-                modelsInCameraFrustum[currentModel->getAssetID()].first.erase(currentModel);
-            }
-        }
-    }
-}
-
-   ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *actor) {
+ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *actor) {
     ActorInterface::ActorInformation information;
     Model* actorModel = dynamic_cast<Model*>(objects[actor->getModelID()]);
     if(actorModel != nullptr) {
@@ -606,7 +625,7 @@ void World::setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bo
             std::function<std::vector<LimonTypes::GenericParameter>(
                     std::vector<LimonTypes::GenericParameter>)> functionToRun =
                     std::bind(&World::fillRouteInformation, this, std::placeholders::_1);
-            routeThreads[actor->getWorldID()] = new SDL2Helper::Thread("FillRouteForActor", functionToRun, parameters);
+            routeThreads[actor->getWorldID()] = new SDL2MultiThreading::Thread("FillRouteForActor", functionToRun, parameters);
             routeThreads[actor->getWorldID()]->run();
         }
 
@@ -722,7 +741,7 @@ void World:: render() {
     renderPipeline->render();
 }
 
-void World::renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
+void World::renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
     cursor->renderWithProgram(renderProgram, 0);
 
     for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
@@ -733,7 +752,7 @@ void World::renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgra
 
 }
 
-void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
+void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
     for (auto it = guiLayers.begin(); it != guiLayers.end(); ++it) {
         (*it)->renderTextWithProgram(renderProgram);
     }
@@ -750,36 +769,19 @@ void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram
     }
 }
 
-void World::renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
-   for (auto modelIterator = transparentModelsInCameraFrustum.begin(); modelIterator != transparentModelsInCameraFrustum.end(); ++modelIterator) {
-       //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-       std::pair<std::set<Model *>, uint32_t> modelSetWithLod = modelIterator->second;
-       modelIndicesBuffer.clear();
-       Model *sampleModel = nullptr;
-       for (auto model = modelSetWithLod.first.begin(); model != modelSetWithLod.first.end(); ++model) {
-           //all of these models will be rendered
-           modelIndicesBuffer.push_back((*model)->getWorldObjectID());
-           sampleModel = *model;
-       }
-       if (sampleModel != nullptr) {
-           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(renderProgram.get()), modelSetWithLod.second);
-       }
-   }
-}
-
-void World::renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
+void World::renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
      for(const auto& emitter:emitters) {
          emitter.second->renderWithProgram(renderProgram, 0);
      }
 }
 
-void World::renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
+void World::renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
    for(const auto& gpuParticleEmitter:gpuParticleEmitters) {
        gpuParticleEmitter.second->renderWithProgram(renderProgram, 0);
    }
 }
 
-void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[gnu::unused]]) const {
+void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[gnu::unused]], const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
    dynamicsWorld->debugDrawWorld();
    if (dynamicsWorld->getDebugDrawer()->getDebugMode() != btIDebugDraw::DBG_NoDebug) {
        debugDrawer->drawLine(btVector3(0, 0, 0), btVector3(0, 250, 0), btVector3(1, 1, 1));
@@ -791,52 +793,71 @@ void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[
    debugDrawer->flushDraws();
 }
 
-void World::renderPlayerAttachmentTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
-   if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
-       Model *attachedModel = startingPlayer.attachedModel;
-       renderPlayerAttachmentsRecursive(attachedModel, ModelTypes::TRANSPARENT, renderProgram);
-   }
-}
+void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName, const std::vector<HashUtil::HashedString> &tags) const {
+   uint64_t hashedCameraTag = HashUtil::hashString(cameraName);
+   tempRenderedObjectsSet.clear();
 
-void World::renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GraphicsProgram> &renderProgram) const {
-   if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
-       Model *attachedModel = startingPlayer.attachedModel;
-       renderPlayerAttachmentsRecursive(attachedModel, ModelTypes::ANIMATED, renderProgram);
-   }
-}
-
-void World::renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GraphicsProgram> &renderProgram) const {
-   if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
-       Model *attachedModel = startingPlayer.attachedModel;
-       renderPlayerAttachmentsRecursive(attachedModel, ModelTypes::NON_ANIMATED_OPAQUE, renderProgram);
-   }
-}
-
-void World::renderAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
-    for (auto modelIterator = animatedModelsInFrustum.begin(); modelIterator != animatedModelsInFrustum.end(); ++modelIterator) {
-       std::vector<uint32_t> temp;
-       temp.push_back((*modelIterator).model->getWorldObjectID());
-        (*modelIterator).model->renderWithProgramInstanced(temp, *(renderProgram.get()), modelIterator->lod);
+    for (const auto &visibilityEntry: cullingResults) {
+        if (visibilityEntry.first->hasTag(hashedCameraTag)) {//if this camera doesn't match the tag, then just ignore
+            for (const auto &renderTag: tags) {
+                const auto& taggedEntries = visibilityEntry.second->find(renderTag.hash);
+                if(taggedEntries != visibilityEntry.second->end()) {
+                    //there are tagged entries, we should iterate and render
+                    for (const auto &assetVisibility: taggedEntries->second){
+                        //we don't care about the asset part, but knowing they are all same asset means instanced rendering
+                        if(!assetVisibility.second.first.empty()) {
+                            const auto& perAssetElement = assetVisibility.second;
+                            //if not empty, then lets find a sample
+                            uint32_t modelId = *perAssetElement.first.begin();
+                            Model *sampleModel = dynamic_cast<Model *>(objects.at(modelId));
+                            if (sampleModel == nullptr) {
+                                std::cerr << "Sample model detection got a non model object for id " << modelId << " this should not have happened" << std::endl;
+                                continue;
+                            }
+                            sampleModel->renderWithProgramInstanced(perAssetElement.first, *(renderProgram), perAssetElement.second);
+                        }
+                    }
+                }
+                //now recursively render the player attachments, no visibility check.
+                if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
+                    renderPlayerAttachmentsRecursiveByTag(startingPlayer.attachedModel, renderTag.hash, renderProgram);//Starting player, because we don't wanna render when in editor mode
+                }
+            }
+        }
     }
 }
 
-void World::renderOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
-   for (auto modelIterator = modelsInCameraFrustum.begin(); modelIterator != modelsInCameraFrustum.end(); ++modelIterator) {
-       //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-       std::pair<std::set<Model *>, uint32_t> modelSetWithLod = modelIterator->second;
-       if(modelSetWithLod.first.size() > 0 ) {
-           modelIndicesBuffer.clear();
-           Model *sampleModel = *(modelSetWithLod.first.begin());
-           for (auto model = modelSetWithLod.first.begin(); model != modelSetWithLod.first.end(); ++model) {
-               //all of these models will be rendered
-               modelIndicesBuffer.push_back((*model)->getWorldObjectID());
-           }
-           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *(renderProgram.get()), modelSetWithLod.second);
-       }
-   }
-}
+void World::renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment, uint64_t renderTag, const std::shared_ptr<GraphicsProgram> &renderProgram) const{
+    if(attachment == nullptr) {
+        return;
+    }
+    GameObject* attachmentObject = dynamic_cast<GameObject*>(attachment);
+    if(attachmentObject == nullptr) {
+        //FIXME there is no logical explanation for something to be a PhysicalRenderable and not a game object
+        // the object is not a game object. We should render and return, as no tag checks possible
+        attachment->renderWithProgram(renderProgram, 0);
+        return;
+    }
+    std::vector<PhysicalRenderable *> children;
+    if(attachmentObject->getTypeID() == GameObject::MODEL) {
+        children = (static_cast<Model*>(attachment))->getChildren();
+    } else if(attachmentObject->getTypeID() == GameObject::MODEL_GROUP) {
+        //the group has the tag, everything under should be rendered.
+        children = (static_cast<ModelGroup*>(attachment))->getChildren();
+    }
+    if(attachmentObject->hasTag(renderTag)) {
+        std::vector<uint32_t> temp;
+        temp.push_back(attachmentObject->getWorldObjectID());
+        if(attachmentObject->getTypeID() == GameObject::MODEL) {
+            (static_cast<Model *>(attachment))->renderWithProgramInstanced(temp, *(renderProgram), 0);//it is guaranteed to be very close to the player.
+        }
+    }
+    for (const auto &child: children) {
+        renderPlayerAttachmentsRecursiveByTag(child, renderTag, renderProgram);
+    }
+ }
 
-void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram) const {
+void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
    if (sky != nullptr) {
        sky->renderWithProgram(renderProgram, 0);
    }
@@ -844,84 +865,36 @@ void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram) con
 
 void World::renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsProgram> &renderProgram) const {
    renderProgram->setUniform("renderLightIndex", (int) lightIndex);
-   for (auto modelIterator = modelsInLightFrustum[lightIndex].begin(); modelIterator != modelsInLightFrustum[lightIndex].end(); ++modelIterator) {
-       //each iterator has a vector. each vector is a model that can be rendered instanced. They share is animated
-       std::pair<std::set<Model *>, uint32_t> modelSetWithLod = modelIterator->second;
-       modelIndicesBuffer.clear();
-       Model *sampleModel = nullptr;
-       for (auto model = modelSetWithLod.first.begin(); model != modelSetWithLod.first.end(); ++model) {
-           //all of these models will be rendered
-           modelIndicesBuffer.push_back((*model)->getWorldObjectID());
-           sampleModel = *model;
-       }
-       if (sampleModel != nullptr) {
-           sampleModel->renderWithProgramInstanced(modelIndicesBuffer, *renderProgram, modelSetWithLod.second);
-       }
-   }
+   Light* selectedLight = lights[lightIndex];
 
-   for (auto animatedModelIterator = animatedModelsInLightFrustum[lightIndex].begin();
-        animatedModelIterator != animatedModelsInLightFrustum[lightIndex].end(); ++animatedModelIterator) {
-       std::vector<uint32_t> temp;
-       temp.push_back((*animatedModelIterator).model->getWorldObjectID());
-       (*animatedModelIterator).model->renderWithProgramInstanced(temp, *renderProgram, (*animatedModelIterator).lod);
-   }
-}
-
-void World::renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes renderingModelType, const std::shared_ptr<GraphicsProgram> &renderProgram) const {
- if(attachment->getTypeID() == GameObject::MODEL) {
-     Model* attachedModel = static_cast<Model*>(attachment);
-     std::vector<uint32_t> temp;
-     temp.push_back(attachedModel->getWorldObjectID());
-     //These if checks are not combined because they are not checking the same thing. Outer one checks model type, inner one checks what type of model we are rendering
-     if(attachedModel->isAnimated()) {
-         if(renderingModelType == ModelTypes::ANIMATED) {
-             attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()), 0);
-         }
-     } else {
-         if(attachedModel->isTransparent()) {
-             if(renderingModelType == ModelTypes::TRANSPARENT) {
-                 attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()), 0);
-             }
-         } else {
-             if(renderingModelType == ModelTypes::NON_ANIMATED_OPAQUE) {
-                 attachedModel->renderWithProgramInstanced(temp, *(renderProgram.get()), 0);
-             }
-         }
-     }
-
-     if (attachedModel->hasChildren()) {
-         const std::vector<PhysicalRenderable *> &children = attachedModel->getChildren();
-         for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
-             GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
-             if(gameObject != nullptr) {
-                 renderPlayerAttachmentsRecursive(gameObject, renderingModelType, renderProgram);
-             }
-         }
-     }
- } else if(attachment->getTypeID() == GameObject::MODEL_GROUP) {
-     ModelGroup* attachedModelGroup = static_cast<ModelGroup*>(attachment);
-     std::vector<uint32_t> temp;
-     temp.push_back(attachedModelGroup->getWorldObjectID());
-     if (attachedModelGroup->hasChildren()) {
-         const std::vector<PhysicalRenderable *> &children = attachedModelGroup->getChildren();
-         for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
-             GameObject* gameObject = dynamic_cast<GameObject*>(*iterator);
-             if(gameObject != nullptr) {
-                 renderPlayerAttachmentsRecursive(gameObject, renderingModelType, renderProgram);
-             }
-         }
-     }
- }
-
-
-
+    const auto& selectedVisibilities = cullingResults.find(selectedLight->getCamera());
+    if(selectedVisibilities != cullingResults.end()) {
+        for (const auto &renderTag: selectedLight->getCamera()->getRenderTags()){
+            const auto& taggedVisibilities = selectedVisibilities->second->find(renderTag.hash);
+            if(taggedVisibilities != selectedVisibilities->second->end()) {
+                //so all objects that needs rendering is here, now render
+                for (const auto &assetIt: taggedVisibilities->second) {
+                    const auto& perAssetElement = assetIt.second;
+                    if(!perAssetElement.first.empty()) {
+                        uint32_t modelId = *perAssetElement.first.begin();
+                        Model *sampleModel = dynamic_cast<Model *>(objects.at(modelId));
+                        if (sampleModel == nullptr) {
+                            std::cerr << "Sample model detection got a non model object for id " << modelId << " this should not have happened" << std::endl;
+                            continue;
+                        }
+                        sampleModel->renderWithProgramInstanced(perAssetElement.first, *(renderProgram), perAssetElement.second);
+                    }
+                }
+            }
+        }
+    }
 }
 
 /**
  * This method checks if we are in editor mode, and if we are, enables ImGui windows
  * It also fills the windows with relevant parameters.
  */
-void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram) {//TODO not const because it removes the object. Should be separated
+void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) {//TODO not const because it removes the object. Should be separated
    if(!currentPlayersSettings->editorShown) {
        return;
    }
@@ -1079,6 +1052,7 @@ World::~World() {
     delete sky;
 
     for (std::vector<Light *>::iterator it = lights.begin(); it != lights.end(); ++it) {
+        cullingResults.erase((*it)->getCamera());
         delete (*it);
     }
 
@@ -1095,7 +1069,7 @@ World::~World() {
     delete ghostPairCallback;
 
     delete grid;
-    delete camera;
+    delete playerCamera;
     delete physicalPlayer;
     delete debugPlayer;
     delete editorPlayer;
@@ -1197,6 +1171,7 @@ void World::addLight(Light *light) {
     if(light->getLightType() == Light::LightTypes::DIRECTIONAL) {
         directionalLightIndex = (uint32_t)lights.size()-1;
     }
+    cullingResults.emplace(light->getCamera(), new std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>());
     updateActiveLights(false);
 }
 
@@ -1642,37 +1617,36 @@ bool World::removeObject(uint32_t objectID, const bool &removeChildren) {
     }
     onLoadAnimations.erase(modelToRemove);
 
-    if(modelToRemove->isTransparent()) {
-        if(transparentModelsInCameraFrustum.find(modelToRemove->getAssetID()) != transparentModelsInCameraFrustum.end()) {
-            if(transparentModelsInCameraFrustum[modelToRemove->getAssetID()].first.find(modelToRemove) !=transparentModelsInCameraFrustum[modelToRemove->getAssetID()].first.end())
-            transparentModelsInCameraFrustum[modelToRemove->getAssetID()].first.erase(modelToRemove);
+    //of course we need to remove from the tag visibility lists too
+    for (auto &perCameraVisibility: cullingResults) {
+        for(auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); perTagVisibilityIt++) {
+            auto assetSet = perTagVisibilityIt->second.find(modelToRemove->getAssetID());
+            if (assetSet != perTagVisibilityIt->second.end()) {
+                //found the asset, is the model in it?
+                for(auto modelIdIterator = assetSet->second.first.begin(); modelIdIterator != assetSet->second.first.end(); modelIdIterator++) {
+                    if((*modelIdIterator) == modelToRemove->getWorldObjectID()) {
+                        //model in it, remove
+                        assetSet->second.first.erase(modelIdIterator);
+                        if(assetSet->second.first.empty()) {
+                            //the model we removed was the only model, we should drop the whole asset
+                            perTagVisibilityIt->second.erase(modelToRemove->getAssetID());
+                            break;//we have been iterating in the asset set, which doesn't exist anymore
+                        }
+                    }
+                }
+            }
         }
     }
 
-    //we need to remove from ligth frustum lists, and camera frustum lists
-    if(modelToRemove->isAnimated()) {
-        animatedModelsInFrustum.erase(modelToRemove);
-        for (size_t i = 0; i < activeLights.size(); ++i) {
-            animatedModelsInLightFrustum[i].erase(modelToRemove);
-        }
-
-        animatedModelsInAnyFrustum.erase(modelToRemove);
-    } else {
-        modelsInCameraFrustum[modelToRemove->getAssetID()].first.erase(modelToRemove);
-        for (size_t i = 0; i < activeLights.size(); ++i) {
-            modelsInLightFrustum[i][modelToRemove->getAssetID()].first.erase(modelToRemove);
-        }
-    }
-    
 	//remove its children
     if(removeChildren)
     {
         std::vector<PhysicalRenderable*> children=objects[objectID]->getChildren();
         for (auto child = children.begin(); child != children.end(); ++child) {
             Model* model = dynamic_cast<Model*>(*child);
-                if(model!= nullptr) {//FIXME this eliminates non model childs
+            if(model!= nullptr) {//FIXME this eliminates non model childs
                 removeObject(model->getWorldObjectID());
-                }
+            }
         }
     }
     
@@ -1703,7 +1677,7 @@ void World::afterLoadFinished() {
     }
 
     //setup request
-    request = new GameObject::ImGuiRequest(graphicsWrapper->getCameraMatrix(), graphicsWrapper->getProjectionMatrix(),
+    request = new ImGuiRequest(graphicsWrapper->getCameraMatrix(), graphicsWrapper->getProjectionMatrix(),
                                            graphicsWrapper->getOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), apiInstance);
 
     if(startingPlayer.extensionName != "") {
@@ -1766,7 +1740,7 @@ bool World::attachSoundToObjectAndPlay(uint32_t objectWorldID, const std::string
     if(objects.find(objectWorldID) == objects.end()) {
         return false;//fail
     }
-    objects[objectWorldID]->setSoundAttachementAndPlay(std::move(std::make_unique<Sound>(getNextObjectID(), assetManager, soundPath)));
+    objects[objectWorldID]->setSoundAttachmentAndPlay(std::make_unique<Sound>(getNextObjectID(), assetManager, soundPath));
     return true;
 }
 
@@ -1907,7 +1881,7 @@ void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
     targetPlayer->ownControl(beforePlayer->getPosition(), beforePlayer->getLookDirection());
 
     dynamicsWorld->updateAabbs();
-    camera->setCameraAttachment(currentPlayer->getCameraAttachment());
+    playerCamera->setCameraAttachment(currentPlayer->getCameraAttachment());
 
 }
 
@@ -2553,6 +2527,9 @@ bool World::changeRenderPipeline(const std::string &pipelineFileName) {
     std::unique_ptr<GraphicsPipeline> newPipeline = GraphicsPipeline::deserialize(pipelineFileName, this->graphicsWrapper, assetManager, options, buildRenderMethods());
     if(newPipeline != nullptr) {
         this->renderPipeline = std::move(newPipeline);
+        //reset the
+        this->resetVisibilityBufferForRenderPipelineChange();
+        this->fillVisibleObjectsUsingTags();
         return true;
     }
     return false;
@@ -2677,228 +2654,6 @@ bool World::addObjectOrientationAPI(uint32_t objectID, const LimonTypes::Vec4 &o
    return true;
 }
 
-void World::buildTreeFromAllGameObjects() {
-
-    std::vector<uint32_t> parentageList;
-    if(pickedObject != nullptr) {
-        if(pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL || pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL_GROUP) {
-            PhysicalRenderable *physicalRenderable = dynamic_cast<PhysicalRenderable *>(pickedObject);
-            if(physicalRenderable != nullptr) {
-                if (ImGui::Button("Find selected") || this->pickedObjectID != pickedObject->getWorldObjectID()) {//trigger find if selected object changes
-                    while (physicalRenderable != nullptr) {
-                        GameObject* gameObject = dynamic_cast<GameObject*>(physicalRenderable);
-                        if(gameObject != nullptr) {
-                            parentageList.push_back(gameObject->getWorldObjectID());
-                        } else {
-                            std::cerr << "Find non game object parentage while searching. This shouldn't have happened." << std::endl;
-                            parentageList.clear();
-                            break;
-                        }
-                        physicalRenderable = physicalRenderable->getParentObject();
-                    }
-
-                    std::reverse(std::begin(parentageList), std::end(parentageList));
-                }
-            }
-        }
-        pickedObjectID = pickedObject->getWorldObjectID();
-    }
-
-    ImGui::BeginChild("Game Object Selector##treeMode", ImVec2(400, 200), true, ImGuiWindowFlags_HorizontalScrollbar);
-    ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
-    ImGuiTreeNodeFlags leafFlags = nodeFlags | ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;//no recursion after this point
-
-    if(!parentageList.empty()) {
-        ImGui::SetNextItemOpen(true);
-    }
-    //objects
-    if (ImGui::TreeNode("Objects##ObjectsTreeRoot")) {
-        //ModelGroups
-        for (auto iterator = modelGroups.begin(); iterator != modelGroups.end(); ++iterator) {
-            if(iterator->second->getParentObject() != nullptr) {
-                continue; //the parent will show this group
-            }
-            createObjectTreeRecursive(iterator->second, pickedObjectID, nodeFlags, leafFlags, parentageList);
-        }
-        //ModelGroups end
-
-        //Objects recursive
-        for (auto iterator = objects.begin(); iterator != objects.end(); ++iterator) {
-            if(iterator->second->getParentObject() != nullptr) {
-                continue; //the parent will show this group
-            }
-            if(iterator->second->hasChildren()) {
-                createObjectTreeRecursive(iterator->second, pickedObjectID, nodeFlags, leafFlags, parentageList);
-            } else {
-                GameObject* currentObject = dynamic_cast<GameObject*>(iterator->second);
-                if(currentObject != nullptr) {
-                    bool isSelected = currentObject->getWorldObjectID() == pickedObjectID;
-                    ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | (isSelected ? ImGuiTreeNodeFlags_Selected : 0));
-                    if(isSelected && !parentageList.empty()) {
-                        ImGui::SetScrollHereY();
-                    }
-
-                    if (ImGui::IsItemClicked()) {
-                        pickedObject = currentObject;
-                    }
-                }
-            }
-        }
-        ImGui::TreePop();
-    }
-
-    if(!parentageList.empty()) {
-        ImGui::SetNextItemOpen(false);
-    }
-    //GUI elements
-    if (ImGui::TreeNode("GUI Elements##guiElementsTreeRoot")) {
-        for (auto iterator = guiLayers.begin(); iterator != guiLayers.end(); ++iterator) {
-            if (ImGui::TreeNode((std::to_string((*iterator)->getLevel()) + "##guiLayerLevelTreeNode").c_str())) {
-                std::vector<GameObject*> thisLayersElements = (*iterator)->getGuiElements();
-                for (auto guiElement = thisLayersElements.begin(); guiElement != thisLayersElements.end(); ++guiElement) {
-                    ImGui::TreeNodeEx((*guiElement)->getName().c_str(), leafFlags | (((*guiElement)->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
-                    if (ImGui::IsItemClicked()) {
-                        pickedObject = *guiElement;
-                    }
-
-                }
-                ImGui::TreePop();
-            }
-        }
-        ImGui::TreePop();
-    }
-
-    if(!parentageList.empty()) {
-        ImGui::SetNextItemOpen(false);
-    }
-    //Lights
-    if (ImGui::TreeNode("Lights##LightsTreeRoot")) {
-        for (auto iterator = lights.begin(); iterator != lights.end(); ++iterator) {
-            GameObject* currentObject = dynamic_cast<GameObject*>(*iterator);
-            if(currentObject != nullptr) {
-                ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
-                if (ImGui::IsItemClicked()) {
-                    pickedObject = currentObject;
-                }
-            }
-        }
-        ImGui::TreePop();
-    }
-
-    if(!parentageList.empty()) {
-        ImGui::SetNextItemOpen(false);
-    }
-    //Triggers
-    if (ImGui::TreeNode("Trigger Volumes##TriggersTreeRoot")) {
-        for (auto iterator = triggers.begin(); iterator != triggers.end(); ++iterator) {
-            GameObject* currentObject = dynamic_cast<GameObject*>(iterator->second);
-            if(currentObject != nullptr) {
-                ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
-                if (ImGui::IsItemClicked()) {
-                    pickedObject = currentObject;
-                }
-            }
-        }
-        ImGui::TreePop();
-    }
-
-    if(!parentageList.empty()) {
-        ImGui::SetNextItemOpen(false);
-    }
-    //Particles
-    if (ImGui::TreeNode("Particle Emitters##ParticleEmittersTreeRoot")) {
-        for (auto iterator = this->emitters.begin(); iterator != this->emitters.end(); ++iterator) {
-            std::shared_ptr<GameObject> currentObject = std::dynamic_pointer_cast<GameObject>(iterator->second);
-            if(currentObject != nullptr) {
-                ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
-                if (ImGui::IsItemClicked()) {
-                    pickedObject = currentObject.get();//FIXME this is an unsafe use
-                    pickedObjectID =pickedObject->getWorldObjectID();
-                }
-            }
-        }
-        ImGui::TreePop();
-    }
-
-    //player
-    if(physicalPlayer == nullptr) {
-        physicalPlayer = new PhysicalPlayer(1, options, cursor, startingPlayer.position, startingPlayer.orientation, startingPlayer.attachedModel);// 1 is reserved for physical player
-    }
-    bool isOpen = false;
-    if(startingPlayer.attachedModel == nullptr) {
-        ImGui::TreeNodeEx(this->physicalPlayer->getName().c_str(), leafFlags |
-                                                                   ((this->physicalPlayer->getWorldObjectID() ==
-                                                                     pickedObjectID) ? ImGuiTreeNodeFlags_Selected
-                                                                                     : 0));
-    } else {
-        isOpen = ImGui::TreeNodeEx(this->physicalPlayer->getName().c_str(), nodeFlags |
-                                                                   ((this->physicalPlayer->getWorldObjectID() ==
-                                                                     pickedObjectID) ? ImGuiTreeNodeFlags_Selected
-                                                                                     : 0));
-    }
-    if (ImGui::IsItemClicked()) {
-        pickedObject = this->physicalPlayer;
-    }
-    if(isOpen) {
-        createObjectTreeRecursive(startingPlayer.attachedModel, pickedObjectID, nodeFlags, leafFlags, parentageList);
-        ImGui::TreePop();
-    }
-
-    ImGui::EndChild();
-}
-
-void World::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID,
-                                      ImGuiTreeNodeFlags nodeFlags, ImGuiTreeNodeFlags leafFlags,
-                                      std::vector<uint32_t> parentage) {
-    GameObject* gameObjectOfSame = dynamic_cast<GameObject*>(physicalRenderable);
-    if(physicalRenderable == nullptr || gameObjectOfSame == nullptr) {
-        return;
-    }
-    if(!parentage.empty()) {
-        if(gameObjectOfSame->getWorldObjectID() == parentage[0]) {
-            ImGui::SetNextItemOpen(true);
-        } else {
-            ImGui::SetNextItemOpen(false);
-        }
-
-    }
-    bool isSelected = gameObjectOfSame->getWorldObjectID() == pickedObjectID;
-    bool isNodeOpen = ImGui::TreeNodeEx((gameObjectOfSame->getName() + "##ModelGroupsTreeElement" + std::to_string(gameObjectOfSame->getWorldObjectID())).c_str(),
-           nodeFlags | ( isSelected ? ImGuiTreeNodeFlags_Selected: 0));
-    if(isSelected && !parentage.empty()) {
-        ImGui::SetScrollHereY();
-    }
-    if (ImGui::IsItemClicked()) {
-        pickedObject = gameObjectOfSame;
-    }
-    if(isNodeOpen){
-       for (auto iterator = physicalRenderable->getChildren().begin(); iterator != physicalRenderable->getChildren().end(); ++iterator) {
-           GameObject* currentObject = dynamic_cast<GameObject*>(*iterator);
-           if(currentObject != nullptr) {
-               if((*iterator)->hasChildren()) {
-                   //if we came here, it means the first element of the parentage was this, remove that element and pass
-                   if(!parentage.empty()) {
-                       parentage.erase(parentage.begin());
-                   }
-                   createObjectTreeRecursive(static_cast<ModelGroup *>(currentObject), pickedObjectID, nodeFlags,
-                                             leafFlags, parentage);
-               } else {
-                   isSelected = currentObject->getWorldObjectID() == pickedObjectID;
-                   ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags |
-                                                                       (isSelected ? ImGuiTreeNodeFlags_Selected
-                                                                                         : 0));
-                   if(isSelected && !parentage.empty()) {
-                       ImGui::SetScrollHereY();
-                   }
-                   if (ImGui::IsItemClicked()) {
-                       pickedObject = currentObject;
-                   }
-               }
-           }
-       }
-       ImGui::TreePop();
-   }
-}
 
 struct LightCloserToPlayer {
     glm::vec3 playerPosition;
@@ -3366,26 +3121,7 @@ void World::createNodeGraph() {
 
     std::vector<std::shared_ptr<GraphicsProgram>> programs = getAllAvailablePrograms();
 
-    RenderMethods renderMethods;
-
-    renderMethods.renderOpaqueObjects       = std::bind(&World::renderOpaqueObjects, this, std::placeholders::_1);
-    renderMethods.renderAnimatedObjects     = std::bind(&World::renderAnimatedObjects, this, std::placeholders::_1);
-    renderMethods.renderTransparentObjects  = std::bind(&World::renderTransparentObjects, this, std::placeholders::_1);
-    renderMethods.renderParticleEmitters    = std::bind(&World::renderParticleEmitters, this, std::placeholders::_1);
-    renderMethods.renderGPUParticleEmitters = std::bind(&World::renderGPUParticleEmitters, this, std::placeholders::_1);
-    renderMethods.renderGUITexts            = std::bind(&World::renderGUITexts, this, std::placeholders::_1);
-    renderMethods.renderGUIImages           = std::bind(&World::renderGUIImages, this, std::placeholders::_1);
-    renderMethods.renderEditor              = std::bind(&World::ImGuiFrameSetup, this, std::placeholders::_1);
-    renderMethods.renderSky                 = std::bind(&World::renderSky, this, std::placeholders::_1);
-    renderMethods.renderDebug               = std::bind(&World::renderDebug, this, std::placeholders::_1);
-    renderMethods.renderPlayerAttachmentOpaque    = std::bind(&World::renderPlayerAttachmentOpaqueObjects, this, std::placeholders::_1);
-    renderMethods.renderPlayerAttachmentTransparent    = std::bind(&World::renderPlayerAttachmentTransparentObjects, this, std::placeholders::_1);
-    renderMethods.renderPlayerAttachmentAnimated    = std::bind(&World::renderPlayerAttachmentAnimatedObjects, this, std::placeholders::_1);
-    renderMethods.renderQuad                = std::bind(&QuadRender::render, this->quadRender, std::placeholders::_1);
-
-    renderMethods.getLightsByType = std::bind(&World::getLightIndexes, this, std::placeholders::_1);
-    renderMethods.renderLight = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2);
-
+    RenderMethods renderMethods = buildRenderMethods();
 
     pipelineExtension = new PipelineExtension(graphicsWrapper, renderPipeline, assetManager, options, GraphicsPipeline::getRenderMethodNames(), renderMethods);
 
@@ -3418,6 +3154,7 @@ void World::createNodeGraph() {
                 case Uniform::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
                 case Uniform::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
                 case Uniform::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
+                case Uniform::VariableTypes::BOOL              : desc.type = "Boolean"; break;
                 case Uniform::VariableTypes::INT               : desc.type = "Integer"; break;
                 case Uniform::VariableTypes::FLOAT             : desc.type = "Float"; break;
                 case Uniform::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
@@ -3438,6 +3175,7 @@ void World::createNodeGraph() {
                 case Uniform::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
                 case Uniform::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
                 case Uniform::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
+                case Uniform::VariableTypes::BOOL              : desc.type = "Boolean"; break;
                 case Uniform::VariableTypes::INT               : desc.type = "Integer"; break;
                 case Uniform::VariableTypes::FLOAT             : desc.type = "Float"; break;
                 case Uniform::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;

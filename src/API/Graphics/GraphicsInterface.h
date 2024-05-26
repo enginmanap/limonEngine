@@ -174,7 +174,7 @@ public:
 
     virtual void setMaterial(const Material& material) = 0;
     virtual void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) = 0;
-    virtual void setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) = 0;
+    virtual void setModelIndexesUBO(const std::vector<uint32_t> &modelIndicesList) = 0;
     virtual void attachModelIndicesUBO(const uint32_t programID) = 0;
 
     virtual void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t triangleCount,

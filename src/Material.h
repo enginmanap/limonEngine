@@ -13,7 +13,8 @@
 #include "Assets/TextureAsset.h"
 #include "Assets/AssetManager.h"
 
-#include "GameObjects/GameObject.h" //FIXME used for ImGUI request/response, should be extracted.
+#include "Editor/ImGuiRequest.h"
+#include "Editor/ImGuiResult.h"
 
 
 class Material {
@@ -251,7 +252,7 @@ public:
 
     size_t getHash() const;
 
-    GameObject::ImGuiResult addImGuiEditorElements(const GameObject::ImGuiRequest &request);
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
 
 #ifdef CEREAL_SUPPORT
     template<class Archive>

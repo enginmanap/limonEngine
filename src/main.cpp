@@ -258,6 +258,8 @@ int main(int argc, char *argv[]) {
         std::cout << PROGRAM_NAME + " only takes one parameter. First one is processed as Map file, rest discarded." << std::endl;
     }
 
+    pthread_setname_np(pthread_self(), "Main thread");
+
     GameEngine game;
 
     if(!game.loadAndChangeWorld(worldName)) {

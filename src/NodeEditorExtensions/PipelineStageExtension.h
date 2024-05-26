@@ -35,6 +35,22 @@ private:
     PipelineExtension* pipelineExtension = nullptr;
 
     GraphicsInterface::CullModes cullMode = GraphicsInterface::CullModes::NO_CHANGE;
+
+    std::string currentMethodName = "";
+    std::string originalOutputType;
+    std::string renderWidthOption;
+    std::string renderHeightOption;
+    std::vector<std::string> cameraTags;
+    std::vector<std::string> objectTags;
+    static const LightType LIGHT_TYPES[];
+    uint32_t iterateOverLightType = 0;
+    std::map<uint32_t, int> inputTextureIndexes;//connectionId to input texture index
+    std::map<uint32_t, OutputTextureInfo> outputTextures; // connectionId to output information
+    ProgramNameInfo programNameInfo;
+    int32_t defaultRenderResolution[2] = {1920, 1080};
+    char tempHeightOption[256] = {0};   // These 3 are used for ImGui strings.
+    char tempWidthOption[256] = {0};    //
+    char tempTags[512] = {0};           //
     bool clearBefore = false;
     bool blendEnabled = false;
     bool depthTestEnabled = true;
@@ -42,18 +58,6 @@ private:
     bool scissorTestEnabled = false;
     bool anyOutputMultiLayered = false;
     bool toScreen = false;
-    std::string currentMethodName = "";
-    std::string originalOutputType;
-    std::string renderWidthOption;
-    std::string renderHeightOption;
-    static const LightType LIGHT_TYPES[];
-    uint32_t iterateOverLightType = 0;
-    std::map<uint32_t, int> inputTextureIndexes;//connectionId to input texture index
-    std::map<uint32_t, OutputTextureInfo> outputTextures; // connectionId to output information
-    ProgramNameInfo programNameInfo;
-    int32_t defaultRenderResolution[2] = {1920, 1080};
-    char tempHeightOption[256] = {0};   // These 2 are used for ImGui strings.
-    char tempWidthOption[256] = {0};    //
 
 public:
     void setProgramNameInfo(const ProgramNameInfo &programNameInfo) {
@@ -92,6 +96,14 @@ public:
 
     std::string getName() override {
         return "PipelineStageExtension";
+    }
+
+    const std::vector<std::string> &getCameraTags() const {
+        return cameraTags;
+    }
+
+    const std::vector<std::string> &getObjectTags() const {
+        return objectTags;
     }
 
     bool isDepthTestEnabled() const {

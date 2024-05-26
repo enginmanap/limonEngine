@@ -15,6 +15,7 @@
 #include "../../libs/ImGuizmo/ImGuizmo.h"
 #include "Camera/OrthographicCamera.h"
 #include "Camera/CubeCamera.h"
+#include "../utils/HardCodedTags.h"
 
 class Light : public GameObject, public CameraAttachment {
 public:
@@ -53,11 +54,39 @@ public:
         if(lightType == LightTypes::DIRECTIONAL) {
             directionalCamera = new OrthographicCamera(this->getName() + " camera", graphicsWrapper->getOptions(), this);
             directionalCamera->getCameraMatrix();
+            directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+            directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
+
+            directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_BASIC);
+            directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+
+            directionalCamera->addTag(HardCodedTags::CAMERA_LIGHT_DIRECTIONAL);
         } else if(lightType == LightTypes::POINT) {
             cubeCamera = new CubeCamera(this->getName() + " camera", graphicsWrapper->getOptions(), this);
             cubeCamera->getCameraMatrix();
+            cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+            cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
+
+            cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_BASIC);
+            cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+
+            cubeCamera->addTag(HardCodedTags::CAMERA_LIGHT_POINT);
+
         }
+        //FIXME we are not rendering transparent objects when working with lights, yet.
         frustumChanged = true;
+    }
+
+    Camera* getCamera() const {
+        switch (this->lightType) {
+            case LightTypes::DIRECTIONAL:
+                return directionalCamera;
+            case LightTypes::POINT:
+                return cubeCamera;
+            case LightTypes::NONE:
+            default:
+                return nullptr;
+        }
     }
 
     const glm::vec3 &getPosition() const {

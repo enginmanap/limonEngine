@@ -190,9 +190,9 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
             }
         }
 
-        tinyxml2::XMLElement* playerAttachementModel =  worldStartPlayer->FirstChildElement("Attachement");
-        if(playerAttachementModel != nullptr) {
-            tinyxml2::XMLElement* objectNode =  playerAttachementModel->FirstChildElement("Object");
+        tinyxml2::XMLElement* playerAttachmentModel =  worldStartPlayer->FirstChildElement("Attachment");
+        if(playerAttachmentModel != nullptr) {
+            tinyxml2::XMLElement* objectNode =  playerAttachmentModel->FirstChildElement("Object");
             if (objectNode != nullptr) {
                 std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds; //required. Should not be used normally.
 
@@ -206,6 +206,13 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
                         delete (*objectIterator)->modelActor;
                     }
                     startingPlayer.attachedModel = (*objectIterator)->model;
+                    if(startingPlayer.attachedModel->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_BASIC))) {
+                        startingPlayer.attachedModel->addTag(HardCodedTags::OBJECT_PLAYER_BASIC);
+                    } else if(startingPlayer.attachedModel->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_ANIMATED))) {
+                        startingPlayer.attachedModel->addTag(HardCodedTags::OBJECT_PLAYER_ANIMATED);
+                    } else if(startingPlayer.attachedModel->hasTag(HashUtil::hashString(HardCodedTags::OBJECT_MODEL_TRANSPARENT))) {
+                        startingPlayer.attachedModel->addTag(HardCodedTags::OBJECT_PLAYER_TRANSPARENT);
+                    }
                 }
             }
         }

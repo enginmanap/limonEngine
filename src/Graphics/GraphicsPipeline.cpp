@@ -6,12 +6,14 @@
 #include "API/Graphics/GraphicsProgram.h"
 #include "GraphicsProgramLoader.h"
 #include "API/Graphics/RenderMethodInterface.h"
+#include "Utils/StringUtils.hpp"
 
 //Static initialize of the vector
-std::vector<std::string> GraphicsPipeline::renderMethodNames{"None", "All directional shadows", "All point shadows", "Render Opaque Objects", "Render Animated Objects",
-                                                             "Render Transparent Objects", "Render GUI Texts", "Render GUI Images", "Render Editor", "Render Sky",
-                                                             "Render Debug Information", "Render Particle Emitters", "Render GPU Particle Emitters", "Render Opaque Player Attachment", "Render Animated Player Attachment",
-                                                             "Render Transparent Player Attachment", "Render quad"};
+std::vector<std::string> GraphicsPipeline::renderMethodNames{"None", "All directional shadows", "All point shadows", "Render Tagged Objects", "Render Opaque Objects",
+                                                             "Render Animated Objects", "Render Transparent Objects", "Render GUI Texts", "Render GUI Images", "Render Editor",
+                                                             "Render Sky", "Render Debug Information", "Render Particle Emitters", "Render GPU Particle Emitters",
+                                                             "Render Opaque Player Attachment", "Render Animated Player Attachment","Render Transparent Player Attachment",
+                                                             "Render quad"};
 
 void GraphicsPipeline::initialize() {
     for(auto& stageInfo:pipelineStages) {
@@ -288,6 +290,14 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
             RenderMethods::RenderMethod method = pipeline->getRenderMethods().getRenderMethod(assetManager->getGraphicsWrapper(), methodName,
                                                                                                      graphicsProgram,
                                                                                                      isFound);
+            newStageInfo.renderTags = newStageInfo.stage->getObjectTags();
+            std::vector<HashUtil::HashedString> hashedRenderTags;
+            for (const auto &item: newStageInfo.renderTags) {
+                hashedRenderTags.emplace_back(item);
+            }
+            method.setRenderTags(hashedRenderTags);
+            newStageInfo.cameraTags = newStageInfo.stage->getCameraTags();
+            method.setCameraName(StringUtils::join(newStageInfo.cameraTags, ","));
             if(!isFound) {
                 std::cerr << "Render method build failed, please check!" << std::endl;
                 return false;

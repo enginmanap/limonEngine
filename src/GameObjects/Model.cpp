@@ -6,6 +6,7 @@
 #include "API/ActorInterface.h"
 #include "../ImGuiHelper.h"
 #include "GamePlay/APISerializer.h"
+#include "Utils/HardCodedTags.h"
 #include <random>
 
 #ifdef CEREAL_SUPPORT
@@ -107,6 +108,23 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
         rigidBody->setActivationState(DISABLE_DEACTIVATION);
         //for animated bodies, setup the first frame
         this->setupForTime(0);
+    }
+
+    //FIXME temporarily set the tags as hard coded
+    if(animated) {
+        this->addTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+    }
+    if(this->isTransparent()) {
+        this->addTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
+    }
+    if(!animated && !this->isTransparent()) {
+        this->addTag(HardCodedTags::OBJECT_MODEL_BASIC);
+    }
+
+    if(this->mass > 0) {
+        this->addTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+    } else {
+        this->addTag(HardCodedTags::OBJECT_MODEL_STATIC);
     }
 }
 
@@ -215,7 +233,7 @@ void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t
     }
 }
 
-void Model::renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GraphicsProgram &program, uint32_t lodLevel) {
+void Model::renderWithProgramInstanced(const std::vector<uint32_t> &modelIndices, GraphicsProgram &program, uint32_t lodLevel) {
     graphicsWrapper->setModelIndexesUBO(modelIndices);
 
     graphicsWrapper->attachModelUBO(program.getID());
@@ -329,7 +347,7 @@ uint32_t Model::getAIID() {
     return this->AIActor->getWorldID();
 }
 
-GameObject::ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
+ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult result;
 
     //Allow transformation editing.
@@ -481,10 +499,10 @@ Model::Model(const Model &otherModel, uint32_t objectID) :
     this->animationTime = otherModel.animationTime;
 }
 
-GameObject::ImGuiResult Model::putAIonGUI(ActorInterface *actorInterface,
+ImGuiResult Model::putAIonGUI(ActorInterface *actorInterface,
                                           std::vector<LimonTypes::GenericParameter> &parameters,
                                           const ImGuiRequest &request, std::string &lastSelectedAIName) {
-    GameObject::ImGuiResult result;
+    ImGuiResult result;
     std::string currentAIName;
     if (actorInterface == nullptr && lastSelectedAIName == "") {
         currentAIName = "Not selected";

@@ -18,86 +18,12 @@
 
 
 class SDL2Helper {
-public:
-    class SpinLock {
-    private:
-        SDL_SpinLock sdlLock;
-    public:
-        SpinLock() {
-            SDL_AtomicUnlock(&sdlLock);
-        }
-        void lock() {
-            SDL_AtomicLock(&sdlLock);
-        }
-        void unlock() {
-            SDL_AtomicUnlock(&sdlLock);
-        };
-
-        bool tryLock() {
-            return SDL_AtomicTryLock(&sdlLock);
-        }
-
-        ~SpinLock() {
-            this->unlock();
-        }
-    };
 private:
     SDL_Window *window;
     SDL_GLContext context;
     Options* options;
 
 public:
-    class Thread {
-    private:
-        SDL_Thread* thread = nullptr;
-        std::function<std::vector<LimonTypes::GenericParameter>(std::vector<LimonTypes::GenericParameter>)> functionToRun;
-        std::vector<LimonTypes::GenericParameter> parameters;
-        std::vector<LimonTypes::GenericParameter> result;
-        SpinLock lock;
-        std::string name;
-        bool finished = false;
-
-        static int threadRunner(void* ptr) {
-            Thread* runnable = static_cast<Thread*>(ptr);
-
-            runnable->lock.lock();
-            runnable->result = runnable->functionToRun(runnable->parameters);
-            runnable->finished = true;//since this is written in the lock, we don't need to sync it.
-            runnable->lock.unlock();
-            return 0;
-        }
-    public:
-        Thread(const std::string &threadName, std::function<std::vector<LimonTypes::GenericParameter>(std::vector<LimonTypes::GenericParameter>)> functionToRun, const std::vector<LimonTypes::GenericParameter> &parameters) {
-            this->parameters = parameters;
-            this->functionToRun = functionToRun;
-            this->name = threadName;
-        }
-
-        void run() {
-            thread = SDL_CreateThread(&threadRunner,name.c_str(),this);
-        }
-
-        bool isThreadDone() {
-            return finished;
-        }
-
-        const std::vector<LimonTypes::GenericParameter>* getResult() {
-            if(!isThreadDone()) {
-                return nullptr;
-            }
-            return &result;
-        }
-
-        void waitUntilDone() {
-            lock.lock();
-            lock.unlock();
-        }
-
-        ~Thread() {
-            int threadReturnValue;
-            SDL_WaitThread(thread, &threadReturnValue);
-        }
-    };
 
     void setFullScreen(bool isFullScreen);
 

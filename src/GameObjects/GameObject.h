@@ -6,42 +6,18 @@
 #define LIMONENGINE_GAMEOBJECT_H
 
 #include <string>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+
 #include "API/LimonAPI.h"
+#include "Editor/ImGuiRequest.h"
+#include "Editor/ImGuiResult.h"
+#include "Utils/HashUtil.h"
 
 /**
  * This class is used to provide a polymorphic way of determining type and name of the object.
  */
 class GameObject {
 public:
-    /**
-     * Since the world is not passed with ImGui request, changes to world must be returned using this struct
-     */
-    struct ImGuiResult {
-        bool addAI = false;
-        bool removeAI = false;
-        bool updated = false;
-        bool remove = false; //If removal requested
-        std::string actorTypeName;
-    };
 
-    struct ImGuiRequest {
-        const glm::mat4& perspectiveCameraMatrix;
-        const glm::mat4 orthogonalCameraMatrix = glm::lookAt(glm::vec3(0, 0, 1), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        const glm::mat4& perspectiveMatrix;
-        const glm::mat4& orthogonalMatrix;
-
-        const uint32_t& screenHeight;
-        const uint32_t& screenWidth;
-
-        LimonAPI* limonAPI = nullptr;
-
-        ImGuiRequest(const glm::mat4 &perspectiveCameraMatrix, const glm::mat4 &perspectiveMatrix,
-                     const glm::mat4 &orthogonalMatrix, const uint32_t &screenHeight, const uint32_t &screenWidth, LimonAPI* limonAPI)
-                : perspectiveCameraMatrix(perspectiveCameraMatrix), perspectiveMatrix(perspectiveMatrix),
-                  orthogonalMatrix(orthogonalMatrix), screenHeight(screenHeight), screenWidth(screenWidth), limonAPI(limonAPI) {}
-    };
 
     enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT, GUI_IMAGE, GUI_BUTTON, GUI_ANIMATION, SOUND, MODEL_GROUP, PARTICLE_EMITTER, GPU_PARTICLE_EMITTER };
 
@@ -53,7 +29,41 @@ public:
 
     virtual uint32_t getWorldObjectID() const = 0;
     virtual ~GameObject() = default;
-};
 
+    void addTag(const std::string& text) {
+        HashUtil::HashedString tag(text);
+        bool found = false;
+        for (HashUtil::HashedString hashedString:tags) {
+            if(hashedString.hash == tag.hash) {
+                if(hashedString.text != tag.text) {
+                    std::cerr << "Hash collision found between " << hashedString.text << " and " << tag.text << " exiting." << std::endl;
+                    std::exit(-1);
+                }
+                //found case
+                found = true;
+                break;
+            }
+        }
+        if(!found) {
+            tags.emplace_back(tag);
+        }
+    }
+
+    bool hasTag(uint64_t hash) {
+        for (const HashUtil::HashedString& hashedString:tags) {
+            if(hashedString.hash == hash) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    const std::vector<HashUtil::HashedString>& getTags() {
+        return tags;
+    }
+private:
+    std::vector<HashUtil::HashedString> tags;
+
+};
 
 #endif //LIMONENGINE_GAMEOBJECT_H

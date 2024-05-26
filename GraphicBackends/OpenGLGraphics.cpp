@@ -235,6 +235,7 @@ Uniform::VariableTypes OpenGLGraphics::getVariableType(const GLenum typeEnum) co
         case GL_SAMPLER_CUBE_MAP_ARRAY_ARB: return Uniform::VariableTypes::CUBEMAP_ARRAY;
         case GL_SAMPLER_2D:                 return Uniform::VariableTypes::TEXTURE_2D;
         case GL_SAMPLER_2D_ARRAY:           return Uniform::VariableTypes::TEXTURE_2D_ARRAY;
+        case GL_BOOL:                       return Uniform::VariableTypes::BOOL;
         case GL_INT:                        return Uniform::VariableTypes::INT;
         case GL_FLOAT:                      return Uniform::VariableTypes::FLOAT;
         case GL_FLOAT_VEC2:                 return Uniform::VariableTypes::FLOAT_VEC2;
@@ -1129,6 +1130,8 @@ void OpenGLGraphics::deleteFrameBuffer(uint32_t frameBufferID) {
 void OpenGLGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, TextureTypes textureType, uint32_t textureID,
                                                        FrameBufferAttachPoints attachPoint, int32_t layer, bool clear) {
 
+    int32_t maxDrawBuffers;
+    glGetIntegerv( GL_MAX_DRAW_BUFFERS, &maxDrawBuffers);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
 
     GLenum glAttachment;
@@ -1143,6 +1146,29 @@ void OpenGLGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Text
         case FrameBufferAttachPoints::COLOR5: glAttachment = GL_COLOR_ATTACHMENT5; index = 5;break;
         case FrameBufferAttachPoints::COLOR6: glAttachment = GL_COLOR_ATTACHMENT6; index = 6;break;
         case FrameBufferAttachPoints::DEPTH:  glAttachment = GL_DEPTH_ATTACHMENT;   break;
+    }
+
+    int32_t attachmentTemp;
+    unsigned int drawBufferAttachments[6];
+    if(attachPoint == OpenGLGraphics::FrameBufferAttachPoints::DEPTH) {
+        if(clear) {
+            glClear(GL_DEPTH_BUFFER_BIT);
+        }
+    } else {
+
+        for (unsigned int i = 0; i < 6; ++i) {
+            if (i == index) {
+                drawBufferAttachments[i] = glAttachment;
+                if(clear) {
+                    unsigned int tempAttachmentBuffer[1] = {glAttachment};
+                    glDrawBuffers(1, tempAttachmentBuffer);
+                }
+            } else {
+                glGetIntegerv(GL_DRAW_BUFFER0 + i, &attachmentTemp);
+                drawBufferAttachments[i] = attachmentTemp;
+            }
+        }
+        glDrawBuffers(6, drawBufferAttachments);
     }
 
     switch (textureType) {
@@ -1166,29 +1192,6 @@ void OpenGLGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Text
             glFramebufferTexture(GL_FRAMEBUFFER, glAttachment, textureID, 0);
         }
             break;
-    }
-
-
-    if(attachPoint == OpenGLGraphics::FrameBufferAttachPoints::DEPTH) {
-        if(clear) {
-            glClear(GL_DEPTH_BUFFER_BIT);
-        }
-    } else {
-        int32_t attachmentTemp;
-        unsigned int drawBufferAttachments[6];
-        for (unsigned int i = 0; i < 6; ++i) {
-            if (i == index) {
-                drawBufferAttachments[i] = glAttachment;
-                if(clear) {
-                    unsigned int tempAttachmentBuffer[1] = {glAttachment};
-                    glDrawBuffers(1, tempAttachmentBuffer);
-                }
-            } else {
-                glGetIntegerv(GL_DRAW_BUFFER0 + i, &attachmentTemp);
-                drawBufferAttachments[i] = attachmentTemp;
-            }
-        }
-        glDrawBuffers(6, drawBufferAttachments);
     }
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -1524,12 +1527,13 @@ void OpenGLGraphics::setModel(const uint32_t modelID, const glm::mat4& worldTran
     checkErrors("setModel");
 }
 
-void OpenGLGraphics::setModelIndexesUBO(std::vector<uint32_t> &modelIndicesList) {
+void OpenGLGraphics::setModelIndexesUBO(const std::vector<uint32_t> &modelIndicesList) {
     /**
      * std140 layout requires arrays to be padded to 16 bytes. std430 is not supported for uniform buffers.
      * we can upload the array as is and calculate the vector component in shader, but since we are GPU bound I am
      * choosing to pad it in CPU instead.
      */
+     //FIXME what the hell is this? Why would we need to do this? it makes no sense to me
     for (uint32_t i = 0; i < modelIndicesList.size(); ++i) {
         modelIndexesTemp[i*4] = modelIndicesList[i];
     }

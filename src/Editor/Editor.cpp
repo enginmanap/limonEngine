@@ -14,7 +14,8 @@
 #include "GameObjects/Players/FreeCursorPlayer.h"
 #include "GameObjects/Players/FreeMovingPlayer.h"
 #include "GameObjects/TriggerObject.h"
-
+#include "GUI/GUICursor.h"
+#include "GUI/GUILayer.h"
 #include "Assets/Animations/AnimationCustom.h"
 #include "Assets/Animations/AnimationInterface.h"
 #include "AnimationSequencer.h"
@@ -55,7 +56,7 @@ void Editor::renderEditor(World& world) {
 
         //list available elements
         static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
-        glm::vec3 newObjectPosition = world.camera->getPosition() + 10.0f * world.camera->getCenter();
+        glm::vec3 newObjectPosition = world.playerCamera->getPosition() + 10.0f * world.playerCamera->getCenter();
 
 
         if (ImGui::CollapsingHeader("Add New Object")) {
@@ -590,7 +591,7 @@ void Editor::renderEditor(World& world) {
             ImGui::EndListBox();
             auto selectedMaterialIt = allMaterials.find(selectedHash);
             if(selectedMaterialIt != allMaterials.end()) {
-                GameObject::ImGuiRequest request(glm::mat4(0), glm::mat4(0),
+                ImGuiRequest request(glm::mat4(0), glm::mat4(0),
                                                                                 glm::mat4(0), 0, 0, world.apiInstance);
 
                 selectedMaterialIt->second->addImGuiEditorElements(request);
@@ -608,20 +609,24 @@ void Editor::renderEditor(World& world) {
             selectedName = world.pickedObject->getName().c_str();
         }
 
-        world.buildTreeFromAllGameObjects();
+        buildTreeFromAllGameObjects(world);
 
         if(world.pickedObject != nullptr) {
             //search for the selected element in the rendered elements
             uint32_t lod = 4;
             Model *pickedModel = dynamic_cast<Model *>(world.pickedObject);
             if (pickedModel != nullptr) {
-                if (world.modelsInCameraFrustum.find(pickedModel->getAssetID()) != world.modelsInCameraFrustum.end()){
-                        lod = world.modelsInCameraFrustum[pickedModel->getAssetID()].second;
+                for(const auto& cameraResult :world.cullingResults) {
+                    for(const auto& tagResult : *cameraResult.second) {
+                        if (tagResult.second.find(pickedModel->getAssetID()) != tagResult.second.end()) {
+                            lod = std::min(tagResult.second.find(pickedModel->getAssetID())->second.second, lod);
+                        }
                     }
+                }
             }
             std::string lodText =  std::to_string(lod);
-            ImGui::Text(("Picked object LOD" + lodText).c_str());
-            GameObject::ImGuiResult objectEditorResult = world.pickedObject->addImGuiEditorElements(*world.request);
+            ImGui::Text(("Picked object min LOD" + lodText).c_str());
+            ImGuiResult objectEditorResult = world.pickedObject->addImGuiEditorElements(*world.request);
 
             switch(world.pickedObject->getTypeID()) {
                 case GameObject::MODEL: {
@@ -770,6 +775,7 @@ void Editor::renderEditor(World& world) {
                         for (auto iterator = world.lights.begin(); iterator != world.lights.end(); ++iterator) {
                             if((*iterator)->getWorldObjectID() == world.pickedObject->getWorldObjectID()) {
                                 world.unusedIDs.push(world.pickedObject->getWorldObjectID());
+                                world.cullingResults.erase((*iterator)->getCamera());
                                 world.lights.erase(iterator);
                                 break;
                             }
@@ -846,5 +852,228 @@ void Editor::addAnimationDefinitionToEditor(World& world) {
             }
         }
     }
+}
+
+void Editor::buildTreeFromAllGameObjects(World& world) {
+
+    std::vector<uint32_t> parentageList;
+    if(world.pickedObject != nullptr) {
+        if(world.pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL || world.pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL_GROUP) {
+            PhysicalRenderable *physicalRenderable = dynamic_cast<PhysicalRenderable *>(world.pickedObject);
+            if(physicalRenderable != nullptr) {
+                if (ImGui::Button("Find selected") || world.pickedObjectID != world.pickedObject->getWorldObjectID()) {//trigger find if selected object changes
+                    while (physicalRenderable != nullptr) {
+                        GameObject* gameObject = dynamic_cast<GameObject*>(physicalRenderable);
+                        if(gameObject != nullptr) {
+                            parentageList.push_back(gameObject->getWorldObjectID());
+                        } else {
+                            std::cerr << "Find non game object parentage while searching. This shouldn't have happened." << std::endl;
+                            parentageList.clear();
+                            break;
+                        }
+                        physicalRenderable = physicalRenderable->getParentObject();
+                    }
+
+                    std::reverse(std::begin(parentageList), std::end(parentageList));
+                }
+            }
+        }
+        world.pickedObjectID = world.pickedObject->getWorldObjectID();
+    }
+
+    ImGui::BeginChild("Game Object Selector##treeMode", ImVec2(400, 200), true, ImGuiWindowFlags_HorizontalScrollbar);
+    ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+    ImGuiTreeNodeFlags leafFlags = nodeFlags | ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;//no recursion after this point
+
+    if(!parentageList.empty()) {
+        ImGui::SetNextItemOpen(true);
+    }
+    //objects
+    if (ImGui::TreeNode("Objects##ObjectsTreeRoot")) {
+        //ModelGroups
+        for (auto iterator = world.modelGroups.begin(); iterator != world.modelGroups.end(); ++iterator) {
+            if(iterator->second->getParentObject() != nullptr) {
+                continue; //the parent will show this group
+            }
+            createObjectTreeRecursive(world, iterator->second, world.pickedObjectID, nodeFlags, leafFlags, parentageList);
+        }
+        //ModelGroups end
+
+        //Objects recursive
+        for (auto iterator = world.objects.begin(); iterator != world.objects.end(); ++iterator) {
+            if(iterator->second->getParentObject() != nullptr) {
+                continue; //the parent will show this group
+            }
+            if(iterator->second->hasChildren()) {
+                createObjectTreeRecursive(world, iterator->second, world.pickedObjectID, nodeFlags, leafFlags, parentageList);
+            } else {
+                GameObject* currentObject = dynamic_cast<GameObject*>(iterator->second);
+                if(currentObject != nullptr) {
+                    bool isSelected = currentObject->getWorldObjectID() == world.pickedObjectID;
+                    ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | (isSelected ? ImGuiTreeNodeFlags_Selected : 0));
+                    if(isSelected && !parentageList.empty()) {
+                        ImGui::SetScrollHereY();
+                    }
+
+                    if (ImGui::IsItemClicked()) {
+                        world.pickedObject = currentObject;
+                    }
+                }
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    if(!parentageList.empty()) {
+        ImGui::SetNextItemOpen(false);
+    }
+    //GUI elements
+    if (ImGui::TreeNode("GUI Elements##guiElementsTreeRoot")) {
+        for (auto iterator = world.guiLayers.begin(); iterator != world.guiLayers.end(); ++iterator) {
+            if (ImGui::TreeNode((std::to_string((*iterator)->getLevel()) + "##guiLayerLevelTreeNode").c_str())) {
+                std::vector<GameObject*> thisLayersElements = (*iterator)->getGuiElements();
+                for (auto guiElement = thisLayersElements.begin(); guiElement != thisLayersElements.end(); ++guiElement) {
+                    ImGui::TreeNodeEx((*guiElement)->getName().c_str(), leafFlags | (((*guiElement)->getWorldObjectID() == world.pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+                    if (ImGui::IsItemClicked()) {
+                        world.pickedObject = *guiElement;
+                    }
+
+                }
+                ImGui::TreePop();
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    if(!parentageList.empty()) {
+        ImGui::SetNextItemOpen(false);
+    }
+    //Lights
+    if (ImGui::TreeNode("Lights##LightsTreeRoot")) {
+        for (auto iterator = world.lights.begin(); iterator != world.lights.end(); ++iterator) {
+            GameObject* currentObject = dynamic_cast<GameObject*>(*iterator);
+            if(currentObject != nullptr) {
+                ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == world.pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+                if (ImGui::IsItemClicked()) {
+                    world.pickedObject = currentObject;
+                }
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    if(!parentageList.empty()) {
+        ImGui::SetNextItemOpen(false);
+    }
+    //Triggers
+    if (ImGui::TreeNode("Trigger Volumes##TriggersTreeRoot")) {
+        for (auto iterator = world.triggers.begin(); iterator != world.triggers.end(); ++iterator) {
+            GameObject* currentObject = dynamic_cast<GameObject*>(iterator->second);
+            if(currentObject != nullptr) {
+                ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == world.pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+                if (ImGui::IsItemClicked()) {
+                    world.pickedObject = currentObject;
+                }
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    if(!parentageList.empty()) {
+        ImGui::SetNextItemOpen(false);
+    }
+    //Particles
+    if (ImGui::TreeNode("Particle Emitters##ParticleEmittersTreeRoot")) {
+        for (auto iterator = world.emitters.begin(); iterator != world.emitters.end(); ++iterator) {
+            std::shared_ptr<GameObject> currentObject = std::dynamic_pointer_cast<GameObject>(iterator->second);
+            if(currentObject != nullptr) {
+                ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == world.pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+                if (ImGui::IsItemClicked()) {
+                    world.pickedObject = currentObject.get();//FIXME this is an unsafe use
+                    world.pickedObjectID = world.pickedObject->getWorldObjectID();
+                }
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    //player
+    if(world.physicalPlayer == nullptr) {
+        world.physicalPlayer = new PhysicalPlayer(1, world.options, world.cursor, world.startingPlayer.position, world.startingPlayer.orientation, world.startingPlayer.attachedModel);// 1 is reserved for physical player
+    }
+    bool isOpen = false;
+    if(world.startingPlayer.attachedModel == nullptr) {
+        ImGui::TreeNodeEx(world.physicalPlayer->getName().c_str(), leafFlags |
+                                                                   ((world.physicalPlayer->getWorldObjectID() ==
+                                                                     world.pickedObjectID) ? ImGuiTreeNodeFlags_Selected
+                                                                                     : 0));
+    } else {
+        isOpen = ImGui::TreeNodeEx(world.physicalPlayer->getName().c_str(), nodeFlags |
+                                                                   ((world.physicalPlayer->getWorldObjectID() ==
+                                                                     world.pickedObjectID) ? ImGuiTreeNodeFlags_Selected
+                                                                                     : 0));
+    }
+    if (ImGui::IsItemClicked()) {
+        world.pickedObject = world.physicalPlayer;
+    }
+    if(isOpen) {
+        createObjectTreeRecursive(world, world.startingPlayer.attachedModel, world.pickedObjectID, nodeFlags, leafFlags, parentageList);
+        ImGui::TreePop();
+    }
+
+    ImGui::EndChild();
+}
+
+void Editor::createObjectTreeRecursive(World& world, PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID,
+                                      ImGuiTreeNodeFlags nodeFlags, ImGuiTreeNodeFlags leafFlags,
+                                      std::vector<uint32_t> parentage) {
+    GameObject* gameObjectOfSame = dynamic_cast<GameObject*>(physicalRenderable);
+    if(physicalRenderable == nullptr || gameObjectOfSame == nullptr) {
+        return;
+    }
+    if(!parentage.empty()) {
+        if(gameObjectOfSame->getWorldObjectID() == parentage[0]) {
+            ImGui::SetNextItemOpen(true);
+        } else {
+            ImGui::SetNextItemOpen(false);
+        }
+
+    }
+    bool isSelected = gameObjectOfSame->getWorldObjectID() == pickedObjectID;
+    bool isNodeOpen = ImGui::TreeNodeEx((gameObjectOfSame->getName() + "##ModelGroupsTreeElement" + std::to_string(gameObjectOfSame->getWorldObjectID())).c_str(),
+           nodeFlags | ( isSelected ? ImGuiTreeNodeFlags_Selected: 0));
+    if(isSelected && !parentage.empty()) {
+        ImGui::SetScrollHereY();
+    }
+    if (ImGui::IsItemClicked()) {
+        world.pickedObject = gameObjectOfSame;
+    }
+    if(isNodeOpen){
+       for (auto iterator = physicalRenderable->getChildren().begin(); iterator != physicalRenderable->getChildren().end(); ++iterator) {
+           GameObject* currentObject = dynamic_cast<GameObject*>(*iterator);
+           if(currentObject != nullptr) {
+               if((*iterator)->hasChildren()) {
+                   //if we came here, it means the first element of the parentage was this, remove that element and pass
+                   if(!parentage.empty()) {
+                       parentage.erase(parentage.begin());
+                   }
+                   createObjectTreeRecursive(world, static_cast<ModelGroup *>(currentObject), pickedObjectID, nodeFlags,
+                                             leafFlags, parentage);
+               } else {
+                   isSelected = currentObject->getWorldObjectID() == pickedObjectID;
+                   ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags |
+                                                                       (isSelected ? ImGuiTreeNodeFlags_Selected
+                                                                                         : 0));
+                   if(isSelected && !parentage.empty()) {
+                       ImGui::SetScrollHereY();
+                   }
+                   if (ImGui::IsItemClicked()) {
+                       world.pickedObject = currentObject;
+                   }
+               }
+           }
+       }
+       ImGui::TreePop();
+   }
 }
 

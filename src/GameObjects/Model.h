@@ -31,7 +31,6 @@ class Model : public PhysicalRenderable, public GameObject {
     ActorInterface *AIActor = nullptr;
     std::shared_ptr<AssetManager> assetManager;
     std::shared_ptr<ModelAsset> modelAsset;
-private:
     std::string animationName;
     long animationTime = 0;
     bool animationLooped = true;
@@ -69,6 +68,7 @@ private:
     int32_t selectedBoneID = -1;
     std::map<uint32_t, Transformation*> exposedBoneTransforms;
 
+
     static ImGuiResult putAIonGUI(ActorInterface *actorInterface, std::vector<LimonTypes::GenericParameter> &parameters,
                                   const ImGuiRequest &request, std::string &lastSelectedAIName);
 
@@ -100,7 +100,7 @@ public:
     void renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel);
 
 
-    void renderWithProgramInstanced(std::vector<uint32_t> &modelIndices, GraphicsProgram &program, uint32_t lodLevel);
+    void renderWithProgramInstanced(const std::vector<uint32_t> &modelIndices, GraphicsProgram &program, uint32_t lodLevel);
 
     bool isAnimated() const { return animated;}
 

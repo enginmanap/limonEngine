@@ -10,10 +10,12 @@ static const int LOWEST_LOD_LEVEL = 3;
 #include <vector>
 #include <tinyxml2.h>
 #include <unordered_map>
+#include <unordered_set>
 #include <set>
 #include <queue>
 #include <Graphics/Particles/Emitter.h>
 #include <Graphics/Particles/GPUParticleEmitter.h>
+#include <atomic>
 
 #include "InputHandler.h"
 #include "FontManager.h"
@@ -200,7 +202,8 @@ private:
     Options* options;
     uint32_t nextWorldID = 2;
     std::queue<uint32_t> unusedIDs;
-    std::map<uint32_t, PhysicalRenderable *> objects;
+    std::unordered_map<uint32_t, PhysicalRenderable *> objects;
+    mutable std::unordered_set<uint32_t> tempRenderedObjectsSet;
     std::set<uint32_t> disconnectedModels;
     std::map<uint32_t, ModelGroup*> modelGroups;
 
@@ -220,14 +223,13 @@ private:
         ModelWithLod(Model* model, uint32_t lod) : model(model), lod(lod) {}
     };
     std::vector<Model*> updatedModels;
-    std::vector<std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>>> modelsInLightFrustum;// each element in vector is a single light. map is same as modelsInFrustum
-    std::vector<std::set<ModelWithLod>> animatedModelsInLightFrustum; //since animated models can't be instanced, they don't need to be in a map etc.
-
-    std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>> modelsInCameraFrustum; //key: asset id, value: set of models, and LOD to use. 0 - best, 3 worst
-    std::map<uint32_t , std::pair<std::set<Model*>, uint32_t>> transparentModelsInCameraFrustum; //key: asset id, value: set of models, and LOD to use. 0 - best, 3 worst
-    std::set<ModelWithLod> animatedModelsInFrustum; //since animated models can't be instanced, they don't need to be in a map etc.
-    std::set<Model*> animatedModelsInAnyFrustum;
-
+    //For each camera do culling,
+        //for each tag(kept as hash) do the culling
+            //for each asset id do the culling
+                //keep a list of modelIds for rendering, and the LOD as the single value
+    // This map is also used as a list of Cameras, and Hashes, so if a camera is removed, it should be removed from this map
+    // In case of a clear, we should not clear the hashes, as it is basically meaningless.
+    std::unordered_map<Camera*, std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>*> cullingResults;
 
     /************************* End of redundant variables ******************************************/
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<TimedEvent>> timedEvents;
@@ -275,9 +277,10 @@ private:
     Player* beforePlayer = nullptr;
     const Player::WorldSettings* currentPlayersSettings = nullptr;
 
-    PerspectiveCamera* camera;
+    PerspectiveCamera* playerCamera;// This camera itself never changes, but the attachment does.
+    //std::vector<Camera*> allCameras;//the info about all cameras is inferred by culling results, might need fixing.
     BulletDebugDrawer *debugDrawer;
-    GameObject::ImGuiRequest* request = nullptr;
+    ImGuiRequest* request = nullptr;
 
     GUILayer *apiGUILayer;
     GUIText* renderCounts;
@@ -302,7 +305,7 @@ private:
     Model* objectToAttach = nullptr;
 
     std::shared_ptr<QuadRender> quadRender;
-    std::map<uint32_t, SDL2Helper::Thread*> routeThreads;
+    std::map<uint32_t, SDL2MultiThreading::Thread*> routeThreads;
 
     bool guiPickMode = false;
     enum class QuitResponse
@@ -321,6 +324,7 @@ private:
 
     std::map<uint32_t, std::shared_ptr<Emitter>> emitters;
     std::map<uint32_t, std::shared_ptr<GPUParticleEmitter>> gpuParticleEmitters;
+    bool multiThreadedCulling = true;
 
     bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
 
@@ -342,7 +346,24 @@ private:
     bool addModelToWorld(Model *xmlModel);
     bool addGUIElementToWorld(GUIRenderable *guiRenderable, GUILayer *guiLayer);
 
-    void fillVisibleObjects();
+    void resetVisibilityBufferForRenderPipelineChange();
+    void fillVisibleObjectsUsingTags();
+public:
+    struct VisibilityRequest {
+        static SDL2MultiThreading::Condition condition;
+        const Camera* const camera;
+        const std::unordered_map<uint32_t, PhysicalRenderable *>* const objects;
+        std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>> * const visibility;
+        bool running = true;
+        std::atomic<uint32_t> frameCount;
+        SDL2MultiThreading::SpinLock inProgressLock;
+        SDL_mutex* blockMutex = SDL_CreateMutex();
+        VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, PhysicalRenderable *>* objects, std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>> * visibility) :
+        camera(camera), objects(objects), visibility(visibility), frameCount(0) {};
+    };
+private:
+    std::map<VisibilityRequest*, SDL_Thread *> occlusionThreadManager();
+    std::map<VisibilityRequest*, SDL_Thread *> visibilityThreadPool;
 
     GameObject *getPointedObject(int collisionType, int filterMask,
                                  glm::vec3 *collisionPosition = nullptr, glm::vec3 *collisionNormal = nullptr) const;
@@ -361,8 +382,6 @@ private:
     void afterLoadFinished();
 
     void switchPlayer(Player* targetPlayer, InputHandler &inputHandler);
-
-    void ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram);
 
     void setVisibilityAndPutToSets(PhysicalRenderable *PhysicalRenderable, bool removePossible);
 
@@ -402,23 +421,28 @@ private:
         return lights;
     }
 
+    void ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, const std::string& cameraName[[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]);
     void renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
-    void renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderPlayerAttachmentTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
-    void renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram) const;
+    void renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
+    void renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
+    void renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
+    void renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
+    void renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
+    void renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
+    void renderOpaqueObjects(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
+    void renderAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
+    void renderPlayerAttachmentTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
+    void renderPlayerAttachmentAnimatedObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
+    void renderPlayerAttachmentOpaqueObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
+    void renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
     void renderPlayerAttachmentsRecursive(GameObject *attachment, ModelTypes renderingModelType, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
+
+    void renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment, uint64_t renderTag, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
 
     std::vector<std::shared_ptr<GraphicsProgram>> getAllAvailablePrograms();
     void getAllAvailableProgramsRecursive(const AssetManager::AvailableAssetsNode * currentNode, std::vector<std::shared_ptr<GraphicsProgram>> &programs);
+
+    void renderCameraByTag(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName, const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
 
 public:
     ~World();
@@ -569,10 +593,6 @@ public:
 
     void animateCustomAnimations();
 
-    void buildTreeFromAllGameObjects();
-
-    void createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID, int nodeFlags, int leafFlags,
-                                       std::vector<uint32_t> parentage);
 
     void updateActiveLights(bool forceUpdate = false);
 

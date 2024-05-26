@@ -97,20 +97,20 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     playerExtension->SetText(world->startingPlayer.extensionName.c_str());
     currentElement->InsertEndChild(playerExtension);
 
-    tinyxml2::XMLElement *playerAttachement = mapDocument.NewElement("Attachement");
+    tinyxml2::XMLElement *playerAttachment = mapDocument.NewElement("Attachment");
     if(world->startingPlayer.attachedModel != nullptr) {
         if(world->physicalPlayer != nullptr) {
             glm::vec3 attachmentPositionBackup = world->startingPlayer.attachedModel->getTransformation()->getTranslate();
             world->startingPlayer.attachedModel->getTransformation()->setTranslate(
                     world->physicalPlayer->getAttachedModelOffset());
-            world->startingPlayer.attachedModel->fillObjects(mapDocument, playerAttachement);
+            world->startingPlayer.attachedModel->fillObjects(mapDocument, playerAttachment);
             world->startingPlayer.attachedModel->getTransformation()->setTranslate(attachmentPositionBackup);
         } else {
             //if physical player doesn't exists, but attached model does. This should not happen now, but this line is here as future proofing.
-            world->startingPlayer.attachedModel->fillObjects(mapDocument, playerAttachement);
+            world->startingPlayer.attachedModel->fillObjects(mapDocument, playerAttachment);
         }
     }
-    currentElement->InsertEndChild(playerAttachement);
+    currentElement->InsertEndChild(playerAttachment);
     rootNode->InsertEndChild(currentElement);
 
     if(world->music != nullptr) {

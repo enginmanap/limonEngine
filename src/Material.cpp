@@ -52,9 +52,9 @@ void Material::afterDeserialize(AssetManager *assetManager, std::string modelAss
     this->materialIndex = assetManager->getGraphicsWrapper()->getNextMaterialIndex();
 }
 
-GameObject::ImGuiResult Material::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
+ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request [[gnu::unused]]) {
     bool dirty = false;
-    GameObject::ImGuiResult result;
+    ImGuiResult result;
 
     //let s dump everything for now:
     dirty = ImGui::SliderFloat("Specular Exponent", &this->specularExponent, 0, 99999);

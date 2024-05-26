@@ -44,11 +44,13 @@ public:
     }
 
     struct StageInfo {
-        int highestPriority = 999;//keeps the highest priority, used for render ordering, which is lower. priority 1 is higher priority then priority 10.
+        uint32_t highestPriority = 999;//keeps the highest priority, used for render ordering, which is lower. priority 1 is higher priority then priority 10.
         std::shared_ptr<GraphicsPipelineStage> stage;
         bool clear = false;
         std::vector<RenderMethods::RenderMethod> renderMethods;
         std::unordered_map<std::string, RenderMethodInterface*> externalRenderMethods;
+        std::vector<std::string> cameraTags;
+        std::vector<std::string> renderTags;
 
         void addRenderMethod(RenderMethods::RenderMethod method) {
             for (auto iterator = renderMethods.begin(); iterator != renderMethods.end();++iterator) {
@@ -65,6 +67,15 @@ public:
             externalRenderMethods[methodName] = externalMethod;
         }
 
+        uint32_t getHighestPriority() const {
+            return highestPriority;
+        }
+
+        void setHighestPriority(uint32_t highestPriority) {
+            //the value set by this implies a dependency of this stage has higher priority, so it raises this stages priority with it
+            StageInfo::highestPriority = highestPriority;
+        }
+
         bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
         static bool
         deserialize(tinyxml2::XMLElement *stageInfoElement,
@@ -76,17 +87,19 @@ public:
     };
 
     void addNewStage(const StageInfo& stageInformation) {
-        //we need to sort based on priority
-        /*
-        for (auto stageInfo = pipelineStages.rbegin(); stageInfo != pipelineStages.rend(); ++stageInfo ) {
-            if(stageInfo->highestPriority <= stageInformation.highestPriority) {
-                pipelineStages.insert(stageInfo.base(), stageInformation);//oddly, reverse iterator base is pointing to after the iterator
-                return;
+        for (const std::string &cameraTag: stageInformation.cameraTags) {
+            std::map<std::string, std::vector<std::string>>::iterator item = cameraTagToRenderTagMap.find(cameraTag);
+            if(item == cameraTagToRenderTagMap.end() || item->second.empty()) {
+                cameraTagToRenderTagMap[cameraTag] = stageInformation.renderTags;
+            } else {
+                for (const std::string &renderTag: stageInformation.renderTags) {
+                    if(std::find(item->second.begin(), item->second.end(),renderTag) != item->second.end()) {
+                        item->second.emplace_back(renderTag);
+                    }
+                }
             }
         }
-        */
         pipelineStages.push_back(stageInformation);
-        //pipelineStages.insert(pipelineStages.begin(),stageInformation);//if not found, it means that should be inserted to beginning
     }
 
     void addTexture(const std::shared_ptr<Texture>& texture) {
@@ -126,7 +139,13 @@ public:
     const std::vector<std::shared_ptr<Texture>> &getTextures() {
         return textures;
     };
+
+    const std::map<std::string, std::vector<std::string>> &getCameraTagToRenderTagMap() const {
+        return cameraTagToRenderTagMap;
+    }
+
 private:
+    std::map<std::string, std::vector<std::string>> cameraTagToRenderTagMap;//Per stage, we configure camera name(tag) and renderTags(objects to render). We should combine them and make accessible so culling can use the info.
     RenderMethods renderMethods;
     std::vector<StageInfo> pipelineStages;
     std::vector<std::shared_ptr<Texture>> textures;

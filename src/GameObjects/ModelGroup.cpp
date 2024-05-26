@@ -52,7 +52,7 @@ void ModelGroup::setupForTime(long time) {
     }
 }
 
-GameObject::ImGuiResult ModelGroup::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
+ImGuiResult ModelGroup::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult result;
     if(this->children.size() == 0) {
         ImGui::Text("This group is empty");

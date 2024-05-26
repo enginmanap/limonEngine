@@ -131,7 +131,7 @@ bool Options::loadOptionsNew(const std::string &optionsFileName) {
             return false;
         } else {
             options[request->description] = request;
-            std::cerr << "Loaded  option " << request->description << std::endl;
+            std::cout << "Loaded option " << request->description << std::endl;
         }
         optionNode = optionNode->NextSiblingElement("Parameter");
     }

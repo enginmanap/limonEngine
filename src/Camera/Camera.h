@@ -6,8 +6,15 @@
 #define LIMONENGINE_CAMERA_H
 
 #include "Renderable.h"
+#include "vector"
+#include "Utils/HashUtil.h"
+#include "iostream"
 
 class Camera {
+    std::vector<HashUtil::HashedString> renderTags;
+    std::vector<HashUtil::HashedString> selfTags;
+
+
 protected:
     std::string name;
 
@@ -95,6 +102,47 @@ public:
     virtual bool isVisible(const PhysicalRenderable& renderable) const = 0;
 
     virtual glm::mat4 getCameraMatrix() = 0;
+
+    void addRenderTag(const std::string& text) {
+        HashUtil::HashedString tag(text);
+        if(!hasRenderTag(tag.hash)) {
+            renderTags.emplace_back(tag);
+        }
+    }
+
+    bool hasRenderTag(uint64_t hash) const {
+        for (const HashUtil::HashedString& hashedString:renderTags) {
+            if(hashedString.hash == hash) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    const std::vector<HashUtil::HashedString>& getRenderTags() const {
+        return renderTags;
+    }
+
+    void addTag(const std::string& text) {
+        HashUtil::HashedString tag(text);
+        if(!hasTag(tag.hash)) {
+            selfTags.emplace_back(tag);
+        }
+    }
+
+    //FIXME this is slower than it needs to be
+    bool hasTag(uint64_t hash) {
+        for (const HashUtil::HashedString& hashedString:selfTags) {
+            if(hashedString.hash == hash) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    const std::vector<HashUtil::HashedString>& getTags() const{
+        return selfTags;
+    }
 
 };
 

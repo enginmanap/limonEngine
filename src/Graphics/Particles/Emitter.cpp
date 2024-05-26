@@ -97,7 +97,7 @@ void Emitter::setupVAO() {
     bufferObjects.push_back(vbo);
 }
 
-GameObject::ImGuiResult Emitter::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
+ImGuiResult Emitter::addImGuiEditorElements(const ImGuiRequest &request) {
 
     //Allow transformation editing.
     if(transformation.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix)) {

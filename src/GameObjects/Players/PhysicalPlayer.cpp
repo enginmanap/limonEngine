@@ -460,7 +460,7 @@ void PhysicalPlayer::setAttachedModel(Model *attachedModel) {
     }
 }
 
-GameObject::ImGuiResult PhysicalPlayer::addImGuiEditorElements(const GameObject::ImGuiRequest &request) {
+ImGuiResult PhysicalPlayer::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult imGuiResult;
 
     Transformation tr;

@@ -13,6 +13,7 @@
 #include "Graphics/Texture.h"
 #include "PipelineStageExtension.h"
 #include "API/Graphics/GraphicsProgram.h"
+#include "Utils/StringUtils.hpp"
 
 
 PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, Options* options,
@@ -47,21 +48,6 @@ bool PipelineExtension::getNameOfTexture(void* data, int index, const char** out
         return false;
     }
     auto it = textures.begin();
-    for (int i = 0; i < index; ++i) {
-        it++;
-    }
-
-    *outText = it->first.c_str();
-    return true;
-}
-
-//This method is used only for ImGui texture name generation
-bool PipelineExtension::getNameOfCamera(void* data, int index, const char** outText) {
-    auto& cameras = *static_cast<std::map<std::string, std::shared_ptr<Camera>>*>(data);
-    if(index < 0 || (uint32_t)index >= cameras.size()) {
-        return false;
-    }
-    auto it = cameras.begin();
     for (int i = 0; i < index; ++i) {
         it++;
     }
@@ -116,30 +102,6 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
             ImGui::OpenPopup("create_texture_popup");
         }
     }
-    if(ImGui::CollapsingHeader("Cameras")) {
-        ImGui::Text("Current Cameras");
-        if(ImGui::ListBox("##CurrentCameras", &selectedCamera, PipelineExtension::getNameOfCamera,
-                          static_cast<void *>(&this->usedCameras), this->usedCameras.size(), 10)) {
-            //in case the selected texture is changed
-            if(selectedCamera != -1) {
-                //find the selected texture
-                const char* selectedName;
-                PipelineExtension::getNameOfCamera(static_cast<void *>(&this->usedCameras), selectedCamera, &selectedName);
-                std::string selectedNameString(selectedName);
-                std::map<std::string, std::shared_ptr<Camera>>::iterator it = usedCameras.find(selectedNameString);
-                if(it == usedCameras.end()) {
-                    std::cerr << "Selected Camera not found. This seems like an error." << std::endl;
-                } else {
-                    //found texture case
-                    //this->currentTextureInfo = it->second->getTextureInfo();
-                    //now set the ImGui char buffers with strings
-                    //strncpy(this->tempName,currentTextureInfo.name.c_str(), sizeof(tempName)/ sizeof(tempName[0]));
-                    //strncpy(this->tempHeightOption,currentTextureInfo.heightOption.c_str(), sizeof(tempHeightOption)/ sizeof(tempHeightOption[0]));
-                    //strncpy(this->tempWidthOption,currentTextureInfo.widthOption.c_str(), sizeof(tempWidthOption)/ sizeof(tempWidthOption[0]));
-                }
-            }
-        }
-    }
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
     if (ImGui::BeginPopup("create_texture_popup")) {
@@ -150,13 +112,81 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
         ImGui::Button("Build Pipeline");
         ImGui::PopStyleVar();
     } else {
+        static bool showVerify = false;
         if (ImGui::Button("Build Pipeline")) {
-            std::shared_ptr<GraphicsPipeline> builtPipelineNew = buildRenderPipeline(nodes);
-            if (builtPipelineNew == nullptr) {
+            orderedStages.clear();
+            if(!buildRenderPipelineStages(nodes, orderedStages)) {
                 addError("Build failed");
             } else {
-                builtPipeline = builtPipelineNew;//old one is auto removed
-                builtPipeline->serialize("./Data/renderPipelineBuilt.xml", options);
+                showVerify = true;
+                ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+                ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+            }
+        }
+        if(showVerify) {
+            ImGui::OpenPopup("Verify");
+            if (ImGui::BeginPopupModal("Verify", nullptr, ImGuiWindowFlags_Modal)) {
+                ImGui::Text("Limon engine builds the pipeline based on render method priorities and dependencies.");
+                ImGui::Text("\n");
+                ImGui::Text("Since it can't detect run time behaviour, this order might not be optimal for your case.");
+                ImGui::Text("You can reorder this list based on your knowledge of the intentions of each shader.");
+                ImGui::Text("Please note, because it is possible to intentionally reverse dependency order to use ");
+                ImGui::Text("previous frame results, your reorders are not verified for dependencies or any other sanity checks.");
+                ImGui::Text("\n");
+                std::vector<std::string> tempStringList;
+                std::string tempString;
+
+                ImDrawList* draw_list = ImGui::GetWindowDrawList();
+                ImVec4 backgroundColor = ImGui::GetStyleColorVec4(ImGuiCol_WindowBg);
+
+                backgroundColor.x +=0.5f;
+                backgroundColor.y +=0.5f;
+                backgroundColor.z +=0.5f;
+                ImU32 newColor = ImGui::ColorConvertFloat4ToU32(backgroundColor);
+                int fromNode, toNode;
+                for (size_t n = 0; n < orderedStages.size(); n++) {
+                    tempStringList.clear();
+                    std::for_each(orderedStages[n].first.begin(), orderedStages[n].first.end(), [&tempStringList](const Node* node) {tempStringList.emplace_back(node->getDisplayName());});
+                    tempString = StringUtils::join(tempStringList, ",");
+                    draw_list->ChannelsSplit(2);
+                    draw_list->ChannelsSetCurrent(1);
+
+                    ImGui::Selectable(tempString.c_str());
+
+                    draw_list->ChannelsSetCurrent(0);
+                    ImVec2 p_min = ImGui::GetItemRectMin();
+                    ImVec2 p_max = ImGui::GetItemRectMax();
+                    ImGui::GetWindowDrawList()->AddRectFilled(p_min, p_max, newColor);
+                    draw_list->ChannelsMerge();
+
+                    if (ImGui::IsItemActive() && !ImGui::IsItemHovered())
+                    {
+                        fromNode = n;
+                        toNode = n + (ImGui::GetMouseDragDelta(0).y < 0.f ? -1 : 1);
+                    }
+                }
+                if (toNode > 0 && toNode < orderedStages.size())
+                {
+                    //we need to re order the ordered stages now
+                    auto backup = orderedStages[fromNode];
+                    orderedStages[fromNode] = orderedStages[toNode];
+                    orderedStages[toNode] = backup;
+                    ImGui::ResetMouseDragDelta();
+                }
+                ImGui::InputText("File name:##fileNameToSavePipeline", tempFileName, sizeof (tempFileName)/sizeof (tempFileName[0], ImGuiInputTextFlags_CharsNoBlank));
+                ImGui::SameLine();
+                if(ImGui::Button("Build with this order")) {
+                    std::shared_ptr<GraphicsPipeline> builtPipelineNew = combineStagesToPipeline();
+                    builtPipeline = builtPipelineNew;//old one is auto removed
+                    builtPipeline->serialize(tempFileName, options);
+                    showVerify = false;
+                }
+                if(ImGui::Button("Cancel##BuildingPipelineCance")){
+                    showVerify = false;
+                    //we don't actually need to do anything in this case
+                }
+
+                ImGui::EndPopup();
             }
         }
     }
@@ -319,8 +349,8 @@ void PipelineExtension::drawTextureSettings() {
     ImGui::EndPopup();
 }
 
-std::shared_ptr<GraphicsPipeline> PipelineExtension::buildRenderPipeline(const std::vector<const Node *> &nodes) {
-    std::shared_ptr<GraphicsPipeline> builtGraphicsPipeline = nullptr;
+bool PipelineExtension::buildRenderPipelineStages(const std::vector<const Node *> &nodes, std::vector<
+        std::pair<std::set<const Node *>, std::shared_ptr<GraphicsPipeline::StageInfo>>> & orderedStages) {
     const Node* rootNode = nullptr;
     for(const Node* node: nodes) {
         /**
@@ -335,7 +365,7 @@ std::shared_ptr<GraphicsPipeline> PipelineExtension::buildRenderPipeline(const s
     }
     if(rootNode == nullptr) {
         std::cout << "Screen output not found. cancelling." << std::endl;
-        return nullptr;
+        return false;
     } else {
         std::unordered_map<const Node*, std::set<const Node*>> dependencies;
         buildDependencyInfoRecursive(rootNode, dependencies);
@@ -345,25 +375,133 @@ std::shared_ptr<GraphicsPipeline> PipelineExtension::buildRenderPipeline(const s
                 std::cerr << "\t\tfor depends: " <<  dependency->getName() << std::endl;
             }
         }
+        //first element of the pair is what is required(dependencies, recursively filled, contains indirect), second is the group that can be rendered with them
         std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> dependencyGroups = buildGroupsByDependency(dependencies);
+        std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>> nodeStages;
+        std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node*>> builtStages;//A stage can contain more than one node, so the nodes used to build it is also here.
+        if(buildRenderPipelineRecursive(rootNode, renderMethods, nodeStages, dependencyGroups, builtStages)) {
+            //we have dependency info, and the stage info. Stage info contains highest priority. Order based on that
+            for(const auto& builtStageInfo:builtStages) {
+                // Build stages are individual, but they have dependencies, and if a high priority node needs a low priority node, low priority should become high priority.
+                // Also if a high priority node is rendered to frame buffer but not finished processing because a stage after is low priority, that one should get updated too
+                // To figure this chain, we need to track them back to forward.
+                recursiveUpdatePriorityForDependencies(dependencyGroups, builtStages, builtStageInfo);
+                recursiveUpdatePriorityForDependents(dependencyGroups, builtStages,builtStageInfo);
+            }
+            //now move the elements to ordered
+            while(!builtStages.empty()) {
+                std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node*>>::iterator builtStageInfo = builtStages.begin();
+                //Special case, first one always gets inserted
+                if(orderedStages.empty()) {
+                    orderedStages.emplace_back(builtStageInfo->second, builtStageInfo->first);
+                    builtStages.erase(builtStageInfo);
+                    continue;
+                }
+                //a stage can only be inserted in between things it is depending on, and things that depend on it.
+                size_t maxDependencyIndex = 0; //last entry that this node is depending on
+                size_t minDependentIndex = 999; //first entry that this node is depending on
 
+                //lets find which dependency group this stage  was in.
+                for (const auto &dependencyGroup: dependencyGroups) {
+                    if (dependencyGroup.second.find(*(builtStageInfo->second.begin())) != dependencyGroup.second.end()) {
+                        //this is the dependency group this stage belongs to, any stage that is required needs to be before
+                        for (const auto &dependency: dependencyGroup.first) {
+                            for (size_t i = 0; i < orderedStages.size(); ++i) {
+                                if (orderedStages[i].first.find(dependency) != orderedStages[i].first.end()) {
+                                    maxDependencyIndex = i;
+                                }
+                            }
+                        }
+                    }
+                }
+                //we found what we are depending on in the current state. Lets find what depends on us
+                std::set<const Node*> dependentNodes;
+                for (const auto &dependencyGroup: dependencyGroups) {
+                    if (dependencyGroup.first.find(*(builtStageInfo->second.begin())) != dependencyGroup.first.end()) {
+                        //This dependency group was depending on us. collect all nodes
+                        dependentNodes.insert(dependencyGroup.second.begin(), dependencyGroup.second.end());
+                    }
+                }
+                std::vector<const Node*> tempNodes;
+                for (size_t i = 0; i < orderedStages.size(); ++i) {
+                    std::set_intersection(dependentNodes.begin(), dependentNodes.end(), orderedStages[i].first.begin(), orderedStages[i].first.end(), std::back_inserter(tempNodes));
+                    if(!tempNodes.empty()) {
+                        minDependentIndex = i;
+                        break;//since we are iterating forward, finding once is enough.
+                    }
+                }
+                //now we need to insert this new stage in order of its priority, after the last dependency index
+                bool inserted = false;
+                size_t itStart = maxDependencyIndex == 0 ? 0 : maxDependencyIndex;
+                size_t itEnd = minDependentIndex == 999 ? orderedStages.size() : minDependentIndex;
+                for (size_t i = itStart; i < itEnd; ++i) {
+                    uint32_t minPriorityOfStage = 999;
+                    minPriorityOfStage = std::min(orderedStages[i].second->getHighestPriority(), minPriorityOfStage);
+                    if(minPriorityOfStage > builtStageInfo->first->getHighestPriority()) {
+                        //insert here
+                        orderedStages.insert(orderedStages.begin() + i, {builtStageInfo->second, builtStageInfo->first});
+                        inserted = true;
+                        break;
+                    }
+                }
+                if(!inserted) {
+                    //so we are the last
+                    orderedStages.insert(orderedStages.begin() + itEnd, {builtStageInfo->second, builtStageInfo->first});
+                }
+                builtStages.erase(builtStageInfo);
+            }
+        }//error message provided by recursive
+        return true;
+    }
+}
 
-        builtGraphicsPipeline = std::make_shared<GraphicsPipeline>(renderMethods);
-        for(auto usedTexture: usedTextures) {
-            if(usedTexture.second != nullptr) {
-                builtGraphicsPipeline->addTexture(usedTexture.second);
+void PipelineExtension::recursiveUpdatePriorityForDependencies(std::vector<std::pair<std::set<const Node *>, std::set<const Node *>>> &dependencyGroups,
+                                                               std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStages,
+                                                               const std::pair<const std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStageInfo) const {
+    for (const auto &stageNode: builtStageInfo.second) {
+        //a build stage might be combination of multiple nodes, for each of those nodes, update the priority of its dependencies
+        for (const auto &dependencyGroup: dependencyGroups) {
+            if (dependencyGroup.second.find(stageNode) != dependencyGroup.second.end()) {
+                //this is the dependency group, and all dependencies are at the first entry of the pair
+                for (const auto &nodeDependency: dependencyGroup.first) {
+                    //search for them in the builtStages to update the requirement
+                    for (const auto &builtStage2: builtStages) {
+                        if (builtStage2.second.find(nodeDependency) != builtStage2.second.end()) {
+                            //this stage is a dependency for the one we were iterating over, update the priority
+                            builtStage2.first->setHighestPriority(std::min(builtStage2.first->getHighestPriority(), builtStageInfo.first->getHighestPriority()));
+                            //what about the nodes that were depending on this stage? we should update them too
+                            recursiveUpdatePriorityForDependencies(dependencyGroups, builtStages, builtStage2);
+                        }
+                    }
+                }
             }
         }
-        std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>> nodeStages;
-        std::vector<std::shared_ptr<GraphicsPipeline::StageInfo>> builtStages;
-        if(buildRenderPipelineRecursive(rootNode, builtGraphicsPipeline, nodeStages, dependencyGroups, builtStages)) {
-            for(const auto& stageInfo:builtStages) {
-                builtGraphicsPipeline->addNewStage(*stageInfo);
+    }
+}
+
+void PipelineExtension::recursiveUpdatePriorityForDependents(std::vector<std::pair<std::set<const Node *>, std::set<const Node *>>> &dependencyGroups,
+                                                               std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStages,
+                                                               const std::pair<const std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStageInfo) const {
+    for (const auto &stageNode: builtStageInfo.second) {
+        //a build stage might be combination of multiple nodes, for each of those nodes, update the dependents so the output will reach the screen before others
+        for (const auto &dependencyGroup: dependencyGroups) {
+            if (dependencyGroup.first.find(stageNode) != dependencyGroup.first.end()) {
+                //this is the dependency group, and all dependencies are at the first entry of the pair
+                for (const auto &nodeDependent: dependencyGroup.second) {
+                    //search for them in the builtStages to update the requirement
+                    if (nodeDependent->getName() != "Screen") {
+                        for (const auto &builtStage2: builtStages) {
+                            if (builtStage2.second.find(nodeDependent) != builtStage2.second.end()) {
+                                //this stage is a dependency for the one we were iterating over, update the priority
+                                builtStage2.first->setHighestPriority(std::min(builtStage2.first->getHighestPriority(), builtStageInfo.first->getHighestPriority()));
+                                //what about the nodes that are dependents  on this stage? we should update them too
+                                recursiveUpdatePriorityForDependents(dependencyGroups, builtStages, builtStage2);
+                            }
+                        }
+                    }
+                }
             }
-            addMessage("Built new Pipeline");
-            return builtGraphicsPipeline;
-        }//error message provided by recursive
-        return nullptr;
+        }
     }
 }
 
@@ -442,6 +580,8 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
     bool existingDepthReadState = false;
     bool existingDepthWriteState = false;
     bool existingBlendingState = false;
+    std::vector<std::string> existingCameraTags;
+    std::vector<std::string> existingObjectTags;
     for(auto existingNode:existingNodes) {
         auto stageExtension = dynamic_cast<PipelineStageExtension*>(existingNode->getExtension());
         if(stageExtension == nullptr) {
@@ -458,6 +598,8 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
         existingDepthReadState = stageExtension->isDepthTestEnabled();
         existingDepthWriteState = stageExtension->isDepthWriteEnabled();
         existingBlendingState = stageExtension->isBlendEnabled();
+        existingCameraTags = stageExtension->getCameraTags();
+        existingObjectTags = stageExtension->getObjectTags();
         for (auto outputConnection:existingNode->getOutputConnections()) {
             auto outputTextureInfo = stageExtension->getOutputTextureInfo(outputConnection);
             if (outputTextureInfo == nullptr) {
@@ -475,6 +617,29 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
             break;
         }
     }
+    if(currentStageExtension->getCameraTags().size() != existingCameraTags.size()) {
+        std::cerr << "Failed to join because existing camera tags "<< StringUtils::join(existingCameraTags,",") << " is not same as " << StringUtils::join(currentStageExtension->getCameraTags(),",") << std::endl;
+        return false;
+    }
+    if(currentStageExtension->getObjectTags().size() != existingObjectTags.size()) {
+        std::cerr << "Failed to join because existing object tags "<< StringUtils::join(existingObjectTags,",") << " is not same as " << StringUtils::join(currentStageExtension->getObjectTags(),",") << std::endl;
+        return false;
+    }
+
+    for (const std::string &tag: currentStageExtension->getCameraTags()) {
+        if(std::find(existingCameraTags.begin(), existingCameraTags.end(),tag) == existingCameraTags.end()) {
+            std::cerr << "Failed to join because existing camera tags "<< StringUtils::join(existingCameraTags,",") << " is not same as " << StringUtils::join(currentStageExtension->getCameraTags(),",") << std::endl;
+            return false;
+        }
+    }
+
+    for (const std::string &tag: currentStageExtension->getObjectTags()) {
+        if(std::find(existingObjectTags.begin(), existingObjectTags.end(),tag) == existingObjectTags.end()) {
+            std::cerr << "Failed to join because existing object tags "<< StringUtils::join(existingObjectTags,",") << " is not same as " << StringUtils::join(currentStageExtension->getObjectTags(),",") << std::endl;
+            return false;
+        }
+    }
+
     /* left for debug */
     if(existingDepthMap == nullptr) {
         std::cerr << "Success to join because existing set "<< existingNodeName <<" has no depth map" << std::endl;
@@ -615,10 +780,10 @@ std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> PipelineExt
 
 
 bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
-                                                     std::shared_ptr<GraphicsPipeline> graphicsPipeline,
+                                                     RenderMethods &renderMethods,
                                                      std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>>& nodeStages,
                                                      const std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>>& groupsByDependency,
-                                                     std::vector<std::shared_ptr<GraphicsPipeline::StageInfo>>& builtStages) {
+                                                     std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStages) {
 
     if(nodeStages.find(node) != nodeStages.end()) {
         return true;
@@ -628,7 +793,7 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
         for(Connection* connectionInputs:connection->getInputConnections()) {
             Node *inputNode = connectionInputs->getParent();
             if(nodeStages.find(inputNode) == nodeStages.end()) {
-                if(!buildRenderPipelineRecursive(inputNode, graphicsPipeline, nodeStages, groupsByDependency, builtStages)) {
+                if(!buildRenderPipelineRecursive(inputNode, renderMethods, nodeStages, groupsByDependency, builtStages)) {
                     return false;//if failed in stack, fail.
                 }
             }
@@ -686,9 +851,16 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                                                                stageExtension->isDepthWriteEnabled(),
                                                                stageExtension->isScissorTestEnabled(),
                                                                toScreen);
+            stageInfo->renderTags = stageExtension->getObjectTags();
+            stageInfo->stage->setObjectTags(stageExtension->getObjectTags());
+
+            stageInfo->cameraTags = stageExtension->getCameraTags();
+            stageInfo->stage->setCameraTags(stageExtension->getCameraTags());
             stageInfo->stage->setCullMode(stageExtension->getCullmode());
-            builtStages.emplace_back(stageInfo);//only add the stage at the first time. Because this method works from back to front, the order in the vector will be correct.
+            std::set<const Node*> nodeList{node};
+            builtStages[stageInfo] = nodeList;//only add the stage at the first time. Because this method works from back to front, the order in the vector will be correct.
         } else {
+            builtStages[stageInfo].insert(node);
             stageInfo->clear = stageInfo->clear || stageExtension->isClearBefore();
             stageInfo->stage->setBlendEnabled(stageInfo->stage->isBlendEnabled() || stageExtension->isBlendEnabled());
             stageInfo->stage->setDepthTestEnabled(stageInfo->stage->isDepthTestEnabled() || stageExtension->isDepthTestEnabled());
@@ -782,22 +954,33 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
         }
 
         if(stageExtension->getMethodName() == "All directional shadows") {
-            RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllDirectionalLights(stageInfo->stage, depthMapDirectional, stageProgram);
+            RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethodAllDirectionalLights(stageInfo->stage, depthMapDirectional, stageProgram);
             stageInfo->addRenderMethod(functionToCall);
         } else if(stageExtension->getMethodName() == "All point shadows") {
-            RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllPointLights(stageProgram);
+            RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethodAllPointLights(stageProgram);
             stageInfo->addRenderMethod(functionToCall);
         } else {
             bool isFound = true;
-            RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethod(
+            RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethod(
                     graphicsWrapper, stageExtension->getMethodName(), stageProgram, isFound);
             if(isFound) {
+                functionToCall.setCameraName(StringUtils::join(stageExtension->getCameraTags(), ","));
+                stageInfo->cameraTags = stageExtension->getCameraTags();
+                std::vector<HashUtil::HashedString> renderTags;
+                for (const auto &item: stageExtension->getObjectTags()){
+                    renderTags.emplace_back(item);
+                }
+                stageInfo->renderTags = stageExtension->getObjectTags();
+                functionToCall.setRenderTags(renderTags);
                 stageInfo->addRenderMethod(functionToCall);
             } else {
                 std::cerr << "Selected method name is invalid!" << std::endl;
                 addError("Selected method name in node " + node->getDisplayName()+ " is invalid!");
                 return false;
             }
+        }
+        if(stageInfo->stage->isBlendEnabled()) {
+            stageInfo->setHighestPriority(stageInfo->getHighestPriority() + 1);//if 2 stage with same priority is present, we want blending one later
         }
         nodeStages[node] = stageInfo;//contains newStage
     } else {

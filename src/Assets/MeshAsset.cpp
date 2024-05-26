@@ -227,7 +227,7 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
     }
     triangleCount[1] = lod.size()/3;
     offsets[1] = triangleCount[0]*3;
-    std::cerr << "simplification1 result: \t" << triangleCount[0] << "\t->\t" << triangleCount[1] << std::endl;
+    //std::cerr << "simplification1 result: \t" << triangleCount[0] << "\t->\t" << triangleCount[1] << std::endl;
 
     //lets try to simplify
     float threshold2 = 0.1f;
@@ -246,7 +246,7 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
     }
     triangleCount[2] = lod2.size()/3;
     offsets[2] = (triangleCount[1]*3) + offsets[1];
-    std::cerr << "simplification2 result: \t" << triangleCount[1] << "\t->\t" << triangleCount[2] << std::endl;
+    //std::cerr << "simplification2 result: \t" << triangleCount[1] << "\t->\t" << triangleCount[2] << std::endl;
 
 
     //lets try to simplify
@@ -267,10 +267,10 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
     triangleCount[3] = lod3.size()/3;
 
     offsets[3] = (triangleCount[2]*3) + offsets[2];
-    std::cerr << "simplification3 result: \t" << triangleCount[2] << "\t->\t" << triangleCount[3] << std::endl;
+    //std::cerr << "simplification3 result: \t" << triangleCount[2] << "\t->\t" << triangleCount[3] << std::endl;
 
-    std::cerr << "after simplification triangle counts: \t" << triangleCount[0] << ", " << triangleCount[1] << ", " << triangleCount[2] << ", " << triangleCount[3] << std::endl;
-    std::cerr << "after simplification offsets: \t" << offsets[0] << ", " << offsets[1] << ", " << offsets[2] << ", " << offsets[3] << std::endl;
+    //std::cerr << "after simplification triangle counts: \t" << triangleCount[0] << ", " << triangleCount[1] << ", " << triangleCount[2] << ", " << triangleCount[3] << std::endl;
+    //std::cerr << "after simplification offsets: \t" << offsets[0] << ", " << offsets[1] << ", " << offsets[2] << ", " << offsets[3] << std::endl;
     return true;
 }
 
