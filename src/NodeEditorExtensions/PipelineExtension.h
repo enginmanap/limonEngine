@@ -20,9 +20,9 @@ class PipelineExtension : public EditorExtension {
 
     Texture::TextureInfo currentTextureInfo;
     char tempName[256] = {0};           //
-    char tempHeightOption[256] = {0};   // These 3 are used for ImGui strings.
+    char tempHeightOption[256] = {0};   // These 4 are used for ImGui strings.
     char tempWidthOption[256] = {0};    //
-
+    char tempFileName[512] = {"./Data/renderPipelineBuilt.xml"};       //
     std::map<std::string, std::shared_ptr<Texture>> usedTextures;
     std::map<std::string, std::shared_ptr<Camera>> usedCameras;
     GraphicsInterface* graphicsWrapper = nullptr;
@@ -33,6 +33,7 @@ class PipelineExtension : public EditorExtension {
     std::vector<std::string> errorMessages;
     RenderMethods renderMethods;
 
+    std::vector<std::pair<std::set<const Node*>, std::shared_ptr<GraphicsPipeline::StageInfo>>> orderedStages; // used to keep the node order for stage so we can show it to the user
     std::shared_ptr<GraphicsPipeline> builtPipeline = nullptr;
     bool nodeGraphValid = true; //if there are nodes that are unknown, then we can't build.
     int32_t selectedTexture = -1;//-1 means it is not selected, there for we are building a new one
@@ -41,7 +42,7 @@ class PipelineExtension : public EditorExtension {
     static bool getNameOfTexture(void* data, int index, const char** outText);
     static bool getNameOfCamera(void* data, int index, const char** outText);
 
-    bool buildRenderPipelineRecursive(const Node *node, std::shared_ptr<GraphicsPipeline> graphicsPipeline, std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>>& nodeStages,
+    bool buildRenderPipelineRecursive(const Node *node, RenderMethods &renderMethods, std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>>& nodeStages,
                                       const std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>>& groupsByDependency,
                                       std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStages);//A stage can contain more than one node, so the nodes used to build it is also here.
     void buildDependencyInfoRecursive(const Node *node, std::unordered_map<const Node*, std::set<const Node*>>& dependencies);
@@ -72,8 +73,22 @@ public:
 
     void deserialize(const std::string &fileName, tinyxml2::XMLElement *editorExtensionElement) override;
 
-    std::shared_ptr<GraphicsPipeline> buildRenderPipeline(const std::vector<const Node *> &nodes);
+    bool buildRenderPipelineStages(const std::vector<const Node *> &nodes, std::vector<
+            std::pair<std::set<const Node *>, std::shared_ptr<GraphicsPipeline::StageInfo>>> & orderedStages);
 
+    std::shared_ptr<GraphicsPipeline> combineStagesToPipeline() {
+        std::shared_ptr<GraphicsPipeline> builtGraphicsPipeline = std::make_shared<GraphicsPipeline>(renderMethods);
+        for(const auto& usedTexture: usedTextures) {
+            if(usedTexture.second != nullptr) {
+                builtGraphicsPipeline->addTexture(usedTexture.second);
+            }
+        }
+        for (size_t i = 0; i < orderedStages.size(); ++i) {
+            builtGraphicsPipeline->addNewStage(*(orderedStages[i].second));
+        }
+        addMessage("Built new Pipeline");
+        return builtGraphicsPipeline;
+    }
 
     void addError(const std::string& errorMessage) {
         this->errorMessages.emplace_back(errorMessage);

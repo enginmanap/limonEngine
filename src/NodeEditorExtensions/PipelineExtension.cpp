@@ -112,13 +112,81 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
         ImGui::Button("Build Pipeline");
         ImGui::PopStyleVar();
     } else {
+        static bool showVerify = false;
         if (ImGui::Button("Build Pipeline")) {
-            std::shared_ptr<GraphicsPipeline> builtPipelineNew = buildRenderPipeline(nodes);
-            if (builtPipelineNew == nullptr) {
+            orderedStages.clear();
+            if(!buildRenderPipelineStages(nodes, orderedStages)) {
                 addError("Build failed");
             } else {
-                builtPipeline = builtPipelineNew;//old one is auto removed
-                builtPipeline->serialize("./Data/renderPipelineBuilt.xml", options);
+                showVerify = true;
+                ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+                ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+            }
+        }
+        if(showVerify) {
+            ImGui::OpenPopup("Verify");
+            if (ImGui::BeginPopupModal("Verify", nullptr, ImGuiWindowFlags_Modal)) {
+                ImGui::Text("Limon engine builds the pipeline based on render method priorities and dependencies.");
+                ImGui::Text("\n");
+                ImGui::Text("Since it can't detect run time behaviour, this order might not be optimal for your case.");
+                ImGui::Text("You can reorder this list based on your knowledge of the intentions of each shader.");
+                ImGui::Text("Please note, because it is possible to intentionally reverse dependency order to use ");
+                ImGui::Text("previous frame results, your reorders are not verified for dependencies or any other sanity checks.");
+                ImGui::Text("\n");
+                std::vector<std::string> tempStringList;
+                std::string tempString;
+
+                ImDrawList* draw_list = ImGui::GetWindowDrawList();
+                ImVec4 backgroundColor = ImGui::GetStyleColorVec4(ImGuiCol_WindowBg);
+
+                backgroundColor.x +=0.5f;
+                backgroundColor.y +=0.5f;
+                backgroundColor.z +=0.5f;
+                ImU32 newColor = ImGui::ColorConvertFloat4ToU32(backgroundColor);
+                int fromNode, toNode;
+                for (size_t n = 0; n < orderedStages.size(); n++) {
+                    tempStringList.clear();
+                    std::for_each(orderedStages[n].first.begin(), orderedStages[n].first.end(), [&tempStringList](const Node* node) {tempStringList.emplace_back(node->getDisplayName());});
+                    tempString = StringUtils::join(tempStringList, ",");
+                    draw_list->ChannelsSplit(2);
+                    draw_list->ChannelsSetCurrent(1);
+
+                    ImGui::Selectable(tempString.c_str());
+
+                    draw_list->ChannelsSetCurrent(0);
+                    ImVec2 p_min = ImGui::GetItemRectMin();
+                    ImVec2 p_max = ImGui::GetItemRectMax();
+                    ImGui::GetWindowDrawList()->AddRectFilled(p_min, p_max, newColor);
+                    draw_list->ChannelsMerge();
+
+                    if (ImGui::IsItemActive() && !ImGui::IsItemHovered())
+                    {
+                        fromNode = n;
+                        toNode = n + (ImGui::GetMouseDragDelta(0).y < 0.f ? -1 : 1);
+                    }
+                }
+                if (toNode > 0 && toNode < orderedStages.size())
+                {
+                    //we need to re order the ordered stages now
+                    auto backup = orderedStages[fromNode];
+                    orderedStages[fromNode] = orderedStages[toNode];
+                    orderedStages[toNode] = backup;
+                    ImGui::ResetMouseDragDelta();
+                }
+                ImGui::InputText("File name:##fileNameToSavePipeline", tempFileName, sizeof (tempFileName)/sizeof (tempFileName[0], ImGuiInputTextFlags_CharsNoBlank));
+                ImGui::SameLine();
+                if(ImGui::Button("Build with this order")) {
+                    std::shared_ptr<GraphicsPipeline> builtPipelineNew = combineStagesToPipeline();
+                    builtPipeline = builtPipelineNew;//old one is auto removed
+                    builtPipeline->serialize(tempFileName, options);
+                    showVerify = false;
+                }
+                if(ImGui::Button("Cancel##BuildingPipelineCance")){
+                    showVerify = false;
+                    //we don't actually need to do anything in this case
+                }
+
+                ImGui::EndPopup();
             }
         }
     }
@@ -281,8 +349,8 @@ void PipelineExtension::drawTextureSettings() {
     ImGui::EndPopup();
 }
 
-std::shared_ptr<GraphicsPipeline> PipelineExtension::buildRenderPipeline(const std::vector<const Node *> &nodes) {
-    std::shared_ptr<GraphicsPipeline> builtGraphicsPipeline = nullptr;
+bool PipelineExtension::buildRenderPipelineStages(const std::vector<const Node *> &nodes, std::vector<
+        std::pair<std::set<const Node *>, std::shared_ptr<GraphicsPipeline::StageInfo>>> & orderedStages) {
     const Node* rootNode = nullptr;
     for(const Node* node: nodes) {
         /**
@@ -297,7 +365,7 @@ std::shared_ptr<GraphicsPipeline> PipelineExtension::buildRenderPipeline(const s
     }
     if(rootNode == nullptr) {
         std::cout << "Screen output not found. cancelling." << std::endl;
-        return nullptr;
+        return false;
     } else {
         std::unordered_map<const Node*, std::set<const Node*>> dependencies;
         buildDependencyInfoRecursive(rootNode, dependencies);
@@ -307,18 +375,11 @@ std::shared_ptr<GraphicsPipeline> PipelineExtension::buildRenderPipeline(const s
                 std::cerr << "\t\tfor depends: " <<  dependency->getName() << std::endl;
             }
         }
-        builtGraphicsPipeline = std::make_shared<GraphicsPipeline>(renderMethods);
-        for(auto usedTexture: usedTextures) {
-            if(usedTexture.second != nullptr) {
-                builtGraphicsPipeline->addTexture(usedTexture.second);
-            }
-        }
         //first element of the pair is what is required(dependencies, recursively filled, contains indirect), second is the group that can be rendered with them
         std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> dependencyGroups = buildGroupsByDependency(dependencies);
         std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>> nodeStages;
         std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node*>> builtStages;//A stage can contain more than one node, so the nodes used to build it is also here.
-        std::vector<std::pair<std::set<const Node*>, std::shared_ptr<GraphicsPipeline::StageInfo>>> orderedStages;
-        if(buildRenderPipelineRecursive(rootNode, builtGraphicsPipeline, nodeStages, dependencyGroups, builtStages)) {
+        if(buildRenderPipelineRecursive(rootNode, renderMethods, nodeStages, dependencyGroups, builtStages)) {
             //we have dependency info, and the stage info. Stage info contains highest priority. Order based on that
             for(const auto& builtStageInfo:builtStages) {
                 // Build stages are individual, but they have dependencies, and if a high priority node needs a low priority node, low priority should become high priority.
@@ -389,14 +450,8 @@ std::shared_ptr<GraphicsPipeline> PipelineExtension::buildRenderPipeline(const s
                 }
                 builtStages.erase(builtStageInfo);
             }
-
-            for (size_t i = 0; i < orderedStages.size(); ++i) {
-                builtGraphicsPipeline->addNewStage(*(orderedStages[i].second));
-            }
-            addMessage("Built new Pipeline");
-            return builtGraphicsPipeline;
         }//error message provided by recursive
-        return nullptr;
+        return true;
     }
 }
 
@@ -434,12 +489,14 @@ void PipelineExtension::recursiveUpdatePriorityForDependents(std::vector<std::pa
                 //this is the dependency group, and all dependencies are at the first entry of the pair
                 for (const auto &nodeDependent: dependencyGroup.second) {
                     //search for them in the builtStages to update the requirement
-                    for (const auto &builtStage2: builtStages) {
-                        if (builtStage2.second.find(nodeDependent) != builtStage2.second.end()) {
-                            //this stage is a dependency for the one we were iterating over, update the priority
-                            builtStage2.first->setHighestPriority(std::min(builtStage2.first->getHighestPriority(), builtStageInfo.first->getHighestPriority()));
-                            //what about the nodes that are dependents  on this stage? we should update them too
-                            recursiveUpdatePriorityForDependents(dependencyGroups, builtStages, builtStage2);
+                    if (nodeDependent->getName() != "Screen") {
+                        for (const auto &builtStage2: builtStages) {
+                            if (builtStage2.second.find(nodeDependent) != builtStage2.second.end()) {
+                                //this stage is a dependency for the one we were iterating over, update the priority
+                                builtStage2.first->setHighestPriority(std::min(builtStage2.first->getHighestPriority(), builtStageInfo.first->getHighestPriority()));
+                                //what about the nodes that are dependents  on this stage? we should update them too
+                                recursiveUpdatePriorityForDependents(dependencyGroups, builtStages, builtStage2);
+                            }
                         }
                     }
                 }
@@ -723,7 +780,7 @@ std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> PipelineExt
 
 
 bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
-                                                     std::shared_ptr<GraphicsPipeline> graphicsPipeline,
+                                                     RenderMethods &renderMethods,
                                                      std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>>& nodeStages,
                                                      const std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>>& groupsByDependency,
                                                      std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStages) {
@@ -736,7 +793,7 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
         for(Connection* connectionInputs:connection->getInputConnections()) {
             Node *inputNode = connectionInputs->getParent();
             if(nodeStages.find(inputNode) == nodeStages.end()) {
-                if(!buildRenderPipelineRecursive(inputNode, graphicsPipeline, nodeStages, groupsByDependency, builtStages)) {
+                if(!buildRenderPipelineRecursive(inputNode, renderMethods, nodeStages, groupsByDependency, builtStages)) {
                     return false;//if failed in stack, fail.
                 }
             }
@@ -897,14 +954,14 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
         }
 
         if(stageExtension->getMethodName() == "All directional shadows") {
-            RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllDirectionalLights(stageInfo->stage, depthMapDirectional, stageProgram);
+            RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethodAllDirectionalLights(stageInfo->stage, depthMapDirectional, stageProgram);
             stageInfo->addRenderMethod(functionToCall);
         } else if(stageExtension->getMethodName() == "All point shadows") {
-            RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethodAllPointLights(stageProgram);
+            RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethodAllPointLights(stageProgram);
             stageInfo->addRenderMethod(functionToCall);
         } else {
             bool isFound = true;
-            RenderMethods::RenderMethod functionToCall = graphicsPipeline->getRenderMethods().getRenderMethod(
+            RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethod(
                     graphicsWrapper, stageExtension->getMethodName(), stageProgram, isFound);
             if(isFound) {
                 functionToCall.setCameraName(StringUtils::join(stageExtension->getCameraTags(), ","));
