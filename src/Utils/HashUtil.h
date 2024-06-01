@@ -8,14 +8,14 @@
 #include <string>
 #include <unordered_map>
 #include <iostream>
-#include "../../libs/cityhash/src/city.h"
+#include "consthash/include/consthash/cityhash64.hxx"
 
 class HashUtil {
 public:
     struct HashedString {
         const uint64_t hash;
         const std::string text;
-        HashedString(const std::string& text): hash(CityHash64(text.c_str(), text.length())), text(text){
+        HashedString(const std::string& text): hash(consthash::city64(text.c_str(), text.length())), text(text){
             auto textIterator = allHashedStrings.find(hash);
             if(textIterator != allHashedStrings.end() && textIterator->second != text) {
                 std::cerr << "Hash collision found , both [" << text << "] and [" << textIterator->second << "] generated same hash " << hash << std::endl;
@@ -27,7 +27,7 @@ public:
     };
 
     static uint64_t hashString(const std::string& text) {
-        uint64_t hash = CityHash64(text.c_str(), text.length());
+        uint64_t hash = consthash::city64(text.c_str(), text.length());
         auto textIterator = allHashedStrings.find(hash);
         if(textIterator != allHashedStrings.end() && textIterator->second != text) {
             std::cerr << "Hash collision found , both [" << text << "] and [" << textIterator->second << "] generated same hash " << hash << std::endl;
