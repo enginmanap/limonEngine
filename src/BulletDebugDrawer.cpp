@@ -9,7 +9,8 @@ BulletDebugDrawer::BulletDebugDrawer(std::shared_ptr<AssetManager> assetManager,
         renderProgram = std::make_shared<GraphicsProgram>(assetManager.get(), "./Engine/Shaders/Lines/vertex.glsl",
                                                           "./Engine/Shaders/Lines/fragment.glsl", false);
         std::cout << "Render program is ready with id " << renderProgram->getID() << std::endl;
-        graphicsWrapper->createDebugVAOVBO(vao, vbo, options->getDebugDrawBufferSize());
+        options->getOptionOrDefault("debugDrawBufferSize", debugDrawBufferSize, 1000);
+        graphicsWrapper->createDebugVAOVBO(vao, vbo, debugDrawBufferSize);
 }
 
 void BulletDebugDrawer::drawLine(const glm::vec3 &from, const glm::vec3 &to, const glm::vec3 &fromColor,
@@ -18,7 +19,8 @@ void BulletDebugDrawer::drawLine(const glm::vec3 &from, const glm::vec3 &to, con
                               to,
                               fromColor,
                               toColor, needsCameraTransform));
-    if(lineBuffer.size() == options->getDebugDrawBufferSize()) {
+
+    if(lineBuffer.size() == (size_t)debugDrawBufferSize) {
       flushDraws();
     }
 

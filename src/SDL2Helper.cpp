@@ -41,7 +41,9 @@ SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {
         throw;
     }
 
-    setFullScreen(options->isFullScreen());
+    bool fullScreen;
+    options->getOption("fullScreen", fullScreen);
+    setFullScreen(fullScreen);
 
     /* Create our opengl context and attach it to our window */
     context = SDL_GL_CreateContext(window);

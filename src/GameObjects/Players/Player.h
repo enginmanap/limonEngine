@@ -98,10 +98,13 @@ public:
         }
 
         if (inputState.getInputEvents(InputStates::Inputs::RUN)) {
+            LimonTypes::Vec4 movementSpeed;
             if(inputState.getInputStatus(InputStates::Inputs::RUN)) {
-                options->setMoveSpeed(Options::MoveModes::RUN);
+                options->getOption("runSpeed", movementSpeed);
+                options->setOption("moveSpeed", movementSpeed);
             } else {
-                options->setMoveSpeed(Options::MoveModes::WALK);
+                options->getOption("walkSpeed", movementSpeed);
+                options->setOption("moveSpeed", movementSpeed);
             }
         }
 

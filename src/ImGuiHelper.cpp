@@ -323,7 +323,7 @@ void ImGuiHelper::NewFrame() {
     // Setup display size (every frame to accommodate for window resizing)
     io.DisplaySize = ImVec2((float)options->getWindowWidth(), (float)options->getWindowHeight());
     io.DisplayFramebufferScale = ImVec2(options->getWindowWidth() > 0 ? ((float)options->getDrawableWidth() / options->getWindowWidth()) : 0,
-                                        options->getWindowHeight() > 0 ? ((float)options->getWindowHeight() / options->getWindowHeight()) : 0);
+                                        options->getWindowHeight() > 0 ? ((float)options->getDrawableHeight() / options->getWindowHeight()) : 0);
 
     // Setup time step
     static Uint64 frequency = SDL_GetPerformanceFrequency();

@@ -89,6 +89,12 @@ void PhysicalPlayer::move(moveDirections direction) {
         return;
     }
 
+    LimonTypes::Vec4 movementSpeedTemp;
+    options->getOption("moveSpeed", movementSpeedTemp);
+    glm::vec3 movementSpeed = glm::vec3(movementSpeedTemp.x, movementSpeedTemp.y, movementSpeedTemp.z);
+    float jumpFactor;
+    options->getOption("jumpFactor", jumpFactor);
+
     switch (direction) {
         case UP: {
                 skipSpringByJump = true;
@@ -99,7 +105,7 @@ void PhysicalPlayer::move(moveDirections direction) {
                     currentSpeed.setY(0);
                     this->getRigidBody()->setLinearVelocity(currentSpeed);//so jump will not be swallowed by downward speed
                 }
-                inputMovementSpeed = inputMovementSpeed + GLMConverter::GLMToBlt(up * options->getJumpFactor() * 20);
+                inputMovementSpeed = inputMovementSpeed + GLMConverter::GLMToBlt(up * jumpFactor * 20);
                 spring->setEnabled(false);
                 if (currentSound != nullptr) {
                     currentSound->stopAfterFinish();
@@ -107,28 +113,28 @@ void PhysicalPlayer::move(moveDirections direction) {
             }
             break;
         case LEFT_BACKWARD:
-            inputMovementSpeed = GLMConverter::GLMToBlt(-1.0f * (right + center) * options->getMoveSpeed());
+            inputMovementSpeed = GLMConverter::GLMToBlt(-1.0f * (right + center) * movementSpeed);
             break;
         case LEFT_FORWARD:
-            inputMovementSpeed = GLMConverter::GLMToBlt((-1.0f * right + center) * options->getMoveSpeed());
+            inputMovementSpeed = GLMConverter::GLMToBlt((-1.0f * right + center) * movementSpeed);
             break;
         case LEFT:
-            inputMovementSpeed = GLMConverter::GLMToBlt(right * -1.0f * options->getMoveSpeed());
+            inputMovementSpeed = GLMConverter::GLMToBlt(right * -1.0f * movementSpeed);
             break;
         case RIGHT_BACKWARD:
-            inputMovementSpeed = GLMConverter::GLMToBlt((right + -1.0f * center) * options->getMoveSpeed());
+            inputMovementSpeed = GLMConverter::GLMToBlt((right + -1.0f * center) * movementSpeed);
             break;
         case RIGHT_FORWARD:
-            inputMovementSpeed = GLMConverter::GLMToBlt((right + center) * options->getMoveSpeed());
+            inputMovementSpeed = GLMConverter::GLMToBlt((right + center) * movementSpeed);
             break;
         case RIGHT:
-            inputMovementSpeed = GLMConverter::GLMToBlt(right * options->getMoveSpeed());
+            inputMovementSpeed = GLMConverter::GLMToBlt(right * movementSpeed);
             break;
         case BACKWARD:
-            inputMovementSpeed = GLMConverter::GLMToBlt(center * -1.0f * options->getMoveSpeed());
+            inputMovementSpeed = GLMConverter::GLMToBlt(center * -1.0f * movementSpeed);
             break;
         case FORWARD:
-            inputMovementSpeed = GLMConverter::GLMToBlt(center * options->getMoveSpeed());
+            inputMovementSpeed = GLMConverter::GLMToBlt(center * movementSpeed);
             break;
         case NONE:break;//this is here because -Wall complaints if it is not
     }
@@ -145,7 +151,9 @@ void PhysicalPlayer::rotate(float   xPosition __attribute__((unused)), float yPo
     }
     dirty = true;
     glm::quat viewChange;
-    float lookAroundSpeedX = options->getLookAroundSpeed();
+
+    float lookAroundSpeedX;
+    options->getOption("lookAroundSpeed", lookAroundSpeedX);
     //scale look around speed with the abs(center.y). for 1 -> look around 0, for 0 -> lookaround 1.
     float lookAroundSpeedY = lookAroundSpeedX;
     if(((center.y > 0 && yChange < 0) || (center.y < 0 && yChange > 0))) { //if player is moving mouse on the direction. Looking up, moving mouse up, or vice versa. yChange is in reverse
@@ -190,26 +198,31 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
         dirty = true; //Happens if player is inadvertently moving, or dead.
     }
 
+    LimonTypes::Vec4 movementSpeed;
+    options->getOption("moveSpeed", movementSpeed);
+    float jumpFactor;
+    options->getOption("jumpFactor", jumpFactor);
+
     setAttachedModelTransformation(attachedModel);
     btVector3 linearVelocity = player->getLinearVelocity();
-    if( linearVelocity.getX() > options->getMoveSpeed().x ) {
-        linearVelocity.setX(options->getMoveSpeed().x);
+    if( linearVelocity.getX() > movementSpeed.x ) {
+        linearVelocity.setX(movementSpeed.x);
         if(movementSpeedFull) {
             movementSpeedFactor /= 2;
             movementSpeedFull = false;
         }
     }
     if(whileJump) {
-        if( linearVelocity.getY() > options->getJumpFactor()) {
-            linearVelocity.setY(options->getJumpFactor());
+        if( linearVelocity.getY() > jumpFactor) {
+            linearVelocity.setY(jumpFactor);
         }
     } else {
-        if( linearVelocity.getY() > options->getJumpFactor() / 2) {
+        if( linearVelocity.getY() > jumpFactor / 2) {
             //if upward speed is not caused by jumping, lower the speed even more
             if (onAir) {
-                linearVelocity.setY(options->getJumpFactor() / -2);
+                linearVelocity.setY(jumpFactor / -2);
             } else {
-                linearVelocity.setY(options->getJumpFactor() / 4);
+                linearVelocity.setY(jumpFactor / 4);
 
             }
         }
@@ -219,15 +232,15 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
         movementSpeedFull = false;
     }
 
-    if( linearVelocity.getZ() > options->getMoveSpeed().z ) {
-        linearVelocity.setZ(options->getMoveSpeed().z);
+    if( linearVelocity.getZ() > movementSpeed.z ) {
+        linearVelocity.setZ(movementSpeed.z);
         if(movementSpeedFull) {
             movementSpeedFactor /= 2;
             movementSpeedFull = false;
         }
     }
-    if( linearVelocity.getX() < -1* options->getMoveSpeed().x ) {
-        linearVelocity.setX(-1* options->getMoveSpeed().x);
+    if( linearVelocity.getX() < -1* movementSpeed.x ) {
+        linearVelocity.setX(-1* movementSpeed.x);
         if(movementSpeedFull) {
             movementSpeedFactor /= 2;
             movementSpeedFull = false;
@@ -235,16 +248,16 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
     }
     //clamping downward speed is not logical
     /*
-    if( linearVelocity.getY() < -1* options->getMoveSpeed().y ) {
-        linearVelocity.setY(-1* options->getMoveSpeed().y);
+    if( linearVelocity.getY() < -1* movementSpeed.y ) {
+        linearVelocity.setY(-1* movementSpeed.y);
         if(movementSpeedFull) {
             movementSpeedFactor /= 2;
             movementSpeedFull = false;
         }
     }
     */
-    if( linearVelocity.getZ() < -1* options->getMoveSpeed().z ) {
-        linearVelocity.setZ(-1* options->getMoveSpeed().z);
+    if( linearVelocity.getZ() < -1* movementSpeed.z ) {
+        linearVelocity.setZ(-1* movementSpeed.z);
         if(movementSpeedFull) {
             movementSpeedFactor /= 2;
             movementSpeedFull = false;

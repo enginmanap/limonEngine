@@ -32,12 +32,17 @@ public:
             options(options){
         this->name = name;
         this->frustumPlanes.resize(6);
-        orthogonalProjectionMatrix = glm::ortho(options->getLightOrthogonalProjectionValues().x,
-                                                      options->getLightOrthogonalProjectionValues().y,
-                                                      options->getLightOrthogonalProjectionValues().z,
-                                                      options->getLightOrthogonalProjectionValues().w,
-                                                      options->getLightOrthogonalProjectionNearPlane(),
-                                                      options->getLightOrthogonalProjectionFarPlane());
+        LimonTypes::Vec4 lightOrthogonalValues;
+        float lightOrthogonalNear, lightOrthogonalFar;
+        options->getOption("lightOrthogonalProjectionValues", lightOrthogonalValues);
+        options->getOption("lightOrthogonalProjectionNearPlane", lightOrthogonalNear);
+        options->getOption("lightOrthogonalProjectionFarPlane", lightOrthogonalFar);
+        orthogonalProjectionMatrix = glm::ortho(lightOrthogonalValues.x,
+                                                lightOrthogonalValues.y,
+                                                lightOrthogonalValues.z,
+                                                lightOrthogonalValues.w,
+                                                lightOrthogonalNear,
+                                                lightOrthogonalFar);
     }
 
     CameraTypes getType() const override {

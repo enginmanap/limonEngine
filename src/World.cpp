@@ -762,7 +762,9 @@ void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram
     uint32_t triangle, line;
     graphicsWrapper->getRenderTriangleAndLineCount(triangle, line);
     renderCounts->updateText("Tris: " + std::to_string(triangle) + ", lines: " + std::to_string(line));
-    if (options->getRenderInformations()) {
+    bool renderInformations;
+    options->getOption("renderInformations", renderInformations);
+    if (renderInformations) {
         renderCounts->renderWithProgram(renderProgram, 0);
         debugOutputGUI->renderWithProgram(renderProgram, 0);
         fpsCounter->renderWithProgram(renderProgram, 0);

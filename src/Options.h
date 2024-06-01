@@ -10,7 +10,8 @@
 #include <tinyxml2.h>
 #include <unordered_map>
 #include <memory>
-
+#include <functional>
+#include "Utils/HashUtil.h"
 #include "Utils/Logger.h"
 #include "API/LimonTypes.h"
 
@@ -41,6 +42,15 @@ public:
         return true;
     }
 
+    bool getOption(const std::string& optionName, bool &value) const {
+        auto it = this->options.find(optionName);
+        if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::BOOLEAN) {
+            return false;
+        }
+        value = it->second->value.longValue;
+        return true;
+    }
+
     bool getOptionOrDefault(const std::string& optionName, long &value, long defaultValue) const {
         auto it = this->options.find(optionName);
         if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::LONG) {
@@ -51,23 +61,40 @@ public:
         return true;
     }
 
-    void setOption(const std::string& optionName, long value){
+    bool getOptionOrDefault(const std::string& optionName, std::string &value, const std::string &defaultValue) const {
         auto it = this->options.find(optionName);
-        if(it == this->options.end()) {
-            std::shared_ptr<LimonTypes::GenericParameter> parameter;
-            parameter->description = optionName;
-            this->options[optionName] = parameter;
-            it = this->options.find(optionName);
+        if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::STRING) {
+            value = defaultValue;
+            return false;
         }
-        it->second->valueType = LimonTypes::GenericParameter::LONG;
-        it->second->value.longValue = value;
+        value = it->second->value.stringValue;
+        return true;
     }
+
+    bool getOption(const std::string& optionName, std::string &value) const {
+        auto it = this->options.find(optionName);
+        if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::STRING) {
+            return false;
+        }
+        value = it->second->value.stringValue;
+        return true;
+    }
+
     bool getOption(const std::string& optionName, double &value) const {
         auto it = this->options.find(optionName);
         if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::DOUBLE) {
             return false;
         }
         value = it->second->value.doubleValue;
+        return true;
+    }
+
+    bool getOption(const std::string& optionName, float &value) const {
+        auto it = this->options.find(optionName);
+        if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::DOUBLE) {
+            return false;
+        }
+        value = (float)it->second->value.doubleValue;
         return true;
     }
 
@@ -79,18 +106,6 @@ public:
         }
         value = it->second->value.doubleValue;
         return true;
-    }
-
-    void setOption(const std::string& optionName, double value){
-        auto it = this->options.find(optionName);
-        if(it == this->options.end()) {
-            std::shared_ptr<LimonTypes::GenericParameter> parameter;
-            parameter->description = optionName;
-            this->options[optionName] = parameter;
-            it = this->options.find(optionName);
-        }
-        it->second->valueType = LimonTypes::GenericParameter::DOUBLE;
-        it->second->value.doubleValue = value;
     }
 
     bool getOption(const std::string& optionName, LimonTypes::Vec4 &value) const {
@@ -105,7 +120,7 @@ public:
     void setOption(const std::string& optionName, LimonTypes::Vec4 value){
         auto it = this->options.find(optionName);
         if(it == this->options.end()) {
-            std::shared_ptr<LimonTypes::GenericParameter> parameter;
+            std::shared_ptr<LimonTypes::GenericParameter> parameter = std::make_shared<LimonTypes::GenericParameter>();
             parameter->description = optionName;
             this->options[optionName] = parameter;
             it = this->options.find(optionName);
@@ -114,45 +129,53 @@ public:
         it->second->value.vectorValue = value;
     }
 
+    void setOption(const std::string& optionName, double value){
+        auto it = this->options.find(optionName);
+        if(it == this->options.end()) {
+            std::shared_ptr<LimonTypes::GenericParameter> parameter = std::make_shared<LimonTypes::GenericParameter>();
+            parameter->description = optionName;
+            this->options[optionName] = parameter;
+            it = this->options.find(optionName);
+        }
+        it->second->valueType = LimonTypes::GenericParameter::DOUBLE;
+        it->second->value.doubleValue = value;
+    }
+
+    void setOption(const std::string& optionName, long value){
+        auto it = this->options.find(optionName);
+        if(it == this->options.end()) {
+            std::shared_ptr<LimonTypes::GenericParameter> parameter = std::make_shared<LimonTypes::GenericParameter>();
+            parameter->description = optionName;
+            this->options[optionName] = parameter;
+            it = this->options.find(optionName);
+        }
+        it->second->valueType = LimonTypes::GenericParameter::LONG;
+        it->second->value.longValue = value;
+    }
+
+    void setOption(const std::string& optionName, bool value){
+        auto it = this->options.find(optionName);
+        if(it == this->options.end()) {
+            std::shared_ptr<LimonTypes::GenericParameter> parameter = std::make_shared<LimonTypes::GenericParameter>();
+            parameter->description = optionName;
+            this->options[optionName] = parameter;
+            it = this->options.find(optionName);
+        }
+        it->second->valueType = LimonTypes::GenericParameter::BOOLEAN;
+        it->second->value.boolValue = value;
+    }
+
 private:
     Logger *logger{};
     std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>> options;
+    std::unordered_map<uint64_t, std::function<void(uint64_t)>> changeRegisters;
 
-    glm::vec3 walkSpeed = glm::vec3(8, 0, 8);
-    glm::vec3 runSpeed = glm::vec3(12, 0, 12);
-    glm::vec3 moveSpeed = walkSpeed;
-    glm::vec3 freeMovementSpeed = glm::vec3(0.1f,0.1f,0.1f);
-    float jumpFactor = 7.0f;
-    float lookAroundSpeed = -6.5f;
-/*    uint32_t screenHeight = 1080;
-    uint32_t screenWidth = 1920;*/
-
-    uint32_t shadowMapDirectionalWidth = 2048;
-    uint32_t shadowMapDirectionalHeight = 2048;
-    uint32_t shadowMapPointWidth = 512;
-    uint32_t shadowMapPointHeight = 512;
-    float lightOrthogonalProjectionNearPlane = 1.0f;
-    float  lightOrthogonalProjectionFarPlane = 100.0f;
-    glm::vec4 lightOrthogonalProjectionValues = glm::vec4(-100.0f, 100.0f, -100.0f, 100.0f);
-    float lightPerspectiveProjectionNearPlane = 1.0f;
-    float  lightPerspectiveProjectionFarPlane = 100.0f;
-    glm::vec3 lightPerspectiveProjectionValues = glm::vec3((float)shadowMapPointWidth/(float)shadowMapPointHeight, lightPerspectiveProjectionNearPlane, lightPerspectiveProjectionFarPlane);
-    //aspect,near,far
-
-    uint32_t debugDrawBufferSize = 1000;
 
     /*SDL properties that should be available */
     void* imeWindowHandle;
     int drawableWidth, drawableHeight;
     int windowWidth, windowHeight;
     bool isWindowInFocus;
-    TextureFilteringModes currentTextureFilteringMode = TextureFilteringModes::TRILINEAR;
-
-    bool fullScreen = false;
-
-    uint32_t ssaoSampleCount = 9;
-    bool ssaoEnabled = false;
-    bool renderInformations = true;
 
     bool loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec3&);
     bool loadVec4(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec4&);
@@ -162,7 +185,6 @@ private:
     bool loadBool(tinyxml2::XMLNode *optionsNode, const std::string &name, bool&);
 public:
 
-    bool loadOptions(const std::string& optionsFileName);
     bool loadOptionsNew(const std::string& optionsFileName);
 
     void *getImeWindowHandle() const {
@@ -213,64 +235,6 @@ public:
         Options::isWindowInFocus = isWindowInFocus;
     }
 
-    uint32_t getDebugDrawBufferSize() const {
-        return debugDrawBufferSize;
-    }
-
-    void setDebugDrawBufferSize(uint32_t debugDrawBufferSize) {
-        //we must resize the buffer for debug draw lines
-        //Options::debugDrawBufferSize = debugDrawBufferSize;
-        std::cerr << "Setting debugDrawBufferSize(" << debugDrawBufferSize << ") is not implemented." << std::endl;
-    }
-
-    uint32_t getShadowMapDirectionalWidth() const {
-        return shadowMapDirectionalWidth;
-    }
-
-    uint32_t getShadowMapDirectionalHeight() const {
-        return shadowMapDirectionalHeight;
-    }
-
-    uint32_t getShadowMapPointWidth() const {
-        return shadowMapPointWidth;
-    }
-
-    uint32_t getShadowMapPointHeight() const {
-        return shadowMapPointHeight;
-    }
-
-    float getLightOrthogonalProjectionNearPlane() const {
-        return lightOrthogonalProjectionNearPlane;
-    }
-
-    void setLightOrthogonalProjectionNearPlane(float lightOrthogonalProjectionNearPlane) {
-        Options::lightOrthogonalProjectionNearPlane = lightOrthogonalProjectionNearPlane;
-    }
-
-    float getLightOrthogonalProjectionFarPlane() const {
-        return lightOrthogonalProjectionFarPlane;
-    }
-
-    void setLightOrthogonalProjectionFarPlane(float lightOrthogonalProjectionFarPlane) {
-        Options::lightOrthogonalProjectionFarPlane = lightOrthogonalProjectionFarPlane;
-    }
-
-    const glm::vec4 &getLightOrthogonalProjectionValues() const {
-        return lightOrthogonalProjectionValues;
-    }
-
-    void setLightOrthogonalProjectionValues(const glm::vec4 &lightOrthogonalProjectionValues) {
-        Options::lightOrthogonalProjectionValues = lightOrthogonalProjectionValues;
-    }
-
-    const glm::vec3 &getLightPerspectiveProjectionValues() const {
-        return lightPerspectiveProjectionValues;
-    }
-
-    void setLightPerspectiveProjectionValues(const glm::vec3 &lightPerspectiveProjectionValues) {
-        Options::lightPerspectiveProjectionValues = lightPerspectiveProjectionValues;
-    }
-
     uint32_t getScreenHeight() const {
         uint32_t height = 1080;//default
         getOption("screenHeight", height);
@@ -291,43 +255,6 @@ public:
         setOption("screenWidth", (long)width);
     }
 
-    const glm::vec3 &getMoveSpeed() const {
-        return moveSpeed;
-    }
-
-    const glm::vec3 &getFreeMovementSpeed() const {
-        return freeMovementSpeed;
-    }
-
-    float getJumpFactor() const {
-        return jumpFactor;
-    }
-
-    float getLookAroundSpeed() const {
-        return lookAroundSpeed;
-    }
-
-    void setMoveSpeed(const MoveModes moveMode) {
-        switch(moveMode) {
-            case MoveModes::RUN:
-                moveSpeed = runSpeed;
-                break;
-            case MoveModes::WALK:
-            default:
-                moveSpeed = walkSpeed;
-
-        }
-    }
-
-    void setJumpFactor(float jumpFactor) {
-        Options::jumpFactor = jumpFactor;
-    }
-
-    void setLookAroundSpeed(float lookAroundSpeed) {
-        this->lookAroundSpeed = lookAroundSpeed;
-        logger->log(Logger::log_Subsystem_SETTINGS, Logger::log_level_DEBUG, "Look around speed set to " + std::to_string(lookAroundSpeed));
-    }
-
     Options() {
         this->logger = new Logger();
     };
@@ -336,41 +263,6 @@ public:
         return logger;
     }
 
-    TextureFilteringModes getTextureFiltering() {
-        return currentTextureFilteringMode;
-    }
-
-    bool isFullScreen() const {
-        return fullScreen;
-    }
-
-    void setFullScreen(bool isFullScreen) {
-        this->fullScreen = isFullScreen;
-    }
-
-    uint32_t getSSAOSampleCount() const {
-        return ssaoSampleCount;
-    }
-
-    void setSSAOSampleCount(uint32_t sampleCount) {
-        ssaoSampleCount = sampleCount;
-    }
-
-    bool isSsaoEnabled() const {
-        return ssaoEnabled;
-    }
-
-    void setSsaoEnabled(bool ssaoEnabled) {
-        this->ssaoEnabled = ssaoEnabled;
-    }
-
-    bool getRenderInformations() {
-        return renderInformations;
-    }
-
-    void setRenderInformations(bool renderInformations) {
-        this->renderInformations = renderInformations;
-    }
 };
 
 

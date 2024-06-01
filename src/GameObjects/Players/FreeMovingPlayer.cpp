@@ -10,34 +10,38 @@ void FreeMovingPlayer::move(moveDirections direction) {
         return;
     }
     dirty = true;
+    LimonTypes::Vec4 movementSpeed;
+    options->getOption("freeMovementSpeed", movementSpeed);
+    float jumpFactor;
+    options->getOption("jumpFactor", jumpFactor);
 
     switch (direction) {
         case UP:
-            position +=(up * options->getJumpFactor() / 100.0f);
+            position +=(up * jumpFactor / 100.0f);
             break;
         case LEFT_BACKWARD:
-            position +=(-1.0f * (right + center) * options->getFreeMovementSpeed().x);
+            position +=(-1.0f * (right + center) * movementSpeed.x);
             break;
         case LEFT_FORWARD:
-            position +=((-1.0f * right + center) * options->getFreeMovementSpeed().x);
+            position +=((-1.0f * right + center) * movementSpeed.x);
             break;
         case LEFT:
-            position +=(right * -1.0f * options->getFreeMovementSpeed().x);
+            position +=(right * -1.0f * movementSpeed.x);
             break;
         case RIGHT_BACKWARD:
-            position +=((right + -1.0f * center) * options->getFreeMovementSpeed().x);
+            position +=((right + -1.0f * center) * movementSpeed.x);
             break;
         case RIGHT_FORWARD:
-            position +=((right + center) * options->getFreeMovementSpeed().x);
+            position +=((right + center) * movementSpeed.x);
             break;
         case RIGHT:
-            position +=(right * options->getFreeMovementSpeed().x);
+            position +=(right * movementSpeed.x);
             break;
         case BACKWARD:
-            position +=(center * -1.0f * options->getFreeMovementSpeed().x);
+            position +=(center * -1.0f * movementSpeed.x);
             break;
         case FORWARD:
-            position +=(center * options->getFreeMovementSpeed().x);
+            position +=(center * movementSpeed.x);
             break;
         case NONE:break;//this is here because -Wall complaints if it is not
     }
@@ -46,7 +50,9 @@ void FreeMovingPlayer::move(moveDirections direction) {
 void FreeMovingPlayer::rotate(float xPosition [[gnu::unused]], float yPosition [[gnu::unused]], float xChange, float yChange) {
     dirty = true;
     glm::quat viewChange;
-    float lookAroundSpeedX = options->getLookAroundSpeed();
+    float lookAroundSpeed;
+    options->getOption("lookAroundSpeed", lookAroundSpeed);
+    float lookAroundSpeedX = lookAroundSpeed;
     //scale look around speed with the abs(center.y). for 1 -> look around 0, for 0 -> lookaround 1.
     float lookAroundSpeedY = lookAroundSpeedX * (1- (center.y * center.y));
     viewChange = glm::quat(cos(yChange * lookAroundSpeedY / 2),

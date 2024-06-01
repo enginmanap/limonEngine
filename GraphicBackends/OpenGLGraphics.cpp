@@ -1274,21 +1274,18 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
 
     glTexParameteri(glTextureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    switch (options->getTextureFiltering()) {
-        case Options::TextureFilteringModes::NEAREST:
-            glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(glTextureType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            break;
-        case Options::TextureFilteringModes::BILINEAR:
-            glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(glTextureType, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            break;
-        case Options::TextureFilteringModes::TRILINEAR:
-            glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glTexParameteri(glTextureType, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            break;
+    std::string temp;
+    options->getOptionOrDefault("TextureFiltering", temp, "Nearest");
+    if (temp == "Nearest") {
+        glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(glTextureType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    } else if(temp == "Bilinear") {
+        glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(glTextureType, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    } else if(temp == "Trilinear") {
+        glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(glTextureType, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
-    glGenerateMipmap(glTextureType);
     glBindTexture(glTextureType, 0);
 
     checkErrors("Texture Constructor");
@@ -1327,6 +1324,7 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
         case DataTypes::UNSIGNED_BYTE: glDataType = GL_UNSIGNED_BYTE; break;
         case DataTypes::UNSIGNED_SHORT: glDataType = GL_UNSIGNED_SHORT; break;
         case DataTypes::UNSIGNED_INT: glDataType = GL_UNSIGNED_INT; break;
+        case DataTypes::HALF_FLOAT: glDataType = GL_HALF_FLOAT; break;
     }
 
     GLenum glTextureType;

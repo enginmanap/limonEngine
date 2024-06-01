@@ -104,12 +104,17 @@ private:
     }
 
     void setShadowMatricesForPosition(){
+        long sWidth, sHeight;
+        float near, far;
+        options->getOption("shadowMapPointWidth", sWidth);
+        options->getOption("shadowMapPointHeight", sHeight);
+        options->getOption("lightPerspectiveProjectionNearPlane", near);
+        options->getOption("lightPerspectiveProjectionFarPlane", far);
 
         glm::mat4 lightProjectionMatrixPoint = glm::perspective(glm::radians(90.0f),
-                                                      options->getLightPerspectiveProjectionValues().x,
-                                                      options->getLightPerspectiveProjectionValues().y,
-                                                      options->getLightPerspectiveProjectionValues().z);
-
+                                                      (float)sWidth/(float)sHeight,
+                                                      near,
+                                                      far);
         renderMatrices[0] = lightProjectionMatrixPoint *
                             glm::lookAt(position, position + glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0));
         renderMatrices[1] = lightProjectionMatrixPoint *

@@ -22,6 +22,7 @@ class BulletDebugDrawer : public btIDebugDraw {
     uint32_t vao, vbo, ebo;
     std::vector<Line> lineBuffer;
     Options* options;
+    long debugDrawBufferSize;
 public:
     BulletDebugDrawer(std::shared_ptr<AssetManager> assetManager, Options* options);
 

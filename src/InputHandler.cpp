@@ -115,11 +115,17 @@ void InputHandler::mapInput() {
                     case SDLK_2:
                         inputState.setInputStatus(InputStates::Inputs::NUMBER_2, true);
                         break;
-                    case SDLK_KP_PLUS:
-                        options->setLookAroundSpeed(options->getLookAroundSpeed() + 1.0f);
+                    case SDLK_KP_PLUS: {
+                        float lookAroundSpeed;
+                        options->getOption("lookAroundSpeed", lookAroundSpeed);
+                        options->setOption("lookAroundSpeed", lookAroundSpeed + 1.0f);
+                    }
                         break;
-                    case SDLK_KP_MINUS:
-                        options->setLookAroundSpeed(options->getLookAroundSpeed() - 1.0f);
+                    case SDLK_KP_MINUS: {
+                        float lookAroundSpeed;
+                        options->getOption("lookAroundSpeed", lookAroundSpeed);
+                        options->setOption("lookAroundSpeed", lookAroundSpeed - 1.0f);
+                    }
                         break;
                 }
                 break;
