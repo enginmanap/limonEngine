@@ -34,9 +34,9 @@ bool WesternStoryAtUndertakerAction::run(std::vector<LimonTypes::GenericParamete
 
     textID1 = limonAPI->addGuiText("./Data/Fonts/InsaneRodeo.ttf", 64, "firstText", "Bingo", glm::vec3(170, 170, 50), glm::vec2(0.5f, 0.2f), 0.0f);
     std::vector<LimonTypes::GenericParameter> emptyParamList;
-    limonAPI->addTimedEvent( 2000, std::bind(&WesternStoryAtUndertakerAction::showMessages1, this, std::placeholders::_1), emptyParamList);
-    limonAPI->addTimedEvent(6000, std::bind(&WesternStoryAtUndertakerAction::showMessages2, this, std::placeholders::_1), emptyParamList);
-    limonAPI->addTimedEvent(10000, std::bind(&WesternStoryAtUndertakerAction::showMessages3, this, std::placeholders::_1), emptyParamList);
+    limonAPI->addTimedEvent( 2000, false, std::bind(&WesternStoryAtUndertakerAction::showMessages1, this, std::placeholders::_1), emptyParamList);
+    limonAPI->addTimedEvent(6000, false, std::bind(&WesternStoryAtUndertakerAction::showMessages2, this, std::placeholders::_1), emptyParamList);
+    limonAPI->addTimedEvent(10000, false, std::bind(&WesternStoryAtUndertakerAction::showMessages3, this, std::placeholders::_1), emptyParamList);
     this->hasRun = true;
     return true;
 }

@@ -83,7 +83,7 @@ bool DoorAnimationAction::run(std::vector<LimonTypes::GenericParameter> paramete
     std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall = std::bind(&DoorAnimationAction::resetAnimationRun, this, std::placeholders::_1);
     std::vector<LimonTypes::GenericParameter> emptyParams;
 
-    limonAPI->addTimedEvent(this->stateResetTime, methodToCall, emptyParams);
+    limonAPI->addTimedEvent(this->stateResetTime, false, methodToCall, emptyParams);
 
     return true;
 }

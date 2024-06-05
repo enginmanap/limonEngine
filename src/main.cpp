@@ -38,7 +38,7 @@ bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
     loadedWorlds[worldFile].first = currentWorld;
     loadedWorlds[worldFile].second = apiInstance;
     returnWorldStack.push_back(currentWorld);
-    previousTime = SDL_GetTicks();
+    previousGameTime = SDL_GetTicks64();
     return true;
 }
 
@@ -80,7 +80,7 @@ bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
     }
     currentWorld->setupForPlay(*inputHandler);
     returnWorldStack.push_back(currentWorld);
-    previousTime = SDL_GetTicks();
+    previousGameTime = SDL_GetTicks64();
     return true;
 }
 
@@ -104,7 +104,7 @@ bool GameEngine::LoadNewAndRemoveCurrent(const std::string &worldFile) {
         loadedWorlds[temp->getName()].first = temp;
         loadedWorlds[temp->getName()].second = tempAPI;
     }
-    previousTime = SDL_GetTicks();
+    previousGameTime = SDL_GetTicks64();
     return true;
 }
 
@@ -117,7 +117,7 @@ void GameEngine::returnPreviousMap() {
         currentWorld = returnWorldStack[returnWorldStack.size()-1];
         currentWorld->setupForPlay(*inputHandler);
     }
-    previousTime = SDL_GetTicks();
+    previousGameTime = SDL_GetTicks64();
 }
 
 GameEngine::GameEngine() {
@@ -178,19 +178,19 @@ void GameEngine::run() {
     Uint32 worldUpdateTime = 1000 / 60;//This value is used to update world on a locked Timestep
 
     graphicsWrapper->clearFrame();
-    previousTime = SDL_GetTicks();
-    Uint32 currentTime, frameTime, accumulatedTime = 0;
+    previousGameTime = SDL_GetTicks64();
+    uint64_t currentGameTime, frameTime, accumulatedTime = 0;
     while (!worldQuit) {
-        currentTime = SDL_GetTicks();
-        frameTime = currentTime - previousTime;
-        previousTime = currentTime;
+        currentGameTime = SDL_GetTicks64();
+        frameTime = currentGameTime - previousGameTime;
+        previousGameTime = currentGameTime;
         accumulatedTime += frameTime;
         if (accumulatedTime >= worldUpdateTime) {
             //we don't need to check for input, if we won't update world state
             inputHandler->mapInput();
 
             //FIXME this does not account for long operations/low framerate
-            currentWorld->play(worldUpdateTime, *inputHandler);
+            currentWorld->play(worldUpdateTime, *inputHandler, SDL_GetTicks64());
             accumulatedTime -= worldUpdateTime;
         }
         graphicsWrapper->clearFrame();

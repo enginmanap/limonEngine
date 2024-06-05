@@ -37,7 +37,7 @@ class GameEngine {
     std::unordered_map<std::string, std::pair<World*, LimonAPI*>> loadedWorlds;
     std::vector<World*> returnWorldStack;//stack doesn't have clear, so I am using vector
     GUIImage* loadingImage = nullptr;
-    uint32_t previousTime = 0;
+    uint64_t previousGameTime = 0;
 public:
 
     GameEngine();

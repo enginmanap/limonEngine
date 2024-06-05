@@ -45,8 +45,8 @@ bool WesternStoryNewGameAction::run(std::vector<LimonTypes::GenericParameter> pa
 
     //now register timed events
     std::vector<LimonTypes::GenericParameter> emptyParamList;
-    limonAPI->addTimedEvent(730 * 1000 / 60, std::bind(&WesternStoryNewGameAction::animateThoughts, this, std::placeholders::_1), emptyParamList);
-    limonAPI->addTimedEvent((730 + 310) *  1000 / 60, std::bind(&WesternStoryNewGameAction::switchWorld, this, std::placeholders::_1), emptyParamList);
+    limonAPI->addTimedEvent(730 * 1000 / 60, false, std::bind(&WesternStoryNewGameAction::animateThoughts, this, std::placeholders::_1), emptyParamList);
+    limonAPI->addTimedEvent((730 + 310) *  1000 / 60, false, std::bind(&WesternStoryNewGameAction::switchWorld, this, std::placeholders::_1), emptyParamList);
     return true;
 }
 

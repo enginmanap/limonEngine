@@ -135,10 +135,11 @@ bool LimonAPI::setLightColor(uint32_t lightID, const LimonTypes::Vec4 &color){
     return worldSetLightColor(lightID, color);
 }
 
-long LimonAPI::addTimedEvent(long waitTime,
+//Wall time parameter is used to determine using wall time or game time. These differ because loading other worlds (menus) or editor will stop game time.
+long LimonAPI::addTimedEvent(uint64_t waitTime, bool useWallTime,
                              std::function<void(const std::vector<LimonTypes::GenericParameter> &)> methodToCall,
                              std::vector<LimonTypes::GenericParameter> parameters) {
-    return worldAddTimedEvent(waitTime, methodToCall, parameters);
+    return worldAddTimedEvent(waitTime, useWallTime, methodToCall, parameters);
 }
 
 bool LimonAPI::cancelTimedEvent(long handleId) {

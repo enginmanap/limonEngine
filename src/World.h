@@ -139,15 +139,16 @@ public:
 private:
 
     struct TimedEvent {
-        long callTime;
+        uint64_t callTime;
         long handleId;
         bool active = true;
+        bool useWallTime = false;
         std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall;
         std::vector<LimonTypes::GenericParameter> parameters;
 
-        TimedEvent(long handleId, long callTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
+        TimedEvent(long handleId, uint64_t callTime, bool useWallTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
                    std::vector<LimonTypes::GenericParameter> parameters) :
-                   callTime(callTime), handleId(handleId), methodToCall(std::move(methodToCall)), parameters(std::move(parameters)) {}
+                callTime(callTime), handleId(handleId), useWallTime(useWallTime), methodToCall(std::move(methodToCall)), parameters(std::move(parameters)) {}
 
         bool operator>(const TimedEvent &timedEventRight) const {
             return callTime > timedEventRight.callTime;
@@ -232,7 +233,7 @@ private:
     std::unordered_map<Camera*, std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>*> cullingResults;
 
     /************************* End of redundant variables ******************************************/
-    std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<TimedEvent>> timedEvents;
+    std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<>> timedEvents;
     long timedEventHandleIndex = 1;//we don't need to keep them, just have them unique
 
 
@@ -260,7 +261,8 @@ private:
     char quitWorldNameBuffer[256] = {0};
     std::string quitWorldName;
 
-    long gameTime = 0;
+    uint64_t gameTime = 0;
+    uint64_t wallTime = 0;
     glm::vec3 worldAABBMin= glm::vec3(std::numeric_limits<float>::max());
     glm::vec3 worldAABBMax = glm::vec3(std::numeric_limits<float>::min());
 
@@ -447,7 +449,7 @@ private:
 public:
     ~World();
 
-    void play(Uint32, InputHandler &);
+    void play(Uint32, InputHandler &, uint64_t wallTime);
 
     void render();
 
@@ -549,8 +551,8 @@ public:
     void interactWithPlayerAPI(std::vector<LimonTypes::GenericParameter> &interactionInformation) const;
     void simulateInputAPI(InputStates input);
 
-    long addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
-                              std::vector<LimonTypes::GenericParameter> parameters);
+    long addTimedEventAPI(uint64_t waitTime, bool useWallTime, std::function<void(const std::vector<LimonTypes::GenericParameter> &)> methodToCall,
+                          std::vector<LimonTypes::GenericParameter> parameters);
     bool cancelTimedEventAPI(long handleId);
 
     uint32_t getPlayerAttachedModelAPI();

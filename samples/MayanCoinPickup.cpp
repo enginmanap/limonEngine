@@ -94,7 +94,7 @@ bool MayanCoinPickup::run(std::vector<LimonTypes::GenericParameter> parameters) 
         std::cerr << "Particle Emitter not found!" << std::endl;
     } else {
         std::vector<LimonTypes::GenericParameter> empty;
-        limonAPI->addTimedEvent(7000, [=](const std::vector<LimonTypes::GenericParameter>&) { limonAPI->disableParticleEmitter(575);}  , empty);
+        limonAPI->addTimedEvent(7000, false, [=](const std::vector<LimonTypes::GenericParameter>&) { limonAPI->disableParticleEmitter(575);}  , empty);
     }
 
 
@@ -113,6 +113,9 @@ bool MayanCoinPickup::run(std::vector<LimonTypes::GenericParameter> parameters) 
             addedTextId = limonAPI->addGuiText("./Data/Fonts/Helvetica-Normal.ttf", 32, "Coin pick text",
                                                text, glm::vec3(150, 150, 255), glm::vec2(0.9f, 0.3f), 0.0f);
         }
+        std::vector<LimonTypes::GenericParameter> empty;
+        limonAPI->addTimedEvent(5000, false, [=](const std::vector<LimonTypes::GenericParameter>&) { limonAPI->removeGuiElement(addedTextId);}  , empty);
+
         result = result && addedTextId != 0;
     }
     return result;

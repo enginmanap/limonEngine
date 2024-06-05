@@ -126,7 +126,7 @@ public:
     std::vector<uint32_t> getModelChildren(uint32_t modelID);
 
 
-    long addTimedEvent(long waitTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall, std::vector<LimonTypes::GenericParameter> parameters);
+    long addTimedEvent(uint64_t waitTime, bool useWallTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall, std::vector<LimonTypes::GenericParameter> parameters);
     bool cancelTimedEvent(long handleId);
 
 
@@ -224,7 +224,7 @@ private:
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldAddLightTranslate;
     std::function<bool (uint32_t, const LimonTypes::Vec4&)> worldSetLightColor;
 
-    std::function<long (long, std::function<void(const std::vector<LimonTypes::GenericParameter>&)>, std::vector<LimonTypes::GenericParameter>)> worldAddTimedEvent;
+    std::function<long (uint64_t, bool, std::function<void(const std::vector<LimonTypes::GenericParameter>&)>, std::vector<LimonTypes::GenericParameter>)> worldAddTimedEvent;
     std::function<bool (long)> worldCancelTimedEvent;
 
     std::function<bool (uint32_t)> worldEnableParticleEmitter;

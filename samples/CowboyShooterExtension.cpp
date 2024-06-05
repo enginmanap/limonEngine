@@ -206,7 +206,7 @@ void CowboyShooterExtension::shootingTransition() {
     removeID.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
     removeID.value.longValue = (long)muzzleFlashObjectID;
     removeParameters.push_back(removeID);
-    limonAPI->addTimedEvent(250, std::bind(&CowboyShooterExtension::removeMuzzleFlash, this, std::placeholders::_1), removeParameters);
+    limonAPI->addTimedEvent(250, false, std::bind(&CowboyShooterExtension::removeMuzzleFlash, this, std::placeholders::_1), removeParameters);
     /*************** Set timed event for muzzle flash removal *********************/
 
 
@@ -429,7 +429,7 @@ void CowboyShooterExtension::addDamageIndicator(const std::vector<LimonTypes::Ge
 
     removeIDs.value.longValues[0] = static_cast<long>(addedElementCount);
     removeParameters.push_back(removeIDs);
-    limonAPI->addTimedEvent(250, bind(&CowboyShooterExtension::removeDamageIndicator, this, std::placeholders::_1), removeParameters);
+    limonAPI->addTimedEvent(250, false, bind(&CowboyShooterExtension::removeDamageIndicator, this, std::placeholders::_1), removeParameters);
     if(!hitReaction) {
         hitTime = lastInputTime;
         hitReaction = true;

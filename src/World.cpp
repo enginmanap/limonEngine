@@ -230,7 +230,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
   * @param inputHandler
   * @return
   */
- void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler) {
+ void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler, uint64_t wallTime) {
 
      // If not in editor mode, dont let imgGuiHelper get input
      // if in editor mode, but player press editor button, dont allow imgui to process input
@@ -242,14 +242,15 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          }
      }
 
+     this->wallTime = wallTime;
      //Seperating physics step and visibility, because physics is used by camera, and camera is used by visibility
      if(currentPlayersSettings->worldSimulation) {
          //every time we call this method, we increase the time only by simulationTimeframe
          gameTime += simulationTimeFrame;
          dynamicsWorld->stepSimulation(simulationTimeFrame / 1000.0f);
          currentPlayer->processPhysicsWorld(dynamicsWorld);
-         checkAndRunTimedEvents();
      }
+     checkAndRunTimedEvents();//no londer requires to be in world simulation, because it checks both game time and wall time now
      if(playerCamera->isDirty()) {
          graphicsWrapper->setPlayerMatrices(playerCamera->getPosition(), playerCamera->getCameraMatrix(), gameTime);//this is required for any render
          alHelper->setListenerPositionAndOrientation(playerCamera->getPosition(), playerCamera->getCenter(), playerCamera->getUp());
@@ -2386,10 +2387,12 @@ void World::simulateInputAPI(InputStates input) {
     }
 }
 
-long World::addTimedEventAPI(long waitTime, std::function<void(const std::vector<LimonTypes::GenericParameter>&)> methodToCall,
-                              std::vector<LimonTypes::GenericParameter> parameters) {
+long World::addTimedEventAPI(uint64_t waitTime, bool useWallTime, std::function<void(const std::vector<LimonTypes::GenericParameter> &)> methodToCall,
+                             std::vector<LimonTypes::GenericParameter> parameters) {
     long handleId = timedEventHandleIndex++;
-    timedEvents.push(TimedEvent(handleId, waitTime + gameTime, methodToCall, parameters));
+    uint64_t callTime = useWallTime ? this->wallTime : this->gameTime;
+    callTime += waitTime;
+    timedEvents.emplace(handleId, callTime, useWallTime, std::move(methodToCall), std::move(parameters));
     return handleId;
 }
 
@@ -2406,9 +2409,23 @@ bool World::cancelTimedEventAPI(long handleId) {
 
 
 void World::checkAndRunTimedEvents() {
-    while (!timedEvents.empty() && timedEvents.top().callTime <= gameTime) {
-        timedEvents.top().run();
-        timedEvents.pop();
+    //we need to check 2 different things
+    while(!timedEvents.empty()) {
+        bool nothingToRun = true;
+        //if there are waiting timed events we need to check if they need to run
+        if(timedEvents.top().useWallTime && timedEvents.top().callTime <= wallTime) {
+            timedEvents.top().run();
+            timedEvents.pop();
+            nothingToRun = false;
+        }
+        if(!timedEvents.top().useWallTime && timedEvents.top().callTime <= gameTime){
+            timedEvents.top().run();
+            timedEvents.pop();
+            nothingToRun = false;
+        }
+        if(nothingToRun) {
+            break;
+        }
     }
 }
 
@@ -3075,12 +3092,13 @@ void World::drawNodeEditor() {
                 }
             }
             std::vector<LimonTypes::GenericParameter> empty;
-            handleId = addTimedEventAPI(10000,
-                             [&](const std::vector<LimonTypes::GenericParameter>&) {
-                                                        this->renderPipeline = this->renderPipelineBackup;
-                                                        this->renderPipelineBackup = nullptr;
-                                                        handleId = 0;},
-                                    empty);
+            handleId = addTimedEventAPI(10000, true,
+                                        [&](const std::vector<LimonTypes::GenericParameter> &) {
+                                            this->renderPipeline = this->renderPipelineBackup;
+                                            this->renderPipelineBackup = nullptr;
+                                            handleId = 0;
+                                        },
+                                        empty);
             this->renderPipelineBackup = this->renderPipeline;
             this->renderPipeline = builtRenderPipeline;
         }

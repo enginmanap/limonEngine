@@ -259,7 +259,7 @@ void ShooterPlayerExtension::interact(std::vector<LimonTypes::GenericParameter> 
         removeID.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
         removeID.value.longValue = addedElement;
         removeParameters.push_back(removeID);
-        limonAPI->addTimedEvent(250, std::bind(&ShooterPlayerExtension::removeDamageIndicator, this, std::placeholders::_1), removeParameters);
+        limonAPI->addTimedEvent(250, false, std::bind(&ShooterPlayerExtension::removeDamageIndicator, this, std::placeholders::_1), removeParameters);
     }
 
     if(addedElement !=0) {
