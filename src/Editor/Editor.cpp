@@ -124,10 +124,8 @@ void Editor::renderEditor(World& world) {
 
                     glm::vec3 translate, scale;
                     glm::quat orientation;
-                    pickedModelTransformation->getDifferenceAddition(*world.objectToAttach->getTransformation(), translate,
+                    pickedModelTransformation->getDifferenceStacked(*world.objectToAttach->getTransformation(), translate,
                                                                      scale, orientation);
-                    translate = translate * (1.0f / pickedModelTransformation->getScale());
-                    translate = translate * pickedModelTransformation->getOrientation();
                     world.objectToAttach->getTransformation()->setTranslate(translate);
                     world.objectToAttach->getTransformation()->setScale(scale);
                     world.objectToAttach->getTransformation()->setOrientation(orientation);

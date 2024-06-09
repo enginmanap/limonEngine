@@ -97,9 +97,9 @@ protected:
 
     glm::mat4 generateWorldTransformWithParent(){
         //glm::mat4 totalTransform = parentTransform->generateWorldTransformDefault() * this->generateWorldTransformSingle();
-        Transformation* parent = this->parentTransform;
         glm::mat4 rawTotalTransform = this->generateWorldTransformDefault();
         glm::mat4 totalTransform = this->generateWorldTransformSingle();
+        Transformation* parent = this->parentTransform;
         while(parent != nullptr) {
             glm::mat4 parentTransformTemp = parent->generateWorldTransformDefault();
             rawTotalTransform = parentTransformTemp * rawTotalTransform;

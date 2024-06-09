@@ -162,9 +162,9 @@ ModelGroup *ModelGroup::deserialize(GraphicsInterface* graphicsWrapper, std::sha
 
 void ModelGroup::addChild(PhysicalRenderable *renderable) {
     glm::vec3 averageTranslateDifference(0.0f, 0.0f, 0.0f);
-    if(children.size() != 0) {
-        for (auto iterator = children.begin(); iterator != children.end(); ++iterator) {
-            averageTranslateDifference += (*iterator)->getTransformation()->getTranslateSingle();//single because we are the parent
+    if(!children.empty()) {
+        for (auto & iterator : children) {
+            averageTranslateDifference += iterator->getTransformation()->getTranslateSingle();//single because we are the parent
         }
     }
 
