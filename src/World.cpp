@@ -2583,13 +2583,13 @@ bool World::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID)
     Transformation* transform1,* transform2;
 
     objectToAttach = findModelByID(objectID);
-    if(objectToAttach == 0) {
+    if(objectToAttach == nullptr) {
         return false;
     }
     transform1 = objectToAttach->getTransformation();
 
     objectToAttachTo = findModelByID(objectToAttachToID);
-    if(objectToAttachTo == 0) {
+    if(objectToAttachTo == nullptr) {
         return false;
     }
     transform2 = objectToAttachTo->getTransformation();
@@ -2601,8 +2601,13 @@ bool World::attachObjectToObject(uint32_t objectID, uint32_t objectToAttachToID)
     objectToAttach->setParentObject(objectToAttachTo);
     objectToAttachTo->addChild(objectToAttach);
 
-    return true;
 
+    glm::vec3 translate, scale;
+    glm::quat orientation;
+    objectToAttachTo->getTransformation()->getDifferenceStacked(*(transform1), translate,
+                                                    scale, orientation);
+    GLMUtils::printVector(translate);
+    return true;
 }
 
 bool World::setObjectTranslateAPI(uint32_t objectID, const LimonTypes::Vec4 &position) {

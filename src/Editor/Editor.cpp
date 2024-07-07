@@ -139,6 +139,15 @@ void Editor::renderEditor(World& world) {
                 ImGui::SameLine();
                 ImGuiHelper::ShowHelpMarker("Current Object: " + world.pickedObject->getName());
             }
+            if(world.pickedObject != nullptr && world.pickedObject->getTypeID() == GameObject::MODEL) {
+                Model *pickedModel = dynamic_cast<Model *>(world.pickedObject);
+                if(pickedModel->getParentObject() != nullptr) {
+                    if (ImGui::Button("Detach object from parent")) {
+                        pickedModel->getTransformation()->removeParentTransform();
+                        pickedModel->removeParentObject();
+                    }
+                }
+            }
         }
         if(world.pickedObject != nullptr && world.pickedObject->getTypeID() == GameObject::PLAYER) {
             if(world.objectToAttach!= nullptr && world.objectToAttach->getWorldObjectID() != world.pickedObject->getWorldObjectID()) {

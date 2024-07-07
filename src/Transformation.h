@@ -70,6 +70,8 @@ protected:
      * 3) save for all instances. Memory usage suffers, and by extension data locality suffers since there is more data.
      *
      * I choose 3. option, solely because it is easier to implement at the current state of the codebase. It can be reconsidered.
+     *
+     * This means even if there is no parent, single variants still needs to be updated.
      */
     glm::vec3 translateSingle = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 scaleSingle = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -212,10 +214,14 @@ public:
         if(this->parentTransform == nullptr) {
             return;
         }
+        glm::vec3 translateBackUp = this->getTranslate();
+        glm::vec3 scaleBackUp = this->getScale();
+        glm::quat orientationBackUp = this->getOrientation();
+
         auto element = std::find(this->parentTransform->childTransforms.begin(), this->parentTransform->childTransforms.end(), this);
         if(element != this->parentTransform->childTransforms.end()) {
             this->parentTransform->childTransforms.erase(element);
-            if(this->parentTransform->childTransforms.size() == 0) {
+            if(this->parentTransform->childTransforms.empty()) {
                 this->parentTransform->updateCallback = this->parentTransform->updateCallbackSingle;
                 this->parentTransform->updateCallbackSingle = nullptr;
             }
@@ -227,10 +233,12 @@ public:
         this->generateWorldTransform = this->generateWorldTransformSingle;
         this->generateWorldTransformSingle = nullptr;
 
-        this->scale = this->scaleSingle;
-        this->translate = this->translateSingle;
-        this->orientation = this->orientationSingle;
-
+        this->scale = this->scaleSingle = scaleBackUp;
+        this->translate = this->translateSingle = translateBackUp;
+        this->orientation = this->orientationSingle = orientationBackUp;
+        this->isDirty = true;
+        this->getWorldTransform();
+        this->propagateUpdate();
     }
 
     void setUpdateCallback(std::function<void()> updateCallback) {

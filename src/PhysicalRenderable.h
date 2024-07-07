@@ -144,6 +144,15 @@ public:
         this->parentBoneID = parentBoneID;
     }
 
+    void removeParentObject() {
+        if(this->parentObject == nullptr) {
+            return;
+        }
+        this->parentObject->removeChild(this);
+        this->parentObject = nullptr;
+        this->parentBoneID = -1;
+    }
+
     virtual void addChild(PhysicalRenderable* otherModel) {
         this->children.push_back(otherModel);
     }
