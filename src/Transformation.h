@@ -14,6 +14,7 @@
 #include <tinyxml2.h>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 
 class Transformation {
@@ -296,9 +297,18 @@ public:
 
     void addTranslate(const glm::vec3 &translate) {
         if(this->parentTransform == nullptr) {
-            this->translate += translate;
+            this->translateSingle += translate;
+            this->translate = this->translateSingle;
+        } else {
+            glm::mat4 newTranslateMatrix = glm::translate(translate);
+            glm::mat4 parentInverseT = glm::inverseTranspose(this->parentTransform->worldTransform);
+            glm::mat4 newTranslateDiff = parentInverseT * newTranslateMatrix;
+            glm::vec3 newTranslateSet;
+            newTranslateSet.x = newTranslateDiff[3][0];
+            newTranslateSet.y = newTranslateDiff[3][1];
+            newTranslateSet.z = newTranslateDiff[3][2];
+            this->translateSingle += newTranslateSet;
         }
-        this->translateSingle += translate;
         isDirty = true;
         propagateUpdate();
     }
