@@ -464,6 +464,9 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
 }
 
 Model::~Model() {
+    if(this->transformation.getParentTransform() != nullptr) {
+        this->transformation.removeParentTransform();
+    }
     if(this->parentObject != nullptr) {
         this->parentObject->removeChild(this);
     }
