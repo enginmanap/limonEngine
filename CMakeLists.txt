@@ -125,6 +125,7 @@ add_custom_target(copyData
 add_dependencies(LimonEngine copyData)
 target_include_directories(LimonEngine PRIVATE "libs/assimp/include")
 TARGET_LINK_LIBRARIES(LimonEngine ImGui ImGuizmo OpenAL meshoptimizer nodeGraph assimp ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES})
+target_precompile_headers(LimonEngine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
 IF (WIN32)
     #add icon to windows binary
@@ -145,6 +146,8 @@ add_library(LimonAPI STATIC
 file(GLOB API_HEADERS
         "src/API/*.h"
         )
+target_precompile_headers(LimonAPI PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
+
 set_property(TARGET LimonAPI PROPERTY POSITION_INDEPENDENT_CODE ON)
 IF (WIN32 AND NOT ( MINGW OR MSYS))
     add_custom_command(TARGET LimonAPI POST_BUILD
@@ -209,6 +212,7 @@ add_library(GraphicsBackend SHARED
         GraphicBackends/OpenGLGraphics.cpp
         src/Assets/GraphicsProgramAsset.cpp
         )
+target_precompile_headers(GraphicsBackend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
 IF (WIN32 AND NOT ( MINGW OR MSYS))
     TARGET_LINK_LIBRARIES(GraphicsBackend ${CMAKE_BINARY_DIR}/libLimonAPI.lib GLEW::GLEW ${OPENGL_LIBRARIES})
