@@ -84,7 +84,11 @@ void Editor::renderEditor(World& world) {
                     newModel->getTransformation()->setTranslate(newObjectPosition);
                     world.addModelToWorld(newModel);
                     newModel->getRigidBody()->activate();
+                    if(world.pickedObject != nullptr ) {
+                        world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                    }
                     world.pickedObject = static_cast<GameObject*>(newModel);
+                    world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
                 }
             }
         }
@@ -93,8 +97,11 @@ void Editor::renderEditor(World& world) {
             static float copyOffsets[3] { 0.25f, 0.25f, 0.25f};
             ImGui::DragFloat3("Copy position offsets", copyOffsets, 0.1f);
             if (ImGui::Button("Copy Selected object")) {
-
+                if(world.pickedObject != nullptr ) {
+                    world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                }
                 Model* pickedModel = dynamic_cast<Model*>(world.pickedObject);
+                world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
                 Model* newModel = new Model(*pickedModel, world.getNextObjectID());
                 newModel->getTransformation()->addTranslate(glm::vec3(copyOffsets[0], copyOffsets[1], copyOffsets[2]));
                 world.addModelToWorld(newModel);
@@ -105,10 +112,15 @@ void Editor::renderEditor(World& world) {
                     world.addAnimationToObject(newModel->getWorldObjectID(), world.activeAnimations[pickedModel]->animationIndex,
                                          true, true);
                 }
+                if(world.pickedObject != nullptr ) {
+                    world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                }
                 world.pickedObject = static_cast<GameObject*>(newModel);
+                world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
             }
 
             if(ImGui::Button("Attach this object to another")) {
+
                 world.objectToAttach = dynamic_cast<Model*>(world.pickedObject);
             }
             if(world.objectToAttach != nullptr) {
@@ -227,8 +239,11 @@ void Editor::renderEditor(World& world) {
             world.dynamicsWorld->addCollisionObject(to->getGhostObject(), World::CollisionTypes::COLLIDE_TRIGGER_VOLUME | World::CollisionTypes::COLLIDE_EVERYTHING,
                                                     World::CollisionTypes::COLLIDE_PLAYER | World::CollisionTypes::COLLIDE_EVERYTHING);
             world.triggers[to->getWorldObjectID()] = to;
-
+            if(world.pickedObject != nullptr ) {
+                world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+            }
             world.pickedObject = static_cast<GameObject*>(to);
+            world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
         }
 
         if (ImGui::CollapsingHeader("Add New Light")) {
@@ -923,7 +938,11 @@ void Editor::buildTreeFromAllGameObjects(World& world) {
                     }
 
                     if (ImGui::IsItemClicked()) {
+                        if(world.pickedObject != nullptr ) {
+                            world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                        }
                         world.pickedObject = currentObject;
+                        world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
                     }
                 }
             }
@@ -942,7 +961,11 @@ void Editor::buildTreeFromAllGameObjects(World& world) {
                 for (auto guiElement = thisLayersElements.begin(); guiElement != thisLayersElements.end(); ++guiElement) {
                     ImGui::TreeNodeEx((*guiElement)->getName().c_str(), leafFlags | (((*guiElement)->getWorldObjectID() == world.pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
                     if (ImGui::IsItemClicked()) {
+                        if(world.pickedObject != nullptr ) {
+                            world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                        }
                         world.pickedObject = *guiElement;
+                        world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
                     }
 
                 }
@@ -962,7 +985,11 @@ void Editor::buildTreeFromAllGameObjects(World& world) {
             if(currentObject != nullptr) {
                 ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == world.pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
                 if (ImGui::IsItemClicked()) {
+                    if(world.pickedObject != nullptr ) {
+                        world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                    }
                     world.pickedObject = currentObject;
+                    world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
                 }
             }
         }
@@ -1053,7 +1080,11 @@ void Editor::createObjectTreeRecursive(World& world, PhysicalRenderable *physica
         ImGui::SetScrollHereY();
     }
     if (ImGui::IsItemClicked()) {
+        if(world.pickedObject != nullptr ) {
+            world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+        }
         world.pickedObject = gameObjectOfSame;
+        world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
     }
     if(isNodeOpen){
        for (auto iterator = physicalRenderable->getChildren().begin(); iterator != physicalRenderable->getChildren().end(); ++iterator) {
@@ -1075,7 +1106,11 @@ void Editor::createObjectTreeRecursive(World& world, PhysicalRenderable *physica
                        ImGui::SetScrollHereY();
                    }
                    if (ImGui::IsItemClicked()) {
+                       if(world.pickedObject != nullptr ) {
+                           world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                       }
                        world.pickedObject = currentObject;
+                       world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
                    }
                }
            }

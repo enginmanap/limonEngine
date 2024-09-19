@@ -12,17 +12,17 @@
 
 class HashUtil {
 public:
-    struct HashedString {
+    class HashedString {
+    public :
         const uint64_t hash;
         const std::string text;
-        HashedString(const std::string& text): hash(consthash::city64(text.c_str(), text.length())), text(text){
+        explicit HashedString(const std::string& text): hash(consthash::city64(text.c_str(), text.length())), text(text){
             auto textIterator = allHashedStrings.find(hash);
             if(textIterator != allHashedStrings.end() && textIterator->second != text) {
                 std::cerr << "Hash collision found , both [" << text << "] and [" << textIterator->second << "] generated same hash " << hash << std::endl;
             } else {
                 allHashedStrings[hash] = text;
             }
-
         }
     };
 

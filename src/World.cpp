@@ -127,6 +127,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_BASIC);
     playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
     playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+    playerCamera->addRenderTag(HardCodedTags::PICKED_OBJECT);
     playerCamera->addTag(HardCodedTags::CAMERA_PLAYER);
     cullingResults.emplace(playerCamera, new std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>());//new camera, new visibility
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
@@ -478,7 +479,6 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
                            }
                        }
                    }
-                   break; //since per camera rendering multiple times is not logical, we will add once and ignore the rest
                }
            }
        }
@@ -681,7 +681,11 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
         if(inputHandler.getInputStates().getInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
             GameObject *gameObject = getPointedObject(COLLIDE_EVERYTHING, ~(COLLIDE_NOTHING));
             if (gameObject != nullptr) {//FIXME this looks like a left over
+                if(pickedObject != nullptr ) {
+                    pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                }
                 pickedObject = gameObject;
+                pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
             } else {
                 pickedObject = nullptr;
             }
@@ -1022,7 +1026,11 @@ void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove
                 glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
         guiElements[guiText->getWorldObjectID()] = guiText;
         guiLayers[selectedLayerIndex]->addGuiElement(guiText);
+        if(pickedObject != nullptr ) {
+            pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+        }
         pickedObject = guiText;
+        pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
     }
 }
 
@@ -1810,8 +1818,11 @@ void World::addGUIImageControls() {
                     glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
             guiElements[guiImage->getWorldObjectID()] = guiImage;
             guiLayers[selectedLayerIndex]->addGuiElement(guiImage);
+            if(pickedObject != nullptr ) {
+                pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+            }
             pickedObject = guiImage;
-        }
+            pickedObject->addTag(HardCodedTags::PICKED_OBJECT);        }
     }
 }
 
@@ -2063,7 +2074,12 @@ void World::addGUIButtonControls() {
                     glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
             guiElements[guiButton->getWorldObjectID()] = guiButton;
             guiLayers[selectedLayerIndex]->addGuiElement(guiButton);
+
+            if(pickedObject != nullptr ) {
+                pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+            }
             pickedObject = guiButton;
+            pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
         }
     }
 }
@@ -2128,7 +2144,11 @@ void World::addGUIButtonControls() {
                 guiAnimation->set2dWorldTransform(glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
                 guiElements[guiAnimation->getWorldObjectID()] = guiAnimation;
                 guiLayers[selectedLayerIndex]->addGuiElement(guiAnimation);
+                if(pickedObject != nullptr ) {
+                    pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                }
                 pickedObject = guiAnimation;
+                pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
             }
         }
    }

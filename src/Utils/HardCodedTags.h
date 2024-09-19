@@ -28,6 +28,8 @@ public:
     static const std::string CAMERA_LIGHT_DIRECTIONAL;
     static const std::string CAMERA_LIGHT_POINT;
     static const std::string CAMERA_PLAYER;
+
+    static const std::string PICKED_OBJECT;
 };
 
 #endif //LIMONENGINE_HARDCODEDTAGS_H

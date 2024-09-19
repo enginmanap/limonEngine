@@ -6,6 +6,7 @@
 #define LIMONENGINE_GAMEOBJECT_H
 
 #include <string>
+#include <list>
 
 #include "API/LimonAPI.h"
 #include "Editor/ImGuiRequest.h"
@@ -33,7 +34,7 @@ public:
     void addTag(const std::string& text) {
         HashUtil::HashedString tag(text);
         bool found = false;
-        for (HashUtil::HashedString hashedString:tags) {
+        for (const HashUtil::HashedString& hashedString:tags) {
             if(hashedString.hash == tag.hash) {
                 if(hashedString.text != tag.text) {
                     std::cerr << "Hash collision found between " << hashedString.text << " and " << tag.text << " exiting." << std::endl;
@@ -58,11 +59,27 @@ public:
         return false;
     }
 
-    const std::vector<HashUtil::HashedString>& getTags() {
+    const std::list<HashUtil::HashedString>& getTags() const {
         return tags;
     }
+
+    void removeTag(const std::string& text) {
+        HashUtil::HashedString tag(text);
+        bool found = false;
+        for (std::list<HashUtil::HashedString>::const_iterator it = tags.begin(); it != tags.end(); ++it) {
+            if(it->hash == tag.hash) {
+                //found case
+                found = true;
+                tags.erase(it);
+                break;
+            }
+        }
+        if(!found) {
+            std::cerr << "Tag removal fail because tag is not found " << text  << std::endl;
+        }
+    }
 private:
-    std::vector<HashUtil::HashedString> tags;
+    std::list<HashUtil::HashedString> tags;
 
 };
 

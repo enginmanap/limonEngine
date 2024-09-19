@@ -15,6 +15,8 @@ const std::string HardCodedTags::OBJECT_PLAYER_BASIC        = "basic_player_atta
 const std::string HardCodedTags::OBJECT_PLAYER_ANIMATED     = "animated_player_attachment";
 const std::string HardCodedTags::OBJECT_PLAYER_TRANSPARENT  = "transparent_player_attachment";
 
-const std::string HardCodedTags::CAMERA_LIGHT_DIRECTIONAL   ="directional_camera";
-const std::string HardCodedTags::CAMERA_LIGHT_POINT         ="point_camera";
-const std::string HardCodedTags::CAMERA_PLAYER              ="player_camera";
+const std::string HardCodedTags::CAMERA_LIGHT_DIRECTIONAL   = "directional_camera";
+const std::string HardCodedTags::CAMERA_LIGHT_POINT         = "point_camera";
+const std::string HardCodedTags::CAMERA_PLAYER              = "player_camera";
+
+const std::string HardCodedTags::PICKED_OBJECT              =   "picked_object";
