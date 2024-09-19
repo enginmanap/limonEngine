@@ -62,6 +62,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
         case GraphicsInterface::DataTypes::UNSIGNED_SHORT: currentElement->SetText("UNSIGNED_SHORT"); break;
         case GraphicsInterface::DataTypes::UNSIGNED_INT: currentElement->SetText("UNSIGNED_INT"); break;
         case GraphicsInterface::DataTypes::FLOAT: currentElement->SetText("FLOAT"); break;
+        case GraphicsInterface::DataTypes::HALF_FLOAT: currentElement->SetText("HALF_FLOAT"); break;
     }
     textureNode->InsertEndChild(currentElement);
 
