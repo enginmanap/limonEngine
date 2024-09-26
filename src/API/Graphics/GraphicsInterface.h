@@ -78,8 +78,19 @@ protected:
     //Should be used by GraphicsProgramOnly
     virtual uint32_t createGraphicsProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile) = 0;
 public:
+
+    struct ContextInformation {
+        int SDL_GL_ACCELERATED_VISUAL = 1;
+        int SDL_GL_CONTEXT_MAJOR_VERSION = 3;
+        int SDL_GL_CONTEXT_MINOR_VERSION = 3;
+        int SDL_GL_CONTEXT_PROFILE_MASK = 1;
+        int SDL_GL_CONTEXT_FLAGS = 1;
+    };
+
     virtual void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) = 0;
     explicit GraphicsInterface(Options *options [[gnu::unused]]) {};
+    virtual ContextInformation getContextInformation() = 0;
+    virtual bool createGraphicsBackend() = 0;
     virtual ~GraphicsInterface() {};
 
     virtual void attachModelUBO(const uint32_t program) = 0;

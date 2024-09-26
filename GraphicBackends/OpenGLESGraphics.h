@@ -2,8 +2,8 @@
 // Created by engin on 24.09.2019.
 //
 
-#ifndef LIMONENGINE_OPENGLGRAPHICS_H
-#define LIMONENGINE_OPENGLGRAPHICS_H
+#ifndef LIMONENGINE_OPENGLESGRAPHICS_H
+#define LIMONENGINE_OPENGLESGRAPHICS_H
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -42,7 +42,7 @@ class Texture;
 extern "C" std::shared_ptr<GraphicsInterface> createGraphicsBackend(Options* options);
 
 
-class OpenGLGraphics : public GraphicsInterface {
+class OpenGLESGraphics : public GraphicsInterface {
     friend class Texture;
     class OpenglState {
         unsigned int activeProgram;
@@ -325,12 +325,12 @@ protected:
 public:
 
 
-    explicit OpenGLGraphics(Options *options);
+    explicit OpenGLESGraphics(Options *options);
 
     GraphicsInterface::ContextInformation getContextInformation();
     bool createGraphicsBackend();
 
-    ~OpenGLGraphics();
+    ~OpenGLESGraphics();
 
     void attachModelUBO(const uint32_t program) override;
 
@@ -496,4 +496,4 @@ public:
 };
 
 
-#endif //LIMONENGINE_OPENGLGRAPHICS_H
+#endif //LIMONENGINE_OPENGLESGRAPHICS_H

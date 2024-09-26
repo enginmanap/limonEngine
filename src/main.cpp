@@ -126,7 +126,7 @@ GameEngine::GameEngine() {
     options->loadOptionsNew(OPTIONS_FILE);
     std::cout << "Options loaded successfully" << std::endl;
 
-    sdlHelper = new SDL2Helper(PROGRAM_NAME.c_str(), options);
+    sdlHelper = new SDL2Helper(options);
 
     std::string graphicsBackendFileName;
 #ifdef _WIN32
@@ -137,8 +137,13 @@ GameEngine::GameEngine() {
     graphicsBackendFileName = "./libGraphicsBackend.so";
 #endif
     graphicsWrapper = sdlHelper->loadGraphicsBackend(graphicsBackendFileName, options);
+    sdlHelper->initWindow(PROGRAM_NAME.c_str(), graphicsWrapper->getContextInformation());
     if(graphicsWrapper == nullptr) {
         std::cerr << "failed to load graphics backend. Please check " << graphicsBackendFileName << std::endl;
+        exit(1);
+    }
+    if(!graphicsWrapper->createGraphicsBackend()) {
+        std::cerr << "failed to create graphics backend. Please check " << graphicsBackendFileName << std::endl;
         exit(1);
     }
     graphicsWrapper->reshape();

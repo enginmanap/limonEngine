@@ -13,24 +13,24 @@
 #include "API/Graphics/RenderMethodInterface.h"
 
 
-SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {
+SDL2Helper::SDL2Helper(Options* options) : options(options) {}
 
+void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextInformation& contextInformation) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) { /* Initialize SDL's Video subsystem */
         std::cout << "Unable to initialize SDL";
-        throw;
+        exit(1);
     }
     /* Request opengl 4.4 context. */
-    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, contextInformation.SDL_GL_ACCELERATED_VISUAL);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, contextInformation.SDL_GL_CONTEXT_MAJOR_VERSION);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, contextInformation.SDL_GL_CONTEXT_MINOR_VERSION);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, contextInformation.SDL_GL_CONTEXT_PROFILE_MASK);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, contextInformation.SDL_GL_CONTEXT_FLAGS);
 
     /* Turn on double buffering with a 24bit Z buffer.
      * You may need to change this to 16 or 32 for your system */
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-
 
     /* Create our window centered at 512x512 resolution */
     window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -38,7 +38,7 @@ SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {
     if (!window) { /* Die if creation failed */
         std::cout << "SDL Error: " << SDL_GetError() << std::endl;
         SDL_Quit();
-        throw;
+        exit(1);
     }
 
     bool fullScreen;
@@ -75,10 +75,8 @@ SDL2Helper::SDL2Helper(const char *title, Options* options) : options(options) {
     SDL_GL_SetSwapInterval(1);
 #endif
     SDL_ShowCursor(SDL_DISABLE);
-    std::cout << "SDL started." << std::endl;
+    std::cout << "SDL window started." << std::endl;
 }
-
-
 
 SDL2Helper::~SDL2Helper() {
     /* Delete our opengl context, destroy our window, and shutdown SDL */

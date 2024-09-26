@@ -27,8 +27,8 @@ public:
 
     void setFullScreen(bool isFullScreen);
 
-    SDL2Helper(const char *, Options* options);
-
+    SDL2Helper(Options* options);
+    void initWindow(const char*, const GraphicsInterface::ContextInformation& contextInformation);
     ~SDL2Helper();
 
     void swap() {
