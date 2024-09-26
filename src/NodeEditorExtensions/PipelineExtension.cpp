@@ -143,7 +143,7 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
                 backgroundColor.y +=0.5f;
                 backgroundColor.z +=0.5f;
                 ImU32 newColor = ImGui::ColorConvertFloat4ToU32(backgroundColor);
-                int fromNode, toNode;
+                size_t fromNode, toNode;
                 for (size_t n = 0; n < orderedStages.size(); n++) {
                     tempStringList.clear();
                     std::for_each(orderedStages[n].first.begin(), orderedStages[n].first.end(), [&tempStringList](const Node* node) {tempStringList.emplace_back(node->getDisplayName());});

@@ -28,6 +28,7 @@ static const int LOWEST_LOD_LEVEL = 3;
 #include "SDL2Helper.h"
 #include "Graphics/GraphicsPipeline.h"
 #include "PhysicalRenderable.h"
+#include "VisibilityRequest.h"
 class btGhostPairCallback;
 class PerspectiveCamera;
 class Model;
@@ -224,13 +225,23 @@ private:
         ModelWithLod(Model* model, uint32_t lod) : model(model), lod(lod) {}
     };
     std::vector<Model*> updatedModels;
-    //For each camera do culling,
-        //for each tag(kept as hash) do the culling
-            //for each asset id do the culling
-                //keep a list of modelIds for rendering, and the LOD as the single value
     // This map is also used as a list of Cameras, and Hashes, so if a camera is removed, it should be removed from this map
     // In case of a clear, we should not clear the hashes, as it is basically meaningless.
-    std::unordered_map<Camera*, std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>*> cullingResults;
+
+    /**
+     * this variable is used as camera list, so outermost one should never clear, and change only on camera creation/deletion.
+     * Since hashes are set by the render pipeline, first level in might reset on render pipeline changes.
+     * On all other cases, only the value of hash list should be reset.
+     * What is in this map?
+     * For each camera
+     *      there is a list of tags, that is list of tags per render stage, so any match is enough
+     *      for each list of tags, there is a map, key is the asset id
+     *          for each asset Id, there is a pair of vector + uint
+     *              vector is the object Ids that needs rendering, uint is the Max LOD to use.
+     */
+
+    std::unordered_map<Camera*, std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>, VisibilityRequest::uint64_vector_hasher>*> cullingResults;
+    //std::unordered_map<Camera*, std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>*> cullingResults;
 
     /************************* End of redundant variables ******************************************/
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<>> timedEvents;
@@ -349,21 +360,8 @@ private:
     bool addGUIElementToWorld(GUIRenderable *guiRenderable, GUILayer *guiLayer);
 
     void resetVisibilityBufferForRenderPipelineChange();
+    void resetCameraTagsFromPipeline(const std::map<std::string, std::vector<std::set<std::string>>> &cameraRenderTagListMap);
     void fillVisibleObjectsUsingTags();
-public:
-    struct VisibilityRequest {
-        static SDL2MultiThreading::Condition condition;
-        const Camera* const camera;
-        const std::unordered_map<uint32_t, PhysicalRenderable *>* const objects;
-        std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>> * const visibility;
-        bool running = true;
-        std::atomic<uint32_t> frameCount;
-        SDL2MultiThreading::SpinLock inProgressLock;
-        SDL_mutex* blockMutex = SDL_CreateMutex();
-        VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, PhysicalRenderable *>* objects, std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>> * visibility) :
-        camera(camera), objects(objects), visibility(visibility), frameCount(0) {};
-    };
-private:
     std::map<VisibilityRequest*, SDL_Thread *> occlusionThreadManager();
     std::map<VisibilityRequest*, SDL_Thread *> visibilityThreadPool;
 

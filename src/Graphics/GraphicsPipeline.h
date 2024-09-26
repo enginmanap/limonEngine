@@ -88,15 +88,22 @@ public:
 
     void addNewStage(const StageInfo& stageInformation) {
         for (const std::string &cameraTag: stageInformation.cameraTags) {
-            std::map<std::string, std::vector<std::string>>::iterator item = cameraTagToRenderTagMap.find(cameraTag);
-            if(item == cameraTagToRenderTagMap.end() || item->second.empty()) {
-                cameraTagToRenderTagMap[cameraTag] = stageInformation.renderTags;
-            } else {
-                for (const std::string &renderTag: stageInformation.renderTags) {
-                    if(std::find(item->second.begin(), item->second.end(),renderTag) != item->second.end()) {
-                        item->second.emplace_back(renderTag);
-                    }
+            std::map<std::string, std::vector<std::set<std::string>>>::iterator cameraEntry = cameraTagToRenderTagMap.find(cameraTag);
+            if(cameraEntry == cameraTagToRenderTagMap.end() || cameraEntry->second.empty()) {
+                std::vector<std::set<std::string>> newTagStruct;
+                std::set<std::string> tempRenderTags;
+                for(const std::string& renderTag:stageInformation.renderTags) {
+                    tempRenderTags.insert(renderTag);
                 }
+                newTagStruct.push_back(tempRenderTags);
+                cameraTagToRenderTagMap[cameraTag] = newTagStruct;
+            } else {
+                //there is already a camera entry
+                std::set<std::string> tempRenderTags;
+                for(const std::string& renderTag:stageInformation.renderTags) {
+                    tempRenderTags.insert(renderTag);
+                }
+                cameraTagToRenderTagMap[cameraTag].push_back(tempRenderTags);
             }
         }
         pipelineStages.push_back(stageInformation);
@@ -140,12 +147,18 @@ public:
         return textures;
     };
 
-    const std::map<std::string, std::vector<std::string>> &getCameraTagToRenderTagMap() const {
+    /**
+     * Key is the camera tag
+     * Value is a list, with each element is one stage
+     * In that list, there is a set of tags, that are active for the stage
+     * @return
+     */
+    const std::map<std::string, std::vector<std::set<std::string>>>& getCameraTagToRenderTagSetMap() const {
         return cameraTagToRenderTagMap;
     }
 
 private:
-    std::map<std::string, std::vector<std::string>> cameraTagToRenderTagMap;//Per stage, we configure camera name(tag) and renderTags(objects to render). We should combine them and make accessible so culling can use the info.
+    std::map<std::string, std::vector<std::set<std::string>>> cameraTagToRenderTagMap;//Per stage, we configure camera name(tag) and renderTags(objects to render). We should combine them and make accessible so culling can use the info.
     RenderMethods renderMethods;
     std::vector<StageInfo> pipelineStages;
     std::vector<std::shared_ptr<Texture>> textures;

@@ -49,22 +49,13 @@
             { Types::MENU_PLAYER, "Menu" }
     };
 
-   SDL2MultiThreading::Condition World::VisibilityRequest::condition;
+SDL2MultiThreading::Condition VisibilityRequest::condition; //FIXME this variable doesn't looks like it belongs here
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
              std::shared_ptr<AssetManager> assetManager, Options *options)
         : assetManager(assetManager), options(options), graphicsWrapper(assetManager->getGraphicsWrapper()),
         alHelper(assetManager->getAlHelper()), name(name), fontManager(graphicsWrapper),
         startingPlayer(startingPlayerType) {
-/*
-    //Particle Emitter temp variables
-    TextureAsset* textureAsset(assetManager->loadAsset<TextureAsset>({"./Data/Textures/fire4.png"}));
-    std::shared_ptr<Texture> fireTexture(textureAsset->getTexture());
-
-    std::shared_ptr<Emitter>emitter = std::make_shared<Emitter>(graphicsWrapper, fireTexture, glm::vec3(0, 5, 0), 0.01f, glm::vec2(0.1f, 0.1f), 2000, 15000);
-    emitters.emplace_back(emitter);
-    //Particle Emitter temp variables
-*/
     strncpy(worldSaveNameBuffer, name.c_str(), sizeof(worldSaveNameBuffer) -1 );
 
     // physics init
@@ -129,7 +120,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
     playerCamera->addRenderTag(HardCodedTags::PICKED_OBJECT);
     playerCamera->addTag(HardCodedTags::CAMERA_PLAYER);
-    cullingResults.emplace(playerCamera, new std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>());//new camera, new visibility
+    cullingResults.insert(std::make_pair(playerCamera, new std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>, VisibilityRequest::uint64_vector_hasher>()));//new camera, new visibility
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
                                            COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                            COLLIDE_MODELS | COLLIDE_EVERYTHING, worldAABBMin,
@@ -430,8 +421,29 @@ void World::resetVisibilityBufferForRenderPipelineChange() {
     }
 }
 
+void World::resetCameraTagsFromPipeline(const std::map<std::string, std::vector<std::set<std::string>>> & cameraRenderTagListMap) {
+    for (auto& cameraEntryForCulling:this->cullingResults) { //key is the camera
+        for (const auto& renderTagListMapFromPipelineForCamera : cameraRenderTagListMap) {
+            if(cameraEntryForCulling.first->hasTag(HashUtil::hashString(renderTagListMapFromPipelineForCamera.first))) {
+                //we have a camera and a renderStage match, update the tag information.
+                // in renderTagListMapFromPipelineForCamera we have a list, in the list each element is a set of tags. we want to convert them and create new entries based on that
+                cameraEntryForCulling.second->clear();
+                for(std::set<std::string> tagSet:renderTagListMapFromPipelineForCamera.second) {
+                    std::vector<uint64_t> tempHashList;
+                    for(std::string tagString: tagSet) {
+                        uint64_t tempHash = HashUtil::hashString(tagString);
+                        tempHashList.emplace_back(tempHash);
+                    }
+                    //One set is done, put it in the culling data structure
+                    cameraEntryForCulling.second->insert(std::make_pair(tempHashList, std::unordered_map<uint32_t,std::pair<std::vector<uint32_t>, uint32_t>>()));
+                }
+            }
+        }
+    }
+}
+
 void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
-       const World::VisibilityRequest* visibilityRequest = static_cast<const World::VisibilityRequest *>(visibilityRequestRaw);
+       const VisibilityRequest* visibilityRequest = static_cast<const VisibilityRequest *>(visibilityRequestRaw);
        for (auto objectIt = visibilityRequest->objects->begin(); objectIt != visibilityRequest->objects->end(); ++objectIt) {
            if(!visibilityRequest->camera->isDirty() && !objectIt->second->isDirtyForFrustum()) {
                continue; //if neither object nor camera dirty, no need to recalculate
@@ -440,14 +452,24 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
            for(const auto& tag: currentModel->getTags()) {
                if(visibilityRequest->camera->hasRenderTag(tag.hash)){
                    //does this camera have the entry for this tag?
-                   const auto& tagEntries = visibilityRequest->visibility->find(tag.hash);
+                   const auto& tagEntries = visibilityRequest->findHashEntry(tag.hash);
                    if(tagEntries == visibilityRequest->visibility->end()) {
                        //create the tag entry
-                       (*visibilityRequest->visibility)[tag.hash] = std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>();
+                       /*********************************************************************************************
+                        * *********************************************************************************************
+                        * *********************************************************************************************
+                        * *********************************************************************************************
+                        * *********************************************************************************************
+                        * *********************************************************************************************
+                        *
+                        */
+                        std::vector<uint64_t> temp;
+                        temp.push_back(tag.hash);
+                       (*visibilityRequest->visibility).insert(std::make_pair(temp, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>()));
                    }
                    //we matched a tag for this camera, we should add here, and then break so we don't add to others
                    bool isVisible = visibilityRequest->camera->isVisible(*currentModel);//find if visible
-                   auto tagVisibilityEntry = visibilityRequest->visibility->find(tag.hash);//no need to check, as we already created if didn't exist
+                   auto tagVisibilityEntry = visibilityRequest->findHashEntry(tag.hash);//no need to check, as we already created if didn't exist
                    auto assetVisibilityEntry = tagVisibilityEntry->second.find(currentModel->getAssetID());
                    if(isVisible) {
                        if (assetVisibilityEntry == tagVisibilityEntry->second.end()) {
@@ -486,7 +508,7 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
    }
 
 static int staticOcclusionThread(void* visibilityRequestRaw) {
-    World::VisibilityRequest* visibilityRequest = static_cast<World::VisibilityRequest *>(visibilityRequestRaw);
+    VisibilityRequest* visibilityRequest = static_cast<VisibilityRequest *>(visibilityRequestRaw);
     //std::cout << "Thread for  " << visibilityRequest->camera->getName() << " launched, waiting for condition" << std::endl;
     //std::cout << "Thread for  " << visibilityRequest->camera->getName() << " started" << std::endl;
     while(visibilityRequest->running) {
@@ -494,14 +516,14 @@ static int staticOcclusionThread(void* visibilityRequestRaw) {
         fillVisibleObjectPerCamera(visibilityRequestRaw);
         visibilityRequest->inProgressLock.unlock();
         //std::cout << "Processing done for camera " << visibilityRequest->camera->getName() << " now waiting for condition" << std::endl;
-        World::VisibilityRequest::condition.waitCondition(visibilityRequest->blockMutex);
+        VisibilityRequest::condition.waitCondition(visibilityRequest->blockMutex);
         visibilityRequest->inProgressLock.lock();
         //std::cout << "signal received by " << visibilityRequest->camera->getName() << " starting processing again" << std::endl;
     }
     return 0;
 }
 
-std::map<World::VisibilityRequest*, SDL_Thread *> World::occlusionThreadManager() {
+std::map<VisibilityRequest*, SDL_Thread *> World::occlusionThreadManager() {
     std::map<VisibilityRequest*, SDL_Thread*> visibilityProcessing;
     for (auto &cameraVisibility: cullingResults) {
         VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &this->objects, cameraVisibility.second);
@@ -807,7 +829,7 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
     for (const auto &visibilityEntry: cullingResults) {
         if (visibilityEntry.first->hasTag(hashedCameraTag)) {//if this camera doesn't match the tag, then just ignore
             for (const auto &renderTag: tags) {
-                const auto& taggedEntries = visibilityEntry.second->find(renderTag.hash);
+                const auto& taggedEntries = VisibilityRequest::findHashEntry(visibilityEntry.second,renderTag.hash);
                 if(taggedEntries != visibilityEntry.second->end()) {
                     //there are tagged entries, we should iterate and render
                     for (const auto &assetVisibility: taggedEntries->second){
@@ -877,7 +899,7 @@ void World::renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsP
     const auto& selectedVisibilities = cullingResults.find(selectedLight->getCamera());
     if(selectedVisibilities != cullingResults.end()) {
         for (const auto &renderTag: selectedLight->getCamera()->getRenderTags()){
-            const auto& taggedVisibilities = selectedVisibilities->second->find(renderTag.hash);
+            const auto& taggedVisibilities = VisibilityRequest::findHashEntry(selectedVisibilities->second, renderTag.hash);
             if(taggedVisibilities != selectedVisibilities->second->end()) {
                 //so all objects that needs rendering is here, now render
                 for (const auto &assetIt: taggedVisibilities->second) {
@@ -1182,7 +1204,7 @@ void World::addLight(Light *light) {
     if(light->getLightType() == Light::LightTypes::DIRECTIONAL) {
         directionalLightIndex = (uint32_t)lights.size()-1;
     }
-    cullingResults.emplace(light->getCamera(), new std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>());
+    cullingResults.insert(std::make_pair(light->getCamera(), new std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>, VisibilityRequest::uint64_vector_hasher>()));
     updateActiveLights(false);
 }
 
@@ -2567,6 +2589,7 @@ bool World::changeRenderPipeline(const std::string &pipelineFileName) {
     if(newPipeline != nullptr) {
         this->renderPipeline = std::move(newPipeline);
         //reset the
+        this->resetCameraTagsFromPipeline(this->renderPipeline->getCameraTagToRenderTagSetMap());
         this->resetVisibilityBufferForRenderPipelineChange();
         this->fillVisibleObjectsUsingTags();
         return true;
