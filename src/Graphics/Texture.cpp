@@ -36,6 +36,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     currentElement = document.NewElement("InternalFormat");
     switch (textureInfo.internalFormatType) {
         case GraphicsInterface::InternalFormatTypes::RED: currentElement->SetText("RED"); break;
+        case GraphicsInterface::InternalFormatTypes::R32F: currentElement->SetText("R32F"); break;
         case GraphicsInterface::InternalFormatTypes::RGB: currentElement->SetText("RGB"); break;
         case GraphicsInterface::InternalFormatTypes::RGBA: currentElement->SetText("RGBA"); break;
         case GraphicsInterface::InternalFormatTypes::RGB16F: currentElement->SetText("RGB16F"); break;
@@ -229,6 +230,8 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
     std::string internalFormatString = textureNodeAttribute->GetText();
     if(internalFormatString == "RED") {
         textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RED;
+    } else if(internalFormatString == "R32F") {
+        textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::R32F;
     } else if(internalFormatString == "RGB") {
         textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RGB;
     } else if(internalFormatString == "RGBA") {
@@ -244,7 +247,7 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
     } else if(internalFormatString == "COMPRESSED_RGBA") {
         textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::COMPRESSED_RGBA;
     } else {
-        std::cerr << "Texture internal format is unknown, skipping! " << std::endl;
+        std::cerr << "Texture internal format is (" << internalFormatString << ") unknown for serialize id " << textureInfo.serializeID <<", skipping! " << std::endl;
         return nullptr;
     }
 
@@ -267,7 +270,7 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
     } else if(formatString == "DEPTH") {
         textureInfo.formatType = GraphicsInterface::FormatTypes::DEPTH;
     } else {
-        std::cerr << "Texture format is unknown, skipping! " << std::endl;
+        std::cerr << "Texture format (" << formatString <<")is unknown for serialize id "<< serializeIDString <<", skipping! " << std::endl;
         return nullptr;
     }
 

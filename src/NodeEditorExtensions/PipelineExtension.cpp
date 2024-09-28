@@ -218,6 +218,8 @@ void PipelineExtension::drawTextureSettings() {
     ImGui::Text("Internal Format type:");
     if(ImGui::RadioButton("RED##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RED)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RED; }
     ImGui::SameLine();
+    if(ImGui::RadioButton("R32F##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::R32F)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::R32F; }
+    ImGui::SameLine();
     if(ImGui::RadioButton("RGB##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RGB)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RGB; }
     ImGui::SameLine();
     if(ImGui::RadioButton("RGBA##internalFormat_type_PipelineExtension", currentTextureInfo.internalFormatType == GraphicsInterface::InternalFormatTypes::RGBA)) { currentTextureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes::RGBA; }
