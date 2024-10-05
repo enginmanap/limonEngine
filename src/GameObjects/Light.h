@@ -30,7 +30,6 @@ private:
     uint32_t objectID;
     glm::vec3 position, color;
     glm::vec3 playerPosition;
-    glm::vec3 renderPosition; //for directional lights, moves with player.
     glm::vec3 attenuation = glm::vec3(1,0.1,0.01);//const, linear, exponential
     glm::vec3 ambientColor = glm::vec3(0,0,0); //this will be added to all objects on shading phase
     OrthographicCamera* directionalCamera = nullptr;
@@ -45,7 +44,7 @@ public:
           const glm::vec3 &color) :
             graphicsWrapper(graphicsWrapper),
             objectID(objectID),
-            position(position),
+            position(glm::normalize(position)),
             lightType(lightType) {
         this->color.r = color.r < 1.0f ? color.r : 1.0f;
         this->color.g = color.g < 1.0f ? color.g : 1.0f;
@@ -213,10 +212,9 @@ public:
      * @param up        -> renderPosition (Position that follows the player)
      * @param right     -> attenuation
      */
-    void getCameraVariables(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right) override {
+    void getCameraVariables(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up[[gnu::unused]], glm::vec3 &right) override {
         position = this->position;
         center = this->playerPosition;
-        up = this->renderPosition;
         right = this->attenuation;
     }
 

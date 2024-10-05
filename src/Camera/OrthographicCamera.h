@@ -16,6 +16,7 @@ class OrthographicCamera : public Camera {
     glm::mat4 cameraTransformMatrix;
     glm::mat4 orthogonalProjectionMatrix;
     std::vector<glm::vec4>frustumPlanes;
+    float backOffFactor; // how high the camera should be? we are selecting average of zfar and znear, and add that to player y
     Options *options;
 
     bool dirty = true;
@@ -37,6 +38,7 @@ public:
         options->getOption("lightOrthogonalProjectionValues", lightOrthogonalValues);
         options->getOption("lightOrthogonalProjectionNearPlane", lightOrthogonalNear);
         options->getOption("lightOrthogonalProjectionFarPlane", lightOrthogonalFar);
+        backOffFactor = (lightOrthogonalFar - lightOrthogonalNear) / 2.0;
         orthogonalProjectionMatrix = glm::ortho(lightOrthogonalValues.x,
                                                 lightOrthogonalValues.y,
                                                 lightOrthogonalValues.z,
@@ -78,9 +80,9 @@ public:
     glm::mat4 getCameraMatrix() override {
         if (cameraAttachment->isDirty()) {
             this->dirty = true;
-            cameraAttachment->getCameraVariables(up, center, position, right);
-            glm::mat4 lightView = glm::lookAt(this->position,
-                                              this->center,
+            cameraAttachment->getCameraVariables(position, center, up, right);
+            glm::mat4 lightView = glm::lookAt((-1.0f * position * backOffFactor) + center,
+                                              center,
                                               glm::vec3(0.0f, 1.0f, 0.0f));
 
             cameraTransformMatrix = orthogonalProjectionMatrix * lightView;

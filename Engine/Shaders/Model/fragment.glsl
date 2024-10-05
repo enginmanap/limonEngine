@@ -174,7 +174,7 @@ void main(void) {
                 // Diffuse Lighting
                 vec3 lightDirectory;
                 if(LightSources.lights[i].type == 1) {
-                    lightDirectory = normalize(LightSources.lights[i].position);
+                    lightDirectory = -1.0 * LightSources.lights[i].position;
                 } else if(LightSources.lights[i].type == 2) {
                     lightDirectory = normalize(LightSources.lights[i].position - from_vs.fragPos);
                 }

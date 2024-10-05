@@ -1,23 +1,24 @@
 <World>
     <Name>./Data/Maps/World001.xml</Name>
+    <LoadingImage></LoadingImage>
     <Player>
         <Type>Physical</Type>
         <Position>
-            <X>9.0850201</X>
+            <X>7.2433753</X>
             <Y>4.9999995</Y>
-            <Z>12.668722</Z>
+            <Z>-24.327692</Z>
         </Position>
         <Orientation>
-            <X>0.044193659</X>
-            <Y>-0.10955051</Y>
-            <Z>0.9929983</Z>
+            <X>0.35969791</X>
+            <Y>-0.29035592</Y>
+            <Z>0.8867417</Z>
         </Orientation>
         <ExtensionName>ShooterPlayerExtension</ExtensionName>
         <Attachment>
             <Object>
                 <File>./Data/Models/EasyFPS/EasyFPS.fbx</File>
                 <Animation>Idle</Animation>
-                <Disconnected>True</Disconnected>
+                <Disconnected>False</Disconnected>
                 <Mass>0</Mass>
                 <ID>24</ID>
                 <Transformation>
@@ -32,10 +33,10 @@
                         <Z>0.045000002</Z>
                     </Translate>
                     <Rotate>
-                        <X>0.054844271</X>
-                        <Y>0.022202643</Y>
-                        <Z>-0.0012198258</Z>
-                        <W>0.99824727</W>
+                        <X>0.14405128</X>
+                        <Y>0.18941586</Y>
+                        <Z>-0.028104387</Z>
+                        <W>0.97086608</W>
                     </Rotate>
                 </Transformation>
             </Object>
@@ -71,48 +72,48 @@
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Disconnected>False</Disconnected>
-            <Mass>1</Mass>
+            <Mass>15</Mass>
             <ID>4</ID>
             <Transformation>
                 <Scale>
-                    <X>1</X>
-                    <Y>1</Y>
-                    <Z>1</Z>
+                    <X>1.5</X>
+                    <Y>1.5</Y>
+                    <Z>1.5</Z>
                 </Scale>
                 <Translate>
-                    <X>2.3646984</X>
-                    <Y>2.0399997</Y>
-                    <Z>-2.1260991</Z>
+                    <X>7.6777153</X>
+                    <Y>2.539973</Y>
+                    <Z>11.654453</Z>
                 </Translate>
                 <Rotate>
-                    <X>0.5083347</X>
-                    <Y>-0.49152389</Y>
-                    <Z>0.49152401</Z>
-                    <W>0.50833482</W>
+                    <X>0.13497135</X>
+                    <Y>0.69413155</Y>
+                    <Z>-0.69408482</Z>
+                    <W>0.1349459</W>
                 </Rotate>
             </Transformation>
         </Object>
         <Object>
             <File>./Data/Models/Box/Box.obj</File>
             <Disconnected>False</Disconnected>
-            <Mass>10</Mass>
+            <Mass>13</Mass>
             <ID>5</ID>
             <Transformation>
                 <Scale>
-                    <X>1</X>
-                    <Y>1</Y>
-                    <Z>1</Z>
+                    <X>1.35</X>
+                    <Y>1.35</Y>
+                    <Z>1.35</Z>
                 </Scale>
                 <Translate>
-                    <X>-1.996604</X>
-                    <Y>2.0399997</Y>
-                    <Z>-8.567605</Z>
+                    <X>15.238508</X>
+                    <Y>2.3898866</Y>
+                    <Z>6.2872119</Z>
                 </Translate>
                 <Rotate>
-                    <X>1.1854512e-07</X>
-                    <Y>0.99168807</Y>
-                    <Z>-1.286764e-08</Z>
-                    <W>0.12866542</W>
+                    <X>8.4155916e-05</X>
+                    <Y>0.99584848</Y>
+                    <Z>0.00010688754</Z>
+                    <W>-0.091027409</W>
                 </Rotate>
             </Transformation>
         </Object>
@@ -128,15 +129,15 @@
                     <Z>0.99992925</Z>
                 </Scale>
                 <Translate>
-                    <X>-2.5439811</X>
-                    <Y>2.0400004</Y>
-                    <Z>-5.9543757</Z>
+                    <X>10.879148</X>
+                    <Y>2.0399992</Y>
+                    <Z>-15.904094</Z>
                 </Translate>
                 <Rotate>
-                    <X>4.1908908e-07</X>
-                    <Y>0.77916205</Y>
-                    <Z>5.2310071e-08</Z>
-                    <W>0.62682253</W>
+                    <X>-8.5284734e-07</X>
+                    <Y>0.99627656</Y>
+                    <Z>1.1345077e-07</Z>
+                    <W>0.086214952</W>
                 </Rotate>
             </Transformation>
         </Object>
@@ -176,15 +177,15 @@
                     <Z>1</Z>
                 </Scale>
                 <Translate>
-                    <X>8.6870718</X>
-                    <Y>2.039988</Y>
-                    <Z>-25.065563</Z>
+                    <X>8.5648451</X>
+                    <Y>2.0399997</Y>
+                    <Z>-1.0223705</Z>
                 </Translate>
                 <Rotate>
-                    <X>0.70684272</X>
-                    <Y>0.019589182</Y>
-                    <Z>-0.019583419</Z>
-                    <W>0.70682824</W>
+                    <X>0.66995853</X>
+                    <Y>0.22617637</Y>
+                    <Z>-0.22617646</Z>
+                    <W>0.66995823</W>
                 </Rotate>
             </Transformation>
         </Object>
@@ -353,11 +354,11 @@
     <Lights>
         <Light>
             <Type>POINT</Type>
-            <ID>0</ID>
+            <ID>1</ID>
             <Position>
-                <X>1.0475657</X>
-                <Y>6</Y>
-                <Z>0</Z>
+                <X>-0.66290689</X>
+                <Y>2.0061588</Y>
+                <Z>0.26487571</Z>
             </Position>
             <Color>
                 <R>0.69999999</R>
@@ -377,11 +378,11 @@
         </Light>
         <Light>
             <Type>DIRECTIONAL</Type>
-            <ID>8</ID>
+            <ID>0</ID>
             <Position>
-                <X>-25</X>
-                <Y>50</Y>
-                <Z>-25</Z>
+                <X>-0.408248</X>
+                <Y>0.816497</Y>
+                <Z>-0.408248</Z>
             </Position>
             <Color>
                 <R>0.69999999</R>
@@ -415,6 +416,14 @@
             <Name>rotateCoin</Name>
             <Index>0</Index>
         </LoadedAnimation>
+        <LoadedAnimation>
+            <Name>MoveText</Name>
+            <Index>1</Index>
+        </LoadedAnimation>
+        <LoadedAnimation>
+            <Name>healthChangeResize</Name>
+            <Index>2</Index>
+        </LoadedAnimation>
     </LoadedAnimations>
     <Triggers>
         <Trigger>
@@ -423,12 +432,12 @@
             <Transformation>
                 <Scale>
                     <X>4</X>
-                    <Y>2</Y>
+                    <Y>5.8878851</Y>
                     <Z>2</Z>
                 </Scale>
                 <Translate>
                     <X>10</X>
-                    <Y>3</Y>
+                    <Y>6.8339901</Y>
                     <Z>-10</Z>
                 </Translate>
                 <Rotate>
@@ -601,7 +610,7 @@
                 <Text>Limon Engine</Text>
                 <Font>
                     <Path>Data/Fonts/Wolf_in_the_City_Light.ttf</Path>
-                    <Size>0.01666667</Size>
+                    <Size>0.016667</Size>
                 </Font>
                 <Color>
                     <R>0</R>
@@ -634,7 +643,7 @@
                 <Text>0</Text>
                 <Font>
                     <Path>Data/Fonts/Helvetica-Normal.ttf</Path>
-                    <Size>0.033333</Size>
+                    <Size>0.032292</Size>
                 </Font>
                 <Color>
                     <R>0</R>
@@ -664,10 +673,10 @@
                 <Type>GUIText</Type>
                 <ID>23</ID>
                 <Name>VersionText</Name>
-                <Text>Version 0.4</Text>
+                <Text>Version 0.6</Text>
                 <Font>
                     <Path>Data/Fonts/Helvetica-Normal.ttf</Path>
-                    <Size>0.008333333</Size>
+                    <Size>0.007292</Size>
                 </Font>
                 <Color>
                     <R>256</R>
@@ -688,8 +697,8 @@
                     <Rotate>
                         <X>0</X>
                         <Y>0</Y>
-                        <Z>0</Z>
-                        <W>1</W>
+                        <Z>-0.71208954</Z>
+                        <W>0.70208871</W>
                     </Rotate>
                 </Transformation>
             </GUIElement>
@@ -700,7 +709,7 @@
                 <Text>100</Text>
                 <Font>
                     <Path>./Data/Fonts/Helvetica-Normal.ttf</Path>
-                    <Size>0.033333</Size>
+                    <Size>0.032292</Size>
                 </Font>
                 <Color>
                     <R>256</R>
@@ -714,7 +723,7 @@
                         <Z>1</Z>
                     </Scale>
                     <Translate>
-                        <X>0.10416666</X>
+                        <X>0.10364582</X>
                         <Y>0.18518518</Y>
                         <Z>0</Z>
                     </Translate>
@@ -734,9 +743,9 @@
                 <FullScreen>False</FullScreen>
                 <Transformation>
                     <Scale>
-                        <X>0,0130208333</X>
-                        <Y>0,0231481481</Y>
-                        <Z>0</Z>
+                        <X>0.013020833</X>
+                        <Y>0.023148147</Y>
+                        <Z>0.050000001</Z>
                     </Scale>
                     <Translate>
                         <X>0.0625</X>

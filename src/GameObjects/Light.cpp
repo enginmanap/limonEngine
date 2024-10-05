@@ -13,7 +13,6 @@ void Light::step(long time [[gnu::unused]]) {
 
 void Light::updateLightView() {
     playerPosition = graphicsWrapper->getCameraPosition();
-    renderPosition = position + playerPosition;
 
     frustumChanged = true;
     directionalCamera->getCameraMatrix();
@@ -34,7 +33,9 @@ void Light::setPosition(glm::vec3 position) {
             return;
         case LightTypes::POINT: this->frustumChanged = true; cubeCamera->getCameraMatrix(); this->frustumChanged = true;
             break;
-        case LightTypes::DIRECTIONAL: updateLightView();
+        case LightTypes::DIRECTIONAL:
+            this->position = glm::normalize(position);
+            updateLightView();
         break;
     }
 }
@@ -43,17 +44,8 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuiResult result;
 
     ImGui::Text("Please note, Directional lights position setting is relative to player.");
-
-    bool crudeUpdated = false;
     static glm::vec3 preciseTranslatePoint = this->position;
-    result.updated = ImGui::DragFloat("Precise Position X", &(this->position.x), 0.01, preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || result.updated;
-    result.updated = ImGui::DragFloat("Precise Position Y", &(this->position.y), 0.01, preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || result.updated;
-    result.updated = ImGui::DragFloat("Precise Position Z", &(this->position.z), 0.01, preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || result.updated;
-    ImGui::NewLine();
-    crudeUpdated = ImGui::SliderFloat("Crude Position X", &(this->position.x), -100.0f, 100.0f)   || crudeUpdated;
-    crudeUpdated = ImGui::SliderFloat("Crude Position Y", &(this->position.y), -100.0f, 100.0f)   || crudeUpdated;
-    crudeUpdated = ImGui::SliderFloat("Crude Position Z", &(this->position.z), -100.0f, 100.0f)   || crudeUpdated;
-    ImGui::NewLine();
+    bool crudeUpdated = false;
     result.updated = ImGui::DragFloat("Color R", &(this->color.r), 0.0f, 1.0f)   || result.updated;
     result.updated = ImGui::DragFloat("Color G", &(this->color.g), 0.0f, 1.0f)   || result.updated;
     result.updated = ImGui::DragFloat("Color B", &(this->color.b), 0.0f, 1.0f)   || result.updated;
@@ -63,7 +55,15 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
         case LightTypes::NONE:
             break;
         case LightTypes::POINT: {
-            attenuationUpdate = ImGui::DragFloat("Constant", &(this->attenuation.x), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
+            result.updated = ImGui::DragFloat("Precise Position X", &(this->position.x), 0.01, preciseTranslatePoint.x - 5.0f, preciseTranslatePoint.x + 5.0f)   || result.updated;
+            result.updated = ImGui::DragFloat("Precise Position Y", &(this->position.y), 0.01, preciseTranslatePoint.y - 5.0f, preciseTranslatePoint.y + 5.0f)   || result.updated;
+            result.updated = ImGui::DragFloat("Precise Position Z", &(this->position.z), 0.01, preciseTranslatePoint.z - 5.0f, preciseTranslatePoint.z + 5.0f)   || result.updated;
+            ImGui::NewLine();
+            crudeUpdated = ImGui::SliderFloat("Crude Position X", &(this->position.x), -100.0f, 100.0f)   || crudeUpdated;
+            crudeUpdated = ImGui::SliderFloat("Crude Position Y", &(this->position.y), -100.0f, 100.0f)   || crudeUpdated;
+            crudeUpdated = ImGui::SliderFloat("Crude Position Z", &(this->position.z), -100.0f, 100.0f)   || crudeUpdated;
+            ImGui::NewLine();
+            attenuationUpdate = ImGui::DragFloat("Constant", &(this->attenuation.x), 0.01f, -10.0f, 1.0f) || attenuationUpdate;
             attenuationUpdate = ImGui::DragFloat("Linear", &(this->attenuation.y), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
             attenuationUpdate = ImGui::DragFloat("Exponential", &(this->attenuation.z), 0.01f, 0.0f, 1.0f) || attenuationUpdate;
             if (attenuationUpdate) {
@@ -76,6 +76,10 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
         case LightTypes::DIRECTIONAL: {
             result.updated = ImGui::DragFloat3("Ambient", glm::value_ptr(ambientColor), 0.01f, 0.0f, 1.0f) || result.updated;
             ImGui::NewLine();
+            result.updated = ImGui::DragFloat("Precise Position X", &(this->position.x), 0.001, -1.0f, 1.0f)   || result.updated;
+            result.updated = ImGui::DragFloat("Precise Position Y", &(this->position.y), 0.001, -1.0f, 0.0f)   || result.updated;
+            result.updated = ImGui::DragFloat("Precise Position Z", &(this->position.z), 0.001, -1.0f, 1.0f)   || result.updated;
+            this->position = glm::normalize(this->position);
         }
         break;
     }
