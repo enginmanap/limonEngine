@@ -5,19 +5,6 @@
 #include <glm/ext.hpp>
 #include "Light.h"
 
-void Light::step(long time [[gnu::unused]]) {
-    if(lightType == LightTypes::DIRECTIONAL) {
-        updateLightView();
-    }
-}
-
-void Light::updateLightView() {
-    playerPosition = graphicsWrapper->getCameraPosition();
-
-    frustumChanged = true;
-    directionalCamera->getCameraMatrix();
-    frustumChanged = true;
-}
 
 const glm::mat4 Light::getLightSpaceMatrix() const {
     if(this->lightType == LightTypes::DIRECTIONAL) {

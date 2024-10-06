@@ -37,7 +37,16 @@ private:
     LightTypes lightType;
     bool frustumChanged = true;
 
-    void updateLightView();
+
+
+
+    void updateLightView() {
+        playerPosition = graphicsWrapper->getCameraPosition();
+        directionalCamera->recalculateView(graphicsWrapper->getCameraMatrix(),graphicsWrapper->getProjectionMatrix());
+        frustumChanged = true;
+        directionalCamera->getCameraMatrix();
+        frustumChanged = true;
+    }
 
 public:
     Light(GraphicsInterface* graphicsWrapper, uint32_t objectID, LightTypes lightType, const glm::vec3 &position,
@@ -94,7 +103,11 @@ public:
 
     void setPosition(glm::vec3 position);
 
-    void step(long time);
+    void step(long time [[gnu::unused]]) {
+        if(lightType == LightTypes::DIRECTIONAL) {
+            updateLightView();
+        }
+    }
 
     const glm::vec3 &getColor() const {
         return color;
