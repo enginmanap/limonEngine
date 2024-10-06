@@ -12,6 +12,7 @@
 #include "API/Graphics/GraphicsInterface.h"
 #include "API/Graphics/GraphicsProgram.h"
 #include "Utils/GLMConverter.h"
+#include "Utils/Line.h"
 #include "Options.h"
 
 class BulletDebugDrawer : public btIDebugDraw {

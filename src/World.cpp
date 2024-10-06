@@ -812,6 +812,13 @@ void World::renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& re
 
 void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[gnu::unused]], const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const {
    dynamicsWorld->debugDrawWorld();
+    for (const auto &drawLinePair: options->getLogger()->getDrawLines()) {
+        if(!drawLinePair.second.empty()) {
+            for (const auto &line: drawLinePair.second) {
+                debugDrawer->drawLine(GLMConverter::GLMToBlt(line.from), GLMConverter::GLMToBlt(line.to), GLMConverter::GLMToBlt(line.fromColor), GLMConverter::GLMToBlt(line.toColor));
+            }
+        }
+    }
    if (dynamicsWorld->getDebugDrawer()->getDebugMode() != btIDebugDraw::DBG_NoDebug) {
        debugDrawer->drawLine(btVector3(0, 0, 0), btVector3(0, 250, 0), btVector3(1, 1, 1));
        //draw the ai-grid

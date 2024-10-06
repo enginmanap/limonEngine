@@ -11,6 +11,7 @@
 #include <string>
 #include <algorithm>
 #include <vector>
+#include "Utils/Line.h"
 
 #include <fstream>
 #include <streambuf>

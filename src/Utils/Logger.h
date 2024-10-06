@@ -9,6 +9,7 @@
 #include <string>
 #include <deque>
 #include <SDL_timer.h>
+#include "Utils/Line.h" //Line is an exception as its used for visual logging basically
 
 class Logger {
 public:
@@ -26,8 +27,39 @@ public:
 
 private:
     std::deque<LogLine*> logQueue;
+    std::map<uint32_t, std::vector<Line>> userManagedLineBuffer;
+    uint32_t lineBufferIndex = 0;
 public:
 
+    uint32_t drawLine(glm::vec3 from, glm::vec3 fromColor, glm::vec3 to, glm::vec3 toColor, bool requireCameraTransform) {
+        lineBufferIndex++;
+        std::vector<Line> lineBuffer;
+        lineBuffer.push_back(Line(from, fromColor, to, toColor, requireCameraTransform));
+        userManagedLineBuffer[lineBufferIndex] = lineBuffer;
+        return lineBufferIndex;
+    }
+
+    bool drawLine(uint32_t bufferIndex, glm::vec3 from, glm::vec3 fromColor, glm::vec3 to, glm::vec3 toColor, bool requireCameraTransform) {
+        std::map<uint32_t, std::vector<Line>>::iterator bufferToAdd = userManagedLineBuffer.find(bufferIndex);
+        if(bufferToAdd == userManagedLineBuffer.end()) {
+            return false;
+        }
+        bufferToAdd->second.push_back(Line(from, fromColor, to, toColor, requireCameraTransform));
+        return true;
+    }
+
+    bool clearLineBuffer(uint32_t bufferIndex) {
+        std::map<uint32_t, std::vector<Line>>::iterator bufferToDelete = userManagedLineBuffer.find(bufferIndex);
+        if(bufferToDelete == userManagedLineBuffer.end()) {
+            return false;
+        }
+        userManagedLineBuffer.erase(bufferToDelete);
+        return true;
+    }
+
+    const std::map<uint32_t, std::vector<Line>>& getDrawLines() {
+        return userManagedLineBuffer;
+    }
 
     void log(Subsystem subsystem, Level level, const std::string &text) {
         logQueue.push_back(new LogLine(subsystem, level, text, SDL_GetTicks()));//SDL_GETTicks is used because we want real time, not game time

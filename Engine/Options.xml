@@ -239,4 +239,12 @@
         <IsSet>True</IsSet>
         <Index>2</Index>
     </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>DebugDrawLines</Description>
+        <Value>0</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>2</Index>
+    </Parameter>
 </Options>

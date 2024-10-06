@@ -29,20 +29,6 @@ class GraphicsProgram;
 class Texture;
 class RenderMethodInterface;
 
-struct Line {
-    glm::vec3 from;
-    glm::vec3 fromColor;
-    int needsCameraTransform;//FIXME This variable is repeated, because it must be per vertex. Maybe we can share int as bytes.
-    glm::vec3 to;
-    glm::vec3 toColor;
-    int needsCameraTransform2;//this is the other one
-
-    Line(const glm::vec3 &from,
-         const glm::vec3 &to,
-         const glm::vec3 &fromColor,
-         const glm::vec3 &toColor,
-         const bool needsCameraTransform): from(from), fromColor(fromColor), needsCameraTransform(needsCameraTransform), to(to), toColor(toColor), needsCameraTransform2(needsCameraTransform){};
-};
 
 class GraphicsInterface {
     friend class GraphicsProgram; //TODO This is to allow access of protected method createGraphicsProgram we should come up with something better
