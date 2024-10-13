@@ -613,10 +613,7 @@ void Editor::renderEditor(World& world) {
             ImGui::EndListBox();
             auto selectedMaterialIt = allMaterials.find(selectedHash);
             if(selectedMaterialIt != allMaterials.end()) {
-                ImGuiRequest request(glm::mat4(0), glm::mat4(0),
-                                                                                glm::mat4(0), 0, 0, world.apiInstance);
-
-                selectedMaterialIt->second->addImGuiEditorElements(request);
+                selectedMaterialIt->second->addImGuiEditorElements(*world.request);
             }
         }
         ImGui::End();

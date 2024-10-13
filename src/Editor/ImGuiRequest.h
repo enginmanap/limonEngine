@@ -9,7 +9,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 struct ImGuiRequest {
-    const glm::mat4& perspectiveCameraMatrix;
+     glm::mat4& perspectiveCameraMatrix;
     const glm::mat4 orthogonalCameraMatrix = glm::lookAt(glm::vec3(0, 0, 1), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     const glm::mat4& perspectiveMatrix;
     const glm::mat4& orthogonalMatrix;

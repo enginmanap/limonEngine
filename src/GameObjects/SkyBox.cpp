@@ -56,7 +56,6 @@ void SkyBox::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_
 
     graphicsWrapper->attachCubeMap(cubeMap->getID(), texturePoint);
     //this is because we want to remove translate component from cameraMatrix.
-    glm::mat4 viewMatrix = graphicsWrapper->getProjectionMatrix() * glm::mat4(glm::mat3(graphicsWrapper->getCameraMatrix()));
     if (program->setUniform("cubeSampler", texturePoint)) {
         if (program->setUniform("cameraTransformMatrix", viewMatrix)) {
             graphicsWrapper->render(program->getID(), vao, ebo, faces.size() * 3);

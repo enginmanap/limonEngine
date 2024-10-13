@@ -21,7 +21,7 @@ GUIImageBase::~GUIImageBase() {
 
 void GUIImageBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel[[gnu::unused]]) {
 
-    renderProgram->setUniform("orthogonalProjectionMatrix", graphicsWrapper->getOrthogonalProjectionMatrix());
+    renderProgram->setUniform("orthogonalProjectionMatrix", graphicsWrapper->getGUIOrthogonalProjectionMatrix());
 
     if (!renderProgram->setUniform("worldTransformMatrix", this->getTransformation()->getWorldTransform())) {//translate.z is alpha channel, we are sending it too!
         std::cerr << "failed to set uniform \"worldTransformMatrix\"" << std::endl;

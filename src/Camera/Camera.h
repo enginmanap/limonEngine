@@ -18,8 +18,32 @@ class Camera {
 protected:
     std::string name;
 
+
+    static void calculateFrustumCorners(const glm::mat4 &cameraMatrix,
+                                        const glm::mat4 &projectionMatrix, std::vector<glm::vec4> &corners) {
+        corners.clear();
+        const auto inv = glm::inverse(projectionMatrix * cameraMatrix);
+
+        for (unsigned int x = 0; x < 2; ++x)
+        {
+            for (unsigned int y = 0; y < 2; ++y)
+            {
+                for (unsigned int z = 0; z < 2; ++z)
+                {
+                    const glm::vec4 pt =
+                            inv * glm::vec4(
+                                    2.0f * x - 1.0f,
+                                    2.0f * y - 1.0f,
+                                    2.0f * z - 1.0f,
+                                    1.0f);
+                    corners.push_back(pt / pt.w);
+                }
+            }
+        }
+    }
+
     static void calculateFrustumPlanes(const glm::mat4 &cameraMatrix,
-                                       const glm::mat4 &projectionMatrix, std::vector<glm::vec4> &planes) {
+                                       const glm::mat4 &projectionMatrix, std::vector<glm::vec4> &planes, std::vector<glm::vec4> &corners) {
         assert(planes.size() == 6);
         glm::mat4 clipMat;
 
@@ -70,8 +94,9 @@ protected:
         planes[FRONT].z = clipMat[2].w + clipMat[2].z;
         planes[FRONT].w = clipMat[3].w + clipMat[3].z;
         planes[FRONT] = glm::normalize(planes[FRONT]);
-    }
 
+        calculateFrustumCorners(cameraMatrix, projectionMatrix, corners);
+    }
 
 public:
 
@@ -101,7 +126,11 @@ public:
 
     virtual bool isVisible(const PhysicalRenderable& renderable) const = 0;
 
+    virtual bool isResultVisibleOnOtherCamera(const PhysicalRenderable& renderable, const Camera* otherCamera) const = 0;
+
     virtual glm::mat4 getCameraMatrix() = 0;
+
+    virtual glm::mat4 getProjectionMatrix() = 0;
 
     void addRenderTag(const std::string& text) {
         HashUtil::HashedString tag(text);

@@ -18,12 +18,14 @@
 #include "Utils/GLMUtils.h"
 #include "CameraAttachment.h"
 #include "Camera.h"
+#include "PhysicalRenderable.h"
 
 
 class PerspectiveCamera : public Camera {
     glm::mat4 cameraTransformMatrix;
     glm::mat4 perspectiveProjectionMatrix;
     std::vector<glm::vec4>frustumPlanes;
+    std::vector<glm::vec4>frustumCorners;
     glm::quat view;
     const glm::vec3 startPosition = glm::vec3(0, 10, 15);
     glm::vec3 position, center, up, right;
@@ -44,10 +46,11 @@ public:
             cameraAttachment(cameraAttachment),
             options(options){
         this->name = name;
-        cameraTransformMatrix = glm::lookAt(position, position + center, up);
+        cameraTransformMatrix = glm::lookAt(position, position + center, up);//view matrix
         aspect = float(options->getScreenHeight()) / float(options->getScreenWidth());
         this->frustumPlanes.resize(6);
-        perspectiveProjectionMatrix = glm::perspective(options->PI/3.0f, 1.0f / aspect, 0.01f, 10000.0f);
+        this->frustumCorners.resize(6);
+        perspectiveProjectionMatrix = glm::perspective(Options::PI/3.0f, 1.0f / aspect, 0.01f, 10000.0f);
 
     }
 
@@ -60,10 +63,14 @@ public:
             this->dirty = true;
             cameraAttachment->getCameraVariables(position, center, up, right);
             this->cameraTransformMatrix = glm::lookAt(position, position + center, up);
-            calculateFrustumPlanes(cameraTransformMatrix, perspectiveProjectionMatrix, frustumPlanes);
+            calculateFrustumPlanes(cameraTransformMatrix, perspectiveProjectionMatrix, frustumPlanes, frustumCorners);
             cameraAttachment->clearDirty();
         }
         return cameraTransformMatrix;
+    }
+
+    glm::mat4 getProjectionMatrix() override {
+        return perspectiveProjectionMatrix;
     }
 
     bool isDirty() const override {
@@ -107,6 +114,13 @@ public:
         }
         return inside;
     }
+
+
+    bool isResultVisibleOnOtherCamera(const PhysicalRenderable& renderable[[gnu::unused]], const Camera* otherCamera[[gnu::unused]]) const {
+        std::cerr << "Multiple camera culling for perspective camera is not implemented!" << std::endl;
+        return true;
+    }
+
 };
 
 

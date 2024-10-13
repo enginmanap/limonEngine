@@ -13,7 +13,7 @@ const glm::mat4 Light::getLightSpaceMatrix() const {
     return glm::mat4(1.0);//for point lights, this is useless
 }
 
-void Light::setPosition(glm::vec3 position) {
+void Light::setPosition(glm::vec3 position, const glm::mat4 &playerCameraMatrix, const glm::mat4 &playerProjectionMatrix) {
     this->position = position;
     switch (lightType) {
         case LightTypes::NONE:
@@ -22,7 +22,7 @@ void Light::setPosition(glm::vec3 position) {
             break;
         case LightTypes::DIRECTIONAL:
             this->position = glm::normalize(position);
-            updateLightView();
+            updateLightView(playerCameraMatrix, playerProjectionMatrix);
         break;
     }
 }
@@ -72,7 +72,7 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
     }
 
     if(result.updated || crudeUpdated) {
-        this->setPosition(position);
+        this->setPosition(position, request.perspectiveCameraMatrix, request.perspectiveMatrix);
     }
     if(crudeUpdated) {
         preciseTranslatePoint = this->position;
@@ -96,7 +96,7 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
     ImGuizmo::Manipulate(glm::value_ptr(request.perspectiveCameraMatrix), glm::value_ptr(request.perspectiveMatrix), ImGuizmo::TRANSLATE, mCurrentGizmoMode, glm::value_ptr(objectMatrix), NULL, useSnap ? &(snap[0]) : NULL);
 
     //now we should have object matrix updated, update the object
-    this->setPosition(glm::vec3(objectMatrix[3][0], objectMatrix[3][1], objectMatrix[3][2]));
+    this->setPosition(glm::vec3(objectMatrix[3][0], objectMatrix[3][1], objectMatrix[3][2]), request.perspectiveCameraMatrix, request.perspectiveMatrix);
 
     if(ImGui::Button("Remove light")) {
         result.remove = true;

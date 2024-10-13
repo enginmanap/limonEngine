@@ -50,7 +50,7 @@ void GUITextBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgr
 
     renderProgram->setUniform("inColor", color);
 
-    renderProgram->setUniform("orthogonalProjectionMatrix", graphicsWrapper->getOrthogonalProjectionMatrix());
+    renderProgram->setUniform("orthogonalProjectionMatrix", graphicsWrapper->getGUIOrthogonalProjectionMatrix());
 
     glm::mat4 currentTransform;
 
@@ -112,7 +112,7 @@ void GUITextBase::renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgr
 }
 
 void GUITextBase::renderDebug(BulletDebugDrawer *debugDrawer) {
-    glm::mat4 orthogonalPM = graphicsWrapper->getOrthogonalProjectionMatrix();
+    glm::mat4 orthogonalPM = graphicsWrapper->getGUIOrthogonalProjectionMatrix();
 
     glm::mat4 transform = (orthogonalPM * transformation.getWorldTransform());
 

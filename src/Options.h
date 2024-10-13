@@ -108,6 +108,16 @@ public:
         return true;
     }
 
+    bool getOptionOrDefault(const std::string& optionName, bool &value, bool defaultValue) const {
+        auto it = this->options.find(optionName);
+        if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::BOOLEAN) {
+            value = defaultValue;
+            return false;
+        }
+        value = it->second->value.boolValue;
+        return true;
+    }
+
     bool getOption(const std::string& optionName, LimonTypes::Vec4 &value) const {
         auto it = this->options.find(optionName);
         if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::VEC4) {

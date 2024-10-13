@@ -10,6 +10,7 @@
 #include "../Renderable.h"
 #include "../Assets/CubeMapAsset.h"
 #include "../Assets/AssetManager.h"
+#include "Camera/PerspectiveCamera.h"
 
 class SkyBox : public Renderable, public GameObject {
     uint32_t objectID;
@@ -35,6 +36,7 @@ private:
     std::vector<glm::mediump_uvec3> faces;
 
     std::shared_ptr<CubeMapAsset> cubeMap;
+    glm::mat4 viewMatrix;
 
 public:
     SkyBox(uint32_t objectID, std::shared_ptr<AssetManager> assetManager, std::string path, std::string right, std::string left,
@@ -43,6 +45,10 @@ public:
     void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel) override;
 
     void setupForTime(long time [[gnu::unused]]) {};
+
+    void step(Camera* playerCamera) {
+        viewMatrix = playerCamera->getProjectionMatrix() * glm::mat4(glm::mat3(playerCamera->getCameraMatrix()));
+    }
 
     ~SkyBox() {
         assetManager->freeAsset(cubeMap->getNames());

@@ -40,9 +40,11 @@ private:
 
 
 
-    void updateLightView() {
-        playerPosition = graphicsWrapper->getCameraPosition();
-        directionalCamera->recalculateView(graphicsWrapper->getCameraMatrix(),graphicsWrapper->getProjectionMatrix());
+    void updateLightView(const glm::mat4& playerCameraMatrix, const glm::mat4& playerProjectionMatrix) {
+        playerPosition.x = playerCameraMatrix[3][0];
+        playerPosition.y = playerCameraMatrix[3][1];
+        playerPosition.z = playerCameraMatrix[3][2];
+        directionalCamera->recalculateView(playerCameraMatrix, playerProjectionMatrix);
         frustumChanged = true;
         directionalCamera->getCameraMatrix();
         frustumChanged = true;
@@ -101,11 +103,11 @@ public:
         return position;
     }
 
-    void setPosition(glm::vec3 position);
+    void setPosition(glm::vec3 position, const glm::mat4 &playerCameraMatrix, const glm::mat4 &playerProjectionMatrix);
 
-    void step(long time [[gnu::unused]]) {
+    void step(long time [[gnu::unused]], Camera* playerCamera) {
         if(lightType == LightTypes::DIRECTIONAL) {
-            updateLightView();
+            updateLightView(playerCamera->getCameraMatrix(), playerCamera->getProjectionMatrix());
         }
     }
 

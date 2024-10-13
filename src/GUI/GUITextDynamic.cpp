@@ -18,7 +18,7 @@ void GUITextDynamic::renderWithProgram(std::shared_ptr<GraphicsProgram> program,
 
     program->setUniform("inColor", color);
 
-    program->setUniform("orthogonalProjectionMatrix", graphicsWrapper->getOrthogonalProjectionMatrix());
+    program->setUniform("orthogonalProjectionMatrix", graphicsWrapper->getGUIOrthogonalProjectionMatrix());
 
     glm::mat4 currentTransform;
 

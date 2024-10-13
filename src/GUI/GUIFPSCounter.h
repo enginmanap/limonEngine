@@ -9,7 +9,7 @@
 #include <SDL2/SDL.h>
 
 class GUIFPSCounter : public GUITextBase {
-    static const size_t PREVIOUS_FRAME_COUNT = 3000;
+    static const size_t PREVIOUS_FRAME_COUNT = 300;
     Uint32 currentTime;
     Uint32 lastUpdateTime = 0;
     Uint32 previousFrameTimes[PREVIOUS_FRAME_COUNT];

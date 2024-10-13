@@ -129,10 +129,9 @@ public:
 
     virtual bool getUniformLocation(const uint32_t programID, const std::string &uniformName, uint32_t &location) = 0;
 
-    virtual const glm::mat4& getCameraMatrix() const = 0;
     virtual const glm::vec3& getCameraPosition() const = 0;
-    virtual const glm::mat4& getProjectionMatrix() const  = 0;
-    virtual const glm::mat4& getOrthogonalProjectionMatrix() const  = 0;
+
+    virtual const glm::mat4& getGUIOrthogonalProjectionMatrix() const  = 0;
 
     virtual void createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize) = 0;
     virtual void drawLines(GraphicsProgram &program, uint32_t vao, uint32_t vbo, const std::vector<Line> &lines) = 0;

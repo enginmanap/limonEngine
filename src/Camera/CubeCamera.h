@@ -47,6 +47,11 @@ public:
         return glm::distance2(renderable.getTransformation()->getTranslate(), this->position) < activeDistance * activeDistance;
     }
 
+    bool isResultVisibleOnOtherCamera(const PhysicalRenderable& renderable[[gnu::unused]], const Camera* otherCamera[[gnu::unused]]) const {
+        std::cerr << "Multiple camera culling for cube camera is not implemented!" << std::endl;
+        return true;
+    }
+
     glm::mat4 getCameraMatrix() override {
         if(isDirty()) {
             cameraAttachment->getCameraVariables(position,center,up,right);
@@ -54,6 +59,11 @@ public:
             setShadowMatricesForPosition();
         }
         return glm::mat4(1.0); // don't use
+    }
+
+    glm::mat4 getProjectionMatrix() override {
+        std::cerr << "Cube Camera can't provide single projection matrix" << std::endl;
+        exit(-1);
     }
 
     const glm::mat4* getRenderMatrices() const {

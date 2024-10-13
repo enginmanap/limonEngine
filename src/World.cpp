@@ -247,6 +247,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          graphicsWrapper->setPlayerMatrices(playerCamera->getPosition(), playerCamera->getCameraMatrix(), gameTime);//this is required for any render
          alHelper->setListenerPositionAndOrientation(playerCamera->getPosition(), playerCamera->getCenter(), playerCamera->getUp());
      }
+
      if(currentPlayersSettings->worldSimulation) {
          for(const auto& emitter:emitters) {
              emitter.second->setupForTime(gameTime);
@@ -294,7 +295,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
      }
 
      for (size_t j = 0; j < activeLights.size(); ++j) {
-         activeLights[j]->step(gameTime);
+         activeLights[j]->step(gameTime, playerCamera);
      }
      updateActiveLights(false);
 
@@ -303,6 +304,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
      //FIXME moved out of fillVisible because for the time being we have 2 (fillVisibleObjects(), fillVisibleObjectsUsingTags()) once one is gone, these 2 clears should go in.
      updatedModels.clear();
      playerCamera->clearDirty();
+
+     sky->step(playerCamera);
 
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
         guiLayers[i]->setupForTime(gameTime);
@@ -790,7 +793,7 @@ void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram
     graphicsWrapper->getRenderTriangleAndLineCount(triangle, line);
     renderCounts->updateText("Tris: " + std::to_string(triangle) + ", lines: " + std::to_string(line));
     bool renderInformations;
-    options->getOption("renderInformations", renderInformations);
+    options->getOptionOrDefault("renderInformations", renderInformations, false);
     if (renderInformations) {
         renderCounts->renderWithProgram(renderProgram, 0);
         debugOutputGUI->renderWithProgram(renderProgram, 0);
@@ -934,6 +937,9 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
    if(!currentPlayersSettings->editorShown) {
        return;
    }
+   delete request;
+   request = new ImGuiRequest(playerCamera->getCameraMatrix(), playerCamera->getProjectionMatrix(),
+                              graphicsWrapper->getGUIOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), apiInstance);
 
    //Render Trigger volumes
    for (auto it = triggers.begin(); it != triggers.end(); ++it) {
@@ -1717,8 +1723,8 @@ void World::afterLoadFinished() {
     }
 
     //setup request
-    request = new ImGuiRequest(graphicsWrapper->getCameraMatrix(), graphicsWrapper->getProjectionMatrix(),
-                                           graphicsWrapper->getOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), apiInstance);
+    request = new ImGuiRequest(playerCamera->getCameraMatrix(), playerCamera->getProjectionMatrix(),
+                               graphicsWrapper->getGUIOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), apiInstance);
 
     if(startingPlayer.extensionName != "") {
         PlayerExtensionInterface *playerExtension =PlayerExtensionInterface::createExtension(startingPlayer.extensionName, apiInstance);
@@ -3073,7 +3079,7 @@ bool World::addLightTranslateAPI(uint32_t lightID, const LimonTypes::Vec4 &posit
         return false;
     }
 
-    light->setPosition(light->getPosition() + glm::vec3(GLMConverter::LimonToGLM(position)));
+    light->setPosition(light->getPosition() + glm::vec3(GLMConverter::LimonToGLM(position)), this->playerCamera->getCameraMatrix(), this->playerCamera->getProjectionMatrix());
     return true;
 }
 

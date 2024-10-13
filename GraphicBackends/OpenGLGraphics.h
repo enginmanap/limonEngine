@@ -411,15 +411,11 @@ public:
     void attachCubeMapArrayTexture(unsigned int textureID, unsigned int attachPoint) override;
 
 
-    bool getUniformLocation(const uint32_t programID, const std::string &uniformName, uint32_t &location) override;
+    bool getUniformLocation(const uint32_t programID, const std::string &uniformName, uint32_t &location) override;;
 
-    const glm::mat4& getCameraMatrix() const override { return cameraMatrix; };
+    const glm::vec3& getCameraPosition() const override { return cameraPosition; };;
 
-    const glm::vec3& getCameraPosition() const override { return cameraPosition; };
-
-    const glm::mat4& getProjectionMatrix() const override { return perspectiveProjectionMatrix; };
-
-    const glm::mat4& getOrthogonalProjectionMatrix() const override { return orthogonalProjectionMatrix; }
+    const glm::mat4& getGUIOrthogonalProjectionMatrix() const override { return orthogonalProjectionMatrix; }
 
     void createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize) override;
 
