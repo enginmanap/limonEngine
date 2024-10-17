@@ -18,6 +18,8 @@ class CubeCamera : public Camera {
 
     bool dirty = true;
     float activeDistance;
+    std::vector<std::vector<glm::vec4>> frustumCorners;
+
 
 public:
 
@@ -137,6 +139,11 @@ private:
                             glm::lookAt(position, position + glm::vec3( 0.0, 0.0, 1.0), glm::vec3(0.0,-1.0, 0.0));
         renderMatrices[5] = lightProjectionMatrixPoint *
                             glm::lookAt(position, position + glm::vec3( 0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0));
+    }
+
+public:
+    const std::vector<std::vector<glm::vec4>> &getFrustumCorners() const override {
+        return frustumCorners;
     }
 
 };

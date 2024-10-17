@@ -939,7 +939,7 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
    }
    delete request;
    request = new ImGuiRequest(playerCamera->getCameraMatrix(), playerCamera->getProjectionMatrix(),
-                              graphicsWrapper->getGUIOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), apiInstance);
+                              graphicsWrapper->getGUIOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), playerCamera, apiInstance);
 
    //Render Trigger volumes
    for (auto it = triggers.begin(); it != triggers.end(); ++it) {
@@ -1724,7 +1724,7 @@ void World::afterLoadFinished() {
 
     //setup request
     request = new ImGuiRequest(playerCamera->getCameraMatrix(), playerCamera->getProjectionMatrix(),
-                               graphicsWrapper->getGUIOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), apiInstance);
+                               graphicsWrapper->getGUIOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), playerCamera, apiInstance);
 
     if(startingPlayer.extensionName != "") {
         PlayerExtensionInterface *playerExtension =PlayerExtensionInterface::createExtension(startingPlayer.extensionName, apiInstance);
@@ -3079,7 +3079,7 @@ bool World::addLightTranslateAPI(uint32_t lightID, const LimonTypes::Vec4 &posit
         return false;
     }
 
-    light->setPosition(light->getPosition() + glm::vec3(GLMConverter::LimonToGLM(position)), this->playerCamera->getCameraMatrix(), this->playerCamera->getProjectionMatrix());
+    light->setPosition(light->getPosition() + glm::vec3(GLMConverter::LimonToGLM(position)), this->playerCamera);
     return true;
 }
 

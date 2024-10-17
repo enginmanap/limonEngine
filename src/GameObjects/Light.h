@@ -16,6 +16,7 @@
 #include "Camera/OrthographicCamera.h"
 #include "Camera/CubeCamera.h"
 #include "../utils/HardCodedTags.h"
+#include "Camera/PerspectiveCamera.h"
 
 class Light : public GameObject, public CameraAttachment {
 public:
@@ -40,11 +41,8 @@ private:
 
 
 
-    void updateLightView(const glm::mat4& playerCameraMatrix, const glm::mat4& playerProjectionMatrix) {
-        playerPosition.x = playerCameraMatrix[3][0];
-        playerPosition.y = playerCameraMatrix[3][1];
-        playerPosition.z = playerCameraMatrix[3][2];
-        directionalCamera->recalculateView(playerCameraMatrix, playerProjectionMatrix);
+    void updateLightView(const PerspectiveCamera* playerCamera) {
+        directionalCamera->recalculateView(playerCamera);
         frustumChanged = true;
         directionalCamera->getCameraMatrix();
         frustumChanged = true;
@@ -103,11 +101,11 @@ public:
         return position;
     }
 
-    void setPosition(glm::vec3 position, const glm::mat4 &playerCameraMatrix, const glm::mat4 &playerProjectionMatrix);
+    void setPosition(glm::vec3 position, const PerspectiveCamera* playerCamera);
 
-    void step(long time [[gnu::unused]], Camera* playerCamera) {
+    void step(long time [[gnu::unused]], PerspectiveCamera* playerCamera) {
         if(lightType == LightTypes::DIRECTIONAL) {
-            updateLightView(playerCamera->getCameraMatrix(), playerCamera->getProjectionMatrix());
+            updateLightView(playerCamera);
         }
     }
 

@@ -42,8 +42,7 @@ protected:
         }
     }
 
-    static void calculateFrustumPlanes(const glm::mat4 &cameraMatrix,
-                                       const glm::mat4 &projectionMatrix, std::vector<glm::vec4> &planes, std::vector<glm::vec4> &corners) {
+    static void calculateFrustumPlanes(const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix, std::vector<glm::vec4> &planes) {
         assert(planes.size() == 6);
         glm::mat4 clipMat;
 
@@ -94,8 +93,6 @@ protected:
         planes[FRONT].z = clipMat[2].w + clipMat[2].z;
         planes[FRONT].w = clipMat[3].w + clipMat[3].z;
         planes[FRONT] = glm::normalize(planes[FRONT]);
-
-        calculateFrustumCorners(cameraMatrix, projectionMatrix, corners);
     }
 
 public:
@@ -131,6 +128,9 @@ public:
     virtual glm::mat4 getCameraMatrix() = 0;
 
     virtual glm::mat4 getProjectionMatrix() = 0;
+
+    virtual const std::vector<std::vector<glm::vec4>>& getFrustumCorners() const = 0;
+
 
     void addRenderTag(const std::string& text) {
         HashUtil::HashedString tag(text);

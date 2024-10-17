@@ -379,8 +379,6 @@ public:
 
     void clearFrame() {
 
-        //additional depths for Directional is not needed, but depth for point is reqired, because there is no way to clear
-        //it per layer, so we are clearing per frame. This also means, lights should not reuse the textures.
         glBindFramebuffer(GL_FRAMEBUFFER, 0);//combining doesn't need depth test either
         glClear(GL_COLOR_BUFFER_BIT);//clear for default
 

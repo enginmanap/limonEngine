@@ -24,8 +24,9 @@
 class PerspectiveCamera : public Camera {
     glm::mat4 cameraTransformMatrix;
     glm::mat4 perspectiveProjectionMatrix;
+    std::vector<glm::mat4>cascadePerspectiveProjectionMatrices;
     std::vector<glm::vec4>frustumPlanes;
-    std::vector<glm::vec4>frustumCorners;
+    std::vector<std::vector<glm::vec4>>frustumCorners;
     glm::quat view;
     const glm::vec3 startPosition = glm::vec3(0, 10, 15);
     glm::vec3 position, center, up, right;
@@ -49,9 +50,37 @@ public:
         cameraTransformMatrix = glm::lookAt(position, position + center, up);//view matrix
         aspect = float(options->getScreenHeight()) / float(options->getScreenWidth());
         this->frustumPlanes.resize(6);
-        this->frustumCorners.resize(6);
+
         perspectiveProjectionMatrix = glm::perspective(Options::PI/3.0f, 1.0f / aspect, 0.01f, 10000.0f);
 
+        long cascadeCount;
+        std::vector<float> cascadeLimits;
+        cascadeLimits.emplace_back(0.01);
+        options->getOptionOrDefault("CascadeCount", cascadeCount, 4L);
+        if(cascadeCount == 1L) {
+            cascadePerspectiveProjectionMatrices.emplace_back(perspectiveProjectionMatrix);
+            this->frustumCorners.resize(1);
+        } else {
+            for (int i = 0; i < cascadeCount; ++i) {
+                long tempValue;
+                if (!options->getOption("CascadeLimit" + std::to_string(i), tempValue)) {
+                    std::cerr << "\"CascadeLimit" + std::to_string(i) + "\" option not found, cascade setup will use defaults" << std::endl;
+                    cascadeLimits.clear();
+                    cascadeLimits.emplace_back(0.01);
+                    cascadeLimits.emplace_back(10.0f);
+                    cascadeLimits.emplace_back(100.0f);
+                    cascadeLimits.emplace_back(1000.0f);
+                    cascadeLimits.emplace_back(10000.0f);
+                    break;
+                }
+                cascadeLimits.emplace_back(tempValue);
+            }
+            //Now use the cascade limist to create the array of perspective projection matrixes
+            for (size_t i = 1; i < cascadeLimits.size(); ++i) {
+                cascadePerspectiveProjectionMatrices.emplace_back(glm::perspective(Options::PI / 3.0f, 1.0f / aspect, cascadeLimits[i - 1], cascadeLimits[i]));
+            }
+            frustumCorners.resize(cascadePerspectiveProjectionMatrices.size());
+        }
     }
 
     void setCameraAttachment(CameraAttachment *cameraAttachment) {
@@ -63,7 +92,10 @@ public:
             this->dirty = true;
             cameraAttachment->getCameraVariables(position, center, up, right);
             this->cameraTransformMatrix = glm::lookAt(position, position + center, up);
-            calculateFrustumPlanes(cameraTransformMatrix, perspectiveProjectionMatrix, frustumPlanes, frustumCorners);
+            calculateFrustumPlanes(cameraTransformMatrix, perspectiveProjectionMatrix, frustumPlanes);
+            for (size_t i = 0; i < cascadePerspectiveProjectionMatrices.size(); ++i) {
+                calculateFrustumCorners(cameraTransformMatrix, cascadePerspectiveProjectionMatrices[i], frustumCorners[i]);
+            }
             cameraAttachment->clearDirty();
         }
         return cameraTransformMatrix;
@@ -119,6 +151,10 @@ public:
     bool isResultVisibleOnOtherCamera(const PhysicalRenderable& renderable[[gnu::unused]], const Camera* otherCamera[[gnu::unused]]) const {
         std::cerr << "Multiple camera culling for perspective camera is not implemented!" << std::endl;
         return true;
+    }
+
+    const std::vector<std::vector<glm::vec4>>& getFrustumCorners() const override {
+        return frustumCorners;
     }
 
 };
