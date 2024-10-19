@@ -87,7 +87,7 @@ public:
         PerspectiveCamera::cameraAttachment = cameraAttachment;
     }
 
-    glm::mat4 getCameraMatrix() override {
+    const glm::mat4& getCameraMatrix() override {
         if (cameraAttachment->isDirty()) {
             this->dirty = true;
             cameraAttachment->getCameraVariables(position, center, up, right);
@@ -101,7 +101,7 @@ public:
         return cameraTransformMatrix;
     }
 
-    glm::mat4 getProjectionMatrix() override {
+    const glm::mat4& getProjectionMatrix() override {
         return perspectiveProjectionMatrix;
     }
 

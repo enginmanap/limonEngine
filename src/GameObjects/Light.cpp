@@ -6,13 +6,6 @@
 #include "Light.h"
 
 
-const glm::mat4 Light::getLightSpaceMatrix() const {
-    if(this->lightType == LightTypes::DIRECTIONAL) {
-        return directionalCamera->getCameraMatrix();
-    }
-    return glm::mat4(1.0);//for point lights, this is useless
-}
-
 void Light::setPosition(glm::vec3 position, const PerspectiveCamera* playerCamera) {
     this->position = position;
     switch (lightType) {

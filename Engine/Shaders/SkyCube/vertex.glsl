@@ -9,5 +9,5 @@ void main(void)
 {
     gl_Position = cameraTransformMatrix * position;
     gl_Position.z = gl_Position.w;
-	texCoords = position.xyz;
+    texCoords = position.xyz;
 }

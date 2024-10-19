@@ -23,7 +23,6 @@ public:
     enum class LightTypes {
         NONE, DIRECTIONAL, POINT
     };
-    const glm::mat4 getLightSpaceMatrix() const;
 
 private:
     GraphicsInterface* graphicsWrapper;
@@ -125,6 +124,8 @@ public:
      const glm::mat4* getShadowMatrices() const {
         if (this->lightType == LightTypes::POINT) {
             return cubeCamera->getRenderMatrices();
+        } else if(this->lightType == LightTypes::DIRECTIONAL) {
+            return &directionalCamera->getCameraMatrix();
         } else {
             return nullptr;
         }

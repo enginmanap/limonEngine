@@ -213,7 +213,7 @@ private:
 
     Options *options;
 
-    const uint32_t lightUniformSize = (sizeof(glm::mat4) * 7) + (4 * sizeof(glm::vec4));
+    const uint32_t lightUniformSize = (sizeof(glm::mat4) * 6) + (4 * sizeof(glm::vec4));
     const uint32_t playerUniformSize = 6 * sizeof(glm::mat4) + 3 * sizeof(glm::vec4);
     int32_t materialUniformSize = 2 * sizeof(glm::vec3) + sizeof(float) + sizeof(GLuint);
     int32_t modelUniformSize = sizeof(glm::mat4);
@@ -438,7 +438,6 @@ public:
     void setLight(const int lightIndex,
                   const glm::vec3& attenuation,
                   const glm::mat4* shadowMatrices,
-                  const glm::mat4& lightSpaceMatrix,
                   const glm::vec3& position,
                   const glm::vec3& color,
                   const glm::vec3& ambientColor,
@@ -448,7 +447,7 @@ public:
     void removeLight(const int i) override {
         GLint temp = 0;
         glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-        glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec4) + sizeof(glm::vec3),
+        glBufferSubData(GL_UNIFORM_BUFFER, i * lightUniformSize + sizeof(glm::mat4) * 6 + sizeof(glm::vec4) + sizeof(glm::vec3),
                         sizeof(GLint), &temp);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
         checkErrors("removeLight");

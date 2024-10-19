@@ -84,7 +84,7 @@ public:
         return true;
     }
 
-    glm::mat4 getCameraMatrix() override {
+    const glm::mat4 &getCameraMatrix() override {
         if (cameraAttachment->isDirty()) {
             this->dirty = true;
             glm::vec3 tempCenter;
@@ -94,7 +94,7 @@ public:
         return cameraTransformMatrix;
     }
 
-    glm::mat4 getProjectionMatrix() override {
+    const glm::mat4& getProjectionMatrix() override {
         return orthogonalProjectionMatrix;
     }
 

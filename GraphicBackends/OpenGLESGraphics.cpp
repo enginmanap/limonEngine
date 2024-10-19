@@ -1503,7 +1503,6 @@ void OpenGLESGraphics::drawLines(GraphicsProgram &program, uint32_t vao, uint32_
 void OpenGLESGraphics::setLight(const int lightIndex,
                               const glm::vec3& attenuation,
                               const glm::mat4* shadowMatrices,
-                              const glm::mat4& lightSpaceMatrix,
                               const glm::vec3& position,
                               const glm::vec3& color,
                               const glm::vec3& ambientColor,
@@ -1514,21 +1513,20 @@ void OpenGLESGraphics::setLight(const int lightIndex,
 
 
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
+    assert(sizeof(*shadowMatrices) / sizeof(glm::mat4) <= 6 );
     glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize,
-                    sizeof(glm::mat4) * 6, shadowMatrices);
+                    sizeof(*shadowMatrices), shadowMatrices);
     glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6,
-                    sizeof(glm::mat4), glm::value_ptr(lightSpaceMatrix));
-    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 7,
                     sizeof(glm::vec3), &position);
-    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec3),
+    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + sizeof(glm::vec3),
                     sizeof(GLfloat), &farPlane);
-    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec4),
+    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + sizeof(glm::vec4),
                     sizeof(glm::vec3), &color);
-    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 7 + sizeof(glm::vec4) + sizeof(glm::vec3),
+    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + sizeof(glm::vec4) + sizeof(glm::vec3),
                     sizeof(GLint), &lightType);
-    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 7 + 2 * sizeof(glm::vec4),
+    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + 2 * sizeof(glm::vec4),
                     sizeof(glm::vec3), glm::value_ptr(attenuation));
-    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 7 + 3 * sizeof(glm::vec4),
+    glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + 3 * sizeof(glm::vec4),
                     sizeof(glm::vec3), glm::value_ptr(ambientColor));
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setLight");

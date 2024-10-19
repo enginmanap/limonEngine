@@ -54,16 +54,16 @@ public:
         return true;
     }
 
-    glm::mat4 getCameraMatrix() override {
+    const glm::mat4& getCameraMatrix() override {
         if(isDirty()) {
             cameraAttachment->getCameraVariables(position,center,up,right);
             calculateActiveDistance(right);
             setShadowMatricesForPosition();
         }
-        return glm::mat4(1.0); // don't use
+        return renderMatrices[0]; // don't use
     }
 
-    glm::mat4 getProjectionMatrix() override {
+    const glm::mat4& getProjectionMatrix() override {
         std::cerr << "Cube Camera can't provide single projection matrix" << std::endl;
         exit(-1);
     }

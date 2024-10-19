@@ -148,7 +148,6 @@ public:
     virtual void setLight(const int lightIndex,
                           const glm::vec3& attenuation,
                           const glm::mat4* shadowMatrices,
-                          const glm::mat4& lightSpaceMatrix,
                           const glm::vec3& position,
                           const glm::vec3& color,
                           const glm::vec3& ambientColor,

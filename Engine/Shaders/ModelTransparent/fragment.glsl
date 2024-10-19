@@ -20,7 +20,6 @@ layout (std140) uniform PlayerTransformBlock {
 
 struct LightSource {
     mat4 shadowMatrices[6];
-    mat4 lightSpaceMatrix;
     vec3 position;
     float farPlanePoint;
     vec3 color;
@@ -51,7 +50,6 @@ in VS_FS {
 
 uniform sampler2DArray pre_shadowDirectional;
 uniform samplerCubeArray pre_shadowPoint;
-
 
 uniform sampler2D ambientSampler;
 uniform sampler2D diffuseSampler;

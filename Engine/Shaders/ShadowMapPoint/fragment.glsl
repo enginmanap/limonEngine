@@ -6,7 +6,6 @@ in vec4 FragPos;
 
 struct LightSource {
     mat4 shadowMatrices[6];
-    mat4 lightSpaceMatrix;
     vec3 position;
     float farPlanePoint;
     vec3 color;

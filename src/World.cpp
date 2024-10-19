@@ -2807,7 +2807,6 @@ void World::updateActiveLights(bool forceUpdate) {
                 lightIndex,
                 currentLight->getAttenuation(),
                 currentLight->getShadowMatrices(),
-                currentLight->getLightSpaceMatrix(),
                 currentLight->getPosition(),
                 currentLight->getColor(),
                 currentLight->getAmbientColor(),

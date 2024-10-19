@@ -11,7 +11,6 @@ layout (location = 6) in vec4 boneWeights;
 
 struct LightSource {
     mat4 shadowMatrices[6];
-    mat4 lightSpaceMatrix;
     vec3 position;
     float farPlanePoint;
     vec3 color;
@@ -59,7 +58,7 @@ void main() {
             modelTransform[1] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 1, 0), 0);
             modelTransform[2] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 2, 0), 0);
             modelTransform[3] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 3, 0), 0);
-            gl_Position = LightSources.lights[i].lightSpaceMatrix * (modelTransform * (BoneTransform * vec4(vec3(position), 1.0)));
+            gl_Position = LightSources.lights[i].shadowMatrices[0] * (modelTransform * (BoneTransform * vec4(vec3(position), 1.0)));
         }
     }
 }
