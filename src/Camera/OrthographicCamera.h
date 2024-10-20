@@ -15,8 +15,8 @@ class OrthographicCamera : public Camera {
     CameraAttachment* cameraAttachment;
     glm::vec3 position, center, up, right;
     glm::mat4 cameraTransformMatrix;
-    glm::mat4 orthogonalProjectionMatrix;
-    std::vector<glm::vec4>frustumPlanes;
+    std::vector<glm::mat4> orthogonalProjectionMatrices;
+    std::vector<std::vector<glm::vec4>>frustumPlanes;
     std::vector<std::vector<glm::vec4>> frustumCorners;
     float backOffFactor; // how high the camera should be? we are selecting average of zfar and znear, and add that to player y
     Options *options;
@@ -34,20 +34,19 @@ public:
             right(glm::vec3(-1, 0, 0)),
             options(options){
         this->name = name;
-        this->frustumPlanes.resize(6);
-        this->frustumCorners.resize(4);
-        LimonTypes::Vec4 lightOrthogonalValues;
+
+        long cascadeCount;
+        options->getOptionOrDefault("CascadeCount", cascadeCount, 4L);
+        this->frustumPlanes.resize(cascadeCount);
+        for (int i = 0; i < cascadeCount; ++i) {
+            frustumPlanes[i].resize(6);
+        }
+        this->frustumCorners.resize(cascadeCount);
+        this->orthogonalProjectionMatrices.resize(cascadeCount);
         float lightOrthogonalNear, lightOrthogonalFar;
-        options->getOption("lightOrthogonalProjectionValues", lightOrthogonalValues);
         options->getOption("lightOrthogonalProjectionNearPlane", lightOrthogonalNear);
         options->getOption("lightOrthogonalProjectionFarPlane", lightOrthogonalFar);
         backOffFactor = (lightOrthogonalFar - lightOrthogonalNear) / 2.0;
-        orthogonalProjectionMatrix = glm::ortho(lightOrthogonalValues.x,
-                                                lightOrthogonalValues.y,
-                                                lightOrthogonalValues.z,
-                                                lightOrthogonalValues.w,
-                                                lightOrthogonalNear,
-                                                lightOrthogonalFar);
     }
 
     CameraTypes getType() const override {
@@ -63,21 +62,24 @@ public:
     }
 
     bool isVisible(const PhysicalRenderable& renderable) const override {
+
         glm::vec3 aabbMin = renderable.getAabbMin();
         glm::vec3 aabbMax = renderable.getAabbMax();
-        bool inside = true;
         //test all 6 frustum planes
-        for (int i = 0; i<6; i++) {
-            //pick closest point to plane and check if it behind the plane
-            //if yes - object outside frustum
-            float d =   std::fmax(aabbMin.x * frustumPlanes[i].x, aabbMax.x * frustumPlanes[i].x)
-                        + std::fmax(aabbMin.y * frustumPlanes[i].y, aabbMax.y * frustumPlanes[i].y)
-                        + std::fmax(aabbMin.z * frustumPlanes[i].z, aabbMax.z * frustumPlanes[i].z)
-                        + frustumPlanes[i].w;
-            inside &= d > 0;
-            //return false; //with flag works faster
+        for (size_t i = 0; i < frustumPlanes.size(); ++i) {
+            for (int j = 0; j < 6; j++) {
+                //pick closest point to plane and check if it behind the plane
+                //if yes - object outside frustum
+                float d =   std::fmax(aabbMin.x * frustumPlanes[i][j].x, aabbMax.x * frustumPlanes[i][j].x)
+                            + std::fmax(aabbMin.y * frustumPlanes[i][j].y, aabbMax.y * frustumPlanes[i][j].y)
+                            + std::fmax(aabbMin.z * frustumPlanes[i][j].z, aabbMax.z * frustumPlanes[i][j].z)
+                            + frustumPlanes[i][j].w;
+                if( d > 0) {
+                    return true;
+                }
+            }
         }
-        return inside;
+        return false;
     };
 
     bool isResultVisibleOnOtherCamera(const PhysicalRenderable& renderable[[gnu::unused]], const Camera* otherCamera[[gnu::unused]]) const {
@@ -95,7 +97,7 @@ public:
     }
 
     const glm::mat4& getProjectionMatrix() override {
-        return orthogonalProjectionMatrix;
+        return orthogonalProjectionMatrices[0];
     }
 
     void recalculateView(const PerspectiveCamera* playerCamera) noexcept {
@@ -103,21 +105,23 @@ public:
         glm::mat4 lightView = glm::lookAt((-1.0f * position) + center,
                                           center,
                                           glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::vec3 tempCenter;
+        for (size_t i = 0; i < playerFrustumCorners.size(); ++i) {
+            this->orthogonalProjectionMatrices[i] = calculateOrthogonalForCascade(playerFrustumCorners[i], lightView, i==0?center:tempCenter);
+            calculateFrustumPlanes(lightView, this->orthogonalProjectionMatrices[i], this->frustumPlanes[i]);
+            calculateFrustumCorners(lightView,this->orthogonalProjectionMatrices[i],this->frustumCorners[i]);
+        }
 
-        this->orthogonalProjectionMatrix = calculateOrthogonalForCascade(playerFrustumCorners[0], lightView);
-
-        cameraTransformMatrix = orthogonalProjectionMatrix * lightView;
-        calculateFrustumPlanes(lightView, orthogonalProjectionMatrix, this->frustumPlanes);
-        calculateFrustumCorners(lightView,orthogonalProjectionMatrix,this->frustumCorners[0]);
+        cameraTransformMatrix = orthogonalProjectionMatrices[0] * lightView;
         long debugDrawLines = 0;
         options->getOptionOrDefault("DebugDrawLines", debugDrawLines, 0);
         if(debugDrawLines) {
-            debugDrawFrustum(frustumCorners[0]);
+            debugDrawFrustum(frustumCorners[0], glm::vec3(255,255,0));
         }
 
     }
 
-    void debugDrawFrustum(std::vector<glm::vec4> frustumCornersThis) {
+    void debugDrawFrustum(const std::vector<glm::vec4>& frustumCorners, const glm::vec3& color) {
         static long frameCounter = 0;
         static uint32_t drawLineBufferId = 0;
         frameCounter++;
@@ -127,32 +131,32 @@ public:
             }
 
             //std::cout << "creating lines" << std::endl;
-             drawLineBufferId = options->getLogger()->drawLine(frustumCornersThis[0], frustumCornersThis[2], glm::vec3(255, 0, 0), glm::vec3(255, 0, 0), true);
-            options->getLogger()->drawLine(drawLineBufferId, frustumCornersThis[2], frustumCornersThis[4], glm::vec3(255, 0, 0), glm::vec3(255, 0, 0), true);
-            options->getLogger()->drawLine(drawLineBufferId, frustumCornersThis[4], frustumCornersThis[6], glm::vec3(255, 0, 0), glm::vec3(255, 0, 0), true);
-            options->getLogger()->drawLine(drawLineBufferId, frustumCornersThis[6], frustumCornersThis[0], glm::vec3(255, 0, 0), glm::vec3(255, 0, 0), true);
+             drawLineBufferId = options->getLogger()->drawLine(frustumCorners[0], frustumCorners[2], color, color, true);
+            options->getLogger()->drawLine(drawLineBufferId, frustumCorners[2], frustumCorners[4], color, color, true);
+            options->getLogger()->drawLine(drawLineBufferId, frustumCorners[4], frustumCorners[6], color, color, true);
+            options->getLogger()->drawLine(drawLineBufferId, frustumCorners[6], frustumCorners[0], color, color, true);
 
-            options->getLogger()->drawLine(drawLineBufferId, frustumCornersThis[1], frustumCornersThis[3], glm::vec3(255, 0, 0), glm::vec3(255, 0, 0), true);
-            options->getLogger()->drawLine(drawLineBufferId, frustumCornersThis[3], frustumCornersThis[5], glm::vec3(255, 0, 0), glm::vec3(255, 0, 0), true);
-            options->getLogger()->drawLine(drawLineBufferId, frustumCornersThis[5], frustumCornersThis[7], glm::vec3(255, 0, 0), glm::vec3(255, 0, 0), true);
-            options->getLogger()->drawLine(drawLineBufferId, frustumCornersThis[7], frustumCornersThis[1], glm::vec3(255, 0, 0), glm::vec3(255, 0, 0), true);
+            options->getLogger()->drawLine(drawLineBufferId, frustumCorners[1], frustumCorners[3], color, color, true);
+            options->getLogger()->drawLine(drawLineBufferId, frustumCorners[3], frustumCorners[5], color, color, true);
+            options->getLogger()->drawLine(drawLineBufferId, frustumCorners[5], frustumCorners[7], color, color, true);
+            options->getLogger()->drawLine(drawLineBufferId, frustumCorners[7], frustumCorners[1], color, color, true);
 
-            options->getLogger()->drawLine(drawLineBufferId, frustumCornersThis[1], frustumCornersThis[3], glm::vec3(255, 0, 0), glm::vec3(255, 0, 0), true);
-            options->getLogger()->drawLine(drawLineBufferId, frustumCornersThis[0], frustumCornersThis[1], glm::vec3(255, 0, 0), glm::vec3(255, 0, 0), true);
-            options->getLogger()->drawLine(drawLineBufferId, frustumCornersThis[2], frustumCornersThis[3], glm::vec3(255, 0, 0), glm::vec3(255, 0, 0), true);
-            options->getLogger()->drawLine(drawLineBufferId, frustumCornersThis[4], frustumCornersThis[5], glm::vec3(255, 0, 0), glm::vec3(255, 0, 0), true);
-            options->getLogger()->drawLine(drawLineBufferId, frustumCornersThis[6], frustumCornersThis[7], glm::vec3(255, 0, 0), glm::vec3(255, 0, 0), true);
+            options->getLogger()->drawLine(drawLineBufferId, frustumCorners[1], frustumCorners[3], color, color, true);
+            options->getLogger()->drawLine(drawLineBufferId, frustumCorners[0], frustumCorners[1], color, color, true);
+            options->getLogger()->drawLine(drawLineBufferId, frustumCorners[2], frustumCorners[3], color, color, true);
+            options->getLogger()->drawLine(drawLineBufferId, frustumCorners[4], frustumCorners[5], color, color, true);
+            options->getLogger()->drawLine(drawLineBufferId, frustumCorners[6], frustumCorners[7], color, color, true);
 
         }
     }
 
-    glm::mat4 calculateOrthogonalForCascade(const std::vector<glm::vec4> &playerFrustumCascadeCorners, const glm::mat4 &lightViewMatrix) {
-        center = glm::vec3(0, 0, 0);
+    glm::mat4 calculateOrthogonalForCascade(const std::vector<glm::vec4> &playerFrustumCascadeCorners, const glm::mat4 &lightViewMatrix, glm::vec3& centerToUse) {
+        centerToUse = glm::vec3(0, 0, 0);
         for (const auto& corner : playerFrustumCascadeCorners)
         {
-            center += glm::vec3(corner);
+            centerToUse += glm::vec3(corner);
         }
-        center /= playerFrustumCascadeCorners.size();
+        centerToUse /= playerFrustumCascadeCorners.size();
 
         float minX = std::numeric_limits<float>::max();
         float maxX = std::numeric_limits<float>::lowest();
