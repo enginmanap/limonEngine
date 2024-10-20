@@ -1502,7 +1502,7 @@ void OpenGLESGraphics::drawLines(GraphicsProgram &program, uint32_t vao, uint32_
 
 void OpenGLESGraphics::setLight(const int lightIndex,
                               const glm::vec3& attenuation,
-                              const glm::mat4* shadowMatrices,
+                              const std::vector<glm::mat4>& shadowMatrices,
                               const glm::vec3& position,
                               const glm::vec3& color,
                               const glm::vec3& ambientColor,
@@ -1510,12 +1510,10 @@ void OpenGLESGraphics::setLight(const int lightIndex,
                               const float farPlane) {
 
     //std::cout << "light type is " << lightType << std::endl;
-
-
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
-    assert(sizeof(*shadowMatrices) / sizeof(glm::mat4) <= 6 );
+    assert(shadowMatrices.size() <= 6);
     glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize,
-                    sizeof(*shadowMatrices), shadowMatrices);
+                    sizeof(glm::mat4)*shadowMatrices.size(), shadowMatrices.data());
     glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6,
                     sizeof(glm::vec3), &position);
     glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + sizeof(glm::vec3),

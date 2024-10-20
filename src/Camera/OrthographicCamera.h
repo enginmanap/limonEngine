@@ -14,7 +14,7 @@
 class OrthographicCamera : public Camera {
     CameraAttachment* cameraAttachment;
     glm::vec3 position, center, up, right;
-    glm::mat4 cameraTransformMatrix;
+    std::vector<glm::mat4> cameraTransformMatrices;
     std::vector<glm::mat4> orthogonalProjectionMatrices;
     std::vector<std::vector<glm::vec4>>frustumPlanes;
     std::vector<std::vector<glm::vec4>> frustumCorners;
@@ -43,6 +43,7 @@ public:
         }
         this->frustumCorners.resize(cascadeCount);
         this->orthogonalProjectionMatrices.resize(cascadeCount);
+        this->cameraTransformMatrices.resize(cascadeCount);
         float lightOrthogonalNear, lightOrthogonalFar;
         options->getOption("lightOrthogonalProjectionNearPlane", lightOrthogonalNear);
         options->getOption("lightOrthogonalProjectionFarPlane", lightOrthogonalFar);
@@ -93,11 +94,15 @@ public:
             cameraAttachment->getCameraVariables(position, tempCenter, up, right);
             cameraAttachment->clearDirty();
         }
-        return cameraTransformMatrix;
+        return cameraTransformMatrices[0];
     }
 
     const glm::mat4& getProjectionMatrix() override {
         return orthogonalProjectionMatrices[0];
+    }
+
+    const std::vector<glm::mat4>& getOrthogonalCameraMatrices()  {
+        return cameraTransformMatrices;
     }
 
     void recalculateView(const PerspectiveCamera* playerCamera) noexcept {
@@ -110,9 +115,9 @@ public:
             this->orthogonalProjectionMatrices[i] = calculateOrthogonalForCascade(playerFrustumCorners[i], lightView, i==0?center:tempCenter);
             calculateFrustumPlanes(lightView, this->orthogonalProjectionMatrices[i], this->frustumPlanes[i]);
             calculateFrustumCorners(lightView,this->orthogonalProjectionMatrices[i],this->frustumCorners[i]);
+            cameraTransformMatrices[i] = orthogonalProjectionMatrices[i] * lightView;
         }
 
-        cameraTransformMatrix = orthogonalProjectionMatrices[0] * lightView;
         long debugDrawLines = 0;
         options->getOptionOrDefault("DebugDrawLines", debugDrawLines, 0);
         if(debugDrawLines) {

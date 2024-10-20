@@ -11,7 +11,7 @@
 #include "CameraAttachment.h"
 
 class CubeCamera : public Camera {
-    glm::mat4 renderMatrices[6];//these are used only for point lights for now
+    std::vector<glm::mat4> renderMatrices;//these are used only for point lights for now
     CameraAttachment* cameraAttachment;
     glm::vec3 position, center, up, right;
     Options *options;
@@ -30,6 +30,7 @@ public:
             up(glm::vec3(0, 1, 0)),
             right(glm::vec3(-1, 0, 0)),
             options(options){
+        renderMatrices.resize(6);
         this->name = name;
     }
 
@@ -68,7 +69,7 @@ public:
         exit(-1);
     }
 
-    const glm::mat4* getRenderMatrices() const {
+    const std::vector<glm::mat4>& getRenderMatrices() const {
         return renderMatrices;
     }
 

@@ -442,7 +442,7 @@ public:
 
     void setLight(const int lightIndex,
                   const glm::vec3& attenuation,
-                  const glm::mat4* shadowMatrices,
+                  const std::vector<glm::mat4>& shadowMatrices,
                   const glm::vec3& position,
                   const glm::vec3& color,
                   const glm::vec3& ambientColor,

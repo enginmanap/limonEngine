@@ -41,9 +41,9 @@ private:
 
 
     void updateLightView(const PerspectiveCamera* playerCamera) {
-        directionalCamera->recalculateView(playerCamera);
         frustumChanged = true;
         directionalCamera->getCameraMatrix();
+        directionalCamera->recalculateView(playerCamera);
         frustumChanged = true;
     }
 
@@ -121,14 +121,14 @@ public:
         return lightType;
     }
 
-     const glm::mat4* getShadowMatrices() const {
+     const std::vector<glm::mat4>& getShadowMatrices() const {
         if (this->lightType == LightTypes::POINT) {
             return cubeCamera->getRenderMatrices();
         } else if(this->lightType == LightTypes::DIRECTIONAL) {
-            return &directionalCamera->getCameraMatrix();
-        } else {
-            return nullptr;
+            return directionalCamera->getOrthogonalCameraMatrices();
         }
+        std::cerr << "camera type is unknown, returning as directional." << std::endl;
+        return directionalCamera->getOrthogonalCameraMatrices();
     }
 
     bool isFrustumChanged() const {

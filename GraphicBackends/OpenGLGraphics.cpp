@@ -1468,7 +1468,7 @@ void OpenGLGraphics::drawLines(GraphicsProgram &program, uint32_t vao, uint32_t 
 
 void OpenGLGraphics::setLight(const int lightIndex,
                               const glm::vec3& attenuation,
-                              const glm::mat4* shadowMatrices,
+                              const std::vector<glm::mat4>& shadowMatrices,
                               const glm::vec3& position,
                               const glm::vec3& color,
                               const glm::vec3& ambientColor,
@@ -1476,19 +1476,10 @@ void OpenGLGraphics::setLight(const int lightIndex,
                               const float farPlane) {
 
     //std::cout << "light type is " << lightType << std::endl;
-    size_t copySize;
-    if(lightType == 1) {
-        copySize = sizeof(glm::mat4);
-    } else if (lightType == 2) {
-        copySize = sizeof(glm::mat4) * 6;
-    } else {
-        std::cerr << "unknown light type passed, can't determine ubo usage" << std::endl;
-        std::exit(1);
-    }
-
     glBindBuffer(GL_UNIFORM_BUFFER, lightUBOLocation);
+    assert(shadowMatrices.size() <= 6);
     glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize,
-                    copySize, shadowMatrices);
+                    sizeof(glm::mat4)*shadowMatrices.size(), shadowMatrices.data());
     glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6,
                     sizeof(glm::vec3), &position);
     glBufferSubData(GL_UNIFORM_BUFFER, lightIndex * lightUniformSize + sizeof(glm::mat4) * 6 + sizeof(glm::vec3),
