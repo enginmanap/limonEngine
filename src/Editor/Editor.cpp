@@ -795,6 +795,16 @@ void Editor::renderEditor(World& world) {
                             if((*iterator)->getWorldObjectID() == world.pickedObject->getWorldObjectID()) {
                                 world.unusedIDs.push(world.pickedObject->getWorldObjectID());
                                 world.cullingResults.erase((*iterator)->getCamera());
+                                //we need to find where the visibility thread is
+                                for (auto entry:world.visibilityThreadPool) {
+                                    if(entry.first->camera == (*iterator)->getCamera()) {
+                                        entry.first->running = false;
+                                        VisibilityRequest::condition.signalWaiting();
+                                        SDL_WaitThread(entry.second, nullptr);
+                                        world.visibilityThreadPool.erase(entry.first);
+                                        break;
+                                    }
+                                }
                                 world.lights.erase(iterator);
                                 break;
                             }
