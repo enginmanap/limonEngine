@@ -244,7 +244,7 @@
         <Description>DebugDrawLines</Description>
         <Value>1</Value>
         <valueType>Long</valueType>
-        <IsSet>True</IsSet>
+        <IsSet>False</IsSet>
         <Index>2</Index>
     </Parameter>
     <Parameter>
@@ -266,7 +266,7 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>CascadeLimit1</Description>
-        <Value>100</Value>
+        <Value>25</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>
@@ -274,7 +274,7 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>CascadeLimit2</Description>
-        <Value>1000</Value>
+        <Value>100</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>
@@ -282,7 +282,7 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>CascadeLimit3</Description>
-        <Value>10000</Value>
+        <Value>1000</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>

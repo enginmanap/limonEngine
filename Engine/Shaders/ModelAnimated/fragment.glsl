@@ -73,12 +73,24 @@ uniform vec3 ssaoKernel[128];
 uniform int ssaoSampleCount;
 
 float ShadowCalculationDirectional(vec4 fragPosLightSpace, float bias, float lightIndex){
+    int cascadePlaneDistances[4] = int[](10, 25, 100, 1000);
+    vec4 fragPosViewSpace = playerTransforms.camera * vec4(from_vs.fragPos, 1.0);
+    float depthValue = abs(fragPosViewSpace.z);
+    int layer = 3;
+    for (int i = 0; i < 4; ++i) {
+        if (depthValue < cascadePlaneDistances[i])
+        {
+            layer = i;
+            break;
+        }
+    }
+
     // perform perspective divide
     vec3 projectedCoordinates = fragPosLightSpace.xyz / fragPosLightSpace.w;
     // Transform to [0,1] range
     projectedCoordinates = projectedCoordinates * 0.5 + 0.5;
     // Get closest depth value from light's perspective (using [0,1] range fragPosLightSpace as coords)
-    float closestDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy, from_vs.depthMapLayer)).r;
+    float closestDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy, layer)).r;
     // Get depth of current fragment from light's perspective
     float currentDepth = projectedCoordinates.z;
     float shadow = 0.0;
@@ -86,7 +98,7 @@ float ShadowCalculationDirectional(vec4 fragPosLightSpace, float bias, float lig
         vec2 texelSize = 1.0 / textureSize(pre_shadowDirectional, 0).xy;//this has to be level 0, because its not layer but LOD/MIP
         for(int x = -1; x <= 1; ++x){
             for(int y = -1; y <= 1; ++y){
-                float pcfDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy + vec2(x, y) * texelSize, from_vs.depthMapLayer)).r;
+                float pcfDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy + vec2(x, y) * texelSize, layer)).r;
                 if(currentDepth + bias > pcfDepth) {
                     shadow += 1.0;
                 }
@@ -195,7 +207,19 @@ void main(void) {
                 float viewDistance = length(playerTransforms.position - from_vs.fragPos);
                 float bias = 0.0;
                 if(LightSources.lights[i].type == 1) {//directional light
-                    shadow = ShadowCalculationDirectional(from_vs.fragPosLightSpace[i], bias, i);
+                                                      int cascadePlaneDistances[4] = int[](10, 25, 100, 1000);
+                                                      vec4 fragPosViewSpace = playerTransforms.camera * vec4(from_vs.fragPos, 1.0);
+                                                      float depthValue = abs(fragPosViewSpace.z);
+                                                      int layer = 3;
+                                                      for (int i = 0; i < 4; ++i) {
+                                                          if (depthValue < cascadePlaneDistances[i])
+                                                          {
+                                                              layer = i;
+                                                              break;
+                                                          }
+                                                      }
+
+                    shadow = ShadowCalculationDirectional(LightSources.lights[i].shadowMatrices[layer] * vec4(from_vs.fragPos, 1.0), bias, i);
                 } else if (LightSources.lights[i].type == 2){//point light
                     shadow = ShadowCalculationPoint(from_vs.fragPos, bias, viewDistance, i);
                 }
