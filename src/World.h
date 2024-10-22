@@ -422,7 +422,7 @@ private:
     }
 
     void ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, const std::string& cameraName[[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]);
-    void renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
+    void renderLight(unsigned int lightIndex, unsigned int renderLayer, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
     void renderTransparentObjects(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
     void renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
     void renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;

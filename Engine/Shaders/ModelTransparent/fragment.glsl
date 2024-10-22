@@ -46,6 +46,7 @@ in VS_FS {
     vec3 normal;
     vec3 fragPos;
     vec4 fragPosLightSpace[NR_POINT_LIGHTS];
+    flat int depthMapLayer;
 } from_vs;
 
 uniform sampler2DArray pre_shadowDirectional;

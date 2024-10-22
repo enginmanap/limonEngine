@@ -121,22 +121,25 @@ public:
         long debugDrawLines = 0;
         options->getOptionOrDefault("DebugDrawLines", debugDrawLines, 0);
         if(debugDrawLines) {
-            debugDrawFrustum(frustumCorners[0], glm::vec3(255,255,0));
+            static uint32_t drawLineBufferId = 0;
+            static uint32_t drawLineBufferId2 = 0;
+            static long frameCounter = 0;
+            debugDrawFrustum(frustumCorners[0], glm::vec3(255, 0, 0), drawLineBufferId, frameCounter);
+            debugDrawFrustum(frustumCorners[1], glm::vec3(0, 0, 255), drawLineBufferId2, frameCounter);
+            frameCounter++;
         }
 
     }
 
-    void debugDrawFrustum(const std::vector<glm::vec4>& frustumCorners, const glm::vec3& color) {
-        static long frameCounter = 0;
-        static uint32_t drawLineBufferId = 0;
-        frameCounter++;
-        if(frameCounter % 300 == 0) {
+    void debugDrawFrustum(const std::vector<glm::vec4> &frustumCorners, const glm::vec3 &color, uint32_t &drawLineBufferId, long frameCounter) {
+
+        if(frameCounter % 600 == 0) {
             if(drawLineBufferId != 0 ) {
                 options->getLogger()->clearLineBuffer(drawLineBufferId);
             }
 
             //std::cout << "creating lines" << std::endl;
-             drawLineBufferId = options->getLogger()->drawLine(frustumCorners[0], frustumCorners[2], color, color, true);
+            drawLineBufferId = options->getLogger()->drawLine(frustumCorners[0], frustumCorners[2], color, color, true);
             options->getLogger()->drawLine(drawLineBufferId, frustumCorners[2], frustumCorners[4], color, color, true);
             options->getLogger()->drawLine(drawLineBufferId, frustumCorners[4], frustumCorners[6], color, color, true);
             options->getLogger()->drawLine(drawLineBufferId, frustumCorners[6], frustumCorners[0], color, color, true);

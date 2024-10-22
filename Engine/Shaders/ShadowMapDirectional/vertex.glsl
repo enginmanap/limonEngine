@@ -39,6 +39,8 @@ layout (std140) uniform ModelIndexBlock {
 
 uniform mat4 boneTransformArray[NR_BONE];
 uniform int renderLightIndex;
+uniform int renderLightLayer;
+
 uniform int isAnimated;
 
 void main() {
@@ -50,15 +52,12 @@ void main() {
          BoneTransform += boneTransformArray[boneIDs[2]] * boneWeights[2];
          BoneTransform += boneTransformArray[boneIDs[3]] * boneWeights[3];
     }
-    for(int i = 0; i < NR_POINT_LIGHTS; i++){
-        if(i == renderLightIndex){
-            mat4 modelTransform;
-            int modelOffset = 4*int(instance.models[gl_InstanceID].x);
-            modelTransform[0] = texelFetch(allModelTransformsTexture, ivec2(modelOffset    , 0), 0);
-            modelTransform[1] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 1, 0), 0);
-            modelTransform[2] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 2, 0), 0);
-            modelTransform[3] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 3, 0), 0);
-            gl_Position = LightSources.lights[i].shadowMatrices[0] * (modelTransform * (BoneTransform * vec4(vec3(position), 1.0)));
-        }
-    }
+
+    mat4 modelTransform;
+    int modelOffset = 4*int(instance.models[gl_InstanceID].x);
+    modelTransform[0] = texelFetch(allModelTransformsTexture, ivec2(modelOffset    , 0), 0);
+    modelTransform[1] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 1, 0), 0);
+    modelTransform[2] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 2, 0), 0);
+    modelTransform[3] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 3, 0), 0);
+    gl_Position = LightSources.lights[renderLightIndex].shadowMatrices[renderLightLayer] * (modelTransform * (BoneTransform * vec4(vec3(position), 1.0)));
 }

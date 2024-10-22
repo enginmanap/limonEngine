@@ -48,6 +48,7 @@ in VS_FS {
     vec3 normal;
     vec3 fragPos;
     vec4 fragPosLightSpace[NR_POINT_LIGHTS];
+    flat int depthMapLayer;
 } from_vs;
 
 uniform sampler2DArray pre_shadowDirectional;
@@ -77,15 +78,15 @@ float ShadowCalculationDirectional(vec4 fragPosLightSpace, float bias, float lig
     // Transform to [0,1] range
     projectedCoordinates = projectedCoordinates * 0.5 + 0.5;
     // Get closest depth value from light's perspective (using [0,1] range fragPosLightSpace as coords)
-    float closestDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy, lightIndex)).r;
+    float closestDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy, from_vs.depthMapLayer)).r;
     // Get depth of current fragment from light's perspective
     float currentDepth = projectedCoordinates.z;
     float shadow = 0.0;
     if(currentDepth < 1.0){
-        vec2 texelSize = 1.0 / textureSize(pre_shadowDirectional, 0).xy;
+        vec2 texelSize = 1.0 / textureSize(pre_shadowDirectional, 0).xy;//this has to be level 0, because its not layer but LOD/MIP
         for(int x = -1; x <= 1; ++x){
             for(int y = -1; y <= 1; ++y){
-                float pcfDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy + vec2(x, y) * texelSize, lightIndex)).r;
+                float pcfDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy + vec2(x, y) * texelSize, from_vs.depthMapLayer)).r;
                 if(currentDepth + bias > pcfDepth) {
                     shadow += 1.0;
                 }

@@ -13,6 +13,7 @@ out VS_FS {
     vec3 normal;
     vec3 fragPos;
     vec4 fragPosLightSpace[NR_POINT_LIGHTS];
+    flat int depthMapLayer;
 } to_fs;
 
 layout (std140) uniform PlayerTransformBlock {

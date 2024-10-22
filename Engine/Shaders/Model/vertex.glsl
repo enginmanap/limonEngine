@@ -13,6 +13,7 @@ out VS_FS {
     vec3 normal;
     vec3 fragPos;
     vec4 fragPosLightSpace[NR_POINT_LIGHTS];
+    flat int depthMapLayer;
 } to_fs;
 
 layout (std140) uniform PlayerTransformBlock {
@@ -64,9 +65,15 @@ void main(void) {
 
     to_fs.normal = normalize(transposeInverseModelTransform * normal);
     to_fs.fragPos = vec3(modelTransform * position);
+    vec3 temp = (playerTransforms.position - vec3(position));
+    if(sqrt(dot(temp, temp)) > 10) {
+        to_fs.depthMapLayer = 1;
+    } else {
+        to_fs.depthMapLayer = 0;
+    }
     for(int i = 0; i < NR_POINT_LIGHTS; i++){
         if(LightSources.lights[i].type == 1) {
-            to_fs.fragPosLightSpace[i] = LightSources.lights[i].shadowMatrices[0] * vec4(to_fs.fragPos, 1.0);
+            to_fs.fragPosLightSpace[i] = LightSources.lights[i].shadowMatrices[to_fs.depthMapLayer] * vec4(to_fs.fragPos, 1.0);
         }
     }
     gl_Position = playerTransforms.cameraProjection * vec4(to_fs.fragPos, 1.0);

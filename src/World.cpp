@@ -171,7 +171,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
        renderMethods.renderQuad                         = std::bind(&QuadRender::render,                                this->quadRender,   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
        renderMethods.getLightsByType = std::bind(&World::getLightIndexes, this, std::placeholders::_1);
-       renderMethods.renderLight = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2);
+       renderMethods.renderLight = std::bind(&World::renderLight, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
        return renderMethods;
    }
 
@@ -523,6 +523,7 @@ static int staticOcclusionThread(void* visibilityRequestRaw) {
         visibilityRequest->inProgressLock.lock();
         //std::cout << "signal received by " << visibilityRequest->camera->getName() << " starting processing again" << std::endl;
     }
+    visibilityRequest->inProgressLock.unlock();
     return 0;
 }
 
@@ -902,8 +903,9 @@ void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram, con
    }
 }
 
-void World::renderLight(unsigned int lightIndex, const std::shared_ptr<GraphicsProgram> &renderProgram) const {
+void World::renderLight(unsigned int lightIndex, unsigned int renderLayer, const std::shared_ptr<GraphicsProgram> &renderProgram) const {
    renderProgram->setUniform("renderLightIndex", (int) lightIndex);
+    renderProgram->setUniform("renderLightLayer", (int) renderLayer);
    Light* selectedLight = lights[lightIndex];
 
     const auto& selectedVisibilities = cullingResults.find(selectedLight->getCamera());

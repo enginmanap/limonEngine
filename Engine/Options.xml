@@ -50,7 +50,7 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>shadowMapDirectionalWidth</Description>
-        <Value>4096</Value>
+        <Value>1024</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>
@@ -58,7 +58,7 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>shadowMapDirectionalHeight</Description>
-        <Value>4096</Value>
+        <Value>1024</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>
@@ -243,6 +243,46 @@
         <RequestType>FreeNumber</RequestType>
         <Description>DebugDrawLines</Description>
         <Value>1</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>2</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>CascadeCount</Description>
+        <Value>4</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>2</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>CascadeLimit0</Description>
+        <Value>10</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>2</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>CascadeLimit1</Description>
+        <Value>100</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>2</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>CascadeLimit2</Description>
+        <Value>1000</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>2</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>CascadeLimit3</Description>
+        <Value>10000</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>

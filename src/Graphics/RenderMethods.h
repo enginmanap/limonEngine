@@ -124,7 +124,7 @@ private:
     //These methods are not exposed to the interface
     //They are also not possible to add to render pipeline, so a method should be created and assigned.
     std::function<std::vector<size_t>(Light::LightTypes)> getLightsByType;
-    std::function<void(unsigned int, std::shared_ptr<GraphicsProgram>)> renderLight;
+    std::function<void(unsigned int, unsigned int, std::shared_ptr<GraphicsProgram>)> renderLight;
 
     /**
      * Always returns a method, even if not found. If not found, the parameter is set to false.
@@ -174,7 +174,7 @@ private:
         return getLightsByType(lightType);
     }
 
-    std::function<void(unsigned int, std::shared_ptr<GraphicsProgram>)>& getRenderLightMethod() {
+    std::function<void(unsigned int, unsigned int, std::shared_ptr<GraphicsProgram>)>& getRenderLightMethod() {
         return renderLight;
     }
 
@@ -231,13 +231,21 @@ public:
                             nullptr,
                             [=](const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) {
                                 std::vector<size_t> lights = getLightIndexes(Light::LightTypes::DIRECTIONAL);
-                                for (size_t light:lights) {
-                                    //set the layer that will be rendered. Also set clear so attached layer will be cleared right away.
-                                    //this is important because they will not be cleared other way.
-                                    stage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, layeredDepthMap, true, light);
-                                    //generate shadow map
-                                    renderLight(light, renderProgram);
+                                if(lights.size() > 1) {
+                                    std::cerr << "only one directional light is supported since CSM, this will not work correctly" << std::endl;
                                 }
+                                if(lights.size() == 0 ) {
+                                    return;
+                                }
+                                for (int i = 0; i < 4; ++i) {
+                                        stage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, layeredDepthMap, true, i);
+                                }
+                                size_t lightId = lights[0];
+                                for (int i = 0; i < 4; ++i) {
+                                    stage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, layeredDepthMap, false, i);
+                                    renderLight(lightId, i, renderProgram);
+                                }
+
                             },
                             nullptr,
                             glslProgram
@@ -251,7 +259,7 @@ public:
                             [&] (const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) {
                                 std::vector<size_t> lights = getLightIndexes(Light::LightTypes::POINT);
                                 for (size_t light:lights) {
-                                    renderLight(light, renderProgram);
+                                    renderLight(light, 0, renderProgram);
                                 }
                             },
                             nullptr,

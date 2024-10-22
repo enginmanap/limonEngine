@@ -1167,7 +1167,6 @@ void OpenGLGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Text
             glClear(GL_DEPTH_BUFFER_BIT);
         }
     } else {
-
         for (unsigned int i = 0; i < 6; ++i) {
             if (i == index) {
                 drawBufferAttachments[i] = glAttachment;
@@ -1208,6 +1207,11 @@ void OpenGLGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Text
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         std::cerr << "frame buffer texture to attach is not complete" << std::endl;
+    }
+    if(clear) {
+        if(attachPoint == OpenGLGraphics::FrameBufferAttachPoints::DEPTH) {
+            glClear(GL_DEPTH_BUFFER_BIT);
+        }
     }
     checkErrors("attachDrawTextureToFrameBuffer");
 
