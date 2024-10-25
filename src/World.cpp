@@ -304,8 +304,9 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
      //FIXME moved out of fillVisible because for the time being we have 2 (fillVisibleObjects(), fillVisibleObjectsUsingTags()) once one is gone, these 2 clears should go in.
      updatedModels.clear();
      playerCamera->clearDirty();
-
-     sky->step(playerCamera);
+    if(sky != nullptr) { // menu worlds don't have sky set, and WIP levels can miss it too.
+        sky->step(playerCamera);
+    }
 
     for (unsigned int i = 0; i < guiLayers.size(); ++i) {
         guiLayers[i]->setupForTime(gameTime);
