@@ -15,7 +15,7 @@
 
 #define NR_POINT_LIGHTS 3
 #define NR_TOTAL_LIGHTS 4
-#define NR_MAX_MODELS (8192)
+#define NR_MAX_MODELS (4096)
 #define NR_MAX_MATERIALS 2000
 
 #include "Options.h"

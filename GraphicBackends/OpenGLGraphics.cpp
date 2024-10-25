@@ -456,6 +456,14 @@ bool OpenGLGraphics::createGraphicsBackend() {
 
     std::cout << "Uniform maxVertexUniformBlockCount size is " << maxVertexUniformBlockCount << std::endl;
 
+    GLint maxTextureSize = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+
+    std::cout << "Uniform maxTextureSize size is " << maxTextureSize << std::endl;
+
+    if(maxTextureSize < NR_MAX_MODELS * 4) { // Each model has its transform in a texture, 4 channels, 4 elements
+        std::cerr << "Maximum number of models is set higher than supported texture size. This will cause errors, black screens or crashing." << std::endl;
+    }
 
     //create the Light Uniform Buffer Object for later usage
     glGenBuffers(1, &lightUBOLocation);
