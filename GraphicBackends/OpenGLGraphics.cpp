@@ -438,6 +438,14 @@ bool OpenGLGraphics::createGraphicsBackend() {
 
     if(uniformBufferAlignSize > materialUniformSize) {
         materialUniformSize = uniformBufferAlignSize;
+    } else {
+        //it is possible that they are not aligning, align
+        if(materialUniformSize % uniformBufferAlignSize == 0 ) {
+            //aligned
+        } else {
+            //MU size 18, alignment 16 -> we need 32
+            materialUniformSize = ((materialUniformSize / uniformBufferAlignSize)+1) * uniformBufferAlignSize;
+        }
     }
 
 
