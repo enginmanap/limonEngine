@@ -457,6 +457,17 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
                    //does this camera have the entry for this tag?
                    const auto& tagEntries = visibilityRequest->findHashEntry(tag.hash);
                    if(tagEntries == visibilityRequest->visibility->end()) {
+                       /**
+                        * Lets understand what this means
+                        * 1) model had this tag
+                        * 2) camera for this culling request also has this render tag
+                        * 3) visibility request itself doesn't have this tag
+                        *
+                        * why would 3 happen? Because a tag that camera can render, doesn't mean we have a stage that render is meaningful
+                        * Stages are already filled in the World::cullingResults, so this is a case where we cancel
+                        */
+                       continue;
+
                        //create the tag entry
                        /*********************************************************************************************
                         * *********************************************************************************************
@@ -486,6 +497,7 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
                        if(objectIndexIterator == tagVisibilityEntry->second[currentModel->getAssetID()].first.end()) {
                            tagVisibilityEntry->second[currentModel->getAssetID()].first.emplace_back(currentModel->getWorldObjectID());
                        }
+                       break;
                    } else { //not visible
                        if(assetVisibilityEntry == tagVisibilityEntry->second.end()) {
                            //it was never in the visible set, ignore.
@@ -541,7 +553,9 @@ void World::fillVisibleObjectsUsingTags() {
      //first clear up dirty cameras
     for (auto &it: cullingResults) {
         if (it.first->isDirty()) {
-            it.second->clear();
+            for(auto renderEntries:*it.second) {
+                renderEntries.second.clear();
+            }
         }
     }
     if(multiThreadedCulling) {
@@ -838,10 +852,18 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
    tempRenderedObjectsSet.clear();
 
     for (const auto &visibilityEntry: cullingResults) {
-        if (visibilityEntry.first->hasTag(hashedCameraTag)) {//if this camera doesn't match the tag, then just ignore
+        if (visibilityEntry.first->hasTag(hashedCameraTag)) { //if this camera doesn't match the tag, then just ignore
+            std::vector<uint64_t> alreadyRenderedTagHashes;
             for (const auto &renderTag: tags) {
+                if(std::find(alreadyRenderedTagHashes.begin(), alreadyRenderedTagHashes.end(), renderTag.hash) != alreadyRenderedTagHashes.end()) {
+                    continue;
+                }
                 const auto& taggedEntries = VisibilityRequest::findHashEntry(visibilityEntry.second,renderTag.hash);
                 if(taggedEntries != visibilityEntry.second->end()) {
+                    //We found what we will render, all these entries will render, so all the tags should be considered rendered
+                    for (const auto &item: taggedEntries->first){
+                        alreadyRenderedTagHashes.emplace_back(item);
+                    }
                     //there are tagged entries, we should iterate and render
                     for (const auto &assetVisibility: taggedEntries->second){
                         //we don't care about the asset part, but knowing they are all same asset means instanced rendering
@@ -858,16 +880,21 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
                         }
                     }
                 }
-                //now recursively render the player attachments, no visibility check.
-                if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
-                    renderPlayerAttachmentsRecursiveByTag(startingPlayer.attachedModel, renderTag.hash, renderProgram);//Starting player, because we don't wanna render when in editor mode
+            }
+            //now recursively render the player attachments, no visibility check.
+            if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
+                std::vector<uint32_t> alreadyRenderedModelIds;
+                for (const auto &renderTag: tags) {
+                    renderPlayerAttachmentsRecursiveByTag(startingPlayer.attachedModel, renderTag.hash,
+                                                          renderProgram, alreadyRenderedModelIds);//Starting player, because we don't wanna render when in editor mode
                 }
             }
         }
     }
 }
 
-void World::renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment, uint64_t renderTag, const std::shared_ptr<GraphicsProgram> &renderProgram) const{
+void World::renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment, uint64_t renderTag, const std::shared_ptr<GraphicsProgram> &renderProgram,
+                                                  std::vector<uint32_t> &alreadyRenderedModelIds) const{
     if(attachment == nullptr) {
         return;
     }
@@ -885,7 +912,8 @@ void World::renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment
         //the group has the tag, everything under should be rendered.
         children = (static_cast<ModelGroup*>(attachment))->getChildren();
     }
-    if(attachmentObject->hasTag(renderTag)) {
+    if(std::find(alreadyRenderedModelIds.begin(), alreadyRenderedModelIds.end(), attachmentObject->getWorldObjectID()) == alreadyRenderedModelIds.end() && attachmentObject->hasTag(renderTag)) {
+        alreadyRenderedModelIds.emplace_back(attachmentObject->getWorldObjectID());
         std::vector<uint32_t> temp;
         temp.push_back(attachmentObject->getWorldObjectID());
         if(attachmentObject->getTypeID() == GameObject::MODEL) {
@@ -893,7 +921,7 @@ void World::renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment
         }
     }
     for (const auto &child: children) {
-        renderPlayerAttachmentsRecursiveByTag(child, renderTag, renderProgram);
+        renderPlayerAttachmentsRecursiveByTag(child, renderTag, renderProgram, alreadyRenderedModelIds);
     }
  }
 
@@ -910,9 +938,17 @@ void World::renderLight(unsigned int lightIndex, unsigned int renderLayer, const
 
     const auto& selectedVisibilities = cullingResults.find(selectedLight->getCamera());
     if(selectedVisibilities != cullingResults.end()) {
+        std::set<uint64_t> alreadyRenderedTagHashes;
+
         for (const auto &renderTag: selectedLight->getCamera()->getRenderTags()){
+            if(alreadyRenderedTagHashes.find(renderTag.hash) != alreadyRenderedTagHashes.end()) {
+                continue;
+            }
             const auto& taggedVisibilities = VisibilityRequest::findHashEntry(selectedVisibilities->second, renderTag.hash);
             if(taggedVisibilities != selectedVisibilities->second->end()) {
+                for (const auto &item: taggedVisibilities->first){
+                    alreadyRenderedTagHashes.insert(item);
+                }
                 //so all objects that needs rendering is here, now render
                 for (const auto &assetIt: taggedVisibilities->second) {
                     const auto& perAssetElement = assetIt.second;
@@ -1709,6 +1745,7 @@ bool World::removeObject(uint32_t objectID, const bool &removeChildren) {
 }
 
 void World::afterLoadFinished() {
+    resetTagsAndRefillCulling();
     for (size_t i = 0; i < onLoadActions.size(); ++i) {
         if(onLoadActions[i]->action == nullptr) {
             std::cerr << "There was an onload action defined but action is not loaded, skipping." << std::endl;
@@ -2604,16 +2641,20 @@ bool World::changeRenderPipeline(const std::string &pipelineFileName) {
     if(newPipeline != nullptr) {
         this->renderPipeline = std::move(newPipeline);
         //reset the
-        this->resetCameraTagsFromPipeline(this->renderPipeline->getCameraTagToRenderTagSetMap());
-        this->resetVisibilityBufferForRenderPipelineChange();
-        this->fillVisibleObjectsUsingTags();
+        resetTagsAndRefillCulling();
         return true;
     }
     return false;
 }
 
+   void World::resetTagsAndRefillCulling() {
+       resetVisibilityBufferForRenderPipelineChange();
+       resetCameraTagsFromPipeline(renderPipeline->getCameraTagToRenderTagSetMap());
+       fillVisibleObjectsUsingTags();
+   }
 
-Model *World::findModelByID(uint32_t modelID) const {
+
+   Model *World::findModelByID(uint32_t modelID) const {
     if(startingPlayer.attachedModel != nullptr) {
         Model* playerAttachment = findModelByIDChildren(startingPlayer.attachedModel, modelID);
         if(playerAttachment != nullptr) {

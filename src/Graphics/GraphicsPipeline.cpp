@@ -261,6 +261,12 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
         newStageInfo.stage = GraphicsPipelineStage::deserialize(graphicsStageElement, assetManager->getGraphicsWrapper(), textures);
 
         //uint32_t methodIndex = std::stoi(methodIndexElement->GetText()); //this variable is not used
+        newStageInfo.renderTags = newStageInfo.stage->getObjectTags();
+        std::vector<HashUtil::HashedString> hashedRenderTags;
+        for (const auto &item: newStageInfo.renderTags) {
+            hashedRenderTags.emplace_back(item);
+        }
+        newStageInfo.cameraTags = newStageInfo.stage->getCameraTags();
 
         std::shared_ptr<GraphicsProgram> graphicsProgram;
 
@@ -282,28 +288,28 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
         if(methodName == "All directional shadows") {
             std::shared_ptr<Texture> depthMap = newStageInfo.stage->getOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH);
             RenderMethods::RenderMethod method  = pipeline->getRenderMethods().getRenderMethodAllDirectionalLights(newStageInfo.stage, depthMap, graphicsProgram);
+            method.setRenderTags(hashedRenderTags);
+            method.setCameraName(StringUtils::join(newStageInfo.cameraTags, ","));
             newStageInfo.addRenderMethod(method);
         } else if(methodName == "All point shadows") {
             RenderMethods::RenderMethod method = pipeline->getRenderMethods().getRenderMethodAllPointLights(graphicsProgram);
+            method.setRenderTags(hashedRenderTags);
+            method.setCameraName(StringUtils::join(newStageInfo.cameraTags, ","));
             newStageInfo.addRenderMethod(method);
         } else {
             RenderMethods::RenderMethod method = pipeline->getRenderMethods().getRenderMethod(assetManager->getGraphicsWrapper(), methodName,
                                                                                                      graphicsProgram,
                                                                                                      isFound);
-            newStageInfo.renderTags = newStageInfo.stage->getObjectTags();
-            std::vector<HashUtil::HashedString> hashedRenderTags;
-            for (const auto &item: newStageInfo.renderTags) {
-                hashedRenderTags.emplace_back(item);
-            }
             method.setRenderTags(hashedRenderTags);
-            newStageInfo.cameraTags = newStageInfo.stage->getCameraTags();
             method.setCameraName(StringUtils::join(newStageInfo.cameraTags, ","));
+            newStageInfo.addRenderMethod(method);
             if(!isFound) {
                 std::cerr << "Render method build failed, please check!" << std::endl;
                 return false;
             }
-            newStageInfo.addRenderMethod(method);
         }
+
+
 
         //now we need to parse the external methods
         tinyxml2::XMLElement* externalMethodElement =  methodElement->FirstChildElement("ExternalMethod");
