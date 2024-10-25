@@ -503,7 +503,6 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
                        if(assetVisibilityEntry == tagVisibilityEntry->second.end()) {
                            //it was never in the visible set, ignore.
                        } else {
-
                            //this asset was in visible set, but was this game object in the visible set?
                            for (auto modelIdIterator = assetVisibilityEntry->second.first.begin(); modelIdIterator != assetVisibilityEntry->second.first.end(); modelIdIterator++) {
                                if((*modelIdIterator) == currentModel->getWorldObjectID()) {
@@ -511,8 +510,8 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
                                    //so we removed the element. should we drop the entry itself?
                                    if(assetVisibilityEntry->second.first.empty()) {
                                        tagVisibilityEntry->second.erase(assetVisibilityEntry);
-                                       break;
                                    }
+                                   break;
                                }
                            }
                        }
