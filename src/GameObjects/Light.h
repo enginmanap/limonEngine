@@ -52,13 +52,13 @@ public:
           const glm::vec3 &color) :
             graphicsWrapper(graphicsWrapper),
             objectID(objectID),
-            position(glm::normalize(position)),
             lightType(lightType) {
         this->color.r = color.r < 1.0f ? color.r : 1.0f;
         this->color.g = color.g < 1.0f ? color.g : 1.0f;
         this->color.b = color.b < 1.0f ? color.b : 1.0f;
 
         if(lightType == LightTypes::DIRECTIONAL) {
+            this->position = glm::normalize(position);
             directionalCamera = new OrthographicCamera(this->getName() + " camera", graphicsWrapper->getOptions(), this);
             directionalCamera->getCameraMatrix();
             directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
@@ -69,6 +69,7 @@ public:
 
             directionalCamera->addTag(HardCodedTags::CAMERA_LIGHT_DIRECTIONAL);
         } else if(lightType == LightTypes::POINT) {
+            this->position = position;
             cubeCamera = new CubeCamera(this->getName() + " camera", graphicsWrapper->getOptions(), this);
             cubeCamera->getCameraMatrix();
             cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
