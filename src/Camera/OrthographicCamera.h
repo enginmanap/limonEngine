@@ -18,7 +18,7 @@ class OrthographicCamera : public Camera {
     std::vector<glm::mat4> orthogonalProjectionMatrices;
     std::vector<std::vector<glm::vec4>>frustumPlanes;
     std::vector<std::vector<glm::vec4>> frustumCorners;
-    float backOffFactor; // how high the camera should be? we are selecting average of zfar and znear, and add that to player y
+    float lightOrthogonalProjectionTopZ, lightOrthogonalProjectionZBottom;
     Options *options;
 
     mutable bool dirty = true;
@@ -44,10 +44,8 @@ public:
         this->frustumCorners.resize(cascadeCount);
         this->orthogonalProjectionMatrices.resize(cascadeCount);
         this->cameraTransformMatrices.resize(cascadeCount);
-        float lightOrthogonalNear, lightOrthogonalFar;
-        options->getOption("lightOrthogonalProjectionNearPlane", lightOrthogonalNear);
-        options->getOption("lightOrthogonalProjectionFarPlane", lightOrthogonalFar);
-        backOffFactor = (lightOrthogonalFar - lightOrthogonalNear) / 2.0;
+        options->getOptionOrDefault("lightOrthogonalProjectionTopZ", lightOrthogonalProjectionTopZ, 5000.0f);
+        options->getOptionOrDefault("lightOrthogonalProjectionZBottom", lightOrthogonalProjectionZBottom, -5000.0f);
     }
 
     CameraTypes getType() const override {
@@ -118,8 +116,8 @@ public:
             cameraTransformMatrices[i] = orthogonalProjectionMatrices[i] * lightView;
         }
 
-        long debugDrawLines = 0;
-        options->getOptionOrDefault("DebugDrawLines", debugDrawLines, 0);
+        bool debugDrawLines = false;
+        options->getOptionOrDefault("DebugDrawLines", debugDrawLines, false);
         if(debugDrawLines) {
             static uint32_t drawLineBufferId = 0;
             static uint32_t drawLineBufferId2 = 0;
@@ -133,7 +131,7 @@ public:
 
     void debugDrawFrustum(const std::vector<glm::vec4> &frustumCorners, const glm::vec3 &color, uint32_t &drawLineBufferId, long frameCounter) {
 
-        if(frameCounter % 600 == 0) {
+        if(frameCounter % 60 == 0) {
             if(drawLineBufferId != 0 ) {
                 options->getLogger()->clearLineBuffer(drawLineBufferId);
             }
@@ -158,7 +156,7 @@ public:
         }
     }
 
-    glm::mat4 calculateOrthogonalForCascade(const std::vector<glm::vec4> &playerFrustumCascadeCorners, const glm::mat4 &lightViewMatrix, glm::vec3& centerToUse) {
+    glm::mat4 calculateOrthogonalForCascade(const std::vector<glm::vec4> &playerFrustumCascadeCorners, const glm::mat4 &lightViewMatrix, glm::vec3& centerToUse) const {
         centerToUse = glm::vec3(0, 0, 0);
         for (const auto& corner : playerFrustumCascadeCorners)
         {
@@ -170,30 +168,15 @@ public:
         float maxX = std::numeric_limits<float>::lowest();
         float minY = std::numeric_limits<float>::max();
         float maxY = std::numeric_limits<float>::lowest();
-        float minZ = std::numeric_limits<float>::max();
-        float maxZ = std::numeric_limits<float>::lowest();
         for (const auto& corner : playerFrustumCascadeCorners) {
             const auto trf = lightViewMatrix * corner;
             minX = std::min(minX, trf.x);
             maxX = std::max(maxX, trf.x);
             minY = std::min(minY, trf.y);
             maxY = std::max(maxY, trf.y);
-            minZ = std::min(minZ, trf.z);
-            maxZ = std::max(maxZ, trf.z);
         }
 
-        constexpr float zMultiplier = 10000.0f;
-        if (minZ < 0) {
-            minZ *= zMultiplier;
-        } else {
-            minZ /= zMultiplier;
-        } if (maxZ < 0) {
-            maxZ /= zMultiplier;
-        } else {
-            maxZ *= zMultiplier;
-        }
-
-        return glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
+        return glm::ortho(minX, maxX, minY, maxY, lightOrthogonalProjectionZBottom, lightOrthogonalProjectionTopZ);
     }
 
     const std::vector<std::vector<glm::vec4>>& getFrustumCorners() const override {

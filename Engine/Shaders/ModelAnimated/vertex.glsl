@@ -16,8 +16,6 @@ out VS_FS {
     vec2 textureCoord;
     vec3 normal;
     vec3 fragPos;
-    vec4 fragPosLightSpace[NR_POINT_LIGHTS];
-    flat int depthMapLayer;
 } to_fs;
 
 layout (std140) uniform PlayerTransformBlock {
@@ -82,31 +80,6 @@ void main(void) {
      else {
         to_fs.normal = normalize(transposeInverseModelTransform * normal);
         to_fs.fragPos = vec3(modelTransform * position);
-    }
-    vec3 temp = (playerTransforms.position - vec3(position));
-    if(sqrt(dot(temp, temp)) > 25) {
-        to_fs.depthMapLayer = 2;
-    } else {
-        to_fs.depthMapLayer = 1;
-    }
-/*
-    int cascadePlaneDistances[4] = int[](10, 25, 100, 1000);
-    vec4 fragPosViewSpace = playerTransforms.camera * vec4(to_fs.fragPos, 1.0);
-    to_fs.depthMapLayer = 4;
-    float depthValue = abs(fragPosViewSpace.z);
-
-    for (int i = 0; i < 4; ++i) {
-        if (depthValue < cascadePlaneDistances[i])
-        {
-            to_fs.depthMapLayer = i;
-            break;
-        }
-    }
-    */
-    for(int i = 0; i < NR_POINT_LIGHTS; i++){
-        if(LightSources.lights[i].type == 1) {
-            to_fs.fragPosLightSpace[i] = LightSources.lights[i].shadowMatrices[to_fs.depthMapLayer] * vec4(to_fs.fragPos, 1.0);
-        }
     }
     gl_Position = playerTransforms.cameraProjection * vec4(to_fs.fragPos, 1.0);
 }

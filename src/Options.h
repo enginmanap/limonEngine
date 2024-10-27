@@ -108,6 +108,16 @@ public:
         return true;
     }
 
+    bool getOptionOrDefault(const std::string& optionName, float &value, float defaultValue) const {
+        auto it = this->options.find(optionName);
+        if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::DOUBLE) {
+            value = defaultValue;
+            return false;
+        }
+        value = (float)it->second->value.doubleValue;
+        return true;
+    }
+
     bool getOptionOrDefault(const std::string& optionName, bool &value, bool defaultValue) const {
         auto it = this->options.find(optionName);
         if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::BOOLEAN) {

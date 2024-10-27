@@ -16,7 +16,7 @@ public:
     static const uint32_t keyBufferElements = 512;
     static const uint32_t keyBufferSize = sizeof(bool) * keyBufferElements;
     enum class Inputs {
-        QUIT, MOUSE_MOVE, MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE, MOUSE_BUTTON_RIGHT, MOUSE_WHEEL_UP, MOUSE_WHEEL_DOWN, MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT, MOVE_RIGHT, JUMP, RUN, DEBUG, EDITOR, KEY_SHIFT, KEY_CTRL, KEY_ALT, KEY_SUPER, TEXT_INPUT, NUMBER_1, NUMBER_2
+        QUIT, MOUSE_MOVE, MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE, MOUSE_BUTTON_RIGHT, MOUSE_WHEEL_UP, MOUSE_WHEEL_DOWN, MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT, MOVE_RIGHT, JUMP, RUN, DEBUG, EDITOR, KEY_SHIFT, KEY_CTRL, KEY_ALT, KEY_SUPER, TEXT_INPUT, NUMBER_1, NUMBER_2, F4
     };
 private:
     bool downKeys[keyBufferElements] = {0};
@@ -39,7 +39,7 @@ public:
             inputEvents[input] = true;
         }
         inputStatus[input] = pressed;
-        return inputEvents[input];
+        return  inputEvents[input];
     }
 
     bool getInputStatus(const Inputs input) const {

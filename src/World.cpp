@@ -732,6 +732,9 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
         }
     }
 
+    if(inputHandler.getInputStates().getInputEvents(InputStates::Inputs::F4)) {
+        options->setOption("DebugDrawLines", inputHandler.getInputStates().getInputStatus(InputStates::Inputs::F4));
+    }
 
     if (inputHandler.getInputStates().getInputEvents(InputStates::Inputs::EDITOR) && inputHandler.getInputStates().getInputStatus(InputStates::Inputs::EDITOR)) {
         if(editorPlayer == nullptr) {
@@ -1741,7 +1744,6 @@ bool World::removeObject(uint32_t objectID, const bool &removeChildren) {
 
 
     return true;
-
 }
 
 void World::afterLoadFinished() {

@@ -89,16 +89,16 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>lightOrthogonalProjectionNearPlane</Description>
-        <Value>1.0</Value>
+        <Description>lightOrthogonalProjectionTopZ</Description>
+        <Value>5000</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>lightOrthogonalProjectionFarPlane</Description>
-        <Value>100000</Value>
+        <Description>lightOrthogonalProjectionZBottom</Description>
+        <Value>-5000</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>
@@ -218,7 +218,7 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>multiThreadedCulling</Description>
-        <Value>1</Value>
+        <Value>0</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>
@@ -242,9 +242,9 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>DebugDrawLines</Description>
-        <Value>1</Value>
-        <valueType>Long</valueType>
-        <IsSet>False</IsSet>
+        <Value>True</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>True</IsSet>
         <Index>2</Index>
     </Parameter>
     <Parameter>
@@ -274,7 +274,7 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>CascadeLimit2</Description>
-        <Value>100</Value>
+        <Value>150</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>
@@ -282,7 +282,7 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>CascadeLimit3</Description>
-        <Value>1000</Value>
+        <Value>250</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>

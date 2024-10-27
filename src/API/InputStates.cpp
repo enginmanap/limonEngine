@@ -30,29 +30,11 @@ InputStates::InputStates() {
     inputEvents[Inputs::TEXT_INPUT] = false;
     inputEvents[Inputs::NUMBER_1] = false;
     inputEvents[Inputs::NUMBER_2] = false;
+    inputEvents[Inputs::F4] = false;
 
-    inputStatus[Inputs::QUIT] = false;
-    inputStatus[Inputs::MOUSE_MOVE] = false;
-    inputStatus[Inputs::MOUSE_BUTTON_LEFT] = false;
-    inputStatus[Inputs::MOUSE_BUTTON_MIDDLE] = false;
-    inputStatus[Inputs::MOUSE_BUTTON_RIGHT] = false;
-    inputStatus[Inputs::MOUSE_WHEEL_UP] = false;
-    inputStatus[Inputs::MOUSE_WHEEL_DOWN] = false;
-    inputStatus[Inputs::MOVE_FORWARD] = false;
-    inputStatus[Inputs::MOVE_BACKWARD] = false;
-    inputStatus[Inputs::MOVE_LEFT] = false;
-    inputStatus[Inputs::MOVE_RIGHT] = false;
-    inputStatus[Inputs::JUMP] = false;
-    inputStatus[Inputs::RUN] = false;
-    inputStatus[Inputs::DEBUG] = false;
-    inputStatus[Inputs::EDITOR] = false;
-    inputStatus[Inputs::KEY_SHIFT] = false;
-    inputStatus[Inputs::KEY_CTRL] = false;
-    inputStatus[Inputs::KEY_ALT] = false;
-    inputStatus[Inputs::KEY_SUPER] = false;
-    inputStatus[Inputs::TEXT_INPUT] = false;
-    inputStatus[Inputs::NUMBER_1] = false;
-    inputStatus[Inputs::NUMBER_2] = false;
+    for (const auto &item: inputEvents) {
+        inputStatus[item.first] = item.second;
+    }
 }
 
 void InputStates::resetAllEvents() {
