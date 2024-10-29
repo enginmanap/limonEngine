@@ -188,6 +188,9 @@ public:
     }
 
     void setParentTransform(Transformation* transformation) {
+        if(this->parentTransform == transformation) {
+            return; //no op
+        }
         if(this->parentTransform != nullptr) {
             removeParentTransform();
         }
