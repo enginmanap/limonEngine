@@ -330,6 +330,10 @@ OpenGLESGraphics::ContextInformation OpenGLESGraphics::getContextInformation() {
     contextInformation.SDL_GL_CONTEXT_MINOR_VERSION = 1;
     contextInformation.SDL_GL_CONTEXT_PROFILE_MASK = 4;
     contextInformation.SDL_GL_CONTEXT_FLAGS = 1;
+    contextInformation.shaderHeader = "#version 310 es\n"
+                                      "#extension GL_EXT_shader_io_blocks : enable\n"
+                                      "precision mediump float;\n"
+                                      "precision mediump int;";
     return contextInformation;
 }
 
