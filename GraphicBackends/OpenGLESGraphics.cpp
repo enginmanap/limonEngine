@@ -13,25 +13,10 @@ std::shared_ptr<GraphicsInterface> createGraphicsBackend(Options* options) {
     return std::make_shared<OpenGLESGraphics>(options);
 }
 
-GLuint OpenGLESGraphics::createShader(GLenum eShaderType, const std::string &strShaderFile) {
+GLuint OpenGLESGraphics::createShader(GLenum eShaderType, const std::string &strShaderContent) {
     GLuint shader = glCreateShader(eShaderType);
-    std::string shaderCode;
-    std::ifstream shaderStream(strShaderFile.c_str(), std::ios::in);
 
-    if (shaderStream.is_open()) {
-        std::string Line;
-
-        while (getline(shaderStream, Line))
-            shaderCode += "\n" + Line;
-
-        shaderStream.close();
-    } else {
-        std::cerr << strShaderFile.c_str() << " could not be read. Please ensure run directory if you used relative paths." << std::endl;
-        getchar();
-        return 0;
-    }
-
-    const char *shaderCodePtr = shaderCode.c_str();
+    const char *shaderCodePtr = strShaderContent.c_str();
     glShaderSource(shader, 1, &shaderCodePtr, nullptr);
 
     glCompileShader(shader);
@@ -61,7 +46,7 @@ GLuint OpenGLESGraphics::createShader(GLenum eShaderType, const std::string &str
                 break;
         }
 
-        std::cerr << strShaderType << " type shader " << strShaderFile.c_str() << " could not be compiled:\n" <<
+        std::cerr << strShaderType << " type shader " << strShaderContent.c_str() << " could not be compiled:\n" <<
                   strInfoLog << std::endl;
         delete[] strInfoLog;
 
@@ -103,15 +88,15 @@ GLuint OpenGLESGraphics::createProgram(const std::vector<GLuint> &shaderList) {
     return program;
 }
 
-uint32_t OpenGLESGraphics::createGraphicsProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile) {
+uint32_t OpenGLESGraphics::createGraphicsProgram(const std::string &vertexShaderContent, const std::string &geometryShaderContent, const std::string &fragmentShaderContent) {
     GLuint program;
     std::vector<GLuint> shaderList;
     checkErrors("before create shaders");
-    shaderList.push_back(createShader(GL_VERTEX_SHADER, vertexShaderFile));
-    if(!geometryShaderFile.empty()){
-        shaderList.push_back(createShader(GL_GEOMETRY_SHADER, geometryShaderFile));
+    shaderList.push_back(createShader(GL_VERTEX_SHADER, vertexShaderContent));
+    if(!geometryShaderContent.empty()){
+        shaderList.push_back(createShader(GL_GEOMETRY_SHADER, geometryShaderContent));
     }
-    shaderList.push_back(createShader(GL_FRAGMENT_SHADER, fragmentShaderFile));
+    shaderList.push_back(createShader(GL_FRAGMENT_SHADER, fragmentShaderContent));
 
     program = createProgram(shaderList);
     std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
@@ -439,6 +424,14 @@ bool OpenGLESGraphics::createGraphicsBackend() {
 
     if(uniformBufferAlignSize > materialUniformSize) {
         materialUniformSize = uniformBufferAlignSize;
+    } else {
+        //it is possible that they are not aligning, align
+        if(materialUniformSize % uniformBufferAlignSize == 0 ) {
+            //aligned
+        } else {
+            //MU size 18, alignment 16 -> we need 32
+            materialUniformSize = ((materialUniformSize / uniformBufferAlignSize)+1) * uniformBufferAlignSize;
+        }
     }
 
     std::cout << "Uniform alignment size is " << uniformBufferAlignSize << std::endl;
@@ -448,6 +441,14 @@ bool OpenGLESGraphics::createGraphicsBackend() {
 
     std::cout << "Uniform maxVertexUniformBlockCount size is " << maxVertexUniformBlockCount << std::endl;
 
+    GLint maxTextureSize = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+
+    std::cout << "Uniform maxTextureSize size is " << maxTextureSize << std::endl;
+
+    if(maxTextureSize < NR_MAX_MODELS * 4) { // Each model has its transform in a texture, 4 channels, 4 elements
+        std::cerr << "Maximum number of models is set higher than supported texture size. This will cause errors, black screens or crashing." << std::endl;
+    }
 
     //create the Light Uniform Buffer Object for later usage
     glGenBuffers(1, &lightUBOLocation);
@@ -693,8 +694,6 @@ OpenGLESGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fr
     glViewport(0, 0, width, height);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
 
-    checkErrors("switchRenderStage");
-
     if(depthTestEnabled) {
         glEnable(GL_DEPTH_TEST);
     } else {
@@ -705,14 +704,12 @@ OpenGLESGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fr
     } else {
         glDepthMask(GL_FALSE);
     }
-    checkErrors("switchRenderStage");
 
     if(scissorEnabled) {
         glEnable(GL_SCISSOR_TEST);
     } else {
         glDisable(GL_SCISSOR_TEST);
     }
-    checkErrors("switchRenderStage");
 
     if(clearColor && clearDepth) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -721,7 +718,6 @@ OpenGLESGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fr
     } else if(clearDepth) {
         glClear(GL_DEPTH_BUFFER_BIT);
     }
-    checkErrors("switchRenderStage");
 
     //we combine diffuse+specular lighted with ambient / SSAO
     for (auto inputIt = inputs.begin(); inputIt != inputs.end(); ++inputIt) {
@@ -1175,72 +1171,58 @@ void OpenGLESGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Te
         case FrameBufferAttachPoints::DEPTH:  glAttachment = GL_DEPTH_ATTACHMENT;   break;
     }
 
-
-    if(frameBufferID != 0) {
-        switch (textureType) {
-            case TextureTypes::T2D: {
-                glFramebufferTexture2D(GL_FRAMEBUFFER, glAttachment, GL_TEXTURE_2D, textureID, 0);
-            }
-                break;
-            case TextureTypes::T2D_ARRAY: {
-                if (layer == -1) {
-                    glFramebufferTexture(GL_FRAMEBUFFER, glAttachment, textureID, 0);
-                } else {
-                    glFramebufferTextureLayer(GL_FRAMEBUFFER, glAttachment, textureID, 0, layer);
-                }
-            }
-                break;
-            case TextureTypes::TCUBE_MAP: {
-                glFramebufferTexture(GL_FRAMEBUFFER, glAttachment, textureID, 0);
-            }
-                break;
-            case TextureTypes::TCUBE_MAP_ARRAY: {
-                glFramebufferTexture(GL_FRAMEBUFFER, glAttachment, textureID, 0);
-            }
-                break;
-        }
-    }
-
     int32_t attachmentTemp;
-    unsigned int drawBufferAttachments[maxDrawBuffers];
+    unsigned int drawBufferAttachments[6];
     if(attachPoint == OpenGLESGraphics::FrameBufferAttachPoints::DEPTH) {
         if(clear) {
             glClear(GL_DEPTH_BUFFER_BIT);
         }
     } else {
-        checkErrors("attachDrawTextureToFrameBuffer");
-        for (int i = 0; i < maxDrawBuffers; ++i) {
+        for (unsigned int i = 0; i < 6; ++i) {
             if (i == index) {
                 drawBufferAttachments[i] = glAttachment;
                 if(clear) {
                     unsigned int tempAttachmentBuffer[1] = {glAttachment};
                     glDrawBuffers(1, tempAttachmentBuffer);
-                    checkErrors("attachDrawTextureToFrameBuffer");
-
                 }
             } else {
                 glGetIntegerv(GL_DRAW_BUFFER0 + i, &attachmentTemp);
                 drawBufferAttachments[i] = attachmentTemp;
             }
         }
-        checkErrors("attachDrawTextureToFrameBuffer");
-        if(frameBufferID == 0 ) {
-            // Default frame buffer only allows 1 attachment
-            // Needs separate handling
-            if(attachPoint == FrameBufferAttachPoints::DEPTH || attachPoint == FrameBufferAttachPoints::NONE ) {
-                unsigned int tempAttachmentBuffer[1] = {glAttachment};
-                glDrawBuffers(1, tempAttachmentBuffer);
-            }
-            checkErrors("attachDrawTextureToFrameBuffer");
-        } else {
-            glDrawBuffers(maxDrawBuffers, drawBufferAttachments);
-            checkErrors("attachDrawTextureToFrameBuffer");
+        glDrawBuffers(6, drawBufferAttachments);
+    }
+
+    switch (textureType) {
+        case TextureTypes::T2D: {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, glAttachment, GL_TEXTURE_2D, textureID, 0);
         }
-        checkErrors("attachDrawTextureToFrameBuffer");
+            break;
+        case TextureTypes::T2D_ARRAY: {
+            if(layer == -1 ) {
+                glFramebufferTexture(GL_FRAMEBUFFER, glAttachment, textureID, 0);
+            } else {
+                glFramebufferTextureLayer(GL_FRAMEBUFFER, glAttachment, textureID, 0, layer);
+            }
+        }
+            break;
+        case TextureTypes::TCUBE_MAP: {
+            glFramebufferTexture(GL_FRAMEBUFFER, glAttachment, textureID, 0);
+        }
+            break;
+        case TextureTypes::TCUBE_MAP_ARRAY: {
+            glFramebufferTexture(GL_FRAMEBUFFER, glAttachment, textureID, 0);
+        }
+            break;
     }
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         std::cerr << "frame buffer texture to attach is not complete" << std::endl;
+    }
+    if(clear) {
+        if(attachPoint == OpenGLESGraphics::FrameBufferAttachPoints::DEPTH) {
+            glClear(GL_DEPTH_BUFFER_BIT);
+        }
     }
     checkErrors("attachDrawTextureToFrameBuffer");
 
@@ -1317,7 +1299,6 @@ uint32_t OpenGLESGraphics::createTexture(int height, int width, TextureTypes typ
         }
             break;
     }
-    checkErrors("Texture Constructor");
 
     glTexParameteri(glTextureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);

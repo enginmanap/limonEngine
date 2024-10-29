@@ -12,8 +12,6 @@
 #include <algorithm>
 #include <vector>
 
-#include <fstream>
-#include <streambuf>
 #include <iostream>
 #include <unordered_map>
 #include <GL/glew.h>
@@ -320,7 +318,7 @@ protected:
     void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) override;
 
-    uint32_t createGraphicsProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile) override;
+    uint32_t createGraphicsProgram(const std::string &vertexShaderContent, const std::string &geometryShaderFileContent, const std::string &fragmentShaderFileContent) override;
 
 public:
 
@@ -412,13 +410,9 @@ public:
 
     bool getUniformLocation(const uint32_t programID, const std::string &uniformName, uint32_t &location) override;
 
-    const glm::mat4& getCameraMatrix() const override { return cameraMatrix; };
-
     const glm::vec3& getCameraPosition() const override { return cameraPosition; };
 
-    const glm::mat4& getProjectionMatrix() const override { return perspectiveProjectionMatrix; };
-
-    const glm::mat4& getOrthogonalProjectionMatrix() const override { return orthogonalProjectionMatrix; }
+    const glm::mat4& getGUIOrthogonalProjectionMatrix() const override { return orthogonalProjectionMatrix; }
 
     void createDebugVAOVBO(uint32_t &vao, uint32_t &vbo, uint32_t bufferSize) override;
 
