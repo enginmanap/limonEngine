@@ -733,7 +733,12 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
     }
 
     if(inputHandler.getInputStates().getInputEvents(InputStates::Inputs::F4)) {
-        options->setOption("DebugDrawLines", inputHandler.getInputStates().getInputStatus(InputStates::Inputs::F4));
+        bool debugDrawLines;
+        options->getOptionOrDefault("DebugDrawLines", debugDrawLines, false);
+        if(inputHandler.getInputStates().getInputStatus(InputStates::Inputs::F4)) {
+            debugDrawLines = !debugDrawLines;
+        }
+        options->setOption("DebugDrawLines", debugDrawLines);
     }
 
     if (inputHandler.getInputStates().getInputEvents(InputStates::Inputs::EDITOR) && inputHandler.getInputStates().getInputStatus(InputStates::Inputs::EDITOR)) {
@@ -3312,14 +3317,14 @@ void World::createNodeGraph() {
             type->outputConnections.push_back(desc);
         }
         PipelineStageExtension::ProgramNameInfo programNameInfo;
-        programNameInfo.vertexShaderName = program->getVertexShader();
-        programNameInfo.geometryShaderName = program->getGeometryShader();
-        programNameInfo.fragmentShaderName = program->getFragmentShader();
+        programNameInfo.vertexShaderName = program->getVertexShaderFile();
+        programNameInfo.geometryShaderName = program->getGeometryShaderFile();
+        programNameInfo.fragmentShaderName = program->getFragmentShaderFile();
 
         type->nodeExtensionConstructor = [=](const NodeType* nodeType[[gnu::unused]]) ->NodeExtension* {return new PipelineStageExtension(pipelineExtension, programNameInfo);};
-        type->extraVariables["vertexShaderName"] = program->getVertexShader();
-        type->extraVariables["geometryShaderName"] = program->getGeometryShader();
-        type->extraVariables["fragmentShaderName"] = program->getFragmentShader();
+        type->extraVariables["vertexShaderName"] = program->getVertexShaderFile();
+        type->extraVariables["geometryShaderName"] = program->getGeometryShaderFile();
+        type->extraVariables["fragmentShaderName"] = program->getFragmentShaderFile();
 
         nodeTypeVector.push_back(type);
     }

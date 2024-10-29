@@ -122,15 +122,15 @@ public:
         return false;
     }
 
-    const std::string &getVertexShader() const {
+    const std::string &getVertexShaderFile() const {
         return vertexShader;
     }
 
-    const std::string &getGeometryShader() const {
+    const std::string &getGeometryShaderFile() const {
         return geometryShader;
     }
 
-    const std::string &getFragmentShader() const {
+    const std::string &getFragmentShaderFile() const {
         return fragmentShader;
     }
 

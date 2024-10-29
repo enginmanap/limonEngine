@@ -390,8 +390,8 @@
             </RenderMethods>
             <Clear>True</Clear>
             <GraphicsPipelineStage>
-                <DefaultRenderHeight>4096</DefaultRenderHeight>
-                <DefaultRenderWidth>4096</DefaultRenderWidth>
+                <DefaultRenderHeight>1024</DefaultRenderHeight>
+                <DefaultRenderWidth>1024</DefaultRenderWidth>
                 <RenderHeightOption>shadowMapDirectionalHeight</RenderHeightOption>
                 <RenderWidthOption>shadowMapDirectionalWidth</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>

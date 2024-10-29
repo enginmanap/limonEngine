@@ -90,15 +90,15 @@ bool GraphicsProgramLoader::serialize(tinyxml2::XMLDocument &document, tinyxml2:
     tinyxml2::XMLElement *currentElement = nullptr;
 
     currentElement = document.NewElement("VertexShader");
-    currentElement->SetText(graphicsProgram->graphicsProgramAsset->getVertexShader().c_str());
+    currentElement->SetText(graphicsProgram->graphicsProgramAsset->getVertexShaderFile().c_str());
     programNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("GeometryShader");
-    currentElement->SetText(graphicsProgram->graphicsProgramAsset->getGeometryShader().c_str());
+    currentElement->SetText(graphicsProgram->graphicsProgramAsset->getGeometryShaderFile().c_str());
     programNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("FragmentShader");
-    currentElement->SetText(graphicsProgram->graphicsProgramAsset->getFragmentShader().c_str());
+    currentElement->SetText(graphicsProgram->graphicsProgramAsset->getFragmentShaderFile().c_str());
     programNode->InsertEndChild(currentElement);
 
     currentElement = document.NewElement("MaterialRequired");

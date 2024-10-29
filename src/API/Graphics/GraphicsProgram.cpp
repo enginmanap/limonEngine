@@ -4,11 +4,13 @@
 
 #include "GraphicsProgram.h"
 #include "Assets/AssetManager.h"
+#include "GraphicsProgramPreprocessor.h"
 
 GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& vertexShader, const std::string& fragmentShader, bool isMaterialUsed) :
         assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), materialRequired(isMaterialUsed) {
     graphicsProgramAsset = assetManager->loadAsset<GraphicsProgramAsset>({vertexShader, fragmentShader});
-    programID = graphicsWrapper->createGraphicsProgram(vertexShader, "", fragmentShader);
+    GraphicsProgramPreprocessor::preprocess(this, assetManager->getGraphicsWrapper()->getContextInformation().shaderHeader, assetManager->getGraphicsWrapper()->getOptions()->getAllOptions());
+    programID = graphicsWrapper->createGraphicsProgram(vertexShaderContent, "", fragmentShaderContent);
     graphicsProgramAsset->lateInitialize(programID);
     if(materialRequired) {
         setSamplersAndUBOs();
@@ -18,7 +20,9 @@ GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& 
 GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, bool isMaterialUsed) :
         assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), materialRequired(isMaterialUsed) {
     graphicsProgramAsset = assetManager->loadAsset<GraphicsProgramAsset>({vertexShader, geometryShader, fragmentShader});
-    programID = graphicsWrapper->createGraphicsProgram(vertexShader, geometryShader, fragmentShader);
+    GraphicsProgramPreprocessor::preprocess(this, assetManager->getGraphicsWrapper()->getContextInformation().shaderHeader, assetManager->getGraphicsWrapper()->getOptions()->getAllOptions());
+
+    programID = graphicsWrapper->createGraphicsProgram(vertexShaderContent, geometryShaderContent, fragmentShaderContent);
     graphicsProgramAsset->lateInitialize(programID);
     if(materialRequired) {
         setSamplersAndUBOs();
@@ -27,10 +31,10 @@ GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& 
 }
 
 GraphicsProgram::~GraphicsProgram() {
-    if(graphicsProgramAsset->getGeometryShader().empty()) {
-        assetManager->freeAsset({graphicsProgramAsset->getVertexShader(), graphicsProgramAsset->getFragmentShader()});
+    if(graphicsProgramAsset->getGeometryShaderFile().empty()) {
+        assetManager->freeAsset({graphicsProgramAsset->getVertexShaderFile(), graphicsProgramAsset->getFragmentShaderFile()});
     } else {
-        assetManager->freeAsset({graphicsProgramAsset->getVertexShader(), graphicsProgramAsset->getGeometryShader(), graphicsProgramAsset->getFragmentShader()});
+        assetManager->freeAsset({graphicsProgramAsset->getVertexShaderFile(), graphicsProgramAsset->getGeometryShaderFile(), graphicsProgramAsset->getFragmentShaderFile()});
     }
 
     graphicsWrapper->destroyProgram(programID);

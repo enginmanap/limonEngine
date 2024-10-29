@@ -287,4 +287,12 @@
         <IsSet>True</IsSet>
         <Index>2</Index>
     </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>CascadeLimitList</Description>
+        <Value>5, 10, 25, 150, 250</Value>
+        <valueType>LongArray</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
 </Options>

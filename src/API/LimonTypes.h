@@ -6,6 +6,7 @@
 #define LIMONENGINE_LIMONTYPES_H
 
 #include <cassert>
+#include <string>
 
 namespace LimonTypes {
 
@@ -152,6 +153,49 @@ namespace LimonTypes {
             memset(&value, 0, sizeof(value));
         };
 
+        std::string to_string() {
+            switch (valueType) {
+                case STRING:
+                    return value.stringValue;
+                case DOUBLE:
+                    return std::to_string(value.doubleValue);
+                case LONG:
+                    return std::to_string(value.longValue);
+                case LONG_ARRAY: {
+                        long size = value.longValues[0];
+                        std::string valueString = "[";
+                        for (long i = 1; i < size - 1; ++i) {
+                            valueString += std::to_string(value.longValues[i]) + ", ";
+                        }
+                        valueString += std::to_string(value.longValues[size-1]) + "]";
+                        return valueString;
+                    }
+                    break;
+                case BOOLEAN:
+                    return std::to_string(value.boolValue);
+                case VEC4: {
+                        std::string valueString = "[";
+                        for (size_t i = 0; i < 3; ++i) {
+                            valueString += std::to_string(value.vectorValue[i]) + ", ";
+                        }
+                        valueString += std::to_string(value.vectorValue[3]) + "]";
+                        return valueString;
+                    }
+                case MAT4:
+                {
+                    std::string valueString = "[";
+                    for (size_t i = 0; i < 4; ++i) {
+                        for (size_t j = 0; j < 4; ++j) {
+                            valueString += std::to_string(value.matrixValue.rows[i][j]) + ", ";
+                        }
+                    }
+                    valueString.replace(valueString.length()-1, 1, "]");//remove the last
+                    return valueString;
+                }
+            }
+            std::cerr << "Type info not matched any case, this is an error" << std::endl;
+            return "";
+        }
     };
 
 }

@@ -62,7 +62,7 @@ protected:
                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) = 0;
 
     //Should be used by GraphicsProgramOnly
-    virtual uint32_t createGraphicsProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile) = 0;
+    virtual uint32_t createGraphicsProgram(const std::string &vertexShaderContent, const std::string &geometryShaderContent, const std::string &fragmentShaderContent) = 0;
 public:
 
     struct ContextInformation {
@@ -71,6 +71,7 @@ public:
         int SDL_GL_CONTEXT_MINOR_VERSION = 3;
         int SDL_GL_CONTEXT_PROFILE_MASK = 1;
         int SDL_GL_CONTEXT_FLAGS = 1;
+        std::string shaderHeader;
     };
 
     virtual void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) = 0;

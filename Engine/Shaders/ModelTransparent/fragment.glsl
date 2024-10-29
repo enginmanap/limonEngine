@@ -2,6 +2,8 @@
 #extension GL_ARB_texture_cube_map_array : enable
 
 #define NR_POINT_LIGHTS 4
+#define_limon CascadeCount
+#define_limon CascadeLimitList
 
 layout (location = 0) out vec4 outputColor;
 
@@ -70,21 +72,37 @@ vec3 pointSampleOffsetDirections[20] = vec3[]
 uniform vec3 ssaoKernel[128];
 uniform int ssaoSampleCount;
 
-float ShadowCalculationDirectional(vec4 fragPosLightSpace, float bias, float lightIndex){
+float ShadowCalculationDirectional(float bias, int lightIndex){
+    float cascadePlaneDistances[CascadeCount] = float[](CascadeLimitList);
+    vec4 fragPosViewSpace = playerTransforms.camera * vec4(from_vs.fragPos, 1.0);
+    float depthValue = abs(fragPosViewSpace.z);
+    int layer = 3;
+    for (int i = 0; i < 4; ++i) {
+        if (depthValue < cascadePlaneDistances[i])
+        {
+            layer = i;
+            break;
+        }
+    }
+    vec4 fragPosLightSpace = LightSources.lights[lightIndex].shadowMatrices[layer] * vec4(from_vs.fragPos, 1.0);
     // perform perspective divide
     vec3 projectedCoordinates = fragPosLightSpace.xyz / fragPosLightSpace.w;
     // Transform to [0,1] range
     projectedCoordinates = projectedCoordinates * 0.5 + 0.5;
     // Get closest depth value from light's perspective (using [0,1] range fragPosLightSpace as coords)
-    float closestDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy, lightIndex)).r;
+    float closestDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy, layer)).r;
     // Get depth of current fragment from light's perspective
     float currentDepth = projectedCoordinates.z;
+    if (currentDepth  >= 1.0)
+    {
+        return 0.0;
+    }
     float shadow = 0.0;
     if(currentDepth < 1.0){
-        vec2 texelSize = 1.0 / textureSize(pre_shadowDirectional, 0).xy;
+        vec2 texelSize = 1.0 / textureSize(pre_shadowDirectional, 0).xy;//this has to be level 0, because its not layer but LOD/MIP
         for(int x = -1; x <= 1; ++x){
             for(int y = -1; y <= 1; ++y){
-                float pcfDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy + vec2(x, y) * texelSize, lightIndex)).r;
+                float pcfDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy + vec2(x, y) * texelSize, layer)).r;
                 if(currentDepth + bias > pcfDepth) {
                     shadow += 1.0;
                 }
@@ -203,7 +221,7 @@ void main(void) {
                 float viewDistance = length(playerTransforms.position - from_vs.fragPos);
                 float bias = 0.0;
                 if(LightSources.lights[i].type == 1) {//directional light
-                    shadow = ShadowCalculationDirectional(from_vs.fragPosLightSpace[i], bias, i);
+                    shadow = ShadowCalculationDirectional(bias, i);
                 } else if (LightSources.lights[i].type == 2){//point light
                     shadow = ShadowCalculationPoint(from_vs.fragPos, bias, viewDistance, i);
                 }

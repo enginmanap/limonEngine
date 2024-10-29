@@ -23,6 +23,7 @@ class GraphicsProgram {
     std::unordered_map<std::shared_ptr<Uniform>, std::string> presetUniformValues;
     bool materialRequired;
     uint32_t programID;
+    std::string vertexShaderContent, geometryShaderContent, fragmentShaderContent;
 
     //TODO remove with material editor
     void setSamplersAndUBOs();
@@ -85,16 +86,28 @@ public:
         return materialRequired;
     }
 
-    const std::string &getVertexShader() const {
-        return graphicsProgramAsset->getVertexShader();
+    const std::string &getVertexShaderFile() const {
+        return graphicsProgramAsset->getVertexShaderFile();
     }
 
-    const std::string &getGeometryShader() const {
-        return graphicsProgramAsset->getGeometryShader();
+    const std::string &getGeometryShaderFile() const {
+        return graphicsProgramAsset->getGeometryShaderFile();
     }
 
-    const std::string &getFragmentShader() const {
-        return graphicsProgramAsset->getFragmentShader();
+    const std::string &getFragmentShaderFile() const {
+        return graphicsProgramAsset->getFragmentShaderFile();
+    }
+
+    void setFragmentShaderContent(const std::string &fragmentShaderContent) {
+        GraphicsProgram::fragmentShaderContent = fragmentShaderContent;
+    }
+
+    void setGeometryShaderContent(const std::string &geometryShaderContent) {
+        GraphicsProgram::geometryShaderContent = geometryShaderContent;
+    }
+
+    void setVertexShaderContent(const std::string &vertexShaderContent) {
+        GraphicsProgram::vertexShaderContent = vertexShaderContent;
     }
 
     bool addPresetValue(const std::string& uniformName, const std::string& value);

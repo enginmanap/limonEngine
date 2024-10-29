@@ -283,6 +283,10 @@ public:
         return logger;
     }
 
+    const std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>>& getAllOptions() const {
+        return this->options;
+    }
+
 };
 
 

@@ -1,6 +1,9 @@
 #version 330
 #extension GL_ARB_texture_cube_map_array : enable
 
+#define_limon CascadeCount
+#define_limon CascadeLimitList
+
 #define NR_POINT_LIGHTS 4
 
 layout (location = 0) out vec4 diffuseAndSpecularLightedColor;
@@ -71,7 +74,7 @@ uniform vec3 ssaoKernel[128];
 uniform int ssaoSampleCount;
 
 float ShadowCalculationDirectional(float bias, int lightIndex){
-    float cascadePlaneDistances[4] = float[](10.0, 25.0, 100.0, 1000.0);
+    float cascadePlaneDistances[CascadeCount] = float[](CascadeLimitList);
     vec4 fragPosViewSpace = playerTransforms.camera * vec4(from_vs.fragPos, 1.0);
     float depthValue = abs(fragPosViewSpace.z);
     int layer = 3;
@@ -91,7 +94,7 @@ float ShadowCalculationDirectional(float bias, int lightIndex){
     float closestDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy, layer)).r;
     // Get depth of current fragment from light's perspective
     float currentDepth = projectedCoordinates.z;
-    if (currentDepth  > 1.0)
+    if (currentDepth  >= 1.0)
     {
         return 0.0;
     }

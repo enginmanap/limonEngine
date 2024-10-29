@@ -13,25 +13,10 @@ std::shared_ptr<GraphicsInterface> createGraphicsBackend(Options* options) {
     return std::make_shared<OpenGLGraphics>(options);
 }
 
-GLuint OpenGLGraphics::createShader(GLenum eShaderType, const std::string &strShaderFile) {
+GLuint OpenGLGraphics::createShader(GLenum eShaderType, const std::string &strShaderContent) {
     GLuint shader = glCreateShader(eShaderType);
-    std::string shaderCode;
-    std::ifstream shaderStream(strShaderFile.c_str(), std::ios::in);
 
-    if (shaderStream.is_open()) {
-        std::string Line;
-
-        while (getline(shaderStream, Line))
-            shaderCode += "\n" + Line;
-
-        shaderStream.close();
-    } else {
-        std::cerr << strShaderFile.c_str() << " could not be read. Please ensure run directory if you used relative paths." << std::endl;
-        getchar();
-        return 0;
-    }
-
-    const char *shaderCodePtr = shaderCode.c_str();
+    const char *shaderCodePtr = strShaderContent.c_str();
     glShaderSource(shader, 1, &shaderCodePtr, nullptr);
 
     glCompileShader(shader);
@@ -61,7 +46,7 @@ GLuint OpenGLGraphics::createShader(GLenum eShaderType, const std::string &strSh
                 break;
         }
 
-        std::cerr << strShaderType << " type shader " << strShaderFile.c_str() << " could not be compiled:\n" <<
+        std::cerr << strShaderType << " type shader " << strShaderContent.c_str() << " could not be compiled:\n" <<
                   strInfoLog << std::endl;
         delete[] strInfoLog;
 
@@ -103,15 +88,15 @@ GLuint OpenGLGraphics::createProgram(const std::vector<GLuint> &shaderList) {
     return program;
 }
 
-uint32_t OpenGLGraphics::createGraphicsProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile) {
+uint32_t OpenGLGraphics::createGraphicsProgram(const std::string &vertexShaderContent, const std::string &geometryShaderContent, const std::string &fragmentShaderContent) {
     GLuint program;
     std::vector<GLuint> shaderList;
     checkErrors("before create shaders");
-    shaderList.push_back(createShader(GL_VERTEX_SHADER, vertexShaderFile));
-    if(!geometryShaderFile.empty()){
-        shaderList.push_back(createShader(GL_GEOMETRY_SHADER, geometryShaderFile));
+    shaderList.push_back(createShader(GL_VERTEX_SHADER, vertexShaderContent));
+    if(!geometryShaderContent.empty()){
+        shaderList.push_back(createShader(GL_GEOMETRY_SHADER, geometryShaderContent));
     }
-    shaderList.push_back(createShader(GL_FRAGMENT_SHADER, fragmentShaderFile));
+    shaderList.push_back(createShader(GL_FRAGMENT_SHADER, fragmentShaderContent));
 
     program = createProgram(shaderList);
     std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
@@ -345,6 +330,7 @@ OpenGLGraphics::ContextInformation OpenGLGraphics::getContextInformation() {
     contextInformation.SDL_GL_CONTEXT_MINOR_VERSION = 3;
     contextInformation.SDL_GL_CONTEXT_PROFILE_MASK = 1;
     contextInformation.SDL_GL_CONTEXT_FLAGS = 1;
+    contextInformation.shaderHeader = "#version 330";
     return contextInformation;
 }
 

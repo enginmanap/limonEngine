@@ -13,8 +13,6 @@
 #include <vector>
 #include "Utils/Line.h"
 
-#include <fstream>
-#include <streambuf>
 #include <iostream>
 #include <unordered_map>
 #include <GL/glew.h>
@@ -409,9 +407,9 @@ public:
     void attachCubeMapArrayTexture(unsigned int textureID, unsigned int attachPoint) override;
 
 
-    bool getUniformLocation(const uint32_t programID, const std::string &uniformName, uint32_t &location) override;;
+    bool getUniformLocation(const uint32_t programID, const std::string &uniformName, uint32_t &location) override;
 
-    const glm::vec3& getCameraPosition() const override { return cameraPosition; };;
+    const glm::vec3& getCameraPosition() const override { return cameraPosition; };
 
     const glm::mat4& getGUIOrthogonalProjectionMatrix() const override { return orthogonalProjectionMatrix; }
 
