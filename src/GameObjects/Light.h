@@ -15,7 +15,7 @@
 #include "../../libs/ImGuizmo/ImGuizmo.h"
 #include "Camera/OrthographicCamera.h"
 #include "Camera/CubeCamera.h"
-#include "../utils/HardCodedTags.h"
+#include "../Utils/HardCodedTags.h"
 #include "Camera/PerspectiveCamera.h"
 
 class Light : public GameObject, public CameraAttachment {
