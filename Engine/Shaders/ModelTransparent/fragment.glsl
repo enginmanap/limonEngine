@@ -2,8 +2,8 @@
 #extension GL_ARB_texture_cube_map_array : enable
 
 #define NR_POINT_LIGHTS 4
-#define_limon CascadeCount
-#define_limon CascadeLimitList
+#define_option CascadeCount
+#define_option CascadeLimitList
 
 layout (location = 0) out vec4 outputColor;
 

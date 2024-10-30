@@ -63,12 +63,12 @@ void GraphicsProgramPreprocessor::replaceIncludes(const std::string &currentShad
 }
 
 void GraphicsProgramPreprocessor::replaceDefinitions(std::string &shaderCode, const std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>>& variablesMap) {
-    std::regex definePattern("\\n#define_limon .*\\n");
+    std::regex definePattern("\\n#define_option .*\\n");
 
     std::smatch matches;
     while(std::regex_search(shaderCode, matches, definePattern)) {//while because changing the shader code invalidates the matches
         for(auto match: matches) {
-            std::string optionName = match.str().substr(15, match.str().length() - (1 + 15));
+            std::string optionName = match.str().substr(16, match.str().length() - (1 + 16));
             std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>>::const_iterator optionIt = variablesMap.find(optionName);
             if(optionIt != variablesMap.cend()) {
                 //now get the value of the option
@@ -78,6 +78,10 @@ void GraphicsProgramPreprocessor::replaceDefinitions(std::string &shaderCode, co
                     optionStringValue = optionStringValue.substr(1, optionStringValue.length() - 2);
                 }
                 shaderCode.replace(match.first, match.second, "\n#define " + optionName + " " + optionStringValue + "\n");
+                break;
+            } else {
+                //option not found, remove the whole line
+                shaderCode.replace(match.first, match.second, "\n");
                 break;
             }
         }

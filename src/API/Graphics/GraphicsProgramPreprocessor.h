@@ -15,7 +15,7 @@ public:
      * This preprocessor supports 3 functionality:
      * 1) replace #include "" to contents of the file in same directory
      * or replace #include <> to contents of the file in given path, relative to run directory
-     * 2) replace #define_limon X to #define X Y, if X is defined in scope for this preprocessor
+     * 2) replace #define_option X to #define X Y, if X is defined in options
      * 3) add header definition from loaded backend to the beginning of the file. This can be multiline
      */
 
