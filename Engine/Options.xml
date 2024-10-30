@@ -257,38 +257,6 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>CascadeLimit0</Description>
-        <Value>10</Value>
-        <valueType>Long</valueType>
-        <IsSet>True</IsSet>
-        <Index>2</Index>
-    </Parameter>
-    <Parameter>
-        <RequestType>FreeNumber</RequestType>
-        <Description>CascadeLimit1</Description>
-        <Value>25</Value>
-        <valueType>Long</valueType>
-        <IsSet>True</IsSet>
-        <Index>2</Index>
-    </Parameter>
-    <Parameter>
-        <RequestType>FreeNumber</RequestType>
-        <Description>CascadeLimit2</Description>
-        <Value>150</Value>
-        <valueType>Long</valueType>
-        <IsSet>True</IsSet>
-        <Index>2</Index>
-    </Parameter>
-    <Parameter>
-        <RequestType>FreeNumber</RequestType>
-        <Description>CascadeLimit3</Description>
-        <Value>250</Value>
-        <valueType>Long</valueType>
-        <IsSet>True</IsSet>
-        <Index>2</Index>
-    </Parameter>
-    <Parameter>
-        <RequestType>FreeNumber</RequestType>
         <Description>CascadeLimitList</Description>
         <Value>5, 10, 25, 150, 250</Value>
         <valueType>LongArray</valueType>

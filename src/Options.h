@@ -51,6 +51,18 @@ public:
         return true;
     }
 
+    bool getOption(const std::string& optionName, std::vector<long>& value) const {
+        auto it = this->options.find(optionName);
+        if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::LONG_ARRAY) {
+            return false;
+        }
+        value.clear();
+        for(long i = 1; i < it->second->value.longValues[0]; ++i) {
+            value.push_back(it->second->value.longValues[i]);
+        }
+        return true;
+    }
+
     bool getOptionOrDefault(const std::string& optionName, long &value, long defaultValue) const {
         auto it = this->options.find(optionName);
         if(it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::LONG) {

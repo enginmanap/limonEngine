@@ -55,25 +55,35 @@ public:
 
         long cascadeCount;
         std::vector<float> cascadeLimits;
-        cascadeLimits.emplace_back(0.01);
         options->getOptionOrDefault("CascadeCount", cascadeCount, 4L);
+
         if(cascadeCount == 1L) {
             cascadePerspectiveProjectionMatrices.emplace_back(perspectiveProjectionMatrix);
             this->frustumCorners.resize(1);
         } else {
-            for (int i = 0; i < cascadeCount; ++i) {
-                long tempValue;
-                if (!options->getOption("CascadeLimit" + std::to_string(i), tempValue)) {
-                    std::cerr << "\"CascadeLimit" + std::to_string(i) + "\" option not found, cascade setup will use defaults" << std::endl;
-                    cascadeLimits.clear();
+            std::vector<long> cascadeListOption;
+            if(options->getOption("CascadeLimitList", cascadeListOption)) {
+                //we have the option list, lets process
+                if(cascadeListOption.size() != (size_t)cascadeCount) {
+                    std::cerr << "\"CascadeLimitList doesn't contain same number of elements as cascade count. Cascade setup will use defaults" << std::endl;
                     cascadeLimits.emplace_back(0.01);
                     cascadeLimits.emplace_back(10.0f);
                     cascadeLimits.emplace_back(100.0f);
                     cascadeLimits.emplace_back(1000.0f);
                     cascadeLimits.emplace_back(10000.0f);
-                    break;
+                } else {
+                    cascadeLimits.emplace_back(0.01);
+                    for (size_t i = 0; i < cascadeListOption.size(); ++i) {
+                        cascadeLimits.emplace_back(cascadeListOption[i]);
+                    }
                 }
-                cascadeLimits.emplace_back(tempValue);
+            } else {
+                std::cerr << "\"CascadeLimitList option not found, cascade setup will use defaults" << std::endl;
+                cascadeLimits.emplace_back(0.01);
+                cascadeLimits.emplace_back(10.0f);
+                cascadeLimits.emplace_back(100.0f);
+                cascadeLimits.emplace_back(1000.0f);
+                cascadeLimits.emplace_back(10000.0f);
             }
             //Now use the cascade limist to create the array of perspective projection matrixes
             for (size_t i = 1; i < cascadeLimits.size(); ++i) {
