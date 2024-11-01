@@ -34,8 +34,9 @@ std::vector<glm::vec3> SSAOKernelRenderMethod::generateSSAOKernels(uint32_t kern
 
 bool SSAOKernelRenderMethod::initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) {
     setupQuad();
-
-    std::vector<glm::vec3> kernels = generateSSAOKernels(9);
+    long sampleCount;
+    graphicsInterface->getOptions()->getOptionOrDefault("SSAOSampleCount", sampleCount, 9);
+    std::vector<glm::vec3> kernels = generateSSAOKernels(sampleCount);
     if(!program->setUniform("ssaoKernel[0]", kernels)) {
         std::cerr << "uniform variable \"ssaoKernel\" couldn't be set" << std::endl;
     }
