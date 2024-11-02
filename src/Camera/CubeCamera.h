@@ -64,7 +64,12 @@ public:
         return renderMatrices[0]; // don't use
     }
 
-    const glm::mat4& getProjectionMatrix() override {
+    const glm::mat4& getCameraMatrixConst() const override {
+        std::cerr << "Cube Camera can't provide single camera matrix" << std::endl;
+        return renderMatrices[0]; // don't use
+    }
+
+    const glm::mat4& getProjectionMatrix() const override {
         std::cerr << "Cube Camera can't provide single projection matrix" << std::endl;
         exit(-1);
     }

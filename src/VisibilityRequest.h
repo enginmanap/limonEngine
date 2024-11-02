@@ -24,14 +24,16 @@ public:
 
         static SDL2MultiThreading::Condition condition;
         const Camera* const camera;
+        glm::vec3 playerPosition;
+        const Options* options;
         const std::unordered_map<uint32_t, PhysicalRenderable *>* const objects;
         std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>, uint64_vector_hasher> * visibility;
         bool running = true;
         std::atomic<uint32_t> frameCount;
         SDL2MultiThreading::SpinLock inProgressLock;
         SDL_mutex* blockMutex = SDL_CreateMutex();
-        VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, PhysicalRenderable *>* objects, std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>, uint64_vector_hasher> * visibility) :
-        camera(camera), objects(objects), visibility(visibility), frameCount(0) {};
+        VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, PhysicalRenderable *>* objects, std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const Options* options) :
+                camera(camera), playerPosition(playerPosition), options(options), objects(objects), visibility(visibility), frameCount(0) {};
 
         std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>::iterator findHashEntry(uint64_t hash) const {
             std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>::iterator it = visibility->begin();

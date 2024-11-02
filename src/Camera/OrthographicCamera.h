@@ -95,7 +95,13 @@ public:
         return cameraTransformMatrices[0];
     }
 
-    const glm::mat4& getProjectionMatrix() override {
+    const glm::mat4 &getCameraMatrixConst() const override {
+        std::cerr << "Orthogonal Camera can't provide single camera matrix" << std::endl;
+        return cameraTransformMatrices[0];
+    }
+
+    const glm::mat4& getProjectionMatrix() const override {
+        std::cerr << "Orthogonal Camera can't provide single projection matrix" << std::endl;
         return orthogonalProjectionMatrices[0];
     }
 

@@ -127,7 +127,9 @@ public:
 
     virtual const glm::mat4& getCameraMatrix() = 0;
 
-    virtual const glm::mat4& getProjectionMatrix() = 0;
+    virtual const glm::mat4& getCameraMatrixConst() const = 0;
+
+    virtual const glm::mat4& getProjectionMatrix() const = 0;
 
     virtual const std::vector<std::vector<glm::vec4>>& getFrustumCorners() const = 0;
 

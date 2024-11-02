@@ -448,6 +448,16 @@ void World::resetCameraTagsFromPipeline(const std::map<std::string, std::vector<
 
 void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
        const VisibilityRequest* visibilityRequest = static_cast<const VisibilityRequest *>(visibilityRequestRaw);
+       std::vector<long> lodDistances;
+       float skipRenderDistance = 0, skipRenderSize = 0, maxSkipRenderSize = 0;
+       visibilityRequest->options->getOption("LodDistanceList", lodDistances);
+       glm::mat4 viewMatrix;
+       if(visibilityRequest->camera->getType() == Camera::CameraTypes::PERSPECTIVE) {
+           visibilityRequest->options->getOption("SkipRenderDistance", skipRenderDistance);
+           visibilityRequest->options->getOption("SkipRenderSize", skipRenderSize);
+           visibilityRequest->options->getOption("MaxSkipRenderSize", maxSkipRenderSize);
+           viewMatrix = visibilityRequest->camera->getProjectionMatrix() * visibilityRequest->camera->getCameraMatrixConst();
+       }
        for (auto objectIt = visibilityRequest->objects->begin(); objectIt != visibilityRequest->objects->end(); ++objectIt) {
            if(!visibilityRequest->camera->isDirty() && !objectIt->second->isDirtyForFrustum()) {
                continue; //if neither object nor camera dirty, no need to recalculate
@@ -488,15 +498,18 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
                    auto assetVisibilityEntry = tagVisibilityEntry->second.find(currentModel->getAssetID());
                    if(isVisible) {
                        if (assetVisibilityEntry == tagVisibilityEntry->second.end()) {
-                           tagVisibilityEntry->second[currentModel->getAssetID()] = std::make_pair(std::vector<uint32_t>(), LOWEST_LOD_LEVEL);
+                           tagVisibilityEntry->second[currentModel->getAssetID()] = std::make_pair(std::vector<uint32_t>(), SKIP_LOD_LEVEL);
                        }
-                       //uint32_t lod = getLodLevel(currentModel);
-                       uint32_t lod = 1;
-                       tagVisibilityEntry->second[currentModel->getAssetID()].second = std::min(tagVisibilityEntry->second[currentModel->getAssetID()].second, lod);
-                       //check if this thing is already in the list of things to render
-                       auto objectIndexIterator = std::find(tagVisibilityEntry->second[currentModel->getAssetID()].first.begin(), tagVisibilityEntry->second[currentModel->getAssetID()].first.end(), currentModel->getWorldObjectID());
-                       if(objectIndexIterator == tagVisibilityEntry->second[currentModel->getAssetID()].first.end()) {
-                           tagVisibilityEntry->second[currentModel->getAssetID()].first.emplace_back(currentModel->getWorldObjectID());
+
+                       uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second);
+                       if(lod != SKIP_LOD_LEVEL) {
+                           tagVisibilityEntry->second[currentModel->getAssetID()].second = std::min(tagVisibilityEntry->second[currentModel->getAssetID()].second, lod);
+                           //check if this thing is already in the list of things to render
+                           auto objectIndexIterator = std::find(tagVisibilityEntry->second[currentModel->getAssetID()].first.begin(),
+                                                                tagVisibilityEntry->second[currentModel->getAssetID()].first.end(), currentModel->getWorldObjectID());
+                           if (objectIndexIterator == tagVisibilityEntry->second[currentModel->getAssetID()].first.end()) {
+                               tagVisibilityEntry->second[currentModel->getAssetID()].first.emplace_back(currentModel->getWorldObjectID());
+                           }
                        }
                        break;
                    } else { //not visible
@@ -542,7 +555,7 @@ static int staticOcclusionThread(void* visibilityRequestRaw) {
 std::map<VisibilityRequest*, SDL_Thread *> World::occlusionThreadManager() {
     std::map<VisibilityRequest*, SDL_Thread*> visibilityProcessing;
     for (auto &cameraVisibility: cullingResults) {
-        VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &this->objects, cameraVisibility.second);
+        VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &this->objects, cameraVisibility.second, currentPlayer->getPosition(), options);
         SDL_Thread* thread = SDL_CreateThread(staticOcclusionThread, request->camera->getName().c_str(), request);
         visibilityProcessing[request] = thread;
     }
@@ -576,16 +589,18 @@ void World::fillVisibleObjectsUsingTags() {
                 //busy wait until frame starts
             }
             item.first->inProgressLock.lock();
+            item.first->playerPosition = currentPlayer->getPosition();
             item.first->inProgressLock.unlock();
         }
     } else {
         if(visibilityThreadPool.empty()) {
             for (auto &cameraVisibility: cullingResults) {
-                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &this->objects, cameraVisibility.second);
+                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &this->objects, cameraVisibility.second, currentPlayer->getPosition(), options);
                 visibilityThreadPool[request] = nullptr;
             }
         }
         for (const auto &item: visibilityThreadPool) {
+            item.first->playerPosition = currentPlayer->getPosition();
             fillVisibleObjectPerCamera(item.first);
         }
     }
@@ -1709,6 +1724,7 @@ bool World::removeObject(uint32_t objectID, const bool &removeChildren) {
     }
     onLoadAnimations.erase(modelToRemove);
 
+    bool removalDone = false;
     //of course we need to remove from the tag visibility lists too
     for (auto &perCameraVisibility: cullingResults) {
         for(auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); perTagVisibilityIt++) {
@@ -1719,12 +1735,16 @@ bool World::removeObject(uint32_t objectID, const bool &removeChildren) {
                     if((*modelIdIterator) == modelToRemove->getWorldObjectID()) {
                         //model in it, remove
                         assetSet->second.first.erase(modelIdIterator);
+                        removalDone = true;
                         if(assetSet->second.first.empty()) {
                             //the model we removed was the only model, we should drop the whole asset
                             perTagVisibilityIt->second.erase(modelToRemove->getAssetID());
                             break;//we have been iterating in the asset set, which doesn't exist anymore
                         }
                     }
+                }
+                if(removalDone) {
+                    break;
                 }
             }
         }

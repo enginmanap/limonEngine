@@ -111,7 +111,11 @@ public:
         return cameraTransformMatrix;
     }
 
-    const glm::mat4& getProjectionMatrix() override {
+    const glm::mat4& getCameraMatrixConst() const override {
+        return cameraTransformMatrix;
+    }
+
+    const glm::mat4& getProjectionMatrix() const override {
         return perspectiveProjectionMatrix;
     }
 

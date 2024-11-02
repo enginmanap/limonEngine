@@ -5,7 +5,7 @@
 #ifndef LIMONENGINE_WORLD_H
 #define LIMONENGINE_WORLD_H
 
-static const int LOWEST_LOD_LEVEL = 3;
+static const int SKIP_LOD_LEVEL = 9999;
 
 #include <vector>
 #include <tinyxml2.h>
@@ -31,7 +31,7 @@ static const int LOWEST_LOD_LEVEL = 3;
 #include "VisibilityRequest.h"
 class btGhostPairCallback;
 class PerspectiveCamera;
-class Model;
+#include "GameObjects/Model.h"
 class BulletDebugDrawer;
 
 class AIMovementGrid;
@@ -221,7 +221,7 @@ private:
         {
             return model < rhs.model;
         }
-        ModelWithLod(Model* model) : model(model), lod(LOWEST_LOD_LEVEL) {}//intentionally not explicit
+        ModelWithLod(Model* model) : model(model), lod(SKIP_LOD_LEVEL) {}//intentionally not explicit
         ModelWithLod(Model* model, uint32_t lod) : model(model), lod(lod) {}
     };
     std::vector<Model*> updatedModels;
@@ -611,28 +611,45 @@ public:
 
     }
 
-    uint32_t getLodLevel(PhysicalRenderable *currentRenderable) const {
-        uint32_t lod;
+    static uint32_t getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 viewMatrix, const glm::vec3& playerPosition, PhysicalRenderable *currentRenderable) {
+        if(lodDistances.empty() && skipRenderDistance == 0.0) {
+            return 0;
+        }
+        if(((Model*)currentRenderable)->getName().find("SM_Prop_Tin_03") != std::string::npos) {
+            std::cout << " this one " << std::endl;
+        }
         //find the biggest axis of this object
         glm::vec3 max = currentRenderable->getAabbMax();
         glm::vec3 min = currentRenderable->getAabbMin();
-        glm::vec3 playerPosition = currentPlayer->getPosition();
 
         float dx = std::max(min.x - playerPosition.x, std::max(0.0f, playerPosition.x - max.x));
         float dy = std::max(min.y - playerPosition.y, std::max(0.0f, playerPosition.y - max.y));
         float dz = std::max(min.z - playerPosition.z, std::max(0.0f, playerPosition.z - max.z));
         float distance = std::sqrt(dx*dx + dy*dy + dz*dz);
-
-        if(distance > 15) {
-            lod = 3;
-        } else if(distance > 10) {
-            lod = 2;
-        } else if(distance > 5) {
-            lod = 1;
-        } else {
-            lod = 0;
+        if(skipRenderDistance !=0 && distance > skipRenderDistance) {
+            if(abs(min.x - max.x) < maxSkipRenderSize &&
+                    abs(min.y - max.y) < maxSkipRenderSize &&
+                    abs(min.z - max.z) < maxSkipRenderSize) {
+                //now we get to calculate the size in screen
+                glm::vec4 minScreen = viewMatrix * glm::vec4(min, 1.0) ;
+                glm::vec4 maxScreen = viewMatrix * glm::vec4(max, 1.0);
+                minScreen /= minScreen.w;
+                maxScreen /= maxScreen.w;
+                float screenX = abs(maxScreen.x - minScreen.x);
+                float screenY = abs(maxScreen.y - minScreen.y);
+                if (screenX < skipRenderSize * 2.0 && screenY < skipRenderSize * 2.0) {
+                    return SKIP_LOD_LEVEL;
+                }
+            }
         }
-        return lod;
+
+        for (size_t i = 0; i < lodDistances.size(); ++i) {
+            if(distance < (float)lodDistances[i]) {
+                return i;
+            }
+        }
+        //what if the distance is bigger than the last entry? we skip
+        return SKIP_LOD_LEVEL;
     }
 
     void resetTagsAndRefillCulling();

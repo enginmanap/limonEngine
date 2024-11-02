@@ -242,7 +242,7 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>DebugDrawLines</Description>
-        <Value>True</Value>
+        <Value>False</Value>
         <valueType>Boolean</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>
@@ -260,6 +260,42 @@
         <Description>CascadeLimitList</Description>
         <Value>5, 10, 25, 150, 250</Value>
         <valueType>LongArray</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>LodDistanceList</Description>
+        <!-- This variable sets the LOD distances, so 10 is the second lod, 25 is third, etc. we build 3 LODs for 1 model, so 4 levels -->
+        <Value>5, 10, 25, 150, 250</Value>
+        <valueType>LongArray</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>SkipRenderDistance</Description>
+        <!--This variable sets what is the distance to start skipping render for an object. To skip Render size also needs to be set-->
+        <Value>50.0</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>SkipRenderSize</Description>
+        <!-- This variable sets what is the size on screen engine can start skipping. It is a percentage, and only applies to models that are more distant than Skip Render Distance -->
+        <Value>0.075</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>MaxSkipRenderSize</Description>
+        <!-- This variable sets what is the size of objects can't be skipped. This is required because objects like ground/wall skipping can be visually jarring-->
+        <Value>3</Value>
+        <valueType>Double</valueType>
         <IsSet>True</IsSet>
         <Index>0</Index>
     </Parameter>
