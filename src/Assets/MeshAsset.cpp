@@ -17,7 +17,7 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
 
     vertexCount = currentMesh->mNumVertices;
     if(!setTriangles(currentMesh)) {
-        throw "No triangle found";
+        return;
     }
 
     uint32_t vbo;

@@ -346,10 +346,9 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
 
         std::shared_ptr<Material> meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
         std::shared_ptr<MeshAsset> mesh;
-        try {
-            mesh = std::make_shared<MeshAsset>(assetManager, currentMesh, aiNode->mName.C_Str(), meshMaterial, rootNode,
-                                            parentTransform, hasAnimation);
-        } catch(...) {
+        mesh = std::make_shared<MeshAsset>(assetManager, currentMesh, aiNode->mName.C_Str(), meshMaterial, rootNode,
+                                           parentTransform, hasAnimation);
+        if((*mesh->getTriangleCount()) == 0) {
             continue;
         }
 
