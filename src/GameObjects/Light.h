@@ -32,18 +32,20 @@ private:
     glm::vec3 playerPosition;
     glm::vec3 attenuation = glm::vec3(1,0.1,0.01);//const, linear, exponential
     glm::vec3 ambientColor = glm::vec3(0,0,0); //this will be added to all objects on shading phase
-    OrthographicCamera* directionalCamera = nullptr;
+    std::vector<Camera*> directionalCameras;
+    mutable std::vector<glm::mat4> directionalCameraMatrices;
+    std::vector<Camera*> cubeCameras;// FIXME this is just to compile, remove after
     CubeCamera* cubeCamera = nullptr;
     LightTypes lightType;
     bool frustumChanged = true;
 
-
-
-
     void updateLightView(const PerspectiveCamera* playerCamera) {
         frustumChanged = true;
-        directionalCamera->getCameraMatrix();
-        directionalCamera->recalculateView(playerCamera);
+        for(Camera *directionalCamera : directionalCameras) {
+            static_cast<OrthographicCamera*>(directionalCamera)->getCameraMatrix();
+            static_cast<OrthographicCamera*>(directionalCamera)->recalculateView(playerCamera);
+        }
+        this->clearDirty();
         frustumChanged = true;
     }
 
@@ -59,18 +61,27 @@ public:
 
         if(lightType == LightTypes::DIRECTIONAL) {
             this->position = glm::normalize(position);
-            directionalCamera = new OrthographicCamera(this->getName() + " camera", graphicsWrapper->getOptions(), this);
-            directionalCamera->getCameraMatrix();
-            directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
-            directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
+            //we wanna create as many cameras as the cascade levels
+            long cascadeCount;
+            graphicsWrapper->getOptions()->getOptionOrDefault("CascadeCount", cascadeCount, 4L);
 
-            directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_BASIC);
-            directionalCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
 
-            directionalCamera->addTag(HardCodedTags::CAMERA_LIGHT_DIRECTIONAL);
+            for(int i = 0; i < cascadeCount; i++) {
+                directionalCameras.emplace_back(new OrthographicCamera(this->getName() + " camera", graphicsWrapper->getOptions(), i, this));
+                directionalCameras[directionalCameras.size()-1]->getCameraMatrix();
+                directionalCameras[directionalCameras.size()-1]->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+                directionalCameras[directionalCameras.size()-1]->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
+
+                directionalCameras[directionalCameras.size()-1]->addRenderTag(HardCodedTags::OBJECT_MODEL_BASIC);
+                directionalCameras[directionalCameras.size()-1]->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+
+                directionalCameras[directionalCameras.size()-1]->addTag(HardCodedTags::CAMERA_LIGHT_DIRECTIONAL);
+            }
+            this->clearDirty();
         } else if(lightType == LightTypes::POINT) {
             this->position = position;
             cubeCamera = new CubeCamera(this->getName() + " camera", graphicsWrapper->getOptions(), this);
+            cubeCameras.emplace_back(cubeCamera);
             cubeCamera->getCameraMatrix();
             cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
             cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
@@ -85,15 +96,16 @@ public:
         frustumChanged = true;
     }
 
-    Camera* getCamera() const {
+    const std::vector<Camera*>& getCameras() const {
         switch (this->lightType) {
             case LightTypes::DIRECTIONAL:
-                return directionalCamera;
+                return directionalCameras;
             case LightTypes::POINT:
-                return cubeCamera;
+                return cubeCameras;
             case LightTypes::NONE:
             default:
-                return nullptr;
+            std::cerr << "Unknown Light type: " << static_cast<int>(this->lightType) << std::endl;
+            return directionalCameras;
         }
     }
 
@@ -126,10 +138,18 @@ public:
         if (this->lightType == LightTypes::POINT) {
             return cubeCamera->getRenderMatrices();
         } else if(this->lightType == LightTypes::DIRECTIONAL) {
-            return directionalCamera->getOrthogonalCameraMatrices();
+            directionalCameraMatrices.clear();
+            for (size_t i = 0; i < directionalCameras.size(); ++i) {
+                directionalCameraMatrices.emplace_back(static_cast<OrthographicCamera*>(directionalCameras[i])->getOrthogonalCameraMatrix());
+            }
+            return directionalCameraMatrices;
         }
         std::cerr << "camera type is unknown, returning as directional." << std::endl;
-        return directionalCamera->getOrthogonalCameraMatrices();
+         directionalCameraMatrices.clear();
+         for (size_t i = 0; i < directionalCameras.size(); ++i) {
+             directionalCameraMatrices.emplace_back(static_cast<OrthographicCamera*>(directionalCameras[i])->getOrthogonalCameraMatrix());
+         }
+         return directionalCameraMatrices;
     }
 
     bool isFrustumChanged() const {
@@ -144,28 +164,14 @@ public:
                 case LightTypes::NONE:
                     return;
                 case LightTypes::DIRECTIONAL:
-                    return directionalCamera->clearDirty();
+                    for (size_t i = 0; i < directionalCameras.size(); ++i) {
+                        directionalCameras[i]->clearDirty();
+                    }
+                    return;
                 case LightTypes::POINT:
                     return cubeCamera->clearDirty();
             }
         }
-    }
-
-
-    bool isShadowCaster(const PhysicalRenderable& physicalRenderable) const {
-        //there are 2 possibilities.
-        // 1) if directional light -> check if in frustum
-        // 2) point light -> check if within range
-
-        switch (this->lightType) {
-            case LightTypes::NONE:
-                return false;
-            case LightTypes::DIRECTIONAL:
-                return directionalCamera->isVisible(physicalRenderable);
-            case LightTypes::POINT:
-                return cubeCamera->isVisible(physicalRenderable);
-        }
-        return true;//for safety only
     }
 
     /************Game Object methods **************/

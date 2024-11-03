@@ -250,7 +250,6 @@ void Editor::renderEditor(World& world) {
 
             if(ImGui::Button("Add Point Light")) {
                 Light* newLight = new Light(world.graphicsWrapper, world.getNextObjectID(), Light::LightTypes::POINT, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
-                //world.lights.push_back(newLight);
                 world.addLight(newLight);
                 world.pickedObject = newLight;
             }
@@ -794,15 +793,19 @@ void Editor::renderEditor(World& world) {
                         for (auto iterator = world.lights.begin(); iterator != world.lights.end(); ++iterator) {
                             if((*iterator)->getWorldObjectID() == world.pickedObject->getWorldObjectID()) {
                                 world.unusedIDs.push(world.pickedObject->getWorldObjectID());
-                                world.cullingResults.erase((*iterator)->getCamera());
+                                const std::vector<Camera*>& cameras = (*iterator)->getCameras();
+                                for (auto camera:cameras) {
+                                    world.cullingResults.erase(camera);
+                                }
                                 //we need to find where the visibility thread is
                                 for (auto entry:world.visibilityThreadPool) {
-                                    if(entry.first->camera == (*iterator)->getCamera()) {
-                                        entry.first->running = false;
-                                        VisibilityRequest::condition.signalWaiting();
-                                        SDL_WaitThread(entry.second, nullptr);
-                                        world.visibilityThreadPool.erase(entry.first);
-                                        break;
+                                    for (auto camera:cameras) {
+                                        if (entry.first->camera == camera) {
+                                            entry.first->running = false;
+                                            VisibilityRequest::condition.signalWaiting();
+                                            SDL_WaitThread(entry.second, nullptr);
+                                            world.visibilityThreadPool.erase(entry.first);
+                                        }
                                     }
                                 }
                                 world.lights.erase(iterator);

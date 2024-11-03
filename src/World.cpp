@@ -958,24 +958,25 @@ void World::renderLight(unsigned int lightIndex, unsigned int renderLayer, const
    renderProgram->setUniform("renderLightIndex", (int) lightIndex);
     renderProgram->setUniform("renderLightLayer", (int) renderLayer);
    Light* selectedLight = lights[lightIndex];
+        Camera* lightCamera = selectedLight->getCameras()[renderLayer];
 
-    const auto& selectedVisibilities = cullingResults.find(selectedLight->getCamera());
-    if(selectedVisibilities != cullingResults.end()) {
+    const auto &selectedVisibilities = cullingResults.find(lightCamera);
+    if (selectedVisibilities != cullingResults.end()) {
         std::set<uint64_t> alreadyRenderedTagHashes;
 
-        for (const auto &renderTag: selectedLight->getCamera()->getRenderTags()){
-            if(alreadyRenderedTagHashes.find(renderTag.hash) != alreadyRenderedTagHashes.end()) {
+        for (const auto &renderTag: lightCamera->getRenderTags()) {
+            if (alreadyRenderedTagHashes.find(renderTag.hash) != alreadyRenderedTagHashes.end()) {
                 continue;
             }
-            const auto& taggedVisibilities = VisibilityRequest::findHashEntry(selectedVisibilities->second, renderTag.hash);
-            if(taggedVisibilities != selectedVisibilities->second->end()) {
-                for (const auto &item: taggedVisibilities->first){
+            const auto &taggedVisibilities = VisibilityRequest::findHashEntry(selectedVisibilities->second, renderTag.hash);
+            if (taggedVisibilities != selectedVisibilities->second->end()) {
+                for (const auto &item: taggedVisibilities->first) {
                     alreadyRenderedTagHashes.insert(item);
                 }
                 //so all objects that needs rendering is here, now render
                 for (const auto &assetIt: taggedVisibilities->second) {
-                    const auto& perAssetElement = assetIt.second;
-                    if(!perAssetElement.first.empty()) {
+                    const auto &perAssetElement = assetIt.second;
+                    if (!perAssetElement.first.empty()) {
                         uint32_t modelId = *perAssetElement.first.begin();
                         Model *sampleModel = dynamic_cast<Model *>(objects.at(modelId));
                         if (sampleModel == nullptr) {
@@ -1159,7 +1160,9 @@ World::~World() {
     delete sky;
 
     for (std::vector<Light *>::iterator it = lights.begin(); it != lights.end(); ++it) {
-        cullingResults.erase((*it)->getCamera());
+        for (Camera* camera : (*it)->getCameras()) {
+            cullingResults.erase(camera);
+        }
         delete (*it);
     }
 
@@ -1278,7 +1281,11 @@ void World::addLight(Light *light) {
     if(light->getLightType() == Light::LightTypes::DIRECTIONAL) {
         directionalLightIndex = (uint32_t)lights.size()-1;
     }
-    cullingResults.insert(std::make_pair(light->getCamera(), new std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>, VisibilityRequest::uint64_vector_hasher>()));
+    const std::vector<Camera*>& cameras = light->getCameras();
+    for(Camera* camera : cameras) {
+        cullingResults.insert(std::make_pair(camera,
+                                             new std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t, std::pair<std::vector<uint32_t>, uint32_t>>, VisibilityRequest::uint64_vector_hasher>()));
+    }
     updateActiveLights(false);
 }
 
