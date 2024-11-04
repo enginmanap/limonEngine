@@ -615,9 +615,6 @@ public:
         if(lodDistances.empty() && skipRenderDistance == 0.0) {
             return 0;
         }
-        //if(((Model*)currentRenderable)->getName().find("SM_Prop_WaterTrough") != std::string::npos) {
-        //    std::cout << " this one " << std::endl;
-        //}
         //find the biggest axis of this object
         glm::vec3 max = currentRenderable->getAabbMax();
         glm::vec3 min = currentRenderable->getAabbMin();
