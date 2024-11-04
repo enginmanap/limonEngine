@@ -178,7 +178,7 @@ public:
             minY = std::min(minY, trf.y);
             maxY = std::max(maxY, trf.y);
         }
-        return glm::ortho(minX, maxX, minY, maxY, -100.0f, 100.0f);
+        return glm::ortho(minX, maxX, minY, maxY, lightOrthogonalProjectionZBottom, lightOrthogonalProjectionTopZ);
     }
 };
 
