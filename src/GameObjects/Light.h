@@ -35,7 +35,6 @@ private:
     std::vector<Camera*> directionalCameras;
     mutable std::vector<glm::mat4> directionalCameraMatrices;
     std::vector<Camera*> cubeCameras;// FIXME this is just to compile, remove after
-    CubeCamera* cubeCamera = nullptr;
     LightTypes lightType;
     bool frustumChanged = true;
 
@@ -80,16 +79,16 @@ public:
             this->clearDirty();
         } else if(lightType == LightTypes::POINT) {
             this->position = position;
-            cubeCamera = new CubeCamera(this->getName() + " camera", graphicsWrapper->getOptions(), this);
-            cubeCameras.emplace_back(cubeCamera);
-            cubeCamera->getCameraMatrix();
-            cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
-            cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
+            cubeCameras.emplace_back(new CubeCamera(this->getName() + " camera", graphicsWrapper->getOptions(), this));
 
-            cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_BASIC);
-            cubeCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+            cubeCameras[0]->getCameraMatrix();
+            cubeCameras[0]->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
+            cubeCameras[0]->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
 
-            cubeCamera->addTag(HardCodedTags::CAMERA_LIGHT_POINT);
+            cubeCameras[0]->addRenderTag(HardCodedTags::OBJECT_MODEL_BASIC);
+            cubeCameras[0]->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
+
+            cubeCameras[0]->addTag(HardCodedTags::CAMERA_LIGHT_POINT);
 
         }
         //FIXME we are not rendering transparent objects when working with lights, yet.
@@ -136,7 +135,7 @@ public:
 
      const std::vector<glm::mat4>& getShadowMatrices() const {
         if (this->lightType == LightTypes::POINT) {
-            return cubeCamera->getRenderMatrices();
+            return static_cast<CubeCamera*>(cubeCameras[0])->getRenderMatrices();
         } else if(this->lightType == LightTypes::DIRECTIONAL) {
             directionalCameraMatrices.clear();
             for (size_t i = 0; i < directionalCameras.size(); ++i) {
@@ -169,7 +168,7 @@ public:
                     }
                     return;
                 case LightTypes::POINT:
-                    return cubeCamera->clearDirty();
+                    return static_cast<CubeCamera*>(cubeCameras[0])->clearDirty();
             }
         }
     }
@@ -213,7 +212,7 @@ public:
 
     float getActiveDistance() const {
         if(this->lightType == LightTypes::POINT) {
-            return cubeCamera->getActiveDistance();
+            return static_cast<CubeCamera*>(cubeCameras[0])->getActiveDistance();
         }
         return 0.0f;//Only used by point lights
     }

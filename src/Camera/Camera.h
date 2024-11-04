@@ -131,9 +131,6 @@ public:
 
     virtual const glm::mat4& getProjectionMatrix() const = 0;
 
-    virtual const std::vector<std::vector<glm::vec4>>& getFrustumCorners() const = 0;
-
-
     void addRenderTag(const std::string& text) {
         HashUtil::HashedString tag(text);
         if(!hasRenderTag(tag.hash)) {

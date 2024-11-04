@@ -18,7 +18,6 @@ class OrthographicCamera : public Camera {
     glm::mat4 orthogonalProjectionMatrix;
     std::vector<glm::vec4> frustumPlanes;
     std::vector<glm::vec4>  frustumCorners;
-    std::vector<std::vector<glm::vec4>>  frustumCornersUnused; //FIXME this should not be used, I am putting it just to compile
     uint32_t cascadeIndex;
     float lightOrthogonalProjectionTopZ, lightOrthogonalProjectionZBottom;
     Options *options;
@@ -179,13 +178,7 @@ public:
             minY = std::min(minY, trf.y);
             maxY = std::max(maxY, trf.y);
         }
-
         return glm::ortho(minX, maxX, minY, maxY, -100.0f, 100.0f);
-    }
-
-    const std::vector<std::vector<glm::vec4>>& getFrustumCorners() const override {
-        std::cerr << "Error: trying to access frustum corners of an OrthographicCamera that is not implemented" << std::endl;
-        return frustumCornersUnused;
     }
 };
 

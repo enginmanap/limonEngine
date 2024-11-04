@@ -11,7 +11,7 @@ void Light::setPosition(glm::vec3 position, const PerspectiveCamera* playerCamer
     switch (lightType) {
         case LightTypes::NONE:
             return;
-        case LightTypes::POINT: this->frustumChanged = true; cubeCamera->getCameraMatrix(); this->frustumChanged = true;
+        case LightTypes::POINT: this->frustumChanged = true; static_cast<CubeCamera*>(cubeCameras[0])->getCameraMatrix(); this->frustumChanged = true;
             break;
         case LightTypes::DIRECTIONAL:
             this->position = glm::normalize(position);

@@ -167,7 +167,7 @@ public:
         return true;
     }
 
-    const std::vector<std::vector<glm::vec4>>& getFrustumCorners() const override {
+    const std::vector<std::vector<glm::vec4>>& getFrustumCorners() const {
         return frustumCorners;
     }
 
