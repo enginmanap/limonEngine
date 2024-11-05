@@ -452,7 +452,8 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
        float skipRenderDistance = 0, skipRenderSize = 0, maxSkipRenderSize = 0;
        visibilityRequest->options->getOption("LodDistanceList", lodDistances);
        glm::mat4 viewMatrix;
-       if(visibilityRequest->camera->getType() == Camera::CameraTypes::PERSPECTIVE) {
+       if(visibilityRequest->camera->getType() == Camera::CameraTypes::PERSPECTIVE ||
+               visibilityRequest->camera->getType() == Camera::CameraTypes::ORTHOGRAPHIC) {
            visibilityRequest->options->getOption("SkipRenderDistance", skipRenderDistance);
            visibilityRequest->options->getOption("SkipRenderSize", skipRenderSize);
            visibilityRequest->options->getOption("MaxSkipRenderSize", maxSkipRenderSize);

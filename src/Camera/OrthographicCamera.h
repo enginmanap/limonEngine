@@ -19,9 +19,10 @@ class OrthographicCamera : public Camera {
     std::vector<glm::vec4> frustumPlanes;
     std::vector<glm::vec4>  frustumCorners;
     uint32_t cascadeIndex;
-    float lightOrthogonalProjectionTopZ, lightOrthogonalProjectionZBottom;
+    float lightOrthogonalProjectionZBottom;
     Options *options;
     uint32_t drawLineBufferId = 0;
+    uint32_t playerDrawLineBufferId = 0;
     long frameCounter = 0;
     mutable bool dirty = true;
 
@@ -40,8 +41,7 @@ public:
 
         frustumPlanes.resize(6);
         this->frustumCorners.resize(8);
-        options->getOptionOrDefault("lightOrthogonalProjectionTopZ", lightOrthogonalProjectionTopZ, 5000.0f);
-        options->getOptionOrDefault("lightOrthogonalProjectionZBottom", lightOrthogonalProjectionZBottom, -5000.0f);
+        options->getOptionOrDefault("lightOrthogonalProjectionBackOff", lightOrthogonalProjectionZBottom, -5000.0f);
     }
 
     CameraTypes getType() const override {
@@ -88,12 +88,10 @@ public:
     }
 
     const glm::mat4 &getCameraMatrixConst() const override {
-        std::cerr << "Orthogonal Camera can't provide single camera matrix" << std::endl;
         return cameraTransformMatrix;
     }
 
     const glm::mat4& getProjectionMatrix() const override {
-        std::cerr << "Orthogonal Camera can't provide single projection matrix" << std::endl;
         return orthogonalProjectionMatrix;
     }
 
@@ -120,13 +118,15 @@ public:
             if(cascadeIndex == 0) {
                 color = glm::vec3(255, 0, 0);
             } else if(cascadeIndex == 1) {
-                color = glm::vec3(0, 255, 255);
+                color = glm::vec3(255, 255, 0);
             } else if(cascadeIndex == 2) {
                 color = glm::vec3(0, 0, 255);
             } else if(cascadeIndex == 3) {
                 color = glm::vec3(255, 255, 255);
             }
+            debugDrawFrustum(playerFrustumCorners[cascadeIndex], color, playerDrawLineBufferId, frameCounter);
             debugDrawFrustum(frustumCorners, color, drawLineBufferId, frameCounter);
+
             frameCounter++;
         }
 
@@ -171,14 +171,23 @@ public:
         float maxX = std::numeric_limits<float>::lowest();
         float minY = std::numeric_limits<float>::max();
         float maxY = std::numeric_limits<float>::lowest();
+        float maxZ = std::numeric_limits<float>::lowest();
         for (const auto& corner : playerFrustumCascadeCorners) {
             const auto trf = lightViewMatrix * corner;
             minX = std::min(minX, trf.x);
             maxX = std::max(maxX, trf.x);
             minY = std::min(minY, trf.y);
             maxY = std::max(maxY, trf.y);
+            maxZ = std::max(maxZ, trf.z);
         }
-        return glm::ortho(minX, maxX, minY, maxY, lightOrthogonalProjectionZBottom, lightOrthogonalProjectionTopZ);
+
+        constexpr float zMultiplier = 3.0f;
+        if (maxZ < 0) {
+            maxZ /= zMultiplier;
+        } else {
+            maxZ *= zMultiplier;
+        }
+        return glm::ortho(minX, maxX, minY, maxY, lightOrthogonalProjectionZBottom, maxZ);
     }
 };
 

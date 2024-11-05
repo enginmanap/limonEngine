@@ -89,15 +89,7 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
-        <Description>lightOrthogonalProjectionTopZ</Description>
-        <Value>5000</Value>
-        <valueType>Double</valueType>
-        <IsSet>True</IsSet>
-        <Index>2</Index>
-    </Parameter>
-    <Parameter>
-        <RequestType>FreeNumber</RequestType>
-        <Description>lightOrthogonalProjectionZBottom</Description>
+        <Description>lightOrthogonalProjectionBackOff</Description>
         <Value>-5000</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
