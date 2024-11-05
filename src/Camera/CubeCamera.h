@@ -35,7 +35,7 @@ public:
     }
 
     CameraTypes getType() const override {
-        return CameraTypes::ORTHOGRAPHIC;
+        return CameraTypes::CUBE;
     };
 
     bool isDirty() const override {
@@ -124,10 +124,10 @@ private:
     void setShadowMatricesForPosition(){
         long sWidth, sHeight;
         float near, far;
-        options->getOption("shadowMapPointWidth", sWidth);
-        options->getOption("shadowMapPointHeight", sHeight);
-        options->getOption("lightPerspectiveProjectionNearPlane", near);
-        options->getOption("lightPerspectiveProjectionFarPlane", far);
+        options->getOptionOrDefault("shadowMapPointWidth", sWidth, 512);
+        options->getOptionOrDefault("shadowMapPointHeight", sHeight, 512);
+        options->getOptionOrDefault("lightPerspectiveProjectionNearPlane", near, 0.1);
+        options->getOptionOrDefault("lightPerspectiveProjectionFarPlane", far, 100);
 
         glm::mat4 lightProjectionMatrixPoint = glm::perspective(glm::radians(90.0f),
                                                       (float)sWidth/(float)sHeight,
