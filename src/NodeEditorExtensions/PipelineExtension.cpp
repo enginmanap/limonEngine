@@ -956,7 +956,7 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
         }
 
         if(stageExtension->getMethodName() == "All directional shadows") {
-            RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethodAllDirectionalLights(stageInfo->stage, depthMapDirectional, stageProgram);
+            RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethodAllDirectionalLights(stageInfo->stage, depthMapDirectional, stageProgram, options);
             stageInfo->addRenderMethod(functionToCall);
         } else if(stageExtension->getMethodName() == "All point shadows") {
             RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethodAllPointLights(stageProgram);

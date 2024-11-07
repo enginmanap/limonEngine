@@ -287,7 +287,7 @@ GraphicsPipeline::StageInfo::deserialize(tinyxml2::XMLElement *stageInfoElement,
         bool isFound = true;
         if(methodName == "All directional shadows") {
             std::shared_ptr<Texture> depthMap = newStageInfo.stage->getOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH);
-            RenderMethods::RenderMethod method  = pipeline->getRenderMethods().getRenderMethodAllDirectionalLights(newStageInfo.stage, depthMap, graphicsProgram);
+            RenderMethods::RenderMethod method  = pipeline->getRenderMethods().getRenderMethodAllDirectionalLights(newStageInfo.stage, depthMap, graphicsProgram, assetManager->getGraphicsWrapper()->getOptions());
             method.setRenderTags(hashedRenderTags);
             method.setCameraName(StringUtils::join(newStageInfo.cameraTags, ","));
             newStageInfo.addRenderMethod(method);

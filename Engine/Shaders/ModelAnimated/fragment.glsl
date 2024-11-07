@@ -77,8 +77,8 @@ float ShadowCalculationDirectional(float bias, int lightIndex){
     float cascadePlaneDistances[CascadeCount] = float[](CascadeLimitList);
     vec4 fragPosViewSpace = playerTransforms.camera * vec4(from_vs.fragPos, 1.0);
     float depthValue = abs(fragPosViewSpace.z);
-    int layer = 3;
-    for (int i = 0; i < 4; ++i) {
+    int layer = CascadeCount - 1;
+    for (int i = 0; i < CascadeCount; ++i) {
         if (depthValue < cascadePlaneDistances[i])
         {
             layer = i;
