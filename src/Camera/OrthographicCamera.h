@@ -181,7 +181,7 @@ public:
             maxZ = std::max(maxZ, trf.z);
         }
 
-        constexpr float zMultiplier = 3.0f;
+        constexpr float zMultiplier = 7.0f;
         if (maxZ < 0) {
             maxZ /= zMultiplier;
         } else {
