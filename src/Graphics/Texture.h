@@ -23,6 +23,7 @@ public:
         std::string name;
         std::string heightOption;//size can be set using an option parameter. This variable keeps thee name of that parameter.
         std::string widthOption;//same
+        std::string depthOption;//same
         int defaultSize[2] = {1920, 1080};
         int depth = 0;//3D textures, or texture arrays have this as element count
         float borderColor[4] = {0.0, 0.0, 0.0, 0.0};

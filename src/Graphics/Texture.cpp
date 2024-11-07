@@ -91,6 +91,10 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     currentElement->SetText(std::to_string(textureInfo.depth).c_str());
     textureNode->InsertEndChild(currentElement);
 
+    currentElement = document.NewElement("DepthOption");
+    currentElement->SetText(textureInfo.depthOption.c_str());
+    textureNode->InsertEndChild(currentElement);
+
     currentElement = document.NewElement("borderColor");
 
     tinyxml2::XMLElement *borderElement = document.NewElement("R");
@@ -341,17 +345,36 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
         }
     }
 
-    textureNodeAttribute = TextureNode->FirstChildElement("Depth");
+    bool isTextureDepthSet = false;
+    textureNodeAttribute = TextureNode->FirstChildElement("DepthOption");
     if (textureNodeAttribute == nullptr) {
-        std::cerr << "Texture must have depth. Skipping" << std::endl;
-        return nullptr;
+        std::cerr << "Texture depth option not found. falling back to depth setting" << std::endl;
+    } else {
+        if(textureNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Texture depth option has no text,  falling back to depth setting" << std::endl;
+        } else {
+            textureInfo.depthOption = textureNodeAttribute->GetText();
+            long depthOption;
+            if(options->getOption(textureInfo.depthOption, depthOption)) {
+                textureInfo.depth = depthOption;
+                isTextureDepthSet = true;
+            }
+        }
     }
-    if(textureNodeAttribute->GetText() == nullptr) {
-        std::cerr << "Texture depth has no text, skipping! " << std::endl;
-        return nullptr;
+
+    if(!isTextureDepthSet) {
+        textureNodeAttribute = TextureNode->FirstChildElement("Depth");
+        if (textureNodeAttribute == nullptr) {
+            std::cerr << "Texture must have depth. Skipping" << std::endl;
+            return nullptr;
+        }
+        if (textureNodeAttribute->GetText() == nullptr) {
+            std::cerr << "Texture depth has no text, skipping! " << std::endl;
+            return nullptr;
+        }
+        std::string depthString = textureNodeAttribute->GetText();
+        textureInfo.depth = std::stoi(depthString);
     }
-    std::string depthString = textureNodeAttribute->GetText();
-    textureInfo.depth = std::stoi(depthString);
 
     std::shared_ptr<Texture> texture = std::make_shared<Texture>(graphicsWrapper, textureInfo);
 

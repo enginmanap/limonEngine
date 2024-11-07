@@ -140,7 +140,7 @@
             <Width>4096</Width>
             <HeightOption>shadowMapDirectionalHeight</HeightOption>
             <WidthOption>shadowMapDirectionalWidth</WidthOption>
-            <Depth>4</Depth>
+            <DepthOption>CascadeCount</DepthOption>
             <borderColor>
                 <R>1</R>
                 <G>1</G>
