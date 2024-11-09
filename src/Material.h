@@ -47,7 +47,7 @@ private:
      * vector has vector<string>, because embedded textures are saved with pairs, first element is the index, second element is the model file itself.
      */
     std::unique_ptr<std::vector<std::vector<std::string>>> textureNameListList = nullptr;
-
+    friend struct std::hash<Material>;
     std::shared_ptr<TextureAsset> ambientTexture = nullptr;
     std::shared_ptr<TextureAsset> diffuseTexture = nullptr;
     std::shared_ptr<TextureAsset> specularTexture = nullptr;
@@ -134,13 +134,23 @@ public:
         return ambientTexture;
     }
 
-    void setAmbientTexture(const std::string &ambientTexture, std::string* sourceAsset = nullptr) {
+    void setAmbientTexture(const std::string &ambientTexture, std::string* sourceAsset = nullptr, bool load = false) {
         std::vector<std::string> textureFiles;
         textureFiles.push_back(ambientTexture);
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }
-        this->ambientTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
+        if(!load) {
+            if(this->textureNameListList == nullptr) {
+                this->textureNameListList = std::make_unique<std::vector<std::vector<std::string>>>();
+            }
+            if(this->textureNameListList->size() != 5) {
+                this->textureNameListList->resize(5);
+            }
+            this->textureNameListList->at(0) = textureFiles;
+        } else {
+            this->ambientTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
+        }
         this->isAmbientMap = true;
     }
 
@@ -148,13 +158,23 @@ public:
         return diffuseTexture;
     }
 
-    void setDiffuseTexture(const std::string &diffuseTexture, std::string* sourceAsset = nullptr) {
+    void setDiffuseTexture(const std::string &diffuseTexture, std::string* sourceAsset = nullptr, bool load = false) {
         std::vector<std::string> textureFiles;
         textureFiles.push_back(diffuseTexture);
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }
-        this->diffuseTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
+        if(!load) {
+            if(this->textureNameListList == nullptr) {
+                this->textureNameListList = std::make_unique<std::vector<std::vector<std::string>>>();
+            }
+            if(this->textureNameListList->size() != 5) {
+                this->textureNameListList->resize(5);
+            }
+            this->textureNameListList->at(1) = textureFiles;
+        } else {
+            this->diffuseTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
+        }
         this->isDiffuseMap = true;
     }
 
@@ -162,24 +182,44 @@ public:
         return specularTexture;
     }
 
-    void setSpecularTexture(const std::string &specularTexture, std::string* sourceAsset = nullptr) {
+    void setSpecularTexture(const std::string &specularTexture, std::string* sourceAsset = nullptr, bool load = false) {
         std::vector<std::string> textureFiles;
         textureFiles.push_back(specularTexture);
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }
-        this->specularTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
+        if(!load) {
+            if(this->textureNameListList == nullptr) {
+                this->textureNameListList = std::make_unique<std::vector<std::vector<std::string>>>();
+            }
+            if(this->textureNameListList->size() != 5) {
+                this->textureNameListList->resize(5);
+            }
+            this->textureNameListList->at(2) = textureFiles;
+        } else {
+            this->specularTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
+        }
         this->isSpecularMap = true;
     }
 
-    void setNormalTexture(const std::string &normalTexture, std::string* sourceAsset = nullptr) {
+    void setNormalTexture(const std::string &normalTexture, std::string* sourceAsset = nullptr, bool load = false) {
         std::vector<std::string> textureFiles;
         textureFiles.push_back(normalTexture);
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }
+        if(!load) {
 
-        this->normalTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
+            if(this->textureNameListList == nullptr) {
+                this->textureNameListList = std::make_unique<std::vector<std::vector<std::string>>>();
+            }
+            if(this->textureNameListList->size() != 5) {
+                this->textureNameListList->resize(5);
+            }
+            this->textureNameListList->at(3) = textureFiles;
+        } else {
+            this->normalTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
+        }
         this->isNormalMap = true;
 
     }
@@ -188,14 +228,23 @@ public:
         return normalTexture;
     }
 
-    void setOpacityTexture(const std::string &opacityTexture, std::string* sourceAsset = nullptr) {
+    void setOpacityTexture(const std::string &opacityTexture, std::string* sourceAsset = nullptr, bool load = false) {
         std::vector<std::string> textureFiles;
         textureFiles.push_back(opacityTexture);
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }
-
-        this->opacityTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
+        if(!load) {
+            if(this->textureNameListList == nullptr) {
+                this->textureNameListList = std::make_unique<std::vector<std::vector<std::string>>>();
+            }
+            if(this->textureNameListList->size() != 5) {
+                this->textureNameListList->resize(5);
+            }
+            this->textureNameListList->at(4) = textureFiles;
+        } else {
+            this->opacityTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
+        }
         this->isOpacityMap = true;
     }
 
@@ -358,6 +407,15 @@ namespace std {
             }
             if(m.getOpacityTexture() != nullptr) {
                 hash_combine(hash, m.getOpacityTexture()->getName());
+            }
+            if(m.textureNameListList != nullptr && m.textureNameListList->size() == 5) {
+                // this should only happen before textures are loaded. The order is the same, and the names are the same, so it will yield
+                // same hash
+                hash_combine(hash, m.textureNameListList->at(0));
+                hash_combine(hash, m.textureNameListList->at(1));
+                hash_combine(hash, m.textureNameListList->at(2));
+                hash_combine(hash, m.textureNameListList->at(3));
+                hash_combine(hash, m.textureNameListList->at(4));
             }
 
             return hash;

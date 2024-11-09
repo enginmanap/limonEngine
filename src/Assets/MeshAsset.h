@@ -104,7 +104,6 @@ public:
             delete shapeCopies[i];
         }
         //FIXME buffer objects are not freed!
-
     }
 
     void fillBoneMap(std::shared_ptr<const BoneNode> boneNode);

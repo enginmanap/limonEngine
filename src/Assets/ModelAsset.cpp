@@ -80,6 +80,10 @@ void ModelAsset::loadInternal() {
     this->rootNode = loadNodeTree(scene->mRootNode);
 
     createMeshes(scene, scene->mRootNode, glm::mat4(1.0f));
+    for (auto material = materialMap.begin(); material != materialMap.end(); ++material) {
+        material->second->afterDeserialize(assetManager, name);
+        assetManager->getGraphicsWrapper()->setMaterial(*material->second);
+    }
     if(this->hasAnimation) {
         fillAnimationSet(scene->mNumAnimations, scene->mAnimations);
     }
@@ -190,7 +194,7 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
     std::shared_ptr<Material> newMaterial;
     if (materialMap.find(property.C_Str()) == materialMap.end()) {//search for the name
         //if the material is not loaded before
-        newMaterial = std::make_shared<Material>(assetManager, property.C_Str(), assetManager->getGraphicsWrapper()->getNextMaterialIndex());
+        newMaterial = std::make_shared<Material>(assetManager, property.C_Str(), 0);//material index is not set, as it will be set by after serialize
         aiColor3D color(0.f, 0.f, 0.f);
         float transferFloat;
 
