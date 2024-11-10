@@ -16,13 +16,21 @@
 #include "AssetManager.h"
 
 class TextureAsset : public Asset {
+    struct TextureMetaData {
+        GraphicsInterface::TextureTypes textureType;
+        GraphicsInterface::InternalFormatTypes internalFormatType;
+        GraphicsInterface::FormatTypes formatType;
+        GraphicsInterface::DataTypes dataType;
+        uint32_t width;
+        uint32_t height;
+    };
+    TextureMetaData textureMetaData;
+    SDL_Surface* cpuSurface = nullptr;//gets deleted after gpu load, don't use
 protected:
     std::vector<std::string> name;//1) single element filename, 2) First element embedded texture ID, second element model.
     std::shared_ptr<Texture> texture;
     void loadCPUPart() override;
-    void loadGPUPart() override {
-        //not implemented
-    }
+    void loadGPUPart() override;
 public:
     TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files);
 #ifdef CEREAL_SUPPORT

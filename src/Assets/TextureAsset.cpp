@@ -19,7 +19,6 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
 
 void TextureAsset::loadCPUPart() {
 
-    SDL_Surface *surface = nullptr;
     if (name.size() == 2) {//If embedded texture is needed, first element is the index, second is the owner asset file
         //index is a string, first char is * second char is the index
         std::cout << "Texture request has 2 elements. Attempting to extract embedded texture. " << std::endl;
@@ -32,7 +31,7 @@ void TextureAsset::loadCPUPart() {
             } else {
                 rwop = SDL_RWFromMem((void*)embeddedTexture->texelData.data(), embeddedTexture->width * embeddedTexture->height);
             }
-            surface = IMG_Load_RW(rwop, 0);
+            cpuSurface = IMG_Load_RW(rwop, 0);
         } else {
             std::cerr << "Embedded texture can't be found with following information: " << name[1] << ":" << textureID << std::endl;
         }
@@ -41,56 +40,74 @@ void TextureAsset::loadCPUPart() {
          * FIXME: This takes full path, which is not acceptable,
          * we need to work with relative path to model for textures
          */
-        surface = IMG_Load(name[0].data());
+        cpuSurface = IMG_Load(name[0].data());
     }
 
-    if (!surface) {
+    if (!cpuSurface) {
         std::cerr << "TextureAsset Load from disk failed for " << name[0] << ". Error:" << std::endl << IMG_GetError()
                   << std::endl;
         exit(1);
     } else {
         //std::cout << "TextureAsset " << name[0] << " loaded from disk successfully." << std::endl;
     }
-    if (surface->format->BytesPerPixel == 4) {
-        if(surface->format->format != SDL_PIXELFORMAT_ABGR8888) {
+    if (cpuSurface->format->BytesPerPixel == 4) {
+        if(cpuSurface->format->format != SDL_PIXELFORMAT_ABGR8888) {
             //if the internal format is not rgba32, convert to it.
-            SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(surface,
+            SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(cpuSurface,
                                                                 SDL_PIXELFORMAT_ABGR8888,
                                                                 0);
-            SDL_FreeSurface(surface);
-            surface = surfaceTemp;
+            SDL_FreeSurface(cpuSurface);
+            cpuSurface = surfaceTemp;
         }
-        texture = std::make_unique<Texture>(assetManager->getGraphicsWrapper(), GraphicsInterface::TextureTypes::T2D,
-                                            GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
-                                            surface->w, surface->h);
-    } else if (surface->format->BytesPerPixel == 3) {
-        if(surface->format->format != SDL_PIXELFORMAT_RGB24) {
+        textureMetaData.textureType = GraphicsInterface::TextureTypes::T2D;
+        textureMetaData.internalFormatType = GraphicsInterface::InternalFormatTypes::RGBA;
+        textureMetaData.formatType = GraphicsInterface::FormatTypes::RGBA;
+        textureMetaData.dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE;
+        textureMetaData.width = cpuSurface->w;
+        textureMetaData.height = cpuSurface->h;
+
+    } else if (cpuSurface->format->BytesPerPixel == 3) {
+        if(cpuSurface->format->format != SDL_PIXELFORMAT_RGB24) {
             //if the internal format is not rgb24, convert to it.
-            SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(surface,
+            SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(cpuSurface,
                                                                 SDL_PIXELFORMAT_RGB24,
                                                                 0);
-            SDL_FreeSurface(surface);
-            surface = surfaceTemp;
+            SDL_FreeSurface(cpuSurface);
+            cpuSurface = surfaceTemp;
         }
-        texture = std::make_unique<Texture>(assetManager->getGraphicsWrapper(), GraphicsInterface::TextureTypes::T2D,
-                                            GraphicsInterface::InternalFormatTypes::RGB, GraphicsInterface::FormatTypes::RGB, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
-                                            surface->w, surface->h);
-    } else if (surface->format->BytesPerPixel == 1) {
-            SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(surface,
-                                                                SDL_PIXELFORMAT_ABGR8888,
-                                                                0);
-            SDL_FreeSurface(surface);
-            surface = surfaceTemp;
-        texture = std::make_unique<Texture>(assetManager->getGraphicsWrapper(), GraphicsInterface::TextureTypes::T2D,
-                                            GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE,
-                                            surface->w, surface->h);
+        textureMetaData.textureType = GraphicsInterface::TextureTypes::T2D;
+        textureMetaData.internalFormatType = GraphicsInterface::InternalFormatTypes::RGB;
+        textureMetaData.formatType = GraphicsInterface::FormatTypes::RGB;
+        textureMetaData.dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE;
+        textureMetaData.width = cpuSurface->w;
+        textureMetaData.height = cpuSurface->h;
+    } else if (cpuSurface->format->BytesPerPixel == 1) {
+        SDL_Surface* surfaceTemp = SDL_ConvertSurfaceFormat(cpuSurface,
+                                                            SDL_PIXELFORMAT_ABGR8888,
+                                                            0);
+        SDL_FreeSurface(cpuSurface);
+        cpuSurface = surfaceTemp;
+
+        textureMetaData.textureType = GraphicsInterface::TextureTypes::T2D;
+        textureMetaData.internalFormatType = GraphicsInterface::InternalFormatTypes::RGBA;
+        textureMetaData.formatType = GraphicsInterface::FormatTypes::RGBA;
+        textureMetaData.dataType = GraphicsInterface::DataTypes::UNSIGNED_BYTE;
+        textureMetaData.width = cpuSurface->w;
+        textureMetaData.height = cpuSurface->h;
     } else {
-        std::cerr << "Format has undefined number of pixels:" << std::to_string(surface->format->BytesPerPixel) << std::endl;
+        std::cerr << "Format has undefined number of pixels:" << std::to_string(cpuSurface->format->BytesPerPixel) << std::endl;
         exit(1);
     }
-    texture->loadData(surface->pixels);
+}
+
+void TextureAsset::loadGPUPart() {
+    texture = std::make_unique<Texture>(assetManager->getGraphicsWrapper(), textureMetaData.textureType,
+                                        textureMetaData.internalFormatType, textureMetaData.formatType, textureMetaData.dataType,
+                                        textureMetaData.width, textureMetaData.height);
+    texture->loadData(cpuSurface->pixels);
     texture->setName(name[0]);
-    SDL_FreeSurface(surface);
+    SDL_FreeSurface(cpuSurface);
+    cpuSurface = nullptr;
 }
 
 TextureAsset::~TextureAsset() {
