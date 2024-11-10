@@ -28,7 +28,7 @@ class GraphicsProgramAsset : public Asset {
     std::unordered_map<std::string, std::pair<Uniform::VariableTypes, GraphicsInterface::FrameBufferAttachPoints>>outputMap;
 protected:
     void loadCPUPart() override {} //we don't need to load anything
-    void loadGPUPart() override {}
+    void loadGPUPart() override {} //we don't need to load anything
 public:
     GraphicsProgramAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
 #ifdef CEREAL_SUPPORT

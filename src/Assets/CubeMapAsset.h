@@ -22,10 +22,10 @@ class CubeMapAsset : public Asset {
     std::unique_ptr<Texture> texture;
 
 protected:
-    void loadCPUPart() override;
-    void loadGPUPart() override {
+    void loadCPUPart() override {
         //not implemented
     }
+    void loadGPUPart() override;
 
 public:
     CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
