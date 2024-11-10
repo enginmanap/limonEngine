@@ -35,7 +35,8 @@ protected:
     Asset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList [[gnu::unused]])
             : assetManager(assetManager), assetID(assetID) {};
 
-    virtual void loadInternal() = 0;
+    virtual void loadCPUPart() = 0;
+    virtual void loadGPUPart() = 0;
 
     /**
  * This is a constructor that is used for cereal loading.
@@ -48,12 +49,13 @@ protected:
 public:
 
     /**
-     * Override loadInternal method, and don't change this.
+     * Override loadCPUPart method, and don't change this.
      */
     void load() {
         //loadingLock.lock();
         loadStarted = true;
-        loadInternal();
+        loadCPUPart();
+        loadGPUPart();
         loadFinished = true;
         //loadingLock.unlock();
     };

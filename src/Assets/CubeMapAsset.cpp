@@ -23,7 +23,7 @@ CubeMapAsset::CubeMapAsset(AssetManager *assetManager, uint32_t assetID, const s
     }
 }
 
-void CubeMapAsset::loadInternal() {
+void CubeMapAsset::loadCPUPart() {
     SDL_Surface *surfaces[6] = {0};
 
     for (int i = 0; i < 6; i++) {

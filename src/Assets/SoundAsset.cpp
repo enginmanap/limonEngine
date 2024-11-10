@@ -21,7 +21,7 @@ SoundAsset::SoundAsset(AssetManager *assetManager, uint32_t assetID, const std::
     }
 }
 
-void SoundAsset::loadInternal() {
+void SoundAsset::loadCPUPart() {
     soundData = drwav_open_and_read_file_s16(name.c_str(), &channels, &sampleRate, &sampleCount);
     if (soundData == nullptr) {
         // Error opening and reading WAV file.

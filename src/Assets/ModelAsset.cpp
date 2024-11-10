@@ -5,7 +5,6 @@
 #include <set>
 
 #include "ModelAsset.h"
-#include "../glm/gtx/matrix_decompose.hpp"
 #include "../Utils/GLMUtils.h"
 #include "Animations/AnimationAssimp.h"
 #include "API/Graphics/GraphicsInterface.h"
@@ -27,7 +26,7 @@ ModelAsset::ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::
     }
 }
 
-void ModelAsset::loadInternal() {
+void ModelAsset::loadCPUPart() {
 
     //std::cout << "ASSIMP::Loading::" << name << std::endl;
     const aiScene *scene;
@@ -128,11 +127,10 @@ void ModelAsset::loadInternal() {
     }
 
     this->deserializeCustomizations();
-    this->afterDeserialize(assetManager, {this->name});
 }
 
 
-void ModelAsset::afterDeserialize(AssetManager *assetManager, std::vector<std::string> files) {
+void ModelAsset::loadGPUPart() {
     // serialize should save these
     // assetID
     // boneIDCounter
@@ -155,11 +153,6 @@ void ModelAsset::afterDeserialize(AssetManager *assetManager, std::vector<std::s
     // Animations should be
 
     this->assetManager = assetManager;
-    if (files.empty()) {
-        std::cerr << "Model load failed because file name vector is empty." << std::endl;
-        exit(-1);
-    }
-    this->name = files[0];
 
     if(temporaryEmbeddedTextures != nullptr && temporaryEmbeddedTextures->size() > 0 ) {
         assetManager->addEmbeddedTextures(this->name, *temporaryEmbeddedTextures);

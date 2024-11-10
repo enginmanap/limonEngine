@@ -17,7 +17,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
 
 }
 
-void TextureAsset::loadInternal() {
+void TextureAsset::loadCPUPart() {
 
     SDL_Surface *surface = nullptr;
     if (name.size() == 2) {//If embedded texture is needed, first element is the index, second is the owner asset file

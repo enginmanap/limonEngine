@@ -16,7 +16,10 @@ class SoundAsset : public Asset {
     int16_t* soundData = nullptr; //PCM 16bit, prefer single channel
     std::string name;
 protected:
-    void loadInternal() override;
+    void loadCPUPart() override;
+    void loadGPUPart() override {
+        // do nothing, this asset doesn't need to be loaded on GPU
+    }
 
 public:
     SoundAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
