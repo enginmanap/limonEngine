@@ -80,10 +80,6 @@ void ModelAsset::loadInternal() {
     this->rootNode = loadNodeTree(scene->mRootNode);
 
     createMeshes(scene, scene->mRootNode, glm::mat4(1.0f));
-    for (auto material = materialMap.begin(); material != materialMap.end(); ++material) {
-        material->second->afterDeserialize(assetManager, name);
-        assetManager->getGraphicsWrapper()->setMaterial(*material->second);
-    }
     if(this->hasAnimation) {
         fillAnimationSet(scene->mNumAnimations, scene->mAnimations);
     }
@@ -132,6 +128,7 @@ void ModelAsset::loadInternal() {
     }
 
     this->deserializeCustomizations();
+    this->afterDeserialize(assetManager, {this->name});
 }
 
 
@@ -164,7 +161,7 @@ void ModelAsset::afterDeserialize(AssetManager *assetManager, std::vector<std::s
     }
     this->name = files[0];
 
-    if(temporaryEmbeddedTextures->size() > 0 ) {
+    if(temporaryEmbeddedTextures != nullptr && temporaryEmbeddedTextures->size() > 0 ) {
         assetManager->addEmbeddedTextures(this->name, *temporaryEmbeddedTextures);
     }
     temporaryEmbeddedTextures.reset();
@@ -322,7 +319,6 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         std::string requestedName = newMaterial->getName();
 
         newMaterial = assetManager->registerMaterial(newMaterial);
-        assetManager->getGraphicsWrapper()->setMaterial(*newMaterial);
         materialMap[requestedName] = newMaterial;
     } else {
         newMaterial = materialMap[property.C_Str()];
