@@ -24,6 +24,7 @@ private:
     float specularExponent = 0;
     uint32_t materialIndex;
     uint32_t maps = 0;
+    bool deserialized = false;
 
     glm::vec3 ambientColor;
     glm::vec3 diffuseColor;

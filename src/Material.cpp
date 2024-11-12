@@ -7,6 +7,9 @@
 #include "API/Graphics/GraphicsInterface.h"
 
 void Material::afterDeserialize(AssetManager *assetManager, std::string modelAssetFileName) {
+    if(deserialized) {
+        return;
+    }
     if(textureNameListList == nullptr || textureNameListList->size() != 5) {
         std::cerr << "Texture deserialize didn't set proper values. Please check for material " << name << ":" << materialIndex << std::endl;
     } else {
@@ -48,7 +51,7 @@ void Material::afterDeserialize(AssetManager *assetManager, std::string modelAss
         }
     }
     textureNameListList.reset();
-
+    deserialized = true;
     this->materialIndex = assetManager->getGraphicsWrapper()->getNextMaterialIndex();
 }
 

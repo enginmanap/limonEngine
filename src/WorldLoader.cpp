@@ -134,6 +134,8 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
 
 
 World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const {
+    uint32_t currentTime = SDL_GetTicks();
+
     tinyxml2::XMLDocument xmlDoc;
     tinyxml2::XMLError eResult = xmlDoc.LoadFile(worldFileName.c_str());
     if (eResult != tinyxml2::XML_SUCCESS) {
@@ -287,7 +289,8 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
     loadOnLoadActions(worldNode, world);
 
     loadOnLoadAnimations(worldNode, world);
-
+    uint32_t endTime = SDL_GetTicks();
+    std::cout << "World " << worldName->GetText() << " loaded in " << endTime - currentTime << "ms." << std::endl;
     return world;
 }
 
@@ -351,6 +354,7 @@ bool WorldLoader::loadObjectGroupsFromXML(tinyxml2::XMLNode *worldNode, World *w
 }
 
 bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *world, LimonAPI *limonAPI) const {
+    std::vector<std::vector<std::string>> preloadAssetFiles; //used to load the assets in parallel instead of serial
     std::vector<Model*> notStaticObjects;
     bool isAIGridStartPointSet = false;
     glm::vec3 aiGridStartPoint = glm::vec3(0,0,0);
@@ -372,6 +376,22 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
 
 
     std::unordered_map<std::string, std::shared_ptr<Sound>> requiredSounds;
+
+
+    tinyxml2::XMLElement* objectNodeForPreload =  objectNode;
+    while(objectNodeForPreload != nullptr) {
+        tinyxml2::XMLElement *objectAttribute =  objectNodeForPreload->FirstChildElement("File");
+        if (objectAttribute == nullptr) {
+            std::cerr << "Object must have a source file." << std::endl;
+        }
+        std::string modelFile = objectAttribute->GetText();
+        std::vector<std::string> temp;
+        temp.emplace_back(modelFile);
+        preloadAssetFiles.emplace_back(temp);
+        objectNodeForPreload = objectNodeForPreload->NextSiblingElement("Object");
+    }
+
+    std::vector<std::shared_ptr<ModelAsset>> preloadAssets = assetManager->parallelLoadAssetList<ModelAsset>(preloadAssetFiles); //loads the assets in parallel()
 
     while(objectNode != nullptr) {
 
@@ -404,6 +424,11 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
     for (unsigned int i = 0; i < notStaticObjects.size(); ++i) {
         world->addModelToWorld(notStaticObjects[i]);
     }
+
+    //clear up the preloaded asset counts.
+    for(const auto& assetFile:preloadAssetFiles) {
+        assetManager->freeAsset({assetFile});
+    }
     return true;
 }
 
@@ -421,8 +446,6 @@ WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::X
                         std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI,
                         PhysicalRenderable *parentObject) {
     std::vector<std::unique_ptr<WorldLoader::ObjectInformation>> loadedObjects;
-
-
 
     tinyxml2::XMLElement *objectAttribute =  objectNode->FirstChildElement("File");
     if (objectAttribute == nullptr) {

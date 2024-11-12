@@ -35,9 +35,6 @@ protected:
     Asset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList [[gnu::unused]])
             : assetManager(assetManager), assetID(assetID) {};
 
-    virtual void loadCPUPart() = 0;
-    virtual void loadGPUPart() = 0;
-
     /**
  * This is a constructor that is used for cereal loading.
  */
@@ -47,6 +44,8 @@ protected:
 #endif
 
 public:
+    virtual void loadCPUPart() = 0;
+    virtual void loadGPUPart() = 0;
 
     /**
      * Override loadCPUPart method, and don't change this.

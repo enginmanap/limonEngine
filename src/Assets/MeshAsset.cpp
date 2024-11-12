@@ -6,10 +6,8 @@
 #include "API/Graphics/GraphicsInterface.h"
 #include "../../libs/meshoptimizer/src/meshoptimizer.h"
 
-MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
-                     std::shared_ptr<Material> material, std::shared_ptr<const BoneNode> meshSkeleton,
-                     const glm::mat4 &parentTransform,
-                     const bool isPartOfAnimated)
+MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<Material> material, std::shared_ptr<const BoneNode> meshSkeleton,
+                     const glm::mat4 &parentTransform, const bool isPartOfAnimated)
         : name(name), material(material), parentTransform(parentTransform), isPartOfAnimated(isPartOfAnimated) {
     if (!currentMesh->HasPositions()) {
         throw "No position found"; //Not going to process if mesh is empty
@@ -18,18 +16,6 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
     vertexCount = currentMesh->mNumVertices;
     if(!setTriangles(currentMesh)) {
         return;
-    }
-
-    uint32_t vbo;
-    assetManager->getGraphicsWrapper()->bufferVertexData(vertices, faces, vao, vbo, 2, ebo);
-    bufferObjects.push_back(vbo);
-
-    assetManager->getGraphicsWrapper()->bufferNormalData(normals, vao, vbo, 4);
-    bufferObjects.push_back(vbo);
-
-    if (!textureCoordinates.empty()) {
-        assetManager->getGraphicsWrapper()->bufferVertexTextureCoordinates(textureCoordinates, vao, vbo, 3);
-        bufferObjects.push_back(vbo);
     }
 
     //If model is animated, but mesh has no bones, it is most likely we need to attach to the nearest parent.
@@ -69,12 +55,6 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
 
         }
         //std::cout << "Animation added for mesh" << std::endl;
-
-        assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
-        bufferObjects.push_back(vbo);
-
-        assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
-        bufferObjects.push_back(vbo);
     } else {
         if(isPartOfAnimated) {
             //what to do now? now we assign bone id of the node, and weight of 1.0
@@ -106,14 +86,6 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
             }
 
             //std::cout << "Animation added for mesh" << std::endl;
-
-            assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneIDs, vao, vbo, 5);
-            bufferObjects.push_back(vbo);
-
-            assetManager->getGraphicsWrapper()->bufferExtraVertexData(boneWeights, vao, vbo, 6);
-            bufferObjects.push_back(vbo);
-
-
         } else {
             this->bones = false;
         }
@@ -121,7 +93,7 @@ MeshAsset::MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std:
 }
 
 
-void MeshAsset::afterDeserialize(AssetManager *assetManager) {
+void MeshAsset::loadGPUPart(AssetManager *assetManager) {
     /*** things should be set by serialize */
     //triangleCount
     //vertexCount

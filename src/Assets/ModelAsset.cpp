@@ -152,8 +152,6 @@ void ModelAsset::loadGPUPart() {
     // AssetManager::EmbeddedTexture eTextures should be serializeable
     // Animations should be
 
-    this->assetManager = assetManager;
-
     if(temporaryEmbeddedTextures != nullptr && temporaryEmbeddedTextures->size() > 0 ) {
         assetManager->addEmbeddedTextures(this->name, *temporaryEmbeddedTextures);
     }
@@ -165,7 +163,7 @@ void ModelAsset::loadGPUPart() {
     }
 
     for (auto mesh = meshes.begin(); mesh != meshes.end(); ++mesh) {
-        (*mesh)->afterDeserialize(assetManager);
+        (*mesh)->loadGPUPart(assetManager);
     }
 }
 
@@ -339,7 +337,7 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
 
         std::shared_ptr<Material> meshMaterial = loadMaterials(scene, currentMesh->mMaterialIndex);
         std::shared_ptr<MeshAsset> mesh;
-        mesh = std::make_shared<MeshAsset>(assetManager, currentMesh, aiNode->mName.C_Str(), meshMaterial, rootNode,
+        mesh = std::make_shared<MeshAsset>(currentMesh, aiNode->mName.C_Str(), meshMaterial, rootNode,
                                            parentTransform, hasAnimation);
         if((*mesh->getTriangleCount()) == 0) {
             continue;

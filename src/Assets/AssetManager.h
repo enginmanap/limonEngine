@@ -18,6 +18,9 @@
 
 #include "Asset.h"
 #include "../ALHelper.h"
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 
 class GraphicsInterface;
@@ -92,6 +95,64 @@ public:
         }
     };
 private:
+    class AssetLoadCPUQueue {
+    private:
+        std::list<std::shared_ptr<Asset>> assets;
+        std::mutex queueMutex;
+        std::condition_variable queueEmptyCond;
+    public:
+        void pushBack(std::shared_ptr<Asset> asset) {
+            std::lock_guard<std::mutex> lock(queueMutex);
+            assets.push_back(asset);
+            queueEmptyCond.notify_one();
+        }
+
+        std::shared_ptr<Asset> popFrontOrBlock() {
+            std::unique_lock<std::mutex> lock(queueMutex);
+            if(assets.empty()) {
+                queueEmptyCond.wait(lock);
+                //lock.lock();
+            }
+            std::shared_ptr<Asset> assetPtr =assets.front();
+            assets.pop_front();
+            return assetPtr;
+        }
+
+        std::shared_ptr<Asset> popFrontOrReturn() {
+            std::unique_lock<std::mutex> lock(queueMutex);
+            if(assets.empty()) {
+                return nullptr;
+            }
+            std::shared_ptr<Asset> assetPtr =assets.front();
+            assets.pop_front();
+            return assetPtr;
+        }
+
+        bool isEmpty() {
+            std::unique_lock<std::mutex> lock(queueMutex);
+            return assets.empty();
+        }
+    };
+
+    AssetLoadCPUQueue assetLoadCpuQueue;
+    AssetLoadCPUQueue assetLoadGPUQueue;
+
+    struct AssetLoadThreadState {
+        std::shared_ptr<std::thread> thread;
+        bool running = true;
+    };
+    std::vector<AssetLoadThreadState*> assetLoadThreads;
+
+    void cpuLoadAsset(bool& running) {
+        while(running) {
+            std::shared_ptr<Asset> asset = assetLoadCpuQueue.popFrontOrBlock();
+            //std::cout << "CPU loading asset " << asset->getNameSIL() << std::endl;
+            asset->loadCPUPart();
+            //std::cout << "CPU loading asset " << asset->getNameSIL() << " done"<< std::endl;
+            assetLoadGPUQueue.pushBack(asset);
+        }
+    }
+
     const std::string ASSET_EXTENSIONS_FILE = "./Engine/assetExtensions.xml";
 
     //second of the pair is how many times load requested. prework for unload
@@ -134,9 +195,64 @@ public:
 
     explicit AssetManager(GraphicsInterface* graphicsWrapper, ALHelper *alHelper) : graphicsWrapper(graphicsWrapper), alHelper(alHelper) {
         loadAssetList();
+        size_t num_threads = std::thread::hardware_concurrency();
+        for (size_t i = 0; i < num_threads; ++i) {
+            AssetLoadThreadState* state = new AssetLoadThreadState();
+            state->running = true;
+            state->thread = std::make_shared<std::thread>(&AssetManager::cpuLoadAsset, this, std::ref(state->running));
+            assetLoadThreads.push_back(state);
+        }
     }
 
     void loadUsingCereal(const std::vector<std::string> files [[gnu::unused]]);
+
+    template<class T>
+    std::vector<std::shared_ptr<T>>parallelLoadAssetList(const std::vector<std::vector<std::string>> filesList) {
+        std::vector<std::shared_ptr<T>> loadedAssets;
+        uint32_t startedAssetCount = 0;
+        for(const auto &files : filesList) {
+            if (assets.count(files) == 0) {
+                bool loaded = false;
+                //check if asset is cereal deserialize file.
+                if(files.size() == 1) {
+                    std::string extension = files[0].substr(files[0].find_last_of(".") + 1);
+                    if (extension == "limonmodel") {
+#ifdef CEREAL_SUPPORT
+                        std::ifstream is(files[0], std::ios::binary);
+                        cereal::BinaryInputArchive archive(is);
+                        assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files, archive), 0);
+                        nextAssetIndex++;
+#else
+                        std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
+                    std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
+                    exit(-1);
+#endif
+                        loaded = true;
+                    }
+                }
+                if(!loaded) {
+                    assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files), 0);
+                    nextAssetIndex++;
+                    assetLoadCpuQueue.pushBack(assets[files].first);
+                    startedAssetCount++;
+                }
+            }
+            assets[files].second++;
+            loadedAssets.emplace_back(std::dynamic_pointer_cast<T>(assets[files].first));
+        }
+        //now load the assets to GPU on main thread
+        uint32_t finishedAssetCount = 0;
+        while(finishedAssetCount != startedAssetCount) {
+            std::shared_ptr<Asset> asset = assetLoadGPUQueue.popFrontOrReturn();
+            if(asset != nullptr) {
+                //std::cout << "graphics loading asset " << asset->getNameSIL() << std::endl;
+                asset->loadGPUPart();
+                //std::cout << "graphics loading asset " << asset->getNameSIL() << " done"<< std::endl;
+                finishedAssetCount++;
+            }
+        }
+        return loadedAssets;
+    }
 
     template<class T>
     std::shared_ptr<T>loadAsset(const std::vector<std::string> files) {
@@ -233,7 +349,17 @@ public:
     }
 
     ~AssetManager() {
+        //Stop the cpu load threads
+        for (auto thread_iterator = assetLoadThreads.begin(); thread_iterator != assetLoadThreads.end(); ++thread_iterator) {
+            (*thread_iterator)->running = false;
+        }
+        for (auto thread_iterator = assetLoadThreads.begin(); thread_iterator != assetLoadThreads.end(); ++thread_iterator) {
+            (*thread_iterator)->thread->join();
+        }
         //free all the assets
+        for (auto assetLoadIterator = assetLoadThreads.begin(); assetLoadIterator != assetLoadThreads.end(); ++assetLoadIterator) {
+            delete &assetLoadIterator;
+        }
 
         delete availableAssetsRootNode;
 

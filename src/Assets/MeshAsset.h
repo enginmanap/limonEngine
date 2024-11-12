@@ -63,17 +63,15 @@ class MeshAsset {
 #endif
     MeshAsset(){}
 public:
-    MeshAsset(AssetManager *assetManager, const aiMesh *currentMesh, std::string name,
-              std::shared_ptr<Material> material, std::shared_ptr<const BoneNode> meshSkeleton,
-              const glm::mat4 &parentTransform,
-              const bool isPartOfAnimated);
+    MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<Material> material, std::shared_ptr<const BoneNode> meshSkeleton,
+              const glm::mat4 &parentTransform, const bool isPartOfAnimated);
 
     /**
      * This method sets GPU side of the deserialization, and uses AssetManager to access GPU with getGraphicsWrapper
      *
      * @param assetManager
      */
-    void afterDeserialize(AssetManager *assetManager);
+    void loadGPUPart(AssetManager *assetManager);
 
     // always returns 4 elements
     const uint32_t *getTriangleCount() const {
