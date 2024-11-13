@@ -55,11 +55,10 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
         btTriangleMesh *rawCollisionMesh = (*iter)->getBulletMesh(&hullMap, &btTransformMap);
         if (rawCollisionMesh != nullptr) {
             btCollisionShape *meshCollisionShape;
-            btConvexTriangleMeshShape *convexTriangleMeshShape;
             if (mass == 0 && !animated ) {
                 meshCollisionShape = new btBvhTriangleMeshShape(rawCollisionMesh, true);
             } else {
-                convexTriangleMeshShape = new btConvexTriangleMeshShape(rawCollisionMesh);
+                btConvexTriangleMeshShape *convexTriangleMeshShape = new btConvexTriangleMeshShape(rawCollisionMesh);
                 meshCollisionShape = convexTriangleMeshShape;
                 if (rawCollisionMesh->getNumTriangles() > 24) {
                     btShapeHull *hull = new btShapeHull(convexTriangleMeshShape);

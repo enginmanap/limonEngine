@@ -348,7 +348,6 @@ void ModelAsset::createMeshes(const aiScene *scene, aiNode *aiNode, glm::mat4 pa
             simplifiedMeshes[mesh->getName()] = mesh;
             //std::cout << "simplified mesh " << currentMesh->mName.C_Str() << " for node " << aiNode->mName.C_Str() << std::endl;
         } else {
-
             if (meshMaterial->hasOpacityMap()) {
                 this->transparentMaterialUsed = true;
                 meshes.push_back(mesh);

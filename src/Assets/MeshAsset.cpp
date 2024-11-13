@@ -90,6 +90,7 @@ MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_pt
             this->bones = false;
         }
     }
+    buildBulletMesh();
 }
 
 
@@ -298,14 +299,35 @@ btTriangleMesh *MeshAsset::getBulletMesh(std::map<uint32_t, btConvexHullShape *>
     //Turns out bullet shapes does not copy meshes, so we should return a copy, not the original;
     btTriangleMesh *copyMesh = nullptr;
     if(!isPartOfAnimated) {
-        copyMesh = new btTriangleMesh();
+        copyMesh = new btTriangleMesh(bulletMesh);
+        shapeCopies.push_back(copyMesh);
+    } else {
+        //in this case, we don't use faces directly, instead we use per bone vertex information.
+        std::map<uint32_t, std::vector<uint32_t>>::iterator it;
+        for (it = boneAttachedMeshes.begin(); it != boneAttachedMeshes.end(); it++) {
+            (*hullMap)[it->first] = bulletHullMap[it->first];
+            (*parentTransformMap)[it->first] = bulletParentTransformMap[it->first];
+        }
+
+    }
+    return copyMesh;
+}
+
+/**
+ * this should return either a map of boneid<->hull or if no animation btTriangleMesh.
+ * this way, we can use animation transforms to move the individual hulls with the bones.
+ * @param compoundShape
+ * @return
+ */
+void MeshAsset::buildBulletMesh() {
+    if(!isPartOfAnimated) {
         //if not part of an animation, than we don't need to split based on bones
         for (unsigned int j = 0; j < faces.size(); ++j) {
-            copyMesh->addTriangle(GLMConverter::GLMToBlt(vertices[faces[j][0]]),
-                                  GLMConverter::GLMToBlt(vertices[faces[j][1]]),
-                                  GLMConverter::GLMToBlt(vertices[faces[j][2]]));
+            bulletMesh.addTriangle(GLMConverter::GLMToBlt(vertices[faces[j][0]]),
+                                   GLMConverter::GLMToBlt(vertices[faces[j][1]]),
+                                   GLMConverter::GLMToBlt(vertices[faces[j][2]]));
         }
-        shapeCopies.push_back(copyMesh);
+        //shapeCopies.push_back(copyMesh);
     } else {
         //in this case, we don't use faces directly, instead we use per bone vertex information.
         std::map<uint32_t, std::vector<uint32_t>>::iterator it;
@@ -314,21 +336,20 @@ btTriangleMesh *MeshAsset::getBulletMesh(std::map<uint32_t, btConvexHullShape *>
             for (unsigned int index = 0; index < it->second.size(); index++) {
                 hullshape->addPoint(GLMConverter::GLMToBlt(vertices[it->second[index]]));
             }
-            btShapeHull *hull = new btShapeHull(hullshape);
+            bulletHull = new btShapeHull(hullshape);
             btScalar margin = hullshape->getMargin();
-            hull->buildHull(margin);
+            bulletHull->buildHull(margin);
             delete hullshape;
             hullshape = nullptr;
 
-            hullshape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
-                                              hull->numVertices());
+            hullshape = new btConvexHullShape((const btScalar *) bulletHull->getVertexPointer(),
+                                              bulletHull->numVertices());
             //FIXME clear memory leak here, no one deletes this shapes.
-            (*hullMap)[it->first] = hullshape;
-            (*parentTransformMap)[it->first].setFromOpenGLMatrix(glm::value_ptr(parentTransform));
+            bulletHullMap[it->first] = hullshape;
+            bulletParentTransformMap[it->first].setFromOpenGLMatrix(glm::value_ptr(parentTransform));
         }
 
     }
-    return copyMesh;
 }
 
 bool MeshAsset::hasBones() const {

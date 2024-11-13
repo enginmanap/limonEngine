@@ -52,12 +52,17 @@ class MeshAsset {
     glm::mat4 parentTransform;
     bool isPartOfAnimated;
 
+    btTriangleMesh bulletMesh;
+    btShapeHull *bulletHull;
+    std::map<uint32_t, btConvexHullShape *> bulletHullMap;
+    std::map<uint32_t, btTransform> bulletParentTransformMap;
     std::vector<btTriangleMesh *> shapeCopies;
 
     std::vector<uint32_t> bufferObjects;
     bool setTriangles(const aiMesh *currentMesh);
 
     void normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const;
+    void buildBulletMesh();
 #ifdef CEREAL_SUPPORT
     friend class cereal::access;
 #endif
@@ -100,6 +105,10 @@ public:
     ~MeshAsset() {
         for (unsigned int i = 0; i < shapeCopies.size(); ++i) {
             delete shapeCopies[i];
+        }
+
+        for (auto it = bulletHullMap.begin(); it != bulletHullMap.end(); ++it) {
+            delete it->second;
         }
         //FIXME buffer objects are not freed!
     }
