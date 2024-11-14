@@ -72,8 +72,10 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
                     delete hull;
                 }
             }
-            //since there is no animation, we don't have to put the elements in order.
-            compoundShape->addChildShape(baseTransform, meshCollisionShape);//this add the mesh to collision shape
+            if(!animated) {
+                //since there is no animation, we don't have to put the elements in order.
+                compoundShape->addChildShape(baseTransform, meshCollisionShape);//this add the mesh to collision shape
+            }
         }
     }
 
