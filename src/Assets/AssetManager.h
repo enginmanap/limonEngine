@@ -358,7 +358,7 @@ public:
         }
         //free all the assets
         for (auto assetLoadIterator = assetLoadThreads.begin(); assetLoadIterator != assetLoadThreads.end(); ++assetLoadIterator) {
-            delete &assetLoadIterator;
+            delete *assetLoadIterator;
         }
 
         delete availableAssetsRootNode;
