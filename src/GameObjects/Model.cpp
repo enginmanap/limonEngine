@@ -48,54 +48,14 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
         meshMetaData.push_back(meshMeta);
     }
 
-    std::vector<std::shared_ptr<MeshAsset>> physicalMeshes = modelAsset->getPhysicsMeshes();
-
-    for(auto iter = physicalMeshes.begin(); iter != physicalMeshes.end(); ++iter) {
-
-        btTriangleMesh *rawCollisionMesh = (*iter)->getBulletMesh(&hullMap, &btTransformMap);
-        if (rawCollisionMesh != nullptr) {
-            btCollisionShape *meshCollisionShape;
-            if (mass == 0 && !animated ) {
-                meshCollisionShape = new btBvhTriangleMeshShape(rawCollisionMesh, true);
-            } else {
-                btConvexTriangleMeshShape *convexTriangleMeshShape = new btConvexTriangleMeshShape(rawCollisionMesh);
-                meshCollisionShape = convexTriangleMeshShape;
-                if (rawCollisionMesh->getNumTriangles() > 24) {
-                    btShapeHull *hull = new btShapeHull(convexTriangleMeshShape);
-                    btScalar margin = convexTriangleMeshShape->getMargin();
-                    hull->buildHull(margin);
-                    delete convexTriangleMeshShape;
-                    convexTriangleMeshShape = nullptr; //this is not needed, but I am leaving here in case I try to use it at a later revision.
-
-                    meshCollisionShape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
-                                                               hull->numVertices());
-                    delete hull;
-                }
-            }
-            if(!animated) {
-                //since there is no animation, we don't have to put the elements in order.
-                compoundShape->addChildShape(baseTransform, meshCollisionShape);//this add the mesh to collision shape
-            }
-        }
-    }
-
-    if (animated) {
-        std::map<uint32_t, btConvexHullShape *>::iterator it;
-        for (unsigned int i = 0;i < 128; i++) {//FIXME 128 is the number of bones supported. It should be an option or an constant
-            if (btTransformMap.find(i) != btTransformMap.end() && hullMap.find(i) != hullMap.end()) {
-                boneIdCompoundChildMap[i] = compoundShape->getNumChildShapes();//get numchild actually increase with each new child add below
-                compoundShape->addChildShape(btTransformMap[i], hullMap[i]);//this add the mesh to collision shape, in order
-            }
-        }
-    }
-
-    btDefaultMotionState *initialMotionState = new btDefaultMotionState(
+    compoundShape = this->modelAsset->getCompoundShapeForMass(this->mass, this->boneIdCompoundChildMap, childrenPhysicsShapes);
+    motionState = new btDefaultMotionState(
             btTransform(btQuaternion(0, 0, 0, 1), GLMConverter::GLMToBlt(centerOffset)));
 
     btVector3 fallInertia(0, 0, 0);
     compoundShape->calculateLocalInertia(mass, fallInertia);
     btRigidBody::btRigidBodyConstructionInfo *rigidBodyConstructionInfo = new btRigidBody::btRigidBodyConstructionInfo(
-            mass, initialMotionState, compoundShape, fallInertia);
+            mass, motionState, compoundShape, fallInertia);
     rigidBody = new btRigidBody(*rigidBodyConstructionInfo);
     delete rigidBodyConstructionInfo;
 
@@ -471,9 +431,13 @@ Model::~Model() {
     if(this->parentObject != nullptr) {
         this->parentObject->removeChild(this);
     }
-    delete rigidBody->getMotionState();
+
+    delete motionState;
     delete rigidBody;
     delete compoundShape;
+    for (btCollisionShape* shape:childrenPhysicsShapes) {
+        delete shape;
+    }
     delete AIActor;
 
     for (size_t i = 0; i < meshMetaData.size(); ++i) {
@@ -483,7 +447,6 @@ Model::~Model() {
     for (size_t i = 0; i < children.size(); ++i) {
         children[i]->setParentObject(nullptr);
     }
-
     assetManager->freeAsset({name});
 }
 

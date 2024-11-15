@@ -58,6 +58,9 @@ class Model : public PhysicalRenderable, public GameObject {
     std::shared_ptr<Sound> stepOnSound = nullptr;
 
     btCompoundShape *compoundShape;
+    btDefaultMotionState *motionState;
+    std::vector<btCollisionShape *> childrenPhysicsShapes;
+
     std::unordered_map<std::string, std::shared_ptr<Material>> materialMap;
     int diffuseMapAttachPoint = 1;
     int ambientMapAttachPoint = 2;

@@ -127,6 +127,8 @@ void ModelAsset::loadCPUPart() {
     }
 
     this->deserializeCustomizations();
+
+    buildPhysicsMeshes();
 }
 
 
@@ -833,4 +835,116 @@ bool ModelAsset::isTransparent() const {
         return false;
     }
     return transparentMaterialUsed;
+}
+
+void ModelAsset::buildPhysicsMeshes() {
+    std::cerr << "building physics meshes for " << this->name << std::endl;
+    baseTransform.setIdentity();
+    baseTransform.setOrigin(GLMConverter::GLMToBlt(-1.0f * centerOffset));
+
+    std::vector<std::shared_ptr<MeshAsset>> physicalMeshes = getPhysicsMeshes();
+    if(!this->isAnimated()) {
+        //we can end up here if mass is 0, but if mass is not 0, we will not be using this one but the other one, so we need both
+        compoundShapeForConvex = new btCompoundShape();
+    } else {
+        // For animated, we can't get the triangles, so we just get the convex hull
+        compoundShapeForConvex = new btCompoundShape();
+    }
+
+    for(auto iter = physicalMeshes.begin(); iter != physicalMeshes.end(); ++iter) {
+
+        btTriangleMesh *rawCollisionMesh = (*iter)->getBulletMesh(&bulletHullMap, &bulletTransformMap);
+        if (rawCollisionMesh != nullptr) {
+            btCollisionShape *meshCollisionShape;
+            if (!this->isAnimated() ) {
+                //btTriangleIndexVertexArray *indexArray = new btTriangleIndexVertexArray(rawCollisionMesh->getIndexedMeshArray()[0];
+                btBvhTriangleMeshShape* bvhTriangleMeshShape = new btBvhTriangleMeshShape(rawCollisionMesh, true, true);
+                meshCollisionShapesForTriangle.emplace_back(bvhTriangleMeshShape);
+            //}
+            btConvexTriangleMeshShape *convexTriangleMeshShape = new btConvexTriangleMeshShape(rawCollisionMesh);
+            meshCollisionShape = convexTriangleMeshShape;
+            if (rawCollisionMesh->getNumTriangles() > 24) {
+                btShapeHull *hull = new btShapeHull(convexTriangleMeshShape);
+                btScalar margin = convexTriangleMeshShape->getMargin();
+                hull->buildHull(margin);
+                delete convexTriangleMeshShape;
+                convexTriangleMeshShape = nullptr; //this is not needed, but I am leaving here in case I try to use it at a later revision.
+
+                meshCollisionShape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
+                                                           hull->numVertices());
+                delete hull;
+                // FIXME Looks like we are leaking all the meshCollisionShape variables?
+            }
+            //if(!this->isAnimated()) {
+                //this has to be here, because we are overriding the shape
+                compoundShapeForConvex->addChildShape(baseTransform, meshCollisionShape);
+            reusableMeshes.emplace_back(meshCollisionShape);
+            }
+        }
+    }
+
+    if (this->isAnimated()) {
+        std::map<uint32_t, btConvexHullShape *>::iterator it;
+        for (unsigned int i = 0;i < 128; i++) {//FIXME 128 is the number of bones supported. It should be an option or an constant
+            if (bulletTransformMap.find(i) != bulletTransformMap.end() && bulletHullMap.find(i) != bulletHullMap.end()) {
+                boneIdCompoundChildMap[i] = compoundShapeForConvex->getNumChildShapes();//get numchild actually increase with each new child add below
+                compoundShapeForConvex->addChildShape(bulletTransformMap[i], bulletHullMap[i]);//this add the mesh to collision shape, in order
+            }
+        }
+    }
+}
+
+btCompoundShape * ModelAsset::getCompoundShapeForMass(uint32_t mass, std::map<uint32_t, uint32_t> &boneIdCompoundChildMap, std::vector<btCollisionShape *>& childrenShapes) {
+
+    btCompoundShape *copyMesh =new btCompoundShape();
+    if (!this->isAnimated() && mass==0) {
+        for(int i= 0; i < meshCollisionShapesForTriangle.size(); ++i) {
+            copyMesh->addChildShape(baseTransform,
+                    new btScaledBvhTriangleMeshShape(
+                            reinterpret_cast<btBvhTriangleMeshShape *>(meshCollisionShapesForTriangle[i]), btVector3(1, 1, 1)));
+        }
+    } else {
+
+        for(int i= 0; i < compoundShapeForConvex->getNumChildShapes(); ++i) {
+            btCollisionShape *newChild;
+            if(compoundShapeForConvex->getChildShape(i)->getShapeType() == CONVEX_TRIANGLEMESH_SHAPE_PROXYTYPE) {
+                newChild = new btConvexTriangleMeshShape(*(static_cast<btConvexTriangleMeshShape *>(compoundShapeForConvex->getChildShape(i))));
+            } else if(compoundShapeForConvex->getChildShape(i)->getShapeType() == CONVEX_HULL_SHAPE_PROXYTYPE) {
+                newChild = new btConvexHullShape(*(static_cast<btConvexHullShape *>(compoundShapeForConvex->getChildShape(i))));
+            } else {
+                newChild = new btBoxShape(btVector3(1,1,1));
+                std::cerr << "Unknown type of shape found" << std::endl;
+            }
+            childrenShapes.emplace_back(newChild);
+            copyMesh->addChildShape(baseTransform, newChild);
+        }
+    }
+    if (this->isAnimated()) {
+        for(auto it = this->boneIdCompoundChildMap.begin(); it != this->boneIdCompoundChildMap.end(); ++it) {
+            boneIdCompoundChildMap[it->first] = it->second;
+        }
+    }
+
+    return copyMesh;
+}
+
+ModelAsset::~ModelAsset() {
+    for (auto materialIt: materialMap) {
+        assetManager->unregisterMaterial(materialIt.second);
+    }
+
+    for (unsigned int i = 0; i < shapeCopies.size(); ++i) {
+        delete shapeCopies[i];
+    }
+
+    delete compoundShapeForConvex;
+
+    for (btCollisionShape* shape:reusableMeshes) {
+        delete shape;
+    }
+
+    for (btBvhTriangleMeshShape* shape:meshCollisionShapesForTriangle) {
+        delete shape;
+    }
+    //FIXME GPU side is not freed
 }

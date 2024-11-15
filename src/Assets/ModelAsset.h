@@ -69,13 +69,20 @@ class ModelAsset : public Asset {
     glm::vec3 centerOffset;
 
     std::unordered_map<std::string, std::shared_ptr<Material>> materialMap;//shared with model
-    std::vector<btConvexShape *> shapeCopies;
     std::vector<std::shared_ptr<MeshAsset>> meshes;
     std::vector<AnimationSection> animationSections;
 
     std::unordered_map<std::string, std::shared_ptr<MeshAsset>> simplifiedMeshes;//physics
     std::unordered_map<std::string, BoneInformation> boneInformationMap;
 
+    std::vector<btCompoundShape *> shapeCopies;
+    btCompoundShape *compoundShapeForConvex; // used for non zero mass objects or animated objects
+    std::map<uint32_t, btTransform> bulletTransformMap;
+    std::map<uint32_t, btConvexHullShape *> bulletHullMap;
+    btTransform baseTransform;
+    std::map<uint32_t, uint32_t> boneIdCompoundChildMap;
+    std::vector<btBvhTriangleMeshShape *>meshCollisionShapesForTriangle;
+    std::vector<btCollisionShape *> reusableMeshes;
     bool hasAnimation;
     bool customizationAfterSave = false;
 
@@ -164,12 +171,7 @@ public:
      */
     const std::unordered_map<std::string, std::shared_ptr<Material>> &getMaterialMap() const { return materialMap; };
 
-    ~ModelAsset() {
-        for (auto materialIt: materialMap) {
-            assetManager->unregisterMaterial(materialIt.second);
-        }
-        //FIXME GPU side is not freed
-    }
+    ~ModelAsset();
 
     std::vector<std::shared_ptr<MeshAsset>> getMeshes() const {
         return meshes;
@@ -193,6 +195,7 @@ public:
         }
         return meshAssets;
     }
+    btCompoundShape * getCompoundShapeForMass(uint32_t mass, std::map<uint32_t, uint32_t> &boneIdCompoundChildMap, std::vector<btCollisionShape *>& childrenShapes);
 
     void fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimations, const std::string &animationNamePrefix = "");
 
@@ -222,10 +225,13 @@ public:
         temporaryEmbeddedTextures = std::make_unique<std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>>>();
         ar(assetID, boneIDCounter, boneIDCounterPerMesh, *temporaryEmbeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, transparentMaterialUsed);
         //now update embedded textures to assetManager
+        buildPhysicsMeshes();
     }
 #endif
 
     bool isTransparent() const;
+
+    void buildPhysicsMeshes();
 };
 
 
