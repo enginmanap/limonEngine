@@ -855,30 +855,26 @@ void ModelAsset::buildPhysicsMeshes() {
 
         btTriangleMesh *rawCollisionMesh = (*iter)->getBulletMesh(&bulletHullMap, &bulletTransformMap);
         if (rawCollisionMesh != nullptr) {
-            btCollisionShape *meshCollisionShape;
             if (!this->isAnimated() ) {
                 //btTriangleIndexVertexArray *indexArray = new btTriangleIndexVertexArray(rawCollisionMesh->getIndexedMeshArray()[0];
                 btBvhTriangleMeshShape* bvhTriangleMeshShape = new btBvhTriangleMeshShape(rawCollisionMesh, true, true);
                 meshCollisionShapesForTriangle.emplace_back(bvhTriangleMeshShape);
-            //}
-            btConvexTriangleMeshShape *convexTriangleMeshShape = new btConvexTriangleMeshShape(rawCollisionMesh);
-            meshCollisionShape = convexTriangleMeshShape;
-            if (rawCollisionMesh->getNumTriangles() > 24) {
-                btShapeHull *hull = new btShapeHull(convexTriangleMeshShape);
-                btScalar margin = convexTriangleMeshShape->getMargin();
-                hull->buildHull(margin);
-                delete convexTriangleMeshShape;
-                convexTriangleMeshShape = nullptr; //this is not needed, but I am leaving here in case I try to use it at a later revision.
 
-                meshCollisionShape = new btConvexHullShape((const btScalar *) hull->getVertexPointer(),
-                                                           hull->numVertices());
-                delete hull;
-                // FIXME Looks like we are leaking all the meshCollisionShape variables?
-            }
-            //if(!this->isAnimated()) {
-                //this has to be here, because we are overriding the shape
+                btConvexTriangleMeshShape *convexTriangleMeshShape = new btConvexTriangleMeshShape(rawCollisionMesh);
+                btCollisionShape *meshCollisionShape = convexTriangleMeshShape; //This is needed because we have to keep convex type for hull checks
+                if (rawCollisionMesh->getNumTriangles() > 24) {
+                    btShapeHull *hull = new btShapeHull(convexTriangleMeshShape);
+                    btScalar margin = convexTriangleMeshShape->getMargin();
+                    hull->buildHull(margin);
+                    delete convexTriangleMeshShape;
+                    convexTriangleMeshShape = nullptr; //this is not needed, but I am leaving here in case I try to use it at a later revision.
+
+                    meshCollisionShape = new btConvexHullShape(reinterpret_cast<const btScalar *>(hull->getVertexPointer()),
+                                                               hull->numVertices());
+                    delete hull;
+                }
                 compoundShapeForConvex->addChildShape(baseTransform, meshCollisionShape);
-            reusableMeshes.emplace_back(meshCollisionShape);
+                reusableMeshes.emplace_back(meshCollisionShape);
             }
         }
     }
