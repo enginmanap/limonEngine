@@ -30,6 +30,8 @@
 class AnimationAssimp;
 
 class ModelAsset : public Asset {
+    void loadCPUPart() override;
+    void loadGPUPart() override;
 
     struct BoneInformation {
         glm::mat4 offset;
@@ -126,9 +128,6 @@ class ModelAsset : public Asset {
      */
     ModelAsset() : Asset(nullptr, 0, std::vector<std::string>()) {};
 
-protected:
-    void loadCPUPart() override;
-    void loadGPUPart() override;
 public:
     ModelAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList);
 #ifdef CEREAL_SUPPORT

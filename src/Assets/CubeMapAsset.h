@@ -21,7 +21,6 @@ class CubeMapAsset : public Asset {
     std::string names[6];
     std::unique_ptr<Texture> texture;
 
-protected:
     void loadCPUPart() override {
         //not implemented
     }

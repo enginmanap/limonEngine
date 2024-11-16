@@ -15,7 +15,6 @@ class SoundAsset : public Asset {
     uint64_t sampleCount;
     int16_t* soundData = nullptr; //PCM 16bit, prefer single channel
     std::string name;
-protected:
     void loadCPUPart() override;
     void loadGPUPart() override {
         // do nothing, this asset doesn't need to be loaded on GPU

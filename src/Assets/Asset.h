@@ -17,12 +17,28 @@
 class AssetManager;//avoid cyclic include
 
 class Asset {
+public:
+    enum class LoadState {INITIATED, CPU_LOAD_DONE, DONE};
+private:
+    friend class AssetManager;
 
+    LoadState loadState = LoadState::INITIATED;
+
+    void setLoadState(LoadState state) { loadState = state; }
+    virtual void loadCPUPart() = 0;
+    virtual void loadGPUPart() = 0;
+
+    /**
+ * Override loadCPU and loadGPU method, and don't change this.
+ */
+    void load() {
+        loadCPUPart();
+        loadGPUPart();
+        this->setLoadState(LoadState::DONE);
+    };
 protected:
     AssetManager* assetManager;
     uint32_t assetID;
-    bool loadStarted = false;
-    bool loadFinished = false;
     //SDL2Helper::SpinLock loadingLock;// should lock on load start, and unlock at load end.
     /**
      * This is an empty constructor, used to indicate what parameters the Asset constructors must have.
@@ -44,47 +60,8 @@ protected:
 #endif
 
 public:
-    virtual void loadCPUPart() = 0;
-    virtual void loadGPUPart() = 0;
-
-    /**
-     * Override loadCPUPart method, and don't change this.
-     */
-    void load() {
-        //loadingLock.lock();
-        loadStarted = true;
-        loadCPUPart();
-        loadGPUPart();
-        loadFinished = true;
-        //loadingLock.unlock();
-    };
-
     uint32_t getAssetID() const {
         return assetID;
-    }
-
-    bool isLoadFinished() const {
-        return loadFinished;
-    }
-
-    void waitUntilLoadFinish() {
-        if(loadFinished) {
-            return;
-        }
-        if(!loadStarted) {
-            std::cerr << "waiting before starting the load, sleeping to get valid state" << std::endl;
-            while (!loadStarted) {
-                std::this_thread::sleep_for(std::chrono::milliseconds (10));
-            }
-        }
-        //now we started, wait until we finish
-        while (!loadFinished) {
-            std::this_thread::sleep_for(std::chrono::milliseconds (10));
-        }
-
-        //loadingLock.lock();
-        //loadingLock.unlock();
-
     }
 
     virtual ~Asset() = default;

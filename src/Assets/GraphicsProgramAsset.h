@@ -26,7 +26,6 @@ class GraphicsProgramAsset : public Asset {
     std::unordered_map<std::string, std::shared_ptr<Uniform>> uniformMap;
     std::unordered_map<std::string, uint32_t> attributesMap;
     std::unordered_map<std::string, std::pair<Uniform::VariableTypes, GraphicsInterface::FrameBufferAttachPoints>>outputMap;
-protected:
     void loadCPUPart() override {} //we don't need to load anything
     void loadGPUPart() override {} //we don't need to load anything
 public:

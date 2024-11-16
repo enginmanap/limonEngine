@@ -146,9 +146,9 @@ private:
     void cpuLoadAsset(bool& running) {
         while(running) {
             std::shared_ptr<Asset> asset = assetLoadCpuQueue.popFrontOrBlock();
-            //std::cout << "CPU loading asset " << asset->getNameSIL() << std::endl;
+
             asset->loadCPUPart();
-            //std::cout << "CPU loading asset " << asset->getNameSIL() << " done"<< std::endl;
+            asset->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
             assetLoadGPUQueue.pushBack(asset);
         }
     }
@@ -245,13 +245,56 @@ public:
         while(finishedAssetCount != startedAssetCount) {
             std::shared_ptr<Asset> asset = assetLoadGPUQueue.popFrontOrReturn();
             if(asset != nullptr) {
-                //std::cout << "graphics loading asset " << asset->getNameSIL() << std::endl;
                 asset->loadGPUPart();
-                //std::cout << "graphics loading asset " << asset->getNameSIL() << " done"<< std::endl;
+                asset->setLoadState(Asset::LoadState::DONE);
                 finishedAssetCount++;
             }
         }
         return loadedAssets;
+    }
+
+    template<class T>
+    std::shared_ptr<T> partialLoadAssetAsync(const std::vector<std::string> files) {
+        std::vector<std::shared_ptr<T>> loadedAssets;
+            if (assets.count(files) == 0) {
+                bool loaded = false;
+                //check if asset is cereal deserialize file.
+                if(files.size() == 1) {
+                    std::string extension = files[0].substr(files[0].find_last_of(".") + 1);
+                    if (extension == "limonmodel") {
+#ifdef CEREAL_SUPPORT
+                        std::ifstream is(files[0], std::ios::binary);
+                        cereal::BinaryInputArchive archive(is);
+                        assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files, archive), 0);
+                        nextAssetIndex++;
+#else
+                        std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
+                    std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
+                    exit(-1);
+#endif
+                        loaded = true;
+                    }
+                }
+                if(!loaded) {
+                    assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files), 0);
+                    nextAssetIndex++;
+                    assetLoadCpuQueue.pushBack(assets[files].first);
+                }
+            }
+            assets[files].second++;
+            loadedAssets.emplace_back(std::dynamic_pointer_cast<T>(assets[files].first));
+
+        //now load the assets to GPU on main thread
+        return loadedAssets;
+    }
+
+    bool partialLoadGPUSize(Asset* asset) {
+        if(asset->loadState != Asset::LoadState::CPU_LOAD_DONE) {
+            return false;
+        }
+        asset->loadGPUPart();
+        //now load the assets to GPU on main thread
+        return true;
     }
 
     template<class T>
@@ -281,7 +324,12 @@ public:
                 nextAssetIndex++;
             }
         }
-
+        if(assets[files].first->loadState != Asset::LoadState::DONE) {
+            //some other thread is working on this, we should block.
+            while (assets[files].first->loadState != Asset::LoadState::DONE) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(15));
+            }
+        }
         assets[files].second++;
         return std::dynamic_pointer_cast<T>(assets[files].first);
     }
