@@ -64,6 +64,8 @@ public:
         return assetID;
     }
 
+    const LoadState& getLoadState() {return loadState;}
+
     virtual ~Asset() = default;
 };
 

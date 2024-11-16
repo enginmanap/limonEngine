@@ -29,9 +29,11 @@ static const int SKIP_LOD_LEVEL = 9999;
 #include "Graphics/GraphicsPipeline.h"
 #include "PhysicalRenderable.h"
 #include "VisibilityRequest.h"
+#include "GameObjects/Model.h"
+
+class Editor;
 class btGhostPairCallback;
 class PerspectiveCamera;
-#include "GameObjects/Model.h"
 class BulletDebugDrawer;
 
 class AIMovementGrid;
@@ -201,6 +203,7 @@ private:
 
     mutable std::vector<uint32_t > modelIndicesBuffer;
     std::shared_ptr<AssetManager> assetManager;
+    std::unique_ptr<Editor> editor;
     Options* options;
     uint32_t nextWorldID = 2;
     std::queue<uint32_t> unusedIDs;

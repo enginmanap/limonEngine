@@ -57,7 +57,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
         alHelper(assetManager->getAlHelper()), name(name), fontManager(graphicsWrapper),
         startingPlayer(startingPlayerType) {
     strncpy(worldSaveNameBuffer, name.c_str(), sizeof(worldSaveNameBuffer) -1 );
-
+    editor = std::make_unique<Editor>(this);
     // physics init
     broadphase = new btDbvtBroadphase();
     ghostPairCallback = new btGhostPairCallback();
@@ -1027,7 +1027,7 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
        temp.push_back(playerPlaceHolder->getWorldObjectID());
        playerPlaceHolder->renderWithProgramInstanced(temp, *(graphicsProgram.get()), 0);
    }
-   Editor::renderEditor(*this);
+   editor->renderEditor();
 }
 
 void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove,

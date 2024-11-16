@@ -8,17 +8,21 @@
 #include "ImGui/imgui.h"
 class World;
 class PhysicalRenderable;
-
+class ModelAsset;
 
 class Editor {
+    World* world;
 public:
-    static void renderEditor(World& world);
+    Editor(World* world) : world(world) {};
+    void renderEditor();
 
 private:
-    static void buildTreeFromAllGameObjects(World& world);
+    std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsWaitingCPULoad;
+    std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsPreloaded;
+    void buildTreeFromAllGameObjects();
 
-    static void addAnimationDefinitionToEditor(World& world);
-    static void createObjectTreeRecursive(World& world, PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID,
+    void addAnimationDefinitionToEditor();
+    void createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID,
                                           ImGuiTreeNodeFlags nodeFlags, ImGuiTreeNodeFlags leafFlags,
                                           std::vector<uint32_t> parentage);
 };

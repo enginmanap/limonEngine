@@ -4,7 +4,7 @@
 
 #include <Assets/Animations/AnimationLoader.h>
 #include "Editor.h"
-#include "World.h"
+#include "world.h"
 #include "ImGuiHelper.h"
 #include "Camera/PerspectiveCamera.h"
 #include "GameObjects/Model.h"
@@ -17,7 +17,6 @@
 #include "GUI/GUICursor.h"
 #include "GUI/GUILayer.h"
 #include "Assets/Animations/AnimationCustom.h"
-#include "Assets/Animations/AnimationInterface.h"
 #include "AnimationSequencer.h"
 #include "WorldSaver.h"
 #include "AI/AIMovementGrid.h"
@@ -33,30 +32,30 @@ bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {
 
 }
 
-void Editor::renderEditor(World& world) {
+void Editor::renderEditor() {
 
-    world.imgGuiHelper->NewFrame();
-    if(world.showNodeGraph) {
-        world.drawNodeEditor();
-        world.imgGuiHelper->RenderDrawLists();
+    world->imgGuiHelper->NewFrame();
+    if(world->showNodeGraph) {
+        world->drawNodeEditor();
+        world->imgGuiHelper->RenderDrawLists();
         return;
     }
     /* window definitions */
     {
         ImGui::Begin("Editor");
-        if(world.guiPickMode == false) {
+        if(world->guiPickMode == false) {
             if (ImGui::Button("Switch to GUI selection mode")) {
-                world.guiPickMode = true;
+                world->guiPickMode = true;
             }
         } else {
             if (ImGui::Button("Switch to World selection mode")) {
-                world.guiPickMode = false;
+                world->guiPickMode = false;
             }
         }
 
         //list available elements
         static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
-        glm::vec3 newObjectPosition = world.playerCamera->getPosition() + 10.0f * world.playerCamera->getCenter();
+        glm::vec3 newObjectPosition = world->playerCamera->getPosition() + 10.0f * world->playerCamera->getCenter();
 
 
         if (ImGui::CollapsingHeader("Add New Object")) {
@@ -64,8 +63,8 @@ void Editor::renderEditor(World& world) {
             ImGui::InputText("Filter Assets ##ModelsAssetTreeFilter", modelAssetFilter, sizeof(modelAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
             std::string modelAssetFilterStr = modelAssetFilter;
             std::transform(modelAssetFilterStr.begin(), modelAssetFilterStr.end(), modelAssetFilterStr.begin(), ::tolower);
-            const AssetManager::AvailableAssetsNode* filteredAssets = world.assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_MODEL, modelAssetFilterStr);
-            world.imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_MODEL,
+            const AssetManager::AvailableAssetsNode* filteredAssets = world->assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_MODEL, modelAssetFilterStr);
+            world->imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_MODEL,
                                               "Model",
                                               &selectedAsset);
 
@@ -78,81 +77,98 @@ void Editor::renderEditor(World& world) {
                 ImGui::SameLine();
                 ImGuiHelper::ShowHelpMarker("No Asset Selected!");
             } else {
+
+                if((
+                        modelAssetsWaitingCPULoad.find(selectedAsset->fullPath) == modelAssetsWaitingCPULoad.end()
+                        && world->assetManager->isLoaded({selectedAsset->fullPath})) || modelAssetsPreloaded.find(selectedAsset->fullPath) != modelAssetsPreloaded.end()) {
+                    ImGui::Text("Preloaded");
+                } else if(modelAssetsWaitingCPULoad.find(selectedAsset->fullPath) != modelAssetsWaitingCPULoad.end()) {
+                    if(modelAssetsWaitingCPULoad[selectedAsset->fullPath]->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
+                        world->assetManager->partialLoadGPUSide(modelAssetsWaitingCPULoad[selectedAsset->fullPath]);
+                        modelAssetsPreloaded[selectedAsset->fullPath] = modelAssetsWaitingCPULoad[selectedAsset->fullPath];
+                        modelAssetsWaitingCPULoad.erase(selectedAsset->fullPath);
+                    } else {
+                        ImGui::Text("Loading...");
+                    }
+                } else {
+                    ImGui::Text("Requesting Load");
+                    modelAssetsWaitingCPULoad[selectedAsset->fullPath] = world->assetManager->partialLoadAssetAsync<ModelAsset>({selectedAsset->fullPath});
+                }
                 if(ImGui::Button("Add Object")) {
-                    Model* newModel = new Model(world.getNextObjectID(), world.assetManager, newObjectWeight,
+                    Model* newModel = new Model(world->getNextObjectID(), world->assetManager, newObjectWeight,
                                                 selectedAsset->fullPath, false);
                     newModel->getTransformation()->setTranslate(newObjectPosition);
-                    world.addModelToWorld(newModel);
+                    world->addModelToWorld(newModel);
                     newModel->getRigidBody()->activate();
-                    if(world.pickedObject != nullptr ) {
-                        world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                    if(world->pickedObject != nullptr ) {
+                        world->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
                     }
-                    world.pickedObject = static_cast<GameObject*>(newModel);
-                    world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+                    world->pickedObject = static_cast<GameObject*>(newModel);
+                    world->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
                 }
             }
         }
-        if(world.pickedObject != nullptr && world.pickedObject->getTypeID() == GameObject::MODEL) {
+        if(world->pickedObject != nullptr && world->pickedObject->getTypeID() == GameObject::MODEL) {
             ImGui::Separator();
             static float copyOffsets[3] { 0.25f, 0.25f, 0.25f};
             ImGui::DragFloat3("Copy position offsets", copyOffsets, 0.1f);
             if (ImGui::Button("Copy Selected object")) {
-                if(world.pickedObject != nullptr ) {
-                    world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                if(world->pickedObject != nullptr ) {
+                    world->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
                 }
-                Model* pickedModel = dynamic_cast<Model*>(world.pickedObject);
-                world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
-                Model* newModel = new Model(*pickedModel, world.getNextObjectID());
+                Model* pickedModel = dynamic_cast<Model*>(world->pickedObject);
+                world->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+                Model* newModel = new Model(*pickedModel, world->getNextObjectID());
                 newModel->getTransformation()->addTranslate(glm::vec3(copyOffsets[0], copyOffsets[1], copyOffsets[2]));
-                world.addModelToWorld(newModel);
+                world->addModelToWorld(newModel);
                 //now we should apply the animations
 
-                if(world.onLoadAnimations.find(pickedModel) != world.onLoadAnimations.end() &&
-                        world.activeAnimations.find(pickedModel) != world.activeAnimations.end()) {
-                    world.addAnimationToObject(newModel->getWorldObjectID(), world.activeAnimations[pickedModel]->animationIndex,
+                if(world->onLoadAnimations.find(pickedModel) != world->onLoadAnimations.end() &&
+                        world->activeAnimations.find(pickedModel) != world->activeAnimations.end()) {
+                    world->addAnimationToObject(newModel->getWorldObjectID(), world->activeAnimations[pickedModel]->animationIndex,
                                          true, true);
                 }
-                if(world.pickedObject != nullptr ) {
-                    world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                if(world->pickedObject != nullptr ) {
+                    world->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
                 }
-                world.pickedObject = static_cast<GameObject*>(newModel);
-                world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+                world->pickedObject = static_cast<GameObject*>(newModel);
+                world->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
             }
 
             if(ImGui::Button("Attach this object to another")) {
 
-                world.objectToAttach = dynamic_cast<Model*>(world.pickedObject);
+                world->objectToAttach = dynamic_cast<Model*>(world->pickedObject);
             }
-            if(world.objectToAttach != nullptr) {
+            if(world->objectToAttach != nullptr) {
                 ImGui::SameLine();
-                ImGuiHelper::ShowHelpMarker("Saved Object: " + world.objectToAttach->getName());
+                ImGuiHelper::ShowHelpMarker("Saved Object: " + world->objectToAttach->getName());
             }
-            if(world.objectToAttach!= nullptr && world.objectToAttach->getWorldObjectID() != world.pickedObject->getWorldObjectID()) {
-                std::string savedObjectName = world.objectToAttach->getName();
+            if(world->objectToAttach!= nullptr && world->objectToAttach->getWorldObjectID() != world->pickedObject->getWorldObjectID()) {
+                std::string savedObjectName = world->objectToAttach->getName();
                 if (ImGui::Button("Attach saved object to current")) {
-                    Model *pickedModel = dynamic_cast<Model *>(world.pickedObject);
+                    Model *pickedModel = dynamic_cast<Model *>(world->pickedObject);
                     int32_t attachedBoneID;
                     Transformation* pickedModelTransformation = pickedModel->getAttachmentTransform(attachedBoneID);
 
                     glm::vec3 translate, scale;
                     glm::quat orientation;
-                    pickedModelTransformation->getDifferenceStacked(*world.objectToAttach->getTransformation(), translate,
+                    pickedModelTransformation->getDifferenceStacked(*world->objectToAttach->getTransformation(), translate,
                                                                      scale, orientation);
-                    world.objectToAttach->getTransformation()->setTranslate(translate);
-                    world.objectToAttach->getTransformation()->setScale(scale);
-                    world.objectToAttach->getTransformation()->setOrientation(orientation);
-                    world.objectToAttach->getTransformation()->setParentTransform(pickedModelTransformation);
-                    world.objectToAttach->setParentObject(pickedModel, attachedBoneID);
-                    pickedModel->addChild(world.objectToAttach);
-                    world.objectToAttach = nullptr;
+                    world->objectToAttach->getTransformation()->setTranslate(translate);
+                    world->objectToAttach->getTransformation()->setScale(scale);
+                    world->objectToAttach->getTransformation()->setOrientation(orientation);
+                    world->objectToAttach->getTransformation()->setParentTransform(pickedModelTransformation);
+                    world->objectToAttach->setParentObject(pickedModel, attachedBoneID);
+                    pickedModel->addChild(world->objectToAttach);
+                    world->objectToAttach = nullptr;
                 }
                 ImGui::SameLine();
                 ImGuiHelper::ShowHelpMarker("Saved Object: " + savedObjectName);
                 ImGui::SameLine();
-                ImGuiHelper::ShowHelpMarker("Current Object: " + world.pickedObject->getName());
+                ImGuiHelper::ShowHelpMarker("Current Object: " + world->pickedObject->getName());
             }
-            if(world.pickedObject != nullptr && world.pickedObject->getTypeID() == GameObject::MODEL) {
-                Model *pickedModel = dynamic_cast<Model *>(world.pickedObject);
+            if(world->pickedObject != nullptr && world->pickedObject->getTypeID() == GameObject::MODEL) {
+                Model *pickedModel = dynamic_cast<Model *>(world->pickedObject);
                 if(pickedModel->getParentObject() != nullptr) {
                     if (ImGui::Button("Detach object from parent")) {
                         pickedModel->getTransformation()->removeParentTransform();
@@ -161,13 +177,13 @@ void Editor::renderEditor(World& world) {
                 }
             }
         }
-        if(world.pickedObject != nullptr && world.pickedObject->getTypeID() == GameObject::PLAYER) {
-            if(world.objectToAttach!= nullptr && world.objectToAttach->getWorldObjectID() != world.pickedObject->getWorldObjectID()) {
+        if(world->pickedObject != nullptr && world->pickedObject->getTypeID() == GameObject::PLAYER) {
+            if(world->objectToAttach!= nullptr && world->objectToAttach->getWorldObjectID() != world->pickedObject->getWorldObjectID()) {
                 if (ImGui::Button("Attach saved object to Player")) {
-                    world.clearWorldRefsBeforeAttachment(world.objectToAttach);
-                    world.physicalPlayer->setAttachedModel(world.objectToAttach);
-                    world.startingPlayer.attachedModel = world.objectToAttach;
-                    world.objectToAttach = nullptr;
+                    world->clearWorldRefsBeforeAttachment(world->objectToAttach);
+                    world->physicalPlayer->setAttachedModel(world->objectToAttach);
+                    world->startingPlayer.attachedModel = world->objectToAttach;
+                    world->objectToAttach = nullptr;
                 }
             }
         }
@@ -176,9 +192,9 @@ void Editor::renderEditor(World& world) {
         if (ImGui::CollapsingHeader("Model Groups")) {
             static uint32_t selectedModelGroup = 0;
 
-            if (ImGui::BeginCombo("Model Group##combobox", (selectedModelGroup == 0? "No Group Selected." : world.modelGroups[selectedModelGroup]->getName().c_str()))) {
-                for (auto iterator = world.modelGroups.begin();
-                     iterator != world.modelGroups.end(); ++iterator) {
+            if (ImGui::BeginCombo("Model Group##combobox", (selectedModelGroup == 0? "No Group Selected." : world->modelGroups[selectedModelGroup]->getName().c_str()))) {
+                for (auto iterator = world->modelGroups.begin();
+                     iterator != world->modelGroups.end(); ++iterator) {
                     bool isThisTypeSelected = iterator->first == selectedModelGroup;
                     if (ImGui::Selectable(iterator->second->getName().c_str(), isThisTypeSelected)) {
                         selectedModelGroup = iterator->first;
@@ -189,20 +205,20 @@ void Editor::renderEditor(World& world) {
                 }
                 ImGui::EndCombo();
             }
-            PhysicalRenderable* pickedPhysicalRenderable = dynamic_cast<PhysicalRenderable*>(world.pickedObject);
-            if(pickedPhysicalRenderable != nullptr && selectedModelGroup != 0 && world.pickedObject->getWorldObjectID() != selectedModelGroup) {
+            PhysicalRenderable* pickedPhysicalRenderable = dynamic_cast<PhysicalRenderable*>(world->pickedObject);
+            if(pickedPhysicalRenderable != nullptr && selectedModelGroup != 0 && world->pickedObject->getWorldObjectID() != selectedModelGroup) {
                 //now prevent adding to self
 
                 if(ImGui::Button("Add model to group")) {
-                    world.modelGroups[selectedModelGroup]->addChild(pickedPhysicalRenderable);
+                    world->modelGroups[selectedModelGroup]->addChild(pickedPhysicalRenderable);
                 }
             } else {
                 ImGui::Button("Add model to group");
-                if(world.pickedObject == nullptr) {
+                if(world->pickedObject == nullptr) {
                     ImGui::SameLine();
                     ImGuiHelper::ShowHelpMarker("No object Selected");
                 }else {
-                    if (world.pickedObject->getWorldObjectID() == selectedModelGroup) {
+                    if (world->pickedObject->getWorldObjectID() == selectedModelGroup) {
                         ImGui::SameLine();
                         ImGuiHelper::ShowHelpMarker("Group can't be added to self");
                     }
@@ -221,8 +237,8 @@ void Editor::renderEditor(World& world) {
             ImGui::InputText("Name of the Model Group: ", modelGroupNameBuffer, sizeof(modelGroupNameBuffer), ImGuiInputTextFlags_CharsNoBlank);
             if(modelGroupNameBuffer[0] != 0 ) {
                 if(ImGui::Button("Create Group")) {
-                    ModelGroup* modelGroup = new ModelGroup(world.graphicsWrapper, world.getNextObjectID(), std::string(modelGroupNameBuffer));
-                    world.modelGroups[modelGroup->getWorldObjectID()] = modelGroup;
+                    ModelGroup* modelGroup = new ModelGroup(world->graphicsWrapper, world->getNextObjectID(), std::string(modelGroupNameBuffer));
+                    world->modelGroups[modelGroup->getWorldObjectID()] = modelGroup;
 
                 }
             } else {
@@ -234,29 +250,29 @@ void Editor::renderEditor(World& world) {
         }
         if(ImGui::Button("Add Trigger Volume")) {
 
-            TriggerObject* to = new TriggerObject(world.getNextObjectID(), world.apiInstance);
+            TriggerObject* to = new TriggerObject(world->getNextObjectID(), world->apiInstance);
             to->getTransformation()->setTranslate(newObjectPosition);
-            world.dynamicsWorld->addCollisionObject(to->getGhostObject(), World::CollisionTypes::COLLIDE_TRIGGER_VOLUME | World::CollisionTypes::COLLIDE_EVERYTHING,
+            world->dynamicsWorld->addCollisionObject(to->getGhostObject(), World::CollisionTypes::COLLIDE_TRIGGER_VOLUME | World::CollisionTypes::COLLIDE_EVERYTHING,
                                                     World::CollisionTypes::COLLIDE_PLAYER | World::CollisionTypes::COLLIDE_EVERYTHING);
-            world.triggers[to->getWorldObjectID()] = to;
-            if(world.pickedObject != nullptr ) {
-                world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+            world->triggers[to->getWorldObjectID()] = to;
+            if(world->pickedObject != nullptr ) {
+                world->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
             }
-            world.pickedObject = static_cast<GameObject*>(to);
-            world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+            world->pickedObject = static_cast<GameObject*>(to);
+            world->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
         }
 
         if (ImGui::CollapsingHeader("Add New Light")) {
 
             if(ImGui::Button("Add Point Light")) {
-                Light* newLight = new Light(world.graphicsWrapper, world.getNextObjectID(), Light::LightTypes::POINT, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
-                world.addLight(newLight);
-                world.pickedObject = newLight;
+                Light* newLight = new Light(world->graphicsWrapper, world->getNextObjectID(), Light::LightTypes::POINT, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
+                world->addLight(newLight);
+                world->pickedObject = newLight;
             }
-            if(world.directionalLightIndex == -1) {//Allow single directional light
+            if(world->directionalLightIndex == -1) {//Allow single directional light
                 if(ImGui::Button("Add Directional Light")) {
-                    Light* newLight = new Light(world.graphicsWrapper, world.getNextObjectID(), Light::LightTypes::DIRECTIONAL, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
-                    world.addLight(newLight);
+                    Light* newLight = new Light(world->graphicsWrapper, world->getNextObjectID(), Light::LightTypes::DIRECTIONAL, newObjectPosition, glm::vec3(0.5f, 0.5f, 0.5f));
+                    world->addLight(newLight);
                 }
             }
 
@@ -265,31 +281,31 @@ void Editor::renderEditor(World& world) {
         if (ImGui::CollapsingHeader("Add GUI Elements##The header")) {
             ImGui::Indent( 16.0f );
             if (ImGui::CollapsingHeader("Add GUI Layer##The header")) {
-                world.addGUILayerControls();
+                world->addGUILayerControls();
             }
             if (ImGui::CollapsingHeader("Add GUI Text##The header")) {
-                world.addGUITextControls();
+                world->addGUITextControls();
             }
             if (ImGui::CollapsingHeader("Add GUI Image##The header")) {
-                world.addGUIImageControls();
+                world->addGUIImageControls();
             }
             if (ImGui::CollapsingHeader("Add GUI Button##The header")) {
-                world.addGUIButtonControls();
+                world->addGUIButtonControls();
             }
             if (ImGui::CollapsingHeader("Add GUI Animation##The header")) {
-                world.addGUIAnimationControls();
+                world->addGUIAnimationControls();
             }
             ImGui::Unindent( 16.0f );
         }
         if (ImGui::CollapsingHeader("Add Particle Emitter ##The header")) {
-            world.addParticleEmitterEditor();
+            world->addParticleEmitterEditor();
         }
 
         if (ImGui::CollapsingHeader("Custom Animations")) {
             //list loaded animations
             int listbox_item_current = -1;//not static because I don't want user to select a item.
             ImGui::ListBox("Loaded animations", &listbox_item_current, getNameOfLoadedAnimation,
-                           static_cast<void *>(&world.loadedAnimations), world.loadedAnimations.size(), 10);
+                           static_cast<void *>(&world->loadedAnimations), world->loadedAnimations.size(), 10);
             ImGui::Separator();
 
 
@@ -301,21 +317,21 @@ void Editor::renderEditor(World& world) {
             if (ImGui::Button("load animation")) {
                 AnimationCustom *animation = AnimationLoader::loadAnimation("./Data/Animations/" + std::string(loadAnimationNameBuffer) + ".xml");
                 if (animation == nullptr) {
-                    world.options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation load failed");
+                    world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation load failed");
                 } else {
-                    world.options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation loaded");
-                    world.loadedAnimations.push_back(*animation);
+                    world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation loaded");
+                    world->loadedAnimations.push_back(*animation);
                 }
             }
         }
         ImGui::Separator();
         if(ImGui::CollapsingHeader("Player properties")) {
-            if (ImGui::BeginCombo("Starting Type", world.startingPlayer.typeToString().c_str())) {
+            if (ImGui::BeginCombo("Starting Type", world->startingPlayer.typeToString().c_str())) {
                 for (auto iterator = World::PlayerInfo::typeNames.begin();
                      iterator != World::PlayerInfo::typeNames.end(); ++iterator) {
-                    bool isThisTypeSelected = iterator->second == world.startingPlayer.typeToString();
+                    bool isThisTypeSelected = iterator->second == world->startingPlayer.typeToString();
                     if (ImGui::Selectable(iterator->second.c_str(), isThisTypeSelected)) {
-                        world.startingPlayer.setType(iterator->second);
+                        world->startingPlayer.setType(iterator->second);
                     }
                     if (isThisTypeSelected) {
                         ImGui::SetItemDefaultFocus();
@@ -324,33 +340,33 @@ void Editor::renderEditor(World& world) {
                 ImGui::EndCombo();
             }
             static bool showError = false;
-            if(ImGui::InputText("Custom Extension name", world.extensionNameBuffer, 31, ImGuiInputTextFlags_CharsNoBlank)) {
+            if(ImGui::InputText("Custom Extension name", world->extensionNameBuffer, 31, ImGuiInputTextFlags_CharsNoBlank)) {
                 showError = false;
             }
 
-            if(world.startingPlayer.attachedModel != nullptr) {
+            if(world->startingPlayer.attachedModel != nullptr) {
                 if(ImGui::Button("Disconnect Attachment##player attachment")) {
-                    Model* attachedModel = world.startingPlayer.attachedModel;
-                    world.startingPlayer.attachedModel = nullptr;
-                    world.physicalPlayer->setAttachedModel(nullptr);
-                    world.addModelToWorld(attachedModel);
+                    Model* attachedModel = world->startingPlayer.attachedModel;
+                    world->startingPlayer.attachedModel = nullptr;
+                    world->physicalPlayer->setAttachedModel(nullptr);
+                    world->addModelToWorld(attachedModel);
                 }
             }
 
             if(ImGui::Button("Apply##PlayerExtensionUpdate")) {
-                std::string tempName = world.extensionNameBuffer;
+                std::string tempName = world->extensionNameBuffer;
                 //find the starting player, and apply this change to it:
                 Player* playerToUpdate = nullptr;
-                switch (world.startingPlayer.type) {
-                    case World::PlayerInfo::Types::DEBUG_PLAYER: playerToUpdate = world.debugPlayer; break;
-                    case World::PlayerInfo::Types::EDITOR_PLAYER: playerToUpdate = world.editorPlayer; break;
-                    case World::PlayerInfo::Types::PHYSICAL_PLAYER: playerToUpdate = world.physicalPlayer; break;
-                    case World::PlayerInfo::Types::MENU_PLAYER: playerToUpdate = world.menuPlayer; break;
+                switch (world->startingPlayer.type) {
+                    case World::PlayerInfo::Types::DEBUG_PLAYER: playerToUpdate = world->debugPlayer; break;
+                    case World::PlayerInfo::Types::EDITOR_PLAYER: playerToUpdate = world->editorPlayer; break;
+                    case World::PlayerInfo::Types::PHYSICAL_PLAYER: playerToUpdate = world->physicalPlayer; break;
+                    case World::PlayerInfo::Types::MENU_PLAYER: playerToUpdate = world->menuPlayer; break;
                 }
                 if(playerToUpdate != nullptr && tempName != "") {
-                    PlayerExtensionInterface* extension = PlayerExtensionInterface::createExtension(tempName, world.apiInstance);
+                    PlayerExtensionInterface* extension = PlayerExtensionInterface::createExtension(tempName, world->apiInstance);
                     if(extension != nullptr) {
-                        world.startingPlayer.extensionName = tempName;
+                        world->startingPlayer.extensionName = tempName;
                         playerToUpdate->setPlayerExtension(extension);
                     } else {
                         showError = true;
@@ -371,7 +387,7 @@ void Editor::renderEditor(World& world) {
                 static size_t onLoadTriggerIndex = 0;//maximum size
                 std::string selectedID = std::to_string(onLoadTriggerIndex);
                 if (ImGui::BeginCombo("Current Triggers", selectedID.c_str())) {
-                    for (size_t i = 0; i < world.onLoadActions.size(); i++) {
+                    for (size_t i = 0; i < world->onLoadActions.size(); i++) {
                         bool isTriggerSelected = selectedID == std::to_string(i);
 
                         if (ImGui::Selectable(std::to_string(i).c_str(), isTriggerSelected)) {
@@ -384,13 +400,13 @@ void Editor::renderEditor(World& world) {
                     ImGui::EndCombo();
                 }
                 //currently any trigger object can have 3 elements, so this should be >2 to avoid collision on imgui tags. I am assigning 100 just to be safe
-                TriggerObject::PutTriggerInGui(world.apiInstance, world.onLoadActions[onLoadTriggerIndex]->action,
-                                               world.onLoadActions[onLoadTriggerIndex]->parameters,
-                                               world.onLoadActions[onLoadTriggerIndex]->enabled, 100 + onLoadTriggerIndex);
-                if (world.onLoadActions[world.onLoadActions.size() - 1]->enabled) {
+                TriggerObject::PutTriggerInGui(world->apiInstance, world->onLoadActions[onLoadTriggerIndex]->action,
+                                               world->onLoadActions[onLoadTriggerIndex]->parameters,
+                                               world->onLoadActions[onLoadTriggerIndex]->enabled, 100 + onLoadTriggerIndex);
+                if (world->onLoadActions[world->onLoadActions.size() - 1]->enabled) {
                     //when user presses the enable button, add another and select it
-                    onLoadTriggerIndex = world.onLoadActions.size();
-                    world.onLoadActions.push_back(new World::ActionForOnload());
+                    onLoadTriggerIndex = world->onLoadActions.size();
+                    world->onLoadActions.push_back(new World::ActionForOnload());
                 }
             }
 
@@ -403,28 +419,28 @@ void Editor::renderEditor(World& world) {
                 std::string musicAssetFilterStr = musicAssetFilter;
                 std::transform(musicAssetFilterStr.begin(), musicAssetFilterStr.end(), musicAssetFilterStr.begin(),
                                ::tolower);
-                const AssetManager::AvailableAssetsNode *filteredAssets = world.assetManager->getAvailableAssetsTreeFiltered(
+                const AssetManager::AvailableAssetsNode *filteredAssets = world->assetManager->getAvailableAssetsTreeFiltered(
                         AssetManager::Asset_type_SOUND, musicAssetFilterStr);
-                world.imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_SOUND,
+                world->imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_SOUND,
                                                   "Music",
                                                   &selectedSoundAsset);
 
-                if (world.music != nullptr) {
-                    ImGui::Text("Current Music: %s", world.music->getName().c_str());
+                if (world->music != nullptr) {
+                    ImGui::Text("Current Music: %s", world->music->getName().c_str());
                 } else {
                     ImGui::Text("No music set for level. ");
                 }
 
                 if (selectedSoundAsset != nullptr) {
                     if (ImGui::Button("Change Music")) {
-                        if (world.music != nullptr) {
-                            world.music->stop();
-                            delete world.music;
+                        if (world->music != nullptr) {
+                            world->music->stop();
+                            delete world->music;
                         }
-                        world.music = new Sound(world.getNextObjectID(), world.assetManager, selectedSoundAsset->fullPath);
-                        world.music->setLoop(true);
-                        world.music->setWorldPosition(glm::vec3(0, 0, 0), true);
-                        world.music->play();
+                        world->music = new Sound(world->getNextObjectID(), world->assetManager, selectedSoundAsset->fullPath);
+                        world->music->setLoop(true);
+                        world->music->setWorldPosition(glm::vec3(0, 0, 0), true);
+                        world->music->play();
                     }
                 } else {
                     ImGui::Button("Change Music");
@@ -434,7 +450,7 @@ void Editor::renderEditor(World& world) {
             }
             if(ImGui::CollapsingHeader("SkyBox")) {
                 ImGui::Indent(16.0f);
-                world.addSkyBoxControls();
+                world->addSkyBoxControls();
             }
             if(ImGui::CollapsingHeader("LoadingImage")) {
                 ImGui::Indent(16.0f);
@@ -444,8 +460,8 @@ void Editor::renderEditor(World& world) {
                 ImGui::InputText("Filter Assets ##TextureAssetTreeFilter", loadingImageAssetFilter, sizeof(loadingImageAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
                 std::string loadingImageAssetFilterStr = loadingImageAssetFilter;
                 std::transform(loadingImageAssetFilterStr.begin(), loadingImageAssetFilterStr.end(), loadingImageAssetFilterStr.begin(), ::tolower);
-                const AssetManager::AvailableAssetsNode* filteredAssets = world.assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, loadingImageAssetFilterStr);
-                world.imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE, "LoadingImage", &selectedLoadingImageAsset);
+                const AssetManager::AvailableAssetsNode* filteredAssets = world->assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, loadingImageAssetFilterStr);
+                world->imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE, "LoadingImage", &selectedLoadingImageAsset);
 
                 if(selectedLoadingImageAsset == nullptr) {
                     ImGui::Button("Set Loading Image");
@@ -453,11 +469,11 @@ void Editor::renderEditor(World& world) {
                     ImGuiHelper::ShowHelpMarker("No Asset Selected!");
                 } else {
                     if (ImGui::Button("Set Loading Image")) {
-                        world.loadingImage = selectedLoadingImageAsset->fullPath;
+                        world->loadingImage = selectedLoadingImageAsset->fullPath;
                     }
                 }
-                if(world.loadingImage != "" ) {
-                    ImGui::Text("Current Loading Image: %s", world.loadingImage.c_str() );
+                if(world->loadingImage != "" ) {
+                    ImGui::Text("Current Loading Image: %s", world->loadingImage.c_str() );
                 } else {
                     ImGui::Text("No loading image set");
                 }
@@ -468,21 +484,21 @@ void Editor::renderEditor(World& world) {
                 ImGui::Indent(16.0f);
                 ImGui::Text("By default, esc quits the game");
 
-                if (ImGui::RadioButton("Quit Game", world.currentQuitResponse == World::QuitResponse::QUIT_GAME)) {
-                    world.currentQuitResponse = World::QuitResponse::QUIT_GAME;
+                if (ImGui::RadioButton("Quit Game", world->currentQuitResponse == World::QuitResponse::QUIT_GAME)) {
+                    world->currentQuitResponse = World::QuitResponse::QUIT_GAME;
                 }
                 ImGui::SameLine();
-                if (ImGui::RadioButton("Return Previous", world.currentQuitResponse == World::QuitResponse::RETURN_PREVIOUS)) {
-                    world.currentQuitResponse = World::QuitResponse::RETURN_PREVIOUS;
+                if (ImGui::RadioButton("Return Previous", world->currentQuitResponse == World::QuitResponse::RETURN_PREVIOUS)) {
+                    world->currentQuitResponse = World::QuitResponse::RETURN_PREVIOUS;
                 }
                 ImGui::SameLine();
-                if (ImGui::RadioButton("Load World", world.currentQuitResponse == World::QuitResponse::LOAD_WORLD)) {
-                    world.currentQuitResponse = World::QuitResponse::LOAD_WORLD;
+                if (ImGui::RadioButton("Load World", world->currentQuitResponse == World::QuitResponse::LOAD_WORLD)) {
+                    world->currentQuitResponse = World::QuitResponse::LOAD_WORLD;
                 }
-                if (world.currentQuitResponse == World::QuitResponse::LOAD_WORLD) {
-                    ImGui::InputText("Custom World file ", world.quitWorldNameBuffer, sizeof(world.quitWorldNameBuffer));
+                if (world->currentQuitResponse == World::QuitResponse::LOAD_WORLD) {
+                    ImGui::InputText("Custom World file ", world->quitWorldNameBuffer, sizeof(world->quitWorldNameBuffer));
                     if (ImGui::Button("Apply##custom world file setting")) {
-                        world.quitWorldName = world.quitWorldNameBuffer;
+                        world->quitWorldName = world->quitWorldNameBuffer;
                     }
                 }
             }
@@ -493,70 +509,70 @@ void Editor::renderEditor(World& world) {
 
         ImGui::Separator();
 
-        ImGui::InputText("##save world name", world.worldSaveNameBuffer, sizeof(world.worldSaveNameBuffer));
+        ImGui::InputText("##save world name", world->worldSaveNameBuffer, sizeof(world->worldSaveNameBuffer));
         ImGui::SameLine();
         if(ImGui::Button("Save World")) {
-            for(auto animIt = world.loadedAnimations.begin(); animIt != world.loadedAnimations.end(); animIt++) {
+            for(auto animIt = world->loadedAnimations.begin(); animIt != world->loadedAnimations.end(); animIt++) {
                 if(animIt->serializeAnimation("./Data/Animations/")) {
-                    world.options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation saved");
+                    world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "Animation saved");
                 } else {
-                    world.options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation save failed");
+                    world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "Animation save failed");
                 }
             }
             //before saving, set the connection state
-            for (auto objectIt = world.disconnectedModels.begin(); objectIt != world.disconnectedModels.end(); ++objectIt) {
-                world.disconnectObjectFromPhysics(*objectIt);
+            for (auto objectIt = world->disconnectedModels.begin(); objectIt != world->disconnectedModels.end(); ++objectIt) {
+                world->disconnectObjectFromPhysics(*objectIt);
             }
 
-            if(WorldSaver::saveWorld(world.worldSaveNameBuffer, &world)) {
-                world.options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
+            if(WorldSaver::saveWorld(world->worldSaveNameBuffer, world)) {
+                world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_INFO, "World save successful");
             } else {
-                world.options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
+                world->options->getLogger()->log(Logger::log_Subsystem_LOAD_SAVE, Logger::log_level_ERROR, "World save Failed");
             }
             //after save, set the states back
-            for (auto objectIt = world.disconnectedModels.begin(); objectIt != world.disconnectedModels.end(); ++objectIt) {
-                world.reconnectObjectToPhysics(*objectIt);
+            for (auto objectIt = world->disconnectedModels.begin(); objectIt != world->disconnectedModels.end(); ++objectIt) {
+                world->reconnectObjectToPhysics(*objectIt);
             }
 
         }
         if(ImGui::Button("Save AI walk Grid")) {
-            if(world.grid != nullptr) {
-                std::string AIWalkName = world.name.substr(0, world.name.find_last_of(".")) + ".aiwalk";
-                world.grid->serializeXML(AIWalkName);
+            if(world->grid != nullptr) {
+                std::string AIWalkName = world->name.substr(0, world->name.find_last_of(".")) + ".aiwalk";
+                world->grid->serializeXML(AIWalkName);
             }
         }
 #ifdef CEREAL_SUPPORT
         if(ImGui::Button("Save AI walk Grid Binary")) {
-            if(world.grid != nullptr) {
-                std::string AIWalkName = world.name.substr(0, world.name.find_last_of(".")) + ".aiwalkb";
+            if(world->grid != nullptr) {
+                std::string AIWalkName = world->name.substr(0, world->name.find_last_of(".")) + ".aiwalkb";
                 std::ofstream os(AIWalkName, std::ios::binary);
                 cereal::BinaryOutputArchive archive( os );
 
-                archive(*(world.grid));
+                archive(*(world->grid));
             }
         }
 #endif
         if(ImGui::Button("Convert models to binary")) {
             std::set<std::vector<std::string>> convertedAssets;
-            for (auto objectIt = world.objects.begin(); objectIt != world.objects.end(); ++objectIt) {
+            for (auto objectIt = world->objects.begin(); objectIt != world->objects.end(); ++objectIt) {
 
                 Model* model = dynamic_cast<Model*>(objectIt->second);
                 if(model!= nullptr) {
                     model->convertAssetToLimon(convertedAssets);
                 }
             }
-            if(world.startingPlayer.attachedModel != nullptr) {
-                world.startingPlayer.attachedModel->convertAssetToLimon(convertedAssets);
+            if(world->startingPlayer.attachedModel != nullptr) {
+                world->startingPlayer.attachedModel->convertAssetToLimon(convertedAssets);
             }
         }
 
         if(ImGui::Button("Change Render Pipeline")) {
-            world.showNodeGraph = true;
+            world->showNodeGraph = true;
         }
         if (ImGui::CollapsingHeader("Render Debugging")) {
             static int listbox_item_current = -1;//not static because I don't want user to select a item.
             static ImGuiImageWrapper wrapper;//keeps selected texture and layer;
-            std::vector<std::shared_ptr<Texture>> allTextures = world.renderPipeline->getTextures();
+            std::vector<std::shared_ptr<Texture>> allTextures = world->renderPipeline->getTextures();
 
             if(ImGui::ListBox("Current Textures##Render Debugging", &listbox_item_current, World::getNameOfTexture,
                               static_cast<void *>(&allTextures), allTextures.size(), 10)) {
@@ -585,7 +601,7 @@ void Editor::renderEditor(World& world) {
         if(ImGui::CollapsingHeader("List materials")) {
             static std::map<size_t, std::shared_ptr<Material>> allMaterials;
             if (allMaterials.empty()) {
-                for (auto const &renderable: world.objects) {
+                for (auto const &renderable: world->objects) {
                     std::vector<std::shared_ptr<Material>> currentMaterials = renderable.second->getMaterials();
                     for(auto const& material: currentMaterials) {
                         size_t hash = material->getHash();
@@ -612,7 +628,7 @@ void Editor::renderEditor(World& world) {
             ImGui::EndListBox();
             auto selectedMaterialIt = allMaterials.find(selectedHash);
             if(selectedMaterialIt != allMaterials.end()) {
-                selectedMaterialIt->second->addImGuiEditorElements(*world.request);
+                selectedMaterialIt->second->addImGuiEditorElements(*world->request);
             }
         }
         ImGui::End();
@@ -621,20 +637,20 @@ void Editor::renderEditor(World& world) {
 
         ImGui::Begin("Selected Object Properties");
         std::string selectedName;
-        if(world.pickedObject == nullptr) {
+        if(world->pickedObject == nullptr) {
             selectedName = "No object selected";
         } else {
-            selectedName = world.pickedObject->getName().c_str();
+            selectedName = world->pickedObject->getName().c_str();
         }
 
-        buildTreeFromAllGameObjects(world);
+        buildTreeFromAllGameObjects();
 
-        if(world.pickedObject != nullptr) {
+        if(world->pickedObject != nullptr) {
             //search for the selected element in the rendered elements
             uint32_t lod = 4;
-            Model *pickedModel = dynamic_cast<Model *>(world.pickedObject);
+            Model *pickedModel = dynamic_cast<Model *>(world->pickedObject);
             if (pickedModel != nullptr) {
-                for(const auto& cameraResult :world.cullingResults) {
+                for(const auto& cameraResult :world->cullingResults) {
                     for(const auto& tagResult : *cameraResult.second) {
                         if (tagResult.second.find(pickedModel->getAssetID()) != tagResult.second.end()) {
                             lod = std::min(tagResult.second.find(pickedModel->getAssetID())->second.second, lod);
@@ -644,35 +660,35 @@ void Editor::renderEditor(World& world) {
             }
             std::string lodText =  std::to_string(lod);
             ImGui::Text(("Picked object min LOD" + lodText).c_str());
-            ImGuiResult objectEditorResult = world.pickedObject->addImGuiEditorElements(*world.request);
+            ImGuiResult objectEditorResult = world->pickedObject->addImGuiEditorElements(*world->request);
 
-            switch(world.pickedObject->getTypeID()) {
+            switch(world->pickedObject->getTypeID()) {
                 case GameObject::MODEL: {
-                    Model* selectedObject = static_cast<Model*>(world.pickedObject);
+                    Model* selectedObject = static_cast<Model*>(world->pickedObject);
                     if(objectEditorResult.updated) {
                         if(!selectedObject->isDisconnected()) {
-                            world.dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
+                            world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
                         }
-                        world.updatedModels.push_back(selectedObject);
+                        world->updatedModels.push_back(selectedObject);
                     }
                     uint32_t removedActorID = 0;
                     if (objectEditorResult.removeAI) {
                         //remove AI requested
-                        if (dynamic_cast<Model *>(world.pickedObject)->getAIID() != 0) {
-                            removedActorID = dynamic_cast<Model *>(world.pickedObject)->getAIID();
-                            world.actors.erase(dynamic_cast<Model *>(world.pickedObject)->getAIID());
-                            dynamic_cast<Model *>(world.pickedObject)->detachAI();
+                        if (dynamic_cast<Model *>(world->pickedObject)->getAIID() != 0) {
+                            removedActorID = dynamic_cast<Model *>(world->pickedObject)->getAIID();
+                            world->actors.erase(dynamic_cast<Model *>(world->pickedObject)->getAIID());
+                            dynamic_cast<Model *>(world->pickedObject)->detachAI();
                         }
                     }
 
                     if (objectEditorResult.addAI) {
                         std::cout << "adding AI to model " << std::endl;
                         if(removedActorID == 0) {
-                            removedActorID = world.getNextObjectID();
+                            removedActorID = world->getNextObjectID();
                         }
                         //if remove and add is called in same frame, it means the type is changed, reuse the ID
-                        ActorInterface *newEnemy = ActorInterface::createActor(objectEditorResult.actorTypeName, removedActorID, world.apiInstance);
-                        Model* model = dynamic_cast<Model *>(world.pickedObject);
+                        ActorInterface *newEnemy = ActorInterface::createActor(objectEditorResult.actorTypeName, removedActorID, world->apiInstance);
+                        Model* model = dynamic_cast<Model *>(world->pickedObject);
                         if(model != nullptr) {
                             newEnemy->setModel(model->getWorldObjectID());
                             model->attachAI(newEnemy);
@@ -680,10 +696,10 @@ void Editor::renderEditor(World& world) {
                             std::cerr << "ActorInterface Model setting failed, because picked object is not a model." << std::endl;
 
                         }
-                        world.addActor(newEnemy);
+                        world->addActor(newEnemy);
                     } else {
                         if(removedActorID != 0) {
-                            world.unusedIDs.push(removedActorID);
+                            world->unusedIDs.push(removedActorID);
                         }
                     }
                 }
@@ -694,28 +710,28 @@ void Editor::renderEditor(World& world) {
                 case GameObject::GUI_BUTTON:
                 case GameObject::GUI_ANIMATION:
                 {
-                    Renderable* selectedObject = dynamic_cast<Renderable*>(world.pickedObject);
+                    Renderable* selectedObject = dynamic_cast<Renderable*>(world->pickedObject);
                     if(selectedObject != nullptr) {
                         //Now we are looking for animations
-                        if (world.activeAnimations.find(selectedObject) != world.activeAnimations.end()) {
+                        if (world->activeAnimations.find(selectedObject) != world->activeAnimations.end()) {
                             if (objectEditorResult.updated) {
-                                world.activeAnimations[selectedObject]->originChange = true;
+                                world->activeAnimations[selectedObject]->originChange = true;
                             }
 
                             if (ImGui::Button(("Remove custom animation: " +
-                                    world.loadedAnimations[world.activeAnimations[selectedObject]->animationIndex].getName()).c_str())) {
+                                    world->loadedAnimations[world->activeAnimations[selectedObject]->animationIndex].getName()).c_str())) {
                                 ImGui::OpenPopup("How To Remove Custom Animation");
                             }
                             if (ImGui::BeginPopupModal("How To Remove Custom Animation")) {
-                                AnimationCustom &animationToRemove = world.loadedAnimations[world.activeAnimations[selectedObject]->animationIndex];
-                                World::AnimationStatus *animationStatusToRemove = world.activeAnimations[selectedObject];
+                                AnimationCustom &animationToRemove = world->loadedAnimations[world->activeAnimations[selectedObject]->animationIndex];
+                                World::AnimationStatus *animationStatusToRemove = world->activeAnimations[selectedObject];
                                 if (ImGui::Button("Set to Start##CustomAnimationRemoval")) {
-                                    world.removeActiveCustomAnimation(animationToRemove, animationStatusToRemove, 0);
+                                    world->removeActiveCustomAnimation(animationToRemove, animationStatusToRemove, 0);
                                     ImGui::CloseCurrentPopup();
                                 }
 
                                 if (ImGui::Button("Set to End##CustomAnimationRemoval")) {
-                                    world.removeActiveCustomAnimation(animationToRemove, animationStatusToRemove,
+                                    world->removeActiveCustomAnimation(animationToRemove, animationStatusToRemove,
                                                                 animationToRemove.getDuration());
                                     ImGui::CloseCurrentPopup();
                                 }
@@ -724,7 +740,7 @@ void Editor::renderEditor(World& world) {
                                                  animationToRemove.getDuration());
                                 ImGui::SameLine();
                                 if (ImGui::Button("Set to custom time##CustomAnimationRemoval")) {
-                                    world.removeActiveCustomAnimation(animationToRemove, animationStatusToRemove, customTime);
+                                    world->removeActiveCustomAnimation(animationToRemove, animationStatusToRemove, customTime);
                                     ImGui::CloseCurrentPopup();
                                 }
                                 if (ImGui::Button("Cancel##CustomAnimationRemoval")) {
@@ -734,7 +750,7 @@ void Editor::renderEditor(World& world) {
 
                             }
                         } else {
-                            addAnimationDefinitionToEditor(world);
+                            addAnimationDefinitionToEditor();
                         }
                     } else {
                         std::cerr << "Editor Animation section has non renderable object selected, this shouldn't have happened!" << std::endl;
@@ -749,30 +765,30 @@ void Editor::renderEditor(World& world) {
 
             // after this, remove and physics disconnect
             ImGui::NewLine();
-            switch (world.pickedObject->getTypeID()) {
+            switch (world->pickedObject->getTypeID()) {
                 case GameObject::MODEL: {
-                    if (world.disconnectedModels.find(world.pickedObject->getWorldObjectID()) != world.disconnectedModels.end()) {
+                    if (world->disconnectedModels.find(world->pickedObject->getWorldObjectID()) != world->disconnectedModels.end()) {
                         if (ImGui::Button("reconnect to physics")) {
-                            world.reconnectObjectToPhysicsRequest(static_cast<Model *>(world.pickedObject)->getWorldObjectID());//Request because that action will not be carried out on editor mode
+                            world->reconnectObjectToPhysicsRequest(static_cast<Model *>(world->pickedObject)->getWorldObjectID());//Request because that action will not be carried out on editor mode
                         }
                     } else {
                         if (ImGui::Button("Disconnect from physics")) {
-                            world.disconnectObjectFromPhysicsRequest(static_cast<Model *>(world.pickedObject)->getWorldObjectID());
+                            world->disconnectObjectFromPhysicsRequest(static_cast<Model *>(world->pickedObject)->getWorldObjectID());
                         }
                         ImGui::Text(
                                 "If object is placed in trigger volume, \ndisconnecting drastically improve performance.");
                     }
 
                     if (ImGui::Button("Remove This Object")) {
-                        world.removeObject(world.pickedObject->getWorldObjectID());
-                        world.pickedObject = nullptr;
+                        world->removeObject(world->pickedObject->getWorldObjectID());
+                        world->pickedObject = nullptr;
                     }
                 }
                     break;
                 case GameObject::TRIGGER: {
                     if (ImGui::Button("Remove This Trigger")) {
-                        world.removeTriggerObject(world.pickedObject->getWorldObjectID());
-                        world.pickedObject = nullptr;
+                        world->removeTriggerObject(world->pickedObject->getWorldObjectID());
+                        world->pickedObject = nullptr;
                     }
                 }
                     break;
@@ -781,43 +797,43 @@ void Editor::renderEditor(World& world) {
                 case GameObject::GUI_BUTTON:
                 case GameObject::GUI_ANIMATION: {
                     if(objectEditorResult.remove) {
-                        world.guiElements.erase(world.pickedObject->getWorldObjectID());
-                        world.unusedIDs.push(world.pickedObject->getWorldObjectID());
-                        delete world.pickedObject;
-                        world.pickedObject = nullptr;
+                        world->guiElements.erase(world->pickedObject->getWorldObjectID());
+                        world->unusedIDs.push(world->pickedObject->getWorldObjectID());
+                        delete world->pickedObject;
+                        world->pickedObject = nullptr;
                     }
                 }
                     break;
                 case GameObject::LIGHT: {
                     if(objectEditorResult.remove) {
-                        for (auto iterator = world.lights.begin(); iterator != world.lights.end(); ++iterator) {
-                            if((*iterator)->getWorldObjectID() == world.pickedObject->getWorldObjectID()) {
-                                world.unusedIDs.push(world.pickedObject->getWorldObjectID());
+                        for (auto iterator = world->lights.begin(); iterator != world->lights.end(); ++iterator) {
+                            if((*iterator)->getWorldObjectID() == world->pickedObject->getWorldObjectID()) {
+                                world->unusedIDs.push(world->pickedObject->getWorldObjectID());
                                 const std::vector<Camera*>& cameras = (*iterator)->getCameras();
                                 for (auto camera:cameras) {
-                                    world.cullingResults.erase(camera);
+                                    world->cullingResults.erase(camera);
                                 }
                                 //we need to find where the visibility thread is
-                                for (auto entry:world.visibilityThreadPool) {
+                                for (auto entry:world->visibilityThreadPool) {
                                     for (auto camera:cameras) {
                                         if (entry.first->camera == camera) {
                                             entry.first->running = false;
                                             VisibilityRequest::condition.signalWaiting();
                                             SDL_WaitThread(entry.second, nullptr);
-                                            world.visibilityThreadPool.erase(entry.first);
+                                            world->visibilityThreadPool.erase(entry.first);
                                         }
                                     }
                                 }
-                                world.lights.erase(iterator);
+                                world->lights.erase(iterator);
                                 break;
                             }
                         }
-                        if(static_cast<Light*>(world.pickedObject)->getLightType() == Light::LightTypes::DIRECTIONAL) {
-                            world.directionalLightIndex = -1;
+                        if(static_cast<Light*>(world->pickedObject)->getLightType() == Light::LightTypes::DIRECTIONAL) {
+                            world->directionalLightIndex = -1;
                         }
-                        delete world.pickedObject;
-                        world.updateActiveLights(true);
-                        world.pickedObject = nullptr;
+                        delete world->pickedObject;
+                        world->updateActiveLights(true);
+                        world->pickedObject = nullptr;
                     }
                 }
                     break;
@@ -832,68 +848,68 @@ void Editor::renderEditor(World& world) {
     }
 
     /* window definitions */
-    world.imgGuiHelper->RenderDrawLists();
+    world->imgGuiHelper->RenderDrawLists();
 }
 
 
-void Editor::addAnimationDefinitionToEditor(World& world) {
+void Editor::addAnimationDefinitionToEditor() {
     if (ImGui::CollapsingHeader("Custom animation properties")) {
         //If there is no animation setup ongoing, or there is one, but not for this model,
         //put start animation button.
         //else put time input, add and finalize buttons.
-        if (world.animationInProgress == nullptr || world.animationInProgress->getAnimatingObject() != dynamic_cast<Renderable *>(world.pickedObject)) {
+        if (world->animationInProgress == nullptr || world->animationInProgress->getAnimatingObject() != dynamic_cast<Renderable *>(world->pickedObject)) {
 
             static int listbox_item_current = 0;
             ImGui::Text("Loaded animations list");
             ImGui::ListBox("##Loaded animations listbox", &listbox_item_current, getNameOfLoadedAnimation,
-                           static_cast<void *>(&world.loadedAnimations), world.loadedAnimations.size(), 10);
+                           static_cast<void *>(&world->loadedAnimations), world->loadedAnimations.size(), 10);
 
             if (ImGui::Button("Apply selected")) {
-                world.addAnimationToObject(world.pickedObject->getWorldObjectID(), listbox_item_current,
+                world->addAnimationToObject(world->pickedObject->getWorldObjectID(), listbox_item_current,
                                      true, true);
             }
 
             ImGui::SameLine();
             if (ImGui::Button("Create new")) {
-                if (world.animationInProgress == nullptr) {
-                    world.animationInProgress = new AnimationSequenceInterface(
-                            dynamic_cast<Renderable *>(world.pickedObject));
+                if (world->animationInProgress == nullptr) {
+                    world->animationInProgress = new AnimationSequenceInterface(
+                            dynamic_cast<Renderable *>(world->pickedObject));
                 } else {
                     //ask for removal of the old work
-                    delete world.animationInProgress;
-                    world.animationInProgress = new AnimationSequenceInterface(
-                            dynamic_cast<Renderable *>(world.pickedObject));
+                    delete world->animationInProgress;
+                    world->animationInProgress = new AnimationSequenceInterface(
+                            dynamic_cast<Renderable *>(world->pickedObject));
                 }
                 // At this point we should know the animationInProgress is for current object
             }
         } else {
             ImGui::Text("Please use animation definition window.");
             bool finished, cancelled;
-            world.animationInProgress->addAnimationSequencerToEditor(finished, cancelled);
+            world->animationInProgress->addAnimationSequencerToEditor(finished, cancelled);
             if (finished) {
-                world.loadedAnimations.push_back(AnimationCustom(*world.animationInProgress->buildAnimationFromCurrentItems()));
+                world->loadedAnimations.push_back(AnimationCustom(*world->animationInProgress->buildAnimationFromCurrentItems()));
 
-                world.addAnimationToObject(world.pickedObject->getWorldObjectID(),
-                                     world.loadedAnimations.size() - 1, true, true);
-                delete world.animationInProgress;
-                world.animationInProgress = nullptr;
+                world->addAnimationToObject(world->pickedObject->getWorldObjectID(),
+                                     world->loadedAnimations.size() - 1, true, true);
+                delete world->animationInProgress;
+                world->animationInProgress = nullptr;
             }
             if (cancelled) {
-                delete world.animationInProgress;
-                world.animationInProgress = nullptr;
+                delete world->animationInProgress;
+                world->animationInProgress = nullptr;
             }
         }
     }
 }
 
-void Editor::buildTreeFromAllGameObjects(World& world) {
+void Editor::buildTreeFromAllGameObjects() {
 
     std::vector<uint32_t> parentageList;
-    if(world.pickedObject != nullptr) {
-        if(world.pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL || world.pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL_GROUP) {
-            PhysicalRenderable *physicalRenderable = dynamic_cast<PhysicalRenderable *>(world.pickedObject);
+    if(world->pickedObject != nullptr) {
+        if(world->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL || world->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL_GROUP) {
+            PhysicalRenderable *physicalRenderable = dynamic_cast<PhysicalRenderable *>(world->pickedObject);
             if(physicalRenderable != nullptr) {
-                if (ImGui::Button("Find selected") || world.pickedObjectID != world.pickedObject->getWorldObjectID()) {//trigger find if selected object changes
+                if (ImGui::Button("Find selected") || world->pickedObjectID != world->pickedObject->getWorldObjectID()) {//trigger find if selected object changes
                     while (physicalRenderable != nullptr) {
                         GameObject* gameObject = dynamic_cast<GameObject*>(physicalRenderable);
                         if(gameObject != nullptr) {
@@ -910,7 +926,7 @@ void Editor::buildTreeFromAllGameObjects(World& world) {
                 }
             }
         }
-        world.pickedObjectID = world.pickedObject->getWorldObjectID();
+        world->pickedObjectID = world->pickedObject->getWorldObjectID();
     }
 
     ImGui::BeginChild("Game Object Selector##treeMode", ImVec2(400, 200), true, ImGuiWindowFlags_HorizontalScrollbar);
@@ -923,36 +939,36 @@ void Editor::buildTreeFromAllGameObjects(World& world) {
     //objects
     if (ImGui::TreeNode("Objects##ObjectsTreeRoot")) {
         //ModelGroups
-        for (auto iterator = world.modelGroups.begin(); iterator != world.modelGroups.end(); ++iterator) {
+        for (auto iterator = world->modelGroups.begin(); iterator != world->modelGroups.end(); ++iterator) {
             if(iterator->second->getParentObject() != nullptr) {
                 continue; //the parent will show this group
             }
-            createObjectTreeRecursive(world, iterator->second, world.pickedObjectID, nodeFlags, leafFlags, parentageList);
+            createObjectTreeRecursive(iterator->second, world->pickedObjectID, nodeFlags, leafFlags, parentageList);
         }
         //ModelGroups end
 
         //Objects recursive
-        for (auto iterator = world.objects.begin(); iterator != world.objects.end(); ++iterator) {
+        for (auto iterator = world->objects.begin(); iterator != world->objects.end(); ++iterator) {
             if(iterator->second->getParentObject() != nullptr) {
                 continue; //the parent will show this group
             }
             if(iterator->second->hasChildren()) {
-                createObjectTreeRecursive(world, iterator->second, world.pickedObjectID, nodeFlags, leafFlags, parentageList);
+                createObjectTreeRecursive(iterator->second, world->pickedObjectID, nodeFlags, leafFlags, parentageList);
             } else {
                 GameObject* currentObject = dynamic_cast<GameObject*>(iterator->second);
                 if(currentObject != nullptr) {
-                    bool isSelected = currentObject->getWorldObjectID() == world.pickedObjectID;
+                    bool isSelected = currentObject->getWorldObjectID() == world->pickedObjectID;
                     ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | (isSelected ? ImGuiTreeNodeFlags_Selected : 0));
                     if(isSelected && !parentageList.empty()) {
                         ImGui::SetScrollHereY();
                     }
 
                     if (ImGui::IsItemClicked()) {
-                        if(world.pickedObject != nullptr ) {
-                            world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                        if(world->pickedObject != nullptr ) {
+                            world->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
                         }
-                        world.pickedObject = currentObject;
-                        world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+                        world->pickedObject = currentObject;
+                        world->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
                     }
                 }
             }
@@ -965,17 +981,17 @@ void Editor::buildTreeFromAllGameObjects(World& world) {
     }
     //GUI elements
     if (ImGui::TreeNode("GUI Elements##guiElementsTreeRoot")) {
-        for (auto iterator = world.guiLayers.begin(); iterator != world.guiLayers.end(); ++iterator) {
+        for (auto iterator = world->guiLayers.begin(); iterator != world->guiLayers.end(); ++iterator) {
             if (ImGui::TreeNode((std::to_string((*iterator)->getLevel()) + "##guiLayerLevelTreeNode").c_str())) {
                 std::vector<GameObject*> thisLayersElements = (*iterator)->getGuiElements();
                 for (auto guiElement = thisLayersElements.begin(); guiElement != thisLayersElements.end(); ++guiElement) {
-                    ImGui::TreeNodeEx((*guiElement)->getName().c_str(), leafFlags | (((*guiElement)->getWorldObjectID() == world.pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+                    ImGui::TreeNodeEx((*guiElement)->getName().c_str(), leafFlags | (((*guiElement)->getWorldObjectID() == world->pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
                     if (ImGui::IsItemClicked()) {
-                        if(world.pickedObject != nullptr ) {
-                            world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                        if(world->pickedObject != nullptr ) {
+                            world->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
                         }
-                        world.pickedObject = *guiElement;
-                        world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+                        world->pickedObject = *guiElement;
+                        world->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
                     }
 
                 }
@@ -990,16 +1006,16 @@ void Editor::buildTreeFromAllGameObjects(World& world) {
     }
     //Lights
     if (ImGui::TreeNode("Lights##LightsTreeRoot")) {
-        for (auto iterator = world.lights.begin(); iterator != world.lights.end(); ++iterator) {
+        for (auto iterator = world->lights.begin(); iterator != world->lights.end(); ++iterator) {
             GameObject* currentObject = dynamic_cast<GameObject*>(*iterator);
             if(currentObject != nullptr) {
-                ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == world.pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+                ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == world->pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
                 if (ImGui::IsItemClicked()) {
-                    if(world.pickedObject != nullptr ) {
-                        world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                    if(world->pickedObject != nullptr ) {
+                        world->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
                     }
-                    world.pickedObject = currentObject;
-                    world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+                    world->pickedObject = currentObject;
+                    world->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
                 }
             }
         }
@@ -1011,12 +1027,12 @@ void Editor::buildTreeFromAllGameObjects(World& world) {
     }
     //Triggers
     if (ImGui::TreeNode("Trigger Volumes##TriggersTreeRoot")) {
-        for (auto iterator = world.triggers.begin(); iterator != world.triggers.end(); ++iterator) {
+        for (auto iterator = world->triggers.begin(); iterator != world->triggers.end(); ++iterator) {
             GameObject* currentObject = dynamic_cast<GameObject*>(iterator->second);
             if(currentObject != nullptr) {
-                ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == world.pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+                ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == world->pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
                 if (ImGui::IsItemClicked()) {
-                    world.pickedObject = currentObject;
+                    world->pickedObject = currentObject;
                 }
             }
         }
@@ -1028,13 +1044,13 @@ void Editor::buildTreeFromAllGameObjects(World& world) {
     }
     //Particles
     if (ImGui::TreeNode("Particle Emitters##ParticleEmittersTreeRoot")) {
-        for (auto iterator = world.emitters.begin(); iterator != world.emitters.end(); ++iterator) {
+        for (auto iterator = world->emitters.begin(); iterator != world->emitters.end(); ++iterator) {
             std::shared_ptr<GameObject> currentObject = std::dynamic_pointer_cast<GameObject>(iterator->second);
             if(currentObject != nullptr) {
-                ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == world.pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
+                ImGui::TreeNodeEx(currentObject->getName().c_str(), leafFlags | ((currentObject->getWorldObjectID() == world->pickedObjectID) ? ImGuiTreeNodeFlags_Selected : 0));
                 if (ImGui::IsItemClicked()) {
-                    world.pickedObject = currentObject.get();//FIXME this is an unsafe use
-                    world.pickedObjectID = world.pickedObject->getWorldObjectID();
+                    world->pickedObject = currentObject.get();//FIXME this is an unsafe use
+                    world->pickedObjectID = world->pickedObject->getWorldObjectID();
                 }
             }
         }
@@ -1042,33 +1058,33 @@ void Editor::buildTreeFromAllGameObjects(World& world) {
     }
 
     //player
-    if(world.physicalPlayer == nullptr) {
-        world.physicalPlayer = new PhysicalPlayer(1, world.options, world.cursor, world.startingPlayer.position, world.startingPlayer.orientation, world.startingPlayer.attachedModel);// 1 is reserved for physical player
+    if(world->physicalPlayer == nullptr) {
+        world->physicalPlayer = new PhysicalPlayer(1, world->options, world->cursor, world->startingPlayer.position, world->startingPlayer.orientation, world->startingPlayer.attachedModel);// 1 is reserved for physical player
     }
     bool isOpen = false;
-    if(world.startingPlayer.attachedModel == nullptr) {
-        ImGui::TreeNodeEx(world.physicalPlayer->getName().c_str(), leafFlags |
-                                                                   ((world.physicalPlayer->getWorldObjectID() ==
-                                                                     world.pickedObjectID) ? ImGuiTreeNodeFlags_Selected
+    if(world->startingPlayer.attachedModel == nullptr) {
+        ImGui::TreeNodeEx(world->physicalPlayer->getName().c_str(), leafFlags |
+                                                                   ((world->physicalPlayer->getWorldObjectID() ==
+                                                                     world->pickedObjectID) ? ImGuiTreeNodeFlags_Selected
                                                                                      : 0));
     } else {
-        isOpen = ImGui::TreeNodeEx(world.physicalPlayer->getName().c_str(), nodeFlags |
-                                                                   ((world.physicalPlayer->getWorldObjectID() ==
-                                                                     world.pickedObjectID) ? ImGuiTreeNodeFlags_Selected
+        isOpen = ImGui::TreeNodeEx(world->physicalPlayer->getName().c_str(), nodeFlags |
+                                                                   ((world->physicalPlayer->getWorldObjectID() ==
+                                                                     world->pickedObjectID) ? ImGuiTreeNodeFlags_Selected
                                                                                      : 0));
     }
     if (ImGui::IsItemClicked()) {
-        world.pickedObject = world.physicalPlayer;
+        world->pickedObject = world->physicalPlayer;
     }
     if(isOpen) {
-        createObjectTreeRecursive(world, world.startingPlayer.attachedModel, world.pickedObjectID, nodeFlags, leafFlags, parentageList);
+        createObjectTreeRecursive(world->startingPlayer.attachedModel, world->pickedObjectID, nodeFlags, leafFlags, parentageList);
         ImGui::TreePop();
     }
 
     ImGui::EndChild();
 }
 
-void Editor::createObjectTreeRecursive(World& world, PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID,
+void Editor::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID,
                                       ImGuiTreeNodeFlags nodeFlags, ImGuiTreeNodeFlags leafFlags,
                                       std::vector<uint32_t> parentage) {
     GameObject* gameObjectOfSame = dynamic_cast<GameObject*>(physicalRenderable);
@@ -1090,11 +1106,11 @@ void Editor::createObjectTreeRecursive(World& world, PhysicalRenderable *physica
         ImGui::SetScrollHereY();
     }
     if (ImGui::IsItemClicked()) {
-        if(world.pickedObject != nullptr ) {
-            world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+        if(world->pickedObject != nullptr ) {
+            world->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
         }
-        world.pickedObject = gameObjectOfSame;
-        world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+        world->pickedObject = gameObjectOfSame;
+        world->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
     }
     if(isNodeOpen){
        for (auto iterator = physicalRenderable->getChildren().begin(); iterator != physicalRenderable->getChildren().end(); ++iterator) {
@@ -1105,7 +1121,7 @@ void Editor::createObjectTreeRecursive(World& world, PhysicalRenderable *physica
                    if(!parentage.empty()) {
                        parentage.erase(parentage.begin());
                    }
-                   createObjectTreeRecursive(world, static_cast<ModelGroup *>(currentObject), pickedObjectID, nodeFlags,
+                   createObjectTreeRecursive(static_cast<ModelGroup *>(currentObject), pickedObjectID, nodeFlags,
                                              leafFlags, parentage);
                } else {
                    isSelected = currentObject->getWorldObjectID() == pickedObjectID;
@@ -1116,11 +1132,11 @@ void Editor::createObjectTreeRecursive(World& world, PhysicalRenderable *physica
                        ImGui::SetScrollHereY();
                    }
                    if (ImGui::IsItemClicked()) {
-                       if(world.pickedObject != nullptr ) {
-                           world.pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                       if(world->pickedObject != nullptr ) {
+                           world->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
                        }
-                       world.pickedObject = currentObject;
-                       world.pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+                       world->pickedObject = currentObject;
+                       world->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
                    }
                }
            }
