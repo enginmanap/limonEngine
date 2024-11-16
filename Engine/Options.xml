@@ -210,7 +210,7 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>multiThreadedCulling</Description>
-        <Value>0</Value>
+        <Value>1</Value>
         <valueType>Long</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>
