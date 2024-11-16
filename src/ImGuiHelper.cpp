@@ -328,7 +328,7 @@ void ImGuiHelper::NewFrame() {
     // Setup time step
     static Uint64 frequency = SDL_GetPerformanceFrequency();
     Uint64 current_time = SDL_GetPerformanceCounter();
-    io.DeltaTime = (float)g_Time > 0.0 ? (float)(current_time - g_Time) / (float)frequency: (float)(1.0f / 60.0f);
+    io.DeltaTime = (float)g_Time > 0.0 ? (float)(current_time - g_Time) / (float)frequency: (float)(1.0f / TICK_PER_SECOND);
     assert(io.DeltaTime > 0.0);
     g_Time = current_time;
 

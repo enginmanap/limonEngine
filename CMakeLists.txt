@@ -6,6 +6,7 @@ add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 add_definitions(-DGLM_FORCE_SILENT_WARNINGS)
 add_definitions(-DASSIMP_VALIDATE_WORKAROUND)
 add_definitions(-DCEREAL_SUPPORT)
+add_definitions(-DTICK_PER_SECOND=60)
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 

@@ -180,7 +180,7 @@ LimonAPI *GameEngine::getNewLimonAPI() {
 }
 
 void GameEngine::run() {
-    Uint32 worldUpdateTime = 1000 / 60;//This value is used to update world on a locked Timestep
+    float worldUpdateTime = 1000 / TICK_PER_SECOND;//This value is used to update world on a locked Timestep
 
     graphicsWrapper->clearFrame();
     previousGameTime = SDL_GetTicks64();

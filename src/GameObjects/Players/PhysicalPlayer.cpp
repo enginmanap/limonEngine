@@ -92,6 +92,7 @@ void PhysicalPlayer::move(moveDirections direction) {
     LimonTypes::Vec4 movementSpeedTemp;
     options->getOption("moveSpeed", movementSpeedTemp);
     glm::vec3 movementSpeed = glm::vec3(movementSpeedTemp.x, movementSpeedTemp.y, movementSpeedTemp.z);
+    movementSpeed = movementSpeed * (60.0 / TICK_PER_SECOND);
     float jumpFactor;
     options->getOption("jumpFactor", jumpFactor);
 

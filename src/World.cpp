@@ -370,7 +370,7 @@ void World::animateCustomAnimations() {
             if (animationCustom->getTicksPerSecond() != 0) {
                 ticksPerSecond = animationCustom->getTicksPerSecond();
             } else {
-                ticksPerSecond = 60.0f;
+                ticksPerSecond = TICK_PER_SECOND;
             }
             float animationTime = fmod(((gameTime - animationStatus->startTime) / 1000.0f) * ticksPerSecond, animationCustom->getDuration());
             animationCustom->calculateTransform("", animationTime, *animationStatus->object->getTransformation());
@@ -2202,8 +2202,8 @@ void World::addGUIButtonControls() {
        static char GUIAnimationName[32];
        ImGui::InputText("GUI Animation Name", GUIAnimationName, sizeof(GUIAnimationName), ImGuiInputTextFlags_CharsNoBlank);
 
-       static int32_t newAnimationFrameSpeed = 60;
-       ImGui::DragInt("FrameSpeed", &newAnimationFrameSpeed, 1.0f, 60.0f);
+       static int32_t newAnimationFrameSpeed = TICK_PER_SECOND;
+       ImGui::DragInt("FrameSpeed", &newAnimationFrameSpeed, 1.0f, TICK_PER_SECOND);
 
        static bool isLooped = false;
        ImGui::Checkbox("Is Animation Looped", &isLooped);
