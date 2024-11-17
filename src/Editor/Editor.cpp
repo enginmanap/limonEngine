@@ -1177,12 +1177,10 @@ void Editor::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, u
 }
 
 void Editor::renderSelectedObject(Model* model) {
-    //world->graphicsWrapper->backupCurrentState();
     backgroundRenderStage->activate(true);
     std::vector<uint32_t> modelIndexes;
     modelIndexes.push_back(model->getWorldObjectID());
     model->renderWithProgramInstanced(modelIndexes, *(graphicsProgram.get()), 0);
-    //world->graphicsWrapper->restoreLastState();
-
+    world->renderPipeline->reActivateLastStage();
 }
 

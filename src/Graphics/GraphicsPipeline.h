@@ -21,27 +21,7 @@ class GraphicsProgram;
 class RenderMethodInterface;
 
 class GraphicsPipeline {
-    friend class SDL2Helper;
-    GraphicsPipeline() = default;//used for deserialize
-
 public:
-    static std::vector<std::string> renderMethodNames;//This is not array, because custom effects might be loaded on runtime as extensions.
-
-    explicit GraphicsPipeline(RenderMethods renderMethods) : renderMethods(std::move(renderMethods)) {
-        auto tempNameVector = RenderMethodInterface::getRenderMethodNames();
-        renderMethodNames.insert(renderMethodNames.end(),
-                                 tempNameVector.begin(),
-                                 tempNameVector.end());
-    }
-
-    const RenderMethods &getRenderMethods() const {
-        return renderMethods;
-    }
-
-
-    static const std::vector<std::string> &getRenderMethodNames() {
-        return renderMethodNames;
-    }
 
     struct StageInfo {
         uint32_t highestPriority = 999;//keeps the highest priority, used for render ordering, which is lower. priority 1 is higher priority then priority 10.
@@ -85,6 +65,29 @@ public:
                     GraphicsPipeline::StageInfo &newStageInfo);
         std::vector<std::shared_ptr<GraphicsProgram>> programs;
     };
+private:
+    friend class SDL2Helper;
+    GraphicsPipeline() = default;//used for deserialize
+    GraphicsPipeline::StageInfo* lastStageInfo = nullptr;
+
+public:
+    static std::vector<std::string> renderMethodNames;//This is not array, because custom effects might be loaded on runtime as extensions.
+
+    explicit GraphicsPipeline(RenderMethods renderMethods) : renderMethods(std::move(renderMethods)) {
+        auto tempNameVector = RenderMethodInterface::getRenderMethodNames();
+        renderMethodNames.insert(renderMethodNames.end(),
+                                 tempNameVector.begin(),
+                                 tempNameVector.end());
+    }
+
+    const RenderMethods &getRenderMethods() const {
+        return renderMethods;
+    }
+
+
+    static const std::vector<std::string> &getRenderMethodNames() {
+        return renderMethodNames;
+    }
 
     void addNewStage(const StageInfo& stageInformation) {
         for (const std::string &cameraTag: stageInformation.cameraTags) {
@@ -130,11 +133,17 @@ public:
 
     inline void render() {
         for(auto& stageInfo:pipelineStages) {
+            lastStageInfo = &stageInfo;
             stageInfo.stage->activate(stageInfo.clear);
             for(auto& renderMethod:stageInfo.renderMethods) {
                 renderMethod();
             }
         }
+    }
+
+    void reActivateLastStage() {
+        //if something injected some state changes (Like editor) this will be need
+        lastStageInfo->stage->activate(false);
     }
 
     void finalize();
