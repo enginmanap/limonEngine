@@ -9,11 +9,21 @@
 class World;
 class PhysicalRenderable;
 class ModelAsset;
+class Texture;
+class GraphicsPipelineStage;
+class Model;
+class GraphicsProgram;
 
 class Editor {
     World* world;
+    std::shared_ptr<Texture> colorTexture;
+    std::shared_ptr<Texture> depthTexture;
+    std::unique_ptr<GraphicsPipelineStage> backgroundRenderStage;
+    std::shared_ptr<GraphicsProgram> graphicsProgram;
+    Model* model = nullptr;
+    bool waitForRenderNextFrame = false;
 public:
-    Editor(World* world) : world(world) {};
+    Editor(World* world);
     void renderEditor();
 
 private:
@@ -25,6 +35,8 @@ private:
     void createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID,
                                           ImGuiTreeNodeFlags nodeFlags, ImGuiTreeNodeFlags leafFlags,
                                           std::vector<uint32_t> parentage);
+
+    void renderSelectedObject(Model* model);
 };
 
 

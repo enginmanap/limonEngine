@@ -21,6 +21,20 @@
 #include "WorldSaver.h"
 #include "AI/AIMovementGrid.h"
 
+
+Editor::Editor(World *world) : world(world){
+    backgroundRenderStage = std::make_unique<GraphicsPipelineStage>(world->graphicsWrapper, 640,480,"","",true,true,true,false,false);
+    colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 640, 480);
+    colorTexture->setName("EditorColorTexture");
+    colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
+    depthTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::DEPTH, GraphicsInterface::FormatTypes::DEPTH, GraphicsInterface::DataTypes::FLOAT, 640, 480);
+    depthTexture->setName("EditorDepthTexture");
+    colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
+    backgroundRenderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, colorTexture, true);
+    backgroundRenderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, depthTexture, true);
+    graphicsProgram = std::make_shared<GraphicsProgram>(world->assetManager.get(), "./Engine/Shaders/ModelAnimated/vertex.glsl", "./Engine/Shaders/ModelAnimated/fragment.glsl", true);
+}
+
 //This method is used only for ImGui loaded animations list generation
 bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {
     auto& animations = *static_cast<std::vector<AnimationCustom> *>(data);
@@ -82,6 +96,22 @@ void Editor::renderEditor() {
                         modelAssetsWaitingCPULoad.find(selectedAsset->fullPath) == modelAssetsWaitingCPULoad.end()
                         && world->assetManager->isLoaded({selectedAsset->fullPath})) || modelAssetsPreloaded.find(selectedAsset->fullPath) != modelAssetsPreloaded.end()) {
                     ImGui::Text("Preloaded");
+                    if(ImGui::Button("Render Object")) {
+                        if(model != nullptr) {
+                            if(model->getName() != selectedAsset->fullPath) {
+                                delete model;
+                                model = new Model(world->getNextObjectID(), world->assetManager, selectedAsset->fullPath);// FIXME this will cause gaps, we should reserve and reuse
+                                model->getTransformation()->setTranslate(newObjectPosition);
+                                renderSelectedObject(model);
+                            }
+                            //this is the reuse case
+                        } else {
+                            model = new Model(world->getNextObjectID(), world->assetManager, selectedAsset->fullPath);
+                            model->getTransformation()->setTranslate(newObjectPosition);
+                            renderSelectedObject(model);
+                        }
+                    }
+
                 } else if(modelAssetsWaitingCPULoad.find(selectedAsset->fullPath) != modelAssetsWaitingCPULoad.end()) {
                     if(modelAssetsWaitingCPULoad[selectedAsset->fullPath]->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
                         world->assetManager->partialLoadGPUSide(modelAssetsWaitingCPULoad[selectedAsset->fullPath]);
@@ -573,7 +603,8 @@ void Editor::renderEditor() {
             static int listbox_item_current = -1;//not static because I don't want user to select a item.
             static ImGuiImageWrapper wrapper;//keeps selected texture and layer;
             std::vector<std::shared_ptr<Texture>> allTextures = world->renderPipeline->getTextures();
-
+            allTextures.emplace_back(colorTexture);
+            allTextures.emplace_back(depthTexture);
             if(ImGui::ListBox("Current Textures##Render Debugging", &listbox_item_current, World::getNameOfTexture,
                               static_cast<void *>(&allTextures), allTextures.size(), 10)) {
                 wrapper.layer = 0;
@@ -1143,5 +1174,15 @@ void Editor::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, u
        }
        ImGui::TreePop();
    }
+}
+
+void Editor::renderSelectedObject(Model* model) {
+    //world->graphicsWrapper->backupCurrentState();
+    backgroundRenderStage->activate(true);
+    std::vector<uint32_t> modelIndexes;
+    modelIndexes.push_back(model->getWorldObjectID());
+    model->renderWithProgramInstanced(modelIndexes, *(graphicsProgram.get()), 0);
+    //world->graphicsWrapper->restoreLastState();
+
 }
 
