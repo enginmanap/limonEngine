@@ -720,7 +720,6 @@ OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fram
         glClear(GL_DEPTH_BUFFER_BIT);
     }
 
-    //we combine diffuse+specular lighted with ambient / SSAO
     for (auto inputIt = inputs.begin(); inputIt != inputs.end(); ++inputIt) {
         switch (inputIt->second->getType()) {
             case OpenGLGraphics::TextureTypes::T2D: state->attachTexture(inputIt->second->getTextureID(), inputIt->first); break;
