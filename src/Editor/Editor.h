@@ -37,6 +37,8 @@ private:
                                           std::vector<uint32_t> parentage);
 
     void renderSelectedObject(Model* model);
+
+    void setTransformToModel(const glm::vec3 &newObjectPosition);
 };
 
 

@@ -98,16 +98,16 @@ void Editor::renderEditor() {
                     ImGui::Text("Preloaded");
                     if(ImGui::Button("Render Object")) {
                         if(model != nullptr) {
-                            if(model->getName() != selectedAsset->fullPath) {
+                            if(model->getName() != selectedAsset->fullPath + "_" + std::to_string(model->getWorldObjectID())) {
                                 delete model;
                                 model = new Model(world->getNextObjectID(), world->assetManager, selectedAsset->fullPath);// FIXME this will cause gaps, we should reserve and reuse
-                                model->getTransformation()->setTranslate(newObjectPosition);
+                                setTransformToModel(newObjectPosition);
                                 renderSelectedObject(model);
                             }
                             //this is the reuse case
                         } else {
                             model = new Model(world->getNextObjectID(), world->assetManager, selectedAsset->fullPath);
-                            model->getTransformation()->setTranslate(newObjectPosition);
+                            setTransformToModel(newObjectPosition);
                             renderSelectedObject(model);
                         }
                     }
@@ -880,6 +880,26 @@ void Editor::renderEditor() {
 
     /* window definitions */
     world->imgGuiHelper->RenderDrawLists();
+}
+
+void Editor::setTransformToModel(const glm::vec3 &newObjectPosition) {
+    float expectedSize = 10.0f;
+    const glm::mat4 reversalTransformation = glm::inverse(glm::lookAt(world->playerCamera->getPosition(),
+                                                                      newObjectPosition, glm::vec3(0, 1, 0)));
+    glm::vec3 scale, translation, skew;
+    glm::vec4 perspective;
+    glm::quat rotationDe;
+    glm::decompose(reversalTransformation, scale, rotationDe, translation, skew, perspective);
+    model->getTransformation()->setOrientation(rotationDe);
+    glm::vec3 min = model->getAabbMin(), max = model->getAabbMax();
+    glm::vec3 size = max - min;
+    float maxDim = std::max(size.x, std::max(size.y, size.z));
+    float scaleF = expectedSize /maxDim ;
+    model->getTransformation()->setScale(glm::vec3(scaleF, scaleF, scaleF));
+    glm::vec3 centerOffset = model->getCenterOffset() * scaleF;
+    translation = newObjectPosition-centerOffset;
+    model->getTransformation()->setTranslate(translation);
+
 }
 
 
