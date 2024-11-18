@@ -109,9 +109,8 @@ private:
 
         std::shared_ptr<Asset> popFrontOrBlock() {
             std::unique_lock<std::mutex> lock(queueMutex);
-            if(assets.empty()) {
+            while (assets.empty()) {
                 queueEmptyCond.wait(lock);
-                //lock.lock();
             }
             std::shared_ptr<Asset> assetPtr =assets.front();
             assets.pop_front();

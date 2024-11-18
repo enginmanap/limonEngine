@@ -193,7 +193,7 @@ public:
         if(sourceAsset != nullptr) {
             textureFiles.push_back(*sourceAsset);
         }
-        this->opacityTexture = assetManager->loadAsset<TextureAsset>(textureFiles);
+        this->opacityTexture = assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
         this->isOpacityMap = true;
     }
 
