@@ -160,7 +160,7 @@ void ModelAsset::loadGPUPart() {
     temporaryEmbeddedTextures.reset();
 
     for (auto material = materialMap.begin(); material != materialMap.end(); ++material) {
-        material->second->afterDeserialize(assetManager, name);
+        material->second->loadGPUSide(assetManager);
         assetManager->getGraphicsWrapper()->setMaterial(*material->second);
     }
 
@@ -838,7 +838,6 @@ bool ModelAsset::isTransparent() const {
 }
 
 void ModelAsset::buildPhysicsMeshes() {
-    std::cerr << "building physics meshes for " << this->name << std::endl;
     baseTransform.setIdentity();
     baseTransform.setOrigin(GLMConverter::GLMToBlt(-1.0f * centerOffset));
 
@@ -894,7 +893,7 @@ btCompoundShape * ModelAsset::getCompoundShapeForMass(uint32_t mass, std::map<ui
 
     btCompoundShape *copyMesh =new btCompoundShape();
     if (!this->isAnimated() && mass==0) {
-        for(int i= 0; i < meshCollisionShapesForTriangle.size(); ++i) {
+        for(size_t i= 0; i < meshCollisionShapesForTriangle.size(); ++i) {
             copyMesh->addChildShape(baseTransform,
                     new btScaledBvhTriangleMeshShape(
                             reinterpret_cast<btBvhTriangleMeshShape *>(meshCollisionShapesForTriangle[i]), btVector3(1, 1, 1)));

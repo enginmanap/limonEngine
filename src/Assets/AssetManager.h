@@ -209,7 +209,7 @@ public:
     template<class T>
     std::vector<std::shared_ptr<T>>parallelLoadAssetList(const std::vector<std::vector<std::string>> filesList) {
         std::vector<std::shared_ptr<T>> loadedAssets;
-        uint32_t startedAssetCount = 0;
+        std::unordered_set<int> startedAssetIds;
         for(const auto &files : filesList) {
             if (assets.count(files) == 0) {
                 bool loaded = false;
@@ -232,22 +232,25 @@ public:
                 }
                 if(!loaded) {
                     assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files), 0);
+                    startedAssetIds.insert(nextAssetIndex);
                     nextAssetIndex++;
                     assetLoadCpuQueue.pushBack(assets[files].first);
-                    startedAssetCount++;
                 }
             }
             assets[files].second++;
             loadedAssets.emplace_back(std::dynamic_pointer_cast<T>(assets[files].first));
         }
         //now load the assets to GPU on main thread
-        uint32_t finishedAssetCount = 0;
-        while(finishedAssetCount != startedAssetCount) {
+        while(!startedAssetIds.empty()) {
             std::shared_ptr<Asset> asset = assetLoadGPUQueue.popFrontOrReturn();
             if(asset != nullptr) {
-                asset->loadGPUPart();
-                asset->setLoadState(Asset::LoadState::DONE);
-                finishedAssetCount++;
+                if(asset->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
+                    asset->loadGPUPart();
+                    asset->setLoadState(Asset::LoadState::DONE);
+                }
+                if(asset->getLoadState() == Asset::LoadState::DONE) {
+                    startedAssetIds.erase(asset->getAssetID());
+                }
             }
         }
         return loadedAssets;
@@ -287,13 +290,17 @@ public:
         //now load the assets to GPU on main thread
     }
 
-    bool partialLoadGPUSide(std::shared_ptr<Asset> asset) {
-        if(asset->loadState != Asset::LoadState::CPU_LOAD_DONE) {
-            return false;
+    void partialLoadGPUSide(std::shared_ptr<Asset> asset) {
+        if(asset->loadState == Asset::LoadState::DONE) {
+            //Some code paths will try to load the asset again.
+            return;
+        }
+        while(asset->loadState != Asset::LoadState::CPU_LOAD_DONE) {
+            //busy wait
         }
         asset->loadGPUPart();
         asset->setLoadState(Asset::LoadState::DONE);
-        return true;
+        return;
     }
 
     template<class T>
@@ -354,6 +361,10 @@ public:
             if (assets[files].first.use_count() > 2) {
                 //possible issue
                 std::cerr << "Reference counter for asset " << files[0] << " is more than 2, there is a leak" << std::endl;
+            }
+            //before here, do we know it was actually loaded?
+            if(assets[files].first->getLoadState() != Asset::LoadState::DONE) {
+                std::cerr << "trying to delete a partially loaded object" + files[0] + ", probably a bug" << std::endl;
             }
             assets.erase(files);
             if(embeddedTextures.find(files[0]) != embeddedTextures.end()) {
