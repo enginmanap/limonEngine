@@ -893,11 +893,11 @@ void Editor::setTransformToModel(const glm::vec3 &newObjectPosition) {
     model->getTransformation()->setOrientation(rotationDe);
     glm::vec3 min = model->getAabbMin(), max = model->getAabbMax();
     glm::vec3 size = max - min;
-    float maxDim = std::max(size.x, std::max(size.y, size.z));
+    float maxDim = std::max(size.x, size.y);
     float scaleF = expectedSize /maxDim ;
     model->getTransformation()->setScale(glm::vec3(scaleF, scaleF, scaleF));
-    glm::vec3 centerOffset = model->getCenterOffset() * scaleF;
-    translation = newObjectPosition-centerOffset;
+    glm::vec3 centerOffset = (min + max) * 0.5f * scaleF;
+    translation = newObjectPosition - centerOffset;
     model->getTransformation()->setTranslate(translation);
 
 }
