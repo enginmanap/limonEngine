@@ -98,34 +98,40 @@ public:
         }
     };
 private:
-    class AssetLoadCPUQueue {
+    class AssetLoadQueue {
     private:
-        std::list<std::shared_ptr<Asset>> assets;
+        std::list<std::pair<std::shared_ptr<Asset>, bool>> assets;
         std::mutex queueMutex;
         std::condition_variable queueEmptyCond;
     public:
-        void pushBack(std::shared_ptr<Asset> asset) {
+        void pushBack(std::shared_ptr<Asset> asset, bool pushToNextQueue) {
             std::lock_guard<std::mutex> lock(queueMutex);
-            assets.push_back(asset);
+            assets.push_back({asset, pushToNextQueue});
             queueEmptyCond.notify_one();
         }
 
-        std::shared_ptr<Asset> popFrontOrBlock() {
+        void pushBack(std::pair<std::shared_ptr<Asset>, bool> assetAndPushToNextQueue) {
+            std::lock_guard<std::mutex> lock(queueMutex);
+            assets.push_back(assetAndPushToNextQueue);
+            queueEmptyCond.notify_one();
+        }
+
+        std::pair<std::shared_ptr<Asset>, bool> popFrontOrBlock() {
             std::unique_lock<std::mutex> lock(queueMutex);
             while (assets.empty()) {
                 queueEmptyCond.wait(lock);
             }
-            std::shared_ptr<Asset> assetPtr =assets.front();
+            std::pair<std::shared_ptr<Asset>, bool> assetPtr =assets.front();
             assets.pop_front();
             return assetPtr;
         }
 
-        std::shared_ptr<Asset> popFrontOrReturn() {
+        std::pair<std::shared_ptr<Asset>, bool> popFrontOrReturn() {
             std::unique_lock<std::mutex> lock(queueMutex);
             if(assets.empty()) {
-                return nullptr;
+                return {nullptr, false};
             }
-            std::shared_ptr<Asset> assetPtr =assets.front();
+            std::pair<std::shared_ptr<Asset>, bool> assetPtr =assets.front();
             assets.pop_front();
             return assetPtr;
         }
@@ -136,8 +142,8 @@ private:
         }
     };
 
-    AssetLoadCPUQueue assetLoadCpuQueue;
-    AssetLoadCPUQueue assetLoadGPUQueue;
+    AssetLoadQueue assetLoadCpuQueue;
+    AssetLoadQueue assetLoadGPUQueue;
 
     struct AssetLoadThreadState {
         std::shared_ptr<std::thread> thread;
@@ -147,12 +153,14 @@ private:
 
     void cpuLoadAsset(bool& running) {
         while(running) {
-            std::shared_ptr<Asset> asset = assetLoadCpuQueue.popFrontOrBlock();
+            std::pair<std::shared_ptr<Asset>, bool> assetAndLoadNext = assetLoadCpuQueue.popFrontOrBlock();
 
-            asset->loadCPUPart();
-            asset->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
+            assetAndLoadNext.first->loadCPUPart();
+            assetAndLoadNext.first->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
             cpuLoadDoneCondition.notify_all();
-            assetLoadGPUQueue.pushBack(asset);
+            if(assetAndLoadNext.second){
+                assetLoadGPUQueue.pushBack(assetAndLoadNext);
+            }
         }
     }
 
@@ -237,7 +245,7 @@ public:
                     assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files), 0);
                     startedAssetIds.insert(nextAssetIndex);
                     nextAssetIndex++;
-                    assetLoadCpuQueue.pushBack(assets[files].first);
+                    assetLoadCpuQueue.pushBack(assets[files].first, true);
                 }
             }
             assets[files].second++;
@@ -245,14 +253,14 @@ public:
         }
         //now load the assets to GPU on main thread
         while(!startedAssetIds.empty()) {
-            std::shared_ptr<Asset> asset = assetLoadGPUQueue.popFrontOrReturn();
-            if(asset != nullptr) {
-                if(asset->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
-                    asset->loadGPUPart();
-                    asset->setLoadState(Asset::LoadState::DONE);
+            std::pair<std::shared_ptr<Asset>, bool> assetAndPushToNext = assetLoadGPUQueue.popFrontOrReturn();
+            if(assetAndPushToNext.first != nullptr) {
+                if(assetAndPushToNext.first->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
+                    assetAndPushToNext.first->loadGPUPart();
+                    assetAndPushToNext.first->setLoadState(Asset::LoadState::DONE);
                 }
-                if(asset->getLoadState() == Asset::LoadState::DONE) {
-                    startedAssetIds.erase(asset->getAssetID());
+                if(assetAndPushToNext.first->getLoadState() == Asset::LoadState::DONE) {
+                    startedAssetIds.erase(assetAndPushToNext.first->getAssetID());
                 }
             }
         }
@@ -284,7 +292,7 @@ public:
             if(!loaded) {
                 assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files), 0);
                 nextAssetIndex++;
-                assetLoadCpuQueue.pushBack(assets[files].first);
+                assetLoadCpuQueue.pushBack(assets[files].first, false);
             }
         }
         assets[files].second++;
