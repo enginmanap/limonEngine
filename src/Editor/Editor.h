@@ -13,6 +13,7 @@ class Texture;
 class GraphicsPipelineStage;
 class Model;
 class GraphicsProgram;
+class ImGuiImageWrapper;
 
 class Editor {
     World* world;
@@ -21,7 +22,7 @@ class Editor {
     std::unique_ptr<GraphicsPipelineStage> backgroundRenderStage;
     std::shared_ptr<GraphicsProgram> graphicsProgram;
     Model* model = nullptr;
-    bool waitForRenderNextFrame = false;
+    ImGuiImageWrapper* wrapper = nullptr;
 public:
     Editor(World* world);
     void renderEditor();

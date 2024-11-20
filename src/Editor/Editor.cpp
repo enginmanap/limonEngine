@@ -33,6 +33,7 @@ Editor::Editor(World *world) : world(world){
     backgroundRenderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, colorTexture, true);
     backgroundRenderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, depthTexture, true);
     graphicsProgram = std::make_shared<GraphicsProgram>(world->assetManager.get(), "./Engine/Shaders/ModelAnimated/vertex.glsl", "./Engine/Shaders/ModelAnimated/fragment.glsl", true);
+    wrapper = new ImGuiImageWrapper();
 }
 
 //This method is used only for ImGui loaded animations list generation
@@ -86,31 +87,48 @@ void Editor::renderEditor() {
             ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
 
             ImGui::NewLine();
+            wrapper->layer = 0;
+            wrapper->texture = colorTexture;
+            ImVec2 size;
+            size.x = wrapper->texture->getWidth();
+            size.y = wrapper->texture->getHeight();
+            /*
+            float region_sz = 32.0f;
+            float region_x = io.MousePos.x - pos.x - region_sz * 0.5f; if (region_x < 0.0f) region_x = 0.0f; else if (region_x > my_tex_w - region_sz) region_x = my_tex_w - region_sz;
+            float region_y = io.MousePos.y - pos.y - region_sz * 0.5f; if (region_y < 0.0f) region_y = 0.0f; else if (region_y > my_tex_h - region_sz) region_y = my_tex_h - region_sz;
+            float zoom = 4.0f;
+            ImGui::Text("Min: (%.2f, %.2f)", region_x, region_y);
+            ImGui::Text("Max: (%.2f, %.2f)", region_x + region_sz, region_y + region_sz);
+            ImVec2 uv0 = ImVec2((region_x) / my_tex_w, (region_y) / my_tex_h);
+            ImVec2 uv1 = ImVec2((region_x + region_sz) / my_tex_w, (region_y + region_sz) / my_tex_h);
+            */
+            ImGui::Dummy(ImVec2(0.0f, size.y));
+            size.y = -1 * size.y;//This is because ImGui assumes y up. Since this code is shared with fonts, and fixing font generation is hard, I am using this hack for upside down fix.
+
+            //ImGui::Image(this->colorTexture->getTextureID(), ImVec2(region_sz * zoom, region_sz * zoom), uv0, uv1, ImColor(255,255,255,255), ImColor(255,255,255,128));
+            ImGui::Image(wrapper, size);
             if(selectedAsset == nullptr) {
                 ImGui::Button("Add Object");
                 ImGui::SameLine();
                 ImGuiHelper::ShowHelpMarker("No Asset Selected!");
             } else {
-
-                if((
-                        modelAssetsWaitingCPULoad.find(selectedAsset->fullPath) == modelAssetsWaitingCPULoad.end()
+                if((modelAssetsWaitingCPULoad.find(selectedAsset->fullPath) == modelAssetsWaitingCPULoad.end()
                         && world->assetManager->isLoaded({selectedAsset->fullPath})) || modelAssetsPreloaded.find(selectedAsset->fullPath) != modelAssetsPreloaded.end()) {
-                    ImGui::Text("Preloaded");
-                    if(ImGui::Button("Render Object")) {
-                        if(model != nullptr) {
-                            if(model->getName() != selectedAsset->fullPath + "_" + std::to_string(model->getWorldObjectID())) {
-                                delete model;
-                                model = new Model(world->getNextObjectID(), world->assetManager, selectedAsset->fullPath);// FIXME this will cause gaps, we should reserve and reuse
-                                setTransformToModel(newObjectPosition);
-                                renderSelectedObject(model);
-                            }
-                            //this is the reuse case
-                        } else {
-                            model = new Model(world->getNextObjectID(), world->assetManager, selectedAsset->fullPath);
+                    // Preloaded case
+                    if(model != nullptr) {
+                        if(model->getName() != selectedAsset->fullPath + "_" + std::to_string(model->getWorldObjectID())) {
+                            delete model;
+                            model = new Model(world->getNextObjectID(), world->assetManager, selectedAsset->fullPath);// FIXME this will cause gaps, we should reserve and reuse
                             setTransformToModel(newObjectPosition);
                             renderSelectedObject(model);
                         }
+                        //this is the reuse case
+                    } else {
+                        model = new Model(world->getNextObjectID(), world->assetManager, selectedAsset->fullPath);
+                        setTransformToModel(newObjectPosition);
+                        renderSelectedObject(model);
                     }
+
 
                 } else if(modelAssetsWaitingCPULoad.find(selectedAsset->fullPath) != modelAssetsWaitingCPULoad.end()) {
                     if(modelAssetsWaitingCPULoad[selectedAsset->fullPath]->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
@@ -121,7 +139,7 @@ void Editor::renderEditor() {
                         ImGui::Text("Loading...");
                     }
                 } else {
-                    ImGui::Text("Requesting Load");
+                    //Requesting Load case
                     modelAssetsWaitingCPULoad[selectedAsset->fullPath] = world->assetManager->partialLoadAssetAsync<ModelAsset>({selectedAsset->fullPath});
                 }
                 if(ImGui::Button("Add Object")) {

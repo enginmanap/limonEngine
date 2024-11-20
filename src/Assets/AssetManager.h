@@ -30,6 +30,9 @@ class AssetManager {
 public:
     enum AssetTypes { Asset_type_DIRECTORY, Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND, Asset_type_GRAPHICSPROGRAM, Asset_type_UNKNOWN };
 
+    std::mutex cpuLoadConditionMutex;
+    std::condition_variable cpuLoadDoneCondition;
+
     struct EmbeddedTexture {
         char format[9] = "\0";
         uint32_t height = 0;
@@ -148,6 +151,7 @@ private:
 
             asset->loadCPUPart();
             asset->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
+            cpuLoadDoneCondition.notify_all();
             assetLoadGPUQueue.pushBack(asset);
         }
     }
@@ -294,11 +298,14 @@ public:
             //Some code paths will try to load the asset again.
             return;
         }
-        while(asset->loadState != Asset::LoadState::CPU_LOAD_DONE) {
-            //busy wait
+        while(asset->getLoadState() != Asset::LoadState::CPU_LOAD_DONE && asset->getLoadState() != Asset::LoadState::DONE) {
+            std::unique_lock<std::mutex> lock(cpuLoadConditionMutex);
+            cpuLoadDoneCondition.wait_for(lock, std::chrono::milliseconds{5});
         }
-        asset->loadGPUPart();
-        asset->setLoadState(Asset::LoadState::DONE);
+        if(asset->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
+            asset->loadGPUPart();
+            asset->setLoadState(Asset::LoadState::DONE);
+        }
         return;
     }
 
