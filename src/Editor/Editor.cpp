@@ -47,6 +47,35 @@ bool getNameOfLoadedAnimation(void* data, int index, const char** outText) {
 
 }
 
+Model* Editor::getModelAndMoveToEnd(const std::string& modelFilePath) {
+    for(auto iter = modelQueue.begin(); iter != modelQueue.end(); ++iter) {
+        Model* model = *iter;
+        if (model->getName() == modelFilePath + "_" + std::to_string(model->getWorldObjectID())) {
+            modelQueue.erase(iter);
+            modelQueue.emplace_back(model);
+            return model;
+        }
+    }
+    return nullptr;
+}
+Model * Editor::createRenderAndAddModelToLRU(const std::string &modelFileName, const glm::vec3 &newObjectPosition) {
+    uint32_t newWorldObjectId;
+    if(modelQueue.size() >= MAX_PRELOAD_MODEL_COUNT_EDITOR) {
+        newWorldObjectId = modelQueue[0]->getWorldObjectID();
+        delete modelQueue[0];
+        modelQueue.erase(modelQueue.begin());
+    } else {
+        newWorldObjectId = (*modelIdSet.begin());
+        modelIdSet.erase(modelIdSet.begin());
+    }
+
+    Model* model = new Model(newWorldObjectId, world->assetManager, modelFileName);// FIXME this will cause gaps, we should reserve and reuse
+    modelQueue.push_back(model);
+    setTransformToModel(model, newObjectPosition);
+    renderSelectedObject(model);
+    return model;
+}
+
 void Editor::renderEditor() {
 
     world->imgGuiHelper->NewFrame();
@@ -84,52 +113,42 @@ void Editor::renderEditor() {
                                               &selectedAsset);
 
             static float newObjectWeight;
-            ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
-
             ImGui::NewLine();
             wrapper->layer = 0;
             wrapper->texture = colorTexture;
             ImVec2 size;
             size.x = wrapper->texture->getWidth();
             size.y = wrapper->texture->getHeight();
-            /*
-            float region_sz = 32.0f;
-            float region_x = io.MousePos.x - pos.x - region_sz * 0.5f; if (region_x < 0.0f) region_x = 0.0f; else if (region_x > my_tex_w - region_sz) region_x = my_tex_w - region_sz;
-            float region_y = io.MousePos.y - pos.y - region_sz * 0.5f; if (region_y < 0.0f) region_y = 0.0f; else if (region_y > my_tex_h - region_sz) region_y = my_tex_h - region_sz;
-            float zoom = 4.0f;
-            ImGui::Text("Min: (%.2f, %.2f)", region_x, region_y);
-            ImGui::Text("Max: (%.2f, %.2f)", region_x + region_sz, region_y + region_sz);
-            ImVec2 uv0 = ImVec2((region_x) / my_tex_w, (region_y) / my_tex_h);
-            ImVec2 uv1 = ImVec2((region_x + region_sz) / my_tex_w, (region_y + region_sz) / my_tex_h);
-            */
             ImGui::Dummy(ImVec2(0.0f, size.y));
             size.y = -1 * size.y;//This is because ImGui assumes y up. Since this code is shared with fonts, and fixing font generation is hard, I am using this hack for upside down fix.
 
             //ImGui::Image(this->colorTexture->getTextureID(), ImVec2(region_sz * zoom, region_sz * zoom), uv0, uv1, ImColor(255,255,255,255), ImColor(255,255,255,128));
             ImGui::Image(wrapper, size);
+            ImGui::NewLine();
+            ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
+            ImGui::NewLine();
             if(selectedAsset == nullptr) {
                 ImGui::Button("Add Object");
                 ImGui::SameLine();
                 ImGuiHelper::ShowHelpMarker("No Asset Selected!");
             } else {
+                if(this->modelIdSet.empty() && modelQueue.empty()) {
+                    for(size_t i =0; i < MAX_PRELOAD_MODEL_COUNT_EDITOR; ++i) {
+                        this->modelIdSet.insert(world->getNextObjectID());
+                    }
+                }
                 if((modelAssetsWaitingCPULoad.find(selectedAsset->fullPath) == modelAssetsWaitingCPULoad.end()
                         && world->assetManager->isLoaded({selectedAsset->fullPath})) || modelAssetsPreloaded.find(selectedAsset->fullPath) != modelAssetsPreloaded.end()) {
                     // Preloaded case
-                    if(model != nullptr) {
-                        if(model->getName() != selectedAsset->fullPath + "_" + std::to_string(model->getWorldObjectID())) {
-                            delete model;
-                            model = new Model(world->getNextObjectID(), world->assetManager, selectedAsset->fullPath);// FIXME this will cause gaps, we should reserve and reuse
-                            setTransformToModel(newObjectPosition);
-                            renderSelectedObject(model);
-                        }
-                        //this is the reuse case
+                    Model* model = getModelAndMoveToEnd(selectedAsset->fullPath);
+                    if(model == nullptr) {
+                        this->createRenderAndAddModelToLRU(selectedAsset->fullPath, newObjectPosition);
+                        modelAssetsPreloaded.erase(selectedAsset->fullPath);
+                        world->assetManager->freeAsset({selectedAsset->fullPath});
                     } else {
-                        model = new Model(world->getNextObjectID(), world->assetManager, selectedAsset->fullPath);
-                        setTransformToModel(newObjectPosition);
+                        setTransformToModel(model, newObjectPosition);
                         renderSelectedObject(model);
                     }
-
-
                 } else if(modelAssetsWaitingCPULoad.find(selectedAsset->fullPath) != modelAssetsWaitingCPULoad.end()) {
                     if(modelAssetsWaitingCPULoad[selectedAsset->fullPath]->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
                         world->assetManager->partialLoadGPUSide(modelAssetsWaitingCPULoad[selectedAsset->fullPath]);
@@ -900,7 +919,12 @@ void Editor::renderEditor() {
     world->imgGuiHelper->RenderDrawLists();
 }
 
-void Editor::setTransformToModel(const glm::vec3 &newObjectPosition) {
+void Editor::setTransformToModel(Model *model, const glm::vec3 &newObjectPosition) {
+    //First reset the model transform
+    model->getTransformation()->setTranslate(glm::vec3(0.0f, 0.0f, 0.0f));
+    model->getTransformation()->setScale(glm::vec3(1.0f, 1.0f, 1.0f));
+    model->getTransformation()->setOrientation(glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
+    //now calculate
     float expectedSize = 10.0f;
     const glm::mat4 reversalTransformation = glm::inverse(glm::lookAt(world->playerCamera->getPosition(),
                                                                       newObjectPosition, glm::vec3(0, 1, 0)));

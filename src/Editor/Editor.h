@@ -6,6 +6,8 @@
 #define LIMONENGINE_EDITOR_H
 
 #include "ImGui/imgui.h"
+#include <set>
+#define MAX_PRELOAD_MODEL_COUNT_EDITOR 10
 class World;
 class PhysicalRenderable;
 class ModelAsset;
@@ -21,7 +23,11 @@ class Editor {
     std::shared_ptr<Texture> depthTexture;
     std::unique_ptr<GraphicsPipelineStage> backgroundRenderStage;
     std::shared_ptr<GraphicsProgram> graphicsProgram;
-    Model* model = nullptr;
+
+    std::vector<Model*> modelQueue;
+    std::set<uint32_t> modelIdSet;
+    Model* getModelAndMoveToEnd(const std::string& modelFilePath);
+    Model *createRenderAndAddModelToLRU(const std::string &modelFileName, const glm::vec3 &newObjectPosition);
     ImGuiImageWrapper* wrapper = nullptr;
 public:
     Editor(World* world);
@@ -39,7 +45,7 @@ private:
 
     void renderSelectedObject(Model* model);
 
-    void setTransformToModel(const glm::vec3 &newObjectPosition);
+    void setTransformToModel(Model *model, const glm::vec3 &newObjectPosition);
 };
 
 
