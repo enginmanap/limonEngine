@@ -512,7 +512,6 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
                                tagVisibilityEntry->second[currentModel->getAssetID()].first.emplace_back(currentModel->getWorldObjectID());
                            }
                        }
-                       break;
                    } else { //not visible
                        if(assetVisibilityEntry == tagVisibilityEntry->second.end()) {
                            //it was never in the visible set, ignore.
