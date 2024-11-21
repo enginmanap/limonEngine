@@ -16,7 +16,6 @@
 #include "API/ActorInterface.h"
 
 class World;
-class Options;
 class GraphicsInterface;
 class AssetManager;
 class GraphicsInterface;
@@ -35,7 +34,7 @@ public:
 
 private:
 
-    Options *options;
+    OptionsUtil::Options *options;
     GraphicsInterface* graphicsWrapper;
     ALHelper *alHelper;
     std::shared_ptr<AssetManager> assetManager;
@@ -60,7 +59,7 @@ private:
     void attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) const;
 
 public:
-    WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, Options *options);
+    WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options);
     std::unique_ptr<std::string> getLoadingImage(const std::string &worldFile) const;
 
     World *loadWorld(const std::string &worldFile, LimonAPI *limonAPI) const;

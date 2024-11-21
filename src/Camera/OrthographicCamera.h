@@ -19,8 +19,8 @@ class OrthographicCamera : public Camera {
     std::vector<glm::vec4> frustumPlanes;
     std::vector<glm::vec4>  frustumCorners;
     uint32_t cascadeIndex;
-    float lightOrthogonalProjectionZBottom;
-    Options *options;
+    OptionsUtil::Options *options;
+    OptionsUtil::Options::Option<double> lightOrthogonalProjectionZBottom;
     uint32_t drawLineBufferId = 0;
     uint32_t playerDrawLineBufferId = 0;
     long frameCounter = 0;
@@ -29,19 +29,19 @@ class OrthographicCamera : public Camera {
 
 public:
 
-    OrthographicCamera(const std::string &name, Options *options, uint32_t cascadeIndex, CameraAttachment *cameraAttachment) :
+    OrthographicCamera(const std::string &name, OptionsUtil::Options *options, uint32_t cascadeIndex, CameraAttachment *cameraAttachment) :
             cameraAttachment(cameraAttachment),
             position(0,20,0),
             center(glm::vec3(0, 0, -1)),
             up(glm::vec3(0, 1, 0)),
             right(glm::vec3(-1, 0, 0)),
             cascadeIndex(cascadeIndex),
-            options(options){
+            options(options),
+            lightOrthogonalProjectionZBottom(options->getOption<double>(HASH("lightOrthogonalProjectionBackOff"))){
         this->name = name;
 
         frustumPlanes.resize(6);
         this->frustumCorners.resize(8);
-        options->getOptionOrDefault("lightOrthogonalProjectionBackOff", lightOrthogonalProjectionZBottom, -5000.0f);
     }
 
     CameraTypes getType() const override {
@@ -187,7 +187,7 @@ public:
         } else {
             maxZ *= zMultiplier;
         }
-        return glm::ortho(minX, maxX, minY, maxY, lightOrthogonalProjectionZBottom, maxZ);
+        return glm::ortho(minX, maxX, minY, maxY, (float)lightOrthogonalProjectionZBottom.getOrDefault(-5000.0f), maxZ);
     }
 };
 

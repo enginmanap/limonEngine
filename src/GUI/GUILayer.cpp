@@ -106,7 +106,7 @@ void GUILayer::removeGuiElement(uint32_t guiElementID) {
     }
 }
 
-bool GUILayer::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *LayersListNode, Options *options) {
+bool GUILayer::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *LayersListNode, OptionsUtil::Options *options) {
 
     tinyxml2::XMLElement *layerNode= document.NewElement("GUILayer");
     LayersListNode->InsertEndChild(layerNode);

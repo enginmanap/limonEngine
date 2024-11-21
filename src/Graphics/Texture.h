@@ -169,10 +169,10 @@ public:
         return textureInfo;
     }
 
-    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
+    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, OptionsUtil::Options *options);
 
     static std::shared_ptr<Texture>
-    deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface *graphicsWrapper, std::shared_ptr<AssetManager> assetManager, Options *options);
+    deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface *graphicsWrapper, std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options);
 
 };
 

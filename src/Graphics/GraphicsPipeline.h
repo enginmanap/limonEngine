@@ -56,7 +56,7 @@ public:
             StageInfo::highestPriority = highestPriority;
         }
 
-        bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
+        bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, OptionsUtil::Options *options);
         static bool
         deserialize(tinyxml2::XMLElement *stageInfoElement,
                     std::shared_ptr<AssetManager> assetManager,
@@ -148,9 +148,9 @@ public:
 
     void finalize();
 
-    bool serialize(const std::string& renderPipelineFileName, Options *options);
+    bool serialize(const std::string& renderPipelineFileName, OptionsUtil::Options *options);
 
-    static std::unique_ptr<GraphicsPipeline> deserialize(const std::string &graphicsPipelineFileName, GraphicsInterface *graphicsWrapper,  std::shared_ptr<AssetManager>, Options *options, RenderMethods renderMethods);
+    static std::unique_ptr<GraphicsPipeline> deserialize(const std::string &graphicsPipelineFileName, GraphicsInterface *graphicsWrapper,  std::shared_ptr<AssetManager>, OptionsUtil::Options *options, RenderMethods renderMethods);
 
     const std::vector<std::shared_ptr<Texture>> &getTextures() {
         return textures;

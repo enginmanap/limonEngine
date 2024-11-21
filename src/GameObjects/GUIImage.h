@@ -13,7 +13,7 @@ class Options;
 class GUIImage : public GUIImageBase, public GameObject {
     uint32_t worldID;
     std::string name;
-    Options* options;
+    OptionsUtil::Options* options;
     std::vector<GUILayer*> parentLayers;
 
     bool fullScreen = false;
@@ -22,16 +22,16 @@ class GUIImage : public GUIImageBase, public GameObject {
     char GUIFileNameBuffer[256];
 
 public:
-    GUIImage(uint32_t worldID, Options *options, std::shared_ptr<AssetManager> assetManager, const std::string name,
+    GUIImage(uint32_t worldID, OptionsUtil::Options *options, std::shared_ptr<AssetManager> assetManager, const std::string name,
              const std::string &imageFile);
 
     ~GUIImage();
 
     void addedToLayer(GUILayer* layer);
 
-    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
+    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, OptionsUtil::Options *options);
 
-    static GUIImage *deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std::shared_ptr<AssetManager> assetManager, Options *options); //will turn into factory class at some point
+    static GUIImage *deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options); //will turn into factory class at some point
 
 
     /******************** Game object methods ************************************/

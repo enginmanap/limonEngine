@@ -16,7 +16,7 @@ void GraphicsPipelineStage::activate(const std::map<std::shared_ptr<Texture>, st
                                        clear && depthAttachment, cullMode, inputs, attachmentLayerMap, foundName);
 }
 
-bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options [[gnu::unused]]) {
+bool GraphicsPipelineStage::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, OptionsUtil::Options *options [[gnu::unused]]) {
     tinyxml2::XMLElement *stageNode = document.NewElement("GraphicsPipelineStage");
     parentNode->InsertEndChild(stageNode);
     tinyxml2::XMLElement *currentElement = nullptr;

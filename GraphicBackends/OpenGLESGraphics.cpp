@@ -321,7 +321,7 @@ void OpenGLESGraphics::attachGeneralUBOs(const GLuint program){//Attach the ligh
 }
 
 
-OpenGLESGraphics::OpenGLESGraphics(Options *options): GraphicsInterface(options), options(options) {}
+OpenGLESGraphics::OpenGLESGraphics(OptionsUtil::Options *options): GraphicsInterface(options), options(options) {}
 
 OpenGLESGraphics::ContextInformation OpenGLESGraphics::getContextInformation() {
     GraphicsInterface::ContextInformation contextInformation;

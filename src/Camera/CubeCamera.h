@@ -14,7 +14,7 @@ class CubeCamera : public Camera {
     std::vector<glm::mat4> renderMatrices;//these are used only for point lights for now
     CameraAttachment* cameraAttachment;
     glm::vec3 position, center, up, right;
-    Options *options;
+    OptionsUtil::Options *options;
 
     bool dirty = true;
     float activeDistance;
@@ -23,7 +23,7 @@ class CubeCamera : public Camera {
 
 public:
 
-    CubeCamera(const std::string& name, Options *options, CameraAttachment* cameraAttachment) :
+    CubeCamera(const std::string& name, OptionsUtil::Options *options, CameraAttachment* cameraAttachment) :
             cameraAttachment(cameraAttachment),
             position(0,20,0),
             center(glm::vec3(0, 0, -1)),
@@ -123,16 +123,16 @@ private:
 
     void setShadowMatricesForPosition(){
         long sWidth, sHeight;
-        float near, far;
         options->getOptionOrDefault("shadowMapPointWidth", sWidth, 512);
         options->getOptionOrDefault("shadowMapPointHeight", sHeight, 512);
-        options->getOptionOrDefault("lightPerspectiveProjectionNearPlane", near, 0.1);
-        options->getOptionOrDefault("lightPerspectiveProjectionFarPlane", far, 100);
+
+        OptionsUtil::Options::Option<double> near = options->getOption<double>(HASH("lightPerspectiveProjectionNearPlane"));
+        OptionsUtil::Options::Option<double> far = options->getOption<double>(HASH("lightPerspectiveProjectionFarPlane"));
 
         glm::mat4 lightProjectionMatrixPoint = glm::perspective(glm::radians(90.0f),
                                                       (float)sWidth/(float)sHeight,
-                                                      near,
-                                                      far);
+                                                                (float)near.getOrDefault(0.1),
+                                                                (float)far.getOrDefault(0.1));
         renderMatrices[0] = lightProjectionMatrixPoint *
                             glm::lookAt(position, position + glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0));
         renderMatrices[1] = lightProjectionMatrixPoint *

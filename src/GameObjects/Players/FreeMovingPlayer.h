@@ -23,7 +23,7 @@ class FreeMovingPlayer : public Player, public CameraAttachment {
     glm::quat view;
 public:
 
-    FreeMovingPlayer(Options* options, GUIRenderable* cursor, const glm::vec3 &position,
+    FreeMovingPlayer(OptionsUtil::Options* options, GUIRenderable* cursor, const glm::vec3 &position,
                      const glm::vec3 &lookDirection);
 
     bool isDirty() const override {

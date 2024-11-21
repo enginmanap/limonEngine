@@ -52,7 +52,7 @@
 SDL2MultiThreading::Condition VisibilityRequest::condition; //FIXME this variable doesn't looks like it belongs here
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
-             std::shared_ptr<AssetManager> assetManager, Options *options)
+             std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options)
         : assetManager(assetManager), options(options), graphicsWrapper(assetManager->getGraphicsWrapper()),
         alHelper(assetManager->getAlHelper()), name(name), fontManager(graphicsWrapper),
         startingPlayer(startingPlayerType) {
@@ -748,12 +748,23 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
     }
 
     if(inputHandler.getInputStates().getInputEvents(InputStates::Inputs::F4)) {
+        /*
         bool debugDrawLines;
         options->getOptionOrDefault("DebugDrawLines", debugDrawLines, false);
         if(inputHandler.getInputStates().getInputStatus(InputStates::Inputs::F4)) {
             debugDrawLines = !debugDrawLines;
         }
         options->setOption("DebugDrawLines", debugDrawLines);
+         */
+        long cascadeCount;
+        options->getOptionOrDefault("CascadeCount", cascadeCount, 4);
+        if(inputHandler.getInputStates().getInputStatus(InputStates::Inputs::F4)) {
+            cascadeCount--;
+            if(cascadeCount < 0) {
+                cascadeCount = 4;
+            }
+        }
+        options->setOption("CascadeCount", cascadeCount);
     }
 
     if (inputHandler.getInputStates().getInputEvents(InputStates::Inputs::EDITOR) && inputHandler.getInputStates().getInputStatus(InputStates::Inputs::EDITOR)) {
@@ -3013,7 +3024,8 @@ bool World::verifyIDs() {
         }
     }
     std::cout << "World load found " << maxID - unusedIDCount << " objects and " << unusedIDCount << " unused IDs." << std::endl;
-
+    OptionsUtil::Options::Option<std::string> dataDirectoryOption = options->getOption<std::string>(HASH("dataDirectory"));
+    std::cout << "Data directory is " << dataDirectoryOption.get() << std::endl;
     nextWorldID = maxID+1;
     return true;
 }

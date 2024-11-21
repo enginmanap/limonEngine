@@ -6,7 +6,7 @@
 #include <Assets/TextureAsset.h>
 #include "Texture.h"
 
-bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options [[gnu::unused]]) {
+bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, OptionsUtil::Options *options [[gnu::unused]]) {
     tinyxml2::XMLElement *textureNode = document.NewElement("Texture");
     parentNode->InsertEndChild(textureNode);
 
@@ -166,7 +166,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     return true;
 }
 
-std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface* graphicsWrapper, std::shared_ptr<AssetManager> assetManager, Options *options [[gnu::unused]]) {
+std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode, GraphicsInterface* graphicsWrapper, std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options [[gnu::unused]]) {
     tinyxml2::XMLElement* textureNodeAttribute = nullptr;
 
     TextureInfo textureInfo;

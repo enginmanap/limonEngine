@@ -208,7 +208,7 @@ private:
 
     GLuint combineFrameBuffer;
 
-    Options *options;
+    OptionsUtil::Options *options;
 
     const uint32_t lightUniformSize = (sizeof(glm::mat4) * 7) + (4 * sizeof(glm::vec4));
     const uint32_t playerUniformSize = 6 * sizeof(glm::mat4) + 3 * sizeof(glm::vec4);
@@ -323,7 +323,7 @@ protected:
 public:
 
 
-    explicit OpenGLESGraphics(Options *options);
+    explicit OpenGLESGraphics(OptionsUtil::Options *options);
 
     GraphicsInterface::ContextInformation getContextInformation();
     bool createGraphicsBackend();

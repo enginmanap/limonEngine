@@ -11,7 +11,9 @@ void FreeMovingPlayer::move(moveDirections direction) {
     }
     dirty = true;
     LimonTypes::Vec4 movementSpeed;
-    options->getOption("freeMovementSpeed", movementSpeed);
+    //options->getOption("freeMovementSpeed", movementSpeed);
+    OptionsUtil::Options::Option<LimonTypes::Vec4>movementSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("freeMovementSpeed"));
+    movementSpeed = movementSpeedOption.get();
     float jumpFactor;
     options->getOption("jumpFactor", jumpFactor);
 
@@ -83,7 +85,7 @@ void FreeMovingPlayer::rotate(float xPosition [[gnu::unused]], float yPosition [
     right = glm::normalize(glm::cross(center, up));
 }
 
-FreeMovingPlayer::FreeMovingPlayer(Options *options, GUIRenderable* cursor, const glm::vec3 &position,
+FreeMovingPlayer::FreeMovingPlayer(OptionsUtil::Options *options, GUIRenderable* cursor, const glm::vec3 &position,
                                    const glm::vec3 &lookDirection):
         Player(cursor, options, position, lookDirection),
         dirty(true),

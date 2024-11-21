@@ -51,7 +51,7 @@ GUIAnimation::~GUIAnimation() {
 }
 
 
-bool GUIAnimation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options) {
+bool GUIAnimation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, OptionsUtil::Options *options) {
     tinyxml2::XMLElement *guiButtonNode = document.NewElement("GUIElement");
     parentNode->InsertEndChild(guiButtonNode);
 
@@ -109,7 +109,7 @@ bool GUIAnimation::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLEleme
 }
 
 
-GUIAnimation *GUIAnimation::deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std::shared_ptr<AssetManager> assetManager, Options *options) {
+GUIAnimation *GUIAnimation::deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options) {
 
     tinyxml2::XMLElement* GUIRenderableAttribute;
 

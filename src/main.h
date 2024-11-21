@@ -10,10 +10,10 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
+#include "Options.h"
 
 class World;
 class WorldLoader;
-class Options;
 class ALHelper;
 class GraphicsInterface;
 class InputHandler;
@@ -27,7 +27,7 @@ class GameEngine {
     World* currentWorld = nullptr;
     bool worldQuit = false;
 
-    Options* options = nullptr;
+    OptionsUtil::Options* options = nullptr;
     ALHelper* alHelper = nullptr;
     std::shared_ptr<GraphicsInterface> graphicsWrapper = nullptr;
     InputHandler* inputHandler = nullptr;

@@ -15,11 +15,11 @@
 class InputHandler {
 private:
     SDL_Window *window;
-    Options *options;
+    OptionsUtil::Options *options;
     SDL_Event event;
     InputStates inputState;
 public:
-    InputHandler(SDL_Window *, Options *options);
+    InputHandler(SDL_Window *, OptionsUtil::Options *options);
 
     ~InputHandler() {
         SDL_SetWindowGrab(window, SDL_FALSE);

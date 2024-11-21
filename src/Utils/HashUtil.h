@@ -46,4 +46,23 @@ private:
 
 };
 
+struct constexpr_str {
+    char const* str;
+    std::size_t size;
+
+    // can only construct from a char[] literal
+    template <std::size_t N>
+    constexpr constexpr_str(char const (&s)[N])
+            : str(s)
+            , size(N - 1) // not count the trailing nul
+    {}
+};
+
+constexpr uint64_t HASH(constexpr_str text) {
+    return consthash::city64(text.str, text.size);
+
+}
+
+
+static_assert(HASH("test") == consthash::city64("test", 4), "HASH function did not run at compile time");
 #endif //LIMONENGINE_HASHUTIL_H

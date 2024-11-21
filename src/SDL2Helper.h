@@ -21,13 +21,13 @@ class SDL2Helper {
 private:
     SDL_Window *window;
     SDL_GLContext context;
-    Options* options;
+    OptionsUtil::Options* options;
 
 public:
 
     void setFullScreen(bool isFullScreen);
 
-    SDL2Helper(Options* options);
+    SDL2Helper(OptionsUtil::Options* options);
     void initWindow(const char*, const GraphicsInterface::ContextInformation& contextInformation);
     ~SDL2Helper();
 
@@ -37,7 +37,7 @@ public:
     };
 
     bool loadCustomTriggers(const std::string& fileName);
-    std::shared_ptr<GraphicsInterface> loadGraphicsBackend(const std::string &fileName, Options *options);
+    std::shared_ptr<GraphicsInterface> loadGraphicsBackend(const std::string &fileName, OptionsUtil::Options *options);
 
     SDL_Window *getWindow();
 

@@ -33,12 +33,12 @@ class PerspectiveCamera : public Camera {
     CameraAttachment* cameraAttachment;
     float aspect;
 
-    Options *options;
+    OptionsUtil::Options *options;
     bool dirty = true;
 
 public:
 
-    PerspectiveCamera(const std::string& name, Options *options, CameraAttachment* cameraAttachment) :
+    PerspectiveCamera(const std::string& name, OptionsUtil::Options *options, CameraAttachment* cameraAttachment) :
             view(glm::quat(0, 0, 0, -1)),
             position(startPosition),
             center(glm::vec3(0, 0, -1)),
@@ -51,7 +51,7 @@ public:
         aspect = float(options->getScreenHeight()) / float(options->getScreenWidth());
         this->frustumPlanes.resize(6);
 
-        perspectiveProjectionMatrix = glm::perspective(Options::PI/3.0f, 1.0f / aspect, 0.01f, 10000.0f);
+        perspectiveProjectionMatrix = glm::perspective(OptionsUtil::Options::PI/3.0f, 1.0f / aspect, 0.01f, 10000.0f);
 
         long cascadeCount;
         std::vector<float> cascadeLimits;
@@ -62,7 +62,9 @@ public:
             this->frustumCorners.resize(1);
         } else {
             std::vector<long> cascadeListOption;
-            if(options->getOption("CascadeLimitList", cascadeListOption)) {
+            OptionsUtil::Options::Option<std::vector<long>> cascadeLimitListOptionOption = options->getOption<std::vector<long>>(HASH("CascadeLimitList"));
+            if(cascadeLimitListOptionOption.isUsable()) {
+                cascadeListOption = cascadeLimitListOptionOption.get();
                 //we have the option list, lets process
                 if(cascadeListOption.size() != (size_t)cascadeCount) {
                     std::cerr << "\"CascadeLimitList doesn't contain same number of elements as cascade count. Cascade setup will use defaults" << std::endl;
@@ -87,7 +89,7 @@ public:
             }
             //Now use the cascade limist to create the array of perspective projection matrixes
             for (size_t i = 1; i < cascadeLimits.size(); ++i) {
-                cascadePerspectiveProjectionMatrices.emplace_back(glm::perspective(Options::PI / 3.0f, 1.0f / aspect, cascadeLimits[i - 1], cascadeLimits[i]));
+                cascadePerspectiveProjectionMatrices.emplace_back(glm::perspective(OptionsUtil::Options::PI / 3.0f, 1.0f / aspect, cascadeLimits[i - 1], cascadeLimits[i]));
             }
             frustumCorners.resize(cascadePerspectiveProjectionMatrices.size());
         }

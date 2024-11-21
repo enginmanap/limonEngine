@@ -13,7 +13,7 @@
 #include "API/Graphics/RenderMethodInterface.h"
 
 
-SDL2Helper::SDL2Helper(Options* options) : options(options) {}
+SDL2Helper::SDL2Helper(OptionsUtil::Options* options) : options(options) {}
 
 void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextInformation& contextInformation) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) { /* Initialize SDL's Video subsystem */
@@ -90,16 +90,16 @@ SDL_Window *SDL2Helper::getWindow() {
     return window;
 }
 
-std::shared_ptr<GraphicsInterface> SDL2Helper::loadGraphicsBackend(const std::string &fileName, Options *options) {
+std::shared_ptr<GraphicsInterface> SDL2Helper::loadGraphicsBackend(const std::string &fileName, OptionsUtil::Options *options) {
     std::cout << "trying to load shared library " << fileName << std::endl;
     void* objectHandle = nullptr;
     objectHandle = SDL_LoadObject(fileName.c_str());
 
     const std::string registerFunctionName = "createGraphicsBackend";
-    std::shared_ptr<GraphicsInterface>(*registerFunction)(Options*);
+    std::shared_ptr<GraphicsInterface>(*registerFunction)(OptionsUtil::Options*);
     registerFunction = (
             std::shared_ptr<GraphicsInterface>(*)(
-                    Options*
+                    OptionsUtil::Options*
                             )
             ) SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
     if(registerFunction != nullptr) {

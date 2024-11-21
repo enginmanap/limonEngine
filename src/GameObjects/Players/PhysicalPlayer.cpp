@@ -11,7 +11,7 @@ const float PhysicalPlayer::CAPSULE_HEIGHT = 1.0f;
 const float PhysicalPlayer::CAPSULE_RADIUS = 1.0f;
 const float PhysicalPlayer::STANDING_HEIGHT = 2.0f;
 
-PhysicalPlayer::PhysicalPlayer(uint32_t worldID, Options *options, GUIRenderable *cursor, const glm::vec3 &position,
+PhysicalPlayer::PhysicalPlayer(uint32_t worldID, OptionsUtil::Options *options, GUIRenderable *cursor, const glm::vec3 &position,
                                const glm::vec3 &lookDirection, Model *attachedModel ) :
         Player(cursor, options, position, lookDirection),
         center(lookDirection),

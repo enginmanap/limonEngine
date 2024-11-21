@@ -31,7 +31,7 @@ GUIText::~GUIText() {
     }
 }
 
-bool GUIText::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options) {
+bool GUIText::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, OptionsUtil::Options *options) {
     tinyxml2::XMLElement *guiTextNode = document.NewElement("GUIElement");
     parentNode->InsertEndChild(guiTextNode);
 
@@ -89,7 +89,7 @@ bool GUIText::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
 }
 
 
-GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GraphicsInterface* graphicsWrapper, FontManager *fontManager, Options *options) {
+GUIText *GUIText::deserialize(tinyxml2::XMLElement *GUIRenderableNode, GraphicsInterface* graphicsWrapper, FontManager *fontManager, OptionsUtil::Options *options) {
 
     tinyxml2::XMLElement* GUIRenderableAttribute;
 

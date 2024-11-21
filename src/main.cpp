@@ -121,7 +121,7 @@ void GameEngine::returnPreviousMap() {
 }
 
 GameEngine::GameEngine() {
-    options = new Options();
+    options = new OptionsUtil::Options();
 
     options->loadOptionsNew(OPTIONS_FILE);
     std::cout << "Options loaded successfully" << std::endl;

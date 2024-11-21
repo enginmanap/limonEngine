@@ -179,7 +179,7 @@ public:
         return this;
     }
 
-    PhysicalPlayer(uint32_t worldID, Options *options, GUIRenderable *cursor, const glm::vec3 &position,
+    PhysicalPlayer(uint32_t worldID, OptionsUtil::Options *options, GUIRenderable *cursor, const glm::vec3 &position,
                    const glm::vec3 &lookDirection, Model *attachedModel = nullptr);
 
     ~PhysicalPlayer() {

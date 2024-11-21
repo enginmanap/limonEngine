@@ -22,10 +22,10 @@ class BulletDebugDrawer : public btIDebugDraw {
     std::shared_ptr<GraphicsProgram> renderProgram;
     uint32_t vao, vbo, ebo;
     std::vector<Line> lineBuffer;
-    Options* options;
+    OptionsUtil::Options* options;
     long debugDrawBufferSize;
 public:
-    BulletDebugDrawer(std::shared_ptr<AssetManager> assetManager, Options* options);
+    BulletDebugDrawer(std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options);
 
     void drawLine(const glm::vec3 &from, const glm::vec3 &to, const glm::vec3 &fromColor, const glm::vec3 &toColor, bool needsCameraTransform);
 

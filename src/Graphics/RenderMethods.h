@@ -227,18 +227,21 @@ public:
 
     RenderMethod getRenderMethodAllDirectionalLights(std::shared_ptr<GraphicsPipelineStage> &stage, std::shared_ptr<Texture> &layeredDepthMap,
                                                      const std::shared_ptr<GraphicsProgram> &glslProgram,
-                                                     Options *options) const {
-        long cascadeCount;
-        options->getOptionOrDefault("CascadeCount", cascadeCount, 4L);
+                                                     OptionsUtil::Options *options) const {
+
+        OptionsUtil::Options::Option<long> optionNewSet = options->getOption<long>(HASH("CascadeCount"));
+        OptionsUtil::Options::Option<double> option2 = options->getOption<double>(HASH("lookAroundSpeed"));
         return RenderMethod("All directional shadows",
                             1,
                             nullptr,
                             [=](const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) {
+                                long cascadeCount = optionNewSet.get();
+
                                 std::vector<size_t> lights = getLightIndexes(Light::LightTypes::DIRECTIONAL);
                                 if(lights.size() > 1) {
                                     std::cerr << "only one directional light is supported since CSM, this will not work correctly" << std::endl;
                                 }
-                                if(lights.size() == 0 ) {
+                                if(lights.empty() ) {
                                     return;
                                 }
                                 for (int i = 0; i < cascadeCount; ++i) {

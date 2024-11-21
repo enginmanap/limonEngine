@@ -67,9 +67,9 @@ public:
 
     void addedToLayer(GUILayer* layer);
 
-    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
+    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, OptionsUtil::Options *options);
 
-    static GUIButton *deserialize(tinyxml2::XMLElement *GUIRenderableNode, std::shared_ptr<AssetManager> assetManager, Options *options,
+    static GUIButton *deserialize(tinyxml2::XMLElement *GUIRenderableNode, std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options,
                                       LimonAPI *limonAPI); //will turn into factory class at some point
 
     void setOnHover(bool hover) {

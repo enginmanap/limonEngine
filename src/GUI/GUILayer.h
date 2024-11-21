@@ -44,7 +44,7 @@ public:
 
     void setupForTime(long time);
 
-    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *LayersListNode, Options *options);
+    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *LayersListNode, OptionsUtil::Options *options);
 
     GUIRenderable* getRenderableFromCoordinate(const glm::vec2& coordinates);
 };

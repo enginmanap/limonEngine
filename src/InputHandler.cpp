@@ -6,7 +6,7 @@
 #include "InputHandler.h"
 #include "ImGuiHelper.h"
 
-InputHandler::InputHandler(SDL_Window *window, Options *options) :
+InputHandler::InputHandler(SDL_Window *window, OptionsUtil::Options *options) :
         window(window), options(options) {
     SDL_SetWindowGrab(window, SDL_TRUE);
     SDL_SetRelativeMouseMode(SDL_TRUE);

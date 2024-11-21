@@ -33,7 +33,7 @@ void GraphicsPipeline::finalize() {
     }
 }
 
-bool GraphicsPipeline::serialize(const std::string& renderPipelineFileName, Options *options) {
+bool GraphicsPipeline::serialize(const std::string& renderPipelineFileName, OptionsUtil::Options *options) {
     /**
     *     to serialize, we need 3 set of data
     *     1) Textures
@@ -70,7 +70,7 @@ bool GraphicsPipeline::serialize(const std::string& renderPipelineFileName, Opti
     }
 }
 
-bool GraphicsPipeline::StageInfo::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options) {
+bool GraphicsPipeline::StageInfo::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, OptionsUtil::Options *options) {
     /**
      * This method needs to serialize 3 things:
      * 1) methods
@@ -121,7 +121,7 @@ bool GraphicsPipeline::StageInfo::serialize(tinyxml2::XMLDocument &document, tin
 }
 
 std::unique_ptr<GraphicsPipeline>
-GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, GraphicsInterface *graphicsWrapper,  std::shared_ptr<AssetManager> assetManager, Options *options, RenderMethods renderMethods) {
+GraphicsPipeline::deserialize(const std::string &graphicsPipelineFileName, GraphicsInterface *graphicsWrapper,  std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, RenderMethods renderMethods) {
     /**
 *     to serialize, we need 3 set of data
 *     1) Textures

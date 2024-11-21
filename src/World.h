@@ -204,7 +204,7 @@ private:
     mutable std::vector<uint32_t > modelIndicesBuffer;
     std::shared_ptr<AssetManager> assetManager;
     std::unique_ptr<Editor> editor;
-    Options* options;
+    OptionsUtil::Options* options;
     uint32_t nextWorldID = 2;
     std::queue<uint32_t> unusedIDs;
     std::unordered_map<uint32_t, PhysicalRenderable *> objects;
@@ -380,7 +380,7 @@ private:
     void addLight(Light *light);
 
     World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
-          std::shared_ptr<AssetManager> assetManager, Options *options);
+          std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options);
 
     void afterLoadFinished();
 

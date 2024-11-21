@@ -57,7 +57,7 @@ GUIButton::~GUIButton() {
 }
 
 
-bool GUIButton::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options) {
+bool GUIButton::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, OptionsUtil::Options *options) {
     tinyxml2::XMLElement *guiButtonNode = document.NewElement("GUIElement");
     parentNode->InsertEndChild(guiButtonNode);
 
@@ -103,7 +103,7 @@ bool GUIButton::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement 
 }
 
 
-GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std::shared_ptr<AssetManager> assetManager, Options *options,
+GUIButton *GUIButton::deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options,
                                   LimonAPI *limonAPI) {
 
     tinyxml2::XMLElement* GUIRenderableAttribute;

@@ -38,7 +38,7 @@ class Light;
 class GraphicsProgram;
 class Texture;
 
-extern "C" std::shared_ptr<GraphicsInterface> createGraphicsBackend(Options* options);
+extern "C" std::shared_ptr<GraphicsInterface> createGraphicsBackend(OptionsUtil::Options* options);
 
 
 class OpenGLGraphics : public GraphicsInterface {
@@ -209,7 +209,7 @@ private:
 
     GLuint combineFrameBuffer;
 
-    Options *options;
+    OptionsUtil::Options *options;
 
     const uint32_t lightUniformSize = (sizeof(glm::mat4) * 6) + (4 * sizeof(glm::vec4));
     const uint32_t playerUniformSize = 6 * sizeof(glm::mat4) + 3 * sizeof(glm::vec4);
@@ -324,7 +324,7 @@ protected:
 public:
 
 
-    explicit OpenGLGraphics(Options *options);
+    explicit OpenGLGraphics(OptionsUtil::Options *options);
 
     GraphicsInterface::ContextInformation getContextInformation();
     bool createGraphicsBackend();
@@ -482,7 +482,7 @@ public:
         glScissor(x,y,width,height);
     }
 
-    Options* getOptions() {
+    OptionsUtil::Options* getOptions() {
         return options;
     }
 };

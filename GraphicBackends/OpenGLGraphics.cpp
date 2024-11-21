@@ -9,7 +9,7 @@
 #include "Utils/GLMUtils.h"
 #include "Graphics/Texture.h"
 
-std::shared_ptr<GraphicsInterface> createGraphicsBackend(Options* options) {
+std::shared_ptr<GraphicsInterface> createGraphicsBackend(OptionsUtil::Options* options) {
     return std::make_shared<OpenGLGraphics>(options);
 }
 
@@ -321,7 +321,7 @@ void OpenGLGraphics::attachGeneralUBOs(const GLuint program){//Attach the light 
 }
 
 
-OpenGLGraphics::OpenGLGraphics(Options *options): GraphicsInterface(options), options(options) {}
+OpenGLGraphics::OpenGLGraphics(OptionsUtil::Options *options): GraphicsInterface(options), options(options) {}
 
 OpenGLGraphics::ContextInformation OpenGLGraphics::getContextInformation() {
     GraphicsInterface::ContextInformation contextInformation;

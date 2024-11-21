@@ -16,7 +16,7 @@
 #include "Utils/StringUtils.hpp"
 
 
-PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, Options* options,
+PipelineExtension::PipelineExtension(GraphicsInterface *graphicsWrapper, std::shared_ptr<GraphicsPipeline> currentGraphicsPipeline, std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options,
                                      const std::vector<std::string> &renderMethodNames, RenderMethods renderMethods)
         : graphicsWrapper(graphicsWrapper), assetManager(assetManager), options(options), renderMethodNames(renderMethodNames), renderMethods(renderMethods) {
     {
@@ -954,7 +954,6 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                 }
             }
         }
-
         if(stageExtension->getMethodName() == "All directional shadows") {
             RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethodAllDirectionalLights(stageInfo->stage, depthMapDirectional, stageProgram, options);
             stageInfo->addRenderMethod(functionToCall);

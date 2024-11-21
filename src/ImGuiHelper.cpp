@@ -262,7 +262,7 @@ void    ImGuiHelper::InvalidateDeviceObjects() {
     }
 }
 
-ImGuiHelper::ImGuiHelper(std::shared_ptr<AssetManager> assetManager, Options* options) : assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), options(options) {
+ImGuiHelper::ImGuiHelper(std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options) : assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), options(options) {
 
     context = ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();

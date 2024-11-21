@@ -41,7 +41,7 @@ class ImGuiHelper {
     std::shared_ptr<AssetManager> assetManager;
     GraphicsInterface* graphicsWrapper = nullptr;
     std::shared_ptr<GraphicsProgram> program = nullptr;
-    Options* options;
+    OptionsUtil::Options* options;
 
     ImGuiContext* context = nullptr;
     void CreateFontsTexture();
@@ -87,7 +87,7 @@ class ImGuiHelper {
     }
 
 public:
-    ImGuiHelper(std::shared_ptr<AssetManager> assetManager, Options* options);
+    ImGuiHelper(std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options);
     ~ImGuiHelper();
     void        NewFrame();
     bool        ProcessEvent(const InputHandler& inputHandler);

@@ -6,7 +6,7 @@
 #include <GamePlay/APISerializer.h>
 #include "Options.h"
 
-bool Options::loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec3 &vector) {
+bool OptionsUtil::Options::loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec3 &vector) {
     tinyxml2::XMLElement *vectorNode = optionsNode->FirstChildElement(name.c_str());
     if(vectorNode == nullptr) {
         return false;
@@ -33,7 +33,7 @@ bool Options::loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, 
     return true;
 }
 
-bool Options::loadVec4(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec4 &vector) {
+bool OptionsUtil::Options::loadVec4(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec4 &vector) {
     tinyxml2::XMLElement *vectorNode = optionsNode->FirstChildElement(name.c_str());
     //get the 4 elements of vector;
     if(vectorNode == nullptr) {
@@ -66,7 +66,7 @@ bool Options::loadVec4(tinyxml2::XMLNode *optionsNode, const std::string &name, 
     return true;
 }
 
-bool Options::loadDouble(tinyxml2::XMLNode *optionsNode, const std::string &name, double& value) {
+bool OptionsUtil::Options::loadDouble(tinyxml2::XMLNode *optionsNode, const std::string &name, double& value) {
     tinyxml2::XMLElement *doubleNode = optionsNode->FirstChildElement(name.c_str());
     if(doubleNode == nullptr || doubleNode->GetText() == nullptr) {
         return false;
@@ -75,7 +75,7 @@ bool Options::loadDouble(tinyxml2::XMLNode *optionsNode, const std::string &name
     return true;
 }
 
-bool Options::loadLong(tinyxml2::XMLNode *optionsNode, const std::string &name, long& value) {
+bool OptionsUtil::Options::loadLong(tinyxml2::XMLNode *optionsNode, const std::string &name, long& value) {
     tinyxml2::XMLElement *longNode = optionsNode->FirstChildElement(name.c_str());
     if(longNode == nullptr || longNode->GetText() == nullptr) {
         return false;
@@ -84,7 +84,7 @@ bool Options::loadLong(tinyxml2::XMLNode *optionsNode, const std::string &name, 
     return true;
 }
 
-bool Options::loadString(tinyxml2::XMLNode *optionsNode, const std::string &name, std::string& value) {
+bool OptionsUtil::Options::loadString(tinyxml2::XMLNode *optionsNode, const std::string &name, std::string& value) {
     tinyxml2::XMLElement *stringNode = optionsNode->FirstChildElement(name.c_str());
     if(stringNode == nullptr || stringNode->GetText() == nullptr) {
         return false;
@@ -93,7 +93,7 @@ bool Options::loadString(tinyxml2::XMLNode *optionsNode, const std::string &name
     return true;
 }
 
-bool Options::loadBool(tinyxml2::XMLNode *optionsNode, const std::string &name, bool& value) {
+bool OptionsUtil::Options::loadBool(tinyxml2::XMLNode *optionsNode, const std::string &name, bool& value) {
     tinyxml2::XMLElement *boolNode = optionsNode->FirstChildElement(name.c_str());
     if(boolNode == nullptr || boolNode->GetText() == nullptr) {
         return false;
@@ -108,7 +108,7 @@ bool Options::loadBool(tinyxml2::XMLNode *optionsNode, const std::string &name, 
     return true;
 }
 
-bool Options::loadOptionsNew(const std::string &optionsFileName) {
+bool OptionsUtil::Options::loadOptionsNew(const std::string &optionsFileName) {
 
     tinyxml2::XMLDocument xmlDoc;
     tinyxml2::XMLError eResult = xmlDoc.LoadFile(optionsFileName.c_str());

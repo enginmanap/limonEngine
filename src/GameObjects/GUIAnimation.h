@@ -39,10 +39,10 @@ public:
 
     void addedToLayer(GUILayer* layer);
 
-    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, Options *options);
+    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, OptionsUtil::Options *options);
 
     static GUIAnimation *
-    deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std::shared_ptr<AssetManager> assetManager, Options *options); //will turn into factory class at some point
+    deserialize(tinyxml2::XMLElement *GUIRenderableNode,  std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options); //will turn into factory class at some point
 
     /******************** Game object methods ************************************/
     ObjectTypes getTypeID() const override;

@@ -40,7 +40,7 @@ void MenuPlayer::getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &toPosit
     toPosition = glm::normalize(glm::vec3(worldSpaceRay.x, worldSpaceRay.y, worldSpaceRay.z));
 }
 
-MenuPlayer::MenuPlayer(Options *options, GUIRenderable* cursor, const glm::vec3 &position,
+MenuPlayer::MenuPlayer(OptionsUtil::Options *options, GUIRenderable* cursor, const glm::vec3 &position,
                        const glm::vec3 &lookDirection):
         Player(cursor, options, position, lookDirection),
         dirty(true),

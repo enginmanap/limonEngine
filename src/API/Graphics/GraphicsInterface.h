@@ -75,7 +75,7 @@ public:
     };
 
     virtual void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) = 0;
-    explicit GraphicsInterface(Options *options [[gnu::unused]]) {};
+    explicit GraphicsInterface(OptionsUtil::Options *options [[gnu::unused]]) {};
     virtual ContextInformation getContextInformation() = 0;
     virtual bool createGraphicsBackend() = 0;
     virtual ~GraphicsInterface() {};
@@ -184,7 +184,7 @@ public:
     virtual void backupCurrentState() = 0;
     virtual void restoreLastState() = 0;
 
-    virtual Options* getOptions() = 0;
+    virtual OptionsUtil::Options* getOptions() = 0;
 };
 
 #endif //LIMONENGINE_GRAPHICSINTERFACE_H
