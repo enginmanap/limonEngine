@@ -41,10 +41,12 @@ public:
     GraphicsPipelineStage(GraphicsInterface* graphicsWrapper, uint32_t renderWidth, uint32_t renderHeight, const std::string& renderWidthOption, const std::string& renderHeightOption, bool blendEnabled, bool depthTestEnabled, bool depthWriteEnabled, bool scissorEnabled, bool toScreen = false) :
             graphicsWrapper(graphicsWrapper), renderWidthOption(renderWidthOption), renderHeightOption(renderHeightOption), defaultRenderWidth(renderWidth), defaultRenderHeight(renderHeight), renderWidth(renderWidth), renderHeight(renderHeight), blendEnabled(blendEnabled), depthTestEnabled(depthTestEnabled), depthWriteEnabled(depthWriteEnabled), scissorEnabled(scissorEnabled) {
         if(!renderHeightOption.empty()) {
-            graphicsWrapper->getOptions()->getOption(renderHeightOption, this->renderHeight);//if not found, it will not change, but we already set it to default
+            OptionsUtil::Options::Option<long> renderHeightOptionOption = graphicsWrapper->getOptions()->getOption<long>(hash(renderHeightOption));
+            this->renderHeight = renderHeightOptionOption.getOrDefault(this->renderHeight);//if not found, it will not change, but we already set it to default
         }
         if(!renderWidthOption.empty()) {
-            graphicsWrapper->getOptions()->getOption(renderWidthOption, this->renderWidth);//if not found, it will not change, but we already set it to default
+            OptionsUtil::Options::Option<long> renderWidthOptionOption = graphicsWrapper->getOptions()->getOption<long>(hash(renderWidthOption));
+            this->renderWidth = renderWidthOptionOption.getOrDefault(this->renderWidth);//if not found, it will not change, but we already set it to default
         }
         if(toScreen) {
             frameBufferID = 0;

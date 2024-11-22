@@ -40,7 +40,7 @@ namespace OptionsUtil {
 
         template<typename T>
         class Option {
-            std::shared_ptr<LimonTypes::GenericParameter> value;
+            std::shared_ptr<LimonTypes::GenericParameter> value = nullptr;
             bool isSet = false;
             std::vector<long>* longValues = nullptr;
             explicit Option(const std::shared_ptr<LimonTypes::GenericParameter> &value, bool isSet) : value(value), isSet(isSet) {
@@ -53,6 +53,7 @@ namespace OptionsUtil {
             friend class Options;
 
         public:
+            explicit Option() {}
             bool isUsable() const { return isSet; };
 
             template<typename Q =  T, typename std::enable_if<!std::is_same<Q, std::string>::value>::type* = nullptr, typename std::enable_if<!std::is_same<Q, std::vector<long>>::value>::type* = nullptr>
@@ -153,33 +154,6 @@ namespace OptionsUtil {
                 return Option<LimonTypes::Mat4>(it->second, true);
             }
             return Option<LimonTypes::Mat4>(nullptr, false);
-        }
-
-        bool getOption(const std::string &optionName, uint32_t &value) const {
-            auto it = this->options.find(optionName);
-            if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::LONG) {
-                return false;
-            }
-            value = it->second->value.longValue;
-            return true;
-        }
-
-        bool getOption(const std::string &optionName, long &value) const {
-            auto it = this->options.find(optionName);
-            if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::LONG) {
-                return false;
-            }
-            value = it->second->value.longValue;
-            return true;
-        }
-
-        bool getOption(const std::string &optionName, bool &value) const {
-            auto it = this->options.find(optionName);
-            if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::BOOLEAN) {
-                return false;
-            }
-            value = it->second->value.longValue;
-            return true;
         }
 
         bool getOption(const std::string &optionName, std::vector<long> &value) const {
@@ -312,6 +286,9 @@ namespace OptionsUtil {
         Logger *logger{};
         std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>> options;
 
+        Option<long> heightOption;
+        Option<long> widthOption;
+
         /*SDL properties that should be available */
         void *imeWindowHandle;
         int drawableWidth, drawableHeight;
@@ -383,9 +360,7 @@ namespace OptionsUtil {
         }
 
         uint32_t getScreenHeight() const {
-            uint32_t height = 1080;//default
-            getOption("screenHeight", height);
-            return height;
+            return heightOption.getOrDefault(1080);
         }
 
         void setScreenHeight(unsigned int height) {
@@ -393,9 +368,7 @@ namespace OptionsUtil {
         }
 
         uint32_t getScreenWidth() const {
-            uint32_t width = 1920;//default
-            getOption("screenWidth", width);
-            return width;
+            return widthOption.getOrDefault(1920);
         }
 
         void setScreenWidth(unsigned int width) {

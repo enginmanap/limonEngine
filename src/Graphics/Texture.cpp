@@ -354,11 +354,9 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
             std::cerr << "Texture depth option has no text,  falling back to depth setting" << std::endl;
         } else {
             textureInfo.depthOption = textureNodeAttribute->GetText();
-            long depthOption;
-            if(options->getOption(textureInfo.depthOption, depthOption)) {
-                textureInfo.depth = depthOption;
-                isTextureDepthSet = true;
-            }
+            OptionsUtil::Options::Option<long> depthOptionOption = options->getOption<long>(hash(textureInfo.depthOption));
+            textureInfo.depth = depthOptionOption.getOrDefault(4);
+            isTextureDepthSet = true;
         }
     }
 

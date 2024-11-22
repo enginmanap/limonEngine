@@ -41,8 +41,8 @@ void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextI
         exit(1);
     }
 
-    bool fullScreen;
-    options->getOption("fullScreen", fullScreen);
+    OptionsUtil::Options::Option<bool> fullScreenOption = options->getOption<bool>(HASH("fullScreen"));
+    bool fullScreen = fullScreenOption.getOrDefault(false);
     setFullScreen(fullScreen);
 
     /* Create our opengl context and attach it to our window */

@@ -44,18 +44,14 @@ public:
         if(textureInfo.heightOption.empty()) {
             height = textureInfo.defaultSize[1];
         } else {
-            if (graphicsWrapper->getOptions()->getOption(textureInfo.heightOption, height)) {
-            } else {
-                height = textureInfo.defaultSize[1];
-            }
+            OptionsUtil::Options::Option<long> heightOption = graphicsWrapper->getOptions()->getOption<long>(hash(textureInfo.heightOption));
+            height = heightOption.getOrDefault(textureInfo.defaultSize[1]);
         }
         if(textureInfo.widthOption.empty()) {
             width = textureInfo.defaultSize[0];
         } else {
-            if (graphicsWrapper->getOptions()->getOption(textureInfo.widthOption, width)) {
-            } else {
-                width = textureInfo.defaultSize[0];
-            }
+            OptionsUtil::Options::Option<long> widthOption = graphicsWrapper->getOptions()->getOption<long>(hash(textureInfo.widthOption));
+            width = widthOption.getOrDefault(textureInfo.defaultSize[0]);
         }
         this->textureID = graphicsWrapper->createTexture(height, width, textureInfo.textureType, textureInfo.internalFormatType, textureInfo.formatType, textureInfo.dataType, textureInfo.depth);
         //there are things that are not auto set. Lets set them

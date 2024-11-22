@@ -147,10 +147,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     activeLights.reserve(NR_TOTAL_LIGHTS);
 
-    long tempValue;
-    if(options->getOption("multiThreadedCulling", tempValue)) {
-        multiThreadedCulling = tempValue != 0;
-    }
+    OptionsUtil::Options::Option<bool> multiThreadCullingOption = options->getOption<bool>(HASH("multiThreadedCulling"));
+        multiThreadedCulling = multiThreadCullingOption.getOrDefault(true);
 
     /************ ImGui *****************************/
     // Setup ImGui binding
