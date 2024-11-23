@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <memory>
 #include <functional>
+#include <cstring>
 #include "Utils/HashUtil.h"
 #include "Utils/Logger.h"
 #include "API/LimonTypes.h"
@@ -38,11 +39,10 @@ namespace OptionsUtil {
                     longValues->reserve(value->value.longValues[0]);
                 }
             }
-
             friend class Options;
 
         public:
-            explicit Option() {}
+            explicit Option() = default;
             bool isUsable() const { return isSet; };
 
             template<typename Q =  T, typename std::enable_if<!std::is_same<Q, std::string>::value>::type* = nullptr, typename std::enable_if<!std::is_same<Q, std::vector<long>>::value>::type* = nullptr>
@@ -66,9 +66,18 @@ namespace OptionsUtil {
                 if (!isSet) {
                     std::cerr << "Option " << value->description << " is not set" << std::endl;
                 }
+                return value->value.stringValue;
+            };
+
+            template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::string>::value>::type* = nullptr>
+            std::string getOrDefault(T defaultValue) const {
+                if (!isSet) {
+                    return defaultValue;
+                }
 
                 return value->value.stringValue;
             };
+
             template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::vector<long>>::value>::type* = nullptr>
             std::vector<long> get() const {
                 if (!isSet) {
@@ -79,13 +88,70 @@ namespace OptionsUtil {
                 }
                 return *longValues;
             };
-    };
 
+            template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::vector<long>>::value>::type* = nullptr>
+            std::vector<long> getOrDefault(T defaultValue) const {
+                if (!isSet) {
+                    return defaultValue;
+                }
+                for(long i=1; i < value->value.longValues[0];++i) {
+                    longValues->emplace_back(value->value.longValues[i]);
+                }
+                return *longValues;
+            };
+
+            template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::vector<long>>::value>::type* = nullptr>
+            bool set(std::vector<long> newValue) {
+                if(newValue.size() > 15) {
+                    return false;
+                }
+                value->value.longValues[0] = newValue.size();
+                for(size_t i=1; i < newValue.size(); ++i){
+                    value->value.longValues[i] = newValue[i-1];
+                }
+                isSet = true;
+                return true;
+            };
+
+            template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::string>::value>::type* = nullptr>
+            bool set(const std::string& newValue) {
+                if(newValue.length() > 63) {
+                    return false;
+                }
+                memset(&(value->value), 0, sizeof(value));
+                strncpy(value->value.stringValue, newValue.c_str(), newValue.length());
+                isSet = true;
+                return true;
+            };
+
+            template<typename Q =  T, typename std::enable_if<std::is_same<Q, LimonTypes::Vec4>::value>::type* = nullptr>
+            bool set(const LimonTypes::Vec4& newValue)  {
+                value->value.vectorValue = newValue;
+                this->isSet = true;
+                return true;
+            };
+
+            template<typename Q =  T, typename std::enable_if<std::is_same<Q, LimonTypes::Mat4>::value>::type* = nullptr>
+            bool set(const LimonTypes::Mat4& newValue)  {
+                value->value.matrixValue = newValue;
+                this->isSet = true;
+                return true;
+            };
+
+            template<typename Q =  T, typename std::enable_if<std::is_same<Q, double>::value>::type* = nullptr>
+            bool set(double newValue)  {
+                value->value.doubleValue = newValue;
+                this->isSet = true;
+                return true;
+            };
+
+
+        };
 
         template<class T, typename std::enable_if<std::is_same<T, std::string>::value>::type* = nullptr>
         Option<std::string> getOption(uint64_t optionHash) const {
             auto it = this->options.find(optionHash);
-            if (it != this->options.end()) {
+            if (it != this->options.end() && it->second->valueType == LimonTypes::GenericParameter::STRING) {
                 return Option<std::string>(it->second, true);
             }
             return Option<std::string>(nullptr, false);
@@ -94,7 +160,7 @@ namespace OptionsUtil {
         template<class T, typename std::enable_if<std::is_same<T, double>::value>::type* = nullptr>
         Option<double> getOption(uint64_t optionHash) const {
             auto it = this->options.find(optionHash);
-            if (it != this->options.end()) {
+            if (it != this->options.end() && it->second->valueType == LimonTypes::GenericParameter::DOUBLE) {
                 return Option<double>(it->second, true);
             }
             return Option<double>(nullptr, false);
@@ -103,7 +169,7 @@ namespace OptionsUtil {
         template<class T, typename std::enable_if<std::is_same<T, long>::value>::type* = nullptr>
         Option<long> getOption(uint64_t optionHash) const {
             auto it = this->options.find(optionHash);
-            if (it != this->options.end()) {
+            if (it != this->options.end() && it->second->valueType == LimonTypes::GenericParameter::LONG) {
                 return Option<long>(it->second, true);
             }
             return Option<long>(nullptr, false);
@@ -112,7 +178,7 @@ namespace OptionsUtil {
         template<class T, typename std::enable_if<std::is_same<T, std::vector<long>>::value>::type* = nullptr>
         Option<std::vector<long>> getOption(uint64_t optionHash) const {
             auto it = this->options.find(optionHash);
-            if (it != this->options.end()) {
+            if (it != this->options.end() && it->second->valueType == LimonTypes::GenericParameter::LONG_ARRAY) {
                 return Option<std::vector<long>>(it->second, true);
             }
             return Option<std::vector<long>>(nullptr, false);
@@ -121,7 +187,7 @@ namespace OptionsUtil {
         template<class T, typename std::enable_if<std::is_same<T, bool>::value>::type* = nullptr>
         Option<bool> getOption(uint64_t optionHash) const {
             auto it = this->options.find(optionHash);
-            if (it != this->options.end()) {
+            if (it != this->options.end() && it->second->valueType == LimonTypes::GenericParameter::BOOLEAN) {
                 return Option<bool>(it->second, true);
             }
             return Option<bool>(nullptr, false);
@@ -130,7 +196,7 @@ namespace OptionsUtil {
         template<class T, typename std::enable_if<std::is_same<T, LimonTypes::Vec4>::value>::type* = nullptr>
         Option<LimonTypes::Vec4> getOption(uint64_t optionHash) const {
             auto it = this->options.find(optionHash);
-            if (it != this->options.end()) {
+            if (it != this->options.end() && it->second->valueType == LimonTypes::GenericParameter::VEC4) {
                 return Option<LimonTypes::Vec4>(it->second, true);
             }
             return Option<LimonTypes::Vec4>(nullptr, false);
@@ -139,7 +205,7 @@ namespace OptionsUtil {
         template<class T, typename std::enable_if<std::is_same<T, LimonTypes::Mat4>::value>::type* = nullptr>
         Option<LimonTypes::Mat4> getOption(uint64_t optionHash) const {
             auto it = this->options.find(optionHash);
-            if (it != this->options.end()) {
+            if (it != this->options.end() && it->second->valueType == LimonTypes::GenericParameter::MAT4) {
                 return Option<LimonTypes::Mat4>(it->second, true);
             }
             return Option<LimonTypes::Mat4>(nullptr, false);
@@ -157,16 +223,6 @@ namespace OptionsUtil {
             return true;
         }
 
-        bool getOptionOrDefault(const std::string &optionName, std::string &value, const std::string &defaultValue) const {
-            auto it = this->options.find(getHash(optionName));
-            if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::STRING) {
-                value = defaultValue;
-                return false;
-            }
-            value = it->second->value.stringValue;
-            return true;
-        }
-
         bool getOption(const std::string &optionName, float &value) const {
             auto it = this->options.find(getHash(optionName));
             if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::DOUBLE) {
@@ -174,61 +230,6 @@ namespace OptionsUtil {
             }
             value = (float) it->second->value.doubleValue;
             return true;
-        }
-
-        bool getOptionOrDefault(const std::string &optionName, bool &value, bool defaultValue) const {
-            auto it = this->options.find(getHash(optionName));
-            if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::BOOLEAN) {
-                value = defaultValue;
-                return false;
-            }
-            value = it->second->value.boolValue;
-            return true;
-        }
-
-        bool getOption(const std::string &optionName, LimonTypes::Vec4 &value) const {
-            auto it = this->options.find(getHash(optionName));
-            if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::VEC4) {
-                return false;
-            }
-            value = it->second->value.vectorValue;
-            return true;
-        }
-
-        void setOption(const std::string &optionName, LimonTypes::Vec4 value) {
-            auto it = this->options.find(getHash(optionName));
-            if (it == this->options.end()) {
-                std::shared_ptr<LimonTypes::GenericParameter> parameter = std::make_shared<LimonTypes::GenericParameter>();
-                parameter->description = optionName;
-                //this->options[optionName] = parameter;
-                it = this->options.find(getHash(optionName));
-            }
-            it->second->valueType = LimonTypes::GenericParameter::VEC4;
-            it->second->value.vectorValue = value;
-        }
-
-        void setOption(const std::string &optionName, double value) {
-            auto it = this->options.find(getHash(optionName));
-            if (it == this->options.end()) {
-                std::shared_ptr<LimonTypes::GenericParameter> parameter = std::make_shared<LimonTypes::GenericParameter>();
-                parameter->description = optionName;
-                //this->options[optionName] = parameter;
-                it = this->options.find(getHash(optionName));
-            }
-            it->second->valueType = LimonTypes::GenericParameter::DOUBLE;
-            it->second->value.doubleValue = value;
-        }
-
-        void setOption(const std::string &optionName, long value) {
-            auto it = this->options.find(getHash(optionName));
-            if (it == this->options.end()) {
-                std::shared_ptr<LimonTypes::GenericParameter> parameter = std::make_shared<LimonTypes::GenericParameter>();
-                parameter->description = optionName;
-                //this->options[optionName] = parameter;
-                it = this->options.find(getHash(optionName));
-            }
-            it->second->valueType = LimonTypes::GenericParameter::LONG;
-            it->second->value.longValue = value;
         }
 
         /**

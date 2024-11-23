@@ -10,12 +10,10 @@ void FreeMovingPlayer::move(moveDirections direction) {
         return;
     }
     dirty = true;
-    LimonTypes::Vec4 movementSpeed;
-    //options->getOption("freeMovementSpeed", movementSpeed);
+
     OptionsUtil::Options::Option<LimonTypes::Vec4>movementSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("freeMovementSpeed"));
-    movementSpeed = movementSpeedOption.get();
-    float jumpFactor;
-    options->getOption("jumpFactor", jumpFactor);
+    LimonTypes::Vec4 movementSpeed = movementSpeedOption.get();
+    float jumpFactor = jumpFactorOption.get();
 
     switch (direction) {
         case UP:

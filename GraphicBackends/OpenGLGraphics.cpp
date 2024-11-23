@@ -1293,7 +1293,8 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
     glTexParameteri(glTextureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     std::string temp;
-    options->getOptionOrDefault("TextureFiltering", temp, "Nearest");
+    OptionsUtil::Options::Option<std::string> textureFilteringOption = options->getOption<std::string>(HASH("TextureFiltering"));
+    temp = textureFilteringOption.getOrDefault("Nearest");
     if (temp == "Nearest") {
         glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(glTextureType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);

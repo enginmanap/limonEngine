@@ -18,6 +18,7 @@ private:
     OptionsUtil::Options *options;
     SDL_Event event;
     InputStates inputState;
+    OptionsUtil::Options::Option<double> lookAroundSpeedOption;
 public:
     InputHandler(SDL_Window *, OptionsUtil::Options *options);
 

@@ -148,7 +148,8 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     activeLights.reserve(NR_TOTAL_LIGHTS);
 
     OptionsUtil::Options::Option<bool> multiThreadCullingOption = options->getOption<bool>(HASH("multiThreadedCulling"));
-        multiThreadedCulling = multiThreadCullingOption.getOrDefault(true);
+    renderInformationsOption = options->getOption<bool>(HASH("renderInformations"));
+    multiThreadedCulling = multiThreadCullingOption.getOrDefault(true);
 
     /************ ImGui *****************************/
     // Setup ImGui binding
@@ -763,7 +764,6 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
                 cascadeCount = cascadeCountOption.getOrDefault(4);
             }
         }
-        options->setOption("CascadeCount", cascadeCount);
     }
 
     if (inputHandler.getInputStates().getInputEvents(InputStates::Inputs::EDITOR) && inputHandler.getInputStates().getInputStatus(InputStates::Inputs::EDITOR)) {
@@ -841,7 +841,7 @@ void World::renderGUITexts(const std::shared_ptr<GraphicsProgram>& renderProgram
     graphicsWrapper->getRenderTriangleAndLineCount(triangle, line);
     renderCounts->updateText("Tris: " + std::to_string(triangle) + ", lines: " + std::to_string(line));
     bool renderInformations;
-    options->getOptionOrDefault("renderInformations", renderInformations, false);
+    renderInformations = renderInformationsOption.getOrDefault(false);
     if (renderInformations) {
         renderCounts->renderWithProgram(renderProgram, 0);
         debugOutputGUI->renderWithProgram(renderProgram, 0);

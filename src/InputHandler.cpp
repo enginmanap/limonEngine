@@ -10,6 +10,7 @@ InputHandler::InputHandler(SDL_Window *window, OptionsUtil::Options *options) :
         window(window), options(options) {
     SDL_SetWindowGrab(window, SDL_TRUE);
     SDL_SetRelativeMouseMode(SDL_TRUE);
+    lookAroundSpeedOption = options->getOption<double>(HASH("lookAroundSpeed"));
 }
 
 void InputHandler::mapInput() {
@@ -120,14 +121,15 @@ void InputHandler::mapInput() {
                         break;
                     case SDLK_KP_PLUS: {
                         float lookAroundSpeed;
-                        options->getOption("lookAroundSpeed", lookAroundSpeed);
-                        options->setOption("lookAroundSpeed", lookAroundSpeed + 1.0f);
+                        lookAroundSpeed = lookAroundSpeedOption.get();
+                        lookAroundSpeed += 1.0f;
+                        lookAroundSpeedOption.set(lookAroundSpeed);
                     }
                         break;
                     case SDLK_KP_MINUS: {
-                        float lookAroundSpeed;
-                        options->getOption("lookAroundSpeed", lookAroundSpeed);
-                        options->setOption("lookAroundSpeed", lookAroundSpeed - 1.0f);
+                        float lookAroundSpeed = lookAroundSpeedOption.get();
+                        lookAroundSpeed -= 1.0f;
+                        lookAroundSpeedOption.set(lookAroundSpeed);
                     }
                         break;
                 }

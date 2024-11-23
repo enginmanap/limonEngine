@@ -214,6 +214,8 @@ private:
 
     Sound* music = nullptr;
 
+    OptionsUtil::Options::Option<bool> renderInformationsOption;
+
     /*
      * The variables below are redundant, but they allow instanced rendering, and saving frustum occlusion results.
      */

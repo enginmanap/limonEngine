@@ -12,10 +12,9 @@ void FreeCursorPlayer::move(moveDirections direction) {
     }
     dirty = true;
 
-    LimonTypes::Vec4 movementSpeed;
-    options->getOption("moveSpeed", movementSpeed);
-    float jumpFactor;
-    options->getOption("jumpFactor", jumpFactor);
+    LimonTypes::Vec4 movementSpeed = moveSpeedOption.get();
+    float jumpFactor = jumpFactorOption.get();
+
     switch (direction) {
         case UP:
             position +=(up * jumpFactor / 100.0f);

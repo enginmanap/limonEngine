@@ -25,7 +25,7 @@ class OrthographicCamera : public Camera {
     uint32_t playerDrawLineBufferId = 0;
     long frameCounter = 0;
     mutable bool dirty = true;
-
+    OptionsUtil::Options::Option<bool> debugDrawLinesOption = options->getOption<bool>(HASH("DebugDrawLines"));
 
 public:
 
@@ -111,8 +111,7 @@ public:
         cameraTransformMatrix = orthogonalProjectionMatrix * lightView;
 
 
-        bool debugDrawLines = false;
-        options->getOptionOrDefault("DebugDrawLines", debugDrawLines, false);
+        bool debugDrawLines = debugDrawLinesOption.getOrDefault(false);
         if(debugDrawLines) {
             glm::vec3 color;
             if(cascadeIndex == 0) {

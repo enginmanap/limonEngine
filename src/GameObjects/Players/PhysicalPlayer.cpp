@@ -52,7 +52,7 @@ PhysicalPlayer::PhysicalPlayer(uint32_t worldID, OptionsUtil::Options *options, 
     player->setAngularFactor(0);
     player->setFriction(1);
     player->setUserPointer(static_cast<GameObject *>(this));
-    if(attachedModel != nullptr) {
+    if (attachedModel != nullptr) {
         this->attachedModelOffset = attachedModel->getTransformation()->getTranslate();
         setAttachedModelTransformation(attachedModel);
     }
@@ -89,12 +89,10 @@ void PhysicalPlayer::move(moveDirections direction) {
         return;
     }
 
-    LimonTypes::Vec4 movementSpeedTemp;
-    options->getOption("moveSpeed", movementSpeedTemp);
+    LimonTypes::Vec4 movementSpeedTemp = moveSpeedOption.get();
     glm::vec3 movementSpeed = glm::vec3(movementSpeedTemp.x, movementSpeedTemp.y, movementSpeedTemp.z);
     movementSpeed = movementSpeed * (60.0 / TICK_PER_SECOND);
-    float jumpFactor;
-    options->getOption("jumpFactor", jumpFactor);
+    float jumpFactor = jumpFactorOption.get();
 
     switch (direction) {
         case UP: {
@@ -199,10 +197,8 @@ void PhysicalPlayer::processPhysicsWorld(const btDiscreteDynamicsWorld *world) {
         dirty = true; //Happens if player is inadvertently moving, or dead.
     }
 
-    LimonTypes::Vec4 movementSpeed;
-    options->getOption("moveSpeed", movementSpeed);
-    float jumpFactor;
-    options->getOption("jumpFactor", jumpFactor);
+    LimonTypes::Vec4 movementSpeed = moveSpeedOption.get();
+    float jumpFactor = jumpFactorOption.get();
 
     setAttachedModelTransformation(attachedModel);
     btVector3 linearVelocity = player->getLinearVelocity();

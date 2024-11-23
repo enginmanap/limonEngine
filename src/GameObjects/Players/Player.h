@@ -36,6 +36,11 @@ protected:
     WorldSettings worldSettings;
     OptionsUtil::Options *options = nullptr;
     PlayerExtensionInterface* playerExtension = nullptr;
+
+    OptionsUtil::Options::Option<LimonTypes::Vec4> moveSpeedOption;
+    OptionsUtil::Options::Option<double> jumpFactorOption;
+    OptionsUtil::Options::Option<LimonTypes::Vec4> walkSpeedOption;
+    OptionsUtil::Options::Option<LimonTypes::Vec4> runSpeedOption;
     bool dead = false;
 public:
     enum moveDirections {
@@ -43,7 +48,13 @@ public:
     };
 
     Player(GUIRenderable *cursor, OptionsUtil::Options *options, const glm::vec3 &position [[gnu::unused]], const glm::vec3 &lookDirection [[gnu::unused]])
-            : cursor(cursor), options(options){};
+            : cursor(cursor), options(options){
+
+        moveSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("moveSpeed"));
+        jumpFactorOption = options->getOption<double>(HASH("jumpFactor"));
+        walkSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("walkSpeed"));
+        runSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("runSpeed"));
+    };
 
     virtual ~Player() {}
 
@@ -100,11 +111,11 @@ public:
         if (inputState.getInputEvents(InputStates::Inputs::RUN)) {
             LimonTypes::Vec4 movementSpeed;
             if(inputState.getInputStatus(InputStates::Inputs::RUN)) {
-                options->getOption("runSpeed", movementSpeed);
-                options->setOption("moveSpeed", movementSpeed);
+                movementSpeed = runSpeedOption.get();
+                moveSpeedOption.set(movementSpeed);
             } else {
-                options->getOption("walkSpeed", movementSpeed);
-                options->setOption("moveSpeed", movementSpeed);
+                movementSpeed = walkSpeedOption.get();
+                moveSpeedOption.set(movementSpeed);
             }
         }
 
