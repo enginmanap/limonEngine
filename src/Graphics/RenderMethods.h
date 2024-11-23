@@ -230,7 +230,6 @@ public:
                                                      OptionsUtil::Options *options) const {
 
         OptionsUtil::Options::Option<long> optionNewSet = options->getOption<long>(HASH("CascadeCount"));
-        OptionsUtil::Options::Option<double> option2 = options->getOption<double>(HASH("lookAroundSpeed"));
         return RenderMethod("All directional shadows",
                             1,
                             nullptr,

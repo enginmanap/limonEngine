@@ -38,9 +38,11 @@ protected:
     PlayerExtensionInterface* playerExtension = nullptr;
 
     OptionsUtil::Options::Option<LimonTypes::Vec4> moveSpeedOption;
-    OptionsUtil::Options::Option<double> jumpFactorOption;
     OptionsUtil::Options::Option<LimonTypes::Vec4> walkSpeedOption;
     OptionsUtil::Options::Option<LimonTypes::Vec4> runSpeedOption;
+    OptionsUtil::Options::Option<double> jumpFactorOption;
+    OptionsUtil::Options::Option<double> lookAroundSpeedOption;
+
     bool dead = false;
 public:
     enum moveDirections {
@@ -54,6 +56,7 @@ public:
         jumpFactorOption = options->getOption<double>(HASH("jumpFactor"));
         walkSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("walkSpeed"));
         runSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("runSpeed"));
+        lookAroundSpeedOption = options->getOption<double>(HASH("lookAroundSpeed"));
     };
 
     virtual ~Player() {}

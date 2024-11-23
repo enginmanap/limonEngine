@@ -447,15 +447,14 @@ void World::resetCameraTagsFromPipeline(const std::map<std::string, std::vector<
 
 void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
        const VisibilityRequest* visibilityRequest = static_cast<const VisibilityRequest *>(visibilityRequestRaw);
-       std::vector<long> lodDistances;
+       std::vector<long> lodDistances = visibilityRequest->lodDistancesOption.get();
        float skipRenderDistance = 0, skipRenderSize = 0, maxSkipRenderSize = 0;
-       visibilityRequest->options->getOption("LodDistanceList", lodDistances);
        glm::mat4 viewMatrix;
        if(visibilityRequest->camera->getType() == Camera::CameraTypes::PERSPECTIVE ||
                visibilityRequest->camera->getType() == Camera::CameraTypes::ORTHOGRAPHIC) {
-           visibilityRequest->options->getOption("SkipRenderDistance", skipRenderDistance);
-           visibilityRequest->options->getOption("SkipRenderSize", skipRenderSize);
-           visibilityRequest->options->getOption("MaxSkipRenderSize", maxSkipRenderSize);
+           skipRenderDistance = visibilityRequest->skipRenderDistanceOption.get();
+           skipRenderSize = visibilityRequest->skipRenderSizeOption.get();
+           maxSkipRenderSize = visibilityRequest->maxSkipRenderSizeOption.get();
            viewMatrix = visibilityRequest->camera->getProjectionMatrix() * visibilityRequest->camera->getCameraMatrixConst();
        }
        for (auto objectIt = visibilityRequest->objects->begin(); objectIt != visibilityRequest->objects->end(); ++objectIt) {

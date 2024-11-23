@@ -151,8 +151,7 @@ void PhysicalPlayer::rotate(float   xPosition __attribute__((unused)), float yPo
     dirty = true;
     glm::quat viewChange;
 
-    float lookAroundSpeedX;
-    options->getOption("lookAroundSpeed", lookAroundSpeedX);
+    float lookAroundSpeedX = lookAroundSpeedOption.get();
     //scale look around speed with the abs(center.y). for 1 -> look around 0, for 0 -> lookaround 1.
     float lookAroundSpeedY = lookAroundSpeedX;
     if(((center.y > 0 && yChange < 0) || (center.y < 0 && yChange > 0))) { //if player is moving mouse on the direction. Looking up, moving mouse up, or vice versa. yChange is in reverse

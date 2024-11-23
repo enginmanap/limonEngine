@@ -211,27 +211,6 @@ namespace OptionsUtil {
             return Option<LimonTypes::Mat4>(nullptr, false);
         }
 
-        bool getOption(const std::string &optionName, std::vector<long> &value) const {
-            auto it = this->options.find(getHash(optionName));
-            if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::LONG_ARRAY) {
-                return false;
-            }
-            value.clear();
-            for (long i = 1; i < it->second->value.longValues[0]; ++i) {
-                value.push_back(it->second->value.longValues[i]);
-            }
-            return true;
-        }
-
-        bool getOption(const std::string &optionName, float &value) const {
-            auto it = this->options.find(getHash(optionName));
-            if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::DOUBLE) {
-                return false;
-            }
-            value = (float) it->second->value.doubleValue;
-            return true;
-        }
-
         /**
          * This method is a workaround for API usage, it will find the hash of the string by
          * iterating over all the options. If no option with that name exists, it will return 0.

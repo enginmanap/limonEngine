@@ -55,8 +55,7 @@ void FreeCursorPlayer::rotate(float xPosition, float yPosition, float xChange [[
     // FIXME this look around code is repeated in each player. I believe it should have been part of player class.
     // It can't be used directly because that would eliminate possibilities like 3rd person cameras.
 
-    float lookAroundSpeed;
-    options->getOption("lookAroundSpeed", lookAroundSpeed);
+    float lookAroundSpeed = lookAroundSpeedOption.get();
 
     //scale look around speed with the abs(center.y). for 1 -> look around 0, for 0 -> lookaround 1.
     lookAroundSpeed = lookAroundSpeed * (1- (center.y * center.y));
