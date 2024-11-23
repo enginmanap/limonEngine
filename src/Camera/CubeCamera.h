@@ -15,7 +15,8 @@ class CubeCamera : public Camera {
     CameraAttachment* cameraAttachment;
     glm::vec3 position, center, up, right;
     OptionsUtil::Options *options;
-
+    OptionsUtil::Options::Option<long> shadowMapWidthOption;
+    OptionsUtil::Options::Option<long> shadowMapHeightOption;
     bool dirty = true;
     float activeDistance;
     std::vector<std::vector<glm::vec4>> frustumCorners;
@@ -32,6 +33,8 @@ public:
             options(options){
         renderMatrices.resize(6);
         this->name = name;
+        shadowMapWidthOption = options->getOption<long>(HASH("shadowMapPointWidth"));
+        shadowMapHeightOption = options->getOption<long>(HASH("shadowMapPointHeight"));
     }
 
     CameraTypes getType() const override {
@@ -123,8 +126,8 @@ private:
 
     void setShadowMatricesForPosition(){
         long sWidth, sHeight;
-        options->getOptionOrDefault("shadowMapPointWidth", sWidth, 512);
-        options->getOptionOrDefault("shadowMapPointHeight", sHeight, 512);
+        sWidth = shadowMapWidthOption.getOrDefault(512);
+        sHeight = shadowMapHeightOption.getOrDefault(512);
 
         OptionsUtil::Options::Option<double> near = options->getOption<double>(HASH("lightPerspectiveProjectionNearPlane"));
         OptionsUtil::Options::Option<double> far = options->getOption<double>(HASH("lightPerspectiveProjectionFarPlane"));

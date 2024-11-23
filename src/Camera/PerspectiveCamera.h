@@ -55,7 +55,8 @@ public:
 
         long cascadeCount;
         std::vector<float> cascadeLimits;
-        options->getOptionOrDefault("CascadeCount", cascadeCount, 4L);
+        OptionsUtil::Options::Option<long> cascadeCountOption = options->getOption<long>(HASH("CascadeCount"));
+        cascadeCount = cascadeCountOption.getOrDefault(4L);
 
         if(cascadeCount == 1L) {
             cascadePerspectiveProjectionMatrices.emplace_back(perspectiveProjectionMatrix);

@@ -755,11 +755,12 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
         options->setOption("DebugDrawLines", debugDrawLines);
          */
         long cascadeCount;
-        options->getOptionOrDefault("CascadeCount", cascadeCount, 4);
+        OptionsUtil::Options::Option<long> cascadeCountOption = options->getOption<long>(HASH("CascadeCount"));
+        cascadeCount = cascadeCountOption.getOrDefault(4);
         if(inputHandler.getInputStates().getInputStatus(InputStates::Inputs::F4)) {
             cascadeCount--;
             if(cascadeCount < 0) {
-                cascadeCount = 4;
+                cascadeCount = cascadeCountOption.getOrDefault(4);
             }
         }
         options->setOption("CascadeCount", cascadeCount);

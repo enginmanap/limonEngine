@@ -130,7 +130,7 @@ bool OptionsUtil::Options::loadOptionsNew(const std::string &optionsFileName) {
         if(request == nullptr) {
             return false;
         } else {
-            options[request->description] = request;
+            options[hash(request->description)] = request;
             std::cout << "Loaded option " << request->description << std::endl;
         }
         optionNode = optionNode->NextSiblingElement("Parameter");

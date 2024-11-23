@@ -62,8 +62,8 @@ public:
             this->position = glm::normalize(position);
             //we wanna create as many cameras as the cascade levels
             long cascadeCount;
-            graphicsWrapper->getOptions()->getOptionOrDefault("CascadeCount", cascadeCount, 4L);
-
+            OptionsUtil::Options::Option<long> cascadeCountOption = graphicsWrapper->getOptions()->getOption<long>(HASH("CascadeCount"));
+            cascadeCount = cascadeCountOption.getOrDefault(4L);
 
             for(int i = 0; i < cascadeCount; i++) {
                 directionalCameras.emplace_back(new OrthographicCamera(this->getName() + " camera", graphicsWrapper->getOptions(), i, this));

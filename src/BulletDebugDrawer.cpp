@@ -9,7 +9,8 @@ BulletDebugDrawer::BulletDebugDrawer(std::shared_ptr<AssetManager> assetManager,
         renderProgram = std::make_shared<GraphicsProgram>(assetManager.get(), "./Engine/Shaders/Lines/vertex.glsl",
                                                           "./Engine/Shaders/Lines/fragment.glsl", false);
         std::cout << "Render program is ready with id " << renderProgram->getID() << std::endl;
-        options->getOptionOrDefault("debugDrawBufferSize", debugDrawBufferSize, 1000);
+        OptionsUtil::Options::Option<long> bufferSizeOption = options->getOption<long>(HASH("debugDrawBufferSize"));
+        debugDrawBufferSize = bufferSizeOption.getOrDefault(1000);
         graphicsWrapper->createDebugVAOVBO(vao, vbo, debugDrawBufferSize);
 }
 

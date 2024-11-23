@@ -27,17 +27,6 @@ namespace OptionsUtil {
             NEAREST, BILINEAR, TRILINEAR
         };
 
-        auto findOption(uint64_t optionHash) const {
-            std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>>::const_iterator it = this->options.begin();
-            for(; it != this->options.end(); it++) {
-                if (HashUtil::hashString(it->first) == optionHash) {
-                    return it;
-                }
-            }
-            return it;
-        };
-
-
         template<typename T>
         class Option {
             std::shared_ptr<LimonTypes::GenericParameter> value = nullptr;
@@ -95,7 +84,7 @@ namespace OptionsUtil {
 
         template<class T, typename std::enable_if<std::is_same<T, std::string>::value>::type* = nullptr>
         Option<std::string> getOption(uint64_t optionHash) const {
-            auto it = this->findOption(optionHash);
+            auto it = this->options.find(optionHash);
             if (it != this->options.end()) {
                 return Option<std::string>(it->second, true);
             }
@@ -104,7 +93,7 @@ namespace OptionsUtil {
 
         template<class T, typename std::enable_if<std::is_same<T, double>::value>::type* = nullptr>
         Option<double> getOption(uint64_t optionHash) const {
-            auto it = this->findOption(optionHash);
+            auto it = this->options.find(optionHash);
             if (it != this->options.end()) {
                 return Option<double>(it->second, true);
             }
@@ -113,7 +102,7 @@ namespace OptionsUtil {
 
         template<class T, typename std::enable_if<std::is_same<T, long>::value>::type* = nullptr>
         Option<long> getOption(uint64_t optionHash) const {
-            auto it = this->findOption(optionHash);
+            auto it = this->options.find(optionHash);
             if (it != this->options.end()) {
                 return Option<long>(it->second, true);
             }
@@ -122,7 +111,7 @@ namespace OptionsUtil {
 
         template<class T, typename std::enable_if<std::is_same<T, std::vector<long>>::value>::type* = nullptr>
         Option<std::vector<long>> getOption(uint64_t optionHash) const {
-            auto it = this->findOption(optionHash);
+            auto it = this->options.find(optionHash);
             if (it != this->options.end()) {
                 return Option<std::vector<long>>(it->second, true);
             }
@@ -131,7 +120,7 @@ namespace OptionsUtil {
 
         template<class T, typename std::enable_if<std::is_same<T, bool>::value>::type* = nullptr>
         Option<bool> getOption(uint64_t optionHash) const {
-            auto it = this->findOption(optionHash);
+            auto it = this->options.find(optionHash);
             if (it != this->options.end()) {
                 return Option<bool>(it->second, true);
             }
@@ -140,7 +129,7 @@ namespace OptionsUtil {
 
         template<class T, typename std::enable_if<std::is_same<T, LimonTypes::Vec4>::value>::type* = nullptr>
         Option<LimonTypes::Vec4> getOption(uint64_t optionHash) const {
-            auto it = this->findOption(optionHash);
+            auto it = this->options.find(optionHash);
             if (it != this->options.end()) {
                 return Option<LimonTypes::Vec4>(it->second, true);
             }
@@ -149,7 +138,7 @@ namespace OptionsUtil {
 
         template<class T, typename std::enable_if<std::is_same<T, LimonTypes::Mat4>::value>::type* = nullptr>
         Option<LimonTypes::Mat4> getOption(uint64_t optionHash) const {
-            auto it = this->findOption(optionHash);
+            auto it = this->options.find(optionHash);
             if (it != this->options.end()) {
                 return Option<LimonTypes::Mat4>(it->second, true);
             }
@@ -157,7 +146,7 @@ namespace OptionsUtil {
         }
 
         bool getOption(const std::string &optionName, std::vector<long> &value) const {
-            auto it = this->options.find(optionName);
+            auto it = this->options.find(getHash(optionName));
             if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::LONG_ARRAY) {
                 return false;
             }
@@ -168,46 +157,18 @@ namespace OptionsUtil {
             return true;
         }
 
-        bool getOptionOrDefault(const std::string &optionName, long &value, long defaultValue) const {
-            auto it = this->options.find(optionName);
-            if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::LONG) {
-                value = defaultValue;
-                return false;
-            }
-            value = it->second->value.longValue;
-            return true;
-        }
-
         bool getOptionOrDefault(const std::string &optionName, std::string &value, const std::string &defaultValue) const {
-            auto it = this->options.find(optionName);
+            auto it = this->options.find(getHash(optionName));
             if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::STRING) {
                 value = defaultValue;
                 return false;
             }
             value = it->second->value.stringValue;
-            return true;
-        }
-
-        bool getOption(const std::string &optionName, std::string &value) const {
-            auto it = this->options.find(optionName);
-            if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::STRING) {
-                return false;
-            }
-            value = it->second->value.stringValue;
-            return true;
-        }
-
-        bool getOption(const std::string &optionName, double &value) const {
-            auto it = this->options.find(optionName);
-            if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::DOUBLE) {
-                return false;
-            }
-            value = it->second->value.doubleValue;
             return true;
         }
 
         bool getOption(const std::string &optionName, float &value) const {
-            auto it = this->options.find(optionName);
+            auto it = this->options.find(getHash(optionName));
             if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::DOUBLE) {
                 return false;
             }
@@ -216,7 +177,7 @@ namespace OptionsUtil {
         }
 
         bool getOptionOrDefault(const std::string &optionName, bool &value, bool defaultValue) const {
-            auto it = this->options.find(optionName);
+            auto it = this->options.find(getHash(optionName));
             if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::BOOLEAN) {
                 value = defaultValue;
                 return false;
@@ -226,7 +187,7 @@ namespace OptionsUtil {
         }
 
         bool getOption(const std::string &optionName, LimonTypes::Vec4 &value) const {
-            auto it = this->options.find(optionName);
+            auto it = this->options.find(getHash(optionName));
             if (it == this->options.end() || it->second->valueType != LimonTypes::GenericParameter::VEC4) {
                 return false;
             }
@@ -235,56 +196,62 @@ namespace OptionsUtil {
         }
 
         void setOption(const std::string &optionName, LimonTypes::Vec4 value) {
-            auto it = this->options.find(optionName);
+            auto it = this->options.find(getHash(optionName));
             if (it == this->options.end()) {
                 std::shared_ptr<LimonTypes::GenericParameter> parameter = std::make_shared<LimonTypes::GenericParameter>();
                 parameter->description = optionName;
-                this->options[optionName] = parameter;
-                it = this->options.find(optionName);
+                //this->options[optionName] = parameter;
+                it = this->options.find(getHash(optionName));
             }
             it->second->valueType = LimonTypes::GenericParameter::VEC4;
             it->second->value.vectorValue = value;
         }
 
         void setOption(const std::string &optionName, double value) {
-            auto it = this->options.find(optionName);
+            auto it = this->options.find(getHash(optionName));
             if (it == this->options.end()) {
                 std::shared_ptr<LimonTypes::GenericParameter> parameter = std::make_shared<LimonTypes::GenericParameter>();
                 parameter->description = optionName;
-                this->options[optionName] = parameter;
-                it = this->options.find(optionName);
+                //this->options[optionName] = parameter;
+                it = this->options.find(getHash(optionName));
             }
             it->second->valueType = LimonTypes::GenericParameter::DOUBLE;
             it->second->value.doubleValue = value;
         }
 
         void setOption(const std::string &optionName, long value) {
-            auto it = this->options.find(optionName);
+            auto it = this->options.find(getHash(optionName));
             if (it == this->options.end()) {
                 std::shared_ptr<LimonTypes::GenericParameter> parameter = std::make_shared<LimonTypes::GenericParameter>();
                 parameter->description = optionName;
-                this->options[optionName] = parameter;
-                it = this->options.find(optionName);
+                //this->options[optionName] = parameter;
+                it = this->options.find(getHash(optionName));
             }
             it->second->valueType = LimonTypes::GenericParameter::LONG;
             it->second->value.longValue = value;
         }
 
-        void setOption(const std::string &optionName, bool value) {
-            auto it = this->options.find(optionName);
-            if (it == this->options.end()) {
-                std::shared_ptr<LimonTypes::GenericParameter> parameter = std::make_shared<LimonTypes::GenericParameter>();
-                parameter->description = optionName;
-                this->options[optionName] = parameter;
-                it = this->options.find(optionName);
+        /**
+         * This method is a workaround for API usage, it will find the hash of the string by
+         * iterating over all the options. If no option with that name exists, it will return 0.
+         *
+         * If it returns zero it means option is not set
+         *
+         * @param optionName
+         * @return hash of that Option or 0 if not found
+         */
+        uint64_t getHash(const std::string &optionName) const {
+            for(auto option:this->options) {
+                if(option.second->description == optionName) {
+                    return option.first;
+                }
             }
-            it->second->valueType = LimonTypes::GenericParameter::BOOLEAN;
-            it->second->value.boolValue = value;
+            return 0;
         }
 
     private:
         Logger *logger{};
-        std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>> options;
+        std::unordered_map<uint64_t, std::shared_ptr<LimonTypes::GenericParameter>> options;
 
         Option<long> heightOption;
         Option<long> widthOption;
@@ -363,16 +330,8 @@ namespace OptionsUtil {
             return heightOption.getOrDefault(1080);
         }
 
-        void setScreenHeight(unsigned int height) {
-            setOption("screenHeight", (long) height);
-        }
-
         uint32_t getScreenWidth() const {
             return widthOption.getOrDefault(1920);
-        }
-
-        void setScreenWidth(unsigned int width) {
-            setOption("screenWidth", (long) width);
         }
 
         Options() {
@@ -383,8 +342,17 @@ namespace OptionsUtil {
             return logger;
         }
 
-        const std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>> &getAllOptions() const {
-            return this->options;
+        /**
+         * TODO: This method is doing a copy, because our API can't depend on cityHash. There might be alternatives, needs investigation
+         *
+         * @return all options in a copy
+         */
+        const std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>> getAllOptions() const {
+            std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>> optionsToReturn;
+            for (auto option:options) {
+                optionsToReturn[option.second->description] = option.second;
+            }
+            return optionsToReturn;
         }
 
     };
