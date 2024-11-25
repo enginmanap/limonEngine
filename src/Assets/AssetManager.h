@@ -21,6 +21,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 
 
 class GraphicsInterface;
@@ -31,6 +32,7 @@ public:
     enum AssetTypes { Asset_type_DIRECTORY, Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND, Asset_type_GRAPHICSPROGRAM, Asset_type_UNKNOWN };
 
     std::mutex cpuLoadConditionMutex;
+    std::mutex partialLoadCpuMutex;
     std::condition_variable cpuLoadDoneCondition;
 
     struct EmbeddedTexture {
@@ -154,13 +156,17 @@ private:
     void cpuLoadAsset(bool& running) {
         while(running) {
             std::pair<std::shared_ptr<Asset>, bool> assetAndLoadNext = assetLoadCpuQueue.popFrontOrBlock();
-
+            if(assetAndLoadNext.first->getLoadState() != Asset::LoadState::INITIATED) {
+                std::cerr << " asset " << assetAndLoadNext.first->getName() << " tried to start another load??" << std::endl;
+                continue;
+            }
+            assetAndLoadNext.first->setLoadState(Asset::LoadState::CPU_LOAD_STARTED);
             assetAndLoadNext.first->loadCPUPart();
             assetAndLoadNext.first->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
-            cpuLoadDoneCondition.notify_all();
             if(assetAndLoadNext.second){
                 assetLoadGPUQueue.pushBack(assetAndLoadNext);
             }
+            cpuLoadDoneCondition.notify_all();
         }
     }
 
@@ -169,7 +175,7 @@ private:
     //second of the pair is how many times load requested. prework for unload
     std::map<const std::vector<std::string>, std::pair<std::shared_ptr<Asset>, uint32_t>> assets;
     std::unordered_map<std::string, std::vector<std::shared_ptr<const EmbeddedTexture>>> embeddedTextures;
-    uint32_t nextAssetIndex = 1;
+    std::atomic<std::int32_t> nextAssetIndex;
 
     std::map<size_t, std::pair<std::shared_ptr<Material>, uint32_t>> materials;//this is used to make objects share materials.
 
@@ -178,6 +184,10 @@ private:
     std::map<std::pair<AssetTypes, std::string>, AvailableAssetsNode*> filteredResults;
     GraphicsInterface* graphicsWrapper;
     ALHelper *alHelper;
+
+    uint32_t getNextAssetIndex() {
+        return ++nextAssetIndex;
+    }
 
     void addAssetsRecursively(const std::string &directoryPath, const std::string &fileName,
                                   const std::vector<std::pair<std::string, AssetTypes>> &fileExtensions,
@@ -223,6 +233,7 @@ public:
         std::unordered_set<int> startedAssetIds;
         for(const auto &files : filesList) {
             if (assets.count(files) == 0) {
+                uint32_t nextAssetIndexLocal = getNextAssetIndex();
                 bool loaded = false;
                 //check if asset is cereal deserialize file.
                 if(files.size() == 1) {
@@ -231,8 +242,7 @@ public:
 #ifdef CEREAL_SUPPORT
                         std::ifstream is(files[0], std::ios::binary);
                         cereal::BinaryInputArchive archive(is);
-                        assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files, archive), 0);
-                        nextAssetIndex++;
+                        assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndexLocal, files, archive), 0);
 #else
                         std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
                     std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
@@ -242,9 +252,8 @@ public:
                     }
                 }
                 if(!loaded) {
-                    assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files), 0);
-                    startedAssetIds.insert(nextAssetIndex);
-                    nextAssetIndex++;
+                    assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndexLocal, files), 0);
+                    startedAssetIds.insert(nextAssetIndexLocal);
                     assetLoadCpuQueue.pushBack(assets[files].first, true);
                 }
             }
@@ -255,6 +264,9 @@ public:
         while(!startedAssetIds.empty()) {
             std::pair<std::shared_ptr<Asset>, bool> assetAndPushToNext = assetLoadGPUQueue.popFrontOrReturn();
             if(assetAndPushToNext.first != nullptr) {
+                if(startedAssetIds.find(assetAndPushToNext.first->getAssetID()) == startedAssetIds.end()) {
+                    continue;//we didn't start this, we should not finish it
+                }
                 if(assetAndPushToNext.first->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
                     assetAndPushToNext.first->loadGPUPart();
                     assetAndPushToNext.first->setLoadState(Asset::LoadState::DONE);
@@ -262,6 +274,9 @@ public:
                 if(assetAndPushToNext.first->getLoadState() == Asset::LoadState::DONE) {
                     startedAssetIds.erase(assetAndPushToNext.first->getAssetID());
                 }
+            } else {
+                std::unique_lock<std::mutex> lock(cpuLoadConditionMutex);
+                cpuLoadDoneCondition.wait_for(lock, std::chrono::milliseconds{5});
             }
         }
         return loadedAssets;
@@ -269,8 +284,13 @@ public:
 
     template<class T>
     std::shared_ptr<T> partialLoadAssetAsync(const std::vector<std::string> files) {
-
+    //this method can be called by another thread, because some assets create other assets
+    // ex: Model assets load Texture assets
+    // If model asset was loading on a non main loading thread, this will be called by that thread.
+    // Since there are multiple non main loading threads, this means race condition possible, and we need a lock.
+    std::unique_lock<std::mutex> lock(partialLoadCpuMutex);
         if (assets.count(files) == 0) {
+            uint32_t nextAssetIndexLocal = getNextAssetIndex();
             bool loaded = false;
             //check if asset is cereal deserialize file.
             if(files.size() == 1) {
@@ -279,8 +299,7 @@ public:
 #ifdef CEREAL_SUPPORT
                     std::ifstream is(files[0], std::ios::binary);
                     cereal::BinaryInputArchive archive(is);
-                    assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files, archive), 0);
-                    nextAssetIndex++;
+                    assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndexLocal, files, archive), 0);
 #else
                     std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
                 std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
@@ -290,19 +309,16 @@ public:
                 }
             }
             if(!loaded) {
-                assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files), 0);
-                nextAssetIndex++;
+                assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndexLocal, files), 0);
                 assetLoadCpuQueue.pushBack(assets[files].first, false);
             }
         }
         assets[files].second++;
         return std::dynamic_pointer_cast<T>(assets[files].first);
-
-        //now load the assets to GPU on main thread
     }
 
     void partialLoadGPUSide(std::shared_ptr<Asset> asset) {
-        if(asset->loadState == Asset::LoadState::DONE) {
+        if(asset->getLoadState() == Asset::LoadState::DONE) {
             //Some code paths will try to load the asset again.
             return;
         }
@@ -328,8 +344,7 @@ public:
 #ifdef CEREAL_SUPPORT
                     std::ifstream is(files[0], std::ios::binary);
                     cereal::BinaryInputArchive archive(is);
-                    assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files, archive), 0);
-                    nextAssetIndex++;
+                    assets[files] = std::make_pair(std::make_shared<T>(this, getNextAssetIndex(), files, archive), 0);
 #else
                     std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
                     std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
@@ -339,14 +354,13 @@ public:
                 }
             }
             if(!loaded) {
-                assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndex, files), 0);
+                assets[files] = std::make_pair(std::make_shared<T>(this, getNextAssetIndex(), files), 0);
                 assets[files].first->load();
-                nextAssetIndex++;
             }
         }
-        if(assets[files].first->loadState != Asset::LoadState::DONE) {
+        if(assets[files].first->getLoadState() != Asset::LoadState::DONE) {
             //some other thread is working on this, we should block.
-            while (assets[files].first->loadState != Asset::LoadState::DONE) {
+            while (assets[files].first->getLoadState() != Asset::LoadState::DONE) {
                 std::cerr << "Partial load and full load clashing, please fix. Will busy wait" << std::endl;
                 std::this_thread::sleep_for(std::chrono::milliseconds(15));
             }
@@ -380,6 +394,7 @@ public:
             if(assets[files].first->getLoadState() != Asset::LoadState::DONE) {
                 std::cerr << "trying to delete a partially loaded object" + files[0] + ", probably a bug" << std::endl;
             }
+            //std::cerr << "deleting asset as all references are removed" << std::endl;
             assets.erase(files);
             if(embeddedTextures.find(files[0]) != embeddedTextures.end()) {
                 embeddedTextures.erase(files[0]);

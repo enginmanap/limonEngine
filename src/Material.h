@@ -205,18 +205,23 @@ public:
         std::cerr << "Destructor for " << name << std::endl;
         if (ambientTexture != nullptr) {
             assetManager->freeAsset({ambientTexture->getName()});
+            this->ambientTexture = nullptr;
         }
         if (diffuseTexture != nullptr) {
             assetManager->freeAsset({diffuseTexture->getName()});
+            this->diffuseTexture = nullptr;
         }
         if (specularTexture != nullptr) {
             assetManager->freeAsset({specularTexture->getName()});
+            this->specularTexture = nullptr;
         }
         if (opacityTexture != nullptr) {
             assetManager->freeAsset({opacityTexture->getName()});
+            this->opacityTexture = nullptr;
         }
         if (normalTexture != nullptr) {
             assetManager->freeAsset({normalTexture->getName()});
+            this->normalTexture = nullptr;
         }
     }
 

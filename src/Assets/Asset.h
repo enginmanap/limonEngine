@@ -11,6 +11,9 @@
 #include <thread>
 #ifdef CEREAL_SUPPORT
 #include <cereal/archives/xml.hpp>
+#include <mutex>
+#include "Utils/StringUtils.hpp"
+
 #endif
 
 
@@ -18,13 +21,16 @@ class AssetManager;//avoid cyclic include
 
 class Asset {
 public:
-    enum class LoadState {INITIATED, CPU_LOAD_DONE, DONE};
+    enum class LoadState {INITIATED, CPU_LOAD_STARTED, CPU_LOAD_DONE, DONE};
 private:
     friend class AssetManager;
-
     LoadState loadState = LoadState::INITIATED;
+    std::mutex loadStateSetMutex;
+    void setLoadState(LoadState state) {
+        std::unique_lock<std::mutex> lock(loadStateSetMutex);
+        loadState = state;
+    }
 
-    void setLoadState(LoadState state) { loadState = state; }
     virtual void loadCPUPart() = 0;
     virtual void loadGPUPart() = 0;
 
@@ -39,7 +45,7 @@ private:
 protected:
     AssetManager* assetManager;
     uint32_t assetID;
-    //SDL2Helper::SpinLock loadingLock;// should lock on load start, and unlock at load end.
+    std::vector<std::string> fileList;
     /**
      * This is an empty constructor, used to indicate what parameters the Asset constructors must have.
      * It should construct the basic object, and allow initialization afterwards, possibly on another thread.
@@ -48,15 +54,15 @@ protected:
      * @param fileList Asset files to load
      * @return empty asset
      */
-    Asset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList [[gnu::unused]])
-            : assetManager(assetManager), assetID(assetID) {};
+    Asset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList)
+            : assetManager(assetManager), assetID(assetID), fileList(fileList) {};
 
     /**
  * This is a constructor that is used for cereal loading.
  */
 #ifdef CEREAL_SUPPORT
-    Asset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList [[gnu::unused]], cereal::BinaryInputArchive& binaryArchive [[gnu::unused]])
-            : assetManager(assetManager), assetID(assetID) {};
+    Asset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &fileList, cereal::BinaryInputArchive& binaryArchive [[gnu::unused]])
+            : assetManager(assetManager), assetID(assetID), fileList(fileList) {};
 #endif
 
 public:
@@ -64,7 +70,15 @@ public:
         return assetID;
     }
 
-    const LoadState& getLoadState() {return loadState;}
+    std::string getName() const {
+        return StringUtils::join(fileList, ",");
+    }
+
+    LoadState getLoadState() {
+        std::unique_lock<std::mutex> lock(loadStateSetMutex);
+        return loadState;
+    }
+
 
     virtual ~Asset() = default;
 };
