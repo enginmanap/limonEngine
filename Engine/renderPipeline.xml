@@ -349,7 +349,7 @@
                         <VertexShader>./Engine/Shaders/ShadowMapPoint/vertex.glsl</VertexShader>
                         <GeometryShader>./Engine/Shaders/ShadowMapPoint/geometry.glsl</GeometryShader>
                         <FragmentShader>./Engine/Shaders/ShadowMapPoint/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
+                        <MaterialRequired>False</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -384,7 +384,7 @@
                         <VertexShader>./Engine/Shaders/ShadowMapDirectional/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/ShadowMapDirectional/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
+                        <MaterialRequired>False</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -464,7 +464,7 @@
                         <VertexShader>./Engine/Shaders/SSAOGeneration/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/SSAOGeneration/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
+                        <MaterialRequired>False</MaterialRequired>
                         <PresetValues>
                             <Uniform Name="pre_depthMap">2</Uniform>
                             <Uniform Name="pre_normalMap">1</Uniform>
@@ -506,7 +506,7 @@
                         <VertexShader>./Engine/Shaders/SSAOBlur/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/SSAOBlur/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
+                        <MaterialRequired>False</MaterialRequired>
                         <PresetValues>
                             <Uniform Name="pre_ssaoResult">1</Uniform>
                         </PresetValues>
@@ -546,7 +546,7 @@
                         <VertexShader>./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
+                        <MaterialRequired>False</MaterialRequired>
                         <PresetValues>
                             <Uniform Name="pre_depthMap">4</Uniform>
                             <Uniform Name="pre_diffuseSpecularLighted">3</Uniform>
@@ -593,7 +593,7 @@
                         <VertexShader>./Engine/Shaders/SkyCube/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/SkyCube/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
+                        <MaterialRequired>False</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -673,7 +673,7 @@
                         <VertexShader>./Engine/Shaders/Particles/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/Particles/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
+                        <MaterialRequired>False</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
                 <Method>
@@ -683,7 +683,7 @@
                         <VertexShader>./Engine/Shaders/GPUParticles/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/GPUParticles/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
+                        <MaterialRequired>False</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -719,7 +719,7 @@
                         <VertexShader>./Engine/Shaders/ImGui/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/ImGui/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
+                        <MaterialRequired>False</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -755,7 +755,7 @@
                         <VertexShader>./Engine/Shaders/GUIText/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/GUIText/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
+                        <MaterialRequired>False</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
                 <Method>
@@ -765,7 +765,7 @@
                         <VertexShader>./Engine/Shaders/GUIImage/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/GUIImage/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
+                        <MaterialRequired>False</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
                 <Method>
@@ -775,7 +775,7 @@
                         <VertexShader>./Engine/Shaders/Lines/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/Lines/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
+                        <MaterialRequired>False</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>

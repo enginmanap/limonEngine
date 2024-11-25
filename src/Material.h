@@ -202,7 +202,13 @@ public:
     }
 
     ~Material() {
-        std::cerr << "Destructor for " << name << std::endl;
+        //std::cerr << "Destructor for " << name << std::endl;
+
+        /**
+         * Why are we setting the textures to nullptr here?
+         * Because otherwise Asset manager detects the texture has a
+         * shared_ptr to it and logs an error.
+         */
         if (ambientTexture != nullptr) {
             assetManager->freeAsset({ambientTexture->getName()});
             this->ambientTexture = nullptr;
