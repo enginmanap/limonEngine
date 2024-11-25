@@ -29,7 +29,7 @@ private:
     static void replaceDefinitions(std::string &shaderCode, const std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>>& variablesMap);
     static void addHeader(const std::string &headerString, std::string &shaderCode);
 
-    static void replaceImportPattern(std::string &shaderCode, std::__cxx11::basic_regex<char> &importPattern, const std::string &currentPath);
+    static void replaceImportPattern(std::string &shaderCode, std::basic_regex<char> &importPattern, const std::string &currentPath);
 };
 
 
