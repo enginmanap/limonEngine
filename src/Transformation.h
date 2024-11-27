@@ -303,7 +303,7 @@ public:
             this->translateSingle += translate;
             this->translate = this->translateSingle;
         } else {
-            glm::mat4 newTranslateMatrix = glm::translate(translate);
+            glm::mat4 newTranslateMatrix = glm::translate(glm::mat4(1.0f), translate);
             glm::mat4 parentInverseT = glm::inverseTranspose(this->parentTransform->worldTransform);
             glm::mat4 newTranslateDiff = parentInverseT * newTranslateMatrix;
             glm::vec3 newTranslateSet;
