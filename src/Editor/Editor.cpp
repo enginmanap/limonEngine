@@ -4,7 +4,7 @@
 
 #include <Assets/Animations/AnimationLoader.h>
 #include "Editor.h"
-#include "world.h"
+#include "World.h"
 #include "ImGuiHelper.h"
 #include "Camera/PerspectiveCamera.h"
 #include "GameObjects/Model.h"

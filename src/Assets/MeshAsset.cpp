@@ -191,7 +191,7 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
     std::vector<unsigned int> lod(faces.size()*3);
     float lod_error = 0.f;
     lod.resize(meshopt_simplify(&lod[0], &(faces[0].x), faces.size()*3, &vertices[0].x, vertices.size(), sizeof(glm::vec3),
-                                target_index_count, target_error, &lod_error));
+                                target_index_count, target_error));
     //now we have new faces. lets assign.
     for (size_t i = 0; i <lod.size(); i = i+3) {
         faces.push_back(glm::vec3(lod[i + 0],
@@ -210,7 +210,7 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
     std::vector<unsigned int> lod2(triangleCount[0]*3);
     float lod_error2 = 0.f;
     lod2.resize(meshopt_simplify(&lod2[0], &(faces[0].x), triangleCount[0]*3, &vertices[0].x, vertices.size(), sizeof(glm::vec3),
-                                target_index_count2, target_error2, &lod_error2));
+                                target_index_count2, target_error2));
     //now we have new faces. lets assign.
     for (size_t i = 0; i <lod2.size(); i = i+3) {
         faces.push_back(glm::vec3(lod2[i + 0],
@@ -230,7 +230,7 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
     std::vector<unsigned int> lod3(triangleCount[0]*3);
     float lod_error3 = 0.f;
     lod3.resize(meshopt_simplify(&lod3[0], &(faces[0].x), triangleCount[0]*3, &vertices[0].x, vertices.size(), sizeof(glm::vec3),
-                                 target_index_count3, target_error3, &lod_error3));
+                                 target_index_count3, target_error3));
     //now we have new faces. lets assign.
     for (size_t i = 0; i <lod3.size(); i = i+3) {
         faces.push_back(glm::vec3(lod3[i + 0],
