@@ -51,7 +51,7 @@ namespace OptionsUtil {
                     std::cerr << "Option " << value->description << " is not set" << std::endl;
                 }
                 return *((T *) &(value->value));
-            };
+            }
 
             template<typename Q =  T, typename std::enable_if<!std::is_same<Q, std::string>::value>::type* = nullptr, typename std::enable_if<!std::is_same<Q, std::vector<long>>::value>::type* = nullptr>
             T getOrDefault(T defaultValue) const {
@@ -59,7 +59,7 @@ namespace OptionsUtil {
                     return defaultValue;
                 }
                 return *((T *) &(value->value));
-            };
+            }
 
             template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::string>::value>::type* = nullptr>
             std::string get() const {
@@ -67,7 +67,7 @@ namespace OptionsUtil {
                     std::cerr << "Option " << value->description << " is not set" << std::endl;
                 }
                 return value->value.stringValue;
-            };
+            }
 
             template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::string>::value>::type* = nullptr>
             std::string getOrDefault(T defaultValue) const {
@@ -76,7 +76,7 @@ namespace OptionsUtil {
                 }
 
                 return value->value.stringValue;
-            };
+            }
 
             template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::vector<long>>::value>::type* = nullptr>
             std::vector<long> get() const {
@@ -87,7 +87,7 @@ namespace OptionsUtil {
                     longValues->emplace_back(value->value.longValues[i]);
                 }
                 return *longValues;
-            };
+            }
 
             template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::vector<long>>::value>::type* = nullptr>
             std::vector<long> getOrDefault(T defaultValue) const {
@@ -98,7 +98,7 @@ namespace OptionsUtil {
                     longValues->emplace_back(value->value.longValues[i]);
                 }
                 return *longValues;
-            };
+            }
 
             template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::vector<long>>::value>::type* = nullptr>
             bool set(std::vector<long> newValue) {
@@ -111,7 +111,7 @@ namespace OptionsUtil {
                 }
                 isSet = true;
                 return true;
-            };
+            }
 
             template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::string>::value>::type* = nullptr>
             bool set(const std::string& newValue) {
@@ -122,28 +122,28 @@ namespace OptionsUtil {
                 strncpy(value->value.stringValue, newValue.c_str(), newValue.length());
                 isSet = true;
                 return true;
-            };
+            }
 
             template<typename Q =  T, typename std::enable_if<std::is_same<Q, LimonTypes::Vec4>::value>::type* = nullptr>
             bool set(const LimonTypes::Vec4& newValue)  {
                 value->value.vectorValue = newValue;
                 this->isSet = true;
                 return true;
-            };
+            }
 
             template<typename Q =  T, typename std::enable_if<std::is_same<Q, LimonTypes::Mat4>::value>::type* = nullptr>
             bool set(const LimonTypes::Mat4& newValue)  {
                 value->value.matrixValue = newValue;
                 this->isSet = true;
                 return true;
-            };
+            }
 
             template<typename Q =  T, typename std::enable_if<std::is_same<Q, double>::value>::type* = nullptr>
             bool set(double newValue)  {
                 value->value.doubleValue = newValue;
                 this->isSet = true;
                 return true;
-            };
+            }
 
 
         };
