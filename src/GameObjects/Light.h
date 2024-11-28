@@ -173,6 +173,15 @@ public:
         }
     }
 
+    ~Light() {
+        for (auto cam: directionalCameras) {
+            delete cam;
+        }
+        for (auto cam: cubeCameras) {
+            delete cam;
+        }
+    }
+
     /************Game Object methods **************/
 
     uint32_t getWorldObjectID() const override {

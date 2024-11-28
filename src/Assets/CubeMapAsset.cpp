@@ -47,6 +47,6 @@ void CubeMapAsset::loadGPUPart() {
                       surfaces[4]->pixels, surfaces[5]->pixels);
 
     for (int i = 0; i < 6; i++) {
-        delete surfaces[i];
+        SDL_FreeSurface(surfaces[i]);
     }
 }

@@ -1194,7 +1194,20 @@ World::~World() {
     delete editorPlayer;
     delete menuPlayer;
 
+    delete apiGUILayer;
+    delete renderCounts;
+    delete fpsCounter;
+    delete cursor;
+    delete debugOutputGUI;
+
     delete imgGuiHelper;
+
+    for (auto &item: visibilityThreadPool) {
+        delete item.first;
+        if (item.second) {
+            SDL_WaitThread(item.second, NULL);
+        }
+    }
 }
 
 bool World::addModelToWorld(Model *xmlModel) {
