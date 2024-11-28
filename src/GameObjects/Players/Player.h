@@ -96,11 +96,11 @@ public:
         return 0;
     }
 
-    ObjectTypes getTypeID() const {
+    ObjectTypes getTypeID() const override {
         return GameObject::PLAYER;
     };
 
-    std::string getName() const {
+    std::string getName() const override {
         return "Player";//Players doesn't have specific names
     };
 

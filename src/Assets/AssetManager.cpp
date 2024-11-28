@@ -136,12 +136,14 @@ bool AssetManager::isExtensionInList(const std::string &name, const std::vector<
 
 const AssetManager::AvailableAssetsNode *
 AssetManager::getAvailableAssetsTreeFiltered(AssetManager::AssetTypes type, const std::string &filterText) {
-    std::pair<AssetTypes , std::string> key = std::make_pair(type,filterText);
+    std::string filterTextLower = filterText;
+    std::transform(filterTextLower.begin(), filterTextLower.end(), filterTextLower.begin(), ::tolower);
+    std::pair<AssetTypes , std::string> key = std::make_pair(type,filterTextLower);
     if(filteredResults.find(key) != filteredResults.end()) {
         return filteredResults[key];
     }
     //now we should build another tree with given filters
-    AssetManager::AvailableAssetsNode *root = getAvailableAssetsTreeFilteredRecursive(availableAssetsRootNode, type, filterText);
+    AssetManager::AvailableAssetsNode *root = getAvailableAssetsTreeFilteredRecursive(availableAssetsRootNode, type, filterTextLower);
     filteredResults[key] = root;
     return root;
 }

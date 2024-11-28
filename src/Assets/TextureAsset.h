@@ -28,8 +28,11 @@ class TextureAsset : public Asset {
     SDL_Surface* cpuSurface = nullptr;//gets deleted after gpu load, don't use
     void loadCPUPart() override;
     void loadGPUPart() override;
+
+    static void getPossibleTexturesList(const AssetManager::AvailableAssetsNode *assetsNode, std::vector<std::string>& possibleTexturesList);
+
 protected:
-    std::vector<std::string> name;//1) single element filename, 2) First element embedded texture ID, second element model.
+    std::vector<std::string> name;//1) Caller asset filename, used for alternative search, 2) texture filename or texture ID based on 3rd, 3) Optional: model. if filled, second element embedded texture ID, third element model.
     std::shared_ptr<Texture> texture;
 public:
     TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files);

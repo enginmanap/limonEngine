@@ -8,6 +8,7 @@
 #include "World.h"
 #include "WorldLoader.h"
 #include "GameObjects/GUIImage.h"
+#include <pthread.h>
 
 const std::string PROGRAM_NAME = "LimonEngine";
 const std::string RELEASE_FILE = "./Data/Release.xml";
