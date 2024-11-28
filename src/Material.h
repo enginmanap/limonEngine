@@ -133,13 +133,20 @@ public:
     std::shared_ptr<TextureAsset> getAmbientTexture() const {
         return ambientTexture;
     }
-
-    void setAmbientTexture(const std::string &ambientTexture, std::string* sourceAsset = nullptr) {
+    static std::vector<std::string> getTextureFilesWithAlternatives(const std::string &callerAssetFileName, const std::string &textureName, bool embedded = false) {
         std::vector<std::string> textureFiles;
-        textureFiles.push_back(ambientTexture);
-        if(sourceAsset != nullptr) {
-            textureFiles.push_back(*sourceAsset);
+        textureFiles.push_back(callerAssetFileName);
+        textureFiles.push_back(textureName);
+        if(embedded) {
+            textureFiles.push_back(callerAssetFileName);
         }
+        return textureFiles;
+    }
+
+
+    void setAmbientTexture(const std::string& callerAssetFileName, const std::string &ambientTexture, bool embedded = false) {
+        std::vector<std::string> textureFiles = getTextureFilesWithAlternatives(callerAssetFileName, ambientTexture, embedded);
+
         this->ambientTexture = assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
         this->isAmbientMap = true;
     }
@@ -148,12 +155,9 @@ public:
         return diffuseTexture;
     }
 
-    void setDiffuseTexture(const std::string &diffuseTexture, std::string* sourceAsset = nullptr) {
-        std::vector<std::string> textureFiles;
-        textureFiles.push_back(diffuseTexture);
-        if(sourceAsset != nullptr) {
-            textureFiles.push_back(*sourceAsset);
-        }
+    void setDiffuseTexture(const std::string& callerAssetFileName, const std::string &diffuseTexture, bool embedded = false) {
+        std::vector<std::string> textureFiles = getTextureFilesWithAlternatives(callerAssetFileName, diffuseTexture, embedded);
+
         this->diffuseTexture = assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
         this->isDiffuseMap = true;
     }
@@ -162,22 +166,16 @@ public:
         return specularTexture;
     }
 
-    void setSpecularTexture(const std::string &specularTexture, std::string* sourceAsset = nullptr) {
-        std::vector<std::string> textureFiles;
-        textureFiles.push_back(specularTexture);
-        if(sourceAsset != nullptr) {
-            textureFiles.push_back(*sourceAsset);
-        }
+    void setSpecularTexture(const std::string& callerAssetFileName, const std::string &specularTexture, bool embedded = false) {
+        std::vector<std::string> textureFiles = getTextureFilesWithAlternatives(callerAssetFileName, specularTexture, embedded);
+
         this->specularTexture = assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
         this->isSpecularMap = true;
     }
 
-    void setNormalTexture(const std::string &normalTexture, std::string* sourceAsset = nullptr) {
-        std::vector<std::string> textureFiles;
-        textureFiles.push_back(normalTexture);
-        if(sourceAsset != nullptr) {
-            textureFiles.push_back(*sourceAsset);
-        }
+    void setNormalTexture(const std::string& callerAssetFileName, const std::string &normalTexture, bool embedded = false) {
+        std::vector<std::string> textureFiles = getTextureFilesWithAlternatives(callerAssetFileName, normalTexture, embedded);
+
         this->normalTexture = assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
         this->isNormalMap = true;
 
@@ -187,12 +185,8 @@ public:
         return normalTexture;
     }
 
-    void setOpacityTexture(const std::string &opacityTexture, std::string* sourceAsset = nullptr) {
-        std::vector<std::string> textureFiles;
-        textureFiles.push_back(opacityTexture);
-        if(sourceAsset != nullptr) {
-            textureFiles.push_back(*sourceAsset);
-        }
+    void setOpacityTexture(const std::string& callerAssetFileName, const std::string &opacityTexture, bool embedded = false) {
+        std::vector<std::string> textureFiles = getTextureFilesWithAlternatives(callerAssetFileName, opacityTexture, embedded);
         this->opacityTexture = assetManager->partialLoadAssetAsync<TextureAsset>(textureFiles);
         this->isOpacityMap = true;
     }
