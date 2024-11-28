@@ -136,7 +136,7 @@ public:
 
     void serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentElement) override;
 
-    void deserialize(const std::string &nodeName, tinyxml2::XMLElement *nodeExtensionElement);
+    void deserialize(const std::string &nodeName, tinyxml2::XMLElement *nodeExtensionElement) override;
 };
 
 

@@ -98,9 +98,9 @@ public:
 
     bool setupRenderVariables(MeshMeta *meshMetaData);
 
-    void setupForTime(long time);
+    void setupForTime(long time) override;
 
-    void renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel);
+    void renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) override;
 
 
     void renderWithProgramInstanced(const std::vector<uint32_t> &modelIndices, GraphicsProgram &program, uint32_t lodLevel);
@@ -154,7 +154,7 @@ public:
 
     ~Model();
 
-    bool fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const;
+    bool fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const override;
 
     std::shared_ptr<Sound> &getPlayerStepOnSound() {
         return stepOnSound;
@@ -175,15 +175,15 @@ public:
     uint32_t getWorldObjectID() const override {
         return objectID;
     }
-    ObjectTypes getTypeID() const {
+    ObjectTypes getTypeID() const override {
         return GameObject::MODEL;
     };
 
-    std::string getName() const {
+    std::string getName() const override {
         return name + "_" + std::to_string(objectID);
     };
 
-    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
     /************Game Object methods **************/
 
     void attachAI(ActorInterface *AIActor);

@@ -44,7 +44,7 @@ public:
 
     void renderWithProgram(std::shared_ptr<GraphicsProgram> renderProgram, uint32_t lodLevel) override;
 
-    void setupForTime(long time [[gnu::unused]]) {};
+    void setupForTime(long time [[gnu::unused]]) override {};
 
     void step(Camera* playerCamera) {
         viewMatrix = playerCamera->getProjectionMatrix() * glm::mat4(glm::mat3(playerCamera->getCameraMatrix()));
@@ -59,11 +59,11 @@ public:
         return objectID;
     };
 
-    ObjectTypes getTypeID() const {
+    ObjectTypes getTypeID() const override {
         return GameObject::SKYBOX;
     }
 
-    std::string getName() const {
+    std::string getName() const override {
         return path;
     };
     /************Game Object methods **************/

@@ -76,9 +76,9 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
         if(ImGui::IsItemHovered()) {
             ImGui::BeginTooltip();
             ImGui::Text("Builtin Camera tags are:");
-            ImGui::Text(("   " + HardCodedTags::CAMERA_PLAYER).c_str());
-            ImGui::Text(("   " + HardCodedTags::CAMERA_LIGHT_DIRECTIONAL).c_str());
-            ImGui::Text(("   " + HardCodedTags::CAMERA_LIGHT_POINT).c_str());
+            ImGui::Text("   %s", (HardCodedTags::CAMERA_PLAYER).c_str());
+            ImGui::Text("   %s", (HardCodedTags::CAMERA_LIGHT_DIRECTIONAL).c_str());
+            ImGui::Text("   %s", (HardCodedTags::CAMERA_LIGHT_POINT).c_str());
             ImGui::EndTooltip();
         }
         cameraTags = StringUtils::split(std::string(tempTags), ",");
@@ -92,16 +92,16 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
         if(ImGui::IsItemHovered()) {
             ImGui::BeginTooltip();
             ImGui::Text("Builtin Object tags are:");
-            ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_PHYSICAL).c_str());
-            ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_STATIC).c_str());
+            ImGui::Text("   %s", HardCodedTags::OBJECT_MODEL_PHYSICAL.c_str());
+            ImGui::Text("   %s", HardCodedTags::OBJECT_MODEL_STATIC.c_str());
             ImGui::Text("   ");
-            ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_BASIC).c_str());
-            ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_ANIMATED).c_str());
-            ImGui::Text(("   " + HardCodedTags::OBJECT_MODEL_TRANSPARENT).c_str());
+            ImGui::Text("   %s",HardCodedTags::OBJECT_MODEL_BASIC.c_str());
+            ImGui::Text("   %s",HardCodedTags::OBJECT_MODEL_ANIMATED.c_str());
+            ImGui::Text("   %s",HardCodedTags::OBJECT_MODEL_TRANSPARENT.c_str());
             ImGui::Text("   ");
-            ImGui::Text(("   " + HardCodedTags::OBJECT_PLAYER_BASIC).c_str());
-            ImGui::Text(("   " + HardCodedTags::OBJECT_PLAYER_ANIMATED).c_str());
-            ImGui::Text(("   " + HardCodedTags::OBJECT_PLAYER_TRANSPARENT).c_str());
+            ImGui::Text("   %s",HardCodedTags::OBJECT_PLAYER_BASIC.c_str());
+            ImGui::Text("   %s",HardCodedTags::OBJECT_PLAYER_ANIMATED.c_str());
+            ImGui::Text("   %s",HardCodedTags::OBJECT_PLAYER_TRANSPARENT.c_str());
             ImGui::Text("   ");
             ImGui::Text("Objects render in same order as the tags you set");
             ImGui::EndTooltip();

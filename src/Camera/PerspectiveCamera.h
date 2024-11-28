@@ -165,7 +165,7 @@ public:
     }
 
 
-    bool isResultVisibleOnOtherCamera(const PhysicalRenderable& renderable[[gnu::unused]], const Camera* otherCamera[[gnu::unused]]) const {
+    bool isResultVisibleOnOtherCamera(const PhysicalRenderable& renderable[[gnu::unused]], const Camera* otherCamera[[gnu::unused]]) const override {
         std::cerr << "Multiple camera culling for perspective camera is not implemented!" << std::endl;
         return true;
     }

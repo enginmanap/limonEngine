@@ -54,11 +54,11 @@ public:
     void setWorldPosition(glm::vec3 position, bool listenerRelative = false);
 
     /** Game object methods */
-    GameObject::ObjectTypes getTypeID() const {
+    GameObject::ObjectTypes getTypeID() const override {
         return SOUND;
     }
 
-    std::string getName() const {
+    std::string getName() const override {
         return name;
     }
 
