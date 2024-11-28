@@ -65,42 +65,43 @@ void TextureAsset::loadCPUPart() {
         //Data\Models\Polygon\AncientEmpire
         cpuSurface = IMG_Load(name[1].data());
         if(!cpuSurface) {
-            const std::string textureFileName = name[1].substr(name[1].find_last_of("\\/") + 1);
-            const std::string assetPath = name[0].substr(0, name[0].find_last_of("\\/"));
+            const std::string textureFullFileName = name[1].substr(name[1].find_last_of("\\/") + 1);
+            const AssetManager::AvailableAssetsNode *fullMatchAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureFullFileName);
+            if (fullMatchAssets != nullptr) {
+                std::vector<std::string> possibleAssets;
+                getPossibleTexturesList(fullMatchAssets, possibleAssets);
 
-            cpuSurface = IMG_Load((assetPath + "/" + textureFileName).c_str());
-            if (!cpuSurface) {
-                cpuSurface = IMG_Load((assetPath + "/Textures/" + textureFileName).c_str());
+                if (!possibleAssets.empty()) {
+                    for (size_t i = 0; i < possibleAssets.size(); ++i) {
+                        cpuSurface = IMG_Load(possibleAssets[i].c_str());
+                        if (cpuSurface) {
+                            break;
+                        }
+                    }
+                }
             }
             if (!cpuSurface) {
-                OptionsUtil::Options::Option<std::string> dataPath = assetManager->getGraphicsWrapper()->getOptions()->getOption<std::string>(HASH("dataDirectory"));
-                std::string dataPathStr = dataPath.getOrDefault("./Data");
-                if (dataPathStr.find_last_of("'/\\") == dataPathStr.size() - 1) {
-                    dataPathStr = dataPathStr.substr(0, dataPathStr.size() - 1);//remove the last slash
-                }
-
-                size_t position = name[0].find("/", 0);
-                position = name[0].find("/", position+1);
-                position = name[0].find("/", position+1);
-                const std::string assetInnerPath = name[0].substr(position+1, name[0].find_last_of("/\\") - (position + 1));
-
-                std::string assetPathUnderData = assetPath.substr(assetPath.find_last_of("'/\\") + 1);//get the name of the asset folder under data folder
-                cpuSurface = IMG_Load((dataPathStr + "/texture/" + assetInnerPath + "/" + textureFileName).c_str());
-                if (!cpuSurface) {
-                    std::cerr << "Texture asset load from file failed, tried the following paths:" << std::endl;
-                    std::cerr << name[1] << std::endl;
-                    std::cerr << assetPath + "/" + textureFileName << std::endl;
-                    std::cerr << assetPath + "/Textures/" + textureFileName << std::endl;
-                    std::cerr << assetPath + "/Textures/" + textureFileName << std::endl;
-                    std::cerr << dataPathStr + "/textures/" + textureFileName << std::endl;
+                std::cerr << "Couldn't find any asset with same name and same extension for "<< textureFullFileName <<". Will search for same name different extension." << std::endl;
+                const std::string textureNameOnly = textureFullFileName.substr(0, textureFullFileName.find_last_of("."));
+                const AssetManager::AvailableAssetsNode *nameOnlyMatchAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureNameOnly);
+                if (nameOnlyMatchAssets != nullptr) {
+                    std::vector<std::string> possibleAssets;
+                    getPossibleTexturesList(nameOnlyMatchAssets, possibleAssets);
+                    if (!possibleAssets.empty()) {
+                        for (size_t i = 0; i < possibleAssets.size(); ++i) {
+                            cpuSurface = IMG_Load(possibleAssets[i].c_str());
+                            if (cpuSurface) {
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         }
-
     }
 
     if (!cpuSurface) {
-        std::cerr << "TextureAsset Load from disk failed for " << name[1] << ". Error:" << std::endl << IMG_GetError()
+        std::cerr << "TextureAsset Load from disk failed for " << name[0] << " | " << name[1] << ". Error:" << std::endl << IMG_GetError()
                   << std::endl;
         exit(1);
     } else {
@@ -164,6 +165,16 @@ void TextureAsset::loadGPUPart() {
     texture->setName(name[1]);
     SDL_FreeSurface(cpuSurface);
     cpuSurface = nullptr;
+}
+
+void TextureAsset::getPossibleTexturesList(const AssetManager::AvailableAssetsNode *assetsNode, std::vector<std::string> &possibleTexturesList) {
+    if (assetsNode->assetType != AssetManager::Asset_type_DIRECTORY) {
+        possibleTexturesList.emplace_back(assetsNode->fullPath);
+    } else {
+        for (size_t i = 0; i < assetsNode->children.size(); ++i) {
+            getPossibleTexturesList(assetsNode->children[i], possibleTexturesList);
+        }
+    }
 }
 
 TextureAsset::~TextureAsset() {
