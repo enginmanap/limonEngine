@@ -888,7 +888,9 @@ void Editor::renderEditor() {
                                             entry.first->running = false;
                                             VisibilityRequest::condition.signalWaiting();
                                             SDL_WaitThread(entry.second, nullptr);
-                                            world->visibilityThreadPool.erase(entry.first);
+                                            auto visRequest = entry.first;
+                                            world->visibilityThreadPool.erase(visRequest);
+                                            delete visRequest;
                                         }
                                     }
                                 }
