@@ -6,9 +6,7 @@
 #define LIMONENGINE_TEXTURE_ASSET_H
 
 #include <string>
-#include <iostream>
 #include <cassert>
-#include <SDL2/SDL_image.h>
 #include "API/Graphics/GraphicsInterface.h"
 #include "Graphics/Texture.h"
 
@@ -16,6 +14,7 @@
 #include "AssetManager.h"
 
 class TextureAsset : public Asset {
+    const std::string FALLBACK_TEXTURE_NAME = "./Engine/Textures/notFoundFallback.jpg"; //This can be a configuration, either as option, or for build time?
     struct TextureMetaData {
         GraphicsInterface::TextureTypes textureType;
         GraphicsInterface::InternalFormatTypes internalFormatType;

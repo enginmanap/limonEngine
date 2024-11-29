@@ -4,6 +4,7 @@
 
 #include "TextureAsset.h"
 
+#include <SDL_image.h>
 #include <GameObjects/Players/FreeCursorPlayer.h>
 
 TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const std::vector<std::string> &files) :
@@ -34,6 +35,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
  */
 
 void TextureAsset::loadCPUPart() {
+    std::string originalErrorMessage;
 
     if (name.size() == 3) {//If embedded texture is needed, first element is the index, second is the owner asset file
         //index is a string, first char is * second char is the index
@@ -65,6 +67,7 @@ void TextureAsset::loadCPUPart() {
         //Data\Models\Polygon\AncientEmpire
         cpuSurface = IMG_Load(name[1].data());
         if(!cpuSurface) {
+            originalErrorMessage = IMG_GetError();
             const std::string textureFullFileName = name[1].substr(name[1].find_last_of("\\/") + 1);
             const AssetManager::AvailableAssetsNode *fullMatchAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureFullFileName);
             if (fullMatchAssets != nullptr) {
@@ -101,9 +104,13 @@ void TextureAsset::loadCPUPart() {
     }
 
     if (!cpuSurface) {
-        std::cerr << "TextureAsset Load from disk failed for " << name[0] << " | " << name[1] << ". Error:" << std::endl << IMG_GetError()
-                  << std::endl;
-        exit(1);
+        std::cerr << "TextureAsset Load from disk failed for " << name[0] << " | " << name[1] << ". Error:" << std::endl << originalErrorMessage << std::endl;
+        std::cerr << "Loading \"not found fallback\" texture" << std::endl;
+        cpuSurface = IMG_Load(FALLBACK_TEXTURE_NAME.c_str());
+        if (!cpuSurface) {
+            std::cerr << "Loading  fallback texture failed. Please make sure " << FALLBACK_TEXTURE_NAME << " exists and valid. Exiting." << std::endl;
+            exit(1);
+        }
     } else {
         //std::cout << "TextureAsset " << name[0] << " loaded from disk successfully." << std::endl;
     }
