@@ -87,6 +87,7 @@ void Editor::renderEditor() {
     /* window definitions */
     {
         ImGui::Begin("Editor");
+        ImGuiIO& io = ImGui::GetIO();
         if(world->guiPickMode == false) {
             if (ImGui::Button("Switch to GUI selection mode")) {
                 world->guiPickMode = true;
@@ -103,6 +104,7 @@ void Editor::renderEditor() {
 
 
         if (ImGui::CollapsingHeader("Add New Object")) {
+            io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
             static char modelAssetFilter[32] = {0};
             ImGui::InputText("Filter Assets ##ModelsAssetTreeFilter", modelAssetFilter, sizeof(modelAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
             std::string modelAssetFilterStr = modelAssetFilter;
@@ -111,7 +113,7 @@ void Editor::renderEditor() {
             world->imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_MODEL,
                                               "Model",
                                               &selectedAsset);
-
+            io.ConfigFlags |= !ImGuiConfigFlags_NavEnableKeyboard;
             static float newObjectWeight;
             ImGui::NewLine();
             wrapper->layer = 0;
@@ -123,7 +125,7 @@ void Editor::renderEditor() {
             size.y = -1 * size.y;//This is because ImGui assumes y up. Since this code is shared with fonts, and fixing font generation is hard, I am using this hack for upside down fix.
 
             //ImGui::Image(this->colorTexture->getTextureID(), ImVec2(region_sz * zoom, region_sz * zoom), uv0, uv1, ImColor(255,255,255,255), ImColor(255,255,255,128));
-            ImGui::Image(wrapper, size);
+            ImGui::Image((ImTextureID)(intptr_t)wrapper, size);
             ImGui::NewLine();
             ImGui::SliderFloat("Weight", &newObjectWeight, 0.0f, 100.0f);
             ImGui::NewLine();
@@ -661,7 +663,7 @@ void Editor::renderEditor() {
                 }
                 ImGui::Dummy(ImVec2(0.0f, size.y));
                 size.y = -1 * size.y;//This is because ImGui assumes y up. Since this code is shared with fonts, and fixing font generation is hard, I am using this hack for upside down fix.
-                ImGui::Image(&wrapper, size);
+                ImGui::Image((ImTextureID)(intptr_t)&wrapper, size);
             }
 
 

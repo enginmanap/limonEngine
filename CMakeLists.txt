@@ -36,7 +36,7 @@ if (NOT LIBS_EXTERNAL_ASSIMP)
 endif()
 
 include(libs/CmakeLists.txt)
-
+include_directories(libs/imgui)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
 file(GLOB_RECURSE SOURCE_FILES

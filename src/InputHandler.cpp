@@ -17,9 +17,11 @@ void InputHandler::mapInput() {
     inputState.resetAllEvents();
 
     while (SDL_PollEvent(&event)) {
-        uint32_t downKey = event.key.keysym.sym & ~SDLK_SCANCODE_MASK;
-        if(downKey < InputStates::keyBufferElements) {
-            inputState.setRawInputState(downKey, event.type == SDL_KEYDOWN);
+        if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
+            uint32_t downKey = event.key.keysym.sym & ~SDLK_SCANCODE_MASK;
+            if(downKey < InputStates::keyBufferElements) {
+                inputState.setRawInputState(downKey, event.type == SDL_KEYDOWN);
+            }
         }
         switch (event.type) {
             case SDL_QUIT:

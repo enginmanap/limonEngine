@@ -24,7 +24,7 @@ Transformation::addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm:
     bool updated = false;
     bool crudeUpdated = false;
 
-    if (ImGui::IsKeyPressed(83)) {
+    if (ImGui::IsKeyPressed(ImGuiKey_LeftCtrl)) {
         editorState.useSnap = !editorState.useSnap;
     }
 
@@ -79,7 +79,13 @@ Transformation::addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm:
                 preciseTranslatePoint = translateSingle;
             }
             ImGui::NewLine();
-            ImGui::Checkbox("", &(editorState.useSnap));
+            ImGui::Checkbox("##SnapCheckBox", &(editorState.useSnap));
+            if(ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::Text("Builtin Camera tags are:");
+                ImGui::Text("shortcut S");
+                ImGui::EndTooltip();
+            }
             ImGui::SameLine();
             ImGui::InputFloat3("Snap", &(editorState.snap[0]));
             break;
@@ -104,7 +110,7 @@ Transformation::addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm:
                 setOrientation(tempOrientation);
             }
             ImGui::NewLine();
-            ImGui::Checkbox("", &(editorState.useSnap));
+            ImGui::Checkbox("##SnapCheckBoxForAngle", &(editorState.useSnap));
             ImGui::SameLine();
             ImGui::InputFloat("Angle Snap", &(editorState.snap[0]));
             break;
@@ -131,7 +137,7 @@ Transformation::addImGuiEditorElements(const glm::mat4 &cameraMatrix, const glm:
                 setScale(tempScale);
             }
             ImGui::NewLine();
-            ImGui::Checkbox("", &(editorState.useSnap));
+            ImGui::Checkbox("##SnapCheckBoxScaleSnap", &(editorState.useSnap));
             ImGui::SameLine();
             ImGui::InputFloat("Scale Snap", &(editorState.snap[0]));
             break;
@@ -223,6 +229,11 @@ bool Transformation::addImGuizmoElements(const ImGuizmoState &editorState, const
         case ImGuizmo::SCALE_X://not used
         case ImGuizmo::SCALE_Y://not used
         case ImGuizmo::SCALE_Z://not used
+        case ImGuizmo::SCALE_XU://not used
+        case ImGuizmo::SCALE_YU://not used
+        case ImGuizmo::SCALE_ZU://not used
+        case ImGuizmo::SCALEU://not used
+        case ImGuizmo::UNIVERSAL://not used
             break;
     }
     return false;

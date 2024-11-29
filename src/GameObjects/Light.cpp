@@ -76,7 +76,7 @@ ImGuiResult Light::addImGuiEditorElements(const ImGuiRequest &request) {
     static bool useSnap; //these are static because we want to keep the values
     static float snap[3] = {1.0f, 1.0f, 1.0f};
     ImGui::NewLine();
-    ImGui::Checkbox("", &(useSnap));
+    ImGui::Checkbox("##SnapForLight", &(useSnap));
     ImGui::SameLine();
     ImGui::InputFloat3("Snap", &(snap[0]));
 

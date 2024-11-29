@@ -78,13 +78,15 @@ class ImGuiHelper {
         } else if(assetsNode->assetType == typeToShow) {
             node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
             ImGui::TreeNodeEx((assetsNode->name + "## " + assetsNode->fullPath).c_str(), node_flags);
-            if(ImGui::IsItemClicked()) {
+            if(ImGui::IsItemClicked() || ImGui::IsItemFocused()) {
                 if(*selectedNode != assetsNode) {
                     *selectedNode = assetsNode;
                 }
             }
         }
     }
+
+    static ImGuiKey SDL2KeyEventToImGuiKey(uint32_t keycodeInt);
 
 public:
     ImGuiHelper(std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options);
