@@ -1149,6 +1149,17 @@ World::~World() {
         }
         std::cout << "AI route threads to finished." << std::endl;
     }
+    for (auto &item: visibilityThreadPool) {
+        item.first->running = false;
+    }
+    for (auto &item: visibilityThreadPool) {
+
+        item.first->condition.signalWaiting();
+        if (item.second) {
+            SDL_WaitThread(item.second, NULL);
+        }
+        delete item.first;
+    }
 
     delete dynamicsWorld;
     delete animationInProgress;
@@ -1202,12 +1213,6 @@ World::~World() {
 
     delete imgGuiHelper;
 
-    for (auto &item: visibilityThreadPool) {
-        delete item.first;
-        if (item.second) {
-            SDL_WaitThread(item.second, NULL);
-        }
-    }
 }
 
 bool World::addModelToWorld(Model *xmlModel) {

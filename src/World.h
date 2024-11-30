@@ -8,14 +8,12 @@
 static const int SKIP_LOD_LEVEL = 9999;
 
 #include <vector>
-#include <tinyxml2.h>
 #include <unordered_map>
 #include <unordered_set>
 #include <set>
 #include <queue>
 #include <Graphics/Particles/Emitter.h>
 #include <Graphics/Particles/GPUParticleEmitter.h>
-#include <atomic>
 
 #include "InputHandler.h"
 #include "FontManager.h"

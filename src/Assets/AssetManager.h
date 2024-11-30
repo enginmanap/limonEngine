@@ -106,13 +106,13 @@ private:
         std::mutex queueMutex;
         std::condition_variable queueEmptyCond;
     public:
-        void pushBack(std::shared_ptr<Asset> asset, bool pushToNextQueue) {
+        void pushBack(const std::shared_ptr<Asset>& asset, bool pushToNextQueue) {
             std::lock_guard<std::mutex> lock(queueMutex);
-            assets.push_back({asset, pushToNextQueue});
+            assets.emplace_back(asset, pushToNextQueue);
             queueEmptyCond.notify_one();
         }
 
-        void pushBack(std::pair<std::shared_ptr<Asset>, bool> assetAndPushToNextQueue) {
+        void pushBack(const std::pair<std::shared_ptr<Asset>, bool>& assetAndPushToNextQueue) {
             std::lock_guard<std::mutex> lock(queueMutex);
             assets.push_back(assetAndPushToNextQueue);
             queueEmptyCond.notify_one();
@@ -122,6 +122,17 @@ private:
             std::unique_lock<std::mutex> lock(queueMutex);
             while (assets.empty()) {
                 queueEmptyCond.wait(lock);
+            }
+            std::pair<std::shared_ptr<Asset>, bool> assetPtr =assets.front();
+            assets.pop_front();
+            return assetPtr;
+        }
+
+        std::pair<std::shared_ptr<Asset>, bool> popFrontOrBlockFor(const std::chrono::milliseconds milliseconds) {
+            std::unique_lock<std::mutex> lock(queueMutex);
+            queueEmptyCond.wait_for(lock, milliseconds);
+            if (assets.empty()) {
+                return {nullptr, false};
             }
             std::pair<std::shared_ptr<Asset>, bool> assetPtr =assets.front();
             assets.pop_front();
@@ -155,18 +166,20 @@ private:
 
     void cpuLoadAsset(bool& running) {
         while(running) {
-            std::pair<std::shared_ptr<Asset>, bool> assetAndLoadNext = assetLoadCpuQueue.popFrontOrBlock();
-            if(assetAndLoadNext.first->getLoadState() != Asset::LoadState::INITIATED) {
-                std::cerr << " asset " << assetAndLoadNext.first->getName() << " tried to start another load??" << std::endl;
-                continue;
+            std::pair<std::shared_ptr<Asset>, bool> assetAndLoadNext = assetLoadCpuQueue.popFrontOrBlockFor(std::chrono::milliseconds(5));
+            if (assetAndLoadNext.first != nullptr) {
+                if(assetAndLoadNext.first->getLoadState() != Asset::LoadState::INITIATED) {
+                    std::cerr << " asset " << assetAndLoadNext.first->getName() << " tried to start another load??" << std::endl;
+                    continue;
+                }
+                assetAndLoadNext.first->setLoadState(Asset::LoadState::CPU_LOAD_STARTED);
+                assetAndLoadNext.first->loadCPUPart();
+                assetAndLoadNext.first->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
+                if(assetAndLoadNext.second){
+                    assetLoadGPUQueue.pushBack(assetAndLoadNext);
+                }
+                cpuLoadDoneCondition.notify_all();
             }
-            assetAndLoadNext.first->setLoadState(Asset::LoadState::CPU_LOAD_STARTED);
-            assetAndLoadNext.first->loadCPUPart();
-            assetAndLoadNext.first->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
-            if(assetAndLoadNext.second){
-                assetLoadGPUQueue.pushBack(assetAndLoadNext);
-            }
-            cpuLoadDoneCondition.notify_all();
         }
     }
 
