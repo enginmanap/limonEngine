@@ -13,8 +13,8 @@
 [submodule "libs/consthash"]
 	path = libs/consthash
 	url = https://github.com/LordJZ/consthash.git
-[submodule "libs/imgui"]
-	path = libs/imgui
+[submodule "libs/ImGui"]
+	path = libs/ImGui
 	url = https://github.com/ocornut/imgui.git
 [submodule "libs/ImGuizmo"]
 	path = libs/ImGuizmo

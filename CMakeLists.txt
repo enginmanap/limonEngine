@@ -36,7 +36,7 @@ if (NOT LIBS_EXTERNAL_ASSIMP)
 endif()
 
 include(libs/CmakeLists.txt)
-include_directories(libs/imgui)
+include_directories(libs/ImGui)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
 file(GLOB_RECURSE SOURCE_FILES
@@ -130,8 +130,8 @@ target_precompile_headers(LimonEngine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/std
 
 IF (WIN32)
     #add icon to windows binary
-    SET( LimonEngine_LINKFLAGS "\"${CMAKE_CURRENT_SOURCE_DIR}/resources/limonEngine.res\"" )
-    SET_TARGET_PROPERTIES(LimonEngine PROPERTIES LINK_FLAGS ${LimonEngine_LINKFLAGS} )
+    #SET( LimonEngine_LINKFLAGS "\"${CMAKE_CURRENT_SOURCE_DIR}/resources/limonEngine.res\"" )
+    #SET_TARGET_PROPERTIES(LimonEngine PROPERTIES LINK_FLAGS ${LimonEngine_LINKFLAGS} )
 ENDIF()
 
 add_library(LimonAPI STATIC
