@@ -344,7 +344,7 @@ private:
     std::map<uint32_t, std::shared_ptr<GPUParticleEmitter>> gpuParticleEmitters;
     bool multiThreadedCulling = true;
 
-    bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
+    static bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
 
     /**
          * This method checks, if IDs assigned without any empty space, and any collision
