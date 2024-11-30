@@ -34,7 +34,7 @@ private:
     glm::vec3 ambientColor = glm::vec3(0,0,0); //this will be added to all objects on shading phase
     std::vector<Camera*> directionalCameras;
     mutable std::vector<glm::mat4> directionalCameraMatrices;
-    std::vector<Camera*> cubeCameras;// FIXME this is just to compile, remove after
+    std::vector<Camera*> cubeCameras;// There is only one, but to keep the interface we do it this way
     LightTypes lightType;
     bool frustumChanged = true;
 

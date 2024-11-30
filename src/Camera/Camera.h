@@ -122,8 +122,7 @@ public:
     virtual void clearDirty() = 0;
 
     virtual bool isVisible(const PhysicalRenderable& renderable) const = 0;
-
-    virtual bool isResultVisibleOnOtherCamera(const PhysicalRenderable& renderable, const Camera* otherCamera) const = 0;
+    virtual bool isVisible(const glm::vec3& position, float radius) const = 0;
 
     virtual const glm::mat4& getCameraMatrix() = 0;
 

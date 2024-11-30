@@ -74,7 +74,13 @@ public:
         return inside;
     };
 
-    bool isResultVisibleOnOtherCamera(const PhysicalRenderable& renderable[[gnu::unused]], const Camera* otherCamera[[gnu::unused]]) const override {
+    bool isVisible(const glm::vec3 &position, float radius) const override {
+        // Check if the radius of the sphere is inside the view frustum.
+        for(int i=0; i<6; i++) {
+            if(((frustumPlanes[i][0] * position.x) + (frustumPlanes[i][1] * position.y) + (frustumPlanes[i][2] * position.z) + frustumPlanes[i][3]) < -radius){
+                return false;
+            }
+        }
         return true;
     }
 

@@ -2863,41 +2863,32 @@ void World::updateActiveLights(bool forceUpdate) {
 
     lastLightUpdatePlayerPosition = currentPlayer->getPosition();
     activeLights.clear();
-
-    // we have NR_POINT lights, and directional lights. we should have 1 directional light, and rest point lights.
-    uint32_t fullLightsIndex = 0;
-    for (; fullLightsIndex < lights.size() && activeLights.size() < NR_POINT_LIGHTS; ++fullLightsIndex) {
-        if(lights[fullLightsIndex]->getLightType() != Light::LightTypes::DIRECTIONAL) {
-            activeLights.push_back(lights[fullLightsIndex]);
-            lights[fullLightsIndex]->setFrustumChanged(true);//since we needed update, force update;
-        }
-    }
-    if(lights.size() > NR_POINT_LIGHTS) {
-        std::sort(activeLights.begin(), activeLights.end(), LightCloserToPlayer(currentPlayer->getPosition()));
-        for (; fullLightsIndex < lights.size(); ++fullLightsIndex) {
-            if(lights[fullLightsIndex]->getLightType() == Light::LightTypes::DIRECTIONAL) {
-                continue;
-            }
-            uint32_t insertIndex = NR_POINT_LIGHTS-1;
-            while(insertIndex > 0 && (glm::length2(lights[fullLightsIndex]->getPosition() - currentPlayer->getPosition()) <
-                    glm::length2(activeLights[insertIndex]->getPosition() - currentPlayer->getPosition()))) {
-                activeLights[insertIndex] = activeLights[insertIndex-1];
-                insertIndex--;
-            }
-            if(insertIndex != NR_POINT_LIGHTS-1) {
-                activeLights[insertIndex] = lights[fullLightsIndex];
-                lights[fullLightsIndex]->setFrustumChanged(true);
-            } else {
-                //this means the light will not be used, there for it will not be needed for frustum culled;
-                lights[fullLightsIndex]->setFrustumChanged(false);//since we needed update, force update;
+    std::vector<Light *> culledPointLights;
+    for (size_t lightIndex = 0; lightIndex < lights.size(); ++lightIndex) {
+        Light *currentLight = lights[lightIndex];
+        if (currentLight->getLightType() == Light::LightTypes::POINT) {
+            if (playerCamera->isVisible(currentLight->getPosition(), currentLight->getActiveDistance())) {
+                culledPointLights.emplace_back(currentLight);
             }
         }
     }
 
-    //at this point, add the directional light to the end
-    if(directionalLightIndex != -1) {
-        activeLights.push_back(lights[directionalLightIndex]);
-        lights[directionalLightIndex]->setFrustumChanged(true);
+    if (culledPointLights.size() <= NR_POINT_LIGHTS) {
+        activeLights.insert(activeLights.end(), culledPointLights.begin(), culledPointLights.end());
+        if (directionalLightIndex != -1) {
+            activeLights.emplace_back(lights[directionalLightIndex]);
+        }
+    } else {
+        //this is the case we can't actually activate all the point light, sort and only activate the closest ones
+        std::sort(culledPointLights.begin(), culledPointLights.end(), LightCloserToPlayer(currentPlayer->getPosition()));
+        for (int i = 0; i < NR_POINT_LIGHTS; ++i) {
+            activeLights.emplace_back(culledPointLights[i]);
+            culledPointLights[i]->setFrustumChanged(true);//we don't know if it was active before
+        }
+        if (directionalLightIndex != -1) {
+            activeLights.emplace_back(lights[directionalLightIndex]);
+            lights[directionalLightIndex]->setFrustumChanged(true);
+        }
     }
 
     for (size_t lightIndex = 0; lightIndex < activeLights.size(); ++lightIndex) {
@@ -2917,7 +2908,6 @@ void World::updateActiveLights(bool forceUpdate) {
     for (uint32_t i = activeLights.size(); i < NR_TOTAL_LIGHTS; ++i) {
         graphicsWrapper->removeLight(i);
     }
-
 }
 
    void World::clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment) {

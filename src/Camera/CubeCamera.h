@@ -53,9 +53,8 @@ public:
         return glm::distance2(renderable.getTransformation()->getTranslate(), this->position) < activeDistance * activeDistance;
     }
 
-    bool isResultVisibleOnOtherCamera(const PhysicalRenderable& renderable[[gnu::unused]], const Camera* otherCamera[[gnu::unused]]) const override {
-        std::cerr << "Multiple camera culling for cube camera is not implemented!" << std::endl;
-        return true;
+    bool isVisible(const glm::vec3 &position, float radius) const override {
+        return glm::distance2(this->position, position) < (activeDistance+radius) * (activeDistance+radius);
     }
 
     const glm::mat4& getCameraMatrix() override {
@@ -81,7 +80,7 @@ public:
         return renderMatrices;
     }
 
-    float getActiveDistance() {
+    float getActiveDistance() const {
         return activeDistance;
     }
 
