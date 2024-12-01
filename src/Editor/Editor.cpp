@@ -669,36 +669,23 @@ void Editor::renderEditor() {
 
         }
         if(ImGui::CollapsingHeader("List materials")) {
-            static std::map<size_t, std::shared_ptr<Material>> allMaterials;
-            if (allMaterials.empty()) {
-                for (auto const &renderable: world->objects) {
-                    std::vector<std::shared_ptr<Material>> currentMaterials = renderable.second->getMaterials();
-                    for(auto const& material: currentMaterials) {
-                        size_t hash = material->getHash();
-                        if(allMaterials.find(hash) != allMaterials.end()) {
-                            std::cerr << "collision find between " << material->getName() << " and " << allMaterials.find(hash)->second->getName() << "." << std::endl;
-                        } else {
-                            allMaterials[hash] = material;
-                        }
-                    }
-                }
-            }
-
             //listing
             static size_t selectedHash = 0;
             bool isSelected = false;
+            auto allMaterials = world->assetManager->getMaterials();
             ImGui::Text("Total material count is %llu", allMaterials.size());
             ImGui::BeginListBox("Materials");
             for (auto it = allMaterials.begin(); it != allMaterials.end(); it++) {
                 isSelected = selectedHash == it->first;
-                if (ImGui::Selectable((it->second->getName() + " -> " + std::to_string(it->first)).c_str(), isSelected)) {
+                if (ImGui::Selectable((it->second.first->getName() + " -> " + std::to_string(it->first)).c_str(), isSelected)) {
                     selectedHash = it->first;
                 }
             }
             ImGui::EndListBox();
             auto selectedMaterialIt = allMaterials.find(selectedHash);
             if(selectedMaterialIt != allMaterials.end()) {
-                selectedMaterialIt->second->addImGuiEditorElements(*world->request);
+
+                selectedMaterialIt->second.first->addImGuiEditorElements(*world->request);
             }
         }
         ImGui::End();

@@ -220,3 +220,7 @@ void AssetManager::unregisterMaterial(std::shared_ptr<Material> material) {
         //std::cerr << "Material getting deleted " << material->getName() << std::endl;
     }
 }
+
+const std::map<size_t, std::pair<std::shared_ptr<Material>, uint32_t>>& AssetManager::getMaterials() const {
+    return materials;
+}
