@@ -215,10 +215,11 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         if ((currentMaterial->GetTextureCount(aiTextureType_AMBIENT) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_AMBIENT, 0, &property)) {
                 if(property.data[0] != '*') {
-                    newMaterial->setAmbientTexture(this->name, property.C_Str());
+                    newMaterial->setAmbientTexture(property.C_Str());
+                    std::cout << "set ambient texture " << property.C_Str() << std::endl;
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setAmbientTexture(this->name, property.C_Str(), true);
+                    newMaterial->setAmbientTexture(property.C_Str(), &this->name);
                     std::cout << "set (embedded) ambient texture " << property.C_Str() << "|" << this->name<< std::endl;
                 }
 
@@ -230,10 +231,10 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         if ((currentMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &property)) {
                 if(property.data[0] != '*') {
-                    newMaterial->setDiffuseTexture(this->name, property.C_Str());
+                    newMaterial->setDiffuseTexture(property.C_Str());
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setDiffuseTexture(this->name, property.C_Str(), true);
+                    newMaterial->setDiffuseTexture(property.C_Str(), &this->name);
                 }
             } else {
                 std::cerr << "The model contained diffuse texture information, but texture loading failed. \n" <<
@@ -244,10 +245,11 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         if ((currentMaterial->GetTextureCount(aiTextureType_SPECULAR) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_SPECULAR, 0, &property)) {
                 if(property.data[0] != '*') {
-                    newMaterial->setSpecularTexture(this->name, property.C_Str());
+                    newMaterial->setSpecularTexture(property.C_Str());
+                    std::cout << "set specular texture " << property.C_Str() << std::endl;
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setSpecularTexture(this->name, property.C_Str(), true);
+                    newMaterial->setSpecularTexture(property.C_Str(), &this->name);
                     std::cout << "set (embedded) setSpecularTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
                 }
             } else {
@@ -259,10 +261,11 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         if ((currentMaterial->GetTextureCount(aiTextureType_NORMALS) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_NORMALS, 0, &property)) {
                 if(property.data[0] != '*') {
-                    newMaterial->setNormalTexture(this->name, property.C_Str());
+                    newMaterial->setNormalTexture(property.C_Str());
+                    std::cout << "set normal texture " << property.C_Str() << std::endl;
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setNormalTexture(this->name, property.C_Str(), true);
+                    newMaterial->setNormalTexture(property.C_Str(), &this->name);
                     std::cout << "set (embedded) setNormalTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
                 }
             } else {
@@ -275,10 +278,10 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         if ((currentMaterial->GetTextureCount(aiTextureType_OPACITY) > 0)) {
             if (AI_SUCCESS == currentMaterial->GetTexture(aiTextureType_OPACITY, 0, &property)) {
                 if(property.data[0] != '*') {
-                    newMaterial->setOpacityTexture(this->name, property.C_Str());
+                    newMaterial->setOpacityTexture(property.C_Str());
                 } else {
                     //embeddedTexture handling
-                    newMaterial->setOpacityTexture(this->name, property.C_Str(), true);
+                    newMaterial->setOpacityTexture(property.C_Str(), &this->name);
                     std::cout << "set (embedded) setOpacityTexture texture " << property.C_Str() << "|" << this->name<< std::endl;
                 }
             } else {

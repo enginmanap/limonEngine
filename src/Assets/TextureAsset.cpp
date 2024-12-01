@@ -14,11 +14,7 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
         exit(-1);
     }
     name = files;
-    if (files.size() == 1) {
-        //in case of texture only (No model asset) we duplicate the file name
-        this->name.emplace_back(files[0]);
-    }
-    if (files.size() > 3) {
+    if (files.size() > 2) {
         std::cerr << "multiple files are sent to Texture constructor, extra elements ignored." << std::endl;
     }
 }
@@ -39,9 +35,9 @@ void TextureAsset::loadCPUPart() {
 
     if (name.size() == 3) {//If embedded texture is needed, first element is the index, second is the owner asset file
         //index is a string, first char is * second char is the index
-        std::cout << "Texture request has 3 elements. Attempting to extract embedded texture. " << std::endl;
-        int textureID = std::atoi(&name[1][1]);
-        std::shared_ptr<const AssetManager::EmbeddedTexture> embeddedTexture = assetManager->getEmbeddedTextures(name[2], textureID);
+        std::cout << "Texture request has 2 elements. Attempting to extract embedded texture. " << std::endl;
+        int textureID = std::atoi(&name[0][1]);
+        std::shared_ptr<const AssetManager::EmbeddedTexture> embeddedTexture = assetManager->getEmbeddedTextures(name[1], textureID);
         if(embeddedTexture != nullptr) {
             SDL_RWops* rwop = nullptr;
             if(embeddedTexture->height == 0) {
@@ -51,7 +47,7 @@ void TextureAsset::loadCPUPart() {
             }
             cpuSurface = IMG_Load_RW(rwop, 0);
         } else {
-            std::cerr << "Embedded texture can't be found with following information: " << name[2] << ":" << textureID << std::endl;
+            std::cerr << "Embedded texture can't be found with following information: " << name[1] << ":" << textureID << std::endl;
         }
     } else {
         /**
@@ -65,10 +61,10 @@ void TextureAsset::loadCPUPart() {
          */
 
         //Data\Models\Polygon\AncientEmpire
-        cpuSurface = IMG_Load(name[1].data());
+        cpuSurface = IMG_Load(name[0].data());
         if(!cpuSurface) {
             originalErrorMessage = IMG_GetError();
-            const std::string textureFullFileName = name[1].substr(name[1].find_last_of("\\/") + 1);
+            const std::string textureFullFileName = name[0].substr(name[0].find_last_of("\\/") + 1);
             const AssetManager::AvailableAssetsNode *fullMatchAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureFullFileName);
             if (fullMatchAssets != nullptr) {
                 std::vector<std::string> possibleAssets;
@@ -85,7 +81,7 @@ void TextureAsset::loadCPUPart() {
             }
             if (!cpuSurface) {
                 std::cerr << "Couldn't find any asset with same name and same extension for "<< textureFullFileName <<". Will search for same name different extension." << std::endl;
-                const std::string textureNameOnly = textureFullFileName.substr(0, textureFullFileName.find_last_of("."));
+                const std::string textureNameOnly = textureFullFileName.substr(0, textureFullFileName.find_last_of('.'));
                 const AssetManager::AvailableAssetsNode *nameOnlyMatchAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureNameOnly);
                 if (nameOnlyMatchAssets != nullptr) {
                     std::vector<std::string> possibleAssets;
@@ -104,7 +100,7 @@ void TextureAsset::loadCPUPart() {
     }
 
     if (!cpuSurface) {
-        std::cerr << "TextureAsset Load from disk failed for " << name[0] << " | " << name[1] << ". Error:" << std::endl << originalErrorMessage << std::endl;
+        std::cerr << "TextureAsset Load from disk failed for " << name[0] <<  ". Error:" << std::endl << originalErrorMessage << std::endl;
         std::cerr << "Loading \"not found fallback\" texture" << std::endl;
         cpuSurface = IMG_Load(FALLBACK_TEXTURE_NAME.c_str());
         if (!cpuSurface) {
@@ -169,7 +165,11 @@ void TextureAsset::loadGPUPart() {
                                         textureMetaData.internalFormatType, textureMetaData.formatType, textureMetaData.dataType,
                                         textureMetaData.width, textureMetaData.height);
     texture->loadData(cpuSurface->pixels);
-    texture->setName(name[1]);
+    if (name.size() > 1) {
+        texture->setName(name[0] + "|" + name[1]);
+    } else {
+        texture->setName(name[0]);
+    }
     SDL_FreeSurface(cpuSurface);
     cpuSurface = nullptr;
 }
