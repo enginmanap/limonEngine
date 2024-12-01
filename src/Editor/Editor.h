@@ -16,7 +16,12 @@ class GraphicsPipelineStage;
 class Model;
 class GraphicsProgram;
 class ImGuiImageWrapper;
+class Material;
 
+namespace EditorNS {
+    //This is used as a global variable store. For multiple windows, ImGui doesn't provide anything else
+    extern std::shared_ptr<const Material> selectedMaterial;
+}
 class Editor {
     World* world;
     std::shared_ptr<Texture> colorTexture;

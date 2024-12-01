@@ -19,22 +19,24 @@
 
 class Material {
 private:
-    AssetManager *assetManager;
     std::string name;
-    float specularExponent = 0;
-    uint32_t materialIndex;
-    uint32_t maps = 0;
-    bool deserialized = false;
 
     glm::vec3 ambientColor;
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
+
+    uint32_t materialIndex;
+    uint32_t maps = 0;
+    AssetManager *assetManager;
+    size_t originalHash = 0;//With this, we can still match assets loaded after the material is changed
+    float specularExponent = 0;
+    float refractionIndex = 0;
+    bool deserialized = false;
     bool isAmbientMap = false;
     bool isDiffuseMap = false;
     bool isSpecularMap = false;
     bool isNormalMap = false;
     bool isOpacityMap = false;
-    float refractionIndex = 0;
 
     /**
      * This is a list of texture names.
@@ -62,23 +64,23 @@ private:
 public:
     Material(AssetManager *assetManager, const std::string &name, uint32_t materialIndex, float specularExponent, const glm::vec3 &ambientColor,
              const glm::vec3 &diffuseColor, const glm::vec3 &specularColor, float refractionIndex)
-            : assetManager(assetManager),
-              name(name),
-              specularExponent(specularExponent),
-              materialIndex(materialIndex),
+            : name(name),
               ambientColor(ambientColor),
               diffuseColor(diffuseColor),
               specularColor(specularColor),
+              materialIndex(materialIndex),
+              assetManager(assetManager),
+              specularExponent(specularExponent),
               refractionIndex(refractionIndex) { }
 
 
     Material(AssetManager *assetManager, const std::string &name, uint32_t materialIndex)
-            : assetManager(assetManager),
-              name(name),
-              materialIndex(materialIndex),
+            : name(name),
               ambientColor(glm::vec3(0,0,0)),
               diffuseColor(glm::vec3(0,0,0)),
-              specularColor(glm::vec3(0,0,0)) { }
+              specularColor(glm::vec3(0,0,0)),
+              materialIndex(materialIndex),
+              assetManager(assetManager) { }
 
     void loadGPUSide(AssetManager *assetManager);
 
@@ -260,6 +262,11 @@ public:
     }
 
     size_t getHash() const;
+    size_t getOriginalHash() const;
+    void calculateOriginalHash() {
+        this->originalHash = getHash();
+    }
+
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
 

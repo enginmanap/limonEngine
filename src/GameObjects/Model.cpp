@@ -8,6 +8,7 @@
 #include "GamePlay/APISerializer.h"
 #include "Utils/HardCodedTags.h"
 #include <random>
+#include <Editor/Editor.h>
 
 #ifdef CEREAL_SUPPORT
 #include <cereal/archives/binary.hpp>
@@ -410,13 +411,21 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
         }
     }
     //add material listing
-    static uint32_t selectedIndex = 0;
+    static int32_t selectedIndex = -1;
+    static uint32_t selectedModel = 0;
+    if (this->getWorldObjectID() != selectedModel) {
+        selectedIndex = -1;
+        selectedModel = this->getWorldObjectID();
+    }
     bool isSelected = false;
     if(ImGui::BeginListBox("Meshes##GODWHY")) {
         for (size_t i = 0; i < meshMetaData.size(); ++i) {
-            isSelected = selectedIndex == i;
+            isSelected = selectedIndex == static_cast<int32_t>(i);
             if (ImGui::Selectable((meshMetaData[i]->mesh->getName() + " -> " + meshMetaData[i]->material->getName()).c_str(), isSelected)) {
-                selectedIndex = i;
+                if (selectedIndex != static_cast<int32_t>(i)) { //means selection changed, trigger material change on main window
+                    EditorNS::selectedMaterial = meshMetaData[i]->mesh->getMaterial();
+                }
+                selectedIndex = static_cast<int32_t>(i);
             }
         }
         ImGui::EndListBox();

@@ -309,9 +309,9 @@ std::shared_ptr<Material> ModelAsset::loadMaterials(const aiScene *scene, unsign
         }
 
         newMaterial->setMaps(maps);
-        std::string requestedName = newMaterial->getName();
-
+        newMaterial->calculateOriginalHash();
         newMaterial = assetManager->registerMaterial(newMaterial);
+        std::string requestedName = newMaterial->getName();
         materialMap[requestedName] = newMaterial;
     } else {
         newMaterial = materialMap[property.C_Str()];

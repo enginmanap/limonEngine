@@ -22,6 +22,8 @@
 #include "AI/AIMovementGrid.h"
 
 
+std::shared_ptr<const Material> EditorNS::selectedMaterial = nullptr;
+
 Editor::Editor(World *world) : world(world){
     backgroundRenderStage = std::make_unique<GraphicsPipelineStage>(world->graphicsWrapper, 640,480,"","",true,true,true,false,false);
     colorTexture = std::make_shared<Texture>(world->graphicsWrapper, GraphicsInterface::TextureTypes::T2D, GraphicsInterface::InternalFormatTypes::RGBA, GraphicsInterface::FormatTypes::RGBA, GraphicsInterface::DataTypes::UNSIGNED_BYTE, 640, 480);
@@ -671,11 +673,15 @@ void Editor::renderEditor() {
         if(ImGui::CollapsingHeader("List materials")) {
             //listing
             static size_t selectedHash = 0;
+            if (EditorNS::selectedMaterial != nullptr) {
+                selectedHash = EditorNS::selectedMaterial->getHash();
+                EditorNS::selectedMaterial = nullptr;
+            }
             bool isSelected = false;
             auto allMaterials = world->assetManager->getMaterials();
             ImGui::Text("Total material count is %llu", allMaterials.size());
             ImGui::BeginListBox("Materials");
-            for (auto it = allMaterials.begin(); it != allMaterials.end(); it++) {
+            for (auto it = allMaterials.begin(); it != allMaterials.end(); ++it) {
                 isSelected = selectedHash == it->first;
                 if (ImGui::Selectable((it->second.first->getName() + " -> " + std::to_string(it->first)).c_str(), isSelected)) {
                     selectedHash = it->first;
@@ -684,7 +690,6 @@ void Editor::renderEditor() {
             ImGui::EndListBox();
             auto selectedMaterialIt = allMaterials.find(selectedHash);
             if(selectedMaterialIt != allMaterials.end()) {
-
                 selectedMaterialIt->second.first->addImGuiEditorElements(*world->request);
             }
         }

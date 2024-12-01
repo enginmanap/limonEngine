@@ -78,3 +78,7 @@ size_t Material::getHash() const {
     std::hash<Material> hashGenerator;
     return hashGenerator(*this);
 }
+
+size_t Material::getOriginalHash() const {
+    return originalHash;
+}
