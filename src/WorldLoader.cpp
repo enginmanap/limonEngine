@@ -262,6 +262,11 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         }
     }
 
+    if (!loadMaterials(worldNode, world)) {
+        delete world;
+        return nullptr;
+    }
+
 
     //load objects
     if(!loadObjectsFromXML(worldNode, world, limonAPI)) {
@@ -1641,6 +1646,22 @@ bool WorldLoader::loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *
 
         GUILayerNode = GUILayerNode->NextSiblingElement("GUILayer");
     } // end of while (GUILayer)
+    return true;
+}
+
+
+bool WorldLoader::loadMaterials(tinyxml2::XMLNode *worldNode, World *world) const {
+    tinyxml2::XMLElement *materialsNode = worldNode->FirstChildElement("Materials");
+    if (!materialsNode) {
+        std::cerr << "No materials found in XML." << std::endl;
+        return false;
+    }
+
+    for (tinyxml2::XMLElement *materialNode = materialsNode->FirstChildElement("Material");
+         materialNode != nullptr;
+         materialNode = materialNode->NextSiblingElement("Material")) {
+         std::shared_ptr<Material> material = Material::deserialize(world->assetManager.get(), materialNode);
+    }
     return true;
 }
 

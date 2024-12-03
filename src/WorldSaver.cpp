@@ -137,6 +137,12 @@ bool WorldSaver::saveWorld(const std::string& mapName, const World* world) {
     currentElement->SetText(world->quitWorldName.c_str());
     rootNode->InsertEndChild(currentElement);
 
+    currentElement = mapDocument.NewElement("Materials");
+    if(!fillMaterials(mapDocument, currentElement, world)) {
+        return false;
+    };
+    rootNode->InsertEndChild(currentElement);//add objects
+
     //after current element is inserted, we can reuse
     currentElement = mapDocument.NewElement("Objects");
     if(!fillObjects(mapDocument, currentElement, world)) {
@@ -589,6 +595,20 @@ bool WorldSaver::fillGUILayersAndElements(tinyxml2::XMLDocument &document, tinyx
         if (!world->guiLayers[i]->serialize(document, GUILayersListNode, world->options)) {
             return false;
         }
+    }
+    return true;
+}
+
+bool WorldSaver::fillMaterials(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *materialsNode, const World *world) {
+    const std::map<size_t, std::pair<std::shared_ptr<Material>, uint32_t>>& materials = world->assetManager->getMaterials();
+
+    for (auto it = materials.begin(); it != materials.end(); ++it) {
+        std::shared_ptr<Material> currentMaterial = it->second.first;
+        if (currentMaterial->getHash() == currentMaterial->getOriginalHash()) {
+            //if material is not modified, we don't need to save
+            continue;
+        }
+        currentMaterial->serialize(document,materialsNode);
     }
     return true;
 }

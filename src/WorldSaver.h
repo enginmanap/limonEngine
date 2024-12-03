@@ -22,9 +22,10 @@ private:
     static bool fillOnloadActions(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *onloadActionsNode, const World *world);
     static bool fillOnloadAnimations(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *onloadAnimationsNode, const World *world);
     static bool fillGUILayersAndElements(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *GUILayersListNode, const World *world);
-
-    static void serializeVec3(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, const glm::vec3& vector);
+    static bool fillMaterials(tinyxml2::XMLDocument & document, tinyxml2::XMLElement * materialsNode, const World * world);
 public:
+    static void serializeVec3(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, const glm::vec3& vector);
+
     static bool saveWorld(const std::string& mapName, const World* world);
 };
 

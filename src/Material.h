@@ -61,9 +61,14 @@ private:
     friend class AssetManager;
     Material() {};
 
+    friend class WorldLoader;
+
+    void setOriginalHash(size_t originalHash) {
+        this->originalHash = originalHash;
+    }
 public:
     Material(AssetManager *assetManager, const std::string &name, uint32_t materialIndex, float specularExponent, const glm::vec3 &ambientColor,
-             const glm::vec3 &diffuseColor, const glm::vec3 &specularColor, float refractionIndex)
+             const glm::vec3 &diffuseColor, const glm::vec3 &specularColor, float refractionIndex)//FIXME: this should not use raw pointer
             : name(name),
               ambientColor(ambientColor),
               diffuseColor(diffuseColor),
@@ -270,6 +275,8 @@ public:
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
 
+    bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *materialsNode) const;
+    static std::shared_ptr<Material> deserialize(AssetManager* assetManager, tinyxml2::XMLElement *materialNode);
 #ifdef CEREAL_SUPPORT
     template<class Archive>
     void save(Archive & archive) const {

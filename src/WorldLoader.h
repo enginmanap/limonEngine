@@ -5,6 +5,7 @@
 #ifndef LIMONENGINE_WORLDLOADER_H
 #define LIMONENGINE_WORLDLOADER_H
 
+#include <Material.h>
 #include <string>
 #include <vector>
 #include <tinyxml2.h>
@@ -53,20 +54,23 @@ private:
     bool loadOnLoadActions(tinyxml2::XMLNode *worldNode, World *world) const;
     bool loadOnLoadAnimations(tinyxml2::XMLNode *worldNode, World *world) const;
     bool loadGUILayersAndElements(tinyxml2::XMLNode *worldNode, World *world) const;
+    bool loadMaterials(tinyxml2::XMLNode *worldNode, World *world) const;
 
-
-    static bool loadVec3(tinyxml2::XMLNode* vectorNode, glm::vec3& vector);
     void attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) const;
 
 public:
     WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options);
+
     std::unique_ptr<std::string> getLoadingImage(const std::string &worldFile) const;
 
     World *loadWorld(const std::string &worldFile, LimonAPI *limonAPI) const;
 
     static std::vector<std::unique_ptr<ObjectInformation>> loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::XMLElement *objectNode,
-                                                                          std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI,
-                                                                          PhysicalRenderable *parentObject);
+                                                                       std::unordered_map<std::string, std::shared_ptr<Sound>> &requiredSounds, LimonAPI *limonAPI,
+                                                                       PhysicalRenderable *parentObject);
+
+
+    static bool loadVec3(tinyxml2::XMLNode* vectorNode, glm::vec3& vector);
 };
 
 
