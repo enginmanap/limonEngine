@@ -28,12 +28,11 @@ class GraphicsInterface;
 class ALHelper;
 
 class AssetManager {
-public:
-    enum AssetTypes { Asset_type_DIRECTORY, Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND, Asset_type_GRAPHICSPROGRAM, Asset_type_UNKNOWN };
-
     std::mutex cpuLoadConditionMutex;
     std::mutex partialLoadCpuMutex;
     std::condition_variable cpuLoadDoneCondition;
+public:
+    enum AssetTypes { Asset_type_DIRECTORY, Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND, Asset_type_GRAPHICSPROGRAM, Asset_type_UNKNOWN };
 
     struct EmbeddedTexture {
         char format[9] = "\0";
