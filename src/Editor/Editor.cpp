@@ -680,14 +680,15 @@ void Editor::renderEditor() {
             bool isSelected = false;
             auto allMaterials = world->assetManager->getMaterials();
             ImGui::Text("Total material count is %llu", allMaterials.size());
-            ImGui::BeginListBox("Materials");
-            for (auto it = allMaterials.begin(); it != allMaterials.end(); ++it) {
-                isSelected = selectedHash == it->first;
-                if (ImGui::Selectable((it->second.first->getName() + " -> " + std::to_string(it->first)).c_str(), isSelected)) {
-                    selectedHash = it->first;
+            if (ImGui::BeginListBox("Materials")) {
+                for (auto it = allMaterials.begin(); it != allMaterials.end(); ++it) {
+                    isSelected = selectedHash == it->first;
+                    if (ImGui::Selectable((it->second.first->getName() + " -> " + std::to_string(it->first)).c_str(), isSelected)) {
+                        selectedHash = it->first;
+                    }
                 }
+                ImGui::EndListBox();
             }
-            ImGui::EndListBox();
             auto selectedMaterialIt = allMaterials.find(selectedHash);
             if(selectedMaterialIt != allMaterials.end()) {
                 selectedMaterialIt->second.first->addImGuiEditorElements(*world->request);
