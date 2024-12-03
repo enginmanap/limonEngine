@@ -922,14 +922,14 @@ void Editor::setTransformToModel(Model *model, const glm::vec3 &newObjectPositio
     model->getTransformation()->setScale(glm::vec3(1.0f, 1.0f, 1.0f));
     model->getTransformation()->setOrientation(glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
     //now calculate
-    float expectedSize = 10.0f;
+    float expectedSize = 9.5f;
     const glm::mat4 reversalTransformation = glm::inverse(glm::lookAt(world->playerCamera->getPosition(),
                                                                       newObjectPosition, glm::vec3(0, 1, 0)));
     glm::vec3 scale, translation, skew;
     glm::vec4 perspective;
     glm::quat rotationDe;
     glm::decompose(reversalTransformation, scale, rotationDe, translation, skew, perspective);
-    model->getTransformation()->setOrientation(rotationDe);
+    model->getTransformation()->setOrientation(rotationDe * glm::quat(0.970f, 0.175f, -0.175f, 0.0f));
     glm::vec3 min = model->getAabbMin(), max = model->getAabbMax();
     glm::vec3 size = max - min;
     float maxDim = std::max(size.x, size.y);
