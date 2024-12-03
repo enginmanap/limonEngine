@@ -27,13 +27,13 @@ TextureAsset::TextureAsset(AssetManager *assetManager, uint32_t assetID, const s
  * embedded, it loads the texture from the disk using the provided file path. The function
  * also ensures that the loaded texture has the correct pixel format and updates the texture
  * metadata accordingly. In case of errors, appropriate error messages are printed and the
- * program exits.
+ * program loads a fallback texture.
  */
 
 void TextureAsset::loadCPUPart() {
     std::string originalErrorMessage;
 
-    if (name.size() == 3) {//If embedded texture is needed, first element is the index, second is the owner asset file
+    if (name.size() == 2) {//If embedded texture is needed, first element is the index, second is the owner asset file
         //index is a string, first char is * second char is the index
         std::cout << "Texture request has 2 elements. Attempting to extract embedded texture. " << std::endl;
         int textureID = std::atoi(&name[0][1]);
@@ -50,17 +50,6 @@ void TextureAsset::loadCPUPart() {
             std::cerr << "Embedded texture can't be found with following information: " << name[1] << ":" << textureID << std::endl;
         }
     } else {
-        /**
-         * We have a path at hand, but we don't know if thats where the texture is. We will try alternatives
-         * 1) path itself
-         * 2) get the filename from the full path, get the path from the loader asset, maybe the texture is side by side with the model?
-         * 3) as with 2, but maybe texture is in the same folder as the model but under textures folder?
-         * 4) Texture should be under ./data/texture/+ same as model
-         *
-         * if all fails then we fail ungracefully
-         */
-
-        //Data\Models\Polygon\AncientEmpire
         cpuSurface = IMG_Load(name[0].data());
         if(!cpuSurface) {
             originalErrorMessage = IMG_GetError();
