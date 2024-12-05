@@ -1654,7 +1654,7 @@ bool WorldLoader::loadMaterials(tinyxml2::XMLNode *worldNode, World *world) cons
     tinyxml2::XMLElement *materialsNode = worldNode->FirstChildElement("Materials");
     if (!materialsNode) {
         std::cerr << "No materials found in XML." << std::endl;
-        return false;
+        return true;
     }
 
     for (tinyxml2::XMLElement *materialNode = materialsNode->FirstChildElement("Material");
