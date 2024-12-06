@@ -445,7 +445,7 @@ public:
 
     std::shared_ptr<Material> registerOverriddenMaterial(std::shared_ptr<Material> material);
 
-    void unregisterMaterial(std::shared_ptr<Material> material);
+    void unregisterMaterial(std::shared_ptr<const Material> material);
     const std::map<size_t, std::pair<std::shared_ptr<Material>, uint32_t>>& getMaterials() const;
 
     GraphicsInterface* getGraphicsWrapper() const {

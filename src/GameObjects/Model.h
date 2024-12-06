@@ -8,9 +8,7 @@
 
 #include <vector>
 #include <set>
-#include <bullet/BulletCollision/CollisionShapes/btShapeHull.h>
 
-#include "glm/glm.hpp"
 #include "../PhysicalRenderable.h"
 #include "../Assets/TextureAsset.h"
 #include "../Material.h"
@@ -61,7 +59,6 @@ class Model : public PhysicalRenderable, public GameObject {
     btDefaultMotionState *motionState;
     std::vector<btCollisionShape *> childrenPhysicsShapes;
 
-    std::unordered_map<std::string, std::shared_ptr<Material>> materialMap;
     int diffuseMapAttachPoint = 1;
     int ambientMapAttachPoint = 2;
     int specularMapAttachPoint = 3;

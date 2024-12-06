@@ -229,7 +229,7 @@ std::shared_ptr<Material> AssetManager::registerOverriddenMaterial(std::shared_p
     materials[material->getOriginalHash()] = std::make_pair(material, 1);
     return material;
 }
-void AssetManager::unregisterMaterial(std::shared_ptr<Material> material) {
+void AssetManager::unregisterMaterial(std::shared_ptr<const Material> material) {
     auto materialIt = materials.find(material->getOriginalHash());
     if(materialIt == materials.end()) {
         std::cerr << "Unregister for non existent material found!" << std::endl;

@@ -22,7 +22,8 @@
 #include "AI/AIMovementGrid.h"
 
 
-std::shared_ptr<const Material> EditorNS::selectedMaterial = nullptr;
+std::shared_ptr<const Material> EditorNS::selectedMeshesMaterial = nullptr;
+std::shared_ptr<Material> EditorNS::selectedFromListMaterial = nullptr;
 
 Editor::Editor(World *world) : world(world){
     backgroundRenderStage = std::make_unique<GraphicsPipelineStage>(world->graphicsWrapper, 640,480,"","",true,true,true,false,false);
@@ -673,9 +674,9 @@ void Editor::renderEditor() {
         if(ImGui::CollapsingHeader("List materials")) {
             //listing
             static size_t selectedHash = 0;
-            if (EditorNS::selectedMaterial != nullptr) {
-                selectedHash = EditorNS::selectedMaterial->getHash();
-                EditorNS::selectedMaterial = nullptr;
+            if (EditorNS::selectedMeshesMaterial != nullptr) {
+                selectedHash = EditorNS::selectedMeshesMaterial->getHash();
+                EditorNS::selectedMeshesMaterial = nullptr;
             }
             bool isSelected = false;
             auto allMaterials = world->assetManager->getMaterials();
@@ -691,6 +692,7 @@ void Editor::renderEditor() {
             }
             auto selectedMaterialIt = allMaterials.find(selectedHash);
             if(selectedMaterialIt != allMaterials.end()) {
+                EditorNS::selectedFromListMaterial = selectedMaterialIt->second.first;
                 selectedMaterialIt->second.first->addImGuiEditorElements(*world->request);
             }
         }

@@ -8,13 +8,12 @@
 #include <vector>
 #include <map>
 #include <string>
-#include <iostream>
 #include <assimp/scene.h>
+#include <BulletCollision/CollisionShapes/btConvexHullShape.h>
 #include <BulletCollision/CollisionShapes/btShapeHull.h>
+#include <BulletCollision/CollisionShapes/btTriangleMesh.h>
 #include <glm/glm.hpp>
 
-#include "../Utils/GLMConverter.h"
-#include "AssetManager.h"
 #include "../Material.h"
 #include "BoneNode.h"
 #ifdef CEREAL_SUPPORT
@@ -24,7 +23,6 @@
 #include <cereal/types/map.hpp>
 #include "../Utils/GLMCerealConverters.hpp"
 #endif
-
 
 
 class MeshAsset {
@@ -48,7 +46,6 @@ class MeshAsset {
     std::vector<glm::lowp_uvec4> boneIDs;
     std::vector<glm::vec4> boneWeights;
 
-    std::shared_ptr<Material> material;
     glm::mat4 parentTransform;
     bool isPartOfAnimated;
 
@@ -68,7 +65,7 @@ class MeshAsset {
 #endif
     MeshAsset(){}
 public:
-    MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<Material> material, std::shared_ptr<const BoneNode> meshSkeleton,
+    MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<const BoneNode> meshSkeleton,
               const glm::mat4 &parentTransform, const bool isPartOfAnimated);
 
     /**
@@ -96,10 +93,6 @@ public:
 
     bool addWeightToVertex(uint32_t boneID, unsigned int vertex, float weight);
 
-    std::shared_ptr<const Material> getMaterial() const {
-        return material;
-    }
-
     bool hasBones() const;
 
     ~MeshAsset() {
@@ -121,7 +114,7 @@ public:
 #ifdef CEREAL_SUPPORT
     template<class Archive>
     void serialize(Archive & archive){
-        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, material, name, isPartOfAnimated, parentTransform);
+        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, name, isPartOfAnimated, parentTransform);
     }
 #endif
 };

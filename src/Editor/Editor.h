@@ -20,7 +20,8 @@ class Material;
 
 namespace EditorNS {
     //This is used as a global variable store. For multiple windows, ImGui doesn't provide anything else
-    extern std::shared_ptr<const Material> selectedMaterial;
+    extern std::shared_ptr<const Material> selectedMeshesMaterial;
+    extern std::shared_ptr<Material> selectedFromListMaterial;
 }
 class Editor {
     World* world;

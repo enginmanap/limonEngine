@@ -3,12 +3,15 @@
 //
 
 #include "MeshAsset.h"
+
+#include <Utils/GLMConverter.h>
+
 #include "API/Graphics/GraphicsInterface.h"
 #include "../../libs/meshoptimizer/src/meshoptimizer.h"
 
-MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<Material> material, std::shared_ptr<const BoneNode> meshSkeleton,
+MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<const BoneNode> meshSkeleton,
                      const glm::mat4 &parentTransform, const bool isPartOfAnimated)
-        : name(name), material(material), parentTransform(parentTransform), isPartOfAnimated(isPartOfAnimated) {
+        : name(name), parentTransform(parentTransform), isPartOfAnimated(isPartOfAnimated) {
     if (!currentMesh->HasPositions()) {
         throw "No position found"; //Not going to process if mesh is empty
     }

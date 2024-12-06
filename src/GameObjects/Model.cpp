@@ -45,7 +45,7 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
     for (auto iter = assetMeshes.begin(); iter != assetMeshes.end(); ++iter) {
         meshMeta = new MeshMeta();
         meshMeta->mesh = (*iter);
-        meshMeta->material = (*iter)->getMaterial();
+        meshMeta->material = modelAsset->getMeshMaterial((*iter));
         meshMetaData.push_back(meshMeta);
     }
 
@@ -59,8 +59,6 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
             mass, motionState, compoundShape, fallInertia);
     rigidBody = new btRigidBody(*rigidBodyConstructionInfo);
     delete rigidBodyConstructionInfo;
-
-    this->materialMap = modelAsset->getMaterialMap();
 
     rigidBody->setSleepingThresholds(0.1, 0.1);
     rigidBody->setUserPointer(static_cast<GameObject *>(this));
@@ -189,7 +187,7 @@ void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t
             program->setUniform("isAnimated", false);
         }
         if(program->IsMaterialRequired()) {
-            graphicsWrapper->attachMaterialUBO(program->getID(), (*iter)->mesh->getMaterial()->getMaterialIndex());
+            graphicsWrapper->attachMaterialUBO(program->getID(), (*iter)->material->getMaterialIndex());
         }
         graphicsWrapper->render(program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount()[lodLevel] * 3);
     }
@@ -210,8 +208,8 @@ void Model::renderWithProgramInstanced(const std::vector<uint32_t> &modelIndices
             program.setUniform("isAnimated", false);
         }
         if(program.IsMaterialRequired()) {
-            graphicsWrapper->attachMaterialUBO(program.getID(), (*iter)->mesh->getMaterial()->getMaterialIndex());
-            this->activateTexturesOnly((*iter)->mesh->getMaterial());
+            graphicsWrapper->attachMaterialUBO(program.getID(), (*iter)->material->getMaterialIndex());
+            this->activateTexturesOnly((*iter)->material);
 
         }
         graphicsWrapper->renderInstanced(program.getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount()[lodLevel] * 3, (*iter)->mesh->getOffsets()[lodLevel], modelIndices.size());
@@ -418,17 +416,42 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
         selectedModel = this->getWorldObjectID();
     }
     bool isSelected = false;
-    if(ImGui::BeginListBox("Meshes##GODWHY")) {
+    if(ImGui::BeginListBox("Meshes##ModelObject")) {
         for (size_t i = 0; i < meshMetaData.size(); ++i) {
             isSelected = selectedIndex == static_cast<int32_t>(i);
             if (ImGui::Selectable((meshMetaData[i]->mesh->getName() + " -> " + meshMetaData[i]->material->getName()).c_str(), isSelected)) {
                 if (selectedIndex != static_cast<int32_t>(i)) { //means selection changed, trigger material change on main window
-                    EditorNS::selectedMaterial = meshMetaData[i]->mesh->getMaterial();
+                    EditorNS::selectedMeshesMaterial = meshMetaData[i]->material;
                 }
                 selectedIndex = static_cast<int32_t>(i);
             }
         }
         ImGui::EndListBox();
+        if (selectedIndex == -1) {
+            ImGui::BeginDisabled();
+        }
+        if (EditorNS::selectedFromListMaterial == nullptr) {
+            ImGui::BeginDisabled();
+        }
+        if (ImGui::Button("Switch material")) {
+            //Materials are registered by assets, we should not unregister
+            //assetManager->unregisterMaterial(this->meshMetaData[selectedIndex]->material);
+            this->meshMetaData[selectedIndex]->material = EditorNS::selectedFromListMaterial;
+
+        }
+        if (EditorNS::selectedFromListMaterial == nullptr) {
+            ImGui::EndDisabled();
+        }
+        ImGui::SameLine();
+
+        ImGuiHelper::ShowHelpMarker("This will switch the material to the one selected in world editor");
+        ImGui::SameLine();
+        if (ImGui::Button("Alter material for this model")) {
+
+        }
+        if (selectedIndex == -1) {
+            ImGui::EndDisabled();
+        }
     }
     return result;
 }

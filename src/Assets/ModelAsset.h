@@ -72,6 +72,7 @@ class ModelAsset : public Asset {
 
     std::unordered_map<std::string, std::shared_ptr<Material>> materialMap;//shared with model
     std::vector<std::shared_ptr<MeshAsset>> meshes;
+    std::map<const std::shared_ptr<const MeshAsset>,std::shared_ptr<Material>> meshMaterialMap;
     std::vector<AnimationSection> animationSections;
 
     std::unordered_map<std::string, std::shared_ptr<MeshAsset>> simplifiedMeshes;//physics
@@ -170,7 +171,14 @@ public:
      */
     const std::unordered_map<std::string, std::shared_ptr<Material>> &getMaterialMap() const { return materialMap; };
 
-    ~ModelAsset();
+    std::shared_ptr<Material> getMeshMaterial(const std::shared_ptr<MeshAsset> &mesh) const {
+        auto iter = meshMaterialMap.find(mesh);
+        if (iter == meshMaterialMap.end()) {
+            return nullptr;
+        }
+        return meshMaterialMap.at(mesh);
+    }
+    ~ModelAsset() override;
 
     std::vector<std::shared_ptr<MeshAsset>> getMeshes() const {
         return meshes;
