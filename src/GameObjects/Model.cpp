@@ -176,7 +176,6 @@ void Model::activateTexturesOnly(std::shared_ptr<const Material>material) {
 }
 
 void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) {
-    graphicsWrapper->attachModelUBO(program->getID());
     for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
 
         if (animated) {
@@ -187,16 +186,13 @@ void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t
             program->setUniform("isAnimated", false);
         }
         if(program->IsMaterialRequired()) {
-            graphicsWrapper->attachMaterialUBO(program->getID());
+            this->activateTexturesOnly((*iter)->material);
         }
         graphicsWrapper->render(program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount()[lodLevel] * 3);
     }
 }
 
 void Model::renderWithProgramInstanced(const std::vector<glm::uvec4> &modelIndices, GraphicsProgram &program, uint32_t lodLevel) {
-
-    graphicsWrapper->attachModelUBO(program.getID());
-    graphicsWrapper->attachModelIndicesUBO(program.getID());
 
     for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
         if (animated) {

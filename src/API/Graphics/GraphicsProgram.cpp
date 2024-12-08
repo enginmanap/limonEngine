@@ -15,6 +15,8 @@ GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& 
     if(materialRequired) {
         setSamplersAndUBOs();
     }
+    graphicsWrapper->attachModelUBO(getID());
+    graphicsWrapper->attachModelIndicesUBO(getID());
 }
 
 GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, bool isMaterialUsed) :
@@ -27,7 +29,8 @@ GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& 
     if(materialRequired) {
         setSamplersAndUBOs();
     }
-
+    graphicsWrapper->attachModelUBO(getID());
+    graphicsWrapper->attachModelIndicesUBO(getID());
 }
 
 GraphicsProgram::~GraphicsProgram() {
@@ -76,9 +79,6 @@ void GraphicsProgram::setSamplersAndUBOs() {
     if (!setUniform("pre_shadowPoint", graphicsWrapper->getMaxTextureImageUnits() - 2)) {
         std::cerr << "Uniform \"pre_shadowPoint\" could not be set for " << this->getProgramName() << std::endl;
     }
-
-    graphicsWrapper->attachModelUBO(getID());
-    graphicsWrapper->attachModelIndicesUBO(getID());
 }
 
 bool GraphicsProgram::addPresetValue(const std::string& uniformName, const std::string& value) {
