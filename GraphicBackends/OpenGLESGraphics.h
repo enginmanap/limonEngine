@@ -469,7 +469,7 @@ public:
 
     void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) override;
 
-    void setModelIndexesUBO(const std::vector<uint32_t> &modelIndicesList) override;
+    void setModelIndexesUBO(const std::vector<glm::uvec4> &modelIndicesList) override;
 
     void attachModelIndicesUBO(const uint32_t programID) override;
 

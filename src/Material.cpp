@@ -31,7 +31,6 @@ void Material::loadGPUSide(AssetManager *assetManager) {
         assetManager->partialLoadGPUSide(opacityTexture);
     }
     deserialized = true;
-    this->materialIndex = assetManager->getGraphicsWrapper()->getNextMaterialIndex();
 }
 
 ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request [[gnu::unused]]) {
@@ -106,7 +105,7 @@ bool Material::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *
         materialOriginalHashNode->SetText(this->getOriginalHash());
         materialNode->InsertEndChild(materialOriginalHashNode);
 
-        //now the textures. They might or might not exists, we need to check
+        //now the textures. They might or might not exist, we need to check
         if (this->getAmbientTexture() != nullptr) {
             tinyxml2::XMLElement *materialAmbientTextureNode = document.NewElement("AmbientTexture");
             materialAmbientTextureNode->SetText(StringUtils::join(this->getAmbientTexture()->getName(), ",").c_str());

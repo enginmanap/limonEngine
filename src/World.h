@@ -241,10 +241,10 @@ private:
      *      for each list of tags, there is a map, key is the asset id
      *          for each asset Id, there is a pair of vector + uint
      *              vector is the object Ids that needs rendering, uint is the Max LOD to use.
+     *              vector is keeping uvec4 because opengl aligns to it. If we hide it in backend, we need to re allocate, and can't use the padding bits
      */
 
-    std::unordered_map<Camera*, std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>, VisibilityRequest::uint64_vector_hasher>*> cullingResults;
-    //std::unordered_map<Camera*, std::unordered_map<uint64_t, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>*> cullingResults;
+    std::unordered_map<Camera*, std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<glm::uvec4>, uint32_t>>, VisibilityRequest::uint64_vector_hasher>*> cullingResults;
 
     /************************* End of redundant variables ******************************************/
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<>> timedEvents;
@@ -378,6 +378,8 @@ private:
     void setSky(SkyBox *skyBox);
 
     void addLight(Light *light);
+
+    void setupRenderForPipeline();
 
     World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
           std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options);

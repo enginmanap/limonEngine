@@ -1,7 +1,7 @@
 #version 330
 
 #define NR_POINT_LIGHTS 4
-#define NR_MAX_MODELS 1000
+#define NR_MAX_MODELS 4096
 
 #define NR_BONE 128
 
@@ -16,6 +16,7 @@ out VS_FS {
     vec2 textureCoord;
     vec3 normal;
     vec3 fragPos;
+    flat int materialIndex;
 } to_fs;
 
 layout (std140) uniform PlayerTransformBlock {
@@ -81,5 +82,6 @@ void main(void) {
         to_fs.normal = normalize(transposeInverseModelTransform * normal);
         to_fs.fragPos = vec3(modelTransform * position);
     }
+    to_fs.materialIndex = int(instance.models[gl_InstanceID].y);
     gl_Position = playerTransforms.cameraProjection * vec4(to_fs.fragPos, 1.0);
 }

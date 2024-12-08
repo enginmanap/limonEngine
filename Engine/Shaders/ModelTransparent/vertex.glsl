@@ -1,7 +1,7 @@
 #version 330
 
 #define NR_POINT_LIGHTS 4
-#define NR_MAX_MODELS 1000
+#define NR_MAX_MODELS 4096
 
 layout (location = 2) in vec4 position;
 layout (location = 3) in vec2 textureCoordinate;
@@ -14,6 +14,7 @@ out VS_FS {
     vec3 fragPos;
     vec4 fragPosLightSpace[NR_POINT_LIGHTS];
     flat int depthMapLayer;
+    flat int materialIndex;
 } to_fs;
 
 layout (std140) uniform PlayerTransformBlock {
@@ -73,5 +74,6 @@ void main(void)
             to_fs.fragPosLightSpace[i] = LightSources.lights[i].shadowMatrices[0] * vec4(to_fs.fragPos, 1.0);
         }
     }
+    to_fs.materialIndex = int(instance.models[gl_InstanceID].y);
     gl_Position = playerTransforms.cameraProjection * (modelTransform * position);
 }

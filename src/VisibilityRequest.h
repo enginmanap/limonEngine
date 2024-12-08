@@ -31,12 +31,12 @@ public:
         const OptionsUtil::Options::Option<double> skipRenderSizeOption;
         const OptionsUtil::Options::Option<double> maxSkipRenderSizeOption;
         const std::unordered_map<uint32_t, PhysicalRenderable *>* const objects;
-        std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>, uint64_vector_hasher> * visibility;
+        std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<glm::uvec4>, uint32_t>>, uint64_vector_hasher> * visibility;
         bool running = true;
         std::atomic<uint32_t> frameCount;
         SDL2MultiThreading::SpinLock inProgressLock;
         SDL_mutex* blockMutex = SDL_CreateMutex();
-        VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, PhysicalRenderable *>* objects, std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options) :
+        VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, PhysicalRenderable *>* objects, std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<glm::uvec4>, uint32_t>>, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options) :
                 camera(camera), playerPosition(playerPosition), options(options),
                 lodDistancesOption(options->getOption<std::vector<long>>(HASH("LodDistanceList"))),
                 skipRenderDistanceOption(options->getOption<double>(HASH("SkipRenderDistance"))),
@@ -46,8 +46,8 @@ public:
 
         };
 
-        std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>::iterator findHashEntry(uint64_t hash) const {
-            std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>::iterator it = visibility->begin();
+        std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<glm::uvec4>, uint32_t>>>::iterator findHashEntry(uint64_t hash) const {
+            std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<glm::uvec4>, uint32_t>>>::iterator it = visibility->begin();
             for (;
                     it != visibility->end(); it++){
                 for(std::vector<uint64_t>::const_iterator hashIt = it->first.begin(); hashIt != it->first.end(); hashIt++){
@@ -59,10 +59,10 @@ public:
             return it;//this returns the end iterator, so it needs to be checked by the caller
         }
 
-        static std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>::iterator findHashEntry(
-                std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>, uint64_vector_hasher> * visibility,
+        static std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<glm::uvec4>, uint32_t>>>::iterator findHashEntry(
+                std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<glm::uvec4>, uint32_t>>, uint64_vector_hasher> * visibility,
                 uint64_t hash)  {
-            std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<uint32_t>, uint32_t>>>::iterator it = visibility->begin();
+            std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<glm::uvec4>, uint32_t>>>::iterator it = visibility->begin();
             for (;
                     it != visibility->end(); it++){
                 for(std::vector<uint64_t>::const_iterator hashIt = it->first.begin(); hashIt != it->first.end(); hashIt++){

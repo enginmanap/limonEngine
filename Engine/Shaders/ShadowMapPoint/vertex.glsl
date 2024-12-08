@@ -2,7 +2,7 @@
 
 #define NR_POINT_LIGHTS 4
 #define NR_BONE 128
-#define NR_MAX_MODELS 1000
+#define NR_MAX_MODELS 4096
 
 
 layout (location = 2) in vec4 position;
@@ -24,12 +24,6 @@ layout (std140) uniform LightSourceBlock
     LightSource lights[NR_POINT_LIGHTS];
 } LightSources;
 
-layout (std140) uniform MaterialInformationBlock {
-    vec3 ambient;
-    float shininess;
-    vec3 diffuse;
-    int isMap; 	//using the last 4, ambient=8, diffuse=4, specular=2, opacity = 1
-} material;
 
 uniform sampler2D allModelTransformsTexture;
 

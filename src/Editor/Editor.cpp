@@ -1239,8 +1239,8 @@ void Editor::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, u
 
 void Editor::renderSelectedObject(Model* model) {
     backgroundRenderStage->activate(true);
-    std::vector<uint32_t> modelIndexes;
-    modelIndexes.push_back(model->getWorldObjectID());
+    std::vector<glm::uvec4> modelIndexes;
+    modelIndexes.push_back(glm::uvec4(model->getWorldObjectID(),0,0,0));
     model->renderWithProgramInstanced(modelIndexes, *(graphicsProgram.get()), 0);
     world->renderPipeline->reActivateLastStage();
 }

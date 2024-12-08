@@ -16,7 +16,7 @@
 #define NR_POINT_LIGHTS 3
 #define NR_TOTAL_LIGHTS 4
 #define NR_MAX_MODELS (4096)
-#define NR_MAX_MATERIALS 2000
+#define NR_MAX_MATERIALS 200
 
 #include "Options.h"
 #include "Uniform.h"
@@ -81,9 +81,7 @@ public:
     virtual ~GraphicsInterface() {};
 
     virtual void attachModelUBO(const uint32_t program) = 0;
-    virtual void attachMaterialUBO(const uint32_t program, const uint32_t materialID) = 0;
-
-    virtual uint32_t getNextMaterialIndex() = 0;
+    virtual void attachMaterialUBO(const uint32_t program) = 0;
 
     virtual void initializeProgramAsset(const uint32_t programId,
                                         std::unordered_map<std::string, std::shared_ptr<Uniform>> &uniformMap, std::unordered_map<std::string, uint32_t> &attributesMap,
@@ -170,7 +168,7 @@ public:
 
     virtual void setMaterial(const Material& material) = 0;
     virtual void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) = 0;
-    virtual void setModelIndexesUBO(const std::vector<uint32_t> &modelIndicesList) = 0;
+    virtual void setModelIndexesUBO(const std::vector<glm::uvec4> & modelIndicesList) = 0;
     virtual void attachModelIndicesUBO(const uint32_t programID) = 0;
 
     virtual void renderInstanced(uint32_t program, uint32_t VAO, uint32_t EBO, uint32_t triangleCount,

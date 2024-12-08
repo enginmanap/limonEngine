@@ -189,7 +189,6 @@ class OpenGLGraphics : public GraphicsInterface {
 
 private:
     GLenum error;
-    uint32_t nextMaterialIndex = 0;//this is used to keep each material in the  GPU memory. imagine it like size of vector
     GLint maxTextureImageUnits;
     OpenglState *state;
 
@@ -197,15 +196,12 @@ private:
     float aspect;
     std::vector<GLuint> bufferObjects;
     std::vector<GLuint> vertexArrays;
-    std::vector<GLuint> modelIndexesTemp;
 
 
     GLuint lightUBOLocation;
     GLuint playerUBOLocation;
     GLuint allMaterialsUBOLocation;
     GLuint allModelIndexesUBOLocation;
-
-    uint32_t activeMaterialIndex;
 
     GLuint combineFrameBuffer;
 
@@ -333,11 +329,7 @@ public:
 
     void attachModelUBO(const uint32_t program) override;
 
-    void attachMaterialUBO(const uint32_t program, const uint32_t materialID) override;
-
-    uint32_t getNextMaterialIndex() override{
-        return nextMaterialIndex++;
-    }
+    void attachMaterialUBO(const uint32_t program) override;
 
     void initializeProgramAsset(const uint32_t programId,
                                 std::unordered_map<std::string, std::shared_ptr<Uniform>> &uniformMap,
@@ -468,7 +460,7 @@ public:
 
     void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) override;
 
-    void setModelIndexesUBO(const std::vector<uint32_t> &modelIndicesList) override;
+    void setModelIndexesUBO(const std::vector<glm::uvec4> & modelIndicesList) override;
 
     void attachModelIndicesUBO(const uint32_t programID) override;
 

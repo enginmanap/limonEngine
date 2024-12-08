@@ -280,7 +280,7 @@ void OpenGLGraphics::attachModelIndicesUBO(const uint32_t programID) {
     checkErrors("attachModelIndicesUBO");
 }
 
-void OpenGLGraphics::attachMaterialUBO(const uint32_t program, const uint32_t materialID){
+void OpenGLGraphics::attachMaterialUBO(const uint32_t program){
 
     GLuint allMaterialsAttachPoint = 9;
 
@@ -288,12 +288,12 @@ void OpenGLGraphics::attachMaterialUBO(const uint32_t program, const uint32_t ma
     if (uniformIndex >= 0) {
         glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
         glUniformBlockBinding(program, uniformIndex, allMaterialsAttachPoint);
-        glBindBufferRange(GL_UNIFORM_BUFFER, allMaterialsAttachPoint, allMaterialsUBOLocation, materialID * materialUniformSize,
-                          materialUniformSize);
+        //glBindBufferRange(GL_UNIFORM_BUFFER, allMaterialsAttachPoint, allMaterialsUBOLocation, materialID * materialUniformSize,
+        //                  materialUniformSize);
+        glBindBufferBase(GL_UNIFORM_BUFFER, allMaterialsAttachPoint, allMaterialsUBOLocation);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
-    activeMaterialIndex = materialID;
     checkErrors("attachMaterialUBO");
 }
 
@@ -485,7 +485,6 @@ bool OpenGLGraphics::createGraphicsBackend() {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     frustumPlanes.resize(6);
-    modelIndexesTemp.resize(4 * NR_MAX_MODELS);//4 because it forces the padding
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);//clear everything before we start
@@ -1511,19 +1510,19 @@ void OpenGLGraphics::setMaterial(const Material& material) {
             float shininess;
             vec3 diffuse;
             int isMap;
-    } material;
+    };
     */
     float shininess = material.getSpecularExponent();
     uint32_t maps = material.getMaps();
 
     glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize,
+    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * 32,
                     sizeof(glm::vec3), glm::value_ptr(material.getAmbientColor()));
-    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + sizeof(glm::vec3),
+    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * 32 + sizeof(glm::vec3),
                     sizeof(GLfloat), &shininess);
-    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + sizeof(glm::vec3) + sizeof(GLfloat),
+    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * 32 + sizeof(glm::vec3) + sizeof(GLfloat),
                     sizeof(glm::vec3), glm::value_ptr(material.getDiffuseColor()));
-    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + 2 *sizeof(glm::vec3) + sizeof(GLfloat),
+    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * 32 + 2 *sizeof(glm::vec3) + sizeof(GLfloat),
                     sizeof(GLint), &maps);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setMaterial");
@@ -1541,18 +1540,16 @@ void OpenGLGraphics::setModel(const uint32_t modelID, const glm::mat4& worldTran
     checkErrors("setModel");
 }
 
-void OpenGLGraphics::setModelIndexesUBO(const std::vector<uint32_t> &modelIndicesList) {
+void OpenGLGraphics::setModelIndexesUBO(const std::vector<glm::uvec4> &modelIndicesList) {
     /**
+     * POSSIBLE FIXME
      * std140 layout requires arrays to be padded to 16 bytes. std430 is not supported for uniform buffers.
      * we can upload the array as is and calculate the vector component in shader, but since we are GPU bound I am
      * choosing to pad it in CPU instead.
      */
-     //FIXME what the hell is this? Why would we need to do this? it makes no sense to me
-    for (uint32_t i = 0; i < modelIndicesList.size(); ++i) {
-        modelIndexesTemp[i*4] = modelIndicesList[i];
-    }
+
     glBindBuffer(GL_UNIFORM_BUFFER, allModelIndexesUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(GLuint)* 4 * modelIndicesList.size(), modelIndexesTemp.data());
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::uvec4) * modelIndicesList.size(), modelIndicesList.data());
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setModelIndexesUBO");
 }

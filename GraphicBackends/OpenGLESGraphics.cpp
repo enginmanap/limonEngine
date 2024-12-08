@@ -1524,7 +1524,7 @@ void OpenGLESGraphics::setMaterial(const Material& material) {
             float shininess;
             vec3 diffuse;
             int isMap;
-    } material;
+    };
     */
     float shininess = material.getSpecularExponent();
     uint32_t maps = material.getMaps();
@@ -1554,7 +1554,7 @@ void OpenGLESGraphics::setModel(const uint32_t modelID, const glm::mat4& worldTr
     checkErrors("setModel");
 }
 
-void OpenGLESGraphics::setModelIndexesUBO(const std::vector<uint32_t> &modelIndicesList) {
+void OpenGLESGraphics::setModelIndexesUBO(const std::vector<glm::uvec4> &modelIndicesList) {
     /**
      * std140 layout requires arrays to be padded to 16 bytes. std430 is not supported for uniform buffers.
      * we can upload the array as is and calculate the vector component in shader, but since we are GPU bound I am

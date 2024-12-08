@@ -2,7 +2,7 @@
 
 #define NR_POINT_LIGHTS 4
 #define NR_BONE 128
-#define NR_MAX_MODELS 1000
+#define NR_MAX_MODELS 4096
 
 
 layout (location = 2) in vec4 position;

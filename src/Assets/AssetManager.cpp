@@ -202,6 +202,7 @@ std::shared_ptr<Material> AssetManager::registerMaterial(std::shared_ptr<Materia
     }
     //not found, add
     //std::cerr << "Material not found, create for " << material->getName() << std::endl;
+    material->materialIndex = nextMaterialIndex++;
     materials[material->getHash()] = std::make_pair(material, 1);
     return material;
 
@@ -226,9 +227,11 @@ std::shared_ptr<Material> AssetManager::registerOverriddenMaterial(std::shared_p
     }
     //not found, add
     //std::cerr << "Material not found, create for " << material->getName() << std::endl;
+    material->materialIndex = nextMaterialIndex++;
     materials[material->getOriginalHash()] = std::make_pair(material, 1);
     return material;
 }
+
 void AssetManager::unregisterMaterial(std::shared_ptr<const Material> material) {
     auto materialIt = materials.find(material->getOriginalHash());
     if(materialIt == materials.end()) {

@@ -31,6 +31,8 @@ class AssetManager {
     std::mutex cpuLoadConditionMutex;
     std::mutex partialLoadCpuMutex;
     std::condition_variable cpuLoadDoneCondition;
+    std::atomic<std::int32_t> nextMaterialIndex;
+
 public:
     enum AssetTypes { Asset_type_DIRECTORY, Asset_type_MODEL, Asset_type_TEXTURE, Asset_type_SKYMAP, Asset_type_SOUND, Asset_type_GRAPHICSPROGRAM, Asset_type_UNKNOWN };
 
@@ -227,6 +229,7 @@ private:
 public:
 
     explicit AssetManager(GraphicsInterface* graphicsWrapper, ALHelper *alHelper) : graphicsWrapper(graphicsWrapper), alHelper(alHelper) {
+        nextMaterialIndex.store(1);
         loadAssetList();
         size_t num_threads = std::thread::hardware_concurrency();
         for (size_t i = 0; i < num_threads; ++i) {

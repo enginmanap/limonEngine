@@ -212,10 +212,11 @@ GameEngine::~GameEngine() {
         delete iterator->second.second;//delete API
     }
 
-    graphicsWrapper = nullptr;//FIXME this should be part of SdlHelper, because it is created and deleted by it. now it is order dependent because if it.
+    this->assetManager = nullptr;
     delete worldLoader;
     delete inputHandler;
     delete alHelper;
+    graphicsWrapper = nullptr;//FIXME this should be part of SdlHelper, because it is created and deleted by it. now it is order dependent because if it.
     delete sdlHelper;
     delete options;
 }
