@@ -899,6 +899,14 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
     for (const auto &visibilityEntry: cullingResults) {
         if (visibilityEntry.first->hasTag(hashedCameraTag)) { //if this camera doesn't match the tag, then just ignore
             std::vector<uint64_t> alreadyRenderedTagHashes;
+            //First  recursively render the player attachments, no visibility check.
+            if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
+                std::vector<uint32_t> alreadyRenderedModelIds;
+                for (const auto &renderTag: tags) {
+                    renderPlayerAttachmentsRecursiveByTag(startingPlayer.attachedModel, renderTag.hash,
+                                                          renderProgram, alreadyRenderedModelIds);//Starting player, because we don't wanna render when in editor mode
+                }
+            }
             for (const auto &renderTag: tags) {
                 if(std::find(alreadyRenderedTagHashes.begin(), alreadyRenderedTagHashes.end(), renderTag.hash) != alreadyRenderedTagHashes.end()) {
                     continue;
@@ -924,14 +932,6 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
                             sampleModel->renderWithProgramInstanced(perAssetElement.first, *(renderProgram), perAssetElement.second);
                         }
                     }
-                }
-            }
-            //now recursively render the player attachments, no visibility check.
-            if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {//don't render attached model if dead
-                std::vector<uint32_t> alreadyRenderedModelIds;
-                for (const auto &renderTag: tags) {
-                    renderPlayerAttachmentsRecursiveByTag(startingPlayer.attachedModel, renderTag.hash,
-                                                          renderProgram, alreadyRenderedModelIds);//Starting player, because we don't wanna render when in editor mode
                 }
             }
         }
