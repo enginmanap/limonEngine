@@ -21,11 +21,14 @@
 class ActorInterface;
 
 class Model : public PhysicalRenderable, public GameObject {
-    uint32_t objectID;
+public:
     struct MeshMeta {
         std::shared_ptr<MeshAsset> mesh = nullptr;
         std::shared_ptr<const Material> material = nullptr;
     };
+private:
+    uint32_t objectID;
+
     ActorInterface *AIActor = nullptr;
     std::shared_ptr<AssetManager> assetManager;
     std::shared_ptr<ModelAsset> modelAsset;
@@ -91,9 +94,11 @@ public:
         graphicsWrapper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());
     }
 
-    void activateTexturesOnly(std::shared_ptr<const Material> material);
+    void activateTexturesOnly(std::shared_ptr<const Material> material) const;
 
     bool setupRenderVariables(MeshMeta *meshMetaData);
+
+    const std::vector<MeshMeta *> &getMeshMetaData() const { return meshMetaData; }
 
     void setupForTime(long time) override;
 
@@ -174,7 +179,9 @@ public:
     }
     ObjectTypes getTypeID() const override {
         return GameObject::MODEL;
-    };
+    }
+
+     std::vector<glm::mat4>* getBoneTransforms() {return &boneTransforms;}
 
     std::string getName() const override {
         return name + "_" + std::to_string(objectID);

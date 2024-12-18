@@ -422,6 +422,11 @@ bool OpenGLGraphics::createGraphicsBackend() {
     GLint uniformBufferAlignSize = 0;
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformBufferAlignSize);
 
+    /**
+     * When you are using the buffer to keep multiple items, but bind single item, that item has to be aligned to this value
+     * If actually put all of them in an array and use the array for binding, it will be aligned to the definition you have (std140 aligns to 16)
+     * Don't need this after the material changes, but keeping it here incase I need it again.
+     *
     if(uniformBufferAlignSize > materialUniformSize) {
         materialUniformSize = uniformBufferAlignSize;
     } else {
@@ -433,6 +438,7 @@ bool OpenGLGraphics::createGraphicsBackend() {
             materialUniformSize = ((materialUniformSize / uniformBufferAlignSize)+1) * uniformBufferAlignSize;
         }
     }
+    */
 
 
     std::cout << "Uniform alignment size is " << uniformBufferAlignSize << std::endl;
@@ -1516,13 +1522,13 @@ void OpenGLGraphics::setMaterial(const Material& material) {
     uint32_t maps = material.getMaps();
 
     glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * 32,
+    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize,
                     sizeof(glm::vec3), glm::value_ptr(material.getAmbientColor()));
-    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * 32 + sizeof(glm::vec3),
+    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + sizeof(glm::vec3),
                     sizeof(GLfloat), &shininess);
-    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * 32 + sizeof(glm::vec3) + sizeof(GLfloat),
+    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + sizeof(glm::vec3) + sizeof(GLfloat),
                     sizeof(glm::vec3), glm::value_ptr(material.getDiffuseColor()));
-    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * 32 + 2 *sizeof(glm::vec3) + sizeof(GLfloat),
+    glBufferSubData(GL_UNIFORM_BUFFER, material.getMaterialIndex() * materialUniformSize + 2 *sizeof(glm::vec3) + sizeof(GLfloat),
                     sizeof(GLint), &maps);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setMaterial");

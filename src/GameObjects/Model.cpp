@@ -154,7 +154,7 @@ void Model::setupForTime(long time) {
     lastSetupTime = time;
 }
 
-void Model::activateTexturesOnly(std::shared_ptr<const Material>material) {
+void Model::activateTexturesOnly(std::shared_ptr<const Material>material) const {
     if(material->hasDiffuseMap()) {
         graphicsWrapper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
     }

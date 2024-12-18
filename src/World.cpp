@@ -892,10 +892,17 @@ void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[
    debugDrawer->flushDraws();
 }
 
-void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName, const std::vector<HashUtil::HashedString> &tags) const {
-   uint64_t hashedCameraTag = HashUtil::hashString(cameraName);
-   tempRenderedObjectsSet.clear();
+struct MeshRenderInformation {
+    std::vector<glm::uvec4> indices;
+    uint32_t lod;
+    bool isAnimated;
+    std::vector<glm::mat4>* boneTransforms;//known wrong, as it will only work for one model
+};
 
+void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName, const std::vector<HashUtil::HashedString> &tags) const {
+    uint64_t hashedCameraTag = HashUtil::hashString(cameraName);
+    tempRenderedObjectsSet.clear();
+    std::unordered_map<std::shared_ptr<const Material>, std::unordered_map<std::shared_ptr<MeshAsset>,MeshRenderInformation>> tempMaterialRenderMap;
     for (const auto &visibilityEntry: cullingResults) {
         if (visibilityEntry.first->hasTag(hashedCameraTag)) { //if this camera doesn't match the tag, then just ignore
             std::vector<uint64_t> alreadyRenderedTagHashes;
@@ -922,20 +929,90 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
                         //we don't care about the asset part, but knowing they are all same asset means instanced rendering
                         if(!assetVisibility.second.first.empty()) {
                             const auto& perAssetElement = assetVisibility.second;
-                            //if not empty, then lets find a sample
-                            uint32_t modelId = perAssetElement.first.begin()->x;
-                            Model *sampleModel = dynamic_cast<Model *>(objects.at(modelId));
-                            if (sampleModel == nullptr) {
-                                std::cerr << "Sample model detection got a non model object for id " << modelId << " this should not have happened" << std::endl;
-                                continue;
+                            for (glm::uvec4 modelId:perAssetElement.first) {
+                                const auto sampleModel = dynamic_cast<Model *>(objects.at(modelId.x));
+                                if (sampleModel == nullptr) {
+                                    std::cerr << "Sample model detection got a non model object for id " << modelId.x << " this should not have happened" << std::endl;
+                                    continue;
+                                }
+                                std::vector<Model::MeshMeta *> allMeshes = sampleModel->getMeshMetaData();
+                                for (const auto meshMeta: allMeshes) {
+                                    if (tempMaterialRenderMap.find(meshMeta->material) == tempMaterialRenderMap.end()) {
+                                        tempMaterialRenderMap[meshMeta->material] = std::unordered_map<std::shared_ptr<MeshAsset>,MeshRenderInformation>();
+                                    }
+                                    if (tempMaterialRenderMap[meshMeta->material].find(meshMeta->mesh) == tempMaterialRenderMap[meshMeta->material].end()) {
+                                        tempMaterialRenderMap[meshMeta->material][meshMeta->mesh] = MeshRenderInformation();
+                                    }
+                                    tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].indices.emplace_back(modelId.x, meshMeta->material->getMaterialIndex(),0,0);
+                                    tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].lod = perAssetElement.second;
+                                    tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].isAnimated |= sampleModel->isAnimated();
+                                    if (sampleModel->isAnimated()) {
+                                        tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].boneTransforms = sampleModel->getBoneTransforms();
+                                    }
+                                }
                             }
-                            sampleModel->renderWithProgramInstanced(perAssetElement.first, *(renderProgram), perAssetElement.second);
+                            // //if not empty, then lets find a sample
+                            // uint32_t modelId = perAssetElement.first.begin()->x;
+                            // Model *sampleModel = dynamic_cast<Model *>(objects.at(modelId));
+                            // if (sampleModel == nullptr) {
+                            //     std::cerr << "Sample model detection got a non model object for id " << modelId << " this should not have happened" << std::endl;
+                            //     continue;
+                            // }
+                            // sampleModel->renderWithProgramInstanced(perAssetElement.first, *(renderProgram), perAssetElement.second);
                         }
                     }
                 }
             }
         }
     }
+       int diffuseMapAttachPoint = 1;
+       int ambientMapAttachPoint = 2;
+       int specularMapAttachPoint = 3;
+       int opacityMapAttachPoint = 4;
+       int normalMapAttachPoint = 5;
+       //now render all of the meshes
+
+       for (const auto& materialGroup: tempMaterialRenderMap) {
+           {//activate textures
+               std::shared_ptr<const Material> material = materialGroup.first;
+               if(material->hasDiffuseMap()) {
+                   graphicsWrapper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
+               }
+               if(material->hasAmbientMap()) {
+                   graphicsWrapper->attachTexture(material->getAmbientTexture()->getID(), ambientMapAttachPoint);
+               }
+
+               if(material->hasSpecularMap()) {
+                   graphicsWrapper->attachTexture(material->getSpecularTexture()->getID(), specularMapAttachPoint);
+               }
+
+               if(material->hasOpacityMap()) {
+                   graphicsWrapper->attachTexture(material->getOpacityTexture()->getID(), opacityMapAttachPoint);
+               }
+
+               if(material->hasNormalMap()) {
+                   graphicsWrapper->attachTexture(material->getNormalTexture()->getID(), normalMapAttachPoint);
+               }
+
+           }
+           for (const auto& meshInfo: materialGroup.second) {
+               if (meshInfo.second.indices.empty()) {
+                   std::cerr << "Empty meshInfo" << std::endl;
+                   continue;
+               }
+               if (meshInfo.second.isAnimated) {
+                   //set all of the bones to unitTransform for testing
+                   renderProgram->setUniformArray("boneTransformArray[0]", *meshInfo.second.boneTransforms);
+                   renderProgram->setUniform("isAnimated", true);
+               } else {
+                   renderProgram->setUniform("isAnimated", false);
+               }
+
+               graphicsWrapper->setModelIndexesUBO(meshInfo.second.indices);
+               graphicsWrapper->renderInstanced(renderProgram->getID(), meshInfo.first->getVao(), meshInfo.first->getEbo(), meshInfo.first->getTriangleCount()[meshInfo.second.lod] * 3, meshInfo.first->getOffsets()[meshInfo.second.lod], meshInfo.second.indices.size());
+           }
+       }
+
 }
 
 void World::renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment, uint64_t renderTag, const std::shared_ptr<GraphicsProgram> &renderProgram,
