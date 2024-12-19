@@ -623,17 +623,17 @@ public:
 
         if (currentModel != nullptr) {
             if (currentModel->getWorldObjectID() == 7) {
-                //std::cout << "wo wo wo" << std::endl;
+                std::cout << "wo wo wo" << std::endl;
             }
         }
         //find the biggest axis of this object
         glm::vec3 max = currentRenderable->getAabbMax();
         glm::vec3 min = currentRenderable->getAabbMin();
         //now we get to calculate the size in screen
-        glm::vec4 minScreen = viewMatrix * glm::vec4(min, 1.0) ;
+        glm::vec4 minScreen = viewMatrix * glm::vec4(min, 1.0);
         glm::vec4 maxScreen = viewMatrix * glm::vec4(max, 1.0);
-        minScreen /= minScreen.w;
-        maxScreen /= maxScreen.w;
+        minScreen /= minScreen.z;
+        maxScreen /= maxScreen.z;
         //we need to clip
         minScreen.x = std::min(std::max(minScreen.x, -1.0f), 1.0f);
         minScreen.y = std::min(std::max(minScreen.y, -1.0f), 1.0f);
@@ -644,7 +644,7 @@ public:
         float screenX = abs(maxScreen.x - minScreen.x);
         float screenY = abs(maxScreen.y - minScreen.y);
         screenSize = screenX * screenY;
-        //screenSize = 1.0 * (maxScreen.z + minScreen.z) / 2.0;
+        screenSize = 1.0 * (maxScreen.w + minScreen.w) / 2.0;
         if(lodDistances.empty() && skipRenderDistance == 0.0) {
             return 0;
         }
