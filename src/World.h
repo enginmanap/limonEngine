@@ -244,7 +244,7 @@ private:
      *              vector is keeping uvec4 because opengl aligns to it. If we hide it in backend, we need to re allocate, and can't use the padding bits
      */
 
-    std::unordered_map<Camera*, std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<glm::uvec4>, uint32_t>>, VisibilityRequest::uint64_vector_hasher>*> cullingResults;
+    std::unordered_map<Camera*, std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::multimap<float, glm::uvec4>, uint32_t>>, VisibilityRequest::uint64_vector_hasher>*> cullingResults;
 
     /************************* End of redundant variables ******************************************/
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<>> timedEvents;
@@ -616,14 +616,38 @@ public:
 
     }
 
-    static uint32_t getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 viewMatrix, const glm::vec3& playerPosition, PhysicalRenderable *currentRenderable) {
-        if(lodDistances.empty() && skipRenderDistance == 0.0) {
-            return 0;
+    static uint32_t getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 viewMatrix, const glm::vec3& playerPosition, PhysicalRenderable *currentRenderable, float
+                                &screenSize) {
+
+        Model *currentModel = dynamic_cast<Model *>(currentRenderable);
+
+        if (currentModel != nullptr) {
+            if (currentModel->getWorldObjectID() == 7) {
+                //std::cout << "wo wo wo" << std::endl;
+            }
         }
         //find the biggest axis of this object
         glm::vec3 max = currentRenderable->getAabbMax();
         glm::vec3 min = currentRenderable->getAabbMin();
-
+        //now we get to calculate the size in screen
+        glm::vec4 minScreen = viewMatrix * glm::vec4(min, 1.0) ;
+        glm::vec4 maxScreen = viewMatrix * glm::vec4(max, 1.0);
+        minScreen /= minScreen.w;
+        maxScreen /= maxScreen.w;
+        //we need to clip
+        minScreen.x = std::min(std::max(minScreen.x, -1.0f), 1.0f);
+        minScreen.y = std::min(std::max(minScreen.y, -1.0f), 1.0f);
+        maxScreen.x = std::min(std::max(maxScreen.x, -1.0f), 1.0f);
+        maxScreen.y = std::min(std::max(maxScreen.y, -1.0f), 1.0f);
+        minScreen.z = std::min(std::max(minScreen.z, 0.0f), 1.0f);
+        maxScreen.z = std::min(std::max(maxScreen.z, 0.0f), 1.0f);
+        float screenX = abs(maxScreen.x - minScreen.x);
+        float screenY = abs(maxScreen.y - minScreen.y);
+        screenSize = screenX * screenY;
+        //screenSize = 1.0 * (maxScreen.z + minScreen.z) / 2.0;
+        if(lodDistances.empty() && skipRenderDistance == 0.0) {
+            return 0;
+        }
         float dx = std::max(min.x - playerPosition.x, std::max(0.0f, playerPosition.x - max.x));
         float dy = std::max(min.y - playerPosition.y, std::max(0.0f, playerPosition.y - max.y));
         float dz = std::max(min.z - playerPosition.z, std::max(0.0f, playerPosition.z - max.z));
@@ -632,13 +656,6 @@ public:
             if(abs(min.x - max.x) < maxSkipRenderSize &&
                     abs(min.y - max.y) < maxSkipRenderSize &&
                     abs(min.z - max.z) < maxSkipRenderSize) {
-                //now we get to calculate the size in screen
-                glm::vec4 minScreen = viewMatrix * glm::vec4(min, 1.0) ;
-                glm::vec4 maxScreen = viewMatrix * glm::vec4(max, 1.0);
-                minScreen /= minScreen.w;
-                maxScreen /= maxScreen.w;
-                float screenX = abs(maxScreen.x - minScreen.x);
-                float screenY = abs(maxScreen.y - minScreen.y);
                 if (screenX < skipRenderSize * 2.0 && screenY < skipRenderSize * 2.0) {
                     return SKIP_LOD_LEVEL;
                 }

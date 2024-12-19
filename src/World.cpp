@@ -128,7 +128,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
     playerCamera->addRenderTag(HardCodedTags::PICKED_OBJECT);
     playerCamera->addTag(HardCodedTags::CAMERA_PLAYER);
-    cullingResults.insert(std::make_pair(playerCamera, new std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::vector<glm::uvec4>, uint32_t>>, VisibilityRequest::uint64_vector_hasher>()));//new camera, new visibility
+    cullingResults.insert(std::make_pair(playerCamera, new std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::multimap<float, glm::uvec4>, uint32_t>>, VisibilityRequest::uint64_vector_hasher>()));//new camera, new visibility
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
                                            COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                            COLLIDE_MODELS | COLLIDE_EVERYTHING, worldAABBMin,
@@ -291,9 +291,9 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
              for (const auto &visibleTags: *visibility.second){
                  for (const auto &visibleAssets: visibleTags.second) {
                      for (const auto &visibleObjectId: visibleAssets.second.first) {
-                         if (tempRenderedObjectsSet.find(visibleObjectId.x) == tempRenderedObjectsSet.end()) {
-                             objects[visibleObjectId.x]->setupForTime(gameTime);
-                             tempRenderedObjectsSet.insert(visibleObjectId.x);
+                         if (tempRenderedObjectsSet.find(visibleObjectId.second.x) == tempRenderedObjectsSet.end()) {
+                             objects[visibleObjectId.second.x]->setupForTime(gameTime);
+                             tempRenderedObjectsSet.insert(visibleObjectId.second.x);
                          }
                      }
                  }
@@ -451,7 +451,7 @@ void World::resetCameraTagsFromPipeline(const std::map<std::string, std::vector<
                         tempHashList.emplace_back(tempHash);
                     }
                     //One set is done, put it in the culling data structure
-                    cameraEntryForCulling.second->insert(std::make_pair(tempHashList, std::unordered_map<uint32_t,std::pair<std::vector<glm::uvec4>, uint32_t>>()));
+                    cameraEntryForCulling.second->insert(std::make_pair(tempHashList, std::unordered_map<uint32_t,std::pair<std::multimap<float, glm::uvec4>, uint32_t>>()));
                 }
             }
         }
@@ -462,6 +462,7 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
        const VisibilityRequest* visibilityRequest = static_cast<const VisibilityRequest *>(visibilityRequestRaw);
        std::vector<long> lodDistances = visibilityRequest->lodDistancesOption.get();
        float skipRenderDistance = 0, skipRenderSize = 0, maxSkipRenderSize = 0;
+       float screenSize;
        glm::mat4 viewMatrix;
        if(visibilityRequest->camera->getType() == Camera::CameraTypes::PERSPECTIVE ||
                visibilityRequest->camera->getType() == Camera::CameraTypes::ORTHOGRAPHIC) {
@@ -502,7 +503,7 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
                         */
                         std::vector<uint64_t> temp;
                         temp.push_back(tag.hash);
-                       visibilityRequest->visibility->insert(std::make_pair(temp, std::unordered_map<uint32_t , std::pair<std::vector<glm::uvec4>, uint32_t>>()));
+                       visibilityRequest->visibility->insert(std::make_pair(temp, std::unordered_map<uint32_t , std::pair<std::multimap<float, glm::uvec4>, uint32_t>>()));
                    }
                    //we matched a tag for this camera, we should add here, and then break so we don't add to others
                    bool isVisible = visibilityRequest->camera->isVisible(*currentModel);//find if visible
@@ -510,17 +511,21 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
                    auto assetVisibilityEntry = tagVisibilityEntry->second.find(currentModel->getAssetID());
                    if(isVisible) {
                        if (assetVisibilityEntry == tagVisibilityEntry->second.end()) {
-                           tagVisibilityEntry->second[currentModel->getAssetID()] = std::make_pair(std::vector<glm::uvec4>(), SKIP_LOD_LEVEL);
+                           tagVisibilityEntry->second[currentModel->getAssetID()] = std::make_pair(std::multimap<float, glm::uvec4>(), SKIP_LOD_LEVEL);
                        }
 
-                       uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second);
+                       uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second, screenSize);
                        if(lod != SKIP_LOD_LEVEL) {
                            tagVisibilityEntry->second[currentModel->getAssetID()].second = std::min(tagVisibilityEntry->second[currentModel->getAssetID()].second, lod);
                            //check if this thing is already in the list of things to render
-                           auto objectIndexIterator = std::find(tagVisibilityEntry->second[currentModel->getAssetID()].first.begin(),
-                                                                tagVisibilityEntry->second[currentModel->getAssetID()].first.end(), glm::uvec4(currentModel->getWorldObjectID(), 0, 0, 0));
+                           std::multimap<float, glm::uvec4>::iterator objectIndexIterator;
+                           for (objectIndexIterator = tagVisibilityEntry->second[currentModel->getAssetID()].first.begin(); objectIndexIterator != tagVisibilityEntry->second[currentModel->getAssetID()].first.end(); ++objectIndexIterator) {
+                               if (objectIndexIterator->second.x == currentModel->getWorldObjectID()) {
+                                   break;
+                               }
+                           }
                            if (objectIndexIterator == tagVisibilityEntry->second[currentModel->getAssetID()].first.end()) {
-                               tagVisibilityEntry->second[currentModel->getAssetID()].first.emplace_back(currentModel->getWorldObjectID(),0,0,0);
+                               tagVisibilityEntry->second[currentModel->getAssetID()].first.insert(std::pair<float, glm::uvec4>(screenSize, glm::uvec4(currentModel->getWorldObjectID(),0,0,0)));
                            }
                        }
                    } else { //not visible
@@ -529,7 +534,7 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
                        } else {
                            //this asset was in visible set, but was this game object in the visible set?
                            for (auto modelIdIterator = assetVisibilityEntry->second.first.begin(); modelIdIterator != assetVisibilityEntry->second.first.end(); modelIdIterator++) {
-                               if(modelIdIterator->x == currentModel->getWorldObjectID()) {
+                               if(modelIdIterator->second.x == currentModel->getWorldObjectID()) {
                                    assetVisibilityEntry->second.first.erase(modelIdIterator);
                                    //so we removed the element. should we drop the entry itself?
                                    if(assetVisibilityEntry->second.first.empty()) {
@@ -896,13 +901,21 @@ struct MeshRenderInformation {
     std::vector<glm::uvec4> indices;
     uint32_t lod;
     bool isAnimated;
+    float maxSize = 0;
     std::vector<glm::mat4>* boneTransforms;//known wrong, as it will only work for one model
+};
+struct compareMeshRenderInformationByScreenSize {
+    bool operator()( const std::pair<std::shared_ptr<MeshAsset>,const MeshRenderInformation>& a, const std::pair<std::shared_ptr<MeshAsset>,const MeshRenderInformation>& b) const {
+        return a.second.maxSize > b.second.maxSize;
+    }
 };
 
 void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName, const std::vector<HashUtil::HashedString> &tags) const {
     uint64_t hashedCameraTag = HashUtil::hashString(cameraName);
     tempRenderedObjectsSet.clear();
     std::unordered_map<std::shared_ptr<const Material>, std::unordered_map<std::shared_ptr<MeshAsset>,MeshRenderInformation>> tempMaterialRenderMap;
+    std::multimap<float, std::shared_ptr<const Material>> tempMaterialRenderPriorityMap;
+    std::unordered_map<std::shared_ptr<const Material>, float> maxScreenSizePerMaterial;
     for (const auto &visibilityEntry: cullingResults) {
         if (visibilityEntry.first->hasTag(hashedCameraTag)) { //if this camera doesn't match the tag, then just ignore
             std::vector<uint64_t> alreadyRenderedTagHashes;
@@ -929,13 +942,15 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
                         //we don't care about the asset part, but knowing they are all same asset means instanced rendering
                         if(!assetVisibility.second.first.empty()) {
                             const auto& perAssetElement = assetVisibility.second;
-                            for (glm::uvec4 modelId:perAssetElement.first) {
-                                const auto sampleModel = dynamic_cast<Model *>(objects.at(modelId.x));
-                                if (sampleModel == nullptr) {
-                                    std::cerr << "Sample model detection got a non model object for id " << modelId.x << " this should not have happened" << std::endl;
+
+                            for (auto modelSizeAndId = perAssetElement.first.rbegin(); modelSizeAndId != perAssetElement.first.rend(); ++modelSizeAndId) {
+
+                                const auto currentModel = dynamic_cast<Model *>(objects.at(modelSizeAndId->second.x));
+                                if (currentModel == nullptr) {
+                                    std::cerr << "Sample model detection got a non model object for id " << modelSizeAndId->second.x << " this should not have happened" << std::endl;
                                     continue;
                                 }
-                                std::vector<Model::MeshMeta *> allMeshes = sampleModel->getMeshMetaData();
+                                std::vector<Model::MeshMeta *> allMeshes = currentModel->getMeshMetaData();
                                 for (const auto meshMeta: allMeshes) {
                                     if (tempMaterialRenderMap.find(meshMeta->material) == tempMaterialRenderMap.end()) {
                                         tempMaterialRenderMap[meshMeta->material] = std::unordered_map<std::shared_ptr<MeshAsset>,MeshRenderInformation>();
@@ -943,11 +958,16 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
                                     if (tempMaterialRenderMap[meshMeta->material].find(meshMeta->mesh) == tempMaterialRenderMap[meshMeta->material].end()) {
                                         tempMaterialRenderMap[meshMeta->material][meshMeta->mesh] = MeshRenderInformation();
                                     }
-                                    tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].indices.emplace_back(modelId.x, meshMeta->material->getMaterialIndex(),0,0);
+                                    if (maxScreenSizePerMaterial.find(meshMeta->material) == maxScreenSizePerMaterial.end()) {
+                                        maxScreenSizePerMaterial[meshMeta->material] = 0;
+                                    }
+                                    maxScreenSizePerMaterial[meshMeta->material] = std::max(maxScreenSizePerMaterial[meshMeta->material], modelSizeAndId->first);
+                                    tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].maxSize = std::max(tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].maxSize, modelSizeAndId->first);
+                                    tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].indices.emplace_back(modelSizeAndId->second.x, meshMeta->material->getMaterialIndex(),0,0);
                                     tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].lod = perAssetElement.second;
-                                    tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].isAnimated |= sampleModel->isAnimated();
-                                    if (sampleModel->isAnimated()) {
-                                        tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].boneTransforms = sampleModel->getBoneTransforms();
+                                    tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].isAnimated |= currentModel->isAnimated();
+                                    if (currentModel->isAnimated()) {
+                                        tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].boneTransforms = currentModel->getBoneTransforms();
                                     }
                                 }
                             }
@@ -965,6 +985,10 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
             }
         }
     }
+    //now reverse to get the order
+    for (const auto& entry:maxScreenSizePerMaterial) {
+        tempMaterialRenderPriorityMap.insert(std::make_pair(entry.second, entry.first));
+    }
        int diffuseMapAttachPoint = 1;
        int ambientMapAttachPoint = 2;
        int specularMapAttachPoint = 3;
@@ -972,9 +996,10 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
        int normalMapAttachPoint = 5;
        //now render all of the meshes
 
-       for (const auto& materialGroup: tempMaterialRenderMap) {
+       for (auto materialPriority = tempMaterialRenderPriorityMap.rbegin(); materialPriority != tempMaterialRenderPriorityMap.rend(); ++materialPriority) {
+           const auto& materialGroup = tempMaterialRenderMap.find(materialPriority->second);
            {//activate textures
-               std::shared_ptr<const Material> material = materialGroup.first;
+               std::shared_ptr<const Material> material = materialGroup->first;
                if(material->hasDiffuseMap()) {
                    graphicsWrapper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
                }
@@ -995,7 +1020,11 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
                }
 
            }
-           for (const auto& meshInfo: materialGroup.second) {
+
+
+           std::vector<std::pair<std::shared_ptr<MeshAsset>,MeshRenderInformation>> tempVector(materialGroup->second.begin(), materialGroup->second.end());
+           std::sort(tempVector.begin(), tempVector.end(), compareMeshRenderInformationByScreenSize());
+           for (const auto& meshInfo: tempVector) {
                if (meshInfo.second.indices.empty()) {
                    std::cerr << "Empty meshInfo" << std::endl;
                    continue;
@@ -1076,13 +1105,18 @@ void World::renderLight(unsigned int lightIndex, unsigned int renderLayer, const
                 for (const auto &assetIt: taggedVisibilities->second) {
                     const auto &perAssetElement = assetIt.second;
                     if (!perAssetElement.first.empty()) {
-                        uint32_t modelId = perAssetElement.first.begin()->x;
+                        uint32_t modelId = perAssetElement.first.begin()->second.x;
                         Model *sampleModel = dynamic_cast<Model *>(objects.at(modelId));
                         if (sampleModel == nullptr) {
                             std::cerr << "Sample model detection got a non model object for id " << modelId << " this should not have happened" << std::endl;
                             continue;
                         }
-                        sampleModel->renderWithProgramInstanced(perAssetElement.first, *(renderProgram), perAssetElement.second);
+                        std::vector<glm::uvec4> tempObjectsToRender;
+                        //flatten the list of objects to be rendered
+                        for (std::multimap<float, glm::uvec4>::const_reverse_iterator it = perAssetElement.first.rbegin(); it != perAssetElement.first.rend(); ++it) {
+                            tempObjectsToRender.emplace_back(it->second);
+                        }
+                        sampleModel->renderWithProgramInstanced(tempObjectsToRender, *(renderProgram), perAssetElement.second);
                     }
                 }
             }
@@ -1401,7 +1435,7 @@ void World::addLight(Light *light) {
     const std::vector<Camera*>& cameras = light->getCameras();
     for(Camera* camera : cameras) {
         cullingResults.insert(std::make_pair(camera,
-                                             new std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t, std::pair<std::vector<glm::uvec4>, uint32_t>>, VisibilityRequest::uint64_vector_hasher>()));
+                                             new std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t, std::pair<std::multimap<float, glm::uvec4>, uint32_t>>, VisibilityRequest::uint64_vector_hasher>()));
     }
     updateActiveLights(false);
 }
@@ -1856,7 +1890,7 @@ bool World::removeObject(uint32_t objectID, const bool &removeChildren) {
             if (assetSet != perTagVisibilityIt->second.end()) {
                 //found the asset, is the model in it?
                 for(auto modelIdIterator = assetSet->second.first.begin(); modelIdIterator != assetSet->second.first.end(); modelIdIterator++) {
-                    if((*modelIdIterator).x == modelToRemove->getWorldObjectID()) {
+                    if(modelIdIterator->second.x == modelToRemove->getWorldObjectID()) {
                         //model in it, remove
                         assetSet->second.first.erase(modelIdIterator);
                         removalDone = true;
