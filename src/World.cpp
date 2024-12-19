@@ -462,7 +462,7 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
        const VisibilityRequest* visibilityRequest = static_cast<const VisibilityRequest *>(visibilityRequestRaw);
        std::vector<long> lodDistances = visibilityRequest->lodDistancesOption.get();
        float skipRenderDistance = 0, skipRenderSize = 0, maxSkipRenderSize = 0;
-       float screenSize;
+       float objectAverageDepth;
        glm::mat4 viewMatrix;
        if(visibilityRequest->camera->getType() == Camera::CameraTypes::PERSPECTIVE ||
                visibilityRequest->camera->getType() == Camera::CameraTypes::ORTHOGRAPHIC) {
@@ -514,7 +514,7 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
                            tagVisibilityEntry->second[currentModel->getAssetID()] = std::make_pair(std::multimap<float, glm::uvec4>(), SKIP_LOD_LEVEL);
                        }
 
-                       uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second, screenSize);
+                       uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second, objectAverageDepth);
                        if(lod != SKIP_LOD_LEVEL) {
                            tagVisibilityEntry->second[currentModel->getAssetID()].second = std::min(tagVisibilityEntry->second[currentModel->getAssetID()].second, lod);
                            //check if this thing is already in the list of things to render
@@ -525,7 +525,7 @@ void* fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
                                }
                            }
                            if (objectIndexIterator == tagVisibilityEntry->second[currentModel->getAssetID()].first.end()) {
-                               tagVisibilityEntry->second[currentModel->getAssetID()].first.insert(std::pair<float, glm::uvec4>(screenSize, glm::uvec4(currentModel->getWorldObjectID(),0,0,0)));
+                               tagVisibilityEntry->second[currentModel->getAssetID()].first.insert(std::pair<float, glm::uvec4>(objectAverageDepth, glm::uvec4(currentModel->getWorldObjectID(),0,0,0)));
                            }
                        }
                    } else { //not visible
