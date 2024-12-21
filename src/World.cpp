@@ -897,25 +897,11 @@ void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[
    debugDrawer->flushDraws();
 }
 
-struct MeshRenderInformation {
-    std::vector<glm::uvec4> indices;
-    uint32_t lod;
-    bool isAnimated;
-    float maxSize = 0;
-    std::vector<glm::mat4>* boneTransforms;//known wrong, as it will only work for one model
-};
-struct compareMeshRenderInformationByScreenSize {
-    bool operator()( const std::pair<std::shared_ptr<MeshAsset>,const MeshRenderInformation>& a, const std::pair<std::shared_ptr<MeshAsset>,const MeshRenderInformation>& b) const {
-        return a.second.maxSize > b.second.maxSize;
-    }
-};
 
 void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName, const std::vector<HashUtil::HashedString> &tags) const {
     uint64_t hashedCameraTag = HashUtil::hashString(cameraName);
     tempRenderedObjectsSet.clear();
-    std::unordered_map<std::shared_ptr<const Material>, std::unordered_map<std::shared_ptr<MeshAsset>,MeshRenderInformation>> tempMaterialRenderMap;
-    std::multimap<float, std::shared_ptr<const Material>> tempMaterialRenderPriorityMap;
-    std::unordered_map<std::shared_ptr<const Material>, float> maxScreenSizePerMaterial;
+    RenderList renderList;
     for (const auto &visibilityEntry: cullingResults) {
         if (visibilityEntry.first->hasTag(hashedCameraTag)) { //if this camera doesn't match the tag, then just ignore
             std::vector<uint64_t> alreadyRenderedTagHashes;
@@ -944,7 +930,6 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
                             const auto& perAssetElement = assetVisibility.second;
 
                             for (auto modelSizeAndId = perAssetElement.first.rbegin(); modelSizeAndId != perAssetElement.first.rend(); ++modelSizeAndId) {
-
                                 const auto currentModel = dynamic_cast<Model *>(objects.at(modelSizeAndId->second.x));
                                 if (currentModel == nullptr) {
                                     std::cerr << "Sample model detection got a non model object for id " << modelSizeAndId->second.x << " this should not have happened" << std::endl;
@@ -952,54 +937,28 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
                                 }
                                 std::vector<Model::MeshMeta *> allMeshes = currentModel->getMeshMetaData();
                                 for (const auto meshMeta: allMeshes) {
-                                    if (tempMaterialRenderMap.find(meshMeta->material) == tempMaterialRenderMap.end()) {
-                                        tempMaterialRenderMap[meshMeta->material] = std::unordered_map<std::shared_ptr<MeshAsset>,MeshRenderInformation>();
-                                    }
-                                    if (tempMaterialRenderMap[meshMeta->material].find(meshMeta->mesh) == tempMaterialRenderMap[meshMeta->material].end()) {
-                                        tempMaterialRenderMap[meshMeta->material][meshMeta->mesh] = MeshRenderInformation();
-                                    }
-                                    if (maxScreenSizePerMaterial.find(meshMeta->material) == maxScreenSizePerMaterial.end()) {
-                                        maxScreenSizePerMaterial[meshMeta->material] = 0;
-                                    }
-                                    maxScreenSizePerMaterial[meshMeta->material] = std::max(maxScreenSizePerMaterial[meshMeta->material], modelSizeAndId->first);
-                                    tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].maxSize = std::max(tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].maxSize, modelSizeAndId->first);
-                                    tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].indices.emplace_back(modelSizeAndId->second.x, meshMeta->material->getMaterialIndex(),0,0);
-                                    tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].lod = perAssetElement.second;
-                                    tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].isAnimated |= currentModel->isAnimated();
-                                    if (currentModel->isAnimated()) {
-                                        tempMaterialRenderMap[meshMeta->material][meshMeta->mesh].boneTransforms = currentModel->getBoneTransforms();
-                                    }
+                                    renderList.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, perAssetElement.second, modelSizeAndId->second.y);
                                 }
                             }
-                            // //if not empty, then lets find a sample
-                            // uint32_t modelId = perAssetElement.first.begin()->x;
-                            // Model *sampleModel = dynamic_cast<Model *>(objects.at(modelId));
-                            // if (sampleModel == nullptr) {
-                            //     std::cerr << "Sample model detection got a non model object for id " << modelId << " this should not have happened" << std::endl;
-                            //     continue;
-                            // }
-                            // sampleModel->renderWithProgramInstanced(perAssetElement.first, *(renderProgram), perAssetElement.second);
                         }
                     }
                 }
             }
         }
     }
-    //now reverse to get the order
-    for (const auto& entry:maxScreenSizePerMaterial) {
-        tempMaterialRenderPriorityMap.insert(std::make_pair(entry.second, entry.first));
-    }
+
+
        int diffuseMapAttachPoint = 1;
        int ambientMapAttachPoint = 2;
        int specularMapAttachPoint = 3;
        int opacityMapAttachPoint = 4;
        int normalMapAttachPoint = 5;
        //now render all of the meshes
+        auto renderListIterator = renderList.getIterator();
+        for (; !renderListIterator.isEnd(); ++renderListIterator) {
 
-       for (auto materialPriority = tempMaterialRenderPriorityMap.rbegin(); materialPriority != tempMaterialRenderPriorityMap.rend(); ++materialPriority) {
-           const auto& materialGroup = tempMaterialRenderMap.find(materialPriority->second);
+           const auto& material = renderListIterator.getMaterial();
            {//activate textures
-               std::shared_ptr<const Material> material = materialGroup->first;
                if(material->hasDiffuseMap()) {
                    graphicsWrapper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
                }
@@ -1022,24 +981,20 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
            }
 
 
-           std::vector<std::pair<std::shared_ptr<MeshAsset>,MeshRenderInformation>> tempVector(materialGroup->second.begin(), materialGroup->second.end());
-           std::sort(tempVector.begin(), tempVector.end(), compareMeshRenderInformationByScreenSize());
-           for (const auto& meshInfo: tempVector) {
-               if (meshInfo.second.indices.empty()) {
-                   std::cerr << "Empty meshInfo" << std::endl;
-                   continue;
-               }
-               if (meshInfo.second.isAnimated) {
-                   //set all of the bones to unitTransform for testing
-                   renderProgram->setUniformArray("boneTransformArray[0]", *meshInfo.second.boneTransforms);
-                   renderProgram->setUniform("isAnimated", true);
-               } else {
-                   renderProgram->setUniform("isAnimated", false);
-               }
-
-               graphicsWrapper->setModelIndexesUBO(meshInfo.second.indices);
-               graphicsWrapper->renderInstanced(renderProgram->getID(), meshInfo.first->getVao(), meshInfo.first->getEbo(), meshInfo.first->getTriangleCount()[meshInfo.second.lod] * 3, meshInfo.first->getOffsets()[meshInfo.second.lod], meshInfo.second.indices.size());
+           if (renderListIterator.get().indices.empty()) {
+               std::cerr << "Empty meshInfo" << std::endl;
+               continue;
            }
+           if (renderListIterator.get().isAnimated) {
+               //set all of the bones to unitTransform for testing
+               renderProgram->setUniformArray("boneTransformArray[0]", *renderListIterator.get().boneTransforms);
+               renderProgram->setUniform("isAnimated", true);
+           } else {
+               renderProgram->setUniform("isAnimated", false);
+           }
+
+           graphicsWrapper->setModelIndexesUBO(renderListIterator.get().indices);
+           graphicsWrapper->renderInstanced(renderProgram->getID(), renderListIterator.getMesh()->getVao(), renderListIterator.getMesh()->getEbo(), renderListIterator.getMesh()->getTriangleCount()[renderListIterator.get().lod] * 3, renderListIterator.getMesh()->getOffsets()[renderListIterator.get().lod], renderListIterator.get().indices.size());
        }
 
 }
