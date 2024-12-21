@@ -40,6 +40,7 @@
 #include "GameObjects/ModelGroup.h"
 #include "Graphics/PostProcess/QuadRender.h"
 #include "Editor/Editor.h"
+#include "Occlusion/RenderList.h"
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
