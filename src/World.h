@@ -219,20 +219,12 @@ private:
     // In case of a clear, we should not clear the hashes, as it is basically meaningless.
 
     /**
-     * this variable is used as camera list, so outermost one should never clear, and change only on camera creation/deletion.
-     * Since hashes are set by the render pipeline, first level in might reset on render pipeline changes.
-     * On all other cases, only the value of hash list should be reset.
-     * What is in this map?
-     * For each camera
-     *      there is a list of tags, that is list of tags per render stage, so any match is enough
-     *      for each list of tags, there is a map, key is the asset id
-     *          for each asset Id, there is a pair of vector + uint
-     *              vector is the object Ids that needs rendering, uint is the Max LOD to use.
-     *              vector is keeping uvec4 because opengl aligns to it. If we hide it in backend, we need to re allocate, and can't use the padding bits
+     * this variable is used as camera and tag list. Outer map is camera, inner map is tag list. Neigter should be removed from this map,
+     * unless a camera is removed, or render pipeline change, as tags come from the pipeline.
+     *
+     * RenderList is a custom container of meshes to render for that camera + tag, materials and order of rendering.
      */
-
-    std::unordered_map<Camera*, std::unordered_map<std::vector<uint64_t>, std::unordered_map<uint32_t , std::pair<std::multimap<float, glm::uvec4>, uint32_t>>, VisibilityRequest::uint64_vector_hasher>*> cullingResults;
-
+    std::unordered_map<Camera*, std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>*> cullingResults;
 
     /************************* End of redundant variables ******************************************/
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<>> timedEvents;
@@ -415,7 +407,7 @@ private:
     }
 
     void ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, const std::string& cameraName[[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]);
-    void renderLight(unsigned int lightIndex, unsigned int renderLayer, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
+    void renderLight(unsigned int lightIndex, unsigned int renderLayer, const std::shared_ptr<GraphicsProgram> &renderProgram, const std::vector<HashUtil::HashedString> &tags) const;
     void renderParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
     void renderGPUParticleEmitters(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
     void renderGUIImages(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;

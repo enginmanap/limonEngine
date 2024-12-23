@@ -325,7 +325,7 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
             if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {
                 for (auto it = modelAsset->getAnimations().begin(); it != modelAsset->getAnimations().end(); it++) {
                     bool isThisAnimationCurrent = this->getAnimationName() == it->first;
-                    if (ImGui::Selectable(it->first.c_str(), isThisAnimationCurrent)) {
+                    if (ImGui::Selectable((it->first + "##AnimationName").c_str(), isThisAnimationCurrent)) {
                         setAnimation(it->first, true);
                     }
                     if (isThisAnimationCurrent) {

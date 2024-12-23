@@ -712,19 +712,6 @@ void Editor::renderEditor() {
 
         if(world->pickedObject != nullptr) {
             //search for the selected element in the rendered elements
-            uint32_t lod = 4;
-            Model *pickedModel = dynamic_cast<Model *>(world->pickedObject);
-            if (pickedModel != nullptr) {
-                for(const auto& cameraResult :world->cullingResults) {
-                    for(const auto& tagResult : *cameraResult.second) {
-                        if (tagResult.second.find(pickedModel->getAssetID()) != tagResult.second.end()) {
-                            lod = std::min(tagResult.second.find(pickedModel->getAssetID())->second.second, lod);
-                        }
-                    }
-                }
-            }
-            std::string lodText =  std::to_string(lod);
-            ImGui::Text(("Picked object min LOD" + lodText).c_str());
             ImGuiResult objectEditorResult = world->pickedObject->addImGuiEditorElements(*world->request);
 
             switch(world->pickedObject->getTypeID()) {

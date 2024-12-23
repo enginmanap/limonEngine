@@ -124,7 +124,7 @@ private:
     //These methods are not exposed to the interface
     //They are also not possible to add to render pipeline, so a method should be created and assigned.
     std::function<std::vector<size_t>(Light::LightTypes)> getLightsByType;
-    std::function<void(unsigned int, unsigned int, std::shared_ptr<GraphicsProgram>)> renderLight;
+    std::function<void(unsigned int, unsigned int, std::shared_ptr<GraphicsProgram>, const std::vector<HashUtil::HashedString> &)> renderLight;
 
     /**
      * Always returns a method, even if not found. If not found, the parameter is set to false.
@@ -174,7 +174,7 @@ private:
         return getLightsByType(lightType);
     }
 
-    std::function<void(unsigned int, unsigned int, std::shared_ptr<GraphicsProgram>)>& getRenderLightMethod() {
+    std::function<void(unsigned int, unsigned int, std::shared_ptr<GraphicsProgram>, const std::vector<HashUtil::HashedString> &)>& getRenderLightMethod() {
         return renderLight;
     }
 
@@ -233,7 +233,7 @@ public:
         return RenderMethod("All directional shadows",
                             1,
                             nullptr,
-                            [=](const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) {
+                            [=](const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags) {
                                 long cascadeCount = optionNewSet.get();
 
                                 std::vector<size_t> lights = getLightIndexes(Light::LightTypes::DIRECTIONAL);
@@ -249,7 +249,7 @@ public:
                                 size_t lightId = lights[0];
                                 for (int i = 0; i < cascadeCount; ++i) {
                                     stage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, layeredDepthMap, false, i);
-                                    renderLight(lightId, i, renderProgram);
+                                    renderLight(lightId, i, renderProgram, tags);
                                 }
 
                             },
@@ -262,10 +262,10 @@ public:
         return RenderMethod("All point shadows",
                             1,
                             nullptr,
-                            [&] (const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) {
+                            [&] (const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags) {
                                 std::vector<size_t> lights = getLightIndexes(Light::LightTypes::POINT);
                                 for (size_t light:lights) {
-                                    renderLight(light, 0, renderProgram);
+                                    renderLight(light, 0, renderProgram, tags);
                                 }
                             },
                             nullptr,

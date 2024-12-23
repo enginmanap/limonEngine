@@ -28,7 +28,7 @@ class RenderList {
     struct PerMaterialRenderInformation {
         class perMaterialIterator {
             PerMaterialRenderInformation& perMaterialRenderInformation;
-            std::multimap<float, std::shared_ptr<MeshAsset>>::const_iterator it;
+            std::multimap<float, std::shared_ptr<MeshAsset>>::const_reverse_iterator it;
             bool end;
         public:
             explicit perMaterialIterator(PerMaterialRenderInformation& perMaterialRenderInformation) : perMaterialRenderInformation(perMaterialRenderInformation), end(false) {
@@ -37,8 +37,8 @@ class RenderList {
                         perMaterialRenderInformation.meshRenderPriorityMap.insert(std::make_pair(materialEntry.second, materialEntry.first));
                     }
                 }
-                it = perMaterialRenderInformation.meshRenderPriorityMap.begin();
-                if (it == perMaterialRenderInformation.meshRenderPriorityMap.end()) {
+                it = perMaterialRenderInformation.meshRenderPriorityMap.rbegin();
+                if (it == perMaterialRenderInformation.meshRenderPriorityMap.rend()) {
                     end = true;
                 }
             }
@@ -58,7 +58,7 @@ class RenderList {
             perMaterialIterator& operator++() {
                 if (!end) {
                     ++it;
-                    end = (it == perMaterialRenderInformation.meshRenderPriorityMap.end());
+                    end = (it == perMaterialRenderInformation.meshRenderPriorityMap.rend());
                 }
                 return *this;
             }
@@ -87,18 +87,25 @@ public:
     class RenderListIterator {
         RenderList& renderList;
         bool end;
-        std::multimap<float, std::shared_ptr<const Material>>::const_iterator materialPriorityIt;
+        std::multimap<float, std::shared_ptr<const Material>>::reverse_iterator materialPriorityIt;
         PerMaterialRenderInformation::perMaterialIterator* perMaterialIterator = nullptr;
 
 
     public:
+        /**
+         * Provides an iterator that automatically iterates through materials and meshes, using depth information as ordering.
+         * Using this iterator is prone to iterator invalidation. Thats why we don't remove items while any of these are on the fly.
+         */
         explicit RenderListIterator(RenderList& renderList) : renderList(renderList), end(false)
-                                                              , materialPriorityIt(renderList.materialRenderPriorityMap.begin()) {
-            if (materialPriorityIt == renderList.materialRenderPriorityMap.end()) {
+                                                              , materialPriorityIt(renderList.materialRenderPriorityMap.rbegin()) {
+            if (materialPriorityIt == renderList.materialRenderPriorityMap.rend()) {
                 end = true;
             } else {
                 perMaterialIterator = new PerMaterialRenderInformation::perMaterialIterator(renderList.perMaterialMeshMap[materialPriorityIt->second]);
             }
+        }
+        ~RenderListIterator() {
+            delete perMaterialIterator;
         }
 
         bool isEnd() const {
@@ -115,7 +122,7 @@ public:
             if (perMaterialIterator->isEnd()) {
                 //so this material is done. move to next material
                 ++materialPriorityIt;
-                end = (materialPriorityIt == renderList.materialRenderPriorityMap.end());
+                end = (materialPriorityIt == renderList.materialRenderPriorityMap.rend());
                 if (end) {
                     return *this;
                 }
@@ -151,8 +158,8 @@ private:
         return it;
     }
 public:
-    void addMeshMaterial(const std::shared_ptr<const Material> &material, std::shared_ptr<MeshAsset> &meshAsset, Model *model, uint32_t lod, float depth);
-
+    void addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, Model *model, uint32_t lod, float maxDepth);
+    void removeMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, uint32_t modelId);
     RenderListIterator getIterator() {
         if (materialRenderPriorityMap.empty()) {
             //first fill the map
@@ -161,6 +168,14 @@ public:
             }
         }
         return RenderListIterator(*this);
+    }
+
+    void cleanUpEmptyRenderLists();
+
+    void clear() {
+        this->materialRenderPriorityMap.clear();
+        this->perMaterialMeshMap.clear();
+        this->maxDepthPerMaterial.clear();
     }
 };
 
