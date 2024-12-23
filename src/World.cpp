@@ -854,8 +854,7 @@ void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[
    debugDrawer->flushDraws();
 }
 
-
-   void World::renderSingleRenderList(const std::shared_ptr<GraphicsProgram> &renderProgram, RenderList& renderList) const {
+   void World::renderSingleRenderList(const std::shared_ptr<GraphicsProgram> &renderProgram, const RenderList& renderList) const {
        int diffuseMapAttachPoint = 1;
        int ambientMapAttachPoint = 2;
        int specularMapAttachPoint = 3;
@@ -925,7 +924,7 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
                 if (!VisibilityRequest::vectorComparator(renderListEntry.first, tags)) {
                     continue;
                 }
-                RenderList renderList = renderListEntry.second;
+                const RenderList& renderList = renderListEntry.second;
                 renderSingleRenderList(renderProgram, renderList);
                 }
             }
@@ -981,7 +980,7 @@ void World::renderLight(unsigned int lightIndex, unsigned int renderLayer, const
            if (!VisibilityRequest::vectorComparator(iterator.first, tags)) {
                continue;
            }
-           RenderList renderList = iterator.second;
+           const RenderList& renderList = iterator.second;
            renderSingleRenderList(renderProgram, renderList);
        }
 }

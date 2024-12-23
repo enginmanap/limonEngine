@@ -27,11 +27,11 @@ struct PerMeshRenderInformation {
 class RenderList {
     struct PerMaterialRenderInformation {
         class perMaterialIterator {
-            PerMaterialRenderInformation& perMaterialRenderInformation;
+            const PerMaterialRenderInformation& perMaterialRenderInformation;
             std::multimap<float, std::shared_ptr<MeshAsset>>::const_reverse_iterator it;
             bool end;
         public:
-            explicit perMaterialIterator(PerMaterialRenderInformation& perMaterialRenderInformation) : perMaterialRenderInformation(perMaterialRenderInformation), end(false) {
+            explicit perMaterialIterator(const PerMaterialRenderInformation& perMaterialRenderInformation) : perMaterialRenderInformation(perMaterialRenderInformation), end(false) {
                 if (perMaterialRenderInformation.meshRenderPriorityMap.empty()) {
                     for (auto &materialEntry : perMaterialRenderInformation.maxDepthPerMesh) {
                         perMaterialRenderInformation.meshRenderPriorityMap.insert(std::make_pair(materialEntry.second, materialEntry.first));
@@ -43,14 +43,6 @@ class RenderList {
                 }
             }
 
-            perMaterialIterator& operator=(const perMaterialIterator& other) {
-                if (this != &other) {
-                    perMaterialRenderInformation = other.perMaterialRenderInformation;
-                    it = other.it;
-                    end = other.end;
-                }
-                return *this;
-            }
             bool isEnd() const {
                 return end;
             }
@@ -71,7 +63,7 @@ class RenderList {
         };
         std::unordered_map<std::shared_ptr<MeshAsset>,PerMeshRenderInformation> meshesToRender;
         std::unordered_map<std::shared_ptr<MeshAsset>, float> maxDepthPerMesh; //this map is created same time as meshes to render, but it is a pre transform container, as ordering by value not possible(or logical) in maps.
-        std::multimap<float, std::shared_ptr<MeshAsset>> meshRenderPriorityMap; //this map is created after first two values are created. It is just a sorted container to use sorting of materials
+        mutable std::multimap<float, std::shared_ptr<MeshAsset>> meshRenderPriorityMap; //this map is created after first two values are created. It is just a sorted container to use sorting of materials
         std::unordered_map<std::shared_ptr<MeshAsset>, PerMeshRenderInformation>::iterator getOrCreateMeshEntry(const std::shared_ptr<MeshAsset> &meshAsset) {
             std::unordered_map<std::shared_ptr<MeshAsset>, PerMeshRenderInformation>::iterator it = meshesToRender.find(meshAsset);
             if (it == meshesToRender.end()) {
@@ -85,10 +77,10 @@ class RenderList {
 
 public:
     class RenderListIterator {
-        RenderList& renderList;
+        const RenderList& renderList;
         bool end;
         std::multimap<float, std::shared_ptr<const Material>>::reverse_iterator materialPriorityIt;
-        PerMaterialRenderInformation::perMaterialIterator* perMaterialIterator = nullptr;
+        mutable PerMaterialRenderInformation::perMaterialIterator* perMaterialIterator = nullptr;
 
 
     public:
@@ -96,12 +88,12 @@ public:
          * Provides an iterator that automatically iterates through materials and meshes, using depth information as ordering.
          * Using this iterator is prone to iterator invalidation. Thats why we don't remove items while any of these are on the fly.
          */
-        explicit RenderListIterator(RenderList& renderList) : renderList(renderList), end(false)
+        explicit RenderListIterator(const RenderList& renderList) : renderList(renderList), end(false)
                                                               , materialPriorityIt(renderList.materialRenderPriorityMap.rbegin()) {
             if (materialPriorityIt == renderList.materialRenderPriorityMap.rend()) {
                 end = true;
             } else {
-                perMaterialIterator = new PerMaterialRenderInformation::perMaterialIterator(renderList.perMaterialMeshMap[materialPriorityIt->second]);
+                perMaterialIterator = new PerMaterialRenderInformation::perMaterialIterator(renderList.perMaterialMeshMap.at(materialPriorityIt->second));
             }
         }
         ~RenderListIterator() {
@@ -146,7 +138,7 @@ public:
 private:
     std::unordered_map<std::shared_ptr<const Material>, PerMaterialRenderInformation> perMaterialMeshMap; //Each mesh has its own render information
     std::unordered_map<std::shared_ptr<const Material>, float> maxDepthPerMaterial; //this map is created same time as meshes to render, but it is a pre transform container, as ordering by value not possible(or logical) in maps.
-    std::multimap<float, std::shared_ptr<const Material>> materialRenderPriorityMap; //this map is created after first two values are created. It is just a sorted container to use sorting of materials
+    mutable std::multimap<float, std::shared_ptr<const Material>> materialRenderPriorityMap; //this map is created after first two values are created. It is just a sorted container to use sorting of materials
 
     std::unordered_map<std::shared_ptr<const Material>, PerMaterialRenderInformation>::iterator getOrCreateMaterialEntry(const std::shared_ptr<const Material> &material) {
         std::unordered_map<std::shared_ptr<const Material>, PerMaterialRenderInformation>::iterator it = perMaterialMeshMap.find(material);
@@ -160,7 +152,7 @@ private:
 public:
     void addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, Model *model, uint32_t lod, float maxDepth);
     void removeMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, uint32_t modelId);
-    RenderListIterator getIterator() {
+    RenderListIterator getIterator() const {
         if (materialRenderPriorityMap.empty()) {
             //first fill the map
             for (auto &materialEntry : maxDepthPerMaterial) {

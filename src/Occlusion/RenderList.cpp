@@ -16,7 +16,7 @@ void RenderList::addMeshMaterial(const std::shared_ptr<const Material> &material
         meshIterator->second.isAnimated = meshIterator->second.isAnimated || model->isAnimated();
         meshIterator->second.boneTransforms = model->getBoneTransforms();
         materialIterator->second.maxDepthPerMesh[meshAsset] = std::max(materialIterator->second.maxDepthPerMesh[meshAsset], maxDepth);//This is the max depth of this material
-        this->materialRenderPriorityMap.clear();//Why? because we don't know if we need to sort the list again
+        materialIterator->second.meshRenderPriorityMap.clear();//Why? because we don't know if we need to sort the list again
         maxDepthPerMaterial[material] = std::max(maxDepthPerMaterial[material], maxDepth);
         materialRenderPriorityMap.clear();//Why? because we don't know if we need to sort the list again
     }

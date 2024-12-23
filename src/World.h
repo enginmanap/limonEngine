@@ -415,7 +415,7 @@ private:
     void renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
     void renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]]) const;
 
-    void renderSingleRenderList(const std::shared_ptr<GraphicsProgram> &renderProgram, RenderList& renderList) const;
+    void renderSingleRenderList(const std::shared_ptr<GraphicsProgram> &renderProgram, const RenderList& renderList) const;
 
     void renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment, uint64_t renderTag, const std::shared_ptr<GraphicsProgram> &renderProgram,
                                                std::vector<uint32_t> &alreadyRenderedModelIds) const;
