@@ -855,11 +855,63 @@ void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[
 }
 
 
+   void World::renderSingleRenderList(const std::shared_ptr<GraphicsProgram> &renderProgram, RenderList& renderList) const {
+       int diffuseMapAttachPoint = 1;
+       int ambientMapAttachPoint = 2;
+       int specularMapAttachPoint = 3;
+       int opacityMapAttachPoint = 4;
+       int normalMapAttachPoint = 5;
+
+       //now render all of the meshes
+       for (auto renderListIterator = renderList.getIterator(); !renderListIterator.isEnd(); ++renderListIterator) {
+
+           const auto& material = renderListIterator.getMaterial();
+           {//activate textures
+               if(material->hasDiffuseMap()) {
+                   graphicsWrapper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
+               }
+               if(material->hasAmbientMap()) {
+                   graphicsWrapper->attachTexture(material->getAmbientTexture()->getID(), ambientMapAttachPoint);
+               }
+
+               if(material->hasSpecularMap()) {
+                   graphicsWrapper->attachTexture(material->getSpecularTexture()->getID(), specularMapAttachPoint);
+               }
+
+               if(material->hasOpacityMap()) {
+                   graphicsWrapper->attachTexture(material->getOpacityTexture()->getID(), opacityMapAttachPoint);
+               }
+
+               if(material->hasNormalMap()) {
+                   graphicsWrapper->attachTexture(material->getNormalTexture()->getID(), normalMapAttachPoint);
+               }
+
+           }
+
+
+           if (renderListIterator.get().indices.empty()) {
+               std::cerr << "Empty meshInfo" << std::endl;
+               continue;
+           }
+           if (renderListIterator.get().isAnimated) {
+               //set all of the bones to unitTransform for testing
+               renderProgram->setUniformArray("boneTransformArray[0]", *renderListIterator.get().boneTransforms);
+               renderProgram->setUniform("isAnimated", true);
+           } else {
+               renderProgram->setUniform("isAnimated", false);
+           }
+
+           graphicsWrapper->setModelIndexesUBO(renderListIterator.get().indices);
+           graphicsWrapper->renderInstanced(renderProgram->getID(), renderListIterator.getMesh()->getVao(), renderListIterator.getMesh()->getEbo(), renderListIterator.getMesh()->getTriangleCount()[renderListIterator.get().lod] * 3, renderListIterator.getMesh()->getOffsets()[renderListIterator.get().lod], renderListIterator.get().indices.size());
+       }
+   }
+
 void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName, const std::vector<HashUtil::HashedString> &tags) const {
     uint64_t hashedCameraTag = HashUtil::hashString(cameraName);
     tempRenderedObjectsSet.clear();
     for (const auto &visibilityEntry: cullingResults) {
         if (visibilityEntry.first->hasTag(hashedCameraTag)) { //This is a request for this camera
+            std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>& renderLists = *visibilityEntry.second;
             //First  recursively render the player attachments, no visibility check.
             if (!currentPlayer->isDead() && startingPlayer.attachedModel != nullptr) {
                 //don't render attached model if dead
@@ -869,62 +921,12 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
                                                           renderProgram, alreadyRenderedModelIds);//Starting player, because we don't wanna render when in editor mode
                 }
             }
-            for (auto& renderListEntry: (*visibilityEntry.second)) {
+            for (auto& renderListEntry: renderLists) {
                 if (!VisibilityRequest::vectorComparator(renderListEntry.first, tags)) {
                     continue;
                 }
                 RenderList renderList = renderListEntry.second;
-                //we expect one renderlist to actually match
-                int diffuseMapAttachPoint = 1;
-                int ambientMapAttachPoint = 2;
-                int specularMapAttachPoint = 3;
-                int opacityMapAttachPoint = 4;
-                int normalMapAttachPoint = 5;
-
-                   //now render all of the meshes
-                    auto renderListIterator = renderList.getIterator();
-                    for (; !renderListIterator.isEnd(); ++renderListIterator) {
-
-                       const auto& material = renderListIterator.getMaterial();
-                       {//activate textures
-                           if(material->hasDiffuseMap()) {
-                               graphicsWrapper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
-                           }
-                           if(material->hasAmbientMap()) {
-                               graphicsWrapper->attachTexture(material->getAmbientTexture()->getID(), ambientMapAttachPoint);
-                           }
-
-                           if(material->hasSpecularMap()) {
-                               graphicsWrapper->attachTexture(material->getSpecularTexture()->getID(), specularMapAttachPoint);
-                           }
-
-                           if(material->hasOpacityMap()) {
-                               graphicsWrapper->attachTexture(material->getOpacityTexture()->getID(), opacityMapAttachPoint);
-                           }
-
-                           if(material->hasNormalMap()) {
-                               graphicsWrapper->attachTexture(material->getNormalTexture()->getID(), normalMapAttachPoint);
-                           }
-
-                       }
-
-
-                       if (renderListIterator.get().indices.empty()) {
-                           std::cerr << "Empty meshInfo" << std::endl;
-                           continue;
-                       }
-                       if (renderListIterator.get().isAnimated) {
-                           //set all of the bones to unitTransform for testing
-                           renderProgram->setUniformArray("boneTransformArray[0]", *renderListIterator.get().boneTransforms);
-                           renderProgram->setUniform("isAnimated", true);
-                       } else {
-                           renderProgram->setUniform("isAnimated", false);
-                       }
-
-                       graphicsWrapper->setModelIndexesUBO(renderListIterator.get().indices);
-                       graphicsWrapper->renderInstanced(renderProgram->getID(), renderListIterator.getMesh()->getVao(), renderListIterator.getMesh()->getEbo(), renderListIterator.getMesh()->getTriangleCount()[renderListIterator.get().lod] * 3, renderListIterator.getMesh()->getOffsets()[renderListIterator.get().lod], renderListIterator.get().indices.size());
-                   }
-
+                renderSingleRenderList(renderProgram, renderList);
                 }
             }
         }
@@ -974,8 +976,14 @@ void World::renderLight(unsigned int lightIndex, unsigned int renderLayer, const
        renderProgram->setUniform("renderLightLayer", (int) renderLayer);
        Light* selectedLight = lights[lightIndex];
        Camera* lightCamera = selectedLight->getCameras()[renderLayer];
-
-       renderCameraByTag(renderProgram, lightCamera->getTags()[0].text, tags);
+       std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>* cullingResult = cullingResults.at(lightCamera);
+       for (const auto& iterator:*cullingResult) {
+           if (!VisibilityRequest::vectorComparator(iterator.first, tags)) {
+               continue;
+           }
+           RenderList renderList = iterator.second;
+           renderSingleRenderList(renderProgram, renderList);
+       }
 }
 
 /**
