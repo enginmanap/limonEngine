@@ -713,7 +713,13 @@ void Editor::renderEditor() {
         if(world->pickedObject != nullptr) {
             //search for the selected element in the rendered elements
             ImGuiResult objectEditorResult = world->pickedObject->addImGuiEditorElements(*world->request);
-
+            if (objectEditorResult.materialChanged) {
+                for (auto& cameraVisibility: world->cullingResults) {
+                    for (auto& tagVisibility:(*cameraVisibility.second)) {
+                        tagVisibility.second.removeModelFromAll(world->pickedObjectID);
+                    }
+                }
+            }
             switch(world->pickedObject->getTypeID()) {
                 case GameObject::MODEL: {
                     Model* selectedObject = static_cast<Model*>(world->pickedObject);

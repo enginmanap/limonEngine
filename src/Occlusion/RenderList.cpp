@@ -39,6 +39,25 @@ void RenderList::removeMeshMaterial(const std::shared_ptr<const Material> &mater
     }
 }
 
+/**
+ *
+ * @param modelId model ID to remove
+ */
+void RenderList::removeModelFromAll(uint32_t modelId) {
+    for (auto& materialIterator: perMaterialMeshMap) {
+        for (auto& meshIterator: materialIterator.second.meshesToRender) {
+            PerMeshRenderInformation& perMeshRenderInformation = meshIterator.second;
+            perMeshRenderInformation.indices.erase(
+                std::remove_if(perMeshRenderInformation.indices.begin(), perMeshRenderInformation.indices.end(), [modelId](const glm::uvec4& entry) { return entry.x == modelId; }), perMeshRenderInformation.indices.end());
+            if (perMeshRenderInformation.indices.empty()) {
+                //WE don't remove it intentionally, because it causes iterator invalidation
+            }
+            materialIterator.second.meshRenderPriorityMap.clear();
+            materialRenderPriorityMap.clear();
+        }
+    }
+}
+
 void RenderList::cleanUpEmptyRenderLists() {
     //When a model is no longer visible, it will be removed. That means it is possible some Per Mesh Render Informations have no indices. We should clean them up
     auto materialIterator = perMaterialMeshMap.begin();

@@ -437,9 +437,9 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
         }
         if (ImGui::Button("Switch material")) {
             //Materials are registered by assets, we should not unregister
-            //assetManager->unregisterMaterial(this->meshMetaData[selectedIndex]->material);
             this->meshMetaData[selectedIndex]->material = EditorNS::selectedFromListMaterial;
-
+            result.materialChanged = true;
+            this->dirtyForFrustum = true;
         }
         if (EditorNS::selectedFromListMaterial == nullptr) {
             ImGui::EndDisabled();

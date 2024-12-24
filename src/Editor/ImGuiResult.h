@@ -15,6 +15,7 @@ struct ImGuiResult {
     bool removeAI = false;
     bool updated = false;
     bool remove = false; //If removal requested
+    bool materialChanged = false;
     std::string actorTypeName;
 };
 

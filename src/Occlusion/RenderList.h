@@ -152,6 +152,7 @@ private:
 public:
     void addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, Model *model, uint32_t lod, float maxDepth);
     void removeMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, uint32_t modelId);
+    void removeModelFromAll(uint32_t modelId);
     RenderListIterator getIterator() const {
         if (materialRenderPriorityMap.empty()) {
             //first fill the map
