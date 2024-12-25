@@ -5,6 +5,7 @@
 #include <ImGui/imgui.h>
 #include "Material.h"
 
+#include <ImGuiHelper.h>
 #include <WorldLoader.h>
 #include <WorldSaver.h>
 
@@ -44,33 +45,89 @@ ImGuiResult Material::addImGuiEditorElements(const ImGuiRequest &request [[gnu::
     dirty = ImGui::SliderFloat3("Specular Color", &this->specularColor.x, 0, 1) || dirty;
     dirty = ImGui::SliderFloat("Refraction Index", &this->refractionIndex, 0, 99999) || dirty;
     ImGui::Text("%s", (std::string("Maps is ") +  std::to_string(this->maps)).c_str());
-
+    static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
+    static int selectedTextureIndex = 0;
     if(this->ambientTexture == nullptr) {
         ImGui::Text("Ambient Texture: not set");
     } else {
         ImGui::Text("%s", (std::string("Ambient Texture: ") + this->ambientTexture->getName().at(0)).c_str());
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Change##ambientTexture")) {
+        selectedTextureIndex = 1;
+        ImGui::OpenPopup("Select Texture##TextureSelectorPopup");
     }
     if(this->diffuseTexture == nullptr) {
         ImGui::Text("Diffuse Texture: not set");
     } else {
         ImGui::Text("%s", (std::string("Diffuse Texture: ") + this->diffuseTexture->getName().at(0)).c_str());
     }
+    ImGui::SameLine();
+    if (ImGui::Button("Change##diffuseTexture")) {
+        selectedTextureIndex = 2;
+        ImGui::OpenPopup("Select Texture##TextureSelectorPopup");
+    }
     if(this->specularTexture == nullptr) {
         ImGui::Text("Specular Texture: not set");
     } else {
         ImGui::Text("%s", (std::string("Specular Texture: ") + this->specularTexture->getName().at(0)).c_str());
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Change##specularTexture")) {
+        selectedTextureIndex = 3;
+        ImGui::OpenPopup("Select Texture##TextureSelectorPopup");
     }
     if(this->normalTexture == nullptr) {
         ImGui::Text("Normal Texture: not set");
     } else {
         ImGui::Text("%s", (std::string("Normal Texture: ") + this->normalTexture->getName().at(0)).c_str());
     }
+    ImGui::SameLine();
+    if (ImGui::Button("Change##normalTexture")) {
+        selectedTextureIndex = 4;
+        ImGui::OpenPopup("Select Texture##TextureSelectorPopup");
+    }
     if(this->opacityTexture == nullptr) {
         ImGui::Text("Opacity Texture: not set");
     } else {
         ImGui::Text("%s", (std::string("Opacity Texture: ") + this->opacityTexture->getName().at(0)).c_str());
     }
-
+    ImGui::SameLine();
+    if (ImGui::Button("Change##opacityTexture")) {
+        selectedTextureIndex = 5;
+        ImGui::OpenPopup("Select Texture##TextureSelectorPopup");
+    }
+    ImGui::SetNextWindowSize(ImVec2(400.0f, 400.0f));
+    if (ImGui::BeginPopup("Select Texture##TextureSelectorPopup", ImGuiWindowFlags_AlwaysAutoResize)) {
+        const AssetManager::AvailableAssetsNode* filteredAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, "");
+        ImGuiHelper::buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
+                                          "Texture Selector",
+                                          &selectedAsset);
+        if(selectedAsset != nullptr) {
+            switch(selectedTextureIndex) {
+                case 1:
+                    this->ambientTexture = assetManager->loadAsset<TextureAsset>({selectedAsset->name});
+                    break;
+                case 2:
+                    this->diffuseTexture = assetManager->loadAsset<TextureAsset>({selectedAsset->name});
+                    break;
+                case 3:
+                    this->specularTexture = assetManager->loadAsset<TextureAsset>({selectedAsset->name});
+                    break;
+                case 4:
+                    this->normalTexture = assetManager->loadAsset<TextureAsset>({selectedAsset->name});
+                    break;
+                case 5:
+                    this->opacityTexture = assetManager->loadAsset<TextureAsset>({selectedAsset->name});
+                    break;
+                default: ;
+            }
+            selectedAsset = nullptr;
+            selectedTextureIndex = 0;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
     if(dirty) {
         assetManager->getGraphicsWrapper()->setMaterial(*this);
     }
