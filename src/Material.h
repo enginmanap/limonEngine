@@ -87,6 +87,35 @@ public:
               materialIndex(materialIndex),
               assetManager(assetManager) { }
 
+    Material(const Material &other) {
+        this->name = "copy_"+other.name;
+
+        this->ambientColor = other.ambientColor;
+        this->diffuseColor = other.diffuseColor;
+        this->specularColor = other.specularColor;
+
+        this->assetManager = other.assetManager;
+
+        this->specularExponent = other.specularExponent;
+        this->refractionIndex = other.refractionIndex;
+
+        this->isAmbientMap = other.isAmbientMap;
+        this->isDiffuseMap = other.isDiffuseMap;
+        this->isSpecularMap = other.isSpecularMap;
+        this->isNormalMap = other.isNormalMap;
+        this->isOpacityMap = other.isOpacityMap;
+        this->maps = other.maps;
+
+        this->ambientTexture = other.ambientTexture;
+        this->diffuseTexture = other.diffuseTexture;
+        this->specularTexture = other.specularTexture;
+        this->normalTexture = other.normalTexture;
+        this->opacityTexture = other.opacityTexture;
+
+        this->materialIndex = 0;
+        this->originalHash = other.originalHash;
+    }
+
     void loadGPUSide(AssetManager *assetManager);
 
     const std::string &getName() const {

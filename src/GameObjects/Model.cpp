@@ -448,8 +448,23 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
 
         ImGuiHelper::ShowHelpMarker("This will switch the material to the one selected in world editor");
         ImGui::SameLine();
+        static std::shared_ptr<Material> copiedMaterial = nullptr;
         if (ImGui::Button("Alter material for this model")) {
+            copiedMaterial = std::make_shared<Material>(*this->meshMetaData[selectedIndex]->material);//copy construct
+            int randomNum = (rand() % 100) + 1;//it is super unlikely that 2 copies will be created without actually changing something, but it is possible. Randomize to prevent clash
+            copiedMaterial->setAmbientColor(glm::vec3(copiedMaterial->getAmbientColor().x,copiedMaterial->getAmbientColor().y,copiedMaterial->getAmbientColor().z + (0.000001f * randomNum)));
 
+            copiedMaterial = assetManager->registerMaterial(copiedMaterial);//this is to get a valid index, not deduplicate.
+            meshMetaData[selectedIndex]-> material = copiedMaterial;
+            graphicsWrapper->setMaterial(*copiedMaterial);
+            result.materialChanged = true;
+            this->dirtyForFrustum = true;
+        }
+        if (copiedMaterial != nullptr) {
+            copiedMaterial->addImGuiEditorElements(request);
+            if (ImGui::Button("Close##materialAlterInModel")) {
+                copiedMaterial = nullptr;
+            }
         }
         if (selectedIndex == -1) {
             ImGui::EndDisabled();

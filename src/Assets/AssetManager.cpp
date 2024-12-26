@@ -194,7 +194,7 @@ AssetManager::getAvailableAssetsTreeFilteredRecursive(const AvailableAssetsNode 
  * @return material that should be used.
  */
 std::shared_ptr<Material> AssetManager::registerMaterial(std::shared_ptr<Material> material) {
-    const auto foundIt = materials.find(material->getOriginalHash());
+    const auto foundIt = materials.find(material->getHash());
     if(foundIt != materials.end()) {
         //std::cerr << "Material found, return "<< material->getName() << std::endl;
         foundIt->second.second++;
@@ -233,7 +233,7 @@ std::shared_ptr<Material> AssetManager::registerOverriddenMaterial(std::shared_p
 }
 
 void AssetManager::unregisterMaterial(std::shared_ptr<const Material> material) {
-    auto materialIt = materials.find(material->getOriginalHash());
+    auto materialIt = materials.find(material->getHash());
     if(materialIt == materials.end()) {
         std::cerr << "Unregister for non existent material found!" << std::endl;
     }
