@@ -155,6 +155,12 @@ void Model::setupForTime(long time) {
 }
 
 void Model::activateTexturesOnly(std::shared_ptr<const Material>material) const {
+    const int diffuseMapAttachPoint = 1;
+    const int ambientMapAttachPoint = 2;
+    const int specularMapAttachPoint = 3;
+    const int opacityMapAttachPoint = 4;
+    const int normalMapAttachPoint = 5;
+
     if(material->hasDiffuseMap()) {
         graphicsWrapper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
     }

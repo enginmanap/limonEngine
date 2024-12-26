@@ -62,11 +62,6 @@ private:
     btDefaultMotionState *motionState;
     std::vector<btCollisionShape *> childrenPhysicsShapes;
 
-    int diffuseMapAttachPoint = 1;
-    int ambientMapAttachPoint = 2;
-    int specularMapAttachPoint = 3;
-    int opacityMapAttachPoint = 4;
-    int normalMapAttachPoint = 5;
     uint32_t triangleCount;
     int32_t selectedBoneID = -1;
     std::map<uint32_t, Transformation*> exposedBoneTransforms;
