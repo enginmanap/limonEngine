@@ -589,6 +589,31 @@ WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::X
             }
         }
     }
+    //Now Load material changes
+    std::vector<std::pair<std::string, std::shared_ptr<Material>>> custumizedMeshMaterialList;
+    tinyxml2::XMLElement* meshMaterialListNode =  objectNode->FirstChildElement("MeshMaterialList");
+    if (meshMaterialListNode != nullptr) {
+        tinyxml2::XMLElement *meshMaterialNode = meshMaterialListNode->FirstChildElement("MeshMaterial");
+        while (meshMaterialNode != nullptr) {
+            if (meshMaterialNode->Attribute("MeshName") == nullptr) {
+                std::cerr << "A mesh material definition with no MeshName found. Can't be processed. Skipping." << std::endl;
+            } else {
+                std::string meshName = meshMaterialNode->Attribute("MeshName");
+                tinyxml2::XMLElement *materialNode = meshMaterialNode->FirstChildElement("Material");
+                if (materialNode == nullptr) {
+                    std::cerr << "A mesh material definition with no Material found. Can't be processed. Skipping." << std::endl;
+                } else {
+                    std::shared_ptr<Material> newMaterial = Material::deserialize(assetManager.get(), materialNode);
+                    custumizedMeshMaterialList.emplace_back(meshName, newMaterial);
+                }
+            }
+            meshMaterialNode = meshMaterialNode->NextSiblingElement("MeshMaterial");
+        }
+    }
+    if (!custumizedMeshMaterialList.empty()) {
+        loadedObjectInformation->model->loadOverriddenMeshMaterial(custumizedMeshMaterialList);
+    }
+
     loadedObjects.push_back(std::move(loadedObjectInformation));
 
 

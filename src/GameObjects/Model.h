@@ -70,7 +70,22 @@ private:
     static ImGuiResult putAIonGUI(ActorInterface *actorInterface, std::vector<LimonTypes::GenericParameter> &parameters,
                                   const ImGuiRequest &request, std::string &lastSelectedAIName);
 
+    /**
+     * This method returns a list of MeshAsset->Material pairs, that has been customized specifically for this model, that is not shared with the
+     * ModelAsset. Model asset has a default material, and world has overrides for that asset. This method returns overrides for not the asset level,
+     * but the model level.
+     *
+     * This method will check one by one all meshes and compare with the asset. That is because we don't want to make the Model object use more memory
+     * for something thats expected to apply only a very small portion of the models.
+     * Consider this a slow method.
+     *
+     * @return list of meshes that had different material than asset
+     */
+    std::vector<std::pair<std::string, std::shared_ptr<const Material>>> getNewMeshMaterials() const;
+
 public:
+    void loadOverriddenMeshMaterial(std::vector<std::pair<std::string, std::shared_ptr<Material>>> & customisedMeshMaterialList);
+
     Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const std::string &modelFile) : Model(objectID, assetManager,
                                                                                                0, modelFile, false) {};
 
@@ -149,7 +164,7 @@ public:
         return modelAsset->isTransparent();
     }
 
-    ~Model();
+    ~Model() override;
 
     bool fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const override;
 
@@ -180,7 +195,7 @@ public:
 
     std::string getName() const override {
         return name + "_" + std::to_string(objectID);
-    };
+    }
 
     ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
     /************Game Object methods **************/

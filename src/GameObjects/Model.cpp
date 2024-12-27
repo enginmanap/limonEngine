@@ -300,7 +300,22 @@ bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *o
            if(child->fillObjects(document, childNode)) {
                childrenNode->InsertEndChild(childNode);
            }
+        }
+    }
 
+    //Material customizations
+    const std::vector<std::pair<std::string, std::shared_ptr<const Material>>> meshMaterialMap = getNewMeshMaterials();
+    if (!meshMaterialMap.empty()) {
+        tinyxml2::XMLElement *childrenNode = document.NewElement("MeshMaterialList");
+        tinyxml2::XMLElement *childrenCountNode = document.NewElement("Count");
+        childrenCountNode->SetText(std::to_string(meshMaterialMap.size()).c_str());
+        childrenNode->InsertEndChild(childrenCountNode);
+        objectElement->InsertEndChild(childrenNode);
+        for (auto& meshMaterial:meshMaterialMap) {
+            tinyxml2::XMLElement *childNode = document.NewElement("MeshMaterial");
+            childNode->SetAttribute("MeshName", meshMaterial.first.c_str());
+            meshMaterial.second->serialize(document, childNode);
+            childrenNode->InsertEndChild(childNode);
         }
     }
 
@@ -584,6 +599,42 @@ ImGuiResult Model::putAIonGUI(ActorInterface *actorInterface,
     }
 
     return result;
+}
+
+std::vector<std::pair<std::string, std::shared_ptr<const Material>>> Model::getNewMeshMaterials() const{
+    std::vector<std::pair<std::string, std::shared_ptr<const Material>>> meshMaterialList;
+
+    for (const auto& thisMeshMaterial:meshMetaData) {
+        std::shared_ptr<Material> material = this->modelAsset->getMeshMaterial(thisMeshMaterial->mesh);
+        if (material == nullptr) {
+            std::cerr << "Model has a mesh that is not part of asset. This should not happen. " << std::endl;
+            continue;
+        }
+        if (material != thisMeshMaterial->material) {//difference in materials, we should save this.
+            meshMaterialList.emplace_back(thisMeshMaterial->mesh->getName(), thisMeshMaterial->material);
+        }
+    }
+    return meshMaterialList;
+}
+
+void Model::loadOverriddenMeshMaterial(std::vector<std::pair<std::string, std::shared_ptr<Material>>> &customisedMeshMaterialList) {
+    for (const auto& thisMeshMaterial:customisedMeshMaterialList) {
+        //find the mesh
+        bool found = false;
+        for (auto& meshMetaData: this->meshMetaData) {
+            if (meshMetaData->mesh->getName() == thisMeshMaterial.first) {
+                std::shared_ptr<Material> newMaterial = thisMeshMaterial.second;
+                newMaterial->loadGPUSide(assetManager.get());
+                newMaterial = assetManager->registerMaterial(newMaterial);
+                graphicsWrapper->setMaterial(*newMaterial);
+                meshMetaData->material = newMaterial;
+                found = true;
+            }
+        }
+        if (!found) {
+            std::cerr << "Model " << this->name << " doesn't have a mesh with name " << thisMeshMaterial.first << " This should never happen" << std::endl;
+        }
+    }
 }
 
 void Model::attachAI(ActorInterface *AIActor) {

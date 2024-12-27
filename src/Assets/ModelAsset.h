@@ -178,6 +178,7 @@ public:
         }
         return meshMaterialMap.at(mesh);
     }
+
     ~ModelAsset() override;
 
     std::vector<std::shared_ptr<MeshAsset>> getMeshes() const {

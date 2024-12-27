@@ -700,7 +700,7 @@ void ModelAsset::serializeCustomizations() {
 
     tinyxml2::XMLElement * animationsSectionsNode = customizationDocument.NewElement("Animation");
     rootNode->InsertEndChild(animationsSectionsNode);
-    for(auto it=this->animationSections.begin(); it != this->animationSections.end(); it++) {
+    for(auto it=this->animationSections.begin(); it != this->animationSections.end(); ++it) {
         tinyxml2::XMLElement *sectionElement = customizationDocument.NewElement("Section");
         animationsSectionsNode->InsertEndChild(sectionElement);
 
