@@ -5,7 +5,7 @@
 #include "RenderList.h"
 
 #include "../GameObjects/Model.h"
-void RenderList::addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, Model *model, uint32_t lod, float maxDepth) {
+void RenderList::addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const Model *model, uint32_t lod, float maxDepth) {
     auto materialIterator = getOrCreateMaterialEntry(material);
     auto meshIterator = materialIterator->second.getOrCreateMeshEntry(meshAsset);
     auto requestedObjectIterator = std::find_if(meshIterator->second.indices.begin(), meshIterator->second.indices.end(), [model](const glm::uvec4& entry) { return entry.x == model->getWorldObjectID(); });
@@ -56,6 +56,56 @@ void RenderList::removeModelFromAll(uint32_t modelId) {
             materialRenderPriorityMap.clear();
         }
     }
+}
+
+void RenderList::render(GraphicsInterface *graphicsWrapper, const std::shared_ptr<GraphicsProgram> &renderProgram) const {
+   int diffuseMapAttachPoint = 1;
+   int ambientMapAttachPoint = 2;
+   int specularMapAttachPoint = 3;
+   int opacityMapAttachPoint = 4;
+   int normalMapAttachPoint = 5;
+
+   //now render all of the meshes
+   for (auto renderListIterator = this->getIterator(); !renderListIterator.isEnd(); ++renderListIterator) {
+       if (renderProgram->isMaterialRequired()) {
+           const auto& material = renderListIterator.getMaterial();
+           //activate textures
+           if(material->hasDiffuseMap()) {
+               graphicsWrapper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
+           }
+           if(material->hasAmbientMap()) {
+               graphicsWrapper->attachTexture(material->getAmbientTexture()->getID(), ambientMapAttachPoint);
+           }
+
+           if(material->hasSpecularMap()) {
+               graphicsWrapper->attachTexture(material->getSpecularTexture()->getID(), specularMapAttachPoint);
+           }
+
+           if(material->hasOpacityMap()) {
+               graphicsWrapper->attachTexture(material->getOpacityTexture()->getID(), opacityMapAttachPoint);
+           }
+
+           if(material->hasNormalMap()) {
+               graphicsWrapper->attachTexture(material->getNormalTexture()->getID(), normalMapAttachPoint);
+           }
+       }
+
+
+       if (renderListIterator.get().indices.empty()) {
+           std::cerr << "Empty meshInfo" << std::endl;
+           continue;
+       }
+       if (renderListIterator.get().isAnimated) {
+           //set all of the bones to unitTransform for testing
+           renderProgram->setUniformArray("boneTransformArray[0]", *renderListIterator.get().boneTransforms);
+           renderProgram->setUniform("isAnimated", true);
+       } else {
+           renderProgram->setUniform("isAnimated", false);
+       }
+
+       graphicsWrapper->setModelIndexesUBO(renderListIterator.get().indices);
+       graphicsWrapper->renderInstanced(renderProgram->getID(), renderListIterator.getMesh()->getVao(), renderListIterator.getMesh()->getEbo(), renderListIterator.getMesh()->getTriangleCount()[renderListIterator.get().lod] * 3, renderListIterator.getMesh()->getOffsets()[renderListIterator.get().lod], renderListIterator.get().indices.size());
+   }
 }
 
 void RenderList::cleanUpEmptyRenderLists() {

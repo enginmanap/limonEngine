@@ -53,13 +53,8 @@
 
 SDL2MultiThreading::Condition VisibilityRequest::condition; //FIXME this variable doesn't looks like it belongs here
 
-   void World::setupRenderForPipeline() {
-       for (const auto& stageInfo:renderPipeline->getStages()) {
-           for(const auto& graphicsProgram:stageInfo.programs) {
-               graphicsWrapper->attachMaterialUBO(graphicsProgram->getID());
-           }
-       }
-   }
+void World::setupRenderForPipeline() const {
+}
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
                 std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options)
@@ -854,57 +849,6 @@ void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[
    debugDrawer->flushDraws();
 }
 
-   void World::renderSingleRenderList(const std::shared_ptr<GraphicsProgram> &renderProgram, const RenderList& renderList) const {
-       int diffuseMapAttachPoint = 1;
-       int ambientMapAttachPoint = 2;
-       int specularMapAttachPoint = 3;
-       int opacityMapAttachPoint = 4;
-       int normalMapAttachPoint = 5;
-
-       //now render all of the meshes
-       for (auto renderListIterator = renderList.getIterator(); !renderListIterator.isEnd(); ++renderListIterator) {
-
-           const auto& material = renderListIterator.getMaterial();
-           {//activate textures
-               if(material->hasDiffuseMap()) {
-                   graphicsWrapper->attachTexture(material->getDiffuseTexture()->getID(), diffuseMapAttachPoint);
-               }
-               if(material->hasAmbientMap()) {
-                   graphicsWrapper->attachTexture(material->getAmbientTexture()->getID(), ambientMapAttachPoint);
-               }
-
-               if(material->hasSpecularMap()) {
-                   graphicsWrapper->attachTexture(material->getSpecularTexture()->getID(), specularMapAttachPoint);
-               }
-
-               if(material->hasOpacityMap()) {
-                   graphicsWrapper->attachTexture(material->getOpacityTexture()->getID(), opacityMapAttachPoint);
-               }
-
-               if(material->hasNormalMap()) {
-                   graphicsWrapper->attachTexture(material->getNormalTexture()->getID(), normalMapAttachPoint);
-               }
-
-           }
-
-
-           if (renderListIterator.get().indices.empty()) {
-               std::cerr << "Empty meshInfo" << std::endl;
-               continue;
-           }
-           if (renderListIterator.get().isAnimated) {
-               //set all of the bones to unitTransform for testing
-               renderProgram->setUniformArray("boneTransformArray[0]", *renderListIterator.get().boneTransforms);
-               renderProgram->setUniform("isAnimated", true);
-           } else {
-               renderProgram->setUniform("isAnimated", false);
-           }
-
-           graphicsWrapper->setModelIndexesUBO(renderListIterator.get().indices);
-           graphicsWrapper->renderInstanced(renderProgram->getID(), renderListIterator.getMesh()->getVao(), renderListIterator.getMesh()->getEbo(), renderListIterator.getMesh()->getTriangleCount()[renderListIterator.get().lod] * 3, renderListIterator.getMesh()->getOffsets()[renderListIterator.get().lod], renderListIterator.get().indices.size());
-       }
-   }
-
 void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName, const std::vector<HashUtil::HashedString> &tags) const {
     uint64_t hashedCameraTag = HashUtil::hashString(cameraName);
     tempRenderedObjectsSet.clear();
@@ -925,7 +869,7 @@ void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProg
                     continue;
                 }
                 const RenderList& renderList = renderListEntry.second;
-                renderSingleRenderList(renderProgram, renderList);
+                renderList.render(graphicsWrapper, renderProgram);
                 }
             }
         }
@@ -953,10 +897,8 @@ void World::renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment
     }
     if(std::find(alreadyRenderedModelIds.begin(), alreadyRenderedModelIds.end(), attachmentObject->getWorldObjectID()) == alreadyRenderedModelIds.end() && attachmentObject->hasTag(renderTag)) {
         alreadyRenderedModelIds.emplace_back(attachmentObject->getWorldObjectID());
-        std::vector<glm::uvec4> temp;
-        temp.push_back(glm::uvec4(attachmentObject->getWorldObjectID(), 0, 0, 0));
         if(attachmentObject->getTypeID() == GameObject::MODEL) {
-            (static_cast<Model *>(attachment))->renderWithProgramInstanced(temp, *(renderProgram), 0);//it is guaranteed to be very close to the player.
+            static_cast<Model *>(attachment)->convertToRenderList(0,0.0f).render(graphicsWrapper, renderProgram);
         }
     }
     for (const auto &child: children) {
@@ -981,7 +923,7 @@ void World::renderLight(unsigned int lightIndex, unsigned int renderLayer, const
                continue;
            }
            const RenderList& renderList = iterator.second;
-           renderSingleRenderList(renderProgram, renderList);
+           renderList.render(graphicsWrapper, renderProgram);
        }
 }
 
@@ -1016,9 +958,7 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
 
        playerPlaceHolder->getTransformation()->setTranslate(physicalPlayer->getPosition());
        playerPlaceHolder->getTransformation()->setOrientation(physicalPlayer->getLookDirectionQuaternion());
-       std::vector<glm::uvec4> temp;
-       temp.push_back(glm::uvec4(playerPlaceHolder->getWorldObjectID(), 0, 0, 0));
-       playerPlaceHolder->renderWithProgramInstanced(temp, *(graphicsProgram.get()), 0);
+       playerPlaceHolder->convertToRenderList(0,0).render(graphicsWrapper, graphicsProgram);
    }
    editor->renderEditor();
 }

@@ -19,7 +19,7 @@
 #include "Sound.h"
 
 class ActorInterface;
-
+class RenderList;
 class Model : public PhysicalRenderable, public GameObject {
 public:
     struct MeshMeta {
@@ -114,7 +114,7 @@ public:
 
     void renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t lodLevel) override;
 
-
+    RenderList convertToRenderList(uint32_t lodLevel, float depth) const;
     void renderWithProgramInstanced(const std::vector<glm::uvec4> & modelIndices, GraphicsProgram &program, uint32_t lodLevel);
 
     bool isAnimated() const { return animated;}
@@ -191,7 +191,7 @@ public:
         return GameObject::MODEL;
     }
 
-     std::vector<glm::mat4>* getBoneTransforms() {return &boneTransforms;}
+     const std::vector<glm::mat4>* getBoneTransforms() const {return &boneTransforms;}
 
     std::string getName() const override {
         return name + "_" + std::to_string(objectID);

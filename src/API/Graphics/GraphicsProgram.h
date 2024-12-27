@@ -82,7 +82,7 @@ public:
         return graphicsProgramAsset->getProgramName();
     }
 
-    bool IsMaterialRequired() const {
+    bool isMaterialRequired() const {
         return materialRequired;
     }
 

@@ -49,7 +49,7 @@ private:
                                           ImGuiTreeNodeFlags nodeFlags, ImGuiTreeNodeFlags leafFlags,
                                           std::vector<uint32_t> parentage);
 
-    void renderSelectedObject(Model* model);
+    void renderSelectedObject(Model* model) const;
 
     void setTransformToModel(Model *model, const glm::vec3 &newObjectPosition);
 };

@@ -46,6 +46,7 @@ GraphicsProgram::~GraphicsProgram() {
 
 //TODO remove with material editor
 void GraphicsProgram::setSamplersAndUBOs() {
+    graphicsWrapper->attachMaterialUBO(getID());
 
     //TODO these will be configurable with material editor
     int diffuseMapAttachPoint = 1;

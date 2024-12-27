@@ -9,6 +9,7 @@
 #include "Utils/HardCodedTags.h"
 #include <random>
 #include <Editor/Editor.h>
+#include <Occlusion/RenderList.h>
 
 #ifdef CEREAL_SUPPORT
 #include <cereal/archives/binary.hpp>
@@ -191,37 +192,20 @@ void Model::renderWithProgram(std::shared_ptr<GraphicsProgram> program, uint32_t
         } else {
             program->setUniform("isAnimated", false);
         }
-        if(program->IsMaterialRequired()) {
+        if(program->isMaterialRequired()) {
             this->activateTexturesOnly((*iter)->material);
         }
         graphicsWrapper->render(program->getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount()[lodLevel] * 3);
     }
 }
 
-void Model::renderWithProgramInstanced(const std::vector<glm::uvec4> &modelIndices, GraphicsProgram &program, uint32_t lodLevel) {
+RenderList Model::convertToRenderList(uint32_t lodLevel, float depth) const {
+    RenderList renderList;
 
     for (auto iter = meshMetaData.begin(); iter != meshMetaData.end(); ++iter) {
-        if (animated) {
-            //set all of the bones to unitTransform for testing
-            program.setUniformArray("boneTransformArray[0]", boneTransforms);
-            program.setUniform("isAnimated", true);
-        } else {
-            program.setUniform("isAnimated", false);
-        }
-        if(program.IsMaterialRequired()) {
-            std::vector<glm::uvec4> modelIndicesWithMaterialIndex = modelIndices;
-            for (size_t i = 0; i < modelIndicesWithMaterialIndex.size(); ++i) {
-                modelIndicesWithMaterialIndex[i].y = (*iter)->material->getMaterialIndex();
-            }
-            graphicsWrapper->setModelIndexesUBO(modelIndicesWithMaterialIndex);
-            this->activateTexturesOnly((*iter)->material);
-            graphicsWrapper->renderInstanced(program.getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount()[lodLevel] * 3, (*iter)->mesh->getOffsets()[lodLevel], modelIndices.size());
-
-        } else {
-            graphicsWrapper->setModelIndexesUBO(modelIndices);
-            graphicsWrapper->renderInstanced(program.getID(), (*iter)->mesh->getVao(), (*iter)->mesh->getEbo(), (*iter)->mesh->getTriangleCount()[lodLevel] * 3, (*iter)->mesh->getOffsets()[lodLevel], modelIndices.size());
-        }
+        renderList.addMeshMaterial((*iter)->material, (*iter)->mesh, this, lodLevel, depth);
     }
+    return renderList;
 }
 
 bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *objectsNode) const {

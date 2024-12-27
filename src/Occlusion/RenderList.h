@@ -12,6 +12,8 @@
 #include <glm/glm.hpp>
 #include <memory>
 
+class GraphicsInterface;
+class GraphicsProgram;
 class MeshAsset;
 class Material;
 class Model;
@@ -21,7 +23,7 @@ struct PerMeshRenderInformation {
     uint32_t lod = 0;  //Max level of detail. Since we use instanced rendering, using single LOD for all meshes is faster than multiple draw calls (at least in my testing)
     bool isAnimated = false;
     float depth = 0; //max depth for this mesh set
-    std::vector<glm::mat4>* boneTransforms = nullptr;//known wrong, as it will only work for one model id. Placeholder until bone transform index lookup implementation
+    const std::vector<glm::mat4>* boneTransforms = nullptr;//known wrong, as it will only work for one model id. Placeholder until bone transform index lookup implementation
 };
 
 class RenderList {
@@ -150,7 +152,7 @@ private:
         return it;
     }
 public:
-    void addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, Model *model, uint32_t lod, float maxDepth);
+    void addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const Model *model, uint32_t lod, float maxDepth);
     void removeMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, uint32_t modelId);
     void removeModelFromAll(uint32_t modelId);
     RenderListIterator getIterator() const {
@@ -162,6 +164,9 @@ public:
         }
         return RenderListIterator(*this);
     }
+
+
+   void render(GraphicsInterface* graphicsWrapper, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
 
     void cleanUpEmptyRenderLists();
 
