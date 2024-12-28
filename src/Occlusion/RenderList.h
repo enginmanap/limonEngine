@@ -80,18 +80,18 @@ class RenderList {
 public:
     class RenderListIterator {
         const RenderList& renderList;
-        bool end;
         std::multimap<float, std::shared_ptr<const Material>>::reverse_iterator materialPriorityIt;
         mutable PerMaterialRenderInformation::perMaterialIterator* perMaterialIterator = nullptr;
-
+        bool end;
+        bool materialChanged = true;
 
     public:
         /**
          * Provides an iterator that automatically iterates through materials and meshes, using depth information as ordering.
          * Using this iterator is prone to iterator invalidation. Thats why we don't remove items while any of these are on the fly.
          */
-        explicit RenderListIterator(const RenderList& renderList) : renderList(renderList), end(false)
-                                                              , materialPriorityIt(renderList.materialRenderPriorityMap.rbegin()) {
+        explicit RenderListIterator(const RenderList& renderList) : renderList(renderList), materialPriorityIt(renderList.materialRenderPriorityMap.rbegin())
+                                                              , end(false) {
             if (materialPriorityIt == renderList.materialRenderPriorityMap.rend()) {
                 end = true;
             } else {
@@ -112,6 +112,7 @@ public:
             }
             if (!perMaterialIterator->isEnd()) {
                 ++(*perMaterialIterator);
+                materialChanged = false;
             }
             if (perMaterialIterator->isEnd()) {
                 //so this material is done. move to next material
@@ -122,6 +123,7 @@ public:
                 }
                 delete perMaterialIterator;
                 perMaterialIterator = new PerMaterialRenderInformation::perMaterialIterator(renderList.perMaterialMeshMap.at(materialPriorityIt->second));
+                materialChanged = true;
             }
             return *this;
         }
@@ -135,6 +137,10 @@ public:
 
         const std::shared_ptr<MeshAsset>& getMesh() const {
             return perMaterialIterator->getMesh();
+        }
+
+        bool isMaterialChanged() const {
+            return materialChanged;
         }
     };
 private:

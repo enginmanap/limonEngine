@@ -67,7 +67,7 @@ void RenderList::render(GraphicsInterface *graphicsWrapper, const std::shared_pt
 
    //now render all of the meshes
    for (auto renderListIterator = this->getIterator(); !renderListIterator.isEnd(); ++renderListIterator) {
-       if (renderProgram->isMaterialRequired()) {
+       if (renderProgram->isMaterialRequired() && renderListIterator.isMaterialChanged()) {
            const auto& material = renderListIterator.getMaterial();
            //activate textures
            if(material->hasDiffuseMap()) {
@@ -89,7 +89,6 @@ void RenderList::render(GraphicsInterface *graphicsWrapper, const std::shared_pt
                graphicsWrapper->attachTexture(material->getNormalTexture()->getID(), normalMapAttachPoint);
            }
        }
-
 
        if (renderListIterator.get().indices.empty()) {
            std::cerr << "Empty meshInfo" << std::endl;
