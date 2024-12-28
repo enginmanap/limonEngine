@@ -45,7 +45,7 @@ bool SSAOKernelRenderMethod::initRender(std::shared_ptr<GraphicsProgram> program
         std::cerr << "uniform variable \"ssaoSampleCount\" couldn't be set" << std::endl;
     }
     generateSSAONoiseTexture();
-    if(!program->setUniform("ssaoNoiseSampler", graphicsInterface->getMaxTextureImageUnits()-3)) {
+    if(!program->setUniform("ssaoNoiseSampler", graphicsInterface->getMaxTextureImageUnits()-4)) {
         std::cerr << "uniform variable \"ssaoNoiseSampler\" couldn't be set" << std::endl;
     }
     return false;
