@@ -31,7 +31,7 @@ public:
     virtual uint32_t getWorldObjectID() const = 0;
     virtual ~GameObject() = default;
 
-    void addTag(const std::string& text) {
+    virtual void addTag(const std::string& text) {
         HashUtil::HashedString tag(text);
         bool found = false;
         for (const HashUtil::HashedString& hashedString:tags) {
@@ -63,7 +63,7 @@ public:
         return tags;
     }
 
-    void removeTag(const std::string& text) {
+    virtual void removeTag(const std::string& text) {
         HashUtil::HashedString tag(text);
         bool found = false;
         for (std::list<HashUtil::HashedString>::const_iterator it = tags.begin(); it != tags.end(); ++it) {

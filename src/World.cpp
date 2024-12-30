@@ -510,6 +510,12 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
                                 visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
                            }
                        }
+                   } else {
+                       //what if we are not matching a tag, but we at some point did?
+                       const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
+                       for (auto meshMeta:meshMetas) {
+                           visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
+                       }
                    }
                }
            }

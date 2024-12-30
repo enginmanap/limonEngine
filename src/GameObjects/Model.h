@@ -281,6 +281,17 @@ public:
         return materials;
     }
 
+    void addTag(const std::string& text) override {
+        this->dirtyForFrustum = true;
+        GameObject::addTag(text);
+    }
+
+    void removeTag(const std::string& text) override {
+        this->dirtyForFrustum = true;
+        GameObject::removeTag(text);
+    }
+
+
 };
 
 #endif //LIMONENGINE_MODEL_H
