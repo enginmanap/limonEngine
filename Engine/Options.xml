@@ -212,7 +212,7 @@
         <Description>multiThreadedCulling</Description>
         <Value>False</Value>
         <valueType>Boolean</valueType>
-        <IsSet>True</IsSet>
+        <IsSet>False</IsSet>
         <Index>2</Index>
     </Parameter>
     <Parameter>

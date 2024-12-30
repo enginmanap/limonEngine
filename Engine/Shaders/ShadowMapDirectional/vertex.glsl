@@ -19,6 +19,14 @@ struct LightSource {
     vec3 ambient;
 };
 
+struct rigBones {
+    mat4 transform[NR_BONE];
+};
+
+layout (std140) uniform AllAnimationsBlock {
+    rigBones rigs[8];
+} animation;
+
 layout (std140) uniform LightSourceBlock
 {
     LightSource lights[NR_POINT_LIGHTS];
@@ -31,7 +39,6 @@ layout (std140) uniform ModelIndexBlock {
     uvec4 models[NR_MAX_MODELS];
 } instance;
 
-uniform mat4 boneTransformArray[NR_BONE];
 uniform int renderLightIndex;
 uniform int renderLightLayer;
 
@@ -41,10 +48,11 @@ void main() {
 
     mat4 BoneTransform = mat4(1.0);
     if(isAnimated==1) {
-         BoneTransform = boneTransformArray[boneIDs[0]] * boneWeights[0];
-         BoneTransform += boneTransformArray[boneIDs[1]] * boneWeights[1];
-         BoneTransform += boneTransformArray[boneIDs[2]] * boneWeights[2];
-         BoneTransform += boneTransformArray[boneIDs[3]] * boneWeights[3];
+        uint skeletonId = instance.models[gl_InstanceID].z;
+        BoneTransform  = animation.rigs[skeletonId].transform[boneIDs[0]] * boneWeights[0];
+        BoneTransform += animation.rigs[skeletonId].transform[boneIDs[1]] * boneWeights[1];
+        BoneTransform += animation.rigs[skeletonId].transform[boneIDs[2]] * boneWeights[2];
+        BoneTransform += animation.rigs[skeletonId].transform[boneIDs[3]] * boneWeights[3];
     }
 
     mat4 modelTransform;

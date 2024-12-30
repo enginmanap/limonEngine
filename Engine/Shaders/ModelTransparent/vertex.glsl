@@ -2,6 +2,7 @@
 
 #define NR_POINT_LIGHTS 4
 #define NR_MAX_MODELS 4096
+#define NR_BONE 128
 
 layout (location = 2) in vec4 position;
 layout (location = 3) in vec2 textureCoordinate;
@@ -45,6 +46,14 @@ uniform sampler2D allModelTransformsTexture;
 layout (std140) uniform ModelIndexBlock {
     uvec4 models[NR_MAX_MODELS];
 } instance;
+
+struct BoneTransform {
+    mat4 transforms[NR_BONE];
+};
+
+layout (std140) uniform AllAnimationsBlock {
+    BoneTransform rigs[8];
+} animation;
 
 layout (std140) uniform LightSourceBlock
 {

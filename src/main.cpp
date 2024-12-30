@@ -200,6 +200,7 @@ void GameEngine::run() {
             accumulatedTime -= worldUpdateTime;
         }
         graphicsWrapper->clearFrame();
+        currentWorld->setupRender();
         currentWorld->render();
         sdlHelper->swap();
     }

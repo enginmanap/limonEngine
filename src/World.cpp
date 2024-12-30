@@ -483,9 +483,10 @@ void fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
                        if(isVisible) {
                            uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second, objectAverageDepth);
                            const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                           for (auto meshMeta:meshMetas) {
+                           for (auto& meshMeta:meshMetas) {
                                 visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
                            }
+                           visibilityRequest->changedBoneTransforms[currentModel->getRigId()] = currentModel->getBoneTransforms();
                        } else { //if not visible
                            const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
                            for (auto meshMeta:meshMetas) {
@@ -553,6 +554,10 @@ void World::fillVisibleObjectsUsingTags() {
             }
             item.first->inProgressLock.lock();
             item.first->playerPosition = currentPlayer->getPosition();
+            for (auto& changedRigs:item.first->changedBoneTransforms) {
+                this->changedBoneTransforms.emplace(changedRigs.first, changedRigs.second);
+            }
+            item.first->changedBoneTransforms.clear();
             item.first->inProgressLock.unlock();
         }
     } else {
@@ -565,8 +570,14 @@ void World::fillVisibleObjectsUsingTags() {
         for (const auto &item: visibilityThreadPool) {
             item.first->playerPosition = currentPlayer->getPosition();
             fillVisibleObjectPerCamera(item.first);
+            item.first->playerPosition = currentPlayer->getPosition();
+            for (auto& changedRigs:item.first->changedBoneTransforms) {
+                this->changedBoneTransforms.emplace(changedRigs.first, changedRigs.second);
+            }
+            item.first->changedBoneTransforms.clear();
         }
     }
+
     for (auto objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
         //all cameras calculated, clear dirty for object
         objectIt->second->setCleanForFrustum();
@@ -784,7 +795,7 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
     }
 }
 
-void World:: render() {
+void World::render() {
     renderPipeline->render();
 }
 
@@ -1147,6 +1158,9 @@ bool World::addModelToWorld(Model *xmlModel) {
     }
     xmlModel->getTransformation()->getWorldTransform();
     objects[xmlModel->getWorldObjectID()] = xmlModel;
+    if (xmlModel->isAnimated()) {
+        xmlModel->setRigId(getNextRigId());
+    }
     rigidBodies.push_back(xmlModel->getRigidBody());
     xmlModel->updateAABB();
     if(xmlModel->isDisconnected()) {
@@ -1577,9 +1591,16 @@ World::generateEditorElementsForParameters(std::vector<LimonTypes::GenericParame
     return isAllSet;
 }
 
+   void World::setupRender() {
+    for (auto& [skeletonIndex, boneTransform]: changedBoneTransforms) {
+            graphicsWrapper->setBoneTransforms(*boneTransform, skeletonIndex);
+        }
+    changedBoneTransforms.clear();
+   }
+
 uint32_t World::addGuiText(const std::string &fontFilePath, uint32_t fontSize, const std::string &name, const std::string &text,
-                           const glm::vec3 &color,
-                           const glm::vec2 &position, float rotation) {
+                              const glm::vec3 &color,
+                              const glm::vec2 &position, float rotation) {
     GUIText* tr = new GUIText(graphicsWrapper, getNextObjectID(), name, fontManager.getFont(fontFilePath, fontSize),
                               text, color);
     glm::vec2 screenPosition;

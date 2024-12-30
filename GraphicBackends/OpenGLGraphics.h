@@ -202,6 +202,7 @@ private:
     GLuint playerUBOLocation;
     GLuint allMaterialsUBOLocation;
     GLuint allModelIndexesUBOLocation;
+    GLuint allBoneTransformsUBOLocation;
 
     GLuint combineFrameBuffer;
 
@@ -330,6 +331,7 @@ public:
     void attachModelUBO(const uint32_t program) override;
 
     void attachMaterialUBO(const uint32_t program) override;
+    void attachBoneTransformsUBO(const uint32_t program) override;
 
     void initializeProgramAsset(const uint32_t programId,
                                 std::unordered_map<std::string, std::shared_ptr<Uniform>> &uniformMap,
@@ -457,6 +459,8 @@ public:
     }
 
     void setMaterial(const Material& material) override;
+
+    void setBoneTransforms(const std::vector<glm::mat4>& boneTransforms, uint32_t index) override;
 
     void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) override;
 

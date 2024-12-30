@@ -48,12 +48,19 @@ layout (std140) uniform ModelIndexBlock {
     uvec4 models[NR_MAX_MODELS];
 } instance;
 
+struct rigBones {
+    mat4 transform[NR_BONE];
+};
+
+layout (std140) uniform AllAnimationsBlock {
+    rigBones rigs[8];
+} animation;
+
 layout (std140) uniform LightSourceBlock {
     LightSource lights[NR_POINT_LIGHTS];
 } LightSources;
 
 uniform bool isAnimated;
-uniform mat4 boneTransformArray[NR_BONE];
 
 void main(void) {
     to_fs.textureCoord = textureCoordinate;
@@ -70,10 +77,11 @@ void main(void) {
     transposeInverseModelTransform[2] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 2, 1), 0).xyz;
 
     if(isAnimated) {
-        mat4 BoneTransform = boneTransformArray[boneIDs[0]] * boneWeights[0];
-        BoneTransform += boneTransformArray[boneIDs[1]] * boneWeights[1];
-        BoneTransform += boneTransformArray[boneIDs[2]] * boneWeights[2];
-        BoneTransform += boneTransformArray[boneIDs[3]] * boneWeights[3];
+        uint skeletonId = instance.models[gl_InstanceID].z;
+        mat4 BoneTransform  = animation.rigs[skeletonId].transform[boneIDs[0]] * boneWeights[0];
+             BoneTransform += animation.rigs[skeletonId].transform[boneIDs[1]] * boneWeights[1];
+             BoneTransform += animation.rigs[skeletonId].transform[boneIDs[2]] * boneWeights[2];
+             BoneTransform += animation.rigs[skeletonId].transform[boneIDs[3]] * boneWeights[3];
 
         to_fs.normal = normalize(transposeInverseModelTransform * vec3(BoneTransform * vec4(normal, 0.0)));
         to_fs.fragPos = vec3(modelTransform * (BoneTransform * position));

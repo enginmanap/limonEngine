@@ -10,11 +10,10 @@ void RenderList::addMeshMaterial(const std::shared_ptr<const Material> &material
     auto meshIterator = materialIterator->second.getOrCreateMeshEntry(meshAsset);
     auto requestedObjectIterator = std::find_if(meshIterator->second.indices.begin(), meshIterator->second.indices.end(), [model](const glm::uvec4& entry) { return entry.x == model->getWorldObjectID(); });
     if (requestedObjectIterator == meshIterator->second.indices.end()) {
-        meshIterator->second.indices.emplace_back(model->getWorldObjectID(), material->getMaterialIndex(), 0, 0);
+        meshIterator->second.indices.emplace_back(model->getWorldObjectID(), material->getMaterialIndex(), model->getRigId(), 0);
         meshIterator->second.depth = std::max(meshIterator->second.depth, maxDepth);
         meshIterator->second.lod = std::min(meshIterator->second.lod, lod);
         meshIterator->second.isAnimated = meshIterator->second.isAnimated || model->isAnimated();
-        meshIterator->second.boneTransforms = model->getBoneTransforms();
         materialIterator->second.maxDepthPerMesh[meshAsset] = std::max(materialIterator->second.maxDepthPerMesh[meshAsset], maxDepth);//This is the max depth of this material
         materialIterator->second.meshRenderPriorityMap.clear();//Why? because we don't know if we need to sort the list again
         maxDepthPerMaterial[material] = std::max(maxDepthPerMaterial[material], maxDepth);
@@ -94,13 +93,7 @@ void RenderList::render(GraphicsInterface *graphicsWrapper, const std::shared_pt
            std::cerr << "Empty meshInfo" << std::endl;
            continue;
        }
-       if (renderListIterator.get().isAnimated) {
-           //set all of the bones to unitTransform for testing
-           renderProgram->setUniformArray("boneTransformArray[0]", *renderListIterator.get().boneTransforms);
-           renderProgram->setUniform("isAnimated", true);
-       } else {
-           renderProgram->setUniform("isAnimated", false);
-       }
+       renderProgram->setUniform("isAnimated", renderListIterator.get().isAnimated);
 
        graphicsWrapper->setModelIndexesUBO(renderListIterator.get().indices);
        graphicsWrapper->renderInstanced(renderProgram->getID(), renderListIterator.getMesh()->getVao(), renderListIterator.getMesh()->getEbo(), renderListIterator.getMesh()->getTriangleCount()[renderListIterator.get().lod] * 3, renderListIterator.getMesh()->getOffsets()[renderListIterator.get().lod], renderListIterator.get().indices.size());

@@ -23,7 +23,6 @@ struct PerMeshRenderInformation {
     uint32_t lod = 0;  //Max level of detail. Since we use instanced rendering, using single LOD for all meshes is faster than multiple draw calls (at least in my testing)
     bool isAnimated = false;
     float depth = 0; //max depth for this mesh set
-    const std::vector<glm::mat4>* boneTransforms = nullptr;//known wrong, as it will only work for one model id. Placeholder until bone transform index lookup implementation
 };
 
 class RenderList {

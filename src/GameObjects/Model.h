@@ -28,6 +28,7 @@ public:
     };
 private:
     uint32_t objectID;
+    uint32_t rigID = 0; //initialize as 0, because thats the value for non animated.
 
     ActorInterface *AIActor = nullptr;
     std::shared_ptr<AssetManager> assetManager;
@@ -86,8 +87,16 @@ private:
 public:
     void loadOverriddenMeshMaterial(std::vector<std::pair<std::string, std::shared_ptr<Material>>> & customisedMeshMaterialList);
 
+    void setRigId(uint32_t rigId) {
+        this->rigID = rigId;
+    }
+
+    uint32_t getRigId() const {
+        return rigID;
+    }
+
     Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const std::string &modelFile) : Model(objectID, assetManager,
-                                                                                               0, modelFile, false) {};
+                                                                                                                0, modelFile, false) {};
 
     Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, const float mass, const std::string &modelFile,
               bool disconnected);

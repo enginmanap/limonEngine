@@ -62,6 +62,7 @@ public:
         const OptionsUtil::Options::Option<double> maxSkipRenderSizeOption;
         const std::unordered_map<uint32_t, PhysicalRenderable *>* const objects;
         std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher>* visibility;
+        mutable std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;
         bool running = true;
         std::atomic<uint32_t> frameCount;
         SDL2MultiThreading::SpinLock inProgressLock;

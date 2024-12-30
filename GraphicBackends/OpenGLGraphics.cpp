@@ -278,24 +278,37 @@ void OpenGLGraphics::attachModelIndicesUBO(const uint32_t programID) {
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
     checkErrors("attachModelIndicesUBO");
+    attachBoneTransformsUBO(programID);
 }
 
 void OpenGLGraphics::attachMaterialUBO(const uint32_t program){
-
     GLuint allMaterialsAttachPoint = 9;
 
     int uniformIndex = glGetUniformBlockIndex(program, "MaterialInformationBlock");
     if (uniformIndex >= 0) {
         glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
         glUniformBlockBinding(program, uniformIndex, allMaterialsAttachPoint);
-        //glBindBufferRange(GL_UNIFORM_BUFFER, allMaterialsAttachPoint, allMaterialsUBOLocation, materialID * materialUniformSize,
-        //                  materialUniformSize);
         glBindBufferBase(GL_UNIFORM_BUFFER, allMaterialsAttachPoint, allMaterialsUBOLocation);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
     checkErrors("attachMaterialUBO");
 }
+
+void OpenGLGraphics::attachBoneTransformsUBO(const uint32_t program){
+    GLuint allBoneTransformsAttachPoint = 10;
+
+    int uniformIndex = glGetUniformBlockIndex(program, "AllAnimationsBlock");
+    if (uniformIndex >= 0) {
+        glBindBuffer(GL_UNIFORM_BUFFER, allBoneTransformsUBOLocation);
+        glUniformBlockBinding(program, uniformIndex, allBoneTransformsAttachPoint);
+        glBindBufferBase(GL_UNIFORM_BUFFER, allBoneTransformsAttachPoint, allBoneTransformsUBOLocation);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
+
+    checkErrors("attachBoneTransformsUBO");
+}
+
 
 void OpenGLGraphics::attachGeneralUBOs(const GLuint program){//Attach the light block to our UBO
 
@@ -467,13 +480,19 @@ bool OpenGLGraphics::createGraphicsBackend() {
     //create player transforms uniform buffer object
     glGenBuffers(1, &playerUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
-    glBufferData(GL_UNIFORM_BUFFER, playerUniformSize, nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, playerUniformSize, nullptr, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //create material uniform buffer object
     glGenBuffers(1, &allMaterialsUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
     glBufferData(GL_UNIFORM_BUFFER, materialUniformSize * NR_MAX_MATERIALS, nullptr, GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    //create bone transform array  uniform buffer object
+    glGenBuffers(1, &allBoneTransformsUBOLocation);
+    glBindBuffer(GL_UNIFORM_BUFFER, allBoneTransformsUBOLocation);
+    glBufferData(GL_UNIFORM_BUFFER, NR_BONE * sizeof(glm::mat4) * 8, nullptr, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     glGenTextures(1, &allModelTransformsTexture);
@@ -962,6 +981,7 @@ OpenGLGraphics::~OpenGLGraphics() {
     deleteBuffer(1, lightUBOLocation);
     deleteBuffer(1, playerUBOLocation);
     deleteBuffer(1, allMaterialsUBOLocation);
+    deleteBuffer(1, allBoneTransformsUBOLocation);
     glDeleteFramebuffers(1, &combineFrameBuffer);
 
     //state->setProgram(0);
@@ -1532,6 +1552,16 @@ void OpenGLGraphics::setMaterial(const Material& material) {
                     sizeof(GLint), &maps);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setMaterial");
+}
+
+void OpenGLGraphics::setBoneTransforms(const std::vector<glm::mat4>& boneTransforms, uint32_t index) {
+    if (boneTransforms.size() > NR_BONE) {
+        std::cerr << "Too many bones, can't upload more than " << NR_BONE << "ignoring." << std::endl;
+    }
+    glBindBuffer(GL_UNIFORM_BUFFER, allBoneTransformsUBOLocation);
+    glBufferSubData(GL_UNIFORM_BUFFER, NR_BONE * sizeof(glm::mat4) * index, boneTransforms.size() * sizeof(glm::mat4), boneTransforms.data());
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    checkErrors("setBoneTransform");
 }
 
 void OpenGLGraphics::setModel(const uint32_t modelID, const glm::mat4& worldTransform) {

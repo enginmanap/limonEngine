@@ -204,8 +204,10 @@ private:
     std::unique_ptr<Editor> editor;
     OptionsUtil::Options* options;
     uint32_t nextWorldID = 2;
+    uint32_t nextRigID = 1;
     std::queue<uint32_t> unusedIDs;
     std::unordered_map<uint32_t, PhysicalRenderable *> objects;
+    std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;//These are used for uploading to GPU. Don't put in if not passing culling.
     mutable std::unordered_set<uint32_t> tempRenderedObjectsSet;
     std::set<uint32_t> disconnectedModels;
     std::map<uint32_t, ModelGroup*> modelGroups;
@@ -439,6 +441,10 @@ public:
         return nextWorldID++;
     }
 
+    uint32_t getNextRigId() {
+        return nextRigID++;
+    }
+
     std::string getName();
 
     RenderMethods buildRenderMethods();
@@ -456,7 +462,9 @@ public:
 
     uint32_t addAnimationToObject(uint32_t modelID, uint32_t animationID, bool looped, bool startOnLoad) {
         return addAnimationToObjectWithSound(modelID, animationID, looped, startOnLoad, nullptr);
-    };
+    }
+
+    void setupRender();
 
     uint32_t addGuiText(const std::string &fontFilePath, uint32_t fontSize,
                         const std::string &name, const std::string &text,
