@@ -81,9 +81,9 @@ public:
     virtual bool createGraphicsBackend() = 0;
     virtual ~GraphicsInterface() {};
 
-    virtual void attachModelUBO(const uint32_t program) = 0;
+    virtual void attachModelTexture(const uint32_t program) = 0;
+    virtual void attachRigTexture(const uint32_t program) = 0;
     virtual void attachMaterialUBO(const uint32_t program) = 0;
-    virtual void attachBoneTransformsUBO(const uint32_t program) = 0;
     virtual void initializeProgramAsset(const uint32_t programId,
                                         std::unordered_map<std::string, std::shared_ptr<Uniform>> &uniformMap, std::unordered_map<std::string, uint32_t> &attributesMap,
                                         std::unordered_map<std::string, std::pair<Uniform::VariableTypes, FrameBufferAttachPoints>> &outputMap) = 0;
@@ -168,7 +168,7 @@ public:
     virtual int getMaxTextureImageUnits() const = 0;
 
     virtual void setMaterial(const Material& material) = 0;
-    virtual void setBoneTransforms(const std::vector<glm::mat4>& boneTransforms, uint32_t index) = 0;
+    virtual void setBoneTransforms(uint32_t index, const std::vector<glm::mat4>& boneTransforms) = 0;
     virtual void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) = 0;
     virtual void setModelIndexesUBO(const std::vector<glm::uvec4> & modelIndicesList) = 0;
     virtual void attachModelIndicesUBO(const uint32_t programID) = 0;

@@ -346,6 +346,9 @@ private:
 
     void resetVisibilityBufferForRenderPipelineChange();
     void resetCameraTagsFromPipeline(const std::map<std::string, std::vector<std::set<std::string>>> &cameraRenderTagListMap);
+
+    void setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment);
+
     void fillVisibleObjectsUsingTags();
     std::map<VisibilityRequest*, SDL_Thread *> occlusionThreadManager();
     std::map<VisibilityRequest*, SDL_Thread *> visibilityThreadPool;

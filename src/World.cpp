@@ -132,7 +132,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                                            worldAABBMax);
     switchPlayer(currentPlayer, *inputHandler); //switching to itself, to set the states properly. It uses camera so done after camera creation
 
-
     renderPipeline = GraphicsPipeline::deserialize("./Data/renderPipeline.xml", graphicsWrapper, assetManager, options, buildRenderMethods());
 
     if(renderPipeline == nullptr) {
@@ -455,7 +454,23 @@ void World::resetCameraTagsFromPipeline(const std::map<std::string, std::vector<
     }
 }
 
-void fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
+void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment) {
+    if (playerAttachment == nullptr) {
+        return;
+    }
+    if (playerAttachment->getRigId() == 0) {
+        playerAttachment->setRigId(this->getNextRigId());
+    }
+    if(playerAttachment->isAnimated()) {
+            changedBoneTransforms.emplace(playerAttachment->getRigId(), playerAttachment->getBoneTransforms());
+    }
+    for (auto& child:playerAttachment->getChildren()) {
+        Model* childModel = dynamic_cast<Model*>(child);
+        setPlayerAttachmentsForChangedBoneTransforms(childModel);
+    }
+}
+
+   void fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
        const VisibilityRequest* visibilityRequest = static_cast<const VisibilityRequest *>(visibilityRequestRaw);
        std::vector<long> lodDistances = visibilityRequest->lodDistancesOption.get();
        float skipRenderDistance = 0, skipRenderSize = 0, maxSkipRenderSize = 0;
@@ -484,9 +499,11 @@ void fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
                            uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second, objectAverageDepth);
                            const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
                            for (auto& meshMeta:meshMetas) {
-                                visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
+                               visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
                            }
-                           visibilityRequest->changedBoneTransforms[currentModel->getRigId()] = currentModel->getBoneTransforms();
+                           if (currentModel->isAnimated()) {
+                            visibilityRequest->changedBoneTransforms[currentModel->getRigId()] = currentModel->getBoneTransforms();
+                           }
                        } else { //if not visible
                            const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
                            for (auto meshMeta:meshMetas) {
@@ -577,6 +594,8 @@ void World::fillVisibleObjectsUsingTags() {
             item.first->changedBoneTransforms.clear();
         }
     }
+
+    setPlayerAttachmentsForChangedBoneTransforms(startingPlayer.attachedModel);
 
     for (auto objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
         //all cameras calculated, clear dirty for object
@@ -1592,9 +1611,9 @@ World::generateEditorElementsForParameters(std::vector<LimonTypes::GenericParame
 }
 
    void World::setupRender() {
-    for (auto& [skeletonIndex, boneTransform]: changedBoneTransforms) {
-            graphicsWrapper->setBoneTransforms(*boneTransform, skeletonIndex);
-        }
+    for (auto& boneTransformPair: changedBoneTransforms) {
+        graphicsWrapper->setBoneTransforms(boneTransformPair.first, *(boneTransformPair.second));
+    }
     changedBoneTransforms.clear();
    }
 

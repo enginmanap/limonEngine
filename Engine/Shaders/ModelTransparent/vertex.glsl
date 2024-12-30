@@ -47,14 +47,6 @@ layout (std140) uniform ModelIndexBlock {
     uvec4 models[NR_MAX_MODELS];
 } instance;
 
-struct BoneTransform {
-    mat4 transforms[NR_BONE];
-};
-
-layout (std140) uniform AllAnimationsBlock {
-    BoneTransform rigs[8];
-} animation;
-
 layout (std140) uniform LightSourceBlock
 {
     LightSource lights[NR_POINT_LIGHTS];

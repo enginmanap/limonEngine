@@ -43,24 +43,26 @@ struct LightSource {
 };
 
 uniform sampler2D allModelTransformsTexture;
+uniform sampler2D allBoneTransformsTexture;
 
 layout (std140) uniform ModelIndexBlock {
     uvec4 models[NR_MAX_MODELS];
 } instance;
-
-struct rigBones {
-    mat4 transform[NR_BONE];
-};
-
-layout (std140) uniform AllAnimationsBlock {
-    rigBones rigs[8];
-} animation;
 
 layout (std140) uniform LightSourceBlock {
     LightSource lights[NR_POINT_LIGHTS];
 } LightSources;
 
 uniform bool isAnimated;
+
+mat4 getMatrixFromRigTexture(uint rigIndex, uint boneIndex) {
+    mat4 matrix;
+    matrix[0] = texelFetch(allBoneTransformsTexture, ivec2(int(boneIndex*4u)    , int(rigIndex)), 0);
+    matrix[1] = texelFetch(allBoneTransformsTexture, ivec2(int(boneIndex*4u) + 1, int(rigIndex)), 0);
+    matrix[2] = texelFetch(allBoneTransformsTexture, ivec2(int(boneIndex*4u) + 2, int(rigIndex)), 0);
+    matrix[3] = texelFetch(allBoneTransformsTexture, ivec2(int(boneIndex*4u) + 3, int(rigIndex)), 0);
+    return matrix;
+}
 
 void main(void) {
     to_fs.textureCoord = textureCoordinate;
@@ -78,10 +80,10 @@ void main(void) {
 
     if(isAnimated) {
         uint skeletonId = instance.models[gl_InstanceID].z;
-        mat4 BoneTransform  = animation.rigs[skeletonId].transform[boneIDs[0]] * boneWeights[0];
-             BoneTransform += animation.rigs[skeletonId].transform[boneIDs[1]] * boneWeights[1];
-             BoneTransform += animation.rigs[skeletonId].transform[boneIDs[2]] * boneWeights[2];
-             BoneTransform += animation.rigs[skeletonId].transform[boneIDs[3]] * boneWeights[3];
+        mat4 BoneTransform  = getMatrixFromRigTexture(skeletonId, boneIDs[0]) * boneWeights[0];
+             BoneTransform += getMatrixFromRigTexture(skeletonId, boneIDs[1]) * boneWeights[1];
+             BoneTransform += getMatrixFromRigTexture(skeletonId, boneIDs[2]) * boneWeights[2];
+             BoneTransform += getMatrixFromRigTexture(skeletonId, boneIDs[3]) * boneWeights[3];
 
         to_fs.normal = normalize(transposeInverseModelTransform * vec3(BoneTransform * vec4(normal, 0.0)));
         to_fs.fragPos = vec3(modelTransform * (BoneTransform * position));

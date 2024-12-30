@@ -19,14 +19,6 @@ struct LightSource {
     vec3 ambient;
 };
 
-struct rigBones {
-    mat4 transform[NR_BONE];
-};
-
-layout (std140) uniform AllAnimationsBlock {
-    rigBones rigs[8];
-} animation;
-
 layout (std140) uniform LightSourceBlock
 {
     LightSource lights[NR_POINT_LIGHTS];
@@ -34,6 +26,7 @@ layout (std140) uniform LightSourceBlock
 
 
 uniform sampler2D allModelTransformsTexture;
+uniform sampler2D allBoneTransformsTexture;
 
 layout (std140) uniform ModelIndexBlock {
     uvec4 models[NR_MAX_MODELS];
@@ -44,15 +37,24 @@ uniform int renderLightLayer;
 
 uniform int isAnimated;
 
+mat4 getMatrixFromRigTexture(uint rigIndex, uint boneIndex) {
+    mat4 matrix;
+    matrix[0] = texelFetch(allBoneTransformsTexture, ivec2(int(boneIndex*4u)    , int(rigIndex)), 0);
+    matrix[1] = texelFetch(allBoneTransformsTexture, ivec2(int(boneIndex*4u) + 1, int(rigIndex)), 0);
+    matrix[2] = texelFetch(allBoneTransformsTexture, ivec2(int(boneIndex*4u) + 2, int(rigIndex)), 0);
+    matrix[3] = texelFetch(allBoneTransformsTexture, ivec2(int(boneIndex*4u) + 3, int(rigIndex)), 0);
+    return matrix;
+}
+
 void main() {
 
     mat4 BoneTransform = mat4(1.0);
     if(isAnimated==1) {
         uint skeletonId = instance.models[gl_InstanceID].z;
-        BoneTransform  = animation.rigs[skeletonId].transform[boneIDs[0]] * boneWeights[0];
-        BoneTransform += animation.rigs[skeletonId].transform[boneIDs[1]] * boneWeights[1];
-        BoneTransform += animation.rigs[skeletonId].transform[boneIDs[2]] * boneWeights[2];
-        BoneTransform += animation.rigs[skeletonId].transform[boneIDs[3]] * boneWeights[3];
+        BoneTransform  = getMatrixFromRigTexture(skeletonId, boneIDs[0]) * boneWeights[0];
+        BoneTransform += getMatrixFromRigTexture(skeletonId, boneIDs[1]) * boneWeights[1];
+        BoneTransform += getMatrixFromRigTexture(skeletonId, boneIDs[2]) * boneWeights[2];
+        BoneTransform += getMatrixFromRigTexture(skeletonId, boneIDs[3]) * boneWeights[3];
     }
 
     mat4 modelTransform;

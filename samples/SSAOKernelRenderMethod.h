@@ -27,7 +27,7 @@ public:
     bool initRender(std::shared_ptr<GraphicsProgram> program, std::vector<LimonTypes::GenericParameter> parameters [[gnu::unused]]) override;
 
     virtual void renderFrame(std::shared_ptr<GraphicsProgram> program[[gnu::unused]]) {
-        graphicsInterface->attachTexture(ssaoNoiseTexture, graphicsInterface->getMaxTextureImageUnits()-4);
+        graphicsInterface->attachTexture(ssaoNoiseTexture, graphicsInterface->getMaxTextureImageUnits()-5);
 
         graphicsInterface->render(program->getID(), vao, ebo, 3 * 2);//2 triangles
     };

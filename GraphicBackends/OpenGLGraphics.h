@@ -202,7 +202,7 @@ private:
     GLuint playerUBOLocation;
     GLuint allMaterialsUBOLocation;
     GLuint allModelIndexesUBOLocation;
-    GLuint allBoneTransformsUBOLocation;
+    GLuint allBoneTransformsTexture;
 
     GLuint combineFrameBuffer;
 
@@ -323,15 +323,15 @@ public:
 
     explicit OpenGLGraphics(OptionsUtil::Options *options);
 
-    GraphicsInterface::ContextInformation getContextInformation();
-    bool createGraphicsBackend();
+    GraphicsInterface::ContextInformation getContextInformation() override;
+    bool createGraphicsBackend() override;
 
-    ~OpenGLGraphics();
+    ~OpenGLGraphics() override;
 
-    void attachModelUBO(const uint32_t program) override;
+    void attachModelTexture(const uint32_t program) override;
+    void attachRigTexture(const uint32_t program) override;
 
     void attachMaterialUBO(const uint32_t program) override;
-    void attachBoneTransformsUBO(const uint32_t program) override;
 
     void initializeProgramAsset(const uint32_t programId,
                                 std::unordered_map<std::string, std::shared_ptr<Uniform>> &uniformMap,
@@ -460,7 +460,7 @@ public:
 
     void setMaterial(const Material& material) override;
 
-    void setBoneTransforms(const std::vector<glm::mat4>& boneTransforms, uint32_t index) override;
+    void setBoneTransforms(uint32_t index, const std::vector<glm::mat4>& boneTransforms) override;
 
     void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) override;
 

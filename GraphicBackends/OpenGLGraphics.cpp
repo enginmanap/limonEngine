@@ -258,12 +258,18 @@ Uniform::VariableTypes OpenGLGraphics::getSamplerVariableType(const GLint *query
     return variableType;
 }
 
-
-void OpenGLGraphics::attachModelUBO(const uint32_t program) {
+void OpenGLGraphics::attachModelTexture(const uint32_t program) {
     GLint allModelsAttachPoint = glGetUniformLocation(program, "allModelTransformsTexture");
     this->setUniform(program, allModelsAttachPoint, maxTextureImageUnits-3);
     state->attachTexture(allModelTransformsTexture, maxTextureImageUnits-3);
-    checkErrors("attachModelUBO");
+    checkErrors("attachModelTexture");
+}
+
+void OpenGLGraphics::attachRigTexture(const uint32_t program) {
+    GLint allBonesAttachPoint = glGetUniformLocation(program, "allBoneTransformsTexture");
+    this->setUniform(program, allBonesAttachPoint, maxTextureImageUnits-4);
+    state->attachTexture(allBoneTransformsTexture, maxTextureImageUnits-4);
+    checkErrors("attachRigTexture");
 }
 
 void OpenGLGraphics::attachModelIndicesUBO(const uint32_t programID) {
@@ -278,7 +284,6 @@ void OpenGLGraphics::attachModelIndicesUBO(const uint32_t programID) {
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
     checkErrors("attachModelIndicesUBO");
-    attachBoneTransformsUBO(programID);
 }
 
 void OpenGLGraphics::attachMaterialUBO(const uint32_t program){
@@ -294,21 +299,6 @@ void OpenGLGraphics::attachMaterialUBO(const uint32_t program){
 
     checkErrors("attachMaterialUBO");
 }
-
-void OpenGLGraphics::attachBoneTransformsUBO(const uint32_t program){
-    GLuint allBoneTransformsAttachPoint = 10;
-
-    int uniformIndex = glGetUniformBlockIndex(program, "AllAnimationsBlock");
-    if (uniformIndex >= 0) {
-        glBindBuffer(GL_UNIFORM_BUFFER, allBoneTransformsUBOLocation);
-        glUniformBlockBinding(program, uniformIndex, allBoneTransformsAttachPoint);
-        glBindBufferBase(GL_UNIFORM_BUFFER, allBoneTransformsAttachPoint, allBoneTransformsUBOLocation);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
-    }
-
-    checkErrors("attachBoneTransformsUBO");
-}
-
 
 void OpenGLGraphics::attachGeneralUBOs(const GLuint program){//Attach the light block to our UBO
 
@@ -489,11 +479,13 @@ bool OpenGLGraphics::createGraphicsBackend() {
     glBufferData(GL_UNIFORM_BUFFER, materialUniformSize * NR_MAX_MATERIALS, nullptr, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    //create bone transform array  uniform buffer object
-    glGenBuffers(1, &allBoneTransformsUBOLocation);
-    glBindBuffer(GL_UNIFORM_BUFFER, allBoneTransformsUBOLocation);
-    glBufferData(GL_UNIFORM_BUFFER, NR_BONE * sizeof(glm::mat4) * 8, nullptr, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    glGenTextures(1, &allBoneTransformsTexture);
+    state->activateTextureUnit(maxTextureImageUnits-4);
+    glBindTexture(GL_TEXTURE_2D, allBoneTransformsTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4 * NR_BONE, NR_MAX_MODELS, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    state->activateTextureUnit(0);
 
     glGenTextures(1, &allModelTransformsTexture);
     state->activateTextureUnit(maxTextureImageUnits-3);
@@ -981,10 +973,7 @@ OpenGLGraphics::~OpenGLGraphics() {
     deleteBuffer(1, lightUBOLocation);
     deleteBuffer(1, playerUBOLocation);
     deleteBuffer(1, allMaterialsUBOLocation);
-    deleteBuffer(1, allBoneTransformsUBOLocation);
     glDeleteFramebuffers(1, &combineFrameBuffer);
-
-    //state->setProgram(0);
 }
 
 void OpenGLGraphics::reshape() {
@@ -1554,13 +1543,16 @@ void OpenGLGraphics::setMaterial(const Material& material) {
     checkErrors("setMaterial");
 }
 
-void OpenGLGraphics::setBoneTransforms(const std::vector<glm::mat4>& boneTransforms, uint32_t index) {
+void OpenGLGraphics::setBoneTransforms(uint32_t index, const std::vector<glm::mat4>& boneTransforms) {
     if (boneTransforms.size() > NR_BONE) {
         std::cerr << "Too many bones, can't upload more than " << NR_BONE << "ignoring." << std::endl;
     }
-    glBindBuffer(GL_UNIFORM_BUFFER, allBoneTransformsUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, NR_BONE * sizeof(glm::mat4) * index, boneTransforms.size() * sizeof(glm::mat4), boneTransforms.data());
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    if (boneTransforms.size() < NR_BONE) {
+        std::cerr << "too little bones, possible garbage upload " << std::endl;
+    }
+    state->activateTextureUnit(maxTextureImageUnits-4);
+    state->attachTexture(allBoneTransformsTexture, maxTextureImageUnits-4);
+    glTexSubImage2D(GL_TEXTURE_2D,0,0, index, 4*NR_BONE, 1, GL_RGBA, GL_FLOAT, boneTransforms.data());
     checkErrors("setBoneTransform");
 }
 
