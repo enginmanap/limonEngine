@@ -869,11 +869,7 @@ void Editor::renderEditor() {
                                 world->unusedIDs.push(world->pickedObject->getWorldObjectID());
                                 const std::vector<Camera*>& cameras = (*iterator)->getCameras();
                                 for (auto camera:cameras) {
-                                    world->cullingResults.erase(camera);
-                                }
-                                //we need to find where the visibility thread is
-                                for (auto entry:world->visibilityThreadPool) {
-                                    for (auto camera:cameras) {
+                                    for (auto entry:world->visibilityThreadPool) {
                                         if (entry.first->camera == camera) {
                                             entry.first->running = false;
                                             VisibilityRequest::condition.signalWaiting();
@@ -881,8 +877,10 @@ void Editor::renderEditor() {
                                             auto visRequest = entry.first;
                                             world->visibilityThreadPool.erase(visRequest);
                                             delete visRequest;
+                                            break;
                                         }
                                     }
+                                    world->cullingResults.erase(camera);
                                 }
                                 world->lights.erase(iterator);
                                 break;
