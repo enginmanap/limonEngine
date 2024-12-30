@@ -400,7 +400,7 @@ private:
 
     void createNodeGraph();
 
-    std::vector<size_t> getLightIndexes(Light::LightTypes lightType) {
+    std::vector<size_t> getLightIndexes(Light::LightTypes lightType) const {
         std::vector<size_t> lights;
         for (unsigned int i = 0; i < activeLights.size(); ++i) {
             if(activeLights[i]->getLightType() != lightType) {

@@ -945,7 +945,7 @@ void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram, con
 void World::renderLight(unsigned int lightIndex, unsigned int renderLayer, const std::shared_ptr<GraphicsProgram> &renderProgram, const std::vector<HashUtil::HashedString> &tags) const {
        renderProgram->setUniform("renderLightIndex", (int) lightIndex);
        renderProgram->setUniform("renderLightLayer", (int) renderLayer);
-       Light* selectedLight = lights[lightIndex];
+       Light* selectedLight = activeLights[lightIndex];
        Camera* lightCamera = selectedLight->getCameras()[renderLayer];
        std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>* cullingResult = cullingResults.at(lightCamera);
        for (const auto& iterator:*cullingResult) {
