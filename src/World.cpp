@@ -51,8 +51,6 @@
             { Types::MENU_PLAYER, "Menu" }
     };
 
-SDL2MultiThreading::Condition VisibilityRequest::condition; //FIXME this variable doesn't looks like it belongs here
-
 void World::setupRenderForPipeline() const {
 }
 
@@ -526,13 +524,14 @@ static int staticOcclusionThread(void* visibilityRequestRaw) {
     VisibilityRequest* visibilityRequest = static_cast<VisibilityRequest *>(visibilityRequestRaw);
     //std::cout << "Thread for  " << visibilityRequest->camera->getName() << " launched, waiting for condition" << std::endl;
     //std::cout << "Thread for  " << visibilityRequest->camera->getName() << " started" << std::endl;
+
     while(visibilityRequest->running) {
-        visibilityRequest->frameCount.fetch_add(1);
+        visibilityRequest->inProgressLock.lock();
         fillVisibleObjectPerCamera(visibilityRequestRaw);
+        visibilityRequest->processingDone = true;
         visibilityRequest->inProgressLock.unlock();
         //std::cout << "Processing done for camera " << visibilityRequest->camera->getName() << " now waiting for condition" << std::endl;
-        VisibilityRequest::condition.waitCondition(visibilityRequest->blockMutex);
-        visibilityRequest->inProgressLock.lock();
+        VisibilityRequest::waitMainThreadCondition.waitCondition(visibilityRequest->blockMutex);
         //std::cout << "signal received by " << visibilityRequest->camera->getName() << " starting processing again" << std::endl;
     }
     visibilityRequest->inProgressLock.unlock();
@@ -561,26 +560,34 @@ void World::fillVisibleObjectsUsingTags() {
     if(multiThreadedCulling) {
         if (visibilityThreadPool.empty()) {
             visibilityThreadPool = occlusionThreadManager();
-            for (const auto &item: visibilityThreadPool) {
-                item.first->inProgressLock.lock();
-                item.first->inProgressLock.unlock();
-            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));//make sure all threads are started before continuing.
         }
 
         //std::cout << "          new frame, trigger occlusion threads" << std::endl;
-        uint32_t lastFrameCount = visibilityThreadPool.begin()->first->frameCount.load();
-        VisibilityRequest::condition.signalWaiting();
+        VisibilityRequest::waitMainThreadCondition.signalWaiting();
+        visibilityThreadPool.size();
+        while (true) {
+            bool allDone = true;
+            for (const auto &item: visibilityThreadPool) {
+                item.first->inProgressLock.lock();
+                if (!item.first->processingDone) {
+                    allDone = false;
+                }
+                item.first->inProgressLock.unlock();
+            }
+            if (allDone) {
+                break;
+            }
+        }
 
         for (const auto &item: visibilityThreadPool) {
-            while (item.first->frameCount == lastFrameCount) {
-                //busy wait until frame starts
-            }
             item.first->inProgressLock.lock();
             item.first->playerPosition = currentPlayer->getPosition();
             for (auto& changedRigs:item.first->changedBoneTransforms) {
                 this->changedBoneTransforms.emplace(changedRigs.first, changedRigs.second);
             }
             item.first->changedBoneTransforms.clear();
+            item.first->processingDone = false;
             item.first->inProgressLock.unlock();
         }
     } else {
@@ -1115,7 +1122,7 @@ World::~World() {
     }
     for (auto &item: visibilityThreadPool) {
 
-        item.first->condition.signalWaiting();
+        item.first->waitMainThreadCondition.signalWaiting();
         if (item.second) {
             SDL_WaitThread(item.second, NULL);
         }

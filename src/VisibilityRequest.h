@@ -4,8 +4,15 @@
 
 #ifndef LIMONENGINE_VISIBILITYREQUEST_H
 #define LIMONENGINE_VISIBILITYREQUEST_H
+#include <Options.h>
+#include <SDL2MultiThreading.h>
+#include <Utils/HashUtil.h>
+
 #include "Occlusion/RenderList.h"
 
+
+class PhysicalRenderable;
+class Camera;
 
 class VisibilityRequest {
 public:
@@ -52,7 +59,8 @@ public:
             }
         };
 
-        static SDL2MultiThreading::Condition condition;
+        static SDL2MultiThreading::Condition waitMainThreadCondition;
+        SDL_mutex* blockMutex = SDL_CreateMutex();
         const Camera* const camera;
         glm::vec3 playerPosition;
         const OptionsUtil::Options* options;
@@ -64,16 +72,16 @@ public:
         std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher>* visibility;
         mutable std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;
         bool running = true;
-        std::atomic<uint32_t> frameCount;
+        bool processingDone = false;
         SDL2MultiThreading::SpinLock inProgressLock;
-        SDL_mutex* blockMutex = SDL_CreateMutex();
+
         VisibilityRequest(Camera* camera, std::unordered_map<uint32_t, PhysicalRenderable *>* objects, std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher> * visibility, const glm::vec3& playerPosition, const OptionsUtil::Options* options) :
                 camera(camera), playerPosition(playerPosition), options(options),
                 lodDistancesOption(options->getOption<std::vector<long>>(HASH("LodDistanceList"))),
                 skipRenderDistanceOption(options->getOption<double>(HASH("SkipRenderDistance"))),
                 skipRenderSizeOption(options->getOption<double>(HASH("SkipRenderSize"))),
                 maxSkipRenderSizeOption(options->getOption<double>(HASH("MaxSkipRenderSize"))),
-                objects(objects), visibility(visibility), frameCount(0) {
+                objects(objects), visibility(visibility) {
 
         };
 

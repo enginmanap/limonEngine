@@ -872,7 +872,7 @@ void Editor::renderEditor() {
                                     for (auto entry:world->visibilityThreadPool) {
                                         if (entry.first->camera == camera) {
                                             entry.first->running = false;
-                                            VisibilityRequest::condition.signalWaiting();
+                                            VisibilityRequest::waitMainThreadCondition.signalWaiting();
                                             SDL_WaitThread(entry.second, nullptr);
                                             auto visRequest = entry.first;
                                             world->visibilityThreadPool.erase(visRequest);
