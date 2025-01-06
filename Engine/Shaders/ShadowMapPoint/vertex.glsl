@@ -49,7 +49,7 @@ void main() {
     mat4 BoneTransform = mat4(1.0);
     if(isAnimated==1) {
         uint skeletonId = instance.models[gl_InstanceID].z;
-        mat4 BoneTransform  = getMatrixFromRigTexture(skeletonId, boneIDs[0]) * boneWeights[0];
+        BoneTransform  = getMatrixFromRigTexture(skeletonId, boneIDs[0]) * boneWeights[0];
         BoneTransform += getMatrixFromRigTexture(skeletonId, boneIDs[1]) * boneWeights[1];
         BoneTransform += getMatrixFromRigTexture(skeletonId, boneIDs[2]) * boneWeights[2];
         BoneTransform += getMatrixFromRigTexture(skeletonId, boneIDs[3]) * boneWeights[3];
