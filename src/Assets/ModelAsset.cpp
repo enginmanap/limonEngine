@@ -114,6 +114,8 @@ void ModelAsset::loadCPUPart() {
                             continue;
                         }
                         if (mixamoScene->mNumAnimations != 0) {
+                            //Since we found an animation, lets first make sure we set this model as animated
+                            this->hasAnimation = true;
                             //get the file name
                             fillAnimationSet(mixamoScene->mNumAnimations, mixamoScene->mAnimations, (*mixamoFile)->name.substr(0, (*mixamoFile)->name.find_last_of("."))+ "|");
                         } else {
