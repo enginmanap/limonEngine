@@ -136,6 +136,7 @@ void Model::setupForTime(long time) {
             }
             compoundShape->recalculateLocalAabb();
         }
+        updateAABB();
     }
 
     for (auto boneIterator = exposedBoneTransforms.begin();
