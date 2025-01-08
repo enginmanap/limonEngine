@@ -1230,7 +1230,7 @@ void Editor::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, u
 
 void Editor::renderSelectedObject(Model* model) const {
     backgroundRenderStage->activate(true);
-    model->convertToRenderList(0, 0).render(world->graphicsWrapper, graphicsProgram);
+    model->convertToRenderList(0, 0).render(world->graphicsWrapper, graphicsProgram, true);
     world->renderPipeline->reActivateLastStage();
 }
 

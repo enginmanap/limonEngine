@@ -171,7 +171,7 @@ public:
     }
 
 
-   void render(GraphicsInterface* graphicsWrapper, const std::shared_ptr<GraphicsProgram> &renderProgram) const;
+   void render(GraphicsInterface* graphicsWrapper, const std::shared_ptr<GraphicsProgram> &renderProgram, bool forceNotAnimated = false) const;
 
     void cleanUpEmptyRenderLists();
 

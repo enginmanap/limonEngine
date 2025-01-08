@@ -57,7 +57,7 @@ void RenderList::removeModelFromAll(uint32_t modelId) {
     }
 }
 
-void RenderList::render(GraphicsInterface *graphicsWrapper, const std::shared_ptr<GraphicsProgram> &renderProgram) const {
+void RenderList::render(GraphicsInterface *graphicsWrapper, const std::shared_ptr<GraphicsProgram> &renderProgram, bool forceNotAnimated) const {
    int diffuseMapAttachPoint = 1;
    int ambientMapAttachPoint = 2;
    int specularMapAttachPoint = 3;
@@ -93,7 +93,11 @@ void RenderList::render(GraphicsInterface *graphicsWrapper, const std::shared_pt
            std::cerr << "Empty meshInfo" << std::endl;
            continue;
        }
-       renderProgram->setUniform("isAnimated", renderListIterator.get().isAnimated);
+       if (forceNotAnimated) {
+           renderProgram->setUniform("isAnimated", false);
+       } else {
+           renderProgram->setUniform("isAnimated", renderListIterator.get().isAnimated);
+       }
 
        graphicsWrapper->setModelIndexesUBO(renderListIterator.get().indices);
        graphicsWrapper->renderInstanced(renderProgram->getID(), renderListIterator.getMesh()->getVao(), renderListIterator.getMesh()->getEbo(), renderListIterator.getMesh()->getTriangleCount()[renderListIterator.get().lod] * 3, renderListIterator.getMesh()->getOffsets()[renderListIterator.get().lod], renderListIterator.get().indices.size());
