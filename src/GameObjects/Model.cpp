@@ -352,6 +352,15 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
             }
 
         }
+        if (ImGui::CollapsingHeader("Expose Bone for attachment")) {
+            int32_t newSelectedBoneID = this->modelAsset->buildEditorBoneTree(selectedBoneID);
+            if (newSelectedBoneID != -1 && newSelectedBoneID != selectedBoneID) {
+                selectedBoneID = newSelectedBoneID;
+                std::cout << "selected bone is " << selectedBoneID << std::endl;
+            }
+        } else {
+            selectedBoneID = -1;
+        }
     }
     if (isAnimated()) { //in animated objects can't have AI, can they?
         if (ImGui::CollapsingHeader("AI properties")) {
@@ -405,75 +414,66 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
             ImGuiHelper::ShowHelpMarker("No sound asset selected");
         }
     }
-    if(animated) {
-        if (ImGui::CollapsingHeader("Expose Bone for attachment")) {
-            int32_t newSelectedBoneID = this->modelAsset->buildEditorBoneTree(selectedBoneID);
-            if (newSelectedBoneID != -1 && newSelectedBoneID != selectedBoneID) {
-                selectedBoneID = newSelectedBoneID;
-                std::cout << "selected bone is " << selectedBoneID << std::endl;
-            }
-        } else {
-            selectedBoneID = -1;
+    if (ImGui::CollapsingHeader("Material properties")) {
+        //add material listing
+        static int32_t selectedIndex = -1;
+        static uint32_t selectedModel = 0;
+        if (this->getWorldObjectID() != selectedModel) {
+            selectedIndex = -1;
+            selectedModel = this->getWorldObjectID();
         }
-    }
-    //add material listing
-    static int32_t selectedIndex = -1;
-    static uint32_t selectedModel = 0;
-    if (this->getWorldObjectID() != selectedModel) {
-        selectedIndex = -1;
-        selectedModel = this->getWorldObjectID();
-    }
-    bool isSelected = false;
-    if(ImGui::BeginListBox("Meshes##ModelObject")) {
-        for (size_t i = 0; i < meshMetaData.size(); ++i) {
-            isSelected = selectedIndex == static_cast<int32_t>(i);
-            if (ImGui::Selectable((meshMetaData[i]->mesh->getName() + " -> " + meshMetaData[i]->material->getName()).c_str(), isSelected)) {
-                if (selectedIndex != static_cast<int32_t>(i)) { //means selection changed, trigger material change on main window
-                    EditorNS::selectedMeshesMaterial = meshMetaData[i]->material;
+        bool isSelected = false;
+        if(ImGui::BeginListBox("Meshes##ModelObject")) {
+            for (size_t i = 0; i < meshMetaData.size(); ++i) {
+                isSelected = selectedIndex == static_cast<int32_t>(i);
+                if (ImGui::Selectable((meshMetaData[i]->mesh->getName() + " -> " + meshMetaData[i]->material->getName()).c_str(), isSelected)) {
+                    if (selectedIndex != static_cast<int32_t>(i)) { //means selection changed, trigger material change on main window
+                        EditorNS::selectedMeshesMaterial = meshMetaData[i]->material;
+                    }
+                    selectedIndex = static_cast<int32_t>(i);
                 }
-                selectedIndex = static_cast<int32_t>(i);
             }
-        }
-        ImGui::EndListBox();
-        if (selectedIndex == -1) {
-            ImGui::BeginDisabled();
-        }
-        if (EditorNS::selectedFromListMaterial == nullptr) {
-            ImGui::BeginDisabled();
-        }
-        if (ImGui::Button("Switch material")) {
-            //Materials are registered by assets, we should not unregister
-            this->meshMetaData[selectedIndex]->material = EditorNS::selectedFromListMaterial;
-            result.materialChanged = true;
-            this->dirtyForFrustum = true;
-        }
-        if (EditorNS::selectedFromListMaterial == nullptr) {
-            ImGui::EndDisabled();
-        }
-        ImGui::SameLine();
-
-        ImGuiHelper::ShowHelpMarker("This will switch the material to the one selected in world editor");
-        ImGui::SameLine();
-        static std::shared_ptr<Material> copiedMaterial = nullptr;
-        if (ImGui::Button("Alter material for this model")) {
-            copiedMaterial = std::make_shared<Material>(*this->meshMetaData[selectedIndex]->material);//copy construct
-            int randomNum = (rand() % 100) + 1;//it is super unlikely that 2 copies will be created without actually changing something, but it is possible. Randomize to prevent clash
-            copiedMaterial->setAmbientColor(glm::vec3(copiedMaterial->getAmbientColor().x,copiedMaterial->getAmbientColor().y,copiedMaterial->getAmbientColor().z + (0.000001f * randomNum)));
-
-            copiedMaterial = assetManager->registerMaterial(copiedMaterial);//this is to get a valid index, not deduplicate.
-            meshMetaData[selectedIndex]-> material = copiedMaterial;
-            graphicsWrapper->setMaterial(*copiedMaterial);
-            result.materialChanged = true;
-            this->dirtyForFrustum = true;
-        }
-        if (copiedMaterial != nullptr) {
-            copiedMaterial->addImGuiEditorElements(request);
-            if (ImGui::Button("Close##materialAlterInModel")) {
-                copiedMaterial = nullptr;
+            ImGui::EndListBox();
+            if (selectedIndex == -1) {
+                ImGui::BeginDisabled();
             }
-        }
-        if (selectedIndex == -1) {
-            ImGui::EndDisabled();
+            if (EditorNS::selectedFromListMaterial == nullptr) {
+                ImGui::BeginDisabled();
+            }
+            if (ImGui::Button("Switch material")) {
+                //Materials are registered by assets, we should not unregister
+                this->meshMetaData[selectedIndex]->material = EditorNS::selectedFromListMaterial;
+                result.materialChanged = true;
+                this->dirtyForFrustum = true;
+            }
+            if (EditorNS::selectedFromListMaterial == nullptr) {
+                ImGui::EndDisabled();
+            }
+            ImGui::SameLine();
+
+            ImGuiHelper::ShowHelpMarker("This will switch the material to the one selected in world editor");
+            ImGui::SameLine();
+            static std::shared_ptr<Material> copiedMaterial = nullptr;
+            if (ImGui::Button("Alter material for this model")) {
+                copiedMaterial = std::make_shared<Material>(*this->meshMetaData[selectedIndex]->material);//copy construct
+                int randomNum = (rand() % 100) + 1;//it is super unlikely that 2 copies will be created without actually changing something, but it is possible. Randomize to prevent clash
+                copiedMaterial->setAmbientColor(glm::vec3(copiedMaterial->getAmbientColor().x,copiedMaterial->getAmbientColor().y,copiedMaterial->getAmbientColor().z + (0.000001f * randomNum)));
+
+                copiedMaterial = assetManager->registerMaterial(copiedMaterial);//this is to get a valid index, not deduplicate.
+                meshMetaData[selectedIndex]-> material = copiedMaterial;
+                graphicsWrapper->setMaterial(*copiedMaterial);
+                result.materialChanged = true;
+                this->dirtyForFrustum = true;
+            }
+            if (copiedMaterial != nullptr) {
+                copiedMaterial->addImGuiEditorElements(request);
+                if (ImGui::Button("Close##materialAlterInModel")) {
+                    copiedMaterial = nullptr;
+                }
+            }
+            if (selectedIndex == -1) {
+                ImGui::EndDisabled();
+            }
         }
     }
     return result;
