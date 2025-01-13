@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <list>
+#include "HashUtil.h"
 
 class StringUtils {
 public:
@@ -47,6 +49,20 @@ public:
         if(b != e) {
             joinedStream << *b;
         }
+        return joinedStream.str();
+    }
+
+
+    std::string static join(const std::list<HashUtil::HashedString>& source, const std::string& delimiter)
+    {
+        std::ostringstream joinedStream;
+        if (source.empty()) {
+            return "";
+        }
+        for (auto it = source.begin(); it != std::prev(source.end()); ++it) {
+            joinedStream << it->text << delimiter;
+        }
+        joinedStream << source.back().text;
         return joinedStream.str();
     }
 };

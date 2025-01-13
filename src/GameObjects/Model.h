@@ -291,6 +291,21 @@ public:
         GameObject::removeTag(text);
     }
 
+private:
+    /**
+     * This method is causing rehashing of all new tags. Don't use in game mode, only intended for Editor
+     * @param tagList custom tags to be set.
+     */
+    void setTagsCustomOnly(const std::vector<std::string> & tagList) {
+        std::list<HashUtil::HashedString> currentTags = this->getTagsCustomOnly();
+        for (auto current_tag: currentTags) {
+            this->removeTag(current_tag.text);
+        }
+        for (auto it = tagList.begin(); it != tagList.end(); ++it) {
+            this->addTag(*it);
+        }
+        this->dirtyForFrustum = true;
+    }
 
 };
 

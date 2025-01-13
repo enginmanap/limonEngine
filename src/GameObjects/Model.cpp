@@ -304,6 +304,20 @@ bool Model::fillObjects(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *o
         }
     }
 
+    std::list<HashUtil::HashedString> customTags = getTagsCustomOnly();
+    if (!customTags.empty()) {
+        tinyxml2::XMLElement *customTagsNode = document.NewElement("CustomTags");
+        tinyxml2::XMLElement *customTagsCountNode = document.NewElement("Count");
+        customTagsCountNode->SetText(std::to_string(customTags.size()).c_str());
+        customTagsNode->InsertEndChild(customTagsCountNode);
+        objectElement->InsertEndChild(customTagsNode);
+        for (auto& customTag:customTags) {
+            tinyxml2::XMLElement *customTagNode = document.NewElement("CustomTag");
+            customTagNode->SetText(customTag.text.c_str());
+            customTagsNode->InsertEndChild(customTagNode);
+        }
+    }
+
     modelAsset->serializeCustomizations();
     return true;
 }
@@ -326,6 +340,25 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
     }
 
     ImGui::NewLine();
+    static char tempTagsBuffer[512] = {0};
+    std::string joinedTags = StringUtils::join(this->getTagsCustomOnly(), ",");
+    strncpy(tempTagsBuffer, joinedTags.c_str(), std::min(joinedTags.length(), sizeof(tempTagsBuffer) - 1));
+    tempTagsBuffer[std::min(joinedTags.length(), sizeof(tempTagsBuffer) - 1)] = 0;
+    std::vector<std::string> internalTags;
+    for (auto currentTag : this->getTags()) {
+        if (std::find(HardCodedTags::ALL_TAGS.begin(), HardCodedTags::ALL_TAGS.end(), currentTag.text) != HardCodedTags::ALL_TAGS.end()) {
+            internalTags.emplace_back(currentTag.text);
+        }
+    }
+    char internalTagsBuffer[512] = {0};
+    std::string internalTagsJoined = StringUtils::join(internalTags, ",");
+    strncpy(internalTagsBuffer, internalTagsJoined.c_str(), std::min(internalTagsJoined.length(), sizeof(internalTagsBuffer) - 1));
+    tempTagsBuffer[std::min(internalTagsJoined.length(), sizeof(internalTagsBuffer) - 1)] = 0;
+
+    ImGui::InputText("Automatic Tags##ForModelObject", internalTagsBuffer, sizeof(internalTagsBuffer), ImGuiInputTextFlags_ReadOnly);
+    ImGui::InputText("Custom Tags##ForModelObject",tempTagsBuffer, sizeof(tempTagsBuffer), ImGuiInputTextFlags_CharsNoBlank);
+    joinedTags = tempTagsBuffer;
+    this->setTagsCustomOnly(StringUtils::split(joinedTags, ","));
     if (isAnimated()) {
         if (ImGui::CollapsingHeader("Model animation properties")) {
             if (ImGui::BeginCombo("Animation Name", animationName.c_str())) {

@@ -591,7 +591,7 @@ WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::X
     }
     //Now Load material changes
     std::vector<std::pair<std::string, std::shared_ptr<Material>>> custumizedMeshMaterialList;
-    tinyxml2::XMLElement* meshMaterialListNode =  objectNode->FirstChildElement("MeshMaterialList");
+    tinyxml2::XMLElement* meshMaterialListNode = objectNode->FirstChildElement("MeshMaterialList");
     if (meshMaterialListNode != nullptr) {
         tinyxml2::XMLElement *meshMaterialNode = meshMaterialListNode->FirstChildElement("MeshMaterial");
         while (meshMaterialNode != nullptr) {
@@ -613,6 +613,18 @@ WorldLoader::loadObject( std::shared_ptr<AssetManager> assetManager, tinyxml2::X
     if (!custumizedMeshMaterialList.empty()) {
         loadedObjectInformation->model->loadOverriddenMeshMaterial(custumizedMeshMaterialList);
     }
+
+    tinyxml2::XMLElement* customTagsNode = objectNode->FirstChildElement("CustomTags");
+    if (customTagsNode != nullptr) {
+        tinyxml2::XMLElement *customTagNode = customTagsNode->FirstChildElement("CustomTag");
+        while (customTagNode != nullptr) {
+            if (customTagNode->GetText() != nullptr) {
+                loadedObjectInformation->model->addTag(customTagNode->GetText());
+            }
+            customTagNode = customTagNode->NextSiblingElement("CustomTag");
+        }
+    }
+
 
     loadedObjects.push_back(std::move(loadedObjectInformation));
 

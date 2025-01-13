@@ -30,6 +30,8 @@ public:
     static const std::string CAMERA_PLAYER;
 
     static const std::string PICKED_OBJECT;
+
+    static const std::vector<std::string> ALL_TAGS;//all tags
 };
 
 #endif //LIMONENGINE_HARDCODEDTAGS_H

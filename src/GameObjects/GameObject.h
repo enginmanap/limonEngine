@@ -7,6 +7,7 @@
 
 #include <string>
 #include <list>
+#include <Utils/HardCodedTags.h>
 
 #include "API/LimonAPI.h"
 #include "Editor/ImGuiRequest.h"
@@ -59,8 +60,26 @@ public:
         return false;
     }
 
+    /**
+     *
+     * @return all tags, including hardcoded ones
+     */
     const std::list<HashUtil::HashedString>& getTags() const {
         return tags;
+    }
+
+    /**
+     * This method is here only for Editor. Don't use in game code, or refactor to remove rehashing of tags
+     * @return list of tags, filtered by HardCodedTags list.
+     */
+    std::list<HashUtil::HashedString> getTagsCustomOnly() const {
+        std::list<HashUtil::HashedString> filteredTags;
+        for (const auto& currentTag: tags) {
+            if (std::find(HardCodedTags::ALL_TAGS.begin(), HardCodedTags::ALL_TAGS.end(), currentTag.text) == HardCodedTags::ALL_TAGS.end()) {
+                filteredTags.emplace_back(currentTag.text);
+            }
+        }
+        return filteredTags;
     }
 
     virtual void removeTag(const std::string& text) {
