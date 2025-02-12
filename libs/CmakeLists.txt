@@ -17,7 +17,7 @@ set(IMGUI_HEADERS
         "libs/ImGui/imstb_textedit.h"
         "libs/ImGui/imstb_truetype.h")
 
-add_library(ImGui ${IMGUI_SOURCES} ${IMGUI_HEADERS})
+add_library(ImGui STATIC ${IMGUI_SOURCES} ${IMGUI_HEADERS})
 		
 set(IMGUIZMO_SOURCES
         "libs/ImGuizmo/ImGuizmo.cpp"
@@ -27,7 +27,7 @@ set(IMGUIZMO_HEADERS
         "libs/ImGuizmo/ImGuizmo.h"
         "libs/ImGuizmo/ImSequencer.h")
 
-add_library(ImGuizmo ${IMGUIZMO_SOURCES} ${IMGUIZMO_HEADERS})
+add_library(ImGuizmo STATIC ${IMGUIZMO_SOURCES} ${IMGUIZMO_HEADERS})
 
 
 set(NODEGRAPH_AS_LIBRARY "True")
