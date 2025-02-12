@@ -32,7 +32,7 @@ void ModelAsset::loadCPUPart() {
     const aiScene *scene;
     Assimp::Importer import;
     import.SetPropertyBool("AI_CONFIG_IMPORT_FBX_EMBEDDED_TEXTURES_LEGACY_NAMING", true);
-    unsigned int flags = (aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality);
+    unsigned int flags = (aiProcess_GlobalScale|aiProcess_GenBoundingBoxes | aiProcess_FlipUVs | aiProcessPreset_TargetRealtime_MaxQuality);
 #ifdef ASSIMP_VALIDATE_WORKAROUND
     flags = flags & ~aiProcess_FindInvalidData;
 #endif

@@ -607,14 +607,11 @@ public:
 
     }
 
-    static uint32_t getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 viewMatrix, const glm::vec3& playerPosition, PhysicalRenderable *currentRenderable, float
-                                &objectAverageDepth) {
+    static uint32_t getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &viewMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth) {
         //find the biggest axis of this object
-        glm::vec3 max = currentRenderable->getAabbMax();
-        glm::vec3 min = currentRenderable->getAabbMin();
         //now we get to calculate the size in screen
-        glm::vec4 minScreen = viewMatrix * glm::vec4(min, 1.0);
-        glm::vec4 maxScreen = viewMatrix * glm::vec4(max, 1.0);
+        glm::vec4 minScreen = viewMatrix * glm::vec4(minAABB, 1.0);
+        glm::vec4 maxScreen = viewMatrix * glm::vec4(maxAABB, 1.0);
         minScreen /= minScreen.z;
         maxScreen /= maxScreen.z;
 
@@ -622,14 +619,14 @@ public:
         if(lodDistances.empty() && skipRenderDistance == 0.0) {
             return 0;
         }
-        float dx = std::max(min.x - playerPosition.x, std::max(0.0f, playerPosition.x - max.x));
-        float dy = std::max(min.y - playerPosition.y, std::max(0.0f, playerPosition.y - max.y));
-        float dz = std::max(min.z - playerPosition.z, std::max(0.0f, playerPosition.z - max.z));
+        float dx = std::max(minAABB.x - playerPosition.x, std::max(0.0f, playerPosition.x - maxAABB.x));
+        float dy = std::max(minAABB.y - playerPosition.y, std::max(0.0f, playerPosition.y - maxAABB.y));
+        float dz = std::max(minAABB.z - playerPosition.z, std::max(0.0f, playerPosition.z - maxAABB.z));
         float distance = std::sqrt(dx*dx + dy*dy + dz*dz);
         if(skipRenderDistance !=0 && distance > skipRenderDistance) {
-            if(abs(min.x - max.x) < maxSkipRenderSize &&
-                    abs(min.y - max.y) < maxSkipRenderSize &&
-                    abs(min.z - max.z) < maxSkipRenderSize) {
+            if(abs(minAABB.x - maxAABB.x) < maxSkipRenderSize &&
+                    abs(minAABB.y - maxAABB.y) < maxSkipRenderSize &&
+                    abs(minAABB.z - maxAABB.z) < maxSkipRenderSize) {
                 //we need to clip
                 minScreen.x = std::min(std::max(minScreen.x, -1.0f), 1.0f);
                 minScreen.y = std::min(std::max(minScreen.y, -1.0f), 1.0f);
@@ -644,7 +641,7 @@ public:
         }
 
         for (size_t i = 0; i < lodDistances.size(); ++i) {
-            if(distance < (float)lodDistances[i]) {
+            if(distance < static_cast<float>(lodDistances[i])) {
                 return i;
             }
         }

@@ -53,6 +53,14 @@ public:
         return glm::distance2(renderable.getTransformation()->getTranslate(), this->position) < activeDistance * activeDistance;
     }
 
+    bool isVisible(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const override {
+        float radius = std::max((aabbMax.x - aabbMin.x) * 0.5f,
+            std::max((aabbMax.y - aabbMin.y) * 0.5f, (aabbMax.z - aabbMin.z) * 0.5f));
+        glm::vec3 sphereCenter = glm::vec3((aabbMax.x + aabbMin.x) * 0.5f, (aabbMax.y + aabbMin.y) * 0.5f, (aabbMax.z + aabbMin.z) * 0.5f);
+        float distSquared = glm::distance2(sphereCenter, this->position);
+        return distSquared < (activeDistance+radius) * (activeDistance+radius);
+    }
+
     bool isVisible(const glm::vec3 &position, float radius) const override {
         return glm::distance2(this->position, position) < (activeDistance+radius) * (activeDistance+radius);
     }

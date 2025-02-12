@@ -494,24 +494,41 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
                for (auto& visibilityEntry: *visibilityRequest->visibility) {
                    if (VisibilityRequest::isAnyTagMatch(visibilityEntry.first, currentModel->getTags())) {
                        if(isVisible) {
-                           uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second, objectAverageDepth);
                            const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                           for (auto& meshMeta:meshMetas) {
-                               visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
+                           if (meshMetas.size() < 10) {
+                               uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second->getAabbMin(), objectIt->second->getAabbMax(), objectAverageDepth);
+                               for (auto& meshMeta:meshMetas) {
+                                   visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
+                               }
+                           } else {
+                               uint32_t skipCounter = 0;
+                               uint32_t totalCounter = 0;
+                               //for models with more than 10 meshes, we don't wanna add all of them to renderlist, need to re check visibility
+                               for (auto& meshMeta:meshMetas) {
+                                   totalCounter++;
+                                   if (visibilityRequest->camera->isVisible(currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMin(),
+                                        currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMax())) {
+                                       uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), objectAverageDepth);
+                                       visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
+                                   } else {
+                                       skipCounter++;
+                                   }
+                               }
+                               //std::cout << "Model " << currentModel->getName() << " has " << skipCounter << " skipped meshes of total " << totalCounter << std::endl;
                            }
                            if (currentModel->isAnimated()) {
                             visibilityRequest->changedBoneTransforms[currentModel->getRigId()] = currentModel->getBoneTransforms();
                            }
                        } else { //if not visible
                            const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                           for (auto meshMeta:meshMetas) {
+                           for (auto& meshMeta:meshMetas) {
                                 visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
                            }
                        }
                    } else {
                        //what if we are not matching a tag, but we at some point did?
                        const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                       for (auto meshMeta:meshMetas) {
+                       for (auto& meshMeta:meshMetas) {
                            visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
                        }
                    }

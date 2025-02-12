@@ -59,6 +59,10 @@ public:
     bool isVisible(const PhysicalRenderable& renderable) const override {
         glm::vec3 aabbMin = renderable.getAabbMin();
         glm::vec3 aabbMax = renderable.getAabbMax();
+        return this->isVisible(aabbMin, aabbMax);
+    }
+
+    bool isVisible(const glm::vec3& aabbMin, const glm::vec3& aabbMax) const override {
         bool inside = true;
         //test all 6 frustum planes
         for (int i = 0; i<6; i++) {
@@ -72,7 +76,7 @@ public:
             //return false; //with flag works faster
         }
         return inside;
-    };
+    }
 
     bool isVisible(const glm::vec3 &position, float radius) const override {
         // Check if the radius of the sphere is inside the view frustum.

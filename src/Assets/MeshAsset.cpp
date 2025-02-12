@@ -22,7 +22,8 @@ MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_pt
     }
 
     //If model is animated, but mesh has no bones, it is most likely we need to attach to the nearest parent.
-
+    this->minAABB = parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mAABB.mMin), 1.0f);
+    this->maxAABB = parentTransform * glm::vec4(GLMConverter::AssimpToGLM(currentMesh->mAABB.mMax), 1.0f);
     //loadBoneInformation
     if (currentMesh->HasBones()) {
         this->bones = true;

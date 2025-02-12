@@ -28,6 +28,7 @@
 class MeshAsset {
     uint32_t vao, ebo;
     uint32_t triangleCount[4], offsets[4], vertexCount;
+    glm::vec4 minAABB, maxAABB;
 
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> normals;
@@ -94,6 +95,14 @@ public:
     bool addWeightToVertex(uint32_t boneID, unsigned int vertex, float weight);
 
     bool hasBones() const;
+
+    const glm::vec4& getAabbMin() const {
+        return minAABB;
+    }
+
+    const glm::vec4& getAabbMax() const {
+        return maxAABB;
+    }
 
     ~MeshAsset() {
         for (unsigned int i = 0; i < shapeCopies.size(); ++i) {
