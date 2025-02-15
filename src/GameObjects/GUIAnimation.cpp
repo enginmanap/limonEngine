@@ -32,7 +32,7 @@ GUIAnimation::GUIAnimation(uint32_t worldID,  std::shared_ptr<AssetManager> asse
 
 
 GameObject::ObjectTypes GUIAnimation::getTypeID() const {
-    return GUI_ANIMATION;
+    return ObjectTypes::GUI_ANIMATION;
 }
 
 std::string GUIAnimation::getName() const {

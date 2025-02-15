@@ -180,7 +180,7 @@ void Editor::renderEditor() {
                 }
             }
         }
-        if(world->pickedObject != nullptr && world->pickedObject->getTypeID() == GameObject::MODEL) {
+        if(world->pickedObject != nullptr && world->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
             ImGui::Separator();
             static float copyOffsets[3] { 0.25f, 0.25f, 0.25f};
             ImGui::DragFloat3("Copy position offsets", copyOffsets, 0.1f);
@@ -239,7 +239,7 @@ void Editor::renderEditor() {
                 ImGui::SameLine();
                 ImGuiHelper::ShowHelpMarker("Current Object: " + world->pickedObject->getName());
             }
-            if(world->pickedObject != nullptr && world->pickedObject->getTypeID() == GameObject::MODEL) {
+            if(world->pickedObject != nullptr && world->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
                 Model *pickedModel = dynamic_cast<Model *>(world->pickedObject);
                 if(pickedModel->getParentObject() != nullptr) {
                     if (ImGui::Button("Detach object from parent")) {
@@ -249,7 +249,7 @@ void Editor::renderEditor() {
                 }
             }
         }
-        if(world->pickedObject != nullptr && world->pickedObject->getTypeID() == GameObject::PLAYER) {
+        if(world->pickedObject != nullptr && world->pickedObject->getTypeID() == GameObject::ObjectTypes::PLAYER) {
             if(world->objectToAttach!= nullptr && world->objectToAttach->getWorldObjectID() != world->pickedObject->getWorldObjectID()) {
                 if (ImGui::Button("Attach saved object to Player")) {
                     world->clearWorldRefsBeforeAttachment(world->objectToAttach);
@@ -721,7 +721,7 @@ void Editor::renderEditor() {
                 }
             }
             switch(world->pickedObject->getTypeID()) {
-                case GameObject::MODEL: {
+                case GameObject::ObjectTypes::MODEL: {
                     Model* selectedObject = static_cast<Model*>(world->pickedObject);
                     if(objectEditorResult.updated) {
                         if(!selectedObject->isDisconnected()) {
@@ -763,10 +763,10 @@ void Editor::renderEditor() {
                 }
                     /* fall through */
 /************** ATTENTION, NO BREAK ******************/
-                case GameObject::GUI_TEXT:
-                case GameObject::GUI_IMAGE:
-                case GameObject::GUI_BUTTON:
-                case GameObject::GUI_ANIMATION:
+                case GameObject::ObjectTypes::GUI_TEXT:
+                case GameObject::ObjectTypes::GUI_IMAGE:
+                case GameObject::ObjectTypes::GUI_BUTTON:
+                case GameObject::ObjectTypes::GUI_ANIMATION:
                 {
                     Renderable* selectedObject = dynamic_cast<Renderable*>(world->pickedObject);
                     if(selectedObject != nullptr) {
@@ -824,7 +824,7 @@ void Editor::renderEditor() {
             // after this, remove and physics disconnect
             ImGui::NewLine();
             switch (world->pickedObject->getTypeID()) {
-                case GameObject::MODEL: {
+                case GameObject::ObjectTypes::MODEL: {
                     if (world->disconnectedModels.find(world->pickedObject->getWorldObjectID()) != world->disconnectedModels.end()) {
                         if (ImGui::Button("reconnect to physics")) {
                             world->reconnectObjectToPhysicsRequest(static_cast<Model *>(world->pickedObject)->getWorldObjectID());//Request because that action will not be carried out on editor mode
@@ -843,17 +843,17 @@ void Editor::renderEditor() {
                     }
                 }
                     break;
-                case GameObject::TRIGGER: {
+                case GameObject::ObjectTypes::TRIGGER: {
                     if (ImGui::Button("Remove This Trigger")) {
                         world->removeTriggerObject(world->pickedObject->getWorldObjectID());
                         world->pickedObject = nullptr;
                     }
                 }
                     break;
-                case GameObject::GUI_TEXT:
-                case GameObject::GUI_IMAGE:
-                case GameObject::GUI_BUTTON:
-                case GameObject::GUI_ANIMATION: {
+                case GameObject::ObjectTypes::GUI_TEXT:
+                case GameObject::ObjectTypes::GUI_IMAGE:
+                case GameObject::ObjectTypes::GUI_BUTTON:
+                case GameObject::ObjectTypes::GUI_ANIMATION: {
                     if(objectEditorResult.remove) {
                         world->guiElements.erase(world->pickedObject->getWorldObjectID());
                         world->unusedIDs.push(world->pickedObject->getWorldObjectID());
@@ -862,7 +862,7 @@ void Editor::renderEditor() {
                     }
                 }
                     break;
-                case GameObject::LIGHT: {
+                case GameObject::ObjectTypes::LIGHT: {
                     if(objectEditorResult.remove) {
                         for (auto iterator = world->lights.begin(); iterator != world->lights.end(); ++iterator) {
                             if((*iterator)->getWorldObjectID() == world->pickedObject->getWorldObjectID()) {

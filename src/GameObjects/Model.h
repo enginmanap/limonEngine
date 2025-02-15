@@ -197,7 +197,7 @@ public:
         return objectID;
     }
     ObjectTypes getTypeID() const override {
-        return GameObject::MODEL;
+        return ObjectTypes::MODEL;
     }
 
      const std::vector<glm::mat4>* getBoneTransforms() const {return &boneTransforms;}

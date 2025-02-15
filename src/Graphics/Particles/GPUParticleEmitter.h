@@ -131,7 +131,7 @@ public:
     }
 
     ObjectTypes getTypeID() const override {
-        return GPU_PARTICLE_EMITTER;
+        return ObjectTypes::GPU_PARTICLE_EMITTER;
     }
 
     std::string getName() const override {

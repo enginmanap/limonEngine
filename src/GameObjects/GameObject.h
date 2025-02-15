@@ -19,9 +19,7 @@
  */
 class GameObject {
 public:
-
-
-    enum ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT, GUI_IMAGE, GUI_BUTTON, GUI_ANIMATION, SOUND, MODEL_GROUP, PARTICLE_EMITTER, GPU_PARTICLE_EMITTER };
+    enum class ObjectTypes { PLAYER, LIGHT, MODEL, SKYBOX, TRIGGER, GUI_TEXT, GUI_IMAGE, GUI_BUTTON, GUI_ANIMATION, SOUND, MODEL_GROUP, PARTICLE_EMITTER, GPU_PARTICLE_EMITTER };
 
     virtual ObjectTypes getTypeID() const = 0;
     virtual std::string getName() const = 0;
@@ -51,7 +49,7 @@ public:
         }
     }
 
-    bool hasTag(uint64_t hash) {
+    bool hasTag(uint64_t hash) const {
         for (const HashUtil::HashedString& hashedString:tags) {
             if(hashedString.hash == hash) {
                 return true;

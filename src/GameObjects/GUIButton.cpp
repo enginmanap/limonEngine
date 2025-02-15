@@ -38,7 +38,7 @@ GUIButton::GUIButton(uint32_t worldID,  std::shared_ptr<AssetManager> assetManag
 
 
 GameObject::ObjectTypes GUIButton::getTypeID() const {
-    return GUI_BUTTON;
+    return ObjectTypes::GUI_BUTTON;
 }
 
 std::string GUIButton::getName() const {

@@ -55,7 +55,7 @@ public:
 
     /** Game object methods */
     GameObject::ObjectTypes getTypeID() const override {
-        return SOUND;
+        return ObjectTypes::SOUND;
     }
 
     std::string getName() const override {

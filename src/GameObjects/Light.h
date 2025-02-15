@@ -189,7 +189,7 @@ public:
     };
 
     ObjectTypes getTypeID() const override {
-        return GameObject::LIGHT;
+        return ObjectTypes::LIGHT;
     };
 
     std::string getName() const override {

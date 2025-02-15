@@ -12,7 +12,7 @@ GUIText::GUIText(GraphicsInterface* graphicsWrapper, uint32_t id, const std::str
         : GUITextBase(graphicsWrapper, font, text, color), worldID(id), name(name) {}
 
 GameObject::ObjectTypes GUIText::getTypeID() const {
-    return GUI_TEXT;
+    return ObjectTypes::GUI_TEXT;
 }
 
 std::string GUIText::getName() const {

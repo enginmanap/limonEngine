@@ -21,7 +21,7 @@ GUIImage::GUIImage(uint32_t worldID, OptionsUtil::Options *options,  std::shared
 
 
 GameObject::ObjectTypes GUIImage::getTypeID() const {
-    return GUI_IMAGE;
+    return ObjectTypes::GUI_IMAGE;
 }
 
 std::string GUIImage::getName() const {

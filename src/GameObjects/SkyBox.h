@@ -60,7 +60,7 @@ public:
     };
 
     ObjectTypes getTypeID() const override {
-        return GameObject::SKYBOX;
+        return ObjectTypes::SKYBOX;
     }
 
     std::string getName() const override {

@@ -138,7 +138,7 @@ public:
     }
 
     ObjectTypes getTypeID() const override {
-        return PARTICLE_EMITTER;
+        return ObjectTypes::PARTICLE_EMITTER;
     }
 
     std::string getName() const override {

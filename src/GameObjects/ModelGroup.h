@@ -21,7 +21,7 @@ public:
     }
 
     GameObject::ObjectTypes getTypeID() const override {
-        return MODEL_GROUP;
+        return ObjectTypes::MODEL_GROUP;
     }
 
     std::string getName() const override {

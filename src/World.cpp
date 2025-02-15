@@ -204,13 +204,13 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
                      continue; //self should not change closest hit
                  }
                  closestDistance = distance;
-                 if (gameObject->getTypeID() != GameObject::PLAYER && gameObject->getTypeID() != GameObject::TRIGGER ) { //trigger is ghost, so it should not block
+                 if (gameObject->getTypeID() != GameObject::ObjectTypes::PLAYER && gameObject->getTypeID() != GameObject::ObjectTypes::TRIGGER ) { //trigger is ghost, so it should not block
                      if(hasSeen) {
                          //means we saw the player, and this is closer than player
                          return false;
                      }
                  }
-                 if (gameObject->getTypeID() == GameObject::PLAYER) {
+                 if (gameObject->getTypeID() == GameObject::ObjectTypes::PLAYER) {
                      hasSeen = true;
                  }
              }
@@ -323,7 +323,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
         GUIButton* button = nullptr;
 
         GameObject* pointed = this->getPointedObject(COLLIDE_EVERYTHING, ~(COLLIDE_NOTHING));
-        if(pointed != nullptr && pointed->getTypeID() == GameObject::GUI_BUTTON) {
+        if(pointed != nullptr && pointed->getTypeID() == GameObject::ObjectTypes::GUI_BUTTON) {
             button = dynamic_cast<GUIButton*>(pointed);
         }
 
@@ -949,15 +949,15 @@ void World::renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment
         return;
     }
     std::vector<PhysicalRenderable *> children;
-    if(attachmentObject->getTypeID() == GameObject::MODEL) {
+    if(attachmentObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
         children = (static_cast<Model*>(attachment))->getChildren();
-    } else if(attachmentObject->getTypeID() == GameObject::MODEL_GROUP) {
+    } else if(attachmentObject->getTypeID() == GameObject::ObjectTypes::MODEL_GROUP) {
         //the group has the tag, everything under should be rendered.
         children = (static_cast<ModelGroup*>(attachment))->getChildren();
     }
     if(std::find(alreadyRenderedModelIds.begin(), alreadyRenderedModelIds.end(), attachmentObject->getWorldObjectID()) == alreadyRenderedModelIds.end() && attachmentObject->hasTag(renderTag)) {
         alreadyRenderedModelIds.emplace_back(attachmentObject->getWorldObjectID());
-        if(attachmentObject->getTypeID() == GameObject::MODEL) {
+        if(attachmentObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
             static_cast<Model *>(attachment)->convertToRenderList(0,0.0f).render(graphicsWrapper, renderProgram);
         }
     }
@@ -2375,7 +2375,7 @@ std::vector<LimonTypes::GenericParameter> World::rayCastToCursorAPI() {
    normalParam.value.vectorValue.z = normal.z;
    result.push_back(normalParam);
 
-   if(gameObject->getTypeID() == GameObject::MODEL) {
+   if(gameObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
        Model * foundModel = dynamic_cast<Model *>(gameObject);
        if (foundModel != nullptr && foundModel->getAIID() != 0) {
            LimonTypes::GenericParameter aiIDParam;
