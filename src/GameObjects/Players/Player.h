@@ -59,7 +59,7 @@ public:
         lookAroundSpeedOption = options->getOption<double>(HASH("lookAroundSpeed"));
     };
 
-    virtual ~Player() {}
+    ~Player() override {}
 
     virtual void move(moveDirections) = 0;
 
