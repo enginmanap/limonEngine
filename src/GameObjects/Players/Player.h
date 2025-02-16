@@ -97,7 +97,7 @@ public:
     }
 
     ObjectTypes getTypeID() const override {
-        return GameObject::PLAYER;
+        return ObjectTypes::PLAYER;
     };
 
     std::string getName() const override {
