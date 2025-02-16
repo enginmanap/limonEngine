@@ -6,7 +6,6 @@
 #include "API/Graphics/GraphicsProgram.h"
 
 #include "Material.h"
-#include "Utils/GLMUtils.h"
 #include "Graphics/Texture.h"
 
 std::shared_ptr<GraphicsInterface> createGraphicsBackend(OptionsUtil::Options* options) {

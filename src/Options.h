@@ -5,12 +5,10 @@
 #ifndef LIMONENGINE_OPTIONS_H
 #define LIMONENGINE_OPTIONS_H
 
-#include <glm/glm.hpp>
 #include <iostream>
 #include <tinyxml2.h>
 #include <unordered_map>
 #include <memory>
-#include <functional>
 #include <cstring>
 #include "Utils/HashUtil.h"
 #include "Utils/Logger.h"

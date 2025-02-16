@@ -2,7 +2,7 @@
 // Created by Engin Manap on 14.02.2016.
 //
 
-#include <iostream>
+
 #include "InputHandler.h"
 #include "ImGuiHelper.h"
 
