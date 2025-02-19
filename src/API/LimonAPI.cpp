@@ -3,8 +3,6 @@
 //
 
 #include "LimonAPI.h"
-#include <tinyxml2.h>
-#include <iostream>
 
 uint32_t LimonAPI::animateModel(uint32_t modelID, uint32_t animationID, bool looped, const std::string *soundPath) {
     return worldAddAnimationToObject(modelID, animationID, looped, soundPath);

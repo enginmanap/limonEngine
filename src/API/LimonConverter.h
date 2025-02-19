@@ -6,7 +6,6 @@
 #define LIMONENGINE_LIMONCONVERTER_H
 
 #include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
 #include "LimonTypes.h"
 
 class LimonConverter {
