@@ -5,14 +5,12 @@
 #ifndef LIMONENGINE_PLAYER_H
 #define LIMONENGINE_PLAYER_H
 
-#include <glm/glm.hpp>
 #include <string>
 #include <iostream>
 #include "../GameObject.h"
-#include "../../API/InputStates.h"
-#include "../../API/LimonAPI.h"
-#include "../../Options.h"
-#include "../../API/PlayerExtensionInterface.h"
+#include "API/InputStates.h"
+#include "API/Options.h"
+#include "API/PlayerExtensionInterface.h"
 
 class btDiscreteDynamicsWorld;
 class GUIRenderable;
