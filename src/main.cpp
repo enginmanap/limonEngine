@@ -174,10 +174,10 @@ LimonAPI *GameEngine::getNewLimonAPI() {
             bind(&GameEngine::LoadNewAndRemoveCurrent, this, std::placeholders::_1);
     std::function<void()> limonExitGame = [&] { setWorldQuit(); };
     std::function<void()> limonReturnPrevious = [&] { returnPreviousMap(); };
-
+    std::function<const OptionsUtil::Options*()> limonGetOptions = [&] { return options; };
 
     return new LimonAPI(limonLoadWorld, limonReturnOrLoadWorld, limonLoadNewAndRemoveCurrentWorld, limonExitGame,
-                            limonReturnPrevious);
+                            limonReturnPrevious, limonGetOptions);
 }
 
 void GameEngine::run() {

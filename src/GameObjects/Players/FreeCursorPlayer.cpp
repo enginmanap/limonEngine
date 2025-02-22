@@ -3,7 +3,7 @@
 //
 
 #include "FreeCursorPlayer.h"
-#include "../../Options.h"
+#include "API/Options.h"
 #include "../../GUI/GUIRenderable.h"
 
 void FreeCursorPlayer::move(moveDirections direction) {

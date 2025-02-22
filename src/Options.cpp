@@ -4,7 +4,8 @@
 
 #include <memory>
 #include <GamePlay/APISerializer.h>
-#include "Options.h"
+#include "API/Options.h"
+#include "Utils/HashUtil.h"
 
 bool OptionsUtil::Options::loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec3 &vector) {
     tinyxml2::XMLElement *vectorNode = optionsNode->FirstChildElement(name.c_str());

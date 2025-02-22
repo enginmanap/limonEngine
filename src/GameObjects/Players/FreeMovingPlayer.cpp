@@ -3,7 +3,7 @@
 //
 
 #include "FreeMovingPlayer.h"
-#include "../../Options.h"
+#include "API/Options.h"
 
 void FreeMovingPlayer::move(moveDirections direction) {
     if (direction == NONE) {

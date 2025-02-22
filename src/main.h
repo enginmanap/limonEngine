@@ -10,7 +10,7 @@
 #include <vector>
 #include <unordered_map>
 #include <memory>
-#include "Options.h"
+#include "API/Options.h"
 
 class World;
 class WorldLoader;

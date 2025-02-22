@@ -10,10 +10,8 @@
 #include <string>
 #include <map>
 #include <cstdint>
-#include <glm/glm.hpp>
 #include <functional>
-#include <iostream>
-
+#include "Options.h"
 #include "InputStates.h"
 #include "LimonTypes.h"
 
@@ -28,6 +26,8 @@ class APISerializer;
 class LimonAPI {
     friend class APISerializer;
 public:
+
+    const OptionsUtil::Options * getOptions();
 
     bool generateEditorElementsForParameters(std::vector<LimonTypes::GenericParameter> &runParameters, uint32_t index);
 
@@ -173,7 +173,9 @@ public:
              std::function<bool (const std::string&)> worldReturnOrLoadMethod,
              std::function<bool (const std::string&)> worldLoadNewAndRemoveCurrentMethod,
              std::function<void ()> worldExitMethod,
-             std::function<void ()> worldReturnPreviousMethod) {
+             std::function<void ()> worldReturnPreviousMethod,
+             std::function<const OptionsUtil::Options*()> worldGetOptions) {
+        limonGetOptions = std::move(worldGetOptions);
         limonLoadWorld = std::move(worldLoadMethod);
         limonReturnOrLoadWorld = std::move(worldReturnOrLoadMethod);
         limonLoadNewAndRemoveCurrentWorld = std::move(worldLoadNewAndRemoveCurrentMethod);
@@ -249,6 +251,7 @@ private:
     std::function<bool(const std::string&)> worldChangeRenderPipeline;
 
     /*** Non World API calls *******************************************************/
+    std::function<const OptionsUtil::Options*()> limonGetOptions;
     std::function<bool (const std::string&)> limonLoadWorld;
     std::function<bool (const std::string&)> limonReturnOrLoadWorld;
     std::function<bool (const std::string&)> limonLoadNewAndRemoveCurrentWorld;

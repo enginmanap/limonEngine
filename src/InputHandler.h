@@ -8,7 +8,7 @@
 #include <map>
 #include <SDL2/SDL.h>
 
-#include "Options.h"
+#include "API/Options.h"
 #include "API/InputStates.h"
 
 

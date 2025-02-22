@@ -19,7 +19,7 @@
 #define NR_MAX_MATERIALS 200
 #define NR_BONE 128
 
-#include "Options.h"
+#include "API/Options.h"
 #include "Uniform.h"
 
 class Material;

@@ -10,7 +10,6 @@
 #include <unordered_map>
 #include <memory>
 #include <cstring>
-#include "Utils/HashUtil.h"
 #include "Utils/Logger.h"
 #include "API/LimonTypes.h"
 
@@ -43,7 +42,7 @@ namespace OptionsUtil {
             explicit Option() = default;
             bool isUsable() const { return isSet; };
 
-            template<typename Q =  T, typename std::enable_if<!std::is_same<Q, std::string>::value>::type* = nullptr, typename std::enable_if<!std::is_same<Q, std::vector<long>>::value>::type* = nullptr>
+            template<typename Q =  T, std::enable_if_t<!std::is_same<Q, std::string>::value>* = nullptr, std::enable_if_t<!std::is_same<Q, std::vector<long>>::value>* = nullptr>
             T get() const {
                 if (!isSet) {
                     std::cerr << "Option " << value->description << " is not set" << std::endl;
@@ -51,7 +50,7 @@ namespace OptionsUtil {
                 return *((T *) &(value->value));
             }
 
-            template<typename Q =  T, typename std::enable_if<!std::is_same<Q, std::string>::value>::type* = nullptr, typename std::enable_if<!std::is_same<Q, std::vector<long>>::value>::type* = nullptr>
+            template<typename Q =  T, std::enable_if_t<!std::is_same<Q, std::string>::value>* = nullptr, std::enable_if_t<!std::is_same<Q, std::vector<long>>::value>* = nullptr>
             T getOrDefault(T defaultValue) const {
                 if (!isSet) {
                     return defaultValue;
@@ -59,7 +58,7 @@ namespace OptionsUtil {
                 return *((T *) &(value->value));
             }
 
-            template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::string>::value>::type* = nullptr>
+            template<typename Q =  T, std::enable_if_t<std::is_same<Q, std::string>::value>* = nullptr>
             std::string get() const {
                 if (!isSet) {
                     std::cerr << "Option " << value->description << " is not set" << std::endl;
@@ -67,7 +66,7 @@ namespace OptionsUtil {
                 return value->value.stringValue;
             }
 
-            template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::string>::value>::type* = nullptr>
+            template<typename Q =  T, std::enable_if_t<std::is_same<Q, std::string>::value>* = nullptr>
             std::string getOrDefault(T defaultValue) const {
                 if (!isSet) {
                     return defaultValue;
@@ -76,7 +75,7 @@ namespace OptionsUtil {
                 return value->value.stringValue;
             }
 
-            template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::vector<long>>::value>::type* = nullptr>
+            template<typename Q =  T, std::enable_if_t<std::is_same<Q, std::vector<long>>::value>* = nullptr>
             std::vector<long> get() const {
                 if (!isSet) {
                     std::cerr << "Option " << value->description << " is not set" << std::endl;
@@ -87,7 +86,7 @@ namespace OptionsUtil {
                 return *longValues;
             }
 
-            template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::vector<long>>::value>::type* = nullptr>
+            template<typename Q =  T, std::enable_if_t<std::is_same<Q, std::vector<long>>::value>* = nullptr>
             std::vector<long> getOrDefault(T defaultValue) const {
                 if (!isSet) {
                     return defaultValue;
@@ -98,7 +97,7 @@ namespace OptionsUtil {
                 return *longValues;
             }
 
-            template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::vector<long>>::value>::type* = nullptr>
+            template<typename Q =  T, std::enable_if_t<std::is_same<Q, std::vector<long>>::value>* = nullptr>
             bool set(std::vector<long> newValue) {
                 if(newValue.size() > 15) {
                     return false;
@@ -111,7 +110,7 @@ namespace OptionsUtil {
                 return true;
             }
 
-            template<typename Q =  T, typename std::enable_if<std::is_same<Q, std::string>::value>::type* = nullptr>
+            template<typename Q =  T, std::enable_if_t<std::is_same<Q, std::string>::value>* = nullptr>
             bool set(const std::string& newValue) {
                 if(newValue.length() > 63) {
                     return false;
@@ -122,21 +121,21 @@ namespace OptionsUtil {
                 return true;
             }
 
-            template<typename Q =  T, typename std::enable_if<std::is_same<Q, LimonTypes::Vec4>::value>::type* = nullptr>
+            template<typename Q =  T, std::enable_if_t<std::is_same<Q, LimonTypes::Vec4>::value>* = nullptr>
             bool set(const LimonTypes::Vec4& newValue)  {
                 value->value.vectorValue = newValue;
                 this->isSet = true;
                 return true;
             }
 
-            template<typename Q =  T, typename std::enable_if<std::is_same<Q, LimonTypes::Mat4>::value>::type* = nullptr>
+            template<typename Q =  T, std::enable_if_t<std::is_same<Q, LimonTypes::Mat4>::value>* = nullptr>
             bool set(const LimonTypes::Mat4& newValue)  {
                 value->value.matrixValue = newValue;
                 this->isSet = true;
                 return true;
             }
 
-            template<typename Q =  T, typename std::enable_if<std::is_same<Q, double>::value>::type* = nullptr>
+            template<typename Q =  T, std::enable_if_t<std::is_same<Q, double>::value>* = nullptr>
             bool set(double newValue)  {
                 value->value.doubleValue = newValue;
                 this->isSet = true;
@@ -146,7 +145,7 @@ namespace OptionsUtil {
 
         };
 
-        template<class T, typename std::enable_if<std::is_same<T, std::string>::value>::type* = nullptr>
+        template<class T, std::enable_if_t<std::is_same<T, std::string>::value>* = nullptr>
         Option<std::string> getOption(uint64_t optionHash) const {
             auto it = this->options.find(optionHash);
             if (it != this->options.end() && it->second->valueType == LimonTypes::GenericParameter::STRING) {
@@ -155,7 +154,7 @@ namespace OptionsUtil {
             return Option<std::string>(nullptr, false);
         }
 
-        template<class T, typename std::enable_if<std::is_same<T, double>::value>::type* = nullptr>
+        template<class T, std::enable_if_t<std::is_same<T, double>::value>* = nullptr>
         Option<double> getOption(uint64_t optionHash) const {
             auto it = this->options.find(optionHash);
             if (it != this->options.end() && it->second->valueType == LimonTypes::GenericParameter::DOUBLE) {
@@ -164,7 +163,7 @@ namespace OptionsUtil {
             return Option<double>(nullptr, false);
         }
 
-        template<class T, typename std::enable_if<std::is_same<T, long>::value>::type* = nullptr>
+        template<class T, std::enable_if_t<std::is_same<T, long>::value>* = nullptr>
         Option<long> getOption(uint64_t optionHash) const {
             auto it = this->options.find(optionHash);
             if (it != this->options.end() && it->second->valueType == LimonTypes::GenericParameter::LONG) {
@@ -173,7 +172,7 @@ namespace OptionsUtil {
             return Option<long>(nullptr, false);
         }
 
-        template<class T, typename std::enable_if<std::is_same<T, std::vector<long>>::value>::type* = nullptr>
+        template<class T, std::enable_if_t<std::is_same<T, std::vector<long>>::value>* = nullptr>
         Option<std::vector<long>> getOption(uint64_t optionHash) const {
             auto it = this->options.find(optionHash);
             if (it != this->options.end() && it->second->valueType == LimonTypes::GenericParameter::LONG_ARRAY) {
@@ -182,7 +181,7 @@ namespace OptionsUtil {
             return Option<std::vector<long>>(nullptr, false);
         }
 
-        template<class T, typename std::enable_if<std::is_same<T, bool>::value>::type* = nullptr>
+        template<class T, std::enable_if_t<std::is_same<T, bool>::value>* = nullptr>
         Option<bool> getOption(uint64_t optionHash) const {
             auto it = this->options.find(optionHash);
             if (it != this->options.end() && it->second->valueType == LimonTypes::GenericParameter::BOOLEAN) {
@@ -191,7 +190,7 @@ namespace OptionsUtil {
             return Option<bool>(nullptr, false);
         }
 
-        template<class T, typename std::enable_if<std::is_same<T, LimonTypes::Vec4>::value>::type* = nullptr>
+        template<class T, std::enable_if_t<std::is_same<T, LimonTypes::Vec4>::value>* = nullptr>
         Option<LimonTypes::Vec4> getOption(uint64_t optionHash) const {
             auto it = this->options.find(optionHash);
             if (it != this->options.end() && it->second->valueType == LimonTypes::GenericParameter::VEC4) {
@@ -200,7 +199,7 @@ namespace OptionsUtil {
             return Option<LimonTypes::Vec4>(nullptr, false);
         }
 
-        template<class T, typename std::enable_if<std::is_same<T, LimonTypes::Mat4>::value>::type* = nullptr>
+        template<class T, std::enable_if_t<std::is_same<T, LimonTypes::Mat4>::value>* = nullptr>
         Option<LimonTypes::Mat4> getOption(uint64_t optionHash) const {
             auto it = this->options.find(optionHash);
             if (it != this->options.end() && it->second->valueType == LimonTypes::GenericParameter::MAT4) {
@@ -316,7 +315,7 @@ namespace OptionsUtil {
             this->logger = new Logger();
         };
 
-        Logger *getLogger() {
+        Logger *getLogger() const {
             return logger;
         }
 

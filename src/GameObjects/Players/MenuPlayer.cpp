@@ -3,7 +3,7 @@
 //
 
 #include "MenuPlayer.h"
-#include "../../Options.h"
+#include "API/Options.h"
 #include "../../GUI/GUIRenderable.h"
 
 void MenuPlayer::move(moveDirections direction [[gnu::unused]]) {

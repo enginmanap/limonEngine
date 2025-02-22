@@ -5,7 +5,7 @@
 #include <SDL_syswm.h>
 #include <memory>
 #include "SDL2Helper.h"
-#include "Options.h"
+#include "API/Options.h"
 #include "API/LimonAPI.h"
 #include "API/TriggerInterface.h"
 #include "API/PlayerExtensionInterface.h"

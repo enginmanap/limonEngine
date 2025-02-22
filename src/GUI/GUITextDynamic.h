@@ -8,7 +8,7 @@
 
 #include "GUITextBase.h"
 #include "../Utils/Logger.h"
-#include "../Options.h"
+#include "API/Options.h"
 #include <list>
 
 struct TextLine {
