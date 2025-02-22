@@ -5,6 +5,12 @@
 #include "PhysicalPlayer.h"
 #include "../Model.h"
 #include "../../Utils/GLMUtils.h"
+#include "GUI/GUIRenderable.h"
+
+#include <BulletDynamics/Dynamics/btRigidBody.h>
+#include <BulletDynamics/ConstraintSolver/btGeneric6DofSpring2Constraint.h>
+#include <btBulletCollisionCommon.h>
+#include <BulletDynamics/Dynamics/btDynamicsWorld.h>
 
 
 const float PhysicalPlayer::CAPSULE_HEIGHT = 1.0f;
@@ -515,6 +521,46 @@ void PhysicalPlayer::interact(LimonAPI *limonAPI __attribute__((unused)), std::v
     }
 }
 
+void PhysicalPlayer::registerToPhysicalWorld(btDiscreteDynamicsWorld *world, int collisionGroup, int collisionMaskForSelf,
+                                 int collisionMaskForGround, const glm::vec3 &worldAABBMin [[gnu::unused]], const glm::vec3 &worldAABBMax [[gnu::unused]]) {
+    world->addRigidBody(getRigidBody(), collisionGroup, collisionMaskForSelf);
+    this->collisionGroup = collisionGroup;
+    this->collisionMask = collisionMaskForSelf;
+    this->collisionMaskGround = collisionMaskForGround;
+    world->addConstraint(getSpring(worldAABBMin.y));
+
+    for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
+        for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
+            rayCallbackArray[i * STEPPING_TEST_COUNT + j].m_collisionFilterGroup = this->collisionGroup;
+            rayCallbackArray[i * STEPPING_TEST_COUNT + j].m_collisionFilterMask = this->collisionMaskGround;
+        }
+    }
+}
+void PhysicalPlayer::ownControl(const glm::vec3& position, const glm::vec3 lookDirection) {
+    this->center = glm::normalize(lookDirection);
+    this->view.w = 0;
+    this->view.x = center.x;
+    this->view.y = center.y;
+    this->view.z = center.z;
+    this->right = glm::normalize(glm::cross(center, up));
+
+    btTransform transform = this->player->getCenterOfMassTransform();
+    transform.setOrigin(btVector3(position.x, position.y - 1.0f, position.z));
+    this->player->setWorldTransform(transform);
+    this->player->getMotionState()->setWorldTransform(transform);
+    this->player->activate();
+
+    this->inputMovementSpeed = btVector3(0,0,0);
+    this->groundFrictionMovementSpeed = btVector3(0,0,0);
+
+    positionSet = true;
+    spring->setEnabled(false);//don't enable until player is not on air
+    cursor->setTranslate(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f));
+
+    if(attachedModel != nullptr) {
+        attachedModel->getTransformation()->setOrientation(calculatePlayerRotation());
+    }
+};
 void PhysicalPlayer::setDead() {
     player->setAngularFactor(0.1);
     spring->setEnabled(false);

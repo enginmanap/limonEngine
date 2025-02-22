@@ -6,22 +6,15 @@
 #define LIMONENGINE_PHYSICALPLAYER_H
 
 
-#include <glm/glm.hpp>
-#include <BulletDynamics/Dynamics/btRigidBody.h>
-#include <BulletDynamics/ConstraintSolver/btGeneric6DofSpring2Constraint.h>
-#include <btBulletCollisionCommon.h>
 #include <vector>
-#include <BulletDynamics/Dynamics/btDynamicsWorld.h>
 #include <memory>
 
 #include "Player.h"
 #include "../../Options.h"
 #include "../../CameraAttachment.h"
 #include "../../Utils/GLMConverter.h"
-#include "../../GUI/GUIRenderable.h"
 #include "../Sound.h"
 #include "../Model.h"
-#include "../../API/PlayerExtensionInterface.h"
 
 static const int STEPPING_TEST_COUNT = 5;
 static const float MINIMUM_CLIMP_NORMAL_Y = 0.707f; // cant climb more than 45 degrees
@@ -67,15 +60,15 @@ class PhysicalPlayer : public Player, public CameraAttachment {
     static const float STANDING_HEIGHT;
 
 public:
-    glm::vec3 getPosition() const {
+    glm::vec3 getPosition() const override {
         return GLMConverter::BltToGLM(player->getCenterOfMassPosition()) + glm::vec3(0.0f, 1.0f, 0.0f);
     }
 
-    void move(moveDirections);
+    void move(moveDirections) override;
 
-    void rotate(float xPosition, float yPosition, float xChange, float yChange);
+    void rotate(float xPosition, float yPosition, float xChange, float yChange) override;
 
-    btRigidBody* getRigidBody() {
+    btRigidBody* getRigidBody() const {
         return player;
     }
 
@@ -93,22 +86,9 @@ public:
     }
 
     void registerToPhysicalWorld(btDiscreteDynamicsWorld *world, int collisionGroup, int collisionMaskForSelf,
-                                     int collisionMaskForGround, const glm::vec3 &worldAABBMin [[gnu::unused]], const glm::vec3 &worldAABBMax [[gnu::unused]]) {
-        world->addRigidBody(getRigidBody(), collisionGroup, collisionMaskForSelf);
-        this->collisionGroup = collisionGroup;
-        this->collisionMask = collisionMaskForSelf;
-        this->collisionMaskGround = collisionMaskForGround;
-        world->addConstraint(getSpring(worldAABBMin.y));
+                                     int collisionMaskForGround, const glm::vec3 &worldAABBMin [[gnu::unused]], const glm::vec3 &worldAABBMax [[gnu::unused]]) override;
 
-        for (int i = 0; i < STEPPING_TEST_COUNT; ++i) {
-            for (int j = 0; j < STEPPING_TEST_COUNT; ++j) {
-                rayCallbackArray[i * STEPPING_TEST_COUNT + j].m_collisionFilterGroup = this->collisionGroup;
-                rayCallbackArray[i * STEPPING_TEST_COUNT + j].m_collisionFilterMask = this->collisionMaskGround;
-            }
-        }
-    }
-
-    void processPhysicsWorld(const btDiscreteDynamicsWorld *world);
+    void processPhysicsWorld(const btDiscreteDynamicsWorld *world) override;
 
     bool isDirty() const override {
         return dirty;
@@ -136,7 +116,7 @@ public:
      */
     btGeneric6DofSpring2Constraint *getSpring(float minY);
 
-    glm::vec3 getLookDirection() const {
+    glm::vec3 getLookDirection() const override {
         return this->center;
     };
 
@@ -144,36 +124,12 @@ public:
         return calculatePlayerRotation();
     }
 
-    void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const {
+    void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &lookDirection) const override {
         fromPosition = this->getPosition();
         lookDirection = this->center;
     }
 
-    void ownControl(const glm::vec3& position, const glm::vec3 lookDirection) {
-        this->center = glm::normalize(lookDirection);
-        this->view.w = 0;
-        this->view.x = center.x;
-        this->view.y = center.y;
-        this->view.z = center.z;
-        this->right = glm::normalize(glm::cross(center, up));
-
-        btTransform transform = this->player->getCenterOfMassTransform();
-        transform.setOrigin(btVector3(position.x, position.y - 1.0f, position.z));
-        this->player->setWorldTransform(transform);
-        this->player->getMotionState()->setWorldTransform(transform);
-        this->player->activate();
-
-        this->inputMovementSpeed = btVector3(0,0,0);
-        this->groundFrictionMovementSpeed = btVector3(0,0,0);
-
-        positionSet = true;
-        spring->setEnabled(false);//don't enable until player is not on air
-        cursor->setTranslate(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f));
-
-        if(attachedModel != nullptr) {
-            attachedModel->getTransformation()->setOrientation(calculatePlayerRotation());
-        }
-    };
+    void ownControl(const glm::vec3& position, const glm::vec3 lookDirection) override;
 
     CameraAttachment* getCameraAttachment() {
         return this;
@@ -182,12 +138,12 @@ public:
     PhysicalPlayer(uint32_t worldID, OptionsUtil::Options *options, GUIRenderable *cursor, const glm::vec3 &position,
                    const glm::vec3 &lookDirection, Model *attachedModel = nullptr);
 
-    ~PhysicalPlayer() {
+    ~PhysicalPlayer() override {
         delete player;
         delete spring;
     }
 
-    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request);
+    ImGuiResult addImGuiEditorElements(const ImGuiRequest &request) override;
 
     void setAttachedModelOffset(const glm::vec3 &attachedModelOffset);
 
