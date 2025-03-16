@@ -7,7 +7,7 @@
 #include "ModelAsset.h"
 #include "../Utils/GLMUtils.h"
 #include "Animations/AnimationAssimp.h"
-#include "API/Graphics/GraphicsInterface.h"
+#include "limonAPI/Graphics/GraphicsInterface.h"
 #include "Animations/AnimationAssimpSection.h"
 #include "../../libs/ImGui/imgui.h"
 

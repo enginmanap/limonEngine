@@ -3,7 +3,7 @@
 //
 
 #include "main.h"
-#include "API/Graphics/GraphicsInterface.h"
+#include "limonAPI/Graphics/GraphicsInterface.h"
 #include "SDL2Helper.h"
 #include "World.h"
 #include "WorldLoader.h"
@@ -122,7 +122,7 @@ void GameEngine::returnPreviousMap() {
 }
 
 GameEngine::GameEngine() {
-    options = new OptionsUtil::Options();
+    options = new OptionsUtil::Options([](){return SDL_GetTicks();});
 
     options->loadOptionsNew(OPTIONS_FILE);
     std::cout << "Options loaded successfully" << std::endl;

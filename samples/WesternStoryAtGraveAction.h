@@ -6,7 +6,7 @@
 #define LIMONENGINE_WESTERNSTORYATGRAVEACTION_H
 
 
-#include <API/TriggerInterface.h>
+#include <limonAPI/TriggerInterface.h>
 
 class WesternStoryAtGraveAction : public TriggerInterface {
     uint32_t textID1,textID2;

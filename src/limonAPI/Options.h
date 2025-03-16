@@ -10,8 +10,8 @@
 #include <unordered_map>
 #include <memory>
 #include <cstring>
-#include "Utils/Logger.h"
-#include "API/LimonTypes.h"
+#include "limonAPI/util/Logger.h"
+#include "limonAPI/LimonTypes.h"
 
 namespace OptionsUtil {
     class Options {
@@ -311,8 +311,8 @@ namespace OptionsUtil {
             return widthOption.getOrDefault(1920);
         }
 
-        Options() {
-            this->logger = new Logger();
+        Options(const std::function<uint32_t ()> &gameTimeProvider) {
+            this->logger = new Logger(gameTimeProvider);
         };
 
         Logger *getLogger() const {

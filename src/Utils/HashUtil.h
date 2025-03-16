@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <iostream>
 #include "consthash/include/consthash/cityhash64.hxx"
+#include "limonAPI/util/HashUtil.h"
 
 class HashUtil {
 public:
@@ -46,25 +47,4 @@ private:
 
 };
 
-struct constexpr_str {
-    char const* str;
-    std::size_t size;
-
-    // can only construct from a char[] literal
-    template <std::size_t N>
-    constexpr constexpr_str(char const (&s)[N])
-            : str(s)
-            , size(N - 1) // not count the trailing nul
-    {}
-};
-
-constexpr uint64_t HASH(constexpr_str text) {
-    return consthash::city64(text.str, text.size);
-}
-
-inline uint64_t hash(std::string text) {
-    return consthash::city64(text.c_str(), text.length());
-}
-
-static_assert(HASH("test") == consthash::city64("test", 4), "HASH function did not run at compile time");
 #endif //LIMONENGINE_HASHUTIL_H

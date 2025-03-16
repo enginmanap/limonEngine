@@ -6,7 +6,7 @@
 #define LIMONENGINE_GUILAYER_H
 
 #include <tinyxml2.h>
-#include "API/Graphics/GraphicsInterface.h"
+#include "limonAPI/Graphics/GraphicsInterface.h"
 
 class BulletDebugDrawer;
 class GUIRenderable;

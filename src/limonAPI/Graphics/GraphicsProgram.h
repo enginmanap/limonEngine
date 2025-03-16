@@ -10,8 +10,8 @@
 #include <unordered_map>
 #include <memory>
 #include <Assets/GraphicsProgramAsset.h>
-#include "API/Graphics/GraphicsInterface.h"
-#include "API/Graphics/Uniform.h"
+#include "limonAPI/Graphics/GraphicsInterface.h"
+#include "limonAPI/Graphics/Uniform.h"
 
 class GraphicsProgramLoader;
 

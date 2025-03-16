@@ -11,7 +11,7 @@
 #include <string>
 #include <algorithm>
 #include <vector>
-#include "Utils/Line.h"
+#include "LimonAPI/util/Logger.h"
 
 #include <iostream>
 #include <unordered_map>
@@ -28,8 +28,8 @@
 #endif/*__APPLE__*/
 
 
-#include "API/Options.h"
-#include "API/Graphics/GraphicsInterface.h"
+#include "limonAPI/Options.h"
+#include "limonAPI/Graphics/GraphicsInterface.h"
 
 class Material;
 

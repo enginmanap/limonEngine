@@ -5,7 +5,7 @@
 #ifndef LIMONENGINE_SSAOKERNELRENDERMETHOD_H
 #define LIMONENGINE_SSAOKERNELRENDERMETHOD_H
 
-#include "API/Graphics/RenderMethodInterface.h"
+#include "limonAPI/Graphics/RenderMethodInterface.h"
 
 class GraphicsInterface;
 

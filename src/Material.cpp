@@ -9,7 +9,7 @@
 #include <WorldLoader.h>
 #include <WorldSaver.h>
 
-#include "API/Graphics/GraphicsInterface.h"
+#include "limonAPI/Graphics/GraphicsInterface.h"
 
 void Material::loadGPUSide(AssetManager *assetManager) {
     if(deserialized) {

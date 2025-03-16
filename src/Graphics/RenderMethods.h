@@ -9,8 +9,8 @@
 #include <string>
 #include <functional>
 #include <utility>
-#include <API/Graphics/GraphicsProgram.h>
-#include <API/Graphics/RenderMethodInterface.h>
+#include <limonAPI/Graphics/GraphicsProgram.h>
+#include <limonAPI/Graphics/RenderMethodInterface.h>
 #include "../GameObjects/Light.h"
 #include "GraphicsPipelineStage.h"
 

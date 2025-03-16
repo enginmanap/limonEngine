@@ -1,13 +1,12 @@
 //
-// Created by engin on 15.02.2018.
+// Created by engin on 23/02/2025.
 //
 
-#ifndef LIMONENGINE_PLAYER_H
-#define LIMONENGINE_PLAYER_H
+#ifndef PLAYERACTORINTERFACE_H
+#define PLAYERACTORINTERFACE_H
 
 #include <string>
 #include <iostream>
-#include "../GameObject.h"
 #include "limonAPI/InputStates.h"
 #include "limonAPI/Options.h"
 #include "limonAPI/PlayerExtensionInterface.h"
@@ -16,8 +15,8 @@ class btDiscreteDynamicsWorld;
 class GUIRenderable;
 class CameraAttachment;
 
+class PlayerActorInterface {
 
-class Player : public GameObject {
 public:
     enum DebugModes { DEBUG_ENABLED, DEBUG_DISABLED, DEBUG_NOCHANGE };
     struct WorldSettings {
@@ -29,6 +28,11 @@ public:
         bool resetAnimations = false;
         bool menuInteraction  = false;
     };
+    
+    enum moveDirections {
+        NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD, UP
+    };
+    
 protected:
     GUIRenderable* cursor = nullptr;
     WorldSettings worldSettings;
@@ -43,11 +47,9 @@ protected:
 
     bool dead = false;
 public:
-    enum moveDirections {
-        NONE, FORWARD, BACKWARD, LEFT, RIGHT, LEFT_FORWARD, RIGHT_FORWARD, LEFT_BACKWARD, RIGHT_BACKWARD, UP
-    };
 
-    Player(GUIRenderable *cursor, OptionsUtil::Options *options, const glm::vec3 &position [[gnu::unused]], const glm::vec3 &lookDirection [[gnu::unused]])
+
+    PlayerActorInterface(GUIRenderable *cursor, OptionsUtil::Options *options, const glm::vec3 &position [[gnu::unused]], const glm::vec3 &lookDirection [[gnu::unused]])
             : cursor(cursor), options(options){
 
         moveSpeedOption = options->getOption<LimonTypes::Vec4>(HASH("moveSpeed"));
@@ -57,7 +59,7 @@ public:
         lookAroundSpeedOption = options->getOption<double>(HASH("lookAroundSpeed"));
     };
 
-    ~Player() override {}
+    ~PlayerActorInterface() = default;
 
     virtual void move(moveDirections) = 0;
 
@@ -88,21 +90,6 @@ public:
 
     virtual CameraAttachment* getCameraAttachment() = 0;
 
-    /************Game Object methods **************/
-    virtual uint32_t getWorldObjectID() const override {
-        std::cerr << "Player doesn't have a world object ID, it shouldn't have been needed." << std::endl;
-        return 0;
-    }
-
-    ObjectTypes getTypeID() const override {
-        return ObjectTypes::PLAYER;
-    };
-
-    std::string getName() const override {
-        return "Player";//Players doesn't have specific names
-    };
-
-    /************Game Object methods **************/
     virtual void processInput(const InputStates &inputState, long time [[gnu::unused]]) {
         float xPosition, yPosition, xChange, yChange;
         if (inputState.getMouseChange(xPosition, yPosition, xChange, yChange)) {
@@ -120,36 +107,36 @@ public:
             }
         }
 
-        Player::moveDirections direction = Player::NONE;
+        PlayerActorInterface::moveDirections direction = PlayerActorInterface::NONE;
         //ignore if both are pressed.
         if (inputState.getInputStatus(InputStates::Inputs::MOVE_FORWARD) !=
             inputState.getInputStatus(InputStates::Inputs::MOVE_BACKWARD)) {
             if (inputState.getInputStatus(InputStates::Inputs::MOVE_FORWARD)) {
-                direction = Player::FORWARD;
+                direction = PlayerActorInterface::FORWARD;
             } else {
-                direction = Player::BACKWARD;
+                direction = PlayerActorInterface::BACKWARD;
             }
         }
         if (inputState.getInputStatus(InputStates::Inputs::MOVE_LEFT) != inputState.getInputStatus(InputStates::Inputs::MOVE_RIGHT)) {
             if (inputState.getInputStatus(InputStates::Inputs::MOVE_LEFT)) {
-                if (direction == Player::FORWARD) {
-                    direction = Player::LEFT_FORWARD;
-                } else if (direction == Player::BACKWARD) {
-                    direction = Player::LEFT_BACKWARD;
+                if (direction == PlayerActorInterface::FORWARD) {
+                    direction = PlayerActorInterface::LEFT_FORWARD;
+                } else if (direction == PlayerActorInterface::BACKWARD) {
+                    direction = PlayerActorInterface::LEFT_BACKWARD;
                 } else {
-                    direction = Player::LEFT;
+                    direction = PlayerActorInterface::LEFT;
                 }
-            } else if (direction == Player::FORWARD) {
-                direction = Player::RIGHT_FORWARD;
-            } else if (direction == Player::BACKWARD) {
-                direction = Player::RIGHT_BACKWARD;
+            } else if (direction == PlayerActorInterface::FORWARD) {
+                direction = PlayerActorInterface::RIGHT_FORWARD;
+            } else if (direction == PlayerActorInterface::BACKWARD) {
+                direction = PlayerActorInterface::RIGHT_BACKWARD;
             } else {
-                direction = Player::RIGHT;
+                direction = PlayerActorInterface::RIGHT;
             }
         }
 
         if (inputState.getInputStatus(InputStates::Inputs::JUMP) && inputState.getInputEvents(InputStates::Inputs::JUMP)) {
-            direction = Player::UP;
+            direction = PlayerActorInterface::UP;
         }
 
         //if none, camera should handle how to get slower.
@@ -171,8 +158,6 @@ public:
     bool isDead() {
         return dead;
     }
+    };
 
-};
-
-
-#endif //LIMONENGINE_PLAYER_H
+#endif //PLAYERACTORINTERFACE_H

@@ -8,8 +8,8 @@
 
 #include "../GUI/GUIImageBase.h"
 #include "GameObject.h"
-#include "API/LimonAPI.h"
-#include "API/TriggerInterface.h"
+#include "limonAPI/LimonAPI.h"
+#include "limonAPI/TriggerInterface.h"
 
 class LimonAPI;
 

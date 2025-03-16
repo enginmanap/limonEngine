@@ -135,19 +135,25 @@ IF (WIN32)
 ENDIF()
 
 add_library(LimonAPI STATIC
-        src/API/TriggerInterface.cpp
-        src/API/PlayerExtensionInterface.cpp
-        src/API/ActorInterface.cpp
-        src/API/LimonAPI.cpp
-        src/API/InputStates.cpp
-        src/API/LimonConverter.h
-        src/API/LimonTypes.h
+        src/limonAPI/TriggerInterface.cpp
+        src/limonAPI/PlayerExtensionInterface.cpp
+        src/limonAPI/ActorInterface.cpp
+        src/limonAPI/LimonAPI.cpp
+        src/limonAPI/InputStates.cpp
+        src/limonAPI/LimonConverter.h
+        src/limonAPI/LimonTypes.h
         src/Options.cpp
         )
 
 file(GLOB API_HEADERS
-        "src/API/*.h"
+        "src/limonAPI/*.h"
         )
+
+file(GLOB API_UTIL_HEADERS
+        "src/limonAPI/util/*.h"
+)
+
+
 target_precompile_headers(LimonAPI PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
 set_property(TARGET LimonAPI PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -156,7 +162,9 @@ IF (WIN32 AND NOT ( MINGW OR MSYS))
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/LimonAPI/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/
         COMMAND ${CMAKE_COMMAND} -E copy ${API_HEADERS} ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/API/CMakeLists.txt ${CMAKE_BINARY_DIR}/LimonAPI/
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/util/
+        COMMAND ${CMAKE_COMMAND} -E copy ${API_UTIL_HEADERS} ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/util
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/limonAPI/CMakeLists.txt ${CMAKE_BINARY_DIR}/LimonAPI/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/lib
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/libLimonAPI.lib ${CMAKE_BINARY_DIR}/LimonAPI/lib
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/src
@@ -168,7 +176,9 @@ else()
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/LimonAPI/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/
         COMMAND ${CMAKE_COMMAND} -E copy ${API_HEADERS} ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/API/CMakeLists.txt ${CMAKE_BINARY_DIR}/LimonAPI/
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/util/
+        COMMAND ${CMAKE_COMMAND} -E copy ${API_UTIL_HEADERS} ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/util
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/limonAPI/CMakeLists.txt ${CMAKE_BINARY_DIR}/LimonAPI/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/lib
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/libLimonAPI.a ${CMAKE_BINARY_DIR}/LimonAPI/lib
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/src
@@ -210,8 +220,8 @@ set_target_properties(customTriggers PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(customTriggers PROPERTIES SOVERSION 1)
 
 add_library(GraphicsBackend SHARED
-        src/API/Graphics/GraphicsProgram.cpp
-        src/API/Graphics/GraphicsProgramPreprocessor.cpp
+        src/limonAPI/Graphics/GraphicsProgram.cpp
+        src/limonAPI/Graphics/GraphicsProgramPreprocessor.cpp
         GraphicBackends/OpenGLGraphics.cpp
         src/Assets/GraphicsProgramAsset.cpp
         )

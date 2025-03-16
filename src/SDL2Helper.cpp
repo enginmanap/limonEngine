@@ -5,12 +5,12 @@
 #include <SDL_syswm.h>
 #include <memory>
 #include "SDL2Helper.h"
-#include "API/Options.h"
-#include "API/LimonAPI.h"
-#include "API/TriggerInterface.h"
-#include "API/PlayerExtensionInterface.h"
-#include "API/ActorInterface.h"
-#include "API/Graphics/RenderMethodInterface.h"
+#include "limonAPI/Options.h"
+#include "limonAPI/LimonAPI.h"
+#include "limonAPI/TriggerInterface.h"
+#include "limonAPI/PlayerExtensionInterface.h"
+#include "limonAPI/ActorInterface.h"
+#include "limonAPI/Graphics/RenderMethodInterface.h"
 
 
 SDL2Helper::SDL2Helper(OptionsUtil::Options* options) : options(options) {}

@@ -5,6 +5,8 @@
 #include <glm/ext.hpp>
 #include "AIMovementGrid.h"
 
+#include <SDL_timer.h>
+
 constexpr float AIMovementGrid::floatingHeight;
 
 //FIXME: this must be the worst way to check for a node in a graph, when you already implemented a*

@@ -6,7 +6,7 @@
 #define LIMONENGINE_KILLPLAYER_H
 
 
-#include <API/TriggerInterface.h>
+#include <limonAPI/TriggerInterface.h>
 
 class KillCowboyPlayer : public TriggerInterface {
 public:

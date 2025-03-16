@@ -9,8 +9,8 @@
 #include <string>
 #include <vector>
 
-#include "API/LimonAPI.h"
-#include "API/Graphics/GraphicsProgram.h"
+#include "limonAPI/LimonAPI.h"
+#include "limonAPI/Graphics/GraphicsProgram.h"
 
 class GraphicsInterface;
 

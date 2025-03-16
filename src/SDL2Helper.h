@@ -12,9 +12,9 @@
 #include <SDL_thread.h>
 #include <functional>
 #include <memory>
-#include <API/Graphics/GraphicsInterface.h>
-#include "API/Options.h"
-#include "API/LimonAPI.h"
+#include "limonAPI/Graphics/GraphicsInterface.h"
+#include "limonAPI/Options.h"
+#include "limonAPI/LimonAPI.h"
 
 
 class SDL2Helper {

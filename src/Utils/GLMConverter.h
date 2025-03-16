@@ -8,7 +8,7 @@
 #include <btBulletDynamicsCommon.h>
 #include "../glm/gtx/quaternion.hpp"
 #include "../glm/glm.hpp"
-#include "API/LimonAPI.h"
+#include "limonAPI/LimonAPI.h"
 
 
 #include <assimp/vector3.h>

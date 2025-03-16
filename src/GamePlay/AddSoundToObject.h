@@ -6,7 +6,7 @@
 #define LIMONENGINE_ADDSOUNDTOOBJECT_H
 
 
-#include "API/TriggerInterface.h"
+#include "limonAPI/TriggerInterface.h"
 
 class AddSoundToObject : public TriggerInterface {
     static TriggerRegister<AddSoundToObject> reg;

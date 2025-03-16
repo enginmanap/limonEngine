@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include "API/LimonTypes.h"
+#include "limonAPI/LimonTypes.h"
 
 class SDL2MultiThreading {
 public:

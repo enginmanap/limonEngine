@@ -31,13 +31,13 @@ protected:
         return extensionTypesMap;
     }
 
-    PlayerExtensionInterface(LimonAPI* limonAPI): limonAPI(limonAPI) {}
+    explicit PlayerExtensionInterface(LimonAPI* limonAPI): limonAPI(limonAPI) {}
 
 public:
 
     struct PlayerInformation {
         LimonTypes::Vec4 position;
-        LimonTypes::Vec4 lookDirection;
+        LimonTypes::Vec4 lookDirection; //This is vec4 because we don't have Vec3.
     };
 
     // Not virtual

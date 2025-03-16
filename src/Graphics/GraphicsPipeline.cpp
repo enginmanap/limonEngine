@@ -3,9 +3,9 @@
 //
 
 #include "GraphicsPipeline.h"
-#include "API/Graphics/GraphicsProgram.h"
+#include "limonAPI/Graphics/GraphicsProgram.h"
 #include "GraphicsProgramLoader.h"
-#include "API/Graphics/RenderMethodInterface.h"
+#include "limonAPI/Graphics/RenderMethodInterface.h"
 #include "Utils/StringUtils.hpp"
 
 //Static initialize of the vector

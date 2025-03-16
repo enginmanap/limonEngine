@@ -27,8 +27,8 @@
 #endif/*__APPLE__*/
 
 
-#include "API/Options.h"
-#include "API/Graphics/GraphicsInterface.h"
+#include "limonAPI/Options.h"
+#include "limonAPI/Graphics/GraphicsInterface.h"
 
 class Material;
 

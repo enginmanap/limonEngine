@@ -6,7 +6,7 @@
 #define LIMONENGINE_WESTERNSTARTUPACTION_H
 
 
-#include <API/TriggerInterface.h>
+#include <limonAPI/TriggerInterface.h>
 
 class WesternStoryStartupAction : public TriggerInterface {
     uint32_t textID1,textID2;

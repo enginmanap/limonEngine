@@ -6,7 +6,7 @@
 #define LIMONENGINE_UPDATEGUITEXTONTRIGGER_H
 
 
-#include "API/TriggerInterface.h"
+#include "limonAPI/TriggerInterface.h"
 
 class UpdateGuiTextOnTrigger: public TriggerInterface {
     static TriggerRegister<UpdateGuiTextOnTrigger> reg;

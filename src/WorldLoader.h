@@ -12,9 +12,9 @@
 
 #include "ALHelper.h"
 #include "InputHandler.h"
-#include "API/LimonAPI.h"
+#include "limonAPI/LimonAPI.h"
 #include "GameObjects/Sound.h"
-#include "API/ActorInterface.h"
+#include "limonAPI/ActorInterface.h"
 
 class World;
 class GraphicsInterface;

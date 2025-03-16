@@ -6,7 +6,7 @@
 #include <iostream>
 #include <glm/ext.hpp>
 #include "CowboyEnemyAI.h"
-#include "API/LimonConverter.h"
+#include "limonAPI/LimonConverter.h"
 
 void CowboyEnemyAI::play(long time, ActorInterface::ActorInformation &information) {
     //first, check the information and decide if a state change is required

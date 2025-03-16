@@ -8,8 +8,22 @@
 //THIS FILE SHOULD NOT INCLUDE ANY LOCAL CLASSES
 #include <string>
 #include <deque>
-#include <SDL_timer.h>
-#include "Utils/Line.h" //Line is an exception as its used for visual logging basically
+#include <glm/glm.hpp>
+
+struct Line {
+    glm::vec3 from;
+    glm::vec3 fromColor;
+    int needsCameraTransform;//FIXME This variable is repeated, because it must be per vertex. Maybe we can share int as bytes.
+    glm::vec3 to;
+    glm::vec3 toColor;
+    int needsCameraTransform2;//this is the other one
+
+    Line(const glm::vec3 &from,
+         const glm::vec3 &to,
+         const glm::vec3 &fromColor,
+         const glm::vec3 &toColor,
+         const bool needsCameraTransform): from(from), fromColor(fromColor), needsCameraTransform(needsCameraTransform), to(to), toColor(toColor), needsCameraTransform2(needsCameraTransform){};
+};
 
 class Logger {
 public:
@@ -62,8 +76,8 @@ public:
     }
 
     void log(Subsystem subsystem, Level level, const std::string &text) {
-        logQueue.push_back(new LogLine(subsystem, level, text, SDL_GetTicks()));//SDL_GETTicks is used because we want real time, not game time
-        //FIXME the SDL_GetTicks usage is causing issues since we switch to game time usage. Requires fixing
+        logQueue.push_back(new LogLine(subsystem, level, text, gameTimeProvider()));
+        //FIXME this gameTimeProvider is SDL_GetTicks, and causing issues since we switch to game time usage. Requires fixing
     };
 
     /**
@@ -79,6 +93,12 @@ public:
         LogLine* temp = logQueue.front();
         logQueue.pop_front();
         return temp;
+    }
+
+    std::function<uint32_t()> gameTimeProvider;
+
+    explicit Logger(const std::function<uint32_t ()> &gameTimeProvider) {
+        this->gameTimeProvider = gameTimeProvider;
     }
 };
 

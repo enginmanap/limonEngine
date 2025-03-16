@@ -6,7 +6,7 @@
 #define LIMONENGINE_REMOVEGUITEXTONTRIGGER_H
 
 
-#include "API/TriggerInterface.h"
+#include "limonAPI/TriggerInterface.h"
 
 class RemoveGuiTextOnTrigger: public TriggerInterface {
     static TriggerRegister<RemoveGuiTextOnTrigger> reg;

@@ -8,9 +8,9 @@
 #include <tinyxml2.h>
 #include <memory>
 
-#include "API/LimonAPI.h"
-#include "API/ActorInterface.h"
-#include "API/TriggerInterface.h"
+#include "limonAPI/LimonAPI.h"
+#include "limonAPI/ActorInterface.h"
+#include "limonAPI/TriggerInterface.h"
 
 class APISerializer {
 public:

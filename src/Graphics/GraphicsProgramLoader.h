@@ -7,7 +7,7 @@
 
 
 #include <tinyxml2.h>
-#include <API/Graphics/GraphicsProgram.h>
+#include <limonAPI/Graphics/GraphicsProgram.h>
 
 class GraphicsProgramLoader {
 public:

@@ -6,7 +6,7 @@
 #define LIMONENGINE_WESTERNSTORYATUNDERTAKER_H
 
 
-#include <API/TriggerInterface.h>
+#include <limonAPI/TriggerInterface.h>
 
 class WesternStoryAtUndertakerAction : public TriggerInterface {
     uint32_t textID1,textID2,textID3;

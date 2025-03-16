@@ -6,7 +6,7 @@
 #define LIMONENGINE_WESTERNSTORYNEWGAMEACTION_H
 
 
-#include <API/TriggerInterface.h>
+#include <limonAPI/TriggerInterface.h>
 
 class WesternStoryNewGameAction : public TriggerInterface {
 public:

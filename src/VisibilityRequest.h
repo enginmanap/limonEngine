@@ -4,7 +4,7 @@
 
 #ifndef LIMONENGINE_VISIBILITYREQUEST_H
 #define LIMONENGINE_VISIBILITYREQUEST_H
-#include "API/Options.h"
+#include "limonAPI/Options.h"
 #include <SDL2MultiThreading.h>
 #include <Utils/HashUtil.h>
 

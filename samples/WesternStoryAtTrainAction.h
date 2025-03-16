@@ -6,7 +6,7 @@
 #define LIMONENGINE_WESTERNSTORYTRAINACTION_H
 
 
-#include <API/TriggerInterface.h>
+#include <limonAPI/TriggerInterface.h>
 
 class WesternStoryAtTrainAction : public TriggerInterface {
 public:

@@ -7,8 +7,8 @@
 
 
 #include "GUITextBase.h"
-#include "../Utils/Logger.h"
-#include "API/Options.h"
+#include "limonAPI/util//Logger.h"
+#include "limonAPI/Options.h"
 #include <list>
 
 struct TextLine {

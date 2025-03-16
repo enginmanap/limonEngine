@@ -6,7 +6,7 @@
 
 #include <Utils/GLMConverter.h>
 
-#include "API/Graphics/GraphicsInterface.h"
+#include "limonAPI/Graphics/GraphicsInterface.h"
 #include "../../libs/meshoptimizer/src/meshoptimizer.h"
 
 MeshAsset::MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<const BoneNode> meshSkeleton,

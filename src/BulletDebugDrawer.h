@@ -9,11 +9,11 @@
 #include <btBulletDynamicsCommon.h>
 #include <vector>
 
-#include "API/Graphics/GraphicsInterface.h"
-#include "API/Graphics/GraphicsProgram.h"
+#include "limonAPI/Graphics/GraphicsInterface.h"
+#include "limonAPI/Graphics/GraphicsProgram.h"
 #include "Utils/GLMConverter.h"
-#include "Utils/Line.h"
-#include "API/Options.h"
+#include "limonAPI/util//Logger.h"
+#include "limonAPI/Options.h"
 
 class BulletDebugDrawer : public btIDebugDraw {
     DebugDrawModes currentMode;

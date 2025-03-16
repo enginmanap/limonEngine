@@ -6,7 +6,7 @@
 #define LIMONENGINE_ANIMATONTRIGGER_H
 
 
-#include "API/TriggerInterface.h"
+#include "limonAPI/TriggerInterface.h"
 
 class DoorAnimationAction : public TriggerInterface {
     long stateResetTime = 250;

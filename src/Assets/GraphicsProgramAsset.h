@@ -10,8 +10,8 @@
 #include <memory>
 #include <unordered_map>
 #include <cassert>
-#include <API/Graphics/Uniform.h>
-#include <API/Graphics/GraphicsInterface.h>
+#include <limonAPI/Graphics/Uniform.h>
+#include <limonAPI/Graphics/GraphicsInterface.h>
 #include "Asset.h"
 
 

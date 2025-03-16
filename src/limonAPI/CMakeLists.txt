@@ -24,8 +24,12 @@ if (NOT glm_FOUND)
 endif (NOT glm_FOUND)
 INCLUDE_DIRECTORIES(SYSTEM ${GLM_INCLUDE_DIRS})
 
+file(GLOB_RECURSE EXTENSION_FILES
+        src/*.cpp)
+
 add_library(customTriggers SHARED
 #fill with customisation sources
+        ${EXTENSION_FILES}
         )
 
 IF (WIN32 AND NOT ( MINGW OR MSYS))

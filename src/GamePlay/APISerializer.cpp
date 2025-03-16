@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include "APISerializer.h"
-#include "API/TriggerInterface.h"
+#include "limonAPI/TriggerInterface.h"
 
 bool APISerializer::serializeParameterRequest(const LimonTypes::GenericParameter &parameterRequest,
                                               tinyxml2::XMLDocument &document, tinyxml2::XMLElement *ParametersNode,

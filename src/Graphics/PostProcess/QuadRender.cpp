@@ -3,8 +3,8 @@
 //
 
 #include "QuadRender.h"
-#include "API/Graphics/GraphicsInterface.h"
-#include "API/Graphics/GraphicsProgram.h"
+#include "limonAPI/Graphics/GraphicsInterface.h"
+#include "limonAPI/Graphics/GraphicsProgram.h"
 
 QuadRender::QuadRender(GraphicsInterface* graphicsWrapper) : graphicsWrapper(graphicsWrapper){
     std::vector<glm::vec3> vertices;

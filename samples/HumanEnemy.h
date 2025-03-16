@@ -6,8 +6,8 @@
 #define LIMONENGINE_HUMANENEMY_H
 
 
-#include "API/ActorInterface.h"
-#include "API/LimonConverter.h"
+#include "limonAPI/ActorInterface.h"
+#include "limonAPI/LimonConverter.h"
 
 class HumanEnemy: public ActorInterface {
 

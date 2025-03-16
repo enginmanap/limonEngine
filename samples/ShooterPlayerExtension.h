@@ -6,7 +6,7 @@
 #define LIMONENGINE_SHOOTERPLAYEREXTENSION_H
 
 
-#include "API/PlayerExtensionInterface.h"
+#include "limonAPI/PlayerExtensionInterface.h"
 
 class ShooterPlayerExtension : public  PlayerExtensionInterface {
     static const glm::quat direction;

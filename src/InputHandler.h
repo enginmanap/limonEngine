@@ -8,8 +8,8 @@
 #include <map>
 #include <SDL2/SDL.h>
 
-#include "API/Options.h"
-#include "API/InputStates.h"
+#include "limonAPI/Options.h"
+#include "limonAPI/InputStates.h"
 
 
 class InputHandler {
