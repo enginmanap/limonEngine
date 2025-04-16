@@ -578,7 +578,6 @@ void World::fillVisibleObjectsUsingTags() {
 
         //std::cout << "          new frame, trigger occlusion threads" << std::endl;
         VisibilityRequest::waitMainThreadCondition.signalWaiting();
-        visibilityThreadPool.size();
         while (true) {
             bool allDone = true;
             for (const auto &item: visibilityThreadPool) {
@@ -1734,47 +1733,15 @@ bool World::removeObject(uint32_t objectID, const bool &removeChildren) {
     if(modelToRemove == nullptr) {
         return false;
     }
-    dynamicsWorld->removeRigidBody(modelToRemove->getRigidBody());
-    //disconnect AI
-
-    if (modelToRemove!= nullptr && modelToRemove->getAIID() != 0) {
-        unusedIDs.push(modelToRemove->getAIID());
-        actors.erase(modelToRemove->getAIID());
-    }
-    //remove any active animations
-    if(activeAnimations.find(modelToRemove) != activeAnimations.end()) {
-        delete activeAnimations[modelToRemove];
-        activeAnimations.erase(modelToRemove);
-    }
-    onLoadAnimations.erase(modelToRemove);
-
-    //of course we need to remove from the tag visibility lists too
-    for (auto &perCameraVisibility: cullingResults) {
-        for(auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
-            const std::vector<Model::MeshMeta *> &meshMetas =modelToRemove->getMeshMetaData();
-            for(const Model::MeshMeta* meshMeta:meshMetas) {
-                perTagVisibilityIt->second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, modelToRemove->getWorldObjectID());
-            }
+    this->clearWorldRefsBeforeAttachment(modelToRemove, removeChildren);
+    if(removeChildren) {
+        std::vector<PhysicalRenderable *> children = modelToRemove->getChildren();
+        for(auto it = children.begin(); it != children.end(); ++it) {
+            //removeObject(it->getWorldObjectID(), removeChildren);
         }
     }
-
-	//remove its children
-    if(removeChildren)
-    {
-        std::vector<PhysicalRenderable*> children=objects[objectID]->getChildren();
-        for (auto child = children.begin(); child != children.end(); ++child) {
-            Model* model = dynamic_cast<Model*>(*child);
-            if(model!= nullptr) {//FIXME this eliminates non model childs
-                removeObject(model->getWorldObjectID());
-            }
-        }
-    }
-    
     //delete object itself
     delete modelToRemove;
-    objects.erase(objectID);
-    unusedIDs.push(objectID);
-
 
     return true;
 }
@@ -2890,23 +2857,53 @@ void World::updateActiveLights(bool forceUpdate) {
     }
 }
 
-   void World::clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment) {
-       GameObject* gameObject = dynamic_cast<GameObject*>(attachment);
-       if(gameObject != nullptr) {
-           objects.erase(gameObject->getWorldObjectID());
-           dynamicsWorld->removeRigidBody(attachment->getRigidBody());
+   void World::clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment, const bool removeChildren) {
+       Model *modelToClear = dynamic_cast<Model *>(attachment);
+       if (modelToClear != nullptr) {
+           modelToClear->disconnectFromPhysicsWorld(dynamicsWorld);
            for (auto iterator = rigidBodies.begin(); iterator != rigidBodies.end(); ++iterator) {
                if ((*iterator) == attachment->getRigidBody()) {
                    rigidBodies.erase(iterator);
                    break;
                }
            }
+
+           //disconnect AI
+           if (modelToClear->getAIID() != 0) {
+               unusedIDs.push(modelToClear->getAIID());
+               actors.erase(modelToClear->getAIID());
+           }
+           //remove any active animations
+           if (activeAnimations.find(modelToClear) != activeAnimations.end()) {
+               delete activeAnimations[modelToClear];
+               activeAnimations.erase(modelToClear);
+           }
+           onLoadAnimations.erase(modelToClear);
+
+           //of course we need to remove from the tag visibility lists too
+           for (auto &perCameraVisibility: cullingResults) {
+               for (auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
+                   const std::vector<Model::MeshMeta *> &meshMetas = modelToClear->getMeshMetaData();
+                   for (const Model::MeshMeta *meshMeta: meshMetas) {
+                       perTagVisibilityIt->second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, modelToClear->getWorldObjectID());
+                   }
+               }
+           }
        }
-       attachment->disconnectFromPhysicsWorld(dynamicsWorld);
-       for (auto childIt = attachment->getChildren().begin();
-            childIt != attachment->getChildren().end(); ++childIt) {
-           clearWorldRefsBeforeAttachment(*childIt);
+       //remove its children
+       if (removeChildren) {
+           std::vector<PhysicalRenderable *> children = objects[modelToClear->getWorldObjectID()]->getChildren();
+           for (auto child = children.begin(); child != children.end(); ++child) {
+               Model *model = dynamic_cast<Model *>(*child);
+               if (model != nullptr) {
+                   //FIXME this eliminates non model children
+                   clearWorldRefsBeforeAttachment(model, removeChildren);
+               }
+           }
        }
+       //clear object itself
+       objects.erase(modelToClear->getWorldObjectID());
+       unusedIDs.push(modelToClear->getWorldObjectID());
    }
 
 bool World::addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs,

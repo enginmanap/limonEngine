@@ -396,7 +396,7 @@ private:
     std::vector<LimonTypes::GenericParameter>
     fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters) const;
 
-    void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment);
+    void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment, bool removeChildren);
 
     void createNodeGraph();
 

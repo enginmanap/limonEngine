@@ -252,8 +252,8 @@ void Editor::renderEditor() {
         if(world->pickedObject != nullptr && world->pickedObject->getTypeID() == GameObject::ObjectTypes::PLAYER) {
             if(world->objectToAttach!= nullptr && world->objectToAttach->getWorldObjectID() != world->pickedObject->getWorldObjectID()) {
                 if (ImGui::Button("Attach saved object to Player")) {
-                    world->clearWorldRefsBeforeAttachment(world->objectToAttach);
                     world->physicalPlayer->setAttachedModel(world->objectToAttach);
+                    world->clearWorldRefsBeforeAttachment(world->objectToAttach, true);
                     world->startingPlayer.attachedModel = world->objectToAttach;
                     world->objectToAttach = nullptr;
                 }
