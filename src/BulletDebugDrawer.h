@@ -12,7 +12,7 @@
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "limonAPI/Graphics/GraphicsProgram.h"
 #include "Utils/GLMConverter.h"
-#include "limonAPI/util//Logger.h"
+#include "limonAPI/util/Logger.h"
 #include "limonAPI/Options.h"
 
 class BulletDebugDrawer : public btIDebugDraw {

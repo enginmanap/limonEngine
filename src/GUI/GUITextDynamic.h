@@ -7,7 +7,7 @@
 
 
 #include "GUITextBase.h"
-#include "limonAPI/util//Logger.h"
+#include "limonAPI/util/Logger.h"
 #include "limonAPI/Options.h"
 #include <list>
 
