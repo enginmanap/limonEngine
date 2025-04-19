@@ -11,13 +11,13 @@
 #include "limonAPI/InputStates.h"
 #include "limonAPI/Options.h"
 #include "limonAPI/PlayerExtensionInterface.h"
+#include "CameraAttachment.h"
 
 class btDiscreteDynamicsWorld;
 class GUIRenderable;
-class CameraAttachment;
 
 
-class Player : public GameObject {
+class Player : public GameObject, public CameraAttachment {
 public:
     enum DebugModes { DEBUG_ENABLED, DEBUG_DISABLED, DEBUG_NOCHANGE };
     struct WorldSettings {
@@ -57,7 +57,7 @@ public:
         lookAroundSpeedOption = options->getOption<double>(HASH("lookAroundSpeed"));
     };
 
-    ~Player() override {}
+    ~Player() override = default;
 
     virtual void move(moveDirections) = 0;
 
@@ -71,12 +71,16 @@ public:
      * @param position
      * @param lookDirection
      */
-    virtual void ownControl(const glm::vec3 &position, const glm::vec3 lookDirection) = 0;
+    virtual void ownControl(const glm::vec3 &position, const glm::vec3 &lookDirection) = 0;
 
-    virtual void registerToPhysicalWorld(btDiscreteDynamicsWorld *world, int collisionGroup, int collisionMaskForSelf,
-                                             int collisionMaskForGround, const glm::vec3 &worldAABBMin, const glm::vec3 &worldAABBMax) = 0;
+    virtual void registerToPhysicalWorld(btDiscreteDynamicsWorld *world [[gnu::unused]],
+                                            int collisionGroup [[gnu::unused]],
+                                            int collisionMaskForSelf [[gnu::unused]],
+                                            int collisionMaskForGround [[gnu::unused]],
+                                            const glm::vec3 &worldAABBMin [[gnu::unused]],
+                                            const glm::vec3 &worldAABBMax [[gnu::unused]]) {};
 
-    virtual void processPhysicsWorld(const btDiscreteDynamicsWorld *world) = 0;
+    virtual void processPhysicsWorld(const btDiscreteDynamicsWorld *world [[gnu::unused]]) {};
 
     virtual glm::vec3 getLookDirection() const = 0;
 

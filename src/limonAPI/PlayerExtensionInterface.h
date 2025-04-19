@@ -93,7 +93,6 @@ public:
     explicit PlayerExtensionRegister(std::string const& s) : PlayerExtensionInterface(nullptr) {
         getMap()->insert(std::make_pair(s, &createPlayerExtension<T>));
     }
-
 };
 
 

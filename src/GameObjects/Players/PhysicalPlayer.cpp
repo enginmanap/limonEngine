@@ -536,7 +536,7 @@ void PhysicalPlayer::registerToPhysicalWorld(btDiscreteDynamicsWorld *world, int
         }
     }
 }
-void PhysicalPlayer::ownControl(const glm::vec3& position, const glm::vec3 lookDirection) {
+void PhysicalPlayer::ownControl(const glm::vec3& position, const glm::vec3 &lookDirection) {
     this->center = glm::normalize(lookDirection);
     this->view.w = 0;
     this->view.x = center.x;

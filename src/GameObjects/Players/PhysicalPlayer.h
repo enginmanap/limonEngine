@@ -21,7 +21,7 @@ static const float MINIMUM_CLIMP_NORMAL_Y = 0.707f; // cant climb more than 45 d
 
 class LimonAPI;
 
-class PhysicalPlayer : public Player, public CameraAttachment {
+class PhysicalPlayer : public Player {
     glm::vec3 center, up, right;
     glm::quat view;
     btVector3 inputMovementSpeed;
@@ -129,9 +129,9 @@ public:
         lookDirection = this->center;
     }
 
-    void ownControl(const glm::vec3& position, const glm::vec3 lookDirection) override;
+    void ownControl(const glm::vec3& position, const glm::vec3 &lookDirection) override;
 
-    CameraAttachment* getCameraAttachment() {
+    CameraAttachment* getCameraAttachment() override {
         return this;
     }
 
@@ -153,7 +153,7 @@ public:
 
     void setAttachedModel(Model *attachedModel);
 
-    inline void setAttachedModelTransformation(Model *attachedModel) {
+    inline void setAttachedModelTransformation(Model *attachedModel) const {
         if(attachedModel != nullptr) {
             attachedModel->getTransformation()->setTranslate(GLMConverter::BltToGLM(getRigidBody()->getWorldTransform().getOrigin()) + glm::vec3(0,1,0)  + getLookDirectionQuaternion() * attachedModelOffset);
         }

@@ -10,6 +10,7 @@
 #include "limonAPI/InputStates.h"
 #include "limonAPI/Options.h"
 #include "limonAPI/PlayerExtensionInterface.h"
+#include "LimonAPI/util/HashUtil.h"
 
 class btDiscreteDynamicsWorld;
 class GUIRenderable;

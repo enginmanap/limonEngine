@@ -14,7 +14,7 @@
 
 class Options;
 
-class FreeMovingPlayer : public Player, public CameraAttachment {
+class FreeMovingPlayer : public Player {
     bool dirty;
     glm::vec3 position;
     glm::vec3 center;
@@ -56,7 +56,7 @@ public:
         lookDirection = this->center;
     }
 
-    void ownControl(const glm::vec3& position, const glm::vec3 lookDirection) {
+    void ownControl(const glm::vec3& position, const glm::vec3 &lookDirection) {
         this->position = position;
 
         this->center = glm::normalize(lookDirection);
@@ -68,12 +68,6 @@ public:
 
         cursor->setTranslate(glm::vec2(options->getScreenWidth()/2.0f, options->getScreenHeight()/2.0f));
     };
-
-    void registerToPhysicalWorld(btDiscreteDynamicsWorld *world [[gnu::unused]], int collisionGroup [[gnu::unused]], int collisionMaskForSelf [[gnu::unused]],
-                                     int collisionMaskForGround [[gnu::unused]], const glm::vec3 &worldAABBMin [[gnu::unused]], const glm::vec3 &worldAABBMax [[gnu::unused]]) {}
-
-
-    void processPhysicsWorld(const btDiscreteDynamicsWorld *world [[gnu::unused]]) {};
 
     void rotate(float xPosition, float yPosition, float xChange, float yChange);
 

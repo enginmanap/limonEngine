@@ -16,7 +16,7 @@
 class Options;
 class GUIRenderable;
 
-class FreeCursorPlayer : public Player, public CameraAttachment {
+class FreeCursorPlayer : public Player {
     bool dirty;
     glm::vec3 position;
     glm::vec3 center;
@@ -45,13 +45,13 @@ public:
 
     void move(moveDirections);
 
-    glm::vec3 getPosition() const {
+    glm::vec3 getPosition() const override {
         return position;
     }
 
     void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &toPosition) const;
 
-    glm::vec3 getLookDirection() const {
+    glm::vec3 getLookDirection() const override {
         return this->center;
     };
 
@@ -61,7 +61,7 @@ public:
      * @param position
      * @param lookDirection
      */
-    void ownControl(const glm::vec3 &position, const glm::vec3 lookDirection) {
+    void ownControl(const glm::vec3 &position, const glm::vec3 &lookDirection) {
         this->position = position;
 
         this->center = glm::normalize(lookDirection);
@@ -73,11 +73,7 @@ public:
         //FIXME Do we need release control?
     };
 
-    void registerToPhysicalWorld(btDiscreteDynamicsWorld *world [[gnu::unused]], int collisionGroup [[gnu::unused]], int collisionMaskForSelf [[gnu::unused]],
-                                     int collisionMaskForGround [[gnu::unused]], const glm::vec3 &worldAABBMin [[gnu::unused]], const glm::vec3 &worldAABBMax [[gnu::unused]]) {}
-    void processPhysicsWorld(const btDiscreteDynamicsWorld *world [[gnu::unused]]) {};
-
-    void rotate(float xPosition, float yPosition, float xChange, float yChange);
+    void rotate(float xPosition, float yPosition, float xChange, float yChange) override;
 
     CameraAttachment* getCameraAttachment() {
         return this;

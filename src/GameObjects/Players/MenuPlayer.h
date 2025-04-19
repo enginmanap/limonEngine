@@ -14,7 +14,7 @@
 class Options;
 class GUIRenderable;
 
-class MenuPlayer: public Player, public CameraAttachment {
+class MenuPlayer: public Player {
     bool dirty;
     glm::vec3 position;
     glm::vec3 center;
@@ -41,15 +41,15 @@ public:
         right = this->right;
     };
 
-    void move(moveDirections);
+    void move(moveDirections) override;
 
-    glm::vec3 getPosition() const {
+    glm::vec3 getPosition() const override {
         return position;
     }
 
-    void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &toPosition) const;
+    void getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &toPosition) const override;
 
-    glm::vec3 getLookDirection() const {
+    glm::vec3 getLookDirection() const override {
         return this->center;
     };
 
@@ -59,7 +59,7 @@ public:
      * @param position
      * @param lookDirection
      */
-    void ownControl(const glm::vec3 &position, const glm::vec3 lookDirection) {
+    void ownControl(const glm::vec3 &position, const glm::vec3 &lookDirection) override {
         this->position = position;
 
         this->center = glm::normalize(lookDirection);
@@ -70,18 +70,13 @@ public:
         this->view.w = 0;
     };
 
-    void registerToPhysicalWorld(btDiscreteDynamicsWorld *world [[gnu::unused]], int collisionGroup [[gnu::unused]], int collisionMaskForSelf [[gnu::unused]],
-                                     int collisionMaskForGround [[gnu::unused]], const glm::vec3 &worldAABBMin [[gnu::unused]], const glm::vec3 &worldAABBMax [[gnu::unused]]) {}
+    void rotate(float xPosition, float yPosition, float xChange, float yChange) override;
 
-    void processPhysicsWorld(const btDiscreteDynamicsWorld *world __attribute__((unused))) {};
-
-    void rotate(float xPosition, float yPosition, float xChange, float yChange);
-
-    CameraAttachment* getCameraAttachment() {
+    CameraAttachment* getCameraAttachment() override {
         return this;
     }
 
-    void processInput(const InputStates &inputHandler, long time) {
+    void processInput(const InputStates &inputHandler, long time) override {
         Player::processInput(inputHandler, time);
 
         if(playerExtension != nullptr) {
@@ -92,7 +87,7 @@ public:
         }
     }
 
-    void interact(LimonAPI *limonAPI __attribute__((unused)), std::vector<LimonTypes::GenericParameter> &interactionData) {
+    void interact(LimonAPI *limonAPI __attribute__((unused)), std::vector<LimonTypes::GenericParameter> &interactionData) override {
         if(playerExtension != nullptr) {
             playerExtension->interact(interactionData);
         }
