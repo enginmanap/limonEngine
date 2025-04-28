@@ -9,9 +9,9 @@
 #include "AnimationNode.h"
 
 bool AnimationCustom::calculateTransform(const std::string& nodeName [[gnu::unused]], float time, Transformation& transformation) const {
-    transformation.setScale(animationNode->getScalingVector(time));
-    transformation.setOrientation(animationNode->getRotationQuat(time));
-    transformation.setTranslate(animationNode->getPositionVector(time));
+    transformation.setTransformations(animationNode->getPositionVector(time),
+    animationNode->getScalingVector(time),
+    animationNode->getRotationQuat(time));
     return true;
 }
 

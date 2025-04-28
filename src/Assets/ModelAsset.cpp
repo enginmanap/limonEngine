@@ -606,9 +606,8 @@ void ModelAsset::traverseAndSetTransformBlended(std::shared_ptr<const BoneNode> 
         blended.setScale(tf1.getScale() + blendFactor * scaleDelta);
 
         glm::vec3 translateDelta = tf2.getTranslate() - tf1.getTranslate();
-        blended.setTranslate(tf1.getTranslate() + blendFactor * translateDelta);
-
-        blended.setOrientation(glm::normalize(slerp(tf1.getOrientation(), tf2.getOrientation(), blendFactor)));
+        blended.setTransformations(tf1.getTranslate() + blendFactor * translateDelta,
+        glm::normalize(slerp(tf1.getOrientation(), tf2.getOrientation(), blendFactor)));
 
         nodeTransform = blended.getWorldTransform();
     }

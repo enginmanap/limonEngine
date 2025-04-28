@@ -394,6 +394,42 @@ public:
         isDirty = true;
     }
 
+    void setTransformations(const glm::vec3& translate, const::glm::quat& orientation) {
+        this->translateSingle = translate;
+        this->orientationSingle = glm::normalize(orientation);
+
+        if(this->parentTransform == nullptr) {
+            this->translate = translate;
+            this->orientation = orientationSingle;
+        }
+        for (auto childTransform = childTransforms.begin(); childTransform != childTransforms.end(); ++childTransform) {
+            (*childTransform)->isDirty = true;
+            (*childTransform)->updateCallback();
+        }
+        isDirty = true;
+        propagateUpdate();
+    }
+
+    void setTransformations(const glm::vec3& translate, const glm::vec3& scale, const::glm::quat& orientation) {
+        this->translateSingle = translate;
+        this->orientationSingle = glm::normalize(orientation);
+        this->scaleSingle = scale;
+        rotated = this->orientation.w < 0.99; // with rotation w gets smaller.
+
+        if(this->parentTransform == nullptr) {
+            this->scale = scale;
+            this->orientation = orientationSingle;//this is intentional, because it needs normalization
+            this->translate = translate;
+        }
+
+        for (auto childTransform = childTransforms.begin(); childTransform != childTransforms.end(); ++childTransform) {
+            (*childTransform)->isDirty = true;
+            (*childTransform)->updateCallback();
+        }
+        isDirty = true;
+        propagateUpdate();
+    }
+
     bool isRotated() const {
         return rotated;
     }

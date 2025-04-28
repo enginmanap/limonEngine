@@ -20,9 +20,9 @@ bool AnimationAssimp::calculateTransform(const std::string& nodeName, float time
     status = true;
     std::shared_ptr<AnimationNode> nodeAnimation = nodes.at(nodeName);
 
-    transformation.setScale(nodeAnimation->getScalingVector(time));
-    transformation.setOrientation(nodeAnimation->getRotationQuat(time));
-    transformation.setTranslate(nodeAnimation->getPositionVector(time));
+    transformation.setTransformations(nodeAnimation->getPositionVector(time),
+    nodeAnimation->getScalingVector(time),
+    nodeAnimation->getRotationQuat(time));
     return status;
 }
 

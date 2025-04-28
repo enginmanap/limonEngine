@@ -911,9 +911,9 @@ void Editor::renderEditor() {
 
 void Editor::setTransformToModel(Model *model, const glm::vec3 &newObjectPosition) {
     //First reset the model transform
-    model->getTransformation()->setTranslate(glm::vec3(0.0f, 0.0f, 0.0f));
-    model->getTransformation()->setScale(glm::vec3(1.0f, 1.0f, 1.0f));
-    model->getTransformation()->setOrientation(glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
+    model->getTransformation()->setTransformations(glm::vec3(0.0f, 0.0f, 0.0f),
+    glm::vec3(1.0f, 1.0f, 1.0f),
+    glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
     //now calculate
     float expectedSize = 9.5f;
     const glm::mat4 reversalTransformation = glm::inverse(glm::lookAt(world->playerCamera->getPosition(),

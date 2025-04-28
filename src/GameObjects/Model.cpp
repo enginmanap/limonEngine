@@ -147,10 +147,7 @@ void Model::setupForTime(long time) {
         glm::quat orientation;
 
         glm::decompose(this->transformation.getWorldTransform() * boneTransforms[boneIterator->first], scale, orientation, translate, temp1, temp2);
-
-        exposedBoneTransforms[boneIterator->first]->setTranslate(translate);
-        exposedBoneTransforms[boneIterator->first]->setScale(scale);
-        exposedBoneTransforms[boneIterator->first]->setOrientation(orientation);
+        exposedBoneTransforms[boneIterator->first]->setTransformations(translate,scale, orientation);
     }
 
     lastSetupTime = time;

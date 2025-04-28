@@ -15,9 +15,7 @@ AnimationSequenceInterface::AnimationSequenceInterface(Renderable* animatingObje
 AnimationSequenceInterface::~AnimationSequenceInterface(){
     //put object back to original position
     if(animatingObject != nullptr) { //if cancelled or finalized, this is already done, and animating object is null
-        animatingObject->getTransformation()->setTranslate(originalTransformation.getTranslate());
-        animatingObject->getTransformation()->setScale(originalTransformation.getScale());
-        animatingObject->getTransformation()->setOrientation(originalTransformation.getOrientation());
+        animatingObject->getTransformation()->setTransformations(originalTransformation.getTranslate(), originalTransformation.getScale(),originalTransformation.getOrientation());
     }
 }
 
@@ -264,16 +262,16 @@ void AnimationSequenceInterface::addAnimationSequencerToEditor(bool &finished, b
             //we set the transformation to item. now move the object:
             if (selectedEntry == -1) {
                 //means nothing is selected, can happen when sequence removed.
-                animatingObject->getTransformation()->setTranslate(originalTransformation.getTranslate());
-                animatingObject->getTransformation()->setScale(originalTransformation.getScale());
-                animatingObject->getTransformation()->setOrientation(originalTransformation.getOrientation());
+                animatingObject->getTransformation()->setTransformations(originalTransformation.getTranslate()
+                ,originalTransformation.getScale()
+                ,originalTransformation.getOrientation());
             } else {
                 Transformation itemTransformation(originalTransformation);
                 itemTransformation.combine(sections[selectedEntry].transformation);
                 //If there is a parent, they share the parent so single is appropriate. If no parent, single works as normal
-                animatingObject->getTransformation()->setTranslate(itemTransformation.getTranslateSingle());
-                animatingObject->getTransformation()->setScale(itemTransformation.getScaleSingle());
-                animatingObject->getTransformation()->setOrientation(itemTransformation.getOrientationSingle());
+                animatingObject->getTransformation()->setTransformations(itemTransformation.getTranslateSingle()
+                ,itemTransformation.getScaleSingle()
+                ,itemTransformation.getOrientationSingle());
             }
         }
     }

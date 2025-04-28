@@ -356,13 +356,14 @@ void World::animateCustomAnimations() {
             //this means the origin has changed in editor mode, so we should update our origin of transformation.
 
             // First change the original transform to current, since user updated it
-            animationStatus->originalTransformation.setTranslate(animationStatus->object->getTransformation()->getTranslate());
-            animationStatus->originalTransformation.setScale(animationStatus->object->getTransformation()->getScale());
-            animationStatus->originalTransformation.setOrientation(animationStatus->object->getTransformation()->getOrientation());
+            animationStatus->originalTransformation.setTransformations(animationStatus->object->getTransformation()->getTranslate()
+            ,animationStatus->object->getTransformation()->getScale()
+            ,animationStatus->object->getTransformation()->getOrientation());
 
-            animationStatus->object->getTransformation()->setScale(glm::vec3(1.0f,1.0f,1.0f));//then remove the change from object transform.
-            animationStatus->object->getTransformation()->setTranslate(glm::vec3(0.0f,0.0f,0.0f));
-            animationStatus->object->getTransformation()->setOrientation(glm::quat(1.0f,0.0f,0.0f, 0.0f));
+            //then remove the change from object transform.
+            animationStatus->object->getTransformation()->setTransformations(glm::vec3(0.0f,0.0f,0.0f)
+            , glm::vec3(1.0f,1.0f,1.0f)
+            , glm::quat(1.0f,0.0f,0.0f, 0.0f));
             animationStatus->originChange = false;
         }
         const AnimationCustom* animationCustom = &loadedAnimations[animationStatus->animationIndex];
@@ -408,9 +409,9 @@ void World::animateCustomAnimations() {
             tempOrientation = animationStatus->object->getTransformation()->getOrientation();
 
             animationStatus->object->getTransformation()->removeParentTransform();
-            animationStatus->object->getTransformation()->setTranslate(tempTranslate);
-            animationStatus->object->getTransformation()->setScale(tempScale);
-            animationStatus->object->getTransformation()->setOrientation(tempOrientation);
+            animationStatus->object->getTransformation()->setTransformations(tempTranslate
+            , tempScale
+            , tempOrientation);
             animationStatus->object->setCustomAnimation(false);
 
             options->getLogger()->log(Logger::log_Subsystem_ANIMATION, Logger::log_level_DEBUG, "Animation " + animationCustom->getName() + " finished, removing. ");
@@ -1011,8 +1012,8 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
        startingPlayer.orientation = physicalPlayer->getLookDirection();
        startingPlayer.position = physicalPlayer->getPosition();
 
-       playerPlaceHolder->getTransformation()->setTranslate(physicalPlayer->getPosition());
-       playerPlaceHolder->getTransformation()->setOrientation(physicalPlayer->getLookDirectionQuaternion());
+       playerPlaceHolder->getTransformation()->setTransformations(physicalPlayer->getPosition()
+       ,physicalPlayer->getLookDirectionQuaternion());
        playerPlaceHolder->convertToRenderList(0,0).render(graphicsWrapper, graphicsProgram);
    }
    editor->renderEditor();
@@ -1041,9 +1042,9 @@ void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove
    tempOrientation = animationStatusToRemove->object->getTransformation()->getOrientation();
 
    animationStatusToRemove->object->getTransformation()->removeParentTransform();
-   animationStatusToRemove->object->getTransformation()->setTranslate(tempTranslate);
-   animationStatusToRemove->object->getTransformation()->setScale(tempScale);
-   animationStatusToRemove->object->getTransformation()->setOrientation(tempOrientation);
+   animationStatusToRemove->object->getTransformation()->setTransformations(tempTranslate
+   , tempScale
+   , tempOrientation);
    animationStatusToRemove->object->setCustomAnimation(false);
 
    //now remove active animations
@@ -1345,9 +1346,9 @@ uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animati
             tempOrientation = as->object->getTransformation()->getOrientation();
 
             as->object->getTransformation()->removeParentTransform();
-            as->object->getTransformation()->setTranslate(tempTranslate);
-            as->object->getTransformation()->setScale(tempScale);
-            as->object->getTransformation()->setOrientation(tempOrientation);
+            as->object->getTransformation()->setTransformations(tempTranslate,
+            tempScale,
+            tempOrientation);
             as->object->setCustomAnimation(false);
             as->originalTransformation = *as->object->getTransformation();
 
@@ -1357,9 +1358,9 @@ uint32_t World::addAnimationToObjectWithSound(uint32_t modelID, uint32_t animati
         as->originalTransformation = *as->object->getTransformation();
     }
     //we should animate child, and keep parent, so we should attach to the object itself
-    as->object->getTransformation()->setScale(glm::vec3(1.0f,1.0f,1.0f));
-    as->object->getTransformation()->setTranslate(glm::vec3(0.0f,0.0f,0.0f));
-    as->object->getTransformation()->setOrientation(glm::quat(1.0f,0.0f,0.0f, 0.0f));
+    as->object->getTransformation()->setTransformations(glm::vec3(0.0f,0.0f,0.0f),
+    glm::vec3(1.0f,1.0f,1.0f),
+    glm::quat(1.0f,0.0f,0.0f, 0.0f));
 
     //now set the parent/child
     as->object->getTransformation()->setParentTransform(&as->originalTransformation);
@@ -2014,9 +2015,9 @@ void World::setupForPlay(InputHandler &inputHandler) {
         //to original position
         for(auto it = onLoadAnimations.begin(); it != onLoadAnimations.end(); it++) {
             if(activeAnimations.find(*it) != activeAnimations.end()) {
-                (*it)->getTransformation()->setTranslate(glm::vec3(0.0f, 0.0f, 0.0f));
-                (*it)->getTransformation()->setScale(glm::vec3(1.0f, 1.0f, 1.0f));
-                (*it)->getTransformation()->setOrientation(glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
+                (*it)->getTransformation()->setTransformations(glm::vec3(0.0f, 0.0f, 0.0f),
+                glm::vec3(1.0f, 1.0f, 1.0f),
+                glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
             }
         }
     }
@@ -2262,9 +2263,9 @@ uint32_t World::addModelApi(const std::string &modelFilePath, float modelWeight,
     uint32_t objectID = this->getNextObjectID();
 
     Model* newModel = new Model(objectID, assetManager, modelWeight, modelFilePath, !physical);//the physical is reversed because parameter here is "disconnected"
-    newModel->getTransformation()->setTranslate(position);
-    newModel->getTransformation()->setScale(scale);
-    newModel->getTransformation()->setOrientation(orientation);
+    newModel->getTransformation()->setTransformations(position,
+    scale,
+    orientation);
 
     this->addModelToWorld(newModel);
 

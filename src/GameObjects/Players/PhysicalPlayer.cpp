@@ -479,8 +479,8 @@ ImGuiResult PhysicalPlayer::addImGuiEditorElements(const ImGuiRequest &request) 
     ImGuiResult imGuiResult;
 
     Transformation tr;
-    tr.setTranslate(GLMConverter::BltToGLM(player->getCenterOfMassPosition()));
-    tr.setOrientation(getLookDirectionQuaternion());
+    tr.setTransformations(GLMConverter::BltToGLM(player->getCenterOfMassPosition()),
+    getLookDirectionQuaternion());
 
     if(tr.addImGuiEditorElements(request.perspectiveCameraMatrix, request.perspectiveMatrix)) {
         //true means transformation changed, activate rigid body

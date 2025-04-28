@@ -16,7 +16,6 @@
 class btDiscreteDynamicsWorld;
 class GUIRenderable;
 
-
 class Player : public GameObject, public CameraAttachment {
 public:
     enum DebugModes { DEBUG_ENABLED, DEBUG_DISABLED, DEBUG_NOCHANGE };
