@@ -63,9 +63,28 @@ void RenderList::render(GraphicsInterface *graphicsWrapper, const std::shared_pt
    int specularMapAttachPoint = 3;
    int opacityMapAttachPoint = 4;
    int normalMapAttachPoint = 5;
+   bool lastAnimationState = false;
+   auto renderListIterator = this->getIterator();
+    if (renderListIterator.isEnd()) {
+        return;
+    }
+   if (forceNotAnimated) {
+       renderProgram->setUniform("isAnimated", false);
+   } else {
+       renderProgram->setUniform("isAnimated", renderListIterator.get().isAnimated);
+       lastAnimationState = renderListIterator.get().isAnimated;
+   }
 
    //now render all of the meshes
-   for (auto renderListIterator = this->getIterator(); !renderListIterator.isEnd(); ++renderListIterator) {
+   for (; !renderListIterator.isEnd(); ++renderListIterator) {
+       if (renderListIterator.get().indices.empty()) {
+           std::cerr << "Empty meshInfo" << std::endl;
+           continue;
+       }
+       if (!forceNotAnimated && lastAnimationState != renderListIterator.get().isAnimated) {
+           renderProgram->setUniform("isAnimated", renderListIterator.get().isAnimated);
+           lastAnimationState = renderListIterator.get().isAnimated;
+       }
        if (renderProgram->isMaterialRequired() && renderListIterator.isMaterialChanged()) {
            const auto& material = renderListIterator.getMaterial();
            //activate textures
@@ -87,16 +106,6 @@ void RenderList::render(GraphicsInterface *graphicsWrapper, const std::shared_pt
            if(material->hasNormalMap()) {
                graphicsWrapper->attachTexture(material->getNormalTexture()->getID(), normalMapAttachPoint);
            }
-       }
-
-       if (renderListIterator.get().indices.empty()) {
-           std::cerr << "Empty meshInfo" << std::endl;
-           continue;
-       }
-       if (forceNotAnimated) {
-           renderProgram->setUniform("isAnimated", false);
-       } else {
-           renderProgram->setUniform("isAnimated", renderListIterator.get().isAnimated);
        }
 
        graphicsWrapper->setModelIndexesUBO(renderListIterator.get().indices);
