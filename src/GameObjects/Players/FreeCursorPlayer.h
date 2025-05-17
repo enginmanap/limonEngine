@@ -6,7 +6,7 @@
 #define LIMONENGINE_FREECURSORPLAYER_H
 
 #include "Player.h"
-#include "../../CameraAttachment.h"
+#include "LimonAPI/CameraAttachment.h"
 #include "../../Utils/GLMUtils.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>

@@ -11,7 +11,7 @@
 
 #include "Player.h"
 #include "limonAPI/Options.h"
-#include "../../CameraAttachment.h"
+#include "LimonAPI/CameraAttachment.h"
 #include "../../Utils/GLMConverter.h"
 #include "../Sound.h"
 #include "../Model.h"

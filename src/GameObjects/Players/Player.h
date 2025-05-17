@@ -11,7 +11,7 @@
 #include "limonAPI/InputStates.h"
 #include "limonAPI/Options.h"
 #include "limonAPI/PlayerExtensionInterface.h"
-#include "CameraAttachment.h"
+#include "LimonAPI/CameraAttachment.h"
 
 class btDiscreteDynamicsWorld;
 class GUIRenderable;
@@ -92,7 +92,7 @@ public:
     virtual CameraAttachment* getCameraAttachment() = 0;
 
     /************Game Object methods **************/
-    virtual uint32_t getWorldObjectID() const override {
+    uint32_t getWorldObjectID() const override {
         std::cerr << "Player doesn't have a world object ID, it shouldn't have been needed." << std::endl;
         return 0;
     }
@@ -171,7 +171,7 @@ public:
 
     virtual void setDead() {};
 
-    bool isDead() {
+    bool isDead() const {
         return dead;
     }
 
