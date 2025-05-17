@@ -131,10 +131,6 @@ public:
 
     void ownControl(const glm::vec3& position, const glm::vec3 &lookDirection) override;
 
-    CameraAttachment* getCameraAttachment() override {
-        return this;
-    }
-
     PhysicalPlayer(uint32_t worldID, OptionsUtil::Options *options, GUIRenderable *cursor, const glm::vec3 &position,
                    const glm::vec3 &lookDirection, Model *attachedModel = nullptr);
 
@@ -153,7 +149,7 @@ public:
 
     void setAttachedModel(Model *attachedModel);
 
-    inline void setAttachedModelTransformation(Model *attachedModel) const {
+   void setAttachedModelTransformation(Model *attachedModel) const {
         if(attachedModel != nullptr) {
             attachedModel->getTransformation()->setTranslate(GLMConverter::BltToGLM(getRigidBody()->getWorldTransform().getOrigin()) + glm::vec3(0,1,0)  + getLookDirectionQuaternion() * attachedModelOffset);
         }

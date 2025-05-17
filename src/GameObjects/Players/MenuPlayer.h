@@ -72,10 +72,6 @@ public:
 
     void rotate(float xPosition, float yPosition, float xChange, float yChange) override;
 
-    CameraAttachment* getCameraAttachment() override {
-        return this;
-    }
-
     void processInput(const InputStates &inputHandler, long time) override {
         Player::processInput(inputHandler, time);
 

@@ -89,7 +89,9 @@ public:
         return this->worldSettings;
     }
 
-    virtual CameraAttachment* getCameraAttachment() = 0;
+    CameraAttachment* getCameraAttachment() {
+            return this;
+    }
 
     /************Game Object methods **************/
     uint32_t getWorldObjectID() const override {

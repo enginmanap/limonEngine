@@ -56,7 +56,7 @@ public:
         lookDirection = this->center;
     }
 
-    void ownControl(const glm::vec3& position, const glm::vec3 &lookDirection) {
+    void ownControl(const glm::vec3& position, const glm::vec3 &lookDirection) override {
         this->position = position;
 
         this->center = glm::normalize(lookDirection);
@@ -70,10 +70,6 @@ public:
     };
 
     void rotate(float xPosition, float yPosition, float xChange, float yChange);
-
-    CameraAttachment* getCameraAttachment() {
-        return this;
-    }
 };
 
 
