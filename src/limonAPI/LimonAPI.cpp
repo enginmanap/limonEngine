@@ -137,6 +137,10 @@ bool LimonAPI::setLightColor(uint32_t lightID, const LimonTypes::Vec4 &color){
     return worldSetLightColor(lightID, color);
 }
 
+bool LimonAPI::changeRenderPipeline(const std::string& pipelineFileName) {
+    return worldChangeRenderPipeline(pipelineFileName);
+}
+
 //Wall time parameter is used to determine using wall time or game time. These differ because loading other worlds (menus) or editor will stop game time.
 long LimonAPI::addTimedEvent(uint64_t waitTime, bool useWallTime,
                              std::function<void(const std::vector<LimonTypes::GenericParameter> &)> methodToCall,
@@ -182,6 +186,10 @@ bool LimonAPI::setEmitterParticleSpeed(uint32_t emitterID, const LimonTypes::Vec
 }
 bool LimonAPI::setEmitterParticleGravity(uint32_t emitterID, const LimonTypes::Vec4& gravity){
     return worldSetEmitterParticleGravity(emitterID, gravity);
+}
+
+void LimonAPI::getPlayerPosition(glm::vec3& position, glm::vec3& center, glm::vec3& up, glm::vec3& right) {
+    worldGetPlayerPosition(position, center, up, right);
 }
 
 LimonTypes::Vec4 LimonAPI::getPlayerAttachedModelOffset() {

@@ -102,6 +102,7 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldSetAnimationOfModel = std::bind(&World::setModelAnimationAPI, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     limonAPI->worldSetAnimationOfModelWithBlend = std::bind(&World::setModelAnimationWithBlendAPI, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
     limonAPI->worldSetModelAnimationSpeed = std::bind(&World::setModelAnimationSpeedAPI, world, std::placeholders::_1, std::placeholders::_2);
+    limonAPI->worldGetPlayerPosition = std::bind(&World::getPlayerPositionAPI, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
     limonAPI->worldGetPlayerAttachmentOffset = std::bind(&World::getPlayerModelOffsetAPI, world);
     limonAPI->worldSetPlayerAttachmentOffset = std::bind(&World::setPlayerModelOffsetAPI, world, std::placeholders::_1);
     limonAPI->worldEnableParticleEmitter = std::bind(&World::enableParticleEmitter, world, std::placeholders::_1);

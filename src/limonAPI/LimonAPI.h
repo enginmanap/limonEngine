@@ -113,6 +113,14 @@ public:
      */
     std::vector<LimonTypes::GenericParameter> getObjectTransformationMatrix(uint32_t objectID);
 
+    /**
+     * Sets value for position of the player, but also center, up and right that are used for camera variable determination
+     * @param position
+     * @param center
+     * @param up
+     * @param right
+     */
+    void getPlayerPosition(glm::vec3& position, glm::vec3& center, glm::vec3& up, glm::vec3& right);
     uint32_t getPlayerAttachedModel();
     LimonTypes::Vec4 getPlayerAttachedModelOffset();
     bool setPlayerAttachedModelOffset(LimonTypes::Vec4 newOffset);
@@ -137,9 +145,7 @@ public:
     bool addLightTranslate(uint32_t lightID, const LimonTypes::Vec4& translate);
     bool setLightColor(uint32_t lightID, const LimonTypes::Vec4& color);
 
-    bool changeRenderPipeline(const std::string& pipelineFileName) {
-        return worldChangeRenderPipeline(pipelineFileName);
-    }
+    bool changeRenderPipeline(const std::string& pipelineFileName);
 
     bool loadAndSwitchWorld(const std::string& worldFileName);
     bool returnToWorld(const std::string& worldFileName);//if world is not loaded, loads first
@@ -236,6 +242,7 @@ private:
     std::function<bool (uint32_t, const LimonTypes::Vec4& speedMultiplier, const LimonTypes::Vec4& speedOffset)> worldSetEmitterParticleSpeed;
     std::function<bool (uint32_t, const LimonTypes::Vec4& gravity)> worldSetEmitterParticleGravity;
 
+    std::function<void(glm::vec3&, glm::vec3&, glm::vec3&, glm::vec3&)> worldGetPlayerPosition;
     std::function<LimonTypes::Vec4 ()> worldGetPlayerAttachmentOffset;
     std::function<bool (LimonTypes::Vec4)> worldSetPlayerAttachmentOffset;
     std::function<uint32_t ()> worldGetPlayerAttachedModel;

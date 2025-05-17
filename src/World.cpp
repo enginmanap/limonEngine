@@ -1768,9 +1768,11 @@ void World::afterLoadFinished() {
     request = new ImGuiRequest(playerCamera->getCameraMatrix(), playerCamera->getProjectionMatrix(),
                                graphicsWrapper->getGUIOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), playerCamera, apiInstance);
 
-    if(startingPlayer.extensionName != "") {
+    if(!startingPlayer.extensionName.empty()) {
         PlayerExtensionInterface *playerExtension =PlayerExtensionInterface::createExtension(startingPlayer.extensionName, apiInstance);
         this->currentPlayer->setPlayerExtension(playerExtension);
+        this->currentPlayer->setCameraOverride(playerExtension->getCustomCameraAttachment());
+        playerCamera->setCameraAttachment(currentPlayer->getCameraAttachment());
         strncpy(extensionNameBuffer, startingPlayer.extensionName.c_str(), sizeof(extensionNameBuffer)-1);
     }
 }
@@ -2594,6 +2596,10 @@ bool World::setModelAnimationWithBlendAPI(uint32_t modelID, const std::string& a
         return true;
     }
     return false;
+}
+
+void World::getPlayerPositionAPI(glm::vec3& position, glm::vec3& center, glm::vec3& up, glm::vec3& right) {
+    this->currentPlayer->getCameraVariables(position, center, up, right);
 }
 
 LimonTypes::Vec4 World::getPlayerModelOffsetAPI() {

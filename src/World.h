@@ -543,6 +543,7 @@ public:
                           std::vector<LimonTypes::GenericParameter> parameters);
     bool cancelTimedEventAPI(long handleId);
 
+    void getPlayerPositionAPI(glm::vec3& position, glm::vec3& center, glm::vec3& up, glm::vec3& right);
     uint32_t getPlayerAttachedModelAPI();
     std::vector<uint32_t> getModelChildrenAPI(uint32_t modelID);
 

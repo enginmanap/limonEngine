@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include "limonAPI/PlayerExtensionInterface.h"
+#include "ThirdPersonCameraAttachment.h"
 #include "glm/gtc/quaternion.hpp"
 /**
  * Cowboy attachment of player can be doing one of these:
@@ -56,6 +57,8 @@ class CowboyShooterExtension : public  PlayerExtensionInterface {
 
     InputStates inputState;
 
+    ThirdPersonCameraAttachment *cameraAttachment;
+
     void shootingTransition();
     void walkingTransition();
     void runningTransition();
@@ -78,6 +81,7 @@ public:
                 currentGun = Gun::PISTOL;
             }
         }
+        cameraAttachment = new ThirdPersonCameraAttachment(limonAPI);
     }
     void removeDamageIndicator(std::vector<LimonTypes::GenericParameter> parameters);
     void removeMuzzleFlash(std::vector<LimonTypes::GenericParameter> parameters);
@@ -91,6 +95,8 @@ public:
     void processHitReaction();
 
     void addDamageIndicator(const std::vector<LimonTypes::GenericParameter> &interactionData);
+
+    CameraAttachment* getCustomCameraAttachment() override { return cameraAttachment; }
 };
 
 

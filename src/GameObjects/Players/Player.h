@@ -77,7 +77,13 @@ public:
                                             int collisionMaskForSelf [[gnu::unused]],
                                             int collisionMaskForGround [[gnu::unused]],
                                             const glm::vec3 &worldAABBMin [[gnu::unused]],
-                                            const glm::vec3 &worldAABBMax [[gnu::unused]]) {};
+                                            const glm::vec3 &worldAABBMax [[gnu::unused]]) {}
+
+    CameraAttachment * cameraAttachment = nullptr;
+
+    void setCameraOverride(CameraAttachment * camera_attachment) {
+        this->cameraAttachment = camera_attachment;
+    }
 
     virtual void processPhysicsWorld(const btDiscreteDynamicsWorld *world [[gnu::unused]]) {};
 
@@ -90,7 +96,10 @@ public:
     }
 
     CameraAttachment* getCameraAttachment() {
-            return this;
+        if(this->cameraAttachment != nullptr) {
+            return this->cameraAttachment;
+        }
+        return this;
     }
 
     /************Game Object methods **************/
