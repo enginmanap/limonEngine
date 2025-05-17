@@ -8,7 +8,7 @@
 
 #include "Camera.h"
 #include "PhysicalRenderable.h"
-#include "LimonAPI/CameraAttachment.h"
+#include "limonAPI/CameraAttachment.h"
 #include "PerspectiveCamera.h"
 
 class OrthographicCamera : public Camera {

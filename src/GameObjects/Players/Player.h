@@ -11,7 +11,7 @@
 #include "limonAPI/InputStates.h"
 #include "limonAPI/Options.h"
 #include "limonAPI/PlayerExtensionInterface.h"
-#include "LimonAPI/CameraAttachment.h"
+#include "limonAPI/CameraAttachment.h"
 
 class btDiscreteDynamicsWorld;
 class GUIRenderable;

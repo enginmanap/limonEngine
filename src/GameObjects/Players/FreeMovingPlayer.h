@@ -6,7 +6,7 @@
 #define LIMONENGINE_FREEMOVINGPLAYER_H
 
 
-#include "LimonAPI/CameraAttachment.h"
+#include "limonAPI/CameraAttachment.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include "Player.h"

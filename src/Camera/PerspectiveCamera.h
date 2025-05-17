@@ -16,7 +16,7 @@
 #include "limonAPI/Options.h"
 #include "Utils/GLMConverter.h"
 #include "Utils/GLMUtils.h"
-#include "LimonAPI/CameraAttachment.h"
+#include "limonAPI/CameraAttachment.h"
 #include "Camera.h"
 #include "PhysicalRenderable.h"
 
