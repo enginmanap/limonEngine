@@ -613,10 +613,10 @@ public:
         //now we get to calculate the size in screen
         glm::vec4 minScreen = viewMatrix * glm::vec4(minAABB, 1.0);
         glm::vec4 maxScreen = viewMatrix * glm::vec4(maxAABB, 1.0);
-        minScreen /= minScreen.z;
-        maxScreen /= maxScreen.z;
+        minScreen /= minScreen.w;
+        maxScreen /= maxScreen.w;
 
-        objectAverageDepth = (maxScreen.w + minScreen.w) / 2.0;
+        objectAverageDepth = (maxScreen.z + minScreen.z) / 2.0f;
         if(lodDistances.empty() && skipRenderDistance == 0.0) {
             return 0;
         }
