@@ -58,42 +58,37 @@ public:
         OptionsUtil::Options::Option<long> cascadeCountOption = options->getOption<long>(HASH("CascadeCount"));
         cascadeCount = cascadeCountOption.getOrDefault(4L);
 
-        if(cascadeCount == 1L) {
-            cascadePerspectiveProjectionMatrices.emplace_back(perspectiveProjectionMatrix);
-            this->frustumCorners.resize(1);
-        } else {
-            std::vector<long> cascadeListOption;
-            OptionsUtil::Options::Option<std::vector<long>> cascadeLimitListOptionOption = options->getOption<std::vector<long>>(HASH("CascadeLimitList"));
-            if(cascadeLimitListOptionOption.isUsable()) {
-                cascadeListOption = cascadeLimitListOptionOption.get();
-                //we have the option list, lets process
-                if(cascadeListOption.size() != (size_t)cascadeCount) {
-                    std::cerr << "\"CascadeLimitList doesn't contain same number of elements as cascade count. Cascade setup will use defaults" << std::endl;
-                    cascadeLimits.emplace_back(0.01);
-                    cascadeLimits.emplace_back(10.0f);
-                    cascadeLimits.emplace_back(100.0f);
-                    cascadeLimits.emplace_back(1000.0f);
-                    cascadeLimits.emplace_back(10000.0f);
-                } else {
-                    cascadeLimits.emplace_back(0.01);
-                    for (size_t i = 0; i < cascadeListOption.size(); ++i) {
-                        cascadeLimits.emplace_back(cascadeListOption[i]);
-                    }
-                }
-            } else {
-                std::cerr << "\"CascadeLimitList option not found, cascade setup will use defaults" << std::endl;
+        std::vector<long> cascadeListOption;
+        OptionsUtil::Options::Option<std::vector<long>> cascadeLimitListOptionOption = options->getOption<std::vector<long>>(HASH("CascadeLimitList"));
+        if(cascadeLimitListOptionOption.isUsable()) {
+            cascadeListOption = cascadeLimitListOptionOption.get();
+            //we have the option list, lets process
+            if(cascadeListOption.size() != (size_t)cascadeCount) {
+                std::cerr << "\"CascadeLimitList doesn't contain same number of elements as cascade count. Cascade setup will use defaults" << std::endl;
                 cascadeLimits.emplace_back(0.01);
                 cascadeLimits.emplace_back(10.0f);
                 cascadeLimits.emplace_back(100.0f);
                 cascadeLimits.emplace_back(1000.0f);
                 cascadeLimits.emplace_back(10000.0f);
+            } else {
+                cascadeLimits.emplace_back(0.01);
+                for (size_t i = 0; i < cascadeListOption.size(); ++i) {
+                    cascadeLimits.emplace_back(cascadeListOption[i]);
+                }
             }
-            //Now use the cascade limist to create the array of perspective projection matrixes
-            for (size_t i = 1; i < cascadeLimits.size(); ++i) {
-                cascadePerspectiveProjectionMatrices.emplace_back(glm::perspective(OptionsUtil::Options::PI / 3.0f, 1.0f / aspect, cascadeLimits[i - 1], cascadeLimits[i]));
-            }
-            frustumCorners.resize(cascadePerspectiveProjectionMatrices.size());
+        } else {
+            std::cerr << "\"CascadeLimitList option not found, cascade setup will use defaults" << std::endl;
+            cascadeLimits.emplace_back(0.01);
+            cascadeLimits.emplace_back(10.0f);
+            cascadeLimits.emplace_back(100.0f);
+            cascadeLimits.emplace_back(1000.0f);
+            cascadeLimits.emplace_back(10000.0f);
         }
+        //Now use the cascade limist to create the array of perspective projection matrixes
+        for (size_t i = 1; i < cascadeLimits.size(); ++i) {
+            cascadePerspectiveProjectionMatrices.emplace_back(glm::perspective(OptionsUtil::Options::PI / 3.0f, 1.0f / aspect, cascadeLimits[i - 1], cascadeLimits[i]));
+        }
+        frustumCorners.resize(cascadePerspectiveProjectionMatrices.size());
     }
 
     void setCameraAttachment(CameraAttachment *cameraAttachment) {
