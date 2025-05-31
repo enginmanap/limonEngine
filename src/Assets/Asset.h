@@ -9,11 +9,10 @@
 #include <string>
 #include <iostream>
 #include <thread>
-#ifdef CEREAL_SUPPORT
-#include <cereal/archives/xml.hpp>
 #include <mutex>
 #include "Utils/StringUtils.hpp"
-
+#ifdef CEREAL_SUPPORT
+#include <cereal/archives/xml.hpp>
 #endif
 
 
