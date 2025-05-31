@@ -10,14 +10,14 @@ glm::vec3 AnimationNode::getPositionVector(const float timeInTicks) const {
         transformVector = translates[0];
     } else {
         uint32_t positionIndex = translateTimes.size();
-        for (unsigned int i = 0; i < translates.size(); i++) {
+        for (unsigned int i = 0; i < translates.size()-1; i++) {
             if (timeInTicks < translateTimes[i + 1]) {
                 positionIndex = i;
                 break;
             }
         }
 
-        if(timeInTicks == translateTimes[translateTimes.size()-1]) {
+        if(timeInTicks >= translateTimes[translateTimes.size()-1]) {
             //this is the case were we request last transformation, and it doesn't require interpolation
             return translates[translateTimes.size()-1];
         }
@@ -50,14 +50,14 @@ glm::vec3 AnimationNode::getScalingVector(const float timeInTicks) const {
     } else {
         uint32_t ScalingIndex = scaleTimes.size();
         assert(scales.size() > 0);
-        for (unsigned int i = 0; i < scales.size(); i++) {
+        for (unsigned int i = 0; i < scales.size()-1; i++) {
             if (timeInTicks < scaleTimes[i + 1]) {
                 ScalingIndex = i;
                 break;
             }
         }
 
-        if(timeInTicks == scaleTimes[scaleTimes.size()-1]) {
+        if(timeInTicks >= scaleTimes[scaleTimes.size()-1]) {
             //this is the case were we request last transformation, and it doesn't require interpolation
             return scales[scaleTimes.size()-1];
         }
@@ -93,14 +93,14 @@ glm::quat AnimationNode::getRotationQuat(const float timeInTicks) const {
 
         assert(rotations.size() > 0);
 
-        for (unsigned int i = 0; i < rotations.size(); i++) {
+        for (unsigned int i = 0; i < rotations.size()-1; i++) {
             if (timeInTicks < (float) rotationTimes[i + 1]) {
                 rotationIndex = i;
                 break;
             }
         }
 
-        if(timeInTicks == rotationTimes[rotationTimes.size()-1]) {
+        if(timeInTicks >= rotationTimes[rotationTimes.size()-1]) {
             //this is the case were we request last transformation, and it doesn't require interpolation
             return rotations[rotationTimes.size()-1];
         }
