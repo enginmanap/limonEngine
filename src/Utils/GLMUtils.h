@@ -48,6 +48,16 @@ public:
     static std::string vectorToString(const glm::quat &vector) {
         return " (" + std::to_string(vector.x) + ", " + std::to_string(vector.y) + ", " + std::to_string(vector.z) + ", " + std::to_string(vector.w) + ") ";
     }
+
+    static std::string vectorOfVectorToString(const std::vector<glm::uvec4> &vector){
+        std::string result = "\"";
+        for (size_t i = 0; i < vector.size(); ++i) {
+            result += vectorToString(vector[i]);
+        }
+        result += "\"";
+        return result;
+
+    }
 };
 
 
