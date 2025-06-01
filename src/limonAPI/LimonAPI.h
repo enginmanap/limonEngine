@@ -87,6 +87,16 @@ public:
     std::vector<LimonTypes::GenericParameter> rayCastToCursor();
 
     /**
+ * * If nothing is hit, returns empty vector
+ * returns these values:
+ * 1) objectID for what is under the cursor
+ * 2) hit coordinates
+ * 3) hit normal
+ * 4) If object has AI, id of that AI
+ */
+    std::vector<LimonTypes::GenericParameter> rayCastFirstHit(const LimonTypes::Vec4& start, const LimonTypes::Vec4& direction);
+
+    /**
      * If object not found, returns empty vector
      *
      * Returns these values:
@@ -225,6 +235,7 @@ private:
     std::function<uint32_t (const std::string&, const glm::vec3&, bool, bool)> worldPlaySound;
 
     std::function<std::vector<LimonTypes::GenericParameter>()> worldRayCastToCursor;
+    std::function<std::vector<LimonTypes::GenericParameter>(const LimonTypes::Vec4&, const LimonTypes::Vec4&)> worldRayCast;
     std::function<bool (uint32_t, std::vector<LimonTypes::GenericParameter>&)> worldInteractWithAI;
     std::function<void (std::vector<LimonTypes::GenericParameter>&)> worldInteractWithPlayer;
     std::function<void (InputStates)> worldSimulateInput;

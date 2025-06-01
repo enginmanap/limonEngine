@@ -109,6 +109,11 @@ std::vector<LimonTypes::GenericParameter> LimonAPI::rayCastToCursor() {
     return worldRayCastToCursor();
 }
 
+std::vector<LimonTypes::GenericParameter> LimonAPI::rayCastFirstHit(const LimonTypes::Vec4& start, const LimonTypes::Vec4& direction) {
+    return worldRayCast(start, direction);
+}
+
+
 std::vector<LimonTypes::GenericParameter> LimonAPI::getObjectTransformation(uint32_t objectID) {
     return worldGetObjectTransformation(objectID);
 }

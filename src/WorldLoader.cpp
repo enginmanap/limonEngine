@@ -77,6 +77,7 @@ void WorldLoader::attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) co
     limonAPI->worldDetachSoundFromObject = std::bind(&World::detachSoundFromObject, world, std::placeholders::_1);
     limonAPI->worldPlaySound = std::bind(&World::playSound, world, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
     limonAPI->worldRayCastToCursor = std::bind(&World::rayCastToCursorAPI, world);
+    limonAPI->worldRayCast = std::bind(&World::rayCastAPI, world, std::placeholders::_1, std::placeholders::_2);
     limonAPI->worldGetObjectTransformation = std::bind(&World::getObjectTransformationAPI, world, std::placeholders::_1);
     limonAPI->worldGetObjectTransformationMatrix = std::bind(&World::getObjectTransformationMatrixAPI, world, std::placeholders::_1);
 

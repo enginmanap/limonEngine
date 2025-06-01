@@ -45,20 +45,20 @@ private:
     uint32_t lineBufferIndex = 0;
 public:
 
-    uint32_t drawLine(glm::vec3 from, glm::vec3 fromColor, glm::vec3 to, glm::vec3 toColor, bool requireCameraTransform) {
+    uint32_t drawLine(glm::vec3 from, glm::vec3 to, glm::vec3 fromColor, glm::vec3 toColor, bool requireCameraTransform) {
         lineBufferIndex++;
         std::vector<Line> lineBuffer;
-        lineBuffer.push_back(Line(from, fromColor, to, toColor, requireCameraTransform));
+        lineBuffer.push_back(Line(from, to, fromColor, toColor, requireCameraTransform));
         userManagedLineBuffer[lineBufferIndex] = lineBuffer;
         return lineBufferIndex;
     }
 
-    bool drawLine(uint32_t bufferIndex, glm::vec3 from, glm::vec3 fromColor, glm::vec3 to, glm::vec3 toColor, bool requireCameraTransform) {
+    bool drawLine(uint32_t bufferIndex, glm::vec3 from, glm::vec3 to, glm::vec3 fromColor, glm::vec3 toColor, bool requireCameraTransform) {
         std::map<uint32_t, std::vector<Line>>::iterator bufferToAdd = userManagedLineBuffer.find(bufferIndex);
         if(bufferToAdd == userManagedLineBuffer.end()) {
             return false;
         }
-        bufferToAdd->second.push_back(Line(from, fromColor, to, toColor, requireCameraTransform));
+        bufferToAdd->second.push_back(Line(from, to, fromColor,toColor, requireCameraTransform));
         return true;
     }
 

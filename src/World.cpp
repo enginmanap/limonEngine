@@ -772,14 +772,13 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
     }
 
     if(inputHandler.getInputStates().getInputEvents(InputStates::Inputs::F4)) {
-        /*
-        bool debugDrawLines;
-        options->getOptionOrDefault("DebugDrawLines", debugDrawLines, false);
+        OptionsUtil::Options::Option<bool> debugDrawLinesOption = options->getOption<bool>(HASH("DebugDrawLines"));
+        bool debugDrawLines = debugDrawLinesOption.getOrDefault(false);
         if(inputHandler.getInputStates().getInputStatus(InputStates::Inputs::F4)) {
             debugDrawLines = !debugDrawLines;
         }
-        options->setOption("DebugDrawLines", debugDrawLines);
-         */
+        debugDrawLinesOption.set(debugDrawLines);
+        /*
         long cascadeCount;
         OptionsUtil::Options::Option<long> cascadeCountOption = options->getOption<long>(HASH("CascadeCount"));
         cascadeCount = cascadeCountOption.getOrDefault(4);
@@ -789,6 +788,7 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
                 cascadeCount = cascadeCountOption.getOrDefault(4);
             }
         }
+        */
     }
 
     if (inputHandler.getInputStates().getInputEvents(InputStates::Inputs::EDITOR) && inputHandler.getInputStates().getInputStatus(InputStates::Inputs::EDITOR)) {
@@ -2306,7 +2306,79 @@ bool World::setModelTemporaryAPI(uint32_t modelID, bool temporary) {
     }
 }
 
-std::vector<LimonTypes::GenericParameter> World::rayCastToCursorAPI() {
+std::vector<LimonTypes::GenericParameter> World::rayCastAPI(const LimonTypes::Vec4& start, const LimonTypes::Vec4& direction) const {
+    /**
+     * * If nothing is hit, returns empty vector
+     * returns these values:
+     * 1) objectID for what is under the cursor
+     * 2) hit coordinates
+     * 3) hit normal
+     * 4) If object has AI, id of that AI
+     */
+    std::vector<LimonTypes::GenericParameter>result;
+    glm::vec3 position, normal;
+    glm::vec3 startGLM = GLMConverter::LimonToGLMV3(start);
+    glm::vec3 directionGLM = GLMConverter::LimonToGLMV3(direction);
+    GameObject* gameObject = this->rayCastClosest(startGLM, directionGLM, COLLIDE_EVERYTHING, COLLIDE_MODELS |COLLIDE_EVERYTHING, &position, &normal);
+
+    glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
+    glm::vec3 color2 = glm::vec3(0.0f, 0.0f, 0.0f);
+    static uint32_t drawLineBufferId = 0;
+
+    OptionsUtil::Options::Option<bool> debugDrawLinesOption = options->getOption<bool>(HASH("DebugDrawLines"));
+    bool debugDrawLines = debugDrawLinesOption.getOrDefault(false);
+
+    if (debugDrawLines) {
+        if (drawLineBufferId != 0) {
+            options->getLogger()->clearLineBuffer(drawLineBufferId);
+        }
+        drawLineBufferId = options->getLogger()->drawLine(startGLM, startGLM + directionGLM, color, color2, true);
+    }
+
+    if(gameObject == nullptr) {
+        return result;
+    }
+    LimonTypes::GenericParameter objectIDParam;
+    objectIDParam.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+    objectIDParam.value.longValue = gameObject->getWorldObjectID();
+    objectIDParam.description = "objectID for what we hit";
+    objectIDParam.isSet = true;
+    result.push_back(objectIDParam);
+
+    LimonTypes::GenericParameter positionParam;
+    positionParam.valueType = LimonTypes::GenericParameter::ValueTypes::VEC4;
+    positionParam.value.vectorValue.x = position.x;
+    positionParam.value.vectorValue.y = position.y;
+    positionParam.value.vectorValue.z = position.z;
+    positionParam.description = "hit coordinates";
+    positionParam.isSet = true;
+    result.push_back(positionParam);
+
+    LimonTypes::GenericParameter normalParam;
+    normalParam.valueType = LimonTypes::GenericParameter::ValueTypes::VEC4;
+    normalParam.value.vectorValue.x = normal.x;
+    normalParam.value.vectorValue.y = normal.y;
+    normalParam.value.vectorValue.z = normal.z;
+    normalParam.description = "hit normal";
+    normalParam.isSet = true;
+    result.push_back(normalParam);
+
+    if(gameObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
+        Model * foundModel = dynamic_cast<Model *>(gameObject);
+        if (foundModel != nullptr && foundModel->getAIID() != 0) {
+            LimonTypes::GenericParameter aiIDParam;
+            aiIDParam.valueType = LimonTypes::GenericParameter::ValueTypes::LONG;
+            aiIDParam.value.longValue = foundModel->getAIID();
+            aiIDParam.description = "AI ID for what we hit";
+            aiIDParam.isSet = true;
+            result.push_back(aiIDParam);
+        }
+    }
+
+    return result;
+}
+
+std::vector<LimonTypes::GenericParameter> World::rayCastToCursorAPI() const {
    /**
     * * If nothing is hit, returns empty vector
     * returns these values:
@@ -2397,49 +2469,34 @@ std::vector<LimonTypes::GenericParameter> World::getObjectTransformationMatrixAP
    return result;
 }
 
-GameObject * World::getPointedObject(int collisionType, int filterMask,
+GameObject* World::rayCastClosest(glm::vec3 from, glm::vec3 direction, int collisionType, int filterMask,
                                      glm::vec3 *collisionPosition, glm::vec3 *collisionNormal) const {
-    glm::vec3 from, lookDirection;
-    currentPlayer->getWhereCameraLooks(from, lookDirection);
-
-    if(guiPickMode) {
-        GameObject* pickedGuiElement = nullptr;
-        uint32_t pickedLevel = 0;
-        //then we don't need to rayTest. We can get the picked object directly by coordinate.
-        for (size_t i = 0; i < guiLayers.size(); ++i) {
-            GameObject* pickedGuiTemp = dynamic_cast<GameObject*>(guiLayers[i]->getRenderableFromCoordinate(cursor->getTranslate()));
-            if(pickedGuiTemp != nullptr && guiLayers[i]->getLevel() >= pickedLevel) {
-                pickedGuiElement = pickedGuiTemp;//because we are iterating all the levels
-            }
-        }
-        return pickedGuiElement;
-    } else {
-        //we want to extend to vector to world AABB limit
+//we want to extend to vector to world AABB limit
         float maxFactor = 1; //don't allow making ray smaller than unit by setting 1.
 
-        if (lookDirection.x > 0) {
+        if (direction.x > 0) {
             //so we are looking at positive x. determine how many times the ray x we need
-            maxFactor = std::max(maxFactor,(worldAABBMax.x - from.x) / lookDirection.x);
+            maxFactor = std::max(maxFactor,(worldAABBMax.x - from.x) / direction.x);
         } else {
             maxFactor = std::max(maxFactor,(worldAABBMin.x - from.x) /
-                                           lookDirection.x); //Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
+                                           direction.x); //Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
         }
 
-        if (lookDirection.y > 0) {
-            std::max(maxFactor, (worldAABBMax.y - from.y) / lookDirection.y);
+        if (direction.y > 0) {
+            maxFactor =std::max(maxFactor, (worldAABBMax.y - from.y) / direction.y);
         } else {
-            std::max(maxFactor, (worldAABBMin.y - from.y) /
-                                lookDirection.y);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
+            maxFactor = std::max(maxFactor, (worldAABBMin.y - from.y) /
+                                direction.y);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
         }
 
-        if (lookDirection.z > 0) {
-            std::max(maxFactor, (worldAABBMax.z - from.z) / lookDirection.z);
+        if (direction.z > 0) {
+            maxFactor = std::max(maxFactor, (worldAABBMax.z - from.z) / direction.z);
         } else {
-            std::max(maxFactor, (worldAABBMin.z - from.z) /
-                                lookDirection.z);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
+            maxFactor = std::max(maxFactor, (worldAABBMin.z - from.z) /
+                                direction.z);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
         }
-        lookDirection = lookDirection * maxFactor;
-        glm::vec3 to = lookDirection + from;
+        direction = direction * maxFactor;
+        glm::vec3 to = direction + from;
         btCollisionWorld::ClosestRayResultCallback RayCallback(GLMConverter::GLMToBlt(from),
                                                                GLMConverter::GLMToBlt(to));
         RayCallback.m_collisionFilterGroup = collisionType;
@@ -2463,6 +2520,26 @@ GameObject * World::getPointedObject(int collisionType, int filterMask,
         } else {
             return nullptr;
         }
+}
+
+GameObject * World::getPointedObject(int collisionType, int filterMask,
+                                     glm::vec3 *collisionPosition, glm::vec3 *collisionNormal) const {
+    glm::vec3 from, lookDirection;
+    currentPlayer->getWhereCameraLooks(from, lookDirection);
+
+    if(guiPickMode) {
+        GameObject* pickedGuiElement = nullptr;
+        uint32_t pickedLevel = 0;
+        //then we don't need to rayTest. We can get the picked object directly by coordinate.
+        for (size_t i = 0; i < guiLayers.size(); ++i) {
+            GameObject* pickedGuiTemp = dynamic_cast<GameObject*>(guiLayers[i]->getRenderableFromCoordinate(cursor->getTranslate()));
+            if(pickedGuiTemp != nullptr && guiLayers[i]->getLevel() >= pickedLevel) {
+                pickedGuiElement = pickedGuiTemp;//because we are iterating all the levels
+            }
+        }
+        return pickedGuiElement;
+    } else {
+        return rayCastClosest(from, lookDirection, collisionType, filterMask, collisionPosition, collisionNormal);
     }
 }
 

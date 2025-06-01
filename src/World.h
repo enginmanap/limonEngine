@@ -353,6 +353,8 @@ private:
     std::map<VisibilityRequest*, SDL_Thread *> occlusionThreadManager();
     std::map<VisibilityRequest*, SDL_Thread *> visibilityThreadPool;
 
+    GameObject* rayCastClosest(glm::vec3 from, glm::vec3 direction,int collisionType, int filterMask,
+                                     glm::vec3 *collisionPosition = nullptr, glm::vec3 *collisionNormal = nullptr) const;
     GameObject *getPointedObject(int collisionType, int filterMask,
                                  glm::vec3 *collisionPosition = nullptr, glm::vec3 *collisionNormal = nullptr) const;
 
@@ -519,8 +521,8 @@ public:
      * 3) hit normal
      *
      */
-    std::vector<LimonTypes::GenericParameter> rayCastToCursorAPI();
-
+    std::vector<LimonTypes::GenericParameter> rayCastToCursorAPI() const;
+    std::vector<LimonTypes::GenericParameter> rayCastAPI(const LimonTypes::Vec4& start, const LimonTypes::Vec4& direction) const;//sameReturn as rayCastToCursorAPI
 
     std::vector<LimonTypes::GenericParameter> getObjectTransformationAPI(uint32_t objectID) const;
 
