@@ -26,10 +26,10 @@ public:
         //starting info
         glm::vec3 defaultStart = position - (3.0f * center) + glm::vec3(0.0f, 2.0f, 0.0f);
         //we wanna check if we can see the player
-        glm::vec3 direction = position - defaultStart;
-        LimonTypes::Vec4 defaultStartL = {defaultStart.x, defaultStart.y, defaultStart.z, 0.0f};
+        glm::vec3 direction = defaultStart - position;
+        LimonTypes::Vec4 positionL = {position.x, position.y, position.z, 0.0f};
         LimonTypes::Vec4 directionL = {direction.x, direction.y, direction.z, 0.0f};
-        std::vector<LimonTypes::GenericParameter> hitDetails = limonAPI->rayCastFirstHit(defaultStartL, directionL);
+        std::vector<LimonTypes::GenericParameter> hitDetails = limonAPI->rayCastFirstHit(positionL, directionL);
         //std::cout << "raycast direction: " << defaultStart.x + direction.x << " " << defaultStart.y + direction.y << " " << defaultStart.z + direction.z << std::endl;
         if (hitDetails.empty()) {
             position = defaultStart;
@@ -47,7 +47,7 @@ public:
                     } else {
                         glm::vec3 hitPosition = glm::vec3(hitDetails[1].value.vectorValue.x, hitDetails[1].value.vectorValue.y, hitDetails[1].value.vectorValue.z);
                         if (glm::distance(hitPosition, defaultStart) < glm::distance(defaultStart, position)) {
-                            position = hitPosition + 0.25f * glm::normalize(direction);
+                            position = hitPosition - 0.25f * glm::normalize(direction);
                             //std::cout << "raycast returned position, reseting" << std::endl;
                         } else {
                             //std::cout << "raycast returned wrong position, ignoring"<< std::endl;
