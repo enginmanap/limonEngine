@@ -50,9 +50,8 @@ private:
      * vector has vector<string>, because embedded textures are saved with pairs, first element is the index, second element is the model file itself.
      */
 
-//FIXME
-    //std::vector<std::vector<std::string>>* textureNames = nullptr;
-    std::vector<std::string> ambientTextureNames, diffuseTextureNames, specularTextureNames, normalTextureNames, opacityTextureNames;
+
+    std::shared_ptr<std::vector<std::vector<std::string>>> textureNames = nullptr;
 
     friend struct std::hash<Material>;
     std::shared_ptr<TextureAsset> ambientTexture = nullptr;
@@ -315,81 +314,75 @@ public:
     template<class Archive>
     void save(Archive & archive) const {
 
-        std::vector<std::string> ambientTextureNames, diffuseTextureNames, specularTextureNames, normalTextureNames, opacityTextureNames;
+        std::shared_ptr<std::vector<std::vector<std::string>>> textureNames = std::make_shared<std::vector<std::vector<std::string>>>(5);
 
         if(ambientTexture != nullptr) {
-            ambientTextureNames = ambientTexture->getName();
+            (*textureNames)[0] = ambientTexture->getName();
         };
         if(diffuseTexture != nullptr) {
-            diffuseTextureNames = diffuseTexture->getName();
+            (*textureNames)[1]= diffuseTexture->getName();
         };
         if(specularTexture != nullptr) {
-            specularTextureNames = specularTexture->getName();
+            (*textureNames)[2] = specularTexture->getName();
         };
         if(normalTexture != nullptr) {
-            normalTextureNames = normalTexture->getName();
+            (*textureNames)[3] = normalTexture->getName();
         };
         if(opacityTexture != nullptr) {
-            opacityTextureNames = opacityTexture->getName();
+            (*textureNames)[4] = opacityTexture->getName();
         };
 
         archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex,
-                ambientTextureNames, diffuseTextureNames, specularTextureNames, normalTextureNames, opacityTextureNames);
+            textureNames);
     }
 
     template<class Archive>
     void load(Archive & archive)  {
 
-        archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex
-                ,ambientTextureNames, diffuseTextureNames, specularTextureNames, normalTextureNames, opacityTextureNames);
+        archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex,
+            textureNames);
     }
 
     void afterLoad(AssetManager* assetManager) {
         this->assetManager = assetManager;
-        if(!ambientTextureNames.empty()) {
-            if (ambientTextureNames.size() > 1) {
-                this->setAmbientTexture(ambientTextureNames[0], &ambientTextureNames[1]);
-            } else {
-                this->setAmbientTexture(ambientTextureNames[0]);
+        if (textureNames != nullptr) {
+            if (!(*textureNames)[0].empty()) {
+                if ((*textureNames)[0].size() > 1) {
+                    this->setAmbientTexture((*textureNames)[0][0], &(*textureNames)[0][1]);
+                } else {
+                        this->setAmbientTexture((*textureNames)[0][0]);
+                }
             }
-            ambientTextureNames.clear();
-        }
-
-        if(!diffuseTextureNames.empty()) {
-            if (diffuseTextureNames.size() > 1) {
-                this->setDiffuseTexture(diffuseTextureNames[0], &diffuseTextureNames[1]);
-            } else {
-                this->setDiffuseTexture(diffuseTextureNames[0]);
+            if (!(*textureNames)[1].empty()) {
+                if ((*textureNames)[1].size() > 1) {
+                    this->setDiffuseTexture((*textureNames)[1][0], &(*textureNames)[1][1]);
+                } else {
+                    this->setDiffuseTexture((*textureNames)[1][0]);
+                }
             }
-            diffuseTextureNames.clear();
-        }
-
-        if(!specularTextureNames.empty()) {
-            if (specularTextureNames.size() > 1) {
-                this->setSpecularTexture(specularTextureNames[0], &specularTextureNames[1]);
-            } else {
-                this->setSpecularTexture(specularTextureNames[0]);
+            if (!(*textureNames)[2].empty()) {
+                if ((*textureNames)[2].size() > 1) {
+                    this->setSpecularTexture((*textureNames)[2][0], &(*textureNames)[2][1]);
+                } else {
+                    this->setSpecularTexture((*textureNames)[2][0]);
+                }
             }
-            specularTextureNames.clear();
-        }
-
-        if(!normalTextureNames.empty()) {
-            if (normalTextureNames.size() > 1) {
-                this->setNormalTexture(normalTextureNames[0], &normalTextureNames[1]);
-            } else {
-                this->setNormalTexture(normalTextureNames[0]);
+            if (!(*textureNames)[3].empty()) {
+                if ((*textureNames)[3].size() > 1) {
+                    this->setNormalTexture((*textureNames)[3][0], &(*textureNames)[3][1]);
+                } else {
+                    this->setNormalTexture((*textureNames)[3][0]);
+                }
             }
-            normalTextureNames.clear();
-        }
-
-        if(!opacityTextureNames.empty()) {
-            if (opacityTextureNames.size() > 1) {
-                this->setOpacityTexture(opacityTextureNames[0], &opacityTextureNames[1]);
-            } else {
-                this->setOpacityTexture(opacityTextureNames[0]);
+            if (!(*textureNames)[4].empty()) {
+                if ((*textureNames)[4].size() > 1) {
+                    this->setOpacityTexture((*textureNames)[4][0], &(*textureNames)[4][1]);
+                } else {
+                    this->setOpacityTexture((*textureNames)[4][0]);
+                }
             }
-            opacityTextureNames.clear();
         }
+        this->textureNames = nullptr;
     }
 #endif
 };
