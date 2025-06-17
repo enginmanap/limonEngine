@@ -225,14 +225,36 @@ public:
             index++;
             embeddedTexture = assetManager->getEmbeddedTextures(name, index);
         }
-        ar(assetID, boneIDCounter, boneIDCounterPerMesh, textures,                   hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, transparentMaterialUsed);
+        ar(name, boneIDCounter, boneIDCounterPerMesh, textures,                   hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, meshMaterialMap, transparentMaterialUsed);
     }
 
     template<class Archive>
     void load( Archive & ar ) {
+        std::map<std::shared_ptr<MeshAsset>,std::shared_ptr<Material>> tempMeshMaterialMap;
         temporaryEmbeddedTextures = std::make_unique<std::vector<std::shared_ptr<const AssetManager::EmbeddedTexture>>>();
-        ar(assetID, boneIDCounter, boneIDCounterPerMesh, *temporaryEmbeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, transparentMaterialUsed);
+        ar(name,boneIDCounter, boneIDCounterPerMesh, *temporaryEmbeddedTextures, hasAnimation, rootNode, boundingBoxMax, boundingBoxMin, centerOffset, boneInformationMap, simplifiedMeshes, meshes, animations, animationSections, customizationAfterSave, materialMap, tempMeshMaterialMap, transparentMaterialUsed);
         //now update embedded textures to assetManager
+        for (size_t i = 0; i < meshes.size(); ++i) {
+            meshes[i]->buildBulletMesh();
+        }
+
+        for (const auto& tempMeshMaterialPair:tempMeshMaterialMap) {
+            meshMaterialMap[tempMeshMaterialPair.first] = tempMeshMaterialPair.second;
+        }
+        for (auto& materialPair:materialMap) {
+            std::map<const std::shared_ptr<const MeshAsset>,std::shared_ptr<Material>>::iterator meshMaterialToUpdateIt;
+            for (std::map<const std::shared_ptr<const MeshAsset>,std::shared_ptr<Material>>::iterator it = meshMaterialMap.begin(); it != meshMaterialMap.end(); ++it) {
+                if(it->second == materialPair.second) {
+                    meshMaterialToUpdateIt = it;
+                    break;
+                }
+            }
+            materialPair.second = assetManager->registerMaterial(materialPair.second);
+            if (meshMaterialToUpdateIt != meshMaterialMap.end()) {
+                meshMaterialMap[meshMaterialToUpdateIt->first] = materialPair.second;
+            }
+            materialPair.second->afterLoad(assetManager);
+        }
         buildPhysicsMeshes();
     }
 #endif

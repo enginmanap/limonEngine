@@ -230,6 +230,7 @@ public:
 
     explicit AssetManager(GraphicsInterface* graphicsWrapper, ALHelper *alHelper) : graphicsWrapper(graphicsWrapper), alHelper(alHelper) {
         nextMaterialIndex.store(1);
+        nextAssetIndex.store(0);
         loadAssetList();
         size_t num_threads = std::thread::hardware_concurrency();
         for (size_t i = 0; i < num_threads; ++i) {
@@ -245,7 +246,7 @@ public:
     template<class T>
     std::vector<std::shared_ptr<T>>parallelLoadAssetList(const std::vector<std::vector<std::string>> filesList) {
         std::vector<std::shared_ptr<T>> loadedAssets;
-        std::unordered_set<int> startedAssetIds;
+        std::unordered_set<uint32_t> startedAssetIds;
         for(const auto &files : filesList) {
             if (assets.count(files) == 0) {
                 uint32_t nextAssetIndexLocal = getNextAssetIndex();
@@ -258,6 +259,10 @@ public:
                         std::ifstream is(files[0], std::ios::binary);
                         cereal::BinaryInputArchive archive(is);
                         assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndexLocal, files, archive), 0);
+                        assets[files].first->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
+
+                        startedAssetIds.insert(nextAssetIndexLocal);
+                        assetLoadGPUQueue.pushBack(assets[files].first, true);
 #else
                         std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
                     std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
@@ -315,6 +320,10 @@ public:
                     std::ifstream is(files[0], std::ios::binary);
                     cereal::BinaryInputArchive archive(is);
                     assets[files] = std::make_pair(std::make_shared<T>(this, nextAssetIndexLocal, files, archive), 0);
+                    assets[files].first->setLoadState(Asset::LoadState::CPU_LOAD_DONE);
+
+                    assetLoadGPUQueue.pushBack(assets[files].first, true);
+
 #else
                     std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
                 std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;
@@ -360,6 +369,8 @@ public:
                     std::ifstream is(files[0], std::ios::binary);
                     cereal::BinaryInputArchive archive(is);
                     assets[files] = std::make_pair(std::make_shared<T>(this, getNextAssetIndex(), files, archive), 0);
+                    assets[files].first->loadGPUPart();
+                    assets[files].first->setLoadState(Asset::LoadState::DONE);
 #else
                     std::cerr << "Limon compiled without limonmodel support. Please acquire a release version. Exiting..." << std::endl;
                     std::cerr << "Compile should define \"CEREAL_SUPPORT\"." << std::endl;

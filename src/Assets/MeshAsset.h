@@ -32,7 +32,7 @@ class MeshAsset {
 
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> normals;
-    std::vector<glm::mediump_uvec3> faces;
+    std::vector<glm::mediump_uvec3> faces; //Possible reason for non portable data
     std::vector<glm::vec2> textureCoordinates;
     std::string name;
 
@@ -60,7 +60,6 @@ class MeshAsset {
     bool setTriangles(const aiMesh *currentMesh);
 
     void normalizeTextureCoordinates(glm::vec2 &textureCoordinates) const;
-    void buildBulletMesh();
 #ifdef CEREAL_SUPPORT
     friend class cereal::access;
 #endif
@@ -68,7 +67,7 @@ class MeshAsset {
 public:
     MeshAsset(const aiMesh *currentMesh, std::string name, std::shared_ptr<const BoneNode> meshSkeleton,
               const glm::mat4 &parentTransform, const bool isPartOfAnimated);
-
+    void buildBulletMesh();
     /**
      * This method sets GPU side of the deserialization, and uses AssetManager to access GPU with getGraphicsWrapper
      *
@@ -123,7 +122,7 @@ public:
 #ifdef CEREAL_SUPPORT
     template<class Archive>
     void serialize(Archive & archive){
-        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, name, isPartOfAnimated, parentTransform);
+        archive( vertices, normals, textureCoordinates, faces, vertexCount, triangleCount, offsets, skeleton, bones, boneIDs, boneWeights, boneAttachedMeshes, boneIdMap, name, isPartOfAnimated, parentTransform);
     }
 #endif
 };

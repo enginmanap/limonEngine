@@ -49,6 +49,11 @@ private:
      *
      * vector has vector<string>, because embedded textures are saved with pairs, first element is the index, second element is the model file itself.
      */
+
+//FIXME
+    //std::vector<std::vector<std::string>>* textureNames = nullptr;
+    std::vector<std::string> ambientTextureNames, diffuseTextureNames, specularTextureNames, normalTextureNames, opacityTextureNames;
+
     friend struct std::hash<Material>;
     std::shared_ptr<TextureAsset> ambientTexture = nullptr;
     std::shared_ptr<TextureAsset> diffuseTexture = nullptr;
@@ -334,25 +339,57 @@ public:
 
     template<class Archive>
     void load(Archive & archive)  {
-    std::cerr << "LimonModel Material load needs reimplementing" << std::endl;
-    getchar();
-    /*
-     * Old implementation below
-     *
-        textureNameListList = std::make_unique<std::vector<std::vector<std::string>>>();
-        for (int i = 0; i < 5; ++i) {
-            textureNameListList->push_back(std::vector<std::string>());
+
+        archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex
+                ,ambientTextureNames, diffuseTextureNames, specularTextureNames, normalTextureNames, opacityTextureNames);
+    }
+
+    void afterLoad(AssetManager* assetManager) {
+        this->assetManager = assetManager;
+        if(!ambientTextureNames.empty()) {
+            if (ambientTextureNames.size() > 1) {
+                this->setAmbientTexture(ambientTextureNames[0], &ambientTextureNames[1]);
+            } else {
+                this->setAmbientTexture(ambientTextureNames[0]);
+            }
+            ambientTextureNames.clear();
         }
 
-        std::vector<std::string> &ambientTextureNames  = textureNameListList->at(0);
-        std::vector<std::string> &diffuseTextureNames  = textureNameListList->at(1);
-        std::vector<std::string> &specularTextureNames = textureNameListList->at(2);
-        std::vector<std::string> &normalTextureNames   = textureNameListList->at(3);
-        std::vector<std::string> &opacityTextureNames  = textureNameListList->at(4);
-    */
-        archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex
-                //,ambientTextureNames, diffuseTextureNames, specularTextureNames, normalTextureNames, opacityTextureNames);
-        );
+        if(!diffuseTextureNames.empty()) {
+            if (diffuseTextureNames.size() > 1) {
+                this->setDiffuseTexture(diffuseTextureNames[0], &diffuseTextureNames[1]);
+            } else {
+                this->setDiffuseTexture(diffuseTextureNames[0]);
+            }
+            diffuseTextureNames.clear();
+        }
+
+        if(!specularTextureNames.empty()) {
+            if (specularTextureNames.size() > 1) {
+                this->setSpecularTexture(specularTextureNames[0], &specularTextureNames[1]);
+            } else {
+                this->setSpecularTexture(specularTextureNames[0]);
+            }
+            specularTextureNames.clear();
+        }
+
+        if(!normalTextureNames.empty()) {
+            if (normalTextureNames.size() > 1) {
+                this->setNormalTexture(normalTextureNames[0], &normalTextureNames[1]);
+            } else {
+                this->setNormalTexture(normalTextureNames[0]);
+            }
+            normalTextureNames.clear();
+        }
+
+        if(!opacityTextureNames.empty()) {
+            if (opacityTextureNames.size() > 1) {
+                this->setOpacityTexture(opacityTextureNames[0], &opacityTextureNames[1]);
+            } else {
+                this->setOpacityTexture(opacityTextureNames[0]);
+            }
+            opacityTextureNames.clear();
+        }
     }
 #endif
 };

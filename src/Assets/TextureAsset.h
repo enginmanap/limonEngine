@@ -41,7 +41,7 @@ public:
         assert(false && "TextureAsset doesn't support Cereal Loading");
     }
 #endif
-    ~TextureAsset();
+    ~TextureAsset() override;
 
     uint32_t getID() const {
         return texture->getTextureID();
