@@ -253,7 +253,6 @@ public:
             if (meshMaterialToUpdateIt != meshMaterialMap.end()) {
                 meshMaterialMap[meshMaterialToUpdateIt->first] = materialPair.second;
             }
-            materialPair.second->afterLoad(assetManager);
         }
         buildPhysicsMeshes();
     }

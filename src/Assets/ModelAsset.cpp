@@ -162,6 +162,7 @@ void ModelAsset::loadGPUPart() {
     temporaryEmbeddedTextures.reset();
 
     for (auto material = materialMap.begin(); material != materialMap.end(); ++material) {
+        material->second->afterLoad(assetManager);//Since this depends on the embedded textures, needs to be done as part of GPU load
         material->second->loadGPUSide(assetManager);
         assetManager->getGraphicsWrapper()->setMaterial(*material->second);
     }
