@@ -346,7 +346,7 @@ public:
     void destroyProgram(uint32_t programID) override;
 
     void bufferVertexData(const std::vector<glm::vec3> &vertices,
-                          const std::vector<glm::mediump_uvec3> &faces,
+                          const std::vector<glm::uvec3> &faces,
                           uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer, uint32_t &ebo) override;
 
     void bufferNormalData(const std::vector<glm::vec3> &colors,
@@ -360,7 +360,7 @@ public:
 
     void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
                                         uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) override;
-    void updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::mediump_uvec3> &faces,
+    void updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::uvec3> &faces,
                           uint32_t &vbo, uint32_t &ebo);
     void updateNormalData(const std::vector<glm::vec3> &normals, uint32_t &vbo);
     void updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint32_t &vbo);

@@ -563,7 +563,7 @@ bool OpenGLESGraphics::freeVAO(const GLuint bufferID) {
 }
 
 void OpenGLESGraphics::bufferVertexData(const std::vector<glm::vec3> &vertices,
-                                      const std::vector<glm::mediump_uvec3> &faces,
+                                      const std::vector<glm::uvec3> &faces,
                                       uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer,
                                       uint32_t &ebo) {
 
@@ -576,7 +576,7 @@ void OpenGLESGraphics::bufferVertexData(const std::vector<glm::vec3> &vertices,
     // Set up the element array buffer
     ebo = generateBuffer(1);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::mediump_uvec3), faces.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::uvec3), faces.data(), GL_STATIC_DRAW);
 
     // Set up the vertex attributes
     vbo = generateBuffer(1);
@@ -654,11 +654,11 @@ void OpenGLESGraphics::bufferVertexTextureCoordinates(const std::vector<glm::vec
 }
 
 void
-OpenGLESGraphics::updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::mediump_uvec3> &faces,
+OpenGLESGraphics::updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::uvec3> &faces,
                                  uint32_t &vbo, uint32_t &ebo) {
     // Set up the element array buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::mediump_uvec3), faces.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::uvec3), faces.data(), GL_STATIC_DRAW);
 
     // Set up the vertex attributes
     glBindBuffer(GL_ARRAY_BUFFER, vbo);

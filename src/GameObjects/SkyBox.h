@@ -33,7 +33,7 @@ public:
 
 private:
     std::vector<glm::vec3> vertices;
-    std::vector<glm::mediump_uvec3> faces;
+    std::vector<glm::uvec3> faces;
 
     std::shared_ptr<CubeMapAsset> cubeMap;
     glm::mat4 viewMatrix;

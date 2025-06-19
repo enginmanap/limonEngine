@@ -32,7 +32,7 @@ class MeshAsset {
 
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> normals;
-    std::vector<glm::mediump_uvec3> faces; //Possible reason for non portable data
+    std::vector<glm::uvec3> faces; //Possible reason for non portable data
     std::vector<glm::vec2> textureCoordinates;
     std::string name;
 

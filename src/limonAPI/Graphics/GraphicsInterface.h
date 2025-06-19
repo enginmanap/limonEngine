@@ -90,7 +90,7 @@ public:
     virtual void destroyProgram(uint32_t programID) = 0;
 
     virtual void bufferVertexData(const std::vector<glm::vec3> &vertices,
-                          const std::vector<glm::mediump_uvec3> &faces,
+                          const std::vector<glm::uvec3> &faces,
                           uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer, uint32_t &ebo) = 0;
     virtual void bufferNormalData(const std::vector<glm::vec3> &colors,
                                   uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) = 0;
@@ -100,7 +100,7 @@ public:
                                        uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) = 0;
     virtual void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
                                                 uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) = 0;
-    virtual void updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::mediump_uvec3> &faces,
+    virtual void updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::uvec3> &faces,
                                   uint32_t &vbo, uint32_t &ebo) = 0;
     virtual void updateNormalData(const std::vector<glm::vec3> &colors, uint32_t &vbo) = 0;
     virtual void updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint32_t &vbo) = 0;

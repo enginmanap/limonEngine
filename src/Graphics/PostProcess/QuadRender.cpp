@@ -14,10 +14,10 @@ QuadRender::QuadRender(GraphicsInterface* graphicsWrapper) : graphicsWrapper(gra
     vertices.push_back(glm::vec3(  1.0f,  1.0f, 0.0f));
     vertices.push_back(glm::vec3(  1.0f, -1.0f, 0.0f));
 
-    std::vector<glm::mediump_uvec3> faces;
+    std::vector<glm::uvec3> faces;
 
-    faces.push_back(glm::mediump_uvec3(0,1,2));
-    faces.push_back(glm::mediump_uvec3(2,1,3));
+    faces.push_back(glm::uvec3(0,1,2));
+    faces.push_back(glm::uvec3(2,1,3));
 
     std::vector<glm::vec2> textureCoordinates;
 

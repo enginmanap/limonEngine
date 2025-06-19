@@ -27,23 +27,23 @@ SkyBox::SkyBox(uint32_t objectID, std::shared_ptr<AssetManager> assetManager, st
     vertices.push_back(glm::vec3(-1.0f, 1.0f, 1.0f));
 
     //front
-    faces.push_back(glm::mediump_uvec3(0, 1, 2));
-    faces.push_back(glm::mediump_uvec3(0, 2, 3));
+    faces.push_back(glm::uvec3(0, 1, 2));
+    faces.push_back(glm::uvec3(0, 2, 3));
     //Back
-    faces.push_back(glm::mediump_uvec3(4, 7, 6));
-    faces.push_back(glm::mediump_uvec3(4, 6, 5));
+    faces.push_back(glm::uvec3(4, 7, 6));
+    faces.push_back(glm::uvec3(4, 6, 5));
     //right
-    faces.push_back(glm::mediump_uvec3(4, 0, 3));
-    faces.push_back(glm::mediump_uvec3(4, 3, 7));
+    faces.push_back(glm::uvec3(4, 0, 3));
+    faces.push_back(glm::uvec3(4, 3, 7));
     //left
-    faces.push_back(glm::mediump_uvec3(5, 6, 2));
-    faces.push_back(glm::mediump_uvec3(5, 2, 1));
+    faces.push_back(glm::uvec3(5, 6, 2));
+    faces.push_back(glm::uvec3(5, 2, 1));
     //down
-    faces.push_back(glm::mediump_uvec3(4, 1, 0));
-    faces.push_back(glm::mediump_uvec3(4, 5, 1));
+    faces.push_back(glm::uvec3(4, 1, 0));
+    faces.push_back(glm::uvec3(4, 5, 1));
     //up
-    faces.push_back(glm::mediump_uvec3(3, 6, 7));
-    faces.push_back(glm::mediump_uvec3(3, 2, 6));
+    faces.push_back(glm::uvec3(3, 6, 7));
+    faces.push_back(glm::uvec3(3, 2, 6));
 
 
     uint32_t vbo;
