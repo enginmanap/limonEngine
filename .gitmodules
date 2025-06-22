@@ -19,3 +19,6 @@
 [submodule "libs/ImGuizmo"]
 	path = libs/ImGuizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo
+[submodule "libs/bullet"]
+	path = libs/bullet
+	url = https://github.com/bulletphysics/bullet3.git
