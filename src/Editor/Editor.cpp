@@ -680,7 +680,7 @@ void Editor::renderEditor() {
             }
             bool isSelected = false;
             auto allMaterials = world->assetManager->getMaterials();
-            ImGui::Text("Total material count is %llu", allMaterials.size());
+            ImGui::Text("Total material count is %lu", allMaterials.size());
             if (ImGui::BeginListBox("Materials")) {
                 for (auto it = allMaterials.begin(); it != allMaterials.end(); ++it) {
                     isSelected = selectedHash == it->first;
