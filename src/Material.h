@@ -313,34 +313,112 @@ public:
 #ifdef CEREAL_SUPPORT
     template<class Archive>
     void save(Archive & archive) const {
+        std::string textureNameArray[10];
 
-        std::shared_ptr<std::vector<std::vector<std::string>>> textureNames = std::make_shared<std::vector<std::vector<std::string>>>(5);
-
+        std::vector<std::string> tempName;
         if(ambientTexture != nullptr) {
-            (*textureNames)[0] = ambientTexture->getName();
-        };
+            tempName = ambientTexture->getName();
+
+            textureNameArray[0] = tempName[0];
+            if(tempName.size() == 2) {
+                textureNameArray[1] = tempName[1];
+            }
+        }
         if(diffuseTexture != nullptr) {
-            (*textureNames)[1]= diffuseTexture->getName();
-        };
+            tempName = diffuseTexture->getName();
+
+            textureNameArray[2] = tempName[0];
+            if(tempName.size() == 2) {
+                textureNameArray[3] = tempName[1];
+            }
+        }
         if(specularTexture != nullptr) {
-            (*textureNames)[2] = specularTexture->getName();
+            tempName = specularTexture->getName();
+
+            textureNameArray[4] = tempName[0];
+            if(tempName.size() == 2) {
+                textureNameArray[5] = tempName[1];
+            }
         };
         if(normalTexture != nullptr) {
-            (*textureNames)[3] = normalTexture->getName();
+            tempName = normalTexture->getName();
+
+            textureNameArray[6] = tempName[0];
+            if(tempName.size() == 2) {
+                textureNameArray[7] = tempName[1];
+            }
         };
         if(opacityTexture != nullptr) {
-            (*textureNames)[4] = opacityTexture->getName();
-        };
+            tempName = opacityTexture->getName();
 
-        archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex,
-            textureNames);
+            textureNameArray[8] = tempName[0];
+            if(tempName.size() == 2) {
+                textureNameArray[9] = tempName[1];
+            }
+        };
+        if(this->name == "Mat_PolygonWestern_01_A") {
+            std::cout << "found" << std::endl;
+        }
+
+        archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex, originalHash,
+            textureNameArray);
     }
 
     template<class Archive>
     void load(Archive & archive)  {
 
-        archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex,
-            textureNames);
+        std::string textureNameArray[10];
+
+        archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex, originalHash,
+            textureNameArray);
+        //now verify that we have any texture names we wanna process
+        bool isTextureNamePresent = false;
+        for (const std::string& textureName:textureNameArray) {
+            if(!textureName.empty()) {
+                isTextureNamePresent = true;
+                break;
+            }
+        }
+        if(isTextureNamePresent) {
+            this->textureNames = std::make_shared<std::vector<std::vector<std::string>>>(5);
+            for (int i = 0; i < 5; ++i) {
+                (*this->textureNames).emplace_back();
+            }
+            if(!textureNameArray[0].empty()) {
+                (*this->textureNames)[0].emplace_back(textureNameArray[0]);
+                if(!textureNameArray[1].empty()) {
+                    (*this->textureNames)[0].emplace_back(textureNameArray[1]);
+                }
+            }
+            if(!textureNameArray[2].empty()) {
+                (*this->textureNames)[1].emplace_back(textureNameArray[2]);
+                if(!textureNameArray[3].empty()) {
+                    (*this->textureNames)[1].emplace_back(textureNameArray[3]);
+                }
+            }
+            if(!textureNameArray[4].empty()) {
+                (*this->textureNames)[2].emplace_back(textureNameArray[4]);
+                if(!textureNameArray[5].empty()) {
+                    (*this->textureNames)[2].emplace_back(textureNameArray[5]);
+                }
+            }
+            if(!textureNameArray[6].empty()) {
+                (*this->textureNames)[3].emplace_back(textureNameArray[6]);
+                if(!textureNameArray[7].empty()) {
+                    (*this->textureNames)[3].emplace_back(textureNameArray[7]);
+                }
+            }
+            if(!textureNameArray[8].empty()) {
+                (*this->textureNames)[4].emplace_back(textureNameArray[8]);
+                if(!textureNameArray[9].empty()) {
+                    (*this->textureNames)[4].emplace_back(textureNameArray[9]);
+                }
+            }
+        }
+
+        if(this->name == "Mat_PolygonWestern_01_A") {
+            this->ambientColor.x+=0.0001f;
+        }
     }
 
     void afterLoad(AssetManager* assetManager) {
@@ -350,7 +428,7 @@ public:
                 if ((*textureNames)[0].size() > 1) {
                     this->setAmbientTexture((*textureNames)[0][0], &(*textureNames)[0][1]);
                 } else {
-                        this->setAmbientTexture((*textureNames)[0][0]);
+                    this->setAmbientTexture((*textureNames)[0][0]);
                 }
             }
             if (!(*textureNames)[1].empty()) {

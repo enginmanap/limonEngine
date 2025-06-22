@@ -237,20 +237,24 @@ public:
         for (size_t i = 0; i < meshes.size(); ++i) {
             meshes[i]->buildBulletMesh();
         }
+        for (auto& simpleMesh:simplifiedMeshes) {
+            simpleMesh.second->buildBulletMesh();
+        }
 
         for (const auto& tempMeshMaterialPair:tempMeshMaterialMap) {
             meshMaterialMap[tempMeshMaterialPair.first] = tempMeshMaterialPair.second;
         }
+
         for (auto& materialPair:materialMap) {
-            std::map<const std::shared_ptr<const MeshAsset>,std::shared_ptr<Material>>::iterator meshMaterialToUpdateIt;
+
+            std::vector<std::map<const std::shared_ptr<const MeshAsset>,std::shared_ptr<Material>>::iterator> meshMaterialToUpdateItList;
             for (std::map<const std::shared_ptr<const MeshAsset>,std::shared_ptr<Material>>::iterator it = meshMaterialMap.begin(); it != meshMaterialMap.end(); ++it) {
                 if(it->second == materialPair.second) {
-                    meshMaterialToUpdateIt = it;
-                    break;
+                    meshMaterialToUpdateItList.emplace_back(it);
                 }
             }
             materialPair.second = assetManager->registerMaterial(materialPair.second);
-            if (meshMaterialToUpdateIt != meshMaterialMap.end()) {
+            for (auto& meshMaterialToUpdateIt: meshMaterialToUpdateItList) {
                 meshMaterialMap[meshMaterialToUpdateIt->first] = materialPair.second;
             }
         }
