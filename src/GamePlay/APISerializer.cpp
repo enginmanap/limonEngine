@@ -279,7 +279,7 @@ APISerializer::deserializeParameterRequest(tinyxml2::XMLElement *parameterNode, 
         newParameterRequest->valueType = LimonTypes::GenericParameter::ValueTypes::MAT4;
         if(newParameterRequest->isSet) {
             parameterAttribute = parameterNode->FirstChildElement("Value");
-            for(long i = 1; i < newParameterRequest->value.longValues[0]; i++) {
+            for(long i = 0; i < 4; ++i) {
                 tinyxml2::XMLElement *rowNode = parameterAttribute->FirstChildElement(std::to_string(i).c_str());;
                 loadVec4(rowNode, newParameterRequest->value.matrixValue[i]);
             }

@@ -494,7 +494,9 @@ AIMovementGrid *AIMovementGrid::deserialize(const std::string &fileName) {
     if (fileNameNode == nullptr) {
         std::cerr << "AIWalkGrid has no fileName in file. Possibly corrupted file." << std::endl;
     }
-    std::cout << "Reading AI WalkGrid from file:" << fileNameNode->GetText() << std::endl;
+    else {
+        std::cout << "Reading AI WalkGrid from file:" << fileNameNode->GetText() << std::endl;
+    }
 
     uint32_t maximumNodeID = 0;
     tinyxml2::XMLElement* maximumNodeIDNode =  AIWalkGridRootElement->FirstChildElement("MaximumNodeID");

@@ -845,13 +845,11 @@ void ModelAsset::buildPhysicsMeshes() {
     baseTransform.setOrigin(GLMConverter::GLMToBlt(-1.0f * centerOffset));
 
     std::vector<std::shared_ptr<MeshAsset>> physicalMeshes = getPhysicsMeshes();
-    if(!this->isAnimated()) {
         //we can end up here if mass is 0, but if mass is not 0, we will not be using this one but the other one, so we need both
-        compoundShapeForConvex = new btCompoundShape();
-    } else {
         // For animated, we can't get the triangles, so we just get the convex hull
-        compoundShapeForConvex = new btCompoundShape();
-    }
+    // This shape can be used for animated objects, or dynamic physical objects(non zero mass).
+    // If it is a static object (mass 0), we will use the convex tringle mesh shale
+    compoundShapeForConvex = new btCompoundShape();
 
     for(auto iter = physicalMeshes.begin(); iter != physicalMeshes.end(); ++iter) {
 

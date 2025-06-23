@@ -485,6 +485,7 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
            Model *currentModel = dynamic_cast<Model *>(objectIt->second);
             if (currentModel == nullptr) {
                 std::cerr << "model id " << objectIt->second << " is not a model?" << std::endl;
+                exit(1);
             }
            if (VisibilityRequest::isAnyTagMatch(visibilityRequest->camera->getRenderTags(), currentModel->getTags())) {
                bool isVisible = visibilityRequest->camera->isVisible(*currentModel);//find if visible
@@ -2973,21 +2974,21 @@ void World::updateActiveLights(bool forceUpdate) {
                    }
                }
            }
-       }
-       //remove its children
-       if (removeChildren) {
-           std::vector<PhysicalRenderable *> children = objects[modelToClear->getWorldObjectID()]->getChildren();
-           for (auto child = children.begin(); child != children.end(); ++child) {
-               Model *model = dynamic_cast<Model *>(*child);
-               if (model != nullptr) {
-                   //FIXME this eliminates non model children
-                   clearWorldRefsBeforeAttachment(model, removeChildren);
+           //remove its children
+           if (removeChildren) {
+               std::vector<PhysicalRenderable *> children = objects[modelToClear->getWorldObjectID()]->getChildren();
+               for (auto child = children.begin(); child != children.end(); ++child) {
+                   Model *model = dynamic_cast<Model *>(*child);
+                   if (model != nullptr) {
+                       //FIXME this eliminates non model children
+                       clearWorldRefsBeforeAttachment(model, removeChildren);
+                   }
                }
            }
+           //clear object itself
+           objects.erase(modelToClear->getWorldObjectID());
+           unusedIDs.push(modelToClear->getWorldObjectID());
        }
-       //clear object itself
-       objects.erase(modelToClear->getWorldObjectID());
-       unusedIDs.push(modelToClear->getWorldObjectID());
    }
 
 bool World::addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs,

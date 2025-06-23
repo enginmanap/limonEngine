@@ -390,6 +390,8 @@ bool WorldLoader::loadObjectsFromXML(tinyxml2::XMLNode *objectsNode, World *worl
         tinyxml2::XMLElement *objectAttribute =  objectNodeForPreload->FirstChildElement("File");
         if (objectAttribute == nullptr) {
             std::cerr << "Object must have a source file." << std::endl;
+            objectNodeForPreload = objectNodeForPreload->NextSiblingElement("Object");
+            continue;
         }
         std::string modelFile = objectAttribute->GetText();
         std::vector<std::string> temp;
@@ -1549,6 +1551,7 @@ bool WorldLoader::loadOnLoadActions(tinyxml2::XMLNode *worldNode, World *world) 
             while(parameterNode != nullptr) {
                 std::shared_ptr<LimonTypes::GenericParameter> request = APISerializer::deserializeParameterRequest(parameterNode, index);
                 if(request == nullptr) {
+                    delete actionForOnload;
                     return false;
                 }
                 actionForOnload->parameters.insert(actionForOnload->parameters.begin() + index, *request);
@@ -1568,6 +1571,7 @@ bool WorldLoader::loadOnLoadActions(tinyxml2::XMLNode *worldNode, World *world) 
                     actionForOnload->enabled = false;
                 } else {
                     std::cerr << "Onload action enabled setting is unknown value [" << enabledNode->GetText() << "], can't be loaded " << std::endl;
+                    delete actionForOnload;
                     return false;
                 }
             }
