@@ -356,9 +356,6 @@ public:
                 textureNameArray[9] = tempName[1];
             }
         };
-        if(this->name == "Mat_PolygonWestern_01_A") {
-            std::cout << "found" << std::endl;
-        }
 
         archive(name, specularExponent, maps, ambientColor, diffuseColor, specularColor, isAmbientMap, isDiffuseMap, isSpecularMap, isNormalMap, isOpacityMap, refractionIndex, originalHash,
             textureNameArray);
