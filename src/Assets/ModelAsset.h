@@ -253,7 +253,7 @@ public:
                     meshMaterialToUpdateItList.emplace_back(it);
                 }
             }
-            materialPair.second = assetManager->registerMaterial(materialPair.second);
+            materialPair.second = assetManager->registerOverriddenMaterial(materialPair.second);
             for (auto& meshMaterialToUpdateIt: meshMaterialToUpdateItList) {
                 meshMaterialMap[meshMaterialToUpdateIt->first] = materialPair.second;
             }
