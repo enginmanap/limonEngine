@@ -20,7 +20,7 @@
 // This is the main rendering function that you have to implement and provide to ImGui (via setting up 'RenderDrawListsFn' in the ImGuiIO structure)
 // Note that this implementation is little overcomplicated because we are saving/setting up/restoring every OpenGL state explicitly, in order to be able to run within any OpenGL engine that doesn't do so. 
 // If text or lines are blurry when integrating ImGui in your engine: in your Render function, try translating your projection matrix by (0.5f,0.5f) or (0.375f,0.375f)
-void ImGuiHelper::RenderDrawLists()
+void ImGuiHelper::RenderDrawLists(std::shared_ptr<GraphicsProgram> graphicsProgram)
 {
     ImGui::Render();
     ImDrawData* draw_data = ImGui::GetDrawData();
@@ -41,10 +41,10 @@ void ImGuiHelper::RenderDrawLists()
         {-1.0f,                  1.0f,                   0.0f, 1.0f },
     };
 
-    program->setUniform("Texture", 1);
-    program->setUniform("TextureArray", 2);
-    program->setUniform("TextureCubeArray", 3);
-    program->setUniform("ProjMtx",ortho_projection);
+    graphicsProgram->setUniform("Texture", 6);
+    graphicsProgram->setUniform("TextureArray", 7);
+    graphicsProgram->setUniform("TextureCubeArray", 8);
+    graphicsProgram->setUniform("ProjMtx",ortho_projection);
     for (int n = 0; n < draw_data->CmdListsCount; n++) {
         const ImDrawList* cmd_list = draw_data->CmdLists[n];
         const uint32_t * idx_buffer_offset = nullptr;
@@ -89,23 +89,23 @@ void ImGuiHelper::RenderDrawLists()
                     ImGuiImageWrapper* imGuiImageWrapper = reinterpret_cast<ImGuiImageWrapper*>((pcmd->TextureId));
                     switch (imGuiImageWrapper->texture->getType()) {
                         case GraphicsInterface::TextureTypes::T2D:
-                            graphicsWrapper->attachTexture(imGuiImageWrapper->texture->getTextureID(), 1);
-                            program->setUniform("isArray", 0);
+                            graphicsWrapper->attachTexture(imGuiImageWrapper->texture->getTextureID(), 6);
+                            graphicsProgram->setUniform("isArray", 0);
                             break;
                         case GraphicsInterface::TextureTypes::T2D_ARRAY:
-                            graphicsWrapper->attach2DArrayTexture(imGuiImageWrapper->texture->getTextureID(), 2);
-                            program->setUniform("isArray", 1);
-                            program->setUniform("layer", (float)imGuiImageWrapper->layer);
+                            graphicsWrapper->attach2DArrayTexture(imGuiImageWrapper->texture->getTextureID(), 7);
+                            graphicsProgram->setUniform("isArray", 1);
+                            graphicsProgram->setUniform("layer", (float)imGuiImageWrapper->layer);
                             break;
                         case GraphicsInterface::TextureTypes::TCUBE_MAP_ARRAY:
-                            graphicsWrapper->attachCubeMapArrayTexture(imGuiImageWrapper->texture->getTextureID(), 3);
-                            program->setUniform("isArray", 2);
-                            program->setUniform("layer", (float)imGuiImageWrapper->layer);
+                            graphicsWrapper->attachCubeMapArrayTexture(imGuiImageWrapper->texture->getTextureID(), 8);
+                            graphicsProgram->setUniform("isArray", 2);
+                            graphicsProgram->setUniform("layer", (float)imGuiImageWrapper->layer);
                             break;
                         default:
                             std::cerr << "Unsupported texture type for IMGUI" << std::endl;
                     }
-                    graphicsWrapper->render(program->getID(), g_VaoHandle, g_ElementsHandle, pcmd->ElemCount, idx_buffer_offset);
+                    graphicsWrapper->render(graphicsProgram->getID(), g_VaoHandle, g_ElementsHandle, pcmd->ElemCount, idx_buffer_offset);
                 }
             }
             idx_buffer_offset += pcmd->ElemCount;
@@ -354,20 +354,26 @@ void ImGuiHelper::CreateFontsTexture()
  *   glVertexAttribPointer magic
  * @return
  */
-bool ImGuiHelper::CreateDeviceObjects()
+bool ImGuiHelper::CreateDeviceObjects(std::shared_ptr<GraphicsProgram> graphicsProgram)
 {
     graphicsWrapper->backupCurrentState();
 
-    program = std::make_shared<GraphicsProgram>(assetManager.get(),"./Data/Shaders/ImGui/vertex.glsl",
-                                                     "./Data/Shaders/ImGui/fragment.glsl", true);
-
-    g_AttribLocationPosition = program->getAttributeLocation("Position");
-    g_AttribLocationUV = program->getAttributeLocation("UV");
-    g_AttribLocationColor = program->getAttributeLocation("Color");
+    g_AttribLocationPosition = graphicsProgram->getAttributeLocation("PositionIMGUI");
+    g_AttribLocationUV = graphicsProgram->getAttributeLocation("UV");
+    g_AttribLocationColor = graphicsProgram->getAttributeLocation("Color");
 
     graphicsWrapper->bufferVertexData(std::vector<glm::vec3>(), std::vector<glm::uvec3>(), g_VaoHandle, g_VboHandle, g_AttribLocationPosition, g_ElementsHandle);
     graphicsWrapper->bufferExtraVertexData(std::vector<glm::vec4>(), g_VaoHandle, g_colorHandle, g_AttribLocationColor);
     graphicsWrapper->bufferVertexTextureCoordinates(std::vector<glm::vec2>(), g_VaoHandle, g_UVHandle, g_AttribLocationUV);
+/*
+    g_AttribLocationModelPosition = graphicsProgram->getAttributeLocation("position");
+    g_AttribLocationModelUV = graphicsProgram->getAttributeLocation("textureCoordinate");
+    g_AttribLocationModelNormal = graphicsProgram->getAttributeLocation("normal");
+
+    graphicsWrapper->bufferVertexData(std::vector<glm::vec3>(), std::vector<glm::uvec3>(), g_VaoHandle, g_VboHandle, g_AttribLocationPosition, g_ElementsHandle);
+    graphicsWrapper->bufferExtraVertexData(std::vector<glm::vec4>(), g_VaoHandle, g_colorHandle, g_AttribLocationColor);
+    graphicsWrapper->bufferVertexTextureCoordinates(std::vector<glm::vec2>(), g_VaoHandle, g_UVHandle, g_AttribLocationUV);
+*/
     CreateFontsTexture();
 
     graphicsWrapper->restoreLastState();
@@ -380,8 +386,6 @@ void    ImGuiHelper::InvalidateDeviceObjects() {
     graphicsWrapper->freeBuffer(g_colorHandle);
     graphicsWrapper->freeVAO(g_VaoHandle);
     g_VaoHandle = g_VboHandle = g_ElementsHandle = 0;
-
-    program = nullptr;
 
     if (g_FontTexture)
     {
@@ -422,9 +426,9 @@ ImGuiHelper::~ImGuiHelper()
     ImGui::DestroyContext(context);
 }
 
-void ImGuiHelper::NewFrame() {
+void ImGuiHelper::NewFrame(std::shared_ptr<GraphicsProgram> graphicsProgram) {
     if (!g_FontTexture) {
-        CreateDeviceObjects();
+        CreateDeviceObjects(graphicsProgram);
     }
 
     ImGuiIO& io = ImGui::GetIO();

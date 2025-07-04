@@ -35,12 +35,12 @@ class ImGuiHelper {
     float        g_MouseWheel = 0.0f;
     uint32_t     g_FontTexture = 0;
     int          g_AttribLocationPosition = 0, g_AttribLocationUV = 0, g_AttribLocationColor = 0;
+    int          g_AttribLocationModelPosition =0, g_AttribLocationModelUV = 0, g_AttribLocationModelNormal = 0;
     uint32_t     g_VboHandle = 0, g_colorHandle, g_UVHandle, g_VaoHandle = 0, g_ElementsHandle = 0;
     // ImGUI Data end"
 
     std::shared_ptr<AssetManager> assetManager;
     GraphicsInterface* graphicsWrapper = nullptr;
-    std::shared_ptr<GraphicsProgram> program = nullptr;
     OptionsUtil::Options* options;
 
     ImGuiContext* context = nullptr;
@@ -91,9 +91,9 @@ class ImGuiHelper {
 public:
     ImGuiHelper(std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options* options);
     ~ImGuiHelper();
-    void        NewFrame();
+    void        NewFrame(std::shared_ptr<GraphicsProgram> graphicsProgram);
     bool        ProcessEvent(const InputHandler& inputHandler);
-    void RenderDrawLists();
+    void RenderDrawLists(std::shared_ptr<GraphicsProgram> graphicsProgram);
 
     /**
      * Builds a tree view for assets.
@@ -131,6 +131,6 @@ public:
 
 // Use if you want to reset your rendering device without losing ImGui state.
     void        InvalidateDeviceObjects();
-    bool        CreateDeviceObjects();
+    bool        CreateDeviceObjects(std::shared_ptr<GraphicsProgram> graphicsProgram);
 
 };

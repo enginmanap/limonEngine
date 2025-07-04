@@ -28,16 +28,15 @@ class Editor {
     std::shared_ptr<Texture> colorTexture;
     std::shared_ptr<Texture> depthTexture;
     std::unique_ptr<GraphicsPipelineStage> backgroundRenderStage;
-    std::shared_ptr<GraphicsProgram> graphicsProgram;
 
     std::vector<Model*> modelQueue;
     std::set<uint32_t> modelIdSet;
     Model* getModelAndMoveToEnd(const std::string& modelFilePath);
-    Model *createRenderAndAddModelToLRU(const std::string &modelFileName, const glm::vec3 &newObjectPosition);
+    Model *createRenderAndAddModelToLRU(const std::string &modelFileName, const glm::vec3 &newObjectPosition, std::shared_ptr<GraphicsProgram> graphicsProgram);
     ImGuiImageWrapper* wrapper = nullptr;
 public:
     Editor(World* world);
-    void renderEditor();
+    void renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram);
 
 private:
     std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsWaitingCPULoad;
@@ -49,7 +48,7 @@ private:
                                           ImGuiTreeNodeFlags nodeFlags, ImGuiTreeNodeFlags leafFlags,
                                           std::vector<uint32_t> parentage);
 
-    void renderSelectedObject(Model* model) const;
+    void renderSelectedObject(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram) const;
 
     void setTransformToModel(Model *model, const glm::vec3 &newObjectPosition);
 };

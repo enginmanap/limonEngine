@@ -1015,9 +1015,11 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
 
        playerPlaceHolder->getTransformation()->setTransformations(physicalPlayer->getPosition()
        ,physicalPlayer->getLookDirectionQuaternion());
+       graphicsProgram->setUniform("renderModelIMGUI", 1);
        playerPlaceHolder->convertToRenderList(0,0).render(graphicsWrapper, graphicsProgram);
+       graphicsProgram->setUniform("renderModelIMGUI", 0);
    }
-   editor->renderEditor();
+   editor->renderEditor(graphicsProgram);
 }
 
 void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove,

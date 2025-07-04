@@ -76,9 +76,6 @@ vec3 pointSampleOffsetDirections[20] = vec3[]
    vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
 
-uniform vec3 ssaoKernel[128];
-uniform int ssaoSampleCount;
-
 float ShadowCalculationDirectional(float bias, int lightIndex){
     float cascadePlaneDistances[CascadeCount] = float[](CascadeLimitList);
     vec4 fragPosViewSpace = playerTransforms.camera * vec4(from_vs.fragPos, 1.0);

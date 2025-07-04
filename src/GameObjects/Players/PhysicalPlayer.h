@@ -81,7 +81,7 @@ public:
 
 
     void getRenderProperties(std::string& assetPath, glm::vec3& scale) {
-        assetPath = "./Engine/Models/Capsule/Capsule.obj"; //since this file is required by the engine itself.
+        assetPath = "./Engine/Models/Capsule/Capsule2.obj"; //since this file is required by the engine itself.
         scale = glm::vec3(1,1,1);
     }
 

@@ -35,7 +35,6 @@ Editor::Editor(World *world) : world(world){
     colorTexture->setFilterMode(GraphicsInterface::FilterModes::NEAREST);
     backgroundRenderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, colorTexture, true);
     backgroundRenderStage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, depthTexture, true);
-    graphicsProgram = std::make_shared<GraphicsProgram>(world->assetManager.get(), "./Engine/Shaders/ModelAnimated/vertex.glsl", "./Engine/Shaders/ModelAnimated/fragment.glsl", true);
     wrapper = new ImGuiImageWrapper();
 }
 
@@ -61,7 +60,7 @@ Model* Editor::getModelAndMoveToEnd(const std::string& modelFilePath) {
     }
     return nullptr;
 }
-Model * Editor::createRenderAndAddModelToLRU(const std::string &modelFileName, const glm::vec3 &newObjectPosition) {
+Model * Editor::createRenderAndAddModelToLRU(const std::string &modelFileName, const glm::vec3 &newObjectPosition, std::shared_ptr<GraphicsProgram> graphicsProgram) {
     uint32_t newWorldObjectId;
     if(modelQueue.size() >= MAX_PRELOAD_MODEL_COUNT_EDITOR) {
         newWorldObjectId = modelQueue[0]->getWorldObjectID();
@@ -75,16 +74,16 @@ Model * Editor::createRenderAndAddModelToLRU(const std::string &modelFileName, c
     Model* model = new Model(newWorldObjectId, world->assetManager, modelFileName);// FIXME this will cause gaps, we should reserve and reuse
     modelQueue.push_back(model);
     setTransformToModel(model, newObjectPosition);
-    renderSelectedObject(model);
+    renderSelectedObject(model, graphicsProgram);
     return model;
 }
 
-void Editor::renderEditor() {
+void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
-    world->imgGuiHelper->NewFrame();
+    world->imgGuiHelper->NewFrame(graphicsProgram);
     if(world->showNodeGraph) {
         world->drawNodeEditor();
-        world->imgGuiHelper->RenderDrawLists();
+        world->imgGuiHelper->RenderDrawLists(graphicsProgram);
         return;
     }
     /* window definitions */
@@ -147,12 +146,12 @@ void Editor::renderEditor() {
                     // Preloaded case
                     Model* model = getModelAndMoveToEnd(selectedAsset->fullPath);
                     if(model == nullptr) {
-                        this->createRenderAndAddModelToLRU(selectedAsset->fullPath, newObjectPosition);
+                        this->createRenderAndAddModelToLRU(selectedAsset->fullPath, newObjectPosition, graphicsProgram);
                         modelAssetsPreloaded.erase(selectedAsset->fullPath);
                         world->assetManager->freeAsset({selectedAsset->fullPath});
                     } else {
                         setTransformToModel(model, newObjectPosition);
-                        renderSelectedObject(model);
+                        renderSelectedObject(model, graphicsProgram);
                     }
                 } else if(modelAssetsWaitingCPULoad.find(selectedAsset->fullPath) != modelAssetsWaitingCPULoad.end()) {
                     if(modelAssetsWaitingCPULoad[selectedAsset->fullPath]->getLoadState() == Asset::LoadState::CPU_LOAD_DONE) {
@@ -906,7 +905,7 @@ void Editor::renderEditor() {
     }
 
     /* window definitions */
-    world->imgGuiHelper->RenderDrawLists();
+    world->imgGuiHelper->RenderDrawLists(graphicsProgram);
 }
 
 void Editor::setTransformToModel(Model *model, const glm::vec3 &newObjectPosition) {
@@ -1228,7 +1227,7 @@ void Editor::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, u
    }
 }
 
-void Editor::renderSelectedObject(Model* model) const {
+void Editor::renderSelectedObject(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram) const {
     backgroundRenderStage->activate(true);
     model->convertToRenderList(0, 0).render(world->graphicsWrapper, graphicsProgram, true);
     world->renderPipeline->reActivateLastStage();

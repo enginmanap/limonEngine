@@ -719,7 +719,7 @@
                         <VertexShader>./Engine/Shaders/ImGui/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/ImGui/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
