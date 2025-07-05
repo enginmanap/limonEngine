@@ -1229,7 +1229,9 @@ void Editor::createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, u
 
 void Editor::renderSelectedObject(Model* model, std::shared_ptr<GraphicsProgram> graphicsProgram) const {
     backgroundRenderStage->activate(true);
+    graphicsProgram->setUniform("renderModelIMGUI", 1);
     model->convertToRenderList(0, 0).render(world->graphicsWrapper, graphicsProgram, true);
+    graphicsProgram->setUniform("renderModelIMGUI", 0);
     world->renderPipeline->reActivateLastStage();
 }
 
