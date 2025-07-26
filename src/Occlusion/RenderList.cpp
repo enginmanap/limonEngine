@@ -6,7 +6,8 @@
 
 #include "../GameObjects/Model.h"
 void RenderList::addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const Model *model, uint32_t lod, float maxDepth) {
-    auto materialIterator = getOrCreateMaterialEntry(material);
+    std::unordered_map<std::shared_ptr<const Material>, PerMaterialRenderInformation>::iterator materialIterator;
+    getOrCreateMaterialEntry(material, materialIterator);
     auto meshIterator = materialIterator->second.getOrCreateMeshEntry(meshAsset);
     auto requestedObjectIterator = std::find_if(meshIterator->second.indices.begin(), meshIterator->second.indices.end(), [model](const glm::uvec4& entry) { return entry.x == model->getWorldObjectID(); });
     if (requestedObjectIterator == meshIterator->second.indices.end()) {

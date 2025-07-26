@@ -147,15 +147,15 @@ private:
     std::unordered_map<std::shared_ptr<const Material>, float> maxDepthPerMaterial; //this map is created same time as meshes to render, but it is a pre transform container, as ordering by value not possible(or logical) in maps.
     mutable std::multimap<float, std::shared_ptr<const Material>> materialRenderPriorityMap; //this map is created after first two values are created. It is just a sorted container to use sorting of materials
 
-    std::unordered_map<std::shared_ptr<const Material>, PerMaterialRenderInformation>::iterator getOrCreateMaterialEntry(const std::shared_ptr<const Material> &material) {
-        std::unordered_map<std::shared_ptr<const Material>, PerMaterialRenderInformation>::iterator it = perMaterialMeshMap.find(material);
-        if (it == perMaterialMeshMap.end()) {
+    void getOrCreateMaterialEntry(const std::shared_ptr<const Material> &material, std::unordered_map<std::shared_ptr<const Material>, PerMaterialRenderInformation>::iterator& materialIterator) {
+        materialIterator = perMaterialMeshMap.find(material);
+        if (materialIterator == perMaterialMeshMap.end()) {
             perMaterialMeshMap[material] = PerMaterialRenderInformation();
-            it = perMaterialMeshMap.find(material);
+            materialIterator = perMaterialMeshMap.find(material);
             maxDepthPerMaterial[material] = 0.0f;
         }
-        return it;
     }
+
 public:
     void addMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, const Model *model, uint32_t lod, float maxDepth);
     void removeMeshMaterial(const std::shared_ptr<const Material> &material, const std::shared_ptr<MeshAsset> &meshAsset, uint32_t modelId);
