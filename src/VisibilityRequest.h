@@ -72,6 +72,7 @@ public:
         std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher>* visibility;
         mutable std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;
         bool running = true;
+        bool started = false;
         bool processingDone = false;
         SDL2MultiThreading::SpinLock inProgressLock;
 

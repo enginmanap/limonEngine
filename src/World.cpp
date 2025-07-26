@@ -542,6 +542,7 @@ static int staticOcclusionThread(void* visibilityRequestRaw) {
 
     while(visibilityRequest->running) {
         visibilityRequest->inProgressLock.lock();
+        visibilityRequest->started = true;
         fillVisibleObjectPerCamera(visibilityRequestRaw);
         visibilityRequest->processingDone = true;
         visibilityRequest->inProgressLock.unlock();
@@ -575,7 +576,17 @@ void World::fillVisibleObjectsUsingTags() {
     if(multiThreadedCulling) {
         if (visibilityThreadPool.empty()) {
             visibilityThreadPool = occlusionThreadManager();
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));//make sure all threads are started before continuing.
+            bool isAllThreadsStarted = false;
+            while (!isAllThreadsStarted) {
+                bool allThreadStarted = true;
+                for (const auto &item: visibilityThreadPool) {
+                    if (!item.first->started) {
+                        allThreadStarted = false;
+                    }
+                }
+                isAllThreadsStarted = allThreadStarted;
+            }
+            //std::this_thread::sleep_for(std::chrono::milliseconds(1000));//make sure all threads are started before continuing.
         }
 
         //std::cout << "          new frame, trigger occlusion threads" << std::endl;
