@@ -49,6 +49,13 @@ public:
         return " (" + std::to_string(vector.x) + ", " + std::to_string(vector.y) + ", " + std::to_string(vector.z) + ", " + std::to_string(vector.w) + ") ";
     }
 
+    static std::string matrixToString(const glm::mat4& matrix) {
+        return " ("  + std::to_string(matrix[0][0]) + ", " + std::to_string(matrix[1][0]) + ", " + std::to_string(matrix[2][0]) + ", " + std::to_string(matrix[3][0]) + "\n"
+                     + std::to_string(matrix[0][1]) + ", " + std::to_string(matrix[1][1]) + ", " + std::to_string(matrix[2][1]) + ", " + std::to_string(matrix[3][1]) + "\n"
+                     + std::to_string(matrix[0][2]) + ", " + std::to_string(matrix[1][2]) + ", " + std::to_string(matrix[2][2]) + ", " + std::to_string(matrix[3][2]) + "\n"
+                     + std::to_string(matrix[0][3]) + ", " + std::to_string(matrix[1][3]) + ", " + std::to_string(matrix[2][3]) + ", " + std::to_string(matrix[3][3]) + ") ";
+    }
+
     static std::string vectorOfVectorToString(const std::vector<glm::uvec4> &vector){
         std::string result = "\"";
         for (size_t i = 0; i < vector.size(); ++i) {

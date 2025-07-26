@@ -5,7 +5,11 @@
 #include <memory>
 #include <GamePlay/APISerializer.h>
 #include "limonAPI/Options.h"
+
+#include "Utils/GLMConverter.h"
+#include "Utils/GLMUtils.h"
 #include "Utils/HashUtil.h"
+#include "Utils/StringUtils.hpp"
 
 bool OptionsUtil::Options::loadVec3(tinyxml2::XMLNode *optionsNode, const std::string &name, glm::vec3 &vector) {
     tinyxml2::XMLElement *vectorNode = optionsNode->FirstChildElement(name.c_str());
@@ -132,7 +136,69 @@ bool OptionsUtil::Options::loadOptionsNew(const std::string &optionsFileName) {
             return false;
         } else {
             options[hash(request->description)] = request;
-            std::cout << "Loaded option " << request->description << std::endl;
+            std::string value;
+            switch (request->valueType){
+            case LimonTypes::GenericParameter::STRING:
+                {
+                    Option<std::string> readOption = getOption<std::string>(hash(request->description));
+                    value = readOption.get<std::string>();
+                }
+                break;
+            case LimonTypes::GenericParameter::DOUBLE:
+                {
+                    Option<double> readOption = getOption<double>(hash(request->description));
+                    value = std::to_string(readOption.get<double>());
+                }
+                break;
+            case LimonTypes::GenericParameter::LONG:
+                {
+                    Option<long> readOption = getOption<long>(hash(request->description));
+                    value = std::to_string(readOption.get<long>());
+                }
+                break;
+            case LimonTypes::GenericParameter::LONG_ARRAY:
+                {
+                    std::stringstream ss;
+                    Option<std::vector<long>> readOption = getOption<std::vector<long>>(hash(request->description));
+                    std::vector<long> valueList = readOption.get<std::vector<long>>();
+                    for (long i : valueList)
+                    {
+                        ss << std::to_string(i);
+                        ss << ", ";
+                    }
+                    value = ss.str();
+                }
+                break;
+            case LimonTypes::GenericParameter::BOOLEAN:
+                {
+                    Option<bool> readOption = getOption<bool>(hash(request->description));
+                    if (readOption.get<bool>())
+                    {
+                        value = "true";
+                    } else
+                    {
+                        value = "false";
+                    }
+                }
+                break;
+            case LimonTypes::GenericParameter::VEC4:
+                {
+                    Option<LimonTypes::Vec4> readOption = getOption<LimonTypes::Vec4>(hash(request->description));
+                    value = GLMUtils::vectorToString(GLMConverter::LimonToGLM(readOption.get<LimonTypes::Vec4>()));
+                }
+                break;
+            case LimonTypes::GenericParameter::MAT4:
+                {
+                    Option<LimonTypes::Mat4> readOption = getOption<LimonTypes::Mat4>(hash(request->description));
+                    value = GLMUtils::matrixToString(GLMConverter::LimonToGLM(readOption.get<LimonTypes::Mat4>()));
+                }
+                break;
+            default:
+                value = "unknown"
+                ;
+            }
+
+            std::cout << "Loaded option " << request->description << " with value " << value << std::endl;
         }
         optionNode = optionNode->NextSiblingElement("Parameter");
     }
