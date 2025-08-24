@@ -2888,7 +2888,15 @@ struct LightCloserToPlayer {
    }
 };
 void World::updateActiveLights(bool forceUpdate) {
-    if(!forceUpdate) {
+    if(forceUpdate) {
+        //force update means a light was removed, so if directional light exists, it is in wrong index now. find and update
+        for (size_t lightIndex = 0; lightIndex < lights.size(); ++lightIndex) {
+            if (lights[lightIndex]->getLightType() == Light::LightTypes::DIRECTIONAL) {
+                directionalLightIndex = lightIndex;
+                break;
+            }
+        }
+    } else {
         // if player is not moved around and lights didn't move around, don't update
         float distance = glm::distance(currentPlayer->getPosition(), lastLightUpdatePlayerPosition);
         if (distance < 1.0f) {
