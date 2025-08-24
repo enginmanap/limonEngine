@@ -5,7 +5,6 @@
 #ifndef LIMONENGINE_ORTHOGRAPHICCAMERA_H
 #define LIMONENGINE_ORTHOGRAPHICCAMERA_H
 
-
 #include "Camera.h"
 #include "PhysicalRenderable.h"
 #include "limonAPI/CameraAttachment.h"
@@ -168,7 +167,7 @@ public:
         }
     }
 
-    glm::mat4 calculateOrthogonalForCascade(const std::vector<glm::vec4> &playerFrustumCascadeCorners, const glm::mat4 &lightViewMatrix, glm::vec3& centerToUse) const {
+    glm::mat4 calculateOrthogonalForCascade(const std::vector<glm::vec4> &playerFrustumCascadeCorners, glm::mat4 &lightViewMatrix, glm::vec3& centerToUse) const {
         centerToUse = glm::vec3(0, 0, 0);
         for (const auto& corner : playerFrustumCascadeCorners)
         {
@@ -176,10 +175,14 @@ public:
         }
         centerToUse /= playerFrustumCascadeCorners.size();
 
+        lightViewMatrix = glm::lookAt(centerToUse,
+                                          position + centerToUse,
+                                          glm::vec3(0.0f, 1.0f, 0.0f));
         float minX = std::numeric_limits<float>::max();
         float maxX = std::numeric_limits<float>::lowest();
         float minY = std::numeric_limits<float>::max();
         float maxY = std::numeric_limits<float>::lowest();
+        float minZ = std::numeric_limits<float>::max();
         float maxZ = std::numeric_limits<float>::lowest();
         for (const auto& corner : playerFrustumCascadeCorners) {
             const auto trf = lightViewMatrix * corner;
@@ -187,16 +190,12 @@ public:
             maxX = std::max(maxX, trf.x);
             minY = std::min(minY, trf.y);
             maxY = std::max(maxY, trf.y);
+            minZ = std::min(minZ, trf.z);
             maxZ = std::max(maxZ, trf.z);
         }
 
-        constexpr float zMultiplier = 7.0f;
-        if (maxZ < 0) {
-            maxZ /= zMultiplier;
-        } else {
-            maxZ *= zMultiplier;
-        }
-        return glm::ortho(minX, maxX, minY, maxY, (float)lightOrthogonalProjectionZBottom.getOrDefault(-5000.0f), maxZ);
+        //because opengl assumes camera looks in -z direction, last 2 parameters are suppose to be -maxZ and -minZ
+        return glm::ortho(minX, maxX, minY, maxY,  (float)lightOrthogonalProjectionZBottom.getOrDefault(-5000.0f), -minZ);
     }
 };
 
