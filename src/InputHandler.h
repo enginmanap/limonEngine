@@ -11,7 +11,6 @@
 #include "limonAPI/Options.h"
 #include "limonAPI/InputStates.h"
 
-
 class InputHandler {
 private:
     SDL_Window *window;
