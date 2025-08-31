@@ -61,12 +61,11 @@ public:
         if(lightType == LightTypes::DIRECTIONAL) {
             this->position = glm::normalize(position);
             //we wanna create as many cameras as the cascade levels
-            long cascadeCount;
-            OptionsUtil::Options::Option<long> cascadeCountOption = graphicsWrapper->getOptions()->getOption<long>(HASH("CascadeCount"));
-            cascadeCount = cascadeCountOption.getOrDefault(4L);
+            const OptionsUtil::Options::Option<long> cascadeCountOption = graphicsWrapper->getOptions()->getOption<long>(HASH("CascadeCount"));
+            long cascadeCount = cascadeCountOption.getOrDefault(4L);
 
             for(int i = 0; i < cascadeCount; i++) {
-                directionalCameras.emplace_back(new OrthographicCamera(this->getName() + " camera", graphicsWrapper->getOptions(), i, this));
+                directionalCameras.emplace_back(new OrthographicCamera(this->Light::getName() + " camera", graphicsWrapper->getOptions(), i, this));
                 directionalCameras[directionalCameras.size()-1]->getCameraMatrix();
                 directionalCameras[directionalCameras.size()-1]->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
                 directionalCameras[directionalCameras.size()-1]->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
@@ -76,10 +75,10 @@ public:
 
                 directionalCameras[directionalCameras.size()-1]->addTag(HardCodedTags::CAMERA_LIGHT_DIRECTIONAL);
             }
-            this->clearDirty();
+            this->Light::clearDirty();
         } else if(lightType == LightTypes::POINT) {
             this->position = position;
-            cubeCameras.emplace_back(new CubeCamera(this->getName() + " camera", graphicsWrapper->getOptions(), this));
+            cubeCameras.emplace_back(new CubeCamera(this->Light::getName() + " camera", graphicsWrapper->getOptions(), this));
 
             cubeCameras[0]->getCameraMatrix();
             cubeCameras[0]->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);

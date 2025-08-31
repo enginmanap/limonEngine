@@ -53,17 +53,15 @@ public:
 
         perspectiveProjectionMatrix = glm::perspective(OptionsUtil::Options::PI/3.0f, 1.0f / aspect, 0.01f, 10000.0f);
 
-        long cascadeCount;
         std::vector<float> cascadeLimits;
         OptionsUtil::Options::Option<long> cascadeCountOption = options->getOption<long>(HASH("CascadeCount"));
-        cascadeCount = cascadeCountOption.getOrDefault(4L);
+        long cascadeCount = cascadeCountOption.getOrDefault(4L);
 
-        std::vector<long> cascadeListOption;
-        OptionsUtil::Options::Option<std::vector<long>> cascadeLimitListOptionOption = options->getOption<std::vector<long>>(HASH("CascadeLimitList"));
+        const OptionsUtil::Options::Option<std::vector<long>> cascadeLimitListOptionOption = options->getOption<std::vector<long>>(HASH("CascadeLimitList"));
         if(cascadeLimitListOptionOption.isUsable()) {
-            cascadeListOption = cascadeLimitListOptionOption.get();
+            std::vector<long> cascadeListOption = cascadeLimitListOptionOption.get();
             //we have the option list, lets process
-            if(cascadeListOption.size() != (size_t)cascadeCount) {
+            if(cascadeListOption.size() != static_cast<size_t>(cascadeCount)) {
                 std::cerr << "\"CascadeLimitList doesn't contain same number of elements as cascade count. Cascade setup will use defaults" << std::endl;
                 cascadeLimits.emplace_back(0.01);
                 cascadeLimits.emplace_back(10.0f);
