@@ -448,7 +448,7 @@ bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld,
         if (currentAnimationOld->getTicksPerSecond() != 0) {
             ticksPerSecond = currentAnimationOld->getTicksPerSecond();
         } else {
-            ticksPerSecond = 60.0f;
+            ticksPerSecond = TICK_PER_SECOND;
         }
 
         float requestedTime = (timeOld / 1000.0f) * ticksPerSecond;
@@ -479,7 +479,7 @@ bool ModelAsset::getTransformBlended(std::string animationNameOld, long timeOld,
         if (currentAnimationNew->getTicksPerSecond() != 0) {
             ticksPerSecond = currentAnimationNew->getTicksPerSecond();
         } else {
-            ticksPerSecond = 60.0f;
+            ticksPerSecond = TICK_PER_SECOND;
         }
 
         float requestedTime = (timeNew / 1000.0f) * ticksPerSecond;
@@ -559,7 +559,7 @@ bool ModelAsset::getTransform(long time, bool looped, std::string animationName,
     if (currentAnimation->getTicksPerSecond() != 0) {
         ticksPerSecond = currentAnimation->getTicksPerSecond();
     } else {
-        ticksPerSecond = 60.0f;
+        ticksPerSecond = TICK_PER_SECOND;
     }
 
     bool result = false;
