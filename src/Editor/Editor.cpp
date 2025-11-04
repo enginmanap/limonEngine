@@ -21,7 +21,6 @@
 #include "WorldSaver.h"
 #include "AI/AIMovementGrid.h"
 
-
 std::shared_ptr<const Material> EditorNS::selectedMeshesMaterial = nullptr;
 std::shared_ptr<Material> EditorNS::selectedFromListMaterial = nullptr;
 
@@ -77,6 +76,23 @@ Model * Editor::createRenderAndAddModelToLRU(const std::string &modelFileName, c
     renderSelectedObject(model, graphicsProgram);
     return model;
 }
+
+
+class ClosestNotMeConvexResultCallback : public btDynamicsWorld::ClosestConvexResultCallback{
+public:
+    explicit ClosestNotMeConvexResultCallback( btCollisionObject* me )
+    : ClosestConvexResultCallback( btVector3( 0.0f, 0.0f, 0.0f ), btVector3( 0.0f, 0.0f, 0.0f ) ),
+    me( me ){}
+
+    btScalar addSingleResult( btCollisionWorld::LocalConvexResult& convexResult, bool normalInWorldSpace ) override {
+        if( convexResult.m_hitCollisionObject == this->me ){
+            return 0.0f;
+        }
+        return ClosestConvexResultCallback::addSingleResult( convexResult, normalInWorldSpace );
+    }
+protected:
+    btCollisionObject* me;
+}; //class ClosestNotMeConvexResultCallback;
 
 void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
@@ -679,7 +695,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             }
             bool isSelected = false;
             auto allMaterials = world->assetManager->getMaterials();
-            ImGui::Text("Total material count is %lu", allMaterials.size());
+            ImGui::Text("Total material count is %lu", (unsigned long) allMaterials.size());
             if (ImGui::BeginListBox("Materials")) {
                 for (auto it = allMaterials.begin(); it != allMaterials.end(); ++it) {
                     isSelected = selectedHash == it->first;
@@ -721,9 +737,60 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             }
             switch(world->pickedObject->getTypeID()) {
                 case GameObject::ObjectTypes::MODEL: {
-                    Model* selectedObject = static_cast<Model*>(world->pickedObject);
-                    if(objectEditorResult.updated) {
-                        if(!selectedObject->isDisconnected()) {
+                    if (objectEditorResult.updated) {
+                        Model *selectedObject = static_cast<Model *>(world->pickedObject);
+                        btCompoundShape *compoundShape = selectedObject->getCompoundShapeForSweepTest();
+                        btTransform originalTransform = selectedObject->getRigidBody()->getWorldTransform();
+                        static uint32_t drawLineBufferId = 0;
+                        ClosestNotMeConvexResultCallback resultCallback(selectedObject->getRigidBody());
+                        bool anyHit = false;
+                        GameObject *gameObject = nullptr;
+                        float highestY = std::numeric_limits<float>::lowest();
+                        // Option 2: If you need to process all convex shapes in the compound
+                        for (int i = 0; i < compoundShape->getNumChildShapes(); ++i) {
+                            btCompoundShapeChild child = compoundShape->getChildList()[i];
+                            btTransform childBaseTransform = child.m_transform;
+                            btConvexShape *childConvexShape = dynamic_cast<btConvexShape *>(compoundShape->getChildShape(i));
+                            btVector3 scaling;
+                            scaling.setX(childBaseTransform.getBasis().getColumn(0).getX());
+                            scaling.setY(childBaseTransform.getBasis().getColumn(1).getY());
+                            scaling.setZ(childBaseTransform.getBasis().getColumn(2).getZ());
+                            childConvexShape->setLocalScaling(scaling * childConvexShape->getLocalScaling());
+                            btTransform fromTransform;
+                            fromTransform.setBasis(childBaseTransform.getBasis() * originalTransform.getBasis());
+                            fromTransform.setOrigin(childBaseTransform.getOrigin() + originalTransform.getOrigin());
+                            btTransform toTransform = fromTransform;
+                            toTransform.setOrigin(toTransform.getOrigin() + btVector3(0, -15, 0));
+                            if (drawLineBufferId != 0) {
+                                //world->options->getLogger()->clearLineBuffer(drawLineBufferId);
+                                world->options->getLogger()->drawLine(drawLineBufferId, GLMConverter::BltToGLM(fromTransform.getOrigin()),
+                                                                      GLMConverter::BltToGLM(toTransform.getOrigin()), glm::vec3(255, 255, 255), glm::vec3(155, 155, 155), true);
+                            } else {
+                                drawLineBufferId = world->options->getLogger()->drawLine(GLMConverter::BltToGLM(fromTransform.getOrigin()),
+                                                                                         GLMConverter::BltToGLM(toTransform.getOrigin()), glm::vec3(255, 255, 255),
+                                                                                         glm::vec3(155, 155, 155), true);
+                            }
+                            world->dynamicsWorld->convexSweepTest(childConvexShape, fromTransform, toTransform, resultCallback);
+                            if (resultCallback.hasHit()) {
+                                if (highestY < resultCallback.m_hitPointWorld.y()) {
+                                    highestY = resultCallback.m_hitPointWorld.y();
+                                    if (resultCallback.m_hitCollisionObject->getUserPointer()) {
+                                        gameObject = static_cast<GameObject *>(resultCallback.m_hitCollisionObject->getUserPointer());
+                                    }
+                                }
+                                anyHit = true;
+                            }
+                        }
+                        if (anyHit) {
+                            std::cout << "Higest Y is " << highestY << " hit " << gameObject->getName() << std::endl;
+                        } else {
+                            std::cout << "No hit" << std::endl;
+                        }
+                        if (gameObject != nullptr && highestY < selectedObject->getAabbMax().y) {
+                            selectedObject->getTransformation()->addTranslate(glm::vec3(0.0f, highestY - selectedObject->getAabbMin().y, 0.0f));
+                            selectedObject->updateAABB();
+                        }
+                        if (!selectedObject->isDisconnected()) {
                             world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
                         }
                         world->updatedModels.push_back(selectedObject);
@@ -740,22 +807,21 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
                     if (objectEditorResult.addAI) {
                         std::cout << "adding AI to model " << std::endl;
-                        if(removedActorID == 0) {
+                        if (removedActorID == 0) {
                             removedActorID = world->getNextObjectID();
                         }
                         //if remove and add is called in same frame, it means the type is changed, reuse the ID
                         ActorInterface *newEnemy = ActorInterface::createActor(objectEditorResult.actorTypeName, removedActorID, world->apiInstance);
-                        Model* model = dynamic_cast<Model *>(world->pickedObject);
-                        if(model != nullptr) {
+                        Model *model = dynamic_cast<Model *>(world->pickedObject);
+                        if (model != nullptr) {
                             newEnemy->setModel(model->getWorldObjectID());
                             model->attachAI(newEnemy);
                         } else {
                             std::cerr << "ActorInterface Model setting failed, because picked object is not a model." << std::endl;
-
                         }
                         world->addActor(newEnemy);
                     } else {
-                        if(removedActorID != 0) {
+                        if (removedActorID != 0) {
                             world->unusedIDs.push(removedActorID);
                         }
                     }

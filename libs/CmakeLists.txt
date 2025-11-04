@@ -44,6 +44,10 @@ if (NOT LIBS_EXTERNAL_ASSIMP)
     add_subdirectory("libs/assimp/")
 endif()
 
+if (NOT LIBS_EXTERNAL_BULLET)
+	add_subdirectory("libs/bullet/")
+endif()
+
 include_directories("libs/Cereal/include/")
 
 #we don't want to build and run gtest suite for consthash, and thats what cmake for it does.

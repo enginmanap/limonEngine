@@ -27,7 +27,7 @@ ENDIF()
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 option(LIBS_EXTERNAL_ASSIMP "Provide external assimp library." OFF)
-option(LIBS_EXTERNAL_BULLET "Provide external bullet library." ON)
+option(LIBS_EXTERNAL_BULLET "Provide external bullet library." OFF)
 
 # suppress new entries if they were deleted and subproject is disabled
 if (NOT LIBS_EXTERNAL_ASSIMP)
@@ -92,8 +92,8 @@ endif (NOT OPENGL_FOUND)
 
 iF(LIBS_EXTERNAL_BULLET)
     message("Using System Bullet")
-    find_package(Bullet REQUIRED)
-    INCLUDE_DIRECTORIES(SYSTEM ${BULLET_INCLUDE_DIRS})
+    #find_package(Bullet REQUIRED)
+    #INCLUDE_DIRECTORIES(SYSTEM ${BULLET_INCLUDE_DIRS})
 ELSE ()
     message("Using local Bullet")
     find_package(Bullet REQUIRED PATH_SUFFIXES ./libs/ )

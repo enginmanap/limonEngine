@@ -2483,57 +2483,97 @@ std::vector<LimonTypes::GenericParameter> World::getObjectTransformationMatrixAP
    return result;
 }
 
+   btVector3 World::extendRayToWorldAABB(glm::vec3 from, glm::vec3 direction) const {
+       //we want to extend to vector to world AABB limit
+       float maxFactor = 1; //don't allow making ray smaller than unit by setting 1.
+
+       if (direction.x > 0) {
+           //so we are looking at positive x. determine how many times the ray x we need
+           maxFactor = std::max(maxFactor,(worldAABBMax.x - from.x) / direction.x);
+       } else {
+           maxFactor = std::max(maxFactor,(worldAABBMin.x - from.x) /
+                                          direction.x); //Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
+       }
+
+       if (direction.y > 0) {
+           maxFactor =std::max(maxFactor, (worldAABBMax.y - from.y) / direction.y);
+       } else {
+           maxFactor = std::max(maxFactor, (worldAABBMin.y - from.y) /
+                                           direction.y);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
+       }
+
+       if (direction.z > 0) {
+           maxFactor = std::max(maxFactor, (worldAABBMax.z - from.z) / direction.z);
+       } else {
+           maxFactor = std::max(maxFactor, (worldAABBMin.z - from.z) /
+                                           direction.z);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
+       }
+       direction = direction * maxFactor;
+       return GLMConverter::GLMToBlt(direction + from);
+   }
+
 GameObject* World::rayCastClosest(glm::vec3 from, glm::vec3 direction, int collisionType, int filterMask,
                                      glm::vec3 *collisionPosition, glm::vec3 *collisionNormal) const {
-//we want to extend to vector to world AABB limit
-        float maxFactor = 1; //don't allow making ray smaller than unit by setting 1.
+    btVector3 to = extendRayToWorldAABB(from, direction);
+    btCollisionWorld::ClosestRayResultCallback RayCallback(GLMConverter::GLMToBlt(from), to);
+    RayCallback.m_collisionFilterGroup = collisionType;
+    RayCallback.m_collisionFilterMask = filterMask;
 
-        if (direction.x > 0) {
-            //so we are looking at positive x. determine how many times the ray x we need
-            maxFactor = std::max(maxFactor,(worldAABBMax.x - from.x) / direction.x);
-        } else {
-            maxFactor = std::max(maxFactor,(worldAABBMin.x - from.x) /
-                                           direction.x); //Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
+    dynamicsWorld->rayTest(
+            GLMConverter::GLMToBlt(from), to,
+            RayCallback
+    );
+
+    //debugDrawer->flushDraws();
+    if (RayCallback.hasHit()) {
+        if(collisionPosition != nullptr) {
+            *collisionPosition = GLMConverter::BltToGLM(RayCallback.m_hitPointWorld);
         }
-
-        if (direction.y > 0) {
-            maxFactor =std::max(maxFactor, (worldAABBMax.y - from.y) / direction.y);
-        } else {
-            maxFactor = std::max(maxFactor, (worldAABBMin.y - from.y) /
-                                direction.y);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
+        if(collisionNormal != nullptr) {
+            *collisionNormal = GLMConverter::BltToGLM(RayCallback.m_hitNormalWorld);
         }
+        return static_cast<GameObject *>(RayCallback.m_collisionObject->getUserPointer());
+    } else {
+        return nullptr;
+    }
+}
 
-        if (direction.z > 0) {
-            maxFactor = std::max(maxFactor, (worldAABBMax.z - from.z) / direction.z);
-        } else {
-            maxFactor = std::max(maxFactor, (worldAABBMin.z - from.z) /
-                                direction.z);//Mathematically this should be (from - world.min) / -1 * lookdir, but it cancels out
-        }
-        direction = direction * maxFactor;
-        glm::vec3 to = direction + from;
-        btCollisionWorld::ClosestRayResultCallback RayCallback(GLMConverter::GLMToBlt(from),
-                                                               GLMConverter::GLMToBlt(to));
-        RayCallback.m_collisionFilterGroup = collisionType;
-        RayCallback.m_collisionFilterMask = filterMask;
+GameObject* World::rayCastClosestOther(const glm::vec3 from, const glm::vec3 direction, const int collisionType, const int filterMask,
+                                        const GameObject* ignoreObject,
+                                     glm::vec3 *collisionPosition, glm::vec3 *collisionNormal) const {
+    btVector3 to = extendRayToWorldAABB(from, direction);
+    btCollisionWorld::AllHitsRayResultCallback RayCallback(GLMConverter::GLMToBlt(from), to);
+    RayCallback.m_collisionFilterGroup = collisionType;
+    RayCallback.m_collisionFilterMask = filterMask;
 
-        dynamicsWorld->rayTest(
-                GLMConverter::GLMToBlt(from),
-                GLMConverter::GLMToBlt(to),
-                RayCallback
-        );
+    dynamicsWorld->rayTest(
+            GLMConverter::GLMToBlt(from), to,
+            RayCallback
+    );
 
-        //debugDrawer->flushDraws();
-        if (RayCallback.hasHit()) {
-            if(collisionPosition != nullptr) {
-                *collisionPosition = GLMConverter::BltToGLM(RayCallback.m_hitPointWorld);
+    float closestDistance = std::numeric_limits<float>::max();
+    size_t closestIndex = std::numeric_limits<size_t>::max();
+    if (RayCallback.hasHit()) {
+        for (size_t i = 0; i < RayCallback.m_collisionObjects.size(); ++i) {
+            if (RayCallback.m_collisionObjects[i]->getUserPointer() != nullptr) {
+                GameObject* hitObject = static_cast<GameObject *>(RayCallback.m_collisionObjects[i]->getUserPointer());
+                if(hitObject->getWorldObjectID() != ignoreObject->getWorldObjectID()) {
+                    float distance = glm::distance2(from, GLMConverter::BltToGLM(RayCallback.m_hitPointWorld[i]));
+                    if(distance < closestDistance) {
+                        closestDistance = distance;
+                        closestIndex = i;
+                    }
+                }
             }
-            if(collisionNormal != nullptr) {
-                *collisionNormal = GLMConverter::BltToGLM(RayCallback.m_hitNormalWorld);
-            }
-            return static_cast<GameObject *>(RayCallback.m_collisionObject->getUserPointer());
-        } else {
+        }
+        if(closestIndex == std::numeric_limits<size_t>::max()) {
             return nullptr;
         }
+        *collisionPosition = GLMConverter::BltToGLM(RayCallback.m_hitPointWorld[closestIndex]);
+        *collisionNormal = GLMConverter::BltToGLM(RayCallback.m_hitNormalWorld[closestIndex]);
+        return static_cast<GameObject *>(RayCallback.m_collisionObjects[closestIndex]->getUserPointer());
+    }
+    return nullptr;
 }
 
 GameObject * World::getPointedObject(int collisionType, int filterMask,

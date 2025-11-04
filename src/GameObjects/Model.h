@@ -103,6 +103,31 @@ public:
 
     Model(const Model& otherModel, uint32_t objectID); //kind of copy constructor, except ID
 
+    btCompoundShape *getCompoundShapeForSweepTest() const {
+        std::map<uint32_t, uint32_t> boneIdCompoundChildMapTemp;
+        std::vector<btCollisionShape *> childrenPhysicsShapes;
+        btCompoundShape *compoundShape = this->modelAsset->getCompoundShapeForMass(1, boneIdCompoundChildMapTemp, childrenPhysicsShapes);
+        btVector3 scale;
+        if(isScaled) {
+            scale = GLMConverter::GLMToBlt(this->getTransformation()->getScale());
+            compoundShape->setLocalScaling(btVector3(1, 1, 1));
+        }
+        unsigned int i = 0;
+        for (; i < boneTransforms.size(); ++i) {
+            if (boneIdCompoundChildMapTemp.find(i) != boneIdCompoundChildMapTemp.end()) {
+                btTransform transform;
+                transform.setFromOpenGLMatrix(glm::value_ptr(boneTransforms[i]));
+                compoundShape->updateChildTransform(boneIdCompoundChildMapTemp.at(i), transform, false);
+            }
+        }
+        if(isScaled) {
+            compoundShape->setLocalScaling(scale);
+        }
+        compoundShape->recalculateLocalAabb();
+        compoundShape->createAabbTreeFromChildren();
+        return compoundShape;
+    }
+
     void transformChangeCallback() {
         PhysicalRenderable::updatePhysicsFromTransform();
         graphicsWrapper->setModel(this->getWorldObjectID(), this->transformation.getWorldTransform());

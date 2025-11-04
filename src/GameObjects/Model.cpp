@@ -335,7 +335,6 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
         rigidBody->activate();
         result.updated = true;
     }
-
     ImGui::NewLine();
     static char tempTagsBuffer[512] = {0};
     std::string joinedTags = StringUtils::join(this->getTagsCustomOnly(), ",");

@@ -353,8 +353,11 @@ private:
     std::map<VisibilityRequest*, SDL_Thread *> occlusionThreadManager();
     std::map<VisibilityRequest*, SDL_Thread *> visibilityThreadPool;
 
+    btVector3 extendRayToWorldAABB(glm::vec3 from, glm::vec3 direction) const;
     GameObject* rayCastClosest(glm::vec3 from, glm::vec3 direction,int collisionType, int filterMask,
                                      glm::vec3 *collisionPosition = nullptr, glm::vec3 *collisionNormal = nullptr) const;
+    GameObject* rayCastClosestOther(glm::vec3 from, glm::vec3 direction, int collisionType, int filterMask, const GameObject* ignoreObject,
+                                     glm::vec3 *collisionPosition, glm::vec3 *collisionNormal) const;
     GameObject *getPointedObject(int collisionType, int filterMask,
                                  glm::vec3 *collisionPosition = nullptr, glm::vec3 *collisionNormal = nullptr) const;
 
