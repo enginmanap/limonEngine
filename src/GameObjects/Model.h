@@ -103,6 +103,12 @@ public:
 
     Model(const Model& otherModel, uint32_t objectID); //kind of copy constructor, except ID
 
+    /**
+     * This method returns a copy of compound shape, composed of convex shapes for sweep test. It is used for raycast and other sweep tests.
+     * It is on caller's responsibility to delete the returned shape.
+     *
+     * @return compound shape with each children being convex
+     */
     btCompoundShape *getCompoundShapeForSweepTest() const {
         std::map<uint32_t, uint32_t> boneIdCompoundChildMapTemp;
         std::vector<btCollisionShape *> childrenPhysicsShapes;
