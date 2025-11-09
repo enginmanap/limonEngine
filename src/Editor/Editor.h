@@ -7,6 +7,8 @@
 
 #include "ImGui/imgui.h"
 #include <set>
+#include <memory>
+
 #define MAX_PRELOAD_MODEL_COUNT_EDITOR 10
 class World;
 class PhysicalRenderable;
@@ -17,12 +19,15 @@ class Model;
 class GraphicsProgram;
 class ImGuiImageWrapper;
 class Material;
+class ClosestNotMeConvexResultCallback;
 
 namespace EditorNS {
     //This is used as a global variable store. For multiple windows, ImGui doesn't provide anything else
     extern std::shared_ptr<const Material> selectedMeshesMaterial;
     extern std::shared_ptr<Material> selectedFromListMaterial;
 }
+
+
 class Editor {
     World* world;
     std::shared_ptr<Texture> colorTexture;
@@ -42,7 +47,7 @@ private:
     std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsWaitingCPULoad;
     std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsPreloaded;
     void buildTreeFromAllGameObjects();
-
+    std::unique_ptr<ClosestNotMeConvexResultCallback> convexSweepTestDown(Model * selectedObject) const;
     void addAnimationDefinitionToEditor();
     void createObjectTreeRecursive(PhysicalRenderable *physicalRenderable, uint32_t pickedObjectID,
                                           ImGuiTreeNodeFlags nodeFlags, ImGuiTreeNodeFlags leafFlags,
@@ -52,6 +57,8 @@ private:
 
     void setTransformToModel(Model *model, const glm::vec3 &newObjectPosition);
 };
+
+
 
 
 #endif //LIMONENGINE_EDITOR_H

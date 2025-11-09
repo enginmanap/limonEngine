@@ -20,6 +20,7 @@
 #include "AnimationSequencer.h"
 #include "WorldSaver.h"
 #include "AI/AIMovementGrid.h"
+#include "../utils/ClosestNotMeConvexResultCallback.h"
 
 std::shared_ptr<const Material> EditorNS::selectedMeshesMaterial = nullptr;
 std::shared_ptr<Material> EditorNS::selectedFromListMaterial = nullptr;
@@ -77,22 +78,40 @@ Model * Editor::createRenderAndAddModelToLRU(const std::string &modelFileName, c
     return model;
 }
 
+std::unique_ptr<ClosestNotMeConvexResultCallback> Editor::convexSweepTestDown(Model * selectedObject) const {
+    std::unique_ptr<ClosestNotMeConvexResultCallback> resultCallback = std::make_unique<ClosestNotMeConvexResultCallback>(selectedObject->getRigidBody());
+    btCompoundShape *compoundShape = selectedObject->getCompoundShapeForSweepTest();
+    btTransform originalTransform = selectedObject->getRigidBody()->getWorldTransform();
+    static uint32_t drawLineBufferId = 0;
+    for (int i = 0; i < compoundShape->getNumChildShapes(); ++i) {
+        btCompoundShapeChild child = compoundShape->getChildList()[i];
+        btTransform childBaseTransform = child.m_transform;
+        btConvexShape *childConvexShape = dynamic_cast<btConvexShape *>(compoundShape->getChildShape(i));
+        btVector3 scaling;
+        scaling.setX(childBaseTransform.getBasis().getColumn(0).getX());
+        scaling.setY(childBaseTransform.getBasis().getColumn(1).getY());
+        scaling.setZ(childBaseTransform.getBasis().getColumn(2).getZ());
+        childConvexShape->setLocalScaling(scaling * childConvexShape->getLocalScaling());
+        btTransform fromTransform;
+        fromTransform.setBasis(childBaseTransform.getBasis() * originalTransform.getBasis());
+        fromTransform.setOrigin(childBaseTransform.getOrigin() + originalTransform.getOrigin());
+        btTransform toTransform = fromTransform;
+        toTransform.setOrigin(toTransform.getOrigin() + btVector3(0, -5, 0));
+        fromTransform.setOrigin(childBaseTransform.getOrigin() + originalTransform.getOrigin() + btVector3(0, 5, 0));//we want to be able to move up too
 
-class ClosestNotMeConvexResultCallback : public btDynamicsWorld::ClosestConvexResultCallback{
-public:
-    explicit ClosestNotMeConvexResultCallback( btCollisionObject* me )
-    : ClosestConvexResultCallback( btVector3( 0.0f, 0.0f, 0.0f ), btVector3( 0.0f, 0.0f, 0.0f ) ),
-    me( me ){}
-
-    btScalar addSingleResult( btCollisionWorld::LocalConvexResult& convexResult, bool normalInWorldSpace ) override {
-        if( convexResult.m_hitCollisionObject == this->me ){
-            return 0.0f;
+        if (drawLineBufferId != 0) {
+            //world->options->getLogger()->clearLineBuffer(drawLineBufferId);
+            world->options->getLogger()->drawLine(drawLineBufferId, GLMConverter::BltToGLM(fromTransform.getOrigin()),
+                                                  GLMConverter::BltToGLM(toTransform.getOrigin()), glm::vec3(255, 255, 255), glm::vec3(155, 155, 155), true);
+        } else {
+            drawLineBufferId = world->options->getLogger()->drawLine(GLMConverter::BltToGLM(fromTransform.getOrigin()),
+                                                                     GLMConverter::BltToGLM(toTransform.getOrigin()), glm::vec3(255, 255, 255),
+                                                                     glm::vec3(155, 155, 155), true);
         }
-        return ClosestConvexResultCallback::addSingleResult( convexResult, normalInWorldSpace );
+        world->dynamicsWorld->convexSweepTest(childConvexShape, fromTransform, toTransform, *resultCallback);
     }
-protected:
-    btCollisionObject* me;
-}; //class ClosestNotMeConvexResultCallback;
+    return resultCallback;
+}
 
 void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
 
@@ -739,55 +758,18 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 case GameObject::ObjectTypes::MODEL: {
                     if (objectEditorResult.updated) {
                         Model *selectedObject = static_cast<Model *>(world->pickedObject);
-                        btCompoundShape *compoundShape = selectedObject->getCompoundShapeForSweepTest();
-                        btTransform originalTransform = selectedObject->getRigidBody()->getWorldTransform();
-                        static uint32_t drawLineBufferId = 0;
-                        ClosestNotMeConvexResultCallback resultCallback(selectedObject->getRigidBody());
-                        bool anyHit = false;
-                        GameObject *gameObject = nullptr;
-                        float highestY = std::numeric_limits<float>::lowest();
-                        // Option 2: If you need to process all convex shapes in the compound
-                        for (int i = 0; i < compoundShape->getNumChildShapes(); ++i) {
-                            btCompoundShapeChild child = compoundShape->getChildList()[i];
-                            btTransform childBaseTransform = child.m_transform;
-                            btConvexShape *childConvexShape = dynamic_cast<btConvexShape *>(compoundShape->getChildShape(i));
-                            btVector3 scaling;
-                            scaling.setX(childBaseTransform.getBasis().getColumn(0).getX());
-                            scaling.setY(childBaseTransform.getBasis().getColumn(1).getY());
-                            scaling.setZ(childBaseTransform.getBasis().getColumn(2).getZ());
-                            childConvexShape->setLocalScaling(scaling * childConvexShape->getLocalScaling());
-                            btTransform fromTransform;
-                            fromTransform.setBasis(childBaseTransform.getBasis() * originalTransform.getBasis());
-                            fromTransform.setOrigin(childBaseTransform.getOrigin() + originalTransform.getOrigin());
-                            btTransform toTransform = fromTransform;
-                            toTransform.setOrigin(toTransform.getOrigin() + btVector3(0, -15, 0));
-                            if (drawLineBufferId != 0) {
-                                //world->options->getLogger()->clearLineBuffer(drawLineBufferId);
-                                world->options->getLogger()->drawLine(drawLineBufferId, GLMConverter::BltToGLM(fromTransform.getOrigin()),
-                                                                      GLMConverter::BltToGLM(toTransform.getOrigin()), glm::vec3(255, 255, 255), glm::vec3(155, 155, 155), true);
-                            } else {
-                                drawLineBufferId = world->options->getLogger()->drawLine(GLMConverter::BltToGLM(fromTransform.getOrigin()),
-                                                                                         GLMConverter::BltToGLM(toTransform.getOrigin()), glm::vec3(255, 255, 255),
-                                                                                         glm::vec3(155, 155, 155), true);
+                        GameObject *gameObjectUnderSelected = nullptr;
+                        std::unique_ptr<ClosestNotMeConvexResultCallback> resultCallback = convexSweepTestDown(selectedObject);
+                        if (resultCallback->hasHit()) {
+                            if (resultCallback->m_hitCollisionObject->getUserPointer()) {
+                                gameObjectUnderSelected = static_cast<GameObject *>(resultCallback->m_hitCollisionObject->getUserPointer());
                             }
-                            world->dynamicsWorld->convexSweepTest(childConvexShape, fromTransform, toTransform, resultCallback);
-                            if (resultCallback.hasHit()) {
-                                if (highestY < resultCallback.m_hitPointWorld.y()) {
-                                    highestY = resultCallback.m_hitPointWorld.y();
-                                    if (resultCallback.m_hitCollisionObject->getUserPointer()) {
-                                        gameObject = static_cast<GameObject *>(resultCallback.m_hitCollisionObject->getUserPointer());
-                                    }
-                                }
-                                anyHit = true;
-                            }
-                        }
-                        if (anyHit) {
-                            std::cout << "Higest Y is " << highestY << " hit " << gameObject->getName() << std::endl;
+                            std::cout << "Higest Y is " << resultCallback->m_hitPointWorld.y() << " hit " << gameObjectUnderSelected->getName() << std::endl;
                         } else {
                             std::cout << "No hit" << std::endl;
                         }
-                        if (gameObject != nullptr && highestY < selectedObject->getAabbMax().y) {
-                            selectedObject->getTransformation()->addTranslate(glm::vec3(0.0f, highestY - selectedObject->getAabbMin().y, 0.0f));
+                        if (gameObjectUnderSelected != nullptr) {
+                            selectedObject->getTransformation()->addTranslate(glm::vec3(0.0f, resultCallback->m_hitPointWorld.y() - selectedObject->getAabbMin().y, 0.0f));
                             selectedObject->updateAABB();
                         }
                         if (!selectedObject->isDisconnected()) {
