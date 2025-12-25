@@ -335,6 +335,15 @@ ImGuiResult Model::addImGuiEditorElements(const ImGuiRequest &request) {
         rigidBody->activate();
         result.updated = true;
     }
+    static bool usePutOnTop = false;
+    result.putOnTop = usePutOnTop;
+    ImGui::Checkbox("On Top##PuthOnTopCheckBox", &usePutOnTop);
+    if(ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::Text("This will automatically put the object on top of what is found under:");
+        ImGui::Text("shortcut T");
+        ImGui::EndTooltip();
+    }
     ImGui::NewLine();
     static char tempTagsBuffer[512] = {0};
     std::string joinedTags = StringUtils::join(this->getTagsCustomOnly(), ",");

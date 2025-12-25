@@ -17,6 +17,7 @@ struct ImGuiResult {
     bool remove = false; //If removal requested
     bool materialChanged = false;
     bool recalculateTranslateForOnTop = false;
+    bool putOnTop = false;
     std::string actorTypeName;
 };
 
