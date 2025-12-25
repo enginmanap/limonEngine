@@ -38,6 +38,7 @@
 #include "Graphics/PostProcess/QuadRender.h"
 #include "Editor/Editor.h"
 #include "Occlusion/RenderList.h"
+#include "python/ScriptManager.h"
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -57,6 +58,14 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
         startingPlayer(startingPlayerType) {
     strncpy(worldSaveNameBuffer, name.c_str(), sizeof(worldSaveNameBuffer) -1 );
     editor = std::make_unique<Editor>(this);
+
+    // python init
+    //pybind11::scoped_interpreter guard{};
+    ScriptManager* scriptSystem = new ScriptManager("./Engine/scripts");
+    scriptSystem->LoadScripts();
+    // 3. Import a standard module to prove paths are working
+    auto sys = pybind11::module::import("sys");
+    pybind11::print("Python Version:", sys.attr("version"));
     // physics init
     broadphase = new btDbvtBroadphase();
     ghostPairCallback = new btGhostPairCallback();
@@ -2639,23 +2648,20 @@ bool World::cancelTimedEventAPI(long handleId) {
 
 
 void World::checkAndRunTimedEvents() {
-    //we need to check 2 different things
     while(!timedEvents.empty()) {
-        bool nothingToRun = true;
-        //if there are waiting timed events we need to check if they need to run
-        if(timedEvents.top().useWallTime && timedEvents.top().callTime <= wallTime) {
-            timedEvents.top().run();
+        const auto& event = timedEvents.top();
+
+        // Check if the event should run
+        if ((event.useWallTime && event.callTime <= wallTime) ||
+            (!event.useWallTime && event.callTime <= gameTime)) {
+            // Run the event
+            event.run();
+            // Remove the event from the queue
             timedEvents.pop();
-            nothingToRun = false;
-        }
-        if(!timedEvents.top().useWallTime && timedEvents.top().callTime <= gameTime){
-            timedEvents.top().run();
-            timedEvents.pop();
-            nothingToRun = false;
-        }
-        if(nothingToRun) {
-            break;
-        }
+            } else {
+                // No more events to process
+                break;
+            }
     }
 }
 

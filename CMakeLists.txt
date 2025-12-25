@@ -7,6 +7,7 @@ add_definitions(-DGLM_FORCE_SILENT_WARNINGS)
 add_definitions(-DASSIMP_VALIDATE_WORKAROUND)
 add_definitions(-DCEREAL_SUPPORT)
 add_definitions(-DTICK_PER_SECOND=60)
+add_definitions(-DMAX_PYTHON_SCRIPT_COUNT=64)
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -14,11 +15,11 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 #include(cotire)
 
 IF (WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -mconsole -Wall -Wextra -Wnon-virtual-dtor -pedantic -fdiagnostics-all-candidates")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -mconsole -Wall -Wextra -Wnon-virtual-dtor -pedantic -fdiagnostics-all-candidates")
     set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld ${CMAKE_EXE_LINKER_FLAGS}")
     set(WINDOWS_SPECIFIC_LINK_LIBRARIES "imm32")
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Wextra -Wnon-virtual-dtor -pedantic")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -Wnon-virtual-dtor -pedantic")
 ENDIF()
 
 IF (UNIX AND ${CMAKE_VERSION} VERSION_GREATER "3.11.0")
@@ -134,12 +135,13 @@ if (LIBS_EXTERNAL_ASSIMP)
     endif()
 endif()
 
+
 add_custom_target(copyData
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/Engine ${CMAKE_BINARY_DIR}/Engine)
 add_dependencies(LimonEngine copyData)
 target_include_directories(LimonEngine PRIVATE "libs/assimp/include")
-TARGET_LINK_LIBRARIES(LimonEngine ImGui ImGuizmo OpenAL meshoptimizer nodeGraph assimp ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES})
+TARGET_LINK_LIBRARIES(LimonEngine ImGui ImGuizmo OpenAL meshoptimizer nodeGraph assimp pybind11::embed ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES})
 target_precompile_headers(LimonEngine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
 IF (WIN32)

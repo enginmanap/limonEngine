@@ -27,8 +27,7 @@ protected:
         }
         return typeMap;
     }
-
-    TriggerInterface(LimonAPI* limonAPI): limonAPI(limonAPI) {}
+    explicit TriggerInterface(LimonAPI* limonAPI): limonAPI(limonAPI) {}
 
 public:
     // Not virtual

@@ -4,6 +4,9 @@
 
 #include "InputStates.h"
 
+// Define the static member
+const uint32_t InputStates::keyBufferElements;
+
 InputStates::InputStates() {
     /*
      * why not iterate? Because these elements are not added yet, so can't iterate.

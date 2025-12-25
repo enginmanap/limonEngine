@@ -57,3 +57,7 @@ include_directories("libs/consthash/include")
 add_library(rtfuncs libs/consthash/dep/crc32.c libs/consthash/dep/crc64.c)
 add_library(cityhash libs/consthash/dep/cityhash/city.cc)
 
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+add_subdirectory("libs/pybind11")
+message(STATUS "Python3_INCLUDE_DIRS: ${Python3_INCLUDE_DIRS}")
+message(STATUS "Python3 version: ${Python3_VERSION}")
