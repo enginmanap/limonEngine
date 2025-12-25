@@ -82,6 +82,7 @@ std::unique_ptr<ClosestNotMeConvexResultCallback> Editor::convexSweepTestDown(Mo
     std::unique_ptr<ClosestNotMeConvexResultCallback> resultCallback = std::make_unique<ClosestNotMeConvexResultCallback>(selectedObject->getRigidBody());
     btCompoundShape *compoundShape = selectedObject->getCompoundShapeForSweepTest();
     btTransform originalTransform = selectedObject->getRigidBody()->getWorldTransform();
+    originalTransform.setOrigin(originalTransform.getOrigin()  + btVector3(0, 1.0f, 0));
     static uint32_t drawLineBufferId = 0;
     for (int i = 0; i < compoundShape->getNumChildShapes(); ++i) {
         btCompoundShapeChild child = compoundShape->getChildList()[i];
@@ -96,8 +97,7 @@ std::unique_ptr<ClosestNotMeConvexResultCallback> Editor::convexSweepTestDown(Mo
         fromTransform.setBasis(childBaseTransform.getBasis() * originalTransform.getBasis());
         fromTransform.setOrigin(childBaseTransform.getOrigin() + originalTransform.getOrigin());
         btTransform toTransform = fromTransform;
-        toTransform.setOrigin(toTransform.getOrigin() + btVector3(0, -5, 0));
-        fromTransform.setOrigin(childBaseTransform.getOrigin() + originalTransform.getOrigin() + btVector3(0, 5, 0));//we want to be able to move up too
+        toTransform.setOrigin(toTransform.getOrigin() + btVector3(0, -10, 0));
 
         if (drawLineBufferId != 0) {
             //world->options->getLogger()->clearLineBuffer(drawLineBufferId);
@@ -758,12 +758,14 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 case GameObject::ObjectTypes::MODEL: {
                     if (objectEditorResult.updated) {
                         Model *selectedObject = static_cast<Model *>(world->pickedObject);
+                        selectedObject->disconnectFromPhysicsWorld(world->dynamicsWorld);
                         GameObject *gameObjectUnderSelected = nullptr;
                         std::unique_ptr<ClosestNotMeConvexResultCallback> resultCallback = convexSweepTestDown(selectedObject);
                         if (resultCallback->hasHit()) {
                             if (resultCallback->m_hitCollisionObject->getUserPointer()) {
                                 gameObjectUnderSelected = static_cast<GameObject *>(resultCallback->m_hitCollisionObject->getUserPointer());
                             }
+                            std::cout << "starting the translate from " <<  GLMUtils::vectorToString(selectedObject->getTransformation()->getTranslate()) << std::endl;
                             std::cout << "Higest Y is " << resultCallback->m_hitPointWorld.y() << " hit " << gameObjectUnderSelected->getName() << std::endl;
                         } else {
                             std::cout << "No hit" << std::endl;
@@ -771,11 +773,14 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                         if (gameObjectUnderSelected != nullptr) {
                             selectedObject->getTransformation()->addTranslate(glm::vec3(0.0f, resultCallback->m_hitPointWorld.y() - selectedObject->getAabbMin().y, 0.0f));
                             selectedObject->updateAABB();
+
                         }
                         if (!selectedObject->isDisconnected()) {
                             world->dynamicsWorld->updateSingleAabb(selectedObject->getRigidBody());
                         }
                         world->updatedModels.push_back(selectedObject);
+                        std::cout << "saving the translate to     " <<  GLMUtils::vectorToString(selectedObject->getTransformation()->getTranslate()) << std::endl;
+                        world->reconnectObjectToPhysics(selectedObject->getWorldObjectID());//multiple redirection but should be fine
                     }
                     uint32_t removedActorID = 0;
                     if (objectEditorResult.removeAI) {
