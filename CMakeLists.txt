@@ -11,6 +11,10 @@ add_definitions(-DMAX_PYTHON_SCRIPT_COUNT=64)
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 #include(cotire)
 
@@ -182,7 +186,7 @@ IF (WIN32 AND NOT ( MINGW OR MSYS))
         COMMAND ${CMAKE_COMMAND} -E copy ${API_UTIL_HEADERS} ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/util
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/limonAPI/CMakeLists.txt ${CMAKE_BINARY_DIR}/LimonAPI/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/lib
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/libLimonAPI.lib ${CMAKE_BINARY_DIR}/LimonAPI/lib
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/libLimonAPI.lib ${CMAKE_BINARY_DIR}/LimonAPI/lib
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/src
         COMMAND ${CMAKE_COMMAND} -E tar "cfv" "LimonAPI.zip" --format=zip -- ${CMAKE_BINARY_DIR}/LimonAPI
         COMMAND echo "Building api project done"
@@ -196,7 +200,7 @@ else()
         COMMAND ${CMAKE_COMMAND} -E copy ${API_UTIL_HEADERS} ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/util
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/limonAPI/CMakeLists.txt ${CMAKE_BINARY_DIR}/LimonAPI/
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/lib
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/libLimonAPI.a ${CMAKE_BINARY_DIR}/LimonAPI/lib
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/lib/libLimonAPI.a ${CMAKE_BINARY_DIR}/LimonAPI/lib
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/src
         COMMAND ${CMAKE_COMMAND} -E tar "cfv" "LimonAPI.zip" --format=zip -- ${CMAKE_BINARY_DIR}/LimonAPI
         COMMAND echo "Building api project done"
@@ -225,9 +229,9 @@ add_library(customTriggers SHARED
         )
 
 IF (WIN32 AND NOT ( MINGW OR MSYS))
-    TARGET_LINK_LIBRARIES(customTriggers ${CMAKE_BINARY_DIR}/libLimonAPI.lib)
+    TARGET_LINK_LIBRARIES(customTriggers ${CMAKE_BINARY_DIR}/lib/libLimonAPI.lib)
 else()
-    TARGET_LINK_LIBRARIES(customTriggers ${CMAKE_BINARY_DIR}/libLimonAPI.a)
+    TARGET_LINK_LIBRARIES(customTriggers ${CMAKE_BINARY_DIR}/lib/libLimonAPI.a)
 ENDIF()
 
 add_dependencies(customTriggers LimonAPI)
@@ -244,9 +248,9 @@ add_library(GraphicsBackend SHARED
 target_precompile_headers(GraphicsBackend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
 IF (WIN32 AND NOT ( MINGW OR MSYS))
-    TARGET_LINK_LIBRARIES(GraphicsBackend ${CMAKE_BINARY_DIR}/libLimonAPI.lib GLEW::GLEW ${OPENGL_LIBRARIES})
+    TARGET_LINK_LIBRARIES(GraphicsBackend ${CMAKE_BINARY_DIR}/lib/libLimonAPI.lib GLEW::GLEW ${OPENGL_LIBRARIES})
 else()
-    TARGET_LINK_LIBRARIES(GraphicsBackend ${CMAKE_BINARY_DIR}/libLimonAPI.a GLEW::GLEW ${OPENGL_LIBRARIES})
+    TARGET_LINK_LIBRARIES(GraphicsBackend ${CMAKE_BINARY_DIR}/lib/libLimonAPI.a GLEW::GLEW ${OPENGL_LIBRARIES})
 ENDIF()
 
 set_target_properties(GraphicsBackend PROPERTIES VERSION ${PROJECT_VERSION})
