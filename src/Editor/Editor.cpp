@@ -20,7 +20,7 @@
 #include "AnimationSequencer.h"
 #include "WorldSaver.h"
 #include "AI/AIMovementGrid.h"
-#include "../utils/ClosestNotMeConvexResultCallback.h"
+#include "../Utils/ClosestNotMeConvexResultCallback.h"
 
 std::shared_ptr<const Material> EditorNS::selectedMeshesMaterial = nullptr;
 std::shared_ptr<Material> EditorNS::selectedFromListMaterial = nullptr;
