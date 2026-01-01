@@ -21,27 +21,15 @@
 class ScriptManager {
 private:
     // Holds the Python instance. Since Script Manager is per world, this would be also per world
-    pybind11::scoped_interpreter guard{};
+    pybind11::scoped_interpreter* guard;
 
     // A list of active script INSTANCES (the objects created from the classes)
     std::vector<pybind11::object> activeScripts;
     const std::string directoryPath;
 public:
-    explicit ScriptManager(const std::string& directoryPath) : directoryPath(directoryPath) {
-        // 1. Add the 'directoryPath' to Python's sys.path so it can be imported by other scripts
-        try {
-            auto sys = pybind11::module::import("sys");
-            auto limon = pybind11::module::import("limon");
-            sys.attr("path").attr("append")(directoryPath);
-
-            // 2. Redirect Python's stdout to our C++ object. This object is just horribly inefficient, but I assume only usecase for print in python would be troubleshooting, and batching would make that way harder.
-            auto redirector = limon.attr("StdOut")();
-            // Tell Python: "Don't write to the console buffer, write to my C++ object"
-            sys.attr("stdout") = redirector;
-            sys.attr("stderr") = redirector; // Catch errors
-        } catch (const std::exception& e) {
-            std::cerr << "[Scripting] Error setting path: " << e.what() << std::endl;
-        }
+    explicit ScriptManager(const std::string& directoryPath);
+    ~ScriptManager() {
+        delete guard;
     }
     enum class CallBackTypes {
         TRIGGER,

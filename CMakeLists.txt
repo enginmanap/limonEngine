@@ -260,6 +260,8 @@ add_dependencies(GraphicsBackend LimonAPI)
 add_dependencies(LimonEngine GraphicsBackend)
 add_dependencies(LimonEngine customTriggers)
 
-
-
+include(BundlePython)
+IF(TARGET LimonEngine)
+    bundle_python_environment(LimonEngine)
+ENDIF()
 #cotire(LimonEngine)

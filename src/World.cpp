@@ -38,7 +38,7 @@
 #include "Graphics/PostProcess/QuadRender.h"
 #include "Editor/Editor.h"
 #include "Occlusion/RenderList.h"
-#include "python/ScriptManager.h"
+#include "Python/ScriptManager.h"
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -61,7 +61,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     // python init
     //pybind11::scoped_interpreter guard{};
-    ScriptManager* scriptSystem = new ScriptManager("./Engine/scripts");
+    ScriptManager* scriptSystem = new ScriptManager("./Engine/Scripts");
     scriptSystem->LoadScripts();
     // 3. Import a standard module to prove paths are working
     auto sys = pybind11::module::import("sys");

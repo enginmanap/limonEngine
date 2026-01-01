@@ -13,6 +13,7 @@
 #include "PyPlayerExtensionInterface.h"
 #include "PyTimedEventCallback.h"
 #include "PyTriggerInterface.h"
+#include "SDL2Helper.h"
 
 
 // Conversion for Vec3
@@ -851,6 +852,49 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
             .def("flush", &PythonStdOut::flush);
 }
 
+ScriptManager::ScriptManager(const std::string& directoryPath) : directoryPath(directoryPath) {
+    // 1. Add the 'directoryPath' to Python's sys.path so it can be imported by other scripts
+    try {
+        std::filesystem::path exeDir = SDL2Helper::getCurrentPath();
+        std::filesystem::path localPython = exeDir / "Python";
+
+        // 2. Validate it exists (Good for debugging)
+        if (!std::filesystem::exists(localPython)) {
+            std::cerr << "CRITICAL ERROR: Bundled Python environment not found at: "
+                      << localPython << std::endl;
+            std::cerr << "Did you copy the 'python' folder into the build directory?" << std::endl;
+            return;
+        }
+
+        // 3. Set PYTHONHOME
+        std::wstring homePath = std::filesystem::absolute(localPython).wstring();
+        Py_SetPythonHome(homePath.c_str());
+
+        std::filesystem::path libDir = localPython / "lib" / "python3.12"; // Adjust 3.12 dynamically if needed
+        std::filesystem::path zipPath = libDir / "site-packages.zip";
+        std::filesystem::path dynLoadPath = libDir / "lib-dynload";
+        std::wstring pathList = zipPath.wstring() + L";" + dynLoadPath.wstring();
+        Py_SetPath(pathList.c_str());
+        try {
+            guard = new pybind11::scoped_interpreter{};
+            std::cout << "[Limon] Python initialized from bundle." << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "[Limon] Python Init Failed: " << e.what() << std::endl;
+        }
+        auto sys = pybind11::module::import("sys");
+        auto limon = pybind11::module::import("limon");
+        sys.attr("path").attr("append")(directoryPath);
+
+        // 2. Redirect Python's stdout to our C++ object.
+        // This object is just horribly inefficient, but I assume only usecase for print in python would be troubleshooting,
+        // and batching would make that harder by adding delay
+        auto redirector = limon.attr("StdOut")();
+        sys.attr("stdout") = redirector;
+        sys.attr("stderr") = redirector; // Catch errors
+    } catch (const std::exception& e) {
+        std::cerr << "[Scripting] Error setting path: " << e.what() << std::endl;
+    }
+}
 void ScriptManager::LoadScript(const std::string &moduleName) {
     try {
         std::cout << "[ScriptManager] trying to load extension: " << moduleName << std::endl;

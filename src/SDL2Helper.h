@@ -5,12 +5,7 @@
 #ifndef LIMONENGINE_SDL2HELPER_CPP_H
 #define LIMONENGINE_SDL2HELPER_CPP_H
 
-#include <iostream>
-
 #include <SDL2/SDL.h>
-#include <SDL_atomic.h>
-#include <SDL_thread.h>
-#include <functional>
 #include <memory>
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "limonAPI/Options.h"
@@ -26,6 +21,8 @@ private:
 public:
 
     void setFullScreen(bool isFullScreen);
+
+    static std::string getCurrentPath();
 
     SDL2Helper(OptionsUtil::Options* options);
     void initWindow(const char*, const GraphicsInterface::ContextInformation& contextInformation);

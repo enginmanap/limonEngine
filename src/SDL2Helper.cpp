@@ -218,3 +218,8 @@ void SDL2Helper::setFullScreen(bool isFullScreen) {
     }
 
 }
+
+std::string SDL2Helper::getCurrentPath() {
+    std::string currentPath = SDL_GetBasePath();
+    return currentPath;
+}
