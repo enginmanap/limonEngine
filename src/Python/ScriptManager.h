@@ -31,6 +31,10 @@ public:
     ~ScriptManager() {
         delete guard;
     }
+
+    explicit ScriptManager(ScriptManager& other) = delete;
+    ScriptManager& operator=(ScriptManager other) = delete;
+
     enum class CallBackTypes {
         TRIGGER,
         PLAYER_EXTENSION
