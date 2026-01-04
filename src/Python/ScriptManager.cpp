@@ -15,6 +15,9 @@
 #include "PyTriggerInterface.h"
 #include "SDL2Helper.h"
 
+#ifndef PYTHON_BUNDLE_ZIP
+#error "PYTHON_BUNDLE_ZIP must be defined by the build system"
+#endif
 
 // Conversion for Vec3
 template<>
@@ -853,10 +856,10 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
 }
 
 ScriptManager::ScriptManager(const std::string& directoryPath) : directoryPath(directoryPath) {
-    // 1. Add the 'directoryPath' to Python's sys.path so it can be imported by other scripts
     try {
-        std::filesystem::path exeDir = SDL2Helper::getCurrentPath();
-        std::filesystem::path localPython = exeDir / "Python";
+        // Get the Python bundle path from the compile definition
+        std::filesystem::path bundlePath(PYTHON_BUNDLE_ZIP);
+        std::filesystem::path localPython = bundlePath.parent_path().parent_path(); // Go up two levels from site-packages.zip
 
         // 2. Validate it exists (Good for debugging)
         if (!std::filesystem::exists(localPython)) {
@@ -870,14 +873,21 @@ ScriptManager::ScriptManager(const std::string& directoryPath) : directoryPath(d
         std::wstring homePath = std::filesystem::absolute(localPython).wstring();
         Py_SetPythonHome(homePath.c_str());
 
-        std::filesystem::path libDir = localPython / "lib" / "python3.12"; // Adjust 3.12 dynamically if needed
-        std::filesystem::path zipPath = libDir / "site-packages.zip";
-        std::filesystem::path dynLoadPath = libDir / "lib-dynload";
-        std::wstring pathList = zipPath.wstring() + L";" + dynLoadPath.wstring();
+        // Set Python path to include the bundle and its lib-dynload directory
+        std::filesystem::path dynLoadPath = bundlePath.parent_path() / "lib-dynload";
+
+        if (!std::filesystem::exists(bundlePath) || !std::filesystem::exists(dynLoadPath)) {
+            std::cerr << "CRITICAL ERROR: Required Python files not found:\n"
+                     << "  " << bundlePath << "\n"
+                     << "  " << dynLoadPath << std::endl;
+            return;
+        }
+
+        std::wstring pathList = bundlePath.wstring() + L";" + dynLoadPath.wstring();
         Py_SetPath(pathList.c_str());
         try {
             guard = new pybind11::scoped_interpreter{};
-            std::cout << "[Limon] Python initialized from bundle." << std::endl;
+            std::cout << "[Limon] Python initialized from bundle at: " << bundlePath << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "[Limon] Python Init Failed: " << e.what() << std::endl;
         }
@@ -892,9 +902,10 @@ ScriptManager::ScriptManager(const std::string& directoryPath) : directoryPath(d
         sys.attr("stdout") = redirector;
         sys.attr("stderr") = redirector; // Catch errors
     } catch (const std::exception& e) {
-        std::cerr << "[Scripting] Error setting path: " << e.what() << std::endl;
+        std::cerr << "[Scripting] Error initializing Python: " << e.what() << std::endl;
     }
 }
+
 void ScriptManager::LoadScript(const std::string &moduleName) {
     try {
         std::cout << "[ScriptManager] trying to load extension: " << moduleName << std::endl;
@@ -909,7 +920,6 @@ void ScriptManager::LoadScript(const std::string &moduleName) {
         }        auto triggerClasses = pybind11::list(module.attr("__dict__").attr("items")());
         for (auto item: triggerClasses) {
             auto [name, obj] = item.cast<std::pair<std::string, pybind11::object> >();
-            std::cout << "[ScriptManager] triggerClasses are: " << name << std::endl;
         }
 
         for (auto item: triggerClasses) {

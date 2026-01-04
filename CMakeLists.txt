@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(LimonEngine)
 
-set(PROJECT_VERSION 0.6)
+set(PROJECT_VERSION 0.7)
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 add_definitions(-DGLM_FORCE_SILENT_WARNINGS)
 add_definitions(-DASSIMP_VALIDATE_WORKAROUND)
@@ -14,6 +14,14 @@ add_definitions(-DMAX_PYTHON_SCRIPT_COUNT=64)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+FUNCTION(disable_postfixes TARGET_NAME)
+    set_target_properties(${TARGET_NAME} PROPERTIES
+            DEBUG_POSTFIX ""
+            RELEASE_POSTFIX ""
+            RELWITHDEBINFO_POSTFIX ""
+            MINSIZEREL_POSTFIX ""
+    )
+ENDFUNCTION()
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 #include(cotire)
@@ -152,8 +160,8 @@ target_precompile_headers(LimonEngine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/std
 
 IF (WIN32)
     #add icon to windows binary
-    #SET( LimonEngine_LINKFLAGS "\"${CMAKE_CURRENT_SOURCE_DIR}/resources/limonEngine.res\"" )
-    #SET_TARGET_PROPERTIES(LimonEngine PROPERTIES LINK_FLAGS ${LimonEngine_LINKFLAGS} )
+    SET( LimonEngine_LINKFLAGS "\"${CMAKE_CURRENT_SOURCE_DIR}/resources/limonEngine.res\"" )
+    SET_TARGET_PROPERTIES(LimonEngine PROPERTIES LINK_FLAGS ${LimonEngine_LINKFLAGS} )
 ENDIF()
 
 add_library(LimonAPI STATIC
@@ -166,6 +174,7 @@ add_library(LimonAPI STATIC
         src/limonAPI/LimonTypes.h
         src/Options.cpp
         )
+disable_postfixes(LimonAPI)
 
 file(GLOB API_HEADERS
         "src/limonAPI/*.h"
@@ -179,35 +188,19 @@ file(GLOB API_UTIL_HEADERS
 target_precompile_headers(LimonAPI PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
 set_property(TARGET LimonAPI PROPERTY POSITION_INDEPENDENT_CODE ON)
-IF (WIN32 AND NOT ( MINGW OR MSYS))
-    add_custom_command(TARGET LimonAPI POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/LimonAPI/
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/
-        COMMAND ${CMAKE_COMMAND} -E copy ${API_HEADERS} ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/util/
-        COMMAND ${CMAKE_COMMAND} -E copy ${API_UTIL_HEADERS} ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/util
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/limonAPI/CMakeLists.txt ${CMAKE_BINARY_DIR}/LimonAPI/
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/lib
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/libLimonAPI.lib ${CMAKE_BINARY_DIR}/LimonAPI/lib
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/src
-        COMMAND ${CMAKE_COMMAND} -E tar "cfv" "LimonAPI.zip" --format=zip -- ${CMAKE_BINARY_DIR}/LimonAPI
-        COMMAND echo "Building api project done"
-    )
-else()
-    add_custom_command(TARGET LimonAPI POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/LimonAPI/
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/
-        COMMAND ${CMAKE_COMMAND} -E copy ${API_HEADERS} ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/util/
-        COMMAND ${CMAKE_COMMAND} -E copy ${API_UTIL_HEADERS} ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/util
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/limonAPI/CMakeLists.txt ${CMAKE_BINARY_DIR}/LimonAPI/
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/lib
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/libLimonAPI.a ${CMAKE_BINARY_DIR}/LimonAPI/lib
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/src
-        COMMAND ${CMAKE_COMMAND} -E tar "cfv" "LimonAPI.zip" --format=zip -- ${CMAKE_BINARY_DIR}/LimonAPI
-        COMMAND echo "Building api project done"
-    )
-ENDIF()
+add_custom_command(TARGET LimonAPI POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/LimonAPI/
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/
+    COMMAND ${CMAKE_COMMAND} -E copy ${API_HEADERS} ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/util/
+    COMMAND ${CMAKE_COMMAND} -E copy ${API_UTIL_HEADERS} ${CMAKE_BINARY_DIR}/LimonAPI/include/limonAPI/util
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/limonAPI/CMakeLists.txt ${CMAKE_BINARY_DIR}/LimonAPI/
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/lib
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_BINARY_DIR}/$<TARGET_FILE_NAME:LimonAPI> ${CMAKE_BINARY_DIR}/LimonAPI/lib
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LimonAPI/src
+    COMMAND ${CMAKE_COMMAND} -E tar "cfv" "LimonAPI.zip" --format=zip -- ${CMAKE_BINARY_DIR}/LimonAPI
+    COMMAND echo "Building api project done"
+)
 
 add_library(customTriggers SHARED
         samples/CoinPickUpOnTrigger.cpp
@@ -229,12 +222,9 @@ add_library(customTriggers SHARED
         samples/WesternStoryNewGameAction.cpp
         samples/SSAOKernelRenderMethod.cpp
         )
+disable_postfixes(customTriggers)
 
-IF (WIN32 AND NOT ( MINGW OR MSYS))
-    TARGET_LINK_LIBRARIES(customTriggers ${CMAKE_BINARY_DIR}/libLimonAPI.lib)
-else()
-    TARGET_LINK_LIBRARIES(customTriggers ${CMAKE_BINARY_DIR}/libLimonAPI.a)
-ENDIF()
+TARGET_LINK_LIBRARIES(customTriggers ${CMAKE_BINARY_DIR}/$<TARGET_FILE_NAME:LimonAPI>)
 
 add_dependencies(customTriggers LimonAPI)
 
@@ -247,13 +237,10 @@ add_library(GraphicsBackend SHARED
         GraphicBackends/OpenGLGraphics.cpp
         src/Assets/GraphicsProgramAsset.cpp
         )
+disable_postfixes(GraphicsBackend)
 target_precompile_headers(GraphicsBackend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
-IF (WIN32 AND NOT ( MINGW OR MSYS))
-    TARGET_LINK_LIBRARIES(GraphicsBackend ${CMAKE_BINARY_DIR}/libLimonAPI.lib GLEW::GLEW ${OPENGL_LIBRARIES})
-else()
-    TARGET_LINK_LIBRARIES(GraphicsBackend ${CMAKE_BINARY_DIR}/libLimonAPI.a GLEW::GLEW ${OPENGL_LIBRARIES})
-ENDIF()
+TARGET_LINK_LIBRARIES(GraphicsBackend ${CMAKE_BINARY_DIR}/$<TARGET_FILE_NAME:LimonAPI> GLEW::GLEW ${OPENGL_LIBRARIES})
 
 set_target_properties(GraphicsBackend PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(GraphicsBackend PROPERTIES SOVERSION 1)
@@ -262,8 +249,21 @@ add_dependencies(GraphicsBackend LimonAPI)
 add_dependencies(LimonEngine GraphicsBackend)
 add_dependencies(LimonEngine customTriggers)
 
+# Add the definition to all targets
 include(BundlePython)
-IF(TARGET LimonEngine)
-    bundle_python_environment(LimonEngine)
-ENDIF()
+find_python_environment()
+file(RELATIVE_PATH PYTHON_BUNDLE_ZIP_RELATIVE "${CMAKE_BINARY_DIR}" "${PYTHON_BUNDLE_ZIP}")
+add_compile_definitions(PYTHON_BUNDLE_ZIP="${PYTHON_BUNDLE_ZIP_RELATIVE}")
+message("Python bundle will be in ${PYTHON_BUNDLE_ZIP_RELATIVE} (relative to build directory)")
+# Only bundle Python if PYTHON_BUNDLE_ZIP doesn't exist
+if(NOT EXISTS "${PYTHON_BUNDLE_ZIP}")
+    message(STATUS "Python bundle not found at ${PYTHON_BUNDLE_ZIP}, creating...")
+    if(TARGET LimonEngine)
+        bundle_python_environment(LimonEngine)
+    endif()
+else()
+    message(STATUS "Using existing Python bundle at ${PYTHON_BUNDLE_ZIP}")
+endif()
+
+
 #cotire(LimonEngine)
