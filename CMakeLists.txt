@@ -160,8 +160,7 @@ target_precompile_headers(LimonEngine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/std
 
 IF (WIN32)
     #add icon to windows binary
-    SET( LimonEngine_LINKFLAGS "\"${CMAKE_CURRENT_SOURCE_DIR}/resources/limonEngine.res\"" )
-    SET_TARGET_PROPERTIES(LimonEngine PROPERTIES LINK_FLAGS ${LimonEngine_LINKFLAGS} )
+    target_sources(LimonEngine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/resources/limonEngine.res")
 ENDIF()
 
 add_library(LimonAPI STATIC
