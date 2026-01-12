@@ -2,6 +2,7 @@
 // Created by engin on 25/12/2025.
 //
 
+#include <Python.h>
 #include "ScriptManager.h"
 
 #include "PythonStdOut.h"
@@ -869,12 +870,10 @@ ScriptManager::ScriptManager(const std::string& directoryPath) : directoryPath(d
             return;
         }
 
-        // 3. Set PYTHONHOME
-        std::wstring homePath = std::filesystem::absolute(localPython).wstring();
-        Py_SetPythonHome(homePath.c_str());
-
         // Set Python path to include the bundle and its lib-dynload directory
         std::filesystem::path dynLoadPath = bundlePath.parent_path() / "lib-dynload";
+        std::filesystem::path stdLibPath = localPython / "Lib";
+        std::filesystem::path sitePackagesPath = localPython / "Lib" / "site-packages";
 
         if (!std::filesystem::exists(bundlePath) || !std::filesystem::exists(dynLoadPath)) {
             std::cerr << "CRITICAL ERROR: Required Python files not found:\n"
@@ -883,8 +882,24 @@ ScriptManager::ScriptManager(const std::string& directoryPath) : directoryPath(d
             return;
         }
 
-        std::wstring pathList = bundlePath.wstring() + L";" + dynLoadPath.wstring();
-        Py_SetPath(pathList.c_str());
+        // Initialize Python with the new configuration system
+        PyConfig config;
+        PyConfig_InitPythonConfig(&config);
+        
+        // Set Python home
+        std::wstring homePath = std::filesystem::absolute(localPython).wstring();
+        PyConfig_SetString(&config, &config.home, homePath.c_str());
+        
+        // Set module search paths
+        config.module_search_paths_set = 1;
+        PyWideStringList_Append(&config.module_search_paths, std::filesystem::absolute(bundlePath).wstring().c_str());
+        PyWideStringList_Append(&config.module_search_paths, std::filesystem::absolute(dynLoadPath).wstring().c_str());
+        PyWideStringList_Append(&config.module_search_paths, std::filesystem::absolute(stdLibPath).wstring().c_str());
+        PyWideStringList_Append(&config.module_search_paths, std::filesystem::absolute(sitePackagesPath).wstring().c_str());
+        
+        // Initialize Python with the new config
+        Py_InitializeFromConfig(&config);
+        PyConfig_Clear(&config);
         try {
             guard = new pybind11::scoped_interpreter{};
             std::cout << "[Limon] Python initialized from bundle at: " << bundlePath << std::endl;
