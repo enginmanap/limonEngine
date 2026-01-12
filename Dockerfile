@@ -1,6 +1,6 @@
 FROM ubuntu:22.04
 RUN apt update
-RUN apt-get install -y git cmake libassimp-dev libbullet-dev libsdl2-dev libsdl2-image-dev libfreetype6-dev libtinyxml2-dev libglew-dev build-essential libglm-dev libtinyxml2-dev python3-dev
+RUN apt-get install -y git cmake libassimp-dev libsdl2-dev libsdl2-image-dev libfreetype6-dev libtinyxml2-dev libglew-dev build-essential libglm-dev libtinyxml2-dev python3-dev
 RUN git clone  --recurse-submodules https://github.com/enginmanap/limonEngine.git /limonEngine
 WORKDIR /limonEngine
 RUN mkdir -p build
