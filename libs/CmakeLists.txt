@@ -45,7 +45,26 @@ if (NOT LIBS_EXTERNAL_ASSIMP)
 endif()
 
 if (NOT LIBS_EXTERNAL_BULLET)
+
+	# Set Bullet include directories
+	set(BULLET_INCLUDE_DIRS
+			${CMAKE_SOURCE_DIR}/libs/bullet/src
+	)
+	include_directories(${BULLET_INCLUDE_DIRS})
+
+	# Define Bullet libraries to link against
+	set(BULLET_LIBRARIES
+		BulletDynamics
+		BulletCollision
+			#unused
+			Bullet3Common
+			BulletInverseDynamics
+			BulletSoftBody
+			#unused
+		LinearMath
+	)
 	add_subdirectory("libs/bullet/")
+
 endif()
 
 include_directories("libs/Cereal/include/")

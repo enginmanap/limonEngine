@@ -5,7 +5,7 @@
 #ifndef LIMONENGINE_TRIGGEROBJECT_H
 #define LIMONENGINE_TRIGGEROBJECT_H
 
-#include <bullet/btBulletCollisionCommon.h>
+#include <btBulletCollisionCommon.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 #include "../Utils/GLMConverter.h"
