@@ -6,7 +6,7 @@ WORKDIR /limonEngine
 RUN mkdir -p build
 WORKDIR /limonEngine/build
 RUN cmake ..
-RUN make
+RUN make LimonEngine
 WORKDIR /limonEngine
 RUN tar cvf build.tar build/
 RUN gzip build.tar
