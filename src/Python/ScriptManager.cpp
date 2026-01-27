@@ -884,7 +884,7 @@ ScriptManager::ScriptManager(const std::string& directoryPath) : directoryPath(d
 
         // Initialize Python with the new configuration system
         PyConfig config;
-        PyConfig_InitPythonConfig(&config);
+        PyConfig_InitIsolatedConfig(&config);
         
         // Set Python home
         std::wstring homePath = std::filesystem::absolute(localPython).wstring();
@@ -896,12 +896,10 @@ ScriptManager::ScriptManager(const std::string& directoryPath) : directoryPath(d
         PyWideStringList_Append(&config.module_search_paths, std::filesystem::absolute(dynLoadPath).wstring().c_str());
         PyWideStringList_Append(&config.module_search_paths, std::filesystem::absolute(stdLibPath).wstring().c_str());
         PyWideStringList_Append(&config.module_search_paths, std::filesystem::absolute(sitePackagesPath).wstring().c_str());
-        
-        // Initialize Python with the new config
-        Py_InitializeFromConfig(&config);
-        PyConfig_Clear(&config);
+
         try {
-            guard = new pybind11::scoped_interpreter{};
+            pybind11::initialize_interpreter(&config);
+            PyConfig_Clear(&config);
             std::cout << "[Limon] Python initialized from bundle at: " << bundlePath << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "[Limon] Python Init Failed: " << e.what() << std::endl;

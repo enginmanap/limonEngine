@@ -21,7 +21,6 @@
 class ScriptManager {
 private:
     // Holds the Python instance. Since Script Manager is per world, this would be also per world
-    pybind11::scoped_interpreter* guard;
 
     // A list of active script INSTANCES (the objects created from the classes)
     std::vector<pybind11::object> activeScripts;
@@ -29,7 +28,7 @@ private:
 public:
     explicit ScriptManager(const std::string& directoryPath);
     ~ScriptManager() {
-        delete guard;
+        pybind11::finalize_interpreter();
     }
 
     explicit ScriptManager(ScriptManager& other) = delete;
