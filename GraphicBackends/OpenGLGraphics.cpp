@@ -358,7 +358,7 @@ bool OpenGLGraphics::createGraphicsBackend() {
     std::cout << "Maximum number of texture image units is " << maxTextureImageUnits << std::endl;
     state = new OpenglState(maxTextureImageUnits);
 
-    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     // Setup
     //glDisable(GL_CULL_FACE);
 
@@ -797,7 +797,6 @@ OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fram
         glDisable(GL_SCISSOR_TEST);
     }
 
-    //we combine diffuse+specular lighted with ambient / SSAO
     for (auto inputIt = inputs.begin(); inputIt != inputs.end(); ++inputIt) {
         switch (inputIt->second->getType()) {
             case OpenGLGraphics::TextureTypes::T2D: state->attachTexture(inputIt->second->getTextureID(), inputIt->first); break;
@@ -1187,6 +1186,7 @@ void OpenGLGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Text
                 if(clear) {
                     unsigned int tempAttachmentBuffer[1] = {glAttachment};
                     glDrawBuffers(1, tempAttachmentBuffer);
+                    glClear(GL_COLOR_BUFFER_BIT);
                 }
             } else {
                 glGetIntegerv(GL_DRAW_BUFFER0 + i, &attachmentTemp);

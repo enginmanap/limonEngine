@@ -340,6 +340,32 @@
                     <R>NONE</R>
                 </WrapModes>
             </Texture>
+            <Texture>
+                <Name>EVSM_DIRECTIONAL</Name>
+                <TextureType>T2D_ARRAY</TextureType>
+                <InternalFormat>RGB32F</InternalFormat>
+                <Format>RGBA</Format>
+                <DataType>FLOAT</DataType>
+                <Height>4096</Height>
+                <Width>4096</Width>
+                <HeightOption>shadowMapDirectionalHeight</HeightOption>
+                <WidthOption>shadowMapDirectionalWidth</WidthOption>
+                <DepthOption>CascadeCount</DepthOption>
+                <borderColor>
+                    <R>1</R>
+                    <G>1</G>
+                    <B>1</B>
+                    <A>1</A>
+                </borderColor>
+                <BorderColorSet>True</BorderColorSet>
+                <TextureSerializeID>17</TextureSerializeID>
+                <FilterMode>LINEAR</FilterMode>
+                <WrapModes>
+                    <S>BORDER</S>
+                    <T>BORDER</T>
+                    <R>NONE</R>
+                </WrapModes>
+            </Texture>
         </UsedTextures>
     </EditorExtension>
     <NodeTypes>
@@ -719,6 +745,10 @@
             <Outputs>
                 <ConnectionDesc>
                     <Name>Depth</Name>
+                    <Type>Texture</Type>
+                </ConnectionDesc>
+                <ConnectionDesc>
+                    <Name>evsm</Name>
                     <Type>Texture</Type>
                 </ConnectionDesc>
             </Outputs>

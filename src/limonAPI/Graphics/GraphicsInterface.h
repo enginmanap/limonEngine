@@ -126,6 +126,7 @@ public:
     virtual void attach2DArrayTexture(unsigned int textureID, unsigned int attachPoint) = 0;
     virtual void attachCubeMap(unsigned int cubeMapID, unsigned int attachPoint) = 0;
     virtual void attachCubeMapArrayTexture(unsigned int textureID, unsigned int attachPoint) = 0;
+    virtual void generateMipMapForTexture(unsigned int textureID) = 0;
 
     virtual bool getUniformLocation(const uint32_t programID, const std::string &uniformName, uint32_t &location) = 0;
 

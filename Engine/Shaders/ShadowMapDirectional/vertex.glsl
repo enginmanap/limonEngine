@@ -6,8 +6,15 @@
 
 
 layout (location = 2) in vec4 position;
+layout (location = 3) in vec2 textureCoordinate;
+
 layout (location = 5) in uvec4 boneIDs;
 layout (location = 6) in vec4 boneWeights;
+
+out VS_FS {
+    vec2 textureCoord;
+    flat int materialIndex;
+} to_fs;
 
 struct LightSource {
     mat4 shadowMatrices[6];
@@ -47,6 +54,7 @@ mat4 getMatrixFromRigTexture(uint rigIndex, uint boneIndex) {
 }
 
 void main() {
+    to_fs.textureCoord = textureCoordinate;
 
     mat4 BoneTransform = mat4(1.0);
     if(isAnimated==1) {
@@ -59,6 +67,7 @@ void main() {
 
     mat4 modelTransform;
     int modelOffset = 4*int(instance.models[gl_InstanceID].x);
+    to_fs.materialIndex = int(instance.models[gl_InstanceID].y);
     modelTransform[0] = texelFetch(allModelTransformsTexture, ivec2(modelOffset    , 0), 0);
     modelTransform[1] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 1, 0), 0);
     modelTransform[2] = texelFetch(allModelTransformsTexture, ivec2(modelOffset + 2, 0), 0);

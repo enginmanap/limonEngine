@@ -920,6 +920,7 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
         //now handle outputs
         // Directional depth map requires layer settings therefore it is not set by us.
         std::shared_ptr<Texture> depthMapDirectional = nullptr;
+        std::shared_ptr<Texture> colorMapDirectional = nullptr;
 
         for (const Connection *connection:node->getOutputConnections()) {
             auto programOutputsMap = stageProgram->getOutputMap();
@@ -941,6 +942,16 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                         stageExtension->getOutputTexture(connection)->getType() ==
                         GraphicsInterface::TextureTypes::T2D_ARRAY) {
                         depthMapDirectional = stageExtension->getOutputTexture(connection);
+                        //this one is the directional one. But now it has another output.
+                        for (const Connection *connection2:node->getOutputConnections()) {
+                            if (stageExtension->getOutputTexture(connection2)->getFormat() == GraphicsInterface::FormatTypes::RGBA) {
+                                colorMapDirectional = stageExtension->getOutputTexture(connection2);
+                            }
+                        }
+                        if (colorMapDirectional == nullptr) {
+                            std::cerr << "Color attachment not found for directional rendering" << std::endl;
+                        }
+
                     }
                     // at this point, we have a problem. All programs have depth output mapped, because it is not possible at program level whether it should or not.
                     // but for some programs, it should not be, and it should be skipped.
@@ -955,7 +966,7 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
             }
         }
         if(stageExtension->getMethodName() == "All directional shadows") {
-            RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethodAllDirectionalLights(stageInfo->stage, depthMapDirectional, stageProgram, options);
+            RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethodAllDirectionalLights(stageInfo->stage, depthMapDirectional, stageProgram, options, colorMapDirectional);
             stageInfo->addRenderMethod(functionToCall);
         } else if(stageExtension->getMethodName() == "All point shadows") {
             RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethodAllPointLights(stageProgram);

@@ -305,6 +305,18 @@ protected:
 
     bool deleteTexture(GLuint textureID) override;
 
+    void generateMipMapForTexture(unsigned int textureID) override {
+        state->activateTextureUnit(0);//this is the default working texture
+
+
+        glBindTexture(GL_TEXTURE_2D_ARRAY, textureID);
+        glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        checkErrors("mip generation");
+    }
+
     void setWrapMode(uint32_t textureID, TextureTypes textureType, TextureWrapModes wrapModeS,
                      TextureWrapModes wrapModeT, TextureWrapModes wrapModeR) override;
 

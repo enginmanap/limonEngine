@@ -58,6 +58,11 @@ in VS_FS {
     flat int materialIndex;
 } from_vs;
 
+// --- EVSM CONFIGURATION ---
+const float EVSM_EXPONENT = 20.0;
+const float LIGHT_BLEED_REDUCTION = 0.2;
+
+// CHANGED: Must be sampler2DArray to access raw vec2 data for EVSM
 uniform sampler2DArray pre_shadowDirectional;
 uniform samplerCubeArray pre_shadowPoint;
 
@@ -69,53 +74,78 @@ uniform sampler2D normalSampler;
 
 vec3 pointSampleOffsetDirections[20] = vec3[]
 (
-   vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1),
-   vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
-   vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
-   vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
-   vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
+vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1),
+vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
+vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
+vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
+
+float linstep(float min, float max, float v) {
+    return clamp((v - min) / (max - min), 0.0, 1.0);
+}
 
 float ShadowCalculationDirectional(float bias, int lightIndex){
     float cascadePlaneDistances[CascadeCount] = float[](CascadeLimitList);
     vec4 fragPosViewSpace = playerTransforms.camera * vec4(from_vs.fragPos, 1.0);
     float depthValue = abs(fragPosViewSpace.z);
+
     int layer = CascadeCount - 1;
     for (int i = 0; i < CascadeCount; ++i) {
-        if (depthValue < cascadePlaneDistances[i])
-        {
+        if (depthValue < cascadePlaneDistances[i]) {
             layer = i;
             break;
         }
     }
-    vec4 fragPosLightSpace = LightSources.lights[lightIndex].shadowMatrices[layer] * vec4(from_vs.fragPos, 1.0);
-    // perform perspective divide
-    vec3 projectedCoordinates = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    // Transform to [0,1] range
-    projectedCoordinates = projectedCoordinates * 0.5 + 0.5;
-    // Get closest depth value from light's perspective (using [0,1] range fragPosLightSpace as coords)
-    float closestDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy, layer)).r;
-    // Get depth of current fragment from light's perspective
-    float currentDepth = projectedCoordinates.z;
-    if (currentDepth  >= 1.0)
-    {
-        return 0.0;
-    }
-    float shadow = 0.0;
-    if(currentDepth < 1.0){
-        vec2 texelSize = 1.0 / textureSize(pre_shadowDirectional, 0).xy;//this has to be level 0, because its not layer but LOD/MIP
-        for(int x = -1; x <= 1; ++x){
-            for(int y = -1; y <= 1; ++y){
-                float pcfDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy + vec2(x, y) * texelSize, layer)).r;
-                if(currentDepth + bias > pcfDepth) {
-                    shadow += 1.0;
-                }
-            }
-        }
-        shadow /= 9.0;
-    }
 
-    return shadow;
+    vec4 fragPosLightSpace = LightSources.lights[lightIndex].shadowMatrices[layer] * vec4(from_vs.fragPos, 1.0);
+    vec3 projectedCoordinates = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projectedCoordinates = projectedCoordinates * 0.5 + 0.5;
+    vec2 texelSize = 1.0 / vec2(textureSize(pre_shadowDirectional, 0).xy);
+
+    // SPREAD: How soft do you want it?
+    // 1.0 = Sharp AA, 2.0 = Soft, 4.0 = Very Soft
+    float blurSpread = 2.0;
+    texelSize *= blurSpread;
+
+    vec3 center = vec3(projectedCoordinates.xy, layer);
+
+    // Sample Center + 4 Neighbors (Box Blur)
+    vec2 moments = texture(pre_shadowDirectional, center).xy;
+    moments += texture(pre_shadowDirectional, center + vec3(texelSize.x, 0.0, 0.0)).xy;
+    moments += texture(pre_shadowDirectional, center - vec3(texelSize.x, 0.0, 0.0)).xy;
+    moments += texture(pre_shadowDirectional, center + vec3(0.0, texelSize.y, 0.0)).xy;
+    moments += texture(pre_shadowDirectional, center - vec3(0.0, texelSize.y, 0.0)).xy;
+
+    moments /= 5.0;
+
+    // Empty space check
+    if (moments.x < 1.0) return 0.0;
+
+    float currentDepth = projectedCoordinates.z;
+    if (currentDepth > 1.0) return 0.0;
+
+    // Bias (Tiny)
+    float effectiveBias = 0.00001;
+    currentDepth -= effectiveBias;
+    currentDepth = clamp(currentDepth, 0.0, 1.0);
+
+    // Warp
+    float warp = exp(EVSM_EXPONENT * currentDepth);
+
+    // Variance
+    float variance = moments.y - (moments.x * moments.x);
+    variance = max(variance, 0.0000001 * moments.x * moments.x);
+
+    float d = warp - moments.x;
+    float p_max = variance / (variance + d * d);
+
+    // Bleed Reduction
+    p_max = linstep(LIGHT_BLEED_REDUCTION, 1.0, p_max);
+
+    if (d <= 0.0) p_max = 1.0;
+
+    return 1.0 - p_max;
 }
 
 float ShadowCalculationPoint(vec3 fragPos, float bias, float viewDistance, int lightIndex)

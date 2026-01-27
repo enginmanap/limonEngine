@@ -338,6 +338,32 @@
                 <R>NONE</R>
             </WrapModes>
         </Texture>
+        <Texture>
+            <Name>EVSM_DIRECTIONAL</Name>
+            <TextureType>T2D_ARRAY</TextureType>
+            <InternalFormat>RGB32F</InternalFormat>
+            <Format>RGBA</Format>
+            <DataType>FLOAT</DataType>
+            <Height>4096</Height>
+            <Width>4096</Width>
+            <HeightOption>shadowMapDirectionalHeight</HeightOption>
+            <WidthOption>shadowMapDirectionalWidth</WidthOption>
+            <DepthOption>CascadeCount</DepthOption>
+            <borderColor>
+                <R>1</R>
+                <G>1</G>
+                <B>1</B>
+                <A>1</A>
+            </borderColor>
+            <BorderColorSet>True</BorderColorSet>
+            <TextureSerializeID>17</TextureSerializeID>
+            <FilterMode>LINEAR</FilterMode>
+            <WrapModes>
+                <S>BORDER</S>
+                <T>BORDER</T>
+                <R>NONE</R>
+            </WrapModes>
+        </Texture>
     </Textures>
     <Stages>
         <StageInformation>
@@ -384,7 +410,7 @@
                         <VertexShader>./Engine/Shaders/ShadowMapDirectional/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/ShadowMapDirectional/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <MaterialRequired>True</MaterialRequired>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -395,17 +421,18 @@
                 <RenderHeightOption>shadowMapDirectionalHeight</RenderHeightOption>
                 <RenderWidthOption>shadowMapDirectionalWidth</RenderWidthOption>
                 <BlendEnabled>False</BlendEnabled>
-                <ColorAttachment>False</ColorAttachment>
+                <ColorAttachment>True</ColorAttachment>
                 <DepthAttachment>True</DepthAttachment>
                 <DepthTestEnabled>True</DepthTestEnabled>
                 <DepthWriteEnabled>True</DepthWriteEnabled>
                 <ScissorEnabled>False</ScissorEnabled>
                 <ToScreen>False</ToScreen>
                 <CameraTags>directional_camera</CameraTags>
-                <ObjectTags>basic_model_object,animated_model_object</ObjectTags>
-                <CullMode>FRONT</CullMode>
+                <ObjectTags>basic_model_object,animated_model_object,transparent_model_object</ObjectTags>
+                <CullMode>BACK</CullMode>
                 <Inputs/>
                 <Outputs>
+                    <Output Attachment="COLOR0" textureID="17"/>
                     <Output Attachment="DEPTH" textureID="1"/>
                 </Outputs>
             </GraphicsPipelineStage>
@@ -445,7 +472,7 @@
                 <CullMode>BACK</CullMode>
                 <Inputs>
                     <Input Index="30" textureID="2"/>
-                    <Input Index="31" textureID="1"/>
+                    <Input Index="31" textureID="17"/>
                 </Inputs>
                 <Outputs>
                     <Output Attachment="COLOR0" textureID="3"/>
@@ -656,7 +683,7 @@
                 <CullMode>BACK</CullMode>
                 <Inputs>
                     <Input Index="30" textureID="2"/>
-                    <Input Index="31" textureID="1"/>
+                    <Input Index="31" textureID="17"/>
                 </Inputs>
                 <Outputs>
                     <Output Attachment="COLOR0" textureID="15"/>

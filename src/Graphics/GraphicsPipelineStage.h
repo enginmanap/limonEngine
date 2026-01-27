@@ -165,6 +165,10 @@ public:
 
     bool serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *parentNode, OptionsUtil::Options *options);
 
+    void generateMipMaps(const std::shared_ptr<Texture> & shared) {
+        graphicsWrapper->generateMipMapForTexture(shared->getTextureID());
+    }
+
     static std::shared_ptr<GraphicsPipelineStage> deserialize(tinyxml2::XMLElement *stageNode, GraphicsInterface* graphicsWrapper, const std::vector<std::shared_ptr<Texture>>& textures);
 
 };

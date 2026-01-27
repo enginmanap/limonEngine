@@ -227,7 +227,7 @@ public:
 
     RenderMethod getRenderMethodAllDirectionalLights(std::shared_ptr<GraphicsPipelineStage> &stage, std::shared_ptr<Texture> &layeredDepthMap,
                                                      const std::shared_ptr<GraphicsProgram> &glslProgram,
-                                                     OptionsUtil::Options *options) const {
+                                                     OptionsUtil::Options *options, std::shared_ptr<Texture> &layeredColorMap) const {
 
         OptionsUtil::Options::Option<long> optionNewSet = options->getOption<long>(HASH("CascadeCount"));
         return RenderMethod("All directional shadows",
@@ -245,11 +245,15 @@ public:
                                 }
                                 for (int i = 0; i < cascadeCount; ++i) {
                                         stage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, layeredDepthMap, true, i);
+                                        stage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, layeredColorMap, true, i);
+
                                 }
                                 size_t lightId = lights[0];
                                 for (int i = 0; i < cascadeCount; ++i) {
                                     stage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, layeredDepthMap, false, i);
+                                    stage->setOutput(GraphicsInterface::FrameBufferAttachPoints::COLOR0, layeredColorMap, false, i);
                                     renderLight(lightId, i, renderProgram, tags);
+                                    //stage->generateMipMaps(layeredColorMap);
                                 }
 
                             },
