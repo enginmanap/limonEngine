@@ -16,6 +16,7 @@
 #include <limonAPI/LimonTypes.h>
 #include <limonAPI/LimonAPI.h>
 #include <limonAPI/PlayerExtensionInterface.h>
+#include <limonAPI/ActorInterface.h>
 #include <limonAPI/TriggerInterface.h>
 
 class ScriptManager {
@@ -36,7 +37,8 @@ public:
 
     enum class CallBackTypes {
         TRIGGER,
-        PLAYER_EXTENSION
+        PLAYER_EXTENSION,
+        ACTOR
     };
     struct PythonCallback {
         pybind11::object pyClass;
@@ -51,6 +53,8 @@ public:
     static TriggerInterface* CreateTriggerWrapper(LimonAPI* api, size_t index);
 
     static PlayerExtensionInterface* CreatePlayerExtensionWrapper(LimonAPI* api, size_t index);
+
+    static ActorInterface* CreateActorWrapper(uint32_t id, LimonAPI* api, size_t index);
 
     // scans the directory and loads every compatible script
     void LoadScripts() {

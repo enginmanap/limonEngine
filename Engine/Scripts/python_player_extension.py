@@ -1,8 +1,12 @@
 # limonimp.py
 import limon
-from typing import List, Dict, Any, Optional, Tuple
-from PythonThirdPersonCamera import ThirdPersonCamera
+from typing import List, Optional
+from python_third_person_camera import ThirdPersonCamera
 
+"""
+    This is an example of a player extension implementation through Python.
+    
+"""
 class PythonPlayerExtension(limon.PlayerExtensionInterface):
     def __init__(self, limon_api):
         super().__init__(limon_api)

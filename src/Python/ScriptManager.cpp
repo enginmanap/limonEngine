@@ -12,6 +12,7 @@
 
 #include "PyCameraAttachment.h"
 #include "PyPlayerExtensionInterface.h"
+#include "PyActorInterface.h"
 #include "PyTimedEventCallback.h"
 #include "PyTriggerInterface.h"
 #include "SDL2Helper.h"
@@ -30,7 +31,7 @@ public:
         if (!pybind11::isinstance<pybind11::object>(src))
             return false;
 
-        auto obj = pybind11::reinterpret_borrow<pybind11::object>(src);
+        pybind11::object obj = pybind11::reinterpret_borrow<pybind11::object>(src);
         if (!pybind11::hasattr(obj, "x") || !pybind11::hasattr(obj, "y") || !pybind11::hasattr(obj, "z"))
             return false;
 
@@ -60,7 +61,7 @@ public:
         if (!pybind11::isinstance<pybind11::object>(src))
             return false;
 
-        auto obj = pybind11::reinterpret_borrow<pybind11::object>(src);
+        pybind11::object obj = pybind11::reinterpret_borrow<pybind11::object>(src);
         if (!pybind11::hasattr(obj, "x") || !pybind11::hasattr(obj, "y") ||
             !pybind11::hasattr(obj, "z") || !pybind11::hasattr(obj, "w"))
             return false;
@@ -87,6 +88,33 @@ public:
 
 // Add the type caster for std::vector<unsigned int>
 template<>
+class pybind11::detail::type_caster<std::vector<glm::vec3>> {
+public:
+    PYBIND11_TYPE_CASTER(std::vector<glm::vec3>, _("List[glm::vec3]"));
+
+    bool load(handle src, bool) {
+        if (!pybind11::isinstance<pybind11::sequence>(src))
+            return false;
+
+        pybind11::sequence seq = pybind11::reinterpret_borrow<pybind11::sequence>(src);
+        for (pybind11::handle item : seq) {
+            glm::vec3 vec = pybind11::cast<glm::vec3>(item);
+            value.push_back(vec);
+        }
+        return !seq.empty();
+    }
+
+    static handle cast(const std::vector<glm::vec3>& src, return_value_policy, handle) {
+        pybind11::list list;
+        for (const glm::vec3& vec : src) {
+            list.append(pybind11::cast(vec));
+        }
+        return list.release();
+    }
+};
+
+// Add the type caster for std::vector<unsigned int>
+template<>
 class pybind11::detail::type_caster<std::vector<unsigned int>> {
 public:
     PYBIND11_TYPE_CASTER(std::vector<unsigned int>, _("List[int]"));
@@ -95,11 +123,11 @@ public:
         if (!pybind11::isinstance<pybind11::sequence>(src))
             return false;
 
-        auto seq = pybind11::reinterpret_borrow<pybind11::sequence>(src);
+        pybind11::sequence seq = pybind11::reinterpret_borrow<pybind11::sequence>(src);
         value.clear();
         value.reserve(seq.size());
 
-        for (const auto& item : seq) {
+        for (const pybind11::handle item : seq) {
             value.push_back(item.cast<unsigned int>());
         }
         return true;
@@ -107,7 +135,7 @@ public:
 
     static handle cast(const std::vector<unsigned int>& src, return_value_policy, handle) {
         pybind11::list list;
-        for (const auto& item : src) {
+        for (const unsigned int& item : src) {
             list.append(item);
         }
         return list.release();
@@ -116,7 +144,7 @@ public:
 
 
 namespace {
-    // since TriggerInterface and PlayerExtensionInterface have protected constructors, we need to instantiate them in a different way.
+    // since TriggerInterface, PlayerExtensionInterface and ActorInterface have protected constructors, we need to instantiate them in a different way.
     // I tried to use factory pattern but it didn't work. This is some crazy template magic that creates MAX_PYTHON_SCRIPT_COUNT number creators,
     // so you can instantiate them
 
@@ -129,6 +157,11 @@ namespace {
     PlayerExtensionInterface* CreatePlayerExtensionByIndex(LimonAPI* api) {
         return ScriptManager::CreatePlayerExtensionWrapper(api, N);
     }
+
+    template<size_t N>
+    ActorInterface* CreateActorByIndex(uint32_t id, LimonAPI* api) {
+        return ScriptManager::CreateActorWrapper(id, api, N);
+    }
     // Force instantiation of template functions for a specific N
     template<int N>
     struct template_instantiator {
@@ -136,8 +169,10 @@ namespace {
             // These declarations will force instantiation of the template functions
             TriggerInterface* (*trigger_func)(LimonAPI*) = &CreateTriggerByIndex<N>;
             PlayerExtensionInterface* (*extension_func)(LimonAPI*) = &CreatePlayerExtensionByIndex<N>;
+            ActorInterface* (*actor_func)(uint32_t, LimonAPI*) = &CreateActorByIndex<N>;
             (void)trigger_func;  // Suppress unused variable warning
             (void)extension_func; // Suppress unused variable warning
+            (void)actor_func; // Suppress unused variable warning
         }
     };
 
@@ -179,7 +214,7 @@ generate_range<0, (MAX)-1>::generate(); \
 }
 
 template<size_t... Is>
-static constexpr auto GetTriggerFactoryHelper(std::index_sequence<Is...>, size_t index) -> TriggerInterface* (*)(LimonAPI*) {
+static constexpr TriggerInterface* (*GetTriggerFactoryHelper(std::index_sequence<Is...>, size_t index))(LimonAPI*) {
     constexpr std::array<TriggerInterface* (*)(LimonAPI*), sizeof...(Is)> factories = {
         &CreateTriggerByIndex<Is>...
     };
@@ -187,9 +222,17 @@ static constexpr auto GetTriggerFactoryHelper(std::index_sequence<Is...>, size_t
 }
 
 template<size_t... Is>
-static constexpr auto GetPlayerExtensionFactoryHelper(std::index_sequence<Is...>, size_t index) -> PlayerExtensionInterface* (*)(LimonAPI*) {
+static constexpr PlayerExtensionInterface* (*GetPlayerExtensionFactoryHelper(std::index_sequence<Is...>, size_t index))(LimonAPI*) {
     constexpr std::array<PlayerExtensionInterface* (*)(LimonAPI*), sizeof...(Is)> factories = {
         &CreatePlayerExtensionByIndex<Is>...
+    };
+    return (index < factories.size()) ? factories[index] : nullptr;
+}
+
+template<size_t... Is>
+static constexpr ActorInterface* (*GetActorFactoryHelper(std::index_sequence<Is...>, size_t index))(uint32_t, LimonAPI*) {
+    constexpr std::array<ActorInterface* (*)(uint32_t, LimonAPI*), sizeof...(Is)> factories = {
+        &CreateActorByIndex<Is>...
     };
     return (index < factories.size()) ? factories[index] : nullptr;
 }
@@ -262,7 +305,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
                                   case LimonTypes::GenericParameter::BOOLEAN:
                                       return pybind11::bool_(self.value.boolValue);
                                   case LimonTypes::GenericParameter::VEC4: {
-                                      auto &v = self.value.vectorValue;
+                                      const LimonTypes::Vec4 &v = self.value.vectorValue;
                                       return pybind11::make_tuple(v.x, v.y, v.z, v.w);
                                   }
                                   case LimonTypes::GenericParameter::MAT4: {
@@ -342,7 +385,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
                                       }
                                   }
                                   else if (pybind11::isinstance<pybind11::tuple>(value) || pybind11::isinstance<pybind11::list>(value)) {
-                                      auto seq = value.cast<pybind11::sequence>();
+                                      pybind11::sequence seq = value.cast<pybind11::sequence>();
                                       if (seq.size() == 4 && self.valueType == LimonTypes::GenericParameter::VEC4) {
                                           // Handle VEC4
                                           try {
@@ -360,7 +403,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
                                           // Handle MAT4 (4x4 matrix)
                                           try {
                                               for (int i = 0; i < 4; ++i) {
-                                                  auto row = seq[i].cast<pybind11::sequence>();
+                                                  pybind11::sequence row = seq[i].cast<pybind11::sequence>();
                                                   if (row.size() != 4) {
                                                       throw std::runtime_error("Each row must have exactly 4 elements for MAT4");
                                                   }
@@ -399,7 +442,10 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
                               }
                           });
 
-    // Then bind the vector of GenericParameter
+    // bind the vector of glm::vec3 as Vec3Vector
+    pybind11::bind_vector<std::vector<glm::vec3> >(m, "Vec3Vector");
+
+    //bind the vector of GenericParameter as GenericParameterVector
     pybind11::bind_vector<std::vector<LimonTypes::GenericParameter> >(m, "GenericParameterVector");
 
     // Bind LimonTypes::Vec4
@@ -415,6 +461,102 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
 
     // Bind LimonAPI
     pybind11::class_<LimonAPI> limon(m, "LimonAPI");
+
+    // Helper function to convert GenericParameter to Python GenericParameter object
+    std::function<pybind11::object(const LimonTypes::GenericParameter&)> convertGenericParameterToPythonObject = [](const LimonTypes::GenericParameter& param) -> pybind11::object {
+        // Import the GenericParameter class from Python module
+        pybind11::module_ generic_param_module = pybind11::module_::import("generic_parameter");
+        pybind11::object GenericParameterClass = generic_param_module.attr("GenericParameter");
+
+        // Create the value based on type
+        pybind11::object value;
+        switch (param.valueType) {
+            case LimonTypes::GenericParameter::STRING:
+                value = pybind11::cast(std::string(param.value.stringValue));
+                break;
+            case LimonTypes::GenericParameter::DOUBLE:
+                value = pybind11::cast(param.value.doubleValue);
+                break;
+            case LimonTypes::GenericParameter::LONG:
+                value = pybind11::cast(param.value.longValue);
+                break;
+            case LimonTypes::GenericParameter::BOOLEAN:
+                value = pybind11::cast(param.value.boolValue);
+                break;
+            case LimonTypes::GenericParameter::VEC4: {
+                const LimonTypes::Vec4& v = param.value.vectorValue;
+                pybind11::list vec_list;
+                vec_list.append(v.x);
+                vec_list.append(v.y);
+                vec_list.append(v.z);
+                vec_list.append(v.w);
+                value = vec_list;
+                break;
+            }
+            case LimonTypes::GenericParameter::LONG_ARRAY: {
+                pybind11::list array_list;
+                long size = param.value.longValues[0];
+                for (long i = 1; i <= size; ++i) {
+                    array_list.append(param.value.longValues[i]);
+                }
+                value = array_list;
+                break;
+            }
+            case LimonTypes::GenericParameter::MAT4: {
+                pybind11::list matrix_list;
+                for (int i = 0; i < 4; ++i) {
+                    pybind11::list row;
+                    for (int j = 0; j < 4; ++j) {
+                        row.append(param.value.matrixValue.rows[i][j]);
+                    }
+                    matrix_list.append(row);
+                }
+                value = matrix_list;
+                break;
+            }
+            default:
+                value = pybind11::none();
+                break;
+        }
+
+        return GenericParameterClass(
+            static_cast<int>(param.requestType),
+            param.description,
+            static_cast<int>(param.valueType),
+            value,
+            param.isSet
+        );
+    };
+
+    // Helper function to convert vector of GenericParameter(C++) to Python list of GenericParameter objects
+    std::function<pybind11::list(const std::vector<LimonTypes::GenericParameter>&)> convertGenericParameterVectorToObjects = [&convertGenericParameterToPythonObject](const std::vector<LimonTypes::GenericParameter>& params) -> pybind11::list {
+        pybind11::list result;
+        for (const LimonTypes::GenericParameter& param : params) {
+            result.append(convertGenericParameterToPythonObject(param));
+        }
+        return result;
+    };
+
+    // Helper function to convert Python list to vector of GenericParameter(C++)
+    std::function<std::vector<LimonTypes::GenericParameter>(pybind11::object)> convertPythonListToGenericParameterVector = [](pybind11::object pyList) -> std::vector<LimonTypes::GenericParameter> {
+        std::vector<LimonTypes::GenericParameter> result;
+        if (pyList.is_none()) {
+            return result;
+        }
+        
+        try {
+            pybind11::list list = pybind11::cast<pybind11::list>(pyList);
+            for (pybind11::handle item : list) {
+                if (pybind11::isinstance<LimonTypes::GenericParameter>(item)) {
+                    result.push_back(pybind11::cast<LimonTypes::GenericParameter>(item));
+                }
+            }
+        } catch (const pybind11::cast_error& e) {
+            std::cerr << "Error converting Python list to GenericParameter vector: " << e.what() << std::endl;
+        }
+        
+        return result;
+    };
 
     // Bind methods
     limon.def("get_options", &LimonAPI::getOptions, "Get engine options")
@@ -470,7 +612,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
                      // Convert Python position to LimonTypes::Vec2
                      LimonTypes::Vec2 pos_vec{0.0f, 0.0f}; // Default position
                      if (!position.is_none()) {
-                         auto pos = pybind11::cast<glm::vec2>(position);
+                         glm::vec2 pos = pybind11::cast<glm::vec2>(position);
                          pos_vec.x = pos.x;
                          pos_vec.y = pos.y;
                      }
@@ -478,7 +620,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
                      // Convert Python scale to LimonTypes::Vec2
                      LimonTypes::Vec2 scale_vec{1.0f, 1.0f}; // Default scale
                      if (!scale.is_none()) {
-                         auto scl = pybind11::cast<glm::vec2>(scale);
+                         glm::vec2 scl = pybind11::cast<glm::vec2>(scale);
                          scale_vec.x = scl.x;
                          scale_vec.y = scl.y;
                      }
@@ -535,8 +677,10 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
             .def("add_object_orientation", &LimonAPI::addObjectOrientation,
                  "Add to an object's orientation",
                  pybind11::arg("object_id"), pybind11::arg("orientation"))
-            .def("get_object_transformation_matrix", &LimonAPI::getObjectTransformationMatrix,
-                 "Get an object's transformation matrix",
+            .def("get_object_transformation_matrix", [convertGenericParameterVectorToObjects](LimonAPI& self, uint32_t object_id) -> pybind11::list {
+                std::vector<LimonTypes::GenericParameter> result = self.getObjectTransformationMatrix(object_id);
+                return convertGenericParameterVectorToObjects(result);
+            }, "Get an object's transformation matrix",
                  pybind11::arg("object_id"))
             .def("get_model_children", &LimonAPI::getModelChildren,
                  "Get children of a model",
@@ -585,11 +729,15 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
                  pybind11::arg("emitter_id"), pybind11::arg("gravity"))
 
             // Ray Casting
-            .def("ray_cast_to_cursor", &LimonAPI::rayCastToCursor,
-                 "Cast a ray from camera to cursor position")
-            .def("ray_cast", &LimonAPI::rayCastFirstHit,
-                 "Cast a ray from start point in direction",
-                 pybind11::arg("start"), pybind11::arg("direction"))
+            .def("ray_cast_to_cursor", [convertGenericParameterVectorToObjects](LimonAPI& self) -> pybind11::list {
+                std::vector<LimonTypes::GenericParameter> hitDetails = self.rayCastToCursor();
+                return convertGenericParameterVectorToObjects(hitDetails);
+            }, "Cast a ray from camera to cursor position")
+        .def("ray_cast", [&convertGenericParameterVectorToObjects](LimonAPI& self, const LimonTypes::Vec4& start, const LimonTypes::Vec4& direction) -> pybind11::list {
+            std::vector<LimonTypes::GenericParameter> hitDetails = self.rayCastFirstHit(start, direction);
+            return convertGenericParameterVectorToObjects(hitDetails);
+        }, "Cast a ray from start point in direction",
+         pybind11::arg("start"), pybind11::arg("direction"))
 
             // Lighting
             .def("add_light_translate", &LimonAPI::addLightTranslate,
@@ -636,10 +784,11 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
             .def("simulate_input", &LimonAPI::simulateInput,
                  "Simulate input events",
                  pybind11::arg("input_states"))
-
             // Trigger System
-            .def("get_result_of_trigger", &LimonAPI::getResultOfTrigger,
-                 "Get result of a trigger",
+            .def("get_result_of_trigger", [convertGenericParameterVectorToObjects](LimonAPI& self, uint32_t trigger_object_id, uint32_t trigger_code_id) -> pybind11::list {
+                std::vector<LimonTypes::GenericParameter> result = self.getResultOfTrigger(trigger_object_id, trigger_code_id);
+                return convertGenericParameterVectorToObjects(result);
+            }, "Get result of a trigger",
                  pybind11::arg("trigger_object_id"), pybind11::arg("trigger_code_id"));
 
     // Animation methods
@@ -724,7 +873,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
               [](LimonAPI &self, uint64_t wait_time, bool use_wall_time,
                  const pybind11::function &callback,
                  const std::vector<LimonTypes::GenericParameter> &params) {
-                  auto cb = PyTimedEventCallback(callback);
+                  PyTimedEventCallback cb = PyTimedEventCallback(callback);
                   return self.addTimedEvent(wait_time, use_wall_time, cb, params);
               },
               "Add a timed event with a Python callback",
@@ -732,8 +881,9 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
               pybind11::arg("use_wall_time"),
               pybind11::arg("callback"),
               pybind11::arg("parameters") = std::vector<LimonTypes::GenericParameter>{});
-
-    // Add more methods as needed...
+    limon.def("cancel_timed_event", &LimonAPI::cancelTimedEvent,
+              "Cancel a previously scheduled timed event",
+              pybind11::arg("timer_id"));
 
     // Utility function to create a Vec4 from Python
     m.def("create_vec4", [](float x, float y, float z, float w) {
@@ -796,7 +946,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
     pybind11::class_<CameraAttachment, PyCameraAttachment>(m, "CameraAttachment")
             .def(pybind11::init([](LimonAPI *api) {
                 // This is a factory function that creates both the Python and C++ objects
-                pybind11::object pyClass = pybind11::module_::import("limon_interface").attr("CameraAttachment");
+                pybind11::object pyClass = pybind11::module_::import("Engine.Scripts.camera_attachment").attr("CameraAttachment");
                 pybind11::object pyInstance = pyClass.attr("__new__")(pyClass);
                 // Don't call __init__ here - let Python handle it
                 return new PyCameraAttachment(api, pyInstance);
@@ -812,7 +962,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
     pybind11::class_<TriggerInterface, PyTriggerInterface>(m, "TriggerInterface")
             .def(pybind11::init([](LimonAPI *api) {
                 // This is a factory function that creates both the Python and C++ objects
-                pybind11::object pyClass = pybind11::module_::import("limon_interface").attr("TriggerInterface");
+                pybind11::object pyClass = pybind11::module_::import("Engine.Scripts.trigger_interface").attr("TriggerInterface");
                 pybind11::object pyInstance = pyClass.attr("__new__")(pyClass);
                 // Don't call __init__ here - let Python handle it
                 return new PyTriggerInterface(api, pyInstance);
@@ -825,7 +975,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
     pybind11::class_<PlayerExtensionInterface, PyPlayerExtensionInterface>(m, "PlayerExtensionInterface")
         .def(pybind11::init([](LimonAPI *api) {
             // This is a factory function that creates both the Python and C++ objects
-            pybind11::object pyClass = pybind11::module_::import("limon_interface").attr("PlayerExtensionInterface");
+            pybind11::object pyClass = pybind11::module_::import("Engine.Scripts.player_extension_interface").attr("PlayerExtensionInterface");
             pybind11::object pyInstance = pyClass.attr("__new__")(pyClass);
             // Don't call __init__ here - let Python handle it
             return new PyPlayerExtensionInterface(api, pyInstance);
@@ -836,9 +986,56 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
             .def("get_custom_camera_attachment", &PlayerExtensionInterface::getCustomCameraAttachment,
                  pybind11::return_value_policy::reference)
             .def_static("create_extension", [](const std::string &name, LimonAPI *api) -> PlayerExtensionInterface * {
-                auto ptr = PlayerExtensionInterface::createExtension(name, api);
+                PlayerExtensionInterface* ptr = PlayerExtensionInterface::createExtension(name, api);
                 if (!ptr) {
                     throw std::runtime_error("Failed to create extension: " + name);
+                }
+                return ptr;
+            }, pybind11::return_value_policy::reference);
+
+    // Bind ActorInterface::ActorInformation
+    pybind11::class_<ActorInterface::ActorInformation>(m, "ActorInformation")
+            .def(pybind11::init<>())
+            .def_readwrite("can_see_player_directly", &ActorInterface::ActorInformation::canSeePlayerDirectly)
+            .def_readwrite("is_player_left", &ActorInterface::ActorInformation::isPlayerLeft)
+            .def_readwrite("is_player_right", &ActorInterface::ActorInformation::isPlayerRight)
+            .def_readwrite("is_player_up", &ActorInterface::ActorInformation::isPlayerUp)
+            .def_readwrite("is_player_down", &ActorInterface::ActorInformation::isPlayerDown)
+            .def_readwrite("is_player_front", &ActorInterface::ActorInformation::isPlayerFront)
+            .def_readwrite("is_player_back", &ActorInterface::ActorInformation::isPlayerBack)
+            .def_readwrite("cosine_between_player", &ActorInterface::ActorInformation::cosineBetweenPlayer)
+            .def_readwrite("player_direction", &ActorInterface::ActorInformation::playerDirection)
+            .def_readwrite("player_distance", &ActorInterface::ActorInformation::playerDistance)
+            .def_readwrite("cosine_between_player_for_side", &ActorInterface::ActorInformation::cosineBetweenPlayerForSide)
+            .def_readwrite("route_to_request", &ActorInterface::ActorInformation::routeToRequest)
+            .def_readwrite("maximum_route_distance", &ActorInterface::ActorInformation::maximumRouteDistance)
+            .def_readwrite("route_found", &ActorInterface::ActorInformation::routeFound)
+            .def_readwrite("route_ready", &ActorInterface::ActorInformation::routeReady)
+            .def_readwrite("player_dead", &ActorInterface::ActorInformation::playerDead);
+
+    pybind11::class_<ActorInterface, PyActorInterface>(m, "ActorInterface")
+        .def(pybind11::init([](uint32_t id, LimonAPI *api) {
+            // This is a factory function that creates both the Python and C++ objects
+            pybind11::object pyClass = pybind11::module_::import("actor_interface").attr("ActorInterface");
+            pybind11::object pyInstance = pyClass.attr("__new__")(pyClass);
+            // Don't call __init__ here - let Python handle it
+            return new PyActorInterface(id, api, pyInstance);
+        }))
+            .def("get_name", &ActorInterface::getName)
+            .def("play", &ActorInterface::play)
+            .def("interaction", &ActorInterface::interaction)
+            .def("get_parameters", [&convertGenericParameterVectorToObjects](ActorInterface& self) -> pybind11::object {
+                std::vector<LimonTypes::GenericParameter> params = self.getParameters();
+                return convertGenericParameterVectorToObjects(params);
+            })
+            .def("set_parameters", [&convertPythonListToGenericParameterVector](ActorInterface& self, pybind11::object pyParams) {
+                std::vector<LimonTypes::GenericParameter> params = convertPythonListToGenericParameterVector(pyParams);
+                self.setParameters(params);
+            })
+            .def_static("create_actor", [](const std::string &name, uint32_t id, LimonAPI *api) -> ActorInterface * {
+                ActorInterface* ptr = ActorInterface::createActor(name, id, api);
+                if (!ptr) {
+                    throw std::runtime_error("Failed to create actor: " + name);
                 }
                 return ptr;
             }, pybind11::return_value_policy::reference);
@@ -848,6 +1045,8 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
     m.def("register_extension_type", &PlayerExtensionInterface::registerType);
     m.def("get_trigger_names", &TriggerInterface::getTriggerNames);
     m.def("get_extension_names", &PlayerExtensionInterface::getTriggerNames);
+    m.def("register_actor_type", &ActorInterface::registerType);
+    m.def("get_actor_names", &ActorInterface::getActorNames);
 
     //Binding for std::out
     pybind11::class_<PythonStdOut>(m, "StdOut")
@@ -904,14 +1103,14 @@ ScriptManager::ScriptManager(const std::string& directoryPath) : directoryPath(d
         } catch (const std::exception& e) {
             std::cerr << "[Limon] Python Init Failed: " << e.what() << std::endl;
         }
-        auto sys = pybind11::module::import("sys");
-        auto limon = pybind11::module::import("limon");
+        pybind11::module_ sys = pybind11::module::import("sys");
+        pybind11::module_ limon = pybind11::module::import("limon");
         sys.attr("path").attr("append")(directoryPath);
 
         // 2. Redirect Python's stdout to our C++ object.
         // This object is just horribly inefficient, but I assume only usecase for print in python would be troubleshooting,
         // and batching would make that harder by adding delay
-        auto redirector = limon.attr("StdOut")();
+        pybind11::object redirector = limon.attr("StdOut")();
         sys.attr("stdout") = redirector;
         sys.attr("stderr") = redirector; // Catch errors
     } catch (const std::exception& e) {
@@ -930,13 +1129,17 @@ void ScriptManager::LoadScript(const std::string &moduleName) {
             std::cerr << "[ScriptManager] Failed to import module " << moduleName << ": " << e.what() << std::endl;
             PyErr_Print();
             return;
-        }        auto triggerClasses = pybind11::list(module.attr("__dict__").attr("items")());
-        for (auto item: triggerClasses) {
-            auto [name, obj] = item.cast<std::pair<std::string, pybind11::object> >();
+        }        pybind11::list triggerClasses = pybind11::list(module.attr("__dict__").attr("items")());
+        for (pybind11::handle item: triggerClasses) {
+            std::pair<std::string, pybind11::object> pair = item.cast<std::pair<std::string, pybind11::object>>();
+            std::string name = pair.first;
+            pybind11::object obj = pair.second;
         }
 
-        for (auto item: triggerClasses) {
-            auto [name, obj] = item.cast<std::pair<std::string, pybind11::object> >();
+        for (pybind11::handle item: triggerClasses) {
+            std::pair<std::string, pybind11::object> pair = item.cast<std::pair<std::string, pybind11::object>>();
+            std::string name = pair.first;
+            pybind11::object obj = pair.second;
 
             if (!pybind11::isinstance<pybind11::type>(obj) ||
                 !pybind11::hasattr(obj, "__bases__")) {
@@ -947,8 +1150,9 @@ void ScriptManager::LoadScript(const std::string &moduleName) {
             using TriggerFactory = TriggerInterface* (*)(LimonAPI *);
             // Function pointer type for PlayerExtensionInterface
             using ExtensionFactory = PlayerExtensionInterface* (*)(LimonAPI *);
+            // Function pointer type for ActorInterface
+            using ActorFactory = ActorInterface* (*)(uint32_t, LimonAPI *);
 
-            // Check for TriggerInterface subclasses
             if (IsSubclassOf(obj, "TriggerInterface")) {
                 std::cout << "[ScriptManager] found TriggerInterface: " << moduleName << std::endl;
                 size_t callbackIndex = GetCallbacks().size();
@@ -965,7 +1169,6 @@ void ScriptManager::LoadScript(const std::string &moduleName) {
                 TriggerInterface::registerType(name, factory);
                 std::cout << "[ScriptManager] Registered trigger: " << name << std::endl;
             }
-            // Similar for PlayerExtensionInterface
             else if (IsSubclassOf(obj, "PlayerExtensionInterface")) {
                 std::cout << "[ScriptManager] found PlayerExtensionInterface: " << moduleName << std::endl;
                 size_t callbackIndex = GetCallbacks().size();
@@ -982,6 +1185,22 @@ void ScriptManager::LoadScript(const std::string &moduleName) {
                 PlayerExtensionInterface::registerType(name, factory);
                 std::cout << "[ScriptManager] Registered extension: " << name << std::endl;
             }
+            else if (IsSubclassOf(obj, "ActorInterface")) {
+                std::cout << "[ScriptManager] found ActorInterface: " << moduleName << std::endl;
+                size_t callbackIndex = GetCallbacks().size();
+                GetCallbacks().push_back({obj, CallBackTypes::ACTOR});
+
+                constexpr size_t MAX_ACTORS = MAX_PYTHON_SCRIPT_COUNT; // Match the value from GENERATE_UP_TO macro
+                ActorFactory factory = GetActorFactoryHelper(std::make_index_sequence<MAX_ACTORS>{}, callbackIndex);
+                
+                if (!factory) {
+                    std::cerr << "[ScriptManager] Too many actor types registered (max " << MAX_ACTORS << ")" << std::endl;
+                    continue;
+                }
+
+                ActorInterface::registerType(name, factory);
+                std::cout << "[ScriptManager] Registered actor: " << name << std::endl;
+            }
         }
     } catch (const std::exception &e) {
         std::cerr << "[ScriptManager] Error loading script " << moduleName
@@ -991,7 +1210,7 @@ void ScriptManager::LoadScript(const std::string &moduleName) {
 
 TriggerInterface *ScriptManager::CreateTriggerWrapper(LimonAPI *api, size_t index) {
     try {
-        auto &callbacks = GetCallbacks();
+        std::vector<ScriptManager::PythonCallback>& callbacks = GetCallbacks();
         if (index < callbacks.size() && callbacks[index].callBackType == CallBackTypes::TRIGGER) {
             pybind11::object pyClass = callbacks[index].pyClass;
 
@@ -1013,7 +1232,7 @@ TriggerInterface *ScriptManager::CreateTriggerWrapper(LimonAPI *api, size_t inde
 
 PlayerExtensionInterface* ScriptManager::CreatePlayerExtensionWrapper(LimonAPI* api, size_t index) {
     try {
-        auto& callbacks = GetCallbacks();
+        std::vector<ScriptManager::PythonCallback>& callbacks = GetCallbacks();
         if (index < callbacks.size() && callbacks[index].callBackType == CallBackTypes::PLAYER_EXTENSION) {
             pybind11::gil_scoped_acquire acquire;  // Ensure GIL is held
 
@@ -1050,6 +1269,50 @@ PlayerExtensionInterface* ScriptManager::CreatePlayerExtensionWrapper(LimonAPI* 
         }
     } catch (const std::exception& e) {
         std::cerr << "[ScriptManager] Error in CreateExtensionWrapper: " << e.what() << std::endl;
+    }
+    return nullptr;
+}
+
+ActorInterface* ScriptManager::CreateActorWrapper(uint32_t id, LimonAPI* api, size_t index) {
+    try {
+        std::vector<ScriptManager::PythonCallback>& callbacks = GetCallbacks();
+        if (index < callbacks.size() && callbacks[index].callBackType == CallBackTypes::ACTOR) {
+            pybind11::gil_scoped_acquire acquire;  // Ensure GIL is held
+
+            try {
+                // Get the Python class
+                pybind11::object pyClass = callbacks[index].pyClass;
+
+                // Create the instance using __new__ and __init__ separately
+                pybind11::object instance = pyClass.attr("__new__")(pyClass);
+
+                // Now call __init__ with the API
+                instance.attr("__init__")(pybind11::cast(api, pybind11::return_value_policy::reference));
+
+                // Verify the object has required methods
+                if (!pybind11::hasattr(instance, "get_name") ||
+                    !pybind11::hasattr(instance, "play") ||
+                    !pybind11::hasattr(instance, "interaction") ||
+                    !pybind11::hasattr(instance, "get_parameters") ||
+                    !pybind11::hasattr(instance, "set_parameters")) {
+                    std::cerr << "[ScriptManager] Python actor class is missing required methods" << std::endl;
+                    return nullptr;
+                }
+
+                std::cout << "Successfully created Python ActorInterface instance" << std::endl;
+                return new PyActorInterface(id, api, instance);
+
+            } catch (const pybind11::error_already_set& e) {
+                std::cerr << "[ScriptManager] Python error during actor creation: " << e.what() << std::endl;
+                PyErr_Print();
+                return nullptr;
+            } catch (const std::exception& e) {
+                std::cerr << "[ScriptManager] C++ error during actor creation: " << e.what() << std::endl;
+                return nullptr;
+            }
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "[ScriptManager] Error in CreateActorWrapper: " << e.what() << std::endl;
     }
     return nullptr;
 }

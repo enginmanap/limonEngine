@@ -1,7 +1,14 @@
-from limon_interface import CameraAttachment
+from camera_attachment import CameraAttachment
 from typing import List, Dict, Any, Optional, Tuple, Union
 import limon
+from limon import ValueType
+from generic_parameter import GenericParameter
 
+
+"""
+    This is an example of a camera attachment implementation through Python.
+    
+"""
 def normalize(v):
     """Simple vector normalization for (x,y,z) tuples"""
     length = (v[0]**2 + v[1]**2 + v[2]**2) ** 0.5
@@ -69,25 +76,18 @@ class ThirdPersonCamera:
             dir_vec.w = 0.0
             # Perform raycast
             hit_details = self.limon_api.ray_cast(start_pos, dir_vec)
-            # Debug log for each element in hit_details
-            # print(f"[DEBUG] hit_details list length: {len(hit_details) if hit_details else 0}")
-            for i, detail in enumerate(hit_details):
-                # Get all attributes of the GenericParameter object
-                attrs = [attr for attr in dir(detail) if not attr.startswith('__')]
-                # Create a dictionary of attribute names and values
-                detail_dict = {attr: getattr(detail, attr) for attr in attrs}
-                # print(f"[DEBUG] hit_details[{i}]: {detail_dict}")
+
+            # hit_details already contains GenericParameter objects from C++
             for detail in hit_details:
-                if detail.description == "hit coordinates":
-                    #print(f"[DEBUG] hit_details for hit coordinates: {detail.description}. detail value {detail.value} ")
+                if detail.description == "hit coordinates" and detail.is_vec4():
                     # we hit something, but is that thing further away than camera?
-                    hit_distance_sq = (detail.value[0] - start_pos.x) * (detail.value[0] - start_pos.x) + (detail.value[1] - start_pos.y) * (detail.value[1] - start_pos.y) + (detail.value[2] - start_pos.z) * (detail.value[2] - start_pos.z)
+                    hit_coords = detail.get_vec3()  # Get first 3 components
+                    hit_distance_sq = (hit_coords[0] - start_pos.x) * (hit_coords[0] - start_pos.x) + (hit_coords[1] - start_pos.y) * (hit_coords[1] - start_pos.y) + (hit_coords[2] - start_pos.z) * (hit_coords[2] - start_pos.z)
                     camera_distance_sq = (desired_pos.x - start_pos.x) * (desired_pos.x - start_pos.x) + (desired_pos.y - start_pos.y) * (desired_pos.y - start_pos.y) + (desired_pos.z - start_pos.z) * (desired_pos.z - start_pos.z)
                     if hit_distance_sq < camera_distance_sq:
-                        desired_pos.x = detail.value[0] - (dir_vec.x * 0.1)  # 10% buffer so camera won't clip
-                        desired_pos.y = detail.value[1] - (dir_vec.y * 0.1)
-                        desired_pos.z = detail.value[2] - (dir_vec.z * 0.1)
-
+                        desired_pos.x = hit_coords[0] - (dir_vec.x * 0.1)  # 10% buffer so camera won't clip
+                        desired_pos.y = hit_coords[1] - (dir_vec.y * 0.1)
+                        desired_pos.z = hit_coords[2] - (dir_vec.z * 0.1)
             # Update output parameters by modifying the dictionaries in-place
             # Update camera position
             position.update({
@@ -119,3 +119,4 @@ class ThirdPersonCamera:
             print(f"Error in getCameraVariables: {str(e)}")
             import traceback
             traceback.print_exc()
+        return None

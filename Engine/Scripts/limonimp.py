@@ -1,6 +1,11 @@
 # limonimp.py
 import limon
 
+
+"""
+    This is an example of a trigger interface implementation through Python.
+    
+"""
 class MyTrigger(limon.TriggerInterface):
     def __init__(self, limon_api):
         super().__init__(limon_api)
