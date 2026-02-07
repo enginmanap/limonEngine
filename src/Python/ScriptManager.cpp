@@ -16,6 +16,7 @@
 #include "PyTimedEventCallback.h"
 #include "PyTriggerInterface.h"
 #include "SDL2Helper.h"
+#include "GenericParameterConverter.h"
 
 #ifndef PYTHON_BUNDLE_ZIP
 #error "PYTHON_BUNDLE_ZIP must be defined by the build system"
@@ -42,7 +43,8 @@ public:
     }
 
     static handle cast(const glm::vec3 &src, return_value_policy, handle) {
-        // Return a dictionary instead of creating a Python object
+        // Always use dictionaries during initialization to avoid import order issues
+        // The C++ side will handle conversion to Vec3 objects at runtime
         pybind11::dict d;
         d["x"] = src.x;
         d["y"] = src.y;
@@ -127,7 +129,7 @@ public:
         value.clear();
         value.reserve(seq.size());
 
-        for (const pybind11::handle item : seq) {
+        for (const pybind11::handle &item : seq) {
             value.push_back(item.cast<unsigned int>());
         }
         return true;
@@ -245,36 +247,15 @@ static constexpr ActorInterface* (*GetActorFactoryHelper(std::index_sequence<Is.
 PYBIND11_EMBEDDED_MODULE(limon, m) {
     m.doc() = "Python bindings for Limon Engine";
 
-    // First, bind the enums
-    pybind11::enum_<LimonTypes::GenericParameter::RequestParameterTypes>(m, "RequestParameterType")
-            .value("MODEL", LimonTypes::GenericParameter::MODEL)
-            .value("ANIMATION", LimonTypes::GenericParameter::ANIMATION)
-            .value("SWITCH", LimonTypes::GenericParameter::SWITCH)
-            .value("FREE_TEXT", LimonTypes::GenericParameter::FREE_TEXT)
-            .value("TRIGGER", LimonTypes::GenericParameter::TRIGGER)
-            .value("GUI_TEXT", LimonTypes::GenericParameter::GUI_TEXT)
-            .value("FREE_NUMBER", LimonTypes::GenericParameter::FREE_NUMBER)
-            .value("COORDINATE", LimonTypes::GenericParameter::COORDINATE)
-            .value("TRANSFORM", LimonTypes::GenericParameter::TRANSFORM)
-            .value("MULTI_SELECT", LimonTypes::GenericParameter::MULTI_SELECT)
-            .export_values();
-
-    pybind11::enum_<LimonTypes::GenericParameter::ValueTypes>(m, "ValueType")
-            .value("STRING", LimonTypes::GenericParameter::STRING)
-            .value("DOUBLE", LimonTypes::GenericParameter::DOUBLE)
-            .value("LONG", LimonTypes::GenericParameter::LONG)
-            .value("LONG_ARRAY", LimonTypes::GenericParameter::LONG_ARRAY)
-            .value("BOOLEAN", LimonTypes::GenericParameter::BOOLEAN)
-            .value("VEC4", LimonTypes::GenericParameter::VEC4)
-            .value("MAT4", LimonTypes::GenericParameter::MAT4)
-            .export_values();
+    // Note: ValueType and RequestParameterType are now defined in Python (generic_parameter.py)
+    // We no longer bind the C++ enums to avoid initialization order issues
 
     pybind11::class_<LimonTypes::GenericParameter>(m, "GenericParameter")
             .def(pybind11::init<>())
             .def_property("request_type",
-                          [](const LimonTypes::GenericParameter &self) { return self.requestType; },
-                          [](LimonTypes::GenericParameter &self, LimonTypes::GenericParameter::RequestParameterTypes val) {
-                              self.requestType = val;
+                          [](const LimonTypes::GenericParameter &self) { return static_cast<int>(self.requestType); },
+                          [](LimonTypes::GenericParameter &self, int val) {
+                              self.requestType = static_cast<LimonTypes::GenericParameter::RequestParameterTypes>(val);
                           })
             .def_property("description",
                           [](LimonTypes::GenericParameter &self) { return self.description; },
@@ -282,9 +263,9 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
                               self.description = val;
                           })
             .def_property("value_type",
-                          [](const LimonTypes::GenericParameter &self) { return self.valueType; },
-                          [](LimonTypes::GenericParameter &self, LimonTypes::GenericParameter::ValueTypes val) {
-                              self.valueType = val;
+                          [](const LimonTypes::GenericParameter &self) { return static_cast<int>(self.valueType); },
+                          [](LimonTypes::GenericParameter &self, int val) {
+                              self.valueType = static_cast<LimonTypes::GenericParameter::ValueTypes>(val);
                           })
             .def_property("is_set",
                           [](const LimonTypes::GenericParameter &self) { return self.isSet; },
@@ -462,102 +443,6 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
     // Bind LimonAPI
     pybind11::class_<LimonAPI> limon(m, "LimonAPI");
 
-    // Helper function to convert GenericParameter to Python GenericParameter object
-    std::function<pybind11::object(const LimonTypes::GenericParameter&)> convertGenericParameterToPythonObject = [](const LimonTypes::GenericParameter& param) -> pybind11::object {
-        // Import the GenericParameter class from Python module
-        pybind11::module_ generic_param_module = pybind11::module_::import("generic_parameter");
-        pybind11::object GenericParameterClass = generic_param_module.attr("GenericParameter");
-
-        // Create the value based on type
-        pybind11::object value;
-        switch (param.valueType) {
-            case LimonTypes::GenericParameter::STRING:
-                value = pybind11::cast(std::string(param.value.stringValue));
-                break;
-            case LimonTypes::GenericParameter::DOUBLE:
-                value = pybind11::cast(param.value.doubleValue);
-                break;
-            case LimonTypes::GenericParameter::LONG:
-                value = pybind11::cast(param.value.longValue);
-                break;
-            case LimonTypes::GenericParameter::BOOLEAN:
-                value = pybind11::cast(param.value.boolValue);
-                break;
-            case LimonTypes::GenericParameter::VEC4: {
-                const LimonTypes::Vec4& v = param.value.vectorValue;
-                pybind11::list vec_list;
-                vec_list.append(v.x);
-                vec_list.append(v.y);
-                vec_list.append(v.z);
-                vec_list.append(v.w);
-                value = vec_list;
-                break;
-            }
-            case LimonTypes::GenericParameter::LONG_ARRAY: {
-                pybind11::list array_list;
-                long size = param.value.longValues[0];
-                for (long i = 1; i <= size; ++i) {
-                    array_list.append(param.value.longValues[i]);
-                }
-                value = array_list;
-                break;
-            }
-            case LimonTypes::GenericParameter::MAT4: {
-                pybind11::list matrix_list;
-                for (int i = 0; i < 4; ++i) {
-                    pybind11::list row;
-                    for (int j = 0; j < 4; ++j) {
-                        row.append(param.value.matrixValue.rows[i][j]);
-                    }
-                    matrix_list.append(row);
-                }
-                value = matrix_list;
-                break;
-            }
-            default:
-                value = pybind11::none();
-                break;
-        }
-
-        return GenericParameterClass(
-            static_cast<int>(param.requestType),
-            param.description,
-            static_cast<int>(param.valueType),
-            value,
-            param.isSet
-        );
-    };
-
-    // Helper function to convert vector of GenericParameter(C++) to Python list of GenericParameter objects
-    std::function<pybind11::list(const std::vector<LimonTypes::GenericParameter>&)> convertGenericParameterVectorToObjects = [&convertGenericParameterToPythonObject](const std::vector<LimonTypes::GenericParameter>& params) -> pybind11::list {
-        pybind11::list result;
-        for (const LimonTypes::GenericParameter& param : params) {
-            result.append(convertGenericParameterToPythonObject(param));
-        }
-        return result;
-    };
-
-    // Helper function to convert Python list to vector of GenericParameter(C++)
-    std::function<std::vector<LimonTypes::GenericParameter>(pybind11::object)> convertPythonListToGenericParameterVector = [](pybind11::object pyList) -> std::vector<LimonTypes::GenericParameter> {
-        std::vector<LimonTypes::GenericParameter> result;
-        if (pyList.is_none()) {
-            return result;
-        }
-        
-        try {
-            pybind11::list list = pybind11::cast<pybind11::list>(pyList);
-            for (pybind11::handle item : list) {
-                if (pybind11::isinstance<LimonTypes::GenericParameter>(item)) {
-                    result.push_back(pybind11::cast<LimonTypes::GenericParameter>(item));
-                }
-            }
-        } catch (const pybind11::cast_error& e) {
-            std::cerr << "Error converting Python list to GenericParameter vector: " << e.what() << std::endl;
-        }
-        
-        return result;
-    };
-
     // Bind methods
     limon.def("get_options", &LimonAPI::getOptions, "Get engine options")
 
@@ -677,9 +562,9 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
             .def("add_object_orientation", &LimonAPI::addObjectOrientation,
                  "Add to an object's orientation",
                  pybind11::arg("object_id"), pybind11::arg("orientation"))
-            .def("get_object_transformation_matrix", [convertGenericParameterVectorToObjects](LimonAPI& self, uint32_t object_id) -> pybind11::list {
+            .def("get_object_transformation_matrix", [](LimonAPI& self, uint32_t object_id) -> pybind11::list {
                 std::vector<LimonTypes::GenericParameter> result = self.getObjectTransformationMatrix(object_id);
-                return convertGenericParameterVectorToObjects(result);
+                return GenericParameterConverter::convertGenericParameterVectorToObjects(result);
             }, "Get an object's transformation matrix",
                  pybind11::arg("object_id"))
             .def("get_model_children", &LimonAPI::getModelChildren,
@@ -699,8 +584,11 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
                  pybind11::arg("position_relative") = false, pybind11::arg("looped") = false)
 
             // AI Interaction
-            .def("interact_with_ai", &LimonAPI::interactWithAI,
-                 "Interact with an AI",
+            .def("interact_with_ai", [](LimonAPI& self, uint32_t ai_id, pybind11::object py_params) -> bool {
+                // Convert Python list to C++ vector using shared converter
+                std::vector<LimonTypes::GenericParameter> params = GenericParameterConverter::convertPythonListToGenericParameterVector(py_params);
+                return self.interactWithAI(ai_id, params);
+            }, "Interact with an AI",
                  pybind11::arg("ai_id"), pybind11::arg("interaction_information"))
 
             // Particle Systems
@@ -729,13 +617,19 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
                  pybind11::arg("emitter_id"), pybind11::arg("gravity"))
 
             // Ray Casting
-            .def("ray_cast_to_cursor", [convertGenericParameterVectorToObjects](LimonAPI& self) -> pybind11::list {
-                std::vector<LimonTypes::GenericParameter> hitDetails = self.rayCastToCursor();
-                return convertGenericParameterVectorToObjects(hitDetails);
+            .def("ray_cast_to_cursor", [](LimonAPI& self) -> pybind11::list {
+                try {
+                    std::vector<LimonTypes::GenericParameter> hitDetails = self.rayCastToCursor();
+                    return GenericParameterConverter::convertGenericParameterVectorToObjects(hitDetails);
+                } catch (const std::exception& e) {
+                    std::cerr << "Error in ray_cast_to_cursor: " << e.what() << std::endl;
+                    return pybind11::list();
+                }
             }, "Cast a ray from camera to cursor position")
-        .def("ray_cast", [&convertGenericParameterVectorToObjects](LimonAPI& self, const LimonTypes::Vec4& start, const LimonTypes::Vec4& direction) -> pybind11::list {
+        .def("ray_cast", [](LimonAPI& self, const LimonTypes::Vec4& start, const LimonTypes::Vec4& direction) -> pybind11::list {
             std::vector<LimonTypes::GenericParameter> hitDetails = self.rayCastFirstHit(start, direction);
-            return convertGenericParameterVectorToObjects(hitDetails);
+            pybind11::list result = GenericParameterConverter::convertGenericParameterVectorToObjects(hitDetails);
+            return result;
         }, "Cast a ray from start point in direction",
          pybind11::arg("start"), pybind11::arg("direction"))
 
@@ -785,9 +679,9 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
                  "Simulate input events",
                  pybind11::arg("input_states"))
             // Trigger System
-            .def("get_result_of_trigger", [convertGenericParameterVectorToObjects](LimonAPI& self, uint32_t trigger_object_id, uint32_t trigger_code_id) -> pybind11::list {
+            .def("get_result_of_trigger", [](LimonAPI& self, uint32_t trigger_object_id, uint32_t trigger_code_id) -> pybind11::list {
                 std::vector<LimonTypes::GenericParameter> result = self.getResultOfTrigger(trigger_object_id, trigger_code_id);
-                return convertGenericParameterVectorToObjects(result);
+                return GenericParameterConverter::convertGenericParameterVectorToObjects(result);
             }, "Get result of a trigger",
                  pybind11::arg("trigger_object_id"), pybind11::arg("trigger_code_id"));
 
@@ -841,11 +735,12 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
     limon.def("get_player_position", [](LimonAPI &self) {
         glm::vec3 position, center, up, right;
         self.getPlayerPosition(position, center, up, right);
+        
         return pybind11::make_tuple(
-            pybind11::dict(pybind11::arg("x")=position.x, pybind11::arg("y")=position.y, pybind11::arg("z")=position.z),
-            pybind11::dict(pybind11::arg("x")=center.x, pybind11::arg("y")=center.y, pybind11::arg("z")=center.z),
-            pybind11::dict(pybind11::arg("x")=up.x, pybind11::arg("y")=up.y, pybind11::arg("z")=up.z),
-            pybind11::dict(pybind11::arg("x")=right.x, pybind11::arg("y")=right.y, pybind11::arg("z")=right.z)
+            pybind11::detail::type_caster<glm::vec3>::cast(position, pybind11::return_value_policy::copy, {}),
+            pybind11::detail::type_caster<glm::vec3>::cast(center, pybind11::return_value_policy::copy, {}),
+            pybind11::detail::type_caster<glm::vec3>::cast(up, pybind11::return_value_policy::copy, {}),
+            pybind11::detail::type_caster<glm::vec3>::cast(right, pybind11::return_value_policy::copy, {})
         );
     }, "Get player position, view direction, up and right vectors");
 
@@ -872,7 +767,10 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
     limon.def("add_timed_event",
               [](LimonAPI &self, uint64_t wait_time, bool use_wall_time,
                  const pybind11::function &callback,
-                 const std::vector<LimonTypes::GenericParameter> &params) {
+                 const pybind11::object &py_params) {
+                  // Convert Python list to C++ vector using shared converter
+                  std::vector<LimonTypes::GenericParameter> params = GenericParameterConverter::convertPythonListToGenericParameterVector(py_params);
+                  
                   PyTimedEventCallback cb = PyTimedEventCallback(callback);
                   return self.addTimedEvent(wait_time, use_wall_time, cb, params);
               },
@@ -880,7 +778,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
               pybind11::arg("wait_time"),
               pybind11::arg("use_wall_time"),
               pybind11::arg("callback"),
-              pybind11::arg("parameters") = std::vector<LimonTypes::GenericParameter>{});
+              pybind11::arg("parameters") = pybind11::list());
     limon.def("cancel_timed_event", &LimonAPI::cancelTimedEvent,
               "Cancel a previously scheduled timed event",
               pybind11::arg("timer_id"));
@@ -1024,12 +922,14 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
             .def("get_name", &ActorInterface::getName)
             .def("play", &ActorInterface::play)
             .def("interaction", &ActorInterface::interaction)
-            .def("get_parameters", [&convertGenericParameterVectorToObjects](ActorInterface& self) -> pybind11::object {
-                std::vector<LimonTypes::GenericParameter> params = self.getParameters();
-                return convertGenericParameterVectorToObjects(params);
-            })
-            .def("set_parameters", [&convertPythonListToGenericParameterVector](ActorInterface& self, pybind11::object pyParams) {
-                std::vector<LimonTypes::GenericParameter> params = convertPythonListToGenericParameterVector(pyParams);
+            .def("get_parameters", [](ActorInterface& self) -> std::vector<LimonTypes::GenericParameter> {
+                // Call the Python get_parameters method
+                pybind11::object py_result = pybind11::cast(&self).attr("get_parameters")();
+                // Convert Python GenericParameter list to C++ vector
+                return GenericParameterConverter::convertPythonListToGenericParameterVector(py_result);
+            }, "Get configurable parameters for this actor")
+            .def("set_parameters", [](ActorInterface& self, pybind11::object pyParams) {
+                std::vector<LimonTypes::GenericParameter> params = GenericParameterConverter::convertPythonListToGenericParameterVector(pyParams);
                 self.setParameters(params);
             })
             .def_static("create_actor", [](const std::string &name, uint32_t id, LimonAPI *api) -> ActorInterface * {
@@ -1105,6 +1005,7 @@ ScriptManager::ScriptManager(const std::string& directoryPath) : directoryPath(d
         }
         pybind11::module_ sys = pybind11::module::import("sys");
         pybind11::module_ limon = pybind11::module::import("limon");
+        // ReSharper disable once CppExpressionWithoutSideEffects
         sys.attr("path").attr("append")(directoryPath);
 
         // 2. Redirect Python's stdout to our C++ object.

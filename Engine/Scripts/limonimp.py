@@ -1,5 +1,6 @@
 # limonimp.py
 import limon
+from generic_parameter import RequestParameterType, GenericParameter
 
 
 """
@@ -12,8 +13,8 @@ class MyTrigger(limon.TriggerInterface):
         self._limon_api = limon_api
 
     def get_parameters(self):
-        param = limon.GenericParameter()
-        param.request_type = limon.RequestParameterType.FREE_TEXT
+        param = GenericParameter()
+        param.request_type = RequestParameterType.FREE_TEXT
         param.description = "Test trigger"
         param.value = "Hello"
         return [param]

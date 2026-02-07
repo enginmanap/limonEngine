@@ -2,6 +2,7 @@
 import limon
 from typing import List, Optional
 from python_third_person_camera import ThirdPersonCamera
+from generic_parameter import RequestParameterType, ValueType, GenericParameter
 
 """
     This is an example of a player extension implementation through Python.
@@ -64,20 +65,44 @@ class PythonPlayerExtension(limon.PlayerExtensionInterface):
                 else:
                     print("attachment success ", muzzleFlashObjectId)
                 #now setup removal
-                param = limon.GenericParameter()
-                param.request_type = limon.RequestParameterType.FREE_NUMBER
-                param.value_type = limon.ValueType.LONG
-                param.description = "remove id"
-                param.is_set = True
-                param.value = muzzleFlashObjectId
-                param_vector = limon.GenericParameterVector()
-                param_vector.append(param)
+                param = GenericParameter(
+                    request_type=RequestParameterType.FREE_NUMBER,
+                    description="remove id",
+                    value_type=ValueType.LONG,
+                    value=muzzleFlashObjectId,
+                    is_set=True
+                )
+                param_vector = [param]  # Python list - binding handles automatic conversion to C++
                 self._limon_api.add_timed_event(
                     wait_time=500,  # 0.5 second
                     use_wall_time=True,
                     callback=self.remove_muzzle_flash,
                     parameters=param_vector
                 )
+                ray_result = self._limon_api.ray_cast_to_cursor()
+                if ray_result:
+                    print("Ray cast result: ", ray_result)
+                    if len(ray_result) == 4:
+                        print("Hit AI")
+                        # ray_result[3] should be a Python GenericParameter with the AI ID
+                        ai_id_param = ray_result[3]
+                        print(f"AI param type: {type(ai_id_param)}")
+                        print(f"AI param description: '{ai_id_param.description}'")
+                        print(f"AI param value_type: {ai_id_param.value_type}")
+                        if ai_id_param.is_long():
+                            ai_id = ai_id_param.get_long()
+                            print(f"AI ID found: {ai_id}")
+                            interaction_parameter = GenericParameter(
+                                request_type=RequestParameterType.FREE_TEXT,
+                                description="hit interaction",
+                                value_type=ValueType.STRING,
+                                value="GOT_HIT",
+                                is_set=True
+                            )
+                            self._limon_api.interact_with_ai(ai_id, [interaction_parameter])
+                else:
+                    print("No ray cast result")
+
         except Exception as e:
             print(f"Error in run method: {type(e).__name__}: {e}")
             import traceback
@@ -112,7 +137,7 @@ class PythonPlayerExtension(limon.PlayerExtensionInterface):
             print(f"Error in remove_muzzle_flash: {str(e)}")
             import traceback
             traceback.print_exc()
-    def interact(self, interaction_data: List['limon.GenericParameter']) -> None:
+    def interact(self, interaction_data: List['GenericParameter']) -> None:
         """Handle interaction with the player."""
         pass
 
@@ -123,13 +148,6 @@ class PythonPlayerExtension(limon.PlayerExtensionInterface):
     def get_custom_camera_attachment(self) -> Optional[limon.CameraAttachment]:
         """Get a custom camera attachment if this extension provides one."""
         return self.camera_instance if hasattr(self, 'camera_instance') and self.camera_instance is not None else None
-
-    def get_parameters(self):
-        param = limon.GenericParameter()
-        param.request_type = limon.RequestParameterType.FREE_TEXT
-        param.description = "Test trigger"
-        param.value = "Hello"
-        return [param]
 
     def get_name(self):
         return "PythonPlayerExtension"

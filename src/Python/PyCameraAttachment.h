@@ -27,54 +27,30 @@ public:
     }
 
     void getCameraVariables(glm::vec3 &position, glm::vec3 &center, glm::vec3 &up, glm::vec3 &right)  override {
-        //std::cout << "get parameters as " << position.x << ", " << position.y << ", " << position.z << " " << std::endl;
         try {
-            // Create dictionaries to hold the values
-            pybind11::dict pyPosition;
-            pyPosition["x"] = position.x;
-            pyPosition["y"] = position.y;
-            pyPosition["z"] = position.z;
-
-            pybind11::dict pyCenter;
-            pyCenter["x"] = center.x;
-            pyCenter["y"] = center.y;
-            pyCenter["z"] = center.z;
-
-            pybind11::dict pyUp;
-            pyUp["x"] = up.x;
-            pyUp["y"] = up.y;
-            pyUp["z"] = up.z;
-
-            pybind11::dict pyRight;
-            pyRight["x"] = right.x;
-            pyRight["y"] = right.y;
-            pyRight["z"] = right.z;
-
-            // Call the Python function
+            // Import Vec3 module and convert glm::vec3 to Vec3 objects
+            pybind11::module_ vec3_module = pybind11::module_::import("vec3");
+            pybind11::object Vec3Class = vec3_module.attr("Vec3");
+            
+            // Convert glm::vec3 to Vec3 objects
+            pybind11::object pyPosition = Vec3Class(position.x, position.y, position.z);
+            pybind11::object pyCenter = Vec3Class(center.x, center.y, center.z);
+            pybind11::object pyUp = Vec3Class(up.x, up.y, up.z);
+            pybind11::object pyRight = Vec3Class(right.x, right.y, right.z);
+            
+            // Call Python method with Vec3 objects
             pyObj.attr("getCameraVariables")(pyPosition, pyCenter, pyUp, pyRight);
-
-            // Update the C++ references with the modified values
-            position.x = pyPosition["x"].cast<float>();
-            position.y = pyPosition["y"].cast<float>();
-            position.z = pyPosition["z"].cast<float>();
-
-            center.x = pyCenter["x"].cast<float>();
-            center.y = pyCenter["y"].cast<float>();
-            center.z = pyCenter["z"].cast<float>();
-
-            up.x = pyUp["x"].cast<float>();
-            up.y = pyUp["y"].cast<float>();
-            up.z = pyUp["z"].cast<float>();
-
-            right.x = pyRight["x"].cast<float>();
-            right.y = pyRight["y"].cast<float>();
-            right.z = pyRight["z"].cast<float>();
+            
+            // Use type caster to convert Vec3 objects back to glm::vec3
+            position = pyPosition.cast<glm::vec3>();
+            center = pyCenter.cast<glm::vec3>();
+            up = pyUp.cast<glm::vec3>();
+            right = pyRight.cast<glm::vec3>();
+            
         } catch (const std::exception& e) {
             std::cerr << "Error in getCameraVariables: " << e.what() << std::endl;
             throw;
         }
-        //std::cout << "returning as parameters as " << position.x << ", " << position.y << ", " << position.z << " " << std::endl;
-        return;
     }
 };
 

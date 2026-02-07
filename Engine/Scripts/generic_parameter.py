@@ -2,7 +2,32 @@
 Python wrapper for LimonTypes::GenericParameter
 """
 from typing import Union, List, Tuple, Any
-from limon import ValueType, RequestParameterType
+from enum import Enum
+
+
+class ValueType(Enum):
+    """Python equivalent of C++ LimonTypes::GenericParameter::ValueTypes"""
+    STRING = 0
+    DOUBLE = 1
+    LONG = 2
+    LONG_ARRAY = 3
+    BOOLEAN = 4
+    VEC4 = 5
+    MAT4 = 6
+
+
+class RequestParameterType(Enum):
+    """Python equivalent of C++ LimonTypes::GenericParameter::RequestParameterTypes"""
+    MODEL = 0
+    ANIMATION = 1
+    SWITCH = 2
+    FREE_TEXT = 3
+    TRIGGER = 4
+    GUI_TEXT = 5
+    FREE_NUMBER = 6
+    COORDINATE = 7
+    TRANSFORM = 8
+    MULTI_SELECT = 9
 
 
 class GenericParameter:
@@ -12,38 +37,52 @@ class GenericParameter:
        editor related data, like description, request type and is_set
     """
     
-    def __init__(self, request_type: RequestParameterType = RequestParameterType.FREE_NUMBER,
-                 description: str = "", value_type: ValueType = ValueType.VEC4,
+    def __init__(self, request_type: Union[RequestParameterType, int] = RequestParameterType.FREE_NUMBER,
+                 description: str = "", value_type: Union[ValueType, int] = ValueType.VEC4,
                  value: Any = None, is_set: bool = False):
-        self.request_type = request_type
+        # Handle integer values for enums
+        if isinstance(request_type, int):
+            self.request_type = RequestParameterType(request_type)
+        else:
+            self.request_type = request_type
+            
+        if isinstance(value_type, int):
+            self.value_type = ValueType(value_type)
+        else:
+            self.value_type = value_type
+            
         self.description = description
-        self.value_type = value_type
         self.value = value
         self.is_set = is_set
     
     def __repr__(self) -> str:
-        return f"GenericParameter(description='{self.description}', type={self.value_type.name}, value={self.value})"
+        # Convert integer back to enum for display
+        try:
+            value_type_name = ValueType(self.value_type).name
+        except (ValueError, AttributeError):
+            value_type_name = str(self.value_type)
+        return f"GenericParameter(description='{self.description}', type={value_type_name}, value={self.value})"
     
     def is_string(self) -> bool:
-        return self.value_type == ValueType.STRING
+        return self.value_type == ValueType.STRING or self.value_type == ValueType.STRING.value
     
     def is_double(self) -> bool:
-        return self.value_type == ValueType.DOUBLE
+        return self.value_type == ValueType.DOUBLE or self.value_type == ValueType.DOUBLE.value
     
     def is_long(self) -> bool:
-        return self.value_type == ValueType.LONG
+        return self.value_type == ValueType.LONG or self.value_type == ValueType.LONG.value
     
     def is_boolean(self) -> bool:
-        return self.value_type == ValueType.BOOLEAN
+        return self.value_type == ValueType.BOOLEAN or self.value_type == ValueType.BOOLEAN.value
     
     def is_vec4(self) -> bool:
-        return self.value_type == ValueType.VEC4
+        return self.value_type == ValueType.VEC4 or self.value_type == ValueType.VEC4.value
     
     def is_mat4(self) -> bool:
-        return self.value_type == ValueType.MAT4
+        return self.value_type == ValueType.MAT4 or self.value_type == ValueType.MAT4.value
     
     def is_long_array(self) -> bool:
-        return self.value_type == ValueType.LONG_ARRAY
+        return self.value_type == ValueType.LONG_ARRAY or self.value_type == ValueType.LONG_ARRAY.value
     
     def get_string(self) -> str:
         if self.is_string():
@@ -69,11 +108,6 @@ class GenericParameter:
         if self.is_vec4() and isinstance(self.value, (list, tuple)) and len(self.value) >= 4:
             return tuple(self.value[:4])
         raise ValueError(f"GenericParameter is not a valid VEC4, it's {self.value_type.name} with value {self.value}")
-    
-    def get_vec3(self) -> Tuple[float, float, float]:
-        """Convenience method to get first 3 components of VEC4"""
-        vec4 = self.get_vec4()
-        return vec4[:3]
     
     def get_mat4(self) -> List[List[float]]:
         if self.is_mat4() and isinstance(self.value, list):

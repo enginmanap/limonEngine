@@ -6,6 +6,7 @@
 #define LIMONENGINE_PYACTORINTERFACE_H
 #include "limonAPI/LimonTypes.h"
 #include "limonAPI/ActorInterface.h"
+#include "GenericParameterConverter.h"
 
 
 class PyActorInterface : public ActorInterface {
@@ -25,15 +26,29 @@ public:
     }
 
     bool interaction(std::vector<LimonTypes::GenericParameter> &interactionInformation) override {
-        return pyObj.attr("interaction")(interactionInformation).cast<bool>();
+        pybind11::list param_list;
+        for (const auto& param : interactionInformation) {
+            param_list.append(param);
+        }
+        return pyObj.attr("interaction")(param_list).cast<bool>();
     }
 
     std::vector<LimonTypes::GenericParameter> getParameters() const override {
-        return pyObj.attr("get_parameters")().cast<std::vector<LimonTypes::GenericParameter>>();
+        try {
+            pybind11::object py_result = pyObj.attr("get_parameters")();
+            return GenericParameterConverter::convertPythonListToGenericParameterVector(py_result);
+        } catch (const std::exception& e) {
+            std::cerr << "Error in PyActorInterface::getParameters: " << e.what() << std::endl;
+            return std::vector<LimonTypes::GenericParameter>();
+        }
     }
 
     void setParameters(std::vector<LimonTypes::GenericParameter> parameters) override {
-        pyObj.attr("set_parameters")(parameters);
+        pybind11::list param_list;
+        for (const auto& param : parameters) {
+            param_list.append(param);
+        }
+        pyObj.attr("set_parameters")(param_list);
     }
 };
 
