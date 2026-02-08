@@ -8,6 +8,7 @@ add_definitions(-DASSIMP_VALIDATE_WORKAROUND)
 add_definitions(-DCEREAL_SUPPORT)
 add_definitions(-DTICK_PER_SECOND=60)
 add_definitions(-DMAX_PYTHON_SCRIPT_COUNT=64)
+add_definitions(-DPYTHON_DEBUGGING)
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 

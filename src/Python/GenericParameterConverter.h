@@ -169,7 +169,7 @@ public:
                 break;
         }
 
-        // Create Python GenericParameter object
+        // Create Python GenericParameter object using the class from generic_parameter module
         py::module_ generic_param_module = py::module_::import("generic_parameter");
         py::object GenericParameterClass = generic_param_module.attr("GenericParameter");
         return GenericParameterClass(

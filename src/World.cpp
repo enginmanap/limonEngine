@@ -38,7 +38,6 @@
 #include "Graphics/PostProcess/QuadRender.h"
 #include "Editor/Editor.h"
 #include "Occlusion/RenderList.h"
-#include "Python/ScriptManager.h"
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -53,19 +52,12 @@ void World::setupRenderForPipeline() const {
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
                 std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options)
-        : assetManager(assetManager), options(options), graphicsWrapper(assetManager->getGraphicsWrapper()),
-        alHelper(assetManager->getAlHelper()), name(name), fontManager(graphicsWrapper),
-        startingPlayer(startingPlayerType) {
+        : assetManager(assetManager), options(options),
+        graphicsWrapper(assetManager->getGraphicsWrapper()), alHelper(assetManager->getAlHelper()), name(name),
+        fontManager(graphicsWrapper), startingPlayer(startingPlayerType) {
     strncpy(worldSaveNameBuffer, name.c_str(), sizeof(worldSaveNameBuffer) -1 );
     editor = std::make_unique<Editor>(this);
 
-    // python init
-    //pybind11::scoped_interpreter guard{};
-    ScriptManager* scriptSystem = new ScriptManager("./Engine/Scripts");
-    scriptSystem->LoadScripts();
-    // 3. Import a standard module to prove paths are working
-    auto sys = pybind11::module::import("sys");
-    pybind11::print("Python Version:", sys.attr("version"));
     // physics init
     broadphase = new btDbvtBroadphase();
     ghostPairCallback = new btGhostPairCallback();
@@ -2058,6 +2050,19 @@ void World::setupForPauseOrStop() {
     if(this->music != nullptr) {
         this->music->pause();
     }
+    //We need to stop the occlusion threads, as the world is changing:
+    for (std::pair<VisibilityRequest*, SDL_Thread*> visibilityItem:visibilityThreadPool) {
+        visibilityItem.first->running = false;
+    }
+    for (std::pair<VisibilityRequest*, SDL_Thread*> visibilityItem: visibilityThreadPool) {
+
+        visibilityItem.first->waitMainThreadCondition.signalWaiting();
+        if (visibilityItem.second) {
+            SDL_WaitThread(visibilityItem.second, NULL);
+        }
+        delete visibilityItem.first;
+    }
+    visibilityThreadPool.clear();
 }
 
 void World::addGUIButtonControls() {

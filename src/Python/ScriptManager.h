@@ -6,6 +6,7 @@
 #define LIMONENGINE_PYTHONSYSTEM_H
 
 #include <pybind11/embed.h>
+#include <pybind11/subinterpreter.h>
 #include "pybind11/stl_bind.h"
 #include <filesystem>
 
@@ -19,21 +20,15 @@
 #include <limonAPI/ActorInterface.h>
 #include <limonAPI/TriggerInterface.h>
 
+class WorldInterpreter;
 class ScriptManager {
-private:
-    // Holds the Python instance. Since Script Manager is per world, this would be also per world
-
-    // A list of active script INSTANCES (the objects created from the classes)
-    std::vector<pybind11::object> activeScripts;
     const std::string directoryPath;
-public:
-    explicit ScriptManager(const std::string& directoryPath);
-    ~ScriptManager() {
-        pybind11::finalize_interpreter();
-    }
 
-    explicit ScriptManager(ScriptManager& other) = delete;
-    ScriptManager& operator=(ScriptManager other) = delete;
+    WorldInterpreter* activeSubinterpreter = nullptr;
+    std::unordered_map<std::string, WorldInterpreter*> subInterpreters;
+
+    //Static because python allows only one instance of this per process.
+    static pybind11::scoped_interpreter* mainInterpreterGuard;
 
     enum class CallBackTypes {
         TRIGGER,
@@ -49,15 +44,27 @@ public:
         static std::vector<PythonCallback> callbacks;
         return callbacks;
     }
+    void LoadScript(WorldInterpreter * worldInterpreter, const std::string& moduleName);
+
+    void removeWorldInterpreterInternal(WorldInterpreter* world_interpreter);
+public:
+    explicit ScriptManager(const std::string& directoryPath);
+    ~ScriptManager();
+
+    explicit ScriptManager(ScriptManager& other) = delete;
+    ScriptManager& operator=(ScriptManager other) = delete;
+
+    WorldInterpreter* createWorldInterpreter(const std::string& worldName);
+    void removeWorldInterpreter(const std::string& worldName);
+
+    void setActiveSubInterpreter(const std::string& worldName);
 
     static TriggerInterface* CreateTriggerWrapper(LimonAPI* api, size_t index);
-
     static PlayerExtensionInterface* CreatePlayerExtensionWrapper(LimonAPI* api, size_t index);
-
     static ActorInterface* CreateActorWrapper(uint32_t id, LimonAPI* api, size_t index);
-
+private:
     // scans the directory and loads every compatible script
-    void LoadScripts() {
+    void loadScripts(WorldInterpreter * worldInterpreter) {
         if (!std::filesystem::exists(directoryPath)) {
             std::cerr << "[Scripting] Directory not found: " << directoryPath << std::endl;
             return;
@@ -69,13 +76,10 @@ public:
             if (entry.path().extension() == ".py" &&
                 entry.path().filename() != "__init__.py") {
                 std::string moduleName = entry.path().stem().string();
-                LoadScript(moduleName);
-            }
+                LoadScript(worldInterpreter, moduleName);
+                }
         }
     }
-
-private:
-    void LoadScript(const std::string& moduleName);
 
     bool IsSubclassOf(const pybind11::object& obj, const std::string& baseName) {
         try {

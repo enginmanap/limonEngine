@@ -20,6 +20,10 @@ public:
         pyObj.attr("_limon_api") = pybind11::cast(api);
     }
 
+    ~PyTriggerInterface() override {
+        pyObj = pybind11::none(); // Release Python reference
+    }
+
     std::vector<LimonTypes::GenericParameter> getParameters() override {
         pybind11::list pyParams = pyObj.attr("get_parameters")();
         std::vector<LimonTypes::GenericParameter> params;

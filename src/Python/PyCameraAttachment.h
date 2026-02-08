@@ -18,6 +18,10 @@ public:
     explicit PyCameraAttachment(LimonAPI* limonAPI, pybind11::object obj)
         : pyObj(obj), limonAPI(limonAPI) {}
 
+    ~PyCameraAttachment() override {
+        pyObj = pybind11::none(); // Release Python reference
+    }
+
     bool isDirty() const override {
         return pyObj.attr("isDirty")().cast<bool>();
     }
@@ -37,8 +41,7 @@ public:
             pybind11::object pyCenter = Vec3Class(center.x, center.y, center.z);
             pybind11::object pyUp = Vec3Class(up.x, up.y, up.z);
             pybind11::object pyRight = Vec3Class(right.x, right.y, right.z);
-            
-            // Call Python method with Vec3 objects
+
             pyObj.attr("getCameraVariables")(pyPosition, pyCenter, pyUp, pyRight);
             
             // Use type caster to convert Vec3 objects back to glm::vec3

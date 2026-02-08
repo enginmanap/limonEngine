@@ -17,6 +17,10 @@ public:
     PyActorInterface(uint32_t id, LimonAPI* api, pybind11::object obj)
         : ActorInterface(id, api), pyObj(obj) {}
 
+    ~PyActorInterface() override {
+        pyObj = pybind11::none(); // Release Python reference
+    }
+
     std::string getName() const override {
         return pyObj.attr("get_name")().cast<std::string>();
     }

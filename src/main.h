@@ -21,6 +21,7 @@ class AssetManager;
 class SDL2Helper;
 class LimonAPI;
 class GUIImage;
+class ScriptManager;
 
 class GameEngine {
     WorldLoader* worldLoader = nullptr;
@@ -35,9 +36,12 @@ class GameEngine {
     SDL2Helper* sdlHelper = nullptr;
 
     std::unordered_map<std::string, std::pair<World*, LimonAPI*>> loadedWorlds;
+
     std::vector<World*> returnWorldStack;//stack doesn't have clear, so I am using vector
     GUIImage* loadingImage = nullptr;
     uint64_t previousGameTime = 0;
+
+    ScriptManager* scriptManager = nullptr;
 public:
 
     GameEngine();
@@ -52,6 +56,7 @@ public:
     void returnPreviousMap();
 
     bool returnOrLoadMap(const std::string &worldFile);
+
     bool LoadNewAndRemoveCurrent(const std::string &worldFile);
 
     void run();

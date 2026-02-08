@@ -18,6 +18,10 @@ public:
     PyPlayerExtensionInterface(LimonAPI* api, pybind11::object obj)
         : PlayerExtensionInterface(api), pyObj(obj) {}
 
+    ~PyPlayerExtensionInterface() override {
+        pyObj = pybind11::none(); // Release Python reference
+    }
+
     void processInput(const InputStates& input, const PlayerInformation& playerInfo, long time) override {
         pyObj.attr("process_input")(input, playerInfo, time);
     }
@@ -35,7 +39,6 @@ public:
         if (pyCam.is_none()) {
             return nullptr;
         }
-        // You'll need to implement PyCameraAttachment similarly
     return new PyCameraAttachment(limonAPI, pyCam);
     }
 };

@@ -17,6 +17,9 @@
 #include "PyTriggerInterface.h"
 #include "SDL2Helper.h"
 #include "GenericParameterConverter.h"
+#include "WorldInterpreter.h"
+
+pybind11::scoped_interpreter* ScriptManager::mainInterpreterGuard = nullptr;
 
 #ifndef PYTHON_BUNDLE_ZIP
 #error "PYTHON_BUNDLE_ZIP must be defined by the build system"
@@ -88,7 +91,7 @@ public:
     }
 };
 
-// Add the type caster for std::vector<unsigned int>
+//type caster for std::vector<unsigned int>
 template<>
 class pybind11::detail::type_caster<std::vector<glm::vec3>> {
 public:
@@ -115,7 +118,7 @@ public:
     }
 };
 
-// Add the type caster for std::vector<unsigned int>
+// type caster for std::vector<unsigned int>
 template<>
 class pybind11::detail::type_caster<std::vector<unsigned int>> {
 public:
@@ -242,10 +245,34 @@ static constexpr ActorInterface* (*GetActorFactoryHelper(std::index_sequence<Is.
 // ---------------------------------------------------------
 // 1. EXPOSE C++ TO PYTHON (The Embedded Module)
 // ---------------------------------------------------------
-// Unlike a .so plugin, this module is built directly into your .exe.
-// Python scripts can simply 'import limon' without needing a limon.so file.
-PYBIND11_EMBEDDED_MODULE(limon, m) {
+PYBIND11_EMBEDDED_MODULE(limon, m, pybind11::multiple_interpreters::per_interpreter_gil()) {
+#ifdef PYTHON_DEBUGGING
+    std::cout << "[limon module] Current interpreter: " << PyThreadState_GetInterpreter(PyThreadState_Get()) << std::endl;
+    std::cout << "[limon module] Thread state: " << PyThreadState_Get() << std::endl;
+#endif
+    
+    bool alreadyRegistered = false;
+    try {
+        // Try to access TriggerInterface to see if it's already registered
+        pybind11::module_ testModule = pybind11::module_::import("limon");
+        if (pybind11::hasattr(testModule, "TriggerInterface")) {
+            alreadyRegistered = true;
+        }
+    } catch (...) {
+        // Module not yet imported, so not registered
+    }
+    
+    if (alreadyRegistered) {
+#ifdef PYTHON_DEBUGGING
+        std::cout << "[limon module] Classes already registered in this interpreter, skipping bindings" << std::endl;
+#endif
+        return;
+    }
+    
     m.doc() = "Python bindings for Limon Engine";
+#ifdef PYTHON_DEBUGGING
+    std::cout << "[limon module] Module initialization started" << std::endl;
+#endif
 
     // Note: ValueType and RequestParameterType are now defined in Python (generic_parameter.py)
     // We no longer bind the C++ enums to avoid initialization order issues
@@ -844,7 +871,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
     pybind11::class_<CameraAttachment, PyCameraAttachment>(m, "CameraAttachment")
             .def(pybind11::init([](LimonAPI *api) {
                 // This is a factory function that creates both the Python and C++ objects
-                pybind11::object pyClass = pybind11::module_::import("Engine.Scripts.camera_attachment").attr("CameraAttachment");
+                pybind11::object pyClass = pybind11::module_::import("camera_attachment").attr("CameraAttachment");
                 pybind11::object pyInstance = pyClass.attr("__new__")(pyClass);
                 // Don't call __init__ here - let Python handle it
                 return new PyCameraAttachment(api, pyInstance);
@@ -860,7 +887,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
     pybind11::class_<TriggerInterface, PyTriggerInterface>(m, "TriggerInterface")
             .def(pybind11::init([](LimonAPI *api) {
                 // This is a factory function that creates both the Python and C++ objects
-                pybind11::object pyClass = pybind11::module_::import("Engine.Scripts.trigger_interface").attr("TriggerInterface");
+                pybind11::object pyClass = pybind11::module_::import("trigger_interface").attr("TriggerInterface");
                 pybind11::object pyInstance = pyClass.attr("__new__")(pyClass);
                 // Don't call __init__ here - let Python handle it
                 return new PyTriggerInterface(api, pyInstance);
@@ -873,7 +900,7 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
     pybind11::class_<PlayerExtensionInterface, PyPlayerExtensionInterface>(m, "PlayerExtensionInterface")
         .def(pybind11::init([](LimonAPI *api) {
             // This is a factory function that creates both the Python and C++ objects
-            pybind11::object pyClass = pybind11::module_::import("Engine.Scripts.player_extension_interface").attr("PlayerExtensionInterface");
+            pybind11::object pyClass = pybind11::module_::import("player_extension_interface").attr("PlayerExtensionInterface");
             pybind11::object pyInstance = pyClass.attr("__new__")(pyClass);
             // Don't call __init__ here - let Python handle it
             return new PyPlayerExtensionInterface(api, pyInstance);
@@ -955,73 +982,150 @@ PYBIND11_EMBEDDED_MODULE(limon, m) {
             .def("flush", &PythonStdOut::flush);
 }
 
-ScriptManager::ScriptManager(const std::string& directoryPath) : directoryPath(directoryPath) {
+ScriptManager::ScriptManager(const std::string &directoryPath) : directoryPath(directoryPath) {
+    std::cout << "[ScriptManager][DEBUG] ScriptManager constructor called " << std::endl;
     try {
-        // Get the Python bundle path from the compile definition
-        std::filesystem::path bundlePath(PYTHON_BUNDLE_ZIP);
-        std::filesystem::path localPython = bundlePath.parent_path().parent_path(); // Go up two levels from site-packages.zip
-
-        // 2. Validate it exists (Good for debugging)
-        if (!std::filesystem::exists(localPython)) {
-            std::cerr << "CRITICAL ERROR: Bundled Python environment not found at: "
-                      << localPython << std::endl;
-            std::cerr << "Did you copy the 'python' folder into the build directory?" << std::endl;
-            return;
-        }
-
-        // Set Python path to include the bundle and its lib-dynload directory
-        std::filesystem::path dynLoadPath = bundlePath.parent_path() / "lib-dynload";
-        std::filesystem::path stdLibPath = localPython / "Lib";
-        std::filesystem::path sitePackagesPath = localPython / "Lib" / "site-packages";
-
-        if (!std::filesystem::exists(bundlePath) || !std::filesystem::exists(dynLoadPath)) {
-            std::cerr << "CRITICAL ERROR: Required Python files not found:\n"
-                     << "  " << bundlePath << "\n"
-                     << "  " << dynLoadPath << std::endl;
-            return;
-        }
-
-        // Initialize Python with the new configuration system
-        PyConfig config;
-        PyConfig_InitIsolatedConfig(&config);
-        
-        // Set Python home
-        std::wstring homePath = std::filesystem::absolute(localPython).wstring();
-        PyConfig_SetString(&config, &config.home, homePath.c_str());
-        
-        // Set module search paths
-        config.module_search_paths_set = 1;
-        PyWideStringList_Append(&config.module_search_paths, std::filesystem::absolute(bundlePath).wstring().c_str());
-        PyWideStringList_Append(&config.module_search_paths, std::filesystem::absolute(dynLoadPath).wstring().c_str());
-        PyWideStringList_Append(&config.module_search_paths, std::filesystem::absolute(stdLibPath).wstring().c_str());
-        PyWideStringList_Append(&config.module_search_paths, std::filesystem::absolute(sitePackagesPath).wstring().c_str());
-
         try {
-            pybind11::initialize_interpreter(&config);
-            PyConfig_Clear(&config);
-            std::cout << "[Limon] Python initialized from bundle at: " << bundlePath << std::endl;
-        } catch (const std::exception& e) {
-            std::cerr << "[Limon] Python Init Failed: " << e.what() << std::endl;
-        }
-        pybind11::module_ sys = pybind11::module::import("sys");
-        pybind11::module_ limon = pybind11::module::import("limon");
-        // ReSharper disable once CppExpressionWithoutSideEffects
-        sys.attr("path").attr("append")(directoryPath);
+            std::cout << "[ScriptManager] Starting..." << std::endl;
 
-        // 2. Redirect Python's stdout to our C++ object.
-        // This object is just horribly inefficient, but I assume only usecase for print in python would be troubleshooting,
-        // and batching would make that harder by adding delay
-        pybind11::object redirector = limon.attr("StdOut")();
-        sys.attr("stdout") = redirector;
-        sys.attr("stderr") = redirector; // Catch errors
-    } catch (const std::exception& e) {
-        std::cerr << "[Scripting] Error initializing Python: " << e.what() << std::endl;
+            // Check if interpreter is already running
+            if (Py_IsInitialized()) {
+                std::cout << "[ScriptManager] Python interpreter already running, using existing interpreter..." << std::endl;
+                return;
+            }
+
+            // PYTHON_BUNDLE_ZIP is set by cmake
+            std::filesystem::path bundlePath(PYTHON_BUNDLE_ZIP);
+            std::filesystem::path localPython = bundlePath.parent_path().parent_path(); // Go up two levels from site-packages.zip
+
+            if (!std::filesystem::exists(localPython)) {
+                std::cerr << "CRITICAL ERROR: Bundled Python environment not found at: "
+                        << localPython << std::endl;
+                std::cerr << "Did you copy the 'python' folder into the build directory?" << std::endl;
+                throw std::runtime_error("Python environment not found");
+            }
+
+            // Set Python path to include the bundle and its lib-dynload directory
+            std::filesystem::path dynLoadPath = bundlePath.parent_path() / "lib-dynload";
+            std::filesystem::path stdLibPath = localPython / "Lib";
+            std::filesystem::path sitePackagesPath = localPython / "Lib" / "site-packages";
+
+            if (!std::filesystem::exists(bundlePath) || !std::filesystem::exists(dynLoadPath)) {
+                std::cerr << "CRITICAL ERROR: Required Python files not found:\n"
+                        << "  " << bundlePath << "\n"
+                        << "  " << dynLoadPath << std::endl;
+                throw std::runtime_error("Required Python files not found");
+            }
+
+            // Initialize Python with the new configuration system
+            PyConfig config;
+            PyConfig_InitIsolatedConfig(&config);
+
+            std::wstring homePath = std::filesystem::absolute(localPython).wstring();
+            PyConfig_SetString(&config, &config.home, homePath.c_str());
+
+            config.module_search_paths_set = 1;
+            PyWideStringList_Append(&config.module_search_paths, std::filesystem::absolute(bundlePath).wstring().c_str());
+            PyWideStringList_Append(&config.module_search_paths, std::filesystem::absolute(dynLoadPath).wstring().c_str());
+            PyWideStringList_Append(&config.module_search_paths, std::filesystem::absolute(stdLibPath).wstring().c_str());
+            PyWideStringList_Append(&config.module_search_paths, std::filesystem::absolute(sitePackagesPath).wstring().c_str());
+
+            mainInterpreterGuard = new pybind11::scoped_interpreter(&config);
+            PyConfig_Clear(&config);
+            std::cout << "[ScriptManager] Main Python interpreter initialized successfully" << std::endl;
+        } catch (const std::exception &e) {
+            std::cerr << "[ScriptManager] Failed to initialize main interpreter: " << e.what() << std::endl;
+            throw;
+        }
+        if (!Py_IsInitialized()) {
+            std::cerr << "[ScriptManager] Warning: No Python interpreter available, consider this a fail" << std::endl;
+        }
+    } catch (const std::exception &e) {
+        std::cerr << "[Scripting] Error initializing sub-interpreter: " << e.what() << std::endl;
     }
 }
 
-void ScriptManager::LoadScript(const std::string &moduleName) {
+ScriptManager::~ScriptManager() {
+#ifdef PYTHON_DEBUGGING
+    std::cout << "[ScriptManager] Destructor called, Py_IsInitialized: " << Py_IsInitialized() << std::endl;
+    std::cout << "[ScriptManager] Destructor called, mainInterpreterGuard: " << static_cast<void*>(mainInterpreterGuard) << std::endl;
+#endif
     try {
-        std::cout << "[ScriptManager] trying to load extension: " << moduleName << std::endl;
+        std::cout << "[ScriptManager] Cleaning up ScriptManager instance" << std::endl;
+        // Deactivate any currently active sub-interpreter
+        if (activeSubinterpreter) {
+            std::cout << "[ScriptManager] Deactivating active subinterpreter" << std::endl;
+            activeSubinterpreter->deactivate();
+            activeSubinterpreter = nullptr;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "[ScriptManager] Error during ScriptManager cleanup: " << e.what() << std::endl;
+    }
+    try {
+        if (!subInterpreters.empty()) {
+            std::cerr << "[ScriptManager] WARNING: " << subInterpreters.size() << " subinterpreters were not properly cleaned up!" << std::endl;
+        }
+        std::vector<PythonCallback>& callbacks = GetCallbacks();
+        std::cout << "[ScriptManager] Cleaning up " << callbacks.size() << " static Python callback objects" << std::endl;
+        for (auto& callback : callbacks) {
+            try {
+                callback.pyClass = pybind11::none(); // Release reference to Python class object
+            } catch (...) {
+                // Ignore errors during cleanup
+            }
+        }
+        callbacks.clear();
+
+        if (mainInterpreterGuard && Py_IsInitialized()) {
+            delete mainInterpreterGuard;
+            mainInterpreterGuard = nullptr;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "[ScriptManager] Error during main interpreter cleanup: " << e.what() << std::endl;
+        // Don't rethrow during shutdown
+    }
+}
+
+void ScriptManager::LoadScript(WorldInterpreter * worldInterpreter, const std::string &moduleName) {
+    try {
+        std::cout << "[ScriptManager] Loading module: " << moduleName << " for world: " << worldInterpreter->getWorldName() << std::endl;
+
+        // Use new activation method
+        if (activeSubinterpreter != nullptr && activeSubinterpreter != worldInterpreter) {
+            activeSubinterpreter->deactivate();
+            activeSubinterpreter = nullptr;
+        }
+        activeSubinterpreter = worldInterpreter->activate();
+
+        // Check if we're in main interpreter before importing limon
+        bool isMainInterpreter = true;
+        try {
+            PyThreadState* currentThread = PyThreadState_Get();
+            PyInterpreterState* interpState = PyThreadState_GetInterpreter(currentThread);
+            PyThreadState* mainThreadState = PyInterpreterState_ThreadHead(interpState);
+            isMainInterpreter = (currentThread == mainThreadState);
+        } catch (...) {
+            isMainInterpreter = false;
+        }
+        
+        // Only import limon in main interpreter
+        if (isMainInterpreter) {
+            // Set up Python path in this subinterpreter
+            pybind11::module_ sys = pybind11::module::import("sys");
+            (void) sys.attr("path").attr("append")(directoryPath);
+            
+            // Ensure limon module is available in this subinterpreter
+            try {
+                pybind11::module_ limon = pybind11::module_::import("limon");
+                std::cout << "[ScriptManager] Limon module initialized for subinterpreter: " << worldInterpreter->getWorldName() << std::endl;
+            } catch (const pybind11::error_already_set& e) {
+                std::cerr << "[ScriptManager] Failed to initialize limon module for subinterpreter: " << e.what() << std::endl;
+                PyErr_Print();
+                return;
+            }
+        } else {
+            std::cout << "[ScriptManager] Skipping limon import in subinterpreter (not main interpreter)" << std::endl;
+        }
 
         pybind11::module_ module;
         try {
@@ -1030,14 +1134,9 @@ void ScriptManager::LoadScript(const std::string &moduleName) {
             std::cerr << "[ScriptManager] Failed to import module " << moduleName << ": " << e.what() << std::endl;
             PyErr_Print();
             return;
-        }        pybind11::list triggerClasses = pybind11::list(module.attr("__dict__").attr("items")());
-        for (pybind11::handle item: triggerClasses) {
-            std::pair<std::string, pybind11::object> pair = item.cast<std::pair<std::string, pybind11::object>>();
-            std::string name = pair.first;
-            pybind11::object obj = pair.second;
         }
-
-        for (pybind11::handle item: triggerClasses) {
+        pybind11::list moduleItemsDict = pybind11::list(module.attr("__dict__").attr("items")());
+        for (pybind11::handle item: moduleItemsDict) {
             std::pair<std::string, pybind11::object> pair = item.cast<std::pair<std::string, pybind11::object>>();
             std::string name = pair.first;
             pybind11::object obj = pair.second;
@@ -1059,7 +1158,7 @@ void ScriptManager::LoadScript(const std::string &moduleName) {
                 size_t callbackIndex = GetCallbacks().size();
                 GetCallbacks().push_back({obj, CallBackTypes::TRIGGER});
 
-                constexpr size_t MAX_TRIGGERS = MAX_PYTHON_SCRIPT_COUNT; // Match the value from GENERATE_UP_TO macro
+                constexpr size_t MAX_TRIGGERS = MAX_PYTHON_SCRIPT_COUNT; // Match value from GENERATE_UP_TO macro
                 TriggerFactory factory = GetTriggerFactoryHelper(std::make_index_sequence<MAX_TRIGGERS>{}, callbackIndex);
                 
                 if (!factory) {
@@ -1113,6 +1212,8 @@ TriggerInterface *ScriptManager::CreateTriggerWrapper(LimonAPI *api, size_t inde
     try {
         std::vector<ScriptManager::PythonCallback>& callbacks = GetCallbacks();
         if (index < callbacks.size() && callbacks[index].callBackType == CallBackTypes::TRIGGER) {
+            //We assume correct sub-interpreter is activated before calling
+
             pybind11::object pyClass = callbacks[index].pyClass;
 
             // Create the Python object with proper initialization
@@ -1135,7 +1236,7 @@ PlayerExtensionInterface* ScriptManager::CreatePlayerExtensionWrapper(LimonAPI* 
     try {
         std::vector<ScriptManager::PythonCallback>& callbacks = GetCallbacks();
         if (index < callbacks.size() && callbacks[index].callBackType == CallBackTypes::PLAYER_EXTENSION) {
-            pybind11::gil_scoped_acquire acquire;  // Ensure GIL is held
+            //We assume correct sub-interpreter is activated before calling
 
             try {
                 // Get the Python class
@@ -1178,7 +1279,7 @@ ActorInterface* ScriptManager::CreateActorWrapper(uint32_t id, LimonAPI* api, si
     try {
         std::vector<ScriptManager::PythonCallback>& callbacks = GetCallbacks();
         if (index < callbacks.size() && callbacks[index].callBackType == CallBackTypes::ACTOR) {
-            pybind11::gil_scoped_acquire acquire;  // Ensure GIL is held
+            //We assume correct sub-interpreter is activated before calling
 
             try {
                 // Get the Python class
@@ -1216,4 +1317,121 @@ ActorInterface* ScriptManager::CreateActorWrapper(uint32_t id, LimonAPI* api, si
         std::cerr << "[ScriptManager] Error in CreateActorWrapper: " << e.what() << std::endl;
     }
     return nullptr;
+}
+
+// Sub-interpreter management
+WorldInterpreter* ScriptManager::createWorldInterpreter(const std::string& worldName) {
+    try {
+        std::cout << "[ScriptManager] Creating subinterpreter for world: " << worldName << std::endl;
+        
+        // Ensure main interpreter is ready
+        if (!Py_IsInitialized()) {
+            std::cerr << "[ScriptManager] Cannot create sub-interpreter: main interpreter not initialized" << std::endl;
+            throw std::runtime_error("Main interpreter not initialized");
+        }
+        
+        WorldInterpreter* worldInterpreter = new WorldInterpreter(worldName);
+        try {
+            if (activeSubinterpreter != nullptr) {
+                activeSubinterpreter->deactivate();
+            }
+            activeSubinterpreter = worldInterpreter->activate();
+
+            // Import the sys module to set up paths
+            pybind11::module_ sys = pybind11::module::import("sys");
+
+            // Add script directory to Python path
+            (void) sys.attr("path").attr("append")(directoryPath);
+
+            // Import our embedded limon module - this should be available from main interpreter
+            pybind11::module_ limon = pybind11::module::import("limon");
+
+            // Set up stdout/stderr redirection if StdOut is available
+            if (pybind11::hasattr(limon, "StdOut")) {
+                pybind11::object redirector = limon.attr("StdOut")();
+                sys.attr("stdout") = redirector;
+                sys.attr("stderr") = redirector;
+            } else {
+#ifdef PYTHON_DEBUGGING
+                std::cout << "[ScriptManager] StdOut not available in limon module, skipping redirection" << std::endl;
+#endif
+            }
+
+            std::cout << "[ScriptManager] Sub-interpreter multi-phase initialization completed successfully" << std::endl;
+            worldInterpreter->deactivate();
+
+        } catch (const std::exception& e) {
+            std::cerr << "[ScriptManager] Error during sub-interpreter phase 2 initialization: " << e.what() << std::endl;
+            throw;
+        }
+        subInterpreters[worldName] = worldInterpreter;
+        //and of course load the scripts
+        loadScripts(worldInterpreter);
+        std::cout << "[ScriptManager] Added interpreter for world: " << worldName << std::endl;
+        
+        return worldInterpreter;
+    } catch (const std::exception& e) {
+        std::cerr << "[ScriptManager] Failed to create sub-interpreter: " << e.what() << std::endl;
+        throw;
+    }
+}
+
+void ScriptManager::removeWorldInterpreterInternal(WorldInterpreter* world_interpreter) {
+    if (!world_interpreter) {
+        return;
+    }
+    
+    std::cout << "[ScriptManager] Removing world interpreter for: " << world_interpreter->getWorldName() << " (count: " << subInterpreters.size() << ")" << std::endl;
+    
+    // Remove from the loaded interpreters map
+    auto it = subInterpreters.find(world_interpreter->getWorldName());
+    if (it != subInterpreters.end()) {
+        std::cout << "[ScriptManager] Removing interpreter for world: " << world_interpreter->getWorldName() << std::endl;
+        subInterpreters.erase(it);
+    }
+    
+    // If this is the currently active world, deactivate it first
+    if (activeSubinterpreter == world_interpreter) {
+        std::cout << "[ScriptManager] Deactivating current active world interpreter" << std::endl;
+        activeSubinterpreter->deactivate();
+        activeSubinterpreter = nullptr;
+    }
+    
+    delete world_interpreter;
+}
+
+// New methods that take world names
+void ScriptManager::removeWorldInterpreter(const std::string& worldName) {
+    auto it = subInterpreters.find(worldName);
+    if (it != subInterpreters.end()) {
+        removeWorldInterpreterInternal(it->second);
+    }
+}
+
+void ScriptManager::setActiveSubInterpreter(const std::string& worldName) {
+    auto it = subInterpreters.find(worldName);
+    if (it != subInterpreters.end()) {
+        if (it->second) {
+            // Check if this world is already active
+            if (activeSubinterpreter == it->second && activeSubinterpreter) {
+                return;
+            }
+
+            // This will replace the old activation (if any), but that's OK since we're switching worlds
+            if (activeSubinterpreter != nullptr && activeSubinterpreter != it->second) {
+                activeSubinterpreter->deactivate();
+                activeSubinterpreter = nullptr;
+            }
+            activeSubinterpreter = it->second->activate();
+            std::cout << "[ScriptManager] Activated subinterpreter for world: " << it->second->getWorldName() << std::endl;
+        } else {
+            if (activeSubinterpreter) {
+                activeSubinterpreter->deactivate();
+            }
+            activeSubinterpreter = nullptr;
+            std::cout << "[ScriptManager] Deactivated subinterpreter" << std::endl;
+        }
+    } else {
+        std::cerr << "[ScriptManager] No interpreter found for world: " << worldName << std::endl;
+    }
 }

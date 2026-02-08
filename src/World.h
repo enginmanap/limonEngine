@@ -215,7 +215,7 @@ private:
     Sound* music = nullptr;
 
     OptionsUtil::Options::Option<bool> renderInformationsOption;
-
+    
     std::vector<Model*> updatedModels;
     // This map is also used as a list of Cameras, and Hashes, so if a camera is removed, it should be removed from this map
     // In case of a clear, we should not clear the hashes, as it is basically meaningless.

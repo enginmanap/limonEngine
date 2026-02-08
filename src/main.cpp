@@ -8,6 +8,7 @@
 #include "World.h"
 #include "WorldLoader.h"
 #include "GameObjects/GUIImage.h"
+#include "Python/ScriptManager.h"
 #include <pthread.h>
 
 const std::string PROGRAM_NAME = "LimonEngine";
@@ -22,22 +23,33 @@ bool GameEngine::loadAndChangeWorld(const std::string &worldFile) {
         renderLoadingImage();
     }
     LimonAPI* apiInstance = getNewLimonAPI();
+    if(currentWorld != nullptr) {
+        currentWorld->setupForPauseOrStop();//We have to make sure occlusion threads stopped before interpreter change
+    }
+#ifdef PYTHON_DEBUGGING
+    std::cout << "[ScriptManager] calling create world Interpreter for " << worldFile << std::endl;
+#endif
+    scriptManager->createWorldInterpreter(worldFile);
+    scriptManager->setActiveSubInterpreter(worldFile);
+
     World* newWorld = worldLoader->loadWorld(worldFile, apiInstance);
+    
     if(newWorld == nullptr) {
         delete apiInstance;
         return false;
     }
+
     if(loadedWorlds.find(worldFile) != loadedWorlds.end()) {
         delete loadedWorlds[worldFile].second;
         delete loadedWorlds[worldFile].first;
-    }
-    if(currentWorld != nullptr) {
-        currentWorld->setupForPauseOrStop();
+        scriptManager->removeWorldInterpreter(worldFile);
     }
     currentWorld = newWorld;
+    scriptManager->setActiveSubInterpreter(worldFile);
     currentWorld->setupForPlay(*inputHandler);
     loadedWorlds[worldFile].first = currentWorld;
     loadedWorlds[worldFile].second = apiInstance;
+
     returnWorldStack.push_back(currentWorld);
     previousGameTime = SDL_GetTicks64();
     return true;
@@ -62,22 +74,28 @@ bool GameEngine::returnOrLoadMap(const std::string &worldFile) {
                 currentWorld->setupForPauseOrStop();
             }
             currentWorld = loadedWorlds[worldFile].first;
+            // Activate the corresponding interpreter when switching to this world
+            scriptManager->setActiveSubInterpreter(worldFile);
         }
 
     } else { //world is not in the map case
         renderLoadingImage();
         LimonAPI* apiInstance = getNewLimonAPI();
+        if (currentWorld != nullptr) {
+            currentWorld->setupForPauseOrStop();//We have to make sure occlusion threads stopped before interpreter change
+        }
+        scriptManager->createWorldInterpreter(worldFile);
+        scriptManager->setActiveSubInterpreter(worldFile);
         World* newWorld = worldLoader->loadWorld(worldFile, apiInstance);
         if(newWorld == nullptr) {
             delete apiInstance;
             return false;
         }
-        if (currentWorld != nullptr) {
-            currentWorld->setupForPauseOrStop();
-        }
+
         currentWorld = newWorld;
         loadedWorlds[worldFile].first = currentWorld;
         loadedWorlds[worldFile].second = apiInstance;
+
     }
     currentWorld->setupForPlay(*inputHandler);
     returnWorldStack.push_back(currentWorld);
@@ -116,12 +134,15 @@ void GameEngine::returnPreviousMap() {
             currentWorld->setupForPauseOrStop();
         }
         currentWorld = returnWorldStack[returnWorldStack.size()-1];
+        scriptManager->setActiveSubInterpreter(currentWorld->getName());
         currentWorld->setupForPlay(*inputHandler);
     }
     previousGameTime = SDL_GetTicks64();
 }
 
 GameEngine::GameEngine() {
+    scriptManager = new ScriptManager("./Engine/Scripts");
+
     options = new OptionsUtil::Options([](){return SDL_GetTicks();});
 
     options->loadOptionsNew(OPTIONS_FILE);
@@ -207,12 +228,14 @@ void GameEngine::run() {
 }
 
 GameEngine::~GameEngine() {
-
     for (auto iterator = loadedWorlds.begin(); iterator != loadedWorlds.end(); ++iterator) {
+        scriptManager->setActiveSubInterpreter(iterator->first);
         delete iterator->second.first;//delete world
         delete iterator->second.second;//delete API
+        scriptManager->removeWorldInterpreter(iterator->first);
     }
 
+    delete scriptManager;
     this->assetManager = nullptr;
     delete worldLoader;
     delete inputHandler;
@@ -278,4 +301,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
