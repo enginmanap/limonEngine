@@ -30,7 +30,7 @@ class WorldInterpreter {
         }
         
         // Force cleanup of any remaining Python objects in this subinterpreter
-        if (Py_IsInitialized() && !Py_IsFinalizing() && subInterpreter) {
+        if (Py_IsInitialized() && subInterpreter) {
             // Switch to this subinterpreter temporarily to clean up
             pybind11::subinterpreter_scoped_activate temp_activate(*subInterpreter);
 
