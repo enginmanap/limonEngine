@@ -187,7 +187,7 @@ class SimpleGuardActor(ActorInterface):
         
         if self._state == "chase" and (time - self._last_player_seen_time) > (self._alert_duration // 2):
             self._state = "alert"
-            print(f"{self.get_name()():} Lost player during chase, searching...")
+            print(f"{self.get_name():} Lost player during chase, searching...")
             return
         
         # Simple patrol behavior
@@ -207,7 +207,7 @@ class SimpleGuardActor(ActorInterface):
                 # Check if we have a route to player (if pathfinding is available)
                 if actor_information.route_found and actor_information.route_ready:
                     route = actor_information.route_to_request
-                    print(f"{self.get_name()():} Route to player found with {len(route)} waypoints")
+                    print(f"{self.get_name():} Route to player found with {len(route)} waypoints")
                 else:
                     print(f"{self.get_name()}: No route to player available")
 
