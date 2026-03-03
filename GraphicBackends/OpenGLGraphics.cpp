@@ -1176,11 +1176,7 @@ void OpenGLGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Text
 
     int32_t attachmentTemp;
     unsigned int drawBufferAttachments[6];
-    if(attachPoint == OpenGLGraphics::FrameBufferAttachPoints::DEPTH) {
-        if(clear) {
-            glClear(GL_DEPTH_BUFFER_BIT);
-        }
-    } else {
+    if(attachPoint != OpenGLGraphics::FrameBufferAttachPoints::DEPTH) {
         for (unsigned int i = 0; i < 6; ++i) {
             if (i == index) {
                 drawBufferAttachments[i] = glAttachment;
@@ -1225,6 +1221,8 @@ void OpenGLGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Text
     if(clear) {
         if(attachPoint == OpenGLGraphics::FrameBufferAttachPoints::DEPTH) {
             glClear(GL_DEPTH_BUFFER_BIT);
+        } else {
+            glClear(GL_COLOR_BUFFER_BIT);
         }
     }
     checkErrors("attachDrawTextureToFrameBuffer");

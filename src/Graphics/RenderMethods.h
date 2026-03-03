@@ -243,12 +243,9 @@ public:
                                 if(lights.empty() ) {
                                     return;
                                 }
-                                for (int i = 0; i < cascadeCount; ++i) {
-                                        stage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, layeredDepthMap, true, i);
-                                }
                                 size_t lightId = lights[0];
                                 for (int i = 0; i < cascadeCount; ++i) {
-                                    stage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, layeredDepthMap, false, i);
+                                    stage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, layeredDepthMap, true, i);
                                     renderLight(lightId, i, renderProgram, tags);
                                 }
 
