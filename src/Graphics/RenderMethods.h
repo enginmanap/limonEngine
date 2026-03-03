@@ -174,10 +174,6 @@ private:
         return getLightsByType(lightType);
     }
 
-    std::function<void(unsigned int, unsigned int, std::shared_ptr<GraphicsProgram>, const std::vector<HashUtil::HashedString> &)>& getRenderLightMethod() {
-        return renderLight;
-    }
-
     RenderMethod getBuiltInRenderMethod(const std::string& methodName, const std::shared_ptr<GraphicsProgram>& glslProgram, bool& isFound) const {
         uint32_t priority = 0;
         std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags [[gnu::unused]])> method = getRenderMethodByName(methodName, isFound, priority);
@@ -245,7 +241,7 @@ public:
                                 }
                                 size_t lightId = lights[0];
                                 for (int i = 0; i < cascadeCount; ++i) {
-                                    stage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, layeredDepthMap, true, i);
+                                    stage->setOutput(GraphicsInterface::FrameBufferAttachPoints::DEPTH, layeredDepthMap, false, i);
                                     renderLight(lightId, i, renderProgram, tags);
                                 }
 

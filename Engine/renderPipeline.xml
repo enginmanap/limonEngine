@@ -388,7 +388,7 @@
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
-            <Clear>True</Clear>
+            <Clear>False</Clear>
             <GraphicsPipelineStage>
                 <DefaultRenderHeight>1024</DefaultRenderHeight>
                 <DefaultRenderWidth>1024</DefaultRenderWidth>

@@ -255,6 +255,33 @@
         <IsSet>True</IsSet>
         <Index>0</Index>
     </Parameter>
+    <!-- Stagger updates:
+     Cascade 1: updates at frames 1, 3, 5... (Interval 2, Offset 1)
+     Cascade 2: updates at frames 2, 6, 10... (Interval 4, Offset 2)
+     Cascade 3: updates at frames 4, 12, 20... (Interval 8, Offset 4)
+     This ensures progressively less updates (frequency 1/2^i)
+     and distributes the load so we don't have spikes where all update at once.
+     increasing these values would improve framerate, but will delay shadows-->
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>CascadeStaggerOffsets</Description>
+        <!-- This variable sets the which frame will render which cascade. Cascade 0 updates every frame, so skipped.-->
+        <Value>4, 1, 2, 4</Value>
+<!--        <Value>4, 0, 0, 0</Value> no offset, for rendering each frame-->
+        <valueType>LongArray</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>CascadeStaggerIntervals</Description>
+        <!-- This variable sets the how often we render the cascade. Cascade 0 updates every frame, so skipped. -->
+        <Value>4, 2, 4, 8</Value>
+<!--        <Value>4, 1, 1, 1</Value> interval 1 is each frame, enable with offset for all cascades each frame-->
+        <valueType>LongArray</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>LodDistanceList</Description>

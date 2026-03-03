@@ -645,11 +645,13 @@ void World::fillVisibleObjectsUsingTags() {
             it2.second.cleanUpEmptyRenderLists();
         }
     }
-    for (auto &it: cullingResults) {
-        if (it.first->isDirty()) {
-            it.first->clearDirty();//clear after processing so we can check while processing
-        }
-    }
+    //we are not clearing dirty, because cascades checks if dirty to trigger rendering.
+    //it is possible this is not a good thing.
+    // for (auto &it: cullingResults) {
+    //     if (it.first->isDirty()) {
+    //         it.first->clearDirty();//clear after processing so we can check while processing
+    //     }
+    // }
 }
 
 ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *actor) {
@@ -666,7 +668,6 @@ ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *act
         glm::vec3 rayDir = currentPlayer->getPosition() - actor->getPosition();
         float cosBetween = glm::dot(normalize(front), normalize(rayDir));
         information.playerDistance = glm::length(rayDir);
-        information.cosineBetweenPlayer = cosBetween;
         information.playerDirection = normalize(rayDir);
         if (cosBetween > 0) {
             information.isPlayerFront = true;
@@ -982,18 +983,22 @@ void World::renderSky(const std::shared_ptr<GraphicsProgram>& renderProgram, con
 }
 
 void World::renderLight(unsigned int lightIndex, unsigned int renderLayer, const std::shared_ptr<GraphicsProgram> &renderProgram, const std::vector<HashUtil::HashedString> &tags) const {
-       renderProgram->setUniform("renderLightIndex", (int) lightIndex);
-       renderProgram->setUniform("renderLightLayer", (int) renderLayer);
-       Light* selectedLight = activeLights[lightIndex];
-       Camera* lightCamera = selectedLight->getCameras()[renderLayer];
-       std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>* cullingResult = cullingResults.at(lightCamera);
-       for (const auto& iterator:*cullingResult) {
-           if (!VisibilityRequest::vectorComparator(iterator.first, tags)) {
-               continue;
-           }
-           const RenderList& renderList = iterator.second;
-           renderList.render(graphicsWrapper, renderProgram);
-       }
+    Light* selectedLight = activeLights[lightIndex];
+    Camera* lightCamera = selectedLight->getCameras()[renderLayer];
+    if (lightCamera->isDirty()) {
+        graphicsWrapper->clearDepthBuffer();
+        renderProgram->setUniform("renderLightIndex", (int) lightIndex);
+        renderProgram->setUniform("renderLightLayer", (int) renderLayer);
+        std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>* cullingResult = cullingResults.at(lightCamera);
+        for (const auto& iterator:*cullingResult) {
+            if (!VisibilityRequest::vectorComparator(iterator.first, tags)) {
+                continue;
+            }
+            const RenderList& renderList = iterator.second;
+            renderList.render(graphicsWrapper, renderProgram);
+        }
+        lightCamera->clearDirty();
+    }
 }
 
 /**

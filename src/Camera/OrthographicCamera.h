@@ -48,7 +48,7 @@ public:
     };
 
     bool isDirty() const override {
-        return this->dirty || cameraAttachment->isDirty();
+        return this->dirty;// || cameraAttachment->isDirty(); this was here to allow clearDirty from culling threads. Now it is cleared by rendering.
     };
 
     void clearDirty() override {

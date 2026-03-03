@@ -37,15 +37,39 @@ private:
     std::vector<Camera*> cubeCameras;// There is only one, but to keep the interface we do it this way
     LightTypes lightType;
     bool frustumChanged = true;
+    OptionsUtil::Options::Option<std::vector<long>> cascadeStaggerIntervalListOption;
+    OptionsUtil::Options::Option<std::vector<long>> cascadeStaggerOffsetListOption;
+    long frameCounter = 0; //This feels hackish. Maybe it should be on the step function for the world?
 
     void updateLightView(const PerspectiveCamera* playerCamera) {
         frustumChanged = true;
+
+        std::vector<long> intervalOptions = cascadeStaggerIntervalListOption.get();
+        std::vector<long> offsetOptions = cascadeStaggerOffsetListOption.get();
+        int i = 0;
         for(Camera *directionalCamera : directionalCameras) {
-            static_cast<OrthographicCamera*>(directionalCamera)->getCameraMatrix();
-            static_cast<OrthographicCamera*>(directionalCamera)->recalculateView(playerCamera);
+            bool shouldUpdate = false;
+            if (i == 0) {
+                shouldUpdate = true;
+            } else {
+                long interval = intervalOptions[i - 1];
+                long offset = offsetOptions[i - 1];
+                if (frameCounter % interval == offset) {
+                    shouldUpdate = true;
+                }
+            }
+
+            if (shouldUpdate) {
+                static_cast<OrthographicCamera*>(directionalCamera)->getCameraMatrix();
+                static_cast<OrthographicCamera*>(directionalCamera)->recalculateView(playerCamera);
+                //getCameraMatrix automatically flags the camera as dirty
+            } else {
+                directionalCamera->clearDirty();//do not render if not needed
+            }
+            i++;
         }
-        this->clearDirty();
-        frustumChanged = true;
+
+        frameCounter++;
     }
 
 public:
@@ -63,6 +87,10 @@ public:
             //we wanna create as many cameras as the cascade levels
             const OptionsUtil::Options::Option<long> cascadeCountOption = graphicsWrapper->getOptions()->getOption<long>(HASH("CascadeCount"));
             long cascadeCount = cascadeCountOption.getOrDefault(4L);
+            cascadeStaggerIntervalListOption = graphicsWrapper->getOptions()->getOption<std::vector<long>>(HASH("CascadeStaggerIntervals"));
+            assert(cascadeStaggerIntervalListOption.isUsable());
+            cascadeStaggerOffsetListOption = graphicsWrapper->getOptions()->getOption<std::vector<long>>(HASH("CascadeStaggerOffsets"));
+            assert(cascadeStaggerOffsetListOption.isUsable());
 
             for(int i = 0; i < cascadeCount; i++) {
                 directionalCameras.emplace_back(new OrthographicCamera(this->Light::getName() + " camera", graphicsWrapper->getOptions(), i, this));
