@@ -33,6 +33,7 @@ class OcclusionCullerHelper {
     glm::vec3 playerPos;
     glm::vec3 viewDir;
     glm::mat4 finalDXMatrix;
+    bool debugOccluderRendering = false; // New flag for debugging occluder rendering
 public:
     OcclusionCullerHelper() {
         //sdocInstance = sdocInit(1024, 256, 0.0001f);
@@ -84,7 +85,7 @@ public:
 
     void newFrame(const glm::vec3& cameraPosition[[gnu::unused]],const glm::vec3& viewDirection[[gnu::unused]],const glm::mat4& cameraMatrix, const glm::mat4& projectionMatrix) {
         if (!sdocInstance) {
-            sdocInstance = static_cast<SOC::SOCPrivate *>(sdocInit(2560 / 1, 1440 / 1, 0.10f));
+            sdocInstance = static_cast<SOC::SOCPrivate *>(sdocInit(2560 / 1, 1440 / 1, 0.010f));
             // Enable occluder debugging
             unsigned int activeOcc = 1;
             sdocSet(sdocInstance, SDOC_DebugPrintActiveOccluder, activeOcc);
@@ -131,37 +132,29 @@ public:
 
     void renderOccluder(const Model::MeshMeta* meshMeta, const glm::mat4 &modelMatrix) {
         const uint32_t *triangleCounts = meshMeta->mesh->getTriangleCount();
-        size_t vertCount = meshMeta->mesh->getVertices().size() * 3;  // Convert vec3 count to float count
+        size_t vertCount = meshMeta->mesh->getVertices().size();
         size_t idxCount = triangleCounts[0] * 3;//first LOD
 
-        // std::cout << "DEBUG: Rendering occluder - vertices: " << vertCount
-        //           << ", faces: " << faceCount
-        //           << ", indices: " << idxCount << std::endl;
-/*
-        // Convert to flat arrays to ensure proper memory layout
-        std::vector<float> flatVertices;
-        flatVertices.reserve(vertCount);
-        for (const auto& vert : meshMeta->mesh->getVertices()) {
-            flatVertices.push_back(vert.x);
-            flatVertices.push_back(vert.y);
-            flatVertices.push_back(vert.z);
+        if (debugOccluderRendering) { // Use the new flag
+            std::cout << "DEBUG: Rendering occluder: " << meshMeta->mesh->getName() << std::endl;
+            std::cout << "  vertCount: " << vertCount << ", idxCount: " << idxCount << std::endl;
+            if (vertCount > 0 && meshMeta->mesh->getVertices().data() != nullptr) {
+                const float* vertices = &(meshMeta->mesh->getVertices().data()->x);
+                std::cout << "  First 3 vertices: (" << vertices[0] << ", " << vertices[1] << ", " << vertices[2] << ")" << std::endl;
+            } else {
+                std::cout << "  WARNING: No vertices or null vertex data for " << meshMeta->mesh->getName() << std::endl;
+            }
+            if (idxCount > 0 && meshMeta->mesh->getFaces().data() != nullptr) {
+                const unsigned short* indices = &(meshMeta->mesh->getFaces().data()->x);
+                std::cout << "  First 3 indices: (" << indices[0] << ", " << indices[1] << ", " << indices[2] << ")" << std::endl;
+            } else {
+                std::cout << "  WARNING: No indices or null index data for " << meshMeta->mesh->getName() << std::endl;
+            }
         }
 
-        std::vector<unsigned short> flatIndices;
-        flatIndices.reserve(idxCount);
-        for (const auto& face : meshMeta->mesh->getFaces()) {
-            flatIndices.push_back(face.x);
-            flatIndices.push_back(face.y);
-            flatIndices.push_back(face.z);
-        }
-
-        std::cout << "=== SUBMITTING OCCLUDER ===" << std::endl;
-        std::cout << "Mesh: " << meshMeta->mesh->getName() << std::endl;
-        std::cout << "Vertices: " << vertCount << ", Faces: " << faceCount << ", Indices: " << idxCount << std::endl;
-*/
         sdocRenderOccluder(sdocInstance,
             &(meshMeta->mesh->getVertices().data()->x),
-            &(meshMeta->mesh->getFaces().data()->x),
+            (const unsigned short *)&(meshMeta->mesh->getFaces().data()->x),
             vertCount,
             idxCount,
             glm::value_ptr(modelMatrix),

@@ -475,7 +475,7 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
        float objectScreenSize;
        glm::mat4 viewMatrix;
        glm::vec3 viewDirection;
-    glm::vec3 cameraPos;
+       glm::vec3 cameraPos;
        if(visibilityRequest->camera->getType() == Camera::CameraTypes::PERSPECTIVE ||
                visibilityRequest->camera->getType() == Camera::CameraTypes::ORTHOGRAPHIC) {
            skipRenderDistance = visibilityRequest->skipRenderDistanceOption.get();
@@ -489,6 +489,9 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
        if (visibilityRequest->camera->getType() != Camera::CameraTypes::PERSPECTIVE) {
            skipOcclusionCulling = true;
        } else {
+           for (auto &renderListIt:*(visibilityRequest->visibility)) {
+               renderListIt.second.clear();
+           }
            // cameraMatrix = visibilityRequest->camera->getCameraMatrixConst();
            // viewDirection = glm::vec3(cameraMatrix[2][0], cameraMatrix[2][1], cameraMatrix[2][2]);
            // viewDirection = 1 * viewDirection;
@@ -512,7 +515,7 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
         uint32_t occluderCounter = 0;
         uint32_t occludedCounter = 0;
        for (auto objectIt = visibilityRequest->objects->begin(); objectIt != visibilityRequest->objects->end(); ++objectIt) {
-           if(!visibilityRequest->camera->isDirty() && !objectIt->second->isDirtyForFrustum()) {
+           if(!visibilityRequest->camera->isDirty() && !objectIt->second->isDirtyForFrustum() && skipOcclusionCulling) {
                continue; //if neither object nor camera dirty, no need to recalculate
            }
            Model *currentModel = dynamic_cast<Model *>(objectIt->second);
@@ -526,10 +529,10 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
                    if (VisibilityRequest::isAnyTagMatch(visibilityEntry.first, currentModel->getTags())) {
                        if(isVisible) {
                            const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                           if (meshMetas.size() < 10) {
+                           if (meshMetas.size() < 1000) {
                                totalCounter += meshMetas.size();
                                uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second->getAabbMin(), objectIt->second->getAabbMax(), objectAverageDepth, objectScreenSize);
-                               if (objectScreenSize > 0.25 || skipOcclusionCulling) {
+                               if (objectScreenSize > 1.0f || skipOcclusionCulling) {
                                    occluderCounter += meshMetas.size();
                                    if (!skipOcclusionCulling) {
                                        visibilityRequest->occlusionCuller.renderOccluder(currentModel);
@@ -548,7 +551,7 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
                                    if (visibilityRequest->camera->isVisible(currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMin(),
                                         currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMax())) {
                                        uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), objectAverageDepth, objectScreenSize);
-                                       if (objectScreenSize > 0.25 || skipOcclusionCulling) {
+                                       if (objectScreenSize > 1.0f || skipOcclusionCulling) {
                                            occluderCounter++;
                                            if (!skipOcclusionCulling) {
                                                visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform());
