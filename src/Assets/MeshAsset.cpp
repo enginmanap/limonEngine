@@ -192,7 +192,7 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
     size_t target_index_count = size_t(faces.size()*3 * threshold);
     float target_error = 0.001f;
 
-    std::vector<unsigned int> lod(faces.size()*3);
+    std::vector<uint16_t> lod(faces.size()*3);
     lod.resize(meshopt_simplify(&lod[0], &(faces[0].x), faces.size()*3, &vertices[0].x, vertices.size(), sizeof(glm::vec3),
                                 target_index_count, target_error));
     //now we have new faces. lets assign.
@@ -210,7 +210,7 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
     size_t target_index_count2 = size_t(triangleCount[0]*3 * threshold2);
     float target_error2 = 0.01f;
 
-    std::vector<unsigned int> lod2(triangleCount[0]*3);
+    std::vector<uint16_t> lod2(triangleCount[0]*3);
     lod2.resize(meshopt_simplify(&lod2[0], &(faces[0].x), triangleCount[0]*3, &vertices[0].x, vertices.size(), sizeof(glm::vec3),
                                 target_index_count2, target_error2));
     //now we have new faces. lets assign.
@@ -229,7 +229,7 @@ bool MeshAsset::setTriangles(const aiMesh *currentMesh) {
     size_t target_index_count3 = size_t(triangleCount[0]*3 * threshold3);
     float target_error3 = 0.5f;
 
-    std::vector<unsigned int> lod3(triangleCount[0]*3);
+    std::vector<uint16_t> lod3(triangleCount[0]*3);
     lod3.resize(meshopt_simplify(&lod3[0], &(faces[0].x), triangleCount[0]*3, &vertices[0].x, vertices.size(), sizeof(glm::vec3),
                                  target_index_count3, target_error3));
     //now we have new faces. lets assign.

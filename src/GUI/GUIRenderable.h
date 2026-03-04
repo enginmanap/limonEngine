@@ -17,7 +17,7 @@ class GUIRenderable : public Renderable {
 
 protected:
     //TODO maybe this should not be protected, but private
-    std::vector<glm::uvec3> faces;
+    std::vector<glm::u16vec3> faces;
     uint32_t textureID;
 
 public:

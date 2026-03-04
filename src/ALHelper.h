@@ -56,7 +56,7 @@ class ALHelper {
     ALCdevice *dev;
     ALCcontext *ctx;
 
-    glm::vec3 ListenerPosition;
+    glm::vec3 ListenerPosition = glm::vec3(0.0f,0.0f,0.0f);
     bool running = true;
     bool paused = false;
     bool resumed = false;

@@ -56,20 +56,20 @@ void SSAOKernelRenderMethod::setupQuad() {
 
     vertices.emplace_back( -1.0f,  1.0f, 0.0f);
     vertices.emplace_back( -1.0f, -1.0f, 0.0f);
-    vertices.emplace_back(glm::vec3(  1.0f,  1.0f, 0.0f));
-    vertices.emplace_back(glm::vec3(  1.0f, -1.0f, 0.0f));
+    vertices.emplace_back( 1.0f,  1.0f, 0.0f);
+    vertices.emplace_back( 1.0f, -1.0f, 0.0f);
 
-    std::vector<glm::uvec3> faces;
+    std::vector<glm::u16vec3> faces;
 
-    faces.emplace_back(glm::uvec3(0,1,2));
-    faces.emplace_back(glm::uvec3(2,1,3));
+    faces.emplace_back(glm::u16vec3(0,1,2));
+    faces.emplace_back(glm::u16vec3(2,1,3));
 
     std::vector<glm::vec2> textureCoordinates;
 
-    textureCoordinates.emplace_back(glm::vec2(0.0f, 1.0f));
-    textureCoordinates.emplace_back(glm::vec2(0.0f, 0.0f));
-    textureCoordinates.emplace_back(glm::vec2(1.0f, 1.0f));
-    textureCoordinates.emplace_back(glm::vec2(1.0f, 0.0f));
+    textureCoordinates.emplace_back(0.0f, 1.0f);
+    textureCoordinates.emplace_back(0.0f, 0.0f);
+    textureCoordinates.emplace_back(1.0f, 1.0f);
+    textureCoordinates.emplace_back(1.0f, 0.0f);
 
     uint32_t vbo;
     graphicsInterface->bufferVertexData(vertices, faces, vao, vbo, 1, ebo);

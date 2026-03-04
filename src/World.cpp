@@ -38,6 +38,7 @@
 #include "Graphics/PostProcess/QuadRender.h"
 #include "Editor/Editor.h"
 #include "Occlusion/RenderList.h"
+#include "snapdragon-oc/Source/app/FuzzyCulling/API/SDOCAPI.h"
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -471,7 +472,10 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
        std::vector<long> lodDistances = visibilityRequest->lodDistancesOption.get();
        float skipRenderDistance = 0, skipRenderSize = 0, maxSkipRenderSize = 0;
        float objectAverageDepth;
+       float objectScreenSize;
        glm::mat4 viewMatrix;
+       glm::vec3 viewDirection;
+    glm::vec3 cameraPos;
        if(visibilityRequest->camera->getType() == Camera::CameraTypes::PERSPECTIVE ||
                visibilityRequest->camera->getType() == Camera::CameraTypes::ORTHOGRAPHIC) {
            skipRenderDistance = visibilityRequest->skipRenderDistanceOption.get();
@@ -479,6 +483,34 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
            maxSkipRenderSize = visibilityRequest->maxSkipRenderSizeOption.get();
            viewMatrix = visibilityRequest->camera->getProjectionMatrix() * visibilityRequest->camera->getCameraMatrixConst();
        }
+    static int frameCount = 0;
+
+       bool skipOcclusionCulling = false;
+       if (visibilityRequest->camera->getType() != Camera::CameraTypes::PERSPECTIVE) {
+           skipOcclusionCulling = true;
+       } else {
+           // cameraMatrix = visibilityRequest->camera->getCameraMatrixConst();
+           // viewDirection = glm::vec3(cameraMatrix[2][0], cameraMatrix[2][1], cameraMatrix[2][2]);
+           // viewDirection = 1 * viewDirection;
+
+           glm::mat4 invertedView = glm::inverse(visibilityRequest->camera->getCameraMatrixConst());
+           viewDirection = -glm::vec3(invertedView[2]);
+           viewDirection = glm::normalize(viewDirection);
+           cameraPos = glm::vec3(invertedView[3]); // 4th column
+           // viewDirection.x = 0.0309285466;
+           // viewDirection.y = 0.1233555;
+           // viewDirection.z = -0.991880536;
+           //visibilityRequest->occlusionCuller.newFrame(cameraPos, viewDirection, viewMatrix);
+           visibilityRequest->occlusionCuller.newFrame(cameraPos, viewDirection, visibilityRequest->camera->getCameraMatrixConst(), visibilityRequest->camera->getProjectionMatrix());
+           if (frameCount == 299) {
+               //visibilityRequest->occlusionCuller.dumpDepth();
+               //sleep(1);
+           }
+       }
+        uint32_t skipCounter = 0;
+        uint32_t totalCounter = 0;
+        uint32_t occluderCounter = 0;
+        uint32_t occludedCounter = 0;
        for (auto objectIt = visibilityRequest->objects->begin(); objectIt != visibilityRequest->objects->end(); ++objectIt) {
            if(!visibilityRequest->camera->isDirty() && !objectIt->second->isDirtyForFrustum()) {
                continue; //if neither object nor camera dirty, no need to recalculate
@@ -495,20 +527,36 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
                        if(isVisible) {
                            const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
                            if (meshMetas.size() < 10) {
-                               uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second->getAabbMin(), objectIt->second->getAabbMax(), objectAverageDepth);
-                               for (auto& meshMeta:meshMetas) {
-                                   visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
+                               totalCounter += meshMetas.size();
+                               uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second->getAabbMin(), objectIt->second->getAabbMax(), objectAverageDepth, objectScreenSize);
+                               if (objectScreenSize > 0.25 || skipOcclusionCulling) {
+                                   occluderCounter += meshMetas.size();
+                                   if (!skipOcclusionCulling) {
+                                       visibilityRequest->occlusionCuller.renderOccluder(currentModel);
+                                       //std::cout << currentModel->getName() << ":" << " is occluder " << std::endl;
+                                   }
+                                   for (auto& meshMeta:meshMetas) {
+                                       //visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
+                                   }
+                               } else {
+                                   visibilityRequest->occlusionCuller.addOccludee(currentModel, lod, objectAverageDepth, &visibilityEntry.second);
                                }
                            } else {
-                               uint32_t skipCounter = 0;
-                               uint32_t totalCounter = 0;
                                //for models with more than 10 meshes, we don't wanna add all of them to renderlist, need to re check visibility
                                for (auto& meshMeta:meshMetas) {
                                    totalCounter++;
                                    if (visibilityRequest->camera->isVisible(currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMin(),
                                         currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMax())) {
-                                       uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), objectAverageDepth);
-                                       visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
+                                       uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), objectAverageDepth, objectScreenSize);
+                                       if (objectScreenSize > 0.25 || skipOcclusionCulling) {
+                                           occluderCounter++;
+                                           if (!skipOcclusionCulling) {
+                                               visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform());
+                                           }
+                                           //visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
+                                       } else {
+                                           visibilityRequest->occlusionCuller.addOccludee(meshMeta, currentModel, lod, objectAverageDepth, &visibilityEntry.second);
+                                       }
                                    } else {
                                        skipCounter++;
                                    }
@@ -534,6 +582,26 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
                }
            }
        }
+    //now we can actually check the occlusion:
+    if (!skipOcclusionCulling) {
+        //visibilityRequest->occlusionCuller.endFrame();
+        std::vector<OcculudeeMetaData*> nonOccludedMeshes = visibilityRequest->occlusionCuller.getNonOccludedMeshMeta();
+        for (auto metaData:nonOccludedMeshes) {
+            metaData->renderList->addMeshMaterial(metaData->meshMeta->material, metaData->meshMeta->mesh, metaData->model, metaData->lod, metaData->averageDepth);
+            //std::cout << " model " << metaData->model->getName() << ":" << metaData->meshMeta->mesh->getName() << " is not occluded, rendering" << std::endl;
+
+        }
+        occludedCounter = totalCounter - occluderCounter - nonOccludedMeshes.size();
+        if (occluderCounter != 0 && occludedCounter != 0) {
+            std::cout << "Total occluder count is " << occluderCounter << " and it occluded " << occludedCounter << std::endl;
+        }
+        //std::cout <<std::endl << std::endl;
+        frameCount++;
+        if (frameCount == 1000) {
+            visibilityRequest->occlusionCuller.dumpDepth();
+            frameCount = 0;
+        }
+    }
    }
 
 static int staticOcclusionThread(void* visibilityRequestRaw) {

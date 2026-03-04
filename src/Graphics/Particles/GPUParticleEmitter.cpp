@@ -95,7 +95,7 @@ void GPUParticleEmitter::setupVAO() {
     vertices.emplace_back(glm::vec3(1.0f, 1.0f, 0.0f));
     vertices.emplace_back(glm::vec3(1.0f, -1.0f, 0.0f));
 
-    std::vector<glm::uvec3> faces;
+    std::vector<glm::u16vec3> faces;
 
     faces.emplace_back(glm::uvec3(0, 1, 2));
     faces.emplace_back(glm::uvec3(2, 1, 3));

@@ -4,6 +4,7 @@
 
 #ifndef LIMONENGINE_WORLD_H
 #define LIMONENGINE_WORLD_H
+#include "Utils/AABBConverter.hpp"
 
 static const int SKIP_LOD_LEVEL = 9999;
 
@@ -613,14 +614,25 @@ public:
 
     }
 
-    static uint32_t getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &viewMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth) {
+    static uint32_t getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &viewMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize) {
         //find the biggest axis of this object
         //now we get to calculate the size in screen
+        AABBConverter::AABB result = AABBConverter::GetScreenSpaceAABB(minAABB, maxAABB, viewMatrix);
+        glm::vec4 minScreen = glm::vec4(result.min, 1.0f);
+        glm::vec4 maxScreen = glm::vec4(result.max, 1.0f);
+        float screenSizeX = maxScreen.x - minScreen.x;
+        float screenSizeY = maxScreen.y - minScreen.y;
+        objectScreenSize = screenSizeX * screenSizeY;
+        /*
         glm::vec4 minScreen = viewMatrix * glm::vec4(minAABB, 1.0);
         glm::vec4 maxScreen = viewMatrix * glm::vec4(maxAABB, 1.0);
         minScreen /= minScreen.w;
         maxScreen /= maxScreen.w;
 
+        float screenSizeX = abs(maxScreen.x - minScreen.x);
+        float screenSizeY = abs(maxScreen.y - minScreen.y);
+        screenSize = screenSizeX * screenSizeY;
+*/
         objectAverageDepth = (maxScreen.z + minScreen.z) / 2.0f;
         if(lodDistances.empty() && skipRenderDistance == 0.0) {
             return 0;

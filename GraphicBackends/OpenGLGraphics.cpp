@@ -575,7 +575,7 @@ bool OpenGLGraphics::freeVAO(const GLuint bufferID) {
 }
 
 void OpenGLGraphics::bufferVertexData(const std::vector<glm::vec3> &vertices,
-                                      const std::vector<glm::uvec3> &faces,
+                                      const std::vector<glm::u16vec3> &faces,
                                       uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer,
                                       uint32_t &ebo) {
 
@@ -588,7 +588,7 @@ void OpenGLGraphics::bufferVertexData(const std::vector<glm::vec3> &vertices,
     // Set up the element array buffer
     ebo = generateBuffer(1);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::uvec3), faces.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::u16vec3), faces.data(), GL_STATIC_DRAW);
 
     // Set up the vertex attributes
     vbo = generateBuffer(1);
@@ -666,11 +666,11 @@ void OpenGLGraphics::bufferVertexTextureCoordinates(const std::vector<glm::vec2>
 }
 
 void
-OpenGLGraphics::updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::uvec3> &faces,
+OpenGLGraphics::updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::u16vec3> &faces,
                                  uint32_t &vbo, uint32_t &ebo) {
     // Set up the element array buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::uvec3), faces.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::u16vec3), faces.data(), GL_STATIC_DRAW);
 
     // Set up the vertex attributes
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -832,7 +832,7 @@ void OpenGLGraphics::render(const uint32_t program, const uint32_t vao, const ui
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
     renderTriangleCount = renderTriangleCount + elementCount;
-    glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, startIndex);
+    glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_SHORT, startIndex);
     glBindVertexArray(0);
 
     checkErrors("render");
@@ -851,7 +851,7 @@ void OpenGLGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t EB
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
     renderTriangleCount = renderTriangleCount + (triangleCount * instanceCount);
-    glDrawElementsInstanced(GL_TRIANGLES, triangleCount, GL_UNSIGNED_INT, nullptr, instanceCount);
+    glDrawElementsInstanced(GL_TRIANGLES, triangleCount, GL_UNSIGNED_SHORT, nullptr, instanceCount);
     glBindVertexArray(0);
     //state->setProgram(0);
     checkErrors("renderInstanced");
@@ -870,7 +870,7 @@ void OpenGLGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t EB
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
     renderTriangleCount = renderTriangleCount + (triangleCount * instanceCount);
-    glDrawElementsInstanced(GL_TRIANGLES, triangleCount, GL_UNSIGNED_INT, (void*)(startOffset*sizeof(GLuint)), instanceCount);
+    glDrawElementsInstanced(GL_TRIANGLES, triangleCount, GL_UNSIGNED_SHORT, (void*)(startOffset*sizeof(GLushort)), instanceCount);
     glBindVertexArray(0);
     //state->setProgram(0);
     checkErrors("renderInstancedOffset");

@@ -32,7 +32,7 @@ class MeshAsset {
 
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> normals;
-    std::vector<glm::uvec3> faces; //Possible reason for non portable data
+    std::vector<glm::u16vec3> faces; //Possible reason for non portable data
     std::vector<glm::vec2> textureCoordinates;
     std::string name;
 
@@ -85,6 +85,14 @@ public:
     }
 
     uint32_t getVao() const { return vao; }
+
+    const std::vector<glm::vec3>& getVertices() {
+        return vertices;
+    }
+
+    const std::vector<glm::u16vec3>& getFaces() {
+        return faces;
+    }
 
     uint32_t getEbo() const { return ebo; }
 

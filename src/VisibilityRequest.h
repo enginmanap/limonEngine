@@ -8,6 +8,7 @@
 #include <SDL2MultiThreading.h>
 #include <Utils/HashUtil.h>
 
+#include "Occlusion/OcclusionCullerHelper.h"
 #include "Occlusion/RenderList.h"
 
 
@@ -69,6 +70,7 @@ public:
         const OptionsUtil::Options::Option<double> skipRenderSizeOption;
         const OptionsUtil::Options::Option<double> maxSkipRenderSizeOption;
         const std::unordered_map<uint32_t, PhysicalRenderable *>* const objects;
+        mutable OcclusionCullerHelper occlusionCuller;
         std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher>* visibility;
         mutable std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;
         bool running = true;

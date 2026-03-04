@@ -64,9 +64,9 @@ void ImGuiHelper::RenderDrawLists(std::shared_ptr<GraphicsProgram> graphicsProgr
             glm::vec3 position = glm::vec3(cmd_list->VtxBuffer[i].pos.x, cmd_list->VtxBuffer[i].pos.y, 0);
             positions.emplace_back(position);
         }
-        std::vector<glm::uvec3> faces;
+        std::vector<glm::u16vec3> faces;
         for (int i = 0; i*3+2 < cmd_list->IdxBuffer.Size; i++) {
-            glm::uvec3 face = glm::uvec3(cmd_list->IdxBuffer[i*3], cmd_list->IdxBuffer[i*3+1], cmd_list->IdxBuffer[i*3+2]);
+            glm::u16vec3 face = glm::uvec3(cmd_list->IdxBuffer[i*3], cmd_list->IdxBuffer[i*3+1], cmd_list->IdxBuffer[i*3+2]);
             faces.push_back(face);
         }
 
@@ -362,7 +362,7 @@ bool ImGuiHelper::CreateDeviceObjects(std::shared_ptr<GraphicsProgram> graphicsP
     g_AttribLocationUV = graphicsProgram->getAttributeLocation("UV");
     g_AttribLocationColor = graphicsProgram->getAttributeLocation("Color");
 
-    graphicsWrapper->bufferVertexData(std::vector<glm::vec3>(), std::vector<glm::uvec3>(), g_VaoHandle, g_VboHandle, g_AttribLocationPosition, g_ElementsHandle);
+    graphicsWrapper->bufferVertexData(std::vector<glm::vec3>(), std::vector<glm::u16vec3>(), g_VaoHandle, g_VboHandle, g_AttribLocationPosition, g_ElementsHandle);
     graphicsWrapper->bufferExtraVertexData(std::vector<glm::vec4>(), g_VaoHandle, g_colorHandle, g_AttribLocationColor);
     graphicsWrapper->bufferVertexTextureCoordinates(std::vector<glm::vec2>(), g_VaoHandle, g_UVHandle, g_AttribLocationUV);
 /*

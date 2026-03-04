@@ -18,7 +18,6 @@ class Camera {
 protected:
     std::string name;
 
-
     static void calculateFrustumCorners(const glm::mat4 &cameraMatrix,
                                         const glm::mat4 &projectionMatrix, std::vector<glm::vec4> &corners) {
         corners.clear();
