@@ -85,13 +85,13 @@ public:
 
     void newFrame(const glm::vec3& cameraPosition[[gnu::unused]],const glm::vec3& viewDirection[[gnu::unused]],const glm::mat4& cameraMatrix, const glm::mat4& projectionMatrix) {
         if (!sdocInstance) {
-            sdocInstance = static_cast<SOC::SOCPrivate *>(sdocInit(2560 / 1, 1440 / 1, 0.010f));
+            sdocInstance = static_cast<SOC::SOCPrivate *>(sdocInit(512, 256, 0.10f));
             // Enable occluder debugging
             unsigned int activeOcc = 1;
-            sdocSet(sdocInstance, SDOC_DebugPrintActiveOccluder, activeOcc);
+            //sdocSet(sdocInstance, SDOC_DebugPrintActiveOccluder, activeOcc);
             //sdocSet(sdocInstance, SDOC_BeforeQueryTreatTrueAsCulled, 0);
             unsigned int debugPrintActiveOccluder = 0;
-            sdocSync(sdocInstance, SDOC_SetPrintLogInGame, &debugPrintActiveOccluder); // Print to console
+            //sdocSync(sdocInstance, SDOC_SetPrintLogInGame, &debugPrintActiveOccluder); // Print to console
             sdocSync(sdocInstance, SDOC_RenderMode, SDOC_RenderMode_Full);
         }
 

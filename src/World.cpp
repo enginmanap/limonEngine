@@ -529,7 +529,7 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
                    if (VisibilityRequest::isAnyTagMatch(visibilityEntry.first, currentModel->getTags())) {
                        if(isVisible) {
                            const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                           if (meshMetas.size() < 1000) {
+                           if (meshMetas.size() < 10) {
                                totalCounter += meshMetas.size();
                                uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second->getAabbMin(), objectIt->second->getAabbMax(), objectAverageDepth, objectScreenSize);
                                if (objectScreenSize > 1.0f || skipOcclusionCulling) {
@@ -539,7 +539,7 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
                                        //std::cout << currentModel->getName() << ":" << " is occluder " << std::endl;
                                    }
                                    for (auto& meshMeta:meshMetas) {
-                                       //visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
+                                       visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
                                    }
                                } else {
                                    visibilityRequest->occlusionCuller.addOccludee(currentModel, lod, objectAverageDepth, &visibilityEntry.second);
@@ -556,7 +556,7 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
                                            if (!skipOcclusionCulling) {
                                                visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform());
                                            }
-                                           //visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
+                                           visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
                                        } else {
                                            visibilityRequest->occlusionCuller.addOccludee(meshMeta, currentModel, lod, objectAverageDepth, &visibilityEntry.second);
                                        }
@@ -596,12 +596,12 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
         }
         occludedCounter = totalCounter - occluderCounter - nonOccludedMeshes.size();
         if (occluderCounter != 0 && occludedCounter != 0) {
-            std::cout << "Total occluder count is " << occluderCounter << " and it occluded " << occludedCounter << std::endl;
+            //std::cout << "Total occluder count is " << occluderCounter << " and it occluded " << occludedCounter << std::endl;
         }
         //std::cout <<std::endl << std::endl;
         frameCount++;
         if (frameCount == 1000) {
-            visibilityRequest->occlusionCuller.dumpDepth();
+            //visibilityRequest->occlusionCuller.dumpDepth();
             frameCount = 0;
         }
     }
