@@ -25,28 +25,24 @@ class OcclusionCullerHelper {
         float maxz;
     };
     std::vector<OcculudeeMetaData> possibleVisibleSetMesh; // These 2 are split because that is how the sdoc wants it
-    //std::vector<SDOCAABB> possibleVisibleSetMeshAABBs;     //
-    std::vector<float> possibleVisibleSetMeshAABBFs;     //
+    std::vector<float> possibleVisibleSetMeshAABBs;        //
 
     SOC::SOCPrivate* sdocInstance =nullptr;
 
     glm::vec3 playerPos;
     glm::vec3 viewDir;
-    glm::mat4 finalDXMatrix;
-    bool debugOccluderRendering = false; // New flag for debugging occluder rendering
+    glm::mat4 cameraProjectionMatrix;
 public:
     OcclusionCullerHelper() {
-        //sdocInstance = sdocInit(1024, 256, 0.0001f);
-        possibleVisibleSetMeshAABBFs.reserve(6);
+        possibleVisibleSetMeshAABBs.reserve(6); // if no entry, .data() call returns null.
     }
 
-    void extract_for_dx(const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix) {
+    void extractForDX(const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix) {
         glm::mat3 rotation = glm::mat3(cameraMatrix);
         glm::vec3 translation = glm::vec3(cameraMatrix[3]);
         playerPos = -glm::transpose(rotation) * translation;
         viewDir = -glm::vec3(cameraMatrix[2]);
-        // --- Process Projection Matrix ---
-        // Map OpenGL Z [-1, 1] to DirectX [0, 1]
+        // Map OpenGL Z [-1, 1] to DX [0, 1]
         glm::mat4 clipCorrection = glm::mat4(
             1.0f, 0.0f, 0.0f, 0.0f,
             0.0f, 1.0f, 0.0f, 0.0f,
@@ -55,22 +51,19 @@ public:
         );
         glm::mat4 dxProj = clipCorrection * projectionMatrix;
 
-        // --- Process View Matrix ---
-        // If the library requires Left-Handed (standard for DX), flip the Z-axis:
+        // DX uses left handed, flip the Z-axis:
         glm::mat4 dxView = cameraMatrix;
         dxView[0][2] = -dxView[0][2];
         dxView[1][2] = -dxView[1][2];
         dxView[2][2] = -dxView[2][2];
         dxView[3][2] = -dxView[3][2];
-        // 1. Combine (Projection * View)
-        glm::mat4 dxViewProj = dxProj * dxView;
 
-        // 2. Transpose for DirectX Row-Major memory layout
-        // This is what you pass to your library/shader
-        finalDXMatrix = glm::transpose(dxViewProj);
+        glm::mat4 dxViewProj = dxProj * dxView;
+        // 2. Transpose for DX, it is row major
+        cameraProjectionMatrix = glm::transpose(dxViewProj);
     }
 
-    void extract_for_ogl(const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix) {
+    void extractForOpenGL(const glm::mat4 &cameraMatrix, const glm::mat4 &projectionMatrix) {
         glm::mat3 rotation = glm::mat3(cameraMatrix);
         glm::vec3 translation = glm::vec3(cameraMatrix[3]);
         playerPos = -glm::transpose(rotation) * translation;
@@ -80,27 +73,25 @@ public:
 
         viewDir = glm::normalize(viewDir);
 
-        finalDXMatrix = projectionMatrix * cameraMatrix;
+        cameraProjectionMatrix = projectionMatrix * cameraMatrix;
     }
 
     void newFrame(const glm::vec3& cameraPosition[[gnu::unused]],const glm::vec3& viewDirection[[gnu::unused]],const glm::mat4& cameraMatrix, const glm::mat4& projectionMatrix) {
         if (!sdocInstance) {
             sdocInstance = static_cast<SOC::SOCPrivate *>(sdocInit(512, 256, 0.10f));
             // Enable occluder debugging
-            unsigned int activeOcc = 1;
+            //unsigned int activeOcc = 1;
             //sdocSet(sdocInstance, SDOC_DebugPrintActiveOccluder, activeOcc);
             //sdocSet(sdocInstance, SDOC_BeforeQueryTreatTrueAsCulled, 0);
-            unsigned int debugPrintActiveOccluder = 0;
+            //unsigned int debugPrintActiveOccluder = 0;
             //sdocSync(sdocInstance, SDOC_SetPrintLogInGame, &debugPrintActiveOccluder); // Print to console
             sdocSync(sdocInstance, SDOC_RenderMode, SDOC_RenderMode_Full);
         }
 
-        extract_for_ogl(cameraMatrix, projectionMatrix);
+        extractForOpenGL(cameraMatrix, projectionMatrix);
 
-        //sdocStartNewFrame(sdocInstance, glm::value_ptr(cameraPosition), glm::value_ptr(viewDirection), glm::value_ptr(dxVP));
-        sdocStartNewFrame(sdocInstance, glm::value_ptr(playerPos), glm::value_ptr(viewDir), glm::value_ptr(finalDXMatrix));
-        //possibleVisibleSetMeshAABBs.clear();
-        possibleVisibleSetMeshAABBFs.clear();
+        sdocStartNewFrame(sdocInstance, glm::value_ptr(playerPos), glm::value_ptr(viewDir), glm::value_ptr(cameraProjectionMatrix));
+        possibleVisibleSetMeshAABBs.clear();
         possibleVisibleSetMesh.clear();
     }
 
@@ -111,13 +102,13 @@ public:
     }
 
     void debugLibraryState() {
-        if (!sdocInstance) return;
+        if (!sdocInstance) {
+            return;
+        }
 
-        // Get memory usage
         unsigned int memoryUsed = 0;
         sdocSync(sdocInstance, SDOC_Get_MemoryUsed, &memoryUsed);
         std::cout << "SDOC Memory Used: " << memoryUsed << " bytes" << std::endl;
-        // Get logs
         char logBuffer[256];
         if (sdocSync(sdocInstance, SDOC_Get_Log, logBuffer)) {
             std::cout << "SDOC Log: " << logBuffer << std::endl;
@@ -135,23 +126,6 @@ public:
         size_t vertCount = meshMeta->mesh->getVertices().size();
         size_t idxCount = triangleCounts[0] * 3;//first LOD
 
-        if (debugOccluderRendering) { // Use the new flag
-            std::cout << "DEBUG: Rendering occluder: " << meshMeta->mesh->getName() << std::endl;
-            std::cout << "  vertCount: " << vertCount << ", idxCount: " << idxCount << std::endl;
-            if (vertCount > 0 && meshMeta->mesh->getVertices().data() != nullptr) {
-                const float* vertices = &(meshMeta->mesh->getVertices().data()->x);
-                std::cout << "  First 3 vertices: (" << vertices[0] << ", " << vertices[1] << ", " << vertices[2] << ")" << std::endl;
-            } else {
-                std::cout << "  WARNING: No vertices or null vertex data for " << meshMeta->mesh->getName() << std::endl;
-            }
-            if (idxCount > 0 && meshMeta->mesh->getFaces().data() != nullptr) {
-                const unsigned short* indices = &(meshMeta->mesh->getFaces().data()->x);
-                std::cout << "  First 3 indices: (" << indices[0] << ", " << indices[1] << ", " << indices[2] << ")" << std::endl;
-            } else {
-                std::cout << "  WARNING: No indices or null index data for " << meshMeta->mesh->getName() << std::endl;
-            }
-        }
-
         sdocRenderOccluder(sdocInstance,
             &(meshMeta->mesh->getVertices().data()->x),
             (const unsigned short *)&(meshMeta->mesh->getFaces().data()->x),
@@ -168,9 +142,7 @@ public:
     }
 
     void addOccludee(const Model::MeshMeta* meshMeta, const Model* model, uint32_t lod, float averageDepth, RenderList* renderList) {
-        // glm::vec4 minWorldAABBt = model->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMin();
-        // glm::vec4 maxWorldAABBt = model->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMax();
-        // ASSUMING THE MESH IS SAME AS THE MODEL, FOR THIS GIVEN INSTANCE
+        // TODO: using model AABB, because mesh AABB is in local space. Projecting it would be worth it for massive models, like premade maps, but pointless for normal assets.
         glm::vec3 minWorldAABBt = model->getAabbMin();
         glm::vec3 maxWorldAABBt = model->getAabbMax();
         glm::vec3 minWorldAABB;
@@ -181,22 +153,13 @@ public:
         maxWorldAABB.x = std::max(minWorldAABBt.x, maxWorldAABBt.x);
         maxWorldAABB.y = std::max(minWorldAABBt.y, maxWorldAABBt.y);
         maxWorldAABB.z = std::max(minWorldAABBt.z, maxWorldAABBt.z);
-
-        // SDOCAABB aabb;
-        // aabb.minx = minWorldAABB.x;
-        // aabb.miny = minWorldAABB.y;
-        // aabb.minz = minWorldAABB.z;
-        // aabb.maxx = maxWorldAABB.x;
-        // aabb.maxy = maxWorldAABB.y;
-        // aabb.maxz = maxWorldAABB.z;
         possibleVisibleSetMesh.push_back(OcculudeeMetaData(meshMeta, model, lod, averageDepth, renderList));
-        //possibleVisibleSetMeshAABBs.push_back(aabb);
-        possibleVisibleSetMeshAABBFs.push_back(minWorldAABB.x);
-        possibleVisibleSetMeshAABBFs.push_back(minWorldAABB.y);
-        possibleVisibleSetMeshAABBFs.push_back(minWorldAABB.z);
-        possibleVisibleSetMeshAABBFs.push_back(maxWorldAABB.x);
-        possibleVisibleSetMeshAABBFs.push_back(maxWorldAABB.y);
-        possibleVisibleSetMeshAABBFs.push_back(maxWorldAABB.z);
+        possibleVisibleSetMeshAABBs.push_back(minWorldAABB.x);
+        possibleVisibleSetMeshAABBs.push_back(minWorldAABB.y);
+        possibleVisibleSetMeshAABBs.push_back(minWorldAABB.z);
+        possibleVisibleSetMeshAABBs.push_back(maxWorldAABB.x);
+        possibleVisibleSetMeshAABBs.push_back(maxWorldAABB.y);
+        possibleVisibleSetMeshAABBs.push_back(maxWorldAABB.z);
 
     }
 
@@ -206,86 +169,43 @@ public:
         returnList.reserve(meshCount);
         bool* results = new bool[meshCount];
         // Ensure AABB data size matches mesh count (6 floats per mesh)
-        if (possibleVisibleSetMeshAABBFs.size() != meshCount * 6) {
-            std::cout << "Inconsistent AABB data size: expected " << meshCount * 6 << " floats, got " << possibleVisibleSetMeshAABBFs.size() << " floats" << std::endl;
-            // Data inconsistency - return empty list to prevent crash
+        if (possibleVisibleSetMeshAABBs.size() != meshCount * 6) {
+            std::cerr << "Inconsistent AABB data size: expected " << meshCount * 6 << " floats, got " << possibleVisibleSetMeshAABBs.size() << " floats, can't calculate" << std::endl;
+
             return returnList;
         }
-        //sdocSet(sdocInstance, SDOC_Set_UsePrevDepthBuffer, 1);
-
-
-
-
-        sdocQueryOccludees(sdocInstance, possibleVisibleSetMeshAABBFs.data(), meshCount, results);
+        sdocQueryOccludees(sdocInstance, possibleVisibleSetMeshAABBs.data(), meshCount, results);
         for (size_t i = 0; i < meshCount; ++i) {
             if (results[i]) {
                 returnList.push_back(&possibleVisibleSetMesh[i]);
-            } else {
-                //std::cout << " model " << possibleVisibleSetMesh[i].model->getName() << ":" << possibleVisibleSetMesh[i].meshMeta->mesh->getName() << " is occluded" << std::endl;
             }
         }
         delete[] results;
         return returnList;
     }
 
-    std::vector<OcculudeeMetaData*> getNonOccludedMeshMeta2() {
-        std::vector<OcculudeeMetaData*> returnList;
-        size_t meshCount = possibleVisibleSetMesh.size();
-        returnList.reserve(meshCount);
-        bool* results = new bool[meshCount];
-        // Ensure AABB data size matches mesh count (6 floats per mesh)
-        if (possibleVisibleSetMeshAABBFs.size() != meshCount * 6) {
-            std::cout << "Inconsistent AABB data size: expected " << meshCount * 6 << " floats, got " << possibleVisibleSetMeshAABBFs.size() << " floats" << std::endl;
-            // Data inconsistency - return empty list to prevent crash
-            return returnList;
-        }
-        //sdocSet(sdocInstance, SDOC_Set_UsePrevDepthBuffer, 1);
-        for (size_t i = 0; i < meshCount; ++i) {
-
-            float* aabb = possibleVisibleSetMeshAABBFs.data() + i * 6;
-            sdocQueryOccludees(sdocInstance, aabb, 1, results + i);
-        }
-        //sdocQueryOccludees(sdocInstance, possibleVisibleSetMeshAABBFs.data(), meshCount, results);
-        for (size_t i = 0; i < meshCount; ++i) {
-            if (results[i]) {
-                returnList.push_back(&possibleVisibleSetMesh[i]);
-            } else {
-                //std::cout << " model " << possibleVisibleSetMesh[i].model->getName() << ":" << possibleVisibleSetMesh[i].meshMeta->mesh->getName() << " is occluded" << std::endl;
-            }
-        }
-        //delete[] results;
-        return returnList;
-    }
-
     void dumpDepth() {
         if (!sdocInstance) return;
 
-        // Set save path first
         const char* path = "SDOCdepthMap.ppm";
         sdocSync(sdocInstance, SDOC_Save_DepthMapPath, (void*)path);
 
-        // Get buffer dimensions first
         unsigned int dimensions[2];
         sdocSync(sdocInstance, SDOC_Get_DepthBufferWidthHeight, dimensions);
         std::cout << "Depth buffer dimensions: " << dimensions[0] << "x" << dimensions[1] << std::endl;
 
-        // Allocate buffer for depth data
         size_t bufferSize = dimensions[0] * dimensions[1] * 4; // 4 bytes per pixel
         unsigned char* depthData = new unsigned char[bufferSize];
 
-        // Get depth map
         bool success = sdocSync(sdocInstance, SDOC_Get_DepthMap, depthData);
         std::cout << "Get depth map success: " << success << std::endl;
 
-        // Save depth map
         success = sdocSync(sdocInstance, SDOC_Save_DepthMap, depthData);
         std::cout << "Save depth map success: " << success << std::endl;
-
         delete[] depthData;
     }
 
-    bool queryOccluder(const Model::MeshMeta* meshMeta[[gnu::unused]], const glm::vec3& minAABB, const glm::vec3& maxAABB,const glm::mat4& modelMatrix) const {
-
+    bool querySingleOccludee(const glm::vec3& minAABB, const glm::vec3& maxAABB,const glm::mat4& modelMatrix) const {
         glm::vec4 minWorldAABB = modelMatrix * glm::vec4(minAABB, 1.0);
         glm::vec4 maxWorldAABB = modelMatrix * glm::vec4(maxAABB, 1.0);
         float aabb[6];
@@ -298,14 +218,6 @@ public:
         bool result[1];
         sdocQueryOccludees(sdocInstance, aabb, 1, result);
         return result[0];
-        // return sdocQueryOccludeeMesh(sdocInstance,
-        // reinterpret_cast<const float*>(meshMeta->mesh->getVertices().data()),
-        // reinterpret_cast<const unsigned short*>(meshMeta->mesh->getFaces().data()),
-        // meshMeta->mesh->getVertices().size()*3,
-        // meshMeta->mesh->getFaces().size()*3,
-        // glm::value_ptr(modelMatrix),
-        // true,
-        // aabb);
     }
 };
 

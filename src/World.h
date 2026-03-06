@@ -615,46 +615,26 @@ public:
     }
 
     static uint32_t getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &viewMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize) {
-        //find the biggest axis of this object
         //now we get to calculate the size in screen
-        AABBConverter::AABB result = AABBConverter::GetScreenSpaceAABB(minAABB, maxAABB, viewMatrix);
-        glm::vec4 minScreen = glm::vec4(result.min, 1.0f);
-        glm::vec4 maxScreen = glm::vec4(result.max, 1.0f);
-        float screenSizeX = maxScreen.x - minScreen.x;
-        float screenSizeY = maxScreen.y - minScreen.y;
-        objectScreenSize = screenSizeX * screenSizeY;
-        /*
-        glm::vec4 minScreen = viewMatrix * glm::vec4(minAABB, 1.0);
-        glm::vec4 maxScreen = viewMatrix * glm::vec4(maxAABB, 1.0);
-        minScreen /= minScreen.w;
-        maxScreen /= maxScreen.w;
+        AABBConverter::AABB screenAABBs = AABBConverter::GetScreenSpaceAABB(minAABB, maxAABB, viewMatrix);
+        const float screenSizeX = screenAABBs.max.x - screenAABBs.min.x / 2.0f; // since OpenGL NDC is -1, 1 each side can be max 2, but we want 0,1
+        const float screenSizeY = screenAABBs.max.y - screenAABBs.min.y / 2.0f;
+        objectScreenSize = (screenSizeX * screenSizeY);
 
-        float screenSizeX = abs(maxScreen.x - minScreen.x);
-        float screenSizeY = abs(maxScreen.y - minScreen.y);
-        screenSize = screenSizeX * screenSizeY;
-*/
-        objectAverageDepth = (maxScreen.z + minScreen.z) / 2.0f;
+        objectAverageDepth = (screenAABBs.max.z + screenAABBs.min.z) / -2.0f;
         if(lodDistances.empty() && skipRenderDistance == 0.0) {
             return 0;
         }
-        float dx = std::max(minAABB.x - playerPosition.x, std::max(0.0f, playerPosition.x - maxAABB.x));
-        float dy = std::max(minAABB.y - playerPosition.y, std::max(0.0f, playerPosition.y - maxAABB.y));
-        float dz = std::max(minAABB.z - playerPosition.z, std::max(0.0f, playerPosition.z - maxAABB.z));
-        float distance = std::sqrt(dx*dx + dy*dy + dz*dz);
-        if(skipRenderDistance !=0 && distance > skipRenderDistance) {
-            if(abs(minAABB.x - maxAABB.x) < maxSkipRenderSize &&
-                    abs(minAABB.y - maxAABB.y) < maxSkipRenderSize &&
-                    abs(minAABB.z - maxAABB.z) < maxSkipRenderSize) {
-                //we need to clip
-                minScreen.x = std::min(std::max(minScreen.x, -1.0f), 1.0f);
-                minScreen.y = std::min(std::max(minScreen.y, -1.0f), 1.0f);
-                maxScreen.x = std::min(std::max(maxScreen.x, -1.0f), 1.0f);
-                maxScreen.y = std::min(std::max(maxScreen.y, -1.0f), 1.0f);
-                float screenX = abs(maxScreen.x - minScreen.x);
-                float screenY = abs(maxScreen.y - minScreen.y);
-                if (screenX < skipRenderSize * 2.0 && screenY < skipRenderSize * 2.0) {
-                    return SKIP_LOD_LEVEL;
-                }
+
+        const float dx = std::max(minAABB.x - playerPosition.x, std::max(0.0f, playerPosition.x - maxAABB.x));
+        const float dy = std::max(minAABB.y - playerPosition.y, std::max(0.0f, playerPosition.y - maxAABB.y));
+        const float dz = std::max(minAABB.z - playerPosition.z, std::max(0.0f, playerPosition.z - maxAABB.z));
+        const float distance = std::sqrt(dx*dx + dy*dy + dz*dz);
+        if(skipRenderDistance !=0 && distance > skipRenderDistance) {           //Is it distant enough to skip?
+            if (maxAABB.x - minAABB.x < maxSkipRenderSize &&                    //Is it actually small enough to skip? We don't wanna skip mountains becuse they are far away.
+                maxAABB.y - minAABB.y < maxSkipRenderSize )
+            if(screenSizeX < skipRenderSize && screenSizeY < skipRenderSize) {  //Is it small enough in the screen to skip?
+                return SKIP_LOD_LEVEL;
             }
         }
 
