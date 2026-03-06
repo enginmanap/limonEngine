@@ -295,7 +295,7 @@
         <RequestType>FreeNumber</RequestType>
         <Description>SkipRenderDistance</Description>
         <!--This variable sets what is the distance to start skipping render for an object. To skip Render size also needs to be set-->
-        <Value>0.0</Value>
+        <Value>50.0</Value>
         <valueType>Double</valueType>
         <IsSet>True</IsSet>
         <Index>0</Index>
