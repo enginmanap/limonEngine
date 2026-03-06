@@ -617,8 +617,8 @@ public:
     static uint32_t getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &viewMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize) {
         //now we get to calculate the size in screen
         AABBConverter::AABB screenAABBs = AABBConverter::GetScreenSpaceAABB(minAABB, maxAABB, viewMatrix);
-        const float screenSizeX = screenAABBs.max.x - screenAABBs.min.x / 2.0f; // since OpenGL NDC is -1, 1 each side can be max 2, but we want 0,1
-        const float screenSizeY = screenAABBs.max.y - screenAABBs.min.y / 2.0f;
+        const float screenSizeX = (screenAABBs.max.x - screenAABBs.min.x) / 2.0f; // since OpenGL NDC is -1, 1 each side can be max 2, but we want 0,1
+        const float screenSizeY = (screenAABBs.max.y - screenAABBs.min.y) / 2.0f;
         objectScreenSize = (screenSizeX * screenSizeY);
 
         objectAverageDepth = (screenAABBs.max.z + screenAABBs.min.z) / -2.0f;
@@ -631,8 +631,8 @@ public:
         const float dz = std::max(minAABB.z - playerPosition.z, std::max(0.0f, playerPosition.z - maxAABB.z));
         const float distance = std::sqrt(dx*dx + dy*dy + dz*dz);
         if(skipRenderDistance !=0 && distance > skipRenderDistance) {           //Is it distant enough to skip?
-            if (maxAABB.x - minAABB.x < maxSkipRenderSize &&                    //Is it actually small enough to skip? We don't wanna skip mountains becuse they are far away.
-                maxAABB.y - minAABB.y < maxSkipRenderSize )
+            if ((maxAABB.x - minAABB.x) < maxSkipRenderSize &&                    //Is it actually small enough to skip? We don't wanna skip mountains becuse they are far away.
+                (maxAABB.y - minAABB.y) < maxSkipRenderSize )
             if(screenSizeX < skipRenderSize && screenSizeY < skipRenderSize) {  //Is it small enough in the screen to skip?
                 return SKIP_LOD_LEVEL;
             }
@@ -643,8 +643,8 @@ public:
                 return i;
             }
         }
-        //what if the distance is bigger than the last entry? we skip
-        return SKIP_LOD_LEVEL;
+        //what if the distance is bigger than the last entry? we return the last LOD
+        return lodDistances.size()-1;
     }
 
     void resetTagsAndRefillCulling();
