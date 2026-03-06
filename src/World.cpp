@@ -522,7 +522,7 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
                                totalCounter += meshMetas.size();
                                uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second->getAabbMin(), objectIt->second->getAabbMax(), objectAverageDepth, objectScreenSize);
                                if (lod != SKIP_LOD_LEVEL) {
-                                   if (objectScreenSize > 0.5f || skipOcclusionCulling) {
+                                   if (objectScreenSize > 0.25f || skipOcclusionCulling) {
                                        if (objectScreenSize > maxScreenSize) {
                                            maxScreenSize = objectScreenSize;
                                            maxScreenSizeObjectName = currentModel->getName();
@@ -549,7 +549,7 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
                                         currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMax())) {
                                        uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), objectAverageDepth, objectScreenSize);
                                        if (lod != SKIP_LOD_LEVEL) {
-                                           if (objectScreenSize > 0.5f || skipOcclusionCulling) {
+                                           if (objectScreenSize > 0.25f || skipOcclusionCulling) {
                                                if (objectScreenSize > maxScreenSize) {
                                                    maxScreenSize = objectScreenSize;
                                                    maxScreenSizeObjectName = currentModel->getName();

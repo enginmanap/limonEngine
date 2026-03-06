@@ -616,12 +616,13 @@ public:
 
     static uint32_t getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &viewMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize) {
         //now we get to calculate the size in screen
-        AABBConverter::AABB screenAABBs = AABBConverter::GetScreenSpaceAABB(minAABB, maxAABB, viewMatrix);
-        const float screenSizeX = (screenAABBs.max.x - screenAABBs.min.x) / 2.0f; // since OpenGL NDC is -1, 1 each side can be max 2, but we want 0,1
-        const float screenSizeY = (screenAABBs.max.y - screenAABBs.min.y) / 2.0f;
+        glm::vec3 ndcMin, ndcMax;
+        AABBConverter::getNCDAABB(minAABB, maxAABB, viewMatrix, ndcMin, ndcMax);
+        const float screenSizeX = (ndcMax.x - ndcMin.x) / 2.0f; // since OpenGL NDC is -1, 1 each side can be max 2, but we want 0,1
+        const float screenSizeY = (ndcMax.y - ndcMin.y) / 2.0f;
         objectScreenSize = (screenSizeX * screenSizeY);
 
-        objectAverageDepth = (screenAABBs.max.z + screenAABBs.min.z) / -2.0f;
+        objectAverageDepth = (ndcMax.z + ndcMin.z) / -2.0f;
         if(lodDistances.empty() && skipRenderDistance == 0.0) {
             return 0;
         }

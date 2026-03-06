@@ -9,6 +9,7 @@
 #include "GameObjects/Model.h"
 #include "snapdragon-oc/Source/app/FuzzyCulling/API/SDOCAPI.h"
 #include "OccludeeMetaData.h"
+#include "Utils/AABBConverter.hpp"
 
 
 namespace SOC {
@@ -142,17 +143,10 @@ public:
     }
 
     void addOccludee(const Model::MeshMeta* meshMeta, const Model* model, uint32_t lod, float averageDepth, RenderList* renderList) {
-        // TODO: using model AABB, because mesh AABB is in local space. Projecting it would be worth it for massive models, like premade maps, but pointless for normal assets.
-        glm::vec3 minWorldAABBt = model->getAabbMin();
-        glm::vec3 maxWorldAABBt = model->getAabbMax();
+
         glm::vec3 minWorldAABB;
         glm::vec3 maxWorldAABB;
-        minWorldAABB.x = std::min(minWorldAABBt.x, maxWorldAABBt.x);
-        minWorldAABB.y = std::min(minWorldAABBt.y, maxWorldAABBt.y);
-        minWorldAABB.z = std::min(minWorldAABBt.z, maxWorldAABBt.z);
-        maxWorldAABB.x = std::max(minWorldAABBt.x, maxWorldAABBt.x);
-        maxWorldAABB.y = std::max(minWorldAABBt.y, maxWorldAABBt.y);
-        maxWorldAABB.z = std::max(minWorldAABBt.z, maxWorldAABBt.z);
+        AABBConverter::getWorldSpaceAABB(model->getTransformation()->getWorldTransform(), meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), minWorldAABB, maxWorldAABB);
         possibleVisibleSetMesh.push_back(OcculudeeMetaData(meshMeta, model, lod, averageDepth, renderList));
         possibleVisibleSetMeshAABBs.push_back(minWorldAABB.x);
         possibleVisibleSetMeshAABBs.push_back(minWorldAABB.y);
