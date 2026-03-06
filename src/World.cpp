@@ -489,9 +489,6 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
        if (visibilityRequest->camera->getType() != Camera::CameraTypes::PERSPECTIVE) {
            skipOcclusionCulling = true;
        } else {
-           for (auto &renderListIt:*(visibilityRequest->visibility)) {
-               renderListIt.second.clear();
-           }
            glm::mat4 invertedView = glm::inverse(visibilityRequest->camera->getCameraMatrixConst());
            viewDirection = -glm::vec3(invertedView[2]);
            viewDirection = glm::normalize(viewDirection);
@@ -504,6 +501,8 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
        uint32_t lodSkipCounter = 0;
        uint32_t occluderCounter = 0;
        uint32_t occludedCounter = 0;
+       float maxScreenSize = 0.0;
+       std::string maxScreenSizeObjectName;
        for (auto objectIt = visibilityRequest->objects->begin(); objectIt != visibilityRequest->objects->end(); ++objectIt) {
            if(!visibilityRequest->camera->isDirty() && !objectIt->second->isDirtyForFrustum() && skipOcclusionCulling) {
                continue; //if neither object nor camera dirty, no need to recalculate
@@ -523,7 +522,11 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
                                totalCounter += meshMetas.size();
                                uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second->getAabbMin(), objectIt->second->getAabbMax(), objectAverageDepth, objectScreenSize);
                                if (lod != SKIP_LOD_LEVEL) {
-                                   if (objectScreenSize > 0.25f || skipOcclusionCulling) {
+                                   if (objectScreenSize > 0.5f || skipOcclusionCulling) {
+                                       if (objectScreenSize > maxScreenSize) {
+                                           maxScreenSize = objectScreenSize;
+                                           maxScreenSizeObjectName = currentModel->getName();
+                                       }
                                        occluderCounter += meshMetas.size();
                                        if (!skipOcclusionCulling) {
                                            visibilityRequest->occlusionCuller.renderOccluder(currentModel);
@@ -546,7 +549,11 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
                                         currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMax())) {
                                        uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), objectAverageDepth, objectScreenSize);
                                        if (lod != SKIP_LOD_LEVEL) {
-                                           if (objectScreenSize > 0.25f || skipOcclusionCulling) {
+                                           if (objectScreenSize > 0.5f || skipOcclusionCulling) {
+                                               if (objectScreenSize > maxScreenSize) {
+                                                   maxScreenSize = objectScreenSize;
+                                                   maxScreenSizeObjectName = currentModel->getName();
+                                               }
                                                occluderCounter++;
                                                if (!skipOcclusionCulling) {
                                                    visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform());
@@ -593,8 +600,9 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
             //std::cout << "Total occluder count is " << occluderCounter << " and it occluded " << occludedCounter << std::endl;
         }
         frameCount++;
-        if (frameCount == 1000) {
+        if (frameCount == 500) {
             //visibilityRequest->occlusionCuller.dumpDepth();
+            //std::cout << "Max screen size object was " << maxScreenSizeObjectName << " with size " << maxScreenSize << std::endl;
             frameCount = 0;
         }
     }
@@ -630,9 +638,9 @@ std::map<VisibilityRequest*, SDL_Thread *> World::occlusionThreadManager() {
 }
 
 void World::fillVisibleObjectsUsingTags() {
-     //first clear up dirty cameras
+     //first clear up dirty cameras, and perspective camera, because Perspective camera needs to write occlusion culling depth map, so it has to iterate over all.
     for (auto &it: cullingResults) {
-        if (it.first->isDirty()) {
+        if (it.first->isDirty() || it.first->getType() == Camera::CameraTypes::PERSPECTIVE) {
             for(auto renderEntries:*it.second) {
                 renderEntries.second.clear();
             }
@@ -3106,10 +3114,11 @@ void World::updateActiveLights(bool forceUpdate) {
            }
            onLoadAnimations.erase(modelToClear);
 
+           const std::vector<Model::MeshMeta *> &meshMetas = modelToClear->getMeshMetaData();
            //of course we need to remove from the tag visibility lists too
            for (auto &perCameraVisibility: cullingResults) {
                for (auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
-                   const std::vector<Model::MeshMeta *> &meshMetas = modelToClear->getMeshMetaData();
+
                    for (const Model::MeshMeta *meshMeta: meshMetas) {
                        perTagVisibilityIt->second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, modelToClear->getWorldObjectID());
                    }

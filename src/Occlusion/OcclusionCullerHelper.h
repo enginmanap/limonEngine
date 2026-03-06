@@ -78,7 +78,7 @@ public:
 
     void newFrame(const glm::vec3& cameraPosition[[gnu::unused]],const glm::vec3& viewDirection[[gnu::unused]],const glm::mat4& cameraMatrix, const glm::mat4& projectionMatrix) {
         if (!sdocInstance) {
-            sdocInstance = static_cast<SOC::SOCPrivate *>(sdocInit(512, 256, 0.10f));
+            sdocInstance = static_cast<SOC::SOCPrivate *>(sdocInit(512, 256, 1.0f));//sdoc clamps near plane to 1.0f anyway.
             // Enable occluder debugging
             //unsigned int activeOcc = 1;
             //sdocSet(sdocInstance, SDOC_DebugPrintActiveOccluder, activeOcc);
@@ -132,7 +132,7 @@ public:
             vertCount,
             idxCount,
             glm::value_ptr(modelMatrix),
-            false);
+            true);
     }
 
     void addOccludee(const Model* model, uint32_t lod, float averageDepth, RenderList* renderList) {
