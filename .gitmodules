@@ -25,7 +25,6 @@
 [submodule "libs/pybind11"]
 	path = libs/pybind11
 	url = https://github.com/pybind/pybind11.git
-
 [submodule "libs/snapdragon-oc"]
 	path = libs/snapdragon-oc
-	url = https://github.com/SnapdragonGameStudios/snapdragon-oc.git
+	url = https://github.com/enginmanap/snapdragon-oc.git
