@@ -318,4 +318,58 @@
         <IsSet>True</IsSet>
         <Index>0</Index>
     </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>SplitModelToMeshCount</Description>
+        <!-- When doing occlusion tests, we prefer to do it per model. If a model contains more than this number of meshes, only then the tests will be done per mesh-->
+        <Value>10</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>SoftwareOcclusionRenderWidth</Description>
+        <!--This option sets the software rasterized depth buffers width, needs to be a factor of 8-->
+        <Value>512</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>SoftwareOcclusionRenderHeight</Description>
+        <!--This option sets the software rasterized depth buffers height, needs to be a factor of 8-->
+        <Value>256</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>SoftwareOcclusionRenderDump</Description>
+        <!--This option enables dumping the software rasterized depth buffer to a ppm file. For debug purposes only.-->
+        <Value>False</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>SoftwareOcclusionRenderDumpFrequency</Description>
+        <!--This option sets frequency of dumping the software rasterized depth buffer to a ppm file. For debug purposes only.-->
+        <Value>300</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
+        <Description>SoftwareOcclusionOccluderSize</Description>
+        <!--This option sets the size limit for objects to be considered occluder. It is on screen size, 1 is full coverage, 0 is no coverage-->
+        <Value>0.5</Value>
+        <valueType>Double</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
 </Options>

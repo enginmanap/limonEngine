@@ -30,11 +30,16 @@ class OcclusionCullerHelper {
 
     SOC::SOCPrivate* sdocInstance =nullptr;
 
+    const OptionsUtil::Options::Option<long> widthOption;
+    const OptionsUtil::Options::Option<long> heightOption;
+
     glm::vec3 playerPos;
     glm::vec3 viewDir;
     glm::mat4 cameraProjectionMatrix;
 public:
-    OcclusionCullerHelper() {
+    OcclusionCullerHelper(const OptionsUtil::Options::Option<long>& widthOption,
+        const OptionsUtil::Options::Option<long>& heightOption) :
+    widthOption(widthOption), heightOption(heightOption) {
         possibleVisibleSetMeshAABBs.reserve(6); // if no entry, .data() call returns null.
     }
 
@@ -79,7 +84,7 @@ public:
 
     void newFrame(const glm::vec3& cameraPosition[[gnu::unused]],const glm::vec3& viewDirection[[gnu::unused]],const glm::mat4& cameraMatrix, const glm::mat4& projectionMatrix) {
         if (!sdocInstance) {
-            sdocInstance = static_cast<SOC::SOCPrivate *>(sdocInit(512, 256, 1.0f));//sdoc clamps near plane to 1.0f anyway.
+            sdocInstance = static_cast<SOC::SOCPrivate *>(sdocInit(widthOption.getOrDefault(512), heightOption.getOrDefault(256), 1.0f));//sdoc clamps near plane to 1.0f anyway.
             // Enable occluder debugging
             //unsigned int activeOcc = 1;
             //sdocSet(sdocInstance, SDOC_DebugPrintActiveOccluder, activeOcc);

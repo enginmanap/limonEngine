@@ -69,9 +69,15 @@ public:
         const OptionsUtil::Options::Option<double> skipRenderDistanceOption;
         const OptionsUtil::Options::Option<double> skipRenderSizeOption;
         const OptionsUtil::Options::Option<double> maxSkipRenderSizeOption;
+        const OptionsUtil::Options::Option<long> SplitModelToMeshCountOption;
+
+        const OptionsUtil::Options::Option<bool> SoftwareOcclusionRenderDumpOption;
+        const OptionsUtil::Options::Option<long> SoftwareOcclusionRenderDumpFrequencyOption;
+        const OptionsUtil::Options::Option<double> SoftwareOcclusionOccluderSizeOption;
+
         const std::unordered_map<uint32_t, PhysicalRenderable *>* const objects;
-        mutable OcclusionCullerHelper occlusionCuller;
         std::unordered_map<std::vector<uint64_t>, RenderList, uint64_vector_hasher>* visibility;
+        mutable OcclusionCullerHelper occlusionCuller;
         mutable std::unordered_map<uint32_t, const std::vector<glm::mat4>*> changedBoneTransforms;
         bool running = true;
         bool started = false;
@@ -84,9 +90,14 @@ public:
                 skipRenderDistanceOption(options->getOption<double>(HASH("SkipRenderDistance"))),
                 skipRenderSizeOption(options->getOption<double>(HASH("SkipRenderSize"))),
                 maxSkipRenderSizeOption(options->getOption<double>(HASH("MaxSkipRenderSize"))),
-                objects(objects), visibility(visibility) {
-
-        };
+                SplitModelToMeshCountOption(options->getOption<long>(HASH("SplitModelToMeshCount"))),
+                SoftwareOcclusionRenderDumpOption(options->getOption<bool>(HASH("SoftwareOcclusionRenderDump"))),
+                SoftwareOcclusionRenderDumpFrequencyOption(options->getOption<long>(HASH("SoftwareOcclusionRenderDumpFrequency"))),
+                SoftwareOcclusionOccluderSizeOption(options->getOption<double>(HASH("SoftwareOcclusionOccluderSize"))),
+                objects(objects), visibility(visibility),
+                occlusionCuller(options->getOption<long>(HASH("SoftwareOcclusionRenderWidth")),
+                options->getOption<long>(HASH("SoftwareOcclusionRenderHeight"))) {
+        }
 
         std::vector<RenderList> getRenderListsForHashList(const std::vector<HashUtil::HashedString>& hashList) const {
             std::vector<RenderList> renderLists;
