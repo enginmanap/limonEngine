@@ -665,10 +665,14 @@ ModelAsset::fillAnimationSet(unsigned int numAnimation, aiAnimation **pAnimation
     aiAnimation* currentAnimation;
     for (unsigned int i = 0; i < numAnimation; ++i) {
         currentAnimation = pAnimations[i];
-        std::string animationName = animationNamePrefix + currentAnimation->mName.C_Str();
+        std::string animationName = animationNamePrefix;
         //std::cout << "add animation with name " << animationNamePrefix << animationName << std::endl;
 
         std::shared_ptr<AnimationAssimp> animationObject = std::make_shared<AnimationAssimp>(currentAnimation);
+        animations[animationName] = animationObject;
+        //Appearently Mixamo changed some logic, and some models that used to work no longer works.
+        // Simple work around is to add both.
+        animationName = animationNamePrefix + currentAnimation->mName.C_Str();
         animations[animationName] = animationObject;
     }
     //validate
