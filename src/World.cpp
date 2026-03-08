@@ -526,7 +526,7 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
                    if (VisibilityRequest::isAnyTagMatch(visibilityEntry.first, currentModel->getTags())) {
                        if(isVisible) {
                            const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                           if (meshMetas.size() < splitModelToMeshCount) {
+                           if (meshMetas.size() < static_cast<size_t>(splitModelToMeshCount)) {
                                totalCounter += meshMetas.size();
                                uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second->getAabbMin(), objectIt->second->getAabbMax(), objectAverageDepth, objectScreenSize);
                                if (lod != SKIP_LOD_LEVEL) {
