@@ -14,7 +14,7 @@ uniform sampler2D pre_depthMap;
 void main()
 {
 
-    vec4 baseColor = texture(pre_diffuseSpecularLighted, from_vs.textureCoordinates).rgba;
+    vec4 baseColor = vec4(texture(pre_diffuseSpecularLighted, from_vs.textureCoordinates).rgb, 1.0);
     vec3 ambientFactor = texture(pre_ambient, from_vs.textureCoordinates).rgb;
     float ssao = texture(pre_ssao, from_vs.textureCoordinates).r;
 

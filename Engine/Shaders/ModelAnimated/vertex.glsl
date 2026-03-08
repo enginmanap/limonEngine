@@ -87,8 +87,7 @@ void main(void) {
 
         to_fs.normal = normalize(transposeInverseModelTransform * vec3(BoneTransform * vec4(normal, 0.0)));
         to_fs.fragPos = vec3(modelTransform * (BoneTransform * position));
-    }
-     else {
+    } else {
         to_fs.normal = normalize(transposeInverseModelTransform * normal);
         to_fs.fragPos = vec3(modelTransform * position);
     }

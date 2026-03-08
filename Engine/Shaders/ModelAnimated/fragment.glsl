@@ -8,8 +8,7 @@
 #define NR_MAX_MATERIALS 200
 
 layout (location = 0) out vec4 diffuseAndSpecularLightedColor;
-layout (location = 1) out vec3 ambientColor;
-layout (location = 2) out vec3 normalOutput;
+layout (location = 1) out vec4 ambientColor;
 
 layout (std140) uniform PlayerTransformBlock {
     mat4 camera;
@@ -75,6 +74,20 @@ vec3 pointSampleOffsetDirections[20] = vec3[]
    vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
    vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
+vec2 packNormal(vec3 n) {
+    // Project onto the L1 manifold (Note: Using Y as the "Up" axis)
+    float invL1 = 1.0 / (abs(n.x) + abs(n.y) + abs(n.z));
+    vec2 p = n.xz * invL1; // Use X and Z for the plane
+
+    // Fold based on Y (The World-Space Up axis)
+    if (n.y < 0.0) {
+        float oldX = p.x;
+        p.x = (1.0 - abs(p.y)) * (oldX >= 0.0 ? 1.0 : -1.0);
+        p.y = (1.0 - abs(oldX)) * (p.y >= 0.0 ? 1.0 : -1.0);
+    }
+
+    return p * 0.5 + 0.5;
+}
 
 float ShadowCalculationDirectional(float bias, int lightIndex){
     float cascadePlaneDistances[CascadeCount] = float[](CascadeLimitList);
@@ -179,14 +192,12 @@ void main(void) {
             normal = -1 * vec3(texture(normalSampler, from_vs.textureCoord));
         }
 
-        normalOutput = normal;
-
         if((AllMaterialsArray.materials[from_vs.materialIndex].isMap & 0x0008)!=0) {
-            ambientColor = vec3(texture(ambientSampler, from_vs.textureCoord));
+            ambientColor.xyz = vec3(texture(ambientSampler, from_vs.textureCoord));
         } else {
-            ambientColor = AllMaterialsArray.materials[from_vs.materialIndex].ambient;
+            ambientColor.xyz = AllMaterialsArray.materials[from_vs.materialIndex].ambient;
         }
-        vec3 lightingColorFactor = ambientColor;
+        vec3 lightingColorFactor = ambientColor.xyz;
 
         float shadow;
         for(int i=0; i < NR_POINT_LIGHTS; ++i){
@@ -221,7 +232,7 @@ void main(void) {
                     shadow = ShadowCalculationPoint(from_vs.fragPos, bias, viewDistance, i);
                 }
                 lightingColorFactor += ((1.0 - shadow) * (diffuseRate + specularRate) * LightSources.lights[i].color) + LightSources.lights[i].ambient;
-                ambientColor += LightSources.lights[i].ambient;
+                ambientColor.xyz += LightSources.lights[i].ambient;
             }
         }
         diffuseAndSpecularLightedColor = vec4(
@@ -229,5 +240,8 @@ void main(void) {
         min(lightingColorFactor.y, 1.0),
         min(lightingColorFactor.z, 1.0),
         1.0) * objectColor;
+        vec2 packedNormal = packNormal(normal);
+        diffuseAndSpecularLightedColor.w = packedNormal.x;
+        ambientColor.w = packedNormal.y;
 
 }

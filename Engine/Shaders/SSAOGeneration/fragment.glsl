@@ -21,6 +21,8 @@ in VS_FS {
 
 uniform sampler2D pre_depthMap;
 uniform sampler2D pre_normalMap;
+uniform sampler2D pre_ambientMap;
+uniform sampler2D pre_diffuseAndSpecularMap;
 uniform sampler2D ssaoNoiseSampler;
 
 
@@ -34,10 +36,28 @@ vec3 calcViewSpacePos(vec3 screen) {
     return camera_space;
 }
 
+vec3 unpackNormal(vec2 pa) {
+    vec2 p = pa * 2.0 - 1.0;
+
+    // Reconstruct Y-Up vector
+    vec3 n = vec3(p.x, 1.0 - abs(p.x) - abs(p.y), p.y);
+
+    if (n.y < 0.0) {
+        float oldX = n.x;
+        n.x = (1.0 - abs(n.z)) * (oldX >= 0.0 ? 1.0 : -1.0);
+        n.z = (1.0 - abs(oldX)) * (n.z >= 0.0 ? 1.0 : -1.0);
+    }
+
+    return normalize(n);
+}
 
 void main(){
+    vec2 packedNormal;
+    packedNormal.x = texture(pre_diffuseAndSpecularMap, from_vs.textureCoordinates.xy).w;
+    packedNormal.y = texture(pre_ambientMap, from_vs.textureCoordinates.xy).w;
+    vec3 normal = unpackNormal(packedNormal);
+    //vec3 normal = texture(pre_normalMap, from_vs.textureCoordinates.xy).xyz;
 
-    vec3 normal = texture(pre_normalMap, from_vs.textureCoordinates.xy).xyz;
          normal = normalize(playerTransforms.transposeInverseCamera * normal);
     float depth = texture(pre_depthMap, from_vs.textureCoordinates.xy).r;
 

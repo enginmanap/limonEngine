@@ -55,9 +55,9 @@
         <Texture>
             <Name>AmbientBuffer</Name>
             <TextureType>T2D</TextureType>
-            <InternalFormat>RGB</InternalFormat>
-            <Format>RGB</Format>
-            <DataType>FLOAT</DataType>
+            <InternalFormat>RGBA</InternalFormat>
+            <Format>RGBA</Format>
+            <DataType>UNSIGNED_BYTE</DataType>
             <Height>1080</Height>
             <Width>1920</Width>
             <HeightOption>screenHeight</HeightOption>
@@ -175,6 +175,32 @@
             </borderColor>
             <BorderColorSet>True</BorderColorSet>
             <TextureSerializeID>5</TextureSerializeID>
+            <FilterMode>LINEAR</FilterMode>
+            <WrapModes>
+                <S>BORDER</S>
+                <T>BORDER</T>
+                <R>NONE</R>
+            </WrapModes>
+        </Texture>
+        <Texture>
+            <Name>NormalBuffer</Name>
+            <TextureType>T2D</TextureType>
+            <InternalFormat>RGB16F</InternalFormat>
+            <Format>RGB</Format>
+            <DataType>FLOAT</DataType>
+            <Height>1080</Height>
+            <Width>1920</Width>
+            <HeightOption>screenHeight</HeightOption>
+            <WidthOption>screenWidth</WidthOption>
+            <Depth>0</Depth>
+            <borderColor>
+                <R>1</R>
+                <G>1</G>
+                <B>1</B>
+                <A>1</A>
+            </borderColor>
+            <BorderColorSet>True</BorderColorSet>
+            <TextureSerializeID>125</TextureSerializeID>
             <FilterMode>LINEAR</FilterMode>
             <WrapModes>
                 <S>BORDER</S>
@@ -450,7 +476,6 @@
                 <Outputs>
                     <Output Attachment="COLOR0" textureID="3"/>
                     <Output Attachment="COLOR1" textureID="4"/>
-                    <Output Attachment="COLOR2" textureID="5"/>
                     <Output Attachment="DEPTH" textureID="6"/>
                 </Outputs>
             </GraphicsPipelineStage>
@@ -467,7 +492,8 @@
                         <MaterialRequired>False</MaterialRequired>
                         <PresetValues>
                             <Uniform Name="pre_depthMap">2</Uniform>
-                            <Uniform Name="pre_normalMap">1</Uniform>
+                            <Uniform Name="pre_diffuseAndSpecularMap">3</Uniform>
+                            <Uniform Name="pre_ambientMap">4</Uniform>
                         </PresetValues>
                     </GraphicsProgram>
                 </Method>
@@ -489,8 +515,9 @@
                 <ObjectTags></ObjectTags>
                 <CullMode>BACK</CullMode>
                 <Inputs>
-                    <Input Index="1" textureID="5"/>
                     <Input Index="2" textureID="6"/>
+                    <Input Index="3" textureID="3"/>
+                    <Input Index="4" textureID="4"/>
                 </Inputs>
                 <Outputs>
                     <Output Attachment="COLOR1" textureID="7"/>
