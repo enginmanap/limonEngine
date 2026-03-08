@@ -47,7 +47,7 @@ void ImGuiHelper::RenderDrawLists(std::shared_ptr<GraphicsProgram> graphicsProgr
     graphicsProgram->setUniform("ProjMtx",ortho_projection);
     for (int n = 0; n < draw_data->CmdListsCount; n++) {
         const ImDrawList* cmd_list = draw_data->CmdLists[n];
-        const uint32_t * idx_buffer_offset = nullptr;
+        const uint16_t * idx_buffer_offset = nullptr;
 
         std::vector<glm::vec3> positions;
         std::vector<glm::vec4> colors;
@@ -66,8 +66,7 @@ void ImGuiHelper::RenderDrawLists(std::shared_ptr<GraphicsProgram> graphicsProgr
         }
         std::vector<glm::u16vec3> faces;
         for (int i = 0; i*3+2 < cmd_list->IdxBuffer.Size; i++) {
-            glm::u16vec3 face = glm::uvec3(cmd_list->IdxBuffer[i*3], cmd_list->IdxBuffer[i*3+1], cmd_list->IdxBuffer[i*3+2]);
-            faces.push_back(face);
+            faces.emplace_back(cmd_list->IdxBuffer[i*3], cmd_list->IdxBuffer[i*3+1], cmd_list->IdxBuffer[i*3+2]);
         }
 
         graphicsWrapper->updateVertexData(positions, faces, g_VboHandle, g_ElementsHandle);

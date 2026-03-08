@@ -820,7 +820,7 @@ OpenGLGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fram
     checkErrors("switchRenderStageLayer");
 }
 
-void OpenGLGraphics::render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount, const uint32_t* startIndex) {
+void OpenGLGraphics::render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount, const uint16_t *startIndex) {
     if (program == 0) {
         std::cerr << "No program render requested." << std::endl;
         return;

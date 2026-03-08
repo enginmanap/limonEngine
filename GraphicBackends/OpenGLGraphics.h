@@ -385,7 +385,7 @@ public:
         this->render(program, vao, ebo, elementCount, nullptr);
     }
 
-    void render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount, const uint32_t* startIndex) override;
+    void render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount, const uint16_t *startIndex) override;
 
     void reshape() override;
 
