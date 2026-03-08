@@ -71,6 +71,8 @@ public:
         textureInfo.defaultSize[0] = width;
         textureInfo.defaultSize[1] = height;
         textureInfo.depth = depth;
+        this->width = width;
+        this->height = height;
         this->textureID = graphicsWrapper->createTexture(textureInfo.defaultSize[1], textureInfo.defaultSize[0], textureInfo.textureType, textureInfo.internalFormatType, textureInfo.formatType, textureInfo.dataType, textureInfo.depth);
     }
 
