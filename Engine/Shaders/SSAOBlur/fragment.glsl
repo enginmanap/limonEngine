@@ -7,24 +7,35 @@ in VS_FS {
 } from_vs;
 
 uniform sampler2D pre_ssaoResult;
+uniform sampler2D pre_depthMap;
 
 void main() {
-
-//we want depth aware
-	float selfDepth = texture(pre_ssaoResult, from_vs.textureCoordinates).r;
+    float selfDepth = texture(pre_depthMap, from_vs.textureCoordinates).r;
 
     vec2 texelSize = 1.0 / vec2(textureSize(pre_ssaoResult, 0));
     float result = 0.0;
-    for (int x = -2; x < 2; ++x) {
-        for (int y = -2; y < 2; ++y) {
+    int sampleCount = 0;
+
+    for (int x = -2; x <= 2; ++x) {
+        for (int y = -2; y <= 2; ++y) {
             vec2 offset = vec2(float(x), float(y)) * texelSize;
-			float sampleDepth = texture(pre_ssaoResult, from_vs.textureCoordinates + offset).r;
-			if(abs(sampleDepth - selfDepth) < 0.4) {
-				result += sampleDepth;
-			} else {
-				result += selfDepth;
-			}
+            vec2 sampleCoords = from_vs.textureCoordinates + offset;
+
+            float sampleDepth = texture(pre_depthMap, sampleCoords).r;
+
+            // Only include samples that are at a similar depth
+            if(abs(sampleDepth - selfDepth) < 0.02) {
+                result += texture(pre_ssaoResult, sampleCoords).r;
+                sampleCount++;
+            }
         }
     }
-    occlusion = result / (5.0 *5.0 );
+
+    // division by zero guard
+    if (sampleCount > 0) {
+        occlusion = result / float(sampleCount);
+    } else {
+        // zero sample fall back
+        occlusion = texture(pre_ssaoResult, from_vs.textureCoordinates).r;
+    }
 }

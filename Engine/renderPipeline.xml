@@ -364,6 +364,58 @@
                 <R>NONE</R>
             </WrapModes>
         </Texture>
+        <Texture>
+            <Name>gNormalBuffer</Name>
+            <TextureType>T2D</TextureType>
+            <InternalFormat>RGB16F</InternalFormat>
+            <Format>RGB</Format>
+            <DataType>FLOAT</DataType>
+            <Height>1080</Height>
+            <Width>1920</Width>
+            <HeightOption>screenHeight</HeightOption>
+            <WidthOption>screenWidth</WidthOption>
+            <Depth>0</Depth>
+            <borderColor>
+                <R>0</R>
+                <G>0</G>
+                <B>0</B>
+                <A>0</A>
+            </borderColor>
+            <BorderColorSet>True</BorderColorSet>
+            <TextureSerializeID>101</TextureSerializeID>
+            <FilterMode>LINEAR</FilterMode>
+            <WrapModes>
+                <S>CLAMP_TO_EDGE</S>
+                <T>CLAMP_TO_EDGE</T>
+                <R>NONE</R>
+            </WrapModes>
+        </Texture>
+        <Texture>
+            <Name>gAmbientBuffer</Name>
+            <TextureType>T2D</TextureType>
+            <InternalFormat>RGB16F</InternalFormat>
+            <Format>RGB</Format>
+            <DataType>FLOAT</DataType>
+            <Height>1080</Height>
+            <Width>1920</Width>
+            <HeightOption>screenHeight</HeightOption>
+            <WidthOption>screenWidth</WidthOption>
+            <Depth>0</Depth>
+            <borderColor>
+                <R>0</R>
+                <G>0</G>
+                <B>0</B>
+                <A>0</A>
+            </borderColor>
+            <BorderColorSet>True</BorderColorSet>
+            <TextureSerializeID>102</TextureSerializeID>
+            <FilterMode>LINEAR</FilterMode>
+            <WrapModes>
+                <S>NONE</S>
+                <T>NONE</T>
+                <R>NONE</R>
+            </WrapModes>
+        </Texture>
     </Textures>
     <Stages>
         <StageInformation>
@@ -447,8 +499,6 @@
                         <FragmentShader>./Engine/Shaders/ModelAnimated/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
                         <PresetValues>
-                            <Uniform Name="pre_shadowPoint">30</Uniform>
-                            <Uniform Name="pre_shadowDirectional">31</Uniform>
                         </PresetValues>
                     </GraphicsProgram>
                 </Method>
@@ -470,13 +520,12 @@
                 <ObjectTags>basic_player_attachment,animated_player_attachment,basic_model_object,animated_model_object</ObjectTags>
                 <CullMode>BACK</CullMode>
                 <Inputs>
-                    <Input Index="30" textureID="2"/>
-                    <Input Index="31" textureID="1"/>
                 </Inputs>
                 <Outputs>
-                    <Output Attachment="COLOR0" textureID="3"/>
-                    <Output Attachment="COLOR1" textureID="4"/>
-                    <Output Attachment="DEPTH" textureID="6"/>
+                    <Output Attachment="COLOR0" textureID="101"/> <!-- gNormalBuffer -->
+                    <Output Attachment="COLOR1" textureID="3"/>   <!-- gAlbedoSpecBuffer -->
+                    <Output Attachment="COLOR2" textureID="102"/> <!-- gAmbientBuffer -->
+                    <Output Attachment="DEPTH" textureID="6"/>    <!-- DepthBuffer -->
                 </Outputs>
             </GraphicsPipelineStage>
         </StageInformation>
@@ -492,8 +541,7 @@
                         <MaterialRequired>False</MaterialRequired>
                         <PresetValues>
                             <Uniform Name="pre_depthMap">2</Uniform>
-                            <Uniform Name="pre_diffuseAndSpecularMap">3</Uniform>
-                            <Uniform Name="pre_ambientMap">4</Uniform>
+                            <Uniform Name="gNormalMap">4</Uniform>
                         </PresetValues>
                     </GraphicsProgram>
                 </Method>
@@ -515,9 +563,8 @@
                 <ObjectTags></ObjectTags>
                 <CullMode>BACK</CullMode>
                 <Inputs>
-                    <Input Index="2" textureID="6"/>
-                    <Input Index="3" textureID="3"/>
-                    <Input Index="4" textureID="4"/>
+                    <Input Index="2" textureID="6"/>    <!-- pre_depthMap -->
+                    <Input Index="4" textureID="101"/>  <!-- gNormalMap -->
                 </Inputs>
                 <Outputs>
                     <Output Attachment="COLOR1" textureID="7"/>
@@ -536,6 +583,7 @@
                         <MaterialRequired>False</MaterialRequired>
                         <PresetValues>
                             <Uniform Name="pre_ssaoResult">1</Uniform>
+                            <Uniform Name="pre_depthMap">2</Uniform>
                         </PresetValues>
                     </GraphicsProgram>
                 </Method>
@@ -558,6 +606,7 @@
                 <CullMode>BACK</CullMode>
                 <Inputs>
                     <Input Index="1" textureID="7"/>
+                    <Input Index="2" textureID="6"/>
                 </Inputs>
                 <Outputs>
                     <Output Attachment="COLOR1" textureID="9"/>
@@ -575,10 +624,13 @@
                         <FragmentShader>./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl</FragmentShader>
                         <MaterialRequired>False</MaterialRequired>
                         <PresetValues>
-                            <Uniform Name="pre_depthMap">4</Uniform>
-                            <Uniform Name="pre_diffuseSpecularLighted">3</Uniform>
-                            <Uniform Name="pre_ambient">2</Uniform>
-                            <Uniform Name="pre_ssao">1</Uniform>
+                            <Uniform Name="gNormalMap">1</Uniform>
+                            <Uniform Name="gAlbedoSpecMap">2</Uniform>
+                            <Uniform Name="gAmbientMap">3</Uniform>
+                            <Uniform Name="pre_ssao">4</Uniform>
+                            <Uniform Name="pre_shadowDirectional">5</Uniform>
+                            <Uniform Name="pre_shadowPoint">6</Uniform>
+                            <Uniform Name="pre_depthMap">7</Uniform>
                         </PresetValues>
                     </GraphicsProgram>
                 </Method>
@@ -594,16 +646,19 @@
                 <DepthAttachment>True</DepthAttachment>
                 <DepthTestEnabled>True</DepthTestEnabled>
                 <DepthWriteEnabled>True</DepthWriteEnabled>
-                <ScissorEnabled>True</ScissorEnabled>
+                <ScissorEnabled>False</ScissorEnabled>
                 <ToScreen>True</ToScreen>
                 <CameraTags>player_camera</CameraTags>
                 <ObjectTags>someObject</ObjectTags>
                 <CullMode>BACK</CullMode>
                 <Inputs>
-                    <Input Index="1" textureID="9"/>
-                    <Input Index="2" textureID="4"/>
-                    <Input Index="3" textureID="3"/>
-                    <Input Index="4" textureID="6"/>
+                    <Input Index="1" textureID="101"/> <!-- gNormalMap -->
+                    <Input Index="2" textureID="3"/>   <!-- gAlbedoSpecMap -->
+                    <Input Index="3" textureID="102"/> <!-- gAmbientMap -->
+                    <Input Index="4" textureID="9"/>   <!-- pre_ssao-->
+                    <Input Index="5" textureID="1"/>   <!-- pre_shadowDirectional -->
+                    <Input Index="6" textureID="2"/>   <!-- pre_shadowPoint -->
+                    <Input Index="7" textureID="6"/>   <!-- pre_depth -->
                 </Inputs>
                 <Outputs>
                     <Output Attachment="COLOR0" textureID="15"/>

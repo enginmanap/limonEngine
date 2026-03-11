@@ -19,47 +19,27 @@ in VS_FS {
     vec2 textureCoordinates;
 } from_vs;
 
+uniform sampler2D gNormalMap;   // World-space normal
 uniform sampler2D pre_depthMap;
-uniform sampler2D pre_normalMap;
-uniform sampler2D pre_ambientMap;
-uniform sampler2D pre_diffuseAndSpecularMap;
 uniform sampler2D ssaoNoiseSampler;
-
 
 uniform vec3 ssaoKernel[128];
 uniform int ssaoSampleCount;
+uniform float uRadius = 0.3f;
+uniform float uBias = 0.005f;
 
-vec3 calcViewSpacePos(vec3 screen) {
-    vec4 temp = vec4(screen.xyz * 2 - 1, 1.0);
-    temp = playerTransforms.inverseProjection * temp;
-    vec3 camera_space = temp.xyz / temp.w;
-    return camera_space;
-}
-
-vec3 unpackNormal(vec2 pa) {
-    vec2 p = pa * 2.0 - 1.0;
-
-    // Reconstruct Y-Up vector
-    vec3 n = vec3(p.x, 1.0 - abs(p.x) - abs(p.y), p.y);
-
-    if (n.y < 0.0) {
-        float oldX = n.x;
-        n.x = (1.0 - abs(n.z)) * (oldX >= 0.0 ? 1.0 : -1.0);
-        n.z = (1.0 - abs(oldX)) * (n.z >= 0.0 ? 1.0 : -1.0);
-    }
-
-    return normalize(n);
+vec3 calcViewSpacePosFromDepth(vec2 texCoords, float depth) {
+    vec4 clipSpacePos = vec4(texCoords * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
+    vec4 viewSpacePos = playerTransforms.inverseProjection * clipSpacePos;
+    return viewSpacePos.xyz / viewSpacePos.w;
 }
 
 void main(){
-    vec2 packedNormal;
-    packedNormal.x = texture(pre_diffuseAndSpecularMap, from_vs.textureCoordinates.xy).w;
-    packedNormal.y = texture(pre_ambientMap, from_vs.textureCoordinates.xy).w;
-    vec3 normal = unpackNormal(packedNormal);
-    //vec3 normal = texture(pre_normalMap, from_vs.textureCoordinates.xy).xyz;
-
-         normal = normalize(playerTransforms.transposeInverseCamera * normal);
+    vec3 worldSpaceNormal = texture(gNormalMap, from_vs.textureCoordinates).xyz;
     float depth = texture(pre_depthMap, from_vs.textureCoordinates.xy).r;
+
+    vec3 basePosition = calcViewSpacePosFromDepth(from_vs.textureCoordinates, depth);
+    vec3 normal = normalize(playerTransforms.transposeInverseCamera * worldSpaceNormal);
 
     vec3 randomVec = texture(ssaoNoiseSampler, from_vs.textureCoordinates * playerTransforms.noiseScale).xyz;
 
@@ -67,40 +47,21 @@ void main(){
     vec3 bitangent = cross(normal, tangent);
     mat3 TBN       = mat3(tangent, bitangent, normal);
 
-    float uRadius = 0.3f;
-
-    vec3 basePosition = calcViewSpacePos( vec3(from_vs.textureCoordinates, depth));
-    vec3 playerPosView = (playerTransforms.camera * vec4(playerTransforms.position, 1.0)).xyz;
-    //set a bias, that scales with the world space distance with player
-//    float distanceSQ = float((basePosition.x - playerPosView.x) * (basePosition.x - playerPosView.x) +
-//                             (basePosition.y - playerPosView.y) * (basePosition.y - playerPosView.y) +
-//                             (basePosition.z - playerPosView.z) * (basePosition.z - playerPosView.z));
-//    distanceSQ = sqrt(distanceSQ);
-    float distanceSQ = distance(basePosition, playerPosView);
-    float bias = 0.005 + 0.1 * distanceSQ / 1000;
-    float tempOcculusion = 0;
+    float tempOcculusion = 0.0;
     for(int i = 0; i < ssaoSampleCount; ++i){
-        // get sample position
-        vec3 samplePosition = TBN * ssaoKernel[i]; // From tangent to view-space
-        samplePosition = samplePosition * uRadius;
-        samplePosition  += basePosition;
+        vec3 samplePosition = TBN * ssaoKernel[i];
+        samplePosition = basePosition + samplePosition * uRadius;
 
-        vec4 offset = vec4(samplePosition, 1.0);
-        offset = playerTransforms.projection * offset;    // from view to clip-space
-        offset.xy /= offset.w;               // perspective divide
-        offset.xy  = offset.xy * 0.5 + 0.5; // transform to range 0.0 - 1.0
+        vec4 offset = playerTransforms.projection * vec4(samplePosition, 1.0); // from view to clip-space
+        offset.xy /= offset.w;
+        offset.xy  = offset.xy * 0.5 + 0.5;
+
         float sampleDepth = texture(pre_depthMap, offset.xy).r;
-        vec3 realElement = calcViewSpacePos(vec3(offset.xy, sampleDepth));
-        //float rangeCheck= abs(realElement.z - samplePosition.z) < uRadius ? (1.0/uRadius) *  abs(realElement.z - samplePosition.z): 0.0;
-        float rangeCheck = smoothstep(0.0, 1.0, uRadius / abs(samplePosition.z - realElement.z));
-        if(realElement.z > (samplePosition.z + bias)) {
-            tempOcculusion += rangeCheck;
-        }
+        vec3 realElement = calcViewSpacePosFromDepth(offset.xy, sampleDepth);
 
+        float rangeCheck = smoothstep(0.0, 1.0, uRadius / abs(samplePosition.z - realElement.z));
+        tempOcculusion += (realElement.z >= samplePosition.z + uBias ? 1.0 : 0.0) * rangeCheck;
     }
 
     occlusion = tempOcculusion / ssaoSampleCount;
 }
-
-
-
