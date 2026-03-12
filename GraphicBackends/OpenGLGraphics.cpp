@@ -1237,10 +1237,12 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
     GLint glInternalDataFormat;
     switch (internalFormat) {
         case InternalFormatTypes::RED: glInternalDataFormat = GL_R8; break;
+        case InternalFormatTypes::RG8: glInternalDataFormat = GL_RG8; break;
         case InternalFormatTypes::R32F: glInternalDataFormat = GL_R32F; break;
         case InternalFormatTypes::RGB: glInternalDataFormat = GL_RGB; break;
         case InternalFormatTypes::RGBA: glInternalDataFormat = GL_RGBA; break;
         case InternalFormatTypes::RGB16F: glInternalDataFormat = GL_RGB16F; break;
+        case InternalFormatTypes::RGBA16F: glInternalDataFormat = GL_RGBA16F; break;
         case InternalFormatTypes::RGB32F: glInternalDataFormat = GL_RGB32F; break;
         case InternalFormatTypes::RGBA32F: glInternalDataFormat = GL_RGBA32F; break;
         case InternalFormatTypes::DEPTH: glInternalDataFormat = GL_DEPTH_COMPONENT; break;
@@ -1251,6 +1253,7 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
     GLenum glFormat;
     switch (format) {
         case FormatTypes::RED: glFormat = GL_RED; break;
+        case FormatTypes::RG: glFormat = GL_RG; break;
         case FormatTypes::RGB: glFormat = GL_RGB; break;
         case FormatTypes::RGBA: glFormat = GL_RGBA; break;
         case FormatTypes::DEPTH: glFormat = GL_DEPTH_COMPONENT; break;
@@ -1344,6 +1347,7 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
     GLenum glFormat;
     switch (format) {
         case FormatTypes::RED: glFormat = GL_RED; break;
+        case FormatTypes::RG: glFormat = GL_RG; break;
         case FormatTypes::RGB: glFormat = GL_RGB; break;
         case FormatTypes::RGBA: glFormat = GL_RGBA; break;
         case FormatTypes::DEPTH: glFormat = GL_DEPTH_COMPONENT; break;

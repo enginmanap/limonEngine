@@ -36,10 +36,12 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     currentElement = document.NewElement("InternalFormat");
     switch (textureInfo.internalFormatType) {
         case GraphicsInterface::InternalFormatTypes::RED: currentElement->SetText("RED"); break;
+        case GraphicsInterface::InternalFormatTypes::RG8: currentElement->SetText("RG8"); break;
         case GraphicsInterface::InternalFormatTypes::R32F: currentElement->SetText("R32F"); break;
         case GraphicsInterface::InternalFormatTypes::RGB: currentElement->SetText("RGB"); break;
         case GraphicsInterface::InternalFormatTypes::RGBA: currentElement->SetText("RGBA"); break;
         case GraphicsInterface::InternalFormatTypes::RGB16F: currentElement->SetText("RGB16F"); break;
+        case GraphicsInterface::InternalFormatTypes::RGBA16F: currentElement->SetText("RGBA16F"); break;
         case GraphicsInterface::InternalFormatTypes::RGB32F: currentElement->SetText("RGB32F"); break;
         case GraphicsInterface::InternalFormatTypes::RGBA32F: currentElement->SetText("RGB32AF"); break;
         case GraphicsInterface::InternalFormatTypes::DEPTH: currentElement->SetText("DEPTH"); break;
@@ -51,6 +53,7 @@ bool Texture::serialize(tinyxml2::XMLDocument &document, tinyxml2::XMLElement *p
     currentElement = document.NewElement("Format");
     switch (textureInfo.formatType) {
         case GraphicsInterface::FormatTypes::RED: currentElement->SetText("RED"); break;
+        case GraphicsInterface::FormatTypes::RG: currentElement->SetText("RG"); break;
         case GraphicsInterface::FormatTypes::RGB: currentElement->SetText("RGB"); break;
         case GraphicsInterface::FormatTypes::RGBA: currentElement->SetText("RGBA"); break;
         case GraphicsInterface::FormatTypes::DEPTH: currentElement->SetText("DEPTH"); break;
@@ -234,6 +237,8 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
     std::string internalFormatString = textureNodeAttribute->GetText();
     if(internalFormatString == "RED") {
         textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RED;
+    } else if(internalFormatString == "RG8") {
+        textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RG8;
     } else if(internalFormatString == "R32F") {
         textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::R32F;
     } else if(internalFormatString == "RGB") {
@@ -242,6 +247,8 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
         textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RGBA;
     } else if(internalFormatString == "RGB16F") {
         textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RGB16F;
+    } else if(internalFormatString == "RGBA16F") {
+        textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RGBA16F;
     } else if(internalFormatString == "RGB32F") {
         textureInfo.internalFormatType = GraphicsInterface::InternalFormatTypes ::RGB32F;
     } else if(internalFormatString == "DEPTH") {
@@ -267,6 +274,8 @@ std::shared_ptr<Texture> Texture::deserialize(tinyxml2::XMLElement *TextureNode,
     std::string formatString = textureNodeAttribute->GetText();
     if(formatString == "RED") {
         textureInfo.formatType = GraphicsInterface::FormatTypes::RED;
+    } else if(formatString == "RG") {
+        textureInfo.formatType = GraphicsInterface::FormatTypes::RG;
     } else if(formatString == "RGB") {
         textureInfo.formatType = GraphicsInterface::FormatTypes::RGB;
     } else if(formatString == "RGBA") {
