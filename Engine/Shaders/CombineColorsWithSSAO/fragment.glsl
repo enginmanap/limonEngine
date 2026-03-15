@@ -14,7 +14,7 @@ in VS_FS {
 } from_vs;
 
 uniform sampler2D gNormalMap;      // World-space normal
-uniform sampler2D gAlbedoSpecMap;  // Albedo (rgb), aterial Index (a)
+uniform sampler2D gAlbedoSpecMap;  // Albedo (rgb), Material Index (a)
 uniform sampler2D gAmbientMap;     // Ambient (rgb)
 uniform sampler2D pre_ssao;
 uniform sampler2D pre_depthMap;
