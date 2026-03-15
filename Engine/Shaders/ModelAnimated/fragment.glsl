@@ -6,9 +6,9 @@
 
 #define NR_MAX_MATERIALS 200
 
-layout (location = 0) out vec4 gNormal;       // World-space normal (xyz)
+layout (location = 0) out vec2 gNormal;       // World-space normal (xyz)
 layout (location = 1) out vec4 gAlbedoSpec;   // Albedo (rgb), Shininess (a)
-layout (location = 2) out vec4 gAmbient;      // Ambient color (rgb)
+layout (location = 2) out vec3 gAmbient;      // Ambient color (rgb)
 
 layout (std140) uniform PlayerTransformBlock {
     mat4 camera;
@@ -48,12 +48,26 @@ uniform sampler2D specularSampler;
 uniform sampler2D opacitySampler;
 uniform sampler2D normalSampler;
 
+vec2 packNormal(vec3 n) {
+    float invL1 = 1.0 / (abs(n.x) + abs(n.y) + abs(n.z));
+    vec2 p = n.xz * invL1;
+
+    // Fold based on Y-Up
+    if (n.y < 0.0) {
+        float oldX = p.x;
+        p.x = (1.0 - abs(p.y)) * (oldX >= 0.0 ? 1.0 : -1.0);
+        p.y = (1.0 - abs(oldX)) * (p.y >= 0.0 ? 1.0 : -1.0);
+    }
+
+    return p * 0.5 + 0.5;
+}
+
 void main(void) {
     vec3 world_space_normal = normalize(from_vs.normal);
     if((AllMaterialsArray.materials[from_vs.materialIndex].isMap & 0x0010) != 0) {
          world_space_normal = -1 * vec3(texture(normalSampler, from_vs.textureCoord));
     }
-    gNormal = vec4(world_space_normal, 1.0);
+    gNormal = packNormal(world_space_normal);
 
     vec4 albedo = vec4(1.0);
     if((AllMaterialsArray.materials[from_vs.materialIndex].isMap & 0x0004)!=0) {

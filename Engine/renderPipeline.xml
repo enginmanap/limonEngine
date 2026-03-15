@@ -367,8 +367,8 @@
         <Texture>
             <Name>gNormalBuffer</Name>
             <TextureType>T2D</TextureType>
-            <InternalFormat>RGB16F</InternalFormat>
-            <Format>RGB</Format>
+            <InternalFormat>RG8</InternalFormat>
+            <Format>RG</Format>
             <DataType>FLOAT</DataType>
             <Height>1080</Height>
             <Width>1920</Width>

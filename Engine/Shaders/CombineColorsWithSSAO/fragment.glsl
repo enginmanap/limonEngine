@@ -139,11 +139,26 @@ float ShadowCalculationPoint(vec3 world_space_frag_pos, float bias, float viewDi
     return shadow;
 }
 
+vec3 unpackNormal(vec2 pa) {
+    vec2 p = pa * 2.0 - 1.0;
+
+    // Reconstruct Y-Up vector, appearently other up vectors require different formula
+    vec3 n = vec3(p.x, 1.0 - abs(p.x) - abs(p.y), p.y);
+
+    if (n.y < 0.0) {
+        float oldX = n.x;
+        n.x = (1.0 - abs(n.z)) * (oldX >= 0.0 ? 1.0 : -1.0);
+        n.z = (1.0 - abs(oldX)) * (n.z >= 0.0 ? 1.0 : -1.0);
+    }
+
+    return normalize(n);
+}
+
 void main()
 {
     float depth = texture(pre_depthMap, from_vs.textureCoordinates).r;
     vec3 fragPos = ReconstructWorldPos(from_vs.textureCoordinates, depth);
-    vec3 normal = texture(gNormalMap, from_vs.textureCoordinates).xyz;
+    vec3 normal = unpackNormal(texture(gNormalMap, from_vs.textureCoordinates).xy);
     vec4 albedoSpec = texture(gAlbedoSpecMap, from_vs.textureCoordinates);
     vec3 albedo = albedoSpec.rgb;
     float shininess = albedoSpec.a * 256.0;
