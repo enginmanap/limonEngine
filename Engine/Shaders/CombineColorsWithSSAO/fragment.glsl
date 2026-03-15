@@ -5,6 +5,7 @@
 #define_option CascadeLimitList
 
 #define NR_POINT_LIGHTS 4
+#define NR_MAX_MATERIALS 200
 
 out vec4 finalColor;
 
@@ -13,10 +14,22 @@ in VS_FS {
 } from_vs;
 
 uniform sampler2D gNormalMap;      // World-space normal
-uniform sampler2D gAlbedoSpecMap;  // Albedo (rgb), Shininess (a)
+uniform sampler2D gAlbedoSpecMap;  // Albedo (rgb), aterial Index (a)
 uniform sampler2D gAmbientMap;     // Ambient (rgb)
 uniform sampler2D pre_ssao;
 uniform sampler2D pre_depthMap;
+
+
+struct material {
+    vec3 ambient;
+    float shininess;
+    vec3 diffuse;
+    int isMap;
+};
+
+layout (std140) uniform MaterialInformationBlock {
+    material materials[NR_MAX_MATERIALS];
+} AllMaterialsArray;
 
 layout (std140) uniform PlayerTransformBlock {
     mat4 camera;
@@ -211,8 +224,17 @@ void main()
     vec3 normal = unpackNormal(texture(gNormalMap, from_vs.textureCoordinates).xy);
     vec4 albedoSpec = texture(gAlbedoSpecMap, from_vs.textureCoordinates);
     vec3 albedo = albedoSpec.rgb;
-    float shininess = albedoSpec.a * 256.0;
-    vec3 materialAmbient = texture(gAmbientMap, from_vs.textureCoordinates).rgb;
+    int materialIndex = int(albedoSpec.a * 255.0);
+
+    // Retrieve material information from constant buffer
+    float shininess = AllMaterialsArray.materials[materialIndex].shininess;
+    vec3 materialAmbient = AllMaterialsArray.materials[materialIndex].ambient;
+
+    // If the material has an ambient map, it will be in the gAmbientMap
+    if((AllMaterialsArray.materials[materialIndex].isMap & 0x0008) != 0) {
+        materialAmbient = texture(gAmbientMap, from_vs.textureCoordinates).rgb;
+    }
+
     float ssao = texture(pre_ssao, from_vs.textureCoordinates).r;
 
     vec4 clip_space_pos = vec4(from_vs.textureCoordinates * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);

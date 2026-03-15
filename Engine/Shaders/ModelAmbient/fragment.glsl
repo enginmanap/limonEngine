@@ -1,26 +1,12 @@
-#version 330
+#version 330 core
 #extension GL_ARB_texture_cube_map_array : enable
-
-#define_option CascadeCount
-#define_option CascadeLimitList
 
 #define NR_MAX_MATERIALS 200
 
+// G-Buffer outputs (Matching ModelAnimated fragment shader)
 layout (location = 0) out vec2 gNormal;       // World-space normal (xyz)
 layout (location = 1) out vec4 gAlbedoSpec;   // Albedo (rgb), MaterialIndex (a)
-
-layout (std140) uniform PlayerTransformBlock {
-    mat4 camera;
-    mat4 projection;
-    mat4 cameraProjection;
-    mat4 inverseProjection;
-    mat4 inverseCamera;
-    mat3 transposeInverseCamera;
-    vec3 position;
-    vec3 cameraSpacePosition;
-    vec2 noiseScale;
-    int time;
-} playerTransforms;
+layout (location = 2) out vec3 gAmbient;      // Ambient Map (rgb)
 
 struct material {
     vec3 ambient;
@@ -36,8 +22,8 @@ layout (std140) uniform MaterialInformationBlock {
 in VS_FS {
     vec3 boneColor;
     vec2 textureCoord;
-    vec3 normal;    // World-space normal
-    vec3 fragPos;   // World-space fragment position
+    vec3 normal;
+    vec3 fragPos;
     flat int materialIndex;
 } from_vs;
 
@@ -45,12 +31,14 @@ uniform sampler2D diffuseSampler;
 uniform sampler2D specularSampler;
 uniform sampler2D opacitySampler;
 uniform sampler2D normalSampler;
+uniform sampler2D ambientSampler;
 
 vec2 packNormal(vec3 n) {
+    // Project onto the L1 manifold (Note: Using Y as the "Up" axis)
     float invL1 = 1.0 / (abs(n.x) + abs(n.y) + abs(n.z));
-    vec2 p = n.xz * invL1;
+    vec2 p = n.xz * invL1; // Use X and Z for the plane
 
-    // Fold based on Y-Up
+    // Fold based on Y (The World-Space Up axis)
     if (n.y < 0.0) {
         float oldX = p.x;
         p.x = (1.0 - abs(p.y)) * (oldX >= 0.0 ? 1.0 : -1.0);
@@ -61,12 +49,14 @@ vec2 packNormal(vec3 n) {
 }
 
 void main(void) {
+    // Normal (World-space)
     vec3 world_space_normal = normalize(from_vs.normal);
     if((AllMaterialsArray.materials[from_vs.materialIndex].isMap & 0x0010) != 0) {
          world_space_normal = -1 * vec3(texture(normalSampler, from_vs.textureCoord));
     }
     gNormal = packNormal(world_space_normal);
 
+    // Albedo and Specular (Shininess)
     vec4 albedo = vec4(1.0);
     if((AllMaterialsArray.materials[from_vs.materialIndex].isMap & 0x0004)!=0) {
         albedo = texture(diffuseSampler, from_vs.textureCoord);
@@ -76,4 +66,11 @@ void main(void) {
 
     // Output materialIndex in alpha instead of shininess
     gAlbedoSpec = vec4(albedo.rgb, float(from_vs.materialIndex) / 255.0);
+
+    // Ambient Color (Only from map)
+    if((AllMaterialsArray.materials[from_vs.materialIndex].isMap & 0x0008) != 0) {
+        gAmbient.rgb = vec3(texture(ambientSampler, from_vs.textureCoord));
+    } else {
+        gAmbient.rgb = vec3(0.0); // Should not happen based on tag logic, but safe fallback
+    }
 }

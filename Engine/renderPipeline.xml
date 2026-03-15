@@ -445,7 +445,7 @@
                 <ScissorEnabled>False</ScissorEnabled>
                 <ToScreen>False</ToScreen>
                 <CameraTags>point_camera</CameraTags>
-                <ObjectTags>basic_model_object,animated_model_object</ObjectTags>
+                <ObjectTags>basic_model_object,animated_model_object,ambient_model_object</ObjectTags>
                 <CullMode>BACK</CullMode>
                 <Inputs/>
                 <Outputs>
@@ -480,7 +480,7 @@
                 <ScissorEnabled>False</ScissorEnabled>
                 <ToScreen>False</ToScreen>
                 <CameraTags>directional_camera</CameraTags>
-                <ObjectTags>basic_model_object,animated_model_object</ObjectTags>
+                <ObjectTags>basic_model_object,animated_model_object,ambient_model_object</ObjectTags>
                 <CullMode>FRONT</CullMode>
                 <Inputs/>
                 <Outputs>
@@ -498,8 +498,7 @@
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/ModelAnimated/fragment.glsl</FragmentShader>
                         <MaterialRequired>True</MaterialRequired>
-                        <PresetValues>
-                        </PresetValues>
+                        <PresetValues/>
                     </GraphicsProgram>
                 </Method>
             </RenderMethods>
@@ -519,9 +518,47 @@
                 <CameraTags>player_camera</CameraTags>
                 <ObjectTags>basic_player_attachment,animated_player_attachment,basic_model_object,animated_model_object</ObjectTags>
                 <CullMode>BACK</CullMode>
-                <Inputs>
-                </Inputs>
+                <Inputs/>
                 <Outputs>
+                    <Output Attachment="COLOR0" textureID="101"/> <!-- gNormalBuffer -->
+                    <Output Attachment="COLOR1" textureID="3"/>   <!-- now gAlbedoSpecBuffer -->
+                    <Output Attachment="DEPTH" textureID="6"/>    <!-- DepthBuffer -->
+                </Outputs>
+            </GraphicsPipelineStage>
+        </StageInformation>
+        <StageInformation>
+            <RenderMethods>
+                <Method>
+                    <Name>Render Tagged Objects</Name>
+                    <Index>0</Index>
+                    <GraphicsProgram>
+                        <VertexShader>./Engine/Shaders/ModelAnimated/vertex.glsl</VertexShader>
+                        <GeometryShader></GeometryShader>
+                        <FragmentShader>./Engine/Shaders/ModelAmbient/fragment.glsl</FragmentShader>
+                        <MaterialRequired>True</MaterialRequired>
+                        <PresetValues/>
+                    </GraphicsProgram>
+                </Method>
+            </RenderMethods>
+            <Clear>False</Clear> <!-- Do NOT clear, we are extending the G-Buffer -->
+            <GraphicsPipelineStage>
+                <DefaultRenderHeight>1080</DefaultRenderHeight>
+                <DefaultRenderWidth>1920</DefaultRenderWidth>
+                <RenderHeightOption>screenHeight</RenderHeightOption>
+                <RenderWidthOption>screenWidth</RenderWidthOption>
+                <BlendEnabled>False</BlendEnabled>
+                <ColorAttachment>True</ColorAttachment>
+                <DepthAttachment>True</DepthAttachment>
+                <DepthTestEnabled>True</DepthTestEnabled>
+                <DepthWriteEnabled>True</DepthWriteEnabled> <!-- Enabled to ensure correct G-buffer data -->
+                <ScissorEnabled>False</ScissorEnabled>
+                <ToScreen>False</ToScreen>
+                <CameraTags>player_camera</CameraTags>
+                <ObjectTags>ambient_model_object</ObjectTags>
+                <CullMode>BACK</CullMode>
+                <Inputs/>
+                <Outputs>
+                    <!-- Full G-Buffer Outputs for objects with ambient maps -->
                     <Output Attachment="COLOR0" textureID="101"/> <!-- gNormalBuffer -->
                     <Output Attachment="COLOR1" textureID="3"/>   <!-- gAlbedoSpecBuffer -->
                     <Output Attachment="COLOR2" textureID="102"/> <!-- gAmbientBuffer -->
@@ -622,7 +659,7 @@
                         <VertexShader>./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
+                        <MaterialRequired>True</MaterialRequired>
                         <PresetValues>
                             <Uniform Name="gNormalMap">1</Uniform>
                             <Uniform Name="gAlbedoSpecMap">2</Uniform>
