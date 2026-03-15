@@ -43,10 +43,14 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
     MeshMeta *meshMeta;
     std::vector<std::shared_ptr<MeshAsset>> assetMeshes = modelAsset->getMeshes();
 
+    bool hasAmbientMapInAnyMesh = false;
     for (auto iter = assetMeshes.begin(); iter != assetMeshes.end(); ++iter) {
         meshMeta = new MeshMeta();
         meshMeta->mesh = (*iter);
         meshMeta->material = modelAsset->getMeshMaterial((*iter));
+        if (meshMeta->material->hasAmbientMap()) {
+            hasAmbientMapInAnyMesh = true;
+        }
         meshMetaData.push_back(meshMeta);
     }
 
@@ -72,16 +76,18 @@ Model::Model(uint32_t objectID,  std::shared_ptr<AssetManager> assetManager, con
     }
 
     //FIXME temporarily set the tags as hard coded
-    if(animated) {
+    if(animated && !hasAmbientMapInAnyMesh) {
         this->addTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
     }
     if(this->isTransparent()) {
         this->addTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
     }
-    if(!animated && !this->isTransparent()) {
+    if(!animated && !this->isTransparent() && !hasAmbientMapInAnyMesh) {
         this->addTag(HardCodedTags::OBJECT_MODEL_BASIC);
     }
-
+    if(hasAmbientMapInAnyMesh) {
+        this->addTag(HardCodedTags::OBJECT_MODEL_AMBIENT);
+    }
     if(this->mass > 0) {
         this->addTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
     } else {

@@ -10,6 +10,7 @@ const std::string HardCodedTags::OBJECT_MODEL_PHYSICAL      = "physical_model_ob
 const std::string HardCodedTags::OBJECT_MODEL_BASIC         = "basic_model_object";
 const std::string HardCodedTags::OBJECT_MODEL_ANIMATED      = "animated_model_object";
 const std::string HardCodedTags::OBJECT_MODEL_TRANSPARENT   = "transparent_model_object";
+const std::string HardCodedTags::OBJECT_MODEL_AMBIENT       = "ambient_model_object";
 
 const std::string HardCodedTags::OBJECT_PLAYER_BASIC        = "basic_player_attachment";
 const std::string HardCodedTags::OBJECT_PLAYER_ANIMATED     = "animated_player_attachment";
@@ -19,7 +20,7 @@ const std::string HardCodedTags::CAMERA_LIGHT_DIRECTIONAL   = "directional_camer
 const std::string HardCodedTags::CAMERA_LIGHT_POINT         = "point_camera";
 const std::string HardCodedTags::CAMERA_PLAYER              = "player_camera";
 
-const std::string HardCodedTags::PICKED_OBJECT              =   "picked_object";
+const std::string HardCodedTags::PICKED_OBJECT              = "picked_object";
 
 const std::vector<std::string> HardCodedTags::ALL_TAGS              = {
     HardCodedTags::OBJECT_MODEL_STATIC          ,
@@ -28,6 +29,7 @@ const std::vector<std::string> HardCodedTags::ALL_TAGS              = {
     HardCodedTags::OBJECT_MODEL_BASIC           ,
     HardCodedTags::OBJECT_MODEL_ANIMATED        ,
     HardCodedTags::OBJECT_MODEL_TRANSPARENT     ,
+    HardCodedTags::OBJECT_MODEL_AMBIENT         ,
 
     HardCodedTags::OBJECT_PLAYER_BASIC          ,
     HardCodedTags::OBJECT_PLAYER_ANIMATED       ,

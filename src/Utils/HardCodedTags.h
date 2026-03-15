@@ -5,7 +5,8 @@
 #ifndef LIMONENGINE_HARDCODEDTAGS_H
 #define LIMONENGINE_HARDCODEDTAGS_H
 
-#include "string"
+#include <string>
+#include <vector>
 
 /**
  * This class is here because we don't allow adding tags yet.
@@ -20,6 +21,7 @@ public:
     static const std::string OBJECT_MODEL_BASIC; //Non animated, non transparent
     static const std::string OBJECT_MODEL_ANIMATED;
     static const std::string OBJECT_MODEL_TRANSPARENT;
+    static const std::string OBJECT_MODEL_AMBIENT;
 
     static const std::string OBJECT_PLAYER_BASIC;
     static const std::string OBJECT_PLAYER_ANIMATED;
