@@ -54,8 +54,23 @@ void main(){
     float depth = texture(pre_depthMap, from_vs.textureCoordinates.xy).r;
 
     vec3 basePosition = calcViewSpacePosFromDepth(from_vs.textureCoordinates, depth);
-    vec3 normal = normalize(playerTransforms.transposeInverseCamera * worldSpaceNormal);
 
+    // Camera distance based Attenuation
+    const float FADE_END = 75.0;
+    const float FADE_START = 0.0;
+    float viewDepth = abs(basePosition.z);
+    float distanceFade = 1.0 - smoothstep(FADE_START, FADE_END, viewDepth);
+
+    if (distanceFade <= 0.0) {
+        occlusion = 0.0; // No occlusion needed beyond fade distance
+        return;
+    }
+
+    // Scale radius with distance to prevent large halos on distant objects
+    // Decreasing radius as distance increases.
+    float scaledRadius = uRadius / (1.0 + viewDepth * 0.01);
+
+    vec3 normal = normalize(playerTransforms.transposeInverseCamera * worldSpaceNormal);
     vec3 randomVec = texture(ssaoNoiseSampler, from_vs.textureCoordinates * playerTransforms.noiseScale).xyz;
 
     vec3 tangent   = normalize(randomVec - normal * dot(randomVec, normal));
@@ -63,20 +78,34 @@ void main(){
     mat3 TBN       = mat3(tangent, bitangent, normal);
 
     float tempOcculusion = 0.0;
-    for(int i = 0; i < ssaoSampleCount; ++i){
-        vec3 samplePosition = TBN * ssaoKernel[i];
-        samplePosition = basePosition + samplePosition * uRadius;
 
-        vec4 offset = playerTransforms.projection * vec4(samplePosition, 1.0); // from view to clip-space
+    // Explicit angle bias to prevent shadow acne on flat surfaces.
+    const float ANGLE_BIAS = 0.05;
+
+    for(int i = 0; i < ssaoSampleCount; ++i){
+        vec3 sampleDir = TBN * ssaoKernel[i];
+        vec3 samplePos = basePosition + sampleDir * scaledRadius;
+
+        vec4 offset = playerTransforms.projection * vec4(samplePos, 1.0);
         offset.xy /= offset.w;
         offset.xy  = offset.xy * 0.5 + 0.5;
 
         float sampleDepth = texture(pre_depthMap, offset.xy).r;
-        vec3 realElement = calcViewSpacePosFromDepth(offset.xy, sampleDepth);
+        vec3 realNeighborPos = calcViewSpacePosFromDepth(offset.xy, sampleDepth);
 
-        float rangeCheck = smoothstep(0.0, 1.0, uRadius / abs(samplePosition.z - realElement.z));
-        tempOcculusion += (realElement.z >= samplePosition.z + uBias ? 1.0 : 0.0) * rangeCheck;
+        vec3 horizonVec = realNeighborPos - basePosition;
+        float dist = length(horizonVec);
+
+        if (dist < scaledRadius && dist > 0.01) {
+            float dotVal = dot(normal, normalize(horizonVec));
+
+            if (dotVal > ANGLE_BIAS) {
+                // Attenuate relative to scaledRadius
+                float attenuation = smoothstep(0.0, 1.0, 1.0 - (dist / scaledRadius));
+                tempOcculusion += dotVal * attenuation;
+            }
+        }
     }
 
-    occlusion = tempOcculusion / ssaoSampleCount;
+    occlusion = (tempOcculusion / float(ssaoSampleCount)) * distanceFade;
 }

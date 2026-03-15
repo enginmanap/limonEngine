@@ -58,6 +58,26 @@ vec3 pointSampleOffsetDirections[20] = vec3[]
    vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
 
+// Poisson Disk samples PCF
+vec2 poissonDisk[16] = vec2[](
+   vec2( -0.94201624, -0.39906216 ),
+   vec2( 0.94558609, -0.76890725 ),
+   vec2( -0.094184101, -0.92938870 ),
+   vec2( 0.34495938, 0.29387760 ),
+   vec2( -0.91588581, 0.45771432 ),
+   vec2( -0.81544232, -0.87912464 ),
+   vec2( -0.38277543, 0.27676845 ),
+   vec2( 0.97484398, 0.75648379 ),
+   vec2( 0.44323325, -0.97511554 ),
+   vec2( 0.53742981, -0.47373420 ),
+   vec2( -0.26496911, -0.41893023 ),
+   vec2( 0.79197514, 0.19090188 ),
+   vec2( -0.24188840, 0.99706507 ),
+   vec2( -0.81409955, 0.91437590 ),
+   vec2( 0.19984126, 0.78641367 ),
+   vec2( 0.14383161, -0.14100790 )
+);
+
 vec3 ReconstructWorldPos(vec2 texCoords, float depth) {
     float z = depth * 2.0 - 1.0;
     vec4 clipSpacePosition = vec4(texCoords * 2.0 - 1.0, z, 1.0);
@@ -67,40 +87,70 @@ vec3 ReconstructWorldPos(vec2 texCoords, float depth) {
     return worldSpacePosition.xyz;
 }
 
+float random(vec3 seed, int i){
+    vec4 seed4 = vec4(seed, i);
+    float dot_product = dot(seed4, vec4(12.9898,78.233,45.164,94.673));
+    return fract(sin(dot_product) * 43758.5453);
+}
 
-float ShadowCalculationDirectional(float depthBias, int lightIndex, vec3 world_space_frag_pos, float precise_view_z){
-    float cascadePlaneDistances[CascadeCount] = float[](CascadeLimitList);
-    // Use the precise view Z for cascade selection to avoid instability
-    float depthValue = precise_view_z;
-    int layer = CascadeCount - 1;
-    for (int i = 0; i < CascadeCount; ++i) {
-        if (depthValue < cascadePlaneDistances[i])
-        {
-            layer = i;
-            break;
-        }
-    }
+float SampleCascadeShadow(int lightIndex, int layer, vec3 world_space_frag_pos, float depthBias) {
     vec4 fragPosLightSpace = LightSources.lights[lightIndex].shadowMatrices[layer] * vec4(world_space_frag_pos, 1.0);
     vec3 projectedCoordinates = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projectedCoordinates = projectedCoordinates * 0.5 + 0.5;
 
     float currentDepth = projectedCoordinates.z;
-    if (currentDepth >= 1.0)
-    {
-        return 0.0;
-    }
+    if (currentDepth >= 1.0) return 0.0;
 
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(pre_shadowDirectional, 0).xy;
-    for(int x = -1; x <= 1; ++x){
-        for(int y = -1; y <= 1; ++y){
-            float pcfDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy + vec2(x, y) * texelSize, layer)).r;
-            if(currentDepth - depthBias > pcfDepth) {
-                shadow += 1.0;
-            }
+
+    float filterRadius = 2.0 + float(layer) * 0.5;
+
+    float rotAngle = random(world_space_frag_pos, 0) * 6.28318530718;
+    float s = sin(rotAngle);
+    float c = cos(rotAngle);
+    mat2 rot = mat2(c, -s, s, c);
+
+    for(int i = 0; i < 16; ++i){
+        vec2 offset = rot * poissonDisk[i];
+        float pcfDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy + offset * texelSize * filterRadius, layer)).r;
+        if(currentDepth - depthBias > pcfDepth) {
+            shadow += 1.0;
         }
     }
-    shadow /= 9.0;
+    return shadow / 16.0;
+}
+
+float ShadowCalculationDirectional(float depthBias, int lightIndex, vec3 world_space_frag_pos, float precise_view_z){
+    float cascadePlaneDistances[CascadeCount] = float[](CascadeLimitList);
+
+    int layer = -1;
+    float splitDist = 0.0;
+
+    for (int i = 0; i < CascadeCount; ++i) {
+        if (precise_view_z < cascadePlaneDistances[i]) {
+            layer = i;
+            splitDist = cascadePlaneDistances[i];
+            break;
+        }
+    }
+    if (layer == -1) layer = CascadeCount - 1;
+
+    // Sample the primary cascade
+    float shadow = SampleCascadeShadow(lightIndex, layer, world_space_frag_pos, depthBias);
+
+    // Blend with the next cascade if within the transition zone
+    if (layer < CascadeCount - 1) {
+        float blendRegion = splitDist * 0.10; // 10% overlap
+        float threshold = splitDist - blendRegion;
+
+        if (precise_view_z > threshold) {
+            float nextShadow = SampleCascadeShadow(lightIndex, layer + 1, world_space_frag_pos, depthBias);
+            float factor = (precise_view_z - threshold) / blendRegion;
+            factor = smoothstep(0.0, 1.0, factor);
+            shadow = mix(shadow, nextShadow, factor);
+        }
+    }
 
     return shadow;
 }
