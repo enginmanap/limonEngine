@@ -1,5 +1,6 @@
 <GraphicsPipeline>
     <Textures>
+        <!-- Existing Textures -->
         <Texture>
             <TextureType>T2D</TextureType>
             <InternalFormat>RGBA</InternalFormat>
@@ -55,9 +56,9 @@
         <Texture>
             <Name>AmbientBuffer</Name>
             <TextureType>T2D</TextureType>
-            <InternalFormat>RGBA</InternalFormat>
-            <Format>RGBA</Format>
-            <DataType>UNSIGNED_BYTE</DataType>
+            <InternalFormat>RGB</InternalFormat>
+            <Format>RGB</Format>
+            <DataType>UNSIGNED_INT</DataType>
             <Height>1080</Height>
             <Width>1920</Width>
             <HeightOption>screenHeight</HeightOption>
@@ -109,7 +110,7 @@
             <TextureType>T2D</TextureType>
             <InternalFormat>RGBA</InternalFormat>
             <Format>RGBA</Format>
-            <DataType>FLOAT</DataType>
+            <DataType>UNSIGNED_INT</DataType>
             <Height>1080</Height>
             <Width>1920</Width>
             <HeightOption>screenHeight</HeightOption>
@@ -149,58 +150,6 @@
             </borderColor>
             <BorderColorSet>True</BorderColorSet>
             <TextureSerializeID>1</TextureSerializeID>
-            <FilterMode>LINEAR</FilterMode>
-            <WrapModes>
-                <S>BORDER</S>
-                <T>BORDER</T>
-                <R>NONE</R>
-            </WrapModes>
-        </Texture>
-        <Texture>
-            <Name>NormalBuffer</Name>
-            <TextureType>T2D</TextureType>
-            <InternalFormat>RGB16F</InternalFormat>
-            <Format>RGB</Format>
-            <DataType>FLOAT</DataType>
-            <Height>1080</Height>
-            <Width>1920</Width>
-            <HeightOption>screenHeight</HeightOption>
-            <WidthOption>screenWidth</WidthOption>
-            <Depth>0</Depth>
-            <borderColor>
-                <R>1</R>
-                <G>1</G>
-                <B>1</B>
-                <A>1</A>
-            </borderColor>
-            <BorderColorSet>True</BorderColorSet>
-            <TextureSerializeID>5</TextureSerializeID>
-            <FilterMode>LINEAR</FilterMode>
-            <WrapModes>
-                <S>BORDER</S>
-                <T>BORDER</T>
-                <R>NONE</R>
-            </WrapModes>
-        </Texture>
-        <Texture>
-            <Name>NormalBuffer</Name>
-            <TextureType>T2D</TextureType>
-            <InternalFormat>RGB16F</InternalFormat>
-            <Format>RGB</Format>
-            <DataType>FLOAT</DataType>
-            <Height>1080</Height>
-            <Width>1920</Width>
-            <HeightOption>screenHeight</HeightOption>
-            <WidthOption>screenWidth</WidthOption>
-            <Depth>0</Depth>
-            <borderColor>
-                <R>1</R>
-                <G>1</G>
-                <B>1</B>
-                <A>1</A>
-            </borderColor>
-            <BorderColorSet>True</BorderColorSet>
-            <TextureSerializeID>125</TextureSerializeID>
             <FilterMode>LINEAR</FilterMode>
             <WrapModes>
                 <S>BORDER</S>
@@ -364,12 +313,13 @@
                 <R>NONE</R>
             </WrapModes>
         </Texture>
+        <!-- NEW G-Buffer Textures -->
         <Texture>
             <Name>gNormalBuffer</Name>
             <TextureType>T2D</TextureType>
             <InternalFormat>RG8</InternalFormat>
             <Format>RG</Format>
-            <DataType>FLOAT</DataType>
+            <DataType>UNSIGNED_INT</DataType>
             <Height>1080</Height>
             <Width>1920</Width>
             <HeightOption>screenHeight</HeightOption>
@@ -393,9 +343,9 @@
         <Texture>
             <Name>gAmbientBuffer</Name>
             <TextureType>T2D</TextureType>
-            <InternalFormat>RGB16F</InternalFormat>
+            <InternalFormat>RGB</InternalFormat>
             <Format>RGB</Format>
-            <DataType>FLOAT</DataType>
+            <DataType>UNSIGNED_INT</DataType>
             <Height>1080</Height>
             <Width>1920</Width>
             <HeightOption>screenHeight</HeightOption>
@@ -659,11 +609,11 @@
                         <VertexShader>./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
+                        <MaterialRequired>False</MaterialRequired>
                         <PresetValues>
-                            <Uniform Name="gNormalMap">1</Uniform>
-                            <Uniform Name="gAlbedoSpecMap">2</Uniform>
-                            <Uniform Name="gAmbientMap">3</Uniform>
+                            <Uniform Name="pre_gNormalMap">1</Uniform>
+                            <Uniform Name="pre_gAlbedoSpecMap">2</Uniform>
+                            <Uniform Name="pre_gAmbientMap">3</Uniform>
                             <Uniform Name="pre_ssao">4</Uniform>
                             <Uniform Name="pre_shadowDirectional">5</Uniform>
                             <Uniform Name="pre_shadowPoint">6</Uniform>
@@ -735,7 +685,6 @@
                 <Inputs/>
                 <Outputs>
                     <Output Attachment="COLOR0" textureID="15"/>
-                    <Output Attachment="COLOR1" textureID="5"/>
                     <Output Attachment="DEPTH" textureID="14"/>
                 </Outputs>
             </GraphicsPipelineStage>

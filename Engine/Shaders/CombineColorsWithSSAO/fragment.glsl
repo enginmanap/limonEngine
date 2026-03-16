@@ -13,12 +13,14 @@ in VS_FS {
     vec2 textureCoordinates;
 } from_vs;
 
-uniform sampler2D gNormalMap;      // World-space normal
-uniform sampler2D gAlbedoSpecMap;  // Albedo (rgb), Material Index (a)
-uniform sampler2D gAmbientMap;     // Ambient (rgb)
+// G-Buffer inputs
+uniform sampler2D pre_gNormalMap;      // World-space normal
+uniform sampler2D pre_gAlbedoSpecMap;  // Albedo (rgb), Material Index (a)
+uniform sampler2D pre_gAmbientMap;     // Ambient Map (rgb)
 uniform sampler2D pre_ssao;
 uniform sampler2D pre_depthMap;
-
+uniform sampler2DArray pre_shadowDirectional;
+uniform samplerCubeArray pre_shadowPoint;
 
 struct material {
     vec3 ambient;
@@ -58,9 +60,6 @@ layout (std140) uniform LightSourceBlock
 {
     LightSource lights[NR_POINT_LIGHTS];
 } LightSources;
-
-uniform sampler2DArray pre_shadowDirectional;
-uniform samplerCubeArray pre_shadowPoint;
 
 vec3 pointSampleOffsetDirections[20] = vec3[]
 (
@@ -221,8 +220,8 @@ void main()
 {
     float depth = texture(pre_depthMap, from_vs.textureCoordinates).r;
     vec3 fragPos = ReconstructWorldPos(from_vs.textureCoordinates, depth);
-    vec3 normal = unpackNormal(texture(gNormalMap, from_vs.textureCoordinates).xy);
-    vec4 albedoSpec = texture(gAlbedoSpecMap, from_vs.textureCoordinates);
+    vec3 normal = unpackNormal(texture(pre_gNormalMap, from_vs.textureCoordinates).xy);
+    vec4 albedoSpec = texture(pre_gAlbedoSpecMap, from_vs.textureCoordinates);
     vec3 albedo = albedoSpec.rgb;
     int materialIndex = int(albedoSpec.a * 255.0);
 
@@ -232,7 +231,7 @@ void main()
 
     // If the material has an ambient map, it will be in the gAmbientMap
     if((AllMaterialsArray.materials[materialIndex].isMap & 0x0008) != 0) {
-        materialAmbient = texture(gAmbientMap, from_vs.textureCoordinates).rgb;
+        materialAmbient = texture(pre_gAmbientMap, from_vs.textureCoordinates).rgb;
     }
 
     float ssao = texture(pre_ssao, from_vs.textureCoordinates).r;
