@@ -6,12 +6,13 @@
 #include "Assets/AssetManager.h"
 #include "GraphicsProgramPreprocessor.h"
 
-GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& vertexShader, const std::string& fragmentShader, bool isMaterialUsed) :
-        assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), materialRequired(isMaterialUsed) {
+GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& vertexShader, const std::string& fragmentShader) :
+        assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), materialRequired(false) {
     graphicsProgramAsset = assetManager->loadAsset<GraphicsProgramAsset>({vertexShader, fragmentShader});
     GraphicsProgramPreprocessor::preprocess(this, assetManager->getGraphicsWrapper()->getContextInformation().shaderHeader, assetManager->getGraphicsWrapper()->getOptions()->getAllOptions());
     programID = graphicsWrapper->createGraphicsProgram(vertexShaderContent, "", fragmentShaderContent);
     graphicsProgramAsset->lateInitialize(programID);
+    this->setMaterialRequired();
     if(materialRequired) {
         setSamplersAndUBOs();
     }
@@ -20,13 +21,15 @@ GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& 
     graphicsWrapper->attachModelIndicesUBO(getID());
 }
 
-GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, bool isMaterialUsed) :
-        assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), materialRequired(isMaterialUsed) {
+GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader) :
+        assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), materialRequired(false) {
     graphicsProgramAsset = assetManager->loadAsset<GraphicsProgramAsset>({vertexShader, geometryShader, fragmentShader});
+
     GraphicsProgramPreprocessor::preprocess(this, assetManager->getGraphicsWrapper()->getContextInformation().shaderHeader, assetManager->getGraphicsWrapper()->getOptions()->getAllOptions());
 
     programID = graphicsWrapper->createGraphicsProgram(vertexShaderContent, geometryShaderContent, fragmentShaderContent);
     graphicsProgramAsset->lateInitialize(programID);
+    this->setMaterialRequired();
     if(materialRequired) {
         setSamplersAndUBOs();
     }
@@ -81,6 +84,16 @@ void GraphicsProgram::setSamplersAndUBOs() {
     }
     if (!setUniform("pre_shadowPoint", graphicsWrapper->getMaxTextureImageUnits() - 2)) {
         std::cerr << "Uniform \"pre_shadowPoint\" could not be set for " << this->getProgramName() << std::endl;
+    }
+}
+
+void GraphicsProgram::setMaterialRequired() {
+    const auto& uniformMap = graphicsProgramAsset->getUniformMap();
+    for (const auto& pair : uniformMap) {
+        if (pair.first.rfind("MaterialInformationBlock", 0) == 0) { // We use MaterialInformationBlock name for the ubo
+            materialRequired = true;
+            break;
+        }
     }
 }
 

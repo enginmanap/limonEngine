@@ -834,14 +834,12 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
         if (stageExtension->getProgramNameInfo().geometryShaderName.empty()) {
             stageProgram = std::make_shared<GraphicsProgram>(assetManager.get(),
                                                              stageExtension->getProgramNameInfo().vertexShaderName,
-                                                             stageExtension->getProgramNameInfo().fragmentShaderName,
-                                                             true);//FIXME: is material required should be part of program info
+                                                             stageExtension->getProgramNameInfo().fragmentShaderName);
         } else {
             stageProgram = std::make_shared<GraphicsProgram>(assetManager.get(),
                                                              stageExtension->getProgramNameInfo().vertexShaderName,
                                                              stageExtension->getProgramNameInfo().geometryShaderName,
-                                                             stageExtension->getProgramNameInfo().fragmentShaderName,
-                                                             true);//FIXME: is material required should be part of program info
+                                                             stageExtension->getProgramNameInfo().fragmentShaderName);
         }
 
         std::shared_ptr<GraphicsPipeline::StageInfo> stageInfo;

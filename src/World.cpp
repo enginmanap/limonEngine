@@ -231,7 +231,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
      // If not in editor mode, dont let imgGuiHelper get input
      // if in editor mode, but player press editor button, dont allow imgui to process input
      // if in editor mode, player did not press editor button, then check if imgui processed, if not use the input
-     if(!currentPlayersSettings->editorShown || inputHandler.getInputStates().getInputEvents(InputStates::Inputs ::EDITOR) || !imgGuiHelper->ProcessEvent(inputHandler)) {
+     if(!currentPlayersSettings->editorShown || inputHandler.getInputStates().getInputEvents(InputStates::Inputs::EDITOR) || !imgGuiHelper->ProcessEvent(inputHandler)) {
          if(handlePlayerInput(inputHandler)) {
              handleQuitRequest();
              return;
@@ -1049,7 +1049,7 @@ void World::renderPlayerAttachmentsRecursiveByTag(PhysicalRenderable *attachment
     if(std::find(alreadyRenderedModelIds.begin(), alreadyRenderedModelIds.end(), attachmentObject->getWorldObjectID()) == alreadyRenderedModelIds.end() && attachmentObject->hasTag(renderTag)) {
         alreadyRenderedModelIds.emplace_back(attachmentObject->getWorldObjectID());
         if(attachmentObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
-            static_cast<Model *>(attachment)->convertToRenderList(0,0.0f).render(graphicsWrapper, renderProgram);
+            static_cast<Model *>(attachment)->convertToRenderList(0,0).render(graphicsWrapper, renderProgram);
         }
     }
     for (const auto &child: children) {
@@ -3686,13 +3686,11 @@ void World::createNodeGraph() {
                    foundProgram = std::make_shared<GraphicsProgram>(assetManager.get(),
                                                                     vertexShaderNode->fullPath,
                                                                     geometryShaderNode->fullPath,
-                                                                    fragmentShaderNode->fullPath,
-                                                                    false);
+                                                                    fragmentShaderNode->fullPath);
                } else {
                    foundProgram = std::make_shared<GraphicsProgram>(assetManager.get(),
                                                                     vertexShaderNode->fullPath,
-                                                                    fragmentShaderNode->fullPath,
-                                                                    false);
+                                                                    fragmentShaderNode->fullPath);
                }
                for(auto oldProgram:programs) {
                    if(oldProgram->getProgramName() == foundProgram->getProgramName()) {

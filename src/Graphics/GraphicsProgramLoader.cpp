@@ -38,30 +38,11 @@ std::shared_ptr<GraphicsProgram> GraphicsProgramLoader::deserialize(tinyxml2::XM
         }
     }
 
-    bool materialRequired = false;
-    programNodeAttribute = programNode->FirstChildElement("MaterialRequired");
-    if (programNodeAttribute != nullptr) {
-        if(programNodeAttribute->GetText() == nullptr) {
-            std::cerr << "Graphics Program material required flag couldn't be read, assuming no!" << std::endl;
-        } else {
-            std::string materialRequiredString = programNodeAttribute->GetText();
-            if(materialRequiredString == "True") {
-                materialRequired = true;
-            } else if(materialRequiredString == "False") {
-                materialRequired = false;
-            } else {
-                std::cerr << "Graphics Program material required flag is unknown, assuming no!" << std::endl;
-            }
-        }
-    } else {
-        std::cerr << "Graphics Program material required flag not found, assuming no!" << std::endl;
-    }
-
     std::shared_ptr<GraphicsProgram> newProgram;
     if(geometryShader.length() > 0 ) {
-        newProgram = std::make_shared<GraphicsProgram>(assetManager.get(), vertexShader, geometryShader, fragmentShader, materialRequired);
+        newProgram = std::make_shared<GraphicsProgram>(assetManager.get(), vertexShader, geometryShader, fragmentShader);
     } else {
-        newProgram = std::make_shared<GraphicsProgram>(assetManager.get(), vertexShader, fragmentShader, materialRequired);
+        newProgram = std::make_shared<GraphicsProgram>(assetManager.get(), vertexShader, fragmentShader);
     }
 
     tinyxml2::XMLElement *presetValuesNode = programNode->FirstChildElement("PresetValues");
@@ -99,14 +80,6 @@ bool GraphicsProgramLoader::serialize(tinyxml2::XMLDocument &document, tinyxml2:
 
     currentElement = document.NewElement("FragmentShader");
     currentElement->SetText(graphicsProgram->graphicsProgramAsset->getFragmentShaderFile().c_str());
-    programNode->InsertEndChild(currentElement);
-
-    currentElement = document.NewElement("MaterialRequired");
-    if(graphicsProgram->materialRequired) {
-        currentElement->SetText("True");
-    } else {
-        currentElement->SetText("False");
-    }
     programNode->InsertEndChild(currentElement);
 
     if(!graphicsProgram->presetUniformValues.empty()) {

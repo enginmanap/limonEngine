@@ -308,8 +308,7 @@
                         <VertexShader>./Engine/Shaders/ShadowMapPoint/vertex.glsl</VertexShader>
                         <GeometryShader>./Engine/Shaders/ShadowMapPoint/geometry.glsl</GeometryShader>
                         <FragmentShader>./Engine/Shaders/ShadowMapPoint/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                    </GraphicsProgram>
+                                            </GraphicsProgram>
                 </Method>
             </RenderMethods>
             <Clear>True</Clear>
@@ -343,8 +342,7 @@
                         <VertexShader>./Engine/Shaders/ShadowMapDirectional/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/ShadowMapDirectional/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                    </GraphicsProgram>
+                                            </GraphicsProgram>
                 </Method>
             </RenderMethods>
             <Clear>False</Clear>
@@ -378,7 +376,6 @@
                         <VertexShader>./Engine/Shaders/ModelAnimated/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/ModelAnimated/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
                         <PresetValues/>
                     </GraphicsProgram>
                 </Method>
@@ -416,7 +413,6 @@
                         <VertexShader>./Engine/Shaders/ModelAmbient/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/ModelAmbient/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
                         <PresetValues/>
                     </GraphicsProgram>
                 </Method>
@@ -455,8 +451,7 @@
                         <VertexShader>./Engine/Shaders/SSAOGeneration/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/SSAOGeneration/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                        <PresetValues>
+                                                <PresetValues>
                             <Uniform Name="pre_depthMap">2</Uniform>
                             <Uniform Name="pre_gNormalMap">1</Uniform>
                         </PresetValues>
@@ -481,7 +476,7 @@
                 <CullMode>BACK</CullMode>
                 <Inputs>
                     <Input Index="2" textureID="6"/>
-                    <Input Index="4" textureID="101"/>
+                    <Input Index="1" textureID="101"/>
                 </Inputs>
                 <Outputs>
                     <Output Attachment="COLOR1" textureID="7"/>
@@ -497,8 +492,7 @@
                         <VertexShader>./Engine/Shaders/SSAOBlur/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/SSAOBlur/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                        <PresetValues>
+                                                <PresetValues>
                             <Uniform Name="pre_ssaoResult">1</Uniform>
                             <Uniform Name="pre_depthMap">2</Uniform>
                         </PresetValues>
@@ -539,8 +533,7 @@
                         <VertexShader>./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                        <PresetValues>
+                                                <PresetValues>
                             <Uniform Name="pre_gNormalMap">1</Uniform>
                             <Uniform Name="pre_gAlbedoSpecMap">2</Uniform>
                             <Uniform Name="pre_gAmbientMap">3</Uniform>
@@ -592,8 +585,7 @@
                         <VertexShader>./Engine/Shaders/SkyCube/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/SkyCube/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                    </GraphicsProgram>
+                                            </GraphicsProgram>
                 </Method>
             </RenderMethods>
             <Clear>False</Clear>
@@ -628,8 +620,7 @@
                         <VertexShader>./Engine/Shaders/ModelTransparent/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/ModelTransparent/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
-                        <PresetValues>
+                                                <PresetValues>
                             <Uniform Name="pre_shadowPoint">30</Uniform>
                             <Uniform Name="pre_shadowDirectional">31</Uniform>
                         </PresetValues>
@@ -671,8 +662,7 @@
                         <VertexShader>./Engine/Shaders/GPUParticles/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/GPUParticles/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                    </GraphicsProgram>
+                                            </GraphicsProgram>
                 </Method>
                 <Method>
                     <Name>Render Particle Emitters</Name>
@@ -681,8 +671,7 @@
                         <VertexShader>./Engine/Shaders/Particles/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/Particles/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                    </GraphicsProgram>
+                                            </GraphicsProgram>
                 </Method>
             </RenderMethods>
             <Clear>False</Clear>
@@ -717,8 +706,7 @@
                         <VertexShader>./Engine/Shaders/ImGui/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/ImGui/fragment.glsl</FragmentShader>
-                        <MaterialRequired>True</MaterialRequired>
-                    </GraphicsProgram>
+                                            </GraphicsProgram>
                 </Method>
             </RenderMethods>
             <Clear>False</Clear>
@@ -753,8 +741,7 @@
                         <VertexShader>./Engine/Shaders/Lines/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/Lines/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                    </GraphicsProgram>
+                                            </GraphicsProgram>
                 </Method>
                 <Method>
                     <Name>Render GUI Images</Name>
@@ -763,8 +750,7 @@
                         <VertexShader>./Engine/Shaders/GUIImage/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/GUIImage/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                    </GraphicsProgram>
+                                            </GraphicsProgram>
                 </Method>
                 <Method>
                     <Name>Render GUI Texts</Name>
@@ -773,8 +759,7 @@
                         <VertexShader>./Engine/Shaders/GUIText/vertex.glsl</VertexShader>
                         <GeometryShader></GeometryShader>
                         <FragmentShader>./Engine/Shaders/GUIText/fragment.glsl</FragmentShader>
-                        <MaterialRequired>False</MaterialRequired>
-                    </GraphicsProgram>
+                                            </GraphicsProgram>
                 </Method>
             </RenderMethods>
             <Clear>False</Clear>

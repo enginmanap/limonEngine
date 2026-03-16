@@ -27,11 +27,11 @@ class GraphicsProgram {
 
     //TODO remove with material editor
     void setSamplersAndUBOs();
+    void setMaterialRequired();
 
 public:
-
-    GraphicsProgram(AssetManager* assetManager, const std::string& vertexShader, const std::string& fragmentShader, bool isMaterialUsed);
-    GraphicsProgram(AssetManager* assetManager, const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader, bool isMaterialUsed);
+    GraphicsProgram(AssetManager* assetManager, const std::string& vertexShader, const std::string& fragmentShader);
+    GraphicsProgram(AssetManager* assetManager, const std::string& vertexShader, const std::string& geometryShader, const std::string& fragmentShader);
 
     uint32_t getAttributeLocation(const std::string& attributeName) {
         return graphicsProgramAsset->getAttributeLocation(attributeName);
