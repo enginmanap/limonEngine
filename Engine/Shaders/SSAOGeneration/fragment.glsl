@@ -19,7 +19,7 @@ in VS_FS {
     vec2 textureCoordinates;
 } from_vs;
 
-uniform sampler2D gNormalMap;   // World-space normal
+uniform sampler2D pre_gNormalMap;   // World-space normal, pocked
 uniform sampler2D pre_depthMap;
 uniform sampler2D ssaoNoiseSampler;
 
@@ -50,7 +50,7 @@ vec3 calcViewSpacePosFromDepth(vec2 texCoords, float depth) {
 }
 
 void main(){
-    vec3 worldSpaceNormal = unpackNormal(texture(gNormalMap, from_vs.textureCoordinates).xy);
+    vec3 worldSpaceNormal = unpackNormal(texture(pre_gNormalMap, from_vs.textureCoordinates).xy);
     float depth = texture(pre_depthMap, from_vs.textureCoordinates.xy).r;
 
     vec3 basePosition = calcViewSpacePosFromDepth(from_vs.textureCoordinates, depth);

@@ -14,7 +14,7 @@ in VS_FS {
 } from_vs;
 
 // G-Buffer inputs
-uniform sampler2D pre_gNormalMap;      // World-space normal
+uniform sampler2D pre_gNormalMap;      // World-space normal, packed
 uniform sampler2D pre_gAlbedoSpecMap;  // Albedo (rgb), Material Index (a)
 uniform sampler2D pre_gAmbientMap;     // Ambient Map (rgb)
 uniform sampler2D pre_ssao;
