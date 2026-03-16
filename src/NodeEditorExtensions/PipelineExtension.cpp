@@ -143,7 +143,7 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
                 backgroundColor.y +=0.5f;
                 backgroundColor.z +=0.5f;
                 ImU32 newColor = ImGui::ColorConvertFloat4ToU32(backgroundColor);
-                size_t fromNode, toNode;
+                size_t fromNode=0, toNode=0;
                 for (size_t n = 0; n < orderedStages.size(); n++) {
                     tempStringList.clear();
                     std::for_each(orderedStages[n].first.begin(), orderedStages[n].first.end(), [&tempStringList](const Node* node) {tempStringList.emplace_back(node->getDisplayName());});
@@ -918,7 +918,11 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                         stageProgram->addPresetValue(connection->getName(), std::to_string(location));
                         location++;
                     }
+                } else {
+                    std::cerr << "Pipeline Stage " << node->getDisplayName() << " tried to set a preset " << connection->getName() << " that is not a uniform in program, skipping" << std::endl;
                 }
+            } else {
+                std::cerr << "Pipeline Stage " << node->getDisplayName() << " skipping connection, because of null texture. at connection "<< connection->getName()  << std::endl;
             }
             stageInfo->stage->setLastPresetIndex(location);
         }
@@ -958,6 +962,8 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                     stageInfo->stage->setOutput(frameBufferAttachmentPoint, stageExtension->getOutputTexture(connection));
 
                 }
+            } else {
+                std::cerr << "Pipeline Stage " << node->getDisplayName() << " tried to set an output " << connection->getName() << " that is not mapped in the program, skipping" << std::endl;
             }
         }
         if(stageExtension->getMethodName() == "All directional shadows") {
