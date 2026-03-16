@@ -40,7 +40,7 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
             }
             if (ImGui::BeginCombo(connection->getName().c_str(), currentTextureName.c_str())) {
                 for (auto & usedTexture : usedTextures) {
-                    if (ImGui::Selectable(usedTexture.first.c_str())) {
+                    if (ImGui::Selectable((usedTexture.first + "##PipelineStageExtensionUsedTexture").c_str())) {
                         OutputTextureInfo textureInfo;
                         textureInfo.name = usedTexture.first;
                         textureInfo.texture = usedTexture.second;
