@@ -143,7 +143,6 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
                 backgroundColor.y +=0.5f;
                 backgroundColor.z +=0.5f;
                 ImU32 newColor = ImGui::ColorConvertFloat4ToU32(backgroundColor);
-                size_t fromNode=0, toNode=0;
                 for (size_t n = 0; n < orderedStages.size(); n++) {
                     tempStringList.clear();
                     std::for_each(orderedStages[n].first.begin(), orderedStages[n].first.end(), [&tempStringList](const Node* node) {tempStringList.emplace_back(node->getDisplayName());});
@@ -153,27 +152,31 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
 
                     ImGui::Selectable(tempString.c_str());
 
+                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+                        ImGui::SetDragDropPayload(DRAG_AND_DROP_PIPELINE_STAGE, &n, sizeof(size_t));
+                        ImGui::Text("Moving %s", tempString.c_str());
+                        ImGui::EndDragDropSource();
+                    }
+
+                    if (ImGui::BeginDragDropTarget()) {
+                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(DRAG_AND_DROP_PIPELINE_STAGE)) {
+                            IM_ASSERT(payload->DataSize == sizeof(size_t));
+                            size_t source_n = *(const size_t*)payload->Data;
+
+                            auto draggedItem = orderedStages[source_n];
+                            orderedStages.erase(orderedStages.begin() + source_n);
+                            orderedStages.insert(orderedStages.begin() + n, draggedItem);
+                        }
+                        ImGui::EndDragDropTarget();
+                    }
+
                     draw_list->ChannelsSetCurrent(0);
                     ImVec2 p_min = ImGui::GetItemRectMin();
                     ImVec2 p_max = ImGui::GetItemRectMax();
                     ImGui::GetWindowDrawList()->AddRectFilled(p_min, p_max, newColor);
                     draw_list->ChannelsMerge();
-
-                    if (ImGui::IsItemActive() && !ImGui::IsItemHovered())
-                    {
-                        fromNode = n;
-                        toNode = n + (ImGui::GetMouseDragDelta(0).y < 0.f ? -1 : 1);
-                    }
                 }
-                if (toNode > 0 && toNode < orderedStages.size())
-                {
-                    //we need to re order the ordered stages now
-                    auto backup = orderedStages[fromNode];
-                    orderedStages[fromNode] = orderedStages[toNode];
-                    orderedStages[toNode] = backup;
-                    ImGui::ResetMouseDragDelta();
-                }
-                ImGui::InputText("File name:##fileNameToSavePipeline", tempFileName, sizeof (tempFileName)/sizeof (tempFileName[0], ImGuiInputTextFlags_CharsNoBlank));
+                ImGui::InputText("File name:##fileNameToSavePipeline", tempFileName, sizeof (tempFileName)/sizeof (tempFileName[0]), ImGuiInputTextFlags_CharsNoBlank);
                 ImGui::SameLine();
                 if(ImGui::Button("Build with this order")) {
                     std::shared_ptr<GraphicsPipeline> builtPipelineNew = combineStagesToPipeline();
@@ -192,12 +195,12 @@ void PipelineExtension::drawDetailPane(NodeGraph* nodeGraph, const std::vector<c
     }
     ImGui::PopStyleVar();
 
-    for(auto message:errorMessages) {
+    for(const std::string& message:errorMessages) {
         nodeGraph->addError(message);
     }
     errorMessages.clear();
 
-    for(auto message:messages) {
+    for(const std::string& message:messages) {
         nodeGraph->addMessage(message);
     }
     messages.clear();
@@ -938,7 +941,7 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                     if(connection->getName() == "Depth" && !stageExtension->isDepthWriteEnabled() && !stageExtension->isDepthTestEnabled()) {
                         continue;
                     }
-                    addError("Output [" + connection->getName() + "] of node " + node->getName() + " is not set.");
+                    addError("Output [" + connection->getName() + "] of node " + node->getDisplayName() + " is not set.");
                     return false;
                 }
                 if (stageExtension->getOutputTextureInfo(connection)->name != "Screen" &&

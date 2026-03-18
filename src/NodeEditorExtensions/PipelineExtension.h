@@ -10,9 +10,10 @@
 #include "limonAPI/Graphics/GraphicsInterface.h"
 #include "Graphics/GraphicsPipeline.h"
 
-#include <functional>
 #include <vector>
-#include <unordered_set>
+
+inline const char* DRAG_AND_DROP_PIPELINE_STAGE = "DND_PIPELINE_STAGE";
+
 
 class GraphicsPipelineStage;
 
