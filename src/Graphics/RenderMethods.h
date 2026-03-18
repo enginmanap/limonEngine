@@ -135,7 +135,7 @@ private:
     std::function<void(const std::shared_ptr<GraphicsProgram>&, const std::string &cameraName, const std::vector<HashUtil::HashedString> &)> getRenderMethodByName(const std::string& name, bool& found, uint32_t& priority) const {
         found  = true;
         if(name == "Render Tagged Objects") {
-            priority = 2;
+            priority = 5;
             return renderCameraByTag;
         } else if(name == "Render Particle Emitters") {
             priority = 13;
@@ -150,7 +150,7 @@ private:
             priority = 22;
             return renderGUIImages;
         } else if(name == "Render Editor") {
-            priority = 23;
+            priority = 90;
             return renderEditor;
         } else if(name == "Render Sky") {
             priority = 20;
@@ -227,7 +227,7 @@ public:
 
         OptionsUtil::Options::Option<long> optionNewSet = options->getOption<long>(HASH("CascadeCount"));
         return RenderMethod("All directional shadows",
-                            1,
+                            2,
                             nullptr,
                             [=](const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName [[gnu::unused]], const std::vector<HashUtil::HashedString> &tags) {
                                 long cascadeCount = optionNewSet.get();
