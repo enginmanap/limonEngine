@@ -12,6 +12,7 @@
 
 #include <vector>
 
+class PipelineStageExtension;
 inline const char* DRAG_AND_DROP_PIPELINE_STAGE = "DND_PIPELINE_STAGE";
 
 
@@ -126,6 +127,7 @@ public:
     void recursiveUpdatePriorityForDependents(std::vector<std::pair<std::set<const Node *>, std::set<const Node *>>> &dependencyGroups,
                                                 std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStages,
                                                 const std::pair<const std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> &builtStageInfo) const;
+    void ruleBasedOrderCorrection(std::vector<std::pair<std::set<const Node*>, std::shared_ptr<GraphicsPipeline::StageInfo>>> &orderedStages);
 };
 
 

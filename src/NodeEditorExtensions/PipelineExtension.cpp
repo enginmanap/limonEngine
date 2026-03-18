@@ -4,6 +4,7 @@
 
 #include <ImGui/imgui.h>
 #include <memory>
+#include <set>
 #include <nodeGraph/src/Node.h>
 #include <nodeGraph/src/NodeGraph.h>
 #include <Graphics/GraphicsPipeline.h>
@@ -13,6 +14,7 @@
 #include "Graphics/Texture.h"
 #include "PipelineStageExtension.h"
 #include "limonAPI/Graphics/GraphicsProgram.h"
+#include "OrderCorrectionRules/SkyShouldRenderBeforeBlendRule.h"
 #include "Utils/StringUtils.hpp"
 
 
@@ -360,6 +362,11 @@ void PipelineExtension::drawTextureSettings() {
     ImGui::EndPopup();
 }
 
+void PipelineExtension::ruleBasedOrderCorrection(std::vector<std::pair<std::set<const Node *>, std::shared_ptr<GraphicsPipeline::StageInfo>>> &orderedStages) {
+    // Post-processing pass to adjust render order after priority-based ordering
+    SkyShouldRenderBeforeBlendRule::apply(orderedStages);
+}
+
 bool PipelineExtension::buildRenderPipelineStages(const std::vector<const Node *> &nodes, std::vector<
         std::pair<std::set<const Node *>, std::shared_ptr<GraphicsPipeline::StageInfo>>> & orderedStages) {
     const Node* rootNode = nullptr;
@@ -497,6 +504,10 @@ bool PipelineExtension::buildRenderPipelineStages(const std::vector<const Node *
                 }
             }
         }//error message provided by recursive
+        
+        // Apply post-processing corrections to render order
+        ruleBasedOrderCorrection(orderedStages);
+        
         return true;
     }
 }
@@ -839,7 +850,6 @@ std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> PipelineExt
     }
     return resultGroup;
 }
-
 
 bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                                                      RenderMethods &renderMethods,

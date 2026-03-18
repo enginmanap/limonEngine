@@ -102,6 +102,10 @@ public:
         exit(1);
     }
 
+    const std::map<GraphicsInterface::FrameBufferAttachPoints, std::shared_ptr<Texture>>& getOutputs() {
+        return outputs;
+    }
+
     uint32_t getLastPresetIndex() const {
         return nextPresetIndex;
     }
