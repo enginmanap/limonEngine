@@ -218,10 +218,8 @@ public:
         if(this->parentTransform == nullptr) {
             return;
         }
-        glm::vec3 translateBackUp = this->getTranslate();
-        glm::vec3 scaleBackUp = this->getScale();
-        glm::quat orientationBackUp = this->getOrientation();
 
+        // Remove from parent's children list
         auto element = std::find(this->parentTransform->childTransforms.begin(), this->parentTransform->childTransforms.end(), this);
         if(element != this->parentTransform->childTransforms.end()) {
             this->parentTransform->childTransforms.erase(element);
@@ -233,13 +231,16 @@ public:
             std::cerr << "Parent transform doesn't have this child in the list, this shouldn't have happened!" << std::endl;
         }
 
+        // Clear parent references
         this->parentTransform = nullptr;
         this->generateWorldTransform = this->generateWorldTransformSingle;
         this->generateWorldTransformSingle = nullptr;
 
-        this->scale = this->scaleSingle = scaleBackUp;
-        this->translate = this->translateSingle = translateBackUp;
-        this->orientation = this->orientationSingle = orientationBackUp;
+        // The current transform values are already world composites, so just keep them
+        this->scaleSingle = this->scale;
+        this->translateSingle = this->translate;
+        this->orientationSingle = this->orientation;
+        
         this->isDirty = true;
         this->getWorldTransform();
         this->propagateUpdate();

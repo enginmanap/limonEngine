@@ -262,6 +262,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                 ImGui::SameLine();
                 ImGuiHelper::ShowHelpMarker("Current Object: " + world->pickedObject->getName());
             }
+
             if(world->pickedObject != nullptr && world->pickedObject->getTypeID() == GameObject::ObjectTypes::MODEL) {
                 Model *pickedModel = dynamic_cast<Model *>(world->pickedObject);
                 if(pickedModel->getParentObject() != nullptr) {

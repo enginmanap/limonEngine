@@ -38,10 +38,9 @@ public:
         for (auto element = children.begin(); element != children.end(); ++element) {
             if((*element) == renderable) {
                 children.erase(element);
+
+                // Use the Transformation class's built-in world transform preservation (now default behavior)
                 renderable->getTransformation()->removeParentTransform();
-                renderable->getTransformation()->addTranslate(this->getTransformation()->getTranslateSingle());
-                renderable->getTransformation()->addScale(this->getTransformation()->getScale());
-                renderable->getTransformation()->addOrientation(this->getTransformation()->getOrientation());
                 renderable->setParentObject(nullptr);
                 return true;
             }
