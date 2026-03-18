@@ -123,6 +123,9 @@ void PipelineStageExtension::drawDetailPane(Node *node) {
         ImGui::Checkbox("Blend", &blendEnabled);
         ImGui::Checkbox("Depth Test", &depthTestEnabled);
         ImGui::Checkbox("Depth Write", &depthWriteEnabled);
+        if(depthWriteEnabled && !depthTestEnabled) {
+            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Warning: Depth Write enabled but Depth Test disabled. This will not work as expected.");
+        }
         ImGui::Checkbox("Scissor Test", &scissorTestEnabled);
         ImGui::Checkbox("Clear", &clearBefore);
 
@@ -396,7 +399,7 @@ void PipelineStageExtension::deserialize(const std::string &nodeName, tinyxml2::
         }
     }
 
-    tinyxml2::XMLElement *depthWriteEnabledElement = nodeExtensionElement->FirstChildElement("DepthTestEnabled");
+    tinyxml2::XMLElement *depthWriteEnabledElement = nodeExtensionElement->FirstChildElement("DepthWriteEnabled");
     this->depthWriteEnabled = true;
     if(depthWriteEnabledElement == nullptr || depthWriteEnabledElement->GetText() == nullptr) {
         std::cerr << "Pipeline stage extension doesn't have Depth Write Enabled flag. Defaulting to true" << std::endl;
