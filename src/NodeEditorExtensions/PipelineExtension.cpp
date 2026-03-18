@@ -389,7 +389,7 @@ bool PipelineExtension::buildRenderPipelineStages(const std::vector<const Node *
         //first element of the pair is what is required(dependencies, recursively filled, contains indirect), second is the group that can be rendered with them
         std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> dependencyGroups = buildGroupsByDependency(dependencies);
         std::map<const Node*, std::shared_ptr<GraphicsPipeline::StageInfo>> nodeStages;
-        std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node*>> builtStages;//A stage can contain more than one node, so the nodes used to build it is also here.
+        std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node *>> builtStages;//A stage can contain more than one node, so the nodes used to build it is also here.
         if(buildRenderPipelineRecursive(rootNode, renderMethods, nodeStages, dependencyGroups, builtStages)) {
             //we have dependency info, and the stage info. Stage info contains highest priority. Order based on that
             for(const auto& builtStageInfo:builtStages) {
@@ -399,13 +399,41 @@ bool PipelineExtension::buildRenderPipelineStages(const std::vector<const Node *
                 recursiveUpdatePriorityForDependencies(dependencyGroups, builtStages, builtStageInfo);
                 recursiveUpdatePriorityForDependents(dependencyGroups, builtStages,builtStageInfo);
             }
-            //now move the elements to ordered
-            while(!builtStages.empty()) {
-                std::map<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node*>>::iterator builtStageInfo = builtStages.begin();
+            //The source vector is ordered by pointer address, which results in different order on
+            //Different runs. Moving to vector and sorting to get deterministic behaviour
+            std::vector<std::pair<std::shared_ptr<GraphicsPipeline::StageInfo>, std::set<const Node*>>> builtStagesVector;
+            for (auto const& [stageInfo, nodeSet] : builtStages) {
+                builtStagesVector.emplace_back(stageInfo, nodeSet);
+            }
+            std::sort(builtStagesVector.begin(), builtStagesVector.end(), [](const auto& a, const auto& b) {
+                if (a.first->getHighestPriority() != b.first->getHighestPriority()) {
+                    return a.first->getHighestPriority() < b.first->getHighestPriority();
+                }
+                if (a.first->cameraTags != b.first->cameraTags) {
+                    return a.first->cameraTags < b.first->cameraTags;
+                }
+                if (a.first->renderTags != b.first->renderTags) {
+                    return a.first->renderTags < b.first->renderTags;
+                }
+
+                // tie-breaker using node names
+                std::string minNameA = "";
+                for(const auto* node : a.second) {
+                    if(minNameA.empty() || node->getDisplayName() < minNameA) minNameA = node->getDisplayName();
+                }
+
+                std::string minNameB = "";
+                for(const auto* node : b.second) {
+                    if(minNameB.empty() || node->getDisplayName() < minNameB) minNameB = node->getDisplayName();
+                }
+
+                return minNameA < minNameB;
+            });
+
+            for (auto& builtStageInfo : builtStagesVector) {
                 //Special case, first one always gets inserted
                 if(orderedStages.empty()) {
-                    orderedStages.emplace_back(builtStageInfo->second, builtStageInfo->first);
-                    builtStages.erase(builtStageInfo);
+                    orderedStages.emplace_back(builtStageInfo.second, builtStageInfo.first);
                     continue;
                 }
                 //a stage can only be inserted in between things it is depending on, and things that depend on it.
@@ -415,7 +443,10 @@ bool PipelineExtension::buildRenderPipelineStages(const std::vector<const Node *
 
                 //lets find which dependency group this stage  was in.
                 for (const auto &dependencyGroup: dependencyGroups) {
-                    if (dependencyGroup.second.find(*(builtStageInfo->second.begin())) != dependencyGroup.second.end()) {
+                    // Select by minimum id, so always returns the same order
+                    auto minNodeIt = std::min_element(builtStageInfo.second.begin(), builtStageInfo.second.end(), 
+                        [](const Node* a, const Node* b) { return a->getId() < b->getId(); });
+                    if (dependencyGroup.second.find(*minNodeIt) != dependencyGroup.second.end()) {
                         //this is the dependency group this stage belongs to, any stage that is required needs to be before
                         for (const auto &dependency: dependencyGroup.first) {
                             for (size_t i = 0; i < orderedStages.size(); ++i) {
@@ -430,7 +461,10 @@ bool PipelineExtension::buildRenderPipelineStages(const std::vector<const Node *
                 //we found what we are depending on in the current state. Lets find what depends on us
                 std::set<const Node*> dependentNodes;
                 for (const auto &dependencyGroup: dependencyGroups) {
-                    if (dependencyGroup.first.find(*(builtStageInfo->second.begin())) != dependencyGroup.first.end()) {
+                    // Select by minimum id, so always returns the same order
+                    auto minNodeIt = std::min_element(builtStageInfo.second.begin(), builtStageInfo.second.end(), 
+                        [](const Node* a, const Node* b) { return a->getId() < b->getId(); });
+                    if (dependencyGroup.first.find(*minNodeIt) != dependencyGroup.first.end()) {
                         //This dependency group was depending on us. collect all nodes
                         dependentNodes.insert(dependencyGroup.second.begin(), dependencyGroup.second.end());
                     }
@@ -450,18 +484,17 @@ bool PipelineExtension::buildRenderPipelineStages(const std::vector<const Node *
                 for (size_t i = itStart; i < itEnd; ++i) {
                     uint32_t minPriorityOfStage = 999;
                     minPriorityOfStage = std::min(orderedStages[i].second->getHighestPriority(), minPriorityOfStage);
-                    if(minPriorityOfStage > builtStageInfo->first->getHighestPriority()) {
+                    if(minPriorityOfStage > builtStageInfo.first->getHighestPriority()) {
                         //insert here
-                        orderedStages.insert(orderedStages.begin() + i, {builtStageInfo->second, builtStageInfo->first});
+                        orderedStages.insert(orderedStages.begin() + i, {builtStageInfo.second, builtStageInfo.first});
                         inserted = true;
                         break;
                     }
                 }
                 if(!inserted) {
                     //so we are the last
-                    orderedStages.insert(orderedStages.begin() + itEnd, {builtStageInfo->second, builtStageInfo->first});
+                    orderedStages.insert(orderedStages.begin() + itEnd, {builtStageInfo.second, builtStageInfo.first});
                 }
-                builtStages.erase(builtStageInfo);
             }
         }//error message provided by recursive
         return true;
@@ -480,10 +513,29 @@ void PipelineExtension::recursiveUpdatePriorityForDependencies(std::vector<std::
                     //search for them in the builtStages to update the requirement
                     for (const auto &builtStage2: builtStages) {
                         if (builtStage2.second.find(nodeDependency) != builtStage2.second.end()) {
-                            //this stage is a dependency for the one we were iterating over, update the priority
-                            builtStage2.first->setHighestPriority(std::min(builtStage2.first->getHighestPriority(), builtStageInfo.first->getHighestPriority()));
-                            //what about the nodes that were depending on this stage? we should update them too
-                            recursiveUpdatePriorityForDependencies(dependencyGroups, builtStages, builtStage2);
+                            // Only propagate priority if nodes share at least one camera tag
+                            // This prevents nodes with different cameras (like shadow maps) from affecting each others priority by back propagate.
+                            bool hasSharedCameraTag = false;
+                            auto stageExtension1 = dynamic_cast<PipelineStageExtension*>(stageNode->getExtension());
+                            auto stageExtension2 = dynamic_cast<PipelineStageExtension*>(nodeDependency->getExtension());
+                            if (stageExtension1 && stageExtension2) {
+                                for (const auto& tag1 : stageExtension1->getCameraTags()) {
+                                    for (const auto& tag2 : stageExtension2->getCameraTags()) {
+                                        if (tag1 == tag2) {
+                                            hasSharedCameraTag = true;
+                                            break;
+                                        }
+                                    }
+                                    if (hasSharedCameraTag) break;
+                                }
+                            }
+                            
+                            if (hasSharedCameraTag) {
+                                //this stage is a dependency for the one we were iterating over, update the priority
+                                builtStage2.first->setHighestPriority(std::min(builtStage2.first->getHighestPriority(), builtStageInfo.first->getHighestPriority()));
+                                //what about the nodes that were depending on this stage? we should update them too
+                                recursiveUpdatePriorityForDependencies(dependencyGroups, builtStages, builtStage2);
+                            }
                         }
                     }
                 }
@@ -505,10 +557,29 @@ void PipelineExtension::recursiveUpdatePriorityForDependents(std::vector<std::pa
                     if (nodeDependent->getName() != "Screen") {
                         for (const auto &builtStage2: builtStages) {
                             if (builtStage2.second.find(nodeDependent) != builtStage2.second.end()) {
-                                //this stage is a dependency for the one we were iterating over, update the priority
-                                builtStage2.first->setHighestPriority(std::min(builtStage2.first->getHighestPriority(), builtStageInfo.first->getHighestPriority()));
-                                //what about the nodes that are dependents  on this stage? we should update them too
-                                recursiveUpdatePriorityForDependents(dependencyGroups, builtStages, builtStage2);
+                                // Only propagate priority if nodes share at least one camera tag
+                                // This prevents nodes with different cameras (like shadow maps) from affecting each other
+                                bool hasSharedCameraTag = false;
+                                auto stageExtension1 = dynamic_cast<PipelineStageExtension*>(stageNode->getExtension());
+                                auto stageExtension2 = dynamic_cast<PipelineStageExtension*>(nodeDependent->getExtension());
+                                if (stageExtension1 && stageExtension2) {
+                                    for (const auto& tag1 : stageExtension1->getCameraTags()) {
+                                        for (const auto& tag2 : stageExtension2->getCameraTags()) {
+                                            if (tag1 == tag2) {
+                                                hasSharedCameraTag = true;
+                                                break;
+                                            }
+                                        }
+                                        if (hasSharedCameraTag) break;
+                                    }
+                                }
+                                
+                                if (hasSharedCameraTag) {
+                                    //this stage is a dependency for the one we were iterating over, update the priority
+                                    builtStage2.first->setHighestPriority(std::min(builtStage2.first->getHighestPriority(), builtStageInfo.first->getHighestPriority()));
+                                    //what about the nodes that are dependents  on this stage? we should update them too
+                                    recursiveUpdatePriorityForDependents(dependencyGroups, builtStages, builtStage2);
+                                }
                             }
                         }
                     }
@@ -535,7 +606,10 @@ void PipelineExtension::buildDependencyInfoRecursive(const Node *node, std::unor
 bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, const std::set<const Node*>& existingDependencies, const Node* currentNode, const std::set<const Node*>& currentDependencies) {
     std::string existingNodeName = "emptyList";
     if(!existingNodes.empty()) {
-        existingNodeName = (*existingNodes.begin())->getDisplayName();
+        // Use deterministic selection: find node with minimum ID to ensure consistency
+        auto minNodeIt = std::min_element(existingNodes.begin(), existingNodes.end(), 
+            [](const Node* a, const Node* b) { return a->getId() < b->getId(); });
+        existingNodeName = (*minNodeIt)->getDisplayName();
     }
     if(existingDependencies.find(currentNode) != existingDependencies.end()) {
         std::cerr << "Failed to join because existing set "<< existingNodeName <<"depends to current " << std::endl;
@@ -716,67 +790,42 @@ bool PipelineExtension::canBeJoined(const std::set<const Node*>& existingNodes, 
  * This method might take some time to finish
  *
  */
-std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> PipelineExtension::buildGroupsByDependency(std::unordered_map<const Node*, std::set<const Node*>> dependencies) {
-    /**
-     * result is an array of dependency[],node[]
-     *
-     */
-    std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> resultGroup;//dependencies, nodes
-    uint32_t selectingDependencySize = 0;
-    while(true) {
-        std::set<const Node*> nodesToRemove;
-        std::cerr << "searching for dependency size" << selectingDependencySize << " while waiting dependency size " << dependencies.size() << std::endl;
-        for (auto nodeDependencyIt = dependencies.begin(); nodeDependencyIt != dependencies.end();) {
-            bool nodeMerged = false;
-            if(nodeDependencyIt->second.size() == selectingDependencySize) {
-                std::cerr << "processing node " << nodeDependencyIt->first->getDisplayName() << std::endl;
-                //these are the ones we want to try to join
-                for (auto resultGroupIt = resultGroup.begin(); resultGroupIt != resultGroup.end(); ++resultGroupIt) {
-                    //searching for a result that can be merged
-                    if(canBeJoined(resultGroupIt->second, resultGroupIt->first, nodeDependencyIt->first, nodeDependencyIt->second)) {
-                        std::cerr << "Joining " << nodeDependencyIt->first->getDisplayName() << " with: ";
-                        for(auto oldNodes:resultGroupIt->second) {
-                            std::cerr <<  oldNodes->getDisplayName() << ", ";
-                        }
-                        std::cerr << std::endl;
-                        std::set<const Node*> joinedDependencies;
-                        joinedDependencies.insert(resultGroupIt->first.begin(), resultGroupIt->first.end());
-                        joinedDependencies.insert(nodeDependencyIt->second.begin(), nodeDependencyIt->second.end());
-                        std::set<const Node*> joinedNodes;
-                        joinedNodes.insert(resultGroupIt->second.begin(), resultGroupIt->second.end());
-                        joinedNodes.insert(nodeDependencyIt->first);
-                        resultGroup.erase(resultGroupIt);
-                        resultGroup.emplace_back(std::make_pair(joinedDependencies,joinedNodes));
-                        nodeDependencyIt = dependencies.erase(nodeDependencyIt);
-                        nodeMerged = true;
-                        break;
-                    }
-                }
+std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> PipelineExtension::buildGroupsByDependency(std::unordered_map<const Node*, std::set<const Node*>> dependencies_unordered) {
+    std::vector<std::pair<const Node*, std::set<const Node*>>> nodes_to_process;
+    for(const auto& pair : dependencies_unordered) {
+        nodes_to_process.push_back(pair);
+    }
+    std::sort(nodes_to_process.begin(), nodes_to_process.end(), [](const auto& a, const auto& b){
+        if (a.second.size() != b.second.size()) {
+            return a.second.size() < b.second.size();
+        }
+        if (a.first->getDisplayName() != b.first->getDisplayName()) {
+            return a.first->getDisplayName() < b.first->getDisplayName();
+        }
+        // Final deterministic tie-breaker using node ID
+        return a.first->getId() < b.first->getId();
+    });
 
-                if(!nodeMerged) {
-                    std::cerr << "Adding itself " << nodeDependencyIt->first->getDisplayName() << std::endl;
-                    std::set<const Node*> tempDependencies;
-                    tempDependencies.insert(nodeDependencyIt->second.begin(), nodeDependencyIt->second.end());
-                    std::set<const Node*> tempNodes;
-                    tempNodes.insert(nodeDependencyIt->first);
-                    resultGroup.emplace_back(std::make_pair(tempDependencies, tempNodes));
-                    nodeDependencyIt = dependencies.erase(nodeDependencyIt);
-                }
-                if(nodeDependencyIt == dependencies.end()) {
-                    break;//if we removed elements, it is possible we are already in the end
-                }
-            } else {
-                ++nodeDependencyIt;
+    std::vector<std::pair<std::set<const Node*>, std::set<const Node*>>> resultGroup;
+    for (const auto& node_pair : nodes_to_process) {
+        const Node* currentNode = node_pair.first;
+        const std::set<const Node*>& currentDependencies = node_pair.second;
+
+        bool merged = false;
+        for (auto& group : resultGroup) {
+            if (canBeJoined(group.second, group.first, currentNode, currentDependencies)) {
+                group.first.insert(currentDependencies.begin(), currentDependencies.end());
+                group.second.insert(currentNode);
+                merged = true;
+                break;
             }
         }
-        if(dependencies.empty()) {
-            break;
+
+        if (!merged) {
+            resultGroup.push_back({currentDependencies, {currentNode}});
         }
-        if(selectingDependencySize > 30) {
-            break;
-        }
-        selectingDependencySize++;
     }
+
     for(auto result: resultGroup) {
         std::cerr << "Nodes: ";
         for(auto node:result.second) {
