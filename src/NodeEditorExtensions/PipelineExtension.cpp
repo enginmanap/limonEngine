@@ -411,6 +411,7 @@ bool PipelineExtension::buildRenderPipelineStages(const std::vector<const Node *
                 //a stage can only be inserted in between things it is depending on, and things that depend on it.
                 size_t maxDependencyIndex = 0; //last entry that this node is depending on
                 size_t minDependentIndex = 999; //first entry that this node is depending on
+                bool dependencyFound = false;
 
                 //lets find which dependency group this stage  was in.
                 for (const auto &dependencyGroup: dependencyGroups) {
@@ -419,7 +420,8 @@ bool PipelineExtension::buildRenderPipelineStages(const std::vector<const Node *
                         for (const auto &dependency: dependencyGroup.first) {
                             for (size_t i = 0; i < orderedStages.size(); ++i) {
                                 if (orderedStages[i].first.find(dependency) != orderedStages[i].first.end()) {
-                                    maxDependencyIndex = i;
+                                    maxDependencyIndex = std::max(maxDependencyIndex, i);
+                                    dependencyFound = true;
                                 }
                             }
                         }
@@ -443,7 +445,7 @@ bool PipelineExtension::buildRenderPipelineStages(const std::vector<const Node *
                 }
                 //now we need to insert this new stage in order of its priority, after the last dependency index
                 bool inserted = false;
-                size_t itStart = maxDependencyIndex == 0 ? 0 : maxDependencyIndex;
+                size_t itStart = dependencyFound ? maxDependencyIndex + 1 : 0;
                 size_t itEnd = minDependentIndex == 999 ? orderedStages.size() : minDependentIndex;
                 for (size_t i = itStart; i < itEnd; ++i) {
                     uint32_t minPriorityOfStage = 999;
