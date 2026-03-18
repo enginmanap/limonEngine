@@ -964,25 +964,29 @@ bool PipelineExtension::buildRenderPipelineRecursive(const Node *node,
                 std::cerr << "Pipeline Stage " << node->getDisplayName() << " tried to set an output " << connection->getName() << " that is not mapped in the program, skipping" << std::endl;
             }
         }
+        stageInfo->cameraTags = stageExtension->getCameraTags();
+        std::vector<HashUtil::HashedString> renderTags;
+        for (const auto &item: stageExtension->getObjectTags()){
+            renderTags.emplace_back(item);
+        }
+        stageInfo->renderTags = stageExtension->getObjectTags();
         if(stageExtension->getMethodName() == "All directional shadows") {
             RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethodAllDirectionalLights(stageInfo->stage, depthMapDirectional, stageProgram, options);
+            functionToCall.setRenderTags(renderTags);
+            functionToCall.setCameraName(StringUtils::join(stageExtension->getCameraTags(), ","));
             stageInfo->addRenderMethod(functionToCall);
         } else if(stageExtension->getMethodName() == "All point shadows") {
             RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethodAllPointLights(stageProgram);
+            functionToCall.setRenderTags(renderTags);
+            functionToCall.setCameraName(StringUtils::join(stageExtension->getCameraTags(), ","));
             stageInfo->addRenderMethod(functionToCall);
         } else {
             bool isFound = true;
             RenderMethods::RenderMethod functionToCall = renderMethods.getRenderMethod(
                     graphicsWrapper, stageExtension->getMethodName(), stageProgram, isFound);
             if(isFound) {
-                functionToCall.setCameraName(StringUtils::join(stageExtension->getCameraTags(), ","));
-                stageInfo->cameraTags = stageExtension->getCameraTags();
-                std::vector<HashUtil::HashedString> renderTags;
-                for (const auto &item: stageExtension->getObjectTags()){
-                    renderTags.emplace_back(item);
-                }
-                stageInfo->renderTags = stageExtension->getObjectTags();
                 functionToCall.setRenderTags(renderTags);
+                functionToCall.setCameraName(StringUtils::join(stageExtension->getCameraTags(), ","));
                 stageInfo->addRenderMethod(functionToCall);
             } else {
                 std::cerr << "Selected method name is invalid!" << std::endl;
