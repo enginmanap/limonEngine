@@ -17,7 +17,7 @@ New render pipeline is fully runtime loaded, and allows changing any and all ste
 
 ## Node based Graphical interface
 
-[![NodeEditor]({{ site.baseurl }}/assets/images/posts/156/pipelineNodeEditor.png)]({{ site.baseurl }}/assets/images/posts/72/pipelineNodeEditor.png)
+[![NodeEditor]({{ site.baseurl }}/assets/images/posts/156/pipelineNodeEditor.png)]({{ site.baseurl }}/assets/images/posts/156/pipelineNodeEditor.png)
 
 Limon editor now has a node based render pipeline visualization system. It allows you to create textures to use as frame buffers, lists available graphics programs with their inputs and outputs, and each program is represented as a node, so you can connect a programs output to another programs input visually. By choosing the texture to pass data on, different aspects of rendering like resolution can be set. It also uses a tag based system to select which camera to use, or which objects to render in the given pass, to provide most flexibility possible.
 After the changes, it automatically groups and orders the render passes for maximum performance, within the information it has. It also shows the order it decided, and allows any alterations for it before applying.
