@@ -35,8 +35,8 @@ Limon also expanded the API to allow users to build their own render methods, an
 
 For a regular user, most of this is not going to be very important, as changing the whole render pipeline is not something you want to undertake lightly. On the other hand, this is a great opportunity for 3 types of users:
 
-1) If you want to optimize things, now you can do it without touching engine code.
-2) If you need rendering capabilities that is not provided out of the box, it is easy to implement, integrate and test, as changes can be viewed in realtime.
-3) If you want to learn details of rendering, it is easy to isolate a single stage, and experiment on GPU programming.
+1. If you want to optimize things, now you can do it without touching engine code.
+2. If you need rendering capabilities that is not provided out of the box, it is easy to implement, integrate and test, as changes can be viewed in realtime.
+3. If you want to learn details of rendering, it is easy to isolate a single stage, and experiment on GPU programming.
 
 I managed to switch Limon rendering to a fully deferred pipeline in less than a day using this new system, to check performance difference on IGPUs, and it was a great experience. And since we have a deferred pipeline ready, new version of Limon will be shipping with both forward and deferred pipelines out of the box.
