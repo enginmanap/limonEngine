@@ -9,7 +9,12 @@ categories: [technical]
 github_comments_issueid: 157
 ---
 
-# How to use the Pipeline Editor
+When the work to have a configurable render pipeline started, it had 2 goals.
+1. More flexibility for rendering, by allowing different objects to be rendered by their own rules
+2. Better optimization through automatic calculations/heuristics
+
+In this blog post I will try to explain both.
+
 
 ## Table of Contents
 
@@ -31,13 +36,13 @@ github_comments_issueid: 157
 - [Part 2: Technical Deep-Dive - Implementation Details](#part-2-technical-deep-dive---implementation-details)
   - [Architecture Overview](#architecture-overview)
   - [The Tag-Based Rendering Pipeline](#the-tag-based-rendering-pipeline)
-    - [Camera Identification and Object Type Tags](#camera-identification-and-object-type-tags)
-    - [Visibility Request Structure](#visibility-request-structure)
-    - [The fillVisibleObjectPerCamera Method](#the-fillvisibleobjectpercamera-method)
-    - [Level of Detail (LOD) Filtering](#level-of-detail-lod-filtering)
-    - [Mesh-Level Processing](#mesh-level-processing)
-    - [RenderList](#renderlist)
-    - [The renderCameraByTag Method](#the-rendercamerabytag-method)
+    - [Camera Identification and Object Type Tags](#1-camera-identification-and-object-type-tags)
+    - [Visibility Request Structure](#2-visibility-request-structure)
+    - [The fillVisibleObjectPerCamera Method](#3-the-fillvisibleobjectpercamera-method)
+    - [Level of Detail (LOD) Filtering](#4-level-of-detail-lod-filtering)
+    - [Mesh-Level Processing](#5-mesh-level-processing)
+    - [RenderList](#6-renderlist)
+    - [The renderCameraByTag Method](#7-the-rendercamerabytag-method)
   - [Configuration Options and Parameters](#configuration-options-and-parameters)
   - [Performance Optimizations](#performance-optimizations)
   - [Data Structures](#data-structures)
@@ -46,12 +51,6 @@ github_comments_issueid: 157
     - [Tag Matching Implementation](#tag-matching-implementation)
   - [Integration with Node Editor System](#integration-with-node-editor-system)
 
-When the work to have a configurable render pipeline started, it had 2 goals.
-1. More flexibility for rendering, by allowing different objects to be rendered by their own rules
-2. Better optimization through automatic calculations/heuristics
-
-In this blog post I will try to explain both.
----
 
 # Part 1: High-Level Rendering Pipeline - How to customize rendering
 
