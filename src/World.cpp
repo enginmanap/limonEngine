@@ -114,12 +114,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     quadRender = std::make_shared<QuadRender>(graphicsWrapper);
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
     playerCamera = new PerspectiveCamera("Player camera", options, currentPlayer->getCameraAttachment());//register is just below
-    playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
-    playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
-    playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_BASIC);
-    playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_TRANSPARENT);
-    playerCamera->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
-    playerCamera->addRenderTag(HardCodedTags::PICKED_OBJECT);
     playerCamera->addTag(HardCodedTags::CAMERA_PLAYER);
     cullingResults.insert(std::make_pair(playerCamera, new std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>()));//new camera, new visibility
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
@@ -520,79 +514,77 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
                 std::cerr << "model id " << objectIt->second << " is not a model?" << std::endl;
                 exit(1);
             }
-           if (VisibilityRequest::isAnyTagMatch(visibilityRequest->camera->getRenderTags(), currentModel->getTags())) {
-               bool isVisible = visibilityRequest->camera->isVisible(*currentModel);//find if visible
-               for (auto& visibilityEntry: *visibilityRequest->visibility) {
-                   if (VisibilityRequest::isAnyTagMatch(visibilityEntry.first, currentModel->getTags())) {
-                       if(isVisible) {
-                           const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                           if (meshMetas.size() < static_cast<size_t>(splitModelToMeshCount)) {
-                               totalCounter += meshMetas.size();
-                               uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second->getAabbMin(), objectIt->second->getAabbMax(), objectAverageDepth, objectScreenSize);
-                               if (lod != SKIP_LOD_LEVEL) {
-                                   if (objectScreenSize > softwareOcclusionOccluderSize || skipOcclusionCulling) {
-                                       if (objectScreenSize > maxScreenSize) {
-                                           maxScreenSize = objectScreenSize;
-                                           maxScreenSizeObjectName = currentModel->getName();
-                                       }
-                                       occluderCounter += meshMetas.size();
-                                       if (!skipOcclusionCulling) {
-                                           visibilityRequest->occlusionCuller.renderOccluder(currentModel);
-                                           //std::cout << currentModel->getName() << ":" << " is occluder " << std::endl;
-                                       }
-                                       for (auto& meshMeta:meshMetas) {
-                                           visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
-                                       }
-                                   } else {
-                                       visibilityRequest->occlusionCuller.addOccludee(currentModel, lod, objectAverageDepth, &visibilityEntry.second);
+           bool isVisible = visibilityRequest->camera->isVisible(*currentModel);//find if visible
+           for (auto& visibilityEntry: *visibilityRequest->visibility) {
+               if (VisibilityRequest::isAnyTagMatch(visibilityEntry.first, currentModel->getTags())) {
+                   if(isVisible) {
+                       const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
+                       if (meshMetas.size() < static_cast<size_t>(splitModelToMeshCount)) {
+                           totalCounter += meshMetas.size();
+                           uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second->getAabbMin(), objectIt->second->getAabbMax(), objectAverageDepth, objectScreenSize);
+                           if (lod != SKIP_LOD_LEVEL) {
+                               if (objectScreenSize > softwareOcclusionOccluderSize || skipOcclusionCulling) {
+                                   if (objectScreenSize > maxScreenSize) {
+                                       maxScreenSize = objectScreenSize;
+                                       maxScreenSizeObjectName = currentModel->getName();
+                                   }
+                                   occluderCounter += meshMetas.size();
+                                   if (!skipOcclusionCulling) {
+                                       visibilityRequest->occlusionCuller.renderOccluder(currentModel);
+                                       //std::cout << currentModel->getName() << ":" << " is occluder " << std::endl;
+                                   }
+                                   for (auto& meshMeta:meshMetas) {
+                                       visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
                                    }
                                } else {
-                                   lodSkipCounter++;
+                                   visibilityRequest->occlusionCuller.addOccludee(currentModel, lod, objectAverageDepth, &visibilityEntry.second);
                                }
                            } else {
-                               //for models with more than 10 meshes, we don't wanna add all of them to renderlist, need to re check visibility
-                               for (auto& meshMeta:meshMetas) {
-                                   totalCounter++;
-                                   if (visibilityRequest->camera->isVisible(currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMin(),
-                                        currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMax())) {
-                                       uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), objectAverageDepth, objectScreenSize);
-                                       if (lod != SKIP_LOD_LEVEL) {
-                                           if (objectScreenSize > 0.25f || skipOcclusionCulling) {
-                                               if (objectScreenSize > maxScreenSize) {
-                                                   maxScreenSize = objectScreenSize;
-                                                   maxScreenSizeObjectName = currentModel->getName();
-                                               }
-                                               occluderCounter++;
-                                               if (!skipOcclusionCulling) {
-                                                   visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform());
-                                               }
-                                               visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
-                                           } else {
-                                               visibilityRequest->occlusionCuller.addOccludee(meshMeta, currentModel, lod, objectAverageDepth, &visibilityEntry.second);
+                               lodSkipCounter++;
+                           }
+                       } else {
+                           //for models with more than 10 meshes, we don't wanna add all of them to renderlist, need to re check visibility
+                           for (auto& meshMeta:meshMetas) {
+                               totalCounter++;
+                               if (visibilityRequest->camera->isVisible(currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMin(),
+                                    currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMax())) {
+                                   uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), objectAverageDepth, objectScreenSize);
+                                   if (lod != SKIP_LOD_LEVEL) {
+                                       if (objectScreenSize > 0.25f || skipOcclusionCulling) {
+                                           if (objectScreenSize > maxScreenSize) {
+                                               maxScreenSize = objectScreenSize;
+                                               maxScreenSizeObjectName = currentModel->getName();
                                            }
+                                           occluderCounter++;
+                                           if (!skipOcclusionCulling) {
+                                               visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform());
+                                           }
+                                           visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
                                        } else {
-                                           lodSkipCounter++;
+                                           visibilityRequest->occlusionCuller.addOccludee(meshMeta, currentModel, lod, objectAverageDepth, &visibilityEntry.second);
                                        }
                                    } else {
-                                       frustumCulledCount++;
+                                       lodSkipCounter++;
                                    }
+                               } else {
+                                   frustumCulledCount++;
                                }
                            }
-                           if (currentModel->isAnimated()) {
-                            visibilityRequest->changedBoneTransforms[currentModel->getRigId()] = currentModel->getBoneTransforms();
-                           }
-                       } else { //if not visible
-                           const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                           for (auto& meshMeta:meshMetas) {
-                                visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
-                           }
                        }
-                   } else {
-                       //what if we are not matching a tag, but we at some point did?
+                       if (currentModel->isAnimated()) {
+                        visibilityRequest->changedBoneTransforms[currentModel->getRigId()] = currentModel->getBoneTransforms();
+                       }
+                   } else { //if not visible
                        const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
                        for (auto& meshMeta:meshMetas) {
-                           visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
+                            visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
                        }
+                   }
+               } else {
+                   //what if we are not matching a tag, but we at some point did?
+                   const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
+                   for (auto& meshMeta:meshMetas) {
+                       visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
                    }
                }
            }

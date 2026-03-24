@@ -11,7 +11,6 @@
 #include "iostream"
 
 class Camera {
-    std::vector<HashUtil::HashedString> renderTags;
     std::vector<HashUtil::HashedString> selfTags;
 
 
@@ -129,26 +128,6 @@ public:
     virtual const glm::mat4& getCameraMatrixConst() const = 0;
 
     virtual const glm::mat4& getProjectionMatrix() const = 0;
-
-    void addRenderTag(const std::string& text) {
-        HashUtil::HashedString tag(text);
-        if(!hasRenderTag(tag.hash)) {
-            renderTags.emplace_back(tag);
-        }
-    }
-
-    bool hasRenderTag(uint64_t hash) const {
-        for (const HashUtil::HashedString& hashedString:renderTags) {
-            if(hashedString.hash == hash) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    const std::vector<HashUtil::HashedString>& getRenderTags() const {
-        return renderTags;
-    }
 
     void addTag(const std::string& text) {
         HashUtil::HashedString tag(text);

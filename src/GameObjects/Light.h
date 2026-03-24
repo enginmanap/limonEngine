@@ -95,12 +95,6 @@ public:
             for(int i = 0; i < cascadeCount; i++) {
                 directionalCameras.emplace_back(new OrthographicCamera(this->Light::getName() + " camera", graphicsWrapper->getOptions(), i, this));
                 directionalCameras[directionalCameras.size()-1]->getCameraMatrix();
-                directionalCameras[directionalCameras.size()-1]->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
-                directionalCameras[directionalCameras.size()-1]->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
-
-                directionalCameras[directionalCameras.size()-1]->addRenderTag(HardCodedTags::OBJECT_MODEL_BASIC);
-                directionalCameras[directionalCameras.size()-1]->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
-
                 directionalCameras[directionalCameras.size()-1]->addTag(HardCodedTags::CAMERA_LIGHT_DIRECTIONAL);
             }
             this->Light::clearDirty();
@@ -109,12 +103,6 @@ public:
             cubeCameras.emplace_back(new CubeCamera(this->Light::getName() + " camera", graphicsWrapper->getOptions(), this));
 
             cubeCameras[0]->getCameraMatrix();
-            cubeCameras[0]->addRenderTag(HardCodedTags::OBJECT_MODEL_PHYSICAL);
-            cubeCameras[0]->addRenderTag(HardCodedTags::OBJECT_MODEL_STATIC);
-
-            cubeCameras[0]->addRenderTag(HardCodedTags::OBJECT_MODEL_BASIC);
-            cubeCameras[0]->addRenderTag(HardCodedTags::OBJECT_MODEL_ANIMATED);
-
             cubeCameras[0]->addTag(HardCodedTags::CAMERA_LIGHT_POINT);
 
         }
