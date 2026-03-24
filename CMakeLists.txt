@@ -31,11 +31,11 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 #include(cotire)
 
 IF (WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -fno-strict-aliasing -mconsole -Wall -Wextra -Wnon-virtual-dtor -pedantic -fdiagnostics-all-candidates -msse4.1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -mconsole -Wall -Wextra -Wnon-virtual-dtor -pedantic -fdiagnostics-all-candidates -msse4.1")
     set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld ${CMAKE_EXE_LINKER_FLAGS}")
     set(WINDOWS_SPECIFIC_LINK_LIBRARIES "imm32")
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -Wnon-virtual-dtor -pedantic")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -Wnon-virtual-dtor -pedantic -fdiagnostics-all-candidates -msse4.1")
 ENDIF()
 
 IF (UNIX AND ${CMAKE_VERSION} VERSION_GREATER "3.11.0")
