@@ -170,7 +170,7 @@ public:
         // Ensure AABB data size matches mesh count (6 floats per mesh)
         if (possibleVisibleSetMeshAABBs.size() != meshCount * 6) {
             std::cerr << "Inconsistent AABB data size: expected " << meshCount * 6 << " floats, got " << possibleVisibleSetMeshAABBs.size() << " floats, can't calculate" << std::endl;
-
+            delete[] results;
             return returnList;
         }
         sdocQueryOccludees(sdocInstance, possibleVisibleSetMeshAABBs.data(), meshCount, results);

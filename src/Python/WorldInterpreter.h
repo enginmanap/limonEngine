@@ -31,17 +31,21 @@ class WorldInterpreter {
         
         // Force cleanup of any remaining Python objects in this subinterpreter
         if (Py_IsInitialized() && subInterpreter) {
-            // Switch to this subinterpreter temporarily to clean up
-            pybind11::subinterpreter_scoped_activate temp_activate(*subInterpreter);
+            try {
+                // Switch to this subinterpreter temporarily to clean up
+                pybind11::subinterpreter_scoped_activate temp_activate(*subInterpreter);
 
-            // Clear any pending exceptions
-            if (PyErr_Occurred()) {
-                PyErr_Clear();
+                // Clear any pending exceptions
+                if (PyErr_Occurred()) {
+                    PyErr_Clear();
+                }
+
+                // Force garbage collection to clean up any remaining objects
+                pybind11::module_ gc = pybind11::module_::import("gc");
+                (void) gc.attr("collect")();
+            } catch (...) {
+                std::cerr << "Exception thrown while destroying Python interpreter, ignored" << std::endl;
             }
-
-            // Force garbage collection to clean up any remaining objects
-            pybind11::module_ gc = pybind11::module_::import("gc");
-            (void) gc.attr("collect")();
         }
 
         if (subInterpreter) {

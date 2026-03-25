@@ -989,7 +989,7 @@ void OpenGLGraphics::reshape() {
 
 void OpenGLGraphics::setWrapMode(uint32_t textureID, TextureTypes textureType, TextureWrapModes wrapModeS,
                                  TextureWrapModes wrapModeT, TextureWrapModes wrapModeR) {
-    GLenum glTextureType;
+    GLenum glTextureType = 0;
     switch (textureType) {
         case TextureTypes::T2D: {
             glTextureType = GL_TEXTURE_2D;
@@ -1038,7 +1038,7 @@ void OpenGLGraphics::setWrapMode(uint32_t textureID, TextureTypes textureType, T
 }
 
 void OpenGLGraphics::setFilterMode(uint32_t textureID, TextureTypes textureType, FilterModes filterMode) {
-    GLenum glTextureType;
+    GLenum glTextureType = 0;
     switch (textureType) {
         case TextureTypes::T2D: {
             glTextureType = GL_TEXTURE_2D;
@@ -1160,7 +1160,7 @@ void OpenGLGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Text
     glGetIntegerv( GL_MAX_DRAW_BUFFERS, &maxDrawBuffers);
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
 
-    GLenum glAttachment;
+    GLenum glAttachment = 0;
     uint32_t index = 0;
     switch(attachPoint) {
         case FrameBufferAttachPoints::NONE: glAttachment = GL_NONE; break;
@@ -1234,7 +1234,7 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
     glGenTextures(1, &texture);
     state->activateTextureUnit(0);//this is the default working texture
 
-    GLint glInternalDataFormat;
+    GLint glInternalDataFormat = 0;
     switch (internalFormat) {
         case InternalFormatTypes::RED: glInternalDataFormat = GL_R8; break;
         case InternalFormatTypes::RG8: glInternalDataFormat = GL_RG8; break;
@@ -1250,7 +1250,7 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
         case InternalFormatTypes::COMPRESSED_RGBA: glInternalDataFormat = GL_COMPRESSED_RGBA; break;
     }
 
-    GLenum glFormat;
+    GLenum glFormat = 0;
     switch (format) {
         case FormatTypes::RED: glFormat = GL_RED; break;
         case FormatTypes::RG: glFormat = GL_RG; break;
@@ -1259,7 +1259,7 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
         case FormatTypes::DEPTH: glFormat = GL_DEPTH_COMPONENT; break;
     }
 
-    GLenum glDataType;
+    GLenum glDataType = 0;
     switch (dataType) {
         case DataTypes::FLOAT: glDataType = GL_FLOAT; break;
         case DataTypes::HALF_FLOAT: glDataType = GL_FLOAT; break;
@@ -1268,7 +1268,7 @@ uint32_t OpenGLGraphics::createTexture(int height, int width, TextureTypes type,
         case DataTypes::UNSIGNED_INT: glDataType = GL_UNSIGNED_INT; break;
     }
 
-    GLenum glTextureType;
+    GLenum glTextureType = 0;
     switch (type) {
         case TextureTypes::T2D: {
             glTextureType = GL_TEXTURE_2D;
@@ -1330,13 +1330,15 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
                                    void *data, void *data2, void *data3, void *data4, void *data5, void *data6) {
     state->activateTextureUnit(0);//this is the default working texture
 
-    GLint glInternalDataFormat;
+    GLint glInternalDataFormat = 0;
     switch (internalFormat) {
         case InternalFormatTypes::RED: glInternalDataFormat = GL_R8; break;
+        case InternalFormatTypes::RG8: glInternalDataFormat = GL_RG8; break;
         case InternalFormatTypes::R32F: glInternalDataFormat = GL_R32F; break;
         case InternalFormatTypes::RGB: glInternalDataFormat = GL_RGB; break;
         case InternalFormatTypes::RGBA: glInternalDataFormat = GL_RGBA; break;
         case InternalFormatTypes::RGB16F: glInternalDataFormat = GL_RGB16F; break;
+        case InternalFormatTypes::RGBA16F: glInternalDataFormat = GL_RGBA16F; break;
         case InternalFormatTypes::RGB32F: glInternalDataFormat = GL_RGB32F; break;
         case InternalFormatTypes::RGBA32F: glInternalDataFormat = GL_RGBA32F; break;
         case InternalFormatTypes::DEPTH: glInternalDataFormat = GL_DEPTH_COMPONENT; break;
@@ -1344,7 +1346,7 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
         case InternalFormatTypes::COMPRESSED_RGBA: glInternalDataFormat = GL_COMPRESSED_RGBA; break;
     }
 
-    GLenum glFormat;
+    GLenum glFormat = 0;
     switch (format) {
         case FormatTypes::RED: glFormat = GL_RED; break;
         case FormatTypes::RG: glFormat = GL_RG; break;
@@ -1353,7 +1355,7 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
         case FormatTypes::DEPTH: glFormat = GL_DEPTH_COMPONENT; break;
     }
 
-    GLenum glDataType;
+    GLenum glDataType = 0;
     switch (dataType) {
         case DataTypes::FLOAT: glDataType = GL_FLOAT; break;
         case DataTypes::UNSIGNED_BYTE: glDataType = GL_UNSIGNED_BYTE; break;
@@ -1362,7 +1364,7 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
         case DataTypes::HALF_FLOAT: glDataType = GL_HALF_FLOAT; break;
     }
 
-    GLenum glTextureType;
+    GLenum glTextureType = 0;
     switch (type) {
         case TextureTypes::T2D: {
             glTextureType = GL_TEXTURE_2D;
