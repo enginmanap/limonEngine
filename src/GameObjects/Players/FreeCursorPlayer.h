@@ -17,6 +17,7 @@ class Options;
 class GUIRenderable;
 
 class FreeCursorPlayer : public Player {
+protected: // Changed to protected to allow EditorPlayer access
     bool dirty;
     glm::vec3 position;
     glm::vec3 center;
@@ -65,6 +66,7 @@ public:
         this->position = position;
 
         this->center = glm::normalize(lookDirection);
+        this->up = glm::vec3(0.0f, 1.0f, 0.0f);
         this->right = glm::normalize(glm::cross(center, up));
         this->view.x = this->center.x;
         this->view.y = this->center.y;

@@ -1,4 +1,4 @@
-   //
+//
 // Created by Engin Manap on 13.02.2016.
 //
 
@@ -20,6 +20,7 @@
 #include "GameObjects/Players/FreeMovingPlayer.h"
 #include "GameObjects/Players/PhysicalPlayer.h"
 #include "GameObjects/Players/MenuPlayer.h"
+#include "GameObjects/Players/EditorPlayer.h"
 #include "GameObjects/Light.h"
 #include "GUI/GUILayer.h"
 #include "GUI/GUITextBase.h"
@@ -102,7 +103,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
             currentPlayer = debugPlayer;
             break;
         case PlayerInfo::Types::EDITOR_PLAYER:
-            editorPlayer = new FreeCursorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
+            editorPlayer = new EditorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, inputHandler);
             currentPlayer = editorPlayer;
             break;
         case PlayerInfo::Types::MENU_PLAYER:
@@ -880,7 +881,7 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
 
     if (inputHandler.getInputStates().getInputEvents(InputStates::Inputs::EDITOR) && inputHandler.getInputStates().getInputStatus(InputStates::Inputs::EDITOR)) {
         if(editorPlayer == nullptr) {
-            editorPlayer = new FreeCursorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation);
+            editorPlayer = new EditorPlayer(options, cursor, startingPlayer.position, startingPlayer.orientation, &inputHandler);
             editorPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
                                                   COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                                   COLLIDE_MODELS | COLLIDE_EVERYTHING,

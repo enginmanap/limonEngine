@@ -13,7 +13,7 @@ void FreeCursorPlayer::move(moveDirections direction) {
     dirty = true;
 
     LimonTypes::Vec4 movementSpeed = moveSpeedOption.get();
-    float jumpFactor = jumpFactorOption.get();
+    float jumpFactor = (float)jumpFactorOption.get();
 
     switch (direction) {
         case UP:
@@ -55,22 +55,22 @@ void FreeCursorPlayer::rotate(float xPosition, float yPosition, float xChange [[
     // FIXME this look around code is repeated in each player. I believe it should have been part of player class.
     // It can't be used directly because that would eliminate possibilities like 3rd person cameras.
 
-    float lookAroundSpeed = lookAroundSpeedOption.get();
+    float lookAroundSpeed = (float)lookAroundSpeedOption.get();
 
     //scale look around speed with the abs(center.y). for 1 -> look around 0, for 0 -> lookaround 1.
-    lookAroundSpeed = lookAroundSpeed * (1- (center.y * center.y));
+    lookAroundSpeed = lookAroundSpeed * (1.0f - (center.y * center.y));
 
     //if cursor is in the edge, rotate player look at
     if(cursorPosition.x == 0 || cursorPosition.x == options->getScreenWidth() - 1) {
-        float xSpeed = 0.02;
+        float xSpeed = 0.02f;
         if(cursorPosition.x == 0) {
             xSpeed = -0.02f;
         }
         glm::quat viewChange;
-        viewChange = glm::quat(cos(0.02f * lookAroundSpeed / 2),
-                               up.x * sin(xSpeed * lookAroundSpeed / 2),
-                               up.y * sin(xSpeed * lookAroundSpeed / 2),
-                               up.z * sin(xSpeed * lookAroundSpeed / 2));
+        viewChange = glm::quat(cos(0.02f * lookAroundSpeed / 2.0f),
+                               up.x * sin(xSpeed * lookAroundSpeed / 2.0f),
+                               up.y * sin(xSpeed * lookAroundSpeed / 2.0f),
+                               up.z * sin(xSpeed * lookAroundSpeed / 2.0f));
         view = viewChange * view * glm::conjugate(viewChange);
         view = glm::normalize(view);
 
@@ -87,16 +87,16 @@ void FreeCursorPlayer::rotate(float xPosition, float yPosition, float xChange [[
         right = glm::normalize(glm::cross(center, up));
     }
 
-    if(cursorPosition.y == 1 || cursorPosition.y == options->getScreenHeight() ) {//since y was negative, the 1 changes places
+    if(cursorPosition.y == 1 || (uint32_t)cursorPosition.y == options->getScreenHeight() ) {//since y was negative, the 1 changes places
         float ySpeed = -0.02f;
         if(cursorPosition.y == 1) {
             ySpeed = 0.02f;
         }
         glm::quat viewChange;
-        viewChange = glm::quat(cos(0.02f * lookAroundSpeed / 2),
-                               right.x * sin(ySpeed * lookAroundSpeed / 2),
-                               right.y * sin(ySpeed * lookAroundSpeed / 2),
-                               right.z * sin(ySpeed * lookAroundSpeed / 2));
+        viewChange = glm::quat(cos(0.02f * lookAroundSpeed / 2.0f),
+                               right.x * sin(ySpeed * lookAroundSpeed / 2.0f),
+                               right.y * sin(ySpeed * lookAroundSpeed / 2.0f),
+                               right.z * sin(ySpeed * lookAroundSpeed / 2.0f));
 
         view = viewChange * view * glm::conjugate(viewChange);
         view = glm::normalize(view);
@@ -115,7 +115,7 @@ void FreeCursorPlayer::rotate(float xPosition, float yPosition, float xChange [[
     }
 
     cursor->setTranslate(cursorPosition);
-    }
+}
 
 void FreeCursorPlayer::getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &toPosition) const {
     fromPosition = this->getPosition();
@@ -123,8 +123,8 @@ void FreeCursorPlayer::getWhereCameraLooks(glm::vec3 &fromPosition, glm::vec3 &t
     // Many thanks to http://antongerdelan.net/opengl/raycasting.html
     glm::vec2 cursorPosition = cursor->getTranslate();
     /* to normalized device coordinates */
-    float normalizedDeviceCoordinateX = (2.0f * cursorPosition.x) / options->getScreenWidth() - 1.0f;
-    float normalizedDeviceCoordinateY = (2.0f * cursorPosition.y) / options->getScreenHeight() - 1.0f;
+    float normalizedDeviceCoordinateX = (2.0f * cursorPosition.x) / (float)options->getScreenWidth() - 1.0f;
+    float normalizedDeviceCoordinateY = (2.0f * cursorPosition.y) / (float)options->getScreenHeight() - 1.0f;
     /* homogeneous clip coordinates */
     glm::vec4 clipSpaceRay = glm::vec4(normalizedDeviceCoordinateX, normalizedDeviceCoordinateY, -1.0, 1.0);
     /* eye coordinates */
