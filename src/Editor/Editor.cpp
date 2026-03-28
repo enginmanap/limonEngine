@@ -30,6 +30,7 @@
 #include "GameObjects/GUIImage.h"
 #include "GameObjects/GUIButton.h"
 #include "GameObjects/GUIAnimation.h"
+#include "Occlusion/VisibilityManager.h"
 
 std::shared_ptr<const Material> EditorNS::selectedMeshesMaterial = nullptr;
 std::shared_ptr<Material> EditorNS::selectedFromListMaterial = nullptr;
@@ -758,11 +759,7 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
             //search for the selected element in the rendered elements
             ImGuiResult objectEditorResult = this->pickedObject->addImGuiEditorElements(*this->request);
             if (objectEditorResult.materialChanged) {
-                for (auto& cameraVisibility: world->cullingResults) {
-                    for (auto& tagVisibility:(*cameraVisibility.second)) {
-                        tagVisibility.second.removeModelFromAll(this->pickedObjectID);
-                    }
-                }
+                world->onModelMaterialChanged(this->pickedObjectID);
             }
             switch(this->pickedObject->getTypeID()) {
                 case GameObject::ObjectTypes::MODEL: {
@@ -932,18 +929,18 @@ void Editor::renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram) {
                                 world->unusedIDs.push(this->pickedObject->getWorldObjectID());
                                 const std::vector<Camera*>& cameras = (*iterator)->getCameras();
                                 for (auto camera:cameras) {
-                                    for (auto entry:world->visibilityThreadPool) {
+                                    for (auto entry:world->visibilityManager->visibilityThreadPool) {
                                         if (entry.first->camera == camera) {
                                             entry.first->running = false;
                                             VisibilityRequest::waitMainThreadCondition.signalWaiting();
                                             SDL_WaitThread(entry.second, nullptr);
                                             auto visRequest = entry.first;
-                                            world->visibilityThreadPool.erase(visRequest);
+                                            world->visibilityManager->visibilityThreadPool.erase(visRequest);
                                             delete visRequest;
                                             break;
                                         }
                                     }
-                                    world->cullingResults.erase(camera);
+                                    world->visibilityManager->getCullingResults().erase(camera);
                                 }
                                 world->lights.erase(iterator);
                                 break;

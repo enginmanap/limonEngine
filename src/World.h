@@ -74,6 +74,7 @@ class ALHelper;
 class PipelineExtension;
 class IterationExtension;
 class NodeGraph;
+class VisibilityManager;
 
 /*
  * This is a workaround to access the timedEvent priority queue container.
@@ -91,6 +92,7 @@ struct HackedQueue : private std::priority_queue<T, S, C> {
 
 class World {
     friend class Editor;
+    friend class VisibilityManager;
 public:
     struct PlayerInfo {
         enum class Types {
@@ -218,18 +220,6 @@ private:
     OptionsUtil::Options::Option<bool> renderInformationsOption;
     
     std::vector<Model*> updatedModels;
-    // This map is also used as a list of Cameras, and Hashes, so if a camera is removed, it should be removed from this map
-    // In case of a clear, we should not clear the hashes, as it is basically meaningless.
-
-    /**
-     * this variable is used as camera and tag list. Outer map is camera, inner map is tag list. Neigter should be removed from this map,
-     * unless a camera is removed, or render pipeline change, as tags come from the pipeline.
-     *
-     * RenderList is a custom container of meshes to render for that camera + tag, materials and order of rendering.
-     */
-    std::unordered_map<Camera*, std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>*> cullingResults;
-
-    /************************* End of redundant variables ******************************************/
     std::priority_queue<TimedEvent, std::vector<TimedEvent>, std::greater<>> timedEvents;
     long timedEventHandleIndex = 1;//we don't need to keep them, just have them unique
 
@@ -311,7 +301,7 @@ private:
 
     std::map<uint32_t, std::shared_ptr<Emitter>> emitters;
     std::map<uint32_t, std::shared_ptr<GPUParticleEmitter>> gpuParticleEmitters;
-    bool multiThreadedCulling = true;
+    std::unique_ptr<VisibilityManager> visibilityManager;
 
     static bool addPlayerAttachmentUsedIDs(const PhysicalRenderable *attachment, std::set<uint32_t> &usedIDs, uint32_t &maxID);
 
@@ -333,14 +323,7 @@ private:
     bool addModelToWorld(Model *xmlModel);
     bool addGUIElementToWorld(GUIRenderable *guiRenderable, GUILayer *guiLayer);
 
-    void resetVisibilityBufferForRenderPipelineChange();
-    void resetCameraTagsFromPipeline(const std::map<std::string, std::vector<std::set<std::string>>> &cameraRenderTagListMap);
-
     void setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment);
-
-    void fillVisibleObjectsUsingTags();
-    std::map<VisibilityRequest*, SDL_Thread *> occlusionThreadManager();
-    std::map<VisibilityRequest*, SDL_Thread *> visibilityThreadPool;
 
     btVector3 extendRayToWorldAABB(glm::vec3 from, glm::vec3 direction) const;
     GameObject* rayCastClosest(glm::vec3 from, glm::vec3 direction,int collisionType, int filterMask,
@@ -381,6 +364,7 @@ private:
     fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters) const;
 
     void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment, bool removeChildren);
+    void onModelMaterialChanged(uint32_t modelID);
 
     std::vector<size_t> getLightIndexes(Light::LightTypes lightType) const {
         std::vector<size_t> lights;
@@ -589,41 +573,6 @@ public:
 
     }
 
-    static uint32_t getLodLevel(const std::vector<long>& lodDistances, float skipRenderDistance, float skipRenderSize, float maxSkipRenderSize, const glm::mat4 &viewMatrix, const glm::vec3& playerPosition, glm::vec3 minAABB, glm::vec3 maxAABB, float &objectAverageDepth, float &objectScreenSize) {
-        //now we get to calculate the size in screen
-        glm::vec3 ndcMin, ndcMax;
-        AABBConverter::getNCDAABB(minAABB, maxAABB, viewMatrix, ndcMin, ndcMax);
-        const float screenSizeX = (ndcMax.x - ndcMin.x) / 2.0f; // since OpenGL NDC is -1, 1 each side can be max 2, but we want 0,1
-        const float screenSizeY = (ndcMax.y - ndcMin.y) / 2.0f;
-        objectScreenSize = (screenSizeX * screenSizeY);
-
-        objectAverageDepth = (ndcMax.z + ndcMin.z) / -2.0f;
-        if(lodDistances.empty() && skipRenderDistance == 0.0) {
-            return 0;
-        }
-
-        const float dx = std::max(minAABB.x - playerPosition.x, std::max(0.0f, playerPosition.x - maxAABB.x));
-        const float dy = std::max(minAABB.y - playerPosition.y, std::max(0.0f, playerPosition.y - maxAABB.y));
-        const float dz = std::max(minAABB.z - playerPosition.z, std::max(0.0f, playerPosition.z - maxAABB.z));
-        const float distance = std::sqrt(dx*dx + dy*dy + dz*dz);
-        if(skipRenderDistance !=0 && distance > skipRenderDistance) {           //Is it distant enough to skip?
-            if ((maxAABB.x - minAABB.x) < maxSkipRenderSize &&                    //Is it actually small enough to skip? We don't wanna skip mountains becuse they are far away.
-                (maxAABB.y - minAABB.y) < maxSkipRenderSize )
-            if(screenSizeX < skipRenderSize && screenSizeY < skipRenderSize) {  //Is it small enough in the screen to skip?
-                return SKIP_LOD_LEVEL;
-            }
-        }
-
-        for (size_t i = 0; i < lodDistances.size(); ++i) {
-            if(distance < static_cast<float>(lodDistances[i])) {
-                return i;
-            }
-        }
-        //what if the distance is bigger than the last entry? we return the last LOD
-        return lodDistances.size()-1;
-    }
-
-    void resetTagsAndRefillCulling();
 };
 
 #endif //LIMONENGINE_WORLD_H

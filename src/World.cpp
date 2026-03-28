@@ -35,6 +35,7 @@
 #include "Editor/Editor.h"
 #include "Occlusion/RenderList.h"
 #include "snapdragon-oc/Source/app/FuzzyCulling/API/SDOCAPI.h"
+#include "Occlusion/VisibilityManager.h"
 
    const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
@@ -107,10 +108,11 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     }
     
     quadRender = std::make_shared<QuadRender>(graphicsWrapper);
+    visibilityManager = std::make_unique<VisibilityManager>(this);
     //FIXME adding camera after dynamic world because static only world is needed for ai movement grid generation
     playerCamera = new PerspectiveCamera("Player camera", options, currentPlayer->getCameraAttachment());//register is just below
     playerCamera->addTag(HardCodedTags::CAMERA_PLAYER);
-    cullingResults.insert(std::make_pair(playerCamera, new std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>()));//new camera, new visibility
+    visibilityManager->addCamera(playerCamera);
     currentPlayer->registerToPhysicalWorld(dynamicsWorld, COLLIDE_PLAYER,
                                            COLLIDE_MODELS | COLLIDE_TRIGGER_VOLUME | COLLIDE_EVERYTHING,
                                            COLLIDE_MODELS | COLLIDE_EVERYTHING, worldAABBMin,
@@ -143,8 +145,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
 
     OptionsUtil::Options::Option<bool> multiThreadCullingOption = options->getOption<bool>(HASH("multiThreadedCulling"));
     renderInformationsOption = options->getOption<bool>(HASH("renderInformations"));
-    multiThreadedCulling = multiThreadCullingOption.getOrDefault(true);
-
 }
 
    RenderMethods World::buildRenderMethods() {
@@ -257,7 +257,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
          }
 
          tempRenderedObjectsSet.clear();//used to choose which models needs setup for time
-         for (const auto &visibility: cullingResults) {
+         for (const auto &visibility: visibilityManager->getCullingResults()) {
              for (auto &visibleTags: *visibility.second){
                  for (auto it = visibleTags.second.getIterator(); !it.isEnd(); ++it) {
                      for (glm::uvec4 meshRenderInfo:it.get().indices) {
@@ -281,7 +281,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
      }
      updateActiveLights(false);
 
-     fillVisibleObjectsUsingTags();
+     visibilityManager->update();
 
      //FIXME moved out of fillVisible because for the time being we have 2 (fillVisibleObjects(), fillVisibleObjectsUsingTags()) once one is gone, these 2 clears should go in.
      updatedModels.clear();
@@ -402,33 +402,6 @@ void World::animateCustomAnimations() {
     }
 }
 
-void World::resetVisibilityBufferForRenderPipelineChange() {
-    for (auto &item: this->cullingResults) {
-        item.second->clear();
-    }
-}
-
-void World::resetCameraTagsFromPipeline(const std::map<std::string, std::vector<std::set<std::string>>> & cameraRenderTagListMap) {
-    for (auto& cameraEntryForCulling:this->cullingResults) { //key is the camera
-        for (const auto& renderTagListMapFromPipelineForCamera : cameraRenderTagListMap) {
-            if(cameraEntryForCulling.first->hasTag(HashUtil::hashString(renderTagListMapFromPipelineForCamera.first))) {
-                //we have a camera and a renderStage match, update the tag information.
-                // in renderTagListMapFromPipelineForCamera we have a list, in the list each element is a set of tags. we want to convert them and create new entries based on that
-                cameraEntryForCulling.second->clear();
-                for(std::set<std::string> tagSet:renderTagListMapFromPipelineForCamera.second) {
-                    std::vector<uint64_t> tempHashList;
-                    for(std::string tagString: tagSet) {
-                        uint64_t tempHash = HashUtil::hashString(tagString);
-                        tempHashList.emplace_back(tempHash);
-                    }
-                    //One set is done, put it in the culling data structure
-                    cameraEntryForCulling.second->insert(std::make_pair(tempHashList, RenderList()));
-                }
-            }
-        }
-    }
-}
-
 void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment) {
     if (playerAttachment == nullptr) {
         return;
@@ -443,272 +416,6 @@ void World::setPlayerAttachmentsForChangedBoneTransforms(Model *playerAttachment
         Model* childModel = dynamic_cast<Model*>(child);
         setPlayerAttachmentsForChangedBoneTransforms(childModel);
     }
-}
-
-   void fillVisibleObjectPerCamera(const void* visibilityRequestRaw) {
-       const VisibilityRequest* visibilityRequest = static_cast<const VisibilityRequest *>(visibilityRequestRaw);
-       std::vector<long> lodDistances = visibilityRequest->lodDistancesOption.get();
-       float skipRenderDistance = 0, skipRenderSize = 0, maxSkipRenderSize = 0;
-       float objectAverageDepth;
-       float objectScreenSize;
-       long splitModelToMeshCount;
-       bool softwareOcclusionRenderDump = false;
-       long softwareOcclusionRenderDumpFrequency = 500;
-       float softwareOcclusionOccluderSize = 0.25f;
-       glm::mat4 viewMatrix;
-       glm::vec3 viewDirection;
-       glm::vec3 cameraPos;
-       splitModelToMeshCount = visibilityRequest->SplitModelToMeshCountOption.get();
-       if(visibilityRequest->camera->getType() == Camera::CameraTypes::PERSPECTIVE ||
-               visibilityRequest->camera->getType() == Camera::CameraTypes::ORTHOGRAPHIC) {
-           skipRenderDistance = visibilityRequest->skipRenderDistanceOption.get();
-           skipRenderSize = visibilityRequest->skipRenderSizeOption.get();
-           maxSkipRenderSize = visibilityRequest->maxSkipRenderSizeOption.get();
-           viewMatrix = visibilityRequest->camera->getProjectionMatrix() * visibilityRequest->camera->getCameraMatrixConst();
-       }
-    static int frameCount = 0;
-
-       bool skipOcclusionCulling = false;
-       if (visibilityRequest->camera->getType() != Camera::CameraTypes::PERSPECTIVE) {
-           skipOcclusionCulling = true;
-       } else {
-           glm::mat4 invertedView = glm::inverse(visibilityRequest->camera->getCameraMatrixConst());
-           viewDirection = -glm::vec3(invertedView[2]);
-           viewDirection = glm::normalize(viewDirection);
-           cameraPos = glm::vec3(invertedView[3]); // 4th column
-           softwareOcclusionRenderDump = visibilityRequest->SoftwareOcclusionRenderDumpOption.getOrDefault(false);
-           softwareOcclusionRenderDumpFrequency = visibilityRequest->SoftwareOcclusionRenderDumpFrequencyOption.getOrDefault(500);
-           softwareOcclusionOccluderSize = visibilityRequest->SoftwareOcclusionOccluderSizeOption.getOrDefault(0.25f);
-
-           visibilityRequest->occlusionCuller.newFrame(cameraPos, viewDirection, visibilityRequest->camera->getCameraMatrixConst(), visibilityRequest->camera->getProjectionMatrix());
-       }
-       uint32_t frustumCulledCount = 0;
-       uint32_t totalCounter = 0;
-       uint32_t lodSkipCounter = 0;
-       uint32_t occluderCounter = 0;
-       uint32_t occludedCounter = 0;
-       float maxScreenSize = 0.0;
-       std::string maxScreenSizeObjectName;
-       for (auto objectIt = visibilityRequest->objects->begin(); objectIt != visibilityRequest->objects->end(); ++objectIt) {
-           if(!visibilityRequest->camera->isDirty() && !objectIt->second->isDirtyForFrustum() && skipOcclusionCulling) {
-               continue; //if neither object nor camera dirty, no need to recalculate
-           }
-           Model *currentModel = dynamic_cast<Model *>(objectIt->second);
-            if (currentModel == nullptr) {
-                std::cerr << "model id " << objectIt->second << " is not a model?" << std::endl;
-                exit(1);
-            }
-           bool isVisible = visibilityRequest->camera->isVisible(*currentModel);//find if visible
-           for (auto& visibilityEntry: *visibilityRequest->visibility) {
-               if (VisibilityRequest::isAnyTagMatch(visibilityEntry.first, currentModel->getTags())) {
-                   if(isVisible) {
-                       const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                       if (meshMetas.size() < static_cast<size_t>(splitModelToMeshCount)) {
-                           totalCounter += meshMetas.size();
-                           uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, objectIt->second->getAabbMin(), objectIt->second->getAabbMax(), objectAverageDepth, objectScreenSize);
-                           if (lod != SKIP_LOD_LEVEL) {
-                               if (objectScreenSize > softwareOcclusionOccluderSize || skipOcclusionCulling) {
-                                   if (objectScreenSize > maxScreenSize) {
-                                       maxScreenSize = objectScreenSize;
-                                       maxScreenSizeObjectName = currentModel->getName();
-                                   }
-                                   occluderCounter += meshMetas.size();
-                                   if (!skipOcclusionCulling) {
-                                       visibilityRequest->occlusionCuller.renderOccluder(currentModel);
-                                       //std::cout << currentModel->getName() << ":" << " is occluder " << std::endl;
-                                   }
-                                   for (auto& meshMeta:meshMetas) {
-                                       visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
-                                   }
-                               } else {
-                                   visibilityRequest->occlusionCuller.addOccludee(currentModel, lod, objectAverageDepth, &visibilityEntry.second);
-                               }
-                           } else {
-                               lodSkipCounter++;
-                           }
-                       } else {
-                           //for models with more than 10 meshes, we don't wanna add all of them to renderlist, need to re check visibility
-                           for (auto& meshMeta:meshMetas) {
-                               totalCounter++;
-                               if (visibilityRequest->camera->isVisible(currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMin(),
-                                    currentModel->getTransformation()->getWorldTransform() * meshMeta->mesh->getAabbMax())) {
-                                   uint32_t lod = World::getLodLevel(lodDistances, skipRenderDistance, skipRenderSize, maxSkipRenderSize, viewMatrix, visibilityRequest->playerPosition, meshMeta->mesh->getAabbMin(), meshMeta->mesh->getAabbMax(), objectAverageDepth, objectScreenSize);
-                                   if (lod != SKIP_LOD_LEVEL) {
-                                       if (objectScreenSize > 0.25f || skipOcclusionCulling) {
-                                           if (objectScreenSize > maxScreenSize) {
-                                               maxScreenSize = objectScreenSize;
-                                               maxScreenSizeObjectName = currentModel->getName();
-                                           }
-                                           occluderCounter++;
-                                           if (!skipOcclusionCulling) {
-                                               visibilityRequest->occlusionCuller.renderOccluder(meshMeta, currentModel->getTransformation()->getWorldTransform());
-                                           }
-                                           visibilityEntry.second.addMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel, lod, objectAverageDepth);
-                                       } else {
-                                           visibilityRequest->occlusionCuller.addOccludee(meshMeta, currentModel, lod, objectAverageDepth, &visibilityEntry.second);
-                                       }
-                                   } else {
-                                       lodSkipCounter++;
-                                   }
-                               } else {
-                                   frustumCulledCount++;
-                               }
-                           }
-                       }
-                       if (currentModel->isAnimated()) {
-                        visibilityRequest->changedBoneTransforms[currentModel->getRigId()] = currentModel->getBoneTransforms();
-                       }
-                   } else { //if not visible
-                       const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                       for (auto& meshMeta:meshMetas) {
-                            visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
-                       }
-                   }
-               } else {
-                   //what if we are not matching a tag, but we at some point did?
-                   const std::vector<Model::MeshMeta *> &meshMetas =currentModel->getMeshMetaData();
-                   for (auto& meshMeta:meshMetas) {
-                       visibilityEntry.second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, currentModel->getWorldObjectID());
-                   }
-               }
-           }
-       }
-    //now we can actually check the occlusion:
-    if (!skipOcclusionCulling) {
-        std::vector<OcculudeeMetaData*> nonOccludedMeshes = visibilityRequest->occlusionCuller.getNonOccludedMeshMeta();
-        for (auto metaData:nonOccludedMeshes) {
-            metaData->renderList->addMeshMaterial(metaData->meshMeta->material, metaData->meshMeta->mesh, metaData->model, metaData->lod, metaData->averageDepth);
-        }
-        occludedCounter = totalCounter - occluderCounter - nonOccludedMeshes.size();
-        if (occluderCounter != 0 && occludedCounter != 0) {
-            //std::cout << "Total occluder count is " << occluderCounter << " and it occluded " << occludedCounter << std::endl;
-        }
-        frameCount++;
-        if (frameCount == softwareOcclusionRenderDumpFrequency) {
-            if (softwareOcclusionRenderDump) {
-                visibilityRequest->occlusionCuller.dumpDepth();
-            }
-            frameCount = 0;
-        }
-    }
-   }
-
-static int staticOcclusionThread(void* visibilityRequestRaw) {
-    VisibilityRequest* visibilityRequest = static_cast<VisibilityRequest *>(visibilityRequestRaw);
-    //std::cout << "Thread for  " << visibilityRequest->camera->getName() << " launched, waiting for condition" << std::endl;
-    //std::cout << "Thread for  " << visibilityRequest->camera->getName() << " started" << std::endl;
-
-    while(visibilityRequest->running) {
-        visibilityRequest->inProgressLock.lock();
-        visibilityRequest->started = true;
-        fillVisibleObjectPerCamera(visibilityRequestRaw);
-        visibilityRequest->processingDone = true;
-        visibilityRequest->inProgressLock.unlock();
-        //std::cout << "Processing done for camera " << visibilityRequest->camera->getName() << " now waiting for condition" << std::endl;
-        VisibilityRequest::waitMainThreadCondition.waitCondition(visibilityRequest->blockMutex);
-        //std::cout << "signal received by " << visibilityRequest->camera->getName() << " starting processing again" << std::endl;
-    }
-    visibilityRequest->inProgressLock.unlock();
-    return 0;
-}
-
-std::map<VisibilityRequest*, SDL_Thread *> World::occlusionThreadManager() {
-    std::map<VisibilityRequest*, SDL_Thread*> visibilityProcessing;
-    for (auto &cameraVisibility: cullingResults) {
-        VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &this->objects, cameraVisibility.second, currentPlayer->getPosition(), options);
-        SDL_Thread* thread = SDL_CreateThread(staticOcclusionThread, request->camera->getName().c_str(), request);
-        visibilityProcessing[request] = thread;
-    }
-    return visibilityProcessing;
-}
-
-void World::fillVisibleObjectsUsingTags() {
-     //first clear up dirty cameras, and perspective camera, because Perspective camera needs to write occlusion culling depth map, so it has to iterate over all.
-    for (auto &it: cullingResults) {
-        if (it.first->isDirty() || it.first->getType() == Camera::CameraTypes::PERSPECTIVE) {
-            for(auto renderEntries:*it.second) {
-                renderEntries.second.clear();
-            }
-        }
-    }
-    if(multiThreadedCulling) {
-        if (visibilityThreadPool.empty()) {
-            visibilityThreadPool = occlusionThreadManager();
-            bool isAllThreadsStarted = false;
-            while (!isAllThreadsStarted) {
-                bool allThreadStarted = true;
-                for (const auto &item: visibilityThreadPool) {
-                    if (!item.first->started) {
-                        allThreadStarted = false;
-                    }
-                }
-                isAllThreadsStarted = allThreadStarted;
-            }
-            //std::this_thread::sleep_for(std::chrono::milliseconds(1000));//make sure all threads are started before continuing.
-        }
-
-        //std::cout << "          new frame, trigger occlusion threads" << std::endl;
-        VisibilityRequest::waitMainThreadCondition.signalWaiting();
-        while (true) {
-            bool allDone = true;
-            for (const auto &item: visibilityThreadPool) {
-                item.first->inProgressLock.lock();
-                if (!item.first->processingDone) {
-                    allDone = false;
-                }
-                item.first->inProgressLock.unlock();
-            }
-            if (allDone) {
-                break;
-            }
-        }
-
-        for (const auto &item: visibilityThreadPool) {
-            item.first->inProgressLock.lock();
-            item.first->playerPosition = currentPlayer->getPosition();
-            for (auto& changedRigs:item.first->changedBoneTransforms) {
-                this->changedBoneTransforms.emplace(changedRigs.first, changedRigs.second);
-            }
-            item.first->changedBoneTransforms.clear();
-            item.first->processingDone = false;
-            item.first->inProgressLock.unlock();
-        }
-    } else {
-        if(visibilityThreadPool.empty()) {
-            for (auto &cameraVisibility: cullingResults) {
-                VisibilityRequest* request = new VisibilityRequest(cameraVisibility.first, &this->objects, cameraVisibility.second, currentPlayer->getPosition(), options);
-                visibilityThreadPool[request] = nullptr;
-            }
-        }
-        for (const auto &item: visibilityThreadPool) {
-            item.first->playerPosition = currentPlayer->getPosition();
-            fillVisibleObjectPerCamera(item.first);
-            item.first->playerPosition = currentPlayer->getPosition();
-            for (auto& changedRigs:item.first->changedBoneTransforms) {
-                this->changedBoneTransforms.emplace(changedRigs.first, changedRigs.second);
-            }
-            item.first->changedBoneTransforms.clear();
-        }
-    }
-
-    setPlayerAttachmentsForChangedBoneTransforms(startingPlayer.attachedModel);
-
-    for (auto objectIt = objects.begin(); objectIt != objects.end(); ++objectIt) {
-        //all cameras calculated, clear dirty for object
-        objectIt->second->setCleanForFrustum();
-    }
-    for (auto &it: cullingResults) {
-        for (auto& it2:*it.second) {
-            it2.second.cleanUpEmptyRenderLists();
-        }
-    }
-    //we are not clearing dirty, because cascades checks if dirty to trigger rendering.
-    //it is possible this is not a good thing.
-    // for (auto &it: cullingResults) {
-    //     if (it.first->isDirty()) {
-    //         it.first->clearDirty();//clear after processing so we can check while processing
-    //     }
-    // }
 }
 
 ActorInterface::ActorInformation World::fillActorInformation(ActorInterface *actor) {
@@ -979,7 +686,7 @@ void World::renderDebug(const std::shared_ptr<GraphicsProgram>& renderProgram [[
 void World::renderCameraByTag(const std::shared_ptr<GraphicsProgram> &renderProgram, const std::string &cameraName, const std::vector<HashUtil::HashedString> &tags) const {
     uint64_t hashedCameraTag = HashUtil::hashString(cameraName);
     tempRenderedObjectsSet.clear();
-    for (const auto &visibilityEntry: cullingResults) {
+    for (const auto &visibilityEntry: visibilityManager->getCullingResults()) {
         if (visibilityEntry.first->hasTag(hashedCameraTag)) { //This is a request for this camera
             std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>& renderLists = *visibilityEntry.second;
             //First  recursively render the player attachments, no visibility check.
@@ -1046,7 +753,7 @@ void World::renderLight(unsigned int lightIndex, unsigned int renderLayer, const
         graphicsWrapper->clearDepthBuffer();
         renderProgram->setUniform("renderLightIndex", (int) lightIndex);
         renderProgram->setUniform("renderLightLayer", (int) renderLayer);
-        std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>* cullingResult = cullingResults.at(lightCamera);
+        std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>* cullingResult = visibilityManager->getCullingResults().at(lightCamera);
         for (const auto& iterator:*cullingResult) {
             if (!VisibilityRequest::vectorComparator(iterator.first, tags)) {
                 continue;
@@ -1143,17 +850,6 @@ World::~World() {
         }
         std::cout << "AI route threads to finished." << std::endl;
     }
-    for (auto &item: visibilityThreadPool) {
-        item.first->running = false;
-    }
-    for (auto &item: visibilityThreadPool) {
-
-        item.first->waitMainThreadCondition.signalWaiting();
-        if (item.second) {
-            SDL_WaitThread(item.second, NULL);
-        }
-        delete item.first;
-    }
 
     delete dynamicsWorld;
     delete animationInProgress;
@@ -1175,7 +871,7 @@ World::~World() {
 
     for (std::vector<Light *>::iterator it = lights.begin(); it != lights.end(); ++it) {
         for (Camera* camera : (*it)->getCameras()) {
-            cullingResults.erase(camera);
+            visibilityManager->removeCamera(camera);
         }
         delete (*it);
     }
@@ -1305,7 +1001,7 @@ void World::addLight(Light *light) {
     }
     const std::vector<Camera*>& cameras = light->getCameras();
     for(Camera* camera : cameras) {
-        cullingResults.insert(std::make_pair(camera, new std::unordered_map<std::vector<uint64_t>, RenderList, VisibilityRequest::uint64_vector_hasher>()));
+        visibilityManager->addCamera(camera);
     }
     updateActiveLights(false);
 }
@@ -1759,7 +1455,7 @@ bool World::removeObject(uint32_t objectID, const bool &removeChildren) {
 }
 
 void World::afterLoadFinished() {
-    resetTagsAndRefillCulling();
+    visibilityManager->onPipelineChange();
     for (size_t i = 0; i < onLoadActions.size(); ++i) {
         if(onLoadActions[i]->action == nullptr) {
             std::cerr << "There was an onload action defined but action is not loaded, skipping." << std::endl;
@@ -1943,19 +1639,6 @@ void World::setupForPauseOrStop() {
     if(this->music != nullptr) {
         this->music->pause();
     }
-    //We need to stop the occlusion threads, as the world is changing:
-    for (std::pair<VisibilityRequest*, SDL_Thread*> visibilityItem:visibilityThreadPool) {
-        visibilityItem.first->running = false;
-    }
-    for (std::pair<VisibilityRequest*, SDL_Thread*> visibilityItem: visibilityThreadPool) {
-
-        visibilityItem.first->waitMainThreadCondition.signalWaiting();
-        if (visibilityItem.second) {
-            SDL_WaitThread(visibilityItem.second, NULL);
-        }
-        delete visibilityItem.first;
-    }
-    visibilityThreadPool.clear();
 }
 
 bool World::handleQuitRequest() {
@@ -2483,18 +2166,11 @@ bool World::changeRenderPipeline(const std::string &pipelineFileName) {
         this->renderPipeline = std::move(newPipeline);
         setupRenderForPipeline();
         //reset the
-        resetTagsAndRefillCulling();
+        visibilityManager->onPipelineChange();
         return true;
     }
     return false;
 }
-
-   void World::resetTagsAndRefillCulling() {
-       resetVisibilityBufferForRenderPipelineChange();
-       resetCameraTagsFromPipeline(renderPipeline->getCameraTagToRenderTagSetMap());
-       fillVisibleObjectsUsingTags();
-   }
-
 
    Model *World::findModelByID(uint32_t modelID) const {
     if(startingPlayer.attachedModel != nullptr) {
@@ -2727,14 +2403,10 @@ void World::updateActiveLights(bool forceUpdate) {
            }
            onLoadAnimations.erase(modelToClear);
 
-           const std::vector<Model::MeshMeta *> &meshMetas = modelToClear->getMeshMetaData();
            //of course we need to remove from the tag visibility lists too
-           for (auto &perCameraVisibility: cullingResults) {
+           for (auto &perCameraVisibility: visibilityManager->getCullingResults()) {
                for (auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
-
-                   for (const Model::MeshMeta *meshMeta: meshMetas) {
-                       perTagVisibilityIt->second.removeMeshMaterial(meshMeta->material, meshMeta->mesh, modelToClear->getWorldObjectID());
-                   }
+                   perTagVisibilityIt->second.removeModelFromAll(modelToClear->getWorldObjectID());
                }
            }
            //remove its children
@@ -3025,4 +2697,12 @@ bool World::setEmitterParticleGravity(uint32_t emitterID, const LimonTypes::Vec4
        }
        emitterIT->second->setGravity(GLMConverter::LimonToGLMV3(gravity));
        return true;
+}
+
+void World::onModelMaterialChanged(uint32_t modelID) {
+    for (auto &perCameraVisibility: visibilityManager->getCullingResults()) {
+        for (auto perTagVisibilityIt = perCameraVisibility.second->begin(); perTagVisibilityIt != perCameraVisibility.second->end(); ++perTagVisibilityIt) {
+            perTagVisibilityIt->second.removeModelFromAll(modelID);
+        }
+    }
 }
