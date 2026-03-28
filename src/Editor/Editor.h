@@ -8,8 +8,15 @@
 #include "ImGui/imgui.h"
 #include <set>
 #include <memory>
+#include <vector>
+#include <string>
+#include <unordered_map>
+#include <glm/glm.hpp>
+#include "Editor/ImGuiRequest.h"
 
 #define MAX_PRELOAD_MODEL_COUNT_EDITOR 10
+class InputHandler;
+class GameObject;
 class World;
 class PhysicalRenderable;
 class ModelAsset;
@@ -20,6 +27,10 @@ class GraphicsProgram;
 class ImGuiImageWrapper;
 class Material;
 class ClosestNotMeConvexResultCallback;
+class NodeGraph;
+class PipelineExtension;
+class IterationExtension;
+class ImGuiHelper;
 
 namespace EditorNS {
     //This is used as a global variable store. For multiple windows, ImGui doesn't provide anything else
@@ -39,13 +50,43 @@ class Editor {
     Model* getModelAndMoveToEnd(const std::string& modelFilePath);
     Model *createRenderAndAddModelToLRU(const std::string &modelFileName, const glm::vec3 &newObjectPosition, std::shared_ptr<GraphicsProgram> graphicsProgram);
     ImGuiImageWrapper* wrapper = nullptr;
-public:
-    Editor(World* world);
-    void renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram);
 
-private:
     std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsWaitingCPULoad;
     std::unordered_map<std::string, std::shared_ptr<ModelAsset>> modelAssetsPreloaded;
+
+public:
+    bool showNodeGraph = false;
+    PipelineExtension *pipelineExtension = nullptr;
+    IterationExtension *iterationExtension = nullptr;
+    NodeGraph* nodeGraph = nullptr;
+    ImGuiHelper *imgGuiHelper = nullptr;
+    ImGuiRequest* request = nullptr;
+
+    GameObject* pickedObject = nullptr;
+    uint32_t pickedObjectID = 0xFFFFFFFF;
+    Model* objectToAttach = nullptr;
+
+    char worldSaveNameBuffer[256] = {0};
+    char quitWorldNameBuffer[256] = {0};
+    char extensionNameBuffer[32] = {0};
+
+    Editor(World* world);
+    ~Editor();
+    void renderEditor(std::shared_ptr<GraphicsProgram> graphicsProgram);
+
+    void addGUITextControls();
+    void addGUIImageControls();
+    void addGUIButtonControls();
+    void addGUIAnimationControls();
+    void addGUILayerControls();
+    void addParticleEmitterEditor();
+    void addSkyBoxControls();
+    void drawNodeEditor();
+    void createNodeGraph();
+
+    void update(InputHandler &inputHandler);
+
+private:
     void buildTreeFromAllGameObjects();
     std::unique_ptr<ClosestNotMeConvexResultCallback> convexSweepTestDown(Model * selectedObject) const;
     void addAnimationDefinitionToEditor();

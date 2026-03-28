@@ -254,8 +254,6 @@ private:
     ALHelper *alHelper;
     std::string name;
     std::string loadingImage;
-    char worldSaveNameBuffer[256] = {0};
-    char quitWorldNameBuffer[256] = {0};
     std::string quitWorldName;
 
     uint64_t gameTime = 0;
@@ -266,7 +264,6 @@ private:
     FontManager fontManager;
 
     PlayerInfo startingPlayer;
-    char extensionNameBuffer[32] {};
     PhysicalPlayer* physicalPlayer = nullptr;
     Model* playerPlaceHolder = nullptr;
     FreeCursorPlayer* editorPlayer = nullptr;
@@ -279,7 +276,6 @@ private:
     PerspectiveCamera* playerCamera;// This camera itself never changes, but the attachment does.
     //std::vector<Camera*> allCameras;//the info about all cameras is inferred by culling results, might need fixing.
     BulletDebugDrawer *debugDrawer;
-    ImGuiRequest* request = nullptr;
 
     GUILayer *apiGUILayer;
     GUIText* renderCounts;
@@ -298,10 +294,6 @@ private:
     btDefaultCollisionConfiguration *collisionConfiguration;
     btCollisionDispatcher *dispatcher;
     btSequentialImpulseConstraintSolver *solver;
-    ImGuiHelper *imgGuiHelper;
-    GameObject* pickedObject = nullptr;
-    uint32_t pickedObjectID = 0xFFFFFFFF;//FIXME not 0 because 0 is used by player and lights, they should get real ids.
-    Model* objectToAttach = nullptr;
 
     std::shared_ptr<QuadRender> quadRender;
     std::map<uint32_t, SDL2MultiThreading::Thread*> routeThreads;
@@ -314,10 +306,6 @@ private:
         LOAD_WORLD
     };
     QuitResponse currentQuitResponse = QuitResponse::QUIT_GAME;
-    bool showNodeGraph = false;
-    PipelineExtension *pipelineExtension;
-    IterationExtension *iterationExtension;
-    NodeGraph* nodeGraph = nullptr;
     std::shared_ptr<GraphicsPipeline> renderPipeline = nullptr;
     std::shared_ptr<GraphicsPipeline> renderPipelineBackup = nullptr;
 
@@ -385,16 +373,6 @@ private:
 
     bool handleQuitRequest();
 
-/********** Editor Methods *********************/
-    void addGUITextControls();
-    void addGUIImageControls();
-    void addGUIButtonControls();
-    void addGUIAnimationControls();
-    void addGUILayerControls();
-    void addParticleEmitterEditor();
-/********** Editor Methods *********************/
-    void drawNodeEditor();
-
     //API methods
     Model* findModelByID(uint32_t modelID) const;
     Model* findModelByIDChildren(PhysicalRenderable* parent ,uint32_t modelID) const;
@@ -403,8 +381,6 @@ private:
     fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters) const;
 
     void clearWorldRefsBeforeAttachment(PhysicalRenderable *attachment, bool removeChildren);
-
-    void createNodeGraph();
 
     std::vector<size_t> getLightIndexes(Light::LightTypes lightType) const {
         std::vector<size_t> lights;
@@ -593,7 +569,6 @@ public:
 
     void updateActiveLights(bool forceUpdate = false);
 
-    void addSkyBoxControls();
 
     void
     removeActiveCustomAnimation(const AnimationCustom &animationToRemove, const AnimationStatus *animationStatusToRemove,
@@ -601,7 +576,7 @@ public:
 
     static bool getNameOfTexture(void* data, int index, const char** outText) {
         auto& textures = *static_cast<std::vector<std::shared_ptr<Texture>>*>(data);
-        if(index < 0 || (uint32_t)index >= textures.size()) {
+        if(index < 0 || (size_t)index >= textures.size()) {
             return false;
         }
         auto it = textures.begin();

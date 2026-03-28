@@ -4,17 +4,12 @@
 
 
 #include "World.h"
-#include <random>
 #include <Graphics/GraphicsPipeline.h>
 #include "NodeEditorExtensions/PipelineStageExtension.h"
-#include "NodeEditorExtensions/PipelineExtension.h"
-#include "NodeEditorExtensions/IterationExtension.h"
-#include "nodeGraph/src/NodeGraph.h"
 
 #include "Camera/PerspectiveCamera.h"
 #include "BulletDebugDrawer.h"
 #include "AI/AIMovementGrid.h"
-
 
 #include "GameObjects/Players/FreeCursorPlayer.h"
 #include "GameObjects/Players/FreeMovingPlayer.h"
@@ -57,7 +52,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
         : assetManager(assetManager), options(options),
         graphicsWrapper(assetManager->getGraphicsWrapper()), alHelper(assetManager->getAlHelper()), name(name),
         fontManager(graphicsWrapper), startingPlayer(startingPlayerType) {
-    strncpy(worldSaveNameBuffer, name.c_str(), sizeof(worldSaveNameBuffer) -1 );
     editor = std::make_unique<Editor>(this);
 
     // physics init
@@ -151,9 +145,6 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
     renderInformationsOption = options->getOption<bool>(HASH("renderInformations"));
     multiThreadedCulling = multiThreadCullingOption.getOrDefault(true);
 
-    /************ ImGui *****************************/
-    // Setup ImGui binding
-    imgGuiHelper = new ImGuiHelper(assetManager, options);
 }
 
    RenderMethods World::buildRenderMethods() {
@@ -223,15 +214,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
   */
  void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler, uint64_t wallTime) {
 
-     // If not in editor mode, dont let imgGuiHelper get input
-     // if in editor mode, but player press editor button, dont allow imgui to process input
-     // if in editor mode, player did not press editor button, then check if imgui processed, if not use the input
-     if(!currentPlayersSettings->editorShown || inputHandler.getInputStates().getInputEvents(InputStates::Inputs::EDITOR) || !imgGuiHelper->ProcessEvent(inputHandler)) {
-         if(handlePlayerInput(inputHandler)) {
-             handleQuitRequest();
-             return;
-         }
-     }
+     editor->update(inputHandler);
 
      this->wallTime = wallTime;
      //Seperating physics step and visibility, because physics is used by camera, and camera is used by visibility
@@ -848,13 +831,13 @@ World::fillRouteInformation(std::vector<LimonTypes::GenericParameter> parameters
         if(inputHandler.getInputStates().getInputStatus(InputStates::Inputs::MOUSE_BUTTON_LEFT)) {
             GameObject *gameObject = getPointedObject(COLLIDE_EVERYTHING, ~(COLLIDE_NOTHING));
             if (gameObject != nullptr) {//FIXME this looks like a left over
-                if(pickedObject != nullptr ) {
-                    pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
+                if(editor->pickedObject != nullptr ) {
+                    editor->pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
                 }
-                pickedObject = gameObject;
-                pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
+                editor->pickedObject = gameObject;
+                editor->pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
             } else {
-                pickedObject = nullptr;
+                editor->pickedObject = nullptr;
             }
         }
     }
@@ -1083,8 +1066,8 @@ void World::ImGuiFrameSetup(std::shared_ptr<GraphicsProgram> graphicsProgram, co
    if(!currentPlayersSettings->editorShown) {
        return;
    }
-   delete request;
-   request = new ImGuiRequest(playerCamera->getCameraMatrix(), playerCamera->getProjectionMatrix(),
+   delete editor->request;
+   editor->request = new ImGuiRequest(playerCamera->getCameraMatrix(), playerCamera->getProjectionMatrix(),
                               graphicsWrapper->getGUIOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), playerCamera, apiInstance);
 
    //Render Trigger volumes
@@ -1149,70 +1132,6 @@ void World::removeActiveCustomAnimation(const AnimationCustom &animationToRemove
    if(onLoadAnimations.find(objectOfAnimation) != onLoadAnimations.end()) {
        onLoadAnimations.erase(objectOfAnimation);
    }
-}
-
-   void World::addGUITextControls() {
-    /**
-     * we need these set:
-     * 1) font
-     * 2) font size
-     * 3) name
-     *
-     */
-
-    static int fontSize = 32;
-
-    std::set<std::pair<std::string, uint32_t>> loadedFonts = fontManager.getLoadedFonts();
-    auto it = loadedFonts.begin();
-    static std::string selectedFontName = it->first;
-    if (ImGui::BeginCombo("Font to use", it->first.c_str())) {
-        for (; it != loadedFonts.end(); it++) {//first element already set
-
-            bool isThisFontSelected = it->first == selectedFontName;
-            if (ImGui::Selectable(it->first.c_str(), isThisFontSelected)) {
-                selectedFontName = it->first;
-            }
-            if (isThisFontSelected) {
-                ImGui::SetItemDefaultFocus();
-            }
-        }
-        ImGui::EndCombo();
-    }
-
-
-    ImGui::DragInt("Font size", &fontSize, 1, 1, 128);
-    static char GUITextName[32];
-    ImGui::InputText("GUIText Name", GUITextName, sizeof(GUITextName), ImGuiInputTextFlags_CharsNoBlank);
-
-    static size_t selectedLayerIndex = 0;
-    if (guiLayers.size() == 0) {
-        guiLayers.push_back(new GUILayer(graphicsWrapper, debugDrawer, 10));
-    }
-    if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
-        for (size_t i = 0; i < guiLayers.size(); ++i) {
-            bool isThisLayerSelected = selectedLayerIndex == i;
-            if (ImGui::Selectable(std::to_string(i).c_str(), isThisLayerSelected)) {
-                selectedLayerIndex = i;
-            }
-            if (isThisLayerSelected) {
-                ImGui::SetItemDefaultFocus();
-            }
-        }
-        ImGui::EndCombo();
-    }
-    if (ImGui::Button("Add GUI Text")) {
-        GUIText *guiText = new GUIText(graphicsWrapper, getNextObjectID(), GUITextName,
-                                       fontManager.getFont(selectedFontName, fontSize), "New Text", glm::vec3(0, 0, 0));
-        guiText->set2dWorldTransform(
-                glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
-        guiElements[guiText->getWorldObjectID()] = guiText;
-        guiLayers[selectedLayerIndex]->addGuiElement(guiText);
-        if(pickedObject != nullptr ) {
-            pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
-        }
-        pickedObject = guiText;
-        pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
-    }
 }
 
 World::~World() {
@@ -1285,8 +1204,6 @@ World::~World() {
     delete fpsCounter;
     delete cursor;
     delete debugOutputGUI;
-
-    delete imgGuiHelper;
 
 }
 
@@ -1858,16 +1775,11 @@ void World::afterLoadFinished() {
         music->play();
     }
 
-    //setup request
-    request = new ImGuiRequest(playerCamera->getCameraMatrix(), playerCamera->getProjectionMatrix(),
-                               graphicsWrapper->getGUIOrthogonalProjectionMatrix(), options->getScreenHeight(), options->getScreenWidth(), playerCamera, apiInstance);
-
     if(!startingPlayer.extensionName.empty()) {
         PlayerExtensionInterface *playerExtension =PlayerExtensionInterface::createExtension(startingPlayer.extensionName, apiInstance);
         this->currentPlayer->setPlayerExtension(playerExtension);
         this->currentPlayer->setCameraOverride(playerExtension->getCustomCameraAttachment());
         playerCamera->setCameraAttachment(currentPlayer->getCameraAttachment());
-        strncpy(extensionNameBuffer, startingPlayer.extensionName.c_str(), sizeof(extensionNameBuffer)-1);
     }
 }
 
@@ -1945,104 +1857,6 @@ uint32_t World::playSound(const std::string &soundPath, const glm::vec3 &positio
     sounds[soundID] = std::move(sound);
     return soundID;
 }
-
-void World::addGUIImageControls() {
-    /**
-     * For a new GUI Image we need only name and filename
-     */
-    static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
-
-    static char textureAssetFilter[32] = {0};
-    ImGui::InputText("Filter Assets ##TextureAssetTreeFilter", textureAssetFilter, sizeof(textureAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
-    std::string textureAssetFilterStr = textureAssetFilter;
-    std::transform(textureAssetFilterStr.begin(), textureAssetFilterStr.end(), textureAssetFilterStr.begin(), ::tolower);
-    const AssetManager::AvailableAssetsNode* filteredAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureAssetFilterStr);
-    imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
-                                      "GUIImage",
-                                      &selectedAsset);
-
-    static size_t selectedLayerIndex = 0;
-    if (guiLayers.size() == 0) {
-        guiLayers.push_back(new GUILayer(graphicsWrapper, debugDrawer, 10));
-    }
-    static char GUIImageName[32];
-    ImGui::InputText("GUI Image Name", GUIImageName, sizeof(GUIImageName), ImGuiInputTextFlags_CharsNoBlank);
-    if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
-        for (size_t i = 0; i < guiLayers.size(); ++i) {
-            bool isThisLayerSelected = selectedLayerIndex == i;
-            if (ImGui::Selectable(std::to_string(i).c_str(), isThisLayerSelected)) {
-                selectedLayerIndex = i;
-            }
-            if (isThisLayerSelected) {
-                ImGui::SetItemDefaultFocus();
-            }
-        }
-        ImGui::EndCombo();
-    }
-    if(selectedAsset == nullptr) {
-        ImGui::Button("Add GUI Image");
-        ImGui::SameLine();
-        ImGuiHelper::ShowHelpMarker("No Asset Selected!");
-    } else {
-        if (ImGui::Button("Add GUI Image")) {
-            GUIImage *guiImage = new GUIImage(this->getNextObjectID(), options, assetManager, std::string(GUIImageName),
-                                              selectedAsset->fullPath);
-            guiImage->set2dWorldTransform(
-                    glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
-            guiElements[guiImage->getWorldObjectID()] = guiImage;
-            guiLayers[selectedLayerIndex]->addGuiElement(guiImage);
-            if(pickedObject != nullptr ) {
-                pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
-            }
-            pickedObject = guiImage;
-            pickedObject->addTag(HardCodedTags::PICKED_OBJECT);        }
-    }
-}
-
-   void World::addParticleEmitterEditor() {
-       /**
-        * For a new GUI Image we need only name and filename
-        */
-       static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
-
-       static char textureAssetFilter[32] = {0};
-       ImGui::InputText("Filter Assets ##TextureAssetTreeEmitterFilter", textureAssetFilter, sizeof(textureAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
-       std::string textureAssetFilterStr = textureAssetFilter;
-       std::transform(textureAssetFilterStr.begin(), textureAssetFilterStr.end(), textureAssetFilterStr.begin(), ::tolower);
-       const AssetManager::AvailableAssetsNode* filteredAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureAssetFilterStr);
-       imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
-                                         "ParticleEmitter",
-                                         &selectedAsset);
-       static char particleEmitterName[32] = {0};
-       ImGui::InputText("Particle Emitter Name", particleEmitterName, sizeof(particleEmitterName), ImGuiInputTextFlags_CharsNoBlank);
-       static glm::vec3 startPosition;
-       ImGui::InputFloat3("Particle Emitter Position", glm::value_ptr(startPosition));
-       static float startSphereR;
-       ImGui::InputFloat("Particle Emitter radius", &startSphereR);
-       static int maxCount;
-       ImGui::InputInt("Maximum particle count", &maxCount);
-       static int lifeTime;
-       ImGui::InputInt("Particle life time", &lifeTime);
-       static glm::vec2 size;
-       ImGui::InputFloat2("Particle size", glm::value_ptr(size));
-
-       if(selectedAsset == nullptr) {
-           ImGui::Button("Add Particle Emitter");
-           ImGui::SameLine();
-           ImGuiHelper::ShowHelpMarker("No Asset Selected!");
-       } else if(strlen(particleEmitterName) == 0) {
-           ImGui::Button("Add Particle Emitter");
-           ImGui::SameLine();
-           ImGuiHelper::ShowHelpMarker("No Name Set!");
-       } else {
-           if (ImGui::Button("Add Particle Emitter")) {
-               std::shared_ptr<Emitter> newEmitter = std::make_shared<Emitter>(this->getNextObjectID(), particleEmitterName, this->assetManager, selectedAsset->fullPath,
-                                                                               startPosition, glm::vec3(startSphereR, startSphereR, startSphereR), size, maxCount,
-                                                                               lifeTime);
-               this->emitters[newEmitter->getWorldObjectID()] = (newEmitter);
-           }
-       }
-   }
 
 void World::switchPlayer(Player *targetPlayer, InputHandler &inputHandler) {
     //we should reconnect disconnected object if switching to editor mode, because we use physics for pickup
@@ -2142,209 +1956,6 @@ void World::setupForPauseOrStop() {
         delete visibilityItem.first;
     }
     visibilityThreadPool.clear();
-}
-
-void World::addGUIButtonControls() {
-
-    static char GUIButtonName[32];
-    ImGui::InputText("GUI Button Name", GUIButtonName, sizeof(GUIButtonName), ImGuiInputTextFlags_CharsNoBlank);
-
-    static const AssetManager::AvailableAssetsNode* selectedAssetForGUIButton = nullptr;
-
-    static char textureAssetFilter[32] = {0};
-    ImGui::InputText("Filter Assets ##TextureButtonAssetTreeFilter", textureAssetFilter, sizeof(textureAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
-    std::string textureAssetFilterStr = textureAssetFilter;
-    std::transform(textureAssetFilterStr.begin(), textureAssetFilterStr.end(), textureAssetFilterStr.begin(), ::tolower);
-    const AssetManager::AvailableAssetsNode* filteredAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureAssetFilterStr);
-    imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_TEXTURE,
-                                      "GUIButton",
-                                      &selectedAssetForGUIButton);
-
-    static char GUIButtonNormalFileName[256] = {0};
-    ImGui::InputText("Normal image", GUIButtonNormalFileName, sizeof(GUIButtonNormalFileName));
-    ImGui::SameLine();
-    if(selectedAssetForGUIButton != nullptr) {
-        if(ImGui::Button("Set##GuiButN")) {
-            strncpy(GUIButtonNormalFileName, selectedAssetForGUIButton->fullPath.c_str(), sizeof(GUIButtonNormalFileName)-1);
-        }
-    } else {
-        ImGui::Button("Set##GuiButN");
-        ImGui::SameLine();
-        ImGuiHelper::ShowHelpMarker("No asset selected");
-    }
-
-    static char GUIButtonOnHoverFileName[256] = {0};
-    ImGui::InputText("On hover image", GUIButtonOnHoverFileName, sizeof(GUIButtonOnHoverFileName));
-    ImGui::SameLine();
-    if(selectedAssetForGUIButton != nullptr) {
-        if(ImGui::Button("Set##GuiButH")) {
-            strncpy(GUIButtonOnHoverFileName, selectedAssetForGUIButton->fullPath.c_str(), sizeof(GUIButtonOnHoverFileName)-1);
-        }
-    } else {
-        ImGui::Button("Set##GuiButN");
-        ImGui::SameLine();
-        ImGuiHelper::ShowHelpMarker("No asset selected");
-    }
-
-    static char GUIButtonOnClickFileName[256] = {0};
-    ImGui::InputText("On click image", GUIButtonOnClickFileName, sizeof(GUIButtonOnClickFileName));
-    ImGui::SameLine();
-    if(selectedAssetForGUIButton != nullptr) {
-        if(ImGui::Button("Set##GuiButC")) {
-            strncpy(GUIButtonOnClickFileName, selectedAssetForGUIButton->fullPath.c_str(), sizeof(GUIButtonOnClickFileName)-1);
-        }
-    } else {
-        ImGui::Button("Set##GuiButN");
-        ImGui::SameLine();
-        ImGuiHelper::ShowHelpMarker("No asset selected");
-    }
-
-    static char GUIButtonDisabledFileName[256] = {0};
-    ImGui::InputText("Disabled image", GUIButtonDisabledFileName, sizeof(GUIButtonDisabledFileName));
-    ImGui::SameLine();
-    if(selectedAssetForGUIButton != nullptr) {
-        if(ImGui::Button("Set##GuiButD")) {
-            strncpy(GUIButtonDisabledFileName, selectedAssetForGUIButton->fullPath.c_str(), sizeof(GUIButtonDisabledFileName)-1);
-        }
-    } else {
-        ImGui::Button("Set##GuiButN");
-        ImGui::SameLine();
-        ImGuiHelper::ShowHelpMarker("No asset selected");
-    }
-
-    static size_t selectedLayerIndex = 0;
-    if (guiLayers.size() == 0) {
-        guiLayers.push_back(new GUILayer(graphicsWrapper, debugDrawer, 10));
-    }
-    if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
-        for (size_t i = 0; i < guiLayers.size(); ++i) {
-            bool isThisLayerSelected = selectedLayerIndex == i;
-            if (ImGui::Selectable(std::to_string(i).c_str(), isThisLayerSelected)) {
-                selectedLayerIndex = i;
-            }
-            if (isThisLayerSelected) {
-                ImGui::SetItemDefaultFocus();
-            }
-        }
-        ImGui::EndCombo();
-    }
-    if(strlen(GUIButtonNormalFileName) == 0) {
-        ImGui::Button("Add GUI Button");
-        ImGui::SameLine();
-        ImGuiHelper::ShowHelpMarker("Normal image must be set");
-    } else {
-        if (ImGui::Button("Add GUI Button")) {
-            std::vector<std::string> fileNames;
-
-            fileNames.push_back(std::string(GUIButtonNormalFileName));
-            if (strlen(GUIButtonOnHoverFileName) > 0) {
-                fileNames.push_back(std::string(GUIButtonOnHoverFileName));
-                if (strlen(GUIButtonOnClickFileName) > 0) {
-                    fileNames.push_back(std::string(GUIButtonOnClickFileName));
-                    if (strlen(GUIButtonDisabledFileName) > 0) {
-                        fileNames.push_back(std::string(GUIButtonDisabledFileName));
-                    }
-                }
-            }
-            std::string name;
-            if(strlen(GUIButtonName) != 0) {
-                name = GUIButtonName;
-            } else {
-                name = "GuiButton";
-            }
-
-            GUIButton *guiButton = new GUIButton(this->getNextObjectID(), assetManager, apiInstance,
-                                                 name,
-                                                 fileNames);
-            guiButton->set2dWorldTransform(
-                    glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
-            guiElements[guiButton->getWorldObjectID()] = guiButton;
-            guiLayers[selectedLayerIndex]->addGuiElement(guiButton);
-
-            if(pickedObject != nullptr ) {
-                pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
-            }
-            pickedObject = guiButton;
-            pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
-        }
-    }
-}
-
-   void World::addGUIAnimationControls() {
-
-       /**
-        * For a new GUI Image we need only name and filename
-        */
-
-       static char GUIAnimationName[32];
-       ImGui::InputText("GUI Animation Name", GUIAnimationName, sizeof(GUIAnimationName), ImGuiInputTextFlags_CharsNoBlank);
-
-       static int32_t newAnimationFrameSpeed = TICK_PER_SECOND;
-       ImGui::DragInt("FrameSpeed", &newAnimationFrameSpeed, 1.0f, TICK_PER_SECOND);
-
-       static bool isLooped = false;
-       ImGui::Checkbox("Is Animation Looped", &isLooped);
-
-       static const AssetManager::AvailableAssetsNode* selectedAsset = nullptr;
-
-       static char textureAnimationAssetFilter[32] = {0};
-       ImGui::InputText("Filter Assets ##TextureAnimationAssetTreeFilter", textureAnimationAssetFilter, sizeof(textureAnimationAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
-       std::string textureAssetFilterStr = textureAnimationAssetFilter;
-       std::transform(textureAssetFilterStr.begin(), textureAssetFilterStr.end(), textureAssetFilterStr.begin(), ::tolower);
-       const AssetManager::AvailableAssetsNode* filteredAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, textureAssetFilterStr);
-
-       imgGuiHelper->buildTreeFromAssets(filteredAssets,
-                                         AssetManager::AssetTypes::Asset_type_TEXTURE, "GUIAnimation",
-                                         &selectedAsset);
-
-       static size_t selectedLayerIndex = 0;
-       if (guiLayers.size() == 0) {
-           guiLayers.push_back(new GUILayer(graphicsWrapper, debugDrawer, 10));
-       }
-       if (ImGui::BeginCombo("Layer To add", std::to_string(selectedLayerIndex).c_str())) {
-           for (size_t i = 0; i < guiLayers.size(); ++i) {
-               bool isThisLayerSelected = selectedLayerIndex == i;
-               if (ImGui::Selectable(std::to_string(i).c_str(), isThisLayerSelected)) {
-                   selectedLayerIndex = i;
-               }
-               if (isThisLayerSelected) {
-                   ImGui::SetItemDefaultFocus();
-               }
-           }
-           ImGui::EndCombo();
-        }
-        if(selectedAsset == nullptr) {
-            ImGui::Button("Add GUI Animation");
-            ImGui::SameLine();
-            ImGuiHelper::ShowHelpMarker("No Asset Selected");
-        } else {
-
-            if (ImGui::Button("Add GUI Animation")) {
-
-                std::vector<std::string> fileNames;
-                fileNames.push_back(selectedAsset->fullPath);
-
-                GUIAnimation *guiAnimation = new GUIAnimation(this->getNextObjectID(), assetManager,
-                                                             std::string(GUIAnimationName),
-                                                             fileNames, gameTime, newAnimationFrameSpeed, isLooped);
-                guiAnimation->set2dWorldTransform(glm::vec2(options->getScreenWidth() / 2.0f, options->getScreenHeight() / 2.0f), 0.0f);
-                guiElements[guiAnimation->getWorldObjectID()] = guiAnimation;
-                guiLayers[selectedLayerIndex]->addGuiElement(guiAnimation);
-                if(pickedObject != nullptr ) {
-                    pickedObject->removeTag(HardCodedTags::PICKED_OBJECT);
-                }
-                pickedObject = guiAnimation;
-                pickedObject->addTag(HardCodedTags::PICKED_OBJECT);
-            }
-        }
-   }
-
-void World::addGUILayerControls() {
-    static  int32_t levelSlider = 0;
-    ImGui::DragInt("Layer level", &levelSlider, 1, 1, 128);
-    if (ImGui::Button("Add GUI Layer")) {
-        this->guiLayers.push_back(new GUILayer(graphicsWrapper, debugDrawer, (uint32_t)levelSlider));
-    }
 }
 
 bool World::handleQuitRequest() {
@@ -3245,131 +2856,6 @@ bool World::verifyIDs() {
     return true;
 }
 
-void World::addSkyBoxControls() {
-    //first, build a tree for showing directories with textures in them.
-    static const AssetManager::AvailableAssetsNode* selectedSkyBoxAsset = nullptr;
-    static const AssetManager::AvailableAssetsNode* selectedAssetDirectory = nullptr;
-
-    if(selectedAssetDirectory == nullptr) {
-        static char skyBoxAssetFilter[32] = {0};
-        ImGui::InputText("Filter Assets ##SkyBoxAssetTreeFilter", skyBoxAssetFilter, sizeof(skyBoxAssetFilter), ImGuiInputTextFlags_CharsNoBlank);
-        std::string skyBoxAssetFilterStr = skyBoxAssetFilter;
-        std::transform(skyBoxAssetFilterStr.begin(), skyBoxAssetFilterStr.end(), skyBoxAssetFilterStr.begin(),::tolower);
-        const AssetManager::AvailableAssetsNode *filteredAssets = assetManager->getAvailableAssetsTreeFiltered(AssetManager::Asset_type_TEXTURE, skyBoxAssetFilterStr);
-
-        imgGuiHelper->buildTreeFromAssets(filteredAssets, AssetManager::Asset_type_DIRECTORY, "SkyBox", &selectedSkyBoxAsset);
-
-        if(ImGui::Button("Set Directory##SkyBox")) {
-            selectedAssetDirectory = selectedSkyBoxAsset;
-        }
-    } else {
-        imgGuiHelper->buildTreeFromAssets(selectedAssetDirectory, AssetManager::Asset_type_TEXTURE, "SkyBox", &selectedSkyBoxAsset);
-        if(ImGui::Button("Reset Directory##SkyBox")) {
-            selectedAssetDirectory = nullptr;
-            selectedSkyBoxAsset = nullptr;
-        }
-
-        static char skyBoxRightFileName[256] = {0};
-        ImGui::InputText("Right image", skyBoxRightFileName, sizeof(skyBoxRightFileName));
-        ImGui::SameLine();
-        if(selectedSkyBoxAsset != nullptr) {
-            if(ImGui::Button("Set##skyBoxRight")) {
-                strncpy(skyBoxRightFileName, selectedSkyBoxAsset->name.c_str(), sizeof(skyBoxRightFileName)-1);
-            }
-        } else {
-            ImGui::Button("Set##skyBoxRight");
-            ImGui::SameLine();
-            ImGuiHelper::ShowHelpMarker("No asset selected");
-        }
-
-        static char skyBoxLeftFileName[256] = {0};
-        ImGui::InputText("Left image", skyBoxLeftFileName, sizeof(skyBoxLeftFileName));
-        ImGui::SameLine();
-        if(selectedSkyBoxAsset != nullptr) {
-            if(ImGui::Button("Set##skyBoxLeft")) {
-                strncpy(skyBoxLeftFileName, selectedSkyBoxAsset->name.c_str(), sizeof(skyBoxLeftFileName)-1);
-            }
-        } else {
-            ImGui::Button("Set##skyBoxLeft");
-            ImGui::SameLine();
-            ImGuiHelper::ShowHelpMarker("No asset selected");
-        }
-
-        static char skyBoxTopFileName[256] = {0};
-        ImGui::InputText("Top image", skyBoxTopFileName, sizeof(skyBoxTopFileName));
-        ImGui::SameLine();
-        if(selectedSkyBoxAsset != nullptr) {
-            if(ImGui::Button("Set##skyBoxTop")) {
-                strncpy(skyBoxTopFileName, selectedSkyBoxAsset->name.c_str(), sizeof(skyBoxTopFileName)-1);
-            }
-        } else {
-            ImGui::Button("Set##skyBoxTop");
-            ImGui::SameLine();
-            ImGuiHelper::ShowHelpMarker("No asset selected");
-        }
-
-        static char skyBoxBottomFileName[256] = {0};
-        ImGui::InputText("Bottom image", skyBoxBottomFileName, sizeof(skyBoxBottomFileName));
-        ImGui::SameLine();
-        if(selectedSkyBoxAsset != nullptr) {
-            if(ImGui::Button("Set##skyBoxBottom")) {
-                strncpy(skyBoxBottomFileName, selectedSkyBoxAsset->name.c_str(), sizeof(skyBoxBottomFileName)-1);
-            }
-        } else {
-            ImGui::Button("Set##skyBoxBottom");
-            ImGui::SameLine();
-            ImGuiHelper::ShowHelpMarker("No asset selected");
-        }
-
-        static char skyBoxFrontFileName[256] = {0};
-        ImGui::InputText("Front image", skyBoxFrontFileName, sizeof(skyBoxFrontFileName));
-        ImGui::SameLine();
-        if(selectedSkyBoxAsset != nullptr) {
-            if(ImGui::Button("Set##skyBoxFront")) {
-                strncpy(skyBoxFrontFileName, selectedSkyBoxAsset->name.c_str(), sizeof(skyBoxFrontFileName)-1);
-            }
-        } else {
-            ImGui::Button("Set##skyBoxFront");
-            ImGui::SameLine();
-            ImGuiHelper::ShowHelpMarker("No asset selected");
-        }
-
-        static char skyBoxBackFileName[256] = {0};
-        ImGui::InputText("Back image", skyBoxBackFileName, sizeof(skyBoxBackFileName));
-        ImGui::SameLine();
-        if(selectedSkyBoxAsset != nullptr) {
-            if(ImGui::Button("Set##skyBoxBack")) {
-                strncpy(skyBoxBackFileName, selectedSkyBoxAsset->name.c_str(), sizeof(skyBoxBackFileName)-1);
-            }
-        } else {
-            ImGui::Button("Set##skyBoxBack");
-            ImGui::SameLine();
-            ImGuiHelper::ShowHelpMarker("No asset selected");
-        }
-
-        if(strlen(skyBoxRightFileName) != 0 &&
-                strlen(skyBoxLeftFileName) != 0 &&
-                strlen(skyBoxTopFileName) != 0 &&
-                strlen(skyBoxBottomFileName) != 0 &&
-                strlen(skyBoxFrontFileName) != 0 &&
-                strlen(skyBoxBackFileName) != 0   ) {
-            if(ImGui::Button("Change Sky Box")) {
-                SkyBox* newSkyBox = new SkyBox(getNextObjectID(), assetManager, selectedAssetDirectory->fullPath, skyBoxRightFileName, skyBoxLeftFileName, skyBoxTopFileName, skyBoxBottomFileName, skyBoxBackFileName, skyBoxFrontFileName);
-                delete this->sky;
-                this->sky = newSkyBox;
-            }
-        } else {
-            ImGui::Button("Change Sky Box");
-            ImGui::SameLine();
-            ImGuiHelper::ShowHelpMarker("Some Elements are empty");
-        }
-
-
-    }
-
-
-}
-
 bool World::addLightTranslateAPI(uint32_t lightID, const LimonTypes::Vec4 &position) {
     Light* light = nullptr;
     for (size_t i = 0; i < lights.size(); ++i) {
@@ -3400,247 +2886,6 @@ bool World::setLightColorAPI(uint32_t lightID, const LimonTypes::Vec4& color) {
 
     light->setColor(glm::vec3(GLMConverter::LimonToGLM(color)));
     return true;
-}
-
-void World::drawNodeEditor() {
-    if(this->nodeGraph == nullptr) {
-        createNodeGraph();
-    }
-
-    ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
-
-    if (!ImGui::Begin("Example: Custom Node Graph", &showNodeGraph)) {
-        ImGui::End();
-        return;
-    }
-    ImGui::ShowDemoWindow();
-
-    nodeGraph->display();
-    static long handleId = 0;
-    if (handleId != 0) {
-        ImGui::OpenPopup("Keep pipeline active");
-    }
-    if (ImGui::BeginPopupModal("Keep pipeline active", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-    {
-        if(handleId == 0) {
-            ImGui::CloseCurrentPopup();
-        }
-        ImGui::Text("Do you want to keep the pipeline active?\n\nIt will reset automatically in 10 seconds of game time, after you close the editor.");
-        ImGui::Separator();
-
-        if (ImGui::Button("Keep", ImVec2(120, 0))) {
-            cancelTimedEventAPI(handleId);
-            handleId = 0;
-            ImGui::CloseCurrentPopup();
-        }
-        ImGui::SetItemDefaultFocus();
-        ImGui::SameLine();
-        if (ImGui::Button("Revert", ImVec2(120, 0))) {
-            cancelTimedEventAPI(handleId);
-            this->renderPipeline = this->renderPipelineBackup;
-            this->renderPipelineBackup = nullptr;
-            handleId = 0;
-            ImGui::CloseCurrentPopup();
-        }
-        ImGui::EndPopup();
-    }
-    if(pipelineExtension->isPipelineBuilt()) {
-        if (ImGui::Button("Activate")) {
-            std::shared_ptr<GraphicsPipeline> builtRenderPipeline = pipelineExtension->handOverBuiltPipeline();
-            std::vector<LimonTypes::GenericParameter> emptyParameters;
-            for(auto& stage:builtRenderPipeline->getStages()) {
-                for(auto& method:stage.renderMethods) {
-                    if(!method.getInitialized()) {
-                        method.initialize(emptyParameters);
-                    }
-                }
-            }
-            std::vector<LimonTypes::GenericParameter> empty;
-            handleId = addTimedEventAPI(10000, true,
-                                        [&](const std::vector<LimonTypes::GenericParameter> &) {
-                                            this->renderPipeline = this->renderPipelineBackup;
-                                            this->renderPipelineBackup = nullptr;
-                                            handleId = 0;
-                                        },
-                                        empty);
-            this->renderPipelineBackup = this->renderPipeline;
-            this->renderPipeline = builtRenderPipeline;
-            setupRenderForPipeline();
-        }
-    }
-
-    if(ImGui::Button("Save")) {
-        nodeGraph->serialize("./Data/nodeGraph.xml");
-        nodeGraph->addMessage("Serialization done.");
-    }
-    ImGui::SameLine();
-    if(ImGui::Button("Cancel")){
-        showNodeGraph = false;
-    }
-    ImGui::End();
-}
-
-void World::createNodeGraph() {
-    std::vector<NodeType*> nodeTypeVector;
-
-    //start with predefined types
-
-    NodeType* screen = new NodeType{"Screen", false, "", nullptr,{}, {}, true, {}};
-    screen->inputConnections.push_back(ConnectionDesc{"Color", "Texture"});
-    screen->inputConnections.push_back(ConnectionDesc{"Depth", "Texture"});
-    nodeTypeVector.push_back(screen);
-
-    NodeType* blend = new NodeType{"Blend", true, "", nullptr,{}, {}, false, {}};
-    blend->inputConnections.push_back(ConnectionDesc{"Input1", "Texture"});
-    blend->inputConnections.push_back(ConnectionDesc{"Input2", "Texture"});
-    blend->inputConnections.push_back(ConnectionDesc{"Input3", "Texture"});
-    blend->outputConnections.push_back(ConnectionDesc{"output", "Texture"});
-    nodeTypeVector.push_back(blend);
-
-    iterationExtension = new IterationExtension();
-
-    NodeType* iterate = new NodeType{"Iterate", false, "IterationExtension", [](const NodeType* nodeType[[gnu::unused]]) -> NodeExtension* {return new IterationExtension();},
-                      {{"Input", "Texture"},},
-                       {{"Output", "Texture"},},false, {}};
-    nodeTypeVector.push_back(iterate);
-
-    std::vector<std::shared_ptr<GraphicsProgram>> programs = getAllAvailablePrograms();
-
-    RenderMethods renderMethods = buildRenderMethods();
-
-    pipelineExtension = new PipelineExtension(graphicsWrapper, renderPipeline, assetManager, options, GraphicsPipeline::getRenderMethodNames(), renderMethods);
-
-    for(auto program:programs) {
-        std::string programName = program->getProgramName();
-        size_t startof, endof;
-        endof=programName.find_last_of("/\\");
-        startof = programName.substr(0,endof).find_last_of("/\\") +1;
-        std::string nodeName = programName.substr(startof, endof - startof);
-        NodeType* type = new NodeType{nodeName.c_str(), false, "PipelineStageExtension", nullptr, {}, {}, true, {}};
-
-        auto uniformMap = program->getUniformMap();
-        for(auto uniform:uniformMap) {
-
-            if (uniform.first.rfind("pre_", 0) != 0) {
-                continue;
-            }
-
-            if (!(uniform.second->type == Uniform::VariableTypes::CUBEMAP ||
-                  uniform.second->type == Uniform::VariableTypes::CUBEMAP_ARRAY ||
-                  uniform.second->type == Uniform::VariableTypes::TEXTURE_2D ||
-                  uniform.second->type == Uniform::VariableTypes::TEXTURE_2D_ARRAY)) {//if not texture
-                continue;
-            }
-
-            ConnectionDesc desc;
-            desc.name = uniform.first;
-            switch (uniform.second->type) {
-                case Uniform::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
-                case Uniform::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
-                case Uniform::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
-                case Uniform::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
-                case Uniform::VariableTypes::BOOL              : desc.type = "Boolean"; break;
-                case Uniform::VariableTypes::INT               : desc.type = "Integer"; break;
-                case Uniform::VariableTypes::FLOAT             : desc.type = "Float"; break;
-                case Uniform::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
-                case Uniform::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
-                case Uniform::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
-                case Uniform::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
-                case Uniform::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
-            }
-            type->inputConnections.push_back(desc);
-        }
-
-        auto outputMap = program->getOutputMap();
-        for(const auto& output:outputMap) {
-            ConnectionDesc desc;
-            desc.name = output.first;
-            switch (output.second.first) {
-                case Uniform::VariableTypes::CUBEMAP           : desc.type = "Cubemap"; break;
-                case Uniform::VariableTypes::CUBEMAP_ARRAY     : desc.type = "Cubemap array"; break;
-                case Uniform::VariableTypes::TEXTURE_2D        : desc.type = "Texture"; break;
-                case Uniform::VariableTypes::TEXTURE_2D_ARRAY  : desc.type = "Texture array"; break;
-                case Uniform::VariableTypes::BOOL              : desc.type = "Boolean"; break;
-                case Uniform::VariableTypes::INT               : desc.type = "Integer"; break;
-                case Uniform::VariableTypes::FLOAT             : desc.type = "Float"; break;
-                case Uniform::VariableTypes::FLOAT_VEC2        : desc.type = "Vector2"; break;
-                case Uniform::VariableTypes::FLOAT_VEC3        : desc.type = "Vector3"; break;
-                case Uniform::VariableTypes::FLOAT_VEC4        : desc.type = "Vector4"; break;
-                case Uniform::VariableTypes::FLOAT_MAT4        : desc.type = "Matrix4"; break;
-                case Uniform::VariableTypes::UNDEFINED         : desc.type = "Undefined"; break;
-            }
-            type->outputConnections.push_back(desc);
-        }
-        PipelineStageExtension::ProgramNameInfo programNameInfo;
-        programNameInfo.vertexShaderName = program->getVertexShaderFile();
-        programNameInfo.geometryShaderName = program->getGeometryShaderFile();
-        programNameInfo.fragmentShaderName = program->getFragmentShaderFile();
-
-        type->nodeExtensionConstructor = [=](const NodeType* nodeType[[gnu::unused]]) ->NodeExtension* {return new PipelineStageExtension(pipelineExtension, programNameInfo);};
-        type->extraVariables["vertexShaderName"] = program->getVertexShaderFile();
-        type->extraVariables["geometryShaderName"] = program->getGeometryShaderFile();
-        type->extraVariables["fragmentShaderName"] = program->getFragmentShaderFile();
-
-        nodeTypeVector.push_back(type);
-    }
-
-    std::unordered_map<std::string, std::function<EditorExtension*()>> possibleEditorExtensions;
-    possibleEditorExtensions["PipelineExtension"] = [=]() ->EditorExtension* {return pipelineExtension;};
-
-    std::unordered_map<std::string, std::function<NodeExtension*(const NodeType*)>> possibleNodeExtensions;
-    possibleNodeExtensions["PipelineStageExtension"] = [=](const NodeType* nodeType) ->NodeExtension* {return new PipelineStageExtension(nodeType, pipelineExtension);};
-    possibleNodeExtensions["IterationExtension"] = [=](const NodeType*) -> NodeExtension* {return new IterationExtension();};
-
-    nodeGraph = NodeGraph::deserialize("./Data/nodeGraph.xml", possibleEditorExtensions, possibleNodeExtensions);
-
-    bool freshNodeGraphCreated = false;
-    if(nodeGraph == nullptr) {
-        std::cerr << "No custom Nodegraph found, using the default." << std::endl;
-        nodeGraph = NodeGraph::deserialize("./Engine/nodeGraph.xml", possibleEditorExtensions, possibleNodeExtensions);
-        if(nodeGraph == nullptr) {
-            std::cerr << "Default Node deserialize failed too, using empty node graph" << std::endl;
-            nodeGraph = new NodeGraph(nodeTypeVector, false, pipelineExtension);
-            freshNodeGraphCreated = true;
-        }
-    }
-
-    if(!freshNodeGraphCreated) {
-        // we loaded an old nodegraph. What if the available programs changed? if user add new programs, we should add them. If user removed programs, we should mark the pipeline as invalid, and warn.
-        // First check if any node type we don't have is defined
-        std::vector<const NodeType *> oldDefinedNodeTypes = nodeGraph->getNodeTypes();
-        for(const NodeType* oldNodeType: oldDefinedNodeTypes) {
-            bool nodeTypeFound = false;
-            for(NodeType* newNodeType: nodeTypeVector) {
-                if(newNodeType->isSameNodeType(*oldNodeType)) {
-                    nodeTypeFound = true;
-                    break;
-                }
-            }
-            if(!nodeTypeFound) {
-                // a node type that is unknown is found mark pipeline as invalid
-                pipelineExtension->setNodeGraphValid(false);
-                pipelineExtension->addError("Old Node type " + oldNodeType->name + " Not found, this graph is invalid");
-            }
-        }
-        //now do it in reverse, and try to add new programs we found, to the nodeGraph
-        for( NodeType* newNodeType: nodeTypeVector) {
-            bool nodeTypeFound = false;
-            for (const NodeType *oldNodeType: oldDefinedNodeTypes) {
-                if (newNodeType->name == oldNodeType->name) {
-                    //TODO it is possible, that there is a node type that has the same name, but it is different. we need to replace them
-                    nodeTypeFound = true;
-                    break;
-                }
-            }
-            if (!nodeTypeFound) {
-                if (nodeGraph->addNodeType(newNodeType)) {
-                    std::cout << "New node type " << newNodeType->name << " added" << std::endl;
-                } else {
-                    std::cerr << "New node type " << newNodeType->name << " should be added, but rejected!" << std::endl;
-                }
-            }
-        }
-    }
 }
 
    std::vector<std::shared_ptr<GraphicsProgram>> World::getAllAvailablePrograms() {
