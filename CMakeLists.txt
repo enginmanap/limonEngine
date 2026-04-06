@@ -30,12 +30,24 @@ ENDFUNCTION()
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 #include(cotire)
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+        set(SIMD_FLAGS "-msse4.1")
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
+        # For 32-bit arm, neon is optional
+        set(SIMD_FLAGS "-mfpu=neon")
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+        # For 64-bit arm, neon is required, no flag needed
+        set(SIMD_FLAGS "")
+    endif()
+endif()
+
 IF (WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -mconsole -Wall -Wextra -Wnon-virtual-dtor -pedantic -fdiagnostics-all-candidates -msse4.1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -mconsole -Wall -Wextra -Wnon-virtual-dtor -pedantic -fdiagnostics-all-candidates ${SIMD_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld ${CMAKE_EXE_LINKER_FLAGS}")
     set(WINDOWS_SPECIFIC_LINK_LIBRARIES "imm32")
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -Wnon-virtual-dtor -pedantic -msse4.1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -Wnon-virtual-dtor -pedantic ${SIMD_FLAGS}")
 ENDIF()
 
 IF (UNIX AND ${CMAKE_VERSION} VERSION_GREATER "3.11.0")
