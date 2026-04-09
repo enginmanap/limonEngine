@@ -35,22 +35,25 @@ std::string GraphicsProgramPreprocessor::readShaderCode(const std::string& shade
     std::ifstream shaderStream(shaderFile.c_str(), std::ios::in);
 
     if (shaderStream.is_open()) {
-        std::string Line;
-
-        while (getline(shaderStream, Line))
-            shaderCode += "\n" + Line;
-
+        shaderCode.assign((std::istreambuf_iterator<char>(shaderStream)),
+                           std::istreambuf_iterator<char>());
         shaderStream.close();
+
+        if(shaderCode.empty()){
+            return "";
+        }
+        // Normalize line endings to \n
+        shaderCode = std::regex_replace(shaderCode, std::regex("\\r\\n|\\r"), "\n");
     } else {
         std::cerr << shaderFile.c_str() << " could not be read. Please ensure run directory if you used relative paths." << std::endl;
         getchar();
         return "";
     }
-    return shaderCode;
+    return "\n" + shaderCode;
 }
 
 void GraphicsProgramPreprocessor::replaceIncludes(const std::string &currentShaderFile, std::string &shaderCode) {
-    std::regex relativeImportPattern("\\n#import \\\".*\\\"\\n");
+    std::regex relativeImportPattern("\\n#import \\\"([^\\\"]*)\\\"\\n");
     //there is a match, we should determine the current path because this pattern is relative
     size_t lastIndex = currentShaderFile.find_last_of('/');
     std::string currentPath;
@@ -58,17 +61,17 @@ void GraphicsProgramPreprocessor::replaceIncludes(const std::string &currentShad
         currentPath = currentShaderFile.substr(0, lastIndex+1);
     }
     replaceImportPattern(shaderCode, relativeImportPattern, currentPath);
-    std::regex rootImportPattern("\\n#import \\<.*\\>\\n");
+    std::regex rootImportPattern("\\n#import \\<([^\\>]*)\\>\\n");
     replaceImportPattern(shaderCode, rootImportPattern, "");//root is not calculated in this case
 }
 
 void GraphicsProgramPreprocessor::replaceDefinitions(std::string &shaderCode, const std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>>& variablesMap) {
-    std::regex definePattern("\\n#define_option .*\\n");
+    std::regex definePattern("\\n#define_option (.*)\\n");
 
     std::smatch matches;
     while(std::regex_search(shaderCode, matches, definePattern)) {//while because changing the shader code invalidates the matches
-        for(auto match: matches) {
-            std::string optionName = match.str().substr(16, match.str().length() - (1 + 16));
+        if (matches.size() > 1) {
+            std::string optionName = matches[1].str();
             std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>>::const_iterator optionIt = variablesMap.find(optionName);
             if(optionIt != variablesMap.cend()) {
                 //now get the value of the option
@@ -77,12 +80,10 @@ void GraphicsProgramPreprocessor::replaceDefinitions(std::string &shaderCode, co
                     //this contains [ and ], it needs to be removed to be used in shaders
                     optionStringValue = optionStringValue.substr(1, optionStringValue.length() - 2);
                 }
-                shaderCode.replace(match.first, match.second, "\n#define " + optionName + " " + optionStringValue + "\n");
-                break;
+                shaderCode.replace(matches[0].first, matches[0].second, "\n#define " + optionName + " " + optionStringValue + "\n");
             } else {
                 //option not found, remove the whole line
-                shaderCode.replace(match.first, match.second, "\n");
-                break;
+                shaderCode.replace(matches[0].first, matches[0].second, "\n");
             }
         }
     }
@@ -92,29 +93,24 @@ void GraphicsProgramPreprocessor::replaceDefinitions(std::string &shaderCode, co
 void GraphicsProgramPreprocessor::replaceImportPattern(std::string &shaderCode, std::regex &importPattern, const std::string &currentPath) {
     std::smatch matches;
     while(std::regex_search(shaderCode, matches, importPattern)) {//while because changing the shader code invalidates the matches
-        for(auto match: matches) {
-            std::string importfile = match.str().substr(10, match.str().length()-(2+10));
-            std::string importedShaderCode = readShaderCode(currentPath + importfile) + "\n";//we add a new line incase the file ends without one
+        if (matches.size() > 1) {
+            std::string importfile = matches[1].str();
+            std::string importedShaderCode = readShaderCode(currentPath + importfile);
+            if (!importedShaderCode.empty()) {
+                importedShaderCode += "\n";//we add a new line incase the file ends without one
+            }
             //now put the imported code in to the actual shader code
-            shaderCode.replace(match.first, match.second, importedShaderCode);
-            break;
+            shaderCode.replace(matches[0].first, matches[0].second, importedShaderCode);
         }
     }
 }
 
 void GraphicsProgramPreprocessor::addHeader(const std::string &headerString, std::string &shaderCode) {
-    std::regex headerPositionFinder("\\n*" + headerString);
-    std::smatch matches;
-
-    if(std::regex_search(shaderCode, matches, headerPositionFinder)) {
-        //it already has the header string, don't add again.
+    if (!headerString.empty() && shaderCode.rfind(headerString, 0) == 0) {
+        // it already has the header string, don't add again.
         return;
     }
-    //First check if the header is multi line
-    if(headerString.find("\n") != headerString.npos) {
-        std::regex newLineReplacer("\\n");
-        std::regex_replace(headerString, newLineReplacer, "\\\\n");
-    }
-    //now we have the header, add it to the shader
-    shaderCode = headerString + "\n" + shaderCode;
+
+    // Since we normalized line endings to \n, we can safely add \n.
+    shaderCode.insert(0, headerString + "\n");
 }
