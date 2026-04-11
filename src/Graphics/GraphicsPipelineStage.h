@@ -68,8 +68,12 @@ public:
     }
     void
     setOutput(GraphicsInterface::FrameBufferAttachPoints attachmentPoint, std::shared_ptr<Texture> texture, bool clear = false, uint32_t layer = -1) {
-        graphicsWrapper->attachDrawTextureToFrameBuffer(this->frameBufferID, texture->getType(), texture->getTextureID(),
-                                                 attachmentPoint, layer, clear);
+        if (this->frameBufferID != 0) {
+            graphicsWrapper->attachDrawTextureToFrameBuffer(this->frameBufferID, texture->getType(), texture->getTextureID(),
+                                                     attachmentPoint, layer, clear);
+        } else {
+            std::cerr << "trying to attach textures to default frame buffer. This indicate using old RenderPipeline, please regenerate. " << std::endl;
+        }
         switch (attachmentPoint) {
             case GraphicsInterface::FrameBufferAttachPoints::DEPTH: depthAttachment = true; break;
             case GraphicsInterface::FrameBufferAttachPoints::COLOR0:/*fallthrough*/
