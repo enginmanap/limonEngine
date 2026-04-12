@@ -23,17 +23,19 @@ public:
 
     ~InputHandler() {
         SDL_SetWindowGrab(window, SDL_FALSE);
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+
     }
 
     void setMouseModeRelative() {
         SDL_SetRelativeMouseMode(SDL_TRUE);
-        SDL_SetWindowGrab(window, SDL_TRUE);
+        SDL_SetWindowGrab(window, SDL_FALSE);
         SDL_ShowCursor(SDL_FALSE);
     }
 
     void setMouseModeFree() {
         SDL_SetRelativeMouseMode(SDL_FALSE);
-        SDL_SetWindowGrab(window, SDL_FALSE);
+        SDL_SetWindowGrab(window, SDL_TRUE);
         SDL_ShowCursor(SDL_TRUE);
     }
 
