@@ -91,11 +91,23 @@ bool APISerializer::serializeParameterRequest(const LimonTypes::GenericParameter
             break;
         case LimonTypes::GenericParameter::LONG_ARRAY: {
             currentElement->SetText("LongArray");
-            std::string commaSeperatedArray = "";
+            std::string commaSeperatedArray;
             for (int32_t i = 0; i < parameterRequest.value.longValues[0]; ++i) {
-                commaSeperatedArray = commaSeperatedArray + std::to_string(parameterRequest.value.longValues[i]);
+                commaSeperatedArray += std::to_string(parameterRequest.value.longValues[i]);
                 if(i < parameterRequest.value.longValues[0] - 1) {//if not last element
-                    commaSeperatedArray = commaSeperatedArray + ",";
+                    commaSeperatedArray += ",";
+                }
+            }
+            valueElement->SetText(commaSeperatedArray.c_str());
+        }
+            break;
+        case LimonTypes::GenericParameter::FLOAT_ARRAY: {
+            currentElement->SetText("FloatArray");
+            std::string commaSeperatedArray;
+            for (int32_t i = 0; i < parameterRequest.value.floatValues[0]; ++i) {
+                commaSeperatedArray += std::to_string(parameterRequest.value.floatValues[i]);
+                if(i < parameterRequest.value.floatValues[0] - 1) {//if not last element
+                    commaSeperatedArray += ",";
                 }
             }
             valueElement->SetText(commaSeperatedArray.c_str());
@@ -252,6 +264,21 @@ APISerializer::deserializeParameterRequest(tinyxml2::XMLElement *parameterNode, 
             } else {
                 std::cerr << "Trigger parameter boolean value setting is unknown value ["<< parameterAttribute->GetText()  <<"], can't be loaded " << std::endl;
                 return nullptr;
+            }
+        }
+    } else if(strcmp(parameterAttribute->GetText(),"FloatArray")== 0) {
+        newParameterRequest->valueType = LimonTypes::GenericParameter::ValueTypes::FLOAT_ARRAY;
+        if(newParameterRequest->isSet) {
+            parameterAttribute = parameterNode->FirstChildElement("Value");
+            std::string commaSeperatedParameterString = parameterAttribute->GetText();
+            //the parameters are comma separated, separate
+            std::size_t commaPosition = commaSeperatedParameterString.find(",");
+            newParameterRequest->value.floatValues[0] = std::stol(commaSeperatedParameterString.substr(0, commaPosition));
+            commaSeperatedParameterString = commaSeperatedParameterString.substr(commaPosition + 1);
+            for(long i = 1; i < newParameterRequest->value.floatValues[0]; i++) {
+                std::size_t commaPosition = commaSeperatedParameterString.find(",");
+                newParameterRequest->value.floatValues[i] = std::stof(commaSeperatedParameterString.substr(0, commaPosition));
+                commaSeperatedParameterString = commaSeperatedParameterString.substr(commaPosition + 1);
             }
         }
     } else if(strcmp(parameterAttribute->GetText(),"LongArray")== 0) {

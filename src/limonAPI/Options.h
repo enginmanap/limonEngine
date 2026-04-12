@@ -30,10 +30,14 @@ namespace OptionsUtil {
             std::shared_ptr<LimonTypes::GenericParameter> value = nullptr;
             bool isSet = false;
             std::vector<long>* longValues = nullptr;
+            std::vector<float>* floatValues = nullptr;
             explicit Option(const std::shared_ptr<LimonTypes::GenericParameter> &value, bool isSet) : value(value), isSet(isSet) {
                 if(value->valueType == LimonTypes::GenericParameter::LONG_ARRAY) {
                     longValues = new std::vector<long>();
                     longValues->reserve(value->value.longValues[0]);
+                } else if(value->valueType == LimonTypes::GenericParameter::FLOAT_ARRAY) {
+                    floatValues = new std::vector<float>();
+                    floatValues->reserve(value->value.floatValues[0]);
                 }
             }
             friend class Options;
@@ -42,7 +46,7 @@ namespace OptionsUtil {
             explicit Option() = default;
             bool isUsable() const { return isSet; };
 
-            template<typename Q =  T, std::enable_if_t<!std::is_same<Q, std::string>::value>* = nullptr, std::enable_if_t<!std::is_same<Q, std::vector<long>>::value>* = nullptr>
+            template<typename Q =  T, std::enable_if_t<!std::is_same<Q, std::string>::value>* = nullptr, std::enable_if_t<!std::is_same<Q, std::vector<long>>::value>* = nullptr, std::enable_if_t<!std::is_same<Q, std::vector<float>>::value>* = nullptr>
             T get() const {
                 if (!isSet) {
                     std::cerr << "Option " << value->description << " is not set" << std::endl;
@@ -50,7 +54,7 @@ namespace OptionsUtil {
                 return *((T *) &(value->value));
             }
 
-            template<typename Q =  T, std::enable_if_t<!std::is_same<Q, std::string>::value>* = nullptr, std::enable_if_t<!std::is_same<Q, std::vector<long>>::value>* = nullptr>
+            template<typename Q =  T, std::enable_if_t<!std::is_same<Q, std::string>::value>* = nullptr, std::enable_if_t<!std::is_same<Q, std::vector<long>>::value>* = nullptr, std::enable_if_t<!std::is_same<Q, std::vector<float>>::value>* = nullptr>
             T getOrDefault(T defaultValue) const {
                 if (!isSet) {
                     return defaultValue;
@@ -105,6 +109,41 @@ namespace OptionsUtil {
                 value->value.longValues[0] = newValue.size();
                 for(size_t i=1; i < newValue.size(); ++i){
                     value->value.longValues[i] = newValue[i-1];
+                }
+                isSet = true;
+                return true;
+            }
+
+            template<typename Q =  T, std::enable_if_t<std::is_same<Q, std::vector<float>>::value>* = nullptr>
+            std::vector<float> get() const {
+                if (!isSet) {
+                    std::cerr << "Option " << value->description << " is not set" << std::endl;
+                }
+                for(long i=1; i < value->value.floatValues[0];++i) {
+                    floatValues->emplace_back(value->value.floatValues[i]);
+                }
+                return *floatValues;
+            }
+
+            template<typename Q =  T, std::enable_if_t<std::is_same<Q, std::vector<float>>::value>* = nullptr>
+            std::vector<float> getOrDefault(T defaultValue) const {
+                if (!isSet) {
+                    return defaultValue;
+                }
+                for(long i=1; i < value->value.floatValues[0];++i) {
+                    floatValues->emplace_back(value->value.floatValues[i]);
+                }
+                return *floatValues;
+            }
+
+            template<typename Q =  T, std::enable_if_t<std::is_same<Q, std::vector<float>>::value>* = nullptr>
+            bool set(std::vector<float> newValue) {
+                if(newValue.size() > 15) {
+                    return false;
+                }
+                value->value.floatValues[0] = newValue.size();
+                for(size_t i=0; i < newValue.size(); ++i){
+                    value->value.floatValues[i+1] = newValue[i];
                 }
                 isSet = true;
                 return true;
@@ -184,6 +223,15 @@ namespace OptionsUtil {
                 return Option<std::vector<long>>(it->second, true);
             }
             return Option<std::vector<long>>(nullptr, false);
+        }
+
+        template<class T, std::enable_if_t<std::is_same<T, std::vector<float>>::value>* = nullptr>
+        Option<std::vector<float>> getOption(uint64_t optionHash) const {
+            auto it = this->options.find(optionHash);
+            if (it != this->options.end() && it->second->valueType == LimonTypes::GenericParameter::FLOAT_ARRAY) {
+                return Option<std::vector<float>>(it->second, true);
+            }
+            return Option<std::vector<float>>(nullptr, false);
         }
 
         template<class T, std::enable_if_t<std::is_same<T, bool>::value>* = nullptr>

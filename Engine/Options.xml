@@ -250,8 +250,8 @@
     <Parameter>
         <RequestType>FreeNumber</RequestType>
         <Description>CascadeLimitList</Description>
-        <Value>5, 20, 50, 150, 250</Value>
-        <valueType>LongArray</valueType>
+        <Value>5.0, 20.0, 50.0, 150.0, 250.0</Value>
+        <valueType>FloatArray</valueType>
         <IsSet>True</IsSet>
         <Index>0</Index>
     </Parameter>

@@ -141,27 +141,40 @@ bool OptionsUtil::Options::loadOptionsNew(const std::string &optionsFileName) {
             case LimonTypes::GenericParameter::STRING:
                 {
                     Option<std::string> readOption = getOption<std::string>(hash(request->description));
-                    value = readOption.get<std::string>();
+                    value = readOption.get();
                 }
                 break;
             case LimonTypes::GenericParameter::DOUBLE:
                 {
                     Option<double> readOption = getOption<double>(hash(request->description));
-                    value = std::to_string(readOption.get<double>());
+                    value = std::to_string(readOption.get());
                 }
                 break;
             case LimonTypes::GenericParameter::LONG:
                 {
                     Option<long> readOption = getOption<long>(hash(request->description));
-                    value = std::to_string(readOption.get<long>());
+                    value = std::to_string(readOption.get());
                 }
                 break;
             case LimonTypes::GenericParameter::LONG_ARRAY:
                 {
                     std::stringstream ss;
                     Option<std::vector<long>> readOption = getOption<std::vector<long>>(hash(request->description));
-                    std::vector<long> valueList = readOption.get<std::vector<long>>();
+                    std::vector<long> valueList = readOption.get();
                     for (long i : valueList)
+                    {
+                        ss << std::to_string(i);
+                        ss << ", ";
+                    }
+                    value = ss.str();
+                }
+                break;
+            case LimonTypes::GenericParameter::FLOAT_ARRAY:
+                {
+                    std::stringstream ss;
+                    Option<std::vector<float>> readOption = getOption<std::vector<float>>(hash(request->description));
+                    std::vector<float> valueList = readOption.get();
+                    for (float i : valueList)
                     {
                         ss << std::to_string(i);
                         ss << ", ";
@@ -172,7 +185,7 @@ bool OptionsUtil::Options::loadOptionsNew(const std::string &optionsFileName) {
             case LimonTypes::GenericParameter::BOOLEAN:
                 {
                     Option<bool> readOption = getOption<bool>(hash(request->description));
-                    if (readOption.get<bool>())
+                    if (readOption.get())
                     {
                         value = "true";
                     } else
@@ -184,13 +197,13 @@ bool OptionsUtil::Options::loadOptionsNew(const std::string &optionsFileName) {
             case LimonTypes::GenericParameter::VEC4:
                 {
                     Option<LimonTypes::Vec4> readOption = getOption<LimonTypes::Vec4>(hash(request->description));
-                    value = GLMUtils::vectorToString(GLMConverter::LimonToGLM(readOption.get<LimonTypes::Vec4>()));
+                    value = GLMUtils::vectorToString(GLMConverter::LimonToGLM(readOption.get()));
                 }
                 break;
             case LimonTypes::GenericParameter::MAT4:
                 {
                     Option<LimonTypes::Mat4> readOption = getOption<LimonTypes::Mat4>(hash(request->description));
-                    value = GLMUtils::matrixToString(GLMConverter::LimonToGLM(readOption.get<LimonTypes::Mat4>()));
+                    value = GLMUtils::matrixToString(GLMConverter::LimonToGLM(readOption.get()));
                 }
                 break;
             default:

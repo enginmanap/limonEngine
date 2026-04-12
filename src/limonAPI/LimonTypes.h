@@ -132,7 +132,7 @@ namespace LimonTypes {
         RequestParameterTypes requestType = FREE_NUMBER;
         std::string description;
         enum ValueTypes {
-            STRING, DOUBLE, LONG, LONG_ARRAY, BOOLEAN, VEC4, MAT4
+            STRING, DOUBLE, LONG, LONG_ARRAY, FLOAT_ARRAY, BOOLEAN, VEC4, MAT4
         };
         ValueTypes valueType = ValueTypes::VEC4;
         //Up part used for requesting parameter, down part used as values of that request.
@@ -140,6 +140,7 @@ namespace LimonTypes {
             char stringValue[64];
             long longValue;
             long longValues[16];//first element is the size
+            float floatValues[16];//first element is the size
             double doubleValue;
             Vec4 vectorValue;
             Mat4 matrixValue;
@@ -171,6 +172,18 @@ namespace LimonTypes {
                         return valueString;
                     }
                     break;
+                case FLOAT_ARRAY: {
+                    long size = (long)value.floatValues[0];
+                    std::string valueString = "[";
+                    if (size > 0) {
+                        valueString += std::to_string(value.floatValues[1]);
+                    }
+                    for (long i = 1; i < size -1; ++i) {
+                        valueString += ", " + std::to_string(value.floatValues[i]);
+                    }
+                    valueString += "]";
+                    return valueString;
+                }
                 case BOOLEAN:
                     return std::to_string(value.boolValue);
                 case VEC4: {

@@ -57,9 +57,9 @@ public:
         OptionsUtil::Options::Option<long> cascadeCountOption = options->getOption<long>(HASH("CascadeCount"));
         long cascadeCount = cascadeCountOption.getOrDefault(4L);
 
-        const OptionsUtil::Options::Option<std::vector<long>> cascadeLimitListOptionOption = options->getOption<std::vector<long>>(HASH("CascadeLimitList"));
+        const OptionsUtil::Options::Option<std::vector<float>> cascadeLimitListOptionOption = options->getOption<std::vector<float>>(HASH("CascadeLimitList"));
         if(cascadeLimitListOptionOption.isUsable()) {
-            std::vector<long> cascadeListOption = cascadeLimitListOptionOption.get();
+            std::vector<float> cascadeListOption = cascadeLimitListOptionOption.get();
             //we have the option list, lets process
             if(cascadeListOption.size() != static_cast<size_t>(cascadeCount)) {
                 std::cerr << "\"CascadeLimitList doesn't contain same number of elements as cascade count. Cascade setup will use defaults" << std::endl;
