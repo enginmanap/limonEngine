@@ -1,4 +1,3 @@
-#version 330 core
 
 layout (location = 2) in vec3 position;
 layout (location = 3) in vec2 textureCoordinates;
@@ -46,12 +45,12 @@ void main(){
     speed = 2.0 * speed;
 
     float destroyTime = speed.w;
-    if(playerTransforms.time < creationTime) {
+    if(playerTransforms.time < int(creationTime)) {
         gl_Position = vec4(9,9,9,1);//outside of ndc
         return;
     }
 
-    float msSinceStart = mod((playerTransforms.time - creationTime), lifeTime);
+    float msSinceStart = mod((float(playerTransforms.time) - creationTime), lifeTime);
 
     //speed changes with gravity, calculate total
     float framecount = msSinceStart / (1000.0/ 60.0);

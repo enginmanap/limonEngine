@@ -1,5 +1,3 @@
-#version 330 core
-#extension GL_ARB_texture_cube_map_array : enable
 
 #define NR_MAX_MATERIALS 200
 
@@ -52,7 +50,7 @@ void main(void) {
     // Normal (World-space)
     vec3 world_space_normal = normalize(from_vs.normal);
     if((AllMaterialsArray.materials[from_vs.materialIndex].isMap & 0x0010) != 0) {
-         world_space_normal = -1 * vec3(texture(normalSampler, from_vs.textureCoord));
+         world_space_normal = -1.0 * vec3(texture(normalSampler, from_vs.textureCoord));
     }
     gNormal = packNormal(world_space_normal);
 

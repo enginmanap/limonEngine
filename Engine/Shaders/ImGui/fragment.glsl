@@ -1,5 +1,4 @@
-#version 330
-#extension GL_ARB_texture_cube_map_array : enable
+
 
 uniform sampler2D Texture;
 uniform sampler2DArray TextureArray;
@@ -86,7 +85,7 @@ vec4 renderModel() {
     vec3 normal = from_vs.normal;
 
     if((AllMaterialsArray.materials[from_vs.materialIndex].isMap & 0x0010) != 0) {
-        normal = -1 * vec3(texture(normalSampler, from_vs.textureCoord));
+        normal = -1.0 * vec3(texture(normalSampler, from_vs.textureCoord));
     }
 
     vec3 lightingColorFactor = vec3(0.0, 0.0, 0.0);
@@ -106,14 +105,14 @@ vec4 renderModel() {
             vec3 viewDirectory = normalize(playerTransforms.position - from_vs.fragPos);
             vec3 reflectDirectory = reflect(-lightDirectory, normal);
             float specularRate = max(dot(viewDirectory, reflectDirectory), 0.0);
-            if(specularRate != 0 && AllMaterialsArray.materials[from_vs.materialIndex].shininess != 0) {
+            if(specularRate != 0.0 && AllMaterialsArray.materials[from_vs.materialIndex].shininess != 0.0) {
                 specularRate = pow(specularRate, AllMaterialsArray.materials[from_vs.materialIndex].shininess);
                 vec3 specularColor = vec3(texture(specularSampler, from_vs.textureCoord));
-                float specularAverage = (specularColor.x + specularColor.y + specularColor.z) / 3;
+                float specularAverage = (specularColor.x + specularColor.y + specularColor.z) / 3.0;
                 specularRate = specularRate * specularAverage;
                 //specularRate = specularRate * materialSpecular;//we should get specularMap to here
             } else {
-                specularRate = 0;
+                specularRate = 0.0;
             }
             float viewDistance = length(playerTransforms.position - from_vs.fragPos);
             float bias = 0.0;
@@ -130,17 +129,17 @@ vec4 renderModel() {
 void main() {
     if (renderModelIMGUI == 0) {
         if (isArray == 2) {
-            if (mod(layer, 6) == 0) {
+            if (int(mod(layer, 6.0)) == 0) {
                 Out_Color = Frag_Color * texture(TextureCubeArray, vec4(1.0, Frag_UV.st, (layer) / 6.0));
-            } else if (mod(layer, 6) == 1) {
+            } else if (int(mod(layer, 6.0)) == 1) {
                 Out_Color = Frag_Color * texture(TextureCubeArray, vec4(Frag_UV.s, 1.0, Frag_UV.t, (layer - 1.0) / 6.0));
-            } else if (mod(layer, 6) == 2) {
+            } else if (int(mod(layer, 6.0)) == 2) {
                 Out_Color = Frag_Color * texture(TextureCubeArray, vec4(Frag_UV.st, 1.0, (layer - 2.0) / 6.0));
-            } else if (mod(layer, 6) == 3) {
+            } else if (int(mod(layer, 6.0)) == 3) {
                 Out_Color = Frag_Color * texture(TextureCubeArray, vec4(-1.0, Frag_UV.st, (layer - 3.0) / 6.0));
-            } else if (mod(layer, 6) == 4) {
+            } else if (int(mod(layer, 6.0)) == 4) {
                 Out_Color = Frag_Color * texture(TextureCubeArray, vec4(Frag_UV.s, -1.0, Frag_UV.t, (layer - 4.0) / 6.0));
-            } else if (mod(layer, 6) == 5) {
+            } else if (int(mod(layer, 6.0)) == 5) {
                 Out_Color = Frag_Color * texture(TextureCubeArray, vec4(Frag_UV.st, -1.0, (layer - 5.0) / 6.0));
             } else {
                 Out_Color = vec4(0.0, 0.7, 0.7, 0.0);

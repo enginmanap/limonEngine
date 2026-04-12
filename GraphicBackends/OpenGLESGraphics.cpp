@@ -6,10 +6,9 @@
 #include "limonAPI/Graphics/GraphicsProgram.h"
 
 #include "Material.h"
-#include "Utils/GLMUtils.h"
 #include "Graphics/Texture.h"
 
-std::shared_ptr<GraphicsInterface> createGraphicsBackend(Options* options) {
+std::shared_ptr<GraphicsInterface> createGraphicsBackend(OptionsUtil::Options* options) {
     return std::make_shared<OpenGLESGraphics>(options);
 }
 
@@ -259,12 +258,18 @@ Uniform::VariableTypes OpenGLESGraphics::getSamplerVariableType(const GLint *que
     return variableType;
 }
 
-
-void OpenGLESGraphics::attachModelUBO(const uint32_t program) {
+void OpenGLESGraphics::attachModelTexture(const uint32_t program) {
     GLint allModelsAttachPoint = glGetUniformLocation(program, "allModelTransformsTexture");
     this->setUniform(program, allModelsAttachPoint, maxTextureImageUnits-3);
     state->attachTexture(allModelTransformsTexture, maxTextureImageUnits-3);
-    checkErrors("attachModelUBO");
+    checkErrors("attachModelTexture");
+}
+
+void OpenGLESGraphics::attachRigTexture(const uint32_t program) {
+    GLint allBonesAttachPoint = glGetUniformLocation(program, "allBoneTransformsTexture");
+    this->setUniform(program, allBonesAttachPoint, maxTextureImageUnits-4);
+    state->attachTexture(allBoneTransformsTexture, maxTextureImageUnits-4);
+    checkErrors("attachRigTexture");
 }
 
 void OpenGLESGraphics::attachModelIndicesUBO(const uint32_t programID) {
@@ -281,7 +286,7 @@ void OpenGLESGraphics::attachModelIndicesUBO(const uint32_t programID) {
     checkErrors("attachModelIndicesUBO");
 }
 
-void OpenGLESGraphics::attachMaterialUBO(const uint32_t program, const uint32_t materialID){
+void OpenGLESGraphics::attachMaterialUBO(const uint32_t program){
 
     GLuint allMaterialsAttachPoint = 9;
 
@@ -289,12 +294,10 @@ void OpenGLESGraphics::attachMaterialUBO(const uint32_t program, const uint32_t 
     if (uniformIndex >= 0) {
         glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
         glUniformBlockBinding(program, uniformIndex, allMaterialsAttachPoint);
-        glBindBufferRange(GL_UNIFORM_BUFFER, allMaterialsAttachPoint, allMaterialsUBOLocation, materialID * materialUniformSize,
-                          materialUniformSize);
+        glBindBufferBase(GL_UNIFORM_BUFFER, allMaterialsAttachPoint, allMaterialsUBOLocation);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
-    activeMaterialIndex = materialID;
     checkErrors("attachMaterialUBO");
 }
 
@@ -333,8 +336,13 @@ OpenGLESGraphics::ContextInformation OpenGLESGraphics::getContextInformation() {
     contextInformation.SDL_GL_CONTEXT_FLAGS = 1;
     contextInformation.shaderHeader = "#version 310 es\n"
                                       "#extension GL_EXT_shader_io_blocks : enable\n"
-                                      "precision mediump float;\n"
-                                      "precision mediump int;";
+                                      "#extension GL_EXT_geometry_shader : enable\n"
+                                      "#extension GL_EXT_texture_cube_map_array : enable\n"
+                                      "precision highp float;\n"
+                                      "precision highp sampler2D;\n"
+                                      "precision highp sampler2DArray;\n"
+                                      "precision highp samplerCubeArray;\n"
+                                      "precision highp int;";
     return contextInformation;
 }
 
@@ -348,8 +356,13 @@ bool OpenGLESGraphics::createGraphicsBackend() {
     rev = glewInit();
 
     if (GLEW_OK != rev) {
-        std::cout << "GLEW init Error: " << glewGetErrorString(rev) << std::endl;
-        exit(1);
+        std::cerr << "GLEW init Error: " << glewGetErrorString(rev) << std::endl;
+        if (glDispatchCompute != nullptr)
+        {
+            std::cerr << "but compute is here, so ignore" << std::endl;
+        } else {
+            exit(1);
+        }
     } else {
         std::cout << "GLEW Init: Success!" << std::endl;
     }
@@ -427,6 +440,11 @@ bool OpenGLESGraphics::createGraphicsBackend() {
     GLint uniformBufferAlignSize = 0;
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniformBufferAlignSize);
 
+    /**
+     * When you are using the buffer to keep multiple items, but bind single item, that item has to be aligned to this value
+     * If actually put all of them in an array and use the array for binding, it will be aligned to the definition you have (std140 aligns to 16)
+     * Don't need this after the material changes, but keeping it here incase I need it again.
+     *
     if(uniformBufferAlignSize > materialUniformSize) {
         materialUniformSize = uniformBufferAlignSize;
     } else {
@@ -438,6 +456,8 @@ bool OpenGLESGraphics::createGraphicsBackend() {
             materialUniformSize = ((materialUniformSize / uniformBufferAlignSize)+1) * uniformBufferAlignSize;
         }
     }
+    */
+
 
     std::cout << "Uniform alignment size is " << uniformBufferAlignSize << std::endl;
 
@@ -465,7 +485,7 @@ bool OpenGLESGraphics::createGraphicsBackend() {
     //create player transforms uniform buffer object
     glGenBuffers(1, &playerUBOLocation);
     glBindBuffer(GL_UNIFORM_BUFFER, playerUBOLocation);
-    glBufferData(GL_UNIFORM_BUFFER, playerUniformSize, nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, playerUniformSize, nullptr, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //create material uniform buffer object
@@ -473,6 +493,14 @@ bool OpenGLESGraphics::createGraphicsBackend() {
     glBindBuffer(GL_UNIFORM_BUFFER, allMaterialsUBOLocation);
     glBufferData(GL_UNIFORM_BUFFER, materialUniformSize * NR_MAX_MATERIALS, nullptr, GL_STATIC_DRAW);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    glGenTextures(1, &allBoneTransformsTexture);
+    state->activateTextureUnit(maxTextureImageUnits-4);
+    glBindTexture(GL_TEXTURE_2D, allBoneTransformsTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4 * NR_BONE, NR_MAX_MODELS, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    state->activateTextureUnit(0);
 
     glGenTextures(1, &allModelTransformsTexture);
     state->activateTextureUnit(maxTextureImageUnits-3);
@@ -489,7 +517,6 @@ bool OpenGLESGraphics::createGraphicsBackend() {
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     frustumPlanes.resize(6);
-    modelIndexesTemp.resize(4 * NR_MAX_MODELS);//4 because it forces the padding
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);//clear everything before we start
@@ -564,7 +591,7 @@ bool OpenGLESGraphics::freeVAO(const GLuint bufferID) {
 }
 
 void OpenGLESGraphics::bufferVertexData(const std::vector<glm::vec3> &vertices,
-                                      const std::vector<glm::uvec3> &faces,
+                                      const std::vector<glm::u16vec3> &faces,
                                       uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer,
                                       uint32_t &ebo) {
 
@@ -577,7 +604,7 @@ void OpenGLESGraphics::bufferVertexData(const std::vector<glm::vec3> &vertices,
     // Set up the element array buffer
     ebo = generateBuffer(1);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::uvec3), faces.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::u16vec3), faces.data(), GL_STATIC_DRAW);
 
     // Set up the vertex attributes
     vbo = generateBuffer(1);
@@ -655,11 +682,11 @@ void OpenGLESGraphics::bufferVertexTextureCoordinates(const std::vector<glm::vec
 }
 
 void
-OpenGLESGraphics::updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::uvec3> &faces,
+OpenGLESGraphics::updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::u16vec3> &faces,
                                  uint32_t &vbo, uint32_t &ebo) {
     // Set up the element array buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::uvec3), faces.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::u16vec3), faces.data(), GL_STATIC_DRAW);
 
     // Set up the vertex attributes
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -724,7 +751,6 @@ OpenGLESGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fr
         glClear(GL_DEPTH_BUFFER_BIT);
     }
 
-    //we combine diffuse+specular lighted with ambient / SSAO
     for (auto inputIt = inputs.begin(); inputIt != inputs.end(); ++inputIt) {
         switch (inputIt->second->getType()) {
             case OpenGLESGraphics::TextureTypes::T2D: state->attachTexture(inputIt->second->getTextureID(), inputIt->first); break;
@@ -733,16 +759,12 @@ OpenGLESGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fr
             case OpenGLESGraphics::TextureTypes::TCUBE_MAP_ARRAY: state->attachCubemapArray(inputIt->second->getTextureID(), inputIt->first); break;
         }
     }
-    checkErrors("switchRenderStage");
-
     switch (cullMode) {
         case OpenGLESGraphics::CullModes::FRONT: glEnable(GL_CULL_FACE);glCullFace(GL_FRONT); break;
         case OpenGLESGraphics::CullModes::BACK: glEnable(GL_CULL_FACE);glCullFace(GL_BACK); break;
         case OpenGLESGraphics::CullModes::NONE: glDisable(GL_CULL_FACE); break;
         case OpenGLESGraphics::CullModes::NO_CHANGE: break;
     }
-    checkErrors("switchRenderStage");
-
     if(blendEnabled) {
         glEnablei(GL_BLEND, 0);
     } else {
@@ -814,7 +836,7 @@ OpenGLESGraphics::switchRenderStage(uint32_t width, uint32_t height, uint32_t fr
     checkErrors("switchRenderStageLayer");
 }
 
-void OpenGLESGraphics::render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount, const uint32_t* startIndex) {
+void OpenGLESGraphics::render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount, const uint16_t* startIndex) {
     if (program == 0) {
         std::cerr << "No program render requested." << std::endl;
         return;
@@ -826,7 +848,7 @@ void OpenGLESGraphics::render(const uint32_t program, const uint32_t vao, const 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
     renderTriangleCount = renderTriangleCount + elementCount;
-    glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, startIndex);
+    glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_SHORT, startIndex);
     glBindVertexArray(0);
 
     checkErrors("render");
@@ -845,7 +867,7 @@ void OpenGLESGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
     renderTriangleCount = renderTriangleCount + (triangleCount * instanceCount);
-    glDrawElementsInstanced(GL_TRIANGLES, triangleCount, GL_UNSIGNED_INT, nullptr, instanceCount);
+    glDrawElementsInstanced(GL_TRIANGLES, triangleCount, GL_UNSIGNED_SHORT, nullptr, instanceCount);
     glBindVertexArray(0);
     //state->setProgram(0);
     checkErrors("renderInstanced");
@@ -864,7 +886,7 @@ void OpenGLESGraphics::renderInstanced(uint32_t program, uint32_t VAO, uint32_t 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
     renderTriangleCount = renderTriangleCount + (triangleCount * instanceCount);
-    glDrawElementsInstanced(GL_TRIANGLES, triangleCount, GL_UNSIGNED_INT, (void*)(startOffset*sizeof(GLuint)), instanceCount);
+    glDrawElementsInstanced(GL_TRIANGLES, triangleCount, GL_UNSIGNED_SHORT, (void*)(startOffset*sizeof(GLuint)), instanceCount);
     glBindVertexArray(0);
     //state->setProgram(0);
     checkErrors("renderInstancedOffset");
@@ -967,8 +989,6 @@ OpenGLESGraphics::~OpenGLESGraphics() {
     deleteBuffer(1, playerUBOLocation);
     deleteBuffer(1, allMaterialsUBOLocation);
     glDeleteFramebuffers(1, &combineFrameBuffer);
-
-    //state->setProgram(0);
 }
 
 void OpenGLESGraphics::reshape() {
@@ -1141,10 +1161,6 @@ uint32_t OpenGLESGraphics::createFrameBuffer(uint32_t width, uint32_t height) {
 
     glReadBuffer(GL_NONE);
 
-    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        std::cerr << "created frame buffer is not complete!" << std::endl;
-    }
-
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     checkErrors("createFrameBuffer");
     return newFrameBufferLocation;
@@ -1163,39 +1179,37 @@ void OpenGLESGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Te
     glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
 
     GLenum glAttachment = 0;
-    int32_t index = 0;
-    switch(attachPoint) {
-        case FrameBufferAttachPoints::NONE: glAttachment = GL_NONE; break;
-        case FrameBufferAttachPoints::COLOR0: glAttachment = GL_COLOR_ATTACHMENT0; break;
-        case FrameBufferAttachPoints::COLOR1: glAttachment = GL_COLOR_ATTACHMENT1; index = 1;break;
-        case FrameBufferAttachPoints::COLOR2: glAttachment = GL_COLOR_ATTACHMENT2; index = 2;break;
-        case FrameBufferAttachPoints::COLOR3: glAttachment = GL_COLOR_ATTACHMENT3; index = 3;break;
-        case FrameBufferAttachPoints::COLOR4: glAttachment = GL_COLOR_ATTACHMENT4; index = 4;break;
-        case FrameBufferAttachPoints::COLOR5: glAttachment = GL_COLOR_ATTACHMENT5; index = 5;break;
-        case FrameBufferAttachPoints::COLOR6: glAttachment = GL_COLOR_ATTACHMENT6; index = 6;break;
-        case FrameBufferAttachPoints::DEPTH:  glAttachment = GL_DEPTH_ATTACHMENT;   break;
+    uint32_t index = 0;
+    if (attachPoint == FrameBufferAttachPoints::DEPTH) {
+        glAttachment = GL_DEPTH_ATTACHMENT;
+    } else if (attachPoint != FrameBufferAttachPoints::NONE) {
+        index = (static_cast<int>(attachPoint) - static_cast<int>(FrameBufferAttachPoints::COLOR0));
+        glAttachment = GL_COLOR_ATTACHMENT0 + index;
+    } else {
+        glAttachment = GL_NONE;
     }
 
-    int32_t attachmentTemp;
-    unsigned int drawBufferAttachments[6];
-    if(attachPoint == OpenGLESGraphics::FrameBufferAttachPoints::DEPTH) {
-        if(clear) {
-            glClear(GL_DEPTH_BUFFER_BIT);
-        }
-    } else {
-        for (unsigned int i = 0; i < 6; ++i) {
-            if (i == index) {
-                drawBufferAttachments[i] = glAttachment;
-                if(clear) {
-                    unsigned int tempAttachmentBuffer[1] = {glAttachment};
-                    glDrawBuffers(1, tempAttachmentBuffer);
+    if(attachPoint != OpenGLESGraphics::FrameBufferAttachPoints::DEPTH) {
+        if (index >= maxDrawBuffers) {
+             std::cerr << "Trying to attach to a color attachment index (" << index << ") that is higher than supported (" << maxDrawBuffers << ")" << std::endl;
+        } else {
+            GLint attachmentTemp;
+            std::vector<GLenum> drawBufferAttachments(maxDrawBuffers);
+            for (int i = 0; i < maxDrawBuffers; ++i) {
+                if (i == (int)index) {
+                    drawBufferAttachments[i] = glAttachment;
+                    if(clear) {
+                        unsigned int tempAttachmentBuffer[1] = {glAttachment};
+                        glDrawBuffers(1, tempAttachmentBuffer);
+                    }
+                } else {
+                    GLint currentAttachment;
+                    glGetIntegerv(GL_DRAW_BUFFER0 + i, &currentAttachment);
+                    drawBufferAttachments[i] = currentAttachment;
                 }
-            } else {
-                glGetIntegerv(GL_DRAW_BUFFER0 + i, &attachmentTemp);
-                drawBufferAttachments[i] = attachmentTemp;
             }
+            glDrawBuffers(maxDrawBuffers, drawBufferAttachments.data());
         }
-        glDrawBuffers(6, drawBufferAttachments);
     }
 
     switch (textureType) {
@@ -1227,6 +1241,8 @@ void OpenGLESGraphics::attachDrawTextureToFrameBuffer(uint32_t frameBufferID, Te
     if(clear) {
         if(attachPoint == OpenGLESGraphics::FrameBufferAttachPoints::DEPTH) {
             glClear(GL_DEPTH_BUFFER_BIT);
+        } else {
+            glClear(GL_COLOR_BUFFER_BIT);
         }
     }
     checkErrors("attachDrawTextureToFrameBuffer");
@@ -1237,22 +1253,6 @@ uint32_t OpenGLESGraphics::createTexture(int height, int width, TextureTypes typ
     GLuint texture;
     glGenTextures(1, &texture);
     state->activateTextureUnit(0);//this is the default working texture
-
-    GLint glInternalDataFormat = 0;
-    switch (internalFormat) {
-        case InternalFormatTypes::RED: glInternalDataFormat = GL_R8; break;
-        case InternalFormatTypes::R32F: glInternalDataFormat = GL_R32F; break;
-        case InternalFormatTypes::RG8: glInternalDataFormat = GL_RG8; break;
-        case InternalFormatTypes::RGB: glInternalDataFormat = GL_RGB; break;
-        case InternalFormatTypes::RGBA: glInternalDataFormat = GL_RGBA; break;
-        case InternalFormatTypes::RGB16F: glInternalDataFormat = GL_RGB16F; break;
-        case InternalFormatTypes::RGBA16F: glInternalDataFormat = GL_RGBA16F; break;
-        case InternalFormatTypes::RGB32F: glInternalDataFormat = GL_RGB32F; break;
-        case InternalFormatTypes::RGBA32F: glInternalDataFormat = GL_RGBA32F; break;
-        case InternalFormatTypes::DEPTH: glInternalDataFormat = GL_DEPTH_COMPONENT24; break;
-        case InternalFormatTypes::COMPRESSED_RGB: glInternalDataFormat = GL_COMPRESSED_RGB; break;
-        case InternalFormatTypes::COMPRESSED_RGBA: glInternalDataFormat = GL_COMPRESSED_RGBA; break;
-    }
 
     GLenum glFormat = 0;
     switch (format) {
@@ -1266,10 +1266,73 @@ uint32_t OpenGLESGraphics::createTexture(int height, int width, TextureTypes typ
     GLenum glDataType = 0;
     switch (dataType) {
         case DataTypes::FLOAT: glDataType = GL_FLOAT; break;
-        case DataTypes::HALF_FLOAT: glDataType = GL_FLOAT; break;
+        case DataTypes::HALF_FLOAT: glDataType = GL_HALF_FLOAT; break;
         case DataTypes::UNSIGNED_BYTE: glDataType = GL_UNSIGNED_BYTE; break;
         case DataTypes::UNSIGNED_SHORT: glDataType = GL_UNSIGNED_SHORT; break;
         case DataTypes::UNSIGNED_INT: glDataType = GL_UNSIGNED_INT; break;
+    }
+
+    // Force OpenGLES 3.1 strict type compatibility
+    GLint glInternalDataFormat = 0;
+    switch (internalFormat) {
+        case InternalFormatTypes::RED:
+            glInternalDataFormat = (glDataType == GL_FLOAT) ? GL_R32F : GL_R8;
+            glFormat = GL_RED;
+            if (glInternalDataFormat == GL_R8) glDataType = GL_UNSIGNED_BYTE;
+            break;
+        case InternalFormatTypes::RG8:
+            glInternalDataFormat = GL_RG8;
+            glFormat = GL_RG;
+            glDataType = GL_UNSIGNED_BYTE;
+            break;
+        case InternalFormatTypes::R32F:
+            glInternalDataFormat = GL_R32F;
+            glFormat = GL_RED;
+            glDataType = GL_FLOAT;
+            break;
+        case InternalFormatTypes::RGB:
+            glInternalDataFormat = (glDataType == GL_FLOAT) ? GL_RGB32F : GL_RGB8;
+            glFormat = GL_RGB;
+            if (glInternalDataFormat == GL_RGB8) glDataType = GL_UNSIGNED_BYTE;
+            break;
+        case InternalFormatTypes::RGBA:
+            glInternalDataFormat = (glDataType == GL_FLOAT) ? GL_RGBA32F : GL_RGBA8;
+            glFormat = GL_RGBA;
+            if (glInternalDataFormat == GL_RGBA8) glDataType = GL_UNSIGNED_BYTE;
+            break;
+        case InternalFormatTypes::RGB16F:
+            glInternalDataFormat = GL_RGB16F;
+            glFormat = GL_RGB;
+            if (glDataType != GL_HALF_FLOAT && glDataType != GL_FLOAT) glDataType = GL_FLOAT;
+            break;
+        case InternalFormatTypes::RGBA16F:
+            glInternalDataFormat = GL_RGBA16F;
+            glFormat = GL_RGBA;
+            if (glDataType != GL_HALF_FLOAT && glDataType != GL_FLOAT) glDataType = GL_FLOAT;
+            break;
+        case InternalFormatTypes::RGB32F:
+            glInternalDataFormat = GL_RGB32F;
+            glFormat = GL_RGB;
+            glDataType = GL_FLOAT;
+            break;
+        case InternalFormatTypes::RGBA32F:
+            glInternalDataFormat = GL_RGBA32F;
+            glFormat = GL_RGBA;
+            glDataType = GL_FLOAT;
+            break;
+        case InternalFormatTypes::DEPTH:
+            if (glDataType == GL_FLOAT) {
+                glInternalDataFormat = GL_DEPTH_COMPONENT32F;
+            } else if (glDataType == GL_UNSIGNED_SHORT) {
+                glInternalDataFormat = GL_DEPTH_COMPONENT16;
+            } else {
+                glInternalDataFormat = GL_DEPTH_COMPONENT24;
+                glDataType = GL_UNSIGNED_INT;
+            }
+            glFormat = GL_DEPTH_COMPONENT;
+            break;
+        case InternalFormatTypes::COMPRESSED_RGB: glInternalDataFormat = GL_COMPRESSED_RGB; break;
+        case InternalFormatTypes::COMPRESSED_RGBA: glInternalDataFormat = GL_COMPRESSED_RGBA; break;
     }
 
     GLenum glTextureType = 0;
@@ -1311,7 +1374,8 @@ uint32_t OpenGLESGraphics::createTexture(int height, int width, TextureTypes typ
     glTexParameteri(glTextureType, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(glTextureType, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     std::string temp;
-    options->getOptionOrDefault("TextureFiltering", temp, "Nearest");
+    OptionsUtil::Options::Option<std::string> textureFilteringOption = options->getOption<std::string>(HASH("TextureFiltering"));
+    temp = textureFilteringOption.getOrDefault("Nearest");
     if (temp == "Nearest") {
         glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(glTextureType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -1333,22 +1397,6 @@ OpenGLESGraphics::loadTextureData(uint32_t textureID, int height, int width, Tex
                                    void *data, void *data2, void *data3, void *data4, void *data5, void *data6) {
     state->activateTextureUnit(0);//this is the default working texture
 
-    GLint glInternalDataFormat = 0;
-    switch (internalFormat) {
-        case InternalFormatTypes::RED: glInternalDataFormat = GL_R8; break;
-        case InternalFormatTypes::RG8: glInternalDataFormat = GL_RG8; break;
-        case InternalFormatTypes::R32F: glInternalDataFormat = GL_R32F; break;
-        case InternalFormatTypes::RGB: glInternalDataFormat = GL_RGB; break;
-        case InternalFormatTypes::RGBA: glInternalDataFormat = GL_RGBA; break;
-        case InternalFormatTypes::RGB16F: glInternalDataFormat = GL_RGB16F; break;
-        case InternalFormatTypes::RGBA16F: glInternalDataFormat = GL_RGBA16F; break;
-        case InternalFormatTypes::RGB32F: glInternalDataFormat = GL_RGB32F; break;
-        case InternalFormatTypes::RGBA32F: glInternalDataFormat = GL_RGBA32F; break;
-        case InternalFormatTypes::DEPTH: glInternalDataFormat = GL_DEPTH_COMPONENT24; break;
-        case InternalFormatTypes::COMPRESSED_RGB: glInternalDataFormat = GL_COMPRESSED_RGB; break;
-        case InternalFormatTypes::COMPRESSED_RGBA: glInternalDataFormat = GL_COMPRESSED_RGBA; break;
-    }
-
     GLenum glFormat = 0;
     switch (format) {
         case FormatTypes::RED: glFormat = GL_RED; break;
@@ -1361,10 +1409,73 @@ OpenGLESGraphics::loadTextureData(uint32_t textureID, int height, int width, Tex
     GLenum glDataType = 0;
     switch (dataType) {
         case DataTypes::FLOAT: glDataType = GL_FLOAT; break;
+        case DataTypes::HALF_FLOAT: glDataType = GL_HALF_FLOAT; break;
         case DataTypes::UNSIGNED_BYTE: glDataType = GL_UNSIGNED_BYTE; break;
         case DataTypes::UNSIGNED_SHORT: glDataType = GL_UNSIGNED_SHORT; break;
         case DataTypes::UNSIGNED_INT: glDataType = GL_UNSIGNED_INT; break;
-        case DataTypes::HALF_FLOAT: glDataType = GL_HALF_FLOAT; break;
+    }
+
+    // Force OpenGLES 3.1 strict type compatibility
+    GLint glInternalDataFormat = 0;
+    switch (internalFormat) {
+        case InternalFormatTypes::RED:
+            glInternalDataFormat = (glDataType == GL_FLOAT) ? GL_R32F : GL_R8;
+            glFormat = GL_RED;
+            if (glInternalDataFormat == GL_R8) glDataType = GL_UNSIGNED_BYTE;
+            break;
+        case InternalFormatTypes::RG8:
+            glInternalDataFormat = GL_RG8;
+            glFormat = GL_RG;
+            glDataType = GL_UNSIGNED_BYTE;
+            break;
+        case InternalFormatTypes::R32F:
+            glInternalDataFormat = GL_R32F;
+            glFormat = GL_RED;
+            glDataType = GL_FLOAT;
+            break;
+        case InternalFormatTypes::RGB:
+            glInternalDataFormat = (glDataType == GL_FLOAT) ? GL_RGB32F : GL_RGB8;
+            glFormat = GL_RGB;
+            if (glInternalDataFormat == GL_RGB8) glDataType = GL_UNSIGNED_BYTE;
+            break;
+        case InternalFormatTypes::RGBA:
+            glInternalDataFormat = (glDataType == GL_FLOAT) ? GL_RGBA32F : GL_RGBA8;
+            glFormat = GL_RGBA;
+            if (glInternalDataFormat == GL_RGBA8) glDataType = GL_UNSIGNED_BYTE;
+            break;
+        case InternalFormatTypes::RGB16F:
+            glInternalDataFormat = GL_RGB16F;
+            glFormat = GL_RGB;
+            if (glDataType != GL_HALF_FLOAT && glDataType != GL_FLOAT) glDataType = GL_FLOAT;
+            break;
+        case InternalFormatTypes::RGBA16F:
+            glInternalDataFormat = GL_RGBA16F;
+            glFormat = GL_RGBA;
+            if (glDataType != GL_HALF_FLOAT && glDataType != GL_FLOAT) glDataType = GL_FLOAT;
+            break;
+        case InternalFormatTypes::RGB32F:
+            glInternalDataFormat = GL_RGB32F;
+            glFormat = GL_RGB;
+            glDataType = GL_FLOAT;
+            break;
+        case InternalFormatTypes::RGBA32F:
+            glInternalDataFormat = GL_RGBA32F;
+            glFormat = GL_RGBA;
+            glDataType = GL_FLOAT;
+            break;
+        case InternalFormatTypes::DEPTH:
+            if (glDataType == GL_FLOAT) {
+                glInternalDataFormat = GL_DEPTH_COMPONENT32F;
+            } else if (glDataType == GL_UNSIGNED_SHORT) {
+                glInternalDataFormat = GL_DEPTH_COMPONENT16;
+            } else {
+                glInternalDataFormat = GL_DEPTH_COMPONENT24;
+                glDataType = GL_UNSIGNED_INT;
+            }
+            glFormat = GL_DEPTH_COMPONENT;
+            break;
+        case InternalFormatTypes::COMPRESSED_RGB: glInternalDataFormat = GL_COMPRESSED_RGB; break;
+        case InternalFormatTypes::COMPRESSED_RGBA: glInternalDataFormat = GL_COMPRESSED_RGBA; break;
     }
 
     GLenum glTextureType = 0;
@@ -1403,12 +1514,17 @@ OpenGLESGraphics::loadTextureData(uint32_t textureID, int height, int width, Tex
             break;
     }
 
-    glGenerateMipmap(glTextureType);
+    if (internalFormat != InternalFormatTypes::RGB32F && 
+        internalFormat != InternalFormatTypes::RGBA32F && 
+        internalFormat != InternalFormatTypes::R32F &&
+        internalFormat != InternalFormatTypes::RGB16F &&
+        internalFormat != InternalFormatTypes::RGBA16F &&
+        internalFormat != InternalFormatTypes::DEPTH) {
+        glGenerateMipmap(glTextureType);
+    }
     glBindTexture(glTextureType, 0);
-
-    checkErrors("loadTextureData");
+checkErrors("loadTextureData");
 }
-
 
 void OpenGLESGraphics::attachTexture(unsigned int textureID, unsigned int attachPoint) {
     state->attachTexture(textureID, attachPoint);
@@ -1549,6 +1665,19 @@ void OpenGLESGraphics::setMaterial(const Material& material) {
     checkErrors("setMaterial");
 }
 
+void OpenGLESGraphics::setBoneTransforms(uint32_t index, const std::vector<glm::mat4>& boneTransforms) {
+    if (boneTransforms.size() > NR_BONE) {
+        std::cerr << "Too many bones, can't upload more than " << NR_BONE << "ignoring." << std::endl;
+    }
+    if (boneTransforms.size() < NR_BONE) {
+        std::cerr << "too little bones, possible garbage upload " << std::endl;
+    }
+    state->activateTextureUnit(maxTextureImageUnits-4);
+    state->attachTexture(allBoneTransformsTexture, maxTextureImageUnits-4);
+    glTexSubImage2D(GL_TEXTURE_2D,0,0, index, 4*NR_BONE, 1, GL_RGBA, GL_FLOAT, boneTransforms.data());
+    checkErrors("setBoneTransform");
+}
+
 void OpenGLESGraphics::setModel(const uint32_t modelID, const glm::mat4& worldTransform) {
     state->activateTextureUnit(maxTextureImageUnits-3);
     state->attachTexture(allModelTransformsTexture, maxTextureImageUnits-3);
@@ -1563,16 +1692,14 @@ void OpenGLESGraphics::setModel(const uint32_t modelID, const glm::mat4& worldTr
 
 void OpenGLESGraphics::setModelIndexesUBO(const std::vector<glm::uvec4> &modelIndicesList) {
     /**
+     * POSSIBLE FIXME
      * std140 layout requires arrays to be padded to 16 bytes. std430 is not supported for uniform buffers.
      * we can upload the array as is and calculate the vector component in shader, but since we are GPU bound I am
      * choosing to pad it in CPU instead.
      */
-     //FIXME what the hell is this? Why would we need to do this? it makes no sense to me
-    for (uint32_t i = 0; i < modelIndicesList.size(); ++i) {
-        modelIndexesTemp[i*4] = modelIndicesList[i];
-    }
+
     glBindBuffer(GL_UNIFORM_BUFFER, allModelIndexesUBOLocation);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(GLuint)* 4 * modelIndicesList.size(), modelIndexesTemp.data());
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::uvec4) * modelIndicesList.size(), modelIndicesList.data());
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
     checkErrors("setModelIndexesUBO");
 }

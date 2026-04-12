@@ -49,7 +49,7 @@ void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextI
     context = SDL_GL_CreateContext(window);
 
     if (context == nullptr) {
-        std::cout << "SDL2: OpenGL context creation failed." << std::endl;
+        std::cout << "SDL2: context creation failed." << SDL_GetError() << std::endl;
         exit(1);
 
     }
@@ -103,7 +103,7 @@ std::shared_ptr<GraphicsInterface> SDL2Helper::loadGraphicsBackend(const std::st
                             )
             ) SDL_LoadFunction(objectHandle, registerFunctionName.c_str());
     if(registerFunction != nullptr) {
-        std::cout << "Trigger register method found" << std::endl;
+        std::cout << "Graphics backend register method found" << std::endl;
         return registerFunction(options);
     } else {
         std::cerr << "Graphics backend load failed!" << std::endl;

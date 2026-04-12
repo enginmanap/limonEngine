@@ -1,6 +1,3 @@
-#version 330
-#extension GL_ARB_texture_cube_map_array : enable
-
 #define NR_POINT_LIGHTS 4
 #define NR_MAX_MATERIALS 200
 
@@ -106,7 +103,7 @@ float ShadowCalculationDirectional(float bias, int lightIndex){
     }
     float shadow = 0.0;
     if(currentDepth < 1.0){
-        vec2 texelSize = 1.0 / textureSize(pre_shadowDirectional, 0).xy;//this has to be level 0, because its not layer but LOD/MIP
+        vec2 texelSize = 1.0 / vec2(textureSize(pre_shadowDirectional, 0).xy);//this has to be level 0, because its not layer but LOD/MIP
         for(int x = -1; x <= 1; ++x){
             for(int y = -1; y <= 1; ++y){
                 float pcfDepth = texture(pre_shadowDirectional, vec3(projectedCoordinates.xy + vec2(x, y) * texelSize, layer)).r;
@@ -150,8 +147,8 @@ float ShadowCalculationPoint(vec3 fragPos, float bias, float viewDistance, int l
                               (LightSources.lights[lightIndex].attenuation.y * fragDistance) +
                                (LightSources.lights[lightIndex].attenuation.z * fragDistance * fragDistance));
     attenuation = clamp(attenuation, 0.0, 1.0);
-    attenuation = 1 - attenuation;
-    if(attenuation == 1) {
+    attenuation = 1.0 - attenuation;
+    if(attenuation == 1.0) {
         shadow = 1.0;
     } else {
         shadow /= float(samples);
@@ -191,7 +188,7 @@ void main(void) {
         vec3 normal = from_vs.normal;
 
         if((AllMaterialsArray.materials[from_vs.materialIndex].isMap & 0x0010) != 0) {
-            normal = -1 * vec3(texture(normalSampler, from_vs.textureCoord));
+            normal = -1.0 * vec3(texture(normalSampler, from_vs.textureCoord));
         }
 
     vec3 lightingColorFactor;
@@ -216,14 +213,14 @@ void main(void) {
                 vec3 viewDirectory = normalize(playerTransforms.position - from_vs.fragPos);
                 vec3 reflectDirectory = reflect(-lightDirectory, normal);
                 float specularRate = max(dot(viewDirectory, reflectDirectory), 0.0);
-                if(specularRate != 0 && AllMaterialsArray.materials[from_vs.materialIndex].shininess != 0) {
+                if(specularRate != 0.0 && AllMaterialsArray.materials[from_vs.materialIndex].shininess != 0.0) {
                     specularRate = pow(specularRate, AllMaterialsArray.materials[from_vs.materialIndex].shininess);
                     vec3 specularColor = vec3(texture(specularSampler, from_vs.textureCoord));
-                    float specularAverage = (specularColor.x + specularColor.y + specularColor.z) / 3;
+                    float specularAverage = (specularColor.x + specularColor.y + specularColor.z) / 3.0;
                     specularRate = specularRate * specularAverage;
                     //specularRate = specularRate * materialSpecular;//we should get specularMap to here
                 } else {
-                    specularRate = 0;
+                    specularRate = 0.0;
                 }
                 float viewDistance = length(playerTransforms.position - from_vs.fragPos);
                 float bias = 0.0;

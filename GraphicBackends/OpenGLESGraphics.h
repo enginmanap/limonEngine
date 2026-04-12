@@ -11,9 +11,11 @@
 #include <string>
 #include <algorithm>
 #include <vector>
+#include "limonAPI/util/Logger.h"
 
 #include <iostream>
 #include <unordered_map>
+#define GLEW_NO_GLU
 #include <GL/glew.h>
 
 #ifdef __APPLE__
@@ -37,7 +39,26 @@ class Light;
 class GraphicsProgram;
 class Texture;
 
-extern "C" std::shared_ptr<GraphicsInterface> createGraphicsBackend(Options* options);
+extern "C" std::shared_ptr<GraphicsInterface> createGraphicsBackend(OptionsUtil::Options* options);
+
+const char* getEGLErrorString(GLenum error) {
+    switch (error) {
+        case GL_NO_ERROR:
+            return "No error";
+        case GL_INVALID_ENUM:
+            return "Invalid enum";
+        case GL_INVALID_VALUE:
+            return "Invalid value";
+        case GL_INVALID_OPERATION:
+            return "Invalid operation";
+        case GL_OUT_OF_MEMORY:
+            return "Out of memory";
+        case GL_INVALID_FRAMEBUFFER_OPERATION:
+            return "Invalid framebuffer operation";
+        default:
+            return "Unknown error";
+    }
+}
 
 
 class OpenGLESGraphics : public GraphicsInterface {
@@ -188,7 +209,6 @@ class OpenGLESGraphics : public GraphicsInterface {
 
 private:
     GLenum error;
-    uint32_t nextMaterialIndex = 0;//this is used to keep each material in the  GPU memory. imagine it like size of vector
     GLint maxTextureImageUnits;
     OpenglState *state;
 
@@ -196,21 +216,19 @@ private:
     float aspect;
     std::vector<GLuint> bufferObjects;
     std::vector<GLuint> vertexArrays;
-    std::vector<GLuint> modelIndexesTemp;
 
 
     GLuint lightUBOLocation;
     GLuint playerUBOLocation;
     GLuint allMaterialsUBOLocation;
     GLuint allModelIndexesUBOLocation;
-
-    uint32_t activeMaterialIndex;
+    GLuint allBoneTransformsTexture;
 
     GLuint combineFrameBuffer;
 
     OptionsUtil::Options *options;
 
-    const uint32_t lightUniformSize = (sizeof(glm::mat4) * 7) + (4 * sizeof(glm::vec4));
+    const uint32_t lightUniformSize = (sizeof(glm::mat4) * 6) + (4 * sizeof(glm::vec4));
     const uint32_t playerUniformSize = 6 * sizeof(glm::mat4) + 3 * sizeof(glm::vec4);
     int32_t materialUniformSize = 2 * sizeof(glm::vec3) + sizeof(float) + sizeof(GLuint);
     int32_t modelUniformSize = sizeof(glm::mat4);
@@ -242,6 +260,8 @@ public:
         return isFrameBufferParameterSupported;
     }
 
+
+
 private:
     inline bool checkErrors(const std::string &callerFunc __attribute((unused))) {
 #ifndef NDEBUG
@@ -251,7 +271,7 @@ private:
         }
         bool hasError = false;
         while ((error = glGetError()) != GL_NO_ERROR) {
-            std::cerr << "error found on GL context while " << callerFunc << ":" << error << ": " << gluErrorString(error)
+            std::cerr << "error found on GL context while " << callerFunc << ":" << error << ": " << getEGLErrorString(error)
                       << std::endl;
             hasError = true;
         }
@@ -325,18 +345,15 @@ public:
 
     explicit OpenGLESGraphics(OptionsUtil::Options *options);
 
-    GraphicsInterface::ContextInformation getContextInformation();
-    bool createGraphicsBackend();
+    GraphicsInterface::ContextInformation getContextInformation() override;
+    bool createGraphicsBackend() override;
 
-    ~OpenGLESGraphics();
+    ~OpenGLESGraphics() override;
 
-    void attachModelUBO(const uint32_t program) override;
+    void attachModelTexture(const uint32_t program) override;
+    void attachRigTexture(const uint32_t program) override;
 
-    void attachMaterialUBO(const uint32_t program, const uint32_t materialID) override;
-
-    uint32_t getNextMaterialIndex() override{
-        return nextMaterialIndex++;
-    }
+    void attachMaterialUBO(const uint32_t program) override;
 
     void initializeProgramAsset(const uint32_t programId,
                                 std::unordered_map<std::string, std::shared_ptr<Uniform>> &uniformMap,
@@ -346,7 +363,7 @@ public:
     void destroyProgram(uint32_t programID) override;
 
     void bufferVertexData(const std::vector<glm::vec3> &vertices,
-                          const std::vector<glm::uvec3> &faces,
+                          const std::vector<glm::u16vec3> &faces,
                           uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer, uint32_t &ebo) override;
 
     void bufferNormalData(const std::vector<glm::vec3> &colors,
@@ -360,7 +377,7 @@ public:
 
     void bufferVertexTextureCoordinates(const std::vector<glm::vec2> &textureCoordinates,
                                         uint32_t &vao, uint32_t &vbo, const uint32_t attachPointer) override;
-    void updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::uvec3> &faces,
+    void updateVertexData(const std::vector<glm::vec3> &vertices, const std::vector<glm::u16vec3> &faces,
                           uint32_t &vbo, uint32_t &ebo);
     void updateNormalData(const std::vector<glm::vec3> &normals, uint32_t &vbo);
     void updateExtraVertexData(const std::vector<glm::vec4> &extraData, uint32_t &vbo);
@@ -392,7 +409,7 @@ public:
         this->render(program, vao, ebo, elementCount, nullptr);
     }
 
-    void render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount, const uint32_t* startIndex) override;
+    void render(const uint32_t program, const uint32_t vao, const uint32_t ebo, const uint32_t elementCount, const uint16_t *startIndex) override;
 
     void reshape() override;
 
@@ -467,6 +484,8 @@ public:
 
     void setMaterial(const Material& material) override;
 
+    void setBoneTransforms(uint32_t index, const std::vector<glm::mat4>& boneTransforms) override;
+
     void setModel(const uint32_t modelID, const glm::mat4 &worldTransform) override;
 
     void setModelIndexesUBO(const std::vector<glm::uvec4> &modelIndicesList) override;
@@ -483,7 +502,7 @@ public:
         glScissor(x,y,width,height);
     }
 
-    Options* getOptions() {
+    OptionsUtil::Options* getOptions() {
         return options;
     }
 };

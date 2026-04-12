@@ -249,7 +249,8 @@ private:
         }
         bool hasError = false;
         while ((error = glGetError()) != GL_NO_ERROR) {
-            std::cerr << "error found on GL context while " << callerFunc << ":" << error << ": " << gluErrorString(error)
+            const GLubyte* errString = nullptr;
+            std::cerr << "error found on GL context while " << callerFunc << ":" << error << ": " << (errString ? (const char*)errString : "Unknown Error")
                       << std::endl;
             hasError = true;
         }
@@ -316,7 +317,7 @@ protected:
     void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) override;
 
-    uint32_t createGraphicsProgram(const std::string &vertexShaderFile, const std::string &geometryShaderFile, const std::string &fragmentShaderFile) override;
+    uint32_t createGraphicsProgram(const std::string &vertexShaderContent, const std::string &geometryShaderFileContent, const std::string &fragmentShaderFileContent) override;
 
 public:
 
@@ -371,6 +372,8 @@ public:
 
     void clearFrame() {
 
+        //additional depths for Directional is not needed, but depth for point is reqired, because there is no way to clear
+        //it per layer, so we are clearing per frame. This also means, lights should not reuse the textures.
         glBindFramebuffer(GL_FRAMEBUFFER, 0);//combining doesn't need depth test either
         glClear(GL_COLOR_BUFFER_BIT);//clear for default
 

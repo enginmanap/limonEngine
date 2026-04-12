@@ -43,6 +43,7 @@ GLuint OpenGLGraphics::createShader(GLenum eShaderType, const std::string &strSh
             case GL_FRAGMENT_SHADER:
                 strShaderType = "fragment";
                 break;
+            default: break;
         }
 
         std::cerr << strShaderType << " type shader " << strShaderContent.c_str() << " could not be compiled:\n" <<
@@ -332,7 +333,8 @@ OpenGLGraphics::ContextInformation OpenGLGraphics::getContextInformation() {
     contextInformation.SDL_GL_CONTEXT_MINOR_VERSION = 3;
     contextInformation.SDL_GL_CONTEXT_PROFILE_MASK = 1;
     contextInformation.SDL_GL_CONTEXT_FLAGS = 1;
-    contextInformation.shaderHeader = "#version 330";
+    contextInformation.shaderHeader = "#version 330\n"
+                                      "#extension GL_ARB_texture_cube_map_array : enable";
     return contextInformation;
 }
 
@@ -1140,9 +1142,6 @@ uint32_t OpenGLGraphics::createFrameBuffer(uint32_t width, uint32_t height) {
     }
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
-    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        std::cerr << "created frame buffer is not complete!" << std::endl;
-    }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     checkErrors("createFrameBuffer");
     return newFrameBufferLocation;
@@ -1400,7 +1399,14 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
             break;
     }
 
-    glGenerateMipmap(glTextureType);
+    if (internalFormat != InternalFormatTypes::RGB32F && 
+        internalFormat != InternalFormatTypes::RGBA32F && 
+        internalFormat != InternalFormatTypes::R32F &&
+        internalFormat != InternalFormatTypes::RGB16F &&
+        internalFormat != InternalFormatTypes::RGBA16F &&
+        internalFormat != InternalFormatTypes::DEPTH) {
+        glGenerateMipmap(glTextureType);
+    }
     glBindTexture(glTextureType, 0);
 
     checkErrors("loadTextureData");

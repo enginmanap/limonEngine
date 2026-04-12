@@ -1,4 +1,3 @@
-#version 330 core
 
 layout (location = 1) out float occlusion;
 

@@ -1,5 +1,4 @@
-#version 330 core
-#extension GL_ARB_texture_cube_map_array : enable
+
 
 #define_option CascadeCount
 #define_option CascadeLimitList
@@ -114,7 +113,7 @@ float SampleCascadeShadow(int lightIndex, int layer, vec3 world_space_frag_pos, 
     if (currentDepth >= 1.0) return 0.0;
 
     float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(pre_shadowDirectional, 0).xy;
+    vec2 texelSize = 1.0 / vec2(textureSize(pre_shadowDirectional, 0).xy);
 
     float filterRadius = 2.0 + float(layer) * 0.5;
 
@@ -190,8 +189,8 @@ float ShadowCalculationPoint(vec3 world_space_frag_pos, float bias, float viewDi
                               (LightSources.lights[lightIndex].attenuation.y * fragDistance) +
                                (LightSources.lights[lightIndex].attenuation.z * fragDistance * fragDistance));
     attenuation = clamp(attenuation, 0.0, 1.0);
-    attenuation = 1 - attenuation;
-    if(attenuation == 1) {
+    attenuation = 1.0 - attenuation;
+    if(attenuation == 1.0) {
         shadow = 1.0;
     } else {
         shadow /= float(samples);
@@ -257,10 +256,10 @@ void main()
             float diffuseRate = max(dot(normal, lightDirectory), 0.0);
             vec3 reflectDirectory = reflect(-lightDirectory, normal);
             float specularRate = max(dot(viewDirectory, reflectDirectory), 0.0);
-            if(specularRate != 0 && shininess != 0) {
+            if(specularRate != 0.0 && shininess != 0.0) {
                 specularRate = pow(specularRate, shininess);
             } else {
-                specularRate = 0;
+                specularRate = 0.0;
             }
 
             float shadow = 0.0;

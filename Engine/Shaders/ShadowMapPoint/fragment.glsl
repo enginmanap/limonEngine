@@ -1,4 +1,3 @@
-#version 330 core
 #define NR_POINT_LIGHTS 4
 
 

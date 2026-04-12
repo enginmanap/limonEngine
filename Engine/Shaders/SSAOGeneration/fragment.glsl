@@ -1,4 +1,3 @@
-#version 330 core
 
 layout (location = 1) out float occlusion;
 
@@ -25,8 +24,8 @@ uniform sampler2D ssaoNoiseSampler;
 
 uniform vec3 ssaoKernel[128];
 uniform int ssaoSampleCount;
-uniform float uRadius = 0.3f;
-uniform float uBias = 0.005f;
+float uRadius = 0.3f;
+float uBias = 0.005f;
 
 vec3 unpackNormal(vec2 pa) {
     vec2 p = pa * 2.0 - 1.0;

@@ -372,4 +372,12 @@
         <IsSet>True</IsSet>
         <Index>0</Index>
     </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>GraphicsBackend</Description>
+        <Value>libOpenGLGraphicsBackend</Value>
+        <valueType>String</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
 </Options>

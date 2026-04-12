@@ -1,4 +1,3 @@
-#version 330
 uniform mat4 ProjMtx;
 layout (location = 2) in vec4 position;
 layout (location = 3) in vec2 textureCoordinate;
@@ -82,7 +81,7 @@ vec4 renderModel() {
     to_fs.normal = normalize(transposeInverseModelTransform * normal);
     to_fs.fragPos = vec3(modelTransform * position);
     vec3 temp = (playerTransforms.position - vec3(position));
-    if(sqrt(dot(temp, temp)) > 10) {
+    if(sqrt(dot(temp, temp)) > 10.0) {
         to_fs.depthMapLayer = 1;
     } else {
         to_fs.depthMapLayer = 0;

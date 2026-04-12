@@ -280,22 +280,49 @@ add_dependencies(customTriggers LimonAPI)
 set_target_properties(customTriggers PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(customTriggers PROPERTIES SOVERSION 1)
 
-add_library(GraphicsBackend SHARED
+# SHARED BACKEND FILES
+set(GRAPHICS_BASE_SOURCES
         src/limonAPI/Graphics/GraphicsProgram.cpp
         src/limonAPI/Graphics/GraphicsProgramPreprocessor.cpp
-        GraphicBackends/OpenGLGraphics.cpp
         src/Assets/GraphicsProgramAsset.cpp
-        )
-disable_postfixes(GraphicsBackend)
-target_precompile_headers(GraphicsBackend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
+)
 
-TARGET_LINK_LIBRARIES(GraphicsBackend ${CMAKE_BINARY_DIR}/$<TARGET_FILE_NAME:LimonAPI> GLEW::GLEW ${OPENGL_LIBRARIES})
+# --- 1. OpenGL Backend ---
+add_library(OpenGLGraphicsBackend SHARED
+        ${GRAPHICS_BASE_SOURCES}
+        GraphicBackends/OpenGLGraphics.cpp
+)
+disable_postfixes(OpenGLGraphicsBackend)
+target_precompile_headers(OpenGLGraphicsBackend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
-set_target_properties(GraphicsBackend PROPERTIES VERSION ${PROJECT_VERSION})
-set_target_properties(GraphicsBackend PROPERTIES SOVERSION 1)
+TARGET_LINK_LIBRARIES(OpenGLGraphicsBackend ${CMAKE_BINARY_DIR}/$<TARGET_FILE_NAME:LimonAPI> GLEW::GLEW ${OPENGL_LIBRARIES})
 
-add_dependencies(GraphicsBackend LimonAPI)
-add_dependencies(LimonEngine GraphicsBackend)
+set_target_properties(OpenGLGraphicsBackend PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION 1)
+add_dependencies(OpenGLGraphicsBackend LimonAPI)
+add_dependencies(LimonEngine OpenGLGraphicsBackend)
+# --- END OpenGL Backend ---
+
+# --- 2. OpenGLES Backend ---
+add_library(OpenGLESGraphicsBackend SHARED
+        ${GRAPHICS_BASE_SOURCES}
+        GraphicBackends/OpenGLESGraphics.cpp
+)
+disable_postfixes(OpenGLESGraphicsBackend)
+target_precompile_headers(OpenGLESGraphicsBackend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
+
+if(WIN32)
+    # On windows, WGL ES will resolve them ,nothing else needed.
+    TARGET_LINK_LIBRARIES(OpenGLESGraphicsBackend ${CMAKE_BINARY_DIR}/$<TARGET_FILE_NAME:LimonAPI> GLEW::GLEW ${OPENGL_LIBRARIES})
+else()
+    # Raspberry Pi / Linux needs native ES libraries
+    TARGET_LINK_LIBRARIES(OpenGLESGraphicsBackend ${CMAKE_BINARY_DIR}/$<TARGET_FILE_NAME:LimonAPI> GLEW::GLEW GLESv2 EGL)
+endif()
+
+set_target_properties(OpenGLESGraphicsBackend PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION 1)
+add_dependencies(OpenGLESGraphicsBackend LimonAPI)
+add_dependencies(LimonEngine OpenGLESGraphicsBackend)
+# --- END OpenGLES Backend ---
+
 add_dependencies(LimonEngine customTriggers)
 
 # Add the definition to all targets

@@ -150,13 +150,17 @@ GameEngine::GameEngine() {
 
     sdlHelper = new SDL2Helper(options);
 
-    std::string graphicsBackendFileName;
+    std::string backendName = options->getOption<std::string>(options->getHash("GraphicsBackend")).getOrDefault("libOpenGLGraphicsBackend");
+    std::cout << "Selected Graphics Backend: " << backendName << std::endl;
+
+    std::string graphicsBackendFileName = "./";
+
 #ifdef _WIN32
-    graphicsBackendFileName = "libGraphicsBackend.dll";
+    graphicsBackendFileName += backendName + ".dll";
 #elif __APPLE__
-    graphicsBackendFileName = "./libGraphicsBackend.dylib";
+    graphicsBackendFileName += backendName + ".dylib";
 #else
-    graphicsBackendFileName = "./libGraphicsBackend.so";
+    graphicsBackendFileName += backendName + ".so";
 #endif
     graphicsWrapper = sdlHelper->loadGraphicsBackend(graphicsBackendFileName, options);
     sdlHelper->initWindow(PROGRAM_NAME.c_str(), graphicsWrapper->getContextInformation());
