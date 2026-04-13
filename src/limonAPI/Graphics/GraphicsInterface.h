@@ -78,6 +78,8 @@ public:
     virtual void getRenderTriangleAndLineCount(uint32_t& triangleCount, uint32_t& lineCount) = 0;
     explicit GraphicsInterface(OptionsUtil::Options *options [[gnu::unused]]) {};
     virtual ContextInformation getContextInformation() = 0;
+    virtual bool getFallbackContextInformation(ContextInformation& fallbackContext) = 0;
+    virtual bool verifyContext() = 0;
     virtual bool createGraphicsBackend() = 0;
     virtual ~GraphicsInterface() {};
 

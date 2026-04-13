@@ -25,7 +25,9 @@ public:
     static std::string getCurrentPath();
 
     SDL2Helper(OptionsUtil::Options* options);
-    void initWindow(const char*, const GraphicsInterface::ContextInformation& contextInformation);
+    void initWindow(const char* title, const GraphicsInterface::ContextInformation& contextInformation);
+    bool createContext();
+    void destroyWindow();
     ~SDL2Helper();
 
     void swap() {

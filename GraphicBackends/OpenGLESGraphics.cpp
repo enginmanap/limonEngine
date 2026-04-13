@@ -1737,3 +1737,33 @@ void OpenGLESGraphics::backupCurrentState() {
 void OpenGLESGraphics::restoreLastState() {
     this->state->restoreState();
 }
+
+bool OpenGLESGraphics::getFallbackContextInformation(GraphicsInterface::ContextInformation& fallbackContext) {
+    fallbackContext = getContextInformation();
+    fallbackContext.SDL_GL_CONTEXT_MAJOR_VERSION = 3;
+    fallbackContext.SDL_GL_CONTEXT_MINOR_VERSION = 0;
+    return true;
+}
+
+bool OpenGLESGraphics::verifyContext() {
+    GLint major = 0, minor = 0;
+    glGetIntegerv(GL_MAJOR_VERSION, &major);
+    glGetIntegerv(GL_MINOR_VERSION, &minor);
+
+    if (major == 0) {
+        const char* versionStr = (const char*)glGetString(GL_VERSION);
+        if (versionStr) {
+            // OpenGL ES version strings usually start with "OpenGL ES "
+            if (sscanf(versionStr, "OpenGL ES %d.%d", &major, &minor) != 2) {
+                sscanf(versionStr, "%d.%d", &major, &minor);
+            }
+        }
+    }
+
+    std::cout << "Created OpenGLES context version: " << major << "." << minor << std::endl;
+    if (major > 3 || (major == 3 && minor >= 1)) {
+        return true;
+    }
+    std::cerr << "OpenGLES context version is too low. Required: 3.1, Got: " << major << "." << minor << std::endl;
+    return false;
+}

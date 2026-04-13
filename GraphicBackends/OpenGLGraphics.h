@@ -325,6 +325,8 @@ public:
     explicit OpenGLGraphics(OptionsUtil::Options *options);
 
     GraphicsInterface::ContextInformation getContextInformation() override;
+    bool getFallbackContextInformation(GraphicsInterface::ContextInformation& fallbackContext) override;
+    bool verifyContext() override;
     bool createGraphicsBackend() override;
 
     ~OpenGLGraphics() override;

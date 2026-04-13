@@ -346,6 +346,8 @@ public:
     explicit OpenGLESGraphics(OptionsUtil::Options *options);
 
     GraphicsInterface::ContextInformation getContextInformation() override;
+    bool getFallbackContextInformation(GraphicsInterface::ContextInformation& fallbackContext) override;
+    bool verifyContext() override;
     bool createGraphicsBackend() override;
 
     ~OpenGLESGraphics() override;

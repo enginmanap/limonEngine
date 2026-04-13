@@ -1624,3 +1624,27 @@ void OpenGLGraphics::backupCurrentState() {
 void OpenGLGraphics::restoreLastState() {
     this->state->restoreState();
 }
+
+bool OpenGLGraphics::getFallbackContextInformation(GraphicsInterface::ContextInformation& fallbackContext) {
+    return false; // No fallback for OpenGL
+}
+
+bool OpenGLGraphics::verifyContext() {
+    GLint major = 0, minor = 0;
+    glGetIntegerv(GL_MAJOR_VERSION, &major);
+    glGetIntegerv(GL_MINOR_VERSION, &minor);
+
+    if (major == 0) {
+        const char* versionStr = (const char*)glGetString(GL_VERSION);
+        if (versionStr) {
+            sscanf(versionStr, "%d.%d", &major, &minor);
+        }
+    }
+
+    std::cout << "Created OpenGL context version: " << major << "." << minor << std::endl;
+    if (major > 3 || (major == 3 && minor >= 3)) {
+        return true;
+    }
+    std::cerr << "OpenGL context version is too low. Required: 3.3, Got: " << major << "." << minor << std::endl;
+    return false;
+}

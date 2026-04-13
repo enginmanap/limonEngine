@@ -163,11 +163,32 @@ GameEngine::GameEngine() {
     graphicsBackendFileName += backendName + ".so";
 #endif
     graphicsWrapper = sdlHelper->loadGraphicsBackend(graphicsBackendFileName, options);
-    sdlHelper->initWindow(PROGRAM_NAME.c_str(), graphicsWrapper->getContextInformation());
     if(graphicsWrapper == nullptr) {
         std::cerr << "failed to load graphics backend. Please check " << graphicsBackendFileName << std::endl;
         exit(1);
     }
+    sdlHelper->initWindow(PROGRAM_NAME.c_str(), graphicsWrapper->getContextInformation());
+    if(!sdlHelper->createContext()) {
+        std::cout << "Context creation failed, trying fallback..." << std::endl;
+        sdlHelper->destroyWindow();
+        GraphicsInterface::ContextInformation fallbackContext;
+        if(graphicsWrapper->getFallbackContextInformation(fallbackContext)) {
+            sdlHelper->initWindow(PROGRAM_NAME.c_str(), fallbackContext);
+            if(!sdlHelper->createContext()) {
+                std::cerr << "Failed to create fallback context. Exiting." << std::endl;
+                exit(1);
+            }
+        } else {
+            std::cerr << "Failed to create context and no fallback is available. Exiting." << std::endl;
+            exit(1);
+        }
+    }
+    
+    if(!graphicsWrapper->verifyContext()) {
+        std::cerr << "Context verification failed." << std::endl;
+        exit(1);
+    }
+
     if(!graphicsWrapper->createGraphicsBackend()) {
         std::cerr << "failed to create graphics backend. Please check " << graphicsBackendFileName << std::endl;
         exit(1);

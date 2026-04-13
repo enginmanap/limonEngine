@@ -13,14 +13,16 @@
 #include "limonAPI/Graphics/RenderMethodInterface.h"
 
 
-SDL2Helper::SDL2Helper(OptionsUtil::Options* options) : options(options) {}
+SDL2Helper::SDL2Helper(OptionsUtil::Options* options) : window(nullptr), context(nullptr), options(options) {}
 
 void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextInformation& contextInformation) {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) { /* Initialize SDL's Video subsystem */
-        std::cout << "Unable to initialize SDL";
-        exit(1);
+    if (SDL_WasInit(SDL_INIT_VIDEO) == 0) {
+        if (SDL_Init(SDL_INIT_VIDEO) < 0) { /* Initialize SDL's Video subsystem */
+            std::cout << "Unable to initialize SDL";
+            exit(1);
+        }
     }
-    /* Request opengl 4.4 context. */
+    /* Request gpu context. */
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, contextInformation.SDL_GL_ACCELERATED_VISUAL);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, contextInformation.SDL_GL_CONTEXT_MAJOR_VERSION);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, contextInformation.SDL_GL_CONTEXT_MINOR_VERSION);
@@ -35,23 +37,22 @@ void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextI
     /* Create our window centered at 512x512 resolution */
     window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                               options->getScreenWidth(), options->getScreenHeight(), SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
-    if (!window) { /* Die if creation failed */
+    if (!window) {
         std::cout << "SDL Error: " << SDL_GetError() << std::endl;
-        SDL_Quit();
-        exit(1);
+        //we don't quit if failed, because there is a fallback possibility
     }
 
     OptionsUtil::Options::Option<bool> fullScreenOption = options->getOption<bool>(HASH("fullScreen"));
     bool fullScreen = fullScreenOption.getOrDefault(false);
     setFullScreen(fullScreen);
+}
 
-    /* Create our opengl context and attach it to our window */
+bool SDL2Helper::createContext() {
+    /* Create context and attach it to our window */
     context = SDL_GL_CreateContext(window);
 
     if (context == nullptr) {
-        std::cout << "SDL2: context creation failed." << SDL_GetError() << std::endl;
-        exit(1);
-
+        return false;
     }
 
     SDL_SysWMinfo wmInfo;
@@ -75,14 +76,25 @@ void SDL2Helper::initWindow(const char* title, const GraphicsInterface::ContextI
     SDL_GL_SetSwapInterval(1);
 #endif
     SDL_ShowCursor(SDL_DISABLE);
-    std::cout << "SDL window started." << std::endl;
+    std::cout << "SDL window and context started." << std::endl;
+    return true;
+}
+
+void SDL2Helper::destroyWindow() {
+    if (context) {
+        SDL_GL_DeleteContext(context);
+        context = nullptr;
+    }
+    if (window) {
+        SDL_DestroyWindow(window);
+        window = nullptr;
+    }
 }
 
 SDL2Helper::~SDL2Helper() {
     /* Delete our opengl context, destroy our window, and shutdown SDL */
     SDL_ShowCursor(SDL_ENABLE);
-    SDL_GL_DeleteContext(context);
-    SDL_DestroyWindow(window);
+    destroyWindow();
     SDL_Quit();
 }
 
