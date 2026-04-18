@@ -486,28 +486,6 @@
             <NodeExtension>IterationExtension</NodeExtension>
         </NodeType>
         <NodeType>
-            <Name>Line</Name>
-            <CombineInputs>True</CombineInputs>
-            <Editable>False</Editable>
-            <Inputs/>
-            <Outputs>
-                <ConnectionDesc>
-                    <Name>Depth</Name>
-                    <Type>Texture</Type>
-                </ConnectionDesc>
-                <ConnectionDesc>
-                    <Name>color</Name>
-                    <Type>Texture</Type>
-                </ConnectionDesc>
-            </Outputs>
-            <NodeExtension>PipelineStageExtension</NodeExtension>
-            <ExtraVariables>
-                <Variable Value="./Data/Shaders/Line/fragment.glsl">fragmentShaderName</Variable>
-                <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/Line/vertex.glsl">vertexShaderName</Variable>
-            </ExtraVariables>
-        </NodeType>
-        <NodeType>
             <Name>Lines</Name>
             <CombineInputs>True</CombineInputs>
             <Editable>False</Editable>
@@ -818,7 +796,7 @@
             <NodeExtension>
                 <Name>PipelineStageExtension</Name>
                 <CullMode>Front</CullMode>
-                <ClearBefore>True</ClearBefore>
+                <ClearBefore>False</ClearBefore>
                 <BlendEnabled>False</BlendEnabled>
                 <DepthTestEnabled>True</DepthTestEnabled>
                 <DepthWriteEnabled>True</DepthWriteEnabled>
@@ -828,8 +806,8 @@
                 <CameraTags>directional_camera</CameraTags>
                 <ObjectTags>basic_player_attachment,animated_player_attachment,basic_model_object,animated_model_object,ambient_model_object</ObjectTags>
                 <DefaultRenderResolution>
-                    <X>4096</X>
-                    <Y>4096</Y>
+                    <X>1024</X>
+                    <Y>1024</Y>
                 </DefaultRenderResolution>
                 <RenderHeightOption>shadowMapDirectionalHeight</RenderHeightOption>
                 <RenderWidthOption>shadowMapDirectionalWidth</RenderWidthOption>
@@ -971,7 +949,7 @@
                 <DepthWriteEnabled>True</DepthWriteEnabled>
                 <ScissorTestEnabled>True</ScissorTestEnabled>
                 <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
-                <ToScreen>False</ToScreen>
+                <ToScreen>True</ToScreen>
                 <CameraTags>player_camera</CameraTags>
                 <ObjectTags></ObjectTags>
                 <DefaultRenderResolution>
@@ -1142,7 +1120,7 @@
                 <DepthWriteEnabled>True</DepthWriteEnabled>
                 <ScissorTestEnabled>False</ScissorTestEnabled>
                 <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
-                <ToScreen>False</ToScreen>
+                <ToScreen>True</ToScreen>
                 <CameraTags>player_camera</CameraTags>
                 <ObjectTags></ObjectTags>
                 <DefaultRenderResolution>
@@ -1262,13 +1240,13 @@
             <NodeExtension>
                 <Name>PipelineStageExtension</Name>
                 <CullMode>Back</CullMode>
-                <ClearBefore>True</ClearBefore>
+                <ClearBefore>False</ClearBefore>
                 <BlendEnabled>True</BlendEnabled>
                 <DepthTestEnabled>True</DepthTestEnabled>
                 <DepthWriteEnabled>True</DepthWriteEnabled>
                 <ScissorTestEnabled>False</ScissorTestEnabled>
                 <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
-                <ToScreen>False</ToScreen>
+                <ToScreen>True</ToScreen>
                 <CameraTags>player_camera</CameraTags>
                 <ObjectTags>transparent_player_attachment,transparent_model_object</ObjectTags>
                 <DefaultRenderResolution>
@@ -1327,7 +1305,7 @@
                         <Y>42.000000</Y>
                     </Position>
                     <Inputs>
-                        <Input ConnectionID="3" NodeId="16">occlusion</Input>
+                        <Input ConnectionID="4" NodeId="16">occlusion</Input>
                     </Inputs>
                     <Outputs/>
                 </Connection>
@@ -1342,8 +1320,7 @@
                         <Y>58.000000</Y>
                     </Position>
                     <Inputs>
-                        <Input ConnectionID="5" NodeId="22">ambientColor</Input>
-                        <Input ConnectionID="5" NodeId="23">ambientColor</Input>
+                        <Input ConnectionID="5" NodeId="23">gAmbient</Input>
                     </Inputs>
                     <Outputs/>
                 </Connection>
@@ -1358,8 +1335,8 @@
                         <Y>74.000000</Y>
                     </Position>
                     <Inputs>
-                        <Input ConnectionID="6" NodeId="22">diffuseAndSpecularLightedColor</Input>
-                        <Input ConnectionID="6" NodeId="23">diffuseAndSpecularLightedColor</Input>
+                        <Input ConnectionID="6" NodeId="22">gAlbedoSpec</Input>
+                        <Input ConnectionID="6" NodeId="23">gAlbedoSpec</Input>
                     </Inputs>
                     <Outputs/>
                 </Connection>
@@ -1374,8 +1351,8 @@
                         <Y>90.000000</Y>
                     </Position>
                     <Inputs>
-                        <Input ConnectionID="4" NodeId="22">gNormalBuffer</Input>
-                        <Input ConnectionID="4" NodeId="23">gNormalBuffer</Input>
+                        <Input ConnectionID="4" NodeId="22">gNormal</Input>
+                        <Input ConnectionID="4" NodeId="23">gNormal</Input>
                     </Inputs>
                     <Outputs/>
                 </Connection>
@@ -1461,13 +1438,13 @@
             <NodeExtension>
                 <Name>PipelineStageExtension</Name>
                 <CullMode>Back</CullMode>
-                <ClearBefore>False</ClearBefore>
+                <ClearBefore>True</ClearBefore>
                 <BlendEnabled>False</BlendEnabled>
                 <DepthTestEnabled>True</DepthTestEnabled>
                 <DepthWriteEnabled>True</DepthWriteEnabled>
-                <ScissorTestEnabled>True</ScissorTestEnabled>
+                <ScissorTestEnabled>False</ScissorTestEnabled>
                 <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
-                <ToScreen>False</ToScreen>
+                <ToScreen>True</ToScreen>
                 <CameraTags>player_camera</CameraTags>
                 <ObjectTags>someObject</ObjectTags>
                 <DefaultRenderResolution>
@@ -1526,7 +1503,7 @@
                         <Y>42.000000</Y>
                     </Position>
                     <Inputs>
-                        <Input ConnectionID="4" NodeId="22">gNormalBuffer</Input>
+                        <Input ConnectionID="4" NodeId="22">gNormal</Input>
                     </Inputs>
                     <Outputs/>
                 </Connection>
@@ -1648,10 +1625,25 @@
                     </Inputs>
                     <Outputs/>
                 </Connection>
+                <Connection>
+                    <ID>2</ID>
+                    <Name>pre_depthMap</Name>
+                    <Type>Texture</Type>
+                    <Direction>Input</Direction>
+                    <CombineInputs>True</CombineInputs>
+                    <Position>
+                        <X>0.000000</X>
+                        <Y>58.000000</Y>
+                    </Position>
+                    <Inputs>
+                        <Input ConnectionID="3" NodeId="22">Depth</Input>
+                    </Inputs>
+                    <Outputs/>
+                </Connection>
             </Inputs>
             <Outputs>
                 <Connection>
-                    <ID>2</ID>
+                    <ID>3</ID>
                     <Name>Depth</Name>
                     <Type>Texture</Type>
                     <Direction>Output</Direction>
@@ -1664,7 +1656,7 @@
                     <Outputs/>
                 </Connection>
                 <Connection>
-                    <ID>3</ID>
+                    <ID>4</ID>
                     <Name>occlusion</Name>
                     <Type>Texture</Type>
                     <Direction>Output</Direction>
@@ -1702,13 +1694,13 @@
                 <OriginalOutputType></OriginalOutputType>
                 <OutputTextures>
                     <OutputInfo>
-                        <Connection>2</Connection>
+                        <Connection>3</Connection>
                         <Name>VoidDepthPlaceHolder</Name>
                         <AttachPoint>NONE</AttachPoint>
                         <TextureName>VoidDepthPlaceHolder</TextureName>
                     </OutputInfo>
                     <OutputInfo>
-                        <Connection>3</Connection>
+                        <Connection>4</Connection>
                         <Name>SSAOBlurBuffer</Name>
                         <AttachPoint>NONE</AttachPoint>
                         <TextureName>SSAOBlurBuffer</TextureName>
@@ -1777,7 +1769,7 @@
                 <DepthWriteEnabled>True</DepthWriteEnabled>
                 <ScissorTestEnabled>False</ScissorTestEnabled>
                 <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
-                <ToScreen>False</ToScreen>
+                <ToScreen>True</ToScreen>
                 <CameraTags>player_camera</CameraTags>
                 <ObjectTags></ObjectTags>
                 <DefaultRenderResolution>
@@ -1866,7 +1858,7 @@
                 <DepthWriteEnabled>True</DepthWriteEnabled>
                 <ScissorTestEnabled>False</ScissorTestEnabled>
                 <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
-                <ToScreen>False</ToScreen>
+                <ToScreen>True</ToScreen>
                 <CameraTags>player_camera</CameraTags>
                 <ObjectTags></ObjectTags>
                 <DefaultRenderResolution>
@@ -1955,7 +1947,7 @@
                 <DepthWriteEnabled>True</DepthWriteEnabled>
                 <ScissorTestEnabled>False</ScissorTestEnabled>
                 <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
-                <ToScreen>False</ToScreen>
+                <ToScreen>True</ToScreen>
                 <CameraTags>player_camera</CameraTags>
                 <ObjectTags></ObjectTags>
                 <DefaultRenderResolution>
@@ -2041,10 +2033,10 @@
                 <ClearBefore>False</ClearBefore>
                 <BlendEnabled>True</BlendEnabled>
                 <DepthTestEnabled>True</DepthTestEnabled>
-                <DepthWriteEnabled>True</DepthWriteEnabled>
+                <DepthWriteEnabled>False</DepthWriteEnabled>
                 <ScissorTestEnabled>False</ScissorTestEnabled>
                 <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
-                <ToScreen>False</ToScreen>
+                <ToScreen>True</ToScreen>
                 <CameraTags></CameraTags>
                 <ObjectTags></ObjectTags>
                 <DefaultRenderResolution>
@@ -2130,10 +2122,10 @@
                 <ClearBefore>False</ClearBefore>
                 <BlendEnabled>True</BlendEnabled>
                 <DepthTestEnabled>True</DepthTestEnabled>
-                <DepthWriteEnabled>True</DepthWriteEnabled>
+                <DepthWriteEnabled>False</DepthWriteEnabled>
                 <ScissorTestEnabled>False</ScissorTestEnabled>
                 <AnyOutputMultiLayered>False</AnyOutputMultiLayered>
-                <ToScreen>False</ToScreen>
+                <ToScreen>True</ToScreen>
                 <CameraTags></CameraTags>
                 <ObjectTags></ObjectTags>
                 <DefaultRenderResolution>
