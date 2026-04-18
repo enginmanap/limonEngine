@@ -1,3 +1,6 @@
+
+#import <./Engine/Shaders/Shared/PlayerInformation.glsl>
+
 #define NR_POINT_LIGHTS 4
 #define NR_MAX_MATERIALS 200
 
@@ -5,19 +8,6 @@
 #define_option CascadeLimitList
 
 layout (location = 0) out vec4 outputColor;
-
-layout (std140) uniform PlayerTransformBlock {
-    mat4 camera;
-    mat4 projection;
-    mat4 cameraProjection;
-    mat4 inverseProjection;
-    mat4 inverseCamera;
-    mat3 transposeInverseCamera;
-    vec3 position;
-    vec3 cameraSpacePosition;
-    vec2 noiseScale;
-    int time;
-} playerTransforms;
 
 struct LightSource {
     mat4 shadowMatrices[6];

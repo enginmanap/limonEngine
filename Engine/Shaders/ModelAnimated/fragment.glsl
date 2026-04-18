@@ -1,4 +1,6 @@
 
+#import <./Engine/Shaders/Shared/PlayerInformation.glsl>
+
 #define_option CascadeCount
 #define_option CascadeLimitList
 
@@ -6,19 +8,6 @@
 
 layout (location = 0) out vec2 gNormal;       // World-space normal (xyz)
 layout (location = 1) out vec4 gAlbedoSpec;   // Albedo (rgb), MaterialIndex (a)
-
-layout (std140) uniform PlayerTransformBlock {
-    mat4 camera;
-    mat4 projection;
-    mat4 cameraProjection;
-    mat4 inverseProjection;
-    mat4 inverseCamera;
-    mat3 transposeInverseCamera;
-    vec3 position;
-    vec3 cameraSpacePosition;
-    vec2 noiseScale;
-    int time;
-} playerTransforms;
 
 struct material {
     vec3 ambient;
