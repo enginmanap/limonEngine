@@ -1,10 +1,10 @@
 
+#define_option maximumPointLights
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 
 #define_option CascadeCount
 #define_option CascadeLimitList
 
-#define NR_POINT_LIGHTS 4
 #define NR_MAX_MATERIALS 200
 
 out vec4 finalColor;
@@ -45,7 +45,7 @@ struct LightSource {
 
 layout (std140) uniform LightSourceBlock
 {
-    LightSource lights[NR_POINT_LIGHTS];
+    LightSource lights[maximumPointLights];
 } LightSources;
 
 vec3 pointSampleOffsetDirections[20] = vec3[]
@@ -232,7 +232,7 @@ void main()
     vec3 viewDirectory = normalize(playerTransforms.position - fragPos);
     float viewDistance = length(playerTransforms.position - fragPos);
 
-    for(int i=0; i < NR_POINT_LIGHTS; ++i){
+    for(int i=0; i < maximumPointLights; ++i){
         if(LightSources.lights[i].type != 0) {
             vec3 lightDirectory;
             if(LightSources.lights[i].type == 1) { // Directional Light

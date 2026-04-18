@@ -81,6 +81,14 @@
     </Parameter>
     <Parameter>
         <RequestType>FreeNumber</RequestType>
+        <Description>maximumPointLights</Description>
+        <Value>4</Value>
+        <valueType>Long</valueType>
+        <IsSet>True</IsSet>
+        <Index>2</Index>
+    </Parameter>
+    <Parameter>
+        <RequestType>FreeNumber</RequestType>
         <Description>debugDrawBufferSize</Description>
         <Value>1000</Value>
         <valueType>Long</valueType>

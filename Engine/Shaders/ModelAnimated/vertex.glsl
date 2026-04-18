@@ -2,8 +2,6 @@
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 #import <./Engine/Shaders/Shared/ModelRendering.vertex>
 
-#define NR_POINT_LIGHTS 4
-
 layout (location = 2) in vec4 position;
 layout (location = 3) in vec2 textureCoordinate;
 layout (location = 4) in vec3 normal;
@@ -17,20 +15,6 @@ out VS_FS {
     vec3 fragPos;
     flat int materialIndex;
 } to_fs;
-
-struct LightSource {
-    mat4 shadowMatrices[6];
-    vec3 position;
-    float farPlanePoint;
-    vec3 color;
-    int type; //1 Directional, 2 point
-	vec3 attenuation;
-	vec3 ambient;
-};
-
-layout (std140) uniform LightSourceBlock {
-    LightSource lights[NR_POINT_LIGHTS];
-} LightSources;
 
 void main(void) {
     to_fs.textureCoord = textureCoordinate;

@@ -1,7 +1,6 @@
 
+#define_option maximumPointLights
 #import <./Engine/Shaders/Shared/ModelRendering.vertex>
-
-#define NR_POINT_LIGHTS 4
 
 layout (location = 2) in vec4 position;
 layout (location = 4) in vec3 normal;
@@ -20,7 +19,7 @@ struct LightSource {
 
 layout (std140) uniform LightSourceBlock
 {
-    LightSource lights[NR_POINT_LIGHTS];
+    LightSource lights[maximumPointLights];
 } LightSources;
 
 uniform int renderLightIndex;

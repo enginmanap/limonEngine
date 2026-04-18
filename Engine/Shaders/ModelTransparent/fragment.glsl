@@ -1,7 +1,7 @@
 
+#define_option maximumPointLights
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 
-#define NR_POINT_LIGHTS 4
 #define NR_MAX_MATERIALS 200
 
 #define_option CascadeCount
@@ -21,7 +21,7 @@ struct LightSource {
 
 layout (std140) uniform LightSourceBlock
 {
-    LightSource lights[NR_POINT_LIGHTS];
+    LightSource lights[maximumPointLights];
 } LightSources;
 
 struct material {
@@ -36,12 +36,10 @@ layout (std140) uniform MaterialInformationBlock {
 } AllMaterialsArray;
 
 in VS_FS {
-    vec3 boneColor;
     vec2 textureCoord;
     vec3 normal;
     vec3 fragPos;
-    vec4 fragPosLightSpace[NR_POINT_LIGHTS];
-    flat int depthMapLayer;
+    vec4 fragPosLightSpace[maximumPointLights];
     flat int materialIndex;
 } from_vs;
 
@@ -189,7 +187,7 @@ void main(void) {
         }
 
         float shadow;
-        for(int i=0; i < NR_POINT_LIGHTS; ++i){
+        for(int i=0; i < maximumPointLights; ++i){
             if(LightSources.lights[i].type != 0) {
                 // Diffuse Lighting
                 vec3 lightDirectory;

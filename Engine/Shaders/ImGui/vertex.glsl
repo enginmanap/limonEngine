@@ -1,4 +1,5 @@
 
+#define_option maximumPointLights
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
 #import <./Engine/Shaders/Shared/ModelRendering.vertex>
 
@@ -16,15 +17,11 @@ out vec4 Frag_Color;
 
 /** Model rendering definitions */
 
-#define NR_POINT_LIGHTS 4
-#define NR_MAX_MATERIALS 200
-
 out VS_FS {
-    vec3 boneColor;
     vec2 textureCoord;
     vec3 normal;
     vec3 fragPos;
-    vec4 fragPosLightSpace[NR_POINT_LIGHTS];
+    vec4 fragPosLightSpace[maximumPointLights];
     flat int depthMapLayer;
     flat int materialIndex;
 } to_fs;
@@ -40,7 +37,7 @@ struct LightSource {
 };
 
 layout (std140) uniform LightSourceBlock {
-    LightSource lights[NR_POINT_LIGHTS];
+    LightSource lights[maximumPointLights];
 } LightSources;
 
 /** Model rendering definitions */
@@ -59,7 +56,7 @@ vec4 renderModel() {
     } else {
         to_fs.depthMapLayer = 0;
     }
-    for(int i = 0; i < NR_POINT_LIGHTS; i++){
+    for(int i = 0; i < maximumPointLights; i++){
         if(LightSources.lights[i].type == 1) {
             to_fs.fragPosLightSpace[i] = LightSources.lights[i].shadowMatrices[to_fs.depthMapLayer] * vec4(to_fs.fragPos, 1.0);
         }
