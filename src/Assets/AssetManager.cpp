@@ -115,7 +115,15 @@ std::vector<std::pair<std::string, AssetManager::AssetTypes>> AssetManager::load
 bool AssetManager::loadAssetList() {
     std::vector<std::pair<std::string, AssetTypes>> fileExtensions = loadAssetExtensionList();
     availableAssetsRootNode = new AvailableAssetsNode();
-    addAssetsRecursively("./Data", "Data", fileExtensions, availableAssetsRootNode);
+    availableAssetsRootNode->assetType = Asset_type_DIRECTORY;
+    availableAssetsRootNode->fullPath = ".";
+    availableAssetsRootNode->nameLower = "";
+    AvailableAssetsNode* data = new AvailableAssetsNode;
+    addAssetsRecursively("./Data", "Data", fileExtensions, data);
+    availableAssetsRootNode->children.push_back(data);
+    AvailableAssetsNode* engine = new AvailableAssetsNode;
+    addAssetsRecursively("./Engine", "Engine", fileExtensions, engine);
+    availableAssetsRootNode->children.push_back(engine);
     return true;
 }
 

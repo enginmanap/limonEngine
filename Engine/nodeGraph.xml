@@ -374,9 +374,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Data/Shaders/CombineColorsWithSSAO/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/CombineColorsWithSSAO/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -396,9 +396,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Data/Shaders/GUIImage/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/GUIImage/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/GUIImage/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/GUIImage/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -418,9 +418,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Data/Shaders/GPUParticles/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/GPUParticles/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/GPUParticles/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/GPUParticles/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -440,9 +440,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Data/Shaders/GUIText/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/GUIText/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/GUIText/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/GUIText/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -462,9 +462,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Data/Shaders/ImGui/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/ImGui/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/ImGui/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/ImGui/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -502,9 +502,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Data/Shaders/Lines/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/Lines/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/Lines/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/Lines/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -532,9 +532,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Data/Shaders/ModelAmbient/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/ModelAmbient/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/ModelAmbient/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/ModelAmbient/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -559,9 +559,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Data/Shaders/ModelAnimated/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/ModelAnimated/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/ModelAnimated/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/ModelAnimated/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -590,9 +590,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Data/Shaders/ModelTransparent/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/ModelTransparent/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/ModelTransparent/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/ModelTransparent/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -612,9 +612,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Data/Shaders/Particles/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/Particles/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/Particles/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/Particles/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -647,9 +647,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Data/Shaders/ShadowMapDirectional/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/ShadowMapDirectional/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/ShadowMapDirectional/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/ShadowMapDirectional/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -665,9 +665,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Data/Shaders/ShadowMapPoint/fragment.glsl">fragmentShaderName</Variable>
-                <Variable Value="./Data/Shaders/ShadowMapPoint/geometry.glsl">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/ShadowMapPoint/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/ShadowMapPoint/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/ShadowMapPoint/geometry.glsl">geometryShaderName</Variable>
+                <Variable Value="./Engine/Shaders/ShadowMapPoint/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -691,9 +691,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Data/Shaders/SkyCube/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/SkyCube/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/SkyCube/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/SkyCube/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -722,9 +722,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Data/Shaders/SSAOBlur/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/SSAOBlur/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/SSAOBlur/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/SSAOBlur/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -753,9 +753,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Data/Shaders/SSAOGeneration/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/SSAOGeneration/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Data/Shaders/SSAOGeneration/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/SSAOGeneration/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
     </NodeTypes>
@@ -823,9 +823,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/ShadowMapDirectional/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/ShadowMapDirectional/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/ShadowMapDirectional/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/ShadowMapDirectional/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -976,9 +976,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/ImGui/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/ImGui/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/ImGui/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/ImGui/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -1045,9 +1045,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/ShadowMapPoint/vertex.glsl</VertexShaderName>
-                    <GeometryShaderName>./Data/Shaders/ShadowMapPoint/geometry.glsl</GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/ShadowMapPoint/fragment.glsl</FragmentShaderName>
+                    <VertexShaderName>./Engine/Shaders/ShadowMapPoint/vertex.glsl</VertexShaderName>
+                    <GeometryShaderName>./Engine/Shaders/ShadowMapPoint/geometry.glsl</GeometryShaderName>
+                    <FragmentShaderName>./Engine/Shaders/ShadowMapPoint/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -1153,9 +1153,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/SkyCube/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/SkyCube/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/SkyCube/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/SkyCube/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -1273,9 +1273,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/ModelTransparent/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/ModelTransparent/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/ModelTransparent/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/ModelTransparent/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -1471,9 +1471,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/CombineColorsWithSSAO/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/CombineColorsWithSSAO/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/CombineColorsWithSSAO/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/CombineColorsWithSSAO/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -1589,9 +1589,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/SSAOGeneration/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/SSAOGeneration/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/SSAOGeneration/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/SSAOGeneration/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -1707,9 +1707,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/SSAOBlur/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/SSAOBlur/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/SSAOBlur/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/SSAOBlur/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -1796,9 +1796,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/GUIText/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/GUIText/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/GUIText/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/GUIText/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -1885,9 +1885,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/GUIImage/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/GUIImage/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/GUIImage/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/GUIImage/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -1974,9 +1974,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/Lines/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/Lines/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/Lines/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/Lines/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -2063,9 +2063,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/GPUParticles/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/GPUParticles/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/GPUParticles/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/GPUParticles/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -2152,9 +2152,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/Particles/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/Particles/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/Particles/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/Particles/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -2271,9 +2271,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/ModelAnimated/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/ModelAnimated/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/ModelAnimated/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/ModelAnimated/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
@@ -2402,9 +2402,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Data/Shaders/ModelAmbient/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/ModelAmbient/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Data/Shaders/ModelAmbient/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/ModelAmbient/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
