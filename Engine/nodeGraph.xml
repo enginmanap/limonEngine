@@ -508,7 +508,7 @@
             </ExtraVariables>
         </NodeType>
         <NodeType>
-            <Name>ModelAmbient</Name>
+            <Name>Deferred_ModelAmbient</Name>
             <CombineInputs>True</CombineInputs>
             <Editable>False</Editable>
             <Inputs/>
@@ -532,13 +532,13 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Engine/Shaders/ModelAmbient/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/Deferred_ModelAmbient/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Engine/Shaders/ModelAmbient/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/Deferred_ModelAmbient/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
-            <Name>ModelAnimated</Name>
+            <Name>Deferred_ModelAnimated</Name>
             <CombineInputs>True</CombineInputs>
             <Editable>False</Editable>
             <Inputs>
@@ -559,9 +559,9 @@
             </Outputs>
             <NodeExtension>PipelineStageExtension</NodeExtension>
             <ExtraVariables>
-                <Variable Value="./Engine/Shaders/ModelAnimated/fragment.glsl">fragmentShaderName</Variable>
+                <Variable Value="./Engine/Shaders/Deferred_ModelAnimated/fragment.glsl">fragmentShaderName</Variable>
                 <Variable Value="">geometryShaderName</Variable>
-                <Variable Value="./Engine/Shaders/ModelAnimated/vertex.glsl">vertexShaderName</Variable>
+                <Variable Value="./Engine/Shaders/Deferred_ModelAnimated/vertex.glsl">vertexShaderName</Variable>
             </ExtraVariables>
         </NodeType>
         <NodeType>
@@ -2160,8 +2160,8 @@
         </Node>
         <Node>
             <ID>22</ID>
-            <Name>ModelAnimated</Name>
-            <DisplayName>ModelAnimated</DisplayName>
+            <Name>Deferred_ModelAnimated</Name>
+            <DisplayName>Deferred_ModelAnimated</DisplayName>
             <Editable>False</Editable>
             <CombineInputs>True</CombineInputs>
             <Position>
@@ -2271,16 +2271,16 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Engine/Shaders/ModelAnimated/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/Deferred_ModelAnimated/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Engine/Shaders/ModelAnimated/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/Deferred_ModelAnimated/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>
         <Node>
             <ID>23</ID>
-            <Name>ModelAmbient</Name>
-            <DisplayName>ModelAmbient</DisplayName>
+            <Name>Deferred_ModelAmbient</Name>
+            <DisplayName>Deferred_ModelAmbient</DisplayName>
             <Editable>False</Editable>
             <CombineInputs>True</CombineInputs>
             <Position>
@@ -2402,9 +2402,9 @@
                     </OutputInfo>
                 </OutputTextures>
                 <ProgramInfo>
-                    <VertexShaderName>./Engine/Shaders/ModelAmbient/vertex.glsl</VertexShaderName>
+                    <VertexShaderName>./Engine/Shaders/Deferred_ModelAmbient/vertex.glsl</VertexShaderName>
                     <GeometryShaderName></GeometryShaderName>
-                    <FragmentShaderName>./Engine/Shaders/ModelAmbient/fragment.glsl</FragmentShaderName>
+                    <FragmentShaderName>./Engine/Shaders/Deferred_ModelAmbient/fragment.glsl</FragmentShaderName>
                 </ProgramInfo>
             </NodeExtension>
         </Node>

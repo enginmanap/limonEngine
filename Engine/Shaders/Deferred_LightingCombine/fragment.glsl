@@ -42,6 +42,8 @@ vec3 unpackNormal(vec2 pa) {
     return normalize(n);
 }
 
+#import <./Engine/Shaders/Shared/Lighting.frag>
+
 void main()
 {
     float depth = texture(pre_depthMap, from_vs.textureCoordinates).r;
@@ -65,45 +67,11 @@ void main()
     vec4 clip_space_pos = vec4(from_vs.textureCoordinates * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
     vec4 view_space_pos = playerTransforms.inverseProjection * clip_space_pos;
     float precise_view_z = abs(view_space_pos.z / view_space_pos.w);
-
-    vec3 directLighting = vec3(0.0);
-    vec3 lightAmbient = vec3(0.0);
-    vec3 viewDirectory = normalize(playerTransforms.position - fragPos);
     float viewDistance = length(playerTransforms.position - fragPos);
 
-    for(int i=0; i < maximumPointLights; ++i){
-        if(LightSources.lights[i].type != 0) {
-            vec3 lightDirectory;
-            if(LightSources.lights[i].type == 1) { // Directional Light
-                lightDirectory = normalize(-LightSources.lights[i].position);
-            } else if(LightSources.lights[i].type == 2) { // Point Light
-                lightDirectory = normalize(LightSources.lights[i].position - fragPos);
-            }
+    vec3 fullyLitColor = calculateLighting(fragPos, normal, albedo, shininess, materialAmbient, viewDistance, precise_view_z, depth);
 
-            float diffuseRate = max(dot(normal, lightDirectory), 0.0);
-            vec3 reflectDirectory = reflect(-lightDirectory, normal);
-            float specularRate = max(dot(viewDirectory, reflectDirectory), 0.0);
-            if(specularRate != 0.0 && shininess != 0.0) {
-                specularRate = pow(specularRate, shininess);
-            } else {
-                specularRate = 0.0;
-            }
-
-            float shadow = 0.0;
-            if(LightSources.lights[i].type == 1) { // Directional light
-                shadow = ShadowCalculationDirectional(i, fragPos, precise_view_z, normal);
-            } else if (LightSources.lights[i].type == 2){ // Point light
-                float point_bias = 0.005;
-                shadow = ShadowCalculationPoint(fragPos, point_bias, viewDistance, i);
-            }
-
-            directLighting += ((1.0 - shadow) * (diffuseRate + specularRate) * LightSources.lights[i].color);
-            lightAmbient += LightSources.lights[i].ambient;
-        }
-    }
-
-    vec3 totalAmbient = materialAmbient + lightAmbient;
-    vec3 fullyLitColor = (directLighting + totalAmbient) * albedo;
+    vec3 totalAmbient = materialAmbient;
     vec3 occludedAmbient = totalAmbient * ssao;
     finalColor = vec4(fullyLitColor - occludedAmbient, 1.0);
     gl_FragDepth = depth;
