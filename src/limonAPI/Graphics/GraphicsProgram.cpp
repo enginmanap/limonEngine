@@ -10,7 +10,7 @@ GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& 
         assetManager(assetManager), graphicsWrapper(assetManager->getGraphicsWrapper()), materialRequired(false) {
     graphicsProgramAsset = assetManager->loadAsset<GraphicsProgramAsset>({vertexShader, fragmentShader});
     GraphicsProgramPreprocessor::preprocess(this, assetManager->getGraphicsWrapper()->getContextInformation().shaderHeader, assetManager->getGraphicsWrapper()->getOptions()->getAllOptions());
-    programID = graphicsWrapper->createGraphicsProgram(vertexShaderContent, "", fragmentShaderContent);
+    programID = graphicsWrapper->createGraphicsProgram(vertexShaderContent, graphicsProgramAsset->getVertexShaderFile(), "", "", fragmentShaderContent, graphicsProgramAsset->getFragmentShaderFile());
     graphicsProgramAsset->lateInitialize(programID);
     this->setMaterialRequired();
     if(materialRequired) {
@@ -27,7 +27,7 @@ GraphicsProgram::GraphicsProgram(AssetManager* assetManager, const std::string& 
 
     GraphicsProgramPreprocessor::preprocess(this, assetManager->getGraphicsWrapper()->getContextInformation().shaderHeader, assetManager->getGraphicsWrapper()->getOptions()->getAllOptions());
 
-    programID = graphicsWrapper->createGraphicsProgram(vertexShaderContent, geometryShaderContent, fragmentShaderContent);
+    programID = graphicsWrapper->createGraphicsProgram(vertexShaderContent, graphicsProgramAsset->getVertexShaderFile(), geometryShaderContent, graphicsProgramAsset->getGeometryShaderFile(), fragmentShaderContent, graphicsProgramAsset->getFragmentShaderFile());
     graphicsProgramAsset->lateInitialize(programID);
     this->setMaterialRequired();
     if(materialRequired) {

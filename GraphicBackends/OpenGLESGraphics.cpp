@@ -12,7 +12,7 @@ std::shared_ptr<GraphicsInterface> createGraphicsBackend(OptionsUtil::Options* o
     return std::make_shared<OpenGLESGraphics>(options);
 }
 
-GLuint OpenGLESGraphics::createShader(GLenum eShaderType, const std::string &strShaderContent) {
+GLuint OpenGLESGraphics::createShader(GLenum eShaderType, const std::string &strShaderContent, const std::string& shaderName) {
     GLuint shader = glCreateShader(eShaderType);
 
     const char *shaderCodePtr = strShaderContent.c_str();
@@ -46,8 +46,10 @@ GLuint OpenGLESGraphics::createShader(GLenum eShaderType, const std::string &str
             default: break;
         }
 
-        std::cerr << strShaderType << " type shader " << strShaderContent.c_str() << " could not be compiled:\n" <<
-                  strInfoLog << std::endl;
+        std::cerr << "File: " << shaderName << "\n"
+                  << strShaderType << " type shader could not be compiled:\n"
+                  << strInfoLog << "\n--- Shader Code ---\n"
+                  << GraphicsInterface::formatShaderCode(strShaderContent) << std::endl;
         delete[] strInfoLog;
 
     }
@@ -88,15 +90,15 @@ GLuint OpenGLESGraphics::createProgram(const std::vector<GLuint> &shaderList) {
     return program;
 }
 
-uint32_t OpenGLESGraphics::createGraphicsProgram(const std::string &vertexShaderContent, const std::string &geometryShaderContent, const std::string &fragmentShaderContent) {
+uint32_t OpenGLESGraphics::createGraphicsProgram(const std::string &vertexShaderContent, const std::string &vertexShaderName, const std::string &geometryShaderContent, const std::string &geometryShaderName, const std::string &fragmentShaderContent, const std::string &fragmentShaderName) {
     GLuint program;
     std::vector<GLuint> shaderList;
     checkErrors("before create shaders");
-    shaderList.push_back(createShader(GL_VERTEX_SHADER, vertexShaderContent));
+    shaderList.push_back(createShader(GL_VERTEX_SHADER, vertexShaderContent, vertexShaderName));
     if(!geometryShaderContent.empty()){
-        shaderList.push_back(createShader(GL_GEOMETRY_SHADER, geometryShaderContent));
+        shaderList.push_back(createShader(GL_GEOMETRY_SHADER, geometryShaderContent, geometryShaderName));
     }
-    shaderList.push_back(createShader(GL_FRAGMENT_SHADER, fragmentShaderContent));
+    shaderList.push_back(createShader(GL_FRAGMENT_SHADER, fragmentShaderContent, fragmentShaderName));
 
     program = createProgram(shaderList);
     std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);

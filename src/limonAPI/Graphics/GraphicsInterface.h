@@ -21,6 +21,8 @@
 
 #include "limonAPI/Options.h"
 #include "Uniform.h"
+#include <sstream>
+#include <iomanip>
 
 class Material;
 
@@ -63,8 +65,19 @@ protected:
                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) = 0;
 
     //Should be used by GraphicsProgramOnly
-    virtual uint32_t createGraphicsProgram(const std::string &vertexShaderContent, const std::string &geometryShaderContent, const std::string &fragmentShaderContent) = 0;
+    virtual uint32_t createGraphicsProgram(const std::string &vertexShaderContent, const std::string &vertexShaderName, const std::string &geometryShaderContent, const std::string &geometryShaderName, const std::string &fragmentShaderContent, const std::string &fragmentShaderName) = 0;
 public:
+
+    static std::string formatShaderCode(const std::string& shaderCode) {
+        std::istringstream shaderStream(shaderCode);
+        std::ostringstream formattedStream;
+        std::string line;
+        int lineNum = 1;
+        while (std::getline(shaderStream, line)) {
+            formattedStream << std::setw(4) << lineNum++ << " | " << line << "\n";
+        }
+        return formattedStream.str();
+    }
 
     struct ContextInformation {
         int SDL_GL_ACCELERATED_VISUAL = 1;

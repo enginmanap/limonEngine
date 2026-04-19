@@ -296,7 +296,7 @@ private:
 #endif
     }
 
-    GLuint createShader(GLenum, const std::string &);
+    GLuint createShader(GLenum eShaderType, const std::string &strShaderContent, const std::string& shaderName);
 
     GLuint createProgram(const std::vector<GLuint> &);
 
@@ -338,7 +338,7 @@ protected:
     void loadTextureData(uint32_t textureID, int height, int width, TextureTypes type, InternalFormatTypes internalFormat, FormatTypes format, DataTypes dataType, uint32_t depth,
                          void *data, void *data2, void *data3, void *data4, void *data5, void *data6) override;
 
-    uint32_t createGraphicsProgram(const std::string &vertexShaderContent, const std::string &geometryShaderFileContent, const std::string &fragmentShaderFileContent) override;
+    uint32_t createGraphicsProgram(const std::string &vertexShaderContent, const std::string &vertexShaderName, const std::string &geometryShaderFileContent, const std::string &geometryShaderFileName, const std::string &fragmentShaderFileContent, const std::string &fragmentShaderFileName) override;
 
 public:
 
