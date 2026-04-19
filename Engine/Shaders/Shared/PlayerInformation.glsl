@@ -1,3 +1,5 @@
+#ifndef PLAYER_INFORMATION_UBO
+#define PLAYER_INFORMATION_UBO
 layout (std140) uniform PlayerTransformBlock {
     mat4 camera;
     mat4 projection;
@@ -10,3 +12,4 @@ layout (std140) uniform PlayerTransformBlock {
     vec2 noiseScale;
     int time;
 } playerTransforms;
+#endif

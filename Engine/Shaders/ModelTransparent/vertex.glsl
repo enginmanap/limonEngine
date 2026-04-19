@@ -1,7 +1,7 @@
 
 #define_option maximumPointLights
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
-#import <./Engine/Shaders/Shared/ModelRendering.vertex>
+#import <./Engine/Shaders/Shared/ModelRendering.vert>
 
 layout (location = 2) in vec4 position;
 layout (location = 3) in vec2 textureCoordinate;

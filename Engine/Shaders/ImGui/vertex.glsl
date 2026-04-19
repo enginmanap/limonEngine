@@ -1,7 +1,7 @@
 
 #define_option maximumPointLights
 #import <./Engine/Shaders/Shared/PlayerInformation.glsl>
-#import <./Engine/Shaders/Shared/ModelRendering.vertex>
+#import <./Engine/Shaders/Shared/ModelRendering.vert>
 
 uniform mat4 ProjMtx;
 layout (location = 2) in vec4 position;

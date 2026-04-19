@@ -21,8 +21,10 @@ void GraphicsProgramPreprocessor::preprocess(GraphicsProgram *graphicsProgram, c
             continue;
         }
         shaderContents[i] = readShaderCode(shaderFiles[i]);
-        replaceDefinitions(shaderContents[i], variablesMap);
+        // Process includes first to create a single source string
         replaceIncludes(shaderFiles[i], shaderContents[i]);
+        // Then, process definitions on the complete source
+        replaceDefinitions(shaderContents[i], variablesMap);
         addHeader(headerString, shaderContents[i]);
     }
     graphicsProgram->setVertexShaderContent(shaderContents[0]);
@@ -54,15 +56,39 @@ std::string GraphicsProgramPreprocessor::readShaderCode(const std::string& shade
 
 void GraphicsProgramPreprocessor::replaceIncludes(const std::string &currentShaderFile, std::string &shaderCode) {
     std::regex relativeImportPattern("\\n#import \\\"([^\\\"]*)\\\"\\n");
-    //there is a match, we should determine the current path because this pattern is relative
-    size_t lastIndex = currentShaderFile.find_last_of('/');
-    std::string currentPath;
-    if(lastIndex != std::string::npos) {
-        currentPath = currentShaderFile.substr(0, lastIndex+1);
-    }
-    replaceImportPattern(shaderCode, relativeImportPattern, currentPath);
     std::regex rootImportPattern("\\n#import \\<([^\\>]*)\\>\\n");
-    replaceImportPattern(shaderCode, rootImportPattern, "");//root is not calculated in this case
+
+    while (true) {
+        std::smatch matches;
+        bool found = false;
+
+        if (std::regex_search(shaderCode, matches, relativeImportPattern)) {
+            size_t lastIndex = currentShaderFile.find_last_of('/');
+            std::string currentPath;
+            if(lastIndex != std::string::npos) {
+                currentPath = currentShaderFile.substr(0, lastIndex+1);
+            }
+            std::string importfile = matches[1].str();
+            std::string importedShaderCode = readShaderCode(currentPath + importfile);
+            if (!importedShaderCode.empty()) {
+                importedShaderCode += "\n";
+            }
+            shaderCode.replace(matches[0].first, matches[0].second, importedShaderCode);
+            found = true;
+        } else if (std::regex_search(shaderCode, matches, rootImportPattern)) {
+            std::string importfile = matches[1].str();
+            std::string importedShaderCode = readShaderCode(importfile);
+            if (!importedShaderCode.empty()) {
+                importedShaderCode += "\n";
+            }
+            shaderCode.replace(matches[0].first, matches[0].second, importedShaderCode);
+            found = true;
+        }
+
+        if (!found) {
+            break;
+        }
+    }
 }
 
 void GraphicsProgramPreprocessor::replaceDefinitions(std::string &shaderCode, const std::unordered_map<std::string, std::shared_ptr<LimonTypes::GenericParameter>>& variablesMap) {
@@ -80,7 +106,7 @@ void GraphicsProgramPreprocessor::replaceDefinitions(std::string &shaderCode, co
                     //this contains [ and ], it needs to be removed to be used in shaders
                     optionStringValue = optionStringValue.substr(1, optionStringValue.length() - 2);
                 }
-                shaderCode.replace(matches[0].first, matches[0].second, "\n#define " + optionName + " " + optionStringValue + "\n");
+                shaderCode.replace(matches[0].first, matches[0].second, "\n#ifndef "+optionName+"\n#define " + optionName + " " + optionStringValue + "\n#endif\n");
             } else {
                 //option not found, remove the whole line
                 shaderCode.replace(matches[0].first, matches[0].second, "\n");
@@ -88,21 +114,6 @@ void GraphicsProgramPreprocessor::replaceDefinitions(std::string &shaderCode, co
         }
     }
 
-}
-
-void GraphicsProgramPreprocessor::replaceImportPattern(std::string &shaderCode, std::regex &importPattern, const std::string &currentPath) {
-    std::smatch matches;
-    while(std::regex_search(shaderCode, matches, importPattern)) {//while because changing the shader code invalidates the matches
-        if (matches.size() > 1) {
-            std::string importfile = matches[1].str();
-            std::string importedShaderCode = readShaderCode(currentPath + importfile);
-            if (!importedShaderCode.empty()) {
-                importedShaderCode += "\n";//we add a new line incase the file ends without one
-            }
-            //now put the imported code in to the actual shader code
-            shaderCode.replace(matches[0].first, matches[0].second, importedShaderCode);
-        }
-    }
 }
 
 void GraphicsProgramPreprocessor::addHeader(const std::string &headerString, std::string &shaderCode) {
