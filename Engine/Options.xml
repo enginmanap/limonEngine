@@ -388,4 +388,12 @@
         <IsSet>True</IsSet>
         <Index>0</Index>
     </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>StartingRenderPipeline</Description>
+        <Value>./Engine/forward_renderPipeline.xml</Value>
+        <valueType>String</valueType>
+        <IsSet>True</IsSet>
+        <Index>0</Index>
+    </Parameter>
 </Options>
