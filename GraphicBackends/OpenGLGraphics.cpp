@@ -1402,13 +1402,11 @@ OpenGLGraphics::loadTextureData(uint32_t textureID, int height, int width, Textu
             break;
     }
 
-    if (internalFormat != InternalFormatTypes::RGB32F && 
-        internalFormat != InternalFormatTypes::RGBA32F && 
-        internalFormat != InternalFormatTypes::R32F &&
-        internalFormat != InternalFormatTypes::RGB16F &&
-        internalFormat != InternalFormatTypes::RGBA16F &&
-        internalFormat != InternalFormatTypes::DEPTH) {
+    if (dataType != DataTypes::FLOAT && internalFormat != InternalFormatTypes::DEPTH) {
         glGenerateMipmap(glTextureType);
+    } else {
+        glTexParameteri(glTextureType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(glTextureType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     }
     glBindTexture(glTextureType, 0);
 
