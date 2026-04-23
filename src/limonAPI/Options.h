@@ -32,6 +32,9 @@ namespace OptionsUtil {
             std::vector<long>* longValues = nullptr;
             std::vector<float>* floatValues = nullptr;
             explicit Option(const std::shared_ptr<LimonTypes::GenericParameter> &value, bool isSet) : value(value), isSet(isSet) {
+                if (value == nullptr && !isSet) {
+                    return;
+                }
                 if(value->valueType == LimonTypes::GenericParameter::LONG_ARRAY) {
                     longValues = new std::vector<long>();
                     longValues->reserve(value->value.longValues[0]);
