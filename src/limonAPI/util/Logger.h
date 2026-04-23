@@ -8,6 +8,7 @@
 //THIS FILE SHOULD NOT INCLUDE ANY LOCAL CLASSES
 #include <string>
 #include <deque>
+#include <map>
 #include <glm/glm.hpp>
 
 struct Line {
