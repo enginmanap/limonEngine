@@ -15,6 +15,7 @@
 #include "limonAPI/LimonAPI.h"
 #include "GameObjects/Sound.h"
 #include "limonAPI/ActorInterface.h"
+#include "Profiler/ProfilerSystem.h"
 
 class World;
 class GraphicsInterface;
@@ -40,6 +41,7 @@ private:
     ALHelper *alHelper;
     std::shared_ptr<AssetManager> assetManager;
     InputHandler* inputHandler;
+    ProfilerSystem* profilerSystem;
 
     World *loadMapFromXML(const std::string &worldFileName, LimonAPI *limonAPI) const;
     bool loadObjectGroupsFromXML(tinyxml2::XMLNode *worldNode, World *world, LimonAPI *limonAPI,
@@ -59,7 +61,7 @@ private:
     void attachedAPIMethodsToWorld(World *world, LimonAPI *limonAPI) const;
 
 public:
-    WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options);
+    WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem);
 
     std::unique_ptr<std::string> getLoadingImage(const std::string &worldFile) const;
 

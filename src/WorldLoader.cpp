@@ -29,12 +29,13 @@
 #include "GameObjects/ModelGroup.h"
 #include "GamePlay/APISerializer.h"
 
-WorldLoader::WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options) :
+WorldLoader::WorldLoader(std::shared_ptr<AssetManager> assetManager, InputHandler *inputHandler, OptionsUtil::Options *options, ProfilerSystem* profilerSystem) :
         options(options),
         graphicsWrapper(assetManager->getGraphicsWrapper()),
         alHelper(assetManager->getAlHelper()),
         assetManager(assetManager),
-        inputHandler(inputHandler)
+        inputHandler(inputHandler),
+        profilerSystem(profilerSystem)
 {}
 
 World * WorldLoader::loadWorld(const std::string &worldFile, LimonAPI *limonAPI) const {
@@ -223,7 +224,7 @@ World * WorldLoader::loadMapFromXML(const std::string &worldFileName, LimonAPI *
         }
     }
 
-    World* world = new World(std::string(worldName->GetText()), startingPlayer, inputHandler, assetManager, options);
+    World* world = new World(std::string(worldName->GetText()), startingPlayer, inputHandler, assetManager, options, profilerSystem);
 
     attachedAPIMethodsToWorld(world, limonAPI);
     world->loadingImage = loadingImageStr;
@@ -1384,7 +1385,7 @@ bool WorldLoader::loadGPUParticleEmitters(tinyxml2::XMLNode *GPUEmittersNode, Wo
             } else {
                 std::cerr << "GPU Particle Emitter SpeedOffset missing y." << std::endl;
             }
-            emitterAttributeAttributeElement = emitterAttributeElement->FirstChildElement("Z");
+            emitterAttributeAttributeElement = emitterAttributeAttributeElement->FirstChildElement("Z");
             if (emitterAttributeAttributeElement != nullptr) {
                 speedOffset.z = std::stof(emitterAttributeAttributeElement->GetText());
             } else {

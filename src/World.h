@@ -29,6 +29,7 @@ static const int SKIP_LOD_LEVEL = 9999;
 #include "PhysicalRenderable.h"
 #include "VisibilityRequest.h"
 #include "GameObjects/Model.h"
+#include "Profiler/ProfilerSystem.h"
 
 class Editor;
 class btGhostPairCallback;
@@ -206,6 +207,7 @@ private:
     std::shared_ptr<AssetManager> assetManager;
     std::unique_ptr<Editor> editor;
     OptionsUtil::Options* options;
+    ProfilerSystem* profilerSystem;
     uint32_t nextWorldID = 2;
     uint32_t nextRigID = 1;
     std::queue<uint32_t> unusedIDs;
@@ -344,7 +346,7 @@ private:
     void setupRenderForPipeline() const;
 
     World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
-          std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options);
+          std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem);
 
     void afterLoadFinished();
 

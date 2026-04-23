@@ -36,8 +36,10 @@
 #include "Occlusion/RenderList.h"
 #include "snapdragon-oc/Source/app/FuzzyCulling/API/SDOCAPI.h"
 #include "Occlusion/VisibilityManager.h"
+#include "Profiler/ProfilerMacros.h"
+#include "Editor/ProfilerUI.h"
 
-   const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
+const std::map<World::PlayerInfo::Types, std::string> World::PlayerInfo::typeNames =
     {
             { Types::PHYSICAL_PLAYER, "Physical"},
             { Types::DEBUG_PLAYER, "Debug"},
@@ -49,8 +51,8 @@ void World::setupRenderForPipeline() const {
 }
 
 World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandler *inputHandler,
-                std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options)
-        : assetManager(assetManager), options(options),
+                std::shared_ptr<AssetManager> assetManager, OptionsUtil::Options *options, ProfilerSystem* profilerSystem)
+        : assetManager(assetManager), options(options), profilerSystem(profilerSystem),
         graphicsWrapper(assetManager->getGraphicsWrapper()), alHelper(assetManager->getAlHelper()), name(name),
         fontManager(graphicsWrapper), startingPlayer(startingPlayerType) {
     editor = std::make_unique<Editor>(this);
@@ -214,7 +216,7 @@ World::World(const std::string &name, PlayerInfo startingPlayerType, InputHandle
   * @return
   */
  void World::play(Uint32 simulationTimeFrame, InputHandler &inputHandler, uint64_t wallTime) {
-
+    PROFILE_SIMULATION("World::play");
      editor->update(inputHandler);
 
      this->wallTime = wallTime;

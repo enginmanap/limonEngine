@@ -396,4 +396,12 @@
         <IsSet>True</IsSet>
         <Index>0</Index>
     </Parameter>
+    <Parameter>
+        <RequestType>FreeText</RequestType>
+        <Description>Profiler.EnableServer</Description>
+        <Value>True</Value>
+        <valueType>Boolean</valueType>
+        <IsSet>False</IsSet>
+        <Index>0</Index>
+    </Parameter>
 </Options>

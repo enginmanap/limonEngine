@@ -67,6 +67,25 @@ if (NOT LIBS_EXTERNAL_BULLET)
 
 endif()
 
+set(TRACY_ON_DEMAND ON CACHE BOOL "Enable on-demand profiling" FORCE)
+add_subdirectory("libs/tracy")
+include("libs/tracy/cmake/vendor.cmake")
+include("libs/tracy/cmake/server.cmake")
+
+# TracyServer and PPQSort heavily depend on C++20 standard library features
+if(TARGET TracyServer)
+    set_target_properties(TracyServer PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
+endif()
+
+# We need to compile ProfilerSystem.cpp with C++20 because it includes TracyWorker.hpp, which uses C++20.
+# LimonEngine is C++17, so we isolate this file into its own static library.
+add_library(ProfilerSystemLib STATIC ${CMAKE_SOURCE_DIR}/src/Profiler/ProfilerSystem.cpp)
+set_target_properties(ProfilerSystemLib PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
+target_include_directories(ProfilerSystemLib PRIVATE ${CMAKE_SOURCE_DIR}/libs/tracy/server ${CMAKE_SOURCE_DIR}/libs ${CMAKE_SOURCE_DIR}/libs/Cereal/include ${CMAKE_SOURCE_DIR}/src)
+target_compile_definitions(ProfilerSystemLib PRIVATE -DGLM_ENABLE_EXPERIMENTAL -DGLM_FORCE_SILENT_WARNINGS -DASSIMP_VALIDATE_WORKAROUND -DCEREAL_SUPPORT -DTICK_PER_SECOND=60 -DMAX_PYTHON_SCRIPT_COUNT=64 -DPYTHON_DEBUGGING -DSDOC_STATIC -DGLM_FORCE_ALIGNED_GTC -DTRACY_ENABLE -DTRACY_ON_DEMAND)
+target_link_libraries(ProfilerSystemLib PUBLIC TracyServer)
+
+
 include_directories("libs/Cereal/include/")
 
 #we don't want to build and run gtest suite for consthash, and thats what cmake for it does.

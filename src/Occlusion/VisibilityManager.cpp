@@ -4,6 +4,7 @@
 #include "Graphics/GraphicsPipeline.h"
 #include "GameObjects/Model.h"
 #include "GameObjects/Players/Player.h"
+#include "../Profiler/ProfilerMacros.h"
 
 VisibilityManager::VisibilityManager(World* world) : world(world) {
     OptionsUtil::Options::Option<bool> multiThreadCullingOption = world->options->getOption<bool>(HASH("multiThreadedCulling"));
@@ -25,6 +26,7 @@ VisibilityManager::~VisibilityManager() {
 }
 
 void VisibilityManager::update() {
+    PROFILE_VISIBILITY("VisibilityManager::update");
     fillVisibleObjectsUsingTags();
 }
 

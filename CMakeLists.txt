@@ -11,6 +11,12 @@ add_definitions(-DMAX_PYTHON_SCRIPT_COUNT=64)
 add_definitions(-DPYTHON_DEBUGGING)
 add_definitions(-DSDOC_STATIC)
 add_definitions(-DGLM_FORCE_ALIGNED_GTC)
+add_definitions(-DTRACY_ENABLE)
+
+option(TRACY_SERVER_ENABLED "Enable the embedded Tracy server" ON)
+if(TRACY_SERVER_ENABLED)
+    add_definitions(-DTRACY_SERVER_ENABLED)
+endif()
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -30,9 +36,13 @@ ENDFUNCTION()
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 #include(cotire)
 
+# Use CMake's standard way to set C++ version
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
-        set(SIMD_FLAGS "-msse4.1")
+        set(SIMD_FLAGS "-msse4.1 -mlzcnt")
     elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
         # For 32-bit arm, neon is optional
         set(SIMD_FLAGS "-mfpu=neon")
@@ -43,11 +53,11 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 IF (WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -mconsole -Wall -Wextra -Wnon-virtual-dtor -pedantic -fdiagnostics-all-candidates ${SIMD_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mconsole -Wall -Wextra -Wnon-virtual-dtor -pedantic -fdiagnostics-all-candidates ${SIMD_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld ${CMAKE_EXE_LINKER_FLAGS}")
     set(WINDOWS_SPECIFIC_LINK_LIBRARIES "imm32")
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Wall -Wextra -Wnon-virtual-dtor -pedantic ${SIMD_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wnon-virtual-dtor -pedantic ${SIMD_FLAGS}")
 ENDIF()
 
 IF (UNIX AND ${CMAKE_VERSION} VERSION_GREATER "3.11.0")
@@ -101,8 +111,8 @@ include(libs/CmakeLists.txt)
 include_directories(libs/ImGui)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
-file(GLOB_RECURSE SOURCE_FILES
-        src/*.cpp)
+file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
+list(FILTER SOURCE_FILES EXCLUDE REGEX "ProfilerSystem\\.cpp$")
 
 add_executable(LimonEngine ${SOURCE_FILES})
 
@@ -205,7 +215,7 @@ add_custom_target(copyData
         ${CMAKE_SOURCE_DIR}/Engine ${CMAKE_BINARY_DIR}/Engine)
 add_dependencies(LimonEngine copyData)
 
-TARGET_LINK_LIBRARIES(LimonEngine ImGui ImGuizmo OpenAL meshoptimizer nodeGraph assimp pybind11::embed SDOC.quic ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES})
+TARGET_LINK_LIBRARIES(LimonEngine ProfilerSystemLib ImGui ImGuizmo OpenAL meshoptimizer nodeGraph assimp pybind11::embed SDOC.quic TracyClient TracyServer ${WINDOWS_SPECIFIC_LINK_LIBRARIES} ${TinyXML2_LIBRARIES} ${BULLET_LIBRARIES} ${SDL2_LIBRARY} ${FREETYPE_LIBRARIES} ${SDL2_IMAGE_LIBRARIES})
 target_precompile_headers(LimonEngine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/stdafx.h)
 
 IF (WIN32)

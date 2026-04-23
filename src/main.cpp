@@ -9,7 +9,9 @@
 #include "WorldLoader.h"
 #include "GameObjects/GUIImage.h"
 #include "Python/ScriptManager.h"
+#include "Profiler/ProfilerSystem.h"
 #include <pthread.h>
+#include "Profiler/ProfilerMacros.h"
 
 const std::string PROGRAM_NAME = "LimonEngine";
 const std::string RELEASE_FILE = "./Data/Release.xml";
@@ -147,6 +149,7 @@ GameEngine::GameEngine() {
 
     options->loadOptionsNew(OPTIONS_FILE);
     std::cout << "Options loaded successfully" << std::endl;
+    profilerSystem = new ProfilerSystem(options);
 
     sdlHelper = new SDL2Helper(options);
 
@@ -208,7 +211,7 @@ GameEngine::GameEngine() {
     inputHandler = new InputHandler(sdlHelper->getWindow(), options);
     assetManager = std::make_shared<AssetManager>(graphicsWrapper.get(), alHelper);
 
-    worldLoader = new WorldLoader(assetManager, inputHandler, options);
+    worldLoader = new WorldLoader(assetManager, inputHandler, options, profilerSystem);
 }
 
 LimonAPI *GameEngine::getNewLimonAPI() {
@@ -233,6 +236,7 @@ void GameEngine::run() {
     previousGameTime = SDL_GetTicks64();
     uint64_t currentGameTime, frameTime, accumulatedTime = 0;
     while (!worldQuit) {
+        PROFILE_OVERALL("Frame");
         currentGameTime = SDL_GetTicks64();
         frameTime = currentGameTime - previousGameTime;
         previousGameTime = currentGameTime;
@@ -249,6 +253,8 @@ void GameEngine::run() {
         currentWorld->setupRender();
         currentWorld->render();
         sdlHelper->swap();
+        if (profilerSystem) profilerSystem->Update();
+        PROFILE_FRAME();
     }
 }
 
@@ -267,6 +273,7 @@ GameEngine::~GameEngine() {
     delete alHelper;
     graphicsWrapper = nullptr;//FIXME this should be part of SdlHelper, because it is created and deleted by it. now it is order dependent because if it.
     delete sdlHelper;
+    delete profilerSystem;
     delete options;
 }
 
