@@ -145,6 +145,7 @@ void ProfilerSystem::Update() {
     collectZoneTime("Frame", ProfilerState::traceOverallFrameTime);
     collectZoneTime("World::play", ProfilerState::traceSimulation);
     collectZoneTime("VisibilityManager::update", ProfilerState::traceVisibility);
+    collectZoneTime("Render", ProfilerState::traceRendering);
 #endif
 }
 
@@ -268,10 +269,20 @@ float ProfilerSystem::GetZonePercentileFrameTime(const std::string& name, float 
     for(size_t i = 0; i < count; ++i) {
         sorted.push_back(zone_history[(head + i) % frameTimeHistorySize]);
     }
-    std::ranges::sort(sorted);
-    size_t index = static_cast<size_t>(sorted.size() * percentile);
-    if (index >= sorted.size()) index = sorted.size() - 1;
-    return sorted[index];
+    std::ranges::sort(sorted, std::greater<float>()); // Sort descending to get the slowest frames
+
+    // We want the average of the slowest `percentile` fraction of frames
+    size_t numSlowest = static_cast<size_t>(std::ceil(sorted.size() * percentile));
+    if (numSlowest == 0) {
+        return sorted[0]; // If percentile is very small, just return the absolute slowest
+    }
+
+    float sum = 0.0f;
+    for (size_t i = 0; i < numSlowest; ++i) {
+        sum += sorted[i];
+    }
+
+    return sum / numSlowest;
 #else
     return 0.0f;
 #endif

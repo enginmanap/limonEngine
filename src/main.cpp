@@ -250,8 +250,11 @@ void GameEngine::run() {
             accumulatedTime -= worldUpdateTime;
         }
         graphicsWrapper->clearFrame();
-        currentWorld->setupRender();
-        currentWorld->render();
+        {
+            PROFILE_RENDERING("Render");
+            currentWorld->setupRender();
+            currentWorld->render();
+        }
         sdlHelper->swap();
         if (profilerSystem) profilerSystem->Update();
         PROFILE_FRAME();

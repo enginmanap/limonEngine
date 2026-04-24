@@ -65,6 +65,20 @@ namespace ProfilerUI {
                         ImGui::Text("Collecting visibility data...");
                     }
                 }
+
+                if (ProfilerState::traceRendering) {
+                    const auto& render_times = profilerSystem->GetZoneTimeHistory("Render");
+                    if (!render_times.empty()) {
+                        ImGui::PlotLines("Render Times (ms)", render_times.data(), static_cast<int>(render_times.size()), 0, nullptr, 0.0f, 30.0f, ImVec2(0, 80));
+                        ImGui::Text("Render Time:");
+                        ImGui::Text("  Average: %.3f ms", profilerSystem->GetZoneAverageFrameTime("Render"));
+                        ImGui::Text("  Min: %.3f ms", profilerSystem->GetZoneMinFrameTime("Render"));
+                        ImGui::Text("  Max: %.3f ms", profilerSystem->GetZoneMaxFrameTime("Render"));
+                        ImGui::Text("  1%% Low: %.3f ms", profilerSystem->GetZonePercentileFrameTime("Render", 0.01f));
+                    } else {
+                        ImGui::Text("Collecting render data...");
+                    }
+                }
             }
         }
 #endif
