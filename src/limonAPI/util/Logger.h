@@ -9,6 +9,7 @@
 #include <string>
 #include <deque>
 #include <map>
+#include <functional>
 #include <glm/glm.hpp>
 
 struct Line {
