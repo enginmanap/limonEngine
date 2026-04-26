@@ -178,7 +178,7 @@ namespace LimonTypes {
                     if (size > 0) {
                         valueString += std::to_string(value.floatValues[1]);
                     }
-                    for (long i = 1; i < size -1; ++i) {
+                    for (long i = 2; i < size; ++i) {
                         valueString += ", " + std::to_string(value.floatValues[i]);
                     }
                     valueString += "]";

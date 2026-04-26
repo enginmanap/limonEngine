@@ -273,7 +273,7 @@ APISerializer::deserializeParameterRequest(tinyxml2::XMLElement *parameterNode, 
             std::string commaSeperatedParameterString = parameterAttribute->GetText();
             //the parameters are comma separated, separate
             std::size_t commaPosition = commaSeperatedParameterString.find(",");
-            newParameterRequest->value.floatValues[0] = std::stol(commaSeperatedParameterString.substr(0, commaPosition));
+            newParameterRequest->value.floatValues[0] = std::stof(commaSeperatedParameterString.substr(0, commaPosition));
             commaSeperatedParameterString = commaSeperatedParameterString.substr(commaPosition + 1);
             for(long i = 1; i < newParameterRequest->value.floatValues[0]; i++) {
                 std::size_t commaPosition = commaSeperatedParameterString.find(",");
