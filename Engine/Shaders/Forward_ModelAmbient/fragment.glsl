@@ -27,7 +27,8 @@ void main(void) {
     float precise_view_z = abs(fragPosViewSpace.z);
     float viewDistance = length(playerTransforms.position - from_vs.fragPos);
 
-    vec3 fullyLitColor = calculateLighting(from_vs.fragPos, world_space_normal, albedo.rgb, shininess, materialAmbient, viewDistance, precise_view_z, gl_FragCoord.z);
+    vec3 totalAmbient;
+    vec3 fullyLitColor = calculateLighting(from_vs.fragPos, world_space_normal, albedo.rgb, shininess, materialAmbient, viewDistance, precise_view_z, gl_FragCoord.z, totalAmbient);
 
     finalColor = vec4(fullyLitColor, albedo.a);
 }

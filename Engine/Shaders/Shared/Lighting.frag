@@ -4,7 +4,7 @@
 
 #define_option maximumPointLights
 
-vec3 calculateLighting(vec3 fragPos, vec3 normal, vec3 albedo, float shininess, vec3 materialAmbient, float viewDistance, float precise_view_z, float depth) {
+vec3 calculateLighting(vec3 fragPos, vec3 normal, vec3 albedo, float shininess, vec3 materialAmbient, float viewDistance, float precise_view_z, float depth, out vec3 totalAmbient) {
     vec3 directLighting = vec3(0.0);
     vec3 lightAmbient = vec3(0.0);
     vec3 viewDirectory = normalize(playerTransforms.position - fragPos);
@@ -40,7 +40,7 @@ vec3 calculateLighting(vec3 fragPos, vec3 normal, vec3 albedo, float shininess, 
         }
     }
 
-    vec3 totalAmbient = materialAmbient + lightAmbient;
+    totalAmbient = materialAmbient + lightAmbient;
     vec3 fullyLitColor = (directLighting + totalAmbient) * albedo;
 
     return fullyLitColor;

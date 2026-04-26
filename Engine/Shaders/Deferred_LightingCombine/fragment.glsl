@@ -69,9 +69,9 @@ void main()
     float precise_view_z = abs(view_space_pos.z / view_space_pos.w);
     float viewDistance = length(playerTransforms.position - fragPos);
 
-    vec3 fullyLitColor = calculateLighting(fragPos, normal, albedo, shininess, materialAmbient, viewDistance, precise_view_z, depth);
+    vec3 totalAmbient;
+    vec3 fullyLitColor = calculateLighting(fragPos, normal, albedo, shininess, materialAmbient, viewDistance, precise_view_z, depth, totalAmbient);
 
-    vec3 totalAmbient = materialAmbient;
     vec3 occludedAmbient = totalAmbient * ssao;
     finalColor = vec4(fullyLitColor - occludedAmbient, 1.0);
     gl_FragDepth = depth;
