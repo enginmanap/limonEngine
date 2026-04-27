@@ -42,7 +42,7 @@
     <Parameter>
         <RequestType>FreeText</RequestType>
         <Description>fullScreen</Description>
-        <Value>False</Value>
+        <Value>True</Value>
         <valueType>Boolean</valueType>
         <IsSet>True</IsSet>
         <Index>2</Index>
@@ -391,7 +391,7 @@
     <Parameter>
         <RequestType>FreeText</RequestType>
         <Description>GraphicsBackend</Description>
-        <Value>libOpenGLGraphicsBackend</Value>
+        <Value>libOpenGLESGraphicsBackend</Value>
         <valueType>String</valueType>
         <IsSet>True</IsSet>
         <Index>0</Index>

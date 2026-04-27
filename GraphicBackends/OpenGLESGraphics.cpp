@@ -356,6 +356,8 @@ OpenGLESGraphics::ContextInformation OpenGLESGraphics::getContextInformation() {
                                       "precision highp sampler2D;\n"
                                       "precision highp sampler2DArray;\n"
                                       "precision highp samplerCubeArray;\n"
+                                      "precision highp sampler2DArrayShadow;\n"
+                                      "precision highp samplerCubeArrayShadow;\n"
                                       "precision highp int;";
     return contextInformation;
 }
